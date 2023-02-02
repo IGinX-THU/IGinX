@@ -120,7 +120,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
 
     private boolean isMaster = false;
 
-    private final int STORAGE_ENGINE_NODE_NUM_LENGTH = 10;
+    private final int STORAGE_ENGINE_NODE_NUM_LENGTH = 10; // Default serial number length of the persistent node
 
     private static ZooKeeperMetaStorage INSTANCE = null;
 
@@ -181,6 +181,10 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
             }
         }
         return INSTANCE;
+    }
+
+    private String generateID(String prefix, long idLength, long val) {
+        return String.format(prefix + "%0" + idLength + "d", (int) val);
     }
 
     @Override
@@ -470,7 +474,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
         try { // node0000000002 STORAGE_ENGINE_NODE_NUM_LENGTH
             mutex.acquire();
             String tmp = new String(JsonUtils.toJson(storageEngine));
-            String nodeName = String.format(STORAGE_ENGINE_NODE + "%0" + STORAGE_ENGINE_NODE_NUM_LENGTH + "d", (int) storageID);
+            String nodeName = generateID(STORAGE_ENGINE_NODE, STORAGE_ENGINE_NODE_NUM_LENGTH, storageID);
             this.client.setData()
                     .forPath(nodeName, tmp.getBytes());
             return true;
