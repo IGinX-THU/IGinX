@@ -1,6 +1,6 @@
 # The IGinX Polystore System
 
-IGinX is an open source polystore system. A polystore system provides an integrated data management service over a set of one or more potentially heterogeneous database/storage engines, serving heterogeneous workloads.
+[IGinX](https://github.com/THUIGinX/IGinX) is an open source polystore system. A polystore system provides an integrated data management service over a set of one or more potentially heterogeneous database/storage engines, serving heterogeneous workloads.
 
 ## Overview
 
