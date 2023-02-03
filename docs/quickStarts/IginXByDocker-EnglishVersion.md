@@ -1,12 +1,14 @@
-# IginX Installation and Use Manual (By Docker)
+# IGinX Installation and Use Manual (By Docker)
 
-IginX is is a new-generation highly scalable time series database distributed middleware, designed to meet industrial Internet scenarios. It was launched by Tsinghua University's National Engineering Laboratory of Big Data System Software. It currently supports IoTDB，InfluxDB as data backends.
+IGinX is an open source polystore system. A polystore system provides an integrated data management service over a set of one or more potentially heterogeneous database/storage engines, serving heterogeneous workloads.
+
+Currently, IGinX directly supports big data service over relational database PostgreSQL, time series databases InfluxDB/IoTDB/TimescaleDB/OpenTSDB, and Parquet data files.
 
 ## Environment Installation
 
 ### Java Installation
 
-Since ZooKeeper, IginX and IoTDB are all developed using Java, Java needs to be installed first. If a running environment of JDK >= 1.8 has been installed locally, **skip this step entirely**.
+Since ZooKeeper, IGinX and IoTDB are all developed using Java, Java needs to be installed first. If a running environment of JDK >= 1.8 has been installed locally, **skip this step entirely**.
 
 1. First, visit the [official Java website] (https://www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html) to download the JDK package for your current system.
 
@@ -137,33 +139,33 @@ Server: Docker Engine - Community
 
 ## Compile the Image
 
-Currently, the docker image of IginX needs to be manually installed locally. First, you need to download the Iginx source code and compile it:
+Currently, the docker image of IGinX needs to be manually installed locally. First, you need to download the IGinX source code and compile it:
 
 ```shell
 $ cd ~
-$ git clone git@github.com:thulab/IginX.git # Pull the latest IginX code
-$ cd IginX
-$ mvn clean install -Dmaven.test.skip=true # Compile IginX
+$ git clone git@github.com:THUIGinX/IGinX.git # Pull the latest IGinX code
+$ cd IGinX
+$ mvn clean install -Dmaven.test.skip=true # Compile IGinX
 ````
 
 If the words above are displayed, it means the installation was successful:
 
 ```shell
 [INFO] --------------------------------------------------------- -------------------------
-[INFO] Reactor Summary for IginX 0.3.0:
+[INFO] Reactor Summary for IGinX 0.6.0-SNAPSHOT:
 [INFO]
-[INFO] IginX ................................................ SUCCESS [0.274s]
-[INFO] IginX Thrift ............................................... SUCCESS [ 6.484 s]
-[INFO] IginX Shared ............................................... SUCCESS [ 1.015 s]
-[INFO] IginX Session ............................................... SUCCESS [ 0.713 s]
-[INFO] IginX Antlr ............................................... SUCCESS [ 1.654 s]
-[INFO] IginX Core ............................................... SUCCESS [ 9.471 s ]
-[INFO] IginX IoTDB ................................................ SUCCESS [ 1.234 s]
-[INFO] IginX InfluxDB ............................................... SUCCESS [ 0.823 s]
-[INFO] IginX Client ............................................... SUCCESS [ 3.045 s]
-[INFO] IginX JDBC ............................................... SUCCESS [ 0.802 s ]
-[INFO] IginX Example ............................................... SUCCESS [ 0.606 s]
-[INFO] IginX Test ............................................... SUCCESS [ 0.116 s ]
+[INFO] IGinX ................................................ SUCCESS [0.274s]
+[INFO] IGinX Thrift ............................................... SUCCESS [ 6.484 s]
+[INFO] IGinX Shared ............................................... SUCCESS [ 1.015 s]
+[INFO] IGinX Session ............................................... SUCCESS [ 0.713 s]
+[INFO] IGinX Antlr ............................................... SUCCESS [ 1.654 s]
+[INFO] IGinX Core ............................................... SUCCESS [ 9.471 s ]
+[INFO] IGinX IoTDB ................................................ SUCCESS [ 1.234 s]
+[INFO] IGinX InfluxDB ............................................... SUCCESS [ 0.823 s]
+[INFO] IGinX Client ............................................... SUCCESS [ 3.045 s]
+[INFO] IGinX JDBC ............................................... SUCCESS [ 0.802 s ]
+[INFO] IGinX Example ............................................... SUCCESS [ 0.606 s]
+[INFO] IGinX Test ............................................... SUCCESS [ 0.116 s ]
 [INFO] --------------------------------------------------------- -------------------------
 [INFO] BUILD SUCCESS
 [INFO] --------------------------------------------------------- -------------------------
@@ -173,7 +175,7 @@ If the words above are displayed, it means the installation was successful:
 
 ````
 
-Then use the maven plugin to build the IginX image:
+Then use the maven plugin to build the IGinX image:
 
 ```shell
 $ mvn package shade:shade -pl core -DskipTests docker:build
@@ -192,7 +194,7 @@ Successfully tagged iginx:latest
 [INFO] --------------------------------------------------------- -------------------------
 ````
 
-You can use the docker command to view the IginX image that has been installed locally:
+You can use the docker command to view the IGinX image that has been installed locally:
 
 ```shell
 $ docker images
@@ -223,7 +225,7 @@ Status: Downloaded newer image for apache/iotdb:0.11.4
 docker.io/apache/iotdb:0.11.4
 ```
 
-Considering that IginX and IoTDB communicated through the network before, it is necessary to establish a Docker network to allow them to be interconnected through the network. Here we create a bridge network called iot:
+Considering that IGinX and IoTDB communicated through the network before, it is necessary to establish a Docker network to allow them to be interconnected through the network. Here we create a bridge network called iot:
 
 ```shell
 $ docker network create -d bridge iot
@@ -235,27 +237,27 @@ Now start an IoTDB instance:
 $ docker run -d --name iotdb --network iot apache/iotdb:0.11.4
 ```
 
-Finally, start IginX, choose to use a local file as the metadata storage backend, and set the backend storage as the IoTDB instance just started to complete the startup of the entire system:
+Finally, start IGinX, choose to use a local file as the metadata storage backend, and set the backend storage as the IoTDB instance just started to complete the startup of the entire system:
 
 ```shell
 $ docker run -e "metaStorage=file" -e "storageEngineList=iotdb#6667#iotdb#sessionPoolSize=20" -p 6888:6888 --network iot -it iginx
 ```
 
-This command will expose the local 6888 port as the communication port to interface with the IginX cluster.
+This command will expose the local 6888 port as the communication port to interface with the IGinX cluster.
 
-After the system is started, you can run the cn.edu.tsinghua.iginx.session.IoTDBSessionExample class in the example directory of the IginX source code, and try to insert/read data into it.
+After the system is started, you can run the cn.edu.tsinghua.iginx.session.IoTDBSessionExample class in the example directory of the IGinX source code, and try to insert/read data into it.
 
-> Parameter settings for the IginX docker version:
+> Parameter settings for the IGinX docker version:
 >
-> Normally, IginX uses a local file as the source of configuration parameters. However, in the latest version of the main branch, environment variables are supported to configure parameters.
+> Normally, IGinX uses a local file as the source of configuration parameters. However, in the latest version of the main branch, environment variables are supported to configure parameters.
 >
-> For example, the parameter port in the configuration file represents the startup port of the system, which is specified as 6888 in the configuration file. Meaning the port exposed by IginX to the outside world is 6888.
+> For example, the parameter port in the configuration file represents the startup port of the system, which is specified as 6888 in the configuration file. Meaning the port exposed by IGinX to the outside world is 6888.
 >
 > ```shell
 > port=6888
 > ```
 > 
-> You can set the environment variable port to other values, such as 6889. In that case, IginX's startup port will be changed to 6889.
+> You can set the environment variable port to other values, such as 6889. In that case, IGinX's startup port will be changed to 6889.
 >
 > ```shell
 > export port=6889

@@ -1,15 +1,16 @@
-# IginX Installation Manual - By Source (Compilation and Installation)
-
+# IGinX Installation Manual - By Source (Compilation and Installation)
 
 [TOC]
 
-IginX is is a new-generation highly scalable time series database distributed middleware, designed to meet industrial Internet scenarios. It was launched by Tsinghua University's National Engineering Laboratory of Big Data System Software. It currently supports IoTDB，InfluxDB as data backends.
+IGinX is an open source polystore system. A polystore system provides an integrated data management service over a set of one or more potentially heterogeneous database/storage engines, serving heterogeneous workloads.
+
+Currently, IGinX directly supports big data service over relational database PostgreSQL, time series databases InfluxDB/IoTDB/TimescaleDB/OpenTSDB, and Parquet data files.
 
 ## Download and Installation
 
 ### Java Installation
 
-Since ZooKeeper, IginX and IoTDB are all developed using Java, Java needs to be installed first. If a running environment of JDK >= 1.8 has been installed locally, **skip this step entirely**.
+Since ZooKeeper, IGinX and IoTDB are all developed using Java, Java needs to be installed first. If a running environment of JDK >= 1.8 has been installed locally, **skip this step entirely**.
 
 1. First, visit the [official Java website] (https://www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html) to download the JDK package for your current system.
 
@@ -96,7 +97,7 @@ $ wget https://mirrors.bfsu.edu.cn/apache/iotdb/0.12.0/apache-iotdb-0.12.0-serve
 $ unzip apache-iotdb-0.12.0-server-bin.zip
 ```
 
-### IginX Installation
+### IGinX Installation
 
 Compile with source code. If you need to modify code yourself, you can use this installation method. 
 
@@ -106,25 +107,25 @@ Fetch the latest development version and build it locally.
 
 ```shell
 $ cd ~
-$ git clone git@github.com:thulab/IginX.git
-$ cd IginX
+$ git clone git@github.com:THUIGinX/IGinX.git
+$ cd IGinX
 $ mvn clean install -Dmaven.test.skip=true
 $ mvn package -pl core -Dmaven.test.skip=true
 ```
 
-The following words are displayed, indicating that the IginX build is successful:
+The following words are displayed, indicating that the IGinX build is successful:
 
 ```shell
-[INFO] Reactor Summary for IginX 0.6.0-SNAPSHOT:
+[INFO] Reactor Summary for IGinX 0.6.0-SNAPSHOT:
 [INFO]
-[INFO] IginX .............................................. SUCCESS [  0.252 s]
-[INFO] IginX Thrift ....................................... SUCCESS [  5.961 s]
-[INFO] IginX Core ......................................... SUCCESS [  4.383 s]
-[INFO] IginX IoTDB ........................................ SUCCESS [  0.855 s]
-[INFO] IginX InfluxDB ..................................... SUCCESS [  0.772 s]
-[INFO] IginX Client ....................................... SUCCESS [  7.713 s]
-[INFO] IginX Example ...................................... SUCCESS [  0.677 s]
-[INFO] IginX Test ......................................... SUCCESS [  0.114 s]
+[INFO] IGinX .............................................. SUCCESS [  0.252 s]
+[INFO] IGinX Thrift ....................................... SUCCESS [  5.961 s]
+[INFO] IGinX Core ......................................... SUCCESS [  4.383 s]
+[INFO] IGinX IoTDB ........................................ SUCCESS [  0.855 s]
+[INFO] IGinX InfluxDB ..................................... SUCCESS [  0.772 s]
+[INFO] IGinX Client ....................................... SUCCESS [  7.713 s]
+[INFO] IGinX Example ...................................... SUCCESS [  0.677 s]
+[INFO] IGinX Test ......................................... SUCCESS [  0.114 s]
 [INFO] ------------------------------------------------------------------------
 [INFO] BUILD SUCCESS
 [INFO] ------------------------------------------------------------------------
@@ -133,13 +134,13 @@ The following words are displayed, indicating that the IginX build is successful
 [INFO] ------------------------------------------------------------------------
 ```
 
-Additionally, IginX supports Docker. Use the following command to build a local IginX image:
+Additionally, IGinX supports Docker. Use the following command to build a local IGinX image:
 
 ```shell
 mvn clean package -pl core -DskipTests docker:build
 ```
 
-This may not work, which is not an immediate issue because you don't need Docker for IginX installation.
+This may not work, which is not an immediate issue because you don't need Docker for IGinX installation.
 
 ## Launch
 
@@ -165,32 +166,32 @@ The following display of words means the IoTDB installation was successful：
 2021-05-27 08:21:07,450 [main] INFO  o.a.i.db.service.IoTDB:93 - IoTDB has started.
 ```
 
-### IginX
+### IGinX
 
 Using source code to launch
 
 ```shell
 $ cd ~
-$ cd Iginx
+$ cd IGinX
 $ chmod +x startIginX.sh # enable permissions for startup scripts
 $ ./startIginX.sh
 ```
 
-The following display of words means the IginX installation was successful：
+The following display of words means the IGinX installation was successful：
 
 ```shell
 May 27, 2021 8:32:19 AM org.glassfish.grizzly.http.server.NetworkListener start
 INFO: Started listener bound to [127.0.0.1:6666]
 May 27, 2021 8:32:19 AM org.glassfish.grizzly.http.server.HttpServer start
 INFO: [HttpServer] Started.
-08:32:19.446 [Thread-0] INFO cn.edu.tsinghua.iginx.rest.RestServer - Iginx REST server has been available at http://127.0.0.1:6666/.
+08:32:19.446 [Thread-0] INFO cn.edu.tsinghua.iginx.rest.RestServer - IGinX REST server has been available at http://127.0.0.1:6666/.
 ```
 
-## Using IginX
+## Using IGinX
 
 ### RESTful Interface
 
-After the startup is complete, you can easily use the RESTful interface to write and query data to IginX.
+After the startup is complete, you can easily use the RESTful interface to write and query data to IGinX.
 
 Create a file insert.json and add the following into it:
 
@@ -324,31 +325,31 @@ The command will return information about the data point just inserted:
 }
 ```
 
-If you see the following information returned, it means you are able to successfully use RESTful interface to write and query data to IginX.
+If you see the following information returned, it means you are able to successfully use RESTful interface to write and query data to IGinX.
 
-For more interfaces, please refer to the official [IginX manual](https://github.com/thulab/IginX/blob/main/docs/pdf/userManualC.pdf).
+For more interfaces, please refer to the official [IGinX manual](https://github.com/THUIGinX/IGinX/blob/main/docs/pdf/userManualC.pdf).
 
 If you want to use a different interface, there is another option.
 
-In addition to the RESTful interface, IginX also provides the RPC data access interface. For this specific interface, please refer to the official [IginX manual](https://github.com/thulab/IginX/blob/main/docs/pdf/userManualC.pdf).
+In addition to the RESTful interface, IGinX also provides the RPC data access interface. For this specific interface, please refer to the official [IGinX manual](https://github.com/THUIGinX/IGinX/blob/main/docs/pdf/userManualC.pdf).
 
-At the same time, IginX also provides some official examples, showing the most common usage of the RPC interface.
+At the same time, IGinX also provides some official examples, showing the most common usage of the RPC interface.
 
 Below is a short tutorial on how to use it.
 
 ### RPC Interface
 
-Since the IginX 0.4 version has not been released to the Maven central repository, if you want to use it, you need to manually install it to the local Maven repository. 
+Since the IGinX 0.5.1 version has not been released to the Maven central repository, if you want to use it, you need to manually install it to the local Maven repository. 
 
 The specific installation method is as follows:
 
 ```shell
 # download iginx 0.4 release version source code package
-$ wget https://github.com/thulab/IginX/archive/refs/tags/release/v0.4.0.tar.gz 
+$ wget https://github.com/THUIGinX/IGinX/archive/refs/tags/release/v0.5.1.tar.gz
 # Unzip the source package
-$ tar -zxvf v0.4.0.tar.gz
+$ tar -zxvf v0.5.1.tar.gz
 # go to the main project's directory
-$ cd IginX-rc-v0.4.0
+$ cd IGinX-rc-v0.5.1
 # Install to local Maven repository
 $ mvn clean install -DskipTests
 ```
@@ -363,14 +364,14 @@ Specifically, when using it, you only need to introduce the following dependenci
 </dependency>
 ```
 
-Before accessing Iginx, you first need to create a session and try to connect. The Session constructor has 4 parameters, which are the ip and port IginX will to connect to, and the username and password for IginX authentication. The current authentication system is still being written, so the account name and password to access the backend IginX can directly fill in root:
+Before accessing IGinX, you first need to create a session and try to connect. The Session constructor has 4 parameters, which are the ip and port IGinX will to connect to, and the username and password for IGinX authentication. The current authentication system is still being written, so the account name and password to access the backend IGinX can directly fill in root:
 
 ```Java
 Session session = new Session("127.0.0.1", 6888, "root", "root");
 session.openSession();
 ```
 
-You can then try to insert data into IginX. Since IginX supports the creation of time-series when data is written for the first time, there is no need to call the relevant series creation interface in advance. IginX provides row-style and column-style data writing interfaces. 
+You can then try to insert data into IGinX. Since IGinX supports the creation of time-series when data is written for the first time, there is no need to call the relevant series creation interface in advance. IGinX provides row-style and column-style data writing interfaces. 
 
 The following is an example of using the column-style data writing interface:
 
@@ -480,4 +481,4 @@ After the session is completed, you need to manually close and release your conn
 session.closeSession();
 ```
 
-For the full version of the code, please refer to: https://github.com/thulab/IginX/blob/main/example/src/main/java/cn/edu/tsinghua/iginx/session/IoTDBSessionExample.java
+For the full version of the code, please refer to: https://github.com/THUIGinX/IGinX/blob/main/example/src/main/java/cn/edu/tsinghua/iginx/session/IoTDBSessionExample.java

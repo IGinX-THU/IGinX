@@ -441,7 +441,7 @@ public class IginxClient {
 
     public static void echoStarting() {
         System.out.println("-----------------------");
-        System.out.println("Starting IginX Client");
+        System.out.println("Starting IGinX Client");
         System.out.println("-----------------------");
     }
 

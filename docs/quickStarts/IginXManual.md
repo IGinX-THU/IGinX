@@ -1,12 +1,14 @@
-# IginX 安装配置手册
+# IGinX 安装配置手册
 
 [TOC]
 
-IginX 是清华大学大数据系统软件国家工程实验室，为满足工业互联网场景推出的新一代高可扩展时序数据库分布式中间件，目前支持 IoTDB，InfluxDB 作为数据后端。
+IGinX是清华大学“清华数为”大数据软件栈的“大数据总线”，面向解决用户在大数据场景下“管数烦、用数难”的问题而研发。它的特色包括“负载均衡弹性好、异构关联全局化、数据使用不搬家、Python集成便利大、SQL输入实时查”。
+
+IGinX支持用户一体化管理已存储在不同系统中的数据资产，也支持用户统一读写、查询、关联特定系统中的数据。目前，IGinX支持一体化管理包括关系数据库PostgreSQL、时序数据库InfluxDB/IotDB/TimescaleDB/OpenTSDB、大数据文件Parquet集合等存储的数据。
 
 ## 下载安装
 
-IginX 为您提供了两种安装方式，您可以参考下面的建议，任选其中一种：
+IGinX 为您提供了两种安装方式，您可以参考下面的建议，任选其中一种：
 
 1. 从官网下载安装包。这是我们推荐使用的安装方式，通过该方式，您将得到一个可以立即使用的、打包好的二进制可执行文件。
 2. 使用源码编译。若您需要自行修改代码，可以使用该安装方式。
@@ -15,7 +17,7 @@ IginX 为您提供了两种安装方式，您可以参考下面的建议，任�
 
 #### Java 安装
 
-由于 ZooKeeper、IginX 以及 IoTDB 都是使用 Java 开发的，因此首先需要安装 Java。如果本地已经安装了 JDK>=1.8 的运行环境，**直接跳过此步骤**。
+由于 ZooKeeper、IGinX 以及 IoTDB 都是使用 Java 开发的，因此首先需要安装 Java。如果本地已经安装了 JDK>=1.8 的运行环境，**直接跳过此步骤**。
 
 1. 首先访问 [Java官方网站](https://www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html)下载适用于当前系统的 JDK  包。
 2. 安装
@@ -93,7 +95,7 @@ Apache Maven 3.6.1 (d66c9c0b3152b2e69ee9bac180bb8fcc8e6af555; 2019-04-05T03:00:2
 
 #### ZooKeeper 安装
 
-ZooKeeper 是 Apache 推出的开源的分布式应用程序协调服务。如果您需要部署大于一个 IginX 实例，则需要安装 ZooKeeper，否则，**直接跳过此步骤**。
+ZooKeeper 是 Apache 推出的开源的分布式应用程序协调服务。如果您需要部署大于一个 IGinX 实例，则需要安装 ZooKeeper，否则，**直接跳过此步骤**。
 
 ZooKeeper 是 Apache 推出的开源的分布式应用程序协调服务。具体安装方式如下：
 
@@ -101,14 +103,14 @@ ZooKeeper 是 Apache 推出的开源的分布式应用程序协调服务。具�
 
 ```shell
 $ cd ~
-$ wget https://mirrors.bfsu.edu.cn/apache/zookeeper/zookeeper-3.7.0/apache-zookeeper-3.7.0-bin.tar.gz
-$ tar -zxvf apache-zookeeper-3.7.0-bin.tar.gz
+$ wget https://dlcdn.apache.org/zookeeper/zookeeper-3.7.1/apache-zookeeper-3.7.1-bin.tar.gz
+$ tar -zxvf apache-zookeeper-3.7.1-bin.tar.gz
 ```
 
 1. 修改 ZooKeeper 默认配置文件
 
 ```shell
-$ cd apache-zookeeper-3.7.0-bin/
+$ cd apache-zookeeper-3.7.1-bin/
 $ mkdir data
 $ cp conf/zoo_sample.cfg conf/zoo.cfg
 ```
@@ -137,13 +139,13 @@ $ unzip apache-iotdb-0.12.0-server-bin.zip
 
 ### 下载二进制可执行文件
 
-直接访问 [IginX 项目](https://github.com/thulab/IginX/)下载 [IginX 项目发布包](https://github.com/thulab/IginX/releases/download/release%2Fv0.4.0/IginX-release-v0.4.0-bin.zip)
+直接访问 [IGinX 项目](https://github.com/THUIGinX/IGinX)下载 [IGinX 项目发布包](https://github.com/THUIGinX/IGinX/releases/download/release%2Fv0.5.1/IGinX-release-v0.5.1-bin.tar.gz)
 即可
 
 ```shell
 $ cd ~
-$ wget https://github.com/thulab/IginX/releases/download/release%2Fv0.4.0/IginX-release-v0.4.0-bin.zip
-$ unzip IginX-release-v0.4.0-bin.zip
+$ wget https://github.com/THUIGinX/IGinX/releases/download/release%2Fv0.5.1/IGinX-release-v0.5.1-bin.tar.gz
+$ tar -zxvf IGinX-release-v0.5.1-bin.tar.gz
 ```
 
 ### 使用源码编译
@@ -152,8 +154,8 @@ $ unzip IginX-release-v0.4.0-bin.zip
 
 ```shell
 $ cd ~
-$ git clone git@github.com:thulab/IginX.git
-$ cd IginX
+$ git clone git@github.com:THUIGinX/IGinX.git
+$ cd IGinX
 $ mvn clean install -Dmaven.test.skip=true
 ```
 
@@ -161,7 +163,7 @@ $ mvn clean install -Dmaven.test.skip=true
 
 ### 单节点
 
-单节点配置启动指的是单个 IginX 实例，底层为单个 IoTDB 实例的启动
+单节点配置启动指的是单个 IGinX 实例，底层为单个 IoTDB 实例的启动
 
 #### 启动 IoTDB
 
@@ -187,11 +189,11 @@ $ ./sbin/start-server.sh
 
 #### 启动 ZooKeeper
 
-如果您采取的是 0.4.0 的二进制安装包，或者在配置文件中指定 ZooKeeper 为元数据管理存储后端，需要启动ZooKeeper。否则，**直接跳过此步骤**
+如果您采取的是 0.5.1 的二进制安装包，或者在配置文件中指定 ZooKeeper 为元数据管理存储后端，需要启动ZooKeeper。否则，**直接跳过此步骤**
 
 ```shell
 $ cd ~
-$ cd apache-zookeeper-3.7.0-bin/
+$ cd apache-zookeeper-3.7.1-bin/
 $ ./bin/zkServer.sh start
 ```
 
@@ -199,17 +201,17 @@ $ ./bin/zkServer.sh start
 
 ```shell
 ZooKeeper JMX enabled by default
-Using config: /home/root/apache-zookeeper-3.7.0-bin/bin/../conf/zoo.cfg
+Using config: /home/root/apache-zookeeper-3.7.1-bin/bin/../conf/zoo.cfg
 Starting zookeeper ... STARTED
 ```
 
-#### 启动 IginX
+#### 启动 IGinX
 
 使用发布包启动
 
 ```shell
 $ cd ~
-$ cd IginX-release-v0.4.0-bin
+$ cd IGinX-release-v0.5.1-bin
 $ chmod +x startIginX.sh # 为启动脚本添加启动权限
 $ ./startIginX.sh
 ```
@@ -225,11 +227,11 @@ $ ./startIginX.sh
 
 ### 集群
 
-IginX 元数据存储管理现在有 ZooKeeper 存储、写本地文件两种方式。
+IGinX 元数据存储管理现在有 ZooKeeper 存储、写本地文件两种方式。
 
-当部署场景为多 IginX 实例时，必须采用 ZooKeeper 存储，部署单个 IginX 实例，且采用源码编译安装方式时，两者均可选择，只需要更改对应的配置文件即可。
+当部署场景为多 IGinX 实例时，必须采用 ZooKeeper 存储，部署单个 IGinX 实例，且采用源码编译安装方式时，两者均可选择，只需要更改对应的配置文件即可。
 
-这里以两个 IoTDB 实例、两个 IginX 实例为例
+这里以两个 IoTDB 实例、两个 IGinX 实例为例
 
 #### 启动多个 IoTDB 实例
 
@@ -253,7 +255,7 @@ rpc_port=7667
 $ ./sbin/start-server.sh # 启动实例二 127.0.0.1: 7667
 ```
 
-#### 启动多个 IginX 实例
+#### 启动多个 IGinX 实例
 
 修改 IginX_HOME/conf/config. Properties
 
@@ -271,7 +273,7 @@ zookeeperConnectionString=127.0.0.1:2181
 #etcdEndpoints=http://localhost:2379
 ```
 
-启动第一个 IginX 实例
+启动第一个 IGinX 实例
 
 ```shell
 $ cd ~
@@ -289,7 +291,7 @@ port=7888
 restPort=7666
 ```
 
-启动第二个 IginX 实例
+启动第二个 IGinX 实例
 
 ```shell
 $ ./sbin/start_iginx.sh
@@ -297,10 +299,10 @@ $ ./sbin/start_iginx.sh
 
 ### 配置项
 
-为方便 IginX 的配置与管理，IginX 为用户提供多项可选配置。IginX 配置文件位于 IginX 安装目录 `$IginX_HOME/conf` 文件夹下的 `config.properties` 中，主要包括
-IginX、Rest、元数据管理三方面配置。
+为方便 IGinX 的配置与管理，IGinX 为用户提供多项可选配置。IGinX 配置文件位于 IGinX 安装目录 `$IginX_HOME/conf` 文件夹下的 `config.properties` 中，主要包括
+IGinX、Rest、元数据管理三方面配置。
 
-#### IginX 配置
+#### IGinX 配置
 
 | 配置项                       | 描述                                  | 默认值                                                       |
 | ---------------------------- | ------------------------------------- | ------------------------------------------------------------ |
@@ -330,8 +332,7 @@ IginX、Rest、元数据管理三方面配置。
 
 | 配置项                    | 描述                                                         | 默认值                |
 | ------------------------- | ------------------------------------------------------------ | --------------------- |
-| metaStorage               | 元数据存储类型，可选zookeeper, file, etcd 三种               | file                  |
-| fileDataDir               | 如果使用 file 作为元数据存储后端，需要提供                   | meta                  |
+| metaStorage               | 元数据存储类型，可选zookeeper, etcd 两种                   | zookeeper                  |
 | zookeeperConnectionString | 如果使用 zookeeper 作为元数据存储后端，需要提供              | 127.0.0.1:2181        |
 | etcdEndpoints             | 如果使用 etcd 作为元数据存储后端，需要提供，如果有多个 etcd 实例，以逗号分隔 | http://localhost:2379 |
 
@@ -339,7 +340,7 @@ IginX、Rest、元数据管理三方面配置。
 
 ### RESTful 接口
 
-启动完成后，可以便捷地使用 RESTful 接口向 IginX 中写入并查询数据。
+启动完成后，可以便捷地使用 RESTful 接口向 IGinX 中写入并查询数据。
 
 创建文件 insert.json，并向其中添加如下的内容：
 
@@ -473,26 +474,26 @@ $ curl -XPOST -H'Content-Type: application/json' -d @query.json http://127.0.0.1
 }
 ```
 
-更多接口可以参考 [IginX 官方手册](https://github.com/thulab/IginX/blob/main/docs/pdf/userManualC.pdf) 。
+更多接口可以参考 [IGinX 官方手册](https://github.com/THUIGinX/IGinX/blob/main/docs/pdf/userManualC.pdf) 。
 
 ### RPC 接口
 
-除了 RESTful 接口外，IginX 还提供了 RPC
-的数据访问接口，具体接口参考 [IginX 官方手册](https://github.com/thulab/IginX/blob/main/docs/pdf/userManualC.pdf)，同时 IginX
-还提供了部分[官方 example](https://github.com/thulab/IginX/tree/main/example/src/main/java/cn/edu/tsinghua/iginx/session)，展示了
+除了 RESTful 接口外，IGinX 还提供了 RPC
+的数据访问接口，具体接口参考 [IGinX 官方手册](https://github.com/THUIGinX/IGinX/blob/main/docs/pdf/userManualC.pdf)，同时 IGinX
+还提供了部分[官方 example](https://github.com/THUIGinX/IGinX/tree/main/example/src/main/java/cn/edu/tsinghua/iginx/session)，展示了
 RPC 接口最常见的用法。
 
 下面是一个简短的使用教程。
 
-由于目前 IginX 0.4 版本还未发布到 maven 中央仓库，因此如需使用的话，需要手动安装到本地的 maven 仓库。具体安装方式如下：
+由于目前 IGinX 0.5.1 版本还未发布到 maven 中央仓库，因此如需使用的话，需要手动安装到本地的 maven 仓库。具体安装方式如下：
 
 ```shell
-# 下载 iginx 0.4 release 版本源码包
-$ wget https://github.com/thulab/IginX/archive/refs/tags/rc/v0.4.0.tar.gz 
+# 下载 IGinX 0.5.1 release 版本源码包
+$ wget https://github.com/THUIGinX/IGinX/archive/refs/tags/release/v0.5.1.tar.gz
 # 解压源码包
-$ tar -zxvf v0.4.0.tar.gz
+$ tar -zxvf v0.5.1.tar.gz
 # 进入项目主目录
-$ cd IginX-rc-v0.4.0
+$ cd IGinX-release-v0.5.1
 # 安装到本地 maven 仓库
 $ mvn clean install -DskipTests
 ```
@@ -507,15 +508,15 @@ $ mvn clean install -DskipTests
 </dependency>
 ```
 
-在访问 iginx 之前，首先需要创建 session，并尝试连接。Session 构造器有 4 个参数，分别是要连接的 IginX 的 ip，port，以及用于 IginX 认证的用户名和密码。目前的权鉴系统还在编写中，因此访问后端
-IginX 的账户名和密码直接填写 root 即可：
+在访问 iginx 之前，首先需要创建 session，并尝试连接。Session 构造器有 4 个参数，分别是要连接的 IGinX 的 ip，port，以及用于 IGinX 认证的用户名和密码。目前的权鉴系统还在编写中，因此访问后端
+IGinX 的账户名和密码直接填写 root 即可：
 
 ```Java
 Session session = new Session("127.0.0.1", 6888, "root", "root");
 session.openSession();
 ```
 
-随后可以尝试向 IginX 中插入数据。由于 IginX 支持在数据首次写入时创建时间序列，因此并不需要提前调用相关的序列创建接口。IginX 提供了行式和列式的数据写入接口，以下是列式数据写入接口的使用样例：
+随后可以尝试向 IGinX 中插入数据。由于 IGinX 支持在数据首次写入时创建时间序列，因此并不需要提前调用相关的序列创建接口。IGinX 提供了行式和列式的数据写入接口，以下是列式数据写入接口的使用样例：
 
 ```java
 private static void insertColumnRecords(Session session) throws SessionException, ExecutionException {
@@ -623,9 +624,9 @@ private static void downsampleQuery(Session session) throws SessionException, Ex
 session.closeSession();
 ```
 
-完整版使用代码可以参考：https://github.com/thulab/IginX/blob/main/example/src/main/java/cn/edu/tsinghua/iginx/session/IoTDBSessionExample.java
+完整版使用代码可以参考：https://github.com/THUIGinX/IGinX/blob/main/example/src/main/java/cn/edu/tsinghua/iginx/session/IoTDBSessionExample.java
 
-## 基于MAVEN引用IginX类库
+## 基于MAVEN引用IGinX类库
 
 ### 使用POM
 
@@ -640,6 +641,6 @@ session.closeSession();
         <dependency>
             <groupId>cn.edu.tsinghua</groupId>
             <artifactId>iginx-session</artifactId>
-            <version>0.3.0</version>
+            <version>0.5.0</version>
         </dependency>
     </dependencies>

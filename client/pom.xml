@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>iginx-client</artifactId>
-    <name>IginX Client</name>
+    <name>IGinX Client</name>
 
     <properties>
         <maven.compiler.source>8</maven.compiler.source>

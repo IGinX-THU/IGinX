@@ -27,7 +27,7 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
     <artifactId>iginx-core</artifactId>
-    <name>IginX Core</name>
+    <name>IGinX Core</name>
 
     <repositories>
         <!--   repository for moquette    -->

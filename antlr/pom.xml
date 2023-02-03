@@ -12,7 +12,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>iginx-antlr</artifactId>
-    <name>IginX Antlr</name>
+    <name>IGinX Antlr</name>
 
     <properties>
         <maven.compiler.source>8</maven.compiler.source>

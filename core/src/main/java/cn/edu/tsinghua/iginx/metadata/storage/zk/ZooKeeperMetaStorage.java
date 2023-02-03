@@ -467,12 +467,11 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
     @Override
     public boolean updateStorageEngine(long storageID, StorageEngineMeta storageEngine) throws MetaStorageException {
         InterProcessMutex mutex = new InterProcessMutex(this.client, STORAGE_ENGINE_LOCK_NODE);
+        String tmp = new String(JsonUtils.toJson(storageEngine));
+        String nodeName = String.format(STORAGE_ENGINE_NODE + "%0" + STORAGE_ENGINE_NODE_NUM_LENGTH + "d", (int) storageID);
         try { // node0000000002 STORAGE_ENGINE_NODE_NUM_LENGTH
             mutex.acquire();
-            String tmp = new String(JsonUtils.toJson(storageEngine));
-            String nodeName = String.format(STORAGE_ENGINE_NODE + "%0" + STORAGE_ENGINE_NODE_NUM_LENGTH + "d", (int) storageID);
-            this.client.setData()
-                    .forPath(nodeName, tmp.getBytes());
+            this.client.setData().forPath(nodeName, tmp.getBytes());
             return true;
         } catch (Exception e) {
             throw new MetaStorageException("get error when update storage engine", e);

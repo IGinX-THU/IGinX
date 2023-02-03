@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>test</artifactId>
-    <name>IginX Test</name>
+    <name>IGinX Test</name>
 
     <properties>
         <maven.compiler.source>8</maven.compiler.source>
