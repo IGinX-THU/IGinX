@@ -1,4 +1,4 @@
-name: "Capacity-Expansions-On-IoTDB"
+name: "Capacity-Expansion-Test"
 on:
   push:
     branches:
@@ -13,7 +13,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  IoTDB-Test:
+  IoTDB-CE:
     timeout-minutes: 20
     strategy:
       fail-fast: false
@@ -123,7 +123,7 @@ jobs:
           file: ./**/target/site/jacoco/jacoco.xml
           name: codecov
 
-  SchemaPrefix-Test-IotDB:
+  SchemaPrefix-IoTDB-CE:
     timeout-minutes: 20
     strategy:
       fail-fast: false
@@ -172,7 +172,7 @@ jobs:
             mvn test -q -Dtest=IoTDB12HistoryDataCapacityExpansionIT#schemaPrefix -DfailIfNoTests=false
           fi
 
-  DataPrefixWithMultiSchemaPrefix-Test-InfluxDB:
+  DataPrefixWithMultiSchemaPrefix-InfluxDB-CE:
     timeout-minutes: 20
     strategy:
       fail-fast: false
@@ -242,7 +242,7 @@ jobs:
         run: |
           mvn test -q -Dtest=InfluxDBHistoryDataCapacityExpansionIT#testAddSameDataPrefixWithDiffSchemaPrefix -DfailIfNoTests=false
 
-  DataPrefixWithMultiSchemaPrefix_AND_RemoveHistoryDataSource-Test-IotDB:
+  DataPrefixWithMultiSchemaPrefix_RemoveHistoryDataSource-IotDB-CE:
     timeout-minutes: 20
     strategy:
       fail-fast: false
