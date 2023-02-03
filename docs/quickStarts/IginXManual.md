@@ -634,13 +634,13 @@ session.closeSession();
             <repository>
                 <id>github-release-repo</id>
                 <name>The Maven Repository on Github</name>
-                <url>https://thulab.github.io/IginX/maven-repo/</url>
+                <url>https://github.com/THUIGinX/IGinX/maven-repo/</url>
             </repository>
     </repositories>
     <dependencies>
         <dependency>
             <groupId>cn.edu.tsinghua</groupId>
             <artifactId>iginx-session</artifactId>
-            <version>0.5.0</version>
+            <version>0.5.1</version>
         </dependency>
     </dependencies>

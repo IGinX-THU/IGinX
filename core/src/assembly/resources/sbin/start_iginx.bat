@@ -19,7 +19,7 @@
 
 @echo off
 echo ````````````````````````
-echo Starting IginX
+echo Starting IGinX
 echo ````````````````````````
 
 if "%OS%" == "Windows_NT" setlocal
