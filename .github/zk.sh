@@ -12,4 +12,4 @@ sh -c "cp ./.github/actions/zookeeperRunner/zoo.cfg zookeeper/conf/zoo.cfg"
 
 sh -c "zookeeper/bin/zkServer.sh start"
 
-sh -c "zookeeper/bin/zkCli.sh ls /;pwd"
+sh -c "zookeeper/bin/zkCli.sh ls /"
