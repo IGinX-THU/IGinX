@@ -8,7 +8,7 @@ sh -c "sleep 2"
 
 sh -c "rm -rf zookeeper/data"
 
-sh -c "ls ./;pwd;ls ~/"
+sh -c "cd ~/;pwd;cd /home/runner/work/IGinX/IGinX"
 
 sh -c "mkdir zookeeper/data"
 
