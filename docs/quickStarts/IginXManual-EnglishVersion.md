@@ -1,12 +1,14 @@
-# IginX Installation and Use Manual
+# IGinX Installation and Use Manual
 
 [TOC]
 
-IginX is is a new-generation highly scalable time series database distributed middleware, designed to meet industrial Internet scenarios. It was launched by Tsinghua University's National Engineering Laboratory of Big Data System Software. It currently supports IoTDB，InfluxDB as data backends.
+IGinX is an open source polystore system. A polystore system provides an integrated data management service over a set of one or more potentially heterogeneous database/storage engines, serving heterogeneous workloads.
+
+Currently, IGinX directly supports big data service over relational database PostgreSQL, time series databases InfluxDB/IoTDB/TimescaleDB/OpenTSDB, and Parquet data files.
 
 ## Download and Installation
 
-IginX provides you with two installation methods. 
+IGinX provides you with two installation methods. 
 You can refer to the following suggestions and choose either of them:
 
 1. Download the installation package from the official website. This is our recommended installation method, through which you will get a packaged executable binary file that can be used immediately.
@@ -16,7 +18,7 @@ You can refer to the following suggestions and choose either of them:
 
 #### Java Installation
 
-Since ZooKeeper, IginX and IoTDB are all developed using Java, Java needs to be installed first. If a running environment of JDK >= 1.8 has been installed locally, **skip this step entirely**.
+Since ZooKeeper, IGinX and IoTDB are all developed using Java, Java needs to be installed first. If a running environment of JDK >= 1.8 has been installed locally, **skip this step entirely**.
 
 1. First, visit the [official Java website] (https://www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html) to download the JDK package for your current system.
 2. Installation
@@ -94,7 +96,7 @@ If the words above are displayed, that means the installation was successful.
 
 #### ZooKeeper installation
 
-ZooKeeper is an open-source server for highly reliable distributed coordination of cloud applications, launched by Apache. If you need to deploy more than one instance of IginX, you will need to install ZooKeeper. Otherwise, **skip this step entirely**
+ZooKeeper is an open-source server for highly reliable distributed coordination of cloud applications, launched by Apache. If you need to deploy more than one instance of IGinX, you will need to install ZooKeeper. Otherwise, **skip this step entirely**
 
 The specific installation method is as follows,
 
@@ -102,14 +104,14 @@ The specific installation method is as follows,
 
 ```shell
 $ cd ~
-$ wget https://mirrors.bfsu.edu.cn/apache/zookeeper/zookeeper-3.7.0/apache-zookeeper-3.7.0-bin.tar.gz
-$ tar -zxvf apache-zookeeper-3.7.0-bin.tar.gz
+$ wget https://dlcdn.apache.org/zookeeper/zookeeper-3.7.1/apache-zookeeper-3.7.1-bin.tar.gz
+$ tar -zxvf apache-zookeeper-3.7.1-bin.tar.gz
 ```
 
 2. Modify the default ZooKeeper profile
 
 ```shell
-$ cd apache-zookeeper-3.7.0-bin/
+$ cd apache-zookeeper-3.7.1-bin/
 $ mkdir data
 $ cp conf/zoo_sample.cfg conf/zoo.cfg
 ```
@@ -140,12 +142,12 @@ $ unzip apache-iotdb-0.12.0-server-bin.zip
 
 ### Download the binary executables
 
-Go directly to the [IginX project](https://github.com/thulab/IginX/) and download the [IginX project release package](https://github.com/thulab/IginX/releases/download/rc/v0.2.0/IginX-release-v0.2.0-bin.tar.gz).
+Go directly to the [IGinX project](https://github.com/THUIGinX/IGinX) and download the [IGinX project release package](https://github.com/THUIGinX/IGinX/releases/download/release%2Fv0.5.1/IGinX-release-v0.5.1-bin.tar.gz).
 
 ```shell
 $ cd ~
-$ wget https://github.com/thulab/IginX/releases/download/release%2Fv0.2.0/IginX-release-v0.2.0-bin.zip
-$ unzip IginX-release-v0.2.0-bin.zip
+$ wget https://github.com/THUIGinX/IGinX/releases/download/release%2Fv0.5.1/IGinX-release-v0.5.1-bin.tar.gz
+$ tar -xzvf IGinX-release-v0.5.1-bin.tar.gz
 ```
 
 ### Compilation with source code
@@ -154,8 +156,8 @@ Fetch the latest development version and build it locally.
 
 ```shell
 $ cd ~
-$ git clone git@github.com:thulab/IginX.git
-$ cd IginX
+$ git clone git@github.com:THUIGinX/IGinX.git
+$ cd IGinX
 $ mvn clean install -Dmaven.test.skip=true
 ```
 
@@ -163,7 +165,7 @@ $ mvn clean install -Dmaven.test.skip=true
 
 ### Single node
 
-Single node configuration refers to a single instance of IginX, and the backend serves as the launch of a single IoTDB instance. 
+Single node configuration refers to a single instance of IGinX, and the backend serves as the launch of a single IoTDB instance. 
 
 #### Launch IoTDB
 
@@ -193,7 +195,7 @@ If you are taking a 0.2.0 binary installation package, or if you designate Zooke
 
 ```shell
 $ cd ~
-$ cd apache-zookeeper-3.7.0-bin/
+$ cd apache-zookeeper-3.7.1-bin/
 $ ./bin/zkServer.sh start
 ```
 
@@ -201,17 +203,17 @@ The following display of words means the ZooKeeper installation was successful�
 
 ```shell
 ZooKeeper JMX enabled by default
-Using config: /home/root/apache-zookeeper-3.7.0-bin/bin/../conf/zoo.cfg
+Using config: /home/root/apache-zookeeper-3.7.1-bin/bin/../conf/zoo.cfg
 Starting zookeeper ... STARTED
 ```
 
-#### Launch IginX
+#### Launch IGinX
 
 Using the release package to launch
 
 ```shell
 $ cd ~
-$ cd IginX-release-v0.2.0-bin
+$ cd IGinX-release-v0.5.1-bin
 $ chmod +x startIginX.sh # enable permissions for startup scripts
 $ ./startIginX.sh
 ```
@@ -227,11 +229,11 @@ $ ./startIginX.sh
 
 ### Cluster
 
-IginX now has two method options: to use ZooKeeper storage or write local files. 
+IGinX now has two method options: to use ZooKeeper storage or write local files. 
 
-When the deployment scenario is multiple IginX instances, you must use ZooKeeper storage, deploy a single IginX instance and use the source code compilation and installation method. Both can be selected, just change the corresponding configuration file.
+When the deployment scenario is multiple IGinX instances, you must use ZooKeeper storage, deploy a single IGinX instance and use the source code compilation and installation method. Both can be selected, just change the corresponding configuration file.
 
-Take two IoTDB instances and two IginX instances as examples.
+Take two IoTDB instances and two IGinX instances as examples.
 
 #### Launching multiple IoTDB instances
 
@@ -255,9 +257,9 @@ Start the second instance.
 $ ./sbin/start-server.sh # 启动实例二 127.0.0.1: 7667
 ```
 
-#### Starting multiple IginX instances
+#### Starting multiple IGinX instances
 
-Modify IginX_HOME/conf/config. Properties
+Modify IGinX_HOME/conf/config. Properties
 
 ```shell
 storageEngineList=127.0.0.1#6667#iotdb#username=root#password=root#sessionPoolSize=100#dataDir=/path/to/your/data/,127.0.0.1#6688#iotdb#username=root#password=root#sessionPoolSize=100#dataDir=/path/to/your/data/
@@ -273,7 +275,7 @@ zookeeperConnectionString=127.0.0.1:2181
 #etcdEndpoints=http://localhost:2379
 ```
 
-Start the first IginX instance.
+Start the first IGinX instance.
 
 ```shell
 $ cd ~
@@ -291,7 +293,7 @@ port=7888
 restPort=7666
 ```
 
-Launch a second instance of IginX.
+Launch a second instance of IGinX.
 
 ```shell
 $ ./sbin/start_iginx.sh
@@ -299,9 +301,9 @@ $ ./sbin/start_iginx.sh
 
 ### Configuration Items
 
-In order to facilitate installation and management of IginX, IginX provides users with several optional item configurations. The IginX configuration file is located in `config.properties` under the `$IginX_HOME/conf` folder of the IginX installation directory. It mainly includes three aspects of configuration: IginX, Rest, and metadata management.
+In order to facilitate installation and management of IGinX, IGinX provides users with several optional item configurations. The IGinX configuration file is located in `config.properties` under the `$IGinX_HOME/conf` folder of the IGinX installation directory. It mainly includes three aspects of configuration: IGinX, Rest, and metadata management.
 
-#### IginX Configuration
+#### IGinX Configuration
 
 | Configuration Item           | Description               | Configuration         					|
 | ---------------------------- | ------------------------- | -------------------------------------- |
@@ -340,7 +342,7 @@ In order to facilitate installation and management of IginX, IginX provides user
 
 ### RESTful Interface
 
-After the startup is complete, you can easily use the RESTful interface to write and query data to IginX.
+After the startup is complete, you can easily use the RESTful interface to write and query data to IGinX.
 
 Create the file insert.json and add the following to it:
 
@@ -474,23 +476,23 @@ The command will return information about the data point just inserted:
 }
 ```
 
-For more interfaces, please refer to [IginX Official Manual](https://github.com/thulab/IginX/blob/main/docs/pdf/userManualC.pdf).
+For more interfaces, please refer to [IGinX Official Manual](https://github.com/THUIGinX/IGinX/blob/main/docs/pdf/userManualC.pdf).
 
 ### RPC Interface
 
-In addition to the RESTful interface, IginX also provides RPC data access interface. For that specific interface, please refer to the official[IginX Official Manual](https://github.com/thulab/IginX/blob/main/docs/pdf/userManualC.pdf). At the same time, IginX also provides some [official examples](https://github.com/thulab/IginX/tree/main/example/src/main/java/cn/edu/tsinghua/iginx/session), showing the most common usage of the RPC interface.
+In addition to the RESTful interface, IGinX also provides RPC data access interface. For that specific interface, please refer to the official[IGinX Official Manual](https://github.com/THUIGinX/IGinX/blob/main/docs/pdf/userManualC.pdf). At the same time, IGinX also provides some [official examples](https://github.com/THUIGinX/IGinX/tree/main/example/src/main/java/cn/edu/tsinghua/iginx/session), showing the most common usage of the RPC interface.
 
 Below is a short tutorial on how to use it.
 
-Since the IginX 0.2 version has not been released to the maven central repository, if you want to use it, you need to manually install it to the local maven repository. The specific installation method is as follows:
+Since the IGinX 0.5.1 version has not been released to the maven central repository, if you want to use it, you need to manually install it to the local maven repository. The specific installation method is as follows:
 
 ```shell
 # Download iginx 0.2 rc version source package
-$ wget https://github.com/thulab/IginX/archive/refs/tags/rc/v0.2.0.tar.gz
+$ wget https://github.com/THUIGinX/IGinX/archive/refs/tags/release/v0.5.1.tar.gz
 # Unzip the source package
-$ tar -zxvf v0.2.0.tar.gz
+$ tar -zxvf v0.5.1.tar.gz
 # Enter the project main directory
-$ cd IginX-rc-v0.2.0
+$ cd IGinX-rc-v0.5.1
 # Install to local maven repository
 $ mvn clean install -DskipTests
 ```
@@ -505,14 +507,14 @@ Only when you are using it, you need to introduce the following dependencies in 
 </dependency>
 ```
 
-Before accessing IginX, you first need to open a session and try to connect. The session constructor has 4 parameters, which are the ip and port of IginX to connect to, and the username and password for IginX authentication. The current authentication system is still being written, so the account name and password to access the backend IginX can directly fill in root:
+Before accessing IGinX, you first need to open a session and try to connect. The session constructor has 4 parameters, which are the ip and port of IGinX to connect to, and the username and password for IGinX authentication. The current authentication system is still being written, so the account name and password to access the backend IGinX can directly fill in root:
 
 ```Java
 Session session = new Session("127.0.0.1", 6888, "root", "root");
 session.openSession();
 ```
 
-You can then try to insert data into IginX. Since IginX supports the creation of time series when data is written for the first time, there is no need to call the relevant series creation interface in advance. IginX provides a row-style and column-style data-writing interface. The following is a usage example of the column-style data writing interface:
+You can then try to insert data into IGinX. Since IGinX supports the creation of time series when data is written for the first time, there is no need to call the relevant series creation interface in advance. IGinX provides a row-style and column-style data-writing interface. The following is a usage example of the column-style data writing interface:
 
 ```java
 private static void insertColumnRecords(Session session) throws SessionException, ExecutionException {
@@ -620,9 +622,9 @@ After the session is completed, you need to manually close and release your conn
 session.closeSession();
 ```
 
-For the full version of the code, please refer to: https://github.com/thulab/IginX/blob/main/example/src/main/java/cn/edu/tsinghua/iginx/session/IoTDBSessionExample.java
+For the full version of the code, please refer to: https://github.com/THUIGinX/IGinX/blob/main/example/src/main/java/cn/edu/tsinghua/iginx/session/IoTDBSessionExample.java
 
-## Reference IginX class library based on MAVEN
+## Reference IGinX class library based on MAVEN
 
 ### Using POM
 
@@ -630,13 +632,13 @@ For the full version of the code, please refer to: https://github.com/thulab/Igi
             <repository>
                 <id>github-release-repo</id>
                 <name>The Maven Repository on Github</name>
-                <url>https://thulab.github.io/IginX/maven-repo/</url>
+                <url>https://github.com/THUIGinX/IGinX/maven-repo/</url>
             </repository>
     </repositories>
     <dependencies>
         <dependency>
             <groupId>cn.edu.tsinghua</groupId>
             <artifactId>iginx-session</artifactId>
-            <version>0.3.0</version>
+            <version>0.5.1</version>
         </dependency>
     </dependencies>

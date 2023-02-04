@@ -1,4 +1,4 @@
-name: "System-IT-ds-InfluxDB"
+name: "ITTest-ds-InfluxDB"
 
 on:
   push:
@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  InfluxDB-Capacity-Expansion-Test:
+  InfluxDB-Capacity-Expansion-ds:
     strategy:
       fail-fast: false
       #max-parallel: 20
@@ -73,7 +73,7 @@ jobs:
           nohup "${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/sbin/start_iginx.sh" &
 
 
-  InfluxDB-SQL-Test:
+  InfluxDB-SQL-ds:
     strategy:
       fail-fast: false
       #max-parallel: 20
@@ -138,7 +138,7 @@ jobs:
           file: ./**/target/site/jacoco/jacoco.xml
           name: codecov
 
-  InfluxDB-SQL-SessionPool-Test:
+  InfluxDB-SQL-SessionPool-ds:
     strategy:
       fail-fast: false
       #max-parallel: 20

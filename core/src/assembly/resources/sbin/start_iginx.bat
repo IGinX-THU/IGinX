@@ -19,7 +19,7 @@
 
 @echo off
 echo ````````````````````````
-echo Starting IginX
+echo Starting IGinX
 echo ````````````````````````
 
 if "%OS%" == "Windows_NT" setlocal
@@ -117,6 +117,10 @@ set HEAP_OPTS=-Xmx%MAX_HEAP_SIZE% -Xms%MAX_HEAP_SIZE% -Xloggc:"%IGINX_HOME%\gc.l
 @REM ***** CLASSPATH library setting *****
 @REM Ensure that any user defined CLASSPATH variables are not used on startup
 set CLASSPATH="%IGINX_HOME%\lib\*"
+@REM in case of parquet, initiation must be started specially
+@REM 1. check the config
+@REM 2. set the classpath
+@REM TODO:
 goto okClasspath
 
 @REM -----------------------------------------------------------------------------

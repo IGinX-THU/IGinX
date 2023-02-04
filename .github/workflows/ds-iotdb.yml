@@ -1,4 +1,4 @@
-name: "System-IT-ds-IoTDB"
+name: "ITTest-ds-IoTDB"
 
 on:
   push:
@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  IoTDB-Session-Test:
+  IoTDB-Session-ds:
     strategy:
       fail-fast: false
       matrix:
@@ -65,7 +65,7 @@ jobs:
           file: ./**/target/site/jacoco/jacoco.xml
           name: codecov
 
-  IoTDB-SQL-Test:
+  IoTDB-SQL-ds:
     strategy:
       fail-fast: false
       matrix:
@@ -106,7 +106,7 @@ jobs:
           file: ./**/target/site/jacoco/jacoco.xml
           name: codecov
 
-  IoTDB-Tag-Test:
+  IoTDB-Tag-ds:
     strategy:
       fail-fast: false
       matrix:
@@ -147,7 +147,7 @@ jobs:
           file: ./**/target/site/jacoco/jacoco.xml
           name: codecov
 
-  IoTDB-SessionPool-Test:
+  IoTDB-SessionPool-ds:
     strategy:
       fail-fast: false
       matrix:
@@ -196,7 +196,7 @@ jobs:
           file: ./**/target/site/jacoco/jacoco.xml
           name: codecov
 
-  IoTDB-SQL-SessionPool-Test:
+  IoTDB-SQL-SessionPool-ds:
     strategy:
       fail-fast: false
       matrix:

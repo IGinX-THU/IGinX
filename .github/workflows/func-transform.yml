@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  Transform-Test:
+  Transform-Func:
     strategy:
       fail-fast: false
       max-parallel: 20

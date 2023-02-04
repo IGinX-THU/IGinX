@@ -1,4 +1,4 @@
-name: "API-Test-SESSION-V2"
+name: "API-Test-SESSIONv2"
 
 on:
   push:
@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  SessionV2-Test:
+  SessionV2-api:
     strategy:
       fail-fast: false
       #max-parallel: 20

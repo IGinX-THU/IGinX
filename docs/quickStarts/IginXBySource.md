@@ -1,14 +1,16 @@
-# IginX 安装使用教程（编译安装）
+# IGinX 安装使用教程（编译安装）
 
 [TOC]
 
-IginX 是清华大学大数据系统软件国家工程实验室，为满足工业互联网场景推出的新一代高可扩展时序数据库分布式中间件，目前支持 IoTDB，InfluxDB 作为数据后端。
+IGinX是清华大学“清华数为”大数据软件栈的“大数据总线”，面向解决用户在大数据场景下“管数烦、用数难”的问题而研发。它的特色包括“负载均衡弹性好、异构关联全局化、数据使用不搬家、Python集成便利大、SQL输入实时查”。
+
+IGinX支持用户一体化管理已存储在不同系统中的数据资产，也支持用户统一读写、查询、关联特定系统中的数据。目前，IGinX支持一体化管理包括关系数据库PostgreSQL、时序数据库InfluxDB/IotDB/TimescaleDB/OpenTSDB、大数据文件Parquet集合等存储的数据。
 
 ## 安装
 
 ### Java 安装
 
-由于 ZooKeeper、IginX 以及 IoTDB 都是使用 Java 开发的，因此首先需要安装 Java。如果本地已经安装了 JDK>=1.8 的运行环境，**直接跳过此步骤**。
+由于 ZooKeeper、IGinX 以及 IoTDB 都是使用 Java 开发的，因此首先需要安装 Java。如果本地已经安装了 JDK>=1.8 的运行环境，**直接跳过此步骤**。
 
 1. 首先访问 [Java官方网站](https://www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html)下载适用于当前系统的 JDK 包。
 2. 安装
@@ -84,6 +86,40 @@ Apache Maven 3.6.1 (d66c9c0b3152b2e69ee9bac180bb8fcc8e6af555; 2019-04-05T03:00:2
 
 如果显示出如上的字样，则表示安装成功。
 
+### ZooKeeper 安装
+
+ZooKeeper 是 Apache 推出的开源的分布式应用程序协调服务。如果您需要部署大于一个 IGinX 实例，则需要安装 ZooKeeper
+
+ZooKeeper 是 Apache 推出的开源的分布式应用程序协调服务。具体安装方式如下：
+
+1. 访问[官网](https://zookeeper.apache.org/releases.html)下载并解压 ZooKeeper
+
+```shell
+$ cd ~
+$ wget https://dlcdn.apache.org/zookeeper/zookeeper-3.7.1/apache-zookeeper-3.7.1-bin.tar.gz
+$ tar -zxvf apache-zookeeper-3.7.1-bin.tar.gz
+```
+
+2. 修改 ZooKeeper 默认配置文件
+
+```shell
+$ cd apache-zookeeper-3.7.1-bin/
+$ mkdir data
+$ cp conf/zoo_sample.cfg conf/zoo.cfg
+```
+
+然后编辑 conf/zoo.cfg 文件，将
+
+```shell
+dataDir=/tmp/zookeeper
+```
+
+修改为
+
+```shell
+dataDir=data
+```
+
 ### IoTDB 安装
 
 IoTDB 是 Apache 推出的时序数据库，具体安装方式如下：
@@ -94,31 +130,31 @@ $ wget https://mirrors.bfsu.edu.cn/apache/iotdb/0.12.0/apache-iotdb-0.12.0-serve
 $ unzip apache-iotdb-0.12.0-server-bin.zip
 ```
 
-### IginX 安装
+### IGinX 安装
 
 拉取最新开发版本，并进行本地构建
 
 ```shell
 $ cd ~
-$ git clone git@github.com:thulab/IginX.git
-$ cd IginX
+$ git clone git@github.com:THUIGinX/IGinX.git
+$ cd IGinX
 $ mvn clean install -Dmaven.test.skip=true
 $ mvn package -pl core -Dmaven.test.skip=true
 ```
 
-显示出如下字样，表示 IginX 构建成功：
+显示出如下字样，表示 IGinX 构建成功：
 
 ```shell
-[INFO] Reactor Summary for IginX 0.6.0-SNAPSHOT:
+[INFO] Reactor Summary for IGinX 0.6.0-SNAPSHOT:
 [INFO]
-[INFO] IginX .............................................. SUCCESS [  0.252 s]
-[INFO] IginX Thrift ....................................... SUCCESS [  5.961 s]
-[INFO] IginX Core ......................................... SUCCESS [  4.383 s]
-[INFO] IginX IoTDB ........................................ SUCCESS [  0.855 s]
-[INFO] IginX InfluxDB ..................................... SUCCESS [  0.772 s]
-[INFO] IginX Client ....................................... SUCCESS [  7.713 s]
-[INFO] IginX Example ...................................... SUCCESS [  0.677 s]
-[INFO] IginX Test ......................................... SUCCESS [  0.114 s]
+[INFO] IGinX .............................................. SUCCESS [  0.252 s]
+[INFO] IGinX Thrift ....................................... SUCCESS [  5.961 s]
+[INFO] IGinX Core ......................................... SUCCESS [  4.383 s]
+[INFO] IGinX IoTDB ........................................ SUCCESS [  0.855 s]
+[INFO] IGinX InfluxDB ..................................... SUCCESS [  0.772 s]
+[INFO] IGinX Client ....................................... SUCCESS [  7.713 s]
+[INFO] IGinX Example ...................................... SUCCESS [  0.677 s]
+[INFO] IGinX Test ......................................... SUCCESS [  0.114 s]
 [INFO] ------------------------------------------------------------------------
 [INFO] BUILD SUCCESS
 [INFO] ------------------------------------------------------------------------
@@ -127,7 +163,7 @@ $ mvn package -pl core -Dmaven.test.skip=true
 [INFO] ------------------------------------------------------------------------
 ```
 
-此外，IginX 还支持 Docker。使用如下命令即可构建本地 IginX 镜像：
+此外，IGinX 还支持 Docker。使用如下命令即可构建本地 IGinX 镜像：
 
 ```shell
 mvn clean package -pl core -DskipTests docker:build
@@ -157,18 +193,18 @@ $ ./sbin/start-server.sh
 2021-05-27 08:21:07,450 [main] INFO  o.a.i.db.service.IoTDB:93 - IoTDB has started.
 ```
 
-### IginX
+### IGinX
 
 使用源码启动
 
 ```shell
 $ cd ~
-$ cd IginX/core/target/iginx-core-0.6.0-SNAPSHOT
+$ cd IGinX/core/target/iginx-core-0.6.0-SNAPSHOT
 $ chmod +x sbin/start_iginx.sh # 为启动脚本添加启动权限
 $ ./sbin/start_iginx.sh
 ```
 
-显示出如下字样，表示 IginX 启动成功：
+显示出如下字样，表示 IGinX 启动成功：
 
 ```shell
 May 27, 2021 8:32:19 AM org.glassfish.grizzly.http.server.NetworkListener start
@@ -178,11 +214,11 @@ INFO: [HttpServer] Started.
 08:32:19.446 [Thread-0] INFO cn.edu.tsinghua.iginx.rest.RestServer - Iginx REST server has been available at http://127.0.0.1:6666/.
 ```
 
-## 访问 IginX
+## 访问 IGinX
 
 ### RESTful 接口
 
-启动完成后，可以便捷地使用 RESTful 接口向 IginX 中写入并查询数据。
+启动完成后，可以便捷地使用 RESTful 接口向 IGinX 中写入并查询数据。
 
 创建文件 insert.json，并向其中添加如下的内容：
 
@@ -316,26 +352,26 @@ $ curl -XPOST -H'Content-Type: application/json' -d @query.json http://127.0.0.1
 }
 ```
 
-更多接口可以参考 [IginX 官方手册](https://github.com/thulab/IginX/blob/main/docs/pdf/userManualC.pdf) 。
+更多接口可以参考 [IGinX 官方手册](https://github.com/THUIGinX/IGinX/blob/main/docs/pdf/userManualC.pdf) 。
 
 ### RPC 接口
 
-除了 RESTful 接口外，IginX 还提供了 RPC
-的数据访问接口，具体接口参考 [IginX 官方手册](https://github.com/thulab/IginX/blob/main/docs/pdf/userManualC.pdf)，同时 IginX
-还提供了部分[官方 example](https://github.com/thulab/IginX/tree/main/example/src/main/java/cn/edu/tsinghua/iginx/session)，展示了
+除了 RESTful 接口外，IGinX 还提供了 RPC
+的数据访问接口，具体接口参考 [IGinX 官方手册](https://github.com/THUIGinX/IGinX/blob/main/docs/pdf/userManualC.pdf)，同时 IGinX
+还提供了部分[官方 example](https://github.com/THUIGinX/IGinX/tree/main/example/src/main/java/cn/edu/tsinghua/iginx/session)，展示了
 RPC 接口最常见的用法。
 
 下面是一个简短的使用教程。
 
-由于目前 IginX 0.4 版本还未发布到 maven 中央仓库，因此如需使用的话，需要手动安装到本地的 maven 仓库。具体安装方式如下：
+由于目前 IGinX 0.5.1 版本还未发布到 maven 中央仓库，因此如需使用的话，需要手动安装到本地的 maven 仓库。具体安装方式如下：
 
 ```shell
-# 下载 iginx 0.4 release 版本源码包
-$ wget https://github.com/thulab/IginX/archive/refs/tags/release/v0.4.0.tar.gz
+# 下载 IGinX 0.5.1 release 版本源码包
+$ wget https://github.com/THUIGinX/IGinX/archive/refs/tags/release/v0.5.1.tar.gz
 # 解压源码包
-$ tar -zxvf v0.4.0.tar.gz
+$ tar -zxvf v0.5.1.tar.gz
 # 进入项目主目录
-$ cd IginX-rc-v0.4.0
+$ cd IGinX-rc-v0.5.1
 # 安装到本地 maven 仓库
 $ mvn clean install -DskipTests
 ```
@@ -350,15 +386,15 @@ $ mvn clean install -DskipTests
 </dependency>
 ```
 
-在访问 iginx 之前，首先需要创建 session，并尝试连接。Session 构造器有 4 个参数，分别是要连接的 IginX 的 ip，port，以及用于 IginX 认证的用户名和密码。目前的权鉴系统还在编写中，因此访问后端
-IginX 的账户名和密码直接填写 root 即可：
+在访问 iginx 之前，首先需要创建 session，并尝试连接。Session 构造器有 4 个参数，分别是要连接的 IGinX 的 ip，port，以及用于 IGinX 认证的用户名和密码。目前的权鉴系统还在编写中，因此访问后端
+IGinX 的账户名和密码直接填写 root 即可：
 
 ```Java
 Session session = new Session("127.0.0.1", 6888, "root", "root");
 session.openSession();
 ```
 
-随后可以尝试向 IginX 中插入数据。由于 IginX 支持在数据首次写入时创建时间序列，因此并不需要提前调用相关的序列创建接口。IginX 提供了行式和列式的数据写入接口，以下是列式数据写入接口的使用样例：
+随后可以尝试向 IGinX 中插入数据。由于 IGinX 支持在数据首次写入时创建时间序列，因此并不需要提前调用相关的序列创建接口。IGinX 提供了行式和列式的数据写入接口，以下是列式数据写入接口的使用样例：
 
 ```java
 private static void insertColumnRecords(Session session) throws SessionException, ExecutionException {
@@ -466,4 +502,4 @@ private static void downsampleQuery(Session session) throws SessionException, Ex
 session.closeSession();
 ```
 
-完整版使用代码可以参考：https://github.com/thulab/IginX/blob/main/example/src/main/java/cn/edu/tsinghua/iginx/session/IoTDBSessionExample.java
+完整版使用代码可以参考：https://github.com/THUIGinX/IGinX/blob/main/example/src/main/java/cn/edu/tsinghua/iginx/session/IoTDBSessionExample.java
