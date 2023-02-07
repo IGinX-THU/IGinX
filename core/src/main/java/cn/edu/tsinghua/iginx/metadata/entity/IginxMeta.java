@@ -18,6 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.metadata.entity;
 
+import java.util.HashMap;
 import java.util.Map;
 
 public final class IginxMeta {
@@ -63,5 +64,14 @@ public final class IginxMeta {
 
     public Map<String, String> getExtraParams() {
         return extraParams;
+    }
+
+    public Map<String, String> getIginxMetaInfoToMap() {
+        Map<String, String> infoMap = new HashMap<>();
+        infoMap.put("id", String.valueOf(id));
+        infoMap.put("port", String.valueOf(port));
+        infoMap.put("ip", ip);
+        infoMap.putAll(extraParams);
+        return infoMap;
     }
 }
