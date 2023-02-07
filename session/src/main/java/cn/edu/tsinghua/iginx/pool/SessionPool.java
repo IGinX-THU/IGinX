@@ -99,6 +99,7 @@ public class SessionPool {
                 put("password", password);
             }
         });
+        sessionNum.add(this.maxSize);
         this.waitToGetSessionTimeoutInMs = waitToGetSessionTimeoutInMs;
     }
 
