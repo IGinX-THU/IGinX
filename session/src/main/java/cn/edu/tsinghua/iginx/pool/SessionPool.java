@@ -91,9 +91,11 @@ public class SessionPool {
             int maxSize,
             long waitToGetSessionTimeoutInMs) {
         this.maxSize = max(maxSize,THREAD_NUMBER_MINSIZE);
+        iginxList = new ArrayList<>();
+        sessionNum = new ArrayList<>();
         iginxList.add(new HashMap<String, String>() {
             {
-                put("host", String.valueOf(host));
+                put("host", host);
                 put("port", String.valueOf(port));
                 put("user", user);
                 put("password", password);
