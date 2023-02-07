@@ -66,7 +66,7 @@ public final class IginxMeta {
         return extraParams;
     }
 
-    public Map<String, String> getIginxMetaInfoToMap() {
+    public Map<String, String> iginxMetaInfoToMap() {
         Map<String, String> infoMap = new HashMap<>();
         infoMap.put("id", String.valueOf(id));
         infoMap.put("port", String.valueOf(port));
