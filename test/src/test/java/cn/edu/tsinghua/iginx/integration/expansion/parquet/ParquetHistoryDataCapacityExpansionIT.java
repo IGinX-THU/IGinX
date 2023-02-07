@@ -100,15 +100,16 @@ public class ParquetHistoryDataCapacityExpansionIT {
                 + "+---+--------------+-----------+-----------+-----------------+------------+--------------+\n"
                 + "|  1|          12.3|          1|     normal|             null|        null|          null|\n"
                 + "|  2|          23.1|          2|     normal|             null|        null|          null|\n"
+                + "|  3|          65.2|          1|       high|             null|        null|          null|\n"
                 + "| 10|          null|       null|       null|             12.1|      normal|             1|\n"
                 + "| 11|          null|       null|       null|             32.2|      normal|             2|\n"
                 + "| 12|          null|       null|       null|             66.8|        high|             3|\n"
                 + "+---+--------------+-----------+-----------+-----------------+------------+--------------+\n"
-                + "Total line number = 5\n";
+                + "Total line number = 6\n";
         SQLTestTools.executeAndCompare(session, statement, expect);
 
         statement = "count points";
-        expect = "Points num: 15\n";
+        expect = "Points num: 18\n";
         SQLTestTools.executeAndCompare(session, statement, expect);
     }
 
@@ -123,16 +124,17 @@ public class ParquetHistoryDataCapacityExpansionIT {
                 + "+---+--------------+-----------+-----------+-----------------+------------+--------------+\n"
                 + "|  1|          12.3|          1|     normal|             null|        null|          null|\n"
                 + "|  2|          23.1|          2|     normal|             null|        null|          null|\n"
+                + "|  3|          65.2|          1|       high|             null|        null|          null|\n"
                 + "| 10|          null|       null|       null|             12.1|      normal|             1|\n"
                 + "| 11|          null|       null|       null|             32.2|      normal|             2|\n"
                 + "| 12|          null|       null|       null|             66.8|        high|             3|\n"
                 + "| 13|          null|       null|       null|             88.8|        high|             2|\n"
                 + "+---+--------------+-----------+-----------+-----------------+------------+--------------+\n"
-                + "Total line number = 6\n";
+                + "Total line number = 7\n";
         SQLTestTools.executeAndCompare(session, statement, expect);
 
         statement = "count points";
-        expect = "Points num: 18\n";
+        expect = "Points num: 21\n";
         SQLTestTools.executeAndCompare(session, statement, expect);
 
         statement = "select count(*) from test.us";
