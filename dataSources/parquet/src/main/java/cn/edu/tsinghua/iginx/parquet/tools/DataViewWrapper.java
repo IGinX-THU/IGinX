@@ -70,4 +70,12 @@ public class DataViewWrapper {
     public int getTimestampIndex(long timestamp) {
         return dataView.getKeyIndex(timestamp);
     }
+
+    public long getMinTime() {
+        return getTimestamp(0);
+    }
+
+    public long getMaxTime() {
+        return getTimestamp(getTimeSize() - 1);
+    }
 }

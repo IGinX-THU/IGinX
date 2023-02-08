@@ -119,8 +119,31 @@ set HEAP_OPTS=-Xmx%MAX_HEAP_SIZE% -Xms%MAX_HEAP_SIZE% -Xloggc:"%IGINX_HOME%\gc.l
 set CLASSPATH="%IGINX_HOME%\lib\*"
 @REM in case of parquet, initiation must be started specially
 @REM 1. check the config
-@REM 2. set the classpath
-@REM TODO:
+for /F %%i in ( 'type %IGINX_CONF% ^| findstr -V "^#" ^| findstr -I "storageEngineList"^| findstr -I "parquet"' ) do set PARQUET_EXIST=%%i
+
+set pos=1
+set target=3
+:parquet
+for /f "tokens=1* delims=#" %%a in ( "%PARQUET_EXIST%" ) do (
+	set PARQUET_EXIST=%%b
+	if %pos% EQU %target% ( set PARQUET_EXIST=%%a )
+)
+if %pos% LSS %target% ( 
+	set /A pos=%pos%+1 
+	goto :parquet
+)
+@REM we are getting the folder.
+@REM trimming spaces
+SETLOCAL ENABLEDELAYEDEXPANSION
+:delleft
+if "%PARQUET_EXIST:~0,1%"==" " set PARQUET_EXIST=%PARQUET_EXIST:~1%&&goto delleft
+                                                
+:delright
+if "%PARQUET_EXIST:~-1%"==" " set PARQUET_EXIST=%PARQUET_EXIST:~0,-1%&&goto delright
+@REM 2. update the classpath
+set CLASSPATH=%CLASSPATH%;%IGINX_HOME%\driver\%PARQUET_EXIST%\*
+@REM Parquet lib setting done!
+
 goto okClasspath
 
 @REM -----------------------------------------------------------------------------
