@@ -184,9 +184,9 @@ public class DUManager {
         }
     }
 
-    public List<Column> project(List<String> paths, TagFilter tagFilter, String filter, String schemaPrefix) throws SQLException {
+    public List<Column> project(List<String> paths, TagFilter tagFilter, String filter) throws SQLException {
         if (isDummyStorageUnit) {
-            return projectDummy(paths, tagFilter, filter, schemaPrefix);
+            return projectDummy(paths, tagFilter, filter);
         }
 
         Map<String, Column> dataMap = new HashMap<>();
@@ -207,19 +207,7 @@ public class DUManager {
         return new ArrayList<>(dataMap.values());
     }
 
-    private List<Column> projectDummy(List<String> paths, TagFilter tagFilter, String filter, String schemaPrefix) throws SQLException {
-        // trim prefix
-        List<String> pathList = new ArrayList<>();
-        if (schemaPrefix != null && !schemaPrefix.equals("")) {
-            for (String path : paths) {
-                if (path.contains(schemaPrefix)) {
-                    pathList.add(path.substring(path.indexOf(schemaPrefix) + schemaPrefix.length() + 1));
-                } else if (path.equals("*")) {
-                    pathList.add(path);
-                }
-            }
-        }
-
+    private List<Column> projectDummy(List<String> paths, TagFilter tagFilter, String filter) throws SQLException {
         Map<String, Column> dataMap = new HashMap<>();
         File file = new File(dataDir);
         File[] dataFiles = file.listFiles();
@@ -230,7 +218,7 @@ public class DUManager {
                 }
 
                 Set<String> pathsInFile = getPathsFromFile(dataFile.getPath());
-                List<String> filePaths = determinePathList(pathsInFile, pathList, tagFilter);
+                List<String> filePaths = determinePathList(pathsInFile, paths, tagFilter);
                 if (!filePaths.isEmpty()) {
                     List<Column> columns = projectInParquet(filePaths, filter, dataFile.getPath(), null, Long.MAX_VALUE);
                     mergeData(dataMap, columns);

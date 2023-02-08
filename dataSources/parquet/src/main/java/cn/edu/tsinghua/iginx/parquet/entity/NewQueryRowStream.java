@@ -23,22 +23,15 @@ public class NewQueryRowStream implements RowStream {
 
     private int cur = 0;
 
-    private final String schemaPrefix;
-
-    public NewQueryRowStream(List<Column> columns, String schemaPrefix) {
+    public NewQueryRowStream(List<Column> columns) {
         this.columns = columns;
-        this.schemaPrefix = schemaPrefix;
 
         Set<Long> timeSet = new TreeSet<>();
         List<Field> fields = new ArrayList<>();
         for (Column column : columns) {
             Pair<String, Map<String, String>> pair = TagKVUtils.splitFullName(column.getPathName());
             Field field;
-            if (schemaPrefix != null && !schemaPrefix.equals("")) {
-                field = new Field(schemaPrefix + "." + pair.getK(), column.getType(), pair.getV());
-            } else {
-                field = new Field(pair.getK(), column.getType(), pair.getV());
-            }
+            field = new Field(pair.getK(), column.getType(), pair.getV());
             fields.add(field);
             timeSet.addAll(column.getData().keySet());
         }
