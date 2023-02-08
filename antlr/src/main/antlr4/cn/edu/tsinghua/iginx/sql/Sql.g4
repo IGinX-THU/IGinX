@@ -341,6 +341,7 @@ keyWords
     | ON
     | USING
     | REMOVE
+    | HISTORYDATARESOURCE
     ;
 
 dateFormat
