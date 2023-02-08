@@ -40,6 +40,24 @@ public class DataTypeTransformer {
         }
     }
 
+    public static DataType fromStringDataType(String dataType) {
+        switch (dataType) {
+            case "BOOLEAN":
+                return DataType.BOOLEAN;
+            case "INTEGER":
+                return DataType.INTEGER;
+            case "LONG":
+                return DataType.LONG;
+            case "FLOAT":
+                return DataType.FLOAT;
+            case "DOUBLE":
+                return DataType.DOUBLE;
+            case "BINARY":
+            default:
+                return DataType.BINARY;
+        }
+    }
+
     public static String toParquetDataType(DataType dataType) {
         switch (dataType) {
             case BOOLEAN:
@@ -55,6 +73,21 @@ public class DataTypeTransformer {
             case BINARY:
             default:
                 return "VARCHAR";
+        }
+    }
+
+    public static int getDataSize(DataType type) {
+        switch (type) {
+            case BOOLEAN:
+                return 1;
+            case FLOAT:
+            case INTEGER:
+                return 4;
+            case LONG:
+            case DOUBLE:
+                return 8;
+            default:
+                return 0;
         }
     }
 }
