@@ -90,7 +90,7 @@ public class NewExecutor implements Executor {
 
     @Override
     public TaskExecuteResult executeProjectTask(List<String> paths, TagFilter tagFilter,
-        String filter, String storageUnit, boolean isDummyStorageUnit, String schemaPrefix) {
+        String filter, String storageUnit, boolean isDummyStorageUnit) {
         DUManager duManager;
         try {
             duManager = getDUManager(storageUnit, isDummyStorageUnit);
@@ -99,8 +99,8 @@ public class NewExecutor implements Executor {
         }
 
         try {
-            List<Column> columns = duManager.project(paths, tagFilter, filter, schemaPrefix);
-            RowStream rowStream = new ClearEmptyRowStreamWrapper(new NewQueryRowStream(columns, schemaPrefix));
+            List<Column> columns = duManager.project(paths, tagFilter, filter);
+            RowStream rowStream = new ClearEmptyRowStreamWrapper(new NewQueryRowStream(columns));
             return new TaskExecuteResult(rowStream, null);
         } catch (SQLException e) {
             return new TaskExecuteResult(null, new PhysicalException("Fail to project data ", e));
