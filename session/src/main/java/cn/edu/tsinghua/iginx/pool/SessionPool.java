@@ -319,11 +319,11 @@ public class SessionPool {
         }
     }
 
-    public void removeHistoryDataSource(List<Long> idList) throws SessionException, ExecutionException {
+    public void removeHistoryDataSource(List<RemovedStorageEngineInfo> removedStorageEngineList) throws SessionException, ExecutionException {
         for (int i = 0; i < RETRY; i++) {
             Session session = getSession();
             try {
-                session.removeHistoryDataSource(idList);
+                session.removeHistoryDataSource(removedStorageEngineList);
                 putBack(session);
                 return;
             } catch (SessionException e) {

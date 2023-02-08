@@ -584,9 +584,16 @@ struct DebugInfoResp {
     2: optional binary payload
 }
 
+struct RemovedStorageEngineInfo {
+    1: required string ip
+    2: required i32 port
+    3: required string schemaPrefix
+    4: required string dataPrefix
+}
+
 struct RemoveHistoryDataSourceReq {
     1: required i64 sessionId
-    2: required list<i64> dummyStorageId
+    2: required list<RemovedStorageEngineInfo> dummyStorageInfoList
 }
 
 service IService {

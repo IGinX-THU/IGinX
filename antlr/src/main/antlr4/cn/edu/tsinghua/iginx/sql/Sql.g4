@@ -22,7 +22,7 @@ statement
     | SHOW TRANSFORM JOB STATUS jobId=INT #showJobStatusStatement
     | CANCEL TRANSFORM JOB jobId=INT #cancelJobStatement
     | SHOW jobStatus TRANSFORM JOB #showEligibleJobStatement
-    | REMOVE HISTORYDATARESOURCE storageEngineID (COMMA storageEngineID)* #removeHistoryDataResourceStatement
+    | REMOVE HISTORYDATARESOURCE removedStorageEngine (COMMA removedStorageEngine)* #removeHistoryDataResourceStatement
     ;
 
 queryClause
@@ -374,8 +374,8 @@ realLiteral
     | EXPONENT
     ;
 
-storageEngineID
-    : (INT)
+removedStorageEngine
+    : LR_BRACKET ip=stringLiteral COMMA port=INT COMMA schemaPrefix=stringLiteral COMMA dataPrefix=stringLiteral RR_BRACKET
     ;
 
 //============================

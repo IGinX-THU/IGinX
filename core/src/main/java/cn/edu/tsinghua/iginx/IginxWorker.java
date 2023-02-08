@@ -190,9 +190,21 @@ public class IginxWorker implements IService.Iface {
             return RpcUtils.ACCESS_DENY;
         }
         Status status = RpcUtils.SUCCESS;
-        List<Long> dummyStorageIdList = req.getDummyStorageId();
-        for (long dummyStorageId : dummyStorageIdList) {
-            StorageEngineMeta meta = metaManager.getStorageEngine(dummyStorageId);
+        List<RemovedStorageEngineInfo> dummyStorageInfoList = req.getDummyStorageInfoList();
+        for (RemovedStorageEngineInfo storageEngineInfo : dummyStorageInfoList) {
+            List<StorageEngineMeta> metaList = metaManager.getStorageEngineList();
+            StorageEngineMeta meta = null;
+            Long dummyStorageId = null;
+            for (StorageEngineMeta metaa : metaList) {
+                String infoIp = storageEngineInfo.getIp(), infoSchemaPrefix = storageEngineInfo.getSchemaPrefix(), infoDataPrefix = storageEngineInfo.getDataPrefix();
+                String metaIp = metaa.getIp(), metaSchemaPrefix = metaa.getSchemaPrefix(), metaDataPrefix = metaa.getDataPrefix();
+                if (infoIp.equals(metaIp) && storageEngineInfo.getPort() == metaa.getPort()
+                        && (infoSchemaPrefix.length() == 0 && metaSchemaPrefix == null || Objects.equals(infoSchemaPrefix, metaSchemaPrefix)
+                        && (infoDataPrefix.length() == 0 && metaDataPrefix == null || Objects.equals(infoDataPrefix, metaDataPrefix)))) {
+                    meta = metaa;
+                    dummyStorageId = metaa.getId();
+                }
+            }
             if (meta == null || meta.getDummyFragment() == null || meta.getDummyStorageUnit() == null) {
                 status = RpcUtils.FAILURE;
                 status.setMessage("dummy storage engine is not exists.");

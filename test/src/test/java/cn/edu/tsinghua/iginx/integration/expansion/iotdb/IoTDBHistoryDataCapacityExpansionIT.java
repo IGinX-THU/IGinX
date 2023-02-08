@@ -6,6 +6,7 @@ import cn.edu.tsinghua.iginx.integration.expansion.BaseCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.unit.SQLTestTools;
 import cn.edu.tsinghua.iginx.pool.SessionPool;
 import cn.edu.tsinghua.iginx.session.Session;
+import cn.edu.tsinghua.iginx.thrift.RemovedStorageEngineInfo;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -555,9 +556,9 @@ public class IoTDBHistoryDataCapacityExpansionIT implements BaseCapacityExpansio
                 "+---+---------------------+--------------------------+\n" +
                 "Total line number = 2\n";
         SQLTestTools.executeAndCompare(session, statement, expect);
-        List<Long> idList = new ArrayList<>();
-        idList.add(3L);
-        session.removeHistoryDataSource(idList);
+        List<RemovedStorageEngineInfo> removedStorageEngineList = new ArrayList<>();
+        removedStorageEngineList.add(new RemovedStorageEngineInfo("127.0.0.1", 6668, "", "test"));
+        session.removeHistoryDataSource(removedStorageEngineList);
         statement = "select * from test";
         expect = "ResultSets:\n" +
                 "+---+\n" +
@@ -567,8 +568,8 @@ public class IoTDBHistoryDataCapacityExpansionIT implements BaseCapacityExpansio
                 "Empty set.\n";
         SQLTestTools.executeAndCompare(session, statement, expect);
 
-        idList.set(0, 2L);
-        sessionPool.removeHistoryDataSource(idList);
+        removedStorageEngineList.set(0, new RemovedStorageEngineInfo("127.0.0.1", 6668, "p2", "test"));
+        sessionPool.removeHistoryDataSource(removedStorageEngineList);
         statement = "select * from p2.test";
         expect = "ResultSets:\n" +
                 "+---+\n" +

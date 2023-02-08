@@ -1260,8 +1260,8 @@ public class Session {
         return new CurveMatchResult(resp.getMatchedTimestamp(), resp.getMatchedPath());
     }
 
-    public void removeHistoryDataSource(List<Long> idList) throws SessionException, ExecutionException {
-        RemoveHistoryDataSourceReq req = new RemoveHistoryDataSourceReq(sessionId, idList);
+    public void removeHistoryDataSource(List<RemovedStorageEngineInfo> removedStorageEngineList) throws SessionException, ExecutionException {
+        RemoveHistoryDataSourceReq req = new RemoveHistoryDataSourceReq(sessionId, removedStorageEngineList);
         try {
             Status status;
             do {
