@@ -110,6 +110,14 @@ public class ETCDMetaStorage implements IMetaStorage {
     private TransformChangeHook transformChangeHook = null;
     private long transformLease = -1L;
 
+    private final int IGINX_NODE_LENGTH = 7;
+
+    private final int STORAGE_ENGINE_NODE_LENGTH = 6;
+
+    private String generateID(String prefix, long idLength, long val) {
+        return String.format(prefix + "%0" + idLength + "d", (int) val);
+    }
+
     public ETCDMetaStorage() {
         client = Client.builder()
             .endpoints(ConfigDescriptor.getInstance().getConfig().getEtcdEndpoints()
@@ -487,7 +495,7 @@ public class ETCDMetaStorage implements IMetaStorage {
             });
             iginx = new IginxMeta(id, iginx.getIp(),
                 iginx.getPort(), iginx.getExtraParams());
-            this.client.getKVClient().put(ByteSequence.from((IGINX_PREFIX + String.format("%07d", id)).getBytes()),
+            this.client.getKVClient().put(ByteSequence.from(generateID(IGINX_PREFIX, IGINX_NODE_LENGTH,id).getBytes()),
                 ByteSequence.from(JsonUtils.toJson(iginx))).get();
             return id;
         } catch (ExecutionException | InterruptedException e) {
@@ -544,7 +552,7 @@ public class ETCDMetaStorage implements IMetaStorage {
                     storageEngine.setId(id);
                     storageEngines.put(storageEngine.getId(), storageEngine);
                     this.client.getKVClient()
-                        .put(ByteSequence.from((STORAGE_PREFIX + String.format("%06d", id)).getBytes()),
+                        .put(ByteSequence.from(generateID(STORAGE_PREFIX, STORAGE_ENGINE_NODE_LENGTH, id).getBytes()),
                             ByteSequence.from(JsonUtils.toJson(storageEngine))).get();
                 }
             }
@@ -566,7 +574,7 @@ public class ETCDMetaStorage implements IMetaStorage {
             long id = nextId(STORAGE_ID);
             storageEngine.setId(id);
             this.client.getKVClient()
-                .put(ByteSequence.from((STORAGE_PREFIX + String.format("%06d", id)).getBytes()),
+                .put(ByteSequence.from(generateID(STORAGE_PREFIX, STORAGE_ENGINE_NODE_LENGTH, id).getBytes()),
                     ByteSequence.from(JsonUtils.toJson(storageEngine))).get();
         } catch (ExecutionException | InterruptedException e) {
             logger.error("got error when add storage: ", e);
@@ -584,7 +592,7 @@ public class ETCDMetaStorage implements IMetaStorage {
         try {
             lockStorage();
             this.client.getKVClient()
-                    .put(ByteSequence.from((STORAGE_PREFIX + String.format("%06d", storageID)).getBytes()),
+                    .put(ByteSequence.from(generateID(STORAGE_PREFIX, STORAGE_ENGINE_NODE_LENGTH, storageID).getBytes()),
                             ByteSequence.from(JsonUtils.toJson(storageEngine))).get();
         } catch (ExecutionException | InterruptedException e) {
             logger.error("got error when add storage: ", e);
@@ -646,7 +654,7 @@ public class ETCDMetaStorage implements IMetaStorage {
     @Override
     public String addStorageUnit() throws MetaStorageException {
         try {
-            return String.format("unit%06d", nextId(STORAGE_UNIT_ID));
+            return generateID("unit", STORAGE_ENGINE_NODE_LENGTH, nextId(STORAGE_UNIT_ID));
         } catch (InterruptedException | ExecutionException e) {
             throw new MetaStorageException("add storage unit error: ", e);
         }
