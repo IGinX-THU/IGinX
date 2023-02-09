@@ -22,7 +22,7 @@ jobs:
         java: [ 8 ]
         python-version: [ "3.7" ]
         os: [ ubuntu-latest, macos-latest ]
-        DB-name: [ "iotdb11", "iotdb12" ]
+        DB-name: [ "iotdb12" ]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
@@ -114,7 +114,7 @@ jobs:
         java: [ 8 ]
         python-version: [ "3.7" ]
         os: [ ubuntu-latest, macos-latest ]
-        DB-name: [ "iotdb11", "iotdb12" ]
+        DB-name: [ "iotdb12" ]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
@@ -204,7 +204,7 @@ jobs:
         java: [ 8 ]
         python-version: [ "3.7" ]
         os: [ ubuntu-latest, macos-latest ]
-        DB-name: [ "iotdb11", "iotdb12" ]
+        DB-name: [ "iotdb12" ]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
@@ -295,7 +295,7 @@ jobs:
         java: [ 8 ]
         python-version: [ "3.7" ]
         os: [ ubuntu-latest, macos-latest ]
-        DB-name: [ "iotdb11", "iotdb12" ]
+        DB-name: [ "iotdb12" ]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
