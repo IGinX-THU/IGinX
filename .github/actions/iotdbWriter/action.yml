@@ -4,7 +4,7 @@ inputs:
   version:
     description: 'IoTDB version'
     required: false
-    default: iotdb11
+    default: iotdb12
   Test-Way:
     description: 'the way to imp'
     required: false

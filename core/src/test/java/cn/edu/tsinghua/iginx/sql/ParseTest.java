@@ -246,7 +246,7 @@ public class ParseTest {
 
     @Test
     public void testParseAddStorageEngine() {
-        String addStorageEngineStr = "ADD STORAGEENGINE (\"127.0.0.1\", 6667, \"iotdb11\", \"username: root, password: root\"), (\"127.0.0.1\", 6668, \"influxdb\", \"key1: val1, key2: val2\");";
+        String addStorageEngineStr = "ADD STORAGEENGINE (\"127.0.0.1\", 6667, \"iotdb12\", \"username: root, password: root\"), (\"127.0.0.1\", 6668, \"influxdb\", \"key1: val1, key2: val2\");";
         AddStorageEngineStatement statement = (AddStorageEngineStatement) TestUtils.buildStatement(addStorageEngineStr);
 
         assertEquals(2, statement.getEngines().size());
@@ -254,7 +254,7 @@ public class ParseTest {
         Map<String, String> extra01 = new HashMap<>();
         extra01.put("username", "root");
         extra01.put("password", "root");
-        StorageEngine engine01 = new StorageEngine("127.0.0.1", 6667, "iotdb11", extra01);
+        StorageEngine engine01 = new StorageEngine("127.0.0.1", 6667, "iotdb12", extra01);
 
         Map<String, String> extra02 = new HashMap<>();
         extra02.put("key1", "val1");

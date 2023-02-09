@@ -16,7 +16,7 @@ inputs:
   DB-name:
     description: 'IoTDB version'
     required: false
-    default: iotdb11
+    default: iotdb12
 
 runs:
   using: "composite" # Mandatory parameter
