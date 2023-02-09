@@ -345,8 +345,8 @@ public class IginxClient {
             Object[] nextRow = queryDataSet.nextRow();
             if (nextRow != null) {
                 if (hasKey) {
-                    strRow.add(FormatUtils.formatTime((Long) nextRow[0], FormatUtils.DEFAULT_TIME_FORMAT, timestampPrecision));
-                    for (int i = 1; i < nextRow.length; i++) {
+//                    strRow.add(FormatUtils.formatTime((Long) nextRow[0], FormatUtils.DEFAULT_TIME_FORMAT, timestampPrecision));
+                    for (int i = 0; i < nextRow.length; i++) {
                         strRow.add(FormatUtils.valueToString(nextRow[i]));
                     }
                 } else {
