@@ -107,6 +107,15 @@ public class SessionPool {
 
     public SessionPool(
             List<Map<String, String>> IginxList,
+            int maxSize
+    ) {
+        this(IginxList,
+                new ArrayList<Integer>(){{for (int i=0; i<IginxList.size(); i++) add(1);}},
+                maxSize, WAITTOGETSESSIONTIMEOUTINMS);
+    }
+
+    public SessionPool(
+            List<Map<String, String>> IginxList,
             List<Integer> sessionNum,
             int maxSize
     ) {
@@ -130,10 +139,10 @@ public class SessionPool {
     private Session constructSession(int index) {
         Map<String, String> iginxInfo = iginxList.get(index);
         return new Session(
-                iginxInfo.get(HOST_VAR),
-                iginxInfo.get(PORT_VAR),
-                iginxInfo.get(USER_VAR),
-                iginxInfo.get(PASSWORD_VAR));
+                iginxInfo.getOrDefault(HOST_VAR, ""),
+                iginxInfo.getOrDefault(PORT_VAR, ""),
+                iginxInfo.getOrDefault(USER_VAR, ""),
+                iginxInfo.getOrDefault(PASSWORD_VAR, ""));
     }
 
     private int getIndexOfIginx(int currentSize) {

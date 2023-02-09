@@ -8,7 +8,9 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 import org.apache.commons.lang3.RandomStringUtils;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class IoTDBSessionPoolExample {
     private static final String S1 = "sg.d1.s1";
@@ -24,18 +26,40 @@ public class IoTDBSessionPoolExample {
     private static final long NON_ALIGNED_ROW_START_TIMESTAMP = 30001L;
     private static final long NON_ALIGNED_ROW_END_TIMESTAMP = 40000L;
     private static final int INTERVAL = 10;
+    private static final boolean needMultiIginx = true;
 
     private static SessionPool sessionPool;
 
+    // construct sessionpool with all iginx
     private static void constructCustomSessionPool() {
-        sessionPool =
-                new SessionPool.Builder()
-                        .host("127.0.0.1")
-                        .port(6888)
-                        .user("root")
-                        .password("root")
-                        .maxSize(3)
-                        .build();
+        //{"id":3,"ip":"0.0.0.0","port":6888} and {"id":2,"ip":"0.0.0.0","port":7888}
+        if (needMultiIginx) {
+            List<Map<String, String>> iginxList = new ArrayList<Map<String, String>>() {{
+                add(new HashMap<String, String>() {{
+                    put("host", "0.0.0.0");
+                    put("port", "6888");
+                    put("user", "root");
+                    put("password", "root");
+                }});
+                add(new HashMap<String, String>() {{
+                    put("host", "0.0.0.0");
+                    put("port", "7888");
+                    put("user", "root");
+                    put("password", "root");
+                }});
+            }};
+
+            sessionPool = new SessionPool(iginxList, 3);
+        } else {
+            sessionPool =
+                    new SessionPool.Builder()
+                            .host("127.0.0.1")
+                            .port(6888)
+                            .user("root")
+                            .password("root")
+                            .maxSize(3)
+                            .build();
+        }
     }
 
     public static void main(String[] args) throws SessionException, ExecutionException {
