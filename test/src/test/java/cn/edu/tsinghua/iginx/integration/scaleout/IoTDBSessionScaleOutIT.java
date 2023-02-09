@@ -18,7 +18,7 @@ public class IoTDBSessionScaleOutIT extends BaseSessionIT implements IoTDBBaseSc
         this.defaultPort2 = 6668;
         this.isAbleToDelete = false;
         this.ifNeedCapExp = false;
-        this.storageEngineType = "iotdb11";
+        this.storageEngineType = "iotdb12";
         this.extraParams = new LinkedHashMap<>();
         this.extraParams.put("username", "root");
         this.extraParams.put("password", "root");

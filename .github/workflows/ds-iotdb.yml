@@ -22,7 +22,7 @@ jobs:
         java: [ 8 ]
         python-version: [ "3.7" ]
         os: [ ubuntu-latest, macos-latest ]
-        iotdb-version: [ iotdb11, iotdb12 ]
+        iotdb-version: [ iotdb12 ]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
@@ -51,9 +51,7 @@ jobs:
 
       - name: A Lame Integration Test with Maven for IoTDB
         run: |
-          if [ ${{ matrix.iotdb-version }} == "iotdb11" ]; then
-            mvn test -q -Dtest=IoTDB11SessionIT -DfailIfNoTests=false
-          elif [ ${{ matrix.iotdb-version }} == "iotdb12" ]; then
+          if [ ${{ matrix.iotdb-version }} == "iotdb12" ]; then
             mvn test -q -Dtest=IoTDB12SessionIT -DfailIfNoTests=false
           else
             echo "${{ matrix.iotdb-version }} is not supported"
@@ -72,7 +70,7 @@ jobs:
         java: [ 8 ]
         python-version: [ "3.7" ]
         os: [ ubuntu-latest, macos-latest ]
-        iotdb-version: [ iotdb11, iotdb12 ]
+        iotdb-version: [ iotdb12 ]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
@@ -113,7 +111,7 @@ jobs:
         java: [ 8 ]
         python-version: [ "3.7" ]
         os: [ ubuntu-latest, macos-latest ]
-        iotdb-version: [ iotdb11, iotdb12 ]
+        iotdb-version: [ iotdb12 ]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
@@ -154,7 +152,7 @@ jobs:
         java: [ 8 ]
         python-version: [ "3.7" ]
         os: [ ubuntu-latest, macos-latest ]
-        iotdb-version: [ iotdb11, iotdb12 ]
+        iotdb-version: [ iotdb12 ]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
@@ -183,9 +181,7 @@ jobs:
 
       - name: A Lame Integration Test with Maven for IoTDB
         run: |
-          if [ ${{ matrix.iotdb-version }} == "iotdb11" ]; then
-            mvn test -q -Dtest=IoTDB11SessionPoolIT -DfailIfNoTests=false
-          elif [ ${{ matrix.iotdb-version }} == "iotdb12" ]; then
+          if [ ${{ matrix.iotdb-version }} == "iotdb12" ]; then
             mvn test -q -Dtest=IoTDB12SessionPoolIT -DfailIfNoTests=false
           else
             echo "${{ matrix.iotdb-version }} is not supported"
@@ -203,7 +199,7 @@ jobs:
         java: [ 8 ]
         python-version: [ "3.7" ]
         os: [ ubuntu-latest, macos-latest ]
-        iotdb-version: [ iotdb11, iotdb12 ]
+        iotdb-version: [ iotdb12 ]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
