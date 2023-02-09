@@ -128,7 +128,15 @@ public class SessionPool {
             int maxSize,
             long waitToGetSessionTimeoutInMs
     ) {
-        assert sessionNum.size() == IginxList.size() : "session size are not equal with the IGinX size";
+        if (sessionNum.size() < IginxList.size()) {
+            logger.warn(
+                    "IGinX list size {}, distributive session size {}, the remaining IGinX will not get session connection",
+                    IginxList.size(),
+                    sessionNum.size());
+            for (int i=sessionNum.size(); i<IginxList.size(); i++) {
+                sessionNum.add(0);
+            }
+        }
         multiIginx = true;
         this.iginxList = IginxList;
         this.sessionNum = sessionNum;
