@@ -58,7 +58,8 @@ enum SqlType {
     CommitTransformJob,
     ShowJobStatus,
     CancelJob,
-    ShowEligibleJob
+    ShowEligibleJob,
+    RemoveHistoryDataResource
 }
 
 enum AuthType {
@@ -386,6 +387,8 @@ struct StorageEngineInfo {
     2: required string ip
     3: required i32 port
     4: required string type
+    5: optional string schemaPrefix
+    6: optional string dataPrefix
 }
 
 struct MetaStorageInfo {
@@ -581,9 +584,16 @@ struct DebugInfoResp {
     2: optional binary payload
 }
 
+struct RemovedStorageEngineInfo {
+    1: required string ip
+    2: required i32 port
+    3: required string schemaPrefix
+    4: required string dataPrefix
+}
+
 struct RemoveHistoryDataSourceReq {
     1: required i64 sessionId
-    2: required i64 dummyStorageId
+    2: required list<RemovedStorageEngineInfo> dummyStorageInfoList
 }
 
 service IService {

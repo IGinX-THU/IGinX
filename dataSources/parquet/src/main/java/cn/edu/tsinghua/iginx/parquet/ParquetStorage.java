@@ -22,6 +22,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
 import cn.edu.tsinghua.iginx.parquet.exec.Executor;
 import cn.edu.tsinghua.iginx.parquet.exec.LocalExecutor;
+import cn.edu.tsinghua.iginx.parquet.exec.NewExecutor;
 import cn.edu.tsinghua.iginx.parquet.exec.RemoteExecutor;
 import cn.edu.tsinghua.iginx.parquet.policy.NaiveParquetStoragePolicy;
 import cn.edu.tsinghua.iginx.parquet.policy.ParquetStoragePolicy;
@@ -85,9 +86,7 @@ public class ParquetStorage implements IStorage {
             throw new StorageInitializationException("cannot connect to " + meta.toString());
         }
 
-        ParquetStoragePolicy policy = new NaiveParquetStoragePolicy(dataDir, connection);
-
-        this.executor = new LocalExecutor(policy, connection, dataDir);
+        this.executor = new NewExecutor(connection, dataDir);
 
         new Thread(new ParquetServer(meta.getPort(), executor)).start();
     }
@@ -138,8 +137,7 @@ public class ParquetStorage implements IStorage {
                 project.getTagFilter(),
                 FilterTransformer.toString(filter),
                 storageUnit,
-                isDummyStorageUnit,
-                task.getTargetFragment().getTsInterval().getSchemaPrefix());
+                isDummyStorageUnit);
         } else if (op.getType() == OperatorType.Insert) {
             Insert insert = (Insert) op;
             return executor.executeInsertTask(

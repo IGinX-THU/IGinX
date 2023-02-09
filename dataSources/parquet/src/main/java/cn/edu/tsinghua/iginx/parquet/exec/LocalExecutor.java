@@ -1,13 +1,6 @@
 package cn.edu.tsinghua.iginx.parquet.exec;
 
-import static cn.edu.tsinghua.iginx.parquet.tools.Constant.COLUMN_NAME;
-import static cn.edu.tsinghua.iginx.parquet.tools.Constant.COLUMN_TIME;
-import static cn.edu.tsinghua.iginx.parquet.tools.Constant.COLUMN_TYPE;
-import static cn.edu.tsinghua.iginx.parquet.tools.Constant.DATATYPE_BIGINT;
-import static cn.edu.tsinghua.iginx.parquet.tools.Constant.DUCKDB_SCHEMA;
-import static cn.edu.tsinghua.iginx.parquet.tools.Constant.IGINX_SEPARATOR;
-import static cn.edu.tsinghua.iginx.parquet.tools.Constant.NAME;
-import static cn.edu.tsinghua.iginx.parquet.tools.Constant.PARQUET_SEPARATOR;
+import static cn.edu.tsinghua.iginx.parquet.tools.Constant.*;
 import static cn.edu.tsinghua.iginx.parquet.tools.DataTypeTransformer.fromDuckDBDataType;
 import static cn.edu.tsinghua.iginx.parquet.tools.DataTypeTransformer.toParquetDataType;
 
@@ -30,6 +23,7 @@ import cn.edu.tsinghua.iginx.parquet.entity.WritePlan;
 import cn.edu.tsinghua.iginx.parquet.policy.ParquetStoragePolicy;
 import cn.edu.tsinghua.iginx.parquet.policy.ParquetStoragePolicy.FlushType;
 import cn.edu.tsinghua.iginx.parquet.tools.DataViewWrapper;
+import cn.edu.tsinghua.iginx.parquet.tools.FileUtils;
 import cn.edu.tsinghua.iginx.parquet.tools.TagKVUtils;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
@@ -66,34 +60,6 @@ public class LocalExecutor implements Executor {
 
     private static final String APPENDIX_DATA_FILE_NAME_FORMATTER = "appendixData__%s__%s.parquet";
 
-    private static final String CREATE_TABLE_STMT = "CREATE TABLE %s (%s)";
-
-    private static final String INSERT_STMT_PREFIX = "INSERT INTO %s(%s) VALUES ";
-
-    private static final String CREATE_TABLE_FROM_PARQUET_STMT = "CREATE TABLE %s AS SELECT * FROM '%s'";
-
-    private static final String ADD_COLUMNS_STMT = "ALTER TABLE %s ADD COLUMN %s %s";
-
-    private static final String DESCRIBE_STMT = "DESCRIBE %s";
-
-    private static final String SAVE_TO_PARQUET_STMT = "COPY %s TO '%s' (FORMAT 'parquet')";
-
-    private static final String DROP_TABLE_STMT = "DROP TABLE %s";
-
-    private static final String SELECT_STMT = "SELECT time, %s FROM '%s' WHERE %s ORDER BY time";
-
-    private static final String SELECT_TIME_STMT = "SELECT time FROM '%s' ORDER BY time";
-
-    private static final String SELECT_FIRST_TIME_STMT = "SELECT time FROM '%s' order by time limit 1";
-
-    private static final String SELECT_LAST_TIME_STMT = "SELECT time FROM '%s' order by time desc limit 1";
-
-    private static final String SELECT_PARQUET_SCHEMA = "SELECT * FROM parquet_schema('%s')";
-
-    private static final String DELETE_DATA_STMT = "UPDATE %s SET %s=NULL WHERE time >= %s AND time <= %s";
-
-    private static final String DROP_COLUMN_STMT = "ALTER TABLE %s DROP %s";
-
     private static final Map<String, ReentrantReadWriteLock> lockMap = new ConcurrentHashMap<>();
 
     private final ParquetStoragePolicy policy;
@@ -110,7 +76,7 @@ public class LocalExecutor implements Executor {
 
     @Override
     public TaskExecuteResult executeProjectTask(List<String> paths, TagFilter tagFilter,
-        String filter, String storageUnit, boolean isDummyStorageUnit, String schemaPrefix) {
+        String filter, String storageUnit, boolean isDummyStorageUnit) {
         try {
             createDUDirectoryIfNotExists(storageUnit);
         } catch (PhysicalException e) {
@@ -118,7 +84,7 @@ public class LocalExecutor implements Executor {
         }
 
         if (isDummyStorageUnit) {
-            return executeDummyProjectTask(paths, tagFilter, filter, storageUnit, schemaPrefix);
+            return executeDummyProjectTask(paths, tagFilter, filter, storageUnit);
         }
 
         try {
@@ -154,22 +120,11 @@ public class LocalExecutor implements Executor {
     }
 
     private TaskExecuteResult executeDummyProjectTask(List<String> paths, TagFilter tagFilter,
-        String filter, String storageUnit, String schemaPrefix) {
+        String filter, String storageUnit) {
         try {
             Connection conn = ((DuckDBConnection) connection).duplicate();
             Statement stmt = conn.createStatement();
-
-            // trim prefix
-            List<String> pathList = new ArrayList<>();
-            if (schemaPrefix != null && !schemaPrefix.equals("")) {
-                for (String path : paths) {
-                    if (path.contains(schemaPrefix)) {
-                        pathList.add(path.substring(path.indexOf(schemaPrefix) + schemaPrefix.length() + 1));
-                    } else if (path.equals("*")) {
-                        pathList.add(path);
-                    }
-                }
-            }
+            List<String> pathList = new ArrayList<>(paths);
 
             pathList = determinePathListWithTagFilter(storageUnit, pathList, tagFilter, true);
             if (pathList.isEmpty()) {
@@ -192,7 +147,7 @@ public class LocalExecutor implements Executor {
             conn.close();
 
             RowStream rowStream = new ClearEmptyRowStreamWrapper(
-                new MergeTimeRowStreamWrapper(new ParquetQueryRowStream(rs, tagFilter, schemaPrefix)));
+                new MergeTimeRowStreamWrapper(new ParquetQueryRowStream(rs, tagFilter)));
             return new TaskExecuteResult(rowStream);
         } catch (SQLException | PhysicalException e) {
             logger.error(e.getMessage());
@@ -582,7 +537,7 @@ public class LocalExecutor implements Executor {
         if (timeRanges == null || timeRanges.size() == 0) { // 没有传任何 time range
             if (paths.size() == 1 && paths.get(0).equals("*") && tagFilter == null) {
                 File duDir = Paths.get(dataDir, storageUnit).toFile();
-                deleteFile(duDir);
+                FileUtils.deleteFile(duDir);
             } else {
                 List<String> deletedPaths;
                 try {
@@ -661,21 +616,6 @@ public class LocalExecutor implements Executor {
         } catch (SQLException e) {
             logger.error("delete path failure.", e);
         }
-    }
-
-    private boolean deleteFile(File file) {
-        if (!file.exists()) {
-            return false;
-        }
-        if (file.isDirectory()) {
-            File[] files = file.listFiles();
-            if (files != null) {
-                for (File f : files) {
-                    deleteFile(f);
-                }
-            }
-        }
-        return file.delete();
     }
 
     private void createDUDirectoryIfNotExists(String storageUnit) throws PhysicalException {

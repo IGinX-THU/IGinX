@@ -20,6 +20,8 @@ package cn.edu.tsinghua.iginx.utils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class StringUtils {
 
@@ -55,11 +57,18 @@ public class StringUtils {
      * @param border  前缀式时间范围
      */
     public static int compare(String ts, String border) {
-        if (ts.indexOf(border) == 0) {
+        // *.*.*
+        String regex = "[*][.*]*";
+        if(Pattern.matches(regex, ts))
             return 0;
-        }
-        else
-            return ts.compareTo(border);
+        // a.b.c.*.*
+        String tss = ts;
+        if (tss.contains("*"))
+            tss = ts.substring(0, ts.indexOf("*")-1);
+        if (tss.indexOf(border) == 0) {
+            return 0;
+        } else
+            return tss.compareTo(border);
     }
 
     public static String nextString(String str) {

@@ -19,10 +19,7 @@ import cn.edu.tsinghua.iginx.sql.expression.UnaryExpression;
 import cn.edu.tsinghua.iginx.sql.statement.*;
 import cn.edu.tsinghua.iginx.sql.statement.join.JoinPart;
 import cn.edu.tsinghua.iginx.sql.statement.join.JoinType;
-import cn.edu.tsinghua.iginx.thrift.DataType;
-import cn.edu.tsinghua.iginx.thrift.JobState;
-import cn.edu.tsinghua.iginx.thrift.StorageEngine;
-import cn.edu.tsinghua.iginx.thrift.UDFType;
+import cn.edu.tsinghua.iginx.thrift.*;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.TimeUtils;
 import org.antlr.v4.runtime.tree.TerminalNode;
@@ -227,6 +224,21 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     @Override
     public Statement visitShowClusterInfoStatement(ShowClusterInfoStatementContext ctx) {
         return new ShowClusterInfoStatement();
+    }
+
+    @Override
+    public Statement visitRemoveHistoryDataResourceStatement(RemoveHistoryDataResourceStatementContext ctx) {
+        RemoveHsitoryDataSourceStatement statement = new RemoveHsitoryDataSourceStatement();
+        ctx.removedStorageEngine().forEach(storageEngine -> {
+            String ipStr = storageEngine.ip.getText();
+            String schemaPrefixStr = storageEngine.schemaPrefix.getText();
+            String dataPrefixStr = storageEngine.dataPrefix.getText();
+            String ip = ipStr.substring(ipStr.indexOf(SQLConstant.QUOTE) + 1, ipStr.lastIndexOf(SQLConstant.QUOTE));
+            String schemaPrefix = schemaPrefixStr.substring(schemaPrefixStr.indexOf(SQLConstant.QUOTE) + 1, schemaPrefixStr.lastIndexOf(SQLConstant.QUOTE));
+            String dataPrefix = dataPrefixStr.substring(dataPrefixStr.indexOf(SQLConstant.QUOTE) + 1, dataPrefixStr.lastIndexOf(SQLConstant.QUOTE));
+            statement.addStorageEngine(new RemovedStorageEngineInfo(ip, Integer.parseInt(storageEngine.port.getText()), schemaPrefix, dataPrefix));
+        });
+        return statement;
     }
 
     private void parseFromPaths(FromClauseContext ctx, SelectStatement selectStatement) {
