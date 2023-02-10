@@ -150,9 +150,9 @@ join
 
 specialClause
     : limitClause
-    | groupByLevelClause
-    | groupByClause limitClause?
-    | groupByTimeClause limitClause?
+    | aggregateWithLevelClause
+    | downsampleWithLevelClause limitClause?
+    | downsampleClause limitClause?
     | orderByClause limitClause?
     ;
 
@@ -160,16 +160,16 @@ orderByClause
     : ORDER BY (TIME | TIMESTAMP | KEY | path) (DESC | ASC)?
     ;
 
-groupByClause
-    : GROUP timeInterval BY TIME_WITH_UNIT COMMA LEVEL OPERATOR_EQ INT (COMMA INT)*
+downsampleWithLevelClause
+    : downsampleClause aggregateWithLevelClause
     ;
 
-groupByTimeClause
-    : GROUP timeInterval BY TIME_WITH_UNIT (SLIDE TIME_WITH_UNIT)?
+downsampleClause
+    : OVER LR_BRACKET RANGE TIME_WITH_UNIT IN timeInterval (STEP TIME_WITH_UNIT)? RR_BRACKET
     ;
 
-groupByLevelClause
-    : GROUP BY LEVEL OPERATOR_EQ INT (COMMA INT)*
+aggregateWithLevelClause
+    : AGG LEVEL OPERATOR_EQ INT (COMMA INT)*
     ;
 
 asClause
@@ -289,6 +289,7 @@ keyWords
     | TIMESTAMP
     | GROUP
     | ORDER
+    | AGG
     | LEVEL
     | ADD
     | VALUE
@@ -329,7 +330,6 @@ keyWords
     | WITH_PRECISE
     | TIME_OFFSET
     | CANCEL
-    | SLIDE
     | INNER
     | OUTER
     | CROSS
@@ -340,6 +340,9 @@ keyWords
     | JOIN
     | ON
     | USING
+    | OVER
+    | RANGE
+    | STEP
     | REMOVE
     | HISTORYDATARESOURCE
     ;
@@ -440,6 +443,10 @@ GROUP
 
 ORDER
     : O R D E R
+    ;
+
+AGG
+    : A G G
     ;
 
 LEVEL
@@ -666,10 +673,6 @@ CLOSED
     : C L O S E D
     ;
 
-SLIDE
-    : S L I D E
-    ;
-
 INNER
     : I N N E R
     ;
@@ -708,6 +711,18 @@ ON
 
 USING
     : U S I N G
+    ;
+
+OVER
+    : O V E R
+    ;
+
+RANGE
+    : R A N G E
+    ;
+
+STEP
+    : S T E P
     ;
 
 REMOVE

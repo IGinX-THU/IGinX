@@ -130,15 +130,18 @@ public class UDFIT {
     @Test
     public void baseTests() {
         String udtfSQLFormat = "SELECT %s(s1) FROM us.d1 WHERE key < 200;";
-        String udafSQLFormat = "SELECT %s(s1) FROM us.d1 GROUP [0, 200) BY 50ms;";
+        String udafSQLFormat = "SELECT %s(s1) FROM us.d1 OVER (RANGE 50ms IN [0, 200));";
+        String udsfSQLFormat = "SELECT %s(s1) FROM us.d1 WHERE key < 50;";
 
         List<TransformTaskMeta> taskMetas = metaManager.getTransformTasks();
         for (TransformTaskMeta taskMeta : taskMetas) {
             // execute udf
             if (taskMeta.getType().equals(UDFType.UDTF)) {
                 execute(String.format(udtfSQLFormat, taskMeta.getName()));
-            } else {
+            } else if (taskMeta.getType().equals(UDFType.UDAF)) {
                 execute(String.format(udafSQLFormat, taskMeta.getName()));
+            } else {
+                execute(String.format(udsfSQLFormat, taskMeta.getName()));
             }
         }
     }

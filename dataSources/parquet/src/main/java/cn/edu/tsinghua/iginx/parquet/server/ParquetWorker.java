@@ -84,11 +84,11 @@ public class ParquetWorker implements ParquetService.Iface {
             req.getStorageUnit(),
             req.isDummyStorageUnit);
 
-        if (result.getException() != null || result.getRowStream() == null) {
+        RowStream rowStream = result.getRowStream();
+
+        if (result.getException() != null || rowStream == null) {
             return new ProjectResp(EXEC_PROJECT_FAIL);
         }
-
-        RowStream rowStream = result.getRowStream();
 
         List<String> names = new ArrayList<>();
         List<String> types = new ArrayList<>();

@@ -28,7 +28,7 @@ import java.util.*;
 
 public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
-    private final static Set<SelectStatement.FuncType> supportedGroupByLevelFuncSet = new HashSet<>(
+    private final static Set<SelectStatement.FuncType> supportedAggregateWithLevelFuncSet = new HashSet<>(
         Arrays.asList(
             SelectStatement.FuncType.Sum,
             SelectStatement.FuncType.Count,
@@ -486,22 +486,16 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     }
 
     private void parseSpecialClause(SpecialClauseContext ctx, SelectStatement selectStatement) {
-        if (ctx.groupByClause() != null) {
-            // groupByClause = groupByTimeClause + groupByLevelClause
-            parseGroupByTimeClause(ctx.groupByClause().timeInterval(), ctx.groupByClause().TIME_WITH_UNIT(), selectStatement);
-            parseGroupByLevelClause(ctx.groupByClause().INT(), selectStatement);
+        if (ctx.downsampleWithLevelClause() != null) {
+            // downsampleWithLevelClause = downsampleClause + aggregateWithLevelClause
+            parseDownsampleClause(ctx.downsampleClause(), selectStatement);
+            parseAggregateWithLevelClause(ctx.aggregateWithLevelClause().INT(), selectStatement);
         }
-        if (ctx.groupByTimeClause() != null) {
-            parseGroupByTimeClause(ctx.groupByTimeClause().timeInterval(), ctx.groupByTimeClause().TIME_WITH_UNIT(0), selectStatement);
-            if (ctx.groupByTimeClause().SLIDE() != null) {
-                String slideDistanceStr = ctx.groupByTimeClause().TIME_WITH_UNIT(1).getText();
-                long distance = TimeUtils.convertTimeWithUnitStrToLong(0, slideDistanceStr);
-                selectStatement.setSlideDistance(distance);
-                selectStatement.setHasSlideWindow(true);
-            }
+        if (ctx.downsampleClause() != null) {
+            parseDownsampleClause(ctx.downsampleClause(), selectStatement);
         }
-        if (ctx.groupByLevelClause() != null) {
-            parseGroupByLevelClause(ctx.groupByLevelClause().INT(), selectStatement);
+        if (ctx.aggregateWithLevelClause() != null) {
+            parseAggregateWithLevelClause(ctx.aggregateWithLevelClause().INT(), selectStatement);
         }
         if (ctx.limitClause() != null) {
             Pair<Integer, Integer> limitAndOffset = parseLimitClause(ctx.limitClause());
@@ -513,16 +507,20 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         }
     }
 
-    private void parseGroupByTimeClause(TimeIntervalContext timeIntervalContext, TerminalNode duration, SelectStatement selectStatement) {
-        String durationStr = duration.getText();
+    private void parseDownsampleClause(DownsampleClauseContext ctx, SelectStatement selectStatement) {
+        String durationStr = ctx.TIME_WITH_UNIT(0).getText();
         long precision = TimeUtils.convertTimeWithUnitStrToLong(0, durationStr);
-        Pair<Long, Long> timeInterval = parseTimeInterval(timeIntervalContext);
+        Pair<Long, Long> timeInterval = parseTimeInterval(ctx.timeInterval());
         selectStatement.setStartTime(timeInterval.k);
         selectStatement.setEndTime(timeInterval.v);
         selectStatement.setPrecision(precision);
         selectStatement.setSlideDistance(precision);
-        selectStatement.setHasGroupByTime(true);
-        selectStatement.setHasSlideWindow(false);
+        selectStatement.setHasDownsample(true);
+        if (ctx.STEP() != null) {
+            String slideDistanceStr = ctx.TIME_WITH_UNIT(1).getText();
+            long distance = TimeUtils.convertTimeWithUnitStrToLong(0, slideDistanceStr);
+            selectStatement.setSlideDistance(distance);
+        }
 
         // merge value filter and group time range filter
         KeyFilter startTime = new KeyFilter(Op.GE, timeInterval.k);
@@ -536,22 +534,16 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         }
         selectStatement.setFilter(mergedFilter);
     }
-    
-    private void parseSlideWindowByTimeClause(TimeIntervalContext timeIntervalContext, TerminalNode duration, TerminalNode slideDistance, SelectStatement selectStatement) {
-        parseGroupByTimeClause(timeIntervalContext, duration, selectStatement);
-        String slideDistanceStr = slideDistance.getText();
 
-    }
-
-    private void parseGroupByLevelClause(List<TerminalNode> layers, SelectStatement selectStatement) {
-        if (!isSupportGroupByLevel(selectStatement)) {
-            throw new SQLParserException("Group by level only support aggregate query count, sum, avg for now.");
+    private void parseAggregateWithLevelClause(List<TerminalNode> layers, SelectStatement selectStatement) {
+        if (!isSupportAggregateWithLevel(selectStatement)) {
+            throw new SQLParserException("Aggregate with level only support aggregate query count, sum, avg for now.");
         }
         layers.forEach(terminalNode -> selectStatement.setLayer(Integer.parseInt(terminalNode.getText())));
     }
 
-    private boolean isSupportGroupByLevel(SelectStatement selectStatement) {
-        return supportedGroupByLevelFuncSet.containsAll(selectStatement.getFuncTypeSet());
+    private boolean isSupportAggregateWithLevel(SelectStatement selectStatement) {
+        return supportedAggregateWithLevelFuncSet.containsAll(selectStatement.getFuncTypeSet());
     }
 
     // like standard SQL, limit N, M means limit M offset N
