@@ -45,6 +45,8 @@ public class TaskExecuteResult {
     }
 
     public RowStream getRowStream() {
+        RowStream rowStream = this.rowStream;
+        this.rowStream = null;
         return rowStream;
     }
 
