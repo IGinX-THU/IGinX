@@ -43,5 +43,11 @@ runs:
       name: Change conf/config.properties
       shell: bash
       run: |
-        sed -i "s/port=6888/port=7888/g" ${GITHUB_WORKSPACE}/core/target/iginx-core-0.6.0-SNAPSHOT/conf/config.properties
-        sed -i "s/restPort=6666/restPort=7666/g" ${GITHUB_WORKSPACE}/core/target/iginx-core-0.6.0-SNAPSHOT/conf/config.properties
+        if [ "$RUNNER_OS" == "Linux" ]; then
+          sed -i "s/port=6888/port=7888/g" ${GITHUB_WORKSPACE}/core/target/iginx-core-0.6.0-SNAPSHOT/conf/config.properties
+          sed -i "s/restPort=6666/restPort=7666/g" ${GITHUB_WORKSPACE}/core/target/iginx-core-0.6.0-SNAPSHOT/conf/config.properties
+        elif [ "$RUNNER_OS" == "macOS" ]; then
+          sed -i "" "s/port=6888/port=7888/" ${GITHUB_WORKSPACE}/core/target/iginx-core-0.6.0-SNAPSHOT/conf/config.properties
+          sed -i "" "restPort=6666/restPort=7666/" ${GITHUB_WORKSPACE}/core/target/iginx-core-0.6.0-SNAPSHOT/conf/config.properties
+        fi
+        
