@@ -38,9 +38,10 @@ runs:
             sed -i "" "s/has_data=true/has_data=false/" ${GITHUB_WORKSPACE}/core/target/iginx-core-0.6.0-SNAPSHOT/conf/config.properties
           fi
         fi
-
-    - if: inputs.confFile=='DBName'
+        
+    - if: inputs.confFile=='iginxConf'
       name: Change conf/config.properties
       shell: bash
       run: |
-        echo "${{inputs.DB-name}}" > ${GITHUB_WORKSPACE}/test/src/test/java/cn/edu/tsinghua/iginx/integration/DBConf.txt
+        sed -i "s/port=6888/port=7888/g" ${GITHUB_WORKSPACE}/core/target/iginx-core-0.6.0-SNAPSHOT/conf/config.properties
+        sed -i "s/restPort=6666/restPort=7666/g" ${GITHUB_WORKSPACE}/core/target/iginx-core-0.6.0-SNAPSHOT/conf/config.properties

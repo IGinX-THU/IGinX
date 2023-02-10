@@ -45,6 +45,7 @@ public class SessionPool {
 
     private static final int MAXSIZE = 10;
     private static long WAITTOGETSESSIONTIMEOUTINMS = 60_000;
+    private static int DEFAULTMAXSIZE = 5;
 
     private List<IginxInfo> iginxList;
     private List<Integer> sessionNum;
@@ -102,6 +103,14 @@ public class SessionPool {
         sessionNum.add(this.maxSize);
         validSessionSize = sessionNum.size();
         this.waitToGetSessionTimeoutInMs = waitToGetSessionTimeoutInMs;
+    }
+
+    public SessionPool(
+            List<IginxInfo> IginxList
+    ) {
+        this(IginxList,
+                new ArrayList<Integer>(){{for (int i=0; i<IginxList.size(); i++) add(1);}},
+                DEFAULTMAXSIZE, WAITTOGETSESSIONTIMEOUTINMS);
     }
 
     public SessionPool(
