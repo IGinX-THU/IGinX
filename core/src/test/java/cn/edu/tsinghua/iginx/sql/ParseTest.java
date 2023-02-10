@@ -93,7 +93,7 @@ public class ParseTest {
 
         assertTrue(statement.hasFunc());
         assertTrue(statement.hasValueFilter());
-        assertTrue(statement.hasGroupByTime());
+        assertTrue(statement.hasDownsample());
         assertEquals(SelectStatement.QueryType.DownSampleQuery, statement.getQueryType());
 
         assertEquals(2, statement.getBaseExpressionMap().size());

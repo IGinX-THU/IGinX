@@ -20,8 +20,7 @@ public class SelectStatement extends DataStatement {
 
     private boolean hasFunc;
     private boolean hasValueFilter;
-    private boolean hasGroupByTime;
-    private boolean hasSlideWindow;
+    private boolean hasDownsample;
     private boolean ascending;
     private boolean hasJoinParts;
 
@@ -129,8 +128,7 @@ public class SelectStatement extends DataStatement {
         this.slideDistance = precision;
         this.startTime = startTime;
         this.endTime = endTime;
-        this.hasGroupByTime = true;
-        this.hasSlideWindow = false;
+        this.hasDownsample = true;
 
         this.setFromSession(startTime, endTime);
     }
@@ -156,8 +154,7 @@ public class SelectStatement extends DataStatement {
         this.slideDistance = slideDistance;
         this.startTime = startTime;
         this.endTime = endTime;
-        this.hasGroupByTime = true;
-        this.hasSlideWindow = true;
+        this.hasDownsample = true;
         
         this.setFromSession(startTime, endTime);
     }
@@ -232,22 +229,14 @@ public class SelectStatement extends DataStatement {
         this.hasValueFilter = hasValueFilter;
     }
 
-    public boolean hasGroupByTime() {
-        return hasGroupByTime;
+    public boolean hasDownsample() {
+        return hasDownsample;
     }
 
-    public void setHasGroupByTime(boolean hasGroupByTime) {
-        this.hasGroupByTime = hasGroupByTime;
+    public void setHasDownsample(boolean hasDownsample) {
+        this.hasDownsample = hasDownsample;
     }
     
-    public boolean hasSlideWindow() {
-        return hasSlideWindow;
-    }
-    
-    public void setHasSlideWindow(boolean hasSlideWindow) {
-        this.hasSlideWindow = hasSlideWindow;
-    }
-
     public boolean isAscending() {
         return ascending;
     }
@@ -445,13 +434,13 @@ public class SelectStatement extends DataStatement {
 
     public void checkQueryType() {
         if (hasFunc) {
-            if (hasGroupByTime) {
+            if (hasDownsample) {
                 this.queryType = QueryType.DownSampleQuery;
             } else {
                 this.queryType = QueryType.AggregateQuery;
             }
         } else {
-            if (hasGroupByTime) {
+            if (hasDownsample) {
                 throw new SQLParserException("Group by clause cannot be used without aggregate function.");
             } else {
                 this.queryType = QueryType.SimpleQuery;
