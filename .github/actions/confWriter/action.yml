@@ -4,7 +4,7 @@ inputs:
   confFile:
     description: 'the conf that you want to write'
     required: false
-    default: "iginxConf"
+    default: "Conf"
   if-CapExp:
     description: 'if you need capacity expansion'
     required: false
@@ -38,7 +38,7 @@ runs:
             sed -i "" "s/has_data=true/has_data=false/" ${GITHUB_WORKSPACE}/core/target/iginx-core-0.6.0-SNAPSHOT/conf/config.properties
           fi
         fi
-        
+
     - if: inputs.confFile=='iginxConf'
       name: Change conf/config.properties
       shell: bash
