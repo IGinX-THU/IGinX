@@ -34,8 +34,8 @@ public class SessionPool {
     private long waitToGetSessionTimeoutInMs;
 
     private volatile int size = 0;
-    private int maxSize = 0;
-    private boolean multiIginx = false;
+    private int maxSize;
+    private final int validSessionSize;
 
     private static final String USERNAME = "root";
 
@@ -46,12 +46,7 @@ public class SessionPool {
     private static final int MAXSIZE = 10;
     private static long WAITTOGETSESSIONTIMEOUTINMS = 60_000;
 
-    // parameters for Session constructor
-    private final String HOST_VAR = "host";
-    private final String PORT_VAR = "port";
-    private final String USER_VAR = "user";
-    private final String PASSWORD_VAR = "password";
-    private List<Map<String, String>> iginxList;
+    private List<IginxInfo> iginxList;
     private List<Integer> sessionNum;
 
     // whether the queue is closed.
@@ -97,20 +92,20 @@ public class SessionPool {
         this.maxSize = max(maxSize,THREAD_NUMBER_MINSIZE);
         iginxList = new ArrayList<>();
         sessionNum = new ArrayList<>();
-        iginxList.add(new HashMap<String, String>() {
-            {
-                put("host", host);
-                put("port", String.valueOf(port));
-                put("user", user);
-                put("password", password);
-            }
-        });
+        iginxList.add(new IginxInfo.Builder()
+                .host(host)
+                .port(port)
+                .user(user)
+                .password(password)
+                .build()
+        );
         sessionNum.add(this.maxSize);
+        validSessionSize = sessionNum.size();
         this.waitToGetSessionTimeoutInMs = waitToGetSessionTimeoutInMs;
     }
 
     public SessionPool(
-            List<Map<String, String>> IginxList,
+            List<IginxInfo> IginxList,
             int maxSize
     ) {
         this(IginxList,
@@ -119,7 +114,7 @@ public class SessionPool {
     }
 
     public SessionPool(
-            List<Map<String, String>> IginxList,
+            List<IginxInfo> IginxList,
             List<Integer> sessionNum,
             int maxSize
     ) {
@@ -127,11 +122,12 @@ public class SessionPool {
     }
 
     public SessionPool(
-            List<Map<String, String>> iginxList,
+            List<IginxInfo> iginxList,
             List<Integer> sessionNum,
             int maxSize,
             long waitToGetSessionTimeoutInMs
     ) {
+        validSessionSize = sessionNum.size();
         if (sessionNum.size() < iginxList.size()) {
             logger.warn(
                     "IGinX list size {}, distributive session size {}, the remaining IGinX will not get session connection",
@@ -141,7 +137,6 @@ public class SessionPool {
                 sessionNum.add(0);
             }
         }
-        multiIginx = true;
         this.iginxList = iginxList;
         this.sessionNum = sessionNum;
         this.maxSize = max(maxSize,THREAD_NUMBER_MINSIZE);
@@ -149,16 +144,25 @@ public class SessionPool {
     }
 
     private Session constructSession(int index) {
-        Map<String, String> iginxInfo = iginxList.get(index);
+        IginxInfo iginxInfo = iginxList.get(index);
         return new Session(
-                iginxInfo.getOrDefault(HOST_VAR, ""),
-                iginxInfo.getOrDefault(PORT_VAR, ""),
-                iginxInfo.getOrDefault(USER_VAR, ""),
-                iginxInfo.getOrDefault(PASSWORD_VAR, ""));
+                iginxInfo.getHost(),
+                iginxInfo.getPort(),
+                iginxInfo.getUser(),
+                iginxInfo.getPassword());
     }
 
     private int getIndexOfIginx(int currentSize) {
-        return currentSize % sessionNum.size();
+        int index = currentSize % validSessionSize, times = currentSize / validSessionSize;
+        for (int i=0; i<validSessionSize; i++) {
+            if (sessionNum.get(index) >= times) {
+                return index;
+            } else {
+                index++;
+                index = index % validSessionSize;
+            }
+        }
+        return currentSize % validSessionSize;
     }
 
     private Session constructNewSession(int currentSize) {
@@ -177,7 +181,6 @@ public class SessionPool {
 
     private Session getSessionFromQueue(int index) {
         int len = iginxList.size(), times = index % len;
-        boolean firstTime = true;
         Session session = null;
         if (queueList.size() == 0) return null;
         if (queueList.size() > times) {
@@ -223,14 +226,14 @@ public class SessionPool {
                     this.wait(1000);
                     long timeOut = Math.min(waitToGetSessionTimeoutInMs, 60_000);
                     if (System.currentTimeMillis() - start > timeOut) {
-                        Map<String, String> iginxInfo = iginxList.get(getIndexOfIginx(size));
+                        IginxInfo iginxInfo = iginxList.get(getIndexOfIginx(size));
                         logger.warn(
                                 "the SessionPool has wait for {} seconds to get a new connection: {}:{} with {}, {}",
                                 (System.currentTimeMillis() - start) / 1000,
-                                iginxInfo.get(HOST_VAR),
-                                iginxInfo.get(PORT_VAR),
-                                iginxInfo.get(USER_VAR),
-                                iginxInfo.get(PASSWORD_VAR));
+                                iginxInfo.getHost(),
+                                iginxInfo.getPassword(),
+                                iginxInfo.getUser(),
+                                iginxInfo.getPassword());
                         logger.warn(
                                 "current occupied size {}, queue size {}, considered size {} ",
                                 occupied.size(),
@@ -239,8 +242,8 @@ public class SessionPool {
                         if (System.currentTimeMillis() - start > waitToGetSessionTimeoutInMs) {
                             throw new SessionException(
                                     String.format("timeout to get a connection from %s:%s",
-                                            iginxInfo.get(HOST_VAR),
-                                            iginxInfo.get(PORT_VAR)));
+                                            iginxInfo.getHost(),
+                                            iginxInfo.getPort()));
                         }
                     }
                 } catch (InterruptedException e) {
@@ -256,10 +259,10 @@ public class SessionPool {
         }
 
         if (shouldCreate) {
-            Map<String, String> iginxInfo = iginxList.get(getIndexOfIginx(size));
+            IginxInfo iginxInfo = iginxList.get(getIndexOfIginx(size));
             // create a new one.
             if (logger.isDebugEnabled()) {
-                logger.debug("Create a new redirect Session {}, {}", iginxInfo.get(USER_VAR), iginxInfo.get(PASSWORD_VAR));
+                logger.debug("Create a new redirect Session {}, {}", iginxInfo.getUser(), iginxInfo.getPassword());
             }
 
             session = constructNewSession(size);

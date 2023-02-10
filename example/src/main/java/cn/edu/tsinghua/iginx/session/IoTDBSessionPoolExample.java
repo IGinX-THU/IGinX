@@ -2,6 +2,7 @@ package cn.edu.tsinghua.iginx.session;
 
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.pool.IginxInfo;
 import cn.edu.tsinghua.iginx.pool.SessionPool;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.thrift.DataType;
@@ -34,19 +35,21 @@ public class IoTDBSessionPoolExample {
     private static void constructCustomSessionPool() {
         //{"id":3,"ip":"0.0.0.0","port":6888} and {"id":2,"ip":"0.0.0.0","port":7888}
         if (needMultiIginx) {
-            List<Map<String, String>> iginxList = new ArrayList<Map<String, String>>() {{
-                add(new HashMap<String, String>() {{
-                    put("host", "0.0.0.0");
-                    put("port", "6888");
-                    put("user", "root");
-                    put("password", "root");
-                }});
-                add(new HashMap<String, String>() {{
-                    put("host", "0.0.0.0");
-                    put("port", "7888");
-                    put("user", "root");
-                    put("password", "root");
-                }});
+            List<IginxInfo> iginxList = new ArrayList<IginxInfo>() {{
+                add(new IginxInfo.Builder()
+                        .host("0.0.0.0")
+                        .port(6888)
+                        .user("root")
+                        .password("root")
+                        .build());
+
+                add(new IginxInfo.Builder()
+                        .host("0.0.0.0")
+                        .port(7888)
+                        .user("root")
+                        .password("root")
+                        .build());
+
             }};
 
             sessionPool = new SessionPool(iginxList, 3);
