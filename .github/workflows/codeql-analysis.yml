@@ -12,7 +12,12 @@
 name: "CodeQL"
 
 on:
-  workflow_dispatch
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to run tests against'
+        type: environment
+        required: false
   pull_request:
     # The branches below must be a subset of the branches above
     types: [opened, reopened]
