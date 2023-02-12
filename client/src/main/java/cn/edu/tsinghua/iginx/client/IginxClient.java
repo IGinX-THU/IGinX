@@ -50,7 +50,7 @@ import java.util.List;
  */
 public class IginxClient {
 
-    private static final String IGINX_CLI_PREFIX = "IginX> ";
+    private static final String IGINX_CLI_PREFIX = "IGinX> ";
 
     private static final String HOST_ARGS = "h";
     private static final String HOST_NAME = "host";

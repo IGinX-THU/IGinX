@@ -48,11 +48,11 @@ set JAVA_VERSION=%MAJOR_VERSION%
 
 @REM we do not check jdk that version less than 1.6 because they are too stale...
 IF "%JAVA_VERSION%" == "6" (
-		echo IginX only supports jdk >= 8, please check your java version.
+		echo IGinX only supports jdk >= 8, please check your java version.
 		goto finally
 )
 IF "%JAVA_VERSION%" == "7" (
-		echo IginX only supports jdk >= 8, please check your java version.
+		echo IGinX only supports jdk >= 8, please check your java version.
 		goto finally
 )
 
@@ -121,6 +121,13 @@ set CLASSPATH="%IGINX_HOME%\lib\*"
 @REM 1. check the config
 for /F %%i in ( 'type %IGINX_CONF% ^| findstr -V "^#" ^| findstr -I "storageEngineList"^| findstr -I "parquet"' ) do set PARQUET_EXIST=%%i
 
+if defined PARQUET_EXIST (
+	goto def_parquet
+) else (
+	goto okClasspath
+)
+
+:def_parquet
 set pos=1
 set target=3
 :parquet

@@ -5,8 +5,7 @@
     <parent>
         <artifactId>iginx</artifactId>
         <groupId>cn.edu.tsinghua</groupId>
-        <!--version>${revision}</version-->
-        <version>0.5.1</version>
+        <version>${revision}</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
