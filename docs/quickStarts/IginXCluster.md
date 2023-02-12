@@ -94,12 +94,12 @@ $ unzip apache-iotdb-0.12.0-server-bin.zip
 
 ### IGinX 安装
 
-直接访问 [IGinX 项目](https://github.com/THUIGinX/IGinX)下载 [IGinX 项目发布包](https://github.com/THUIGinX/IGinX/releases/download/release%2Fv0.5.1/IGinX-release-v0.5.1-bin.tar.gz)
+直接访问 [IGinX 项目](https://github.com/IGinX-THU/IGinX)下载 [IGinX 项目发布包](https://github.com/IGinX-THU/IGinX/releases/download/release%2Fv0.5.1/IGinX-release-v0.5.1-bin.tar.gz)
 即可。
 
 ```shell
 $ cd ~
-$ wget https://github.com/THUIGinX/IGinX/releases/download/release%2Fv0.5.1/IGinX-release-v0.5.1-bin.tar.gz
+$ wget https://github.com/IGinX-THU/IGinX/releases/download/release%2Fv0.5.1/IGinX-release-v0.5.1-bin.tar.gz
 $ tar -zxvf IGinX-release-v0.5.1-bin.tar.gz
 ```
 
@@ -333,13 +333,13 @@ $ curl -XPOST -H'Content-Type: application/json' -d @query.json http://127.0.0.1
 }
 ```
 
-更多接口可以参考 [IGinX 官方手册](https://github.com/THUIGinX/IGinX/blob/main/docs/pdf/userManualC.pdf) 。
+更多接口可以参考 [IGinX 官方手册](https://github.com/IGinX-THU/IGinX/blob/main/docs/pdf/userManualC.pdf) 。
 
 ### RPC 接口
 
 除了 RESTful 接口外，IGinX 还提供了 RPC
-的数据访问接口，具体接口参考 [IGinX 官方手册](https://github.com/THUIGinX/IGinX/blob/main/docs/pdf/userManualC.pdf)，同时 IGinX
-还提供了部分[官方 example](https://github.com/THUIGinX/IGinX/tree/main/example/src/main/java/cn/edu/tsinghua/iginx/session)，展示了
+的数据访问接口，具体接口参考 [IGinX 官方手册](https://github.com/IGinX-THU/IGinX/blob/main/docs/pdf/userManualC.pdf)，同时 IGinX
+还提供了部分[官方 example](https://github.com/IGinX-THU/IGinX/tree/main/example/src/main/java/cn/edu/tsinghua/iginx/session)，展示了
 RPC 接口最常见的用法。
 
 下面是一个简短的使用教程。
@@ -348,7 +348,7 @@ RPC 接口最常见的用法。
 
 ```shell
 # 下载 IGinX 0.5.1 release 版本源码包
-$ wget https://github.com/THUIGinX/IGinX/archive/refs/tags/release/v0.5.1.tar.gz
+$ wget https://github.com/IGinX-THU/IGinX/archive/refs/tags/release/v0.5.1.tar.gz
 # 解压源码包
 $ tar -zxvf v0.5.1.tar.gz
 # 进入项目主目录
@@ -483,4 +483,4 @@ private static void downsampleQuery(Session session) throws SessionException, Ex
 session.closeSession();
 ```
 
-完整版使用代码可以参考：https://github.com/THUIGinX/IGinX/blob/main/example/src/main/java/cn/edu/tsinghua/iginx/session/IoTDBSessionExample.java
+完整版使用代码可以参考：https://github.com/IGinX-THU/IGinX/blob/main/example/src/main/java/cn/edu/tsinghua/iginx/session/IoTDBSessionExample.java

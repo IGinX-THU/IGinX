@@ -1,6 +1,6 @@
 # The IGinX Polystore System
 
-[IGinX](https://github.com/THUIGinX/IGinX) is an open source polystore system. A polystore system provides an integrated data management service over a set of one or more potentially heterogeneous database/storage engines, serving heterogeneous workloads.
+[IGinX](https://github.com/IGinX-THU/IGinX) is an open source polystore system. A polystore system provides an integrated data management service over a set of one or more potentially heterogeneous database/storage engines, serving heterogeneous workloads.
 
 ## Overview
 
@@ -8,11 +8,11 @@ IGinX (Intelligent enGine X) aims to facilitate users in profiting from their da
 
 ## Installation
 
-See the [getting started](https://github.com/THUIGinX/IGinX/blob/main/docs/getting_started.md) documentation to start a IGinX in various ways.
+See the [getting started](https://github.com/IGinX-THU/IGinX/blob/main/docs/getting_started.md) documentation to start a IGinX in various ways.
 
 ## Team and Contributions
 
-We are the IGinX team at Tsinghua University. You can find team members and contributors in this [list](https://github.com/THUIGinX/IGinX/graphs/contributors).
+We are the IGinX team at Tsinghua University. You can find team members and contributors in this [list](https://github.com/IGinX-THU/IGinX/graphs/contributors).
 
 IGinX is open for new team members or contributions. If you would like to join our team and work with us online or offline, don't hesitate to contact us. Besides Github, we are also reachable through [email](mailto:TSIGinX@gmail.com). If you would like to contribute, please create a Github issue first or pick up one of our open issues; then, address the issue by forking the repository and submitting your changes as a pull request.
 

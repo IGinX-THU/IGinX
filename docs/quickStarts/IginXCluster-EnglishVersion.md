@@ -97,7 +97,7 @@ $ unzip apache-iotdb-0.12.0-server-bin.zip
 
 ### IGinX Installation
 
-Go directly to the [IGinX project](https://github.com/THUIGinX/IGinX) and download the [IGinX project release package](https://github.com/THUIGinX/IGinX/releases/download/release%2Fv0.5.1/IGinX-release-v0.5.1-bin.tar.gz). That's it.
+Go directly to the [IGinX project](https://github.com/IGinX-THU/IGinX) and download the [IGinX project release package](https://github.com/IGinX-THU/IGinX/releases/download/release%2Fv0.5.1/IGinX-release-v0.5.1-bin.tar.gz). That's it.
 
 ## Launch
 
@@ -333,7 +333,7 @@ For more interfaces, please refer to the official IGinX manual.
 
 ### RPC Interface
 
-In addition to the RESTful interface, IGinX also provides RPC data access interface. For that specific interface, please refer to the official[IGinX Official Manual](https://github.com/THUIGinX/IGinX/blob/main/docs/pdf/userManualC.pdf). At the same time, IGinX also provides some [official examples](https://github.com/THUIGinX/IGinX/tree/main/example/src/main/java/cn/edu/tsinghua/iginx/session), showing the most common usage of the RPC interface.
+In addition to the RESTful interface, IGinX also provides RPC data access interface. For that specific interface, please refer to the official[IGinX Official Manual](https://github.com/IGinX-THU/IGinX/blob/main/docs/pdf/userManualC.pdf). At the same time, IGinX also provides some [official examples](https://github.com/IGinX-THU/IGinX/tree/main/example/src/main/java/cn/edu/tsinghua/iginx/session), showing the most common usage of the RPC interface.
 
 Below is a short tutorial on how to use it.
 
@@ -341,7 +341,7 @@ Since the IGinX 0.5.1 version has not been released to the maven central reposit
 
 ```shell
 # Download IGinX 0.5.1 version source package
-$ wget https://github.com/THUIGinX/IGinX/archive/refs/tags/release/v0.5.1.tar.gz
+$ wget https://github.com/IGinX-THU/IGinX/archive/refs/tags/release/v0.5.1.tar.gz
 # Unzip the source package
 $ tar -zxvf v0.5.1.tar.gz
 # Enter the project's main directory
@@ -475,4 +475,4 @@ After the session is completed, you need to manually close and release your conn
 session.closeSession();
 ```
 
-For the full version of the code, please refer to: https://github.com/THUIGinX/IGinX/blob/main/example/src/main/java/cn/edu/tsinghua/iginx/session/IoTDBSessionExample.java
+For the full version of the code, please refer to: https://github.com/IGinX-THU/IGinX/blob/main/example/src/main/java/cn/edu/tsinghua/iginx/session/IoTDBSessionExample.java

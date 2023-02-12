@@ -107,7 +107,7 @@ Fetch the latest development version and build it locally.
 
 ```shell
 $ cd ~
-$ git clone git@github.com:THUIGinX/IGinX.git
+$ git clone git@github.com:IGinX-THU/IGinX.git
 $ cd IGinX
 $ mvn clean install -Dmaven.test.skip=true
 $ mvn package -pl core -Dmaven.test.skip=true
@@ -327,11 +327,11 @@ The command will return information about the data point just inserted:
 
 If you see the following information returned, it means you are able to successfully use RESTful interface to write and query data to IGinX.
 
-For more interfaces, please refer to the official [IGinX manual](https://github.com/THUIGinX/IGinX/blob/main/docs/pdf/userManualC.pdf).
+For more interfaces, please refer to the official [IGinX manual](https://github.com/IGinX-THU/IGinX/blob/main/docs/pdf/userManualC.pdf).
 
 If you want to use a different interface, there is another option.
 
-In addition to the RESTful interface, IGinX also provides the RPC data access interface. For this specific interface, please refer to the official [IGinX manual](https://github.com/THUIGinX/IGinX/blob/main/docs/pdf/userManualC.pdf).
+In addition to the RESTful interface, IGinX also provides the RPC data access interface. For this specific interface, please refer to the official [IGinX manual](https://github.com/IGinX-THU/IGinX/blob/main/docs/pdf/userManualC.pdf).
 
 At the same time, IGinX also provides some official examples, showing the most common usage of the RPC interface.
 
@@ -345,7 +345,7 @@ The specific installation method is as follows:
 
 ```shell
 # download iginx 0.4 release version source code package
-$ wget https://github.com/THUIGinX/IGinX/archive/refs/tags/release/v0.5.1.tar.gz
+$ wget https://github.com/IGinX-THU/IGinX/archive/refs/tags/release/v0.5.1.tar.gz
 # Unzip the source package
 $ tar -zxvf v0.5.1.tar.gz
 # go to the main project's directory
@@ -481,4 +481,4 @@ After the session is completed, you need to manually close and release your conn
 session.closeSession();
 ```
 
-For the full version of the code, please refer to: https://github.com/THUIGinX/IGinX/blob/main/example/src/main/java/cn/edu/tsinghua/iginx/session/IoTDBSessionExample.java
+For the full version of the code, please refer to: https://github.com/IGinX-THU/IGinX/blob/main/example/src/main/java/cn/edu/tsinghua/iginx/session/IoTDBSessionExample.java
