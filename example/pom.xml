@@ -7,7 +7,8 @@
   <parent>
     <artifactId>iginx</artifactId>
     <groupId>cn.edu.tsinghua</groupId>
-    <version>${revision}</version>
+    <!--version>${revision}</version-->
+        <version>0.5.1</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
