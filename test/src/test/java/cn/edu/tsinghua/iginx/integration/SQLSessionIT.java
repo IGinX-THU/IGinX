@@ -790,7 +790,7 @@ public abstract class SQLSessionIT {
 
     @Test
     public void testDownSampleQuery() {
-        String statement = "SELECT %s(s1), %s(s4) FROM us.d1 OVER (RANGE 100ns IN (0, 1000));";
+        String statement = "SELECT %s(s1), %s(s4) FROM us.d1 OVER (RANGE 100 IN (0, 1000));";
         List<String> funcTypeList = Arrays.asList(
             "MAX", "MIN", "FIRST_VALUE", "LAST_VALUE", "SUM", "AVG", "COUNT"
         );
@@ -917,7 +917,7 @@ public abstract class SQLSessionIT {
 
     @Test
     public void testRangeDownSampleQuery() {
-        String statement = "SELECT %s(s1), %s(s4) FROM us.d1 WHERE key > 600 AND s1 <= 900 OVER (RANGE 100ns IN (0, 1000));";
+        String statement = "SELECT %s(s1), %s(s4) FROM us.d1 WHERE key > 600 AND s1 <= 900 OVER (RANGE 100 IN (0, 1000));";
         List<String> funcTypeList = Arrays.asList(
             "MAX", "MIN", "FIRST_VALUE", "LAST_VALUE", "SUM", "AVG", "COUNT"
         );
@@ -995,7 +995,7 @@ public abstract class SQLSessionIT {
 
     @Test
     public void testSlideWindowByTimeQuery() {
-        String statement = "SELECT %s(s1), %s(s4) FROM us.d1 OVER (RANGE 100ns IN (0, 1000) STEP 50ns);";
+        String statement = "SELECT %s(s1), %s(s4) FROM us.d1 OVER (RANGE 100 IN (0, 1000) STEP 50);";
         List<String> funcTypeList = Arrays.asList(
             "MAX", "MIN", "FIRST_VALUE", "LAST_VALUE", "SUM", "AVG", "COUNT"
         );
@@ -1185,7 +1185,7 @@ public abstract class SQLSessionIT {
 
     @Test
     public void testRangeSlideWindowByTimeQuery() {
-        String statement = "SELECT %s(s1), %s(s4) FROM us.d1 WHERE key > 300 AND s1 <= 600 OVER (RANGE 100ns IN (0, 1000) STEP 50ns);";
+        String statement = "SELECT %s(s1), %s(s4) FROM us.d1 WHERE key > 300 AND s1 <= 600 OVER (RANGE 100 IN (0, 1000) STEP 50);";
         List<String> funcTypeList = Arrays.asList(
             "MAX", "MIN", "FIRST_VALUE", "LAST_VALUE", "SUM", "AVG", "COUNT"
         );
@@ -2005,7 +2005,7 @@ public abstract class SQLSessionIT {
 
     @Test
     public void testAggregateSubQuery() {
-        String statement = "SELECT %s_s1 FROM (SELECT %s(s1) AS %s_s1 FROM us.d1 OVER(RANGE 60ns IN [1000, 1600)));";
+        String statement = "SELECT %s_s1 FROM (SELECT %s(s1) AS %s_s1 FROM us.d1 OVER(RANGE 60 IN [1000, 1600)));";
         List<String> funcTypeList = Arrays.asList(
             "max", "min", "sum", "avg", "count", "first_value", "last_value"
         );
@@ -2152,7 +2152,7 @@ public abstract class SQLSessionIT {
             "Total line number = 10\n";
         executeAndCompare(statement, expected);
 
-        statement = "SELECT avg_s1 FROM (SELECT AVG(s1) AS avg_s1 FROM us.d1 OVER (RANGE 100ns IN [1000, 1600))) WHERE avg_s1 > 1200;";
+        statement = "SELECT avg_s1 FROM (SELECT AVG(s1) AS avg_s1 FROM us.d1 OVER (RANGE 100 IN [1000, 1600))) WHERE avg_s1 > 1200;";
         expected = "ResultSets:\n" +
             "+----+------+\n" +
             "| key|avg_s1|\n" +
@@ -2165,7 +2165,7 @@ public abstract class SQLSessionIT {
             "Total line number = 4\n";
         executeAndCompare(statement, expected);
 
-        statement = "SELECT avg_s1 FROM (SELECT AVG(s1) AS avg_s1 FROM us.d1 WHERE s1 < 1500 OVER (RANGE 100ns IN [1000, 1600))) WHERE avg_s1 > 1200;";
+        statement = "SELECT avg_s1 FROM (SELECT AVG(s1) AS avg_s1 FROM us.d1 WHERE s1 < 1500 OVER (RANGE 100 IN [1000, 1600))) WHERE avg_s1 > 1200;";
         expected = "ResultSets:\n" +
             "+----+------+\n" +
             "| key|avg_s1|\n" +
@@ -2180,7 +2180,7 @@ public abstract class SQLSessionIT {
 
     @Test
     public void testMultiSubQuery() {
-        String statement = "SELECT AVG(s1) AS avg_s1, SUM(s2) AS sum_s2 FROM us.d1 OVER (RANGE 10ns IN [1000, 1100));";
+        String statement = "SELECT AVG(s1) AS avg_s1, SUM(s2) AS sum_s2 FROM us.d1 OVER (RANGE 10 IN [1000, 1100));";
         String expected = "ResultSets:\n" +
             "+----+------+------+\n" +
             "| key|avg_s1|sum_s2|\n" +
@@ -2199,7 +2199,7 @@ public abstract class SQLSessionIT {
             "Total line number = 10\n";
         executeAndCompare(statement, expected);
 
-        statement = "SELECT avg_s1, sum_s2 FROM (SELECT AVG(s1) AS avg_s1, SUM(s2) AS sum_s2 FROM us.d1 OVER (RANGE 10ns IN [1000, 1100))) WHERE avg_s1 > 1020 AND sum_s2 < 10800;";
+        statement = "SELECT avg_s1, sum_s2 FROM (SELECT AVG(s1) AS avg_s1, SUM(s2) AS sum_s2 FROM us.d1 OVER (RANGE 10 IN [1000, 1100))) WHERE avg_s1 > 1020 AND sum_s2 < 10800;";
         expected = "ResultSets:\n" +
             "+----+------+------+\n" +
             "| key|avg_s1|sum_s2|\n" +
@@ -2214,7 +2214,7 @@ public abstract class SQLSessionIT {
             "Total line number = 6\n";
         executeAndCompare(statement, expected);
 
-        statement = "SELECT MAX(avg_s1), MIN(sum_s2) FROM (SELECT avg_s1, sum_s2 FROM (SELECT AVG(s1) AS avg_s1, SUM(s2) AS sum_s2 FROM us.d1 OVER (RANGE 10ns IN [1000, 1100))) WHERE avg_s1 > 1020 AND sum_s2 < 10800);";
+        statement = "SELECT MAX(avg_s1), MIN(sum_s2) FROM (SELECT avg_s1, sum_s2 FROM (SELECT AVG(s1) AS avg_s1, SUM(s2) AS sum_s2 FROM us.d1 OVER (RANGE 10 IN [1000, 1100))) WHERE avg_s1 > 1020 AND sum_s2 < 10800);";
         expected = "ResultSets:\n" +
             "+-----------+-----------+\n" +
             "|max(avg_s1)|min(sum_s2)|\n" +
@@ -2374,7 +2374,7 @@ public abstract class SQLSessionIT {
             "Total line number = 10\n";
         executeAndCompare(query, expected);
 
-        insert = "INSERT INTO us.d4(key, s1, s2) VALUES (SELECT AVG(s1) AS avg_s1, SUM(s2) AS sum_s2 FROM us.d1 OVER (RANGE 10ns IN [1000, 1100)));";
+        insert = "INSERT INTO us.d4(key, s1, s2) VALUES (SELECT AVG(s1) AS avg_s1, SUM(s2) AS sum_s2 FROM us.d1 OVER (RANGE 10 IN [1000, 1100)));";
         execute(insert);
 
         query = "SELECT s1, s2 FROM us.d4";
@@ -2396,7 +2396,7 @@ public abstract class SQLSessionIT {
             "Total line number = 10\n";
         executeAndCompare(query, expected);
 
-        insert = "INSERT INTO us.d5(key, s1, s2) VALUES (SELECT avg_s1, sum_s2 FROM (SELECT AVG(s1) AS avg_s1, SUM(s2) AS sum_s2 FROM us.d1 OVER (RANGE 10ns IN [1000, 1100))) WHERE avg_s1 > 1020 AND sum_s2 < 10800);";
+        insert = "INSERT INTO us.d5(key, s1, s2) VALUES (SELECT avg_s1, sum_s2 FROM (SELECT AVG(s1) AS avg_s1, SUM(s2) AS sum_s2 FROM us.d1 OVER (RANGE 10 IN [1000, 1100))) WHERE avg_s1 > 1020 AND sum_s2 < 10800);";
         execute(insert);
 
         query = "SELECT s1, s2 FROM us.d5";
@@ -2414,7 +2414,7 @@ public abstract class SQLSessionIT {
             "Total line number = 6\n";
         executeAndCompare(query, expected);
 
-        insert = "INSERT INTO us.d6(key, s1, s2) VALUES (SELECT MAX(avg_s1), MIN(sum_s2) FROM (SELECT avg_s1, sum_s2 FROM (SELECT AVG(s1) AS avg_s1, SUM(s2) AS sum_s2 FROM us.d1 OVER (RANGE 10ns IN [1000, 1100))) WHERE avg_s1 > 1020 AND sum_s2 < 10800));";
+        insert = "INSERT INTO us.d6(key, s1, s2) VALUES (SELECT MAX(avg_s1), MIN(sum_s2) FROM (SELECT avg_s1, sum_s2 FROM (SELECT AVG(s1) AS avg_s1, SUM(s2) AS sum_s2 FROM us.d1 OVER (RANGE 10 IN [1000, 1100))) WHERE avg_s1 > 1020 AND sum_s2 < 10800));";
         execute(insert);
 
         query = "SELECT s1, s2 FROM us.d6";
@@ -2522,7 +2522,7 @@ public abstract class SQLSessionIT {
         errClause = "DELETE FROM us.d1.s1 WHERE key != 105;";
         executeAndCompareErrMsg(errClause, "Not support [!=] in delete clause.");
 
-        errClause = "SELECT s1 FROM us.d1 OVER (RANGE 100ms IN (0, 1000));";
+        errClause = "SELECT s1 FROM us.d1 OVER (RANGE 100 IN (0, 1000));";
         executeAndCompareErrMsg(errClause,
             "Group by clause cannot be used without aggregate function.");
 
@@ -2530,7 +2530,7 @@ public abstract class SQLSessionIT {
         executeAndCompareErrMsg(errClause,
             "SetToSet/SetToRow/RowToRow functions can not be mixed in aggregate query.");
 
-        errClause = "SELECT s1 FROM us.d1 OVER (RANGE 100ms IN (100, 10));";
+        errClause = "SELECT s1 FROM us.d1 OVER (RANGE 100 IN (100, 10));";
         executeAndCompareErrMsg(errClause,
             "Start time should be smaller than endTime in time interval.");
 
