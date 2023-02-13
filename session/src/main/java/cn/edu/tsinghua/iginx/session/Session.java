@@ -94,51 +94,7 @@ public class Session {
     }
 
     private synchronized boolean checkRedirect(Status status) throws SessionException, TException {
-        if (RpcUtils.verifyNoRedirect(status)) {
-            redirectTimes = 0;
-            return false;
-        }
-
-        redirectTimes += 1;
-        if (redirectTimes > MAX_REDIRECT_TIME) {
-            throw new SessionException("重定向次数过多！");
-        }
-
-        lock.writeLock().lock();
-
-        try {
-            tryCloseSession();
-
-            while (redirectTimes <= MAX_REDIRECT_TIME) {
-
-                String[] targetAddress = status.getMessage().split(":");
-                if (targetAddress.length != 2) {
-                    throw new SessionException("unexpected redirect address " + status.getMessage());
-                }
-                logger.info("当前请求将被重定向到：" + status.getMessage());
-                this.host = targetAddress[0];
-                this.port = Integer.parseInt(targetAddress[1]);
-
-                OpenSessionResp resp = tryOpenSession();
-
-                if (RpcUtils.verifyNoRedirect(resp.status)) {
-                    sessionId = resp.getSessionId();
-                    break;
-                }
-
-                status = resp.status;
-
-                redirectTimes += 1;
-            }
-
-            if (redirectTimes > MAX_REDIRECT_TIME) {
-                throw new SessionException("重定向次数过多！");
-            }
-        } finally {
-            lock.writeLock().unlock();
-        }
-
-        return true;
+        return false;
     }
 
     private OpenSessionResp tryOpenSession() throws SessionException, TException {
