@@ -165,7 +165,11 @@ downsampleWithLevelClause
     ;
 
 downsampleClause
-    : OVER LR_BRACKET RANGE TIME_WITH_UNIT IN timeInterval (STEP TIME_WITH_UNIT)? RR_BRACKET
+    : OVER LR_BRACKET RANGE aggLen IN timeInterval (STEP aggLen)? RR_BRACKET
+    ;
+
+aggLen
+    : (TIME_WITH_UNIT | INT)
     ;
 
 aggregateWithLevelClause
