@@ -1,4 +1,4 @@
-# IGinX 安装使用教程（一键启动）
+# IGinX 安装使用教程（集群）
 
 [TOC]
 
@@ -48,34 +48,151 @@ Java HotSpot(TM) 64-Bit Server VM (build 25.181-b13, mixed mode)
 
 如果显示出如上的字样，则表示安装成功。
 
-### IGinX 安装
+### ZooKeeper 安装
 
-IGinX 为系统的主体部分，通过一键启动安装包
+ZooKeeper 是 Apache 推出的开源的分布式应用程序协调服务。如果您需要部署大于一个 IGinX 实例，则需要安装 ZooKeeper
+
+ZooKeeper 是 Apache 推出的开源的分布式应用程序协调服务。具体安装方式如下：
+
+1. 访问[官网](https://zookeeper.apache.org/releases.html)下载并解压 ZooKeeper
 
 ```shell
 $ cd ~
-$ wget https://github.com/THUIGinX/IGinX/releases/download/release%2Fv0.5.1/IGinX-FastDeploy-v0.5.1-bin.tar.gz
-$ tar -xzvf IGinX-FastDeploy-v0.5.1-bin.tar.gz
+$ wget https://dlcdn.apache.org/zookeeper/zookeeper-3.7.1/apache-zookeeper-3.7.1-bin.tar.gz
+$ tar -zxvf apache-zookeeper-3.7.1-bin.tar.gz
+```
+
+2. 修改 ZooKeeper 默认配置文件
+
+```shell
+$ cd apache-zookeeper-3.7.1-bin/
+$ mkdir data
+$ cp conf/zoo_sample.cfg conf/zoo.cfg
+```
+
+然后编辑 conf/zoo.cfg 文件，将
+
+```shell
+dataDir=/tmp/zookeeper
+```
+
+修改为
+
+```shell
+dataDir=data
+```
+
+### IoTDB 安装
+
+IoTDB 是 Apache 推出的时序数据库，具体安装方式如下：
+
+```shell
+$ cd ~
+$ wget https://mirrors.bfsu.edu.cn/apache/iotdb/0.12.0/apache-iotdb-0.12.0-server-bin.zip
+$ unzip apache-iotdb-0.12.0-server-bin.zip
+```
+
+### IGinX 安装
+
+直接访问 [IGinX 项目](https://github.com/IGinX-THU/IGinX)下载 [IGinX 项目发布包](https://github.com/IGinX-THU/IGinX/releases/download/release%2Fv0.5.1/IGinX-release-v0.5.1-bin.tar.gz)
+即可。
+
+```shell
+$ cd ~
+$ wget https://github.com/IGinX-THU/IGinX/releases/download/release%2Fv0.5.1/IGinX-release-v0.5.1-bin.tar.gz
+$ tar -zxvf IGinX-release-v0.5.1-bin.tar.gz
 ```
 
 ## 启动
 
+这里以启动一个两个 IGinX 实例，两个 IoTDB 实例为例子，演示如何启动 IGinX 集群
+
+### 启动多个 IoTDB 实例
+
+这里以单机启动两个端口分别为 6667 和 7667 的实例为例
+
+修改配置文件 IoTDB_HOME/conf/iotdb-engine.properties
+
 ```shell
-$ cd ~
-$ cd IGinX-FastDeploy-v0.5.0-bin
-$ chmod +x ./runIginxOn1Host.sh
-$ ./runIginxOn1Host.sh
+rpc_port=6667
 ```
 
-显示出如下字样，表示 IGinX 启动成功：
+启动第一个实例
 
 ```shell
-ZooKeeper is started!
-IoTDB is started!
-IGinX is started!
-=====================================
-You can now test IGinX. Have fun!~
-=====================================
+$ cd ~
+$ cd apache-iotdb-0.12.0-server-bin/
+$ ./sbin/start-server.sh # 启动实例一 127.0.0.1: 6667
+```
+
+修改配置文件 conf/iotdb-engine.properties
+
+```shell
+rpc_port=7667
+```
+
+启动第二个实例
+
+```shell
+$ ./sbin/start-server.sh # 启动实例二 127.0.0.1: 7667
+```
+
+### 启动 ZooKeeper
+
+```shell
+$ cd ~
+$ cd apache-zookeeper-3.7.1-bin/
+$ ./bin/zkServer.sh start
+```
+
+显示出如下字样，表示 ZooKeeper 启动成功
+
+```shell
+ZooKeeper JMX enabled by default
+Using config: /home/root/apache-zookeeper-3.7.1-bin/bin/../conf/zoo.cfg
+Starting zookeeper ... STARTED
+```
+
+### 启动多个 IGinX 实例
+
+修改 IginX_HOME/conf/config. Properties，加入启动的两台IoTDB实例
+
+```shell
+storageEngineList=127.0.0.1#6667#iotdb#username=root#password=root#sessionPoolSize=100#dataDir=/path/to/your/data/,127.0.0.1#6688#iotdb#username=root#password=root#sessionPoolSize=100#dataDir=/path/to/your/data/
+
+#存储方式选择 ZooKeeper
+metaStorage=zookeeper 
+
+# 提供ZooKeeper端口
+zookeeperConnectionString=127.0.0.1:2181
+
+#注释掉file、etcd相关配置
+#fileDataDir=meta
+#etcdEndpoints=http://localhost:2379
+```
+
+启动第一个 IGinX 实例
+
+```shell
+$ cd ~
+$ cd Iginx
+$ chmod +x sbin/start_iginx.sh # 为启动脚本添加启动权限
+$ ./sbin/start_iginx.sh
+```
+
+修改 conf/config. Properties
+
+```shell
+# iginx 绑定的端口
+port=7888
+# rest 绑定的端口
+restPort=7666
+```
+
+启动第二个 IGinX 实例
+
+```shell
+$ ./sbin/start_iginx.sh
 ```
 
 ## 访问 IGinX
@@ -111,7 +228,7 @@ You can now test IGinX. Have fun!~
 ]
 ```
 
-使用如下的命令即可向数据库中插入数据：
+使用如下的命令即可从 IGinX 实例一向数据库中插入数据：
 
 ```shell
 $ curl -XPOST -H'Content-Type: application/json' -d @insert.json http://127.0.0.1:6666/api/v1/datapoints
@@ -140,7 +257,7 @@ $ curl -XPOST -H'Content-Type: application/json' -d @insert.json http://127.0.0.
 }
 ```
 
-使用如下的命令查询数据：
+使用如下的命令从 IGinX 实例二查询数据：
 
 ```shell
 $ curl -XPOST -H'Content-Type: application/json' -d @query.json http://127.0.0.1:6666/api/v1/datapoints/query
@@ -216,13 +333,13 @@ $ curl -XPOST -H'Content-Type: application/json' -d @query.json http://127.0.0.1
 }
 ```
 
-更多接口可以参考 [IGinX 官方手册](https://github.com/THUIGinX/IGinX/blob/main/docs/pdf/userManualC.pdf) 。
+更多接口可以参考 [IGinX 官方手册](https://github.com/IGinX-THU/IGinX/blob/main/docs/pdf/userManualC.pdf) 。
 
 ### RPC 接口
 
 除了 RESTful 接口外，IGinX 还提供了 RPC
-的数据访问接口，具体接口参考 [IGinX 官方手册](https://github.com/THUIGinX/IGinX/blob/main/docs/pdf/userManualC.pdf)，同时 IGinX
-还提供了部分[官方 example](https://github.com/THUIGinX/IGinX/tree/main/example/src/main/java/cn/edu/tsinghua/iginx/session)，展示了
+的数据访问接口，具体接口参考 [IGinX 官方手册](https://github.com/IGinX-THU/IGinX/blob/main/docs/pdf/userManualC.pdf)，同时 IGinX
+还提供了部分[官方 example](https://github.com/IGinX-THU/IGinX/tree/main/example/src/main/java/cn/edu/tsinghua/iginx/session)，展示了
 RPC 接口最常见的用法。
 
 下面是一个简短的使用教程。
@@ -231,11 +348,11 @@ RPC 接口最常见的用法。
 
 ```shell
 # 下载 IGinX 0.5.1 release 版本源码包
-$ wget https://github.com/THUIGinX/IGinX/archive/refs/tags/release/v0.5.1.tar.gz
+$ wget https://github.com/IGinX-THU/IGinX/archive/refs/tags/release/v0.5.1.tar.gz
 # 解压源码包
 $ tar -zxvf v0.5.1.tar.gz
 # 进入项目主目录
-$ cd IGinX-release-v0.5.1
+$ cd IginX-release-v0.5.1
 # 安装到本地 maven 仓库
 $ mvn clean install -DskipTests
 ```
@@ -250,7 +367,7 @@ $ mvn clean install -DskipTests
 </dependency>
 ```
 
-在访问 iginx 之前，首先需要创建 session，并尝试连接。Session 构造器有 4 个参数，分别是要连接的 IGinX 的 ip，port，以及用于 IGinX 认证的用户名和密码。目前的权鉴系统还在编写中，因此访问后端
+在访问 IGinX 之前，首先需要创建 session，并尝试连接。Session 构造器有 4 个参数，分别是要连接的 IGinX 的 ip，port，以及用于 IGinX 认证的用户名和密码。目前的权鉴系统还在编写中，因此访问后端
 IGinX 的账户名和密码直接填写 root 即可：
 
 ```Java
@@ -366,4 +483,4 @@ private static void downsampleQuery(Session session) throws SessionException, Ex
 session.closeSession();
 ```
 
-完整版使用代码可以参考：https://github.com/THUIGinX/IGinX/blob/main/example/src/main/java/cn/edu/tsinghua/iginx/session/IoTDBSessionExample.java
+完整版使用代码可以参考：https://github.com/IGinX-THU/IGinX/blob/main/example/src/main/java/cn/edu/tsinghua/iginx/session/IoTDBSessionExample.java
