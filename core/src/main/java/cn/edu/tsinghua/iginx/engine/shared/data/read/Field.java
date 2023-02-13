@@ -20,6 +20,7 @@ package cn.edu.tsinghua.iginx.engine.shared.data.read;
 
 import cn.edu.tsinghua.iginx.constant.GlobalConstant;
 import cn.edu.tsinghua.iginx.thrift.DataType;
+import com.alibaba.fastjson2.annotation.JSONField;
 
 import java.util.Collections;
 import java.util.Map;
@@ -28,7 +29,7 @@ import java.util.TreeMap;
 
 public final class Field {
 
-    public static final Field KEY = new Field();
+    public static final Field KEY = new Field(GlobalConstant.KEY_NAME, DataType.LONG, Collections.emptyMap());
 
     private final String name;
 
@@ -37,10 +38,6 @@ public final class Field {
     private final Map<String, String> tags;
 
     private final DataType type;
-
-    public Field() {
-        this(GlobalConstant.KEY_NAME, DataType.LONG, Collections.emptyMap());
-    }
 
     public Field(String name, DataType type) {
         this(name, type, Collections.emptyMap());
@@ -114,12 +111,12 @@ public final class Field {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Field that = (Field) o;
-        return Objects.equals(name, that.name) && Objects.equals(fullName, that.fullName) && type == that.type && Objects.equals(tags, that.tags);
+        return Objects.equals(name, that.name) && Objects.equals(fullName, that.fullName) && type == that.type;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, fullName, type, tags);
+        return Objects.hash(name, fullName, type);
     }
 
     public static String toFullName(String name, Map<String, String> tags) {

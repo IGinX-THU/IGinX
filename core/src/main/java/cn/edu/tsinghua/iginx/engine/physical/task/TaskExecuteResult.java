@@ -20,8 +20,14 @@ package cn.edu.tsinghua.iginx.engine.physical.task;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
+import cn.edu.tsinghua.iginx.sharedstore.utils.RowStreamHolder;
+import cn.edu.tsinghua.iginx.sharedstore.utils.RowStreamStoreUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TaskExecuteResult {
+
+    private static final Logger logger = LoggerFactory.getLogger(TaskExecuteResult.class);
 
     private RowStream rowStream;
 
@@ -50,12 +56,40 @@ public class TaskExecuteResult {
         return rowStream;
     }
 
+    public boolean hasSetRowStream() {
+        return this.rowStream != null;
+    }
+
     public void setRowStream(RowStream rowStream) {
         this.rowStream = rowStream;
     }
 
     public PhysicalException getException() {
         return exception;
+    }
+
+    public long getEstimatedRowSize() {
+        RowStreamHolder holder = new RowStreamHolder(this.rowStream);
+        try {
+            long size = RowStreamStoreUtils.getRowStreamLines(holder);
+            this.rowStream = holder.getStream();
+            return size;
+        } catch (Exception e) {
+            logger.error("[LongQuery][TaskExecuteResult] estimate task result row size failure: ", e);
+        }
+        return -1L;
+    }
+
+    public long getEstimatedStreamSize() {
+        RowStreamHolder holder = new RowStreamHolder(this.rowStream);
+        try {
+            long size = RowStreamStoreUtils.estimateRowStreamSize(holder);
+            this.rowStream = holder.getStream();
+            return size;
+        } catch (Exception e) {
+            logger.error("[LongQuery][TaskExecuteResult] estimate task result size failure: ", e);
+        }
+        return -1L;
     }
 
     public void setException(PhysicalException exception) {

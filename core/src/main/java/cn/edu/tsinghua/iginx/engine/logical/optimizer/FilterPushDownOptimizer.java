@@ -47,7 +47,7 @@ public class FilterPushDownOptimizer implements Optimizer {
         OperatorUtils.findSelectOperators(selectOperatorList, root);
 
         if (selectOperatorList.isEmpty()) {
-            logger.info("There is no filter in logical tree.");
+            //logger.info("There is no filter in logical tree.");
             return root;
         }
 

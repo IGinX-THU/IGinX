@@ -50,10 +50,17 @@ public class Result {
     private long jobId;
     private List<Long> jobIdList;
 
+    private FetchResultsResp cachedFetchResp;
+
+    private long cachedFetchPosition;
+
     public Result(Status status) {
         this.status = status;
         this.pointsNum = 0L;
         this.replicaNum = 0;
+
+        cachedFetchResp = null;
+        cachedFetchPosition = -1;
     }
 
     public QueryDataResp getQueryDataResp() {
@@ -153,33 +160,29 @@ public class Result {
         return resp;
     }
 
-    public ExecuteStatementResp getExecuteStatementResp(int fetchSize) {
-        ExecuteStatementResp resp = new ExecuteStatementResp(status, sqlType);
+    public FetchResultsResp fetch(long position, int fetchSize) {
+        if (position == this.cachedFetchPosition && this.cachedFetchResp != null) {
+            return this.cachedFetchResp;
+        }
+        FetchResultsResp resp = new FetchResultsResp(status, false);
+
         if (status != RpcUtils.SUCCESS) {
             return resp;
         }
-        resp.setQueryId(queryId);
         try {
-            List<String> paths = new ArrayList<>();
-            List<Map<String, String>> tagsList = new ArrayList<>();
+            List<String> columns = new ArrayList<>();
             List<DataType> types = new ArrayList<>();
 
             Header header = resultStream.getHeader();
 
             if (header.hasKey()) {
-                paths.add(Field.KEY.getFullName());
                 types.add(Field.KEY.getType());
-                tagsList.add(new HashMap<>());
+                columns.add(Field.KEY.getName());
             }
 
             resultStream.getHeader().getFields().forEach(field -> {
-                paths.add(field.getFullName());
                 types.add(field.getType());
-                if (field.getTags() == null) {
-                    tagsList.add(new HashMap<>());
-                } else {
-                    tagsList.add(field.getTags());
-                }
+                columns.add(field.getFullName());
             });
 
             List<ByteBuffer> valuesList = new ArrayList<>();
@@ -208,7 +211,8 @@ public class Result {
                 bitmapList.add(ByteBuffer.wrap(bitmap.getBytes()));
                 cnt++;
             }
-            resp.setColumns(paths);
+            resp.setHasMoreResults(resultStream.hasNext());
+            resp.setColumns(columns);
             resp.setTagsList(tagsList);
             resp.setDataTypeList(types);
             resp.setQueryDataSet(new QueryDataSetV2(valuesList, bitmapList));
@@ -216,58 +220,9 @@ public class Result {
             logger.error("unexpected error when load row stream: ", e);
             resp.setStatus(RpcUtils.FAILURE);
         }
-        return resp;
-    }
-
-    public FetchResultsResp fetch(int fetchSize) {
-        FetchResultsResp resp = new FetchResultsResp(status, false);
-
-        if (status != RpcUtils.SUCCESS) {
-            return resp;
-        }
-        try {
-            List<DataType> types = new ArrayList<>();
-
-            Header header = resultStream.getHeader();
-
-            if (header.hasKey()) {
-                types.add(Field.KEY.getType());
-            }
-
-            resultStream.getHeader().getFields().forEach(field -> types.add(field.getType()));
-
-            List<ByteBuffer> valuesList = new ArrayList<>();
-            List<ByteBuffer> bitmapList = new ArrayList<>();
-
-            int cnt = 0;
-            boolean hasTimestamp = resultStream.getHeader().hasKey();
-            while (resultStream.hasNext() && cnt < fetchSize) {
-                Row row = resultStream.next();
-
-                Object[] rawValues = row.getValues();
-                Object[] rowValues = rawValues;
-                if (hasTimestamp) {
-                    rowValues = new Object[rawValues.length + 1];
-                    rowValues[0] = row.getKey();
-                    System.arraycopy(rawValues, 0, rowValues, 1, rawValues.length);
-                }
-                valuesList.add(ByteUtils.getRowByteBuffer(rowValues, types));
-
-                Bitmap bitmap = new Bitmap(rowValues.length);
-                for (int i = 0; i < rowValues.length; i++) {
-                    if (rowValues[i] != null) {
-                        bitmap.mark(i);
-                    }
-                }
-                bitmapList.add(ByteBuffer.wrap(bitmap.getBytes()));
-                cnt++;
-            }
-            resp.setHasMoreResults(resultStream.hasNext());
-            resp.setQueryDataSet(new QueryDataSetV2(valuesList, bitmapList));
-        } catch (PhysicalException e) {
-            logger.error("unexpected error when load row stream: ", e);
-            resp.setStatus(RpcUtils.FAILURE);
-        }
+        // cache current result
+        this.cachedFetchResp = resp;
+        this.cachedFetchPosition = position;
         return resp;
     }
 

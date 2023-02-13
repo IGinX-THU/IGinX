@@ -21,9 +21,8 @@ package cn.edu.tsinghua.iginx.session;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-import cn.edu.tsinghua.iginx.thrift.QueryDataSetV2;
+import cn.edu.tsinghua.iginx.thrift.FetchResultsResp;
 import cn.edu.tsinghua.iginx.utils.Bitmap;
-import cn.edu.tsinghua.iginx.utils.Pair;
 
 import java.nio.ByteBuffer;
 import java.util.List;
@@ -42,9 +41,11 @@ public class QueryDataSet {
 
     private final long queryId;
 
-    private final List<String> columnList;
+    private boolean hasInitHeader;
 
-    private final List<DataType> dataTypeList;
+    private List<String> columnList;
+
+    private List<DataType> dataTypeList;
 
     private final int fetchSize;
 
@@ -56,16 +57,16 @@ public class QueryDataSet {
 
     private int index;
 
-    public QueryDataSet(Session session, long queryId, List<String> columnList, List<DataType> dataTypeList, int fetchSize, List<ByteBuffer> valuesList, List<ByteBuffer> bitmapList) {
+    private int position;
+
+    public QueryDataSet(Session session, long queryId, int fetchSize) {
         this.session = session;
         this.queryId = queryId;
-        this.columnList = columnList;
-        this.dataTypeList = dataTypeList;
         this.fetchSize = fetchSize;
-        this.valuesList = valuesList;
-        this.bitmapList = bitmapList;
+        this.hasInitHeader = false;
         this.state = State.UNKNOWN;
         this.index = 0;
+        this.position = 0;
     }
 
     public void close() throws SessionException, ExecutionException {
@@ -80,12 +81,19 @@ public class QueryDataSet {
         valuesList = null;
         index = 0;
 
-        Pair<QueryDataSetV2, Boolean> pair = session.fetchResult(queryId, fetchSize);
-        if (pair.k != null) {
-            bitmapList = pair.k.bitmapList;
-            valuesList = pair.k.valuesList;
+        FetchResultsResp resp = session.fetchResult(queryId, fetchSize, position);
+        if (resp.queryDataSet != null) {
+            bitmapList = resp.queryDataSet.bitmapList;
+            valuesList = resp.queryDataSet.valuesList;
+            position += resp.queryDataSet.valuesList.size();
         }
-        state = pair.v ? State.HAS_MORE : State.NO_MORE;
+        state = resp.hasMoreResults ? State.HAS_MORE : State.NO_MORE;
+
+        if (!hasInitHeader) {
+            this.columnList = resp.columns;
+            this.dataTypeList = resp.dataTypeList;
+            hasInitHeader = true;
+        }
     }
 
     public boolean hasMore() throws SessionException, ExecutionException {
@@ -119,11 +127,21 @@ public class QueryDataSet {
         return values;
     }
 
-    public List<String> getColumnList() {
+    public List<String> getColumnList() throws SessionException, ExecutionException {
+        if (!hasInitHeader) {
+            fetch();
+        }
         return columnList;
     }
 
-    public List<DataType> getDataTypeList() {
+    public List<DataType> getDataTypeList() throws SessionException, ExecutionException {
+        if (!hasInitHeader) {
+            fetch();
+        }
         return dataTypeList;
+    }
+
+    public long getQueryId() {
+        return queryId;
     }
 }

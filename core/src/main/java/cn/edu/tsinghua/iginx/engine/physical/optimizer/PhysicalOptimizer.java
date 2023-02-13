@@ -20,6 +20,7 @@ package cn.edu.tsinghua.iginx.engine.physical.optimizer;
 
 import cn.edu.tsinghua.iginx.engine.physical.optimizer.rule.Rule;
 import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
+import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.constraint.ConstraintManager;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 
@@ -27,7 +28,7 @@ import java.util.Collection;
 
 public interface PhysicalOptimizer {
 
-    PhysicalTask optimize(Operator root);
+    PhysicalTask optimize(RequestContext context, Operator root);
 
     ConstraintManager getConstraintManager();
 

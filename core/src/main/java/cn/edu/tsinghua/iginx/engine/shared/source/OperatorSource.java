@@ -22,7 +22,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 
 public class OperatorSource extends AbstractSource {
 
-    private final Operator operator;
+    private Operator operator;
 
     public OperatorSource(Operator operator) {
         super(SourceType.Operator);
@@ -34,6 +34,10 @@ public class OperatorSource extends AbstractSource {
 
     public Operator getOperator() {
         return operator;
+    }
+
+    public void setOperator(Operator operator) {
+        this.operator = operator;
     }
 
     @Override

@@ -493,6 +493,19 @@ public class DefaultMetaCache implements IMetaCache {
     }
 
     @Override
+    public StorageUnitMeta searchStorageUnit(String migrationTo) {
+        StorageUnitMeta storageUnit = null;
+        storageUnitLock.readLock().lock();
+        for (StorageUnitMeta temp: storageUnitMetaMap.values()) {
+            if (temp.getMigrationTo() != null && temp.getMigrationTo().equals(migrationTo)) {
+                storageUnit = temp;
+            }
+        }
+        storageUnitLock.readLock().unlock();
+        return storageUnit;
+    }
+
+    @Override
     public Map<String, StorageUnitMeta> getStorageUnits(Set<String> ids) {
         Map<String, StorageUnitMeta> resultMap = new HashMap<>();
         storageUnitLock.readLock().lock();

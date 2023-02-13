@@ -24,9 +24,12 @@ public class Bitmap {
 
     private final byte[] bitmap;
 
+    private int count;
+
     public Bitmap(int size) {
         this.size = size;
         this.bitmap = new byte[(int) Math.ceil(this.size * 1.0 / 8)];
+        this.count = 0;
     }
 
     public Bitmap(int size, byte[] bitmap) {
@@ -40,6 +43,7 @@ public class Bitmap {
         int index = i / 8;
         int indexWithinByte = i % 8;
         bitmap[index] |= (1 << indexWithinByte);
+        this.count++;
     }
 
     public boolean get(int i) {
@@ -56,5 +60,9 @@ public class Bitmap {
 
     public int getSize() {
         return size;
+    }
+
+    public int getCount() {
+        return count;
     }
 }

@@ -20,6 +20,8 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.queue;
 
 import cn.edu.tsinghua.iginx.engine.physical.task.MemoryPhysicalTask;
 
+import java.util.Collection;
+
 public interface MemoryPhysicalTaskQueue {
 
     /**
@@ -29,6 +31,8 @@ public interface MemoryPhysicalTaskQueue {
      * @return 是否成功添加任务
      */
     boolean addTask(MemoryPhysicalTask memoryTask);
+
+    boolean addTasks(Collection<MemoryPhysicalTask> memoryTasks);
 
     /**
      * 如果当前队列中不含未执行的计划，则该方法会阻塞。

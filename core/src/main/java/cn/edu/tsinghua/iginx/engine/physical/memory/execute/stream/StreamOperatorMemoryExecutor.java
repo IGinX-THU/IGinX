@@ -58,7 +58,7 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
             case Rename:
                 return executeRename((Rename) operator, stream);
             case Reorder:
-                return executeReorder((Reorder) operator, stream);
+                return stream; // RE_ORDER_DO_NOTHING
             case AddSchemaPrefix:
                 return executeAddSchemaPrefix((AddSchemaPrefix) operator, stream);
             case GroupBy:

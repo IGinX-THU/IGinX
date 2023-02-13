@@ -32,6 +32,7 @@ import cn.edu.tsinghua.iginx.exceptions.StatusCode;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
+import cn.edu.tsinghua.iginx.migration.storage.StorageMigrationExecutor;
 import cn.edu.tsinghua.iginx.utils.JsonUtils;
 import cn.edu.tsinghua.iginx.resource.QueryResourceManager;
 import cn.edu.tsinghua.iginx.thrift.*;
@@ -104,7 +105,7 @@ public class IginxWorker implements IService.Iface {
         }
         RequestContext ctx = contextBuilder.build(req);
         executor.execute(ctx);
-        return ctx.getResult().getStatus();
+        return ctx.takeResult().getStatus();
     }
 
     @Override
@@ -118,7 +119,7 @@ public class IginxWorker implements IService.Iface {
         }
         RequestContext ctx = contextBuilder.build(req);
         executor.execute(ctx);
-        return ctx.getResult().getStatus();
+        return ctx.takeResult().getStatus();
     }
 
     @Override
@@ -130,9 +131,10 @@ public class IginxWorker implements IService.Iface {
             logger.error("Insert paths must have more than one sub paths.");
             return RpcUtils.FAILURE;
         }
+
         RequestContext ctx = contextBuilder.build(req);
         executor.execute(ctx);
-        return ctx.getResult().getStatus();
+        return ctx.takeResult().getStatus();
     }
 
     @Override
@@ -146,7 +148,7 @@ public class IginxWorker implements IService.Iface {
         }
         RequestContext ctx = contextBuilder.build(req);
         executor.execute(ctx);
-        return ctx.getResult().getStatus();
+        return ctx.takeResult().getStatus();
     }
 
     @Override
@@ -160,7 +162,7 @@ public class IginxWorker implements IService.Iface {
         }
         RequestContext ctx = contextBuilder.build(req);
         executor.execute(ctx);
-        return ctx.getResult().getStatus();
+        return ctx.takeResult().getStatus();
     }
 
     @Override
@@ -170,7 +172,7 @@ public class IginxWorker implements IService.Iface {
         }
         RequestContext ctx = contextBuilder.build(req);
         executor.execute(ctx);
-        return ctx.getResult().getStatus();
+        return ctx.takeResult().getStatus();
     }
 
     @Override
@@ -180,7 +182,7 @@ public class IginxWorker implements IService.Iface {
         }
         RequestContext ctx = contextBuilder.build(req);
         executor.execute(ctx);
-        return ctx.getResult().getQueryDataResp();
+        return ctx.takeResult().getQueryDataResp();
     }
 
     @Override
@@ -247,6 +249,33 @@ public class IginxWorker implements IService.Iface {
             }
         }
         return status;
+    }
+
+    @Override
+    public Status removeStorageEngine(RemoveStorageEngineReq req) {
+        if (!sessionManager.checkSession(req.getSessionId(), AuthType.Cluster)) {
+            return RpcUtils.ACCESS_DENY;
+        }
+        long storageId = req.getStorageId();
+        StorageEngineMeta storageEngine = metaManager.getStorageEngine(storageId);
+        if (storageEngine == null) {
+            Status status = new Status(StatusCode.STATEMENT_EXECUTION_ERROR.getStatusCode());
+            status.setMessage("storage engine is not exists.");
+            return status;
+        }
+        try {
+            if (StorageMigrationExecutor.getInstance().migration(storageId, req.sync, true)) {
+                return RpcUtils.SUCCESS;
+            }
+            Status status = new Status(StatusCode.STATEMENT_EXECUTION_ERROR.getStatusCode());
+            status.setMessage("unexpected error during storage migration");
+            return status;
+        } catch (Exception e) {
+            logger.error("unexpected error during storage migration: ", e);
+            Status status = new Status(StatusCode.STATEMENT_EXECUTION_ERROR.getStatusCode());
+            status.setMessage("unexpected error during storage migration: " + e.getMessage());
+            return status;
+        }
     }
 
     @Override
@@ -354,7 +383,7 @@ public class IginxWorker implements IService.Iface {
         }
         RequestContext ctx = contextBuilder.build(req);
         executor.execute(ctx);
-        return ctx.getResult().getAggregateQueryResp();
+        return ctx.takeResult().getAggregateQueryResp();
     }
 
     @Override
@@ -364,7 +393,7 @@ public class IginxWorker implements IService.Iface {
         }
         RequestContext ctx = contextBuilder.build(req);
         executor.execute(ctx);
-        return ctx.getResult().getDownSampleQueryResp();
+        return ctx.takeResult().getDownSampleQueryResp();
     }
 
     @Override
@@ -374,7 +403,7 @@ public class IginxWorker implements IService.Iface {
         }
         RequestContext ctx = contextBuilder.build(req);
         executor.execute(ctx);
-        return ctx.getResult().getShowColumnsResp();
+        return ctx.takeResult().getShowColumnsResp();
     }
 
     @Override
@@ -390,9 +419,10 @@ public class IginxWorker implements IService.Iface {
     @Override
     public ExecuteSqlResp executeSql(ExecuteSqlReq req) {
         StatementExecutor executor = StatementExecutor.getInstance();
+        logger.info("[Long Query Experiment] Execute SQL From Shell: " + req.getStatement());
         RequestContext ctx = contextBuilder.build(req);
         executor.execute(ctx);
-        return ctx.getResult().getExecuteSqlResp();
+        return ctx.takeResult().getExecuteSqlResp();
     }
 
     @Override
@@ -403,7 +433,7 @@ public class IginxWorker implements IService.Iface {
 
         RequestContext ctx = contextBuilder.build(req);
         executor.execute(ctx);
-        return ctx.getResult().getLastQueryResp();
+        return ctx.takeResult().getLastQueryResp();
     }
 
     @Override
@@ -532,11 +562,17 @@ public class IginxWorker implements IService.Iface {
 
     @Override
     public ExecuteStatementResp executeStatement(ExecuteStatementReq req) {
+        logger.info("[Long Query Experiment] Execute SQL From Benchmark: " + req.getStatement());
         StatementExecutor executor = StatementExecutor.getInstance();
         RequestContext ctx = contextBuilder.build(req);
-        executor.execute(ctx);
         queryManager.registerQuery(ctx.getId(), ctx);
-        return ctx.getResult().getExecuteStatementResp(req.getFetchSize());
+        Status status = executor.asyncExecute(ctx);
+        ExecuteStatementResp resp = new ExecuteStatementResp(status);
+        if (status != RpcUtils.SUCCESS) {
+            return resp;
+        }
+        resp.setQueryId(ctx.getId());
+        return resp;
     }
 
     @Override
@@ -545,7 +581,7 @@ public class IginxWorker implements IService.Iface {
         if (context == null) {
             return new FetchResultsResp(RpcUtils.SUCCESS, false);
         }
-        return context.getResult().fetch(req.getFetchSize());
+        return context.takeResult().fetch(req.getPosition(), req.getFetchSize());
     }
 
     @Override
@@ -711,7 +747,7 @@ public class IginxWorker implements IService.Iface {
             req.getEndTime());
         RequestContext ctx = contextBuilder.build(queryDataReq);
         executor.execute(ctx);
-        QueryDataResp queryDataResp = ctx.getResult().getQueryDataResp();
+        QueryDataResp queryDataResp = ctx.takeResult().getQueryDataResp();
 
         for (DataType type : queryDataResp.getDataTypeList()) {
             if (type.equals(DataType.BINARY) || type.equals(DataType.BOOLEAN)) {
@@ -832,5 +868,24 @@ public class IginxWorker implements IService.Iface {
                         f.getTsInterval().getStartTimeSeries(), f.getTsInterval().getEndTimeSeries())
         ).collect(Collectors.toList());
         return new GetMetaResp(fragments, storages, units);
+    }
+
+    @Override
+    public LoadAvailableEndPointsResp loadAvailableEndPoints(LoadAvailableEndPointsReq req)  {
+        if (!sessionManager.checkSession(req.getSessionId(), AuthType.Cluster)) {
+            return new LoadAvailableEndPointsResp(RpcUtils.ACCESS_DENY);
+        }
+        List<IginxMeta> metaList = metaManager.getIginxList();
+        int size = req.isSetSize() ? Math.min(req.getSize(), metaList.size()) : metaList.size();
+        int[] cards = AlgorithmUtils.washCard(metaList.size());
+        List<EndPoint> endPoints = new ArrayList<>();
+        for (int i = 0; i < size; i++) {
+            IginxMeta meta = metaList.get(cards[i]);
+            EndPoint endPoint = new EndPoint(meta.getIp(), meta.getPort());
+            endPoints.add(endPoint);
+        }
+        LoadAvailableEndPointsResp resp = new LoadAvailableEndPointsResp(RpcUtils.SUCCESS);
+        resp.setEndPoints(endPoints);
+        return resp;
     }
 }

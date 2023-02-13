@@ -2,7 +2,11 @@ package cn.edu.tsinghua.iginx.engine.shared.operator;
 
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
+import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
+import cn.edu.tsinghua.iginx.engine.shared.source.SourceType;
+import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -36,6 +40,13 @@ public class GroupBy extends AbstractUnaryOperator {
 
     @Override
     public String getInfo() {
-        return "";
+        StringBuilder builder = new StringBuilder();
+        builder.append("Group Keys: ");
+        for (String pattern : groupByCols) {
+            builder.append(pattern).append(",");
+        }
+        builder.deleteCharAt(builder.length() - 1);
+        Source source = getSource();
+        return builder.toString();
     }
 }

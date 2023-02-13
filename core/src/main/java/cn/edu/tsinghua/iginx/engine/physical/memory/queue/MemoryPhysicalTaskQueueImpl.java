@@ -22,6 +22,7 @@ import cn.edu.tsinghua.iginx.engine.physical.task.MemoryPhysicalTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collection;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -34,6 +35,11 @@ public class MemoryPhysicalTaskQueueImpl implements MemoryPhysicalTaskQueue {
     @Override
     public boolean addTask(MemoryPhysicalTask memoryTask) {
         return tasks.add(memoryTask);
+    }
+
+    @Override
+    public boolean addTasks(Collection<MemoryPhysicalTask> memoryTasks) {
+        return tasks.addAll(memoryTasks);
     }
 
     @Override

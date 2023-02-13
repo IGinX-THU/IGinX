@@ -58,7 +58,6 @@ public class StorageEngineClassLoader extends ClassLoader {
                                 .forEach(className -> nameToJar.put(className, jar));
             }
         }
-        System.out.println(nameToJar.toString());
     }
 
     @Override

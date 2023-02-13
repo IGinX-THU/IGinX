@@ -20,6 +20,8 @@ package cn.edu.tsinghua.iginx.engine.physical.memory;
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.physical.fault.DefaultFaultTolerancePolicy;
+import cn.edu.tsinghua.iginx.engine.physical.fault.FaultTolerancePolicyManager;
 import cn.edu.tsinghua.iginx.engine.physical.memory.queue.MemoryPhysicalTaskQueue;
 import cn.edu.tsinghua.iginx.engine.physical.memory.queue.MemoryPhysicalTaskQueueImpl;
 import cn.edu.tsinghua.iginx.engine.physical.task.MemoryPhysicalTask;
@@ -27,6 +29,8 @@ import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+
+import java.util.Collection;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -56,6 +60,13 @@ public class MemoryPhysicalTaskDispatcher {
         return taskQueue.addTask(task);
     }
 
+    public boolean commit(Collection<MemoryPhysicalTask> tasks) {
+        if (tasks.isEmpty()) {
+            return true;
+        }
+        return taskQueue.addTasks(tasks);
+    }
+
     public void startDispatcher() {
         taskDispatcher.submit(() -> {
             try {
@@ -66,11 +77,20 @@ public class MemoryPhysicalTaskDispatcher {
                         MemoryPhysicalTask currentTask = task;
                         while (currentTask != null) {
                             TaskExecuteResult result;
+                            long startTime = System.currentTimeMillis();
                             try {
                                 result = currentTask.execute();
                             } catch (Exception e) {
                                 logger.error("execute memory task failure: ", e);
                                 result = new TaskExecuteResult(new PhysicalException(e));
+                            }
+                            long span = System.currentTimeMillis() - startTime;
+                            if (result.hasSetRowStream()) {
+                                currentTask.setSpan(span);
+                                logger.info("[FaultToleranceQuery][MemoryPhysicalTaskDispatcher] task is [{}], lines = {}, span = {}ms", currentTask.getOperators().get(0).getInfo(), result.getEstimatedRowSize(), span);
+                                if (currentTask.getContext() != null && currentTask.getContext().isEnableFaultTolerance()) {
+                                    FaultTolerancePolicyManager.getInstance().getPolicy().persistence(currentTask, result);
+                                }
                             }
                             currentTask.setResult(result);
                             if (currentTask.getFollowerTask() != null) { // 链式执行可以被执行的任务

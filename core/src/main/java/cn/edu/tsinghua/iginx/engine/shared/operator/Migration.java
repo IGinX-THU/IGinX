@@ -14,6 +14,8 @@ public class Migration extends AbstractUnaryOperator {
   private final List<String> paths;
   private final StorageUnitMeta targetStorageUnitMeta;
 
+  private String sourceStorageUnitId;
+
   public Migration(GlobalSource source, long sourceStorageEngineId, long targetStorageEngineId,
       FragmentMeta fragmentMeta,
       List<String> paths, StorageUnitMeta targetStorageUnitMeta) {
@@ -22,6 +24,18 @@ public class Migration extends AbstractUnaryOperator {
     this.targetStorageEngineId = targetStorageEngineId;
     this.fragmentMeta = fragmentMeta;
     this.paths = paths;
+    this.targetStorageUnitMeta = targetStorageUnitMeta;
+  }
+
+  public Migration(GlobalSource source, long sourceStorageEngineId, long targetStorageEngineId,
+                   FragmentMeta fragmentMeta,
+                   List<String> paths, String sourceStorageUnitId, StorageUnitMeta targetStorageUnitMeta) {
+    super(OperatorType.Migration, source);
+    this.sourceStorageEngineId = sourceStorageEngineId;
+    this.targetStorageEngineId = targetStorageEngineId;
+    this.fragmentMeta = fragmentMeta;
+    this.paths = paths;
+    this.sourceStorageUnitId = sourceStorageUnitId;
     this.targetStorageUnitMeta = targetStorageUnitMeta;
   }
 
@@ -48,7 +62,15 @@ public class Migration extends AbstractUnaryOperator {
   @Override
   public Operator copy() {
     return new Migration((GlobalSource) getSource().copy(), sourceStorageEngineId,
-        targetStorageEngineId, fragmentMeta, paths, targetStorageUnitMeta);
+        targetStorageEngineId, fragmentMeta, paths, sourceStorageUnitId, targetStorageUnitMeta);
+  }
+
+  public String getSourceStorageUnitId() {
+    return sourceStorageUnitId;
+  }
+
+  public void setSourceStorageUnitId(String sourceStorageUnitId) {
+    this.sourceStorageUnitId = sourceStorageUnitId;
   }
 
   @Override

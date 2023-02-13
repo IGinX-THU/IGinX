@@ -19,7 +19,12 @@
 package cn.edu.tsinghua.iginx.engine.physical.optimizer.naive;
 
 import cn.edu.tsinghua.iginx.engine.physical.optimizer.ReplicaDispatcher;
+import cn.edu.tsinghua.iginx.engine.physical.storage.execute.StoragePhysicalTaskExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.task.StoragePhysicalTask;
+import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
+import cn.edu.tsinghua.iginx.metadata.entity.StorageUnitMeta;
+import cn.edu.tsinghua.iginx.metadata.entity.StorageUnitState;
+import cn.edu.tsinghua.iginx.migration.storage.StorageMigrationExecutor;
 
 public class NaiveReplicaDispatcher implements ReplicaDispatcher {
 
@@ -33,7 +38,7 @@ public class NaiveReplicaDispatcher implements ReplicaDispatcher {
         if (task == null) {
             return null;
         }
-        return task.getTargetFragment().getMasterStorageUnitId();
+        return StoragePhysicalTaskExecutor.getTargetStorageUnit(task.getTargetFragment().getMasterStorageUnitId());
     }
 
     public static NaiveReplicaDispatcher getInstance() {

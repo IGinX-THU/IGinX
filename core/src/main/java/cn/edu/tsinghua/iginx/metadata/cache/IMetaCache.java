@@ -72,6 +72,8 @@ public interface IMetaCache {
 
     StorageUnitMeta getStorageUnit(String id);
 
+    StorageUnitMeta searchStorageUnit(String migrationTo);
+
     Map<String, StorageUnitMeta> getStorageUnits(Set<String> ids);
 
     List<StorageUnitMeta> getStorageUnits();

@@ -412,18 +412,12 @@ struct GetClusterInfoResp {
 struct ExecuteStatementReq {
     1: required i64 sessionId
     2: required string statement
-    3: optional i32 fetchSize
-    4: optional i64 timeout
+    3: optional i64 queryId
 }
 
 struct ExecuteStatementResp {
     1: required Status status
-    2: required SqlType type
-    3: optional i64 queryId
-    4: optional list<string> columns
-    5: optional list<map<string, string>> tagsList
-    6: optional list<DataType> dataTypeList
-    7: optional QueryDataSetV2 queryDataSet
+    2: optional i64 queryId
 }
 
 struct QueryDataSetV2 {
@@ -439,14 +433,17 @@ struct CloseStatementReq {
 struct FetchResultsReq {
     1: required i64 sessionId
     2: required i64 queryId
-    3: optional i32 fetchSize
-    4: optional i64 timeout
+    3: required i64 position
+    4: optional i32 fetchSize
 }
 
 struct FetchResultsResp {
     1: required Status status
     2: required bool hasMoreResults
-    3: optional QueryDataSetV2 queryDataSet
+    3: optional list<string> columns
+    4: optional list<map<string, string>> tagsList
+    5: optional list<DataType> dataTypeList
+    6: optional QueryDataSetV2 queryDataSet
 }
 
 struct TaskInfo {
@@ -596,6 +593,27 @@ struct RemoveHistoryDataSourceReq {
     2: required list<RemovedStorageEngineInfo> dummyStorageInfoList
 }
 
+struct LoadAvailableEndPointsReq {
+    1: required i64 sessionId
+    2: optional i32 size
+}
+
+struct EndPoint {
+    1: required string ip
+    2: required i32 port
+}
+
+struct LoadAvailableEndPointsResp {
+    1: required Status status
+    2: optional list<EndPoint> endPoints
+}
+
+struct RemoveStorageEngineReq {
+    1: required i64 sessionId
+    2: required i64 storageId
+    3: required bool sync
+}
+
 service IService {
 
     OpenSessionResp openSession(1: OpenSessionReq req);
@@ -619,6 +637,8 @@ service IService {
     Status addStorageEngines(1: AddStorageEnginesReq req);
 
     Status removeHistoryDataSource(1: RemoveHistoryDataSourceReq req);
+
+    Status removeStorageEngine(1: RemoveStorageEngineReq req);
 
     AggregateQueryResp aggregateQuery(1: AggregateQueryReq req);
 
@@ -665,4 +685,6 @@ service IService {
     CurveMatchResp curveMatch(1: CurveMatchReq req);
 
     DebugInfoResp debugInfo(1: DebugInfoReq req);
+
+    LoadAvailableEndPointsResp loadAvailableEndPoints(1: LoadAvailableEndPointsReq req);
 }

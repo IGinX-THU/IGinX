@@ -25,4 +25,7 @@ public enum SourceType {
     Fragment,
     Operator,
     Global,
+
+    // 表示从共享存储中读取中间结果
+    SharedStore,
 }

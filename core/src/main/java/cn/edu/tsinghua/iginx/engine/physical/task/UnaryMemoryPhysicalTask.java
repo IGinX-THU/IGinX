@@ -4,6 +4,7 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.UnexpectedOperatorException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.OperatorMemoryExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.OperatorMemoryExecutorFactory;
+import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
@@ -11,6 +12,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.UnaryOperator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collections;
 import java.util.List;
 
 public class UnaryMemoryPhysicalTask extends MemoryPhysicalTask {
@@ -19,8 +21,8 @@ public class UnaryMemoryPhysicalTask extends MemoryPhysicalTask {
 
     private final PhysicalTask parentTask;
 
-    public UnaryMemoryPhysicalTask(List<Operator> operators, PhysicalTask parentTask) {
-        super(TaskType.UnaryMemory, operators);
+    public UnaryMemoryPhysicalTask(List<Operator> operators, RequestContext context, PhysicalTask parentTask) {
+        super(TaskType.UnaryMemory, operators, context);
         this.parentTask = parentTask;
     }
 
@@ -29,16 +31,32 @@ public class UnaryMemoryPhysicalTask extends MemoryPhysicalTask {
     }
 
     @Override
+    public boolean hasParentTask() {
+        return parentTask != null;
+    }
+
+    @Override
+    public List<PhysicalTask> getParentTasks() {
+        if (parentTask == null) {
+            return Collections.emptyList();
+        }
+        return Collections.singletonList(parentTask);
+    }
+
+    @Override
     public TaskExecuteResult execute() {
-        TaskExecuteResult parentResult = parentTask.getResult();
-        if (parentResult == null) {
-            return new TaskExecuteResult(new PhysicalException("unexpected parent task execute result for " + this + ": null"));
-        }
-        if (parentResult.getException() != null) {
-            return parentResult;
-        }
         List<Operator> operators = getOperators();
-        RowStream stream = parentResult.getRowStream();
+        RowStream stream = null;
+        if (hasParentTask()) {
+            TaskExecuteResult parentResult = parentTask.getResult();
+            if (parentResult == null) {
+                return new TaskExecuteResult(new PhysicalException("unexpected parent task execute result for " + this + ": null"));
+            }
+            if (parentResult.getException() != null) {
+                return parentResult;
+            }
+            stream = parentResult.getRowStream();
+        }
         OperatorMemoryExecutor executor = OperatorMemoryExecutorFactory.getInstance().getMemoryExecutor();
         try {
             for (Operator op : operators) {
@@ -56,6 +74,6 @@ public class UnaryMemoryPhysicalTask extends MemoryPhysicalTask {
 
     @Override
     public boolean notifyParentReady() {
-        return parentReadyCount.incrementAndGet() == 1;
+        return !hasParentTask() || parentReadyCount.incrementAndGet() == 1;
     }
 }

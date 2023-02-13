@@ -36,6 +36,8 @@
  */
 package cn.edu.tsinghua.iginx.metadata.entity;
 
+import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
+
 import java.util.Objects;
 
 public final class FragmentMeta {
@@ -103,6 +105,10 @@ public final class FragmentMeta {
         this.dummyFragment = dummyFragment;
     }
 
+    public FragmentMeta copy(TimeInterval timeInterval) {
+        return new FragmentMeta(this.tsInterval, timeInterval, this.masterStorageUnit);
+    }
+
     public TimeInterval getTimeInterval() {
         return timeInterval;
     }
@@ -137,7 +143,7 @@ public final class FragmentMeta {
     }
 
     public StorageUnitMeta getMasterStorageUnit() {
-        return masterStorageUnit;
+        return DefaultMetaManager.getInstance().getStorageUnit(masterStorageUnitId);
     }
 
     public void setMasterStorageUnit(StorageUnitMeta masterStorageUnit) {

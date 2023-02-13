@@ -22,6 +22,7 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.UnexpectedOperatorException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.OperatorMemoryExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.OperatorMemoryExecutorFactory;
+import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.BinaryOperator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
@@ -30,6 +31,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.UnaryOperator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class BinaryMemoryPhysicalTask extends MemoryPhysicalTask {
@@ -40,8 +42,8 @@ public class BinaryMemoryPhysicalTask extends MemoryPhysicalTask {
 
     private final PhysicalTask parentTaskB;
 
-    public BinaryMemoryPhysicalTask(List<Operator> operators, PhysicalTask parentTaskA, PhysicalTask parentTaskB) {
-        super(TaskType.BinaryMemory, operators);
+    public BinaryMemoryPhysicalTask(List<Operator> operators, RequestContext context, PhysicalTask parentTaskA, PhysicalTask parentTaskB) {
+        super(TaskType.BinaryMemory, operators, context);
         this.parentTaskA = parentTaskA;
         this.parentTaskB = parentTaskB;
     }
@@ -98,5 +100,18 @@ public class BinaryMemoryPhysicalTask extends MemoryPhysicalTask {
     @Override
     public boolean notifyParentReady() {
         return parentReadyCount.incrementAndGet() == 2;
+    }
+
+    @Override
+    public boolean hasParentTask() {
+        return true;
+    }
+
+    @Override
+    public List<PhysicalTask> getParentTasks() {
+        List<PhysicalTask> tasks = new ArrayList<>();
+        tasks.add(parentTaskA);
+        tasks.add(parentTaskB);
+        return tasks;
     }
 }

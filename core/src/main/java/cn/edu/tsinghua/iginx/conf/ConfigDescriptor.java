@@ -143,6 +143,24 @@ public class ConfigDescriptor {
             config.setLocalParquetStorage(Boolean.parseBoolean(properties.getProperty("isLocalParquetStorage", "true")));
             config.setMinThriftWorkerThreadNum(Integer.parseInt(properties.getProperty("minThriftWorkerThreadNum", "20")));
             config.setMaxThriftWrokerThreadNum(Integer.parseInt(properties.getProperty("maxThriftWorkerThreadNum", "2147483647")));
+
+            config.setEnableFaultTolerance(Boolean.parseBoolean(properties.getProperty("enableFaultTolerance", "false")));
+            config.setEnableSharedStorage(Boolean.parseBoolean(properties.getProperty("enableSharedStorage", "true")));
+            config.setSharedStorage(properties.getProperty("sharedStorage", "redis"));
+            config.setShardStorageConnectionString(properties.getProperty("shardStorageConnectionString", "http://127.0.0.1:6379"));
+            config.setFaultTolerancePolicy(properties.getProperty("faultTolerancePolicy", "default"));
+            config.setFaultToleranceMaxCost(Double.parseDouble(properties.getProperty("faultToleranceMaxCost", "0.03")));
+            config.setFaultToleranceMaxPersistSize(Integer.parseInt(properties.getProperty("faultToleranceMaxPersistSize", "64")));
+
+            // 容错相关
+            config.setEnableStorageHeartbeat(Boolean.parseBoolean(properties.getProperty("enable_storage_heartbeat", "false")));
+            config.setStorageHeartbeatInterval(ConfigUtils.parseTime(properties.getProperty("storage_heartbeat_interval", "10s")));
+            config.setStorageHeartbeatMaxRetryTimes(Integer.parseInt(properties.getProperty("storage_heartbeat_max_retry_times", "5")));
+            config.setStorageHeartbeatTimeout(ConfigUtils.parseTime(properties.getProperty("storage_heartbeat_timeout", "1s")));
+            config.setStorageRetryConnectInterval(ConfigUtils.parseTime(properties.getProperty("storage_retry_connect_interval", "50s")));
+            config.setStorageHeartbeatThresholdPoolSize(Integer.parseInt(properties.getProperty("storage_heartbeat_threshold_pool_size", "10")));
+            config.setStorageRestoreHeartbeatProbability(Double.parseDouble(properties.getProperty("storage_restore_heartbeat_probability", "0.05")));
+            config.setMigrationThreadPoolSize(Integer.parseInt(properties.getProperty("migration_thread_pool_size", "20")));
         } catch (IOException e) {
             logger.error("Fail to load properties: ", e);
         }
@@ -207,10 +225,22 @@ public class ConfigDescriptor {
         config.setHistoricalPrefixList(EnvUtils.loadEnv("historicalPrefixList", config.getHistoricalPrefixList()));
         config.setExpectedStorageUnitNum(EnvUtils.loadEnv("expectedStorageUnitNum", config.getExpectedStorageUnitNum()));
         config.setLocalParquetStorage(EnvUtils.loadEnv("isLocalParquetStorage", config.isLocalParquetStorage()));
+
+        // 容错相关
+        config.setEnableStorageHeartbeat(EnvUtils.loadEnv("enable_storage_heartbeat", config.isEnableStorageHeartbeat()));
+        config.setStorageHeartbeatInterval(ConfigUtils.parseTime(EnvUtils.loadEnv("storage_heartbeat_interval", ConfigUtils.toTimeString(config.getStorageHeartbeatInterval()))));
+        config.setStorageHeartbeatMaxRetryTimes(EnvUtils.loadEnv("storage_heartbeat_max_retry_times", config.getStorageHeartbeatMaxRetryTimes()));
+        config.setStorageHeartbeatTimeout(ConfigUtils.parseTime(EnvUtils.loadEnv("storage_heartbeat_timeout", ConfigUtils.toTimeString(config.getStorageHeartbeatTimeout()))));
+        config.setStorageRetryConnectInterval(ConfigUtils.parseTime(EnvUtils.loadEnv("storage_retry_connect_interval", ConfigUtils.toTimeString(config.getStorageRetryConnectInterval()))));
+        config.setStorageHeartbeatThresholdPoolSize(EnvUtils.loadEnv("storageHeartbeatThresholdPoolSize", config.getStorageHeartbeatThresholdPoolSize()));
+        config.setStorageRestoreHeartbeatProbability(EnvUtils.loadEnv("storageRestoreHeartbeatProbability", config.getStorageRestoreHeartbeatProbability()));
     }
 
     private void loadUDFListFromFile() {
-        try (InputStream in = new FileInputStream(EnvUtils.loadEnv(Constants.UDF_LIST, Constants.UDF_LIST_FILE))) {
+        String filePath = EnvUtils.loadEnv(Constants.UDF_LIST, Constants.UDF_LIST_FILE);
+        File udfFile = new File(filePath);
+        logger.info("[FaultToleranceQuery][Debug][ConfigDescriptor] udf_list file path = {}, absolute path = {}", filePath, udfFile.getAbsolutePath());
+        try (InputStream in = new FileInputStream(filePath)) {
             BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(in));
 
             String line = null;

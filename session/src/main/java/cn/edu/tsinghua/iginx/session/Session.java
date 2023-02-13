@@ -94,51 +94,7 @@ public class Session {
     }
 
     private synchronized boolean checkRedirect(Status status) throws SessionException, TException {
-        if (RpcUtils.verifyNoRedirect(status)) {
-            redirectTimes = 0;
-            return false;
-        }
-
-        redirectTimes += 1;
-        if (redirectTimes > MAX_REDIRECT_TIME) {
-            throw new SessionException("重定向次数过多！");
-        }
-
-        lock.writeLock().lock();
-
-        try {
-            tryCloseSession();
-
-            while (redirectTimes <= MAX_REDIRECT_TIME) {
-
-                String[] targetAddress = status.getMessage().split(":");
-                if (targetAddress.length != 2) {
-                    throw new SessionException("unexpected redirect address " + status.getMessage());
-                }
-                logger.info("当前请求将被重定向到：" + status.getMessage());
-                this.host = targetAddress[0];
-                this.port = Integer.parseInt(targetAddress[1]);
-
-                OpenSessionResp resp = tryOpenSession();
-
-                if (RpcUtils.verifyNoRedirect(resp.status)) {
-                    sessionId = resp.getSessionId();
-                    break;
-                }
-
-                status = resp.status;
-
-                redirectTimes += 1;
-            }
-
-            if (redirectTimes > MAX_REDIRECT_TIME) {
-                throw new SessionException("重定向次数过多！");
-            }
-        } finally {
-            lock.writeLock().unlock();
-        }
-
-        return true;
+        return false;
     }
 
     private OpenSessionResp tryOpenSession() throws SessionException, TException {
@@ -1091,9 +1047,13 @@ public class Session {
         return executeQuery(statement, Integer.MAX_VALUE);
     }
 
-    public QueryDataSet executeQuery(String statement, int fetchSize) throws SessionException, ExecutionException  {
+    public QueryDataSet executeQuery(long queryId, String statement) throws SessionException, ExecutionException {
+        return executeQuery(queryId, statement, Integer.MAX_VALUE);
+    }
+
+    public QueryDataSet executeQuery(long queryId, String statement, int fetchSize) throws SessionException, ExecutionException {
         ExecuteStatementReq req = new ExecuteStatementReq(sessionId, statement);
-        req.setFetchSize(fetchSize);
+        req.setQueryId(queryId);
         ExecuteStatementResp resp;
         try {
             do {
@@ -1109,17 +1069,15 @@ public class Session {
             e.printStackTrace();
             throw new SessionException(e);
         }
-
-        long queryId = resp.getQueryId();
-        List<String> columns = resp.getColumns();
-        List<DataType> dataTypes = resp.getDataTypeList();
-        QueryDataSetV2 dataSetV2 = resp.getQueryDataSet();
-
-        return new QueryDataSet(this, queryId, columns, dataTypes, fetchSize, dataSetV2.valuesList, dataSetV2.bitmapList);
+        return new QueryDataSet(this, resp.getQueryId(), fetchSize);
     }
 
-    Pair<QueryDataSetV2, Boolean> fetchResult(long queryId, int fetchSize) throws SessionException, ExecutionException {
-        FetchResultsReq req = new FetchResultsReq(sessionId, queryId);
+    public QueryDataSet executeQuery(String statement, int fetchSize) throws SessionException, ExecutionException  {
+        return executeQuery(0L, statement, fetchSize);
+    }
+
+    FetchResultsResp fetchResult(long queryId, int fetchSize, int position) throws SessionException, ExecutionException {
+        FetchResultsReq req = new FetchResultsReq(sessionId, queryId, position);
         req.setFetchSize(fetchSize);
         FetchResultsResp resp;
 
@@ -1138,9 +1096,8 @@ public class Session {
             throw new SessionException(e);
         }
 
-        return new Pair<>(resp.getQueryDataSet(), resp.isHasMoreResults());
+        return resp;
     }
-
 
     void closeQuery(long queryId) throws SessionException, ExecutionException {
         CloseStatementReq req = new CloseStatementReq(sessionId, queryId);
@@ -1292,5 +1249,23 @@ public class Session {
 
     public int getPort() {
         return port;
+    }
+
+    public void removeStorage(long id) throws SessionException, ExecutionException {
+        RemoveStorageEngineReq req = new RemoveStorageEngineReq(sessionId, id, true);
+        try {
+            Status status;
+            do {
+                lock.readLock().lock();
+                try {
+                    status = client.removeStorageEngine(req);
+                } finally {
+                    lock.readLock().unlock();
+                }
+            } while(checkRedirect(status));
+            RpcUtils.verifySuccess(status);
+        } catch (TException e) {
+            throw new SessionException(e);
+        }
     }
 }

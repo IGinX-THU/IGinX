@@ -90,7 +90,7 @@ public class StreamStageRunner implements Runner {
         ExecuteStatementReq req = new ExecuteStatementReq(sessionId, sqlList.get(sqlList.size() - 1));
         RequestContext context = contextBuilder.build(req);
         executor.execute(context);
-        return context.getResult().getResultStream();
+        return context.takeResult().getResultStream();
     }
 
     @Override

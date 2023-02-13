@@ -21,11 +21,25 @@ package cn.edu.tsinghua.iginx.metadata.storage;
 import cn.edu.tsinghua.iginx.exceptions.MetaStorageException;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
 import cn.edu.tsinghua.iginx.metadata.hook.*;
+import cn.edu.tsinghua.iginx.metadata.sync.protocol.NetworkException;
+import cn.edu.tsinghua.iginx.metadata.sync.protocol.SyncProtocol;
+import cn.edu.tsinghua.iginx.migration.storage.StorageMigrationPlan;
 
 import java.util.List;
 import java.util.Map;
 
 public interface IMetaStorage {
+
+    boolean storeMigrationPlan(StorageMigrationPlan plan);
+
+    List<StorageMigrationPlan> scanStorageMigrationPlan();
+
+    StorageMigrationPlan getStorageMigrationPlan(long storageId);
+
+    boolean transferMigrationPlan(long id, long from, long to);
+
+    boolean deleteMigrationPlan(long id);
+
 
     Map<String, Map<String, Integer>> loadSchemaMapping() throws MetaStorageException;
 
@@ -122,4 +136,9 @@ public interface IMetaStorage {
     void releaseMaxActiveEndTimeStatistics() throws MetaStorageException;
 
     void registerMaxActiveEndTimeStatisticsChangeHook(MaxActiveEndTimeStatisticsChangeHook hook) throws MetaStorageException;
+
+    void initProtocol(String category) throws NetworkException;
+
+    SyncProtocol getProtocol(String category);
+
 }

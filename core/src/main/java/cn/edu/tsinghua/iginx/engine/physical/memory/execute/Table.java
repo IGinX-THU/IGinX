@@ -29,6 +29,8 @@ public class Table implements RowStream {
 
     public static final Table EMPTY_TABLE = new Table(Header.EMPTY_HEADER, Collections.emptyList());
 
+    public static final Table ONLY_KEY_TABLE = new Table(Header.ONLY_KEY_HEADER, Collections.emptyList());
+
     private final Header header;
 
     private final List<Row> rows;

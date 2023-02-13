@@ -30,7 +30,9 @@ public class Constants {
 
     public static final String CONFIG_FILE = "conf/config.properties";
 
-    public static final String UDF_LIST_FILE = "conf/udf_list";
+    public static final String UDF_LIST_FILE = "/iginx/conf/udf_list";
+
+    //public static final String UDF_LIST_FILE = "conf/udf_list";
 
     public static final String DRIVER_DIR = "driver";
 

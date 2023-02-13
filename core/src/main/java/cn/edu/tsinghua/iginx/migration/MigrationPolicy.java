@@ -22,16 +22,9 @@ import cn.edu.tsinghua.iginx.migration.recover.MigrationLogger;
 import cn.edu.tsinghua.iginx.policy.IPolicy;
 import cn.edu.tsinghua.iginx.policy.PolicyManager;
 import cn.edu.tsinghua.iginx.utils.Pair;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
+
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Queue;
-import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
 import java.util.concurrent.ExecutorService;
 import org.slf4j.Logger;
 
@@ -238,7 +231,7 @@ public abstract class MigrationPolicy {
       pathRegexSet.add(fragmentMeta.getMasterStorageUnitId());
       ShowTimeSeries showTimeSeries = new ShowTimeSeries(new GlobalSource(),
           pathRegexSet, null, Integer.MAX_VALUE, 0);
-      RowStream rowStream = physicalEngine.execute(showTimeSeries);
+      RowStream rowStream = physicalEngine.execute(null, showTimeSeries);
       SortedSet<String> pathSet = new TreeSet<>();
       while (rowStream.hasNext()) {
         Row row = rowStream.next();
@@ -421,7 +414,7 @@ public abstract class MigrationPolicy {
       pathRegexSet.add(fragmentMeta.getMasterStorageUnitId());
       ShowTimeSeries showTimeSeries = new ShowTimeSeries(new GlobalSource(), pathRegexSet, null,
           Integer.MAX_VALUE, 0);
-      RowStream rowStream = physicalEngine.execute(showTimeSeries);
+      RowStream rowStream = physicalEngine.execute(null, showTimeSeries);
       SortedSet<String> pathSet = new TreeSet<>();
       rowStream.getHeader().getFields().forEach(field -> {
         String timeSeries = field.getName();
@@ -432,7 +425,7 @@ public abstract class MigrationPolicy {
       // 开始迁移数据
       Migration migration = new Migration(new GlobalSource(), sourceStorageId, targetStorageId,
           fragmentMeta, new ArrayList<>(pathSet), storageUnitMeta);
-      physicalEngine.execute(migration);
+      physicalEngine.execute(null, migration);
       // 迁移完开始删除原数据
 
       List<String> paths = new ArrayList<>();
@@ -441,7 +434,7 @@ public abstract class MigrationPolicy {
       timeRanges.add(new TimeRange(fragmentMeta.getTimeInterval().getStartTime(), true,
           fragmentMeta.getTimeInterval().getEndTime(), false));
       Delete delete = new Delete(new FragmentSource(fragmentMeta), timeRanges, paths, null);
-      physicalEngine.execute(delete);
+      physicalEngine.execute(null, delete);
     } catch (Exception e) {
       logger.error("encounter error when migrate data from {} to {} ", sourceStorageId,
           targetStorageId, e);
@@ -451,13 +444,51 @@ public abstract class MigrationPolicy {
   }
 
   public boolean migrationData(String sourceStorageUnitId, String targetStorageUnitId) {
+    long startTime = System.currentTimeMillis();
     try {
-      List<FragmentMeta> fragmentMetas = DefaultMetaManager.getInstance().getFragmentsByStorageUnit(sourceStorageUnitId);
+      StorageUnitMeta sourceStorageUnit = DefaultMetaManager.getInstance().getStorageUnit(sourceStorageUnitId);
+      StorageUnitMeta targetStorageUnit = DefaultMetaManager.getInstance().getStorageUnit(targetStorageUnitId);
+
+      logger.info("migration data from du {} to du {}", sourceStorageUnitId, targetStorageUnitId);
+      List<FragmentMeta> fragmentMetas;
+      if (sourceStorageUnit.isMaster()) {
+        // 这里有可能会出现 sourceStorageUnit 是被迁移后的分片，所以会出现找不到分片的情况
+        fragmentMetas = DefaultMetaManager.getInstance().getFragmentsByStorageUnit(sourceStorageUnit.getId());
+        if (fragmentMetas.size() == 0) {
+          List<FragmentMeta> allFragments = DefaultMetaManager.getInstance().getFragments();
+          for (FragmentMeta fragmentMeta: allFragments) {
+            StorageUnitMeta meta = DefaultMetaManager.getInstance().getStorageUnit(fragmentMeta.getMasterStorageUnitId());
+            if (meta.getState() == StorageUnitState.DISCARD && Objects.equals(meta.getMigrationTo(), sourceStorageUnit.getId())) {
+              fragmentMetas.add(fragmentMeta);
+              break;
+            }
+          }
+        }
+      } else {
+        List<StorageUnitMeta> units = DefaultMetaManager.getInstance().getStorageUnits();
+        String masterId = sourceStorageUnitId;
+        boolean flag = false;
+        for (StorageUnitMeta unit: units) {
+          if (unit.isMaster() && !Objects.equals(unit.getId(), targetStorageUnitId)) {
+            for (StorageUnitMeta replica: unit.getReplicas()) {
+              if (Objects.equals(replica.getId(), sourceStorageUnitId)) {
+                masterId = unit.getId();
+                flag = true;
+                break;
+              }
+            }
+          }
+          if (flag) {
+            break;
+          }
+        }
+        fragmentMetas = DefaultMetaManager.getInstance().getFragmentsByStorageUnit(masterId);
+      }
 
       Set<String> pathRegexSet = new HashSet<>();
       ShowTimeSeries showTimeSeries = new ShowTimeSeries(new GlobalSource(),
               pathRegexSet, null, Integer.MAX_VALUE, 0);
-      RowStream rowStream = physicalEngine.execute(showTimeSeries);
+      RowStream rowStream = physicalEngine. execute(null, showTimeSeries);
       SortedSet<String> pathSet = new TreeSet<>();
       while (rowStream.hasNext()) {
         Row row = rowStream.next();
@@ -465,22 +496,24 @@ public abstract class MigrationPolicy {
         if (timeSeries.contains("{") && timeSeries.contains("}")) {
           timeSeries = timeSeries.split("\\{")[0];
         }
-        logger.info("[migrationData] need migration path: {}", timeSeries);
+        //logger.info("[migrationData] need migration path: {}", timeSeries);
         for (FragmentMeta fragmentMeta: fragmentMetas) {
           if (fragmentMeta.getTsInterval().isContain(timeSeries)) {
             pathSet.add(timeSeries);
-            logger.info("[migrationData] path {} belong to {}", timeSeries, fragmentMeta);
+            //logger.info("[migrationData] path {} belong to {}", timeSeries, fragmentMeta);
           }
         }
       }
-      StorageUnitMeta sourceStorageUnit = DefaultMetaManager.getInstance().getStorageUnit(sourceStorageUnitId);
-      StorageUnitMeta targetStorageUnit = DefaultMetaManager.getInstance().getStorageUnit(targetStorageUnitId);
+      logger.info("migration data from du {} to du {}, fragments = {}", sourceStorageUnitId, targetStorageUnitId, fragmentMetas);
       // 开始迁移数据
       for (FragmentMeta fragmentMeta: fragmentMetas) {
         Migration migration = new Migration(new GlobalSource(), sourceStorageUnit.getStorageEngineId(), targetStorageUnit.getStorageEngineId(),
-                fragmentMeta, new ArrayList<>(pathSet), targetStorageUnit);
-        physicalEngine.execute(migration);
+                fragmentMeta, new ArrayList<>(pathSet), sourceStorageUnitId, targetStorageUnit);
+        //logger.info("migration data from du {} to du {}, path = {}", sourceStorageUnit.getId(), targetStorageUnit.getId(), pathSet);
+        physicalEngine.execute(null, migration);
       }
+      long span = System.currentTimeMillis() - startTime;
+      logger.info("[FaultTolerance][MigrationData][iginx={}] du={} migration to {} finished, span = {}ms", DefaultMetaManager.getInstance().getIginxId(), sourceStorageUnitId, targetStorageUnitId, span);
       return true;
     } catch (Exception e) {
       logger.error("encounter error when migrate data from {} to {} ", sourceStorageUnitId,

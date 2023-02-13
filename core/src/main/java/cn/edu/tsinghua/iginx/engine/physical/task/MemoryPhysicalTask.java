@@ -19,6 +19,7 @@
 package cn.edu.tsinghua.iginx.engine.physical.task;
 
 
+import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 
 import java.util.List;
@@ -28,8 +29,8 @@ public abstract class MemoryPhysicalTask extends AbstractPhysicalTask {
 
     protected AtomicInteger parentReadyCount;
 
-    public MemoryPhysicalTask(TaskType type, List<Operator> operators) {
-        super(type, operators);
+    public MemoryPhysicalTask(TaskType type, List<Operator> operators, RequestContext context) {
+        super(type, operators, context);
         parentReadyCount = new AtomicInteger(0);
     }
 

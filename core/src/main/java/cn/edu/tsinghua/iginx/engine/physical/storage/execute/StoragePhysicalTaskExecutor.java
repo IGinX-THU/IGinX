@@ -19,26 +19,35 @@
 package cn.edu.tsinghua.iginx.engine.physical.storage.execute;
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
+import cn.edu.tsinghua.iginx.engine.physical.GlobalCache;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.TooManyPhysicalTasksException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.UnexpectedOperatorException;
+import cn.edu.tsinghua.iginx.engine.physical.fault.DefaultFaultTolerancePolicy;
+import cn.edu.tsinghua.iginx.engine.physical.fault.FaultTolerancePolicyManager;
+import cn.edu.tsinghua.iginx.engine.physical.fault.FaultToleranceStorageTaskRepeater;
 import cn.edu.tsinghua.iginx.engine.physical.memory.MemoryPhysicalTaskDispatcher;
 import cn.edu.tsinghua.iginx.engine.physical.optimizer.ReplicaDispatcher;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.physical.storage.StorageManager;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Timeseries;
+import cn.edu.tsinghua.iginx.engine.physical.storage.fault_tolerance.ConnectionManager;
 import cn.edu.tsinghua.iginx.engine.physical.storage.queue.StoragePhysicalTaskQueue;
 import cn.edu.tsinghua.iginx.engine.physical.storage.utils.TagKVUtils;
 import cn.edu.tsinghua.iginx.engine.physical.task.GlobalPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.MemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.StoragePhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.ShowTimeSeries;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageUnitMeta;
+import cn.edu.tsinghua.iginx.metadata.entity.StorageUnitState;
 import cn.edu.tsinghua.iginx.metadata.hook.StorageEngineChangeHook;
 import cn.edu.tsinghua.iginx.metadata.hook.StorageUnitHook;
 import cn.edu.tsinghua.iginx.utils.Pair;
@@ -63,6 +72,8 @@ public class StoragePhysicalTaskExecutor {
     private final IMetaManager metaManager = DefaultMetaManager.getInstance();
 
     private final StorageManager storageManager = new StorageManager(metaManager.getStorageEngineList());
+
+    private final ConnectionManager connectionManager = ConnectionManager.getInstance();
 
     private final Map<String, StoragePhysicalTaskQueue> storageTaskQueues = new ConcurrentHashMap<>();
 
@@ -105,6 +116,12 @@ public class StoragePhysicalTaskExecutor {
                         while (true) {
                             StoragePhysicalTask task = taskQueue.getTask();
                             task.setStorageUnit(id);
+                            Operator op = task.getOperators().get(0);
+                            if (op.getType() == OperatorType.Insert) {
+                                Insert insert = (Insert) op;
+                                long lastTs = insert.getData().getKey(insert.getData().getTimeSize() - 1);
+                                GlobalCache.storageUnitLastTs.put(id, lastTs);
+                            }
                             task.setDummyStorageUnit(isDummy);
                             if (pair.v.getQueue().size() > maxCachedPhysicalTaskPerStorage) {
                                 task.setResult(new TaskExecuteResult(new TooManyPhysicalTasksException(storageId)));
@@ -112,12 +129,27 @@ public class StoragePhysicalTaskExecutor {
                             }
                             pair.v.submit(() -> {
                                 TaskExecuteResult result = null;
+                                long startTime = System.currentTimeMillis();
                                 try {
                                     result = pair.k.execute(task);
+                                    if (task.getContext() != null && task.getContext().isEnableFaultTolerance()) {
+                                        // 要求：1. 开启容错功能 2. 存在多个副本可以接力
+                                        result = new FaultToleranceStorageTaskRepeater(task, result, storageManager).getFinalResult();
+                                    }
                                 } catch (Exception e) {
                                     logger.error("execute task error: " + e);
+                                    e.printStackTrace();
                                     result = new TaskExecuteResult(new PhysicalException(e));
                                 }
+                                long span = System.currentTimeMillis() - startTime;
+                                if (result.hasSetRowStream()) {
+                                    task.setSpan(span);
+                                    logger.info("[FaultToleranceQuery][StoragePhysicalTaskExecutor] task[id={}] is {}, lines = {}, span = {}ms", task.getOperators().get(0).getSequence(), task.getOperators().get(0).getInfo(), result.getEstimatedRowSize(), span);
+                                    if (task.getContext() != null && task.getContext().isEnableFaultTolerance()) {
+                                        FaultTolerancePolicyManager.getInstance().getPolicy().persistence(task, result);
+                                    }
+                                }
+
                                 task.setResult(result);
                                 if (task.getFollowerTask() != null && task.isSync()) { // 只有同步任务才会影响后续任务的执行
                                     MemoryPhysicalTask followerTask = (MemoryPhysicalTask) task.getFollowerTask();
@@ -131,17 +163,26 @@ public class StoragePhysicalTaskExecutor {
                                         logger.error("task " + task + " will not broadcasting to replicas for the sake of exception: " + result.getException());
                                         task.setResult(new TaskExecuteResult(result.getException()));
                                     } else {
-                                        StorageUnitMeta masterStorageUnit = task.getTargetFragment().getMasterStorageUnit();
+                                        StorageUnitMeta masterStorageUnit = metaManager.getStorageUnit(id);
                                         List<String> replicaIds = masterStorageUnit.getReplicas()
                                                 .stream().map(StorageUnitMeta::getId).collect(Collectors.toList());
                                         replicaIds.add(masterStorageUnit.getId());
+                                        if (masterStorageUnit.getState() == StorageUnitState.MIGRATION) { // 迁移过程需要双写
+                                            replicaIds.add(masterStorageUnit.getMigrationTo());
+                                        }
                                         for (String replicaId : replicaIds) {
-                                            if (replicaId.equals(task.getStorageUnit())) {
+                                            if (replicaId.equals(id)) {
                                                 continue;
                                             }
-                                            StoragePhysicalTask replicaTask = new StoragePhysicalTask(task.getOperators(), false, false);
-                                            storageTaskQueues.get(replicaId).addTask(replicaTask);
-                                            logger.info("broadcasting task " + task + " to " + replicaId);
+                                            String targetReplicaId = getTargetStorageUnit(replicaId);
+                                            if (!Objects.equals(targetReplicaId, replicaId)) {
+                                                if (replicaIds.contains(targetReplicaId)) {
+                                                    continue;
+                                                }
+                                            }
+                                            StoragePhysicalTask replicaTask = new StoragePhysicalTask(task.getOperators(), task.getContext(), false, false);
+                                            storageTaskQueues.get(targetReplicaId).addTask(replicaTask);
+                                            //logger.info("broadcasting task " + task + " to " + targetReplicaId);
                                         }
                                     }
                                 }
@@ -158,6 +199,11 @@ public class StoragePhysicalTaskExecutor {
             if (before == null && after != null) { // 新增加存储，处理这种事件，其他事件暂时不处理
                 if (after.getCreatedBy() != metaManager.getIginxId()) {
                     storageManager.addStorage(after);
+                }
+            }
+            if (before != null && after != null) {
+                if (!before.isRemoved() && after.isRemoved() && ConfigDescriptor.getInstance().getConfig().isEnableStorageHeartbeat()) {
+                    connectionManager.removeConnector(after.getId());
                 }
             }
         };
@@ -261,12 +307,42 @@ public class StoragePhysicalTaskExecutor {
 
     public void commit(List<StoragePhysicalTask> tasks) {
         for (StoragePhysicalTask task : tasks) {
+            genBackUpStorageUnits(task);
             if (replicaDispatcher == null) {
-                storageTaskQueues.get(task.getTargetFragment().getMasterStorageUnitId()).addTask(task); // 默认情况下，异步写备，查询只查主
+                String masterStorageUnitId = task.getTargetFragment().getMasterStorageUnitId();
+                StorageUnitMeta masterStorageUnit = DefaultMetaManager.getInstance().getStorageUnit(masterStorageUnitId);
+                if (masterStorageUnit.getState() == StorageUnitState.DISCARD) {
+                    masterStorageUnitId = masterStorageUnit.getMigrationTo();
+                }
+                storageTaskQueues.get(masterStorageUnitId).addTask(task); // 默认情况下，异步写备，查询只查主
             } else {
                 storageTaskQueues.get(replicaDispatcher.chooseReplica(task)).addTask(task); // 在优化策略提供了选择器的情况下，利用选择器提供的结果
             }
         }
+    }
+
+    public void directCommit(List<StoragePhysicalTask> tasks) {
+        for (StoragePhysicalTask task : tasks) {
+            storageTaskQueues.get(task.getStorageUnit()).addTask(task); // 在优化策略提供了选择器的情况下，利用选择器提供的结果
+        }
+    }
+
+    private void genBackUpStorageUnits(StoragePhysicalTask task) {
+        if (!task.canBackUp()) {
+            return;
+        }
+        StorageUnitMeta masterStorageUnit = task.getTargetFragment().getMasterStorageUnit();
+        List<StorageUnitMeta> replicas = masterStorageUnit.getReplicas(); // TODO: fix
+        if (replicas == null || replicas.isEmpty()) {
+            return;
+        }
+        long[] slaveStorages = new long[replicas.size()];
+        String[] slaveStorageUnits = new String[replicas.size()];
+        for (int i = 0; i < replicas.size(); i++) {
+            slaveStorages[i] = replicas.get(i).getStorageEngineId();
+            slaveStorageUnits[i] = replicas.get(i).getId();
+        }
+        task.setBackup(slaveStorages, slaveStorageUnits);
     }
 
     public void init(MemoryPhysicalTaskDispatcher memoryTaskExecutor, ReplicaDispatcher replicaDispatcher) {
@@ -276,6 +352,15 @@ public class StoragePhysicalTaskExecutor {
 
     public StorageManager getStorageManager() {
         return storageManager;
+    }
+
+    public static String getTargetStorageUnit(String storageUnitId) {
+        StorageUnitMeta storageUnit = DefaultMetaManager.getInstance().getStorageUnit(storageUnitId);
+        while (storageUnit.getState() == StorageUnitState.DISCARD) {
+            storageUnitId = storageUnit.getMigrationTo();
+            storageUnit = DefaultMetaManager.getInstance().getStorageUnit(storageUnitId);
+        }
+        return storageUnitId;
     }
 
 }

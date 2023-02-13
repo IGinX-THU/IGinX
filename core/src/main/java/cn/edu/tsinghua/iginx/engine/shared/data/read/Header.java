@@ -26,13 +26,15 @@ public final class Header {
 
     public static final Header EMPTY_HEADER = new Header(Collections.emptyList());
 
+    public static final Header ONLY_KEY_HEADER = new Header(Field.KEY, Collections.emptyList());
+
     private final Field key;
 
     private final List<Field> fields;
 
     private final Map<String, Integer> indexMap;
 
-    private final Map<String, List<Integer>> patternIndexCache;
+    private final transient Map<String, List<Integer>> patternIndexCache;
 
     public Header(List<Field> fields) {
         this(null, fields);

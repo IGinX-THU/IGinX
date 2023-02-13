@@ -45,6 +45,9 @@ public class Iginx {
         if (config.isEnableMQTT()) {
             new Thread(MQTTService.getInstance()).start();
         }
+        // Test Redis Performance
+        // RedisPerformance.checkPerformance();
+
         Iginx iginx = new Iginx();
         iginx.startServer();
     }

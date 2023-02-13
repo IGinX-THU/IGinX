@@ -45,7 +45,7 @@ public class ExecuteStatisticsCollector extends AbstractStageStatisticsCollector
             insertPoints += (long) insertStatement.getTimes().size() * insertStatement.getPaths().size();
         }
         if (statement.getType() == StatementType.SELECT) {
-            Result result = statistics.getContext().getResult();
+            Result result = statistics.getContext().takeResult();
             queryPoints += (long) result.getBitmapList().size() * result.getPaths().size();
         }
         lock.writeLock().unlock();

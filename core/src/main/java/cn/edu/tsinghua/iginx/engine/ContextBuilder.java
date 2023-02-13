@@ -13,6 +13,8 @@ import cn.edu.tsinghua.iginx.thrift.*;
 import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.ByteUtils;
 import cn.edu.tsinghua.iginx.utils.TimeUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -21,6 +23,8 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 public class ContextBuilder {
+
+    private static final Logger logger = LoggerFactory.getLogger(ContextBuilder.class);
 
     private static ContextBuilder instance;
 
@@ -79,6 +83,7 @@ public class ContextBuilder {
         for (long time : timeArray) {
             times.add(TimeUtils.getTimeInNs(time, timePrecision));
         }
+        //logger.info("startTime: {}, endTime: {}", times.get(0), times.get(times.size() - 1));
 
         List<Bitmap> bitmaps;
         Object[] values;
@@ -163,6 +168,9 @@ public class ContextBuilder {
     }
 
     public RequestContext build(ExecuteStatementReq req) {
+        if (req.getQueryId() != 0L) { // 表示该请求为尝试重新执行的请求
+            return new RequestContext(req.getSessionId(), req.getQueryId(), req.getStatement(), true);
+        }
         return new RequestContext(req.getSessionId(), req.getStatement(), true);
     }
 

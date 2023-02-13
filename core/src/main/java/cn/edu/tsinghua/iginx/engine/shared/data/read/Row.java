@@ -32,7 +32,7 @@ public class Row {
 
     public static final Row EMPTY_ROW = new Row(Header.EMPTY_HEADER, new Object[0]);
 
-    private final Header header;
+    private transient Header header;
 
     private final long key;
 
@@ -50,6 +50,10 @@ public class Row {
 
     public Header getHeader() {
         return header;
+    }
+
+    public void setHeader(Header header) {
+        this.header = header;
     }
 
     public long getKey() {

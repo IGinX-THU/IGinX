@@ -44,19 +44,24 @@
     </repositories>
     <dependencies>
         <dependency>
+            <groupId>redis.clients</groupId>
+            <artifactId>jedis</artifactId>
+            <version>4.4.0-m1</version>
+        </dependency>
+        <dependency>
             <groupId>cn.edu.tsinghua</groupId>
             <artifactId>iginx-thrift</artifactId>
-            <version>${project.version}</version>
+            <version>${parent.version}</version>
         </dependency>
         <dependency>
             <groupId>cn.edu.tsinghua</groupId>
             <artifactId>iginx-shared</artifactId>
-            <version>${project.version}</version>
+            <version>${parent.version}</version>
         </dependency>
         <dependency>
             <groupId>cn.edu.tsinghua</groupId>
             <artifactId>iginx-session</artifactId>
-            <version>${project.version}</version>
+            <version>${parent.version}</version>
         </dependency>
         <dependency>
             <groupId>javax.ws.rs</groupId>
@@ -204,7 +209,7 @@
         <dependency>
             <groupId>com.alibaba</groupId>
             <artifactId>pemja</artifactId>
-            <version>0.1.4</version>
+            <version>0.3.0</version>
         </dependency>
         <dependency>
             <groupId>javax.xml.bind</groupId>

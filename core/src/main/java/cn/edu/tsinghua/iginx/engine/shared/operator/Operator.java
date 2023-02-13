@@ -20,7 +20,7 @@ package cn.edu.tsinghua.iginx.engine.shared.operator;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 
-public interface Operator {
+public interface Operator extends Sequencable {
 
     OperatorType getType();
 

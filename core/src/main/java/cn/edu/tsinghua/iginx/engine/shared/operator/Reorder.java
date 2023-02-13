@@ -29,7 +29,7 @@ public class Reorder extends AbstractUnaryOperator {
     @Override
     public String getInfo() {
         StringBuilder builder = new StringBuilder();
-        builder.append("Order: ");
+        builder.append("Reorder: ");
         for (String pattern : patterns) {
             builder.append(pattern).append(",");
         }

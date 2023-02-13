@@ -81,7 +81,7 @@ public class OpenTSDBStorageTest {
         DataView dataView = new RowDataView(rawData, 0, paths.size(), 0, size);
         FragmentMeta fragment = new FragmentMeta(null, null, START_TIME, END_TIME);
         FragmentSource source = new FragmentSource(fragment);
-        StoragePhysicalTask task = new StoragePhysicalTask(Collections.singletonList(new Insert(source, dataView)));
+        StoragePhysicalTask task = new StoragePhysicalTask(Collections.singletonList(new Insert(source, dataView)), null);
         task.setStorageUnit(DU);
         this.storage.execute(task);
     }
@@ -95,7 +95,7 @@ public class OpenTSDBStorageTest {
     }
 
     private void project(Source source, List<String> paths) throws PhysicalException {
-        StoragePhysicalTask task = new StoragePhysicalTask(Collections.singletonList(new Project(source, paths, null)));
+        StoragePhysicalTask task = new StoragePhysicalTask(Collections.singletonList(new Project(source, paths, null)), null);
         task.setStorageUnit(DU);
         RowStream rowStream = this.storage.execute(task).getRowStream();
         Header header = rowStream.getHeader();
@@ -114,7 +114,7 @@ public class OpenTSDBStorageTest {
         List<TimeRange> timeRanges = new ArrayList<>(Collections.singletonList(new TimeRange(START_TIME + 20, END_TIME - 20)));
         FragmentMeta fragment = new FragmentMeta(null, null, START_TIME, END_TIME);
         FragmentSource source = new FragmentSource(fragment);
-        StoragePhysicalTask task = new StoragePhysicalTask(Collections.singletonList(new Delete(source, timeRanges, patterns, null)));
+        StoragePhysicalTask task = new StoragePhysicalTask(Collections.singletonList(new Delete(source, timeRanges, patterns, null)), null);
         task.setStorageUnit(DU);
         this.storage.execute(task);
 

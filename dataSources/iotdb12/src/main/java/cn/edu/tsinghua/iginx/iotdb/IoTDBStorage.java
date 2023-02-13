@@ -24,6 +24,7 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailur
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Timeseries;
+import cn.edu.tsinghua.iginx.engine.physical.storage.fault_tolerance.Connector;
 import cn.edu.tsinghua.iginx.engine.physical.task.StoragePhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
 import cn.edu.tsinghua.iginx.engine.shared.TimeRange;
@@ -54,6 +55,7 @@ import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import org.apache.iotdb.rpc.IoTDBConnectionException;
 import org.apache.iotdb.rpc.StatementExecutionException;
+import org.apache.iotdb.session.Config;
 import org.apache.iotdb.session.Session;
 import org.apache.iotdb.session.pool.SessionDataSetWrapper;
 import org.apache.iotdb.session.pool.SessionPool;
@@ -112,6 +114,8 @@ public class IoTDBStorage implements IStorage {
 
     private final SessionPool sessionPool;
 
+    private final SessionPool readSessionPool;
+
     private final StorageEngineMeta meta;
 
     private static final Logger logger = LoggerFactory.getLogger(IoTDBStorage.class);
@@ -125,6 +129,7 @@ public class IoTDBStorage implements IStorage {
             throw new StorageInitializationException("cannot connect to " + meta.toString());
         }
         sessionPool = createSessionPool();
+        readSessionPool = createReadSessionPool();
     }
 
     private boolean testConnection() {
@@ -148,7 +153,32 @@ public class IoTDBStorage implements IStorage {
         String username = extraParams.getOrDefault(USERNAME, DEFAULT_USERNAME);
         String password = extraParams.getOrDefault(PASSWORD, DEFAULT_PASSWORD);
         int sessionPoolSize = Integer.parseInt(extraParams.getOrDefault(SESSION_POOL_SIZE, DEFAULT_SESSION_POOL_SIZE));
-        return new SessionPool(meta.getIp(), meta.getPort(), username, password, sessionPoolSize);
+        return new SessionPool(meta.getIp(), meta.getPort(), username, password, sessionPoolSize, Config.DEFAULT_FETCH_SIZE,
+                60_000,
+                false,
+                null,
+                Config.DEFAULT_CACHE_LEADER_MODE,
+                Config.DEFAULT_CONNECTION_TIMEOUT_MS);
+    }
+
+    private SessionPool createReadSessionPool() {
+        Map<String, String> extraParams = meta.getExtraParams();
+        String username = extraParams.getOrDefault(USERNAME, DEFAULT_USERNAME);
+        String password = extraParams.getOrDefault(PASSWORD, DEFAULT_PASSWORD);
+        int sessionPoolSize = Integer.parseInt(extraParams.getOrDefault(SESSION_POOL_SIZE, DEFAULT_SESSION_POOL_SIZE));
+        return new SessionPool(meta.getIp(), meta.getPort(), username, password, sessionPoolSize, Config.DEFAULT_FETCH_SIZE,
+                60_000,
+                false,
+                null,
+                Config.DEFAULT_CACHE_LEADER_MODE,
+                Config.DEFAULT_CONNECTION_TIMEOUT_MS);
+    }
+
+    @Override
+    public Connector getConnector() {
+        return new IoTDBConnector(this.meta.getId(), this.meta.getIp(), this.meta.getPort(),
+                this.meta.getExtraParams().getOrDefault(USERNAME, DEFAULT_USERNAME),
+                this.meta.getExtraParams().getOrDefault(PASSWORD, DEFAULT_PASSWORD));
     }
 
     @Override
@@ -168,6 +198,9 @@ public class IoTDBStorage implements IStorage {
             } else {
                 FragmentMeta fragment = task.getTargetFragment();
                 filter = new AndFilter(Arrays.asList(new KeyFilter(Op.GE, fragment.getTimeInterval().getStartTime()), new KeyFilter(Op.L, fragment.getTimeInterval().getEndTime())));
+            }
+            if (task.isSkipData()) {
+                filter = new AndFilter(Arrays.asList(filter, new KeyFilter(Op.G, task.getLastTimestamp())));
             }
             return isDummyStorageUnit ? executeQueryHistoryTask(task.getTargetFragment().getTsInterval(), project, filter) : executeQueryTask(storageUnit, project, filter);
         } else if (op.getType() == OperatorType.Insert) {
@@ -297,8 +330,8 @@ public class IoTDBStorage implements IStorage {
                 builder.append(',');
             }
             String statement = String.format(QUERY_DATA, builder.deleteCharAt(builder.length() - 1).toString(), storageUnit, FilterTransformer.toString(filter));
-            logger.info("[Query] execute query: " + statement);
-            RowStream rowStream = new ClearEmptyRowStreamWrapper(new IoTDBQueryRowStream(sessionPool.executeQueryStatement(statement), true, project));
+            logger.info("[FaultTolerance][id={}] execute query: {}, len(patterns) = {}", this.meta.getId(), statement, project.getPatterns().size());
+            RowStream rowStream = new ClearEmptyRowStreamWrapper(new IoTDBQueryRowStream(readSessionPool.executeQueryStatement(statement), true, project));
             return new TaskExecuteResult(rowStream);
         } catch (IoTDBConnectionException | StatementExecutionException e) {
             logger.error(e.getMessage());
@@ -331,6 +364,7 @@ public class IoTDBStorage implements IStorage {
     }
 
     private TaskExecuteResult executeInsertTask(String storageUnit, Insert insert) {
+        //long startTime = System.currentTimeMillis();
         DataView dataView = insert.getData();
         Exception e = null;
         switch (dataView.getRawDataType()) {
@@ -347,6 +381,8 @@ public class IoTDBStorage implements IStorage {
                 e = insertNonAlignedColumnRecords((ColumnDataView) dataView, storageUnit);
                 break;
         }
+        //long span = System.currentTimeMillis() - startTime;
+        //logger.info("[FaultTolerance][IoTDBStorage][id={}, unit={}] span = {}, err = {}", meta.getId(), storageUnit, span, e);
         if (e != null) {
             return new TaskExecuteResult(null, new PhysicalException("execute insert task in iotdb12 failure", e));
         }
@@ -643,7 +679,6 @@ public class IoTDBStorage implements IStorage {
                 try {
                     sessionPool.insertTablets(tabletsMap.get(entry.getKey()));
                 } catch (IoTDBConnectionException | StatementExecutionException e) {
-                    logger.error(e.getMessage());
                     return e;
                 }
 

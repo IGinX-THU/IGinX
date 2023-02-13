@@ -24,6 +24,8 @@ public abstract class AbstractOperator implements Operator {
 
     private final OperatorType type;
 
+    private int sequence;
+
     public AbstractOperator() {
         this.type = OperatorType.Unknown;
     }
@@ -38,5 +40,15 @@ public abstract class AbstractOperator implements Operator {
     @Override
     public OperatorType getType() {
         return type;
+    }
+
+    @Override
+    public int getSequence() {
+        return sequence;
+    }
+
+    @Override
+    public void setSequence(int ordinal) {
+        this.sequence = ordinal;
     }
 }

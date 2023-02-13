@@ -19,6 +19,8 @@
 package cn.edu.tsinghua.iginx.engine.physical.storage;
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
+import cn.edu.tsinghua.iginx.engine.physical.storage.fault_tolerance.ConnectionManager;
+import cn.edu.tsinghua.iginx.engine.physical.storage.fault_tolerance.IStorageWrapper;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.metadata.entity.TimeInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.TimeSeriesInterval;
@@ -35,7 +37,7 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-public class StorageManager {
+public class StorageManager implements IStorageManager {
 
     private static final Logger logger = LoggerFactory.getLogger(StorageManager.class);
 
@@ -46,6 +48,8 @@ public class StorageManager {
     private static final Map<String, String> drivers = new ConcurrentHashMap<>();
 
     private static final Map<Long, Pair<IStorage, ThreadPoolExecutor>> storageMap = new ConcurrentHashMap<>();
+
+    private static final ConnectionManager connectionManager = ConnectionManager.getInstance();
 
     public StorageManager(List<StorageEngineMeta> metaList) {
         initClassLoaderAndDrivers();
@@ -102,11 +106,15 @@ public class StorageManager {
                 ClassLoader loader = classLoaders.get(engine);
                 IStorage storage = (IStorage) loader.loadClass(driver)
                         .getConstructor(StorageEngineMeta.class).newInstance(meta);
+                storage = new IStorageWrapper(storage);
                 // 启动一个派发线程池
                 ThreadPoolExecutor dispatcher = new ThreadPoolExecutor(ConfigDescriptor.getInstance().getConfig().getPhysicalTaskThreadPoolSizePerStorage(),
                         Integer.MAX_VALUE,
                         60L, TimeUnit.SECONDS, new SynchronousQueue<>());
                 storageMap.put(meta.getId(), new Pair<>(storage, dispatcher));
+                if (ConfigDescriptor.getInstance().getConfig().isEnableStorageHeartbeat()) {
+                    connectionManager.registerConnector(id, storage.getConnector());
+                }
             }
         } catch (ClassNotFoundException e) {
             logger.error("load class {} for engine {} failure: {}", driver, engine, e);
@@ -149,6 +157,11 @@ public class StorageManager {
 
     public Pair<IStorage, ThreadPoolExecutor> getStorage(long id) {
         return storageMap.get(id);
+    }
+
+    @Override
+    public IStorage getIStorage(long id) {
+        return storageMap.get(id).k;
     }
 
     public boolean addStorage(StorageEngineMeta meta) {

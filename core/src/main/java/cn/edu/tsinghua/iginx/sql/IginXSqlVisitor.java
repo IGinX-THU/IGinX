@@ -607,10 +607,10 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
             } else {
                 path = pathContext.getText();
             }
-            if (path.contains("*")) {
-                throw new SQLParserException(String
-                    .format("GROUP BY path '%s' has '*', which is not supported.", path));
-            }
+//            if (path.contains("*")) {
+//                throw new SQLParserException(String
+//                    .format("GROUP BY path '%s' has '*', which is not supported.", path));
+//            }
             selectStatement.setGroupByPath(path);
             selectStatement.setPathSet(path);
         });

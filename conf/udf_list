@@ -7,5 +7,7 @@ UDAF,udf_avg,UDFAvg,udf_avg.py
 UDAF,udf_count,UDFCount,udf_count.py
 
 UDTF,cos,UDFCos,udtf_cos.py
+UDTF,sin,UDFSin,udtf_sin.py
 
 UDSF,reverse_rows,UDFReverseRows,udsf_reverse_rows.py
+UDSF,transposition,UDFTranspositionByTruck,udsf_transposition_by_truck.py

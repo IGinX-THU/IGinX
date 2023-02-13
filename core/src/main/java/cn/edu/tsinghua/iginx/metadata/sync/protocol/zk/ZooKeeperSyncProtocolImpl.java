@@ -1,5 +1,6 @@
 package cn.edu.tsinghua.iginx.metadata.sync.protocol.zk;
 
+import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.cache.TreeCache;
 import org.apache.curator.framework.recipes.locks.InterProcessMutex;
@@ -175,16 +176,17 @@ public class ZooKeeperSyncProtocolImpl implements SyncProtocol {
 
     @Override
     public boolean startProposal(String key, SyncProposal syncProposal, VoteListener listener) throws NetworkException {
+        logger.info("[FaultTolerance][Protocol][category={}, iginx={}] start proposal for key={}", category, DefaultMetaManager.getInstance().getIginxId(), key);
         long createTime = System.currentTimeMillis();
         String lockPath = String.format(PROTOCOL_PROPOSAL_LOCK_TEMPLATE, this.category, key);
         InterProcessMutex mutex = new InterProcessMutex(this.client, lockPath);
         boolean release = false;
         try {
             if (!mutex.acquire(100, TimeUnit.MILLISECONDS)) {
+                logger.warn("[FaultTolerance][Protocol][category={}, iginx={}] proposal for key={} created failure, due to acquire lock.", category, DefaultMetaManager.getInstance().getIginxId(), key);
                 logger.info("acquire lock for " + lockPath + " failure, another process hold the lock");
                 return false;
             }
-            logger.info("acquire lock for " + lockPath + " success");
             release = true;
             // 判断有没有刚创建的 proposal
             if (this.client.checkExists().forPath(String.format(PROTOCOL_PROPOSAL_TEMPLATE, this.category, key)) != null) {
@@ -192,14 +194,13 @@ public class ZooKeeperSyncProtocolImpl implements SyncProtocol {
                 if (!children.isEmpty()) {
                     long lastCreateTime = Long.parseLong(children.get(children.size() - 1).split("_")[1]);
                     if (lastCreateTime + MAX_NETWORK_LATENCY > createTime) {
-                        logger.warn("start protocol for " + category + "-" + key + " failure, due to repeated request");
+                        logger.warn("[FaultTolerance][Protocol][category={}, iginx={}] proposal for key={} created failure, due to duplicate request.", category, DefaultMetaManager.getInstance().getIginxId(), key);
                         return false;
                     }
                 }
             }
             // 创建票箱
             this.client.create().creatingParentsIfNeeded().forPath(String.format(VOTE_PROPOSAL_TEMPLATE, this.category, key) + PATH_SEPARATOR + "proposal_" + createTime);
-            logger.info("create vote container success");
             proposalLock.writeLock().lock();
             latestProposalTimes.put(key, createTime);
             voteListeners.put(key, listener);
@@ -210,17 +211,17 @@ public class ZooKeeperSyncProtocolImpl implements SyncProtocol {
             this.client.create().creatingParentsIfNeeded().withMode(CreateMode.PERSISTENT).forPath(
                     String.format(PROTOCOL_PROPOSAL_TEMPLATE, this.category, key) + PATH_SEPARATOR + "proposal_" + createTime,
                     JsonUtils.toJson(syncProposal));
-            logger.info("create protocol success");
+            logger.info("[FaultTolerance][Protocol][category={}, iginx={}] start proposal for key={} success", category, DefaultMetaManager.getInstance().getIginxId(), key);
             return true;
         } catch (Exception e) {
-            logger.error("start protocol for " + category + "-" + key + " failure: ", e);
+            logger.error("[FaultTolerance][Protocol][category={}, iginx={}] start proposal for key={} execute error {}", category, DefaultMetaManager.getInstance().getIginxId(), key, e);
             throw new NetworkException("start protocol failure: ", e);
         } finally {
             if (release) {
                 try {
                     mutex.release();
                 } catch (Exception e) {
-                    logger.error("get error when release interprocess lock for " + lockPath, e);
+                    logger.error("[FaultTolerance][Protocol][category={}, iginx={}] start proposal for key={} release lock failure: {}", category, DefaultMetaManager.getInstance().getIginxId(), key, e);
                 }
             }
         }
@@ -233,7 +234,7 @@ public class ZooKeeperSyncProtocolImpl implements SyncProtocol {
 
     @Override
     public void voteFor(String key, SyncVote vote) throws NetworkException, VoteExpiredException {
-        logger.info("vote for " + key + " from " + vote.getVoter());
+        logger.info("[FaultTolerance][Protocol][category={}, iginx={}] vote for proposal key={}", category, DefaultMetaManager.getInstance().getIginxId(), key);
         long voter = vote.getVoter();
         try {
             long createTime = 0L;
@@ -246,17 +247,19 @@ public class ZooKeeperSyncProtocolImpl implements SyncProtocol {
             this.client.create().withMode(CreateMode.PERSISTENT)
                     .forPath(String.format(VOTE_PROPOSAL_TEMPLATE, this.category, key) +
                             PATH_SEPARATOR + "proposal_" + createTime + PATH_SEPARATOR + "voter_" + voter, JsonUtils.toJson(vote));
+            logger.info("[FaultTolerance][Protocol][category={}, iginx={}] vote for proposal key={} success", category, DefaultMetaManager.getInstance().getIginxId(), key);
         } catch (VoteExpiredException e) {
-            logger.error("encounter execute error in vote: ", e);
+            logger.error("[FaultTolerance][Protocol][category={}, iginx={}] vote for proposal key={} expired {}", category, DefaultMetaManager.getInstance().getIginxId(), key, e);
             throw e;
         } catch (Exception e) {
-            logger.error("vote for " + category + "-" + key + " failure: ", e);
+            logger.error("[FaultTolerance][Protocol][category={}, iginx={}] vote for proposal key={} execute error {}", category, DefaultMetaManager.getInstance().getIginxId(), key, e);
             throw new NetworkException("vote failure: ", e);
         }
     }
 
     @Override
     public void endProposal(String key, SyncProposal syncProposal) throws NetworkException, ExecutionException {
+        logger.info("[FaultTolerance][Protocol][category={}, iginx={}] end proposal for key={}", category, DefaultMetaManager.getInstance().getIginxId(), key);
         long updateTime = System.currentTimeMillis();
         String lockPath = String.format(PROTOCOL_PROPOSAL_LOCK_TEMPLATE, this.category, key);
         InterProcessMutex mutex = new InterProcessMutex(this.client, lockPath);
@@ -280,18 +283,19 @@ public class ZooKeeperSyncProtocolImpl implements SyncProtocol {
             latestProposalTimes.remove(key);
             voteListeners.remove(key).end(key);
             proposalLock.writeLock().unlock();
+            logger.info("[FaultTolerance][Protocol][category={}, iginx={}] end proposal for key={} success", category, DefaultMetaManager.getInstance().getIginxId(), key);
         } catch (ExecutionException e) {
-              logger.error("encounter execution exception when end proposal for " + key + ": ", e);
-              throw e;
+            logger.error("[FaultTolerance][Protocol][category={}, iginx={}] end proposal for key={} execute error {}", category, DefaultMetaManager.getInstance().getIginxId(), key, e);
+            throw e;
         } catch (Exception e) {
-            logger.error("end protocol for " + category + "-" + key + " failure: ", e);
+            logger.error("[FaultTolerance][Protocol][category={}, iginx={}] end proposal for key={} execute error {}", category, DefaultMetaManager.getInstance().getIginxId(), key, e);
             throw new NetworkException("end protocol failure: ", e);
         } finally {
             if (release) {
                 try {
                     mutex.release();
                 } catch (Exception e) {
-                    logger.error("get error when release interprocess lock for " + lockPath, e);
+                    logger.error("[FaultTolerance][Protocol][category={}, iginx={}] end proposal for key={} release lock failure: {}", category, DefaultMetaManager.getInstance().getIginxId(), key, e);
                 }
             }
         }
