@@ -21,6 +21,7 @@ package cn.edu.tsinghua.iginx.engine.physical.storage;
 import cn.edu.tsinghua.iginx.conf.Constants;
 import cn.edu.tsinghua.iginx.utils.EnvUtils;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -66,7 +67,7 @@ public class StorageEngineClassLoader extends ClassLoader {
             return classMap.get(name);
         }
 
-        Class<?> clazz = findLocalClass(name);
+        Class<?> clazz = findClass(name);
         if (clazz != null) {
             if (resolve) {
                 resolveClass(clazz);
@@ -78,7 +79,8 @@ public class StorageEngineClassLoader extends ClassLoader {
         return clazz;
     }
 
-    private Class<?> findLocalClass(String name) {
+    @Override
+    protected Class<?> findClass(String name) throws ClassNotFoundException {
         File jar = nameToJar.get(name);
         if (jar == null) {
             return null;
@@ -86,9 +88,17 @@ public class StorageEngineClassLoader extends ClassLoader {
         try (JarFile jarFile = new JarFile(jar)) {
             String classFileName = name.replace('.', '/') + ".class";
             try (InputStream is = jarFile.getInputStream(jarFile.getEntry(classFileName))) {
-                byte[] b = is.readAllBytes();
+                // Since Java 9, there are readAllBytes and transferTo
+                // However, we need to be compatible with Java 8
+                ByteArrayOutputStream os = new ByteArrayOutputStream(); // Note: Closing a ByteArrayOutputStream has no effect
+                byte[] buffer = new byte[8192];
+                int read;
+                while ((read = is.read(buffer)) >= 0) {
+                    os.write(buffer, 0, read);
+                }
+                byte[] b = os.toByteArray();
                 return defineClass(name, b, 0, b.length);
-            }            
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -96,24 +106,16 @@ public class StorageEngineClassLoader extends ClassLoader {
     }
 
     @Override
-    protected Class<?> findClass(String name) throws ClassNotFoundException {
-        Class<?> clazz = findLocalClass(name);
-        if (clazz == null) {
-            throw new ClassNotFoundException("unable to find class: " + name);
-        }
-        return clazz;
-    }
-
-    @Override
     public URL getResource(String name) {
-        URL res = findLocalResource(name);
+        URL res = findResource(name);
         if (res != null) {
             return res;
         }
         return super.getResource(name);
     }
-    
-    private URL findLocalResource(String name) {
+
+    @Override
+    protected URL findResource(String name) {
         for (File jar : Jars) {
             try (JarFile jarFile = new JarFile(jar)) {
                 if (jarFile.getJarEntry(name) != null) {
@@ -124,10 +126,5 @@ public class StorageEngineClassLoader extends ClassLoader {
             }
         }
         return null;
-    }
-
-    @Override
-    protected URL findResource(String name) {
-        return findLocalResource(name);
     }
 }
