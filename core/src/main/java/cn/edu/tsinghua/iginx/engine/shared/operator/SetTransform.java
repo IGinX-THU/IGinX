@@ -46,4 +46,9 @@ public class SetTransform extends AbstractUnaryOperator {
     public Operator copy() {
         return new SetTransform(getSource().copy(), functionCall.copy());
     }
+
+    @Override
+    public String getInfo() {
+        return "Func: " + functionCall.toString();
+    }
 }

@@ -29,6 +29,7 @@ import cn.edu.tsinghua.iginx.utils.FormatUtils;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.Collections;
 import org.apache.commons.cli.*;
 import org.jline.reader.Completer;
 import org.jline.reader.LineReader;
@@ -386,13 +387,15 @@ public class IginxClient {
             Arrays.asList("insert", "into"),
             Arrays.asList("delete", "from"),
             Arrays.asList("delete", "time", "series"),
-            Arrays.asList("select"),
+            Arrays.asList("explain", "select"),
             Arrays.asList("add", "storageengine"),
             Arrays.asList("register", "python", "task"),
             Arrays.asList("drop", "python", "task"),
             Arrays.asList("commit", "transform", "job"),
             Arrays.asList("show", "transform", "job", "status"),
-            Arrays.asList("cancel", "transform", "job")
+            Arrays.asList("cancel", "transform", "job"),
+
+            Collections.singletonList("select")
         );
         addArgumentCompleters(iginxCompleters, withNullCompleters, true);
 
