@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>zeppelin-iginx</artifactId>
-    <name>Zeppelin Iginx</name>
+    <name>Zeppelin on IGinX</name>
 
     <properties>
         <maven.compiler.source>8</maven.compiler.source>

@@ -46,6 +46,8 @@ public interface IMetaStorage {
 
     long addStorageEngine(StorageEngineMeta storageEngine) throws MetaStorageException;
 
+    boolean updateStorageEngine(long storageID, StorageEngineMeta storageEngine) throws MetaStorageException;
+
     void registerStorageChangeHook(StorageChangeHook hook);
 
     Map<String, StorageUnitMeta> loadStorageUnit() throws MetaStorageException;
@@ -136,10 +138,6 @@ public interface IMetaStorage {
     void removeFragmentRequests() throws MetaStorageException;
 
     void lockFragmentRequestsCounter() throws MetaStorageException;
-
-    void incrementMonitorClearCounter() throws MetaStorageException;
-
-    int getMonitorClearCounter() throws MetaStorageException;
 
     void incrementFragmentRequestsCounter() throws MetaStorageException;
 

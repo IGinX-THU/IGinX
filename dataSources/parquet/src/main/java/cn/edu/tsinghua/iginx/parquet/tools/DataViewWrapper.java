@@ -43,7 +43,7 @@ public class DataViewWrapper {
     }
 
     public Long getTimestamp(int index) {
-        return dataView.getTimestamp(index);
+        return dataView.getKey(index);
     }
 
     public Object getValue(int index1, int index2) {
@@ -68,6 +68,14 @@ public class DataViewWrapper {
     }
 
     public int getTimestampIndex(long timestamp) {
-        return dataView.getTimestampIndex(timestamp);
+        return dataView.getKeyIndex(timestamp);
+    }
+
+    public long getMinTime() {
+        return getTimestamp(0);
+    }
+
+    public long getMaxTime() {
+        return getTimestamp(getTimeSize() - 1);
     }
 }

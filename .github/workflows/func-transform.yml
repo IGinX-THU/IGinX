@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  Transform-Test:
+  Transform-Func:
     strategy:
       fail-fast: false
       max-parallel: 20
@@ -58,14 +58,14 @@ jobs:
             echo "$RUNNER_OS is not supported"
             exit 1
           fi
-      - name: Run IoTDB11
+      - name: Run IoTDB12
         run: |
           if [ "$RUNNER_OS" == "Linux" ]; then
-            chmod +x "${GITHUB_WORKSPACE}/.github/iotdb11.sh"
-            "${GITHUB_WORKSPACE}/.github/iotdb11.sh"
+            chmod +x "${GITHUB_WORKSPACE}/.github/iotdb12.sh"
+            "${GITHUB_WORKSPACE}/.github/iotdb12.sh"
           elif [ "$RUNNER_OS" == "macOS" ]; then
-            chmod +x "${GITHUB_WORKSPACE}/.github/iotdb11_macos.sh"
-            "${GITHUB_WORKSPACE}/.github/iotdb11_macos.sh"
+            chmod +x "${GITHUB_WORKSPACE}/.github/iotdb12_macos.sh"
+            "${GITHUB_WORKSPACE}/.github/iotdb12_macos.sh"
           else
             echo "$RUNNER_OS is not supported"
             exit 1

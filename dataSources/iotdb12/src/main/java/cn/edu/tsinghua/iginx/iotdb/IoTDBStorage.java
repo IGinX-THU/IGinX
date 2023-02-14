@@ -42,7 +42,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.TimeFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.iotdb.query.entity.IoTDBQueryRowStream;
 import cn.edu.tsinghua.iginx.iotdb.tools.DataViewWrapper;
@@ -167,7 +167,7 @@ public class IoTDBStorage implements IStorage {
                 filter = ((Select) operators.get(1)).getFilter();
             } else {
                 FragmentMeta fragment = task.getTargetFragment();
-                filter = new AndFilter(Arrays.asList(new TimeFilter(Op.GE, fragment.getTimeInterval().getStartTime()), new TimeFilter(Op.L, fragment.getTimeInterval().getEndTime())));
+                filter = new AndFilter(Arrays.asList(new KeyFilter(Op.GE, fragment.getTimeInterval().getStartTime()), new KeyFilter(Op.L, fragment.getTimeInterval().getEndTime())));
             }
             return isDummyStorageUnit ? executeQueryHistoryTask(task.getTargetFragment().getTsInterval(), project, filter) : executeQueryTask(storageUnit, project, filter);
         } else if (op.getType() == OperatorType.Insert) {
@@ -317,12 +317,12 @@ public class IoTDBStorage implements IStorage {
         try {
             StringBuilder builder = new StringBuilder();
             for (String path : project.getPatterns()) {
-                builder.append(getRealPathWithoutPrefix(path, timeSeriesInterval.getSchemaPrefix()));
+                builder.append(path);
                 builder.append(',');
             }
             String statement = String.format(QUERY_HISTORY_DATA, builder.deleteCharAt(builder.length() - 1).toString(), FilterTransformer.toString(filter));
             logger.info("[Query] execute query: " + statement);
-            RowStream rowStream = new ClearEmptyRowStreamWrapper(new IoTDBQueryRowStream(sessionPool.executeQueryStatement(statement), false, project, timeSeriesInterval.getSchemaPrefix()));
+            RowStream rowStream = new ClearEmptyRowStreamWrapper(new IoTDBQueryRowStream(sessionPool.executeQueryStatement(statement), false, project));
             return new TaskExecuteResult(rowStream);
         } catch (IoTDBConnectionException | StatementExecutionException e) {
             logger.error(e.getMessage());

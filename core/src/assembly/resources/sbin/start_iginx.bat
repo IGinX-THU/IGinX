@@ -19,7 +19,7 @@
 
 @echo off
 echo ````````````````````````
-echo Starting IginX
+echo Starting IGinX
 echo ````````````````````````
 
 if "%OS%" == "Windows_NT" setlocal
@@ -48,11 +48,11 @@ set JAVA_VERSION=%MAJOR_VERSION%
 
 @REM we do not check jdk that version less than 1.6 because they are too stale...
 IF "%JAVA_VERSION%" == "6" (
-		echo IginX only supports jdk >= 8, please check your java version.
+		echo IGinX only supports jdk >= 8, please check your java version.
 		goto finally
 )
 IF "%JAVA_VERSION%" == "7" (
-		echo IginX only supports jdk >= 8, please check your java version.
+		echo IGinX only supports jdk >= 8, please check your java version.
 		goto finally
 )
 
@@ -117,6 +117,40 @@ set HEAP_OPTS=-Xmx%MAX_HEAP_SIZE% -Xms%MAX_HEAP_SIZE% -Xloggc:"%IGINX_HOME%\gc.l
 @REM ***** CLASSPATH library setting *****
 @REM Ensure that any user defined CLASSPATH variables are not used on startup
 set CLASSPATH="%IGINX_HOME%\lib\*"
+@REM in case of parquet, initiation must be started specially
+@REM 1. check the config
+for /F %%i in ( 'type %IGINX_CONF% ^| findstr -V "^#" ^| findstr -I "storageEngineList"^| findstr -I "parquet"' ) do set PARQUET_EXIST=%%i
+
+if defined PARQUET_EXIST (
+	goto def_parquet
+) else (
+	goto okClasspath
+)
+
+:def_parquet
+set pos=1
+set target=3
+:parquet
+for /f "tokens=1* delims=#" %%a in ( "%PARQUET_EXIST%" ) do (
+	set PARQUET_EXIST=%%b
+	if %pos% EQU %target% ( set PARQUET_EXIST=%%a )
+)
+if %pos% LSS %target% ( 
+	set /A pos=%pos%+1 
+	goto :parquet
+)
+@REM we are getting the folder.
+@REM trimming spaces
+SETLOCAL ENABLEDELAYEDEXPANSION
+:delleft
+if "%PARQUET_EXIST:~0,1%"==" " set PARQUET_EXIST=%PARQUET_EXIST:~1%&&goto delleft
+                                                
+:delright
+if "%PARQUET_EXIST:~-1%"==" " set PARQUET_EXIST=%PARQUET_EXIST:~0,-1%&&goto delright
+@REM 2. update the classpath
+set CLASSPATH=%CLASSPATH%;%IGINX_HOME%\driver\%PARQUET_EXIST%\*
+@REM Parquet lib setting done!
+
 goto okClasspath
 
 @REM -----------------------------------------------------------------------------

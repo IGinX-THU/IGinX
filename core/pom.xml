@@ -27,7 +27,7 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
     <artifactId>iginx-core</artifactId>
-    <name>IginX Core</name>
+    <name>IGinX Core</name>
 
     <repositories>
         <!--   repository for moquette    -->
@@ -207,9 +207,9 @@
             <version>0.1.4</version>
         </dependency>
         <dependency>
-            <groupId>org.duckdb</groupId>
-            <artifactId>duckdb_jdbc</artifactId>
-            <version>0.5.1</version>
+            <groupId>javax.xml.bind</groupId>
+            <artifactId>jaxb-api</artifactId>
+            <version>2.2.3</version>
         </dependency>
     </dependencies>
     <build>

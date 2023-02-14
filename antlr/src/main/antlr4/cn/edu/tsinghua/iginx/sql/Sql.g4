@@ -22,6 +22,7 @@ statement
     | SHOW TRANSFORM JOB STATUS jobId=INT #showJobStatusStatement
     | CANCEL TRANSFORM JOB jobId=INT #cancelJobStatement
     | SHOW jobStatus TRANSFORM JOB #showEligibleJobStatement
+    | REMOVE HISTORYDATARESOURCE removedStorageEngine (COMMA removedStorageEngine)* #removeHistoryDataResourceStatement
     ;
 
 queryClause
@@ -67,8 +68,8 @@ andExpression
     ;
 
 predicate
-    : (TIME | TIMESTAMP | path) comparisonOperator constant
-    | constant comparisonOperator (TIME | TIMESTAMP | path)
+    : (KEY | path) comparisonOperator constant
+    | constant comparisonOperator (KEY | path)
     | path comparisonOperator path
     | path OPERATOR_LIKE regex=stringLiteral
     | OPERATOR_NOT? LR_BRACKET orExpression RR_BRACKET
@@ -149,26 +150,26 @@ join
 
 specialClause
     : limitClause
-    | groupByLevelClause
-    | groupByClause limitClause?
-    | groupByTimeClause limitClause?
+    | aggregateWithLevelClause
+    | downsampleWithLevelClause limitClause?
+    | downsampleClause limitClause?
     | orderByClause limitClause?
     ;
 
 orderByClause
-    : ORDER BY (TIME | TIMESTAMP | path) (DESC | ASC)?
+    : ORDER BY (TIME | TIMESTAMP | KEY | path) (DESC | ASC)?
     ;
 
-groupByClause
-    : GROUP timeInterval BY TIME_WITH_UNIT COMMA LEVEL OPERATOR_EQ INT (COMMA INT)*
+downsampleWithLevelClause
+    : downsampleClause aggregateWithLevelClause
     ;
 
-groupByTimeClause
-    : GROUP timeInterval BY TIME_WITH_UNIT (SLIDE TIME_WITH_UNIT)?
+downsampleClause
+    : OVER LR_BRACKET RANGE TIME_WITH_UNIT IN timeInterval (STEP TIME_WITH_UNIT)? RR_BRACKET
     ;
 
-groupByLevelClause
-    : GROUP BY LEVEL OPERATOR_EQ INT (COMMA INT)*
+aggregateWithLevelClause
+    : AGG LEVEL OPERATOR_EQ INT (COMMA INT)*
     ;
 
 asClause
@@ -202,7 +203,7 @@ comparisonOperator
     ;
 
 insertColumnsSpec
-    : LR_BRACKET (TIMESTAMP|TIME) (COMMA insertPath)+ RR_BRACKET
+    : LR_BRACKET KEY (COMMA insertPath)+ RR_BRACKET
     ;
 
 insertPath
@@ -283,10 +284,12 @@ keyWords
     | LIMIT
     | OFFSET
     | TIME
+    | KEY
     | SERIES
     | TIMESTAMP
     | GROUP
     | ORDER
+    | AGG
     | LEVEL
     | ADD
     | VALUE
@@ -327,7 +330,6 @@ keyWords
     | WITH_PRECISE
     | TIME_OFFSET
     | CANCEL
-    | SLIDE
     | INNER
     | OUTER
     | CROSS
@@ -338,6 +340,11 @@ keyWords
     | JOIN
     | ON
     | USING
+    | OVER
+    | RANGE
+    | STEP
+    | REMOVE
+    | HISTORYDATARESOURCE
     ;
 
 dateFormat
@@ -369,6 +376,10 @@ realLiteral
     : INT DOT (INT | EXPONENT)?
     | DOT  (INT|EXPONENT)
     | EXPONENT
+    ;
+
+removedStorageEngine
+    : LR_BRACKET ip=stringLiteral COMMA port=INT COMMA schemaPrefix=stringLiteral COMMA dataPrefix=stringLiteral RR_BRACKET
     ;
 
 //============================
@@ -434,6 +445,10 @@ ORDER
     : O R D E R
     ;
 
+AGG
+    : A G G
+    ;
+
 LEVEL
     : L E V E L
     ;
@@ -464,6 +479,10 @@ NOW
 
 TIME
     : T I M E
+    ;
+
+KEY
+    : K E Y
     ;
 
 TRUE
@@ -654,10 +673,6 @@ CLOSED
     : C L O S E D
     ;
 
-SLIDE
-    : S L I D E
-    ;
-
 INNER
     : I N N E R
     ;
@@ -696,6 +711,26 @@ ON
 
 USING
     : U S I N G
+    ;
+
+OVER
+    : O V E R
+    ;
+
+RANGE
+    : R A N G E
+    ;
+
+STEP
+    : S T E P
+    ;
+
+REMOVE
+    : R E M O V E
+    ;
+
+HISTORYDATARESOURCE
+    : H I S T O R Y D A T A R E S O U R C E
     ;
 //============================
 // End of the keywords list
@@ -808,7 +843,7 @@ NAME_CHAR
     ;
 
 fragment CN_CHAR
-  : '\u2E80'..'\u9FFF'
+  : '\u2E85'..'\u9FFF'
   ;
 
 DOUBLE_QUOTE_STRING_LITERAL

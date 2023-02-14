@@ -18,6 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.client;
 
+import cn.edu.tsinghua.iginx.constant.GlobalConstant;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.session.QueryDataSet;
@@ -49,7 +50,7 @@ import java.util.List;
  */
 public class IginxClient {
 
-    private static final String IGINX_CLI_PREFIX = "IginX> ";
+    private static final String IGINX_CLI_PREFIX = "IGinX> ";
 
     private static final String HOST_ARGS = "h";
     private static final String HOST_NAME = "host";
@@ -334,7 +335,7 @@ public class IginxClient {
     }
 
     private static List<List<String>> cacheResult(QueryDataSet queryDataSet) throws ExecutionException, SessionException {
-        boolean hasTime = queryDataSet.getColumnList().get(0).equals("time");
+        boolean hasKey = queryDataSet.getColumnList().get(0).equals(GlobalConstant.KEY_NAME);
         List<List<String>> cache = new ArrayList<>();
         cache.add(new ArrayList<>(queryDataSet.getColumnList()));
 
@@ -343,9 +344,9 @@ public class IginxClient {
             List<String> strRow = new ArrayList<>();
             Object[] nextRow = queryDataSet.nextRow();
             if (nextRow != null) {
-                if (hasTime) {
-                    strRow.add(FormatUtils.formatTime((Long) nextRow[0], FormatUtils.DEFAULT_TIME_FORMAT, timestampPrecision));
-                    for (int i = 1; i < nextRow.length; i++) {
+                if (hasKey) {
+//                    strRow.add(FormatUtils.formatTime((Long) nextRow[0], FormatUtils.DEFAULT_TIME_FORMAT, timestampPrecision));
+                    for (int i = 0; i < nextRow.length; i++) {
                         strRow.add(FormatUtils.valueToString(nextRow[i]));
                     }
                 } else {
@@ -401,7 +402,8 @@ public class IginxClient {
             Arrays.asList("clear", "data"),
             Arrays.asList("show", "time", "series"),
             Arrays.asList("show", "cluster", "info"),
-            Arrays.asList("show", "register", "python", "task")
+            Arrays.asList("show", "register", "python", "task"),
+            Arrays.asList("remove", "historyDataResource")
         );
         addArgumentCompleters(iginxCompleters, withoutNullCompleters, false);
 
@@ -440,7 +442,7 @@ public class IginxClient {
 
     public static void echoStarting() {
         System.out.println("-----------------------");
-        System.out.println("Starting IginX Client");
+        System.out.println("Starting IGinX Client");
         System.out.println("-----------------------");
     }
 

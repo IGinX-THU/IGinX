@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>iotdb12</artifactId>
-    <name>IginX IoTDB12</name>
+    <name>IGinX IoTDB12</name>
 
     <properties>
         <maven.compiler.source>8</maven.compiler.source>
@@ -35,7 +35,7 @@
         <dependency>
             <groupId>org.apache.iotdb</groupId>
             <artifactId>iotdb-session</artifactId>
-            <version>0.12.4</version>
+            <version>0.12.6</version>
             <exclusions>
                 <exclusion>
                     <groupId>ch.qos.logback</groupId>

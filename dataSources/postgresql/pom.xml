@@ -12,7 +12,7 @@
   </parent>
 
   <artifactId>postgresql</artifactId>
-  <name>IginX PostgreSQL</name>
+  <name>IGinX PostgreSQL</name>
 
   <properties>
     <maven.compiler.source>8</maven.compiler.source>

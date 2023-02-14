@@ -77,7 +77,13 @@ public class InfluxDBStorage implements IStorage {
 
     private static final WritePrecision WRITE_PRECISION = NS;
 
+    private static final String MEASUREMENTALL = "~ /.*/";
+
+    private static final String FIELDALL = "~ /.+/";
+
     private static final String QUERY_DATA = "from(bucket:\"%s\") |> range(start: time(v: %s), stop: time(v: %s))";
+
+    private static final String QUERY_DATA_ALL = "from(bucket:\"%s\") |> range(start: time(v: %s), stop: time(v: %s)) |> filter(fn: (r) => (r._measurement =%s and r._field =%s))";
 
     private static final String DELETE_DATA = "_measurement=\"%s\" AND _field=\"%s\"";
 
@@ -151,14 +157,30 @@ public class InfluxDBStorage implements IStorage {
         if (bucketNames.size() == 0) {
             throw new PhysicalTaskExecuteFailureException("no data!");
         }
-        TimeSeriesRange tsInterval = new TimeSeriesInterval(bucketNames.get(0), StringUtils.nextString(bucketNames.get(bucketNames.size() - 1)));
+        TimeSeriesRange tsInterval = null;
+        if(dataPrefix == null)
+            tsInterval = new TimeSeriesInterval(bucketNames.get(0), StringUtils.nextString(bucketNames.get(bucketNames.size() - 1)));
+        else
+            tsInterval = new TimeSeriesInterval(dataPrefix, StringUtils.nextString(dataPrefix));
         long minTime = Long.MAX_VALUE, maxTime = 0;
+
+        String measurementPrefix = MEASUREMENTALL, fieldPrefix = FIELDALL;
+        if(dataPrefix!=null && dataPrefix.contains(".")) { //get the measurement and field from dataPrefix
+            int indexPrefix = dataPrefix.indexOf(".");
+            measurementPrefix = dataPrefix.substring(0, indexPrefix);
+            fieldPrefix = dataPrefix.substring(indexPrefix + 1);
+        } else if (dataPrefix!=null) {
+            measurementPrefix = dataPrefix;
+        }
+
         for (Bucket bucket: historyBucketMap.values()) {
             String statement = String.format(
-                    QUERY_DATA,
+                    QUERY_DATA_ALL,
                     bucket.getName(),
                     0L,
-                    Long.MAX_VALUE
+                    Long.MAX_VALUE,
+                    measurementPrefix == MEASUREMENTALL ? MEASUREMENTALL : "= \"" + measurementPrefix + "\"",
+                    fieldPrefix == FIELDALL ? FIELDALL : "~ /" + fieldPrefix + ".*/"
             );
             logger.debug("execute statement: " + statement);
             // 查询 first
@@ -214,18 +236,11 @@ public class InfluxDBStorage implements IStorage {
         return new TaskExecuteResult(new NonExecutablePhysicalTaskException("unsupported physical task"));
     }
 
-    private String getRealPathWithoutPrefix(String oriPath, String prefix) {
-        if (prefix != null && !prefix.isEmpty() && oriPath.contains(prefix)) {
-            return oriPath.substring(oriPath.indexOf(prefix) + prefix.length() + 1);
-        }
-        return oriPath;
-    }
-
     private TaskExecuteResult executeHistoryProjectTask(TimeSeriesRange timeSeriesInterval, TimeInterval timeInterval, Project project) {
         Map<String, String> bucketQueries = new HashMap<>();
         TagFilter tagFilter = project.getTagFilter();
         for (String pattern: project.getPatterns()) {
-            Pair<String, String> pair = SchemaTransformer.processPatternForQuery(getRealPathWithoutPrefix(pattern, timeSeriesInterval.getSchemaPrefix()), tagFilter);
+            Pair<String, String> pair = SchemaTransformer.processPatternForQuery(pattern, tagFilter);
             String bucketName = pair.k;
             String query = pair.v;
             String fullQuery = "";
@@ -254,7 +269,7 @@ public class InfluxDBStorage implements IStorage {
             bucketQueryResults.put(bucket, client.getQueryApi().query(statement, organization.getId()));
         }
 
-        InfluxDBHistoryQueryRowStream rowStream = new InfluxDBHistoryQueryRowStream(bucketQueryResults, project.getPatterns(), timeSeriesInterval.getSchemaPrefix());
+        InfluxDBHistoryQueryRowStream rowStream = new InfluxDBHistoryQueryRowStream(bucketQueryResults, project.getPatterns());
         return new TaskExecuteResult(rowStream);
     }
 
@@ -456,22 +471,22 @@ public class InfluxDBStorage implements IStorage {
                     InfluxDBSchema schema = schemas.get(j);
                     switch (data.getDataType(j)) {
                         case BOOLEAN:
-                            points.add(Point.measurement(schema.getMeasurement()).addTags(schema.getTags()).addField(schema.getField(), (boolean) data.getValue(i, index)).time(data.getTimestamp(i), WRITE_PRECISION));
+                            points.add(Point.measurement(schema.getMeasurement()).addTags(schema.getTags()).addField(schema.getField(), (boolean) data.getValue(i, index)).time(data.getKey(i), WRITE_PRECISION));
                             break;
                         case INTEGER:
-                            points.add(Point.measurement(schema.getMeasurement()).addTags(schema.getTags()).addField(schema.getField(), (int) data.getValue(i, index)).time(data.getTimestamp(i), WRITE_PRECISION));
+                            points.add(Point.measurement(schema.getMeasurement()).addTags(schema.getTags()).addField(schema.getField(), (int) data.getValue(i, index)).time(data.getKey(i), WRITE_PRECISION));
                             break;
                         case LONG:
-                            points.add(Point.measurement(schema.getMeasurement()).addTags(schema.getTags()).addField(schema.getField(), (long) data.getValue(i, index)).time(data.getTimestamp(i), WRITE_PRECISION));
+                            points.add(Point.measurement(schema.getMeasurement()).addTags(schema.getTags()).addField(schema.getField(), (long) data.getValue(i, index)).time(data.getKey(i), WRITE_PRECISION));
                             break;
                         case FLOAT:
-                            points.add(Point.measurement(schema.getMeasurement()).addTags(schema.getTags()).addField(schema.getField(), (float) data.getValue(i, index)).time(data.getTimestamp(i), WRITE_PRECISION));
+                            points.add(Point.measurement(schema.getMeasurement()).addTags(schema.getTags()).addField(schema.getField(), (float) data.getValue(i, index)).time(data.getKey(i), WRITE_PRECISION));
                             break;
                         case DOUBLE:
-                            points.add(Point.measurement(schema.getMeasurement()).addTags(schema.getTags()).addField(schema.getField(), (double) data.getValue(i, index)).time(data.getTimestamp(i), WRITE_PRECISION));
+                            points.add(Point.measurement(schema.getMeasurement()).addTags(schema.getTags()).addField(schema.getField(), (double) data.getValue(i, index)).time(data.getKey(i), WRITE_PRECISION));
                             break;
                         case BINARY:
-                            points.add(Point.measurement(schema.getMeasurement()).addTags(schema.getTags()).addField(schema.getField(), new String((byte[]) data.getValue(i, index))).time(data.getTimestamp(i), WRITE_PRECISION));
+                            points.add(Point.measurement(schema.getMeasurement()).addTags(schema.getTags()).addField(schema.getField(), new String((byte[]) data.getValue(i, index))).time(data.getKey(i), WRITE_PRECISION));
                             break;
                     }
 
@@ -522,22 +537,22 @@ public class InfluxDBStorage implements IStorage {
                 if (bitmapView.get(j)) {
                     switch (data.getDataType(i)) {
                         case BOOLEAN:
-                            points.add(Point.measurement(schema.getMeasurement()).addTags(schema.getTags()).addField(schema.getField(), (boolean) data.getValue(i, index)).time(data.getTimestamp(j), WRITE_PRECISION));
+                            points.add(Point.measurement(schema.getMeasurement()).addTags(schema.getTags()).addField(schema.getField(), (boolean) data.getValue(i, index)).time(data.getKey(j), WRITE_PRECISION));
                             break;
                         case INTEGER:
-                            points.add(Point.measurement(schema.getMeasurement()).addTags(schema.getTags()).addField(schema.getField(), (int) data.getValue(i, index)).time(data.getTimestamp(j), WRITE_PRECISION));
+                            points.add(Point.measurement(schema.getMeasurement()).addTags(schema.getTags()).addField(schema.getField(), (int) data.getValue(i, index)).time(data.getKey(j), WRITE_PRECISION));
                             break;
                         case LONG:
-                            points.add(Point.measurement(schema.getMeasurement()).addTags(schema.getTags()).addField(schema.getField(), (long) data.getValue(i, index)).time(data.getTimestamp(j), WRITE_PRECISION));
+                            points.add(Point.measurement(schema.getMeasurement()).addTags(schema.getTags()).addField(schema.getField(), (long) data.getValue(i, index)).time(data.getKey(j), WRITE_PRECISION));
                             break;
                         case FLOAT:
-                            points.add(Point.measurement(schema.getMeasurement()).addTags(schema.getTags()).addField(schema.getField(), (float) data.getValue(i, index)).time(data.getTimestamp(j), WRITE_PRECISION));
+                            points.add(Point.measurement(schema.getMeasurement()).addTags(schema.getTags()).addField(schema.getField(), (float) data.getValue(i, index)).time(data.getKey(j), WRITE_PRECISION));
                             break;
                         case DOUBLE:
-                            points.add(Point.measurement(schema.getMeasurement()).addTags(schema.getTags()).addField(schema.getField(), (double) data.getValue(i, index)).time(data.getTimestamp(j), WRITE_PRECISION));
+                            points.add(Point.measurement(schema.getMeasurement()).addTags(schema.getTags()).addField(schema.getField(), (double) data.getValue(i, index)).time(data.getKey(j), WRITE_PRECISION));
                             break;
                         case BINARY:
-                            points.add(Point.measurement(schema.getMeasurement()).addTags(schema.getTags()).addField(schema.getField(), new String((byte[]) data.getValue(i, index))).time(data.getTimestamp(j), WRITE_PRECISION));
+                            points.add(Point.measurement(schema.getMeasurement()).addTags(schema.getTags()).addField(schema.getField(), new String((byte[]) data.getValue(i, index))).time(data.getKey(j), WRITE_PRECISION));
                             break;
                     }
                     index++;

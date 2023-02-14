@@ -1,4 +1,4 @@
-name: "System-IT-ds-IoTDB"
+name: "ITTest-ds-IoTDB"
 
 on:
   push:
@@ -15,14 +15,14 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  IoTDB-Session-Test:
+  IoTDB-Session-ds:
     strategy:
       fail-fast: false
       matrix:
         java: [ 8 ]
         python-version: [ "3.7" ]
         os: [ ubuntu-latest, macos-latest ]
-        iotdb-version: [ iotdb11, iotdb12 ]
+        iotdb-version: [ iotdb12 ]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
@@ -51,9 +51,7 @@ jobs:
 
       - name: A Lame Integration Test with Maven for IoTDB
         run: |
-          if [ ${{ matrix.iotdb-version }} == "iotdb11" ]; then
-            mvn test -q -Dtest=IoTDB11SessionIT -DfailIfNoTests=false
-          elif [ ${{ matrix.iotdb-version }} == "iotdb12" ]; then
+          if [ ${{ matrix.iotdb-version }} == "iotdb12" ]; then
             mvn test -q -Dtest=IoTDB12SessionIT -DfailIfNoTests=false
           else
             echo "${{ matrix.iotdb-version }} is not supported"
@@ -65,14 +63,14 @@ jobs:
           file: ./**/target/site/jacoco/jacoco.xml
           name: codecov
 
-  IoTDB-SQL-Test:
+  IoTDB-SQL-ds:
     strategy:
       fail-fast: false
       matrix:
         java: [ 8 ]
         python-version: [ "3.7" ]
         os: [ ubuntu-latest, macos-latest ]
-        iotdb-version: [ iotdb11, iotdb12 ]
+        iotdb-version: [ iotdb12 ]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
@@ -106,14 +104,14 @@ jobs:
           file: ./**/target/site/jacoco/jacoco.xml
           name: codecov
 
-  IoTDB-Tag-Test:
+  IoTDB-Tag-ds:
     strategy:
       fail-fast: false
       matrix:
         java: [ 8 ]
         python-version: [ "3.7" ]
         os: [ ubuntu-latest, macos-latest ]
-        iotdb-version: [ iotdb11, iotdb12 ]
+        iotdb-version: [ iotdb12 ]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
@@ -147,14 +145,14 @@ jobs:
           file: ./**/target/site/jacoco/jacoco.xml
           name: codecov
 
-  IoTDB-SessionPool-Test:
+  IoTDB-SessionPool-ds:
     strategy:
       fail-fast: false
       matrix:
         java: [ 8 ]
         python-version: [ "3.7" ]
         os: [ ubuntu-latest, macos-latest ]
-        iotdb-version: [ iotdb11, iotdb12 ]
+        iotdb-version: [ iotdb12 ]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
@@ -183,9 +181,7 @@ jobs:
 
       - name: A Lame Integration Test with Maven for IoTDB
         run: |
-          if [ ${{ matrix.iotdb-version }} == "iotdb11" ]; then
-            mvn test -q -Dtest=IoTDB11SessionPoolIT -DfailIfNoTests=false
-          elif [ ${{ matrix.iotdb-version }} == "iotdb12" ]; then
+          if [ ${{ matrix.iotdb-version }} == "iotdb12" ]; then
             mvn test -q -Dtest=IoTDB12SessionPoolIT -DfailIfNoTests=false
           else
             echo "${{ matrix.iotdb-version }} is not supported"
@@ -196,14 +192,14 @@ jobs:
           file: ./**/target/site/jacoco/jacoco.xml
           name: codecov
 
-  IoTDB-SQL-SessionPool-Test:
+  IoTDB-SQL-SessionPool-ds:
     strategy:
       fail-fast: false
       matrix:
         java: [ 8 ]
         python-version: [ "3.7" ]
         os: [ ubuntu-latest, macos-latest ]
-        iotdb-version: [ iotdb11, iotdb12 ]
+        iotdb-version: [ iotdb12 ]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2

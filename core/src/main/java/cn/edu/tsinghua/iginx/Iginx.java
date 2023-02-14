@@ -61,7 +61,7 @@ public class Iginx {
         args.protocolFactory(new TBinaryProtocol.Factory());
         TServer server = new TThreadPoolServer(args);
         logger.info("iginx starts successfully!");
-        System.out.print("\n\niginx is now in service......\n\n");
+        System.out.print("\n\nIGinX is now in service......\n\n");
         server.serve();
     }
 

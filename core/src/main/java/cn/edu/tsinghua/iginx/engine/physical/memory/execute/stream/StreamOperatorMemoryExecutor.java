@@ -22,7 +22,6 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.InvalidOperatorParameterE
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.UnexpectedOperatorException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.OperatorMemoryExecutor;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
 import cn.edu.tsinghua.iginx.engine.shared.Constants;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;
@@ -60,6 +59,8 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
                 return executeRename((Rename) operator, stream);
             case Reorder:
                 return executeReorder((Reorder) operator, stream);
+            case AddSchemaPrefix:
+                return executeAddSchemaPrefix((AddSchemaPrefix) operator, stream);
             default:
                 throw new UnexpectedOperatorException("unknown unary operator: " + operator.getType());
         }
@@ -92,8 +93,8 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
     }
 
     private RowStream executeSort(Sort sort, RowStream stream) throws PhysicalException {
-        if (!sort.getSortBy().equals(Constants.TIMESTAMP)) {
-            throw new InvalidOperatorParameterException("sort operator is not support for field " + sort.getSortBy() + " except for " + Constants.TIMESTAMP);
+        if (!sort.getSortBy().equals(Constants.KEY)) {
+            throw new InvalidOperatorParameterException("sort operator is not support for field " + sort.getSortBy() + " except for " + Constants.KEY);
         }
         return new SortLazyStream(sort, stream);
     }
@@ -103,7 +104,7 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
     }
 
     private RowStream executeDownsample(Downsample downsample, RowStream stream) throws PhysicalException {
-        if (!stream.getHeader().hasTimestamp()) {
+        if (!stream.getHeader().hasKey()) {
             throw new InvalidOperatorParameterException("downsample operator is not support for row stream without timestamps.");
         }
         return new DownsampleLazyStream(downsample, stream);
@@ -129,9 +130,14 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
         return new ReorderLazyStream(reorder, stream);
     }
 
+    private RowStream executeAddSchemaPrefix(AddSchemaPrefix addSchemaPrefix, RowStream stream) {
+        return new AddSchemaPrefixLazyStream(addSchemaPrefix, stream);
+    }
+
     private RowStream executeJoin(Join join, RowStream streamA, RowStream streamB) throws PhysicalException {
-        if (!join.getJoinBy().equals(Constants.TIMESTAMP) && !join.getJoinBy().equals(Constants.ORDINAL)) {
-            throw new InvalidOperatorParameterException("join operator is not support for field " + join.getJoinBy() + " except for " + Constants.TIMESTAMP + " and " + Constants.ORDINAL);
+        if (!join.getJoinBy().equals(Constants.KEY) && !join.getJoinBy().equals(Constants.ORDINAL)) {
+            throw new InvalidOperatorParameterException("join operator is not support for field " + join.getJoinBy() + " except for " + Constants.KEY
+                + " and " + Constants.ORDINAL);
         }
         return new JoinLazyStream(join, streamA, streamB);
     }

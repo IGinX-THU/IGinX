@@ -1,4 +1,4 @@
-name: "System-IT-ds-Parquet"
+name: "ITTest-ds-Parquet"
 
 on:
   push:
@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  Parquet-SQL-Test:
+  Parquet-SQL-ds:
     strategy:
       fail-fast: false
       #max-parallel: 20
@@ -80,7 +80,7 @@ jobs:
           file: ./**/target/site/jacoco/jacoco.xml
           name: codecov
 
-  Parquet-SQL-SessionPool-Test:
+  Parquet-SQL-SessionPool-ds:
     strategy:
       fail-fast: false
       #max-parallel: 20
@@ -145,7 +145,7 @@ jobs:
           file: ./**/target/site/jacoco/jacoco.xml
           name: codecov
 
-  Parquet-Capacity-Expansion-Test:
+  Parquet-Capacity-Expansion-ds:
     strategy:
       fail-fast: false
       #max-parallel: 20

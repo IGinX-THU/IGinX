@@ -199,32 +199,3 @@
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
-
-
-================================================================
-APACHE IOTDB SUBCOMPONENTS:
-
-The following classes are modified from Apache Hive, which is under Apache License 2.0:
-
-./server/src/main/java/org/apache/iotdb/db/sql/parse/AstErrorNode.java
-./server/src/main/java/org/apache/iotdb/db/sql/parse/AstNode.java
-./server/src/main/java/org/apache/iotdb/db/sql/parse/AstNodeOrigin.java
-./server/src/main/java/org/apache/iotdb/db/sql/parse/Node.java
-./server/src/main/java/org/apache/iotdb/db/sql/parse/ParseDriver.java
-./server/src/main/java/org/apache/iotdb/db/sql/parse/ParseError.java
-./server/src/main/java/org/apache/iotdb/db/sql/parse/ParseException.java
-./server/src/main/java/org/apache/iotdb/db/sql/parse/ParseUtils.java
-
-------------
-
-The following class is copied from maven-wrapper (https://github.com/takari/maven-wrapper),
-which is under Apache License 2.0:
-
-./.mvn/wrapper/MavenWrapperDownloader.java
-
-------------
-
-The following class is modified from Apache commons-collections
-
-./tsfile/src/main/java/org/apache/iotdb/tsfile/utils/Murmur128Hash.java
-Relevant pr is: https://github.com/apache/commons-collections/pull/83/

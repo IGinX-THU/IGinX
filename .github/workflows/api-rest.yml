@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  Annotation-Test:
+  Annotation-api:
     strategy:
       fail-fast: false
       #max-parallel: 20
@@ -39,7 +39,7 @@ jobs:
         uses: ./.github/actions/iotdbRunner
         with:
           if-CapExp: "false"
-          version: iotdb11
+          version: iotdb12
 
       - name: Install with Maven
         run: mvn clean package -DskipTests
@@ -56,7 +56,7 @@ jobs:
           file: ./**/target/site/jacoco/jacoco.xml
           name: codecov
 
-  REST-Test:
+  REST-api:
     strategy:
       fail-fast: false
       #max-parallel: 20
@@ -80,7 +80,7 @@ jobs:
         uses: ./.github/actions/iotdbRunner
         with:
           if-CapExp: "false"
-          version: iotdb11
+          version: iotdb12
 
       - name: Install with Maven
         run: mvn clean package -DskipTests

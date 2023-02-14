@@ -45,11 +45,8 @@ public class InfluxDBHistoryQueryRowStream implements RowStream {
     private int hasMoreRecords;
 
     private int size;
-    public InfluxDBHistoryQueryRowStream(Map<String, List<FluxTable>> bucketQueryResults, List<String> patterns) {
-        this(bucketQueryResults, patterns, null);
-    }
 
-    public InfluxDBHistoryQueryRowStream(Map<String, List<FluxTable>> bucketQueryResults, List<String> patterns, String prefix) {
+    public InfluxDBHistoryQueryRowStream(Map<String, List<FluxTable>> bucketQueryResults, List<String> patterns) {
         this.bucketQueryResults = new ArrayList<>(bucketQueryResults.entrySet());
         this.indexList = new ArrayList<>();
         List<Field> fields = new ArrayList<>();
@@ -58,13 +55,13 @@ public class InfluxDBHistoryQueryRowStream implements RowStream {
             List<FluxTable> tables = this.bucketQueryResults.get(i).getValue();
             this.indexList.add(new int[tables.size()]);
             for (FluxTable table: tables) {
-                fields.add(SchemaTransformer.toField(bucket, table, prefix));
+                fields.add(SchemaTransformer.toField(bucket, table));
                 this.hasMoreRecords++;
                 this.size++;
             }
         }
 
-        header = new Header(Field.TIME, fields);
+        header = new Header(Field.KEY, fields);
     }
 
     @Override
@@ -112,6 +109,7 @@ public class InfluxDBHistoryQueryRowStream implements RowStream {
                 FluxTable table = tables.get(j);
                 List<FluxRecord> records = table.getRecords();
                 if (index == records.size()) { // 数据已经消费完毕了
+                    values[ptr++] = null;
                     continue;
                 }
                 FluxRecord record = records.get(index);
@@ -126,6 +124,8 @@ public class InfluxDBHistoryQueryRowStream implements RowStream {
                     if (indices[j] == records.size()) {
                         hasMoreRecords--;
                     }
+                } else {
+                    values[ptr++] = null;
                 }
             }
         }

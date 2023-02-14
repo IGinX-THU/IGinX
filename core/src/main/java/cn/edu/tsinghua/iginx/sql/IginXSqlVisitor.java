@@ -19,10 +19,7 @@ import cn.edu.tsinghua.iginx.sql.expression.UnaryExpression;
 import cn.edu.tsinghua.iginx.sql.statement.*;
 import cn.edu.tsinghua.iginx.sql.statement.join.JoinPart;
 import cn.edu.tsinghua.iginx.sql.statement.join.JoinType;
-import cn.edu.tsinghua.iginx.thrift.DataType;
-import cn.edu.tsinghua.iginx.thrift.JobState;
-import cn.edu.tsinghua.iginx.thrift.StorageEngine;
-import cn.edu.tsinghua.iginx.thrift.UDFType;
+import cn.edu.tsinghua.iginx.thrift.*;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.TimeUtils;
 import org.antlr.v4.runtime.tree.TerminalNode;
@@ -31,7 +28,7 @@ import java.util.*;
 
 public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
-    private final static Set<SelectStatement.FuncType> supportedGroupByLevelFuncSet = new HashSet<>(
+    private final static Set<SelectStatement.FuncType> supportedAggregateWithLevelFuncSet = new HashSet<>(
         Arrays.asList(
             SelectStatement.FuncType.Sum,
             SelectStatement.FuncType.Count,
@@ -62,6 +59,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
             insertStatement.setGlobalTags(globalTags);
         }
         // parse paths
+        Set<Pair<String, Map<String, String>>> columnsSet = new HashSet<>();
         ctx.insertColumnsSpec().insertPath().forEach(e -> {
             String path = e.path().getText();
             Map<String, String> tags;
@@ -72,6 +70,9 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
                 tags = parseTagList(e.tagList());
             } else {
                 tags = insertStatement.getGlobalTags();
+            }
+            if (!columnsSet.add(new Pair<>(path, tags))) {
+                throw new SQLParserException("Insert statements should not contain duplicate paths.");
             }
             insertStatement.setPath(path, tags);
         });
@@ -223,6 +224,21 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     @Override
     public Statement visitShowClusterInfoStatement(ShowClusterInfoStatementContext ctx) {
         return new ShowClusterInfoStatement();
+    }
+
+    @Override
+    public Statement visitRemoveHistoryDataResourceStatement(RemoveHistoryDataResourceStatementContext ctx) {
+        RemoveHsitoryDataSourceStatement statement = new RemoveHsitoryDataSourceStatement();
+        ctx.removedStorageEngine().forEach(storageEngine -> {
+            String ipStr = storageEngine.ip.getText();
+            String schemaPrefixStr = storageEngine.schemaPrefix.getText();
+            String dataPrefixStr = storageEngine.dataPrefix.getText();
+            String ip = ipStr.substring(ipStr.indexOf(SQLConstant.QUOTE) + 1, ipStr.lastIndexOf(SQLConstant.QUOTE));
+            String schemaPrefix = schemaPrefixStr.substring(schemaPrefixStr.indexOf(SQLConstant.QUOTE) + 1, schemaPrefixStr.lastIndexOf(SQLConstant.QUOTE));
+            String dataPrefix = dataPrefixStr.substring(dataPrefixStr.indexOf(SQLConstant.QUOTE) + 1, dataPrefixStr.lastIndexOf(SQLConstant.QUOTE));
+            statement.addStorageEngine(new RemovedStorageEngineInfo(ip, Integer.parseInt(storageEngine.port.getText()), schemaPrefix, dataPrefix));
+        });
+        return statement;
     }
 
     private void parseFromPaths(FromClauseContext ctx, SelectStatement selectStatement) {
@@ -470,22 +486,16 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     }
 
     private void parseSpecialClause(SpecialClauseContext ctx, SelectStatement selectStatement) {
-        if (ctx.groupByClause() != null) {
-            // groupByClause = groupByTimeClause + groupByLevelClause
-            parseGroupByTimeClause(ctx.groupByClause().timeInterval(), ctx.groupByClause().TIME_WITH_UNIT(), selectStatement);
-            parseGroupByLevelClause(ctx.groupByClause().INT(), selectStatement);
+        if (ctx.downsampleWithLevelClause() != null) {
+            // downsampleWithLevelClause = downsampleClause + aggregateWithLevelClause
+            parseDownsampleClause(ctx.downsampleClause(), selectStatement);
+            parseAggregateWithLevelClause(ctx.aggregateWithLevelClause().INT(), selectStatement);
         }
-        if (ctx.groupByTimeClause() != null) {
-            parseGroupByTimeClause(ctx.groupByTimeClause().timeInterval(), ctx.groupByTimeClause().TIME_WITH_UNIT(0), selectStatement);
-            if (ctx.groupByTimeClause().SLIDE() != null) {
-                String slideDistanceStr = ctx.groupByTimeClause().TIME_WITH_UNIT(1).getText();
-                long distance = TimeUtils.convertTimeWithUnitStrToLong(0, slideDistanceStr);
-                selectStatement.setSlideDistance(distance);
-                selectStatement.setHasSlideWindow(true);
-            }
+        if (ctx.downsampleClause() != null) {
+            parseDownsampleClause(ctx.downsampleClause(), selectStatement);
         }
-        if (ctx.groupByLevelClause() != null) {
-            parseGroupByLevelClause(ctx.groupByLevelClause().INT(), selectStatement);
+        if (ctx.aggregateWithLevelClause() != null) {
+            parseAggregateWithLevelClause(ctx.aggregateWithLevelClause().INT(), selectStatement);
         }
         if (ctx.limitClause() != null) {
             Pair<Integer, Integer> limitAndOffset = parseLimitClause(ctx.limitClause());
@@ -497,20 +507,24 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         }
     }
 
-    private void parseGroupByTimeClause(TimeIntervalContext timeIntervalContext, TerminalNode duration, SelectStatement selectStatement) {
-        String durationStr = duration.getText();
+    private void parseDownsampleClause(DownsampleClauseContext ctx, SelectStatement selectStatement) {
+        String durationStr = ctx.TIME_WITH_UNIT(0).getText();
         long precision = TimeUtils.convertTimeWithUnitStrToLong(0, durationStr);
-        Pair<Long, Long> timeInterval = parseTimeInterval(timeIntervalContext);
+        Pair<Long, Long> timeInterval = parseTimeInterval(ctx.timeInterval());
         selectStatement.setStartTime(timeInterval.k);
         selectStatement.setEndTime(timeInterval.v);
         selectStatement.setPrecision(precision);
         selectStatement.setSlideDistance(precision);
-        selectStatement.setHasGroupByTime(true);
-        selectStatement.setHasSlideWindow(false);
+        selectStatement.setHasDownsample(true);
+        if (ctx.STEP() != null) {
+            String slideDistanceStr = ctx.TIME_WITH_UNIT(1).getText();
+            long distance = TimeUtils.convertTimeWithUnitStrToLong(0, slideDistanceStr);
+            selectStatement.setSlideDistance(distance);
+        }
 
         // merge value filter and group time range filter
-        TimeFilter startTime = new TimeFilter(Op.GE, timeInterval.k);
-        TimeFilter endTime = new TimeFilter(Op.L, timeInterval.v);
+        KeyFilter startTime = new KeyFilter(Op.GE, timeInterval.k);
+        KeyFilter endTime = new KeyFilter(Op.L, timeInterval.v);
         Filter mergedFilter;
         if (selectStatement.hasValueFilter()) {
             mergedFilter = new AndFilter(new ArrayList<>(Arrays.asList(selectStatement.getFilter(), startTime, endTime)));
@@ -520,22 +534,16 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         }
         selectStatement.setFilter(mergedFilter);
     }
-    
-    private void parseSlideWindowByTimeClause(TimeIntervalContext timeIntervalContext, TerminalNode duration, TerminalNode slideDistance, SelectStatement selectStatement) {
-        parseGroupByTimeClause(timeIntervalContext, duration, selectStatement);
-        String slideDistanceStr = slideDistance.getText();
 
-    }
-
-    private void parseGroupByLevelClause(List<TerminalNode> layers, SelectStatement selectStatement) {
-        if (!isSupportGroupByLevel(selectStatement)) {
-            throw new SQLParserException("Group by level only support aggregate query count, sum, avg for now.");
+    private void parseAggregateWithLevelClause(List<TerminalNode> layers, SelectStatement selectStatement) {
+        if (!isSupportAggregateWithLevel(selectStatement)) {
+            throw new SQLParserException("Aggregate with level only support aggregate query count, sum, avg for now.");
         }
         layers.forEach(terminalNode -> selectStatement.setLayer(Integer.parseInt(terminalNode.getText())));
     }
 
-    private boolean isSupportGroupByLevel(SelectStatement selectStatement) {
-        return supportedGroupByLevelFuncSet.containsAll(selectStatement.getFuncTypeSet());
+    private boolean isSupportAggregateWithLevel(SelectStatement selectStatement) {
+        return supportedAggregateWithLevelFuncSet.containsAll(selectStatement.getFuncTypeSet());
     }
 
     // like standard SQL, limit N, M means limit M offset N
@@ -567,7 +575,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
             }
             selectStatement.setOrderByPath(orderByPath);
         } else {
-            selectStatement.setOrderByPath(SQLConstant.TIME);
+            selectStatement.setOrderByPath(SQLConstant.KEY);
         }
         if (ctx.DESC() != null) {
             selectStatement.setAscending(false);
@@ -691,7 +699,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
             return ctx.OPERATOR_NOT() == null ? filter : new NotFilter(filter);
         } else {
             if (ctx.path().size() == 0) {
-                return parseTimeFilter(ctx);
+                return parseKeyFilter(ctx);
             } else {
                 StatementType type = statement.getType();
                 if (type != StatementType.SELECT) {
@@ -709,14 +717,14 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         }
     }
 
-    private TimeFilter parseTimeFilter(PredicateContext ctx) {
+    private KeyFilter parseKeyFilter(PredicateContext ctx) {
         Op op = Op.str2Op(ctx.comparisonOperator().getText());
-        // deal with sub clause like 100 < time
+        // deal with sub clause like 100 < key
         if (ctx.children.get(0) instanceof ConstantContext) {
             op = Op.getDirectionOpposite(op);
         }
         long time = (long) parseValue(ctx.constant());
-        return new TimeFilter(op, time);
+        return new KeyFilter(op, time);
     }
 
     private Filter parseValueFilter(PredicateContext ctx, SelectStatement statement) {

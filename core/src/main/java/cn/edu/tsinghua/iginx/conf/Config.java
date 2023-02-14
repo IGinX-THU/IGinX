@@ -38,7 +38,7 @@ public class Config {
 
     private String zookeeperConnectionString = "127.0.0.1:2181";
 
-    private String storageEngineList = "127.0.0.1#6667#iotdb11#username=root#password=root#sessionPoolSize=20#dataDir=/path/to/your/data/";
+    private String storageEngineList = "127.0.0.1#6667#iotdb12#username=root#password=root#sessionPoolSize=20#dataDir=/path/to/your/data/";
 
     private int maxAsyncRetryTimes = 2;
 

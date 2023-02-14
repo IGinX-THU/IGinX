@@ -19,6 +19,7 @@
 package cn.edu.tsinghua.iginx.metadata.storage.zk;
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
+import cn.edu.tsinghua.iginx.conf.Constants;
 import cn.edu.tsinghua.iginx.exceptions.MetaStorageException;
 import cn.edu.tsinghua.iginx.metadata.cache.IMetaCache;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
@@ -110,8 +111,6 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
 
     private static final String STATISTICS_FRAGMENT_REQUESTS_PREFIX_READ = "/statistics/fragment/requests/read";
 
-    private static final String STATISTICS_MONITOR_CLEAR_COUNTER_PREFIX = "/statistics/monitor/clear/counter";
-
     private static final String STATISTICS_FRAGMENT_REQUESTS_COUNTER_PREFIX = "/statistics/fragment/requests/counter";
 
     private static final String STATISTICS_FRAGMENT_HEAT_PREFIX_WRITE = "/statistics/fragment/heat/write";
@@ -139,6 +138,8 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
     private static final String TRANSFORM_LOCK_NODE = "/lock/transform";
 
     private boolean isMaster = false;
+
+    private final int STORAGE_ENGINE_NODE_NUM_LENGTH = 10; // Default serial number length of the persistent node
 
     private static ZooKeeperMetaStorage INSTANCE = null;
 
@@ -220,6 +221,10 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
             }
         }
         return INSTANCE;
+    }
+
+    private String generateID(String prefix, long idLength, long val) {
+        return String.format(prefix + "%0" + idLength + "d", (int) val);
     }
 
     @Override
@@ -497,6 +502,26 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
             return id;
         } catch (Exception e) {
             throw new MetaStorageException("get error when add storage engine", e);
+        } finally {
+            try {
+                mutex.release();
+            } catch (Exception e) {
+                throw new MetaStorageException("get error when release interprocess lock for " + SCHEMA_MAPPING_LOCK_NODE, e);
+            }
+        }
+    }
+
+    @Override
+    public boolean updateStorageEngine(long storageID, StorageEngineMeta storageEngine) throws MetaStorageException {
+        InterProcessMutex mutex = new InterProcessMutex(this.client, STORAGE_ENGINE_LOCK_NODE);
+        try { // node0000000002 STORAGE_ENGINE_NODE_NUM_LENGTH
+            mutex.acquire();
+            String tmp = new String(JsonUtils.toJson(storageEngine));
+            String nodeName = generateID(STORAGE_ENGINE_NODE, STORAGE_ENGINE_NODE_NUM_LENGTH, storageID);
+            this.client.setData().forPath(nodeName, tmp.getBytes());
+            return true;
+        } catch (Exception e) {
+            throw new MetaStorageException("get error when update storage engine", e);
         } finally {
             try {
                 mutex.release();
@@ -826,7 +851,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
             this.client.delete().forPath(STATISTICS_FRAGMENT_REQUESTS_PREFIX_READ + "/" + fragmentMeta.getTsInterval().toString() + "/" + fragmentMeta.getTimeInterval().toString());
             this.client.delete().forPath(STATISTICS_FRAGMENT_POINTS_PREFIX + "/" + fragmentMeta.getTsInterval().toString() + "/" + fragmentMeta.getTimeInterval().toString());
         } catch (Exception e) {
-            throw new MetaStorageException("get error when add fragment", e);
+            throw new MetaStorageException("get error when remove fragment", e);
         }
     }
 
@@ -1611,40 +1636,6 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
             throw new MetaStorageException(
                     "encounter error when acquiring fragment requests counter mutex: ",
                     e);
-        }
-    }
-
-    @Override
-    public void incrementMonitorClearCounter() throws MetaStorageException {
-        try {
-            if (this.client.checkExists().forPath(STATISTICS_MONITOR_CLEAR_COUNTER_PREFIX) == null) {
-                this.client.create().creatingParentsIfNeeded().withMode(CreateMode.PERSISTENT)
-                        .forPath(STATISTICS_MONITOR_CLEAR_COUNTER_PREFIX, JsonUtils.toJson(1));
-            } else {
-                int counter = JsonUtils.fromJson(
-                        this.client.getData().forPath(STATISTICS_MONITOR_CLEAR_COUNTER_PREFIX),
-                        Integer.class);
-                this.client.setData()
-                        .forPath(STATISTICS_MONITOR_CLEAR_COUNTER_PREFIX, JsonUtils.toJson(counter + 1));
-            }
-        } catch (Exception e) {
-            throw new MetaStorageException("encounter error when updating monitor clear counter: ",
-                    e);
-        }
-    }
-
-    @Override
-    public int getMonitorClearCounter() throws MetaStorageException {
-        try {
-            if (this.client.checkExists().forPath(STATISTICS_MONITOR_CLEAR_COUNTER_PREFIX) == null) {
-                return 0;
-            } else {
-                return JsonUtils.fromJson(
-                        this.client.getData().forPath(STATISTICS_MONITOR_CLEAR_COUNTER_PREFIX),
-                        Integer.class);
-            }
-        } catch (Exception e) {
-            throw new MetaStorageException("encounter error when get monitor clear counter: ", e);
         }
     }
 
