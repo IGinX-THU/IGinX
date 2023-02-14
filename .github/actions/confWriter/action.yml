@@ -39,6 +39,12 @@ runs:
           fi
         fi
 
+    - if: inputs.confFile=='DBName'
+      name: Change conf/config.properties
+      shell: bash
+      run: |
+        echo "${{inputs.DB-name}}" > ${GITHUB_WORKSPACE}/test/src/test/java/cn/edu/tsinghua/iginx/integration/DBConf.txt
+
     - if: inputs.confFile=='iginxConf'
       name: Change conf/config.properties
       shell: bash
