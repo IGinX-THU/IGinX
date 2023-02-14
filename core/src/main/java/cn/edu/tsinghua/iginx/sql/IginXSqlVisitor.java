@@ -508,8 +508,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     }
 
     private void parseDownsampleClause(DownsampleClauseContext ctx, SelectStatement selectStatement) {
-        String durationStr = ctx.TIME_WITH_UNIT(0).getText();
-        long precision = TimeUtils.convertTimeWithUnitStrToLong(0, durationStr);
+        long precision = parseAggLen(ctx.aggLen(0));
         Pair<Long, Long> timeInterval = parseTimeInterval(ctx.timeInterval());
         selectStatement.setStartTime(timeInterval.k);
         selectStatement.setEndTime(timeInterval.v);
@@ -517,8 +516,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         selectStatement.setSlideDistance(precision);
         selectStatement.setHasDownsample(true);
         if (ctx.STEP() != null) {
-            String slideDistanceStr = ctx.TIME_WITH_UNIT(1).getText();
-            long distance = TimeUtils.convertTimeWithUnitStrToLong(0, slideDistanceStr);
+            long distance = parseAggLen(ctx.aggLen(1));
             selectStatement.setSlideDistance(distance);
         }
 
@@ -593,6 +591,15 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
             }
             expression.setAlias(alias);
         }));
+    }
+
+    private long parseAggLen(AggLenContext ctx) {
+        if (ctx.TIME_WITH_UNIT() != null) {
+            String durationStr = ctx.TIME_WITH_UNIT().getText();
+            return TimeUtils.convertTimeWithUnitStrToLong(0, durationStr);
+        } else {
+            return Integer.parseInt(ctx.INT().getText());
+        }
     }
 
     private Pair<Long, Long> parseTimeInterval(TimeIntervalContext interval) {

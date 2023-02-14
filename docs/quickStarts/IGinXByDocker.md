@@ -142,7 +142,7 @@ Server: Docker Engine - Community
 
 ```shell
 $ cd ~
-$ git clone git@github.com:THUIGinX/IGinX.git # 拉取最新的 IGinX 代码
+$ git clone git@github.com:IGinX-THU/IGinX.git # 拉取最新的 IGinX 代码
 $ cd IGinX
 $ mvn clean install -Dmaven.test.skip=true # 编译 IGinX
 ```
