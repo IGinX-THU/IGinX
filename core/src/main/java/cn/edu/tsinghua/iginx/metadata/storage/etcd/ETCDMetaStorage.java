@@ -585,9 +585,9 @@ public class ETCDMetaStorage implements IMetaStorage {
 
     private long nextId(String category) throws InterruptedException, ExecutionException {
         return client.getKVClient().put(
-                        ByteSequence.from(category.getBytes()),
-                        ByteSequence.EMPTY,
-                        PutOption.newBuilder().withPrevKV().build())
+                ByteSequence.from(category.getBytes()),
+                ByteSequence.EMPTY,
+                PutOption.newBuilder().withPrevKV().build())
                 .get()
                 .getPrevKv()
                 .getVersion();
@@ -1050,7 +1050,7 @@ public class ETCDMetaStorage implements IMetaStorage {
             lockUser();
             Map<String, UserMeta> users = new HashMap<>();
             GetResponse response = this.client.getKVClient().get(ByteSequence.from(USER_PREFIX.getBytes()),
-                            GetOption.newBuilder().withPrefix(ByteSequence.from(USER_PREFIX.getBytes())).build())
+                    GetOption.newBuilder().withPrefix(ByteSequence.from(USER_PREFIX.getBytes())).build())
                     .get();
             if (response.getCount() != 0L) { // 服务器上已经有了，本地的不作数
                 response.getKvs().forEach(e -> {
@@ -1264,42 +1264,6 @@ public class ETCDMetaStorage implements IMetaStorage {
 
     @Override
     public void updateFragmentRequests(Map<FragmentMeta, Long> writeRequestsMap, Map<FragmentMeta, Long> readRequestsMap) throws Exception {
-        GetResponse response = client.getKVClient().get(ByteSequence.from(STATISTICS_FRAGMENT_REQUESTS_PREFIX_WRITE.getBytes())).get();
-        for (KeyValue kv : response.getKvs()) {
-            for (Map.Entry<FragmentMeta, Long> writeRequestsEntry : writeRequestsMap.entrySet()) {
-                if (writeRequestsEntry.getValue() > 0) {
-                    String requestsPath =
-                            STATISTICS_FRAGMENT_REQUESTS_PREFIX_WRITE + "/" + writeRequestsEntry.getKey()
-                                    .getTsInterval()
-                                    .toString() + "/" + writeRequestsEntry.getKey().getTimeInterval().toString();
-                    if (requestsPath.equals(kv.getKey().toString())) {
-
-                    }
-                    String pointsPath =
-                            STATISTICS_FRAGMENT_POINTS_PREFIX + "/" + writeRequestsEntry.getKey()
-                                    .getTsInterval()
-                                    .toString() + "/" + writeRequestsEntry.getKey().getTimeInterval().toString();
-                    client.getKVClient().put(ByteSequence.from(requestsPath.getBytes()), ByteSequence.from(JsonUtils.toJson(writeRequestsEntry.getValue())));
-                    byte[] data = this.client.getData().forPath(requestsPath);
-                    long requests = JsonUtils.fromJson(data, Long.class);
-                    this.client.setData()
-                            .forPath(requestsPath, JsonUtils.toJson(requests + writeRequestsEntry.getValue()));
-
-                    if (this.client.checkExists().forPath(pointsPath) == null) {
-                        this.client.create().creatingParentsIfNeeded().withMode(CreateMode.PERSISTENT)
-                                .forPath(pointsPath, JsonUtils.toJson(writeRequestsEntry.getValue()));
-                    }
-                    data = this.client.getData().forPath(pointsPath);
-                    long points = JsonUtils.fromJson(data, Long.class);
-                    this.client.setData()
-                            .forPath(pointsPath, JsonUtils.toJson(points + writeRequestsEntry.getValue()));
-                }
-            }
-            if (kv.getKey().toString().equals(STATISTICS_FRAGMENT_REQUESTS_PREFIX_WRITE +)) {
-                byte[] data = JsonUtils.fromJson(kv.getValue().getBytes(), byte[].class);
-                return JsonUtils.fromJson(data, Integer.class);
-            }
-        }
         for (Map.Entry<FragmentMeta, Long> writeRequestsEntry : writeRequestsMap.entrySet()) {
             if (writeRequestsEntry.getValue() > 0) {
                 String requestsPath =
@@ -1310,20 +1274,21 @@ public class ETCDMetaStorage implements IMetaStorage {
                         STATISTICS_FRAGMENT_POINTS_PREFIX + "/" + writeRequestsEntry.getKey()
                                 .getTsInterval()
                                 .toString() + "/" + writeRequestsEntry.getKey().getTimeInterval().toString();
-                client.getKVClient().put(ByteSequence.from(requestsPath.getBytes()), ByteSequence.from(JsonUtils.toJson(writeRequestsEntry.getValue())));
-                byte[] data = this.client.getData().forPath(requestsPath);
-                long requests = JsonUtils.fromJson(data, Long.class);
-                this.client.setData()
-                        .forPath(requestsPath, JsonUtils.toJson(requests + writeRequestsEntry.getValue()));
-
-                if (this.client.checkExists().forPath(pointsPath) == null) {
-                    this.client.create().creatingParentsIfNeeded().withMode(CreateMode.PERSISTENT)
-                            .forPath(pointsPath, JsonUtils.toJson(writeRequestsEntry.getValue()));
+                GetResponse response = client.getKVClient().get(ByteSequence.from(requestsPath.getBytes())).get();
+                if (response == null || response.getCount() <= 0) {
+                    client.getKVClient().put(ByteSequence.from(requestsPath.getBytes()), ByteSequence.from(JsonUtils.toJson(writeRequestsEntry.getValue())));
+                } else {
+                    long requests = JsonUtils.fromJson(response.getKvs().get(0).getValue().getBytes(), Long.class);
+                    client.getKVClient().put(ByteSequence.from(requestsPath.getBytes()), ByteSequence.from(JsonUtils.toJson(requests + writeRequestsEntry.getValue())));
                 }
-                data = this.client.getData().forPath(pointsPath);
-                long points = JsonUtils.fromJson(data, Long.class);
-                this.client.setData()
-                        .forPath(pointsPath, JsonUtils.toJson(points + writeRequestsEntry.getValue()));
+
+                response = client.getKVClient().get(ByteSequence.from(pointsPath.getBytes())).get();
+                if (response == null || response.getCount() <= 0) {
+                    client.getKVClient().put(ByteSequence.from(pointsPath.getBytes()), ByteSequence.from(JsonUtils.toJson(writeRequestsEntry.getValue())));
+                } else {
+                    long points = JsonUtils.fromJson(response.getKvs().get(0).getValue().getBytes(), Long.class);
+                    client.getKVClient().put(ByteSequence.from(pointsPath.getBytes()), ByteSequence.from(JsonUtils.toJson(points + writeRequestsEntry.getValue())));
+                }
             }
         }
         for (Map.Entry<FragmentMeta, Long> readRequestsEntry : readRequestsMap.entrySet()) {
@@ -1331,21 +1296,24 @@ public class ETCDMetaStorage implements IMetaStorage {
                     STATISTICS_FRAGMENT_REQUESTS_PREFIX_READ + "/" + readRequestsEntry.getKey()
                             .getTsInterval()
                             .toString() + "/" + readRequestsEntry.getKey().getTimeInterval().toString();
-            if (this.client.checkExists().forPath(path) == null) {
-                this.client.create().creatingParentsIfNeeded().withMode(CreateMode.PERSISTENT)
-                        .forPath(path, JsonUtils.toJson(readRequestsEntry.getValue()));
+            GetResponse response = client.getKVClient().get(ByteSequence.from(path.getBytes())).get();
+            if (response == null || response.getCount() <= 0) {
+                client.getKVClient().put(ByteSequence.from(path.getBytes()), ByteSequence.from(JsonUtils.toJson(readRequestsEntry.getValue())));
+            } else {
+                long requests = JsonUtils.fromJson(response.getKvs().get(0).getValue().getBytes(), Long.class);
+                client.getKVClient().put(ByteSequence.from(path.getBytes()), ByteSequence.from(JsonUtils.toJson(requests + readRequestsEntry.getValue())));
             }
-            byte[] data = this.client.getData().forPath(path);
-            long requests = JsonUtils.fromJson(data, Long.class);
-            this.client.setData()
-                    .forPath(path, JsonUtils.toJson(requests + readRequestsEntry.getValue()));
         }
     }
 
     @Override
     public void removeFragmentRequests() throws MetaStorageException {
-        client.getKVClient().delete(ByteSequence.from(STATISTICS_FRAGMENT_REQUESTS_PREFIX_WRITE.getBytes())).get();
-        client.getKVClient().delete(ByteSequence.from(STATISTICS_FRAGMENT_REQUESTS_PREFIX_READ.getBytes())).get();
+        try {
+            client.getKVClient().delete(ByteSequence.from(STATISTICS_FRAGMENT_REQUESTS_PREFIX_WRITE.getBytes())).get();
+            client.getKVClient().delete(ByteSequence.from(STATISTICS_FRAGMENT_REQUESTS_PREFIX_READ.getBytes())).get();
+        } catch (Exception e) {
+            throw new MetaStorageException("encounter error when removing fragment requests: ", e);
+        }
     }
 
     @Override
@@ -1463,12 +1431,93 @@ public class ETCDMetaStorage implements IMetaStorage {
 
     @Override
     public void updateFragmentHeat(Map<FragmentMeta, Long> writeHotspotMap, Map<FragmentMeta, Long> readHotspotMap) throws Exception {
-
+        for (Map.Entry<FragmentMeta, Long> writeHotspotEntry : writeHotspotMap.entrySet()) {
+            String path =
+                    STATISTICS_FRAGMENT_HEAT_PREFIX_WRITE + "/" + writeHotspotEntry.getKey().getTsInterval()
+                            .toString() + "/" + writeHotspotEntry.getKey().getTimeInterval().toString();
+            GetResponse response = client.getKVClient().get(ByteSequence.from(path.getBytes())).get();
+            if (response == null || response.getCount() <= 0) {
+                client.getKVClient().put(ByteSequence.from(path.getBytes()), ByteSequence.from(JsonUtils.toJson(writeHotspotEntry.getValue())));
+            } else {
+                long heat = JsonUtils.fromJson(response.getKvs().get(0).getValue().getBytes(), Long.class);
+                client.getKVClient().put(ByteSequence.from(path.getBytes()), ByteSequence.from(JsonUtils.toJson(heat + writeHotspotEntry.getValue())));
+            }
+        }
+        for (Map.Entry<FragmentMeta, Long> readHotspotEntry : readHotspotMap.entrySet()) {
+            String path =
+                    STATISTICS_FRAGMENT_HEAT_PREFIX_READ + "/" + readHotspotEntry.getKey().getTsInterval()
+                            .toString() + "/" + readHotspotEntry.getKey().getTimeInterval().toString();
+            GetResponse response = client.getKVClient().get(ByteSequence.from(path.getBytes())).get();
+            if (response == null || response.getCount() <= 0) {
+                client.getKVClient().put(ByteSequence.from(path.getBytes()), ByteSequence.from(JsonUtils.toJson(readHotspotEntry.getValue())));
+            } else {
+                long heat = JsonUtils.fromJson(response.getKvs().get(0).getValue().getBytes(), Long.class);
+                client.getKVClient().put(ByteSequence.from(path.getBytes()), ByteSequence.from(JsonUtils.toJson(heat + readHotspotEntry.getValue())));
+            }
+        }
     }
 
     @Override
     public Pair<Map<FragmentMeta, Long>, Map<FragmentMeta, Long>> loadFragmentHeat(IMetaCache cache) throws Exception {
-        return null;
+        Map<FragmentMeta, Long> writeHotspotMap = new HashMap<>();
+        Map<FragmentMeta, Long> readHotspotMap = new HashMap<>();
+        GetResponse writeResponse = client.getKVClient().get(ByteSequence.from(STATISTICS_FRAGMENT_HEAT_PREFIX_WRITE.getBytes())).get();
+        GetResponse readResponse = client.getKVClient().get(ByteSequence.from(STATISTICS_FRAGMENT_HEAT_PREFIX_READ.getBytes())).get();
+        Map<String, List<KeyValue>> timeSeriesWriteRangeListMap = new HashMap<>();
+        Map<String, List<KeyValue>> timeSeriesReadRangeListMap = new HashMap<>();
+        if (writeResponse != null) {
+            for (KeyValue kv : writeResponse.getKvs()) {
+                String[] tuples = kv.getKey().toString().split("/");
+                List<KeyValue> keyValues = timeSeriesWriteRangeListMap.computeIfAbsent(tuples[tuples.length - 2], k -> new ArrayList<>());
+                keyValues.add(kv);
+            }
+        }
+        if (readResponse != null) {
+            for (KeyValue kv : readResponse.getKvs()) {
+                String[] tuples = kv.getKey().toString().split("/");
+                List<KeyValue> keyValues = timeSeriesReadRangeListMap.computeIfAbsent(tuples[tuples.length - 2], k -> new ArrayList<>());
+                keyValues.add(kv);
+            }
+        }
+        for (Map.Entry<String, List<KeyValue>> entry : timeSeriesWriteRangeListMap.entrySet()) {
+            TimeSeriesRange timeSeriesRange = TimeSeriesInterval.fromString(entry.getKey());
+            Map<TimeSeriesRange, List<FragmentMeta>> fragmentMapOfTimeSeriesInterval = cache
+                    .getFragmentMapByTimeSeriesInterval(timeSeriesRange);
+            List<FragmentMeta> fragmentMetas = fragmentMapOfTimeSeriesInterval.get(timeSeriesRange);
+
+            if (fragmentMetas != null) {
+                for (KeyValue kv : entry.getValue()) {
+                    String[] tuples = kv.getKey().toString().split("/");
+                    long startTime = Long.parseLong(tuples[tuples.length - 1]);
+                    for (FragmentMeta fragmentMeta : fragmentMetas) {
+                        if (fragmentMeta.getTimeInterval().getStartTime() == startTime) {
+                            long heat = JsonUtils.fromJson(kv.getValue().getBytes(), Long.class);
+                            writeHotspotMap.put(fragmentMeta, heat);
+                        }
+                    }
+                }
+            }
+        }
+        for (Map.Entry<String, List<KeyValue>> entry : timeSeriesReadRangeListMap.entrySet()) {
+            TimeSeriesRange timeSeriesRange = TimeSeriesInterval.fromString(entry.getKey());
+            Map<TimeSeriesRange, List<FragmentMeta>> fragmentMapOfTimeSeriesInterval = cache
+                    .getFragmentMapByTimeSeriesInterval(timeSeriesRange);
+            List<FragmentMeta> fragmentMetas = fragmentMapOfTimeSeriesInterval.get(timeSeriesRange);
+
+            if (fragmentMetas != null) {
+                for (KeyValue kv : entry.getValue()) {
+                    String[] tuples = kv.getKey().toString().split("/");
+                    long startTime = Long.parseLong(tuples[tuples.length - 1]);
+                    for (FragmentMeta fragmentMeta : fragmentMetas) {
+                        if (fragmentMeta.getTimeInterval().getStartTime() == startTime) {
+                            long heat = JsonUtils.fromJson(kv.getValue().getBytes(), Long.class);
+                            readHotspotMap.put(fragmentMeta, heat);
+                        }
+                    }
+                }
+            }
+        }
+        return new Pair<>(writeHotspotMap, readHotspotMap);
     }
 
     @Override
@@ -1723,7 +1772,7 @@ public class ETCDMetaStorage implements IMetaStorage {
             lockTransform();
             Map<String, TransformTaskMeta> taskMetaMap = new HashMap<>();
             GetResponse response = this.client.getKVClient().get(ByteSequence.from(TRANSFORM_PREFIX.getBytes()),
-                            GetOption.newBuilder().withPrefix(ByteSequence.from(TRANSFORM_PREFIX.getBytes())).build())
+                    GetOption.newBuilder().withPrefix(ByteSequence.from(TRANSFORM_PREFIX.getBytes())).build())
                     .get();
             if (response.getCount() != 0L) {
                 response.getKvs().forEach(e -> {
