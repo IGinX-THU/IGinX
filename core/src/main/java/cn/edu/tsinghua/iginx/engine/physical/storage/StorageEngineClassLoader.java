@@ -21,10 +21,10 @@ package cn.edu.tsinghua.iginx.engine.physical.storage;
 import cn.edu.tsinghua.iginx.conf.Constants;
 import cn.edu.tsinghua.iginx.utils.EnvUtils;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.jar.JarEntry;
@@ -32,40 +32,32 @@ import java.util.jar.JarFile;
 
 public class StorageEngineClassLoader extends ClassLoader {
 
-    private final String path;
+    private final File[] Jars;
 
-    private final Map<String, String> nameToJar;
+    private final Map<String, File> nameToJar;
 
     private final Map<String, Class<?>> classMap = new ConcurrentHashMap<>();
 
     public StorageEngineClassLoader(String path) throws IOException {
-        String tPath = EnvUtils.loadEnv(Constants.DRIVER, Constants.DRIVER_DIR);
-        this.path = tPath.endsWith(File.separator) ? tPath + path : tPath + File.separator + path;
+        File dir = new File(EnvUtils.loadEnv(Constants.DRIVER, Constants.DRIVER_DIR), path);
+        this.Jars = dir.listFiles(f -> f.isFile() && f.getName().endsWith(".jar"));
         this.nameToJar = new HashMap<>();
         preloadClassNames();
     }
 
     private void preloadClassNames() throws IOException {
-        List<File> jars = new ArrayList<>();
-        File[] files = new File(path).listFiles();
-        if (files == null) {
-            return;
+        if (Jars == null) {
+            return; // Instantiation of unused driver ClassLoader is not an error
         }
-        for (File f : files) {
-            if (f.isFile() && f.getName().endsWith(".jar"))
-                jars.add(f);
-        }
-        for (File jar : jars) {
-            Enumeration<JarEntry> entries = new JarFile(jar).entries();
-            while (entries.hasMoreElements()) {
-                JarEntry entry = entries.nextElement();
-                String name = entry.getName();
-                if (name.endsWith(".class")) {
-                    String clss = name.replace(".class", "").replaceAll("/", ".");
-                    nameToJar.put(clss, jar.getAbsolutePath());
-                }
+        for (File jar : Jars) {
+            try (JarFile jarFile = new JarFile(jar)) {
+                jarFile.stream().map(JarEntry::getName)
+                                .filter(name -> name.endsWith(".class"))
+                                .map(classFileName -> classFileName.replace(".class", "").replace('/', '.'))
+                                .forEach(className -> nameToJar.put(className, jar));
             }
         }
+        System.out.println(nameToJar.toString());
     }
 
     @Override
@@ -87,12 +79,20 @@ public class StorageEngineClassLoader extends ClassLoader {
     }
 
     private Class<?> findLocalClass(String name) {
-        byte[] result = getClassFromJars(name);
-        if (result == null) {
+        File jar = nameToJar.get(name);
+        if (jar == null) {
             return null;
-        } else {
-            return defineClass(name, result, 0, result.length);
         }
+        try (JarFile jarFile = new JarFile(jar)) {
+            String classFileName = name.replace('.', '/') + ".class";
+            try (InputStream is = jarFile.getInputStream(jarFile.getEntry(classFileName))) {
+                byte[] b = is.readAllBytes();
+                return defineClass(name, b, 0, b.length);
+            }            
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     @Override
@@ -104,38 +104,30 @@ public class StorageEngineClassLoader extends ClassLoader {
         return clazz;
     }
 
-    private byte[] getClassFromJars(String name) {
-        String jarPath = nameToJar.get(name);
-        if (jarPath == null) {
-            return null;
+    @Override
+    public URL getResource(String name) {
+        URL res = findLocalResource(name);
+        if (res != null) {
+            return res;
         }
-        try {
-            JarFile jar = new JarFile(jarPath);
-            Enumeration<JarEntry> entries = jar.entries();
-            while (entries.hasMoreElements()) {
-                JarEntry entry = entries.nextElement();
-                String entryName = entry.getName();
-                if (entryName.endsWith(".class")) {
-                    String entryClass = entryName.replace(".class", "").replaceAll("/", ".");
-                    if (entryClass.equals(name)) {
-                        InputStream input = jar.getInputStream(entry);
-                        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                        int bufferSize = 1024;
-                        byte[] buffer = new byte[bufferSize];
-                        int bytesNumRead;
-                        while ((bytesNumRead = input.read(buffer)) != -1) {
-                            baos.write(buffer, 0, bytesNumRead);
-                        }
-                        byte[] cc = baos.toByteArray();
-                        input.close();
-                        return cc;
-                    }
+        return super.getResource(name);
+    }
+    
+    private URL findLocalResource(String name) {
+        for (File jar : Jars) {
+            try (JarFile jarFile = new JarFile(jar)) {
+                if (jarFile.getJarEntry(name) != null) {
+                    return new URL("jar:" + jar.toURI().toURL().toString() + "!/" + name);
                 }
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-        } catch (IOException e) {
-            e.printStackTrace();
         }
         return null;
     }
 
+    @Override
+    protected URL findResource(String name) {
+        return findLocalResource(name);
+    }
 }
