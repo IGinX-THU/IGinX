@@ -834,4 +834,23 @@ public class IginxWorker implements IService.Iface {
         ).collect(Collectors.toList());
         return new GetMetaResp(fragments, storages, units);
     }
+
+    @Override
+    public LoadAvailableEndPointsResp loadAvailableEndPoints(LoadAvailableEndPointsReq req) throws TException {
+        if (!sessionManager.checkSession(req.getSessionId(), AuthType.Cluster)) {
+            return new LoadAvailableEndPointsResp(RpcUtils.ACCESS_DENY);
+        }
+        List<IginxMeta> metaList = metaManager.getIginxList();
+        int size = req.isSetSize() ? Math.min(req.getSize(), metaList.size()) : metaList.size();
+        int[] cards = AlgorithmUtils.washCard(metaList.size());
+        List<EndPoint> endPoints = new ArrayList<>();
+        for (int i = 0; i < size; i++) {
+            IginxMeta meta = metaList.get(cards[i]);
+            EndPoint endPoint = new EndPoint(meta.getIp(), meta.getPort());
+            endPoints.add(endPoint);
+        }
+        LoadAvailableEndPointsResp resp = new LoadAvailableEndPointsResp(RpcUtils.SUCCESS);
+        resp.setEndPoints(endPoints);
+        return resp;
+    }
 }
