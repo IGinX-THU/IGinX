@@ -373,6 +373,11 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         return new ShowEligibleJobStatement(jobState);
     }
 
+    @Override
+    public Statement visitCompactStatement(CompactStatementContext ctx) {
+        return new CompactStatement();
+    }
+
     private void parseSelectPaths(SelectClauseContext ctx, SelectStatement selectStatement) {
         List<ExpressionContext> expressions = ctx.expression();
 

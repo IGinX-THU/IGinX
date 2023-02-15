@@ -1,5 +1,8 @@
 package cn.edu.tsinghua.iginx.compaction;
 
+import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
+import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngineImpl;
+import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,9 +16,9 @@ public class CompactionManager {
     private static final List<Compaction> compactionList = new ArrayList<>();
 
     static {
-        compactionList.add(new FragmentDeletionCompaction());
-        compactionList.add(new LowWriteFragmentCompaction());
-        compactionList.add(new LowAccessFragmentCompaction());
+        compactionList.add(new FragmentDeletionCompaction(PhysicalEngineImpl.getInstance(), DefaultMetaManager.getInstance()));
+        compactionList.add(new LowWriteFragmentCompaction(PhysicalEngineImpl.getInstance(), DefaultMetaManager.getInstance()));
+        compactionList.add(new LowAccessFragmentCompaction(PhysicalEngineImpl.getInstance(), DefaultMetaManager.getInstance()));
     }
 
     private static final CompactionManager instance = new CompactionManager();
@@ -26,9 +29,13 @@ public class CompactionManager {
 
     public void clearFragment() throws Exception {
         logger.info("start to compact fragments");
-        for (Compaction compaction : compactionList) {
-            if (compaction.needCompaction()) {
-                compaction.compact();
+        if (ConfigDescriptor.getInstance().getConfig().isEnableInstantCompaction()) {
+            new InstantCompaction(PhysicalEngineImpl.getInstance(), DefaultMetaManager.getInstance()).compact();
+        } else {
+            for (Compaction compaction : compactionList) {
+                if (compaction.needCompaction()) {
+                    compaction.compact();
+                }
             }
         }
         logger.info("end compact fragments");

@@ -1,7 +1,7 @@
 package cn.edu.tsinghua.iginx.monitor;
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
-import cn.edu.tsinghua.iginx.engine.shared.operator.OperatorType;
+import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

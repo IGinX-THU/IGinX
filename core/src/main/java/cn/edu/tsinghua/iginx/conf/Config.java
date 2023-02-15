@@ -59,6 +59,10 @@ public class Config {
 
     private int loadBalanceCheckInterval = 3;
 
+    private boolean enableFragmentCompaction = false;
+
+    private boolean enableInstantCompaction = false; // 启动即时分片合并，仅用于测试
+
     private long fragmentCompactionWriteThreshold = 1000;
 
     private long fragmentCompactionReadThreshold = 1000;
@@ -321,6 +325,22 @@ public class Config {
 
     public void setLoadBalanceCheckInterval(int loadBalanceCheckInterval) {
         this.loadBalanceCheckInterval = loadBalanceCheckInterval;
+    }
+
+    public boolean isEnableFragmentCompaction() {
+        return enableFragmentCompaction;
+    }
+
+    public void setEnableFragmentCompaction(boolean enableFragmentCompaction) {
+        this.enableFragmentCompaction = enableFragmentCompaction;
+    }
+
+    public boolean isEnableInstantCompaction() {
+        return enableInstantCompaction;
+    }
+
+    public void setEnableInstantCompaction(boolean enableInstantCompaction) {
+        this.enableInstantCompaction = enableInstantCompaction;
     }
 
     public long getFragmentCompactionWriteThreshold() {

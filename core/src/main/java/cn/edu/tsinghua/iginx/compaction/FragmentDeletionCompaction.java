@@ -1,9 +1,11 @@
 package cn.edu.tsinghua.iginx.compaction;
 
+import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngine;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.shared.TimeRange;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
 import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
+import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import org.slf4j.Logger;
@@ -14,7 +16,11 @@ import java.util.*;
 public class FragmentDeletionCompaction extends Compaction {
 
     private static final Logger logger = LoggerFactory.getLogger(FragmentDeletionCompaction.class);
-    private List<FragmentMeta> toDeletionFragments;
+    private List<FragmentMeta> toDeletionFragments = new ArrayList<>();
+
+    public FragmentDeletionCompaction(PhysicalEngine physicalEngine, IMetaManager metaManager) {
+        super(physicalEngine, metaManager);
+    }
 
     @Override
     public boolean needCompaction() throws Exception {

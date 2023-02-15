@@ -1,16 +1,15 @@
 package cn.edu.tsinghua.iginx.compaction;
 
 import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngine;
-import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngineImpl;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.shared.TimeRange;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Migration;
 import cn.edu.tsinghua.iginx.engine.shared.operator.ShowTimeSeries;
 import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.GlobalSource;
-import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageUnitMeta;
@@ -18,8 +17,13 @@ import cn.edu.tsinghua.iginx.metadata.entity.StorageUnitMeta;
 import java.util.*;
 
 public abstract class Compaction {
-    protected final static PhysicalEngine physicalEngine = PhysicalEngineImpl.getInstance();
-    protected final IMetaManager metaManager = DefaultMetaManager.getInstance();
+    protected PhysicalEngine physicalEngine;
+    protected IMetaManager metaManager;
+
+    public Compaction(PhysicalEngine physicalEngine, IMetaManager metaManager) {
+        this.physicalEngine = physicalEngine;
+        this.metaManager = metaManager;
+    }
 
     public abstract boolean needCompaction() throws Exception;
 
@@ -56,6 +60,9 @@ public abstract class Compaction {
             }
             lastFragment = fragmentMeta;
         }
+        if (!lastFragmentGroup.isEmpty()) {
+            result.add(lastFragmentGroup);
+        }
         return result;
     }
 
@@ -70,23 +77,32 @@ public abstract class Compaction {
         long endTime = fragmentGroup.get(0).getTimeInterval().getEndTime();
 
         for (FragmentMeta fragmentMeta : fragmentGroup) {
+            // 找到新分片空间
+            startTimeseries = startTimeseries.compareTo(fragmentMeta.getTsInterval().getStartTimeSeries()) > 0 ? fragmentMeta.getTsInterval().getStartTimeSeries() : startTimeseries;
+            if (endTimeseries == null || fragmentMeta.getTsInterval().getEndTimeSeries() == null) {
+                endTimeseries = null;
+            } else {
+                endTimeseries = endTimeseries.compareTo(fragmentMeta.getTsInterval().getEndTimeSeries()) > 0 ? endTimeseries : fragmentMeta.getTsInterval().getEndTimeSeries();
+            }
+
             String storageUnitId = fragmentMeta.getMasterStorageUnitId();
             if (!storageUnitId.equals(targetStorageUnit.getId())) {
                 // 重写该分片的数据
                 Set<String> pathRegexSet = new HashSet<>();
-                ShowTimeSeries showTimeSeries = new ShowTimeSeries(new GlobalSource(), pathRegexSet, null,
-                        Integer.MAX_VALUE, 0);
+                ShowTimeSeries showTimeSeries = new ShowTimeSeries(new GlobalSource(),
+                        pathRegexSet, null, Integer.MAX_VALUE, 0);
                 RowStream rowStream = physicalEngine.execute(showTimeSeries);
                 SortedSet<String> pathSet = new TreeSet<>();
-                rowStream.getHeader().getFields().forEach(field -> {
-                    String timeSeries = field.getName();
+                while (rowStream != null && rowStream.hasNext()) {
+                    Row row = rowStream.next();
+                    String timeSeries = new String((byte[]) row.getValue(0));
                     if (timeSeries.contains("{") && timeSeries.contains("}")) {
                         timeSeries = timeSeries.split("\\{")[0];
                     }
                     if (fragmentMeta.getTsInterval().isContain(timeSeries)) {
                         pathSet.add(timeSeries);
                     }
-                });
+                }
                 Migration migration = new Migration(new GlobalSource(), fragmentMeta, new ArrayList<>(pathSet), targetStorageUnit);
                 physicalEngine.execute(migration);
                 // 更新存储点数信息
@@ -96,13 +112,13 @@ public abstract class Compaction {
         // TODO add write lock
         // 创建新分片
         FragmentMeta newFragment = new FragmentMeta(startTimeseries, endTimeseries, startTime, endTime, targetStorageUnit);
-        DefaultMetaManager.getInstance().addFragment(newFragment);
+        metaManager.addFragment(newFragment);
 
         for (FragmentMeta fragmentMeta : fragmentGroup) {
             String storageUnitId = fragmentMeta.getMasterStorageUnitId();
             if (!storageUnitId.equals(targetStorageUnit.getId())) {
                 // 删除原分片元数据信息
-                DefaultMetaManager.getInstance().removeFragment(fragmentMeta);
+                metaManager.removeFragment(fragmentMeta);
             }
         }
         // TODO release write lock
