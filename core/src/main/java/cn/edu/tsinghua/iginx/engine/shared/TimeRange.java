@@ -74,6 +74,13 @@ public final class TimeRange {
         return Objects.hash(beginTime, includeBeginTime, endTime, includeEndTime);
     }
 
+    @Override
+    public String toString() {
+        return (isIncludeBeginTime() ? "[" : "(") +
+            beginTime + ", " + endTime +
+            (isIncludeEndTime() ? "]":")");
+    }
+
     public long getActualBeginTime() {
         if (includeBeginTime) {
             return beginTime;

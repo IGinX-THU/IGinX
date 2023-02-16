@@ -31,4 +31,9 @@ public class Union extends AbstractBinaryOperator {
     public Operator copy() {
         return new Union(getSourceA().copy(), getSourceB().copy());
     }
+
+    @Override
+    public String getInfo() {
+        return "";
+    }
 }

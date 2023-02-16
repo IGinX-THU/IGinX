@@ -20,6 +20,11 @@ public class AddSchemaPrefix extends AbstractUnaryOperator {
         return new AddSchemaPrefix(getSource().copy(), schemaPrefix);
     }
 
+    @Override
+    public String getInfo() {
+        return "SchemaPrefix: " + schemaPrefix;
+    }
+
     public String getSchemaPrefix() {
         return schemaPrefix;
     }

@@ -46,4 +46,9 @@ public class Join extends AbstractBinaryOperator {
     public Operator copy() {
         return new Join(getSourceA().copy(), getSourceB().copy(), joinBy);
     }
+
+    @Override
+    public String getInfo() {
+        return "JoinBy: " + joinBy;
+    }
 }

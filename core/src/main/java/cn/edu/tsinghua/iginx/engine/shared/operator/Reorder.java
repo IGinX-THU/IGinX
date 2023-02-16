@@ -2,7 +2,6 @@ package cn.edu.tsinghua.iginx.engine.shared.operator;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -25,5 +24,16 @@ public class Reorder extends AbstractUnaryOperator {
 
     public List<String> getPatterns() {
         return patterns;
+    }
+
+    @Override
+    public String getInfo() {
+        StringBuilder builder = new StringBuilder();
+        builder.append("Order: ");
+        for (String pattern : patterns) {
+            builder.append(pattern).append(",");
+        }
+        builder.deleteCharAt(builder.length() - 1);
+        return builder.toString();
     }
 }
