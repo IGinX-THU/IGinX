@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.Set;
 
 public class UserManager {
-
+    @SuppressWarnings("unused")
     private static final Logger logger = LoggerFactory.getLogger(UserManager.class);
 
     private static UserManager instance;

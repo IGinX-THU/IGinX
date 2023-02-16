@@ -30,6 +30,7 @@ public class BatchTest {
 
         statement.clearBatch();
         Assert.assertEquals(Collections.emptyList(), statement.getBatchSQLList());
+        statement.close();
     }
 
     /* Batch query is not supported. */
@@ -39,6 +40,7 @@ public class BatchTest {
         IginXStatement statement = new IginXStatement(null, null);
         String sql = "SELECT a FROM test.batch WHERE a < 10;";
         statement.addBatch(sql);
+        statement.close();
     }
 
     @Test(expected = SQLException.class)
@@ -46,5 +48,6 @@ public class BatchTest {
         IginXStatement statement = new IginXStatement(null, null);
         String sql = "SHOW REPLICATION;";
         statement.addBatch(sql);
+        statement.close();
     }
 }

@@ -3,9 +3,6 @@ package cn.edu.tsinghua.iginx.utils;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.yaml.snakeyaml.Yaml;
-import org.yaml.snakeyaml.constructor.Constructor;
-
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -19,6 +16,8 @@ public class FileReader {
     private final static Logger logger = LoggerFactory.getLogger(FileReader.class);
 
     public FileReader(String path) throws FileNotFoundException {
+        // ??? why path & file are static
+        // assignment has no effect!
         path = path;
         file = new File(path);
     }

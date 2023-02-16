@@ -62,6 +62,11 @@ public enum FilterType {
                     }
                 }
                 break;
+            // TODO: case label. should we return true?
+            case Bool:
+                break;
+            case Path:
+                break;
         }
         return true;
     }
@@ -90,6 +95,8 @@ public enum FilterType {
                         return false;
                     }
                 }
+                break;
+            default: // TODO: case label
                 break;
         }
         return true;

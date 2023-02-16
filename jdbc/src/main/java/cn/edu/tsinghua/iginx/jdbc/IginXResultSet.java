@@ -48,6 +48,10 @@ public class IginXResultSet implements ResultSet {
                 break;
             case Query:
                 constructQueryResult(result);
+                break;
+            default:
+                // TODO: case label. should we do nothing for other cases?
+                break;
         }
 
         this.pos = -1;
