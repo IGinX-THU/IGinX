@@ -110,19 +110,6 @@ JMX_OPTS="$JMX_OPTS -Xmx${MAX_HEAP_SIZE}"
 ICONF="$IGINX_HOME/conf/config.properties"
 IDRIVER="$IGINX_HOME/driver/"
 
-# in case of parquet, initiation must be started specially
-PARQUET_EXIST=`cat ${ICONF} | grep -v '^#' | grep 'storageEngineList'|grep -i 'parquet'`
-if [[ -n $PARQUET_EXIST ]];then
-  OLD_IFS="$IFS"
-  IFS="#"
-  array=($PARQUET_EXIST)
-  IFS="$OLD_IFS"
-  DRIVER_NAME=${array[2]}
-  for f in ${IDRIVER}/${DRIVER_NAME}/*.jar; do
-    CLASSPATH=${CLASSPATH}":"$f
-  done
-fi
-
 export IGINX_CONF=$ICONF
 export IGINX_DRIVER=$IDRIVER
 
