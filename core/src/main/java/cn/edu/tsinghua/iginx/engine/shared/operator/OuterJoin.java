@@ -1,9 +1,9 @@
 package cn.edu.tsinghua.iginx.engine.shared.operator;
 
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.JoinAlgType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OuterJoinType;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,7 +26,8 @@ public class OuterJoin extends AbstractBinaryOperator {
 
     public OuterJoin(Source sourceA, Source sourceB, String prefixA, String prefixB,
         OuterJoinType outerJoinType, Filter filter, List<String> joinColumns) {
-        this(sourceA, sourceB, prefixA, prefixB, outerJoinType, filter, joinColumns, false, JoinAlgType.HashJoin);
+        this(sourceA, sourceB, prefixA, prefixB, outerJoinType, filter, joinColumns, false,
+            JoinAlgType.HashJoin);
     }
 
     public OuterJoin(Source sourceA, Source sourceB, String prefixA, String prefixB,
@@ -73,10 +74,30 @@ public class OuterJoin extends AbstractBinaryOperator {
     public boolean isNaturalJoin() {
         return isNaturalJoin;
     }
-    
+
     @Override
     public Operator copy() {
         return new OuterJoin(getSourceA().copy(), getSourceB().copy(), prefixA, prefixB,
             outerJoinType, filter.copy(), new ArrayList<>(joinColumns), isNaturalJoin, joinAlgType);
+    }
+
+    @Override
+    public String getInfo() {
+        StringBuilder builder = new StringBuilder();
+        builder.append("PrefixA: ").append(prefixA);
+        builder.append(", PrefixB: ").append(prefixB);
+        builder.append(", OuterJoinType: ").append(outerJoinType);
+        builder.append(", IsNatural: ").append(isNaturalJoin);
+        if (filter != null) {
+            builder.append(", Filter: ").append(filter.toString());
+        }
+        if (joinColumns != null) {
+            builder.append(", JoinColumns: ");
+            for (String col : joinColumns) {
+                builder.append(col).append(",");
+            }
+            builder.deleteCharAt(builder.length() - 1);
+        }
+        return builder.toString();
     }
 }

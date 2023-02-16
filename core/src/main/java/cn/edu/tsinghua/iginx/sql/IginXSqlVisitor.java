@@ -118,6 +118,9 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     @Override
     public Statement visitSelectStatement(SelectStatementContext ctx) {
         SelectStatement selectStatement = new SelectStatement();
+        if (ctx.EXPLAIN() != null) {
+            selectStatement.setNeedExplain(true);
+        }
         if (ctx.queryClause() != null) {
             parseQueryClause(ctx.queryClause(), selectStatement);
         }
