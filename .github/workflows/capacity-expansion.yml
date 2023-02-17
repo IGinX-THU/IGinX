@@ -121,15 +121,11 @@ jobs:
           version: ${VERSION}
           DB-name: ${{matrix.DB-name}}
           Test-Way: oriHasDataExpHasData
-      #            mvn test -q -Dtest=IoTDBSqlScaleOutIT#oriHasDataExpHasDataIT -DfailIfNoTests=false
-      #            mvn test -q -Dtest=IoTDBSessionScaleOutIT#oriHasDataExpHasDataIT -DfailIfNoTests=false
-      #            mvn test -q -Dtest=IoTDBRestfulScaleOutIT#oriHasDataExpHasDataIT -DfailIfNoTests=false
-      #            mvn test -q -Dtest=IoTDBTagScaleOutIT#oriHasDataExpHasDataIT -DfailIfNoTests=false
       - name: oriHasDataExpHasData IT
         if: always()
         run: |
           if [ "${{matrix.DB-name}}" == "iotdb12" ]; then
-            mvn test -q -Dtest=IoTDB12HistoryDataCapacityExpansionIT#oriHasDataExpHasData, TagIT, RestIT, IoTDB12SessionIT, IoTDBSQLSessionIT -DfailIfNoTests=false
+            mvn test -q -Dtest=IoTDB12HistoryDataCapacityExpansionIT#oriHasDataExpHasData,TagIT,RestIT,IoTDB12SessionIT,IoTDBSQLSessionIT -DfailIfNoTests=false
           else
             echo "${{matrix.DB-name}} is not supported"
           fi
@@ -141,15 +137,11 @@ jobs:
           version: ${VERSION}
           DB-name: ${{matrix.DB-name}}
           Test-Way: oriNoDataExpNoData
-      #            mvn test -q -Dtest=IoTDBSqlScaleOutIT#oriNoDataExpNoDataIT -DfailIfNoTests=false
-      #            mvn test -q -Dtest=IoTDBSessionScaleOutIT#oriNoDataExpNoDataIT -DfailIfNoTests=false
-      #            mvn test -q -Dtest=IoTDBRestfulScaleOutIT#oriNoDataExpNoDataIT -DfailIfNoTests=false
-      #            mvn test -q -Dtest=IoTDBTagScaleOutIT#oriNoDataExpNoDataIT -DfailIfNoTests=false
       - name: oriNoDataExpNoData IT
         if: always()
         run: |
           if [ "${{matrix.DB-name}}" == "iotdb12" ]; then
-            mvn test -q -Dtest=IoTDB12HistoryDataCapacityExpansionIT#oriNoDataExpNoData, TagIT, RestIT, IoTDB12SessionIT, IoTDBSQLSessionIT -DfailIfNoTests=false
+            mvn test -q -Dtest=IoTDB12HistoryDataCapacityExpansionIT#oriNoDataExpNoData,TagIT,RestIT,IoTDB12SessionIT,IoTDBSQLSessionIT -DfailIfNoTests=false
           else
             echo "${{matrix.DB-name}} is not supported"
           fi
@@ -161,15 +153,11 @@ jobs:
           version: ${VERSION}
           DB-name: ${{matrix.DB-name}}
           Test-Way: oriHasDataExpNoData
-      #            mvn test -q -Dtest=IoTDBSqlScaleOutIT#oriHasDataExpNoDataIT -DfailIfNoTests=false
-      #            mvn test -q -Dtest=IoTDBSessionScaleOutIT#oriHasDataExpNoDataIT -DfailIfNoTests=false
-      #            mvn test -q -Dtest=IoTDBRestfulScaleOutIT#oriHasDataExpNoDataIT -DfailIfNoTests=false
-      #            mvn test -q -Dtest=IoTDBTagScaleOutIT#oriHasDataExpNoDataIT -DfailIfNoTests=false
       - name: oriHasDataExpNoData IT
         if: always()
         run: |
           if [ "${{matrix.DB-name}}" == "iotdb12" ]; then
-            mvn test -q -Dtest=IoTDB12HistoryDataCapacityExpansionIT#oriHasDataExpNoData, TagIT, RestIT, IoTDB12SessionIT, IoTDBSQLSessionIT -DfailIfNoTests=false
+            mvn test -q -Dtest=IoTDB12HistoryDataCapacityExpansionIT#oriHasDataExpNoData,TagIT,RestIT,IoTDB12SessionIT,IoTDBSQLSessionIT -DfailIfNoTests=false
           else
             echo "${{matrix.DB-name}} is not supported"
           fi
@@ -181,17 +169,11 @@ jobs:
           version: ${VERSION}
           DB-name: ${{matrix.DB-name}}
           Test-Way: oriNoDataExpHasData
-#  mvn test -q -Dtest=IoTDBSqlScaleOutIT#oriNoDataExpHasDataIT -DfailIfNoTests=false
-#  mvn test -q -Dtest=IoTDBSessionScaleOutIT#oriNoDataExpHasDataIT -DfailIfNoTests=false
-#  mvn test -q -Dtest=IoTDBRestfulScaleOutIT#oriNoDataExpHasDataIT -DfailIfNoTests=false
-#  mvn test -q -Dtest=IoTDBTagScaleOutIT#oriNoDataExpHasDataIT -DfailIfNoTests=false
-#  mvn test -q -Dtest=IoTDB12HistoryDataCapacityExpansionIT#schemaPrefix -DfailIfNoTests=false
-#  mvn test -q -Dtest=IoTDB12HistoryDataCapacityExpansionIT#testAddSameDataPrefixWithDiffSchemaPrefix_AND_testRemoveHistoryDataSource -DfailIfNoTests=false
       - name: oriNoDataExpHasData IT
         if: always()
         run: |
           if [ "${{matrix.DB-name}}" == "iotdb12" ]; then
-            mvn test -q -Dtest=IoTDB12HistoryDataCapacityExpansionIT#oriNoDataExpHasData, TagIT, RestIT, IoTDB12SessionIT, IoTDBSQLSessionIT, IoTDB12HistoryDataCapacityExpansionIT#schemaPrefix, IoTDB12HistoryDataCapacityExpansionIT#testAddSameDataPrefixWithDiffSchemaPrefix_AND_testRemoveHistoryDataSource -DfailIfNoTests=false
+            mvn test -q -Dtest=IoTDB12HistoryDataCapacityExpansionIT#oriNoDataExpHasData,TagIT,RestIT,IoTDB12SessionIT,IoTDBSQLSessionIT,IoTDB12HistoryDataCapacityExpansionIT#schemaPrefix,IoTDB12HistoryDataCapacityExpansionIT#testAddSameDataPrefixWithDiffSchemaPrefix_AND_testRemoveHistoryDataSource -DfailIfNoTests=false
           else
             echo "${{matrix.DB-name}} is not supported"
           fi
