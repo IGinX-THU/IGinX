@@ -20,7 +20,7 @@ package cn.edu.tsinghua.iginx.integration;
 
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
-import cn.edu.tsinghua.iginx.integration.testControler.TestControler;
+import cn.edu.tsinghua.iginx.integration.testcontroler.TestControler;
 import cn.edu.tsinghua.iginx.session.SessionAggregateQueryDataSet;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.session.SessionQueryDataSet;

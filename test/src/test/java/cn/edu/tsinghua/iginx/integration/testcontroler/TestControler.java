@@ -1,6 +1,5 @@
-package cn.edu.tsinghua.iginx.integration.testControler;
+package cn.edu.tsinghua.iginx.integration.testcontroler;
 
-import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.TagIT;
@@ -12,7 +11,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -82,7 +80,7 @@ public class TestControler {
     }
 
     protected static final Logger logger = LoggerFactory.getLogger(TagIT.class);
-    private String FILEPATH = "./src/test/java/cn/edu/tsinghua/iginx/integration/testControler/testTask.txt";
+    private String FILEPATH = "./src/test/java/cn/edu/tsinghua/iginx/integration/testcontroler/testTask.txt";
     public static String CLEARDATAEXCP = "cn.edu.tsinghua.iginx.exceptions.ExecutionException: Caution: can not clear the data of read-only node.";
     private String MVNRUNTEST = "../.github/testUnion.sh";
     private String ADDSTORAGEENGINE = "ADD STORAGEENGINE (\"%s\", %s, \"%s\", \"%s\")";

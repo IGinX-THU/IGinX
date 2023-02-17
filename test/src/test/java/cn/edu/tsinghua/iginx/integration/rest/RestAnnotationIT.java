@@ -2,22 +2,16 @@ package cn.edu.tsinghua.iginx.integration.rest;
 
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
-import cn.edu.tsinghua.iginx.integration.testControler.TestControler;
+import cn.edu.tsinghua.iginx.integration.testcontroler.TestControler;
 import cn.edu.tsinghua.iginx.rest.MetricsResource;
 import cn.edu.tsinghua.iginx.session.Session;
-import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.alibaba.fastjson.JSONObject;
-import com.ibm.icu.impl.UCaseProps;
 import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 

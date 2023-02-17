@@ -5,7 +5,7 @@ import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
-import cn.edu.tsinghua.iginx.integration.testControler.TestControler;
+import cn.edu.tsinghua.iginx.integration.testcontroler.TestControler;
 import cn.edu.tsinghua.iginx.pool.SessionPool;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
