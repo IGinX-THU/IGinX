@@ -45,4 +45,12 @@ public class FunctionCall {
     public FunctionCall copy() {
         return new FunctionCall(function, new HashMap<>(params));
     }
+
+    @Override
+    public String toString() {
+        return String.format("{Name: %s, FuncType: %s, MappingType: %s}",
+            function.getIdentifier(),
+            function.getFunctionType(),
+            function.getMappingType());
+    }
 }

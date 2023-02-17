@@ -27,4 +27,9 @@ public class CrossJoin extends AbstractBinaryOperator {
     public Operator copy() {
         return new CrossJoin(getSourceA().copy(), getSourceB().copy(), prefixA, prefixB);
     }
+
+    @Override
+    public String getInfo() {
+        return "PrefixA: " + prefixA + ", PrefixB: " + prefixB;
+    }
 }

@@ -7,7 +7,7 @@ sqlStatement
 statement
     : INSERT INTO path tagList? insertColumnsSpec VALUES insertValuesSpec #insertStatement
     | DELETE FROM path (COMMA path)* whereClause? withClause? #deleteStatement
-    | queryClause #selectStatement
+    | EXPLAIN? queryClause #selectStatement
     | COUNT POINTS #countPointsStatement
     | DELETE TIME SERIES path (COMMA path)* withClause? #deleteTimeSeriesStatement
     | CLEAR DATA #clearDataStatement
@@ -349,6 +349,7 @@ keyWords
     | STEP
     | REMOVE
     | HISTORYDATARESOURCE
+    | EXPLAIN
     ;
 
 dateFormat
@@ -735,6 +736,10 @@ REMOVE
 
 HISTORYDATARESOURCE
     : H I S T O R Y D A T A R E S O U R C E
+    ;
+
+EXPLAIN
+    : E X P L A I N
     ;
 //============================
 // End of the keywords list

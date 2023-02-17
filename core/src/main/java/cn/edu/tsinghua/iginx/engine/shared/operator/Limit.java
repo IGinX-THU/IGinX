@@ -48,4 +48,9 @@ public class Limit extends AbstractUnaryOperator {
     public Operator copy() {
         return new Limit(getSource().copy(), limit, offset);
     }
+
+    @Override
+    public String getInfo() {
+        return "Limit: " + limit + ", Offset: " + offset;
+    }
 }
