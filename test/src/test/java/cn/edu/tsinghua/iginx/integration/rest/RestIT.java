@@ -2,6 +2,7 @@ package cn.edu.tsinghua.iginx.integration.rest;
 
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.integration.testControler.TestUnionControler;
 import cn.edu.tsinghua.iginx.rest.MetricsResource;
 import cn.edu.tsinghua.iginx.rest.bean.Query;
 import cn.edu.tsinghua.iginx.rest.bean.QueryResult;
@@ -60,15 +61,7 @@ public class RestIT {
 
     @After
     public void clearData() throws ExecutionException, SessionException {
-        if(!ifClearData) return;
-
-        String clearData = "CLEAR DATA;";
-
-        SessionExecuteSqlResult res = session.executeSql(clearData);
-        if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-            logger.error("Clear date execute fail. Caused by: {}.", res.getParseErrorMsg());
-            fail();
-        }
+        TestUnionControler.clearData(session);
     }
 
     private enum TYPE {
@@ -131,6 +124,10 @@ public class RestIT {
     }
 
     public void capacityExpansion() throws Exception {
+        if (ifClearData) {
+            return;
+        }
+
         testQueryWithoutTags();
         testQueryWithTags();
         testQueryWrongTags();

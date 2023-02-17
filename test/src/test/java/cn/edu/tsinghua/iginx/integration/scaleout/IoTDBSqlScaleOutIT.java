@@ -20,28 +20,24 @@ public class IoTDBSqlScaleOutIT extends SQLSessionIT implements IoTDBBaseScaleOu
     @Test
     public void oriHasDataExpHasDataIT() throws Exception {
         DBConf();
-        SQLSessionIT.session.executeSql("ADD STORAGEENGINE (\"127.0.0.1\", 6668, \"" + storageEngineType + "\", \"username:root, password:root, sessionPoolSize:20, has_data:true, is_read_only:true\");");
         capacityExpansion();
     }
 
     @Test
     public void oriHasDataExpNoDataIT() throws Exception {
         DBConf();
-        SQLSessionIT.session.executeSql("ADD STORAGEENGINE (\"127.0.0.1\", 6668, \"" + storageEngineType + "\", \"username:root, password:root, sessionPoolSize:20, has_data:no, is_read_only:true\");");
         capacityExpansion();
     }
 
     @Test
     public void oriNoDataExpHasDataIT() throws Exception {
         DBConf();
-        SQLSessionIT.session.executeSql("ADD STORAGEENGINE (\"127.0.0.1\", 6668, \"" + storageEngineType + "\", \"username:root, password:root, sessionPoolSize:20, has_data:true, is_read_only:true\");");
         capacityExpansion();
     }
 
     @Test
     public void oriNoDataExpNoDataIT() throws Exception {
         DBConf();
-        SQLSessionIT.session.executeSql("ADD STORAGEENGINE (\"127.0.0.1\", 6668, \"" + storageEngineType + "\", \"username:root, password:root, sessionPoolSize:20, has_data:no, is_read_only:true\");");
         capacityExpansion();
     }
 

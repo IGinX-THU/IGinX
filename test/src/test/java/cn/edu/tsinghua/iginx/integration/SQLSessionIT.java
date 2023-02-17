@@ -5,6 +5,7 @@ import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.integration.testControler.TestUnionControler;
 import cn.edu.tsinghua.iginx.pool.SessionPool;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
@@ -109,15 +110,21 @@ public abstract class SQLSessionIT {
 
     @After
     public void clearData() throws ExecutionException, SessionException {
-        if (!ifClearData) {
-            return;
-        }
-
         String clearData = "CLEAR DATA;";
 
-        SessionExecuteSqlResult res = session.executeSql(clearData);
-        if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-            logger.error("Clear date execute fail. Caused by: {}.", res.getParseErrorMsg());
+        SessionExecuteSqlResult res = null;
+        try {
+            res = session.executeSql(clearData);
+        } catch (SessionException | ExecutionException e) {
+            logger.error("Statement: \"{}\" execute fail. Caused by: {}", clearData, e.toString());
+            if (e.toString().equals(TestUnionControler.CLEARDATAEXCP)) {
+                logger.error("clear data fail and go on....");
+            }
+            else fail();
+        }
+
+        if (res != null && res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
+            logger.error("Statement: \"{}\" execute fail. Caused by: {}.", clearData, res.getParseErrorMsg());
             fail();
         }
     }
