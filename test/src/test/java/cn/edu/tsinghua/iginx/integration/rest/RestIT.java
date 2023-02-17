@@ -2,7 +2,7 @@ package cn.edu.tsinghua.iginx.integration.rest;
 
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
-import cn.edu.tsinghua.iginx.integration.testControler.TestUnionControler;
+import cn.edu.tsinghua.iginx.integration.testControler.TestControler;
 import cn.edu.tsinghua.iginx.rest.MetricsResource;
 import cn.edu.tsinghua.iginx.rest.bean.Query;
 import cn.edu.tsinghua.iginx.rest.bean.QueryResult;
@@ -61,7 +61,7 @@ public class RestIT {
 
     @After
     public void clearData() throws ExecutionException, SessionException {
-        TestUnionControler.clearData(session);
+        TestControler.clearData(session);
     }
 
     private enum TYPE {
