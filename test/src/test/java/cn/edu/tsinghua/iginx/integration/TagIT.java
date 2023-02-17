@@ -1298,9 +1298,8 @@ public class TagIT {
     }
 
     @Test
-    public void testClearData() {
-        String clearData = "CLEAR DATA;";
-        execute(clearData);
+    public void testClearData() throws SessionException, ExecutionException {
+        clearData();
 
         String countPoints = "COUNT POINTS;";
         String expected = "Points num: 0\n";
