@@ -1,5 +1,7 @@
 package cn.edu.tsinghua.iginx.parquet.server;
 
+import cn.edu.tsinghua.iginx.conf.Config;
+import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.parquet.exec.Executor;
 import cn.edu.tsinghua.iginx.parquet.thrift.ParquetService;
 import org.apache.thrift.TProcessor;
@@ -14,6 +16,8 @@ import org.slf4j.LoggerFactory;
 public class ParquetServer implements Runnable {
 
     private static final Logger logger = LoggerFactory.getLogger(ParquetServer.class);
+
+    private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
     private final int port;
 
@@ -30,7 +34,8 @@ public class ParquetServer implements Runnable {
         TThreadPoolServer.Args args = new TThreadPoolServer
             .Args(serverTransport)
             .processor(processor)
-            .minWorkerThreads(20);
+            .minWorkerThreads(config.getMinThriftWorkerThreadNum())
+            .maxWorkerThreads(config.getMaxThriftWrokerThreadNum());
         args.protocolFactory(new TBinaryProtocol.Factory());
         TServer server = new TThreadPoolServer(args);
         logger.info("parquet service starts successfully!");
