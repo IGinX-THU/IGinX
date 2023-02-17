@@ -481,7 +481,6 @@ public class IoTDBHistoryDataCapacityExpansionIT implements BaseCapacityExpansio
         statement = "count points";
         expect = "Points num: 3\n";
         SQLTestTools.executeAndCompare(session, statement, expect);
-
     }
 
     @Test

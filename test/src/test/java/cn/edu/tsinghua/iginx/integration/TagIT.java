@@ -20,6 +20,8 @@ public class TagIT {
 
     protected String storageEngineType;
     protected static boolean ifClearData;
+    protected boolean isAbleToDelete = true;
+    protected boolean ifScaleOutin = false;
 
     private String CLEARDATAEXCP = "cn.edu.tsinghua.iginx.exceptions.ExecutionException: Caution: can not clear the data of read-only node.";
 
@@ -325,6 +327,7 @@ public class TagIT {
 
     @Test
     public void testCountPoints() {
+        if (ifScaleOutin) return;
         String statement = "COUNT POINTS;";
         String expected = "Points num: 26\n";
         executeAndCompare(statement, expected);
@@ -730,6 +733,7 @@ public class TagIT {
 
     @Test
     public void testDeleteTSWithMultiTags() {
+        if (!isAbleToDelete) return;
         String showTimeSeries = "SHOW TIME SERIES ah.*;";
         String expected =
                 "Time series:\n"
@@ -1299,6 +1303,7 @@ public class TagIT {
 
     @Test
     public void testClearData() throws SessionException, ExecutionException {
+        if (!ifClearData) return;
         clearData();
 
         String countPoints = "COUNT POINTS;";

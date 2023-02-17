@@ -22,6 +22,7 @@ public class RestIT {
     protected static Logger logger = LoggerFactory.getLogger(MetricsResource.class);
 
     protected static Session session;
+    protected boolean isAbleToDelete = true;
 
     @BeforeClass
     public static void setUp() {
@@ -238,6 +239,7 @@ public class RestIT {
 
     @Test
     public void testDelete()  throws Exception {
+        if (!isAbleToDelete) return;
         String json = "testDelete.json";
         execute(json,TYPE.DELETE);
 
@@ -248,6 +250,7 @@ public class RestIT {
 
     @Test
     public void testDeleteMetric()  throws Exception {
+        if (!isAbleToDelete) return;
         String json = "archive.file.tracked";
         execute(json,TYPE.DELETEMETRIC);
 
