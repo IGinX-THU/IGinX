@@ -3,13 +3,12 @@ package cn.edu.tsinghua.iginx.sql.statement;
 import cn.edu.tsinghua.iginx.compaction.CompactionManager;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.Result;
-import cn.edu.tsinghua.iginx.thrift.SqlType;
 import cn.edu.tsinghua.iginx.utils.RpcUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class CompactStatement extends SystemStatement {
-    private static final Logger logger = LoggerFactory.getLogger(CompactionManager.class);
+    private static final Logger logger = LoggerFactory.getLogger(CompactStatement.class);
 
     public CompactStatement() {
         this.statementType = StatementType.COMPACT;

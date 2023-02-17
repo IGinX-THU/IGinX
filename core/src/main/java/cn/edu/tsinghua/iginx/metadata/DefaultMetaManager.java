@@ -22,7 +22,6 @@ import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.conf.Constants;
 import cn.edu.tsinghua.iginx.engine.physical.storage.StorageManager;
 import cn.edu.tsinghua.iginx.exceptions.MetaStorageException;
-import cn.edu.tsinghua.iginx.exceptions.StatusCode;
 import cn.edu.tsinghua.iginx.metadata.cache.DefaultMetaCache;
 import cn.edu.tsinghua.iginx.metadata.cache.IMetaCache;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
@@ -37,22 +36,19 @@ import cn.edu.tsinghua.iginx.monitor.RequestsMonitor;
 import cn.edu.tsinghua.iginx.policy.simple.TimeSeriesCalDO;
 import cn.edu.tsinghua.iginx.sql.statement.InsertStatement;
 import cn.edu.tsinghua.iginx.thrift.AuthType;
-import cn.edu.tsinghua.iginx.thrift.Status;
 import cn.edu.tsinghua.iginx.thrift.UserType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.SnowFlakeUtils;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
-import static cn.edu.tsinghua.iginx.metadata.utils.ReshardStatus.*;
+import static cn.edu.tsinghua.iginx.metadata.utils.ReshardStatus.EXECUTING;
 import static cn.edu.tsinghua.iginx.metadata.utils.ReshardStatus.NON_RESHARDING;
 
 public class DefaultMetaManager implements IMetaManager {
@@ -1385,18 +1381,6 @@ public class DefaultMetaManager implements IMetaManager {
     }
 
     @Override
-    public void updateTimeseriesHeat(Map<String, Long> timeseriesHeatMap) {
-        try {
-            storage.lockTimeseriesHeatCounter();
-            storage.updateTimeseriesLoad(timeseriesHeatMap);
-            storage.incrementTimeseriesHeatCounter();
-            storage.releaseTimeseriesHeatCounter();
-        } catch (Exception e) {
-            logger.error("encounter error when update timeseries heat: ", e);
-        }
-    }
-
-    @Override
     public void clearMonitors() {
         try {
             Thread.sleep(1000);
@@ -1450,79 +1434,6 @@ public class DefaultMetaManager implements IMetaManager {
             logger.error("encounter error when load fragment points: ", e);
             return new HashMap<>();
         }
-    }
-
-    @Override
-    public Map<String, Long> loadTimeseriesHeat() {
-        try {
-            return storage.loadTimeseriesHeat();
-        } catch (Exception e) {
-            logger.error("encounter error when load fragment points: ", e);
-            return new HashMap<>();
-        }
-    }
-
-    @Override
-    public void executeReshardJudging() {
-        try {
-            if (!reshardStatus.equals(NON_RESHARDING)) {
-                return;
-            }
-            storage.lockReshardStatus();
-            reshardStatus = JUDGING;
-            isProposer = true;
-            logger.info("iginx node {} propose to judge reshard", id);
-            storage.releaseReshardStatus();
-        } catch (MetaStorageException e) {
-            logger.error("encounter error when proposing to reshard: ", e);
-        }
-    }
-
-    @Override
-    public boolean executeReshard() {
-        try {
-            logger.error("reshardStatus = {}", reshardStatus);
-            if (!reshardStatus.equals(JUDGING)) {
-                return false;
-            }
-            storage.lockReshardStatus();
-            try {
-                // 提议进入重分片流程，返回值为 true 代表提议成功，本节点成为 proposer；为 false 代表提议失败，说明已有其他节点提议成功
-                if (storage.proposeToReshard()) {
-                    reshardStatus = EXECUTING;
-                    isProposer = true;
-                    // 生成最终节点状态和整体迁移计划
-                    // 根据整体迁移计划进行迁移
-                    logger.info("iginx node {} propose to reshard", id);
-                    // 在重分片判断阶段，proposer 节点不需要推送本地的存储后端统计信息
-                    return true;
-                } else {
-                    return false;
-                }
-            } finally {
-                storage.releaseReshardStatus();
-            }
-        } catch (MetaStorageException e) {
-            logger.error("encounter error when proposing to reshard: ", e);
-        }
-        return false;
-    }
-
-    @Override
-    public void doneReshard() {
-        try {
-            storage.lockReshardStatus();
-            reshardStatus = NON_RESHARDING;
-            storage.updateReshardStatus(NON_RESHARDING);
-            storage.releaseReshardStatus();
-        } catch (MetaStorageException e) {
-            logger.error("encounter error when proposing to reshard: ", e);
-        }
-    }
-
-    @Override
-    public boolean isResharding() {
-        return reshardStatus != NON_RESHARDING;
     }
 
     @Override

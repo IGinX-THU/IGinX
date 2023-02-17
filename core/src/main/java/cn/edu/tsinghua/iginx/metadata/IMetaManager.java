@@ -254,25 +254,13 @@ public interface IMetaManager {
     void updateFragmentHeat(Map<FragmentMeta, Long> writeHotspotMap,
                             Map<FragmentMeta, Long> readHotspotMap) throws Exception;
 
-    void updateTimeseriesHeat(Map<String, Long> timeseriesHeatMap) throws Exception;
-
     Pair<Map<FragmentMeta, Long>, Map<FragmentMeta, Long>> loadFragmentHeat() throws Exception;
 
     void updateFragmentPoints(FragmentMeta fragmentMeta, long points);
 
     Map<FragmentMeta, Long> loadFragmentPoints() throws Exception;
 
-    Map<String, Long> loadTimeseriesHeat() throws Exception;
-
     void clearMonitors();
-
-    boolean isResharding();
-
-    void executeReshardJudging();
-
-    boolean executeReshard();
-
-    void doneReshard();
 
     void removeFragment(FragmentMeta fragmentMeta);
 
