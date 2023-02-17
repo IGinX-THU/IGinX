@@ -77,4 +77,12 @@ public class Downsample extends AbstractUnaryOperator {
     public Operator copy() {
         return new Downsample(getSource().copy(), precision, slideDistance, functionCall.copy(), timeRange.copy());
     }
+
+    @Override
+    public String getInfo() {
+        return "Precision: " +precision+
+            ", SlideDistance: " +slideDistance+
+            ", TimeRange: " + timeRange.toString() +
+            ", Func: " + functionCall.toString();
+    }
 }

@@ -25,4 +25,9 @@ public class Insert extends AbstractUnaryOperator {
         // data should not be copied in memory.
         return new Insert((FragmentSource) getSource().copy(), data);
     }
+
+    @Override
+    public String getInfo() {
+        return "";
+    }
 }
