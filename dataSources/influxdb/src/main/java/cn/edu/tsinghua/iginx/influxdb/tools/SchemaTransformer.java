@@ -17,10 +17,6 @@ import static cn.edu.tsinghua.iginx.influxdb.tools.DataTypeTransformer.fromInflu
 public class SchemaTransformer {
 
     public static Field toField(String bucket, FluxTable table) {
-        return toField(bucket, table, null);
-    }
-
-    public static Field toField(String bucket, FluxTable table, String prefix) {
         FluxRecord record = table.getRecords().get(0);
         String measurement = record.getMeasurement();
         String field = record.getField();
@@ -36,10 +32,6 @@ public class SchemaTransformer {
         DataType dataType = fromInfluxDB(table.getColumns().stream().filter(x -> x.getLabel().equals("_value")).collect(Collectors.toList()).get(0).getDataType());
 
         StringBuilder pathBuilder = new StringBuilder();
-        if (prefix != null) {
-            pathBuilder.append(prefix);
-            pathBuilder.append('.');
-        }
         pathBuilder.append(bucket);
         pathBuilder.append('.');
         pathBuilder.append(measurement);
@@ -67,7 +59,7 @@ public class SchemaTransformer {
         if (index < parts.length) {
             // 接着处理 field
             String field = parts[index];
-            queryBuilder.append("r._field =~ /").append(InfluxDBSchema.transformField(field)).append("/");
+            queryBuilder.append(" and r._field =~ /").append(InfluxDBSchema.transformField(field)).append("/");
         }
         queryBuilder.append(")");
         return new Pair<>(bucketName, queryBuilder.toString());

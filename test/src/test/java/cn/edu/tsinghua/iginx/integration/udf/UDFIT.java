@@ -68,7 +68,7 @@ public class UDFIT {
 
     @Before
     public void insertData() throws ExecutionException, SessionException {
-        String insertStrPrefix = "INSERT INTO us.d1 (timestamp, s1, s2, s3, s4) values ";
+        String insertStrPrefix = "INSERT INTO us.d1 (key, s1, s2, s3, s4) values ";
 
         long startTimestamp = 0L;
         long endTimestamp = 15000L;
@@ -129,16 +129,19 @@ public class UDFIT {
 
     @Test
     public void baseTests() {
-        String udtfSQLFormat = "SELECT %s(s1) FROM us.d1 WHERE time < 200;";
-        String udafSQLFormat = "SELECT %s(s1) FROM us.d1 GROUP [0, 200) BY 50ms;";
+        String udtfSQLFormat = "SELECT %s(s1) FROM us.d1 WHERE key < 200;";
+        String udafSQLFormat = "SELECT %s(s1) FROM us.d1 OVER (RANGE 50 IN [0, 200));";
+        String udsfSQLFormat = "SELECT %s(s1) FROM us.d1 WHERE key < 50;";
 
         List<TransformTaskMeta> taskMetas = metaManager.getTransformTasks();
         for (TransformTaskMeta taskMeta : taskMetas) {
             // execute udf
             if (taskMeta.getType().equals(UDFType.UDTF)) {
                 execute(String.format(udtfSQLFormat, taskMeta.getName()));
-            } else {
+            } else if (taskMeta.getType().equals(UDFType.UDAF)) {
                 execute(String.format(udafSQLFormat, taskMeta.getName()));
+            } else {
+                execute(String.format(udsfSQLFormat, taskMeta.getName()));
             }
         }
     }
@@ -149,7 +152,7 @@ public class UDFIT {
 
         SessionExecuteSqlResult ret = execute(statement);
         assertEquals(Collections.singletonList("cos(us.d1.s1)"), ret.getPaths());
-        assertArrayEquals(new long[]{0L, 1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L, 9L}, ret.getTimestamps());
+        assertArrayEquals(new long[]{0L, 1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L, 9L}, ret.getKeys());
 
         List<Double> expectedValues = Arrays.asList(1.0, 0.5403023058681398, -0.4161468365471424, -0.9899924966004454,
             -0.6536436208636119, 0.2836621854632263, 0.9601702866503661, 0.7539022543433046, -0.14550003380861354, -0.9111302618846769);

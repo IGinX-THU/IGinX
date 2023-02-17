@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>opentsdb</artifactId>
-    <name>IginX OpenTSDB</name>
+    <name>IGinX OpenTSDB</name>
 
     <properties>
         <maven.compiler.source>8</maven.compiler.source>

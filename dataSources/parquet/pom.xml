@@ -11,7 +11,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <artifactId>parquet</artifactId>
-  <name>IginX Parquet</name>
+  <name>IGinX Parquet</name>
 
   <properties>
     <maven.compiler.source>8</maven.compiler.source>

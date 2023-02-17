@@ -18,10 +18,11 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.TimeFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
 import cn.edu.tsinghua.iginx.parquet.exec.Executor;
 import cn.edu.tsinghua.iginx.parquet.exec.LocalExecutor;
+import cn.edu.tsinghua.iginx.parquet.exec.NewExecutor;
 import cn.edu.tsinghua.iginx.parquet.exec.RemoteExecutor;
 import cn.edu.tsinghua.iginx.parquet.policy.NaiveParquetStoragePolicy;
 import cn.edu.tsinghua.iginx.parquet.policy.ParquetStoragePolicy;
@@ -85,9 +86,7 @@ public class ParquetStorage implements IStorage {
             throw new StorageInitializationException("cannot connect to " + meta.toString());
         }
 
-        ParquetStoragePolicy policy = new NaiveParquetStoragePolicy(dataDir, connection);
-
-        this.executor = new LocalExecutor(policy, connection, dataDir);
+        this.executor = new NewExecutor(connection, dataDir);
 
         new Thread(new ParquetServer(meta.getPort(), executor)).start();
     }
@@ -130,16 +129,15 @@ public class ParquetStorage implements IStorage {
                 filter = ((Select) operators.get(1)).getFilter();
             } else {
                 filter = new AndFilter(Arrays.asList(
-                    new TimeFilter(Op.GE, fragment.getTimeInterval().getStartTime()),
-                    new TimeFilter(Op.L, fragment.getTimeInterval().getEndTime())));
+                    new KeyFilter(Op.GE, fragment.getTimeInterval().getStartTime()),
+                    new KeyFilter(Op.L, fragment.getTimeInterval().getEndTime())));
             }
             return executor.executeProjectTask(
                 project.getPatterns(),
                 project.getTagFilter(),
                 FilterTransformer.toString(filter),
                 storageUnit,
-                isDummyStorageUnit,
-                task.getTargetFragment().getTsInterval().getSchemaPrefix());
+                isDummyStorageUnit);
         } else if (op.getType() == OperatorType.Insert) {
             Insert insert = (Insert) op;
             return executor.executeInsertTask(

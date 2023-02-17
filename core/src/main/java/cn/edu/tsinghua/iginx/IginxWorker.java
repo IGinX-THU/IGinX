@@ -28,6 +28,7 @@ import cn.edu.tsinghua.iginx.engine.StatementExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngineImpl;
 import cn.edu.tsinghua.iginx.engine.physical.storage.StorageManager;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
+import cn.edu.tsinghua.iginx.exceptions.StatusCode;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
@@ -184,6 +185,72 @@ public class IginxWorker implements IService.Iface {
     }
 
     @Override
+    public Status removeHistoryDataSource(RemoveHistoryDataSourceReq req) {
+        if (!sessionManager.checkSession(req.getSessionId(), AuthType.Cluster)) {
+            return RpcUtils.ACCESS_DENY;
+        }
+        Status status = RpcUtils.SUCCESS;
+        List<RemovedStorageEngineInfo> dummyStorageInfoList = req.getDummyStorageInfoList();
+        for (RemovedStorageEngineInfo storageEngineInfo : dummyStorageInfoList) {
+            List<StorageEngineMeta> metaList = metaManager.getStorageEngineList();
+            StorageEngineMeta meta = null;
+            Long dummyStorageId = null;
+            for (StorageEngineMeta metaa : metaList) {
+                String infoIp = storageEngineInfo.getIp(), infoSchemaPrefix = storageEngineInfo.getSchemaPrefix(), infoDataPrefix = storageEngineInfo.getDataPrefix();
+                String metaIp = metaa.getIp(), metaSchemaPrefix = metaa.getSchemaPrefix(), metaDataPrefix = metaa.getDataPrefix();
+                if (infoIp.equals(metaIp) && storageEngineInfo.getPort() == metaa.getPort()
+                        && (infoSchemaPrefix.length() == 0 && metaSchemaPrefix == null || Objects.equals(infoSchemaPrefix, metaSchemaPrefix)
+                        && (infoDataPrefix.length() == 0 && metaDataPrefix == null || Objects.equals(infoDataPrefix, metaDataPrefix)))) {
+                    meta = metaa;
+                    dummyStorageId = metaa.getId();
+                }
+            }
+            if (meta == null || meta.getDummyFragment() == null || meta.getDummyStorageUnit() == null) {
+                status = RpcUtils.FAILURE;
+                status.setMessage("dummy storage engine is not exists.");
+                return status;
+            }
+            try {
+                // 设置对应的 dummyFragament 为 invalid 状态
+                meta.getDummyFragment().setIfValid(false);
+                meta.getDummyStorageUnit().setIfValid(false);
+
+                // 修改需要更新的元数据信息 extraParams中的 has_data属性需要修改
+                StorageEngineMeta newMeta = new StorageEngineMeta(
+                        meta.getId(),
+                        meta.getIp(),
+                        meta.getPort(),
+                        false,
+                        null,
+                        null,
+                        meta.isReadOnly(),
+                        null,
+                        null,
+                        meta.getExtraParams(),
+                        meta.getStorageEngine(),
+                        meta.getStorageUnitList(),
+                        meta.getCreatedBy(),
+                        meta.isNeedReAllocate()
+                );
+
+                // 更新 zk 上元数据信息，以及 iginx 上元数据信息
+                if (!metaManager.updateStorageEngine(dummyStorageId, newMeta)) {
+                    status = RpcUtils.FAILURE;
+                    status.setMessage("unexpected error during storage update");
+                    return status;
+                }
+
+            } catch (Exception e) {
+                logger.error("unexpected error during storage migration: ", e);
+                status = new Status(StatusCode.STATEMENT_EXECUTION_ERROR.getStatusCode());
+                status.setMessage("unexpected error during removing history data source: " + e.getMessage());
+                return status;
+            }
+        }
+        return status;
+    }
+
+    @Override
     public Status addStorageEngines(AddStorageEnginesReq req) {
         if (!sessionManager.checkSession(req.getSessionId(), AuthType.Cluster)) {
             return RpcUtils.ACCESS_DENY;
@@ -212,7 +279,7 @@ public class IginxWorker implements IService.Iface {
                 dataPrefix = extraParams.get(Constants.DATA_PREFIX);
             }
             boolean readOnly = Boolean.parseBoolean(extraParams.getOrDefault(Constants.IS_READ_ONLY, "false"));
-            StorageEngineMeta meta = new StorageEngineMeta(-1, storageEngine.getIp(), storageEngine.getPort(), hasData, dataPrefix, readOnly,
+            StorageEngineMeta meta = new StorageEngineMeta(-1, storageEngine.getIp(), storageEngine.getPort(), hasData, dataPrefix, extraParams.get(SCHEMA_PREFIX), readOnly,
                 storageEngine.getExtraParams(), type, metaManager.getIginxId());
             storageEngineMetas.add(meta);
             schemaPrefix.add(extraParams.get(SCHEMA_PREFIX)); // get the user defined schema prefix
@@ -245,15 +312,17 @@ public class IginxWorker implements IService.Iface {
             int index = 0;
             if (meta.isHasData()) {
                 String dataPrefix = meta.getDataPrefix();
-                StorageUnitMeta dummyStorageUnit = new StorageUnitMeta(Constants.DUMMY + String.format("%04d", 0), -1);
+                StorageUnitMeta dummyStorageUnit = new StorageUnitMeta(StorageUnitMeta.generateDummyStorageUnitID(0), -1);
                 Pair<TimeSeriesRange, TimeInterval> boundary = StorageManager.getBoundaryOfStorage(meta, dataPrefix);
                 FragmentMeta dummyFragment;
+                String schemaPrefixTmp = null;
                 if (index < schemaPrefix.size() && schemaPrefix.get(index) != null) //set the virtual schema prefix
-                    boundary.k.setSchemaPrefix(schemaPrefix.get(index));
+                    schemaPrefixTmp = schemaPrefix.get(index);
                 if (dataPrefix == null) {
+                    boundary.k.setSchemaPrefix(schemaPrefixTmp);
                     dummyFragment = new FragmentMeta(boundary.k, boundary.v, dummyStorageUnit);
                 } else {
-                    dummyFragment = new FragmentMeta(new TimeSeriesPrefixRange(dataPrefix), boundary.v, dummyStorageUnit);
+                    dummyFragment = new FragmentMeta(new TimeSeriesPrefixRange(dataPrefix, schemaPrefixTmp), boundary.v, dummyStorageUnit);
                 }
                 dummyFragment.setDummyFragment(true);
                 meta.setDummyStorageUnit(dummyStorageUnit);
@@ -274,7 +343,9 @@ public class IginxWorker implements IService.Iface {
         if (!engine1.getStorageEngine().equals(engine2.getStorageEngine())) {
             return false;
         }
-        return engine1.getIp().equals(engine2.getIp()) && engine1.getPort() == engine2.getPort();
+        return engine1.getIp().equals(engine2.getIp()) && engine1.getPort() == engine2.getPort()
+                && Objects.equals(engine1.getDataPrefix(), engine2.getDataPrefix())
+                && Objects.equals(engine1.getSchemaPrefix(), engine2.getSchemaPrefix());
     }
 
     @Override
@@ -409,8 +480,11 @@ public class IginxWorker implements IService.Iface {
         // 数据库信息
         List<StorageEngineInfo> storageEngineInfos = new ArrayList<>();
         for (StorageEngineMeta storageEngineMeta : metaManager.getStorageEngineList()) {
-            storageEngineInfos.add(new StorageEngineInfo(storageEngineMeta.getId(), storageEngineMeta.getIp(),
-                storageEngineMeta.getPort(), storageEngineMeta.getStorageEngine()));
+            StorageEngineInfo info = new StorageEngineInfo(storageEngineMeta.getId(), storageEngineMeta.getIp(),
+                    storageEngineMeta.getPort(), storageEngineMeta.getStorageEngine());
+            info.setSchemaPrefix(storageEngineMeta.getSchemaPrefix() == null ? "null" : storageEngineMeta.getSchemaPrefix());
+            info.setDataPrefix(storageEngineMeta.getDataPrefix() == null ? "null" : storageEngineMeta.getDataPrefix());
+            storageEngineInfos.add(info);
         }
         storageEngineInfos.sort(Comparator.comparingLong(StorageEngineInfo::getId));
         resp.setStorageEngineInfos(storageEngineInfos);

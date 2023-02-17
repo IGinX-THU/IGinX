@@ -39,20 +39,13 @@ public class ParquetQueryRowStream implements RowStream {
 
     private boolean hasNextCache = false;
 
-    private final String schemaPrefix;
-
     private final Map<Field, String> physicalNameCache = new HashMap<>();
 
     public ParquetQueryRowStream(ResultSet rs, TagFilter tagFilter) {
-        this(rs, tagFilter, "");
-    }
-
-    public ParquetQueryRowStream(ResultSet rs, TagFilter tagFilter, String schemaPrefix) {
         this.rs = rs;
-        this.schemaPrefix = schemaPrefix;
 
         if (rs == null) {
-            this.header = new Header(Field.TIME, Collections.emptyList());
+            this.header = new Header(Field.KEY, Collections.emptyList());
             return;
         }
 
@@ -65,19 +58,14 @@ public class ParquetQueryRowStream implements RowStream {
             for (int i = 1; i <= rsMetaData.getColumnCount(); i++) {  // start from index 1
                 String pathName = rsMetaData.getColumnName(i).replaceAll(PARQUET_SEPARATOR, IGINX_SEPARATOR);
                 if (i == 1 && pathName.equals(COLUMN_TIME)) {
-                    time = Field.TIME;
+                    time = Field.KEY;
                     continue;
                 }
 
                 Pair<String, Map<String, String>> pair = TagKVUtils.splitFullName(pathName);
                 DataType type = fromParquetDataType(rsMetaData.getColumnTypeName(i));
 
-                Field field;
-                if (schemaPrefix.equals("")) {
-                    field = new Field(pair.getK(), type, pair.getV());
-                } else {
-                    field = new Field(schemaPrefix + "." + pair.getK(), type, pair.getV());
-                }
+                Field field  = new Field(pair.getK(), type, pair.getV());
 
                 if (filterByTags && !TagKVUtils.match(pair.v, tagFilter)) {
                     continue;
@@ -91,7 +79,7 @@ public class ParquetQueryRowStream implements RowStream {
         if (time == null) {
             this.header = new Header(fields);
         } else {
-            this.header = new Header(Field.TIME, fields);
+            this.header = new Header(Field.KEY, fields);
         }
     }
 
@@ -168,9 +156,6 @@ public class ParquetQueryRowStream implements RowStream {
             return physicalNameCache.get(field);
         } else {
             String name = field.getName();
-            if (!schemaPrefix.equals("")) {
-                name = name.substring(name.indexOf(schemaPrefix) + schemaPrefix.length() + 1);
-            }
             String path = TagKVUtils.toFullName(name, field.getTags());
             path = path.replaceAll(IGINX_SEPARATOR, PARQUET_SEPARATOR);
             physicalNameCache.put(field, path);

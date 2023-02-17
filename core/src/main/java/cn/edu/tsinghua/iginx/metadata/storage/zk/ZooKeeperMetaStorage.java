@@ -19,6 +19,7 @@
 package cn.edu.tsinghua.iginx.metadata.storage.zk;
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
+import cn.edu.tsinghua.iginx.conf.Constants;
 import cn.edu.tsinghua.iginx.exceptions.MetaStorageException;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
 import cn.edu.tsinghua.iginx.metadata.hook.*;
@@ -119,6 +120,8 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
 
     private boolean isMaster = false;
 
+    private final int STORAGE_ENGINE_NODE_NUM_LENGTH = 10; // Default serial number length of the persistent node
+
     private static ZooKeeperMetaStorage INSTANCE = null;
 
     private final CuratorFramework client;
@@ -178,6 +181,10 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
             }
         }
         return INSTANCE;
+    }
+
+    private String generateID(String prefix, long idLength, long val) {
+        return String.format(prefix + "%0" + idLength + "d", (int) val);
     }
 
     @Override
@@ -452,6 +459,26 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
             return id;
         } catch (Exception e) {
             throw new MetaStorageException("get error when add storage engine", e);
+        } finally {
+            try {
+                mutex.release();
+            } catch (Exception e) {
+                throw new MetaStorageException("get error when release interprocess lock for " + SCHEMA_MAPPING_LOCK_NODE, e);
+            }
+        }
+    }
+
+    @Override
+    public boolean updateStorageEngine(long storageID, StorageEngineMeta storageEngine) throws MetaStorageException {
+        InterProcessMutex mutex = new InterProcessMutex(this.client, STORAGE_ENGINE_LOCK_NODE);
+        try { // node0000000002 STORAGE_ENGINE_NODE_NUM_LENGTH
+            mutex.acquire();
+            String tmp = new String(JsonUtils.toJson(storageEngine));
+            String nodeName = generateID(STORAGE_ENGINE_NODE, STORAGE_ENGINE_NODE_NUM_LENGTH, storageID);
+            this.client.setData().forPath(nodeName, tmp.getBytes());
+            return true;
+        } catch (Exception e) {
+            throw new MetaStorageException("get error when update storage engine", e);
         } finally {
             try {
                 mutex.release();

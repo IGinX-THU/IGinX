@@ -8,7 +8,7 @@ inputs:
   DB-name:
     description: 'the db version'
     required: false
-    default: iotdb11
+    default: iotdb12
   Test-Way:
     description: 'the way to test'
     required: false

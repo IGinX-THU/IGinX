@@ -20,6 +20,7 @@ package cn.edu.tsinghua.iginx.metadata.cache;
 
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
+import cn.edu.tsinghua.iginx.conf.Constants;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.*;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
 import cn.edu.tsinghua.iginx.policy.simple.TimeSeriesCalDO;
@@ -356,7 +357,7 @@ public class DefaultMetaCache implements IMetaCache {
         fragmentLock.readLock().lock();
         List<FragmentMeta> results = new ArrayList<>();
         for (FragmentMeta fragmentMeta: dummyFragments) {
-            if (fragmentMeta.getTsInterval().isIntersect(tsInterval)) {
+            if (fragmentMeta.isValid() && fragmentMeta.getTsInterval().isIntersect(tsInterval)) {
                 results.add(fragmentMeta);
             }
         }
@@ -403,7 +404,7 @@ public class DefaultMetaCache implements IMetaCache {
         fragmentLock.readLock().lock();
         List<FragmentMeta> results = new ArrayList<>();
         for (FragmentMeta fragmentMeta: dummyFragments) {
-            if (fragmentMeta.getTsInterval().isIntersect(tsInterval) && fragmentMeta.getTimeInterval().isIntersect(timeInterval)) {
+            if (fragmentMeta.isValid() && fragmentMeta.getTsInterval().isIntersect(tsInterval) && fragmentMeta.getTimeInterval().isIntersect(timeInterval)) {
                 results.add(fragmentMeta);
             }
         }
@@ -569,6 +570,38 @@ public class DefaultMetaCache implements IMetaCache {
     }
 
     @Override
+    public boolean updateStorageEngine(long storageID, StorageEngineMeta storageEngineMeta) {
+        storageUnitLock.writeLock().lock();
+        fragmentLock.writeLock().lock();
+
+        if (!storageEngineMetaMap.containsKey(storageID)) {
+            logger.error("No corresponding storage engine needs to be updated");
+            return false;
+        }
+        String dummyStorageUnitID = StorageUnitMeta.generateDummyStorageUnitID(storageID);
+        boolean ifOriHasData = storageEngineMetaMap.get(storageID).isHasData();
+        if (storageEngineMeta.isHasData()) { // 设置相关元数据信息
+            StorageUnitMeta dummyStorageUnit = storageEngineMeta.getDummyStorageUnit();
+            FragmentMeta dummyFragment = storageEngineMeta.getDummyFragment();
+            dummyFragment.setMasterStorageUnit(dummyStorageUnit);
+            dummyStorageUnitMetaMap.put(dummyStorageUnit.getId(), dummyStorageUnit);
+            if (ifOriHasData) { // 更新 dummyFragments 数据
+                dummyFragments.removeIf(e -> e.getMasterStorageUnitId().equals(dummyStorageUnitID));
+            } else {
+                dummyFragments.add(dummyFragment);
+            }
+        } else if (ifOriHasData) { // 原来没有，则移除
+            dummyFragments.removeIf(e -> e.getMasterStorageUnitId().equals(dummyStorageUnitID));
+            dummyStorageUnitMetaMap.remove(dummyStorageUnitID);
+        }
+        storageEngineMetaMap.put(storageEngineMeta.getId(), storageEngineMeta);
+
+        fragmentLock.writeLock().unlock();
+        storageUnitLock.writeLock().unlock();
+        return true;
+    }
+
+    @Override
     public List<StorageEngineMeta> getStorageEngineList() {
         return new ArrayList<>(this.storageEngineMetaMap.values());
     }
@@ -670,7 +703,7 @@ public class DefaultMetaCache implements IMetaCache {
         RawData data = statement.getRawData();
         List<String> paths = data.getPaths();
         if (data.isColumnData()) {
-            DataView view = new ColumnDataView(data, 0, data.getPaths().size(), 0, data.getTimestamps().size());
+            DataView view = new ColumnDataView(data, 0, data.getPaths().size(), 0, data.getKeys().size());
             for (int i = 0; i < view.getPathNum(); i++) {
                 long minn = Long.MAX_VALUE;
                 long maxx = Long.MIN_VALUE;
@@ -679,8 +712,8 @@ public class DefaultMetaCache implements IMetaCache {
                 BitmapView bitmapView = view.getBitmapView(i);
                 for (int j = 0; j < view.getTimeSize(); j++) {
                     if (bitmapView.get(j)) {
-                        minn = Math.min(minn, view.getTimestamp(j));
-                        maxx = Math.max(maxx, view.getTimestamp(j));
+                        minn = Math.min(minn, view.getKey(j));
+                        maxx = Math.max(maxx, view.getKey(j));
                         if (view.getDataType(i) == DataType.BINARY) {
                             totalByte += ((byte[]) view.getValue(i, j)).length;
                         } else {
@@ -694,7 +727,7 @@ public class DefaultMetaCache implements IMetaCache {
                 }
             }
         } else {
-            DataView view = new RowDataView(data, 0, data.getPaths().size(), 0, data.getTimestamps().size());
+            DataView view = new RowDataView(data, 0, data.getPaths().size(), 0, data.getKeys().size());
             long[] totalByte = new long[view.getPathNum()];
             int[] count = new int[view.getPathNum()];
             long[] minn = new long[view.getPathNum()];
@@ -707,8 +740,8 @@ public class DefaultMetaCache implements IMetaCache {
                 int index = 0;
                 for (int j = 0; j < view.getPathNum(); j++) {
                     if (bitmapView.get(j)) {
-                        minn[j] = Math.min(minn[j], view.getTimestamp(i));
-                        maxx[j] = Math.max(maxx[j], view.getTimestamp(i));
+                        minn[j] = Math.min(minn[j], view.getKey(i));
+                        maxx[j] = Math.max(maxx[j], view.getKey(i));
                         if (view.getDataType(j) == DataType.BINARY) {
                             totalByte[j] += ((byte[]) view.getValue(i, index)).length;
                         } else {

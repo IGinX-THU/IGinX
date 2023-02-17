@@ -1,81 +1,26 @@
-# IginX
+# The IGinX Polystore System
 
-- [**For support, please contact IginX members**](mailto:TSIginX@gmail.com)
+[IGinX](https://github.com/IGinX-THU/IGinX) is an open source polystore system. A polystore system provides an integrated data management service over a set of one or more potentially heterogeneous database/storage engines, serving heterogeneous workloads.
 
-## What is IginX?
+## Overview
 
-[IginX](https://github.com/thulab/IginX) (Intelligent/IoT Engine X) is an open-source clustering
-system for multi-dimensional scaling of standalone time series databases through generalized
-sharding. It is already deployed in real applications such as train monitoring and intelligent factories.
+IGinX (Intelligent enGine X) aims to facilitate users in profiting from their data assets that might spread across various storage/database engines. Evolving from the open source project [IginX](https://github.com/thulab/IginX), IGinX once was designed to manage the huge volume of time series data across a wide *End*-*Edge*-*Cloud* architecture and succeeded in [breaking the TPCx-IoT records in 2021](https://link.springer.com/chapter/10.1007/978-3-030-94437-7_2). However, profiting from data assets requires the interplay of various data types. Many users have their data spread across different database/storage engines. And, "No one size fits all". Properly matching data with storage engines can give users orders of magnitude in performance advantage. These motivations led to the decision of evolving IGinX. Thanks to its open and flexible architecture, IGinX can evolve into a polystore system without the need of complete redesign or reimplementation.
 
-IginX features in the following aspects:
+## Installation
 
-- __High Scalability__
+See the [getting started](https://github.com/IGinX-THU/IGinX/blob/main/docs/getting_started.md) documentation to start a IGinX in various ways.
 
-IginX is a stateless service. It can be easily scaled out or scaled up. You can expand the system's
-routing and processing capacity by simply adding new IginX instances. Vertically scale-up the
-computing resources for a single instance can also expand the system's capacity.
+## Team and Contributions
 
-- __Smooth Elasticity__
+We are the IGinX team at Tsinghua University. You can find team members and contributors in this [list](https://github.com/IGinX-THU/IGinX/graphs/contributors).
 
-With IginX you can even split and merge slices in multiple dimensions as your needs grow, with an
-atomic cutover step that takes only a few seconds. Applications will rarely notice any performance
-degradation in the process, thanks to the carefully tailored design of metadata and reconfiguration
-procedure.
-
-- __Transparent Data Distribution__
-
-By encapsulating data slice orchestration logic, IginX allows application code and time series data
-queries to remain agnostic to the distribution of data onto multiple slices. Users need only care
-about the data access logic of their applications by IginX.
-
-- __Integration with Heterogeneous Databases__
-
-IginX provides a common abstraction of time series databases. As long as an implementation of the
-abstraction is provided and configured for a time series database, it can be managed by and accessed
-through IginX. Within a running cluster of IginX, heterogenous time series databases can coexist and
-serve the same set of applications.
-
-- __Flexible Slicing and Replication__
-
-IginX allows for flexible data slicing and replication to suit the skewed application workloads,
-which commonly exist in real world. This can be achieved through an implementation of the IPolicy
-interface.
-
-For more details, please refer to our technological posts on time series management
-under [this link](https://github.com/thulab/IginX/wiki). However, IginX is still under active
-development and yet to be mature. You are highly encourage to try it and share us with your
-experience.
-
-## Quick start
-
-Quick starts in Chinese (A complete version--[完整版部署说明文档](./docs/quickStarts/IginXManual.md)): 
-
-- [Use IginX in one shot](./docs/quickStarts/IginXOneShot-EnglishVersion.md)([Chinese version](./docs/quickStarts/IginXInOneShot.md))
-- [Use IginX by compiling sources](./docs/quickStarts/IginXBySource-EnglishVersion.md)([Chinese version](./docs/quickStarts/IginXBySource.md))
-- [Use IginX by docker](./docs/quickStarts/IginXByDocker-EnglishVersion.md)([Chinese version](./docs/quickStarts/IginXByDocker.md))
-- [Deploy an IginX Cluster](./docs/quickStarts/IginXCluster-EnglishVersion.md)([Chinese version](./docs/quickStarts/IginXCluster.md))
-
-Or, please refer to our [User manual in Chinese - 中文用户手册](https://github.com/thulab/IginX/raw/main/docs/pdf/userManualC.pdf). User manuals in English are
-still being written, but you might contact [Yuqing Zhu](zhuyuqing@tsinghua.edu.cn) for IginX in case of any question or problem.
-
-### To understand technological designs in IginX
-
-If you are interested in time series data management by large, you are highly welcomed to join our
-IginX workshop in every month's last Friday afternoon at 2pm by Tencent online meeting. Please
-contact the IginX-maintainers for information about the Tencent online meeting.
-
-### To start developing IginX
-
-Contributions are welcomed and greatly appreciated. To report a problem the best way to get
-attention is to create a GitHub issue. To report a security vulnerability, please email
-IginX-maintainers.
-
-## Architecture
-
-<img src="https://github.com/thulab/IginX/blob/main/docs/images/cluster_arch.png" width = "380" height = "300" alt="IginX cluster architecture" align=center />
+IGinX is open for new team members or contributions. If you would like to join our team and work with us online or offline, don't hesitate to contact us. Besides Github, we are also reachable through [email](mailto:TSIGinX@gmail.com). If you would like to contribute, please create a Github issue first or pick up one of our open issues; then, address the issue by forking the repository and submitting your changes as a pull request.
 
 ## License
 
-Unless otherwise noted, the IginX source files are distributed under the Apache Version 2.0 license
-found in the LICENSE file.
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+© 2023 (Tsinghua University).
+
+Please note that this refers to the middleware pieces of the IGinX system.
+External systems or software are distributed under their respective license agreement.
+

@@ -12,7 +12,7 @@
   </parent>
 
   <artifactId>influxdb</artifactId>
-  <name>IginX InfluxDB</name>
+  <name>IGinX InfluxDB</name>
 
   <properties>
     <maven.compiler.source>8</maven.compiler.source>

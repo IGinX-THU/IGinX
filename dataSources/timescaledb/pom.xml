@@ -12,7 +12,7 @@
   </parent>
 
   <artifactId>timescaledb</artifactId>
-  <name>IginX TimescaleDB</name>
+  <name>IGinX TimescaleDB</name>
 
   <properties>
     <maven.compiler.source>8</maven.compiler.source>

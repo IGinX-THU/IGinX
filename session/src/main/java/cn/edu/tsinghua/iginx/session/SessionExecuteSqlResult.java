@@ -18,6 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.session;
 
+import cn.edu.tsinghua.iginx.constant.GlobalConstant;
 import cn.edu.tsinghua.iginx.thrift.*;
 import cn.edu.tsinghua.iginx.utils.FormatUtils;
 
@@ -28,7 +29,7 @@ import static cn.edu.tsinghua.iginx.utils.ByteUtils.*;
 public class SessionExecuteSqlResult {
 
     private SqlType sqlType;
-    private long[] timestamps;
+    private long[] keys;
     private List<String> paths;
     private List<List<Object>> values;
     private List<DataType> dataTypeList;
@@ -93,7 +94,7 @@ public class SessionExecuteSqlResult {
         this.dataTypeList = resp.getDataTypeList();
 
         if (resp.timestamps != null) {
-            this.timestamps = getLongArrayFromByteBuffer(resp.timestamps);
+            this.keys = getLongArrayFromByteBuffer(resp.timestamps);
         }
 
         // parse values
@@ -168,8 +169,8 @@ public class SessionExecuteSqlResult {
         List<List<String>> cache = new ArrayList<>();
         List<String> label = new ArrayList<>();
         int annotationPathIndex = -1;
-        if (timestamps != null) {
-            label.add("Time");
+        if (keys != null) {
+            label.add(GlobalConstant.KEY_NAME);
         }
         for (int i = 0; i < paths.size(); i++) {
             String path = paths.get(i);
@@ -182,15 +183,15 @@ public class SessionExecuteSqlResult {
 
         for (int i = 0; i < values.size(); i++) {
             List<String> rowCache = new ArrayList<>();
-            if (timestamps != null) {
-                if (timestamps[i] == Long.MAX_VALUE - 1 || timestamps[i] == Long.MAX_VALUE - 2) {
+            if (keys != null) {
+                if (keys[i] == Long.MAX_VALUE - 1 || keys[i] == Long.MAX_VALUE - 2) {
                     continue;
                 }
                 String timeValue;
                 if (needFormatTime) {
-                    timeValue = FormatUtils.formatTime(timestamps[i], timeFormat, timePrecision);
+                    timeValue = FormatUtils.formatTime(keys[i], timeFormat, timePrecision);
                 } else {
-                    timeValue = String.valueOf(timestamps[i]);
+                    timeValue = String.valueOf(keys[i]);
                 }
                 rowCache.add(timeValue);
             }
@@ -256,13 +257,15 @@ public class SessionExecuteSqlResult {
         if (storageEngineInfos != null && !storageEngineInfos.isEmpty()) {
             builder.append("Storage engine infos:").append("\n");
             List<List<String>> cache = new ArrayList<>();
-            cache.add(new ArrayList<>(Arrays.asList("ID", "IP", "PORT", "TYPE")));
+            cache.add(new ArrayList<>(Arrays.asList("ID", "IP", "PORT", "TYPE", "SCHEMA_PREFIX", "DATAPREFIX")));
             for (StorageEngineInfo info : storageEngineInfos) {
                 cache.add(new ArrayList<>(Arrays.asList(
                     String.valueOf(info.getId()),
                     info.getIp(),
                     String.valueOf(info.getPort()),
-                    info.getType()
+                    info.getType(),
+                    info.getSchemaPrefix(),
+                    info.getDataPrefix()
                 )));
             }
             builder.append(FormatUtils.formatResult(cache));
@@ -343,12 +346,12 @@ public class SessionExecuteSqlResult {
         this.sqlType = sqlType;
     }
 
-    public long[] getTimestamps() {
-        return timestamps;
+    public long[] getKeys() {
+        return keys;
     }
 
-    public void setTimestamps(long[] timestamps) {
-        this.timestamps = timestamps;
+    public void setKeys(long[] keys) {
+        this.keys = keys;
     }
 
     public List<String> getPaths() {

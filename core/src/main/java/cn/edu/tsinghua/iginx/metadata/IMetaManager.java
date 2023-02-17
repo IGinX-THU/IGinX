@@ -40,6 +40,11 @@ public interface IMetaManager {
     boolean addStorageEngines(List<StorageEngineMeta> storageEngineMetas);
 
     /**
+     * 更新存储引擎节点
+     */
+    boolean updateStorageEngine(long storageID, StorageEngineMeta storageEngineMeta);
+
+    /**
      * 获取所有的存储引擎实例的原信息（包括每个存储引擎的存储单元列表）
      */
     List<StorageEngineMeta> getStorageEngineList();
@@ -76,6 +81,8 @@ public interface IMetaManager {
      * 获取所有的分片，用于 debug
      */
     List<FragmentMeta> getFragments();
+
+    List<FragmentMeta> getFragmentsByStorageUnit(String storageUnitId);
 
     /**
      * 获取某个du的时空范围
