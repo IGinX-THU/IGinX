@@ -2,6 +2,7 @@ package cn.edu.tsinghua.iginx.integration;
 
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.integration.testControler.TestUnionControler;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionAggregateQueryDataSet;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
@@ -33,7 +34,7 @@ public abstract class BaseSessionConcurrencyIT {
     protected String defaultTestUser = "root";
     protected String defaultTestPass = "root";
 
-    protected boolean isAbleToDelete;
+    protected boolean isAbleToDelete = false;
 
     //original variables
     protected static final double delta = 1e-7;
@@ -63,8 +64,6 @@ public abstract class BaseSessionConcurrencyIT {
 
     @After
     public void tearDown() throws SessionException {
-        if(!ifClearData) return;
-
         try {
             clearData();
             session.closeSession();
@@ -76,9 +75,19 @@ public abstract class BaseSessionConcurrencyIT {
     protected void clearData() throws ExecutionException, SessionException {
         String clearData = "CLEAR DATA;";
 
-        SessionExecuteSqlResult res = session.executeSql(clearData);
-        if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-            logger.error("Clear date execute fail. Caused by: {}.", res.getParseErrorMsg());
+        SessionExecuteSqlResult res = null;
+        try {
+            res = session.executeSql(clearData);
+        } catch (SessionException | ExecutionException e) {
+            logger.error("Statement: \"{}\" execute fail. Caused by: {}", clearData, e.toString());
+            if (e.toString().equals(TestUnionControler.CLEARDATAEXCP)) {
+                logger.error("clear data fail and go on....");
+            }
+            else fail();
+        }
+
+        if (res != null && res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
+            logger.error("Statement: \"{}\" execute fail. Caused by: {}.", clearData, res.getParseErrorMsg());
             fail();
         }
     }

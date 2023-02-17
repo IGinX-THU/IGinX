@@ -20,10 +20,13 @@ package cn.edu.tsinghua.iginx.integration;
 
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.integration.testControler.TestUnionControler;
 import cn.edu.tsinghua.iginx.session.SessionAggregateQueryDataSet;
+import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.session.SessionQueryDataSet;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.thrift.DataType;
+import org.junit.After;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -36,9 +39,9 @@ import static org.junit.Assert.*;
 public abstract class BaseSessionIT extends BaseSessionConcurrencyIT {
 
     protected String storageEngineType;
-    protected int defaultPort2;
+    protected int defaultPort2 = 6668;
     protected Map<String, String> extraParams;
-    protected Boolean ifNeedCapExp = true;
+    protected Boolean ifNeedCapExp = false;
 
     //params for downSample
     private static final long PRECISION = 123L;
@@ -48,6 +51,27 @@ public abstract class BaseSessionIT extends BaseSessionConcurrencyIT {
     @SuppressWarnings("unused") // dead code because 100000 % 123 != 0
     long factSampleLen = (TIME_PERIOD / PRECISION) + ((TIME_PERIOD % PRECISION == 0) ? 0 : 1);
     double originAvg = (START_TIME + END_TIME) / 2.0;
+
+    @After
+    public void clearData() throws ExecutionException, SessionException {
+        String clearData = "CLEAR DATA;";
+
+        SessionExecuteSqlResult res = null;
+        try {
+            res = session.executeSql(clearData);
+        } catch (SessionException | ExecutionException e) {
+            logger.error("Statement: \"{}\" execute fail. Caused by: {}", clearData, e.toString());
+            if (e.toString().equals(TestUnionControler.CLEARDATAEXCP)) {
+                logger.error("clear data fail and go on....");
+            }
+            else fail();
+        }
+
+        if (res != null && res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
+            logger.error("Statement: \"{}\" execute fail. Caused by: {}.", clearData, res.getParseErrorMsg());
+            fail();
+        }
+    }
 
     private String getSinglePath(int startPosition, int offset) {
         int pos = startPosition + offset;

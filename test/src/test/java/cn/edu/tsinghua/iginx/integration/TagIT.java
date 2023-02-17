@@ -2,6 +2,7 @@ package cn.edu.tsinghua.iginx.integration;
 
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.integration.testControler.TestUnionControler;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import org.junit.*;
@@ -64,15 +65,7 @@ public class TagIT {
 
     @After
     public void clearData() throws ExecutionException, SessionException {
-        if(!ifClearData) return;
-
-        String clearData = "CLEAR DATA;";
-
-        SessionExecuteSqlResult res = session.executeSql(clearData);
-        if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-            logger.error("Clear date execute fail. Caused by: {}.", res.getParseErrorMsg());
-            fail();
-        }
+        TestUnionControler.clearData(session);
     }
 
     private void executeAndCompare(String statement, String expectedOutput) {
