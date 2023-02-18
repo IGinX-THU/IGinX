@@ -2,7 +2,6 @@ package cn.edu.tsinghua.iginx.fault_tolerance;
 
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
-import cn.edu.tsinghua.iginx.session.Column;
 import cn.edu.tsinghua.iginx.thrift.*;
 import cn.edu.tsinghua.iginx.utils.RpcUtils;
 import org.apache.thrift.TConfiguration;
@@ -156,6 +155,7 @@ public final class IGinXSession {
         GetReplicaNumResp resp;
         try {
             resp = client.getReplicaNum(req);
+            RpcUtils.verifySuccess(resp.status);
         } catch (TException e) {
             boolean reconnect = reconnect();
             if (!reconnect && settings.isEnableHighAvailable()) {
@@ -170,6 +170,7 @@ public final class IGinXSession {
                 try {
                     req.setSessionId(sessionId);
                     resp = client.getReplicaNum(req);
+                    RpcUtils.verifySuccess(resp.status);
                 } catch (TException e1) {
                     throw new SessionException(e1);
                 }
@@ -188,6 +189,7 @@ public final class IGinXSession {
                     close();
                     open(this.currEndPoint);
                     flag = true;
+                    break;
                 }
             } catch (Exception e) {
                 try {

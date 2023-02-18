@@ -132,6 +132,7 @@ public class IGinXSessionSettings {
         }
         this.endPoints = endPoints;
         this.endPointsIndex = 0;
+        this.hasMoreEndPoint = true;
     }
 
     public boolean isEnableRetry() {
