@@ -62,4 +62,8 @@ public class Sort extends AbstractUnaryOperator {
         DESC
     }
 
+    @Override
+    public String getInfo() {
+        return "SortBy: " + sortBy + ", SortType: " + sortType;
+    }
 }

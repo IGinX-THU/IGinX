@@ -2551,6 +2551,39 @@ public abstract class SQLSessionIT {
     }
 
     @Test
+    public void testExplain() {
+        String explain = "explain select max(s2), min(s1) from us.d1;";
+        String expected =
+            "ResultSets:\n"
+                + "+-------------------+-------------+------------------------------------------------------------+\n"
+                + "|       Logical Tree|Operator Type|                                               Operator Info|\n"
+                + "+-------------------+-------------+------------------------------------------------------------+\n"
+                + "|Reorder            |      Reorder|                          Order: max(us.d1.s2),min(us.d1.s1)|\n"
+                + "|  +--Join          |         Join|                                             JoinBy: ordinal|\n"
+                + "|    +--SetTransform| SetTransform|Func: {Name: min, FuncType: System, MappingType: SetMapping}|\n"
+                + "|      +--Project   |      Project|      Patterns: us.d1.s1,us.d1.s2, Target DU: unit0000000000|\n"
+                + "|    +--SetTransform| SetTransform|Func: {Name: max, FuncType: System, MappingType: SetMapping}|\n"
+                + "|      +--Project   |      Project|      Patterns: us.d1.s1,us.d1.s2, Target DU: unit0000000000|\n"
+                + "+-------------------+-------------+------------------------------------------------------------+\n"
+                + "Total line number = 6\n";
+        executeAndCompare(explain, expected);
+
+        explain = "explain select s1 from us.d1 where s1 > 10 and s1 < 100;";
+        expected =
+            "ResultSets:\n"
+                + "+----------------+-------------+---------------------------------------------+\n"
+                + "|    Logical Tree|Operator Type|                                Operator Info|\n"
+                + "+----------------+-------------+---------------------------------------------+\n"
+                + "|Reorder         |      Reorder|                              Order: us.d1.s1|\n"
+                + "|  +--Project    |      Project|                           Patterns: us.d1.s1|\n"
+                + "|    +--Select   |       Select|    Filter: (us.d1.s1 > 10 && us.d1.s1 < 100)|\n"
+                + "|      +--Project|      Project|Patterns: us.d1.s1, Target DU: unit0000000000|\n"
+                + "+----------------+-------------+---------------------------------------------+\n"
+                + "Total line number = 4\n";
+        executeAndCompare(explain, expected);
+    }
+
+    @Test
     public void testDeleteTimeSeries() {
         if (!isAbleToDelete) {
             return;
