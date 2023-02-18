@@ -412,18 +412,12 @@ struct GetClusterInfoResp {
 struct ExecuteStatementReq {
     1: required i64 sessionId
     2: required string statement
-    3: optional i32 fetchSize
-    4: optional i64 timeout
+    3: optional i64 queryId
 }
 
 struct ExecuteStatementResp {
     1: required Status status
-    2: required SqlType type
-    3: optional i64 queryId
-    4: optional list<string> columns
-    5: optional list<map<string, string>> tagsList
-    6: optional list<DataType> dataTypeList
-    7: optional QueryDataSetV2 queryDataSet
+    2: optional i64 queryId
 }
 
 struct QueryDataSetV2 {
@@ -446,7 +440,10 @@ struct FetchResultsReq {
 struct FetchResultsResp {
     1: required Status status
     2: required bool hasMoreResults
-    3: optional QueryDataSetV2 queryDataSet
+    3: optional list<string> columns
+    4: optional list<map<string, string>> tagsList
+    5: optional list<DataType> dataTypeList
+    6: optional QueryDataSetV2 queryDataSet
 }
 
 struct TaskInfo {
