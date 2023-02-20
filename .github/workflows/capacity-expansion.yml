@@ -1,7 +1,9 @@
 name: "Capacity-Expansion-Test"
 on:
+  push:
+    branches:
+      - main
   pull_request:
-    types: [opened, reopened]
     branches:
       - main
 env:

@@ -1,7 +1,9 @@
 name: "Scale-out-On-IoTDB"
 on:
+  push:
+    branches:
+      - main
   pull_request:
-    types: [opened, reopened]
     branches:
       - main
 env:

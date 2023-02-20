@@ -1,8 +1,10 @@
 name: "ITTest-ds-InfluxDB"
 
 on:
+  push:
+    branches:
+      - main
   pull_request:
-    types: [opened, reopened]
     branches:
       - main
 env:
@@ -69,6 +71,7 @@ jobs:
         run: |
           chmod +x "${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/sbin/start_iginx.sh"
           nohup "${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/sbin/start_iginx.sh" &
+
 
   InfluxDB-SQL-ds:
     strategy:
@@ -190,19 +193,9 @@ jobs:
       - name: Install with Maven
         run: mvn clean package -DskipTests
       - name: Start IginX
-        uses: ./.github/actions/iginxRunner
-        with:
-          version: ${VERSION}
-
-      - name: Change Config to Start IGinX_2
-        uses: ./.github/actions/confWriter
-        with:
-          confFile: "iginxConf"
-
-      - name: Start IginX_2
-        uses: ./.github/actions/iginxRunner
-        with:
-          version: ${VERSION}
+        run: |
+          chmod +x "${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/sbin/start_iginx.sh"
+          nohup "${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/sbin/start_iginx.sh" &
       - name: A Lame Integration Test with Maven for SQL
         run: mvn test -q -Dtest=InfluxDBSQLSessionPoolIT -DfailIfNoTests=false
       - uses: codecov/codecov-action@v1
