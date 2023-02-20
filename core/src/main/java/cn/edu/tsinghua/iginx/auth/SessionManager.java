@@ -21,15 +21,15 @@ package cn.edu.tsinghua.iginx.auth;
 import cn.edu.tsinghua.iginx.metadata.entity.UserMeta;
 import cn.edu.tsinghua.iginx.thrift.AuthType;
 import cn.edu.tsinghua.iginx.utils.SnowFlakeUtils;
-import io.netty.util.internal.ConcurrentSet;
 
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class SessionManager {
 
     private static SessionManager instance;
     private final UserManager userManager;
-    private final Set<Long> sessionIds = new ConcurrentSet<>();
+    private final Set<Long> sessionIds = ConcurrentHashMap.newKeySet();
 
     private SessionManager(UserManager userManager) {
         this.userManager = userManager;

@@ -124,10 +124,9 @@ public class StatementExecutor {
             String statisticsCollectorClassName = ConfigDescriptor.getInstance().getConfig()
                 .getStatisticsCollectorClassName();
             if (statisticsCollectorClassName != null && !statisticsCollectorClassName.equals("")) {
-                Class<?> statisticsCollectorClass = StatementExecutor.class.getClassLoader().
-                    loadClass(statisticsCollectorClassName);
-                IStatisticsCollector statisticsCollector = ((Class<? extends IStatisticsCollector>) statisticsCollectorClass)
-                    .getConstructor().newInstance();
+                Class<? extends IStatisticsCollector> statisticsCollectorClass = StatementExecutor.class.getClassLoader().
+                    loadClass(statisticsCollectorClassName).asSubclass(IStatisticsCollector.class);
+                IStatisticsCollector statisticsCollector = statisticsCollectorClass.getConstructor().newInstance();
                 registerPreParseProcessor(statisticsCollector.getPreParseProcessor());
                 registerPostParseProcessor(statisticsCollector.getPostParseProcessor());
                 registerPreLogicalProcessor(statisticsCollector.getPreLogicalProcessor());

@@ -7,6 +7,9 @@ import cn.edu.tsinghua.iginx.sql.statement.ShowTimeSeriesStatement;
 import cn.edu.tsinghua.iginx.sql.statement.Statement;
 
 public class ShowTimeSeriesGenerator extends AbstractGenerator {
+    @SuppressWarnings("unused")
+    private static final Logger logger = LoggerFactory.getLogger(ShowTimeSeriesGenerator.class);
+
     private final static ShowTimeSeriesGenerator instance = new ShowTimeSeriesGenerator();
 
     private ShowTimeSeriesGenerator() {
