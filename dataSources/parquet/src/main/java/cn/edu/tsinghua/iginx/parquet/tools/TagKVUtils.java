@@ -16,7 +16,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class TagKVUtils {
-
+    @SuppressWarnings("unused")
     private static final Logger logger = LoggerFactory.getLogger(TagKVUtils.class);
 
     public static final String tagNameAnnotation = Config.tagNameAnnotation;
