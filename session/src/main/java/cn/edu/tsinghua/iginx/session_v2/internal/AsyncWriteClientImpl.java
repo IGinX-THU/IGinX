@@ -36,7 +36,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 public class AsyncWriteClientImpl extends AbstractFunctionClient implements AsyncWriteClient {
-
+    @SuppressWarnings("unused")
     private static final Logger logger = LoggerFactory.getLogger(AsyncWriteClientImpl.class);
 
     private final WriteClient syncWriteClient; // 内部执行还是使用同步客户端来执行的

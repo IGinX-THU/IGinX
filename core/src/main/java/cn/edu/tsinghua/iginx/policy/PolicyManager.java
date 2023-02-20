@@ -30,7 +30,7 @@ public class PolicyManager {
             policy = policies.get(policyClassName);
             if (policy == null) {
                 try {
-                    Class<? extends IPolicy> clazz = (Class<? extends IPolicy>) this.getClass().getClassLoader().loadClass(policyClassName);
+                    Class<? extends IPolicy> clazz = this.getClass().getClassLoader().loadClass(policyClassName).asSubclass(IPolicy.class);
                     policy = clazz.getConstructor().newInstance();
                     policy.init(DefaultMetaManager.getInstance());
                     policies.put(policyClassName, policy);

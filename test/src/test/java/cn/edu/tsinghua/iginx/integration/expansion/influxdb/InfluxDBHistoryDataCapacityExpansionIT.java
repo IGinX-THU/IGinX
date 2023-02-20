@@ -1,7 +1,6 @@
 package cn.edu.tsinghua.iginx.integration.expansion.influxdb;
 
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
-import cn.edu.tsinghua.iginx.integration.SQLSessionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.unit.SQLTestTools;
 import cn.edu.tsinghua.iginx.session.Session;
 import org.junit.AfterClass;

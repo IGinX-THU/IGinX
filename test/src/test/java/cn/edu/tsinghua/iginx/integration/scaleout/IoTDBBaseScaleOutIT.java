@@ -1,6 +1,5 @@
 package cn.edu.tsinghua.iginx.integration.scaleout;
 
-import cn.edu.tsinghua.iginx.integration.TagIT;
 import org.junit.Test;
 
 public interface IoTDBBaseScaleOutIT {
