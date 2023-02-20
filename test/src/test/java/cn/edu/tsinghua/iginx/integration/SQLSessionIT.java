@@ -51,12 +51,12 @@ public abstract class SQLSessionIT {
     protected String storageEngineType;
 
     @BeforeClass
-    public static void setUp() {
+    public static void setUp() throws SessionException {
         if (isForSession) {
             session = new MultiConnection(
                 new Session(defaultTestHost, defaultTestPort, defaultTestUser, defaultTestPass));
         } else if (isForSessionPool) {
-            session = new MultiConnection (
+            session = new MultiConnection(
                     new SessionPool(new ArrayList<IginxInfo>() {{
                         add(new IginxInfo.Builder()
                                 .host("0.0.0.0")
@@ -73,20 +73,12 @@ public abstract class SQLSessionIT {
                                 .build());
                     }}));
         }
-        try {
-            session.openSession();
-        } catch (SessionException e) {
-            logger.error(e.getMessage());
-        }
+        session.openSession();
     }
 
     @AfterClass
-    public static void tearDown() {
-        try {
-            session.closeSession();
-        } catch (SessionException e) {
-            logger.error(e.getMessage());
-        }
+    public static void tearDown() throws SessionException {
+        session.closeSession();
     }
 
     @Before
