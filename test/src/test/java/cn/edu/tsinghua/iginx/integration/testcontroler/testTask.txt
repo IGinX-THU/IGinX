@@ -1,0 +1,7 @@
+IoTDBSQLSessionIT
+IoTDBSQLSessionPoolIT
+TagIT
+RestAnnotationIT
+RestIT
+IoTDB12SessionIT
+IoTDB12SessionPoolIT

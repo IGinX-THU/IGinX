@@ -2,7 +2,7 @@ package cn.edu.tsinghua.iginx.integration;
 
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
-import cn.edu.tsinghua.iginx.integration.testControler.TestUnionControler;
+import cn.edu.tsinghua.iginx.integration.testcontroler.TestControler;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import org.junit.*;
@@ -65,7 +65,7 @@ public class TagIT {
 
     @After
     public void clearData() throws ExecutionException, SessionException {
-        TestUnionControler.clearData(session);
+        TestControler.clearData(session);
     }
 
     private void executeAndCompare(String statement, String expectedOutput) {

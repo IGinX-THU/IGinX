@@ -2,7 +2,7 @@ package cn.edu.tsinghua.iginx.integration;
 
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
-import cn.edu.tsinghua.iginx.integration.testControler.TestUnionControler;
+import cn.edu.tsinghua.iginx.integration.testcontroler.TestControler;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionAggregateQueryDataSet;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
@@ -80,7 +80,7 @@ public abstract class BaseSessionConcurrencyIT {
             res = session.executeSql(clearData);
         } catch (SessionException | ExecutionException e) {
             logger.error("Statement: \"{}\" execute fail. Caused by: {}", clearData, e.toString());
-            if (e.toString().equals(TestUnionControler.CLEARDATAEXCP)) {
+            if (e.toString().equals(TestControler.CLEARDATAEXCP)) {
                 logger.error("clear data fail and go on....");
             }
             else fail();

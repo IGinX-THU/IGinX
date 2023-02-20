@@ -74,12 +74,12 @@ jobs:
             exit 1
           fi
 
-      - name: TestUnionControler IT
+      - name: TestControler IT
         if: always()
         shell: bash
         run: |
           chmod +x "${GITHUB_WORKSPACE}/.github/testUnion.sh"
-          mvn test -q -Dtest=TestUnionControler -DfailIfNoTests=false
+          mvn test -q -Dtest=TestControler -DfailIfNoTests=false
 
   IoTDB-CE:
     timeout-minutes: 20

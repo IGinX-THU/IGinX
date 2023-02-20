@@ -1,4 +1,4 @@
-package cn.edu.tsinghua.iginx.integration.testControler;
+package cn.edu.tsinghua.iginx.integration.testcontroler;
 
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
@@ -19,7 +19,7 @@ import java.util.List;
 
 import static org.junit.Assert.fail;
 
-public class TestUnionControler {
+public class TestControler {
     private final List<String[]> STORAGEENGINELIST = new ArrayList<String[]>(){{
         add(new String[] {"127.0.0.1", "6668", "iotdb12", "username:root, password:root, sessionPoolSize:20, has_data:false, is_read_only:false"});
         add(new String[] {"127.0.0.1", "8060", "influxdb", "url:http://localhost:8086/ , username:user, password:12345678, sessionPoolSize:20, has_data:false, is_read_only:false, token:testToken, organization:testOrg"});
@@ -82,7 +82,7 @@ public class TestUnionControler {
     }
 
     protected static final Logger logger = LoggerFactory.getLogger(TagIT.class);
-    private String FILEPATH = "./src/test/java/cn/edu/tsinghua/iginx/integration/testControler/testTask.txt";
+    private String FILEPATH = "./src/test/java/cn/edu/tsinghua/iginx/integration/testcontroler/testTask.txt";
     public static String CLEARDATAEXCP = "cn.edu.tsinghua.iginx.exceptions.ExecutionException: Caution: can not clear the data of read-only node.";
     private String MVNRUNTEST = "../.github/testUnion.sh";
     private String ADDSTORAGEENGINE = "ADD STORAGEENGINE (\"%s\", %s, \"%s\", \"%s\")";
