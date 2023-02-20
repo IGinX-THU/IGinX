@@ -47,7 +47,7 @@ public class PayloadFormatManager {
             formatter = formatters.get(formatterClassName);
             if (formatter == null) {
                 try {
-                    Class<? extends IPayloadFormatter> clazz = (Class<? extends IPayloadFormatter>) this.getClass().getClassLoader().loadClass(formatterClassName);
+                    Class<? extends IPayloadFormatter> clazz = this.getClass().getClassLoader().loadClass(formatterClassName).asSubclass(IPayloadFormatter.class);
                     formatter = clazz.getConstructor().newInstance();
                     formatters.put(formatterClassName, formatter);
                 } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {

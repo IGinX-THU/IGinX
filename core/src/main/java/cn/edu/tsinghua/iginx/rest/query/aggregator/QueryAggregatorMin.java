@@ -31,8 +31,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import static java.lang.Math.min;
-
 public class QueryAggregatorMin extends QueryAggregator {
     public QueryAggregatorMin() {
         super(QueryAggregatorType.MIN);

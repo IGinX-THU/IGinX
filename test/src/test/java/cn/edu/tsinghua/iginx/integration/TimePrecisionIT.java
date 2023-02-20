@@ -14,7 +14,6 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 public class TimePrecisionIT {
@@ -87,10 +86,6 @@ public class TimePrecisionIT {
             logger.error("Clear date execute fail. Caused by: {}.", res.getParseErrorMsg());
             fail();
         }
-    }
-
-    private void Compare(String actualOutput, String expectedOutput) {
-        assertEquals(expectedOutput, actualOutput);
     }
 
     @Test

@@ -576,7 +576,7 @@ public abstract class BaseSessionConcurrencyIT {
         public MultiThreadTask(int type, List<String> path, long startTime, long endTime,
                                long pointNum, int step, AggregateType aggrType, int portNum) throws SessionException {
             this.type = type;
-            this.path = new ArrayList(path);
+            this.path = new ArrayList<>(path);
             this.startTime = startTime;
             this.endTime = endTime;
             this.pointNum = pointNum;

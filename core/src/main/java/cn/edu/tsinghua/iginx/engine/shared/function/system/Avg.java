@@ -142,6 +142,8 @@ public class Avg implements SetMappingFunction {
                     case DOUBLE:
                         targetSums[targetIndex] += (double) value;
                         break;
+                    default:
+                        throw new IllegalStateException("Unexpected field type: " + fields.get(index).getType().toString());
                 }
                 counts[targetIndex]++;
             }

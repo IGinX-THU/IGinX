@@ -45,7 +45,7 @@ public abstract class BaseSessionIT extends BaseSessionConcurrencyIT {
     //params for datatype test
     private static final String ranStr = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     private static final int STRING_LEN = 1000;
-
+    @SuppressWarnings("unused") // dead code because 100000 % 123 != 0
     long factSampleLen = (TIME_PERIOD / PRECISION) + ((TIME_PERIOD % PRECISION == 0) ? 0 : 1);
     double originAvg = (START_TIME + END_TIME) / 2.0;
 
