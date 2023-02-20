@@ -61,7 +61,7 @@ import static cn.edu.tsinghua.iginx.utils.ByteUtils.getLongArrayFromByteBuffer;
 import static cn.edu.tsinghua.iginx.utils.ByteUtils.getValueFromByteBufferByDataType;
 
 public class QueryClientImpl extends AbstractFunctionClient implements QueryClient {
-
+    @SuppressWarnings("unused")
     private static final Logger logger = LoggerFactory.getLogger(QueryClientImpl.class);
 
     private final ResultMapper resultMapper;

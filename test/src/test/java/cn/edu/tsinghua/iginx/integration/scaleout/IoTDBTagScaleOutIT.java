@@ -1,8 +1,5 @@
 package cn.edu.tsinghua.iginx.integration.scaleout;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
-import cn.edu.tsinghua.iginx.integration.SQLSessionIT;
 import cn.edu.tsinghua.iginx.integration.TagIT;
 import cn.edu.tsinghua.iginx.utils.FileReader;
 import org.junit.Test;

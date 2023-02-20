@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.Map;
 
 public class DeleteGenerator extends AbstractGenerator {
-
+    @SuppressWarnings("unused")
     private static final Logger logger = LoggerFactory.getLogger(InsertGenerator.class);
     private final static DeleteGenerator instance = new DeleteGenerator();
     private final static IMetaManager metaManager = DefaultMetaManager.getInstance();

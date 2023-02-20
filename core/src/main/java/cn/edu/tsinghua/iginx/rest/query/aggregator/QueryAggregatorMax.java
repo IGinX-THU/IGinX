@@ -31,8 +31,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import static java.lang.Math.max;
-
 public class QueryAggregatorMax extends QueryAggregator {
     public QueryAggregatorMax() {
         super(QueryAggregatorType.MAX);

@@ -71,7 +71,7 @@ public class PostgreSQLStorage implements IStorage {
 
   private static final int BATCH_SIZE = 10000;
 
-  private static final String STORAGE_ENGINE = "timescaledb";
+  private static final String STORAGE_ENGINE = "postgresql";
 
   private static final String USERNAME = "username";
 

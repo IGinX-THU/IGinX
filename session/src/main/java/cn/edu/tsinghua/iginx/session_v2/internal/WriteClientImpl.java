@@ -46,7 +46,7 @@ import java.util.stream.Collectors;
 import static cn.edu.tsinghua.iginx.utils.ByteUtils.getByteArrayFromLongArray;
 
 public class WriteClientImpl extends AbstractFunctionClient implements WriteClient {
-
+    @SuppressWarnings("unused")
     private static final Logger logger = LoggerFactory.getLogger(WriteClientImpl.class);
 
     private final MeasurementMapper measurementMapper;

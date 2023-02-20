@@ -30,12 +30,10 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-import static cn.edu.tsinghua.iginx.engine.shared.Constants.PARAM_LEVELS;
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.PARAM_PATHS;
 
 public class FirstValue implements SetMappingFunction {

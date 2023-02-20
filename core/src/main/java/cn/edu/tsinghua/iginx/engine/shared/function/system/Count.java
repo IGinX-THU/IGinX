@@ -41,6 +41,7 @@ import static cn.edu.tsinghua.iginx.engine.shared.Constants.PARAM_PATHS;
 public class Count implements SetMappingFunction {
 
     public static final String COUNT = "count";
+    @SuppressWarnings("unused")
     private static final Logger logger = LoggerFactory.getLogger(Count.class);
     private static final Count INSTANCE = new Count();
 

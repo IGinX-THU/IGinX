@@ -19,7 +19,6 @@
 package cn.edu.tsinghua.iginx.metadata.storage.zk;
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
-import cn.edu.tsinghua.iginx.conf.Constants;
 import cn.edu.tsinghua.iginx.exceptions.MetaStorageException;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
 import cn.edu.tsinghua.iginx.metadata.hook.*;
@@ -28,7 +27,7 @@ import cn.edu.tsinghua.iginx.utils.JsonUtils;
 import java.util.Map.Entry;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
-import org.apache.curator.framework.recipes.cache.TreeCache;
+import org.apache.curator.framework.recipes.cache.TreeCache; // CuratorCache requires ZooKeeper 3.6+
 import org.apache.curator.framework.recipes.cache.TreeCacheListener;
 import org.apache.curator.framework.recipes.locks.InterProcessMutex;
 import org.apache.curator.retry.RetryForever;
@@ -641,6 +640,9 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
                         storageUnitChangeHook.onChange(storageUnitMeta.getId(), storageUnitMeta);
                     }
                     break;
+                default:
+                    // TODO: case label. should we do nothing for other events?
+                    break;
             }
         };
         this.storageUnitCache.getListenable().addListener(listener);
@@ -1014,6 +1016,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
             logger.info("失败");
             isMaster = false;
         } finally {
+            // TODO: this will cause exception lost! Can we catch all exception instead?
             return isMaster;
         }
     }

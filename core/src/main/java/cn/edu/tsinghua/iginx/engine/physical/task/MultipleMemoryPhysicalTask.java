@@ -14,7 +14,7 @@ import java.util.List;
  * 目前专门用于 CombineNonQuery 操作符
  */
 public class MultipleMemoryPhysicalTask extends MemoryPhysicalTask {
-
+    @SuppressWarnings("unused")
     private static final Logger logger = LoggerFactory.getLogger(MultipleMemoryPhysicalTask.class);
 
     private final List<PhysicalTask> parentTasks;

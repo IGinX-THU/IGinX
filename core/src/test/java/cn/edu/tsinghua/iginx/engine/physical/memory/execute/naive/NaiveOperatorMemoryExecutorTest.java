@@ -21,8 +21,6 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.naive;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.AbstractOperatorMemoryExecutorTest;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.OperatorMemoryExecutor;
 
-import java.util.Arrays;
-
 public class NaiveOperatorMemoryExecutorTest extends AbstractOperatorMemoryExecutorTest {
 
     private final NaiveOperatorMemoryExecutor executor;
