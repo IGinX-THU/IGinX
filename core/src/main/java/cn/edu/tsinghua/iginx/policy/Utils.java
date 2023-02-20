@@ -21,6 +21,9 @@ public class Utils {
                 return ((DeleteStatement) statement).getPaths();
             case INSERT:
                 return ((InsertStatement) statement).getPaths();
+            default:
+                // TODO: case label. should we return empty list for other statements?
+                break;
         }
         return Collections.emptyList();
     }

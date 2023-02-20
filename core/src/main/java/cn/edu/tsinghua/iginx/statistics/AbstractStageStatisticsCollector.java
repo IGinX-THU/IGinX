@@ -10,7 +10,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Function;
 
 public abstract class AbstractStageStatisticsCollector {
-
+    @SuppressWarnings("unused")
     private static final Logger logger = LoggerFactory.getLogger(AbstractStageStatisticsCollector.class);
 
     protected static final String BEGIN = "begin";
