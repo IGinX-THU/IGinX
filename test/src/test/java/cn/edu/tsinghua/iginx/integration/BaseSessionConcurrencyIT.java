@@ -52,25 +52,17 @@ public abstract class BaseSessionConcurrencyIT {
     protected static final Logger logger = LoggerFactory.getLogger(BaseSessionIT.class);
 
     @Before
-    public void setUp() {
-        try {
-            session = new MultiConnection (new Session(defaultTestHost, defaultTestPort, defaultTestUser, defaultTestPass));
-            session.openSession();
-        } catch (Exception e) {
-            logger.error(e.getMessage());
-        }
+    public void setUp() throws SessionException {
+        session = new MultiConnection(new Session(defaultTestHost, defaultTestPort, defaultTestUser, defaultTestPass));
+        session.openSession();
     }
 
     @After
-    public void tearDown() throws SessionException {
+    public void tearDown() throws SessionException, ExecutionException {
         if(!ifClearData) return;
 
-        try {
-            clearData();
-            session.closeSession();
-        } catch (ExecutionException e) {
-            logger.error(e.getMessage());
-        }
+        clearData();
+        session.closeSession();
     }
 
     protected void clearData() throws ExecutionException, SessionException {
