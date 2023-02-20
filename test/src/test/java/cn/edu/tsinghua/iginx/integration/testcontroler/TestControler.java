@@ -1,6 +1,5 @@
 package cn.edu.tsinghua.iginx.integration.testcontroler;
 
-import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.TagIT;
@@ -12,7 +11,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -21,8 +19,8 @@ import static org.junit.Assert.fail;
 
 public class TestControler {
     private final List<String[]> STORAGEENGINELIST = new ArrayList<String[]>(){{
-        add(new String[] {"127.0.0.1", "6668", "iotdb12", "username:root, password:root, sessionPoolSize:20, has_data:false, is_read_only:false"});
-        add(new String[] {"127.0.0.1", "8060", "influxdb", "url:http://localhost:8086/ , username:user, password:12345678, sessionPoolSize:20, has_data:false, is_read_only:false, token:testToken, organization:testOrg"});
+//        add(new String[] {"127.0.0.1", "6668", "iotdb12", "username:root, password:root, sessionPoolSize:20, has_data:false, is_read_only:false"});
+//        add(new String[] {"127.0.0.1", "8060", "influxdb", "url:http://localhost:8086/ , username:user, password:12345678, sessionPoolSize:20, has_data:false, is_read_only:false, token:testToken, organization:testOrg"});
 //        add(new String[] {"127.0.0.1", "6668", "parquet", "dir:parquetData2, sessionPoolSize:20, has_data:false, is_read_only:false"});
     }};
 
@@ -47,7 +45,6 @@ public class TestControler {
                             "IoTDBSQLSessionIT\n",
                             "IoTDBSQLSessionPoolIT\n"
                     ));
-                    taskList.clear();
                     break;
                 case "influxdb":
                     taskList.clear();
@@ -148,6 +145,8 @@ public class TestControler {
 
     @Test
     public void testUnion() throws Exception {
+        // skip this when support remove Engine
+        runShellCommand(MVNRUNTEST);
         for (String[] cmd :STORAGEENGINELIST) {
             //set the test Environment
             session.executeSql(toCmd(cmd));

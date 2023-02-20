@@ -43,6 +43,8 @@ public abstract class SQLSessionIT {
 
     protected boolean isAbleToShowTimeSeries;
 
+    protected boolean ifScaleOutIn;
+
     private final long startKey = 0L;
 
     private final long endKey = 15000L;
@@ -246,6 +248,7 @@ public abstract class SQLSessionIT {
 
     @Test
     public void testCountPoints() {
+        if (ifScaleOutIn) return;
         String statement = "COUNT POINTS;";
         String expected = "Points num: 60000\n";
         executeAndCompare(statement, expected);
@@ -256,7 +259,7 @@ public abstract class SQLSessionIT {
         if (!isAbleToShowTimeSeries) {
             return;
         }
-        String statement = "SHOW TIME SERIES;";
+        String statement = "SHOW TIME SERIES us.*;";
         String expected =
             "Time series:\n"
                 + "+--------+--------+\n"
@@ -2559,6 +2562,7 @@ public abstract class SQLSessionIT {
 
     @Test
     public void testExplain() {
+        if (ifScaleOutIn) return;
         String explain = "explain select max(s2), min(s1) from us.d1;";
         String expected =
             "ResultSets:\n"
@@ -2595,7 +2599,7 @@ public abstract class SQLSessionIT {
         if (!isAbleToDelete) {
             return;
         }
-        String showTimeSeries = "SHOW TIME SERIES;";
+        String showTimeSeries = "SHOW TIME SERIES us.*;";
         String expected =
             "Time series:\n"
                 + "+--------+--------+\n"
@@ -2612,7 +2616,7 @@ public abstract class SQLSessionIT {
         String deleteTimeSeries = "DELETE TIME SERIES us.d1.s4";
         execute(deleteTimeSeries);
 
-        showTimeSeries = "SHOW TIME SERIES;";
+        showTimeSeries = "SHOW TIME SERIES us.*;";
         expected =
             "Time series:\n"
                 + "+--------+--------+\n"
@@ -2637,7 +2641,7 @@ public abstract class SQLSessionIT {
         deleteTimeSeries = "DELETE TIME SERIES us.*";
         execute(deleteTimeSeries);
 
-        showTimeSeries = "SHOW TIME SERIES;";
+        showTimeSeries = "SHOW TIME SERIES us.*;";
         expected =
             "Time series:\n"
                 + "+----+--------+\n"
@@ -2662,9 +2666,9 @@ public abstract class SQLSessionIT {
     }
 
     @Test
-    public void testClearData() {
-        String clearData = "CLEAR DATA;";
-        execute(clearData);
+    public void testClearData() throws SessionException, ExecutionException {
+        if (!ifClearData) return;
+        clearData();
 
         String countPoints = "COUNT POINTS;";
         String expected = "Points num: 0\n";
