@@ -582,10 +582,12 @@ public class TransformIT {
             logger.info("job {} state is {}", jobId, jobState.toString());
 
             session.cancelTransformJob(jobId);
+            jobState = session.queryTransformJobStatus(jobId);
+            logger.info("After cancellation, job {} state is {}", jobId, jobState.toString());
+            assertEquals(JobState.JOB_CLOSED, jobState);
 
-            List<Long> finishedJobIds = session.showEligibleJob(JobState.JOB_CLOSED);
-
-            assertTrue(finishedJobIds.contains(jobId));
+            List<Long> closedJobIds = session.showEligibleJob(JobState.JOB_CLOSED);
+            assertTrue(closedJobIds.contains(jobId));
         } catch (SessionException | ExecutionException | InterruptedException e) {
             logger.error("Transform:  execute fail. Caused by:", e);
             fail();
