@@ -1214,43 +1214,43 @@ public class TagIT {
 
     @Test
     public void testSubQuery() {
-        String statement = "SELECT SUM(ts2) FROM (SELECT s AS ts1, v AS ts2 FROM ah.hr03 with t1=v1);";
+        String statement = "SELECT SUM(sub_query.ts2) FROM (SELECT s AS ts1, v AS ts2 FROM ah.hr03 with t1=v1) AS sub_query;";
         String expected = "ResultSets:\n" +
-                "+---------------+\n" +
-                "|sum(ts2{t1=v1})|\n" +
-                "+---------------+\n" +
-                "|             16|\n" +
-                "+---------------+\n" +
+                "+-------------------------+\n" +
+                "|sum(sub_query.ts2{t1=v1})|\n" +
+                "+-------------------------+\n" +
+                "|                       16|\n" +
+                "+-------------------------+\n" +
                 "Total line number = 1\n";
         executeAndCompare(statement, expected);
 
-        statement = "SELECT AVG(ts2) FROM (SELECT s AS ts1, v AS ts2 FROM ah.hr03 with t1=v1);";
+        statement = "SELECT AVG(sub_query.ts2) FROM (SELECT s AS ts1, v AS ts2 FROM ah.hr03 with t1=v1) AS sub_query;";
         expected = "ResultSets:\n" +
-                "+---------------+\n" +
-                "|avg(ts2{t1=v1})|\n" +
-                "+---------------+\n" +
-                "|           16.0|\n" +
-                "+---------------+\n" +
+                "+-------------------------+\n" +
+                "|avg(sub_query.ts2{t1=v1})|\n" +
+                "+-------------------------+\n" +
+                "|                     16.0|\n" +
+                "+-------------------------+\n" +
                 "Total line number = 1\n";
         executeAndCompare(statement, expected);
 
-        statement = "SELECT MAX(ts2) FROM (SELECT s AS ts1, v AS ts2 FROM ah.hr03 with t1=v1);";
+        statement = "SELECT MAX(sub_query.ts2) FROM (SELECT s AS ts1, v AS ts2 FROM ah.hr03 with t1=v1) AS sub_query;";
         expected = "ResultSets:\n" +
-                "+---------------+\n" +
-                "|max(ts2{t1=v1})|\n" +
-                "+---------------+\n" +
-                "|             16|\n" +
-                "+---------------+\n" +
+                "+-------------------------+\n" +
+                "|max(sub_query.ts2{t1=v1})|\n" +
+                "+-------------------------+\n" +
+                "|                       16|\n" +
+                "+-------------------------+\n" +
                 "Total line number = 1\n";
         executeAndCompare(statement, expected);
 
-        statement = "SELECT COUNT(ts2) FROM (SELECT s AS ts1, v AS ts2 FROM ah.hr03 with t1=v1);";
+        statement = "SELECT COUNT(sub_query.ts2) FROM (SELECT s AS ts1, v AS ts2 FROM ah.hr03 with t1=v1) AS sub_query;";
         expected = "ResultSets:\n" +
-                "+-----------------+\n" +
-                "|count(ts2{t1=v1})|\n" +
-                "+-----------------+\n" +
-                "|                1|\n" +
-                "+-----------------+\n" +
+                "+---------------------------+\n" +
+                "|count(sub_query.ts2{t1=v1})|\n" +
+                "+---------------------------+\n" +
+                "|                          1|\n" +
+                "+---------------------------+\n" +
                 "Total line number = 1\n";
         executeAndCompare(statement, expected);
     }
