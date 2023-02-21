@@ -14,7 +14,6 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 public class TimePrecisionIT {
@@ -36,23 +35,18 @@ public class TimePrecisionIT {
     protected String storageEngineType;
 
     @BeforeClass
-    public static void setUp() {
-        if(isForSession)
-            session = new Session (defaultTestHost, defaultTestPort, defaultTestUser, defaultTestPass);
-        try {
-            session.openSession();
-        } catch (SessionException e) {
-            logger.error(e.getMessage());
+    public static void setUp() throws SessionException {
+        if(isForSession) {
+            session = new Session(defaultTestHost, defaultTestPort, defaultTestUser, defaultTestPass);
+        } else if (isForSessionPool) {
+            // TODO
         }
+        session.openSession();
     }
 
     @AfterClass
-    public static void tearDown() {
-        try {
-            session.closeSession();
-        } catch (SessionException e) {
-            logger.error(e.getMessage());
-        }
+    public static void tearDown() throws SessionException {
+        session.closeSession();
     }
 
     @Before
@@ -87,10 +81,6 @@ public class TimePrecisionIT {
             logger.error("Clear date execute fail. Caused by: {}.", res.getParseErrorMsg());
             fail();
         }
-    }
-
-    private void Compare(String actualOutput, String expectedOutput) {
-        assertEquals(expectedOutput, actualOutput);
     }
 
     @Test

@@ -30,8 +30,7 @@ public class MigrationManager {
       policy = policies.get(policyClassName);
       if (policy == null) {
         try {
-          Class<? extends MigrationPolicy> clazz = (Class<? extends MigrationPolicy>) this
-              .getClass().getClassLoader().loadClass(policyClassName);
+          Class<? extends MigrationPolicy> clazz = this.getClass().getClassLoader().loadClass(policyClassName).asSubclass(MigrationPolicy.class);
           policy = clazz.getConstructor().newInstance();
           policies.put(policyClassName, policy);
         } catch (Exception e) {

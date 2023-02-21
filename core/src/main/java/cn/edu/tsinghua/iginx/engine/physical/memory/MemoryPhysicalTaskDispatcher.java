@@ -27,7 +27,6 @@ import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 

@@ -9,6 +9,7 @@ import lombok.Data;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Data
 public class Job {
@@ -18,6 +19,7 @@ public class Job {
     private long sessionId;
 
     private JobState state;
+    private final AtomicBoolean active;
     private long startTime;
     private long endTime;
 
@@ -32,6 +34,7 @@ public class Job {
         jobId = id;
         sessionId = req.getSessionId();
         state = JobState.JOB_CREATED;
+        active = new AtomicBoolean(true);
 
         exportType = req.getExportType();
         if (exportType.equals(ExportType.File)) {
@@ -80,6 +83,7 @@ public class Job {
         this.jobId = id;
         this.sessionId = sessionId;
         this.state = JobState.JOB_CREATED;
+        active = new AtomicBoolean(true);
 
         String exportType = jobFromYAML.getExportType().toLowerCase().trim();
         if (exportType.equals("file")) {

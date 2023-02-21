@@ -2,16 +2,18 @@ package cn.edu.tsinghua.iginx.integration;
 
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.pool.IginxInfo;
 import cn.edu.tsinghua.iginx.pool.SessionPool;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Arrays;
-import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
@@ -45,33 +47,34 @@ public abstract class SQLSessionIT {
     protected String storageEngineType;
 
     @BeforeClass
-    public static void setUp() {
+    public static void setUp() throws SessionException {
         if (isForSession) {
             session = new MultiConnection(
                 new Session(defaultTestHost, defaultTestPort, defaultTestUser, defaultTestPass));
         } else if (isForSessionPool) {
-            session = new MultiConnection(new SessionPool.Builder()
-                .host(defaultTestHost)
-                .port(defaultTestPort)
-                .user(defaultTestUser)
-                .password(defaultTestPass)
-                .maxSize(MaxMultiThreadTaskNum)
-                .build());
+            session = new MultiConnection(
+                    new SessionPool(new ArrayList<IginxInfo>() {{
+                        add(new IginxInfo.Builder()
+                                .host("0.0.0.0")
+                                .port(6888)
+                                .user("root")
+                                .password("root")
+                                .build());
+
+                        add(new IginxInfo.Builder()
+                                .host("0.0.0.0")
+                                .port(7888)
+                                .user("root")
+                                .password("root")
+                                .build());
+                    }}));
         }
-        try {
-            session.openSession();
-        } catch (SessionException e) {
-            logger.error(e.getMessage());
-        }
+        session.openSession();
     }
 
     @AfterClass
-    public static void tearDown() {
-        try {
-            session.closeSession();
-        } catch (SessionException e) {
-            logger.error(e.getMessage());
-        }
+    public static void tearDown() throws SessionException {
+        session.closeSession();
     }
 
     @Before

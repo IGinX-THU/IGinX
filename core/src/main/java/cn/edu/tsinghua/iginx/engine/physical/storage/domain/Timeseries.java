@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
 
 public final class Timeseries {
 
-    private final String path;
+    private String path;
 
     private final Map<String, String> tags;
 
@@ -57,6 +57,10 @@ public final class Timeseries {
 
     public String getPath() {
         return path;
+    }
+
+    public void setPath(String path) {
+        this.path = path;
     }
 
     public String getPhysicalPath() {

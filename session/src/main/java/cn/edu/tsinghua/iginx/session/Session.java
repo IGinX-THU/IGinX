@@ -1277,4 +1277,20 @@ public class Session {
             throw new SessionException(e);
         }
     }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public String getHost() {
+        return host;
+    }
+
+    public int getPort() {
+        return port;
+    }
 }

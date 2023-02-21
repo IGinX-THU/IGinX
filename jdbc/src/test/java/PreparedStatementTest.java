@@ -18,6 +18,7 @@ public class PreparedStatementTest {
         String expectedSQL = "SELECT a, b, c, d FROM root.sg WHERE TIME > 10 AND TIME < 15 AND a > 66.8 OR b < 99.9 AND c = abc AND d = true;";
         String completeSQL = ps.getCompleteSql();
         Assert.assertEquals(expectedSQL, completeSQL);
+        ps.close();
     }
 
     @Test
@@ -29,6 +30,7 @@ public class PreparedStatementTest {
         String expectedSQL = "SELECT a, b FROM root.sg WHERE TIME > 10 AND TIME < 25 AND a > 10 AND b = \"asda?asd\";";
         String completeSQL = ps.getCompleteSql();
         Assert.assertEquals(expectedSQL, completeSQL);
+        ps.close();
     }
 
     @Test
@@ -40,5 +42,6 @@ public class PreparedStatementTest {
         String expectedSQL = "SELECT a, b FROM root.sg WHERE TIME > 10 AND < 25 AND a > 10 AND b = \'asda?asd\';";
         String completeSQL = ps.getCompleteSql();
         Assert.assertEquals(expectedSQL, completeSQL);
+        ps.close();
     }
 }

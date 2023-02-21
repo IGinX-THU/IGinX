@@ -35,6 +35,7 @@ public class OpenTSDBRowStream implements RowStream {
 
     private int hasMoreRecords;
 
+    @SuppressWarnings("unchecked")
     public OpenTSDBRowStream(List<QueryResult> resultList, boolean trimStorageUnit) {
         this.resultList = resultList;
         this.trimStorageUnit = trimStorageUnit;

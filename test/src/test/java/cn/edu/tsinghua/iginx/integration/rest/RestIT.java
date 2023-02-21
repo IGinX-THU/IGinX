@@ -3,21 +3,13 @@ package cn.edu.tsinghua.iginx.integration.rest;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.rest.MetricsResource;
-import cn.edu.tsinghua.iginx.rest.bean.Query;
-import cn.edu.tsinghua.iginx.rest.bean.QueryResult;
-import cn.edu.tsinghua.iginx.rest.insert.DataPointsParser;
-import cn.edu.tsinghua.iginx.rest.query.QueryExecutor;
-import cn.edu.tsinghua.iginx.rest.query.QueryParser;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.ws.rs.core.Response;
 import java.io.*;
-import java.nio.charset.StandardCharsets;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
@@ -31,22 +23,14 @@ public class RestIT {
     protected static Session session;
 
     @BeforeClass
-    public static void setUp() {
+    public static void setUp() throws SessionException {
         session = new Session("127.0.0.1", 6888, "root", "root");
-        try {
-            session.openSession();
-        } catch (SessionException e) {
-            logger.error(e.getMessage());
-        }
+        session.openSession();
     }
 
     @AfterClass
-    public static void tearDown() {
-        try {
-            session.closeSession();
-        } catch (SessionException e) {
-            logger.error(e.getMessage());
-        }
+    public static void tearDown() throws SessionException {
+        session.closeSession();
     }
 
     @Before
@@ -55,6 +39,7 @@ public class RestIT {
             execute("insert.json",TYPE.INSERT);
         } catch (Exception e) {
             logger.error("insertData fail. Caused by: {}.", e.toString());
+            fail();
         }
     }
 
