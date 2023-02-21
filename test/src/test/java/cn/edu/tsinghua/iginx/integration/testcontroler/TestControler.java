@@ -2,7 +2,7 @@ package cn.edu.tsinghua.iginx.integration.testcontroler;
 
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
-import cn.edu.tsinghua.iginx.integration.TagIT;
+import cn.edu.tsinghua.iginx.integration.func.tag.TagIT;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import org.junit.BeforeClass;
@@ -34,7 +34,9 @@ public class TestControler {
             taskList.addAll(Arrays.asList(
                     "TagIT\n",
                     "RestAnnotationIT\n",
-                    "RestIT\n"
+                    "RestIT\n",
+                    "TransformIT\n",
+                    "SessionV2IT\n"
             ));
             // test for specific DB
             switch (DBName.toLowerCase()) {

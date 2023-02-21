@@ -1,41 +1,16 @@
 package cn.edu.tsinghua.iginx.integration.expansion.influxdb;
 
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.integration.expansion.CapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.unit.SQLTestTools;
-import cn.edu.tsinghua.iginx.session.Session;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class InfluxDBHistoryDataCapacityExpansionIT {
+public class InfluxDBHistoryDataCapacityExpansionIT extends CapacityExpansionIT {
     private static final Logger logger = LoggerFactory.getLogger(InfluxDBHistoryDataCapacityExpansionIT.class);
 
-    private static Session session;
-
-    private String ENGINE_TYPE = "influxdb";
-
     public InfluxDBHistoryDataCapacityExpansionIT() {
-    }
-
-    @BeforeClass
-    public static void setUp() {
-        session = new Session("127.0.0.1", 6888, "root", "root");
-        try {
-            session.openSession();
-        } catch (SessionException e) {
-            logger.error(e.getMessage());
-        }
-    }
-
-    @AfterClass
-    public static void tearDown() {
-        try {
-            session.closeSession();
-        } catch (SessionException e) {
-            logger.error(e.getMessage());
-        }
+        super("influxdb");
     }
 
     @Test

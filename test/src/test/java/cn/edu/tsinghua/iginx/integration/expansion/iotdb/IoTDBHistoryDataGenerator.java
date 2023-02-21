@@ -11,31 +11,6 @@ public class IoTDBHistoryDataGenerator implements BaseHistoryDataGenerator {
     private static final Logger logger = LoggerFactory.getLogger(IoTDBHistoryDataGenerator.class);
 
     @Test
-    public void oriHasDataExpHasData() throws Exception {
-        writeHistoryDataToA();
-        writeHistoryDataToB();
-    }
-
-    @Test
-    public void oriHasDataExpNoData() throws Exception {
-        writeHistoryDataToA();
-    }
-
-    @Test
-    public void oriNoDataExpHasData() throws Exception {
-        writeHistoryDataToB();
-    }
-
-    @Test
-    public void oriNoDataExpNoData() throws Exception {
-    }
-
-    @Test
-    public void extraDataWrite() throws Exception {
-        extraDataWriteToB();
-    }
-
-    @Test
     public void clearData() {
         try {
             Session sessionA = new Session("127.0.0.1", 6667, "root", "root");
@@ -50,7 +25,6 @@ public class IoTDBHistoryDataGenerator implements BaseHistoryDataGenerator {
         } catch (Exception e) {
             logger.error(e.getMessage());
         }
-
         logger.info("clear data success!");
     }
 

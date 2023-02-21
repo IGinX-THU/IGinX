@@ -1,6 +1,6 @@
 package cn.edu.tsinghua.iginx.integration.expansion.iotdb.scaleout;
 
-import cn.edu.tsinghua.iginx.integration.TagIT;
+import cn.edu.tsinghua.iginx.integration.func.tag.TagIT;
 import cn.edu.tsinghua.iginx.utils.FileReader;
 
 public class IoTDBTagScaleOutIT extends TagIT {

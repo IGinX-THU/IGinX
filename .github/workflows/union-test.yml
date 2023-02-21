@@ -50,6 +50,11 @@ jobs:
           confFile: DBName
           DB-name: ${{matrix.DB-name}}
 
+      - name: Set The UDF Conf
+        uses: ./.github/actions/confWriter
+        with:
+          confFile: UDFConf
+
       - name: Start IginX
         uses: ./.github/actions/iginxRunner
 

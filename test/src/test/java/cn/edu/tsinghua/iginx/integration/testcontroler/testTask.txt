@@ -5,3 +5,6 @@ RestAnnotationIT
 RestIT
 IoTDB12SessionIT
 IoTDB12SessionPoolIT
+SessionV2IT
+TransformIT
+UDFIT
