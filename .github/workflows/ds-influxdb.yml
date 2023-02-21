@@ -1,10 +1,6 @@
 name: "ITTest-ds-InfluxDB"
 
-on:
-  pull_request:
-    types: [opened, reopened]
-    branches:
-      - main
+on: workflow_dispatch
 env:
   VERSION: 0.6.0-SNAPSHOT
 
@@ -13,6 +9,29 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  IGinX-Build:
+    runs-on: ubuntu-latest
+    matrix:
+        java: [ 8 ]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-java@v3
+        with:
+          java-version: ${{ matrix.java }}
+      - name: Cache local Maven repository
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+      - name: Maven Package
+        run: mvn clean package -DskipTests
+      - name: Upload Outputs and Intermediates
+        uses: actions/upload-artifact@v3
+        with:
+          name: IGinX-Java${{ matrix.java }}-Dev
+          path: .
   InfluxDB-Capacity-Expansion-ds:
     strategy:
       fail-fast: false
@@ -23,16 +42,19 @@ jobs:
         os: [ ubuntu-latest, macos-latest ]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v2
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Download IGinX-Java${{ matrix.java }}-Dev
+        uses: actions/download-artifact@v3
+        with:
+          name: IGinX-Java${{ matrix.java }}-Dev
+      - name: Setup Python ${{ matrix.python-version }}
         uses: actions/setup-python@v3
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install Python dependencies
+      - name: Install Python Dependencies
         run: |
           python -m pip install --upgrade pip
-      - name: Set up JDK ${{ matrix.java }}
-        uses: actions/setup-java@v1
+      - name: Setup JDK ${{ matrix.java }}
+        uses: actions/setup-java@v3
         with:
           java-version: ${{ matrix.java }}
       - name: Run ZooKeeper
@@ -59,8 +81,6 @@ jobs:
             echo "$RUNNER_OS is not supported"
             exit 1
           fi
-      - name: Install with Maven
-        run: mvn clean package -DskipTests
       - name: Write history Data
         run: |
           mvn test -q -Dtest=InfluxDBHistoryDataGeneratorTest -DfailIfNoTests=false
@@ -80,24 +100,21 @@ jobs:
         os: [ ubuntu-latest, macos-latest ]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v2
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Download IGinX-Java${{ matrix.java }}-Dev
+        uses: actions/download-artifact@v3
+        with:
+          name: IGinX-Java${{ matrix.java }}-Dev
+      - name: Setup Python ${{ matrix.python-version }}
         uses: actions/setup-python@v3
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install Python dependencies
+      - name: Install Python Dependencies
         run: |
           python -m pip install --upgrade pip
-      - name: Set up JDK ${{ matrix.java }}
-        uses: actions/setup-java@v1
+      - name: Setup JDK ${{ matrix.java }}
+        uses: actions/setup-java@v3
         with:
           java-version: ${{ matrix.java }}
-      - name: Cache Maven packages
-        uses: actions/cache@v2.1.5
-        with:
-          path: ~/.m2
-          key: ${{ runner.os }}-m2-${{ hashFiles('/pom.xml') }}
-          restore-keys: ${{ runner.os }}-m2
       - name: Run ZooKeeper
         run: |
           if [ "$RUNNER_OS" == "Linux" ]; then
@@ -122,14 +139,12 @@ jobs:
             echo "$RUNNER_OS is not supported"
             exit 1
           fi
-      - name: Install with Maven
-        run: mvn clean package -DskipTests
       - name: Start IginX
         run: |
           chmod +x "${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/sbin/start_iginx.sh"
           nohup "${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/sbin/start_iginx.sh" &
       - name: A Lame Integration Test with Maven for SQL
-        run: mvn test -q -Dtest=InfluxDBSQLSessionIT -DfailIfNoTests=false
+        run: mvn surefire:test -q -Dtest=InfluxDBSQLSessionIT -DfailIfNoTests=false
       - uses: codecov/codecov-action@v1
         with:
           file: ./**/target/site/jacoco/jacoco.xml
@@ -145,24 +160,21 @@ jobs:
         os: [ ubuntu-latest, macos-latest ]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v2
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Download IGinX-Java${{ matrix.java }}-Dev
+        uses: actions/download-artifact@v3
+        with:
+          name: IGinX-Java${{ matrix.java }}-Dev
+      - name: Setup Python ${{ matrix.python-version }}
         uses: actions/setup-python@v3
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install Python dependencies
+      - name: Install Python Dependencies
         run: |
           python -m pip install --upgrade pip
-      - name: Set up JDK ${{ matrix.java }}
-        uses: actions/setup-java@v1
+      - name: Setup JDK ${{ matrix.java }}
+        uses: actions/setup-java@v3
         with:
           java-version: ${{ matrix.java }}
-      - name: Cache Maven packages
-        uses: actions/cache@v2.1.5
-        with:
-          path: ~/.m2
-          key: ${{ runner.os }}-m2-${{ hashFiles('/pom.xml') }}
-          restore-keys: ${{ runner.os }}-m2
       - name: Run ZooKeeper
         run: |
           if [ "$RUNNER_OS" == "Linux" ]; then
@@ -187,8 +199,6 @@ jobs:
             echo "$RUNNER_OS is not supported"
             exit 1
           fi
-      - name: Install with Maven
-        run: mvn clean package -DskipTests
       - name: Start IginX
         uses: ./.github/actions/iginxRunner
         with:
@@ -204,7 +214,7 @@ jobs:
         with:
           version: ${VERSION}
       - name: A Lame Integration Test with Maven for SQL
-        run: mvn test -q -Dtest=InfluxDBSQLSessionPoolIT -DfailIfNoTests=false
+        run: mvn surefire:test -q -Dtest=InfluxDBSQLSessionPoolIT -DfailIfNoTests=false
       - uses: codecov/codecov-action@v1
         with:
           file: ./**/target/site/jacoco/jacoco.xml

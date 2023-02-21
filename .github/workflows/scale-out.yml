@@ -1,9 +1,5 @@
 name: "Scale-out-On-IoTDB"
-on:
-  pull_request:
-    types: [opened, reopened]
-    branches:
-      - main
+on: workflow_dispatch
 env:
   VERSION: 0.6.0-SNAPSHOT
 
