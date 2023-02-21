@@ -6,14 +6,14 @@ import cn.edu.tsinghua.iginx.pool.IginxInfo;
 import cn.edu.tsinghua.iginx.pool.SessionPool;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
@@ -2199,7 +2199,10 @@ public abstract class SQLSessionIT {
             "Total line number = 10\n";
         executeAndCompare(statement, expected);
 
-        statement = "SELECT sub_query.avg_s1, sub_query.sum_s2 FROM (SELECT AVG(s1) AS avg_s1, SUM(s2) AS sum_s2 FROM us.d1 OVER (RANGE 10 IN [1000, 1100))) AS sub_query WHERE sub_query.avg_s1 > 1020 AND sub_query.sum_s2 < 10800;";
+        statement = "SELECT sub_query.avg_s1, sub_query.sum_s2 " +
+                    "FROM (SELECT AVG(s1) AS avg_s1, SUM(s2) AS sum_s2 " +
+                          "FROM us.d1 OVER (RANGE 10 IN [1000, 1100))) AS sub_query " +
+                    "WHERE sub_query.avg_s1 > 1020 AND sub_query.sum_s2 < 10800;";
         expected = "ResultSets:\n" +
             "+----+----------------+----------------+\n" +
             "| key|sub_query.avg_s1|sub_query.sum_s2|\n" +
@@ -2214,7 +2217,11 @@ public abstract class SQLSessionIT {
             "Total line number = 6\n";
         executeAndCompare(statement, expected);
 
-        statement = "SELECT MAX(sub_query1.sub_query2.avg_s1), MIN(sub_query1.sub_query2.sum_s2) FROM (SELECT sub_query2.avg_s1, sub_query2.sum_s2 FROM (SELECT AVG(s1) AS avg_s1, SUM(s2) AS sum_s2 FROM us.d1 OVER (RANGE 10 IN [1000, 1100))) AS sub_query2 WHERE sub_query2.avg_s1 > 1020 AND sub_query2.sum_s2 < 10800) AS sub_query1;";
+        statement = "SELECT MAX(sub_query1.sub_query2.avg_s1), MIN(sub_query1.sub_query2.sum_s2) " +
+                    "FROM (SELECT sub_query2.avg_s1, sub_query2.sum_s2 " +
+                          "FROM (SELECT AVG(s1) AS avg_s1, SUM(s2) AS sum_s2 " +
+                                "FROM us.d1 OVER (RANGE 10 IN [1000, 1100))) AS sub_query2 " +
+                          "WHERE sub_query2.avg_s1 > 1020 AND sub_query2.sum_s2 < 10800) AS sub_query1;";
         expected = "ResultSets:\n" +
             "+---------------------------------+---------------------------------+\n" +
             "|max(sub_query1.sub_query2.avg_s1)|min(sub_query1.sub_query2.sum_s2)|\n" +
@@ -2505,7 +2512,10 @@ public abstract class SQLSessionIT {
             "Total line number = 10\n";
         executeAndCompare(query, expected);
 
-        insert = "INSERT INTO us.d5(key, s1, s2) VALUES (SELECT avg_s1, sum_s2 FROM (SELECT AVG(s1) AS avg_s1, SUM(s2) AS sum_s2 FROM us.d1 OVER (RANGE 10 IN [1000, 1100))) WHERE avg_s1 > 1020 AND sum_s2 < 10800);";
+        insert = "INSERT INTO us.d5(key, s1, s2) VALUES (SELECT sub_query.avg_s1, sub_query.sum_s2 " +
+                                                        "FROM (SELECT AVG(s1) AS avg_s1, SUM(s2) AS sum_s2 " +
+                                                              "FROM us.d1 OVER (RANGE 10 IN [1000, 1100))) AS sub_query " +
+                                                        "WHERE sub_query.avg_s1 > 1020 AND sub_query.sum_s2 < 10800);";
         execute(insert);
 
         query = "SELECT s1, s2 FROM us.d5";
@@ -2523,7 +2533,11 @@ public abstract class SQLSessionIT {
             "Total line number = 6\n";
         executeAndCompare(query, expected);
 
-        insert = "INSERT INTO us.d6(key, s1, s2) VALUES (SELECT MAX(avg_s1), MIN(sum_s2) FROM (SELECT avg_s1, sum_s2 FROM (SELECT AVG(s1) AS avg_s1, SUM(s2) AS sum_s2 FROM us.d1 OVER (RANGE 10 IN [1000, 1100))) WHERE avg_s1 > 1020 AND sum_s2 < 10800));";
+        insert = "INSERT INTO us.d6(key, s1, s2) VALUES (SELECT MAX(sub_query1.sub_query2.avg_s1), MIN(sub_query1.sub_query2.sum_s2) " +
+                                                        "FROM (SELECT sub_query2.avg_s1, sub_query2.sum_s2 " +
+                                                              "FROM (SELECT AVG(s1) AS avg_s1, SUM(s2) AS sum_s2 " +
+                                                                    "FROM us.d1 OVER (RANGE 10 IN [1000, 1100))) AS sub_query2 " +
+                                                              "WHERE sub_query2.avg_s1 > 1020 AND sub_query2.sum_s2 < 10800) AS sub_query1);";
         execute(insert);
 
         query = "SELECT s1, s2 FROM us.d6";
