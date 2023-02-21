@@ -229,7 +229,7 @@ public class ParseTest {
         SelectStatement statement = (SelectStatement) TestUtils.buildStatement(selectWithSubQuery);
         assertEquals(Collections.singletonList("res.max_a"), statement.getSelectedPaths());
 
-        SelectStatement subStatement = statement.getSubStatement();
+        SelectStatement subStatement = statement.getFromSubStatement();
 
         BaseExpression expression = subStatement.getBaseExpressionMap().get("max").get(0);
         assertEquals("root.a", expression.getPathName());
@@ -305,7 +305,7 @@ public class ParseTest {
         assertEquals("cpu1", selectStatement.getFromPath());
         assertEquals(1, selectStatement.getJoinParts().size());
 
-        JoinPart joinPart = new JoinPart("cpu2", JoinType.CrossJoin, null, Collections.emptyList());
+        JoinPart joinPart = new JoinPart("cpu2", JoinType.CrossJoin, null, Collections.emptyList(), null);
         assertEquals(joinPart, selectStatement.getJoinParts().get(0));
 
         joinStr = "SELECT * FROM cpu1, cpu2, cpu3";
@@ -314,10 +314,10 @@ public class ParseTest {
         assertEquals("cpu1", selectStatement.getFromPath());
         assertEquals(2, selectStatement.getJoinParts().size());
 
-        joinPart = new JoinPart("cpu2", JoinType.CrossJoin, null, Collections.emptyList());
+        joinPart = new JoinPart("cpu2", JoinType.CrossJoin, null, Collections.emptyList(), null);
         assertEquals(joinPart, selectStatement.getJoinParts().get(0));
 
-        joinPart = new JoinPart("cpu3", JoinType.CrossJoin, null, Collections.emptyList());
+        joinPart = new JoinPart("cpu3", JoinType.CrossJoin, null, Collections.emptyList(), null);
         assertEquals(joinPart, selectStatement.getJoinParts().get(1));
 
         joinStr = "SELECT * FROM cpu1 LEFT JOIN cpu2 ON cpu1.usage = cpu2.usage";
@@ -327,7 +327,7 @@ public class ParseTest {
         assertEquals(1, selectStatement.getJoinParts().size());
 
         joinPart = new JoinPart("cpu2", JoinType.LeftOuterJoin,
-            new PathFilter("cpu1.usage", Op.E, "cpu2.usage"), Collections.emptyList());
+            new PathFilter("cpu1.usage", Op.E, "cpu2.usage"), Collections.emptyList(), null);
         assertEquals(joinPart, selectStatement.getJoinParts().get(0));
 
         joinStr = "SELECT * FROM cpu1 RIGHT OUTER JOIN cpu2 USING usage";
@@ -337,7 +337,7 @@ public class ParseTest {
         assertEquals(1, selectStatement.getJoinParts().size());
 
         joinPart = new JoinPart("cpu2", JoinType.RightOuterJoin,
-            null, Collections.singletonList("usage"));
+            null, Collections.singletonList("usage"), null);
         assertEquals(joinPart, selectStatement.getJoinParts().get(0));
 
         joinStr = "SELECT * FROM cpu1 FULL OUTER JOIN cpu2 ON cpu1.usage = cpu2.usage";
@@ -347,7 +347,7 @@ public class ParseTest {
         assertEquals(1, selectStatement.getJoinParts().size());
 
         joinPart = new JoinPart("cpu2", JoinType.FullOuterJoin,
-            new PathFilter("cpu1.usage", Op.E, "cpu2.usage"), Collections.emptyList());
+            new PathFilter("cpu1.usage", Op.E, "cpu2.usage"), Collections.emptyList(), null);
         assertEquals(joinPart, selectStatement.getJoinParts().get(0));
 
         joinStr = "SELECT * FROM cpu1 JOIN cpu2 ON cpu1.usage = cpu2.usage";
@@ -357,7 +357,7 @@ public class ParseTest {
         assertEquals(1, selectStatement.getJoinParts().size());
 
         joinPart = new JoinPart("cpu2", JoinType.InnerJoin,
-            new PathFilter("cpu1.usage", Op.E, "cpu2.usage"), Collections.emptyList());
+            new PathFilter("cpu1.usage", Op.E, "cpu2.usage"), Collections.emptyList(), null);
         assertEquals(joinPart, selectStatement.getJoinParts().get(0));
 
         joinStr = "SELECT * FROM cpu1 INNER JOIN cpu2 USING usage";
@@ -367,7 +367,7 @@ public class ParseTest {
         assertEquals(1, selectStatement.getJoinParts().size());
 
         joinPart = new JoinPart("cpu2", JoinType.InnerJoin,
-            null, Collections.singletonList("usage"));
+            null, Collections.singletonList("usage"), null);
         assertEquals(joinPart, selectStatement.getJoinParts().get(0));
     }
 }

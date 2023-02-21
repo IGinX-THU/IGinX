@@ -308,10 +308,22 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         header.getFields().forEach(field -> {
             String alias = "";
             for (String oldName : aliasMap.keySet()) {
-                Pattern pattern = Pattern.compile(StringUtils.reformatColumnName(oldName) + ".*");
-                if (pattern.matcher(field.getFullName()).matches()) {
-                    alias = aliasMap.get(oldName);
+                if (Objects.equals(oldName, "*") && aliasMap.get(oldName).endsWith(".*")) {
+                    String newPrefix = aliasMap.get(oldName).replace("*", "");
+                    alias = newPrefix + field.getFullName();
+                } else if (oldName.endsWith(".*") && aliasMap.get(oldName).endsWith(".*")) {
+                    String oldPrefix = oldName.replace(".*", "");
+                    String newPrefix = aliasMap.get(oldName).replace(".*", "");
+                    if (field.getFullName().startsWith(oldPrefix)) {
+                        alias = field.getFullName().replaceFirst(oldPrefix, newPrefix);
+                    }
                     break;
+                } else {
+                    Pattern pattern = Pattern.compile(StringUtils.reformatColumnName(oldName) + ".*");
+                    if (pattern.matcher(field.getFullName()).matches()) {
+                        alias = aliasMap.get(oldName);
+                        break;
+                    }
                 }
             }
             if (alias.equals("")) {

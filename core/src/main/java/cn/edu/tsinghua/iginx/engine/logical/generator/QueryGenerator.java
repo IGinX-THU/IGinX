@@ -13,9 +13,11 @@ import cn.edu.tsinghua.iginx.engine.shared.function.manager.FunctionManager;
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.FilterType;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.JoinAlgType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OuterJoinType;
-import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
@@ -30,15 +32,10 @@ import cn.edu.tsinghua.iginx.sql.statement.Statement;
 import cn.edu.tsinghua.iginx.sql.statement.join.JoinPart;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.SortUtils;
-import java.util.Arrays;
-import java.util.Collections;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.*;
@@ -73,13 +70,13 @@ public class QueryGenerator extends AbstractGenerator {
         SelectStatement selectStatement = (SelectStatement) statement;
 
         Operator root;
-        if (selectStatement.getSubStatement() != null) {
-            root = generateRoot(selectStatement.getSubStatement());
+        if (selectStatement.hasJoinParts()) {
+            root = filterAndMergeFragmentsWithJoin(selectStatement);
         } else {
-            policy.notify(selectStatement);
-            if (selectStatement.hasJoinParts()) {
-                root = filterAndMergeFragmentsWithJoin(selectStatement);
+            if (selectStatement.getFromSubStatement() != null) {
+                root = generateRoot(selectStatement.getFromSubStatement());
             } else {
+                policy.notify(selectStatement);
                 root = filterAndMergeFragments(selectStatement);
             }
         }
@@ -251,22 +248,36 @@ public class QueryGenerator extends AbstractGenerator {
 
     private Operator filterAndMergeFragmentsWithJoin(SelectStatement selectStatement) {
         List<String> prefixList = new ArrayList<>();
+        List<Boolean> isSubList = new ArrayList<>();
         prefixList.add(selectStatement.getFromPath() + ALL_PATH_SUFFIX);
-        selectStatement.getJoinParts().forEach(joinPart -> prefixList.add(joinPart.getPathPrefix() + ALL_PATH_SUFFIX));
+        isSubList.add(selectStatement.getFromSubStatement() != null);
+        selectStatement.getJoinParts().forEach(joinPart -> {
+            prefixList.add(joinPart.getPathPrefix() + ALL_PATH_SUFFIX);
+            isSubList.add(joinPart.getSubStatement() != null);
+        });
 
         TagFilter tagFilter = selectStatement.getTagFilter();
 
         List<Operator> joinList = new ArrayList<>();
         // 1. get all data of single prefix like a.* or b.*
-        prefixList.forEach(prefix -> {
-            Pair<Map<TimeInterval, List<FragmentMeta>>, List<FragmentMeta>> pair = getFragmentsByTSInterval(selectStatement, new TimeSeriesInterval(prefix, prefix));
-            Map<TimeInterval, List<FragmentMeta>> fragments = pair.k;
-            List<FragmentMeta> dummyFragments = pair.v;
-            joinList.add(mergeRawData(fragments, dummyFragments, Collections.singletonList(prefix), tagFilter));
-        });
+        for(int i = 0; i < prefixList.size(); i++) {
+            if (isSubList.get(i)) {
+                if (i == 0) {
+                    joinList.add(generateRoot(selectStatement.getFromSubStatement()));
+                } else {
+                    joinList.add(generateRoot(selectStatement.getJoinParts().get(i - 1).getSubStatement()));
+                }
+            } else {
+                String prefix = prefixList.get(i);
+                Pair<Map<TimeInterval, List<FragmentMeta>>, List<FragmentMeta>> pair = getFragmentsByTSInterval(selectStatement, new TimeSeriesInterval(prefix, prefix));
+                Map<TimeInterval, List<FragmentMeta>> fragments = pair.k;
+                List<FragmentMeta> dummyFragments = pair.v;
+                joinList.add(mergeRawData(fragments, dummyFragments, Collections.singletonList(prefix), tagFilter));
+            }
+        }
         // 2. merge by declare
         Operator left = joinList.get(0);
-        String prefixA = selectStatement.getFromPath();
+        String prefixA = isSubList.get(0) ? selectStatement.getFromPathAlias() : selectStatement.getFromPath();
         for (int i = 1; i < joinList.size(); i++) {
             JoinPart joinPart = selectStatement.getJoinParts().get(i - 1);
             Operator right = joinList.get(i);
@@ -276,7 +287,10 @@ public class QueryGenerator extends AbstractGenerator {
             JoinAlgType joinAlgType = JoinAlgType.NestedLoopJoin;
             Filter filter = joinPart.getFilter();
             if (filter != null && filter.getType().equals(FilterType.Path)) {
-                joinAlgType = JoinAlgType.HashJoin;
+                PathFilter pathFilter = (PathFilter) filter;
+                if (pathFilter.getOp() == Op.E) {
+                    joinAlgType = JoinAlgType.HashJoin;
+                }
             }
 
             List<String> joinColumns = joinPart.getJoinColumns();

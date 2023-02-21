@@ -25,12 +25,14 @@ public class SelectStatement extends DataStatement {
     private boolean hasDownsample;
     private boolean ascending;
     private boolean hasJoinParts;
+    private boolean isSubQuery = false;
 
     private final List<Expression> expressions;
     private final Map<String, List<BaseExpression>> baseExpressionMap;
     private final Set<FuncType> funcTypeSet;
     private final Set<String> pathSet;
     private String fromPath;
+    private String fromPathAlias;
     private final List<JoinPart> joinParts;
     private String orderByPath;
     private Filter filter;
@@ -44,7 +46,7 @@ public class SelectStatement extends DataStatement {
 
     private List<Integer> layers;
 
-    private SelectStatement subStatement;
+    private SelectStatement fromSubStatement;
 
     public SelectStatement() {
         this.statementType = StatementType.SELECT;
@@ -60,7 +62,7 @@ public class SelectStatement extends DataStatement {
         this.limit = Integer.MAX_VALUE;
         this.offset = 0;
         this.layers = new ArrayList<>();
-        this.subStatement = null;
+        this.fromSubStatement = null;
     }
 
     // simple query
@@ -176,7 +178,7 @@ public class SelectStatement extends DataStatement {
         )));
         this.hasValueFilter = true;
         this.layers = new ArrayList<>();
-        this.subStatement = null;
+        this.fromSubStatement = null;
     }
 
 
@@ -254,6 +256,14 @@ public class SelectStatement extends DataStatement {
     public void setHasJoinParts(boolean hasJoinParts) {
         this.hasJoinParts = hasJoinParts;
     }
+    
+    public boolean isSubQuery() {
+        return isSubQuery;
+    }
+    
+    public void setIsSubQuery(boolean isSubQuery) {
+        this.isSubQuery = isSubQuery;
+    }
 
     public List<String> getSelectedPaths() {
         List<String> paths = new ArrayList<>();
@@ -305,6 +315,14 @@ public class SelectStatement extends DataStatement {
 
     public void setFromPath(String fromPath) {
         this.fromPath = fromPath;
+    }
+    
+    public String getFromPathAlias() {
+        return fromPathAlias;
+    }
+    
+    public void setFromPathAlias(String fromPathAlias) {
+        this.fromPathAlias = fromPathAlias;
     }
 
     public List<JoinPart> getJoinParts() {
@@ -403,12 +421,12 @@ public class SelectStatement extends DataStatement {
         this.layers.add(layer);
     }
 
-    public SelectStatement getSubStatement() {
-        return subStatement;
+    public SelectStatement getFromSubStatement() {
+        return fromSubStatement;
     }
 
-    public void setSubStatement(SelectStatement subStatement) {
-        this.subStatement = subStatement;
+    public void setFromSubStatement(SelectStatement fromSubStatement) {
+        this.fromSubStatement = fromSubStatement;
     }
 
     public List<Expression> getExpressions() {
