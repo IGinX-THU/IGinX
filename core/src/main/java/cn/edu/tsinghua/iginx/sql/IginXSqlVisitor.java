@@ -248,13 +248,18 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         if (ctx.tableReference().path() != null) {
             String fromPath = ctx.tableReference().path().getText();
             selectStatement.setFromPath(fromPath);
+            selectStatement.setFromPathAlias(fromPath);
         } else {
             SelectStatement subStatement = new SelectStatement();
             subStatement.setIsSubQuery(true);
             parseQueryClause(ctx.tableReference().subquery().queryClause(), subStatement);
-            parseAsClause(ctx.tableReference().asClause(), subStatement);
+            if (subStatement.hasJoinParts() || ctx.tableReference().asClause() != null) {
+                parseAsClause(ctx.tableReference().asClause(), subStatement);
+                selectStatement.setFromPathAlias(ctx.tableReference().asClause().ID().getText());
+            } else {
+                selectStatement.setFromPathAlias(subStatement.getFromPathAlias());
+            }
             selectStatement.setFromSubStatement(subStatement);
-            selectStatement.setFromPathAlias(ctx.tableReference().asClause().ID().getText());
         }
 
         if (ctx.joinPart() != null && !ctx.joinPart().isEmpty()) {
@@ -268,10 +273,14 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
                     pathPrefix = joinPartContext.tableReference().path().getText();
                     subStatement = null;
                 } else {
-                    pathPrefix = joinPartContext.tableReference().asClause().ID().getText();
                     subStatement.setIsSubQuery(true);
                     parseQueryClause(joinPartContext.tableReference().subquery().queryClause(), subStatement);
-                    parseAsClause(joinPartContext.tableReference().asClause(), subStatement);
+                    if (subStatement.hasJoinParts() || joinPartContext.tableReference().asClause() != null) {
+                        parseAsClause(joinPartContext.tableReference().asClause(), subStatement);
+                        pathPrefix = joinPartContext.tableReference().asClause().ID().getText();
+                    } else {
+                        pathPrefix = subStatement.getFromPathAlias();
+                    }
                 }
                 if (joinPartContext.join() == null) {  // cross join
                     selectStatement.setJoinPart(new JoinPart(pathPrefix, subStatement));

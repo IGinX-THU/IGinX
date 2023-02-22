@@ -2005,123 +2005,123 @@ public abstract class SQLSessionIT {
 
     @Test
     public void testAggregateSubQuery() {
-        String statement = "SELECT sub_query.%s_s1 FROM (SELECT %s(s1) AS %s_s1 FROM us.d1 OVER(RANGE 60 IN [1000, 1600))) AS sub_query;";
+        String statement = "SELECT %s_s1 FROM (SELECT %s(s1) AS %s_s1 FROM us.d1 OVER(RANGE 60 IN [1000, 1600)));";
         List<String> funcTypeList = Arrays.asList(
             "max", "min", "sum", "avg", "count", "first_value", "last_value"
         );
 
         List<String> expectedList = Arrays.asList(
             "ResultSets:\n" +
-                "+----+----------------+\n" +
-                "| key|sub_query.max_s1|\n" +
-                "+----+----------------+\n" +
-                "|1000|            1059|\n" +
-                "|1060|            1119|\n" +
-                "|1120|            1179|\n" +
-                "|1180|            1239|\n" +
-                "|1240|            1299|\n" +
-                "|1300|            1359|\n" +
-                "|1360|            1419|\n" +
-                "|1420|            1479|\n" +
-                "|1480|            1539|\n" +
-                "|1540|            1599|\n" +
-                "+----+----------------+\n" +
+                "+----+------+\n" +
+                "| key|max_s1|\n" +
+                "+----+------+\n" +
+                "|1000|  1059|\n" +
+                "|1060|  1119|\n" +
+                "|1120|  1179|\n" +
+                "|1180|  1239|\n" +
+                "|1240|  1299|\n" +
+                "|1300|  1359|\n" +
+                "|1360|  1419|\n" +
+                "|1420|  1479|\n" +
+                "|1480|  1539|\n" +
+                "|1540|  1599|\n" +
+                "+----+------+\n" +
                 "Total line number = 10\n",
             "ResultSets:\n" +
-                "+----+----------------+\n" +
-                "| key|sub_query.min_s1|\n" +
-                "+----+----------------+\n" +
-                "|1000|            1000|\n" +
-                "|1060|            1060|\n" +
-                "|1120|            1120|\n" +
-                "|1180|            1180|\n" +
-                "|1240|            1240|\n" +
-                "|1300|            1300|\n" +
-                "|1360|            1360|\n" +
-                "|1420|            1420|\n" +
-                "|1480|            1480|\n" +
-                "|1540|            1540|\n" +
-                "+----+----------------+\n" +
+                "+----+------+\n" +
+                "| key|min_s1|\n" +
+                "+----+------+\n" +
+                "|1000|  1000|\n" +
+                "|1060|  1060|\n" +
+                "|1120|  1120|\n" +
+                "|1180|  1180|\n" +
+                "|1240|  1240|\n" +
+                "|1300|  1300|\n" +
+                "|1360|  1360|\n" +
+                "|1420|  1420|\n" +
+                "|1480|  1480|\n" +
+                "|1540|  1540|\n" +
+                "+----+------+\n" +
                 "Total line number = 10\n",
             "ResultSets:\n" +
-                "+----+----------------+\n" +
-                "| key|sub_query.sum_s1|\n" +
-                "+----+----------------+\n" +
-                "|1000|           61770|\n" +
-                "|1060|           65370|\n" +
-                "|1120|           68970|\n" +
-                "|1180|           72570|\n" +
-                "|1240|           76170|\n" +
-                "|1300|           79770|\n" +
-                "|1360|           83370|\n" +
-                "|1420|           86970|\n" +
-                "|1480|           90570|\n" +
-                "|1540|           94170|\n" +
-                "+----+----------------+\n" +
+                "+----+------+\n" +
+                "| key|sum_s1|\n" +
+                "+----+------+\n" +
+                "|1000| 61770|\n" +
+                "|1060| 65370|\n" +
+                "|1120| 68970|\n" +
+                "|1180| 72570|\n" +
+                "|1240| 76170|\n" +
+                "|1300| 79770|\n" +
+                "|1360| 83370|\n" +
+                "|1420| 86970|\n" +
+                "|1480| 90570|\n" +
+                "|1540| 94170|\n" +
+                "+----+------+\n" +
                 "Total line number = 10\n",
             "ResultSets:\n" +
-                "+----+----------------+\n" +
-                "| key|sub_query.avg_s1|\n" +
-                "+----+----------------+\n" +
-                "|1000|          1029.5|\n" +
-                "|1060|          1089.5|\n" +
-                "|1120|          1149.5|\n" +
-                "|1180|          1209.5|\n" +
-                "|1240|          1269.5|\n" +
-                "|1300|          1329.5|\n" +
-                "|1360|          1389.5|\n" +
-                "|1420|          1449.5|\n" +
-                "|1480|          1509.5|\n" +
-                "|1540|          1569.5|\n" +
-                "+----+----------------+\n" +
+                "+----+------+\n" +
+                "| key|avg_s1|\n" +
+                "+----+------+\n" +
+                "|1000|1029.5|\n" +
+                "|1060|1089.5|\n" +
+                "|1120|1149.5|\n" +
+                "|1180|1209.5|\n" +
+                "|1240|1269.5|\n" +
+                "|1300|1329.5|\n" +
+                "|1360|1389.5|\n" +
+                "|1420|1449.5|\n" +
+                "|1480|1509.5|\n" +
+                "|1540|1569.5|\n" +
+                "+----+------+\n" +
                 "Total line number = 10\n",
             "ResultSets:\n" +
-                "+----+------------------+\n" +
-                "| key|sub_query.count_s1|\n" +
-                "+----+------------------+\n" +
-                "|1000|                60|\n" +
-                "|1060|                60|\n" +
-                "|1120|                60|\n" +
-                "|1180|                60|\n" +
-                "|1240|                60|\n" +
-                "|1300|                60|\n" +
-                "|1360|                60|\n" +
-                "|1420|                60|\n" +
-                "|1480|                60|\n" +
-                "|1540|                60|\n" +
-                "+----+------------------+\n" +
+                "+----+--------+\n" +
+                "| key|count_s1|\n" +
+                "+----+--------+\n" +
+                "|1000|      60|\n" +
+                "|1060|      60|\n" +
+                "|1120|      60|\n" +
+                "|1180|      60|\n" +
+                "|1240|      60|\n" +
+                "|1300|      60|\n" +
+                "|1360|      60|\n" +
+                "|1420|      60|\n" +
+                "|1480|      60|\n" +
+                "|1540|      60|\n" +
+                "+----+--------+\n" +
                 "Total line number = 10\n",
             "ResultSets:\n" +
-                "+----+------------------------+\n" +
-                "| key|sub_query.first_value_s1|\n" +
-                "+----+------------------------+\n" +
-                "|1000|                    1000|\n" +
-                "|1060|                    1060|\n" +
-                "|1120|                    1120|\n" +
-                "|1180|                    1180|\n" +
-                "|1240|                    1240|\n" +
-                "|1300|                    1300|\n" +
-                "|1360|                    1360|\n" +
-                "|1420|                    1420|\n" +
-                "|1480|                    1480|\n" +
-                "|1540|                    1540|\n" +
-                "+----+------------------------+\n" +
+                "+----+--------------+\n" +
+                "| key|first_value_s1|\n" +
+                "+----+--------------+\n" +
+                "|1000|          1000|\n" +
+                "|1060|          1060|\n" +
+                "|1120|          1120|\n" +
+                "|1180|          1180|\n" +
+                "|1240|          1240|\n" +
+                "|1300|          1300|\n" +
+                "|1360|          1360|\n" +
+                "|1420|          1420|\n" +
+                "|1480|          1480|\n" +
+                "|1540|          1540|\n" +
+                "+----+--------------+\n" +
                 "Total line number = 10\n",
             "ResultSets:\n" +
-                "+----+-----------------------+\n" +
-                "| key|sub_query.last_value_s1|\n" +
-                "+----+-----------------------+\n" +
-                "|1000|                   1059|\n" +
-                "|1060|                   1119|\n" +
-                "|1120|                   1179|\n" +
-                "|1180|                   1239|\n" +
-                "|1240|                   1299|\n" +
-                "|1300|                   1359|\n" +
-                "|1360|                   1419|\n" +
-                "|1420|                   1479|\n" +
-                "|1480|                   1539|\n" +
-                "|1540|                   1599|\n" +
-                "+----+-----------------------+\n" +
+                "+----+-------------+\n" +
+                "| key|last_value_s1|\n" +
+                "+----+-------------+\n" +
+                "|1000|         1059|\n" +
+                "|1060|         1119|\n" +
+                "|1120|         1179|\n" +
+                "|1180|         1239|\n" +
+                "|1240|         1299|\n" +
+                "|1300|         1359|\n" +
+                "|1360|         1419|\n" +
+                "|1420|         1479|\n" +
+                "|1480|         1539|\n" +
+                "|1540|         1599|\n" +
+                "+----+-------------+\n" +
                 "Total line number = 10\n"
         );
         for (int i = 0; i < funcTypeList.size(); i++) {
@@ -2133,47 +2133,47 @@ public abstract class SQLSessionIT {
 
     @Test
     public void testValueFilterSubQuery() {
-        String statement = "SELECT sub_query.ts FROM (SELECT s1 AS ts FROM us.d1 WHERE us.d1.s1 >= 1000 AND us.d1.s1 < 1010) AS sub_query;";
+        String statement = "SELECT ts FROM (SELECT s1 AS ts FROM us.d1 WHERE us.d1.s1 >= 1000 AND us.d1.s1 < 1010);";
         String expected = "ResultSets:\n" +
-            "+----+------------+\n" +
-            "| key|sub_query.ts|\n" +
-            "+----+------------+\n" +
-            "|1000|        1000|\n" +
-            "|1001|        1001|\n" +
-            "|1002|        1002|\n" +
-            "|1003|        1003|\n" +
-            "|1004|        1004|\n" +
-            "|1005|        1005|\n" +
-            "|1006|        1006|\n" +
-            "|1007|        1007|\n" +
-            "|1008|        1008|\n" +
-            "|1009|        1009|\n" +
-            "+----+------------+\n" +
+            "+----+----+\n" +
+            "| key|  ts|\n" +
+            "+----+----+\n" +
+            "|1000|1000|\n" +
+            "|1001|1001|\n" +
+            "|1002|1002|\n" +
+            "|1003|1003|\n" +
+            "|1004|1004|\n" +
+            "|1005|1005|\n" +
+            "|1006|1006|\n" +
+            "|1007|1007|\n" +
+            "|1008|1008|\n" +
+            "|1009|1009|\n" +
+            "+----+----+\n" +
             "Total line number = 10\n";
         executeAndCompare(statement, expected);
 
-        statement = "SELECT sub_query.avg_s1 FROM (SELECT AVG(s1) AS avg_s1 FROM us.d1 OVER (RANGE 100 IN [1000, 1600))) AS sub_query WHERE sub_query.avg_s1 > 1200;";
+        statement = "SELECT avg_s1 FROM (SELECT AVG(s1) AS avg_s1 FROM us.d1 OVER (RANGE 100 IN [1000, 1600))) WHERE avg_s1 > 1200;";
         expected = "ResultSets:\n" +
-            "+----+----------------+\n" +
-            "| key|sub_query.avg_s1|\n" +
-            "+----+----------------+\n" +
-            "|1200|          1249.5|\n" +
-            "|1300|          1349.5|\n" +
-            "|1400|          1449.5|\n" +
-            "|1500|          1549.5|\n" +
-            "+----+----------------+\n" +
+            "+----+------+\n" +
+            "| key|avg_s1|\n" +
+            "+----+------+\n" +
+            "|1200|1249.5|\n" +
+            "|1300|1349.5|\n" +
+            "|1400|1449.5|\n" +
+            "|1500|1549.5|\n" +
+            "+----+------+\n" +
             "Total line number = 4\n";
         executeAndCompare(statement, expected);
 
-        statement = "SELECT sub_query.avg_s1 FROM (SELECT AVG(s1) AS avg_s1 FROM us.d1 WHERE us.d1.s1 < 1500 OVER (RANGE 100 IN [1000, 1600))) AS sub_query WHERE sub_query.avg_s1 > 1200;";
+        statement = "SELECT avg_s1 FROM (SELECT AVG(s1) AS avg_s1 FROM us.d1 WHERE us.d1.s1 < 1500 OVER (RANGE 100 IN [1000, 1600))) WHERE avg_s1 > 1200;";
         expected = "ResultSets:\n" +
-            "+----+----------------+\n" +
-            "| key|sub_query.avg_s1|\n" +
-            "+----+----------------+\n" +
-            "|1200|          1249.5|\n" +
-            "|1300|          1349.5|\n" +
-            "|1400|          1449.5|\n" +
-            "+----+----------------+\n" +
+            "+----+------+\n" +
+            "| key|avg_s1|\n" +
+            "+----+------+\n" +
+            "|1200|1249.5|\n" +
+            "|1300|1349.5|\n" +
+            "|1400|1449.5|\n" +
+            "+----+------+\n" +
             "Total line number = 3\n";
         executeAndCompare(statement, expected);
     }
@@ -2199,35 +2199,35 @@ public abstract class SQLSessionIT {
             "Total line number = 10\n";
         executeAndCompare(statement, expected);
 
-        statement = "SELECT sub_query.avg_s1, sub_query.sum_s2 " +
+        statement = "SELECT avg_s1, sum_s2 " +
                     "FROM (SELECT AVG(s1) AS avg_s1, SUM(s2) AS sum_s2 " +
-                          "FROM us.d1 OVER (RANGE 10 IN [1000, 1100))) AS sub_query " +
-                    "WHERE sub_query.avg_s1 > 1020 AND sub_query.sum_s2 < 10800;";
+                          "FROM us.d1 OVER (RANGE 10 IN [1000, 1100))) " +
+                    "WHERE avg_s1 > 1020 AND sum_s2 < 10800;";
         expected = "ResultSets:\n" +
-            "+----+----------------+----------------+\n" +
-            "| key|sub_query.avg_s1|sub_query.sum_s2|\n" +
-            "+----+----------------+----------------+\n" +
-            "|1020|          1024.5|           10255|\n" +
-            "|1030|          1034.5|           10355|\n" +
-            "|1040|          1044.5|           10455|\n" +
-            "|1050|          1054.5|           10555|\n" +
-            "|1060|          1064.5|           10655|\n" +
-            "|1070|          1074.5|           10755|\n" +
-            "+----+----------------+----------------+\n" +
+            "+----+------+------+\n" +
+            "| key|avg_s1|sum_s2|\n" +
+            "+----+------+------+\n" +
+            "|1020|1024.5| 10255|\n" +
+            "|1030|1034.5| 10355|\n" +
+            "|1040|1044.5| 10455|\n" +
+            "|1050|1054.5| 10555|\n" +
+            "|1060|1064.5| 10655|\n" +
+            "|1070|1074.5| 10755|\n" +
+            "+----+------+------+\n" +
             "Total line number = 6\n";
         executeAndCompare(statement, expected);
 
-        statement = "SELECT MAX(sub_query1.sub_query2.avg_s1), MIN(sub_query1.sub_query2.sum_s2) " +
-                    "FROM (SELECT sub_query2.avg_s1, sub_query2.sum_s2 " +
+        statement = "SELECT MAX(avg_s1), MIN(sum_s2) " +
+                    "FROM (SELECT avg_s1, sum_s2 " +
                           "FROM (SELECT AVG(s1) AS avg_s1, SUM(s2) AS sum_s2 " +
-                                "FROM us.d1 OVER (RANGE 10 IN [1000, 1100))) AS sub_query2 " +
-                          "WHERE sub_query2.avg_s1 > 1020 AND sub_query2.sum_s2 < 10800) AS sub_query1;";
+                                "FROM us.d1 OVER (RANGE 10 IN [1000, 1100))) " +
+                          "WHERE avg_s1 > 1020 AND sum_s2 < 10800);";
         expected = "ResultSets:\n" +
-            "+---------------------------------+---------------------------------+\n" +
-            "|max(sub_query1.sub_query2.avg_s1)|min(sub_query1.sub_query2.sum_s2)|\n" +
-            "+---------------------------------+---------------------------------+\n" +
-            "|                           1074.5|                            10255|\n" +
-            "+---------------------------------+---------------------------------+\n" +
+            "+-----------+-----------+\n" +
+            "|max(avg_s1)|min(sum_s2)|\n" +
+            "+-----------+-----------+\n" +
+            "|     1074.5|      10255|\n" +
+            "+-----------+-----------+\n" +
             "Total line number = 1\n";
         executeAndCompare(statement, expected);
     }
@@ -2241,102 +2241,115 @@ public abstract class SQLSessionIT {
         insert = "INSERT INTO test(key, c.a, c.b) VALUES (2, \"eee\", false), (3, \"aaa\", true), (4, \"bbb\", false);";
         execute(insert);
         
-        String statement = "SELECT * FROM test.a, (SELECT * FROM test.b) AS sub_query;";
+        String statement = "SELECT * FROM test.a, (SELECT * FROM test.b);";
         String expected = "ResultSets:\n" +
-                "+-------------+------------------+------------------+--------+--------+----------+\n" +
-                "|sub_query.key|sub_query.test.b.a|sub_query.test.b.b|test.a.a|test.a.b|test.a.key|\n" +
-                "+-------------+------------------+------------------+--------+--------+----------+\n" +
-                "|            1|                 2|               aaa|       1|     1.1|         1|\n" +
-                "|            3|                 4|               ccc|       1|     1.1|         1|\n" +
-                "|            5|                 6|               eee|       1|     1.1|         1|\n" +
-                "|            1|                 2|               aaa|       3|     3.1|         2|\n" +
-                "|            3|                 4|               ccc|       3|     3.1|         2|\n" +
-                "|            5|                 6|               eee|       3|     3.1|         2|\n" +
-                "|            1|                 2|               aaa|       7|     7.1|         3|\n" +
-                "|            3|                 4|               ccc|       7|     7.1|         3|\n" +
-                "|            5|                 6|               eee|       7|     7.1|         3|\n" +
-                "+-------------+------------------+------------------+--------+--------+----------+\n" +
+                "+--------+--------+----------+--------+--------+----------+\n" +
+                "|test.a.a|test.a.b|test.a.key|test.b.a|test.b.b|test.b.key|\n" +
+                "+--------+--------+----------+--------+--------+----------+\n" +
+                "|       1|     1.1|         1|       2|     aaa|         1|\n" +
+                "|       1|     1.1|         1|       4|     ccc|         3|\n" +
+                "|       1|     1.1|         1|       6|     eee|         5|\n" +
+                "|       3|     3.1|         2|       2|     aaa|         1|\n" +
+                "|       3|     3.1|         2|       4|     ccc|         3|\n" +
+                "|       3|     3.1|         2|       6|     eee|         5|\n" +
+                "|       7|     7.1|         3|       2|     aaa|         1|\n" +
+                "|       7|     7.1|         3|       4|     ccc|         3|\n" +
+                "|       7|     7.1|         3|       6|     eee|         5|\n" +
+                "+--------+--------+----------+--------+--------+----------+\n" +
                 "Total line number = 9\n";
         executeAndCompare(statement, expected);
-    
-        statement = "SELECT * FROM (SELECT * FROM test.b) AS sub_query, test.a;";
+
+        statement = "SELECT * FROM (SELECT * FROM test.b), test.a;";
         expected = "ResultSets:\n" +
-                "+-------------+------------------+------------------+--------+--------+----------+\n" +
-                "|sub_query.key|sub_query.test.b.a|sub_query.test.b.b|test.a.a|test.a.b|test.a.key|\n" +
-                "+-------------+------------------+------------------+--------+--------+----------+\n" +
-                "|            1|                 2|               aaa|       1|     1.1|         1|\n" +
-                "|            1|                 2|               aaa|       3|     3.1|         2|\n" +
-                "|            1|                 2|               aaa|       7|     7.1|         3|\n" +
-                "|            3|                 4|               ccc|       1|     1.1|         1|\n" +
-                "|            3|                 4|               ccc|       3|     3.1|         2|\n" +
-                "|            3|                 4|               ccc|       7|     7.1|         3|\n" +
-                "|            5|                 6|               eee|       1|     1.1|         1|\n" +
-                "|            5|                 6|               eee|       3|     3.1|         2|\n" +
-                "|            5|                 6|               eee|       7|     7.1|         3|\n" +
-                "+-------------+------------------+------------------+--------+--------+----------+\n" +
+                "+--------+--------+----------+--------+--------+----------+\n" +
+                "|test.a.a|test.a.b|test.a.key|test.b.a|test.b.b|test.b.key|\n" +
+                "+--------+--------+----------+--------+--------+----------+\n" +
+                "|       1|     1.1|         1|       2|     aaa|         1|\n" +
+                "|       3|     3.1|         2|       2|     aaa|         1|\n" +
+                "|       7|     7.1|         3|       2|     aaa|         1|\n" +
+                "|       1|     1.1|         1|       4|     ccc|         3|\n" +
+                "|       3|     3.1|         2|       4|     ccc|         3|\n" +
+                "|       7|     7.1|         3|       4|     ccc|         3|\n" +
+                "|       1|     1.1|         1|       6|     eee|         5|\n" +
+                "|       3|     3.1|         2|       6|     eee|         5|\n" +
+                "|       7|     7.1|         3|       6|     eee|         5|\n" +
+                "+--------+--------+----------+--------+--------+----------+\n" +
                 "Total line number = 9\n";
         executeAndCompare(statement, expected);
-    
-        statement = "SELECT * FROM test.a, (SELECT * FROM test.b WHERE test.b.a < 6) AS sub_query WHERE test.a.a > 1;";
+
+        statement = "SELECT * FROM test.a, (SELECT * FROM test.b WHERE test.b.a < 6) WHERE test.a.a > 1;";
         expected = "ResultSets:\n" +
-                "+-------------+------------------+------------------+--------+--------+----------+\n" +
-                "|sub_query.key|sub_query.test.b.a|sub_query.test.b.b|test.a.a|test.a.b|test.a.key|\n" +
-                "+-------------+------------------+------------------+--------+--------+----------+\n" +
-                "|            1|                 2|               aaa|       3|     3.1|         2|\n" +
-                "|            3|                 4|               ccc|       3|     3.1|         2|\n" +
-                "|            1|                 2|               aaa|       7|     7.1|         3|\n" +
-                "|            3|                 4|               ccc|       7|     7.1|         3|\n" +
-                "+-------------+------------------+------------------+--------+--------+----------+\n" +
+                "+--------+--------+----------+--------+--------+----------+\n" +
+                "|test.a.a|test.a.b|test.a.key|test.b.a|test.b.b|test.b.key|\n" +
+                "+--------+--------+----------+--------+--------+----------+\n" +
+                "|       3|     3.1|         2|       2|     aaa|         1|\n" +
+                "|       3|     3.1|         2|       4|     ccc|         3|\n" +
+                "|       7|     7.1|         3|       2|     aaa|         1|\n" +
+                "|       7|     7.1|         3|       4|     ccc|         3|\n" +
+                "+--------+--------+----------+--------+--------+----------+\n" +
                 "Total line number = 4\n";
         executeAndCompare(statement, expected);
-    
-        statement = "SELECT * FROM test.a INNER JOIN (SELECT a FROM test.b) AS sub_query ON test.a.a < sub_query.test.b.a";
+
+        statement = "SELECT * FROM (SELECT test.a.a, test.b.a FROM test.a, test.b WHERE test.b.a < 6 AND test.a.a > 1) AS sub_query;";
         expected = "ResultSets:\n" +
-                "+-------------+------------------+--------+--------+----------+\n" +
-                "|sub_query.key|sub_query.test.b.a|test.a.a|test.a.b|test.a.key|\n" +
-                "+-------------+------------------+--------+--------+----------+\n" +
-                "|            1|                 2|       1|     1.1|         1|\n" +
-                "|            3|                 4|       1|     1.1|         1|\n" +
-                "|            5|                 6|       1|     1.1|         1|\n" +
-                "|            3|                 4|       3|     3.1|         2|\n" +
-                "|            5|                 6|       3|     3.1|         2|\n" +
-                "+-------------+------------------+--------+--------+----------+\n" +
+                "+------------------+------------------+\n" +
+                "|sub_query.test.a.a|sub_query.test.b.a|\n" +
+                "+------------------+------------------+\n" +
+                "|                 3|                 2|\n" +
+                "|                 3|                 4|\n" +
+                "|                 7|                 2|\n" +
+                "|                 7|                 4|\n" +
+                "+------------------+------------------+\n" +
+                "Total line number = 4\n";
+        executeAndCompare(statement, expected);
+
+        statement = "SELECT * FROM test.a INNER JOIN (SELECT a FROM test.b) ON test.a.a < test.b.a";
+        expected = "ResultSets:\n" +
+                "+--------+--------+----------+--------+----------+\n" +
+                "|test.a.a|test.a.b|test.a.key|test.b.a|test.b.key|\n" +
+                "+--------+--------+----------+--------+----------+\n" +
+                "|       1|     1.1|         1|       2|         1|\n" +
+                "|       1|     1.1|         1|       4|         3|\n" +
+                "|       1|     1.1|         1|       6|         5|\n" +
+                "|       3|     3.1|         2|       4|         3|\n" +
+                "|       3|     3.1|         2|       6|         5|\n" +
+                "+--------+--------+----------+--------+----------+\n" +
                 "Total line number = 5\n";
         executeAndCompare(statement, expected);
-    
-        statement = "SELECT * FROM test.a LEFT OUTER JOIN (SELECT a FROM test.b) AS sub_query ON test.a.a < sub_query.test.b.a";
+
+        statement = "SELECT * FROM test.a LEFT OUTER JOIN (SELECT a FROM test.b) ON test.a.a < test.b.a";
         expected = "ResultSets:\n" +
-                "+-------------+------------------+--------+--------+----------+\n" +
-                "|sub_query.key|sub_query.test.b.a|test.a.a|test.a.b|test.a.key|\n" +
-                "+-------------+------------------+--------+--------+----------+\n" +
-                "|            1|                 2|       1|     1.1|         1|\n" +
-                "|            3|                 4|       1|     1.1|         1|\n" +
-                "|            5|                 6|       1|     1.1|         1|\n" +
-                "|            3|                 4|       3|     3.1|         2|\n" +
-                "|            5|                 6|       3|     3.1|         2|\n" +
-                "|         null|              null|       7|     7.1|         3|\n" +
-                "+-------------+------------------+--------+--------+----------+\n" +
+                "+--------+--------+----------+--------+----------+\n" +
+                "|test.a.a|test.a.b|test.a.key|test.b.a|test.b.key|\n" +
+                "+--------+--------+----------+--------+----------+\n" +
+                "|       1|     1.1|         1|       2|         1|\n" +
+                "|       1|     1.1|         1|       4|         3|\n" +
+                "|       1|     1.1|         1|       6|         5|\n" +
+                "|       3|     3.1|         2|       4|         3|\n" +
+                "|       3|     3.1|         2|       6|         5|\n" +
+                "|       7|     7.1|         3|    null|      null|\n" +
+                "+--------+--------+----------+--------+----------+\n" +
                 "Total line number = 6\n";
         executeAndCompare(statement, expected);
-    
-        statement = "SELECT * FROM test.a, (SELECT a FROM test.b WHERE test.b.a < 6) AS sub_query1, (SELECT b FROM test.c WHERE test.c.b = false) AS sub_query2;";
+
+        statement = "SELECT * FROM test.a, (SELECT a FROM test.b WHERE test.b.a < 6), (SELECT b FROM test.c WHERE test.c.b = false);";
         expected = "ResultSets:\n" +
-                "+--------------+-------------------+--------------+-------------------+--------+--------+----------+\n" +
-                "|sub_query1.key|sub_query1.test.b.a|sub_query2.key|sub_query2.test.c.b|test.a.a|test.a.b|test.a.key|\n" +
-                "+--------------+-------------------+--------------+-------------------+--------+--------+----------+\n" +
-                "|             1|                  2|             2|              false|       1|     1.1|         1|\n" +
-                "|             1|                  2|             4|              false|       1|     1.1|         1|\n" +
-                "|             3|                  4|             2|              false|       1|     1.1|         1|\n" +
-                "|             3|                  4|             4|              false|       1|     1.1|         1|\n" +
-                "|             1|                  2|             2|              false|       3|     3.1|         2|\n" +
-                "|             1|                  2|             4|              false|       3|     3.1|         2|\n" +
-                "|             3|                  4|             2|              false|       3|     3.1|         2|\n" +
-                "|             3|                  4|             4|              false|       3|     3.1|         2|\n" +
-                "|             1|                  2|             2|              false|       7|     7.1|         3|\n" +
-                "|             1|                  2|             4|              false|       7|     7.1|         3|\n" +
-                "|             3|                  4|             2|              false|       7|     7.1|         3|\n" +
-                "|             3|                  4|             4|              false|       7|     7.1|         3|\n" +
-                "+--------------+-------------------+--------------+-------------------+--------+--------+----------+\n" +
+                "+--------+--------+----------+--------+----------+--------+----------+\n" +
+                "|test.a.a|test.a.b|test.a.key|test.b.a|test.b.key|test.c.b|test.c.key|\n" +
+                "+--------+--------+----------+--------+----------+--------+----------+\n" +
+                "|       1|     1.1|         1|       2|         1|   false|         2|\n" +
+                "|       1|     1.1|         1|       2|         1|   false|         4|\n" +
+                "|       1|     1.1|         1|       4|         3|   false|         2|\n" +
+                "|       1|     1.1|         1|       4|         3|   false|         4|\n" +
+                "|       3|     3.1|         2|       2|         1|   false|         2|\n" +
+                "|       3|     3.1|         2|       2|         1|   false|         4|\n" +
+                "|       3|     3.1|         2|       4|         3|   false|         2|\n" +
+                "|       3|     3.1|         2|       4|         3|   false|         4|\n" +
+                "|       7|     7.1|         3|       2|         1|   false|         2|\n" +
+                "|       7|     7.1|         3|       2|         1|   false|         4|\n" +
+                "|       7|     7.1|         3|       4|         3|   false|         2|\n" +
+                "|       7|     7.1|         3|       4|         3|   false|         4|\n" +
+                "+--------+--------+----------+--------+----------+--------+----------+\n" +
                 "Total line number = 12\n";
         executeAndCompare(statement, expected);
     }
@@ -2512,10 +2525,10 @@ public abstract class SQLSessionIT {
             "Total line number = 10\n";
         executeAndCompare(query, expected);
 
-        insert = "INSERT INTO us.d5(key, s1, s2) VALUES (SELECT sub_query.avg_s1, sub_query.sum_s2 " +
+        insert = "INSERT INTO us.d5(key, s1, s2) VALUES (SELECT avg_s1, sum_s2 " +
                                                         "FROM (SELECT AVG(s1) AS avg_s1, SUM(s2) AS sum_s2 " +
-                                                              "FROM us.d1 OVER (RANGE 10 IN [1000, 1100))) AS sub_query " +
-                                                        "WHERE sub_query.avg_s1 > 1020 AND sub_query.sum_s2 < 10800);";
+                                                              "FROM us.d1 OVER (RANGE 10 IN [1000, 1100))) " +
+                                                        "WHERE avg_s1 > 1020 AND sum_s2 < 10800);";
         execute(insert);
 
         query = "SELECT s1, s2 FROM us.d5";
@@ -2533,11 +2546,11 @@ public abstract class SQLSessionIT {
             "Total line number = 6\n";
         executeAndCompare(query, expected);
 
-        insert = "INSERT INTO us.d6(key, s1, s2) VALUES (SELECT MAX(sub_query1.sub_query2.avg_s1), MIN(sub_query1.sub_query2.sum_s2) " +
-                                                        "FROM (SELECT sub_query2.avg_s1, sub_query2.sum_s2 " +
+        insert = "INSERT INTO us.d6(key, s1, s2) VALUES (SELECT MAX(avg_s1), MIN(sum_s2) " +
+                                                        "FROM (SELECT avg_s1, sum_s2 " +
                                                               "FROM (SELECT AVG(s1) AS avg_s1, SUM(s2) AS sum_s2 " +
-                                                                    "FROM us.d1 OVER (RANGE 10 IN [1000, 1100))) AS sub_query2 " +
-                                                              "WHERE sub_query2.avg_s1 > 1020 AND sub_query2.sum_s2 < 10800) AS sub_query1);";
+                                                                    "FROM us.d1 OVER (RANGE 10 IN [1000, 1100))) " +
+                                                              "WHERE avg_s1 > 1020 AND sum_s2 < 10800));";
         execute(insert);
 
         query = "SELECT s1, s2 FROM us.d6";
