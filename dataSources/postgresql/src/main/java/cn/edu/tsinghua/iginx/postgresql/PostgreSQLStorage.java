@@ -201,9 +201,9 @@ public class PostgreSQLStorage implements IStorage {
             String typeName = columnSet.getString("TYPE_NAME");//列字段类型
             //if((tableName+"."+columnName).startsWith(meta.getDataPrefix()))
             timeseries.add(new Timeseries(
-                    databaseName+"."+
-                    tableName/*.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR) */ + IGINX_SEPARATOR
-                            + columnName/*.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR)*/,
+                    databaseName.replace(POSTGRESQL_SEPARATOR,IGINX_SEPARATOR)+IGINX_SEPARATOR+
+                    tableName.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR)  + IGINX_SEPARATOR
+                            + columnName.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR),
                     DataTypeTransformer.fromPostgreSQL(typeName)));
           }
         }
@@ -224,29 +224,41 @@ public class PostgreSQLStorage implements IStorage {
       ResultSet databaseSet = stmt.executeQuery(QUERY_DATABASES);
       while (databaseSet.next()) {
         String databaseName = databaseSet.getString(1);//获取表名称
-        if (databaseName.startsWith(DATABASE_PREFIX)) {
-          useDatabase(databaseName);
-          DatabaseMetaData databaseMetaData = connection.getMetaData();
-          ResultSet tableSet = databaseMetaData.getTables(null, "%", "%", new String[]{"TABLE"});
-          while (tableSet.next()) {
-            String tableName = tableSet.getString(3);//获取表名称
-            ResultSet columnSet = databaseMetaData.getColumns(null, "%", tableName, "%");
-            while (columnSet.next()) {
-              String columnName = columnSet.getString("COLUMN_NAME");//获取列名称
-              paths.add(tableName.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR) + IGINX_SEPARATOR
-                  + columnName.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR));
-              // 获取first
-              String firstQueryStatement = String.format(FIRST_QUERY, columnName, tableName);
-              Statement firstQueryStmt = connection.createStatement();
+//        if (databaseName.startsWith(DATABASE_PREFIX)) {
+        useDatabase(databaseName);
+        DatabaseMetaData databaseMetaData = connection.getMetaData();
+        ResultSet tableSet = databaseMetaData.getTables(null, "%", "%", new String[]{"TABLE"});
+        while (tableSet.next()) {
+          String tableName = tableSet.getString(3);//获取表名称
+          ResultSet columnSet = databaseMetaData.getColumns(null, "%", tableName, "%");
+          while (columnSet.next()) {
+            String columnName = columnSet.getString("COLUMN_NAME");//获取列名称
+            paths.add(tableName.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR) + IGINX_SEPARATOR
+                + columnName.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR));
+            // 获取first
+            String firstQueryStatement = String.format(FIRST_QUERY, columnName, tableName);
+            Statement firstQueryStmt = connection.createStatement();
+            try {
               ResultSet firstQuerySet = firstQueryStmt.executeQuery(firstQueryStatement);
               if (firstQuerySet.next()) {
                 long currMinTime = firstQuerySet.getLong(1);
                 minTime = Math.min(currMinTime, minTime);
               }
-              // 获取last
-              String lastQueryStatement = String.format(LAST_QUERY, columnName, tableName);
-              Statement lastQueryStmt = connection.createStatement();
+            }catch (Exception e){
+              minTime=1;    //没有时间列，按递增的序列排序,1表示first
+            }
+            // 获取last
+            String lastQueryStatement = String.format(LAST_QUERY, columnName, tableName);
+            String queryNumOfRow=String.format("select count(*) from %s",tableName);
+            Statement lastQueryStmt = connection.createStatement();
+            try {
               ResultSet lastQuerySet = lastQueryStmt.executeQuery(lastQueryStatement);
+              if (lastQuerySet.next()) {
+                long currMaxTime = lastQuerySet.getLong(1);
+                maxTime = Math.max(currMaxTime, maxTime);
+              }
+            }catch (Exception e){   //没有时间戳的表用行数表示last
+              ResultSet lastQuerySet=lastQueryStmt.executeQuery(queryNumOfRow);
               if (lastQuerySet.next()) {
                 long currMaxTime = lastQuerySet.getLong(1);
                 maxTime = Math.max(currMaxTime, maxTime);
@@ -254,6 +266,7 @@ public class PostgreSQLStorage implements IStorage {
             }
           }
         }
+//        }
       }
     } catch (SQLException e) {
       throw new PhysicalException(e);
@@ -271,11 +284,15 @@ public class PostgreSQLStorage implements IStorage {
       List<ResultSet> resultSets = new ArrayList<>();
       List<Field> fields = new ArrayList<>();
       for (String path : project.getPatterns()) {
-        String table = path.substring(0, path.lastIndexOf('.'));
-        table = table.replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
+        logger.info("path======"+path);
+        String database_table = path.substring(0, path.lastIndexOf('.'));
+        String database=database_table.substring(0,database_table.lastIndexOf('.'));
+        String table=database_table.substring(database_table.lastIndexOf('.')+1);
+        database=database.replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
         String field = path.substring(path.lastIndexOf('.') + 1);
         field = field.replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
         // 查询序列类型
+        useDatabase(database);
 
         DatabaseMetaData databaseMetaData = connection.getMetaData();
 
@@ -292,21 +309,19 @@ public class PostgreSQLStorage implements IStorage {
           String statement="";
           logger.info("t70");
           String typeName = columnSet.getString("TYPE_NAME");//列字段类型
-          fields
-                  .add(new Field(table.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR) + IGINX_SEPARATOR
+          fields.add(new Field(table.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR) + IGINX_SEPARATOR
                           + field.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR)
                           , DataTypeTransformer.fromPostgreSQL(typeName)));
           logger.info("t69");
 
           statement = String
-                  .format("SELECT time, %s FROM %s", field, table);
+                  .format("SELECT time,%s FROM %s", field, table);
           logger.info(statement);
 
 
-        Statement stmt = connection.createStatement();
-        ResultSet rs = stmt.executeQuery(statement);
-        resultSets.add(rs);
-
+          Statement stmt = connection.createStatement();
+          ResultSet rs = stmt.executeQuery(statement);
+          resultSets.add(rs);
         }
       }
       RowStream rowStream = new PostgreSQLQueryRowStream(resultSets, fields);
@@ -383,7 +398,7 @@ public class PostgreSQLStorage implements IStorage {
       Statement stmt = connection.createStatement();
       stmt.execute(String.format("create database %s", dbname));
     } catch (SQLException e) {
-      logger.info("create database error", e);
+      logger.info("database exist!" );
       logger.info(dbname);
     }
     try {
@@ -413,11 +428,16 @@ public class PostgreSQLStorage implements IStorage {
           if (bitmapView.get(j)) {
             String path = data.getPath(j);
             DataType dataType = data.getDataType(j);
-            String table = path.substring(0, path.lastIndexOf('.'));
-            table = table.replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
+            String database_table = path.substring(0, path.lastIndexOf('.'));
+            String database=database_table.substring(0,database_table.lastIndexOf('.'));
+            String table=database_table.substring(database_table.lastIndexOf('.')+1);
+            database = database.replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
             String field = path.substring(path.lastIndexOf('.') + 1);
             field = field.replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
             Map<String, String> tags = data.getTags(i);
+
+            useDatabase(database);
+            stmt = connection.createStatement();
             createTimeSeriesIfNotExists(table, field, tags, dataType);
 
             long time = data.getKey(i) / 1000; // timescaledb存10位时间戳，java为13位时间戳
@@ -441,10 +461,10 @@ public class PostgreSQLStorage implements IStorage {
             stmt.addBatch(String
                 .format("INSERT INTO %s (time, %s) values (to_timestamp(%d), %s)", table,
                     columnsKeys, time, columnValues));
-            logger.info(table);
-            logger.info(columnsKeys.toString());
-            logger.info(String.valueOf(time));
-            logger.info(columnValues.toString());
+//            logger.info(table);
+//            logger.info(columnsKeys.toString());
+//            logger.info(String.valueOf(time));
+//            logger.info(columnValues.toString());
             if (index > 0 && (index + 1) % batchSize == 0) {
               stmt.executeBatch();
             }
@@ -469,14 +489,19 @@ public class PostgreSQLStorage implements IStorage {
       for (int i = 0; i < data.getPathNum(); i++) {
         String path = data.getPath(i);
         DataType dataType = data.getDataType(i);
-        String table = path.substring(0, path.lastIndexOf('.'));
-        table = table.replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
+        String database_table = path.substring(0, path.lastIndexOf('.'));
+        String database=database_table.substring(0,database_table.lastIndexOf('.'));
+        String table=database_table.substring(database_table.lastIndexOf('.')+1);
+        database = database.replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
         String field = path.substring(path.lastIndexOf('.') + 1);
         field = field.replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
         Map<String, String> tags = data.getTags(i);
         if (tags==null){
           tags=new HashMap<>();
         }
+
+        useDatabase(database);
+        stmt = connection.createStatement();
         logger.info("t8");
         createTimeSeriesIfNotExists(table, field, tags, dataType);
         logger.info("t11");

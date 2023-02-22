@@ -8,6 +8,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 
 public class PostgreSQLQueryRowStream implements RowStream {
@@ -20,11 +21,16 @@ public class PostgreSQLQueryRowStream implements RowStream {
 
   private final Header header;
 
+//  private Object[] values;
+//  private Object[] value;
+//  private final Long timestamp;
+
   public PostgreSQLQueryRowStream(List<ResultSet> resultSets, List<Field> fields) {
     this.resultSets = resultSets;
     this.header = new Header(Field.KEY, fields);
     this.currTimestamps = new long[resultSets.size()];
     this.currValues = new Object[resultSets.size()];
+//    this.values=new ArrayList<>();
     // 默认填充一下timestamp列表
     try {
       for (int i = 0; i < this.currTimestamps.length; i++) {
