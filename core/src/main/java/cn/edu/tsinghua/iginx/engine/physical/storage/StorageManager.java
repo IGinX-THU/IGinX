@@ -93,18 +93,6 @@ public class StorageManager {
         return new Pair<>(new TimeSeriesInterval(null, null), new TimeInterval(0, Long.MAX_VALUE));
     }
 
-    private static String getDriverClassName(String storageEngine) {
-        String[] parts = ConfigDescriptor.getInstance().getConfig().getDatabaseClassNames().split(",");
-        for (String part : parts) {
-            String[] kAndV = part.split("=");
-            if (!kAndV[0].equals(storageEngine)) {
-                continue;
-            }
-            return kAndV[1];
-        }
-        throw new RuntimeException("cannot find driver for " + storageEngine + ", please check config.properties ");
-    }
-
     private boolean initStorage(StorageEngineMeta meta) {
         String engine = meta.getStorageEngine();
         String driver = drivers.get(engine);

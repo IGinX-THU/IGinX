@@ -7,16 +7,11 @@ import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.alibaba.fastjson.JSONObject;
-import com.ibm.icu.impl.UCaseProps;
 import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -108,24 +103,14 @@ public class RestAnnotationIT {
 
 
     @BeforeClass
-    public static void setUp() {
+    public static void setUp() throws SessionException {
         session = new Session("127.0.0.1", 6888, "root", "root");
-        try {
-            session.openSession();
-        } catch (SessionException e) {
-            LOGGER.error(e.getMessage());
-            fail();
-        }
+        session.openSession();
     }
 
     @AfterClass
-    public static void tearDown() {
-        try {
-            session.closeSession();
-        } catch (SessionException e) {
-            LOGGER.error(e.getMessage());
-            fail();
-        }
+    public static void tearDown() throws SessionException {
+        session.closeSession();
     }
 
     //    @Before
@@ -185,16 +170,19 @@ public class RestAnnotationIT {
             case BINARY:
                 fileName = "./src/test/resources/restAnnotation/binaryType/ans/" + fileName;
                 break;
+            default:
+                throw new IllegalStateException("Unexpected DataType: " + dataType.toString());
         }
         fileName += ".json";
 
         File file = new File(fileName);
         try {
             FileReader fr = new FileReader(file);
-            BufferedReader br = new BufferedReader(fr);
-            String line;
-            while((line = br.readLine()) != null){
-                ret += line;
+            try (BufferedReader br = new BufferedReader(fr)) {
+                String line;
+                while((line = br.readLine()) != null){
+                    ret += line;
+                }
             }
         } catch (Exception e) {
             LOGGER.error("Error occurred during execution ", e);
@@ -237,6 +225,8 @@ public class RestAnnotationIT {
             case BINARY:
                 ans = ansFromFile(fileName,DataType.BINARY);
                 break;
+            default:
+                throw new IllegalStateException("Unexpected DataType: " + dataType.toString());
         }
         return ans;
     }

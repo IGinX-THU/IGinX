@@ -132,10 +132,21 @@ jobs:
           fi
       - name: Install with Maven
         run: mvn clean package -DskipTests
+
       - name: Start IginX
-        run: |
-          chmod +x "${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/sbin/start_iginx.sh"
-          nohup "${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/sbin/start_iginx.sh" &
+        uses: ./.github/actions/iginxRunner
+        with:
+          version: ${VERSION}
+
+      - name: Change Config to Start IGinX_2
+        uses: ./.github/actions/confWriter
+        with:
+          confFile: "iginxConf"
+
+      - name: Start IginX_2
+        uses: ./.github/actions/iginxRunner
+        with:
+          version: ${VERSION}
       - name: A Lame Integration Test with Maven for SQL
         run: mvn test -q -Dtest=ParquetSQLSessionPoolIT -DfailIfNoTests=false
       - uses: codecov/codecov-action@v1

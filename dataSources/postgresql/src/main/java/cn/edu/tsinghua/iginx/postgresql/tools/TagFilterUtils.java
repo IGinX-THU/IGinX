@@ -43,6 +43,13 @@ public class TagFilterUtils {
         builder.append("=");
         builder.append(baseFilter.getTagValue());
         break;
+      // TODO: case label
+      case BasePrecise:
+        break;
+      case Precise:
+        break;
+      case WithoutTag:
+        break;
     }
   }
 }

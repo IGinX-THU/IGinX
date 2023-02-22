@@ -848,7 +848,7 @@ DATETIME
     ;
 
 /** Allow unicode rule/token names */
-ID : NAME_CHAR*;
+ID : NAME_CHAR+;
 
 fragment
 NAME_CHAR
