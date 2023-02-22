@@ -91,7 +91,7 @@ public class CapacityExpansionIT implements BaseCapacityExpansionIT {
         if (ENGINE_TYPE.toLowerCase().contains("iotdb"))
             session.executeSql("ADD STORAGEENGINE (\"127.0.0.1\", 6668, \"" + ENGINE_TYPE + "\", \"username:root, password:root, sessionPoolSize:20, has_data:" + hasData + ", is_read_only:true\");");
         else if (ENGINE_TYPE.toLowerCase().contains("influxdb"))
-            session.executeSql("ADD STORAGEENGINE (\"127.0.0.1\", 6668, \"" + ENGINE_TYPE + "\", \"username:root, password:root, sessionPoolSize:20, has_data:" + hasData + ", is_read_only:true\");");
+            session.executeSql("ADD STORAGEENGINE (\"127.0.0.1\", 8087, \"" + ENGINE_TYPE + "\", \"url:http://localhost:8086/, username:user, password:12345678, sessionPoolSize:20, has_data:" + hasData + ", is_read_only:true, token:testToken, organization:testOrg\");");
         else if (ENGINE_TYPE.toLowerCase().contains("parquet"))
             session.executeSql("ADD STORAGEENGINE (\"127.0.0.1\", 6668, \"" + ENGINE_TYPE + "\", \"username:root, password:root, sessionPoolSize:20, has_data:" + hasData + ", is_read_only:true\");");
         else {

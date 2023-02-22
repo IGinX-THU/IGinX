@@ -17,7 +17,7 @@ runs:
   using: "composite" # Mandatory parameter
   steps:
     - name: clear IoTDB history data
-      uses: ./.github/actions/iotdbWriter
+      uses: ./.github/actions/dbWriter
       with:
         version: ${{inputs.DB-name}}
         Test-Way: clearData
@@ -38,8 +38,8 @@ runs:
       with:
         if-rerun: true
 
-    - name: Write IoTDB history data
-      uses: ./.github/actions/iotdbWriter
+    - name: Write DB history data
+      uses: ./.github/actions/dbWriter
       with:
         version: ${{inputs.DB-name}}
         Test-Way: ${{inputs.Test-Way}}

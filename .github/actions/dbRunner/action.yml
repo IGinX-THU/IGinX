@@ -1,0 +1,40 @@
+name: 'db-runner'
+description: 'db runner'
+inputs:
+  version:
+    description: 'DB name'
+    required: false
+    default: iotdb12
+
+runs:
+  using: "composite" # Mandatory parameter
+  steps:
+    - if: inputs.version=='influxdb'
+      name: Run DB
+      shell: bash
+      run: |
+        if [ "$RUNNER_OS" == "Linux" ]; then
+          chmod +x "${GITHUB_WORKSPACE}/.github/influxdb.sh"
+          "${GITHUB_WORKSPACE}/.github/influxdb.sh"
+        elif [ "$RUNNER_OS" == "macOS" ]; then
+          chmod +x "${GITHUB_WORKSPACE}/.github/influxdb_macos.sh"
+          "${GITHUB_WORKSPACE}/.github/influxdb_macos.sh"
+        else
+          echo "$RUNNER_OS is not supported"
+          exit 1
+        fi
+
+    - if: inputs.version=='iotdb12'
+      name: Run DB
+      shell: bash
+      run: |
+        if [ "$RUNNER_OS" == "Linux" ]; then
+          chmod +x "${GITHUB_WORKSPACE}/.github/${{inputs.version}}.sh"
+          "${GITHUB_WORKSPACE}/.github/${{inputs.version}}.sh"
+        elif [ "$RUNNER_OS" == "macOS" ]; then
+          chmod +x "${GITHUB_WORKSPACE}/.github/${{inputs.version}}_macos.sh"
+          "${GITHUB_WORKSPACE}/.github/${{inputs.version}}_macos.sh"
+        else
+          echo "$RUNNER_OS is not supported"
+          exit 1
+        fi

@@ -30,8 +30,8 @@ jobs:
           java: ${{ matrix.java }}
       - name: Run ZooKeeper
         uses: ./.github/actions/zookeeperRunner
-      - name: Run IoTDB
-        uses: ./.github/actions/iotdbRunner
+      - name: Run DB
+        uses: ./.github/actions/dbRunner
         with:
           version: ${{matrix.DB-name}}
 

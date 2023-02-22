@@ -1,0 +1,25 @@
+name: 'db-writer'
+description: 'db writer'
+inputs:
+  version:
+    description: 'DB version'
+    required: false
+    default: iotdb12
+  Test-Way:
+    description: 'the way to imp'
+    required: false
+    default: clearData
+runs:
+  using: "composite" # Mandatory parameter
+  steps:
+    - if: inputs.version=='iotdb12'
+      name: Write history Data
+      shell: bash
+      run: |
+        mvn test -q -Dtest=IoTDBHistoryDataGenerator#${{inputs.Test-Way}} -DfailIfNoTests=false
+
+    - if: inputs.version=='influxdb'
+      name: Write history Data
+      shell: bash
+      run: |
+        mvn test -q -Dtest=InfluxDBHistoryDataGenerator#${{inputs.Test-Way}} -DfailIfNoTests=false

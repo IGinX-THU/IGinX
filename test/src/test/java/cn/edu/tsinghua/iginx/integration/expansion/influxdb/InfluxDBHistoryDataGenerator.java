@@ -18,9 +18,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class InfluxDBHistoryDataGeneratorTest implements BaseHistoryDataGenerator {
+public class InfluxDBHistoryDataGenerator implements BaseHistoryDataGenerator {
 
-    private static final Logger logger = LoggerFactory.getLogger(InfluxDBHistoryDataGeneratorTest.class);
+    private static final Logger logger = LoggerFactory.getLogger(InfluxDBHistoryDataGenerator.class);
 
     public static final String TOKEN = "testToken";
 
