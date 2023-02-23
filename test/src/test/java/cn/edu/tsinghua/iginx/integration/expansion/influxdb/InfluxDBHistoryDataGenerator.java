@@ -64,15 +64,15 @@ public class InfluxDBHistoryDataGenerator implements BaseHistoryDataGenerator {
                 .findFirst()
                 .orElseThrow(IllegalAccessError::new);
 
-        client.getBucketsApi().createBucket("ln", organization);
+        client.getBucketsApi().createBucket("data_center", organization);
         List<Point> points = new ArrayList<>();
 
         long timestamp = 100;
-        points.add(Point.measurement("wf01")
+        points.add(Point.measurement("ln.wf01")
                 .addField("wt01.status", true)
                 .time(timestamp, WRITE_PRECISION));
         timestamp = 200;
-        points.add(Point.measurement("wf01")
+        points.add(Point.measurement("ln.wf01")
                 .addField("wt01.status", false)
                 .addField("wt01.temperature", 20.71)
                 .time(timestamp, WRITE_PRECISION));
@@ -93,15 +93,15 @@ public class InfluxDBHistoryDataGenerator implements BaseHistoryDataGenerator {
                 .findFirst()
                 .orElseThrow(IllegalAccessError::new);
 
-        client.getBucketsApi().createBucket("ln", organization);
+        client.getBucketsApi().createBucket("data_center", organization);
         List<Point> points = new ArrayList<>();
 
         long timestamp = 77;
-        points.add(Point.measurement("wf03")
+        points.add(Point.measurement("ln.wf03")
                 .addField("wt01.status", true)
                 .time(timestamp, WRITE_PRECISION));
         timestamp = 200;
-        points.add(Point.measurement("wf03")
+        points.add(Point.measurement("ln.wf03")
                 .addField("wt01.status", false)
                 .addField("wt01.temperature", 77.71)
                 .time(timestamp, WRITE_PRECISION));
