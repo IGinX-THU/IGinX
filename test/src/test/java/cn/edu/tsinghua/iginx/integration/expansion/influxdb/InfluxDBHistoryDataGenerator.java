@@ -34,6 +34,26 @@ public class InfluxDBHistoryDataGenerator implements BaseHistoryDataGenerator {
 
     private static final WritePrecision WRITE_PRECISION = WritePrecision.MS;
 
+    @Test
+    public void oriHasDataExpHasData() throws Exception {
+        writeHistoryDataToA();
+        writeHistoryDataToB();
+    }
+
+    @Test
+    public void oriHasDataExpNoData() throws Exception {
+        writeHistoryDataToA();
+    }
+
+    @Test
+    public void oriNoDataExpHasData() throws Exception {
+        writeHistoryDataToB();
+    }
+
+    @Test
+    public void oriNoDataExpNoData() throws Exception {
+    }
+
     @Override
     public void writeHistoryDataToA() throws Exception {
         InfluxDBClient client = InfluxDBClientFactory.create(URL, TOKEN.toCharArray(), ORGANIZATION);
