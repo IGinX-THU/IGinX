@@ -590,8 +590,8 @@ public class IginxWorker implements IService.Iface {
     @Override
     public Status cancelTransformJob(CancelTransformJobReq req) {
         TransformJobManager manager = TransformJobManager.getInstance();
-        manager.cancel(req.getJobId());
-        return RpcUtils.SUCCESS;
+        boolean success = manager.cancel(req.getJobId());
+        return success ? RpcUtils.SUCCESS : RpcUtils.FAILURE;
     }
 
     @Override
