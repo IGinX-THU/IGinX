@@ -10,24 +10,8 @@ public class IoTDBHistoryDataGenerator implements BaseHistoryDataGenerator {
 
     private static final Logger logger = LoggerFactory.getLogger(IoTDBHistoryDataGenerator.class);
 
-    @Test
-    public void oriHasDataExpHasData() throws Exception {
-        writeHistoryDataToA();
-        writeHistoryDataToB();
-    }
-
-    @Test
-    public void oriHasDataExpNoData() throws Exception {
-        writeHistoryDataToA();
-    }
-
-    @Test
-    public void oriNoDataExpHasData() throws Exception {
-        writeHistoryDataToB();
-    }
-
-    @Test
-    public void oriNoDataExpNoData() throws Exception {
+    public IoTDBHistoryDataGenerator() {
+        super();
     }
 
     @Test
