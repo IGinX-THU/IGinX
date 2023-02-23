@@ -32,9 +32,29 @@ public class InfluxDBHistoryDataGenerator implements BaseHistoryDataGenerator {
 
     private static final String DELETE_DATA = "_measurement=\"%s\" AND _field=\"%s\"";
 
-    private static final WritePrecision WRITE_PRECISION = WritePrecision.MS;
+    private static final WritePrecision WRITE_PRECISION = WritePrecision.NS;
 
-    @Override
+    @Test
+    public void oriHasDataExpHasData() throws Exception {
+        writeHistoryDataToA();
+        writeHistoryDataToB();
+    }
+
+    @Test
+    public void oriHasDataExpNoData() throws Exception {
+        writeHistoryDataToA();
+    }
+
+    @Test
+    public void oriNoDataExpHasData() throws Exception {
+        writeHistoryDataToB();
+    }
+
+    @Test
+    public void oriNoDataExpNoData() throws Exception {
+    }
+
+    @Test
     public void writeHistoryDataToA() throws Exception {
         InfluxDBClient client = InfluxDBClientFactory.create(URL, TOKEN.toCharArray(), ORGANIZATION);
 
@@ -44,7 +64,8 @@ public class InfluxDBHistoryDataGenerator implements BaseHistoryDataGenerator {
                 .findFirst()
                 .orElseThrow(IllegalAccessError::new);
 
-        client.getBucketsApi().createBucket("ln", organization);
+        if (client.getBucketsApi().findBucketByName("ln") == null)
+            client.getBucketsApi().createBucket("ln", organization);
         List<Point> points = new ArrayList<>();
 
         long timestamp = 100;
@@ -57,13 +78,13 @@ public class InfluxDBHistoryDataGenerator implements BaseHistoryDataGenerator {
                 .addField("wt01.temperature", 20.71)
                 .time(timestamp, WRITE_PRECISION));
 
-        client.getWriteApiBlocking().writePoints("data_center", organization.getId(), points);
+        client.getWriteApiBlocking().writePoints("ln", organization.getId(), points);
         client.close();
 
         logger.info("write data to 127.0.0.1:8086 success!");
     }
 
-    @Override
+    @Test
     public void writeHistoryDataToB() throws Exception {
         InfluxDBClient client = InfluxDBClientFactory.create(URL2, TOKEN.toCharArray(), ORGANIZATION);
 
@@ -73,7 +94,8 @@ public class InfluxDBHistoryDataGenerator implements BaseHistoryDataGenerator {
                 .findFirst()
                 .orElseThrow(IllegalAccessError::new);
 
-        client.getBucketsApi().createBucket("ln", organization);
+        if (client.getBucketsApi().findBucketByName("ln") == null)
+            client.getBucketsApi().createBucket("ln", organization);
         List<Point> points = new ArrayList<>();
 
         long timestamp = 77;
@@ -86,53 +108,57 @@ public class InfluxDBHistoryDataGenerator implements BaseHistoryDataGenerator {
                 .addField("wt01.temperature", 77.71)
                 .time(timestamp, WRITE_PRECISION));
 
-        client.getWriteApiBlocking().writePoints("data_center", organization.getId(), points);
+        client.getWriteApiBlocking().writePoints("ln", organization.getId(), points);
         client.close();
 
         logger.info("write data to 127.0.0.1:8087 success!");
     }
 
-    @Override
+    @Test
     public void clearData() {
-        InfluxDBClient client = InfluxDBClientFactory.create(URL, TOKEN.toCharArray(), ORGANIZATION);
+        try {
+            InfluxDBClient client = InfluxDBClientFactory.create(URL, TOKEN.toCharArray(), ORGANIZATION);
 
-        client.getDeleteApi().delete(
-                OffsetDateTime.ofInstant(Instant.ofEpochMilli(0), ZoneId.of("UTC")),
-                OffsetDateTime.ofInstant(Instant.ofEpochMilli(500), ZoneId.of("UTC")),
-                String.format(DELETE_DATA, "wf01", "wt01.status"),
-                "ln",
-                ORGANIZATION
-        );
+            client.getDeleteApi().delete(
+                    OffsetDateTime.ofInstant(Instant.ofEpochMilli(0), ZoneId.of("UTC")),
+                    OffsetDateTime.ofInstant(Instant.ofEpochMilli(500), ZoneId.of("UTC")),
+                    String.format(DELETE_DATA, "wf01", "wt01.status"),
+                    "ln",
+                    ORGANIZATION
+            );
 
-        client.getDeleteApi().delete(
-                OffsetDateTime.ofInstant(Instant.ofEpochMilli(0), ZoneId.of("UTC")),
-                OffsetDateTime.ofInstant(Instant.ofEpochMilli(500), ZoneId.of("UTC")),
-                String.format(DELETE_DATA, "wf01", "wt01.temperature"),
-                "ln",
-                ORGANIZATION
-        );
-        client.close();
-        logger.info("clear data of 127.0.0.1:8086 success!");
+            client.getDeleteApi().delete(
+                    OffsetDateTime.ofInstant(Instant.ofEpochMilli(0), ZoneId.of("UTC")),
+                    OffsetDateTime.ofInstant(Instant.ofEpochMilli(500), ZoneId.of("UTC")),
+                    String.format(DELETE_DATA, "wf01", "wt01.temperature"),
+                    "ln",
+                    ORGANIZATION
+            );
+            client.close();
+            logger.info("clear data of 127.0.0.1:8086 success!");
 
-        client = InfluxDBClientFactory.create(URL2, TOKEN.toCharArray(), ORGANIZATION);
+            client = InfluxDBClientFactory.create(URL2, TOKEN.toCharArray(), ORGANIZATION);
 
-        client.getDeleteApi().delete(
-                OffsetDateTime.ofInstant(Instant.ofEpochMilli(0), ZoneId.of("UTC")),
-                OffsetDateTime.ofInstant(Instant.ofEpochMilli(500), ZoneId.of("UTC")),
-                String.format(DELETE_DATA, "wf03", "wt01.status"),
-                "ln",
-                ORGANIZATION
-        );
+            client.getDeleteApi().delete(
+                    OffsetDateTime.ofInstant(Instant.ofEpochMilli(0), ZoneId.of("UTC")),
+                    OffsetDateTime.ofInstant(Instant.ofEpochMilli(500), ZoneId.of("UTC")),
+                    String.format(DELETE_DATA, "wf03", "wt01.status"),
+                    "ln",
+                    ORGANIZATION
+            );
 
-        client.getDeleteApi().delete(
-                OffsetDateTime.ofInstant(Instant.ofEpochMilli(0), ZoneId.of("UTC")),
-                OffsetDateTime.ofInstant(Instant.ofEpochMilli(500), ZoneId.of("UTC")),
-                String.format(DELETE_DATA, "wf03", "wt01.temperature"),
-                "ln",
-                ORGANIZATION
-        );
-        client.close();
-        logger.info("clear data of 127.0.0.1:8087 success!");
+            client.getDeleteApi().delete(
+                    OffsetDateTime.ofInstant(Instant.ofEpochMilli(0), ZoneId.of("UTC")),
+                    OffsetDateTime.ofInstant(Instant.ofEpochMilli(500), ZoneId.of("UTC")),
+                    String.format(DELETE_DATA, "wf03", "wt01.temperature"),
+                    "ln",
+                    ORGANIZATION
+            );
+            client.close();
+            logger.info("clear data of 127.0.0.1:8087 success!");
+        } catch (Exception e) {
+            logger.error("clear data fail! caused by {}", e.toString());
+        }
     }
 
 

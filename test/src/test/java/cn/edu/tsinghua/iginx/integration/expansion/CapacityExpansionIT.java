@@ -102,7 +102,7 @@ public class CapacityExpansionIT implements BaseCapacityExpansionIT {
 
     //@Test
     public void testQueryHistoryDataFromInitialNode() throws Exception {
-        String statement = "select * from *";
+        String statement = "select * from ln";
         String expect = "ResultSets:\n" +
                 "+---+-------------------+------------------------+\n" +
                 "|key|ln.wf01.wt01.status|ln.wf01.wt01.temperature|\n" +
@@ -437,7 +437,7 @@ public class CapacityExpansionIT implements BaseCapacityExpansionIT {
     public void testWriteAndQueryAfterCapacityExpansion_oriNoDataExpNoData() throws Exception {
         session.executeSql("insert into ln.wf02 (key, version) values (1600, \"v48\");");
 
-        String statement = "select * from *";
+        String statement = "select * from ln";
         String expect = "ResultSets:\n" +
                 "+----+--------------+---------------+\n" +
                 "| key|ln.wf02.status|ln.wf02.version|\n" +
