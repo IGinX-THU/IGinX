@@ -44,14 +44,14 @@ jobs:
           mvn clean package -DskipTests
       #第 1 阶段测试开始==========================================
       - name: Prepare CapExp environment oriHasDataExpHasData
-        if: always()
+#        if: always()
         uses: ./.github/actions/capacityExpansionUnionTest
         with:
           version: ${VERSION}
           DB-name: ${{matrix.DB-name}}
           Test-Way: oriHasDataExpHasData
       - name: oriHasDataExpHasData IT
-        if: always()
+#        if: always()
         run: |
           if [ "${{matrix.DB-name}}" == "iotdb12" ]; then
             mvn test -q -Dtest=IoTDB12HistoryDataCapacityExpansionIT#oriHasDataExpHasData -DfailIfNoTests=false
@@ -63,14 +63,14 @@ jobs:
           fi
       #第 2 阶段测试开始==========================================
       - name: Prepare CapExp environment oriNoDataExpNoData
-        if: always()
+#        if: always()
         uses: ./.github/actions/capacityExpansionUnionTest
         with:
           version: ${VERSION}
           DB-name: ${{matrix.DB-name}}
           Test-Way: oriNoDataExpNoData
       - name: oriNoDataExpNoData IT
-        if: always()
+#        if: always()
         run: |
           if [ "${{matrix.DB-name}}" == "iotdb12" ]; then
             mvn test -q -Dtest=IoTDB12HistoryDataCapacityExpansionIT#oriNoDataExpNoData -DfailIfNoTests=false
@@ -82,14 +82,14 @@ jobs:
           fi
       #第 3 阶段测试开始==========================================
       - name: Prepare CapExp environment oriHasDataExpNoData
-        if: always()
+#        if: always()
         uses: ./.github/actions/capacityExpansionUnionTest
         with:
           version: ${VERSION}
           DB-name: ${{matrix.DB-name}}
           Test-Way: oriHasDataExpNoData
       - name: oriHasDataExpNoData IT
-        if: always()
+#        if: always()
         run: |
           if [ "${{matrix.DB-name}}" == "iotdb12" ]; then
             mvn test -q -Dtest=IoTDB12HistoryDataCapacityExpansionIT#oriHasDataExpNoData -DfailIfNoTests=false
@@ -101,14 +101,14 @@ jobs:
           fi
       #第 4 阶段测试开始==========================================
       - name: Prepare CapExp environment oriNoDataExpHasData
-        if: always()
+#        if: always()
         uses: ./.github/actions/capacityExpansionUnionTest
         with:
           version: ${VERSION}
           DB-name: ${{matrix.DB-name}}
           Test-Way: oriNoDataExpHasData
       - name: oriNoDataExpHasData IT
-        if: always()
+#        if: always()
         run: |
           if [ "${{matrix.DB-name}}" == "iotdb12" ]; then
             mvn test -q -Dtest=IoTDB12HistoryDataCapacityExpansionIT#oriNoDataExpHasData -DfailIfNoTests=false

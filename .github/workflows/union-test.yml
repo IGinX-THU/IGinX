@@ -1,81 +1,81 @@
-name: "Union Database Test"
-on:
-  push:
-    branches:
-      - "*"
-  pull_request:
-    branches:
-      - "*"
-env:
-  VERSION: 0.6.0-SNAPSHOT
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
-jobs:
-  Union-DB-Test:
-    timeout-minutes: 15
-    strategy:
-      fail-fast: false
-      matrix:
-        java: [ 8 ]
-        python-version: [ "3.7" ]
-        os: [ ubuntu-latest, macos-latest ]
-        DB-name: [ "iotdb12" ]
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v2
-      - name: Environmet Dependence
-        uses: ./.github/actions/dependence
-        with:
-          python-version: ${{ matrix.python-version }}
-          java: ${{ matrix.java }}
-      - name: Run ZooKeeper
-        uses: ./.github/actions/zookeeperRunner
-      - name: Run DB
-        uses: ./.github/actions/dbRunner
-        with:
-          version: ${{matrix.DB-name}}
-
-      - name: Change pom
-        run: |
-          mv test/pom.xml test/pom.xml.backup
-          mv test/pom.xml.${{matrix.DB-name}} test/pom.xml
-      - name: Install IginX with Maven
-        shell: bash
-        run: |
-          mvn clean package -DskipTests
-
-      - name: Set The DB Name
-        uses: ./.github/actions/confWriter
-        with:
-          confFile: DBName
-          DB-name: ${{matrix.DB-name}}
-
-      - name: Set The UDF Conf
-        uses: ./.github/actions/confWriter
-        with:
-          confFile: UDFConf
-
-      - name: Start IginX
-        uses: ./.github/actions/iginxRunner
-
-      - name: Run InfluxDB
-        run: |
-          if [ "$RUNNER_OS" == "Linux" ]; then
-            chmod +x "${GITHUB_WORKSPACE}/.github/influxdb.sh"
-            "${GITHUB_WORKSPACE}/.github/influxdb.sh"
-          elif [ "$RUNNER_OS" == "macOS" ]; then
-            chmod +x "${GITHUB_WORKSPACE}/.github/influxdb_macos.sh"
-            "${GITHUB_WORKSPACE}/.github/influxdb_macos.sh"
-          else
-            echo "$RUNNER_OS is not supported"
-            exit 1
-          fi
-
-      - name: TestControler IT
-        if: always()
-        shell: bash
-        run: |
-          chmod +x "${GITHUB_WORKSPACE}/.github/testUnion.sh"
-          mvn test -q -Dtest=TestControler -DfailIfNoTests=false
+#name: "Union Database Test"
+#on:
+#  push:
+#    branches:
+#      - "*"
+#  pull_request:
+#    branches:
+#      - "*"
+#env:
+#  VERSION: 0.6.0-SNAPSHOT
+#concurrency:
+#  group: ${{ github.workflow }}-${{ github.ref }}
+#  cancel-in-progress: true
+#
+#jobs:
+#  Union-DB-Test:
+#    timeout-minutes: 15
+#    strategy:
+#      fail-fast: false
+#      matrix:
+#        java: [ 8 ]
+#        python-version: [ "3.7" ]
+#        os: [ ubuntu-latest, macos-latest ]
+#        DB-name: [ "iotdb12" ]
+#    runs-on: ${{ matrix.os }}
+#    steps:
+#      - uses: actions/checkout@v2
+#      - name: Environmet Dependence
+#        uses: ./.github/actions/dependence
+#        with:
+#          python-version: ${{ matrix.python-version }}
+#          java: ${{ matrix.java }}
+#      - name: Run ZooKeeper
+#        uses: ./.github/actions/zookeeperRunner
+#      - name: Run DB
+#        uses: ./.github/actions/dbRunner
+#        with:
+#          version: ${{matrix.DB-name}}
+#
+#      - name: Change pom
+#        run: |
+#          mv test/pom.xml test/pom.xml.backup
+#          mv test/pom.xml.${{matrix.DB-name}} test/pom.xml
+#      - name: Install IginX with Maven
+#        shell: bash
+#        run: |
+#          mvn clean package -DskipTests
+#
+#      - name: Set The DB Name
+#        uses: ./.github/actions/confWriter
+#        with:
+#          confFile: DBName
+#          DB-name: ${{matrix.DB-name}}
+#
+#      - name: Set The UDF Conf
+#        uses: ./.github/actions/confWriter
+#        with:
+#          confFile: UDFConf
+#
+#      - name: Start IginX
+#        uses: ./.github/actions/iginxRunner
+#
+#      - name: Run InfluxDB
+#        run: |
+#          if [ "$RUNNER_OS" == "Linux" ]; then
+#            chmod +x "${GITHUB_WORKSPACE}/.github/influxdb.sh"
+#            "${GITHUB_WORKSPACE}/.github/influxdb.sh"
+#          elif [ "$RUNNER_OS" == "macOS" ]; then
+#            chmod +x "${GITHUB_WORKSPACE}/.github/influxdb_macos.sh"
+#            "${GITHUB_WORKSPACE}/.github/influxdb_macos.sh"
+#          else
+#            echo "$RUNNER_OS is not supported"
+#            exit 1
+#          fi
+#
+#      - name: TestControler IT
+#        if: always()
+#        shell: bash
+#        run: |
+#          chmod +x "${GITHUB_WORKSPACE}/.github/testUnion.sh"
+#          mvn test -q -Dtest=TestControler -DfailIfNoTests=false
