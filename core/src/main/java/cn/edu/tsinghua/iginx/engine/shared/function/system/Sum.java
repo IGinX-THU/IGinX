@@ -156,6 +156,8 @@ public class Sum implements SetMappingFunction {
                     case DOUBLE:
                         targetValues[targetIndex] = ((double) targetValues[targetIndex]) + (double) value;
                         break;
+                    default:
+                        throw new IllegalStateException("Unexpected field type: " + fields.get(index).getType().toString());
                 }
             }
         }

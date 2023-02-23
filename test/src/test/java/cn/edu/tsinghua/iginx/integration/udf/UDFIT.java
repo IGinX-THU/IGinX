@@ -48,22 +48,14 @@ public class UDFIT {
     private static Session session;
 
     @BeforeClass
-    public static void setUp() {
+    public static void setUp() throws SessionException {
         session = new Session("127.0.0.1", 6888, "root", "root");
-        try {
-            session.openSession();
-        } catch (SessionException e) {
-            logger.error(e.getMessage());
-        }
+        session.openSession();
     }
 
     @AfterClass
-    public static void tearDown() {
-        try {
-            session.closeSession();
-        } catch (SessionException e) {
-            logger.error(e.getMessage());
-        }
+    public static void tearDown() throws SessionException {
+        session.closeSession();
     }
 
     @Before
@@ -130,7 +122,7 @@ public class UDFIT {
     @Test
     public void baseTests() {
         String udtfSQLFormat = "SELECT %s(s1) FROM us.d1 WHERE key < 200;";
-        String udafSQLFormat = "SELECT %s(s1) FROM us.d1 OVER (RANGE 50ms IN [0, 200));";
+        String udafSQLFormat = "SELECT %s(s1) FROM us.d1 OVER (RANGE 50 IN [0, 200));";
         String udsfSQLFormat = "SELECT %s(s1) FROM us.d1 WHERE key < 50;";
 
         List<TransformTaskMeta> taskMetas = metaManager.getTransformTasks();

@@ -1,6 +1,5 @@
 package cn.edu.tsinghua.iginx.integration.expansion.influxdb;
 
-import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
 import com.influxdb.client.InfluxDBClient;
 import com.influxdb.client.InfluxDBClientFactory;
 import com.influxdb.client.domain.Organization;

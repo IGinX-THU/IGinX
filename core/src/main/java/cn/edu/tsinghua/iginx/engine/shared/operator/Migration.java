@@ -37,4 +37,9 @@ public class Migration extends AbstractUnaryOperator {
     public Operator copy() {
         return new Migration((GlobalSource) getSource().copy(), fragmentMeta, paths, targetStorageUnitMeta);
     }
+
+    @Override
+    public String getInfo() {
+        return "";
+    }
 }

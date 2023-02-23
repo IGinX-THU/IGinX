@@ -175,6 +175,10 @@ public class Config {
 
     private int expectedStorageUnitNum = 0;
 
+    private int minThriftWorkerThreadNum = 20;
+
+    private int maxThriftWrokerThreadNum = 2147483647;
+
     //////////////
 
     public static final String tagNameAnnotation = TagKVUtils.tagNameAnnotation;
@@ -773,6 +777,22 @@ public class Config {
 
     public void setExpectedStorageUnitNum(int expectedStorageUnitNum) {
         this.expectedStorageUnitNum = expectedStorageUnitNum;
+    }
+
+    public int getMinThriftWorkerThreadNum() {
+        return minThriftWorkerThreadNum;
+    }
+
+    public void setMinThriftWorkerThreadNum(int minThriftWorkerThreadNum) {
+        this.minThriftWorkerThreadNum = minThriftWorkerThreadNum;
+    }
+
+    public int getMaxThriftWrokerThreadNum() {
+        return maxThriftWrokerThreadNum;
+    }
+
+    public void setMaxThriftWrokerThreadNum(int maxThriftWrokerThreadNum) {
+        this.maxThriftWrokerThreadNum = maxThriftWrokerThreadNum;
     }
 
     public boolean isLocalParquetStorage() {

@@ -18,6 +18,8 @@ public class SelectStatement extends DataStatement {
 
     private QueryType queryType;
 
+    private boolean needExplain = false;
+
     private boolean hasFunc;
     private boolean hasValueFilter;
     private boolean hasDownsample;
@@ -415,6 +417,14 @@ public class SelectStatement extends DataStatement {
 
     public void setExpression(Expression expression) {
         expressions.add(expression);
+    }
+
+    public boolean isNeedExplain() {
+        return needExplain;
+    }
+
+    public void setNeedExplain(boolean needExplain) {
+        this.needExplain = needExplain;
     }
 
     public Map<String, String> getAliasMap() {

@@ -86,6 +86,8 @@ public class FilterUtils {
                 return timestamp <= keyFilter.getValue();
             case NE:
                 return timestamp != keyFilter.getValue();
+            case LIKE: // TODO: case label. should we return false?
+                break;
         }
         return false;
     }
@@ -165,6 +167,8 @@ public class FilterUtils {
                 }
             case Path:
                 l.add(getJoinColumnFromPathFilter((PathFilter) filter));
+            default:
+                break;
         }
         return l;
     }

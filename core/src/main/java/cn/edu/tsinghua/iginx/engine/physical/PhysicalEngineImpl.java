@@ -59,7 +59,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class PhysicalEngineImpl implements PhysicalEngine {
-
+    @SuppressWarnings("unused")
     private static final Logger logger = LoggerFactory.getLogger(PhysicalEngineImpl.class);
 
     private static final PhysicalEngineImpl INSTANCE = new PhysicalEngineImpl();

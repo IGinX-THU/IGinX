@@ -36,7 +36,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class TagKVUtils {
-
+    @SuppressWarnings("unused")
     private static final Logger logger = LoggerFactory.getLogger(TagKVUtils.class);
 
     public static final String tagNameAnnotation = Config.tagNameAnnotation;
@@ -82,6 +82,13 @@ public class TagKVUtils {
                 return match(tags, (OrTagFilter) tagFilter);
             case Base:
                 return match(tags, (BaseTagFilter) tagFilter);
+            // TODO: case label
+            case BasePrecise:
+                break;
+            case Precise:
+                break;
+            case WithoutTag:
+                break;
         }
         return false;
     }

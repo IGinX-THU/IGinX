@@ -179,6 +179,7 @@ public class FunctionManager {
             functions.put(identifier, udsf);
             return udsf;
         } else {
+            interpreter.close();
             throw new IllegalArgumentException(String.format("UDF %s registered in type %s", identifier, taskMeta.getType()));
         }
     }

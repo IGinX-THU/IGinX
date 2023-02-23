@@ -7,7 +7,7 @@ sqlStatement
 statement
     : INSERT INTO path tagList? insertColumnsSpec VALUES insertValuesSpec #insertStatement
     | DELETE FROM path (COMMA path)* whereClause? withClause? #deleteStatement
-    | queryClause #selectStatement
+    | EXPLAIN? queryClause #selectStatement
     | COUNT POINTS #countPointsStatement
     | DELETE TIME SERIES path (COMMA path)* withClause? #deleteTimeSeriesStatement
     | CLEAR DATA #clearDataStatement
@@ -166,7 +166,11 @@ downsampleWithLevelClause
     ;
 
 downsampleClause
-    : OVER LR_BRACKET RANGE TIME_WITH_UNIT IN timeInterval (STEP TIME_WITH_UNIT)? RR_BRACKET
+    : OVER LR_BRACKET RANGE aggLen IN timeInterval (STEP aggLen)? RR_BRACKET
+    ;
+
+aggLen
+    : (TIME_WITH_UNIT | INT)
     ;
 
 aggregateWithLevelClause
@@ -347,6 +351,7 @@ keyWords
     | REMOVE
     | HISTORYDATARESOURCE
     | COMPACT
+    | EXPLAIN
     ;
 
 dateFormat
@@ -738,6 +743,10 @@ HISTORYDATARESOURCE
 COMPACT
     : C O M P A C T
     ;
+
+EXPLAIN
+    : E X P L A I N
+    ;
 //============================
 // End of the keywords list
 //============================
@@ -831,7 +840,7 @@ DATETIME
     ;
 
 /** Allow unicode rule/token names */
-ID : NAME_CHAR*;
+ID : NAME_CHAR+;
 
 fragment
 NAME_CHAR

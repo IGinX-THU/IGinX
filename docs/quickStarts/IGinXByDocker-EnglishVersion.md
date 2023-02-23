@@ -143,7 +143,7 @@ Currently, the docker image of IGinX needs to be manually installed locally. Fir
 
 ```shell
 $ cd ~
-$ git clone git@github.com:THUIGinX/IGinX.git # Pull the latest IGinX code
+$ git clone git@github.com:IGinX-THU/IGinX.git # Pull the latest IGinX code
 $ cd IGinX
 $ mvn clean install -Dmaven.test.skip=true # Compile IGinX
 ````

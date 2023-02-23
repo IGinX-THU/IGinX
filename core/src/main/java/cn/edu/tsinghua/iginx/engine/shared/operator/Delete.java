@@ -1,10 +1,9 @@
 package cn.edu.tsinghua.iginx.engine.shared.operator;
 
 import cn.edu.tsinghua.iginx.engine.shared.TimeRange;
-import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -15,7 +14,8 @@ public class Delete extends AbstractUnaryOperator {
 
     private final TagFilter tagFilter;
 
-    public Delete(FragmentSource source, List<TimeRange> timeRanges, List<String> patterns, TagFilter tagFilter) {
+    public Delete(FragmentSource source, List<TimeRange> timeRanges, List<String> patterns,
+        TagFilter tagFilter) {
         super(OperatorType.Delete, source);
         this.timeRanges = timeRanges;
         this.patterns = patterns;
@@ -36,6 +36,21 @@ public class Delete extends AbstractUnaryOperator {
 
     @Override
     public Operator copy() {
-        return new Delete((FragmentSource) getSource().copy(), new ArrayList<>(timeRanges), new ArrayList<>(patterns), tagFilter == null ? null : tagFilter.copy());
+        return new Delete((FragmentSource) getSource().copy(), new ArrayList<>(timeRanges),
+            new ArrayList<>(patterns), tagFilter == null ? null : tagFilter.copy());
+    }
+
+    @Override
+    public String getInfo() {
+        StringBuilder builder = new StringBuilder();
+        builder.append("Patterns: ");
+        for (String pattern : patterns) {
+            builder.append(pattern).append(",");
+        }
+        builder.deleteCharAt(builder.length() - 1);
+        if (tagFilter != null) {
+            builder.append(", TagFilter: ").append(tagFilter.toString());
+        }
+        return builder.toString();
     }
 }

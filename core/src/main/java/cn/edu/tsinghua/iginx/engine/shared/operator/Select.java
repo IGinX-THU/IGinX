@@ -1,8 +1,8 @@
 package cn.edu.tsinghua.iginx.engine.shared.operator;
 
-import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 
 public class Select extends AbstractUnaryOperator {
@@ -38,6 +38,17 @@ public class Select extends AbstractUnaryOperator {
 
     @Override
     public Operator copy() {
-        return new Select(getSource().copy(), filter.copy(), tagFilter == null ? null : tagFilter.copy());
+        return new Select(getSource().copy(), filter.copy(),
+            tagFilter == null ? null : tagFilter.copy());
+    }
+
+    @Override
+    public String getInfo() {
+        StringBuilder builder = new StringBuilder();
+        builder.append("Filter: ").append(filter.toString());
+        if (tagFilter != null) {
+            builder.append(", TagFilter: ").append(tagFilter.toString());
+        }
+        return builder.toString();
     }
 }
