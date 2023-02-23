@@ -65,7 +65,7 @@ public class InfluxDBHistoryDataGenerator implements BaseHistoryDataGenerator {
                 .orElseThrow(IllegalAccessError::new);
 
         if (client.getBucketsApi().findBucketByName("ln") == null)
-            client.getBucketsApi().createBucket("data_center", organization);
+            client.getBucketsApi().createBucket("ln", organization);
         List<Point> points = new ArrayList<>();
 
         long timestamp = 100;
@@ -95,7 +95,7 @@ public class InfluxDBHistoryDataGenerator implements BaseHistoryDataGenerator {
                 .orElseThrow(IllegalAccessError::new);
 
         if (client.getBucketsApi().findBucketByName("ln") == null)
-            client.getBucketsApi().createBucket("data_center", organization);
+            client.getBucketsApi().createBucket("ln", organization);
         List<Point> points = new ArrayList<>();
 
         long timestamp = 77;
