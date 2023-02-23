@@ -6,33 +6,9 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class IoTDBHistoryDataGenerator implements BaseHistoryDataGenerator {
+public class IoTDBHistoryDataGenerator extends BaseHistoryDataGenerator {
 
     private static final Logger logger = LoggerFactory.getLogger(IoTDBHistoryDataGenerator.class);
-
-    public IoTDBHistoryDataGenerator() {
-        super();
-    }
-
-    @Test
-    public void oriHasDataExpHasData() throws Exception {
-        writeHistoryDataToA();
-        writeHistoryDataToB();
-    }
-
-    @Test
-    public void oriHasDataExpNoData() throws Exception {
-        writeHistoryDataToA();
-    }
-
-    @Test
-    public void oriNoDataExpHasData() throws Exception {
-        writeHistoryDataToB();
-    }
-
-    @Test
-    public void oriNoDataExpNoData() throws Exception {
-    }
 
     @Test
     public void clearData() {

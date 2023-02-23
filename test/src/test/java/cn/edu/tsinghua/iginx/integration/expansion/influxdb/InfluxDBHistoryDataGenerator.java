@@ -18,7 +18,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class InfluxDBHistoryDataGenerator implements BaseHistoryDataGenerator {
+public class InfluxDBHistoryDataGenerator extends BaseHistoryDataGenerator {
 
     private static final Logger logger = LoggerFactory.getLogger(InfluxDBHistoryDataGenerator.class);
 
