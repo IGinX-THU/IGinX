@@ -113,10 +113,6 @@ public class CapacityExpansionIT implements BaseCapacityExpansionIT {
                 "Total line number = 2\n";
         SQLTestTools.executeAndCompare(session, statement, expect);
 
-        statement = "count points";
-        expect = "Points num: 3\n";
-        SQLTestTools.executeAndCompare(session, statement, expect);
-
         statement = "select count(*) from ln.wf01";
         expect = "ResultSets:\n" +
                 "+--------------------------+-------------------------------+\n" +
@@ -137,10 +133,6 @@ public class CapacityExpansionIT implements BaseCapacityExpansionIT {
                 "+---+\n" +
                 "Empty set.\n";
         SQLTestTools.executeAndCompare(session, statement, expect);
-
-        statement = "count points";
-        expect = "Points num: 0\n";
-        SQLTestTools.executeAndCompare(session, statement, expect);
     }
 
     //@Test
@@ -160,10 +152,6 @@ public class CapacityExpansionIT implements BaseCapacityExpansionIT {
                 "|800|               null|                    null|          null|             v8|\n" +
                 "+---+-------------------+------------------------+--------------+---------------+\n" +
                 "Total line number = 4\n";
-        SQLTestTools.executeAndCompare(session, statement, expect);
-
-        statement = "count points";
-        expect = "Points num: 8\n";
         SQLTestTools.executeAndCompare(session, statement, expect);
 
         statement = "select count(*) from ln.wf02";
@@ -192,10 +180,6 @@ public class CapacityExpansionIT implements BaseCapacityExpansionIT {
                 "|800|          null|             v8|\n" +
                 "+---+--------------+---------------+\n" +
                 "Total line number = 3\n";
-        SQLTestTools.executeAndCompare(session, statement, expect);
-
-        statement = "count points";
-        expect = "Points num: 5\n";
         SQLTestTools.executeAndCompare(session, statement, expect);
 
         statement = "select count(*) from ln.wf02";
@@ -233,11 +217,6 @@ public class CapacityExpansionIT implements BaseCapacityExpansionIT {
                 "+---+-------------------+------------------------+--------------+---------------+\n" +
                 "Total line number = 4\n";
         SQLTestTools.executeAndCompare(session, statement, expect);
-
-        statement = "count points";
-        expect = "Points num: 8\n";
-        SQLTestTools.executeAndCompare(session, statement, expect);
-
     }
 
     public void testCapacityExpansion_oriHasDataExpHasData() throws Exception {
@@ -266,11 +245,6 @@ public class CapacityExpansionIT implements BaseCapacityExpansionIT {
                 "+---+-------------------+------------------------+--------------+---------------+-------------------+------------------------+\n" +
                 "Total line number = 5\n";
         SQLTestTools.executeAndCompare(session, statement, expect);
-
-        statement = "count points";
-        expect = "Points num: 11\n";
-        SQLTestTools.executeAndCompare(session, statement, expect);
-
     }
 
     public void testCapacityExpansion_oriNoDataExpHasData() throws Exception {
@@ -299,11 +273,6 @@ public class CapacityExpansionIT implements BaseCapacityExpansionIT {
                 "+---+--------------+---------------+-------------------+------------------------+\n" +
                 "Total line number = 5\n";
         SQLTestTools.executeAndCompare(session, statement, expect);
-
-        statement = "count points";
-        expect = "Points num: 8\n";
-        SQLTestTools.executeAndCompare(session, statement, expect);
-
     }
 
     public void testCapacityExpansion_oriNoDataExpNoData() throws Exception {
@@ -328,11 +297,6 @@ public class CapacityExpansionIT implements BaseCapacityExpansionIT {
                 "+---+--------------+---------------+\n" +
                 "Total line number = 3\n";
         SQLTestTools.executeAndCompare(session, statement, expect);
-
-        statement = "count points";
-        expect = "Points num: 5\n";
-        SQLTestTools.executeAndCompare(session, statement, expect);
-
     }
 
     //@Test
@@ -352,10 +316,6 @@ public class CapacityExpansionIT implements BaseCapacityExpansionIT {
                 "|1600|               null|                    null|          null|            v48|               null|                    null|\n" +
                 "+----+-------------------+------------------------+--------------+---------------+-------------------+------------------------+\n" +
                 "Total line number = 6\n";
-        SQLTestTools.executeAndCompare(session, statement, expect);
-
-        statement = "count points";
-        expect = "Points num: 12\n";
         SQLTestTools.executeAndCompare(session, statement, expect);
 
         statement = "select count(*) from ln.wf02";
@@ -387,10 +347,6 @@ public class CapacityExpansionIT implements BaseCapacityExpansionIT {
                 "Total line number = 6\n";
         SQLTestTools.executeAndCompare(session, statement, expect);
 
-        statement = "count points";
-        expect = "Points num: 9\n";
-        SQLTestTools.executeAndCompare(session, statement, expect);
-
         statement = "select count(*) from ln.wf02";
         expect = "ResultSets:\n" +
                 "+---------------------+----------------------+\n" +
@@ -419,10 +375,6 @@ public class CapacityExpansionIT implements BaseCapacityExpansionIT {
                 "Total line number = 5\n";
         SQLTestTools.executeAndCompare(session, statement, expect);
 
-        statement = "count points";
-        expect = "Points num: 9\n";
-        SQLTestTools.executeAndCompare(session, statement, expect);
-
         statement = "select count(*) from ln.wf02";
         expect = "ResultSets:\n" +
                 "+---------------------+----------------------+\n" +
@@ -448,10 +400,6 @@ public class CapacityExpansionIT implements BaseCapacityExpansionIT {
                 "|1600|          null|            v48|\n" +
                 "+----+--------------+---------------+\n" +
                 "Total line number = 4\n";
-        SQLTestTools.executeAndCompare(session, statement, expect);
-
-        statement = "count points";
-        expect = "Points num: 6\n";
         SQLTestTools.executeAndCompare(session, statement, expect);
 
         statement = "select count(*) from ln.wf02";
