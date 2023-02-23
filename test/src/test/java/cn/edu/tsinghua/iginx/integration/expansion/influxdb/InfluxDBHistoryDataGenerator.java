@@ -32,7 +32,7 @@ public class InfluxDBHistoryDataGenerator implements BaseHistoryDataGenerator {
 
     private static final String DELETE_DATA = "_measurement=\"%s\" AND _field=\"%s\"";
 
-    private static final WritePrecision WRITE_PRECISION = WritePrecision.MS;
+    private static final WritePrecision WRITE_PRECISION = WritePrecision.NS;
 
     @Test
     public void oriHasDataExpHasData() throws Exception {
