@@ -1,11 +1,9 @@
 name: "Capacity-Expansion-Test"
 on:
-  push:
-    branches:
-      - "*"
   pull_request:
+    types: [opened, reopened]
     branches:
-      - "*"
+      - main
 env:
   VERSION: 0.6.0-SNAPSHOT
 concurrency:
@@ -21,7 +19,7 @@ jobs:
         java: [ 8 ]
         python-version: [ "3.7" ]
         os: [ ubuntu-latest, macos-latest ]
-        DB-name: ["influxdb"]
+        DB-name: ["iotdb12", "influxdb"]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
