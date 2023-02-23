@@ -3,8 +3,10 @@ package cn.edu.tsinghua.iginx.integration.expansion;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.expansion.unit.SQLTestTools;
+import cn.edu.tsinghua.iginx.integration.testcontroler.TestControler;
 import cn.edu.tsinghua.iginx.pool.SessionPool;
 import cn.edu.tsinghua.iginx.session.Session;
+import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -25,6 +27,11 @@ public class CapacityExpansionIT implements BaseCapacityExpansionIT {
 
     public CapacityExpansionIT(String engineType) {
         this.ENGINE_TYPE = engineType;
+    }
+
+    @After
+    public void clearData() throws ExecutionException, SessionException {
+        TestControler.clearData(session);
     }
 
     @BeforeClass
