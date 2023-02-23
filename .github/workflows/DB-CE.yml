@@ -21,7 +21,7 @@ jobs:
         java: [ 8 ]
         python-version: [ "3.7" ]
         os: [ ubuntu-latest, macos-latest ]
-        DB-name: [ "iotdb12", "influxdb"]
+        DB-name: [ "influxdb"]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2

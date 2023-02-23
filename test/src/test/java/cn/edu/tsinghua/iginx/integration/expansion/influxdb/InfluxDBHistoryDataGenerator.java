@@ -54,7 +54,7 @@ public class InfluxDBHistoryDataGenerator implements BaseHistoryDataGenerator {
     public void oriNoDataExpNoData() throws Exception {
     }
 
-    @Override
+    @Test
     public void writeHistoryDataToA() throws Exception {
         InfluxDBClient client = InfluxDBClientFactory.create(URL, TOKEN.toCharArray(), ORGANIZATION);
 
@@ -83,7 +83,7 @@ public class InfluxDBHistoryDataGenerator implements BaseHistoryDataGenerator {
         logger.info("write data to 127.0.0.1:8086 success!");
     }
 
-    @Override
+    @Test
     public void writeHistoryDataToB() throws Exception {
         InfluxDBClient client = InfluxDBClientFactory.create(URL2, TOKEN.toCharArray(), ORGANIZATION);
 
@@ -112,7 +112,7 @@ public class InfluxDBHistoryDataGenerator implements BaseHistoryDataGenerator {
         logger.info("write data to 127.0.0.1:8087 success!");
     }
 
-    @Override
+    @Test
     public void clearData() {
         InfluxDBClient client = InfluxDBClientFactory.create(URL, TOKEN.toCharArray(), ORGANIZATION);
 

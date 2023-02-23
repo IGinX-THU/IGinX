@@ -48,6 +48,7 @@ public class IoTDBHistoryDataGenerator implements BaseHistoryDataGenerator {
         logger.info("clear data success!");
     }
 
+    @Test
     public void writeHistoryDataToA() throws Exception {
         Session session = new Session("127.0.0.1", 6667, "root", "root");
         session.open();
@@ -60,6 +61,7 @@ public class IoTDBHistoryDataGenerator implements BaseHistoryDataGenerator {
         logger.info("write data to 127.0.0.1:6667 success!");
     }
 
+    @Test
     public void writeHistoryDataToB() throws Exception {
         Session session = new Session("127.0.0.1", 6668, "root", "root");
         session.open();
