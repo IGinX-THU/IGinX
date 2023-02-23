@@ -151,7 +151,7 @@ join
 specialClause
     : limitClause
     | aggregateWithLevelClause
-    | groupByClause havingClause? limitClause?
+    | groupByClause havingClause? orderByClause? limitClause?
     | downsampleWithLevelClause limitClause?
     | downsampleClause limitClause?
     | orderByClause limitClause?
