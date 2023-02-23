@@ -68,8 +68,8 @@ andExpression
     ;
 
 predicate
-    : (KEY | path) comparisonOperator constant
-    | constant comparisonOperator (KEY | path)
+    : (KEY | path | functionName LR_BRACKET path RR_BRACKET) comparisonOperator constant
+    | constant comparisonOperator (KEY | path | functionName LR_BRACKET path RR_BRACKET)
     | path comparisonOperator path
     | path OPERATOR_LIKE regex=stringLiteral
     | OPERATOR_NOT? LR_BRACKET orExpression RR_BRACKET
@@ -158,9 +158,18 @@ join
 specialClause
     : limitClause
     | aggregateWithLevelClause
+    | groupByClause havingClause? orderByClause? limitClause?
     | downsampleWithLevelClause limitClause?
     | downsampleClause limitClause?
     | orderByClause limitClause?
+    ;
+
+groupByClause
+    : GROUP BY path (COMMA path)*
+    ;
+
+havingClause
+    : HAVING orExpression
     ;
 
 orderByClause
@@ -300,6 +309,7 @@ keyWords
     | TIMESTAMP
     | GROUP
     | ORDER
+    | HAVING
     | AGG
     | LEVEL
     | ADD
@@ -455,6 +465,10 @@ GROUP
 
 ORDER
     : O R D E R
+    ;
+
+HAVING
+    : H A V I N G
     ;
 
 AGG

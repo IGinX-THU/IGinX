@@ -1490,6 +1490,156 @@ public abstract class SQLSessionIT {
     }
 
     @Test
+    public void testGroupBy() {
+        String insert = "insert into test(key, a, b, c, d) values (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), (3, 2, 2, 1.1, \"val5\"), (4, 3, 2, 2.1, \"val2\"), (5, 1, 2, 3.1, \"val1\"), (6, 2, 2, 5.1, \"val3\");";
+        execute(insert);
+
+        String query = "select * from test;";
+        String expected =
+            "ResultSets:\n"
+                + "+---+------+------+------+------+\n"
+                + "|key|test.a|test.b|test.c|test.d|\n"
+                + "+---+------+------+------+------+\n"
+                + "|  1|     3|     2|   3.1|  val1|\n"
+                + "|  2|     1|     3|   2.1|  val2|\n"
+                + "|  3|     2|     2|   1.1|  val5|\n"
+                + "|  4|     3|     2|   2.1|  val2|\n"
+                + "|  5|     1|     2|   3.1|  val1|\n"
+                + "|  6|     2|     2|   5.1|  val3|\n"
+                + "+---+------+------+------+------+\n"
+                + "Total line number = 6\n";
+        executeAndCompare(query, expected);
+
+        query = "select avg(a), b from test group by b;";
+        expected =
+            "ResultSets:\n"
+                + "+-----------+------+\n"
+                + "|avg(test.a)|test.b|\n"
+                + "+-----------+------+\n"
+                + "|        2.2|     2|\n"
+                + "|        1.0|     3|\n"
+                + "+-----------+------+\n"
+                + "Total line number = 2\n";
+        executeAndCompare(query, expected);
+
+        query = "select avg(a), b, d from test group by b, d;";
+        expected =
+            "ResultSets:\n"
+                + "+-----------+------+------+\n"
+                + "|avg(test.a)|test.b|test.d|\n"
+                + "+-----------+------+------+\n"
+                + "|        2.0|     2|  val5|\n"
+                + "|        2.0|     2|  val3|\n"
+                + "|        3.0|     2|  val2|\n"
+                + "|        2.0|     2|  val1|\n"
+                + "|        1.0|     3|  val2|\n"
+                + "+-----------+------+------+\n"
+                + "Total line number = 5\n";
+        executeAndCompare(query, expected);
+
+        query = "select avg(a), c, b, d from test group by c, b, d";
+        expected =
+            "ResultSets:\n"
+                + "+-----------+------+------+------+\n"
+                + "|avg(test.a)|test.c|test.b|test.d|\n"
+                + "+-----------+------+------+------+\n"
+                + "|        2.0|   3.1|     2|  val1|\n"
+                + "|        2.0|   5.1|     2|  val3|\n"
+                + "|        2.0|   1.1|     2|  val5|\n"
+                + "|        3.0|   2.1|     2|  val2|\n"
+                + "|        1.0|   2.1|     3|  val2|\n"
+                + "+-----------+------+------+------+\n"
+                + "Total line number = 5\n";
+        executeAndCompare(query, expected);
+
+        query = "select min(a), c from test group by c;";
+        expected =
+            "ResultSets:\n"
+                + "+-----------+------+\n"
+                + "|min(test.a)|test.c|\n"
+                + "+-----------+------+\n"
+                + "|          1|   3.1|\n"
+                + "|          2|   1.1|\n"
+                + "|          1|   2.1|\n"
+                + "|          2|   5.1|\n"
+                + "+-----------+------+\n"
+                + "Total line number = 4\n";
+        executeAndCompare(query, expected);
+
+        query = "select max(a), c from test group by c;";
+        expected =
+            "ResultSets:\n"
+                + "+-----------+------+\n"
+                + "|max(test.a)|test.c|\n"
+                + "+-----------+------+\n"
+                + "|          3|   3.1|\n"
+                + "|          2|   1.1|\n"
+                + "|          3|   2.1|\n"
+                + "|          2|   5.1|\n"
+                + "+-----------+------+\n"
+                + "Total line number = 4\n";
+        executeAndCompare(query, expected);
+    }
+
+    @Test
+    public void testGroupByAndHaving() {
+        String insert = "insert into test(key, a, b, c, d) values (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), (3, 2, 2, 1.1, \"val5\"), (4, 3, 2, 2.1, \"val2\"), (5, 1, 2, 3.1, \"val1\"), (6, 2, 2, 5.1, \"val3\");";
+        execute(insert);
+
+        String query = "select * from test;";
+        String expected =
+            "ResultSets:\n"
+                + "+---+------+------+------+------+\n"
+                + "|key|test.a|test.b|test.c|test.d|\n"
+                + "+---+------+------+------+------+\n"
+                + "|  1|     3|     2|   3.1|  val1|\n"
+                + "|  2|     1|     3|   2.1|  val2|\n"
+                + "|  3|     2|     2|   1.1|  val5|\n"
+                + "|  4|     3|     2|   2.1|  val2|\n"
+                + "|  5|     1|     2|   3.1|  val1|\n"
+                + "|  6|     2|     2|   5.1|  val3|\n"
+                + "+---+------+------+------+------+\n"
+                + "Total line number = 6\n";
+        executeAndCompare(query, expected);
+
+        query = "select avg(a), b from test group by b having avg(a) < 2;";
+        expected =
+            "ResultSets:\n"
+                + "+-----------+------+\n"
+                + "|avg(test.a)|test.b|\n"
+                + "+-----------+------+\n"
+                + "|        1.0|     3|\n"
+                + "+-----------+------+\n"
+                + "Total line number = 1\n";
+        executeAndCompare(query, expected);
+
+        query = "select min(a), c from test group by c having c > 1.5;";
+        expected =
+            "ResultSets:\n"
+                + "+-----------+------+\n"
+                + "|min(test.a)|test.c|\n"
+                + "+-----------+------+\n"
+                + "|          1|   3.1|\n"
+                + "|          1|   2.1|\n"
+                + "|          2|   5.1|\n"
+                + "+-----------+------+\n"
+                + "Total line number = 3\n";
+        executeAndCompare(query, expected);
+
+        query = "select max(a), c from test group by c having max(a) > 2;";
+        expected =
+            "ResultSets:\n"
+                + "+-----------+------+\n"
+                + "|max(test.a)|test.c|\n"
+                + "+-----------+------+\n"
+                + "|          3|   3.1|\n"
+                + "|          3|   2.1|\n"
+                + "+-----------+------+\n"
+                + "Total line number = 2\n";
+        executeAndCompare(query, expected);
+    }
+
+    @Test
     public void testJoin() {
         String insert = "insert into test(key, a.a, a.b, b.a, b.b) values (1, 1, 1.1, 2, 2.1), (2, 3, 3.1, 3, 3.1), (3, 5, 5.1, 4, 4.1), (4, 7, 7.1, 5, 5.1), (5, 9, 9.1, 6, 6.1);";
         execute(insert);
@@ -2660,7 +2810,7 @@ public abstract class SQLSessionIT {
 
         errClause = "SELECT s1 FROM us.d1 OVER (RANGE 100 IN (0, 1000));";
         executeAndCompareErrMsg(errClause,
-            "Group by clause cannot be used without aggregate function.");
+            "Downsample clause cannot be used without aggregate function.");
 
         errClause = "SELECT last(s1), max(s2) FROM us.d1;";
         executeAndCompareErrMsg(errClause,
@@ -2672,6 +2822,9 @@ public abstract class SQLSessionIT {
 
         errClause = "SELECT min(s1), max(s2) FROM us.d1 ORDER BY TIME;";
         executeAndCompareErrMsg(errClause, "Not support ORDER BY clause in aggregate query.");
+
+        errClause = "SELECT last(s1) FROM us.d1 GROUP BY s2;";
+        executeAndCompareErrMsg(errClause, "Group by can not use SetToSet and RowToRow functions.");
     }
 
     @Test

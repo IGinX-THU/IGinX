@@ -105,14 +105,14 @@ public class TransformJobManager {
         logger.info(String.format("Job id=%s cost %s ms.", job.getJobId(), job.getEndTime() - job.getStartTime()));
     }
 
-    public void cancel(long jobId) {
+    public boolean cancel(long jobId) {
         Job job = jobMap.get(jobId);
         if (job == null) {
-            return;
+            return false;
         }
         JobRunner runner = jobRunnerMap.get(jobId);
         if (runner == null) {
-            return;
+            return false;
         }
         // Since job state is set to FINISHED/FAILING/FAILED before runner removed from jobRunnerMap,
         // if runner == null, we can confirm that job state is not RUNNING or CREATED.
@@ -130,11 +130,11 @@ public class TransformJobManager {
             case JOB_CREATED:
                 break; // continue execution
             default:
-                return;
+                return false;
         }
         // atomic guard
         if (!job.getActive().compareAndSet(true, false)) {
-            return;
+            return false;
         }
         // reorder as Normal run: [set-ING,] close, set-ED, remove[, set end time, log time cost].
         job.setState(JobState.JOB_CLOSING);
@@ -143,6 +143,7 @@ public class TransformJobManager {
         jobRunnerMap.remove(jobId);
         job.setEndTime(System.currentTimeMillis());
         logger.info(String.format("Job id=%s cost %s ms.", job.getJobId(), job.getEndTime() - job.getStartTime()));
+        return true;
     }
 
     public JobState queryJobState(long jobId) {

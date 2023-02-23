@@ -4,35 +4,132 @@ import cn.edu.tsinghua.iginx.engine.logical.utils.ExprUtils;
 import cn.edu.tsinghua.iginx.engine.shared.TimeRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.RawDataType;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
-import cn.edu.tsinghua.iginx.engine.shared.operator.tag.*;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.NotFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.OrFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.ValueFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.tag.AndTagFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.tag.BasePreciseTagFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.tag.BaseTagFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.tag.OrTagFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.tag.PreciseTagFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.tag.WithoutTagFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.type.FuncType;
 import cn.edu.tsinghua.iginx.exceptions.SQLParserException;
-import cn.edu.tsinghua.iginx.sql.SqlParser.*;
-import cn.edu.tsinghua.iginx.sql.expression.BinaryExpression;
+import cn.edu.tsinghua.iginx.sql.SqlParser.AddStorageEngineStatementContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.AggLenContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.AndExpressionContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.AndPreciseExpressionContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.AndTagExpressionContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.AsClauseContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.CancelJobStatementContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.ClearDataStatementContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.CommitTransformJobStatementContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.ConstantContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.CountPointsStatementContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.DateExpressionContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.DateFormatContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.DeleteStatementContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.DeleteTimeSeriesStatementContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.DownsampleClauseContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.DropTaskStatementContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.ExpressionContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.FromClauseContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.GroupByClauseContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.InsertMultiValueContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.InsertStatementContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.InsertValuesSpecContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.JoinContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.JoinPartContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.LimitClauseContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.OrExpressionContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.OrPreciseExpressionContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.OrTagExpressionContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.OrderByClauseContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.PathContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.PreciseTagExpressionContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.PredicateContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.QueryClauseContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.RegisterTaskStatementContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.RemoveHistoryDataResourceStatementContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.SelectClauseContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.SelectStatementContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.ShowClusterInfoStatementContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.ShowEligibleJobStatementContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.ShowJobStatusStatementContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.ShowRegisterTaskStatementContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.ShowReplicationStatementContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.ShowTimeSeriesStatementContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.SpecialClauseContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.SqlStatementContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.StorageEngineContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.StringLiteralContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.TagEquationContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.TagExpressionContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.TagListContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.TimeIntervalContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.TimeValueContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.WithClauseContext;
 import cn.edu.tsinghua.iginx.sql.expression.BaseExpression;
+import cn.edu.tsinghua.iginx.sql.expression.BinaryExpression;
 import cn.edu.tsinghua.iginx.sql.expression.BracketExpression;
 import cn.edu.tsinghua.iginx.sql.expression.ConstantExpression;
 import cn.edu.tsinghua.iginx.sql.expression.Expression;
 import cn.edu.tsinghua.iginx.sql.expression.Expression.ExpressionType;
 import cn.edu.tsinghua.iginx.sql.expression.Operator;
 import cn.edu.tsinghua.iginx.sql.expression.UnaryExpression;
-import cn.edu.tsinghua.iginx.sql.statement.*;
+import cn.edu.tsinghua.iginx.sql.statement.AddStorageEngineStatement;
+import cn.edu.tsinghua.iginx.sql.statement.CancelJobStatement;
+import cn.edu.tsinghua.iginx.sql.statement.ClearDataStatement;
+import cn.edu.tsinghua.iginx.sql.statement.CommitTransformJobStatement;
+import cn.edu.tsinghua.iginx.sql.statement.CountPointsStatement;
+import cn.edu.tsinghua.iginx.sql.statement.DeleteStatement;
+import cn.edu.tsinghua.iginx.sql.statement.DeleteTimeSeriesStatement;
+import cn.edu.tsinghua.iginx.sql.statement.DropTaskStatement;
+import cn.edu.tsinghua.iginx.sql.statement.InsertFromSelectStatement;
+import cn.edu.tsinghua.iginx.sql.statement.InsertStatement;
+import cn.edu.tsinghua.iginx.sql.statement.RegisterTaskStatement;
+import cn.edu.tsinghua.iginx.sql.statement.RemoveHsitoryDataSourceStatement;
+import cn.edu.tsinghua.iginx.sql.statement.SelectStatement;
+import cn.edu.tsinghua.iginx.sql.statement.ShowClusterInfoStatement;
+import cn.edu.tsinghua.iginx.sql.statement.ShowEligibleJobStatement;
+import cn.edu.tsinghua.iginx.sql.statement.ShowJobStatusStatement;
+import cn.edu.tsinghua.iginx.sql.statement.ShowRegisterTaskStatement;
+import cn.edu.tsinghua.iginx.sql.statement.ShowReplicationStatement;
+import cn.edu.tsinghua.iginx.sql.statement.ShowTimeSeriesStatement;
+import cn.edu.tsinghua.iginx.sql.statement.Statement;
+import cn.edu.tsinghua.iginx.sql.statement.StatementType;
 import cn.edu.tsinghua.iginx.sql.statement.join.JoinPart;
 import cn.edu.tsinghua.iginx.sql.statement.join.JoinType;
-import cn.edu.tsinghua.iginx.thrift.*;
+import cn.edu.tsinghua.iginx.thrift.DataType;
+import cn.edu.tsinghua.iginx.thrift.JobState;
+import cn.edu.tsinghua.iginx.thrift.RemovedStorageEngineInfo;
+import cn.edu.tsinghua.iginx.thrift.StorageEngine;
+import cn.edu.tsinghua.iginx.thrift.UDFType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.TimeUtils;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.antlr.v4.runtime.tree.TerminalNode;
-
-import java.util.*;
 
 public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
-    private final static Set<SelectStatement.FuncType> supportedAggregateWithLevelFuncSet = new HashSet<>(
+    private final static Set<FuncType> supportedAggregateWithLevelFuncSet = new HashSet<>(
         Arrays.asList(
-            SelectStatement.FuncType.Sum,
-            SelectStatement.FuncType.Count,
-            SelectStatement.FuncType.Avg
+            FuncType.Sum,
+            FuncType.Count,
+            FuncType.Avg
         )
     );
 
@@ -65,14 +162,16 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
             Map<String, String> tags;
             if (e.tagList() != null) {
                 if (insertStatement.hasGlobalTags()) {
-                    throw new SQLParserException("Insert path couldn't has global tags and local tags at the same time.");
+                    throw new SQLParserException(
+                        "Insert path couldn't has global tags and local tags at the same time.");
                 }
                 tags = parseTagList(e.tagList());
             } else {
                 tags = insertStatement.getGlobalTags();
             }
             if (!columnsSet.add(new Pair<>(path, tags))) {
-                throw new SQLParserException("Insert statements should not contain duplicate paths.");
+                throw new SQLParserException(
+                    "Insert statements should not contain duplicate paths.");
             }
             insertStatement.setPath(path, tags);
         });
@@ -81,7 +180,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         if (hasSubQuery) {
             SelectStatement selectStatement = new SelectStatement();
             parseQueryClause(ctx.insertValuesSpec().queryClause(), selectStatement);
-            long timeOffset = valuesSpecContext.TIME_OFFSET() == null ? 0 : Long.parseLong(valuesSpecContext.INT().getText());
+            long timeOffset = valuesSpecContext.TIME_OFFSET() == null ? 0
+                : Long.parseLong(valuesSpecContext.INT().getText());
             return new InsertFromSelectStatement(timeOffset, selectStatement, insertStatement);
         } else {
             // parse times, values and types
@@ -104,7 +204,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
             Filter filter = parseOrExpression(ctx.whereClause().orExpression(), deleteStatement);
             deleteStatement.setTimeRangesByFilter(filter);
         } else {
-            List<TimeRange> timeRanges = new ArrayList<>(Collections.singletonList(new TimeRange(0, Long.MAX_VALUE)));
+            List<TimeRange> timeRanges = new ArrayList<>(
+                Collections.singletonList(new TimeRange(0, Long.MAX_VALUE)));
             deleteStatement.setTimeRanges(timeRanges);
         }
         // parse tag filter
@@ -196,10 +297,12 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         List<StorageEngineContext> engines = ctx.storageEngineSpec().storageEngine();
         for (StorageEngineContext engine : engines) {
             String ipStr = engine.ip.getText();
-            String ip = ipStr.substring(ipStr.indexOf(SQLConstant.QUOTE) + 1, ipStr.lastIndexOf(SQLConstant.QUOTE));
+            String ip = ipStr.substring(ipStr.indexOf(SQLConstant.QUOTE) + 1,
+                ipStr.lastIndexOf(SQLConstant.QUOTE));
             int port = Integer.parseInt(engine.port.getText());
             String typeStr = engine.engineType.getText().trim();
-            String type = typeStr.substring(typeStr.indexOf(SQLConstant.QUOTE) + 1, typeStr.lastIndexOf(SQLConstant.QUOTE));
+            String type = typeStr.substring(typeStr.indexOf(SQLConstant.QUOTE) + 1,
+                typeStr.lastIndexOf(SQLConstant.QUOTE));
             Map<String, String> extra = parseExtra(engine.extra);
             addStorageEngineStatement.setEngines(new StorageEngine(ip, port, type, extra));
         }
@@ -230,16 +333,24 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     }
 
     @Override
-    public Statement visitRemoveHistoryDataResourceStatement(RemoveHistoryDataResourceStatementContext ctx) {
+    public Statement visitRemoveHistoryDataResourceStatement(
+        RemoveHistoryDataResourceStatementContext ctx) {
         RemoveHsitoryDataSourceStatement statement = new RemoveHsitoryDataSourceStatement();
         ctx.removedStorageEngine().forEach(storageEngine -> {
             String ipStr = storageEngine.ip.getText();
             String schemaPrefixStr = storageEngine.schemaPrefix.getText();
             String dataPrefixStr = storageEngine.dataPrefix.getText();
-            String ip = ipStr.substring(ipStr.indexOf(SQLConstant.QUOTE) + 1, ipStr.lastIndexOf(SQLConstant.QUOTE));
-            String schemaPrefix = schemaPrefixStr.substring(schemaPrefixStr.indexOf(SQLConstant.QUOTE) + 1, schemaPrefixStr.lastIndexOf(SQLConstant.QUOTE));
-            String dataPrefix = dataPrefixStr.substring(dataPrefixStr.indexOf(SQLConstant.QUOTE) + 1, dataPrefixStr.lastIndexOf(SQLConstant.QUOTE));
-            statement.addStorageEngine(new RemovedStorageEngineInfo(ip, Integer.parseInt(storageEngine.port.getText()), schemaPrefix, dataPrefix));
+            String ip = ipStr.substring(ipStr.indexOf(SQLConstant.QUOTE) + 1,
+                ipStr.lastIndexOf(SQLConstant.QUOTE));
+            String schemaPrefix = schemaPrefixStr
+                .substring(schemaPrefixStr.indexOf(SQLConstant.QUOTE) + 1,
+                    schemaPrefixStr.lastIndexOf(SQLConstant.QUOTE));
+            String dataPrefix = dataPrefixStr
+                .substring(dataPrefixStr.indexOf(SQLConstant.QUOTE) + 1,
+                    dataPrefixStr.lastIndexOf(SQLConstant.QUOTE));
+            statement.addStorageEngine(
+                new RemovedStorageEngineInfo(ip, Integer.parseInt(storageEngine.port.getText()),
+                    schemaPrefix, dataPrefix));
         });
         return statement;
     }
@@ -297,6 +408,14 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
                 List<String> columns = new ArrayList<>();
                 if (joinPartContext.colList() != null && !joinPartContext.colList().isEmpty()) {
                     joinPartContext.colList().path().forEach(pathContext -> columns.add(pathContext.getText()));
+                    List<String> columns = new ArrayList<>();
+                    if (joinPartContext.colList() != null && !joinPartContext.colList().isEmpty()) {
+                        joinPartContext.colList().path()
+                            .forEach(pathContext -> columns.add(pathContext.getText()));
+                    }
+
+                    selectStatement
+                        .setJoinPart(new JoinPart(pathPrefix, joinType, filter, columns));
                 }
 
                 selectStatement.setJoinPart(new JoinPart(pathPrefix, joinType, filter, columns, subStatement));
@@ -419,7 +538,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         }
     }
 
-    private List<Expression> parseExpression(ExpressionContext ctx, SelectStatement selectStatement) {
+    private List<Expression> parseExpression(ExpressionContext ctx,
+        SelectStatement selectStatement) {
         if (ctx.path() != null) {
             return Collections.singletonList(parseBaseExpression(ctx, selectStatement));
         }
@@ -522,6 +642,13 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         if (ctx.aggregateWithLevelClause() != null) {
             parseAggregateWithLevelClause(ctx.aggregateWithLevelClause().INT(), selectStatement);
         }
+        if (ctx.groupByClause() != null) {
+            parseGroupByClause(ctx.groupByClause(), selectStatement);
+        }
+        if (ctx.havingClause() != null) {
+            Filter filter = parseOrExpression(ctx.havingClause().orExpression(), selectStatement);
+            selectStatement.setHavingFilter(filter);
+        }
         if (ctx.limitClause() != null) {
             Pair<Integer, Integer> limitAndOffset = parseLimitClause(ctx.limitClause());
             selectStatement.setLimit(limitAndOffset.getK());
@@ -532,7 +659,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         }
     }
 
-    private void parseDownsampleClause(DownsampleClauseContext ctx, SelectStatement selectStatement) {
+    private void parseDownsampleClause(DownsampleClauseContext ctx,
+        SelectStatement selectStatement) {
         long precision = parseAggLen(ctx.aggLen(0));
         Pair<Long, Long> timeInterval = parseTimeInterval(ctx.timeInterval());
         selectStatement.setStartTime(timeInterval.k);
@@ -550,7 +678,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         KeyFilter endTime = new KeyFilter(Op.L, timeInterval.v);
         Filter mergedFilter;
         if (selectStatement.hasValueFilter()) {
-            mergedFilter = new AndFilter(new ArrayList<>(Arrays.asList(selectStatement.getFilter(), startTime, endTime)));
+            mergedFilter = new AndFilter(
+                new ArrayList<>(Arrays.asList(selectStatement.getFilter(), startTime, endTime)));
         } else {
             mergedFilter = new AndFilter(new ArrayList<>(Arrays.asList(startTime, endTime)));
             selectStatement.setHasValueFilter(true);
@@ -558,11 +687,44 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         selectStatement.setFilter(mergedFilter);
     }
 
-    private void parseAggregateWithLevelClause(List<TerminalNode> layers, SelectStatement selectStatement) {
+    private void parseAggregateWithLevelClause(List<TerminalNode> layers,
+        SelectStatement selectStatement) {
         if (!isSupportAggregateWithLevel(selectStatement)) {
-            throw new SQLParserException("Aggregate with level only support aggregate query count, sum, avg for now.");
+            throw new SQLParserException(
+                "Aggregate with level only support aggregate query count, sum, avg for now.");
         }
-        layers.forEach(terminalNode -> selectStatement.setLayer(Integer.parseInt(terminalNode.getText())));
+        layers.forEach(
+            terminalNode -> selectStatement.setLayer(Integer.parseInt(terminalNode.getText())));
+    }
+
+    private void parseGroupByClause(GroupByClauseContext ctx, SelectStatement selectStatement) {
+        selectStatement.setHasGroupBy(true);
+
+        ctx.path().forEach(pathContext -> {
+            String path;
+            if (!selectStatement.hasJoinParts() && selectStatement.getSubStatement() == null) {
+                path = selectStatement.getFromPath() + SQLConstant.DOT + pathContext.getText();
+            } else {
+                path = pathContext.getText();
+            }
+            if (path.contains("*")) {
+                throw new SQLParserException(String
+                    .format("GROUP BY path '%s' has '*', which is not supported.", path));
+            }
+            selectStatement.setGroupByPath(path);
+            selectStatement.setPathSet(path);
+        });
+
+        selectStatement.getBaseExpressionMap().forEach((k, v) -> {
+            if (k.equals("")) {
+                v.forEach(expr -> {
+                    if (!selectStatement.getGroupByPaths().contains(expr.getPathName())) {
+                        throw new SQLParserException(
+                            "Selected path must exist in group by clause.");
+                    }
+                });
+            }
+        });
     }
 
     private boolean isSupportAggregateWithLevel(SelectStatement selectStatement) {
@@ -582,7 +744,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
             offset = Integer.parseInt(ctx.INT(0).getText());
             limit = Integer.parseInt(ctx.INT(1).getText());
         } else {
-            throw new SQLParserException("Parse limit clause error. Limit clause should like LIMIT M OFFSET N or LIMIT N, M.");
+            throw new SQLParserException(
+                "Parse limit clause error. Limit clause should like LIMIT M OFFSET N or LIMIT N, M.");
         }
         return new Pair<>(limit, offset);
     }
@@ -594,9 +757,11 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         if (ctx.path() != null) {
             String orderByPath = ctx.path().getText();
             if (orderByPath.contains("*")) {
-                throw new SQLParserException(String.format("ORDER BY path '%s' has '*', which is not supported.", orderByPath));
+                throw new SQLParserException(String
+                    .format("ORDER BY path '%s' has '*', which is not supported.", orderByPath));
             }
             selectStatement.setOrderByPath(orderByPath);
+            selectStatement.setPathSet(orderByPath);
         } else {
             selectStatement.setOrderByPath(SQLConstant.KEY);
         }
@@ -651,7 +816,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         }
 
         if (startTime > endTime) {
-            throw new SQLParserException("Start time should be smaller than endTime in time interval.");
+            throw new SQLParserException(
+                "Start time should be smaller than endTime in time interval.");
         }
 
         return new Pair<>(startTime, endTime);
@@ -737,7 +903,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
                 StatementType type = statement.getType();
                 if (type != StatementType.SELECT) {
                     throw new SQLParserException(
-                        String.format("%s clause can not use value or path filter.", type.toString().toLowerCase())
+                        String.format("%s clause can not use value or path filter.",
+                            type.toString().toLowerCase())
                     );
                 }
 
@@ -765,6 +932,13 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         if (!statement.hasJoinParts() && statement.getFromSubStatement() == null && !statement.isSubQuery()) {
             path = statement.getFromPath() + SQLConstant.DOT + path;
         }
+        statement.setPathSet(path);
+
+        // deal with having filter with functions like having avg(a) > 3.
+        // we need a instead of avg(a) to combine fragments' raw data.
+        if (ctx.functionName() != null) {
+            path = ctx.functionName().getText() + "(" + path + ")";
+        }
 
         Op op;
         if (ctx.OPERATOR_LIKE() != null) {
@@ -780,7 +954,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         Value value;
         if (ctx.regex != null) {
             String regex = ctx.regex.getText();
-            value = new Value(regex.substring(1, regex.length()-1));
+            value = new Value(regex.substring(1, regex.length() - 1));
         } else {
             value = new Value(parseValue(ctx.constant()));
         }
@@ -798,6 +972,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
             pathA = statement.getFromPath() + SQLConstant.DOT + pathA;
             pathB = statement.getFromPath() + SQLConstant.DOT + pathB;
         }
+        statement.setPathSet(pathA);
+        statement.setPathSet(pathB);
         return new PathFilter(pathA, op, pathB);
     }
 
@@ -807,13 +983,14 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         if (extra.length() == 0 || extra.equals(SQLConstant.DOUBLE_QUOTES)) {
             return map;
         }
-        extra = extra.substring(extra.indexOf(SQLConstant.QUOTE) + 1, extra.lastIndexOf(SQLConstant.QUOTE));
+        extra = extra
+            .substring(extra.indexOf(SQLConstant.QUOTE) + 1, extra.lastIndexOf(SQLConstant.QUOTE));
         String[] kvStr = extra.split(SQLConstant.COMMA);
         for (String kv : kvStr) {
             String[] kvArray = kv.split(SQLConstant.COLON);
             if (kvArray.length != 2) {
                 if (kv.contains("url")) {
-                    map.put("url", kv.substring(kv.indexOf(":")+1));
+                    map.put("url", kv.substring(kv.indexOf(":") + 1));
                 }
                 continue;
             }
@@ -822,7 +999,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         return map;
     }
 
-    private void parseInsertValuesSpec(InsertValuesSpecContext ctx, InsertStatement insertStatement) {
+    private void parseInsertValuesSpec(InsertValuesSpecContext ctx,
+        InsertStatement insertStatement) {
         List<InsertMultiValueContext> insertMultiValues = ctx.insertMultiValue();
 
         int size = insertMultiValues.size();
@@ -851,8 +1029,9 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
                 ConstantContext cons = constants.get(j);
                 if (cons.NULL() == null && cons.NaN() == null && types[j] == null) {
                     types[j] = parseType(cons);
-                    if (types[j] != null)
+                    if (types[j] != null) {
                         count++;
+                    }
                 }
             }
         }
@@ -940,7 +1119,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         try {
             return TimeUtils.convertDatetimeStrToLong(ctx.getText());
         } catch (Exception e) {
-            throw new SQLParserException(String.format("Input time format %s error. ", ctx.getText()));
+            throw new SQLParserException(
+                String.format("Input time format %s error. ", ctx.getText()));
         }
     }
 
