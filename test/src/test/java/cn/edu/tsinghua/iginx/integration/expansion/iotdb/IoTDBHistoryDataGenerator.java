@@ -15,6 +15,26 @@ public class IoTDBHistoryDataGenerator implements BaseHistoryDataGenerator {
     }
 
     @Test
+    public void oriHasDataExpHasData() throws Exception {
+        writeHistoryDataToA();
+        writeHistoryDataToB();
+    }
+
+    @Test
+    public void oriHasDataExpNoData() throws Exception {
+        writeHistoryDataToA();
+    }
+
+    @Test
+    public void oriNoDataExpHasData() throws Exception {
+        writeHistoryDataToB();
+    }
+
+    @Test
+    public void oriNoDataExpNoData() throws Exception {
+    }
+
+    @Test
     public void clearData() {
         try {
             Session sessionA = new Session("127.0.0.1", 6667, "root", "root");
