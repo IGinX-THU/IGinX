@@ -196,6 +196,13 @@ public class StoragePhysicalTaskExecutor {
                     }
                     try {
                         List<Timeseries> timeseriesList = pair.k.getTimeSeries();
+                        // fix the schemaPrefix
+                        String schemaPrefix = storage.getSchemaPrefix();
+                        if (schemaPrefix != null) {
+                            for (Timeseries timeseries : timeseriesList) {
+                                timeseries.setPath(schemaPrefix + "." + timeseries.getPath());
+                            }
+                        }
                         timeseriesSet.addAll(timeseriesList);
                     } catch (PhysicalException e) {
                         return new TaskExecuteResult(e);
