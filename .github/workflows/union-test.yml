@@ -1,9 +1,11 @@
 name: "Union Database Test"
 on:
-  pull_request:
-    types: [opened, reopened]
+  push:
     branches:
-      - main
+      - "*"
+  pull_request:
+    branches:
+      - "*"
 env:
   VERSION: 0.6.0-SNAPSHOT
 concurrency:
