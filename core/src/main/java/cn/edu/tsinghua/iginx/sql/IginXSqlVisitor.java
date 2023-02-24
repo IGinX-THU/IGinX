@@ -259,16 +259,16 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         if (ctx.tableReference().path() != null) {
             String fromPath = ctx.tableReference().path().getText();
             fromParts.add(new FromPart(fromPath));
-            selectStatement.setAlias(fromPath);
+            selectStatement.setGlobalAlias(fromPath);
         } else {
             SelectStatement subStatement = new SelectStatement();
             subStatement.setIsSubQuery(true);
             parseQueryClause(ctx.tableReference().subquery().queryClause(), subStatement);
             if (subStatement.hasJoinParts() || ctx.tableReference().asClause() != null) {
                 parseAsClause(ctx.tableReference().asClause(), subStatement);
-                selectStatement.setAlias(ctx.tableReference().asClause().ID().getText());
+                selectStatement.setGlobalAlias(ctx.tableReference().asClause().ID().getText());
             } else {
-                selectStatement.setAlias(subStatement.getAlias());
+                selectStatement.setGlobalAlias(subStatement.getGlobalAlias());
             }
             fromParts.add(new FromPart(subStatement));
         }
@@ -288,7 +288,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
                         parseAsClause(joinPartContext.tableReference().asClause(), subStatement);
                         pathPrefix = joinPartContext.tableReference().asClause().ID().getText();
                     } else {
-                        pathPrefix = subStatement.getAlias();
+                        pathPrefix = subStatement.getGlobalAlias();
                     }
                 }
                 if (joinPartContext.join() == null) {  // cross join
@@ -671,7 +671,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
     private void parseAsClause(AsClauseContext ctx, SelectStatement selectStatement) {
         String aliasPrefix = ctx.ID().getText();
-        selectStatement.setAlias(aliasPrefix);
+        selectStatement.setGlobalAlias(aliasPrefix);
         selectStatement.getBaseExpressionMap().forEach((k, v) -> v.forEach(expression -> {
             String alias = expression.getAlias();
             if (alias.equals("")) {

@@ -284,7 +284,7 @@ public class QueryGenerator extends AbstractGenerator {
         });
         // 2. merge by declare
         Operator left = joinList.get(0);
-        String prefixA = selectStatement.getAlias();
+        String prefixA = selectStatement.getGlobalAlias();
         for (int i = 1; i < joinList.size(); i++) {
             JoinCondition joinCondition = selectStatement.getFromParts().get(i).getJoinCondition();
             Operator right = joinList.get(i);

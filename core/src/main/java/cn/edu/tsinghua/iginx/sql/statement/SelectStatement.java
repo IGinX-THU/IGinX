@@ -46,7 +46,7 @@ public class SelectStatement extends DataStatement {
     private int offset;
     private long slideDistance;
     private List<Integer> layers;
-    private String alias;
+    private String globalAlias;
 
     public SelectStatement() {
         this.statementType = StatementType.SELECT;
@@ -435,12 +435,12 @@ public class SelectStatement extends DataStatement {
         this.layers.add(layer);
     }
 
-    public String getAlias() {
-        return alias;
+    public String getGlobalAlias() {
+        return globalAlias;
     }
 
-    public void setAlias(String alias) {
-        this.alias = alias;
+    public void setGlobalAlias(String alias) {
+        this.globalAlias = alias;
     }
 
     public List<Expression> getExpressions() {

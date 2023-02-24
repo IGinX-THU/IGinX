@@ -30,7 +30,7 @@ public class FromPart {
 	}
 	
 	public FromPart(SelectStatement subStatement, JoinCondition joinCondition) {
-		this.path = subStatement.getAlias();
+		this.path = subStatement.getGlobalAlias();
 		this.subStatement = subStatement;
 		this.isSubStatement = true;
 		this.joinCondition = joinCondition;
