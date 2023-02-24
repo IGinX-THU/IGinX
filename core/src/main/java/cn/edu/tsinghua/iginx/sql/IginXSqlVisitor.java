@@ -723,9 +723,6 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     }
 
     private void parseOrderByClause(OrderByClauseContext ctx, SelectStatement selectStatement) {
-        if (selectStatement.hasFunc()) {
-            throw new SQLParserException("Not support ORDER BY clause in aggregate query.");
-        }
         if (ctx.KEY() != null) {
             selectStatement.setOrderByPath(SQLConstant.KEY);
         }

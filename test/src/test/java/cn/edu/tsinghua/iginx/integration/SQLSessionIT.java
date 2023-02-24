@@ -1659,6 +1659,21 @@ public abstract class SQLSessionIT {
                 + "Total line number = 5\n";
         executeAndCompare(query, expected);
 
+        query = "select avg(a), c, b, d from test group by c, b, d order by c";
+        expected =
+            "ResultSets:\n"
+                + "+-----------+------+------+------+\n"
+                + "|avg(test.a)|test.c|test.b|test.d|\n"
+                + "+-----------+------+------+------+\n"
+                + "|        2.0|   1.1|     2|  val5|\n"
+                + "|        3.0|   2.1|     2|  val2|\n"
+                + "|        1.0|   2.1|     3|  val2|\n"
+                + "|        2.0|   3.1|     2|  val1|\n"
+                + "|        2.0|   5.1|     2|  val3|\n"
+                + "+-----------+------+------+------+\n"
+                + "Total line number = 5\n";
+        executeAndCompare(query, expected);
+
         query = "select min(a), c from test group by c;";
         expected =
             "ResultSets:\n"
@@ -1668,6 +1683,20 @@ public abstract class SQLSessionIT {
                 + "|          1|   3.1|\n"
                 + "|          2|   1.1|\n"
                 + "|          1|   2.1|\n"
+                + "|          2|   5.1|\n"
+                + "+-----------+------+\n"
+                + "Total line number = 4\n";
+        executeAndCompare(query, expected);
+
+        query = "select min(a), c from test group by c order by c;";
+        expected =
+            "ResultSets:\n"
+                + "+-----------+------+\n"
+                + "|min(test.a)|test.c|\n"
+                + "+-----------+------+\n"
+                + "|          2|   1.1|\n"
+                + "|          1|   2.1|\n"
+                + "|          1|   3.1|\n"
                 + "|          2|   5.1|\n"
                 + "+-----------+------+\n"
                 + "Total line number = 4\n";
@@ -2790,9 +2819,6 @@ public abstract class SQLSessionIT {
         errClause = "SELECT s1 FROM us.d1 OVER (RANGE 100 IN (100, 10));";
         executeAndCompareErrMsg(errClause,
             "Start time should be smaller than endTime in time interval.");
-
-        errClause = "SELECT min(s1), max(s2) FROM us.d1 ORDER BY KEY;";
-        executeAndCompareErrMsg(errClause, "Not support ORDER BY clause in aggregate query.");
 
         errClause = "SELECT last(s1) FROM us.d1 GROUP BY s2;";
         executeAndCompareErrMsg(errClause, "Group by can not use SetToSet and RowToRow functions.");
