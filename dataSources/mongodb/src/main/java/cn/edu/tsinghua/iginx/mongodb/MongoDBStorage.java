@@ -23,7 +23,6 @@ import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.metadata.entity.TimeInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.TimeSeriesRange;
 import cn.edu.tsinghua.iginx.mongodb.query.entity.MongoDBQueryRowStream;
-import cn.edu.tsinghua.iginx.mongodb.query.entity.MongoDBSchema;
 import cn.edu.tsinghua.iginx.mongodb.tools.DataUtils;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
@@ -56,19 +55,7 @@ public class MongoDBStorage implements IStorage {
 
     private static final String DATABASE = "IGinX";
 
-    public static final String TS = "ts";
-
-    public static final String ID = "_id";
-
     public static final String NAME = "name";
-
-    public static final String VALUE = "value";
-
-    public static final String TYPE = "type";
-
-    public static final String TAGS = "tags";
-
-    public static final String ID_TEMPLATE = "%d_%s";
 
     private final StorageEngineMeta meta;
 
@@ -103,9 +90,7 @@ public class MongoDBStorage implements IStorage {
     private MongoCollection<Document> getCollection(String id) {
         return collectionMap.computeIfAbsent(id, name -> {
             try {
-                MongoCollection<Document> collection = mongoDatabase.getCollection(id);
-                collection.createIndex(Indexes.ascending(TS, NAME));
-                return collection;
+                return mongoDatabase.getCollection(id);
             } catch (Exception e) {
                 logger.error("init collection error: ", e);
                 return null;
@@ -167,22 +152,8 @@ public class MongoDBStorage implements IStorage {
         if (collection == null) {
             return new TaskExecuteResult(new PhysicalTaskExecuteFailureException("create collection failure!"));
         }
-
-        try (MongoCursor<Document> cursor = collection.find(
-                and(
-                        gte(TS, timeInterval.getStartTime()),
-                        lt(TS, timeInterval.getEndTime()),
-                        genPatternBson(project.getPatterns())
-                )
-        ).projection(
-                fields(
-                        excludeId(),
-                        include(TS, TYPE, NAME, TAGS, VALUE)
-                )
-        ).iterator()) {
-            MongoDBQueryRowStream rowStream = new MongoDBQueryRowStream(cursor, project);
-            return new TaskExecuteResult(rowStream);
-        }
+        // TODO: @zhanglingzhe
+        return null;
 
     }
 
@@ -191,32 +162,8 @@ public class MongoDBStorage implements IStorage {
         if (collection == null) {
             return new TaskExecuteResult(new PhysicalTaskExecuteFailureException("create collection failure!"));
         }
-        checkNoTagFilter(delete);  // 删除暂时不支持精确到 tagkv
-        if (delete.getTimeRanges() == null || delete.getTimeRanges().size() == 0) { // 没有传任何 time range
-            List<String> paths = delete.getPatterns();
-            if (paths.size() == 1 && paths.get(0).equals("*") && delete.getTagFilter() == null) {
-                collection.drop();
-            } else {
-                // 整条序列级别的删除
-                collection.deleteMany(genPatternBson(delete.getPatterns()));
-            }
-        } else {
-            // 删除序列的一部分
-            for (TimeRange range: delete.getTimeRanges()) {
-                collection.deleteMany(and(
-                        gte(TS, range.getActualBeginTime()),
-                        lte(TS, range.getActualEndTime()),
-                        genPatternBson(delete.getPatterns())
-                ));
-            }
-        }
-        return new TaskExecuteResult(null, null);
-    }
-
-    private void checkNoTagFilter(Delete delete) {
-        if (delete.getTagFilter() != null) {
-            throw new IllegalArgumentException("mongodb doesn't support delete with tag filter");
-        }
+        // TODO: @zhanglingzhe
+        return null;
     }
 
     private Exception insertRowRecords(RowDataView data, String storageUnit) {
@@ -224,31 +171,7 @@ public class MongoDBStorage implements IStorage {
         if (collection == null) {
             return new PhysicalTaskExecuteFailureException("create collection failure!");
         }
-
-        List<MongoDBSchema> schemas = new ArrayList<>();
-        for (int i = 0; i < data.getPathNum(); i++) {
-            schemas.add(new MongoDBSchema(data.getPath(i), data.getTags(i)));
-        }
-
-        List<Document> points = new ArrayList<>();
-        for (int i = 0; i < data.getTimeSize(); i++) {
-            BitmapView bitmapView = data.getBitmapView(i);
-            int index = 0;
-            for (int j = 0; j < data.getPathNum(); j++) {
-                if (bitmapView.get(j)) {
-                    MongoDBSchema schema = schemas.get(j);
-                    DataType type = data.getDataType(j);
-                    points.add(DataUtils.constructDocument(schema, type, data.getValue(i, index), data.getKey(i)));
-                    index++;
-                }
-            }
-        }
-
-        try {
-            collection.insertMany(points);
-        } catch (Exception e) {
-            logger.error("encounter error when write points to mongodb: ", e);
-        }
+        // TODO: @zhanglingzhe
         return null;
     }
 
@@ -257,68 +180,19 @@ public class MongoDBStorage implements IStorage {
         if (collection == null) {
             return new PhysicalTaskExecuteFailureException("create collection failure!");
         }
-
-        List<Document> points = new ArrayList<>();
-        for (int i = 0; i < data.getPathNum(); i++) {
-            MongoDBSchema schema = new MongoDBSchema(data.getPath(i), data.getTags(i));
-            BitmapView bitmapView = data.getBitmapView(i);
-            int index = 0;
-            for (int j = 0; j < data.getTimeSize(); j++) {
-                if (bitmapView.get(j)) {
-                    DataType type = data.getDataType(i);
-                    points.add(DataUtils.constructDocument(schema, type, data.getValue(i, index), data.getKey(j)));
-                    index++;
-                }
-            }
-        }
-
-        try {
-            collection.insertMany(points);
-        } catch (Exception e) {
-            logger.error("encounter error when write points to influxdb: ", e);
-        }
+        // TODO: @zhanglingzhe
         return null;
     }
 
     @Override
-    public List<Timeseries> getTimeSeries() { // 极端不经济
-        Set<String> storageUnits = new HashSet<>(collectionMap.keySet());
-        Map<String, Map<String, DataType>> deDupMap = new HashMap<>();
-        for (String storageUnit: storageUnits) {
-            MongoCollection<Document> collection = getCollection(storageUnit);
-            try (MongoCursor<Document> cursor = collection.find().projection(
-                    fields(
-                            excludeId(),
-                            include(TYPE, NAME, TAGS)
-                    )
-            ).iterator()) {
-                while (cursor.hasNext()) {
-                    Document document = cursor.next();
-                    String name = document.getString(NAME);
-                    DataType dataType = DataUtils.fromString(document.getString(TYPE));
-                    String tagString = document.getString(TAGS);
-                    Map<String, DataType> dupMap = deDupMap.computeIfAbsent(name, key -> new HashMap<>());
-                    dupMap.put(tagString, dataType);
-                }
-            }
-        }
-        List<Timeseries> timeseriesList = new ArrayList<>();
-        for (String name: deDupMap.keySet()) {
-            Map<String, DataType> dupMap = deDupMap.get(name);
-            for (String tagString: dupMap.keySet()) {
-                DataType dataType = dupMap.get(tagString);
-                if (tagString == null || tagString.isEmpty()) {
-                    timeseriesList.add(new Timeseries(name, dataType));
-                } else {
-                    timeseriesList.add(new Timeseries(name, dataType, MongoDBSchema.resolveTagsFromString(tagString)));
-                }
-            }
-        }
-        return timeseriesList;
+    public List<Timeseries> getTimeSeries() {
+        // TODO: @zhanglingzhe
+        return null;
     }
 
     @Override
     public Pair<TimeSeriesRange, TimeInterval> getBoundaryOfStorage(String prefix) {
+        // DOESN'T NEED TO IMPLEMENT
         return null;
     }
 

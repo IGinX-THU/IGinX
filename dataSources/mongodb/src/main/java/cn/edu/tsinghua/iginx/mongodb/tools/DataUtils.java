@@ -2,7 +2,6 @@ package cn.edu.tsinghua.iginx.mongodb.tools;
 
 import cn.edu.tsinghua.iginx.exceptions.UnsupportedDataTypeException;
 import cn.edu.tsinghua.iginx.mongodb.MongoDBStorage;
-import cn.edu.tsinghua.iginx.mongodb.query.entity.MongoDBSchema;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import org.bson.Document;
 
@@ -51,14 +50,6 @@ public class DataUtils {
             default:
                 throw new UnsupportedDataTypeException(dataType);
         }
-    }
-
-    public static Document constructDocument(MongoDBSchema schema, DataType type, Object value, long timestamp) {
-        Document document = new Document(MongoDBStorage.ID, String.format(MongoDBStorage.ID_TEMPLATE, timestamp, schema.getName()));
-        document.append(MongoDBStorage.NAME, schema.getName()).append(MongoDBStorage.TS, timestamp);
-        document.append(MongoDBStorage.TYPE, toString(type)).append(MongoDBStorage.VALUE, value);
-        document.append(MongoDBStorage.TAGS, schema.getTagsAsString());
-        return document;
     }
 
 }
