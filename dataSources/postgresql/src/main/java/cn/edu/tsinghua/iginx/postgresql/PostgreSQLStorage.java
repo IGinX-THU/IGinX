@@ -235,18 +235,23 @@ public class PostgreSQLStorage implements IStorage {
             // 获取first
             String firstQueryStatement = String.format(FIRST_QUERY, columnName, tableName);
             Statement firstQueryStmt = connection.createStatement();
+            String execIfNoTimestamp_first=String.format("select first(%s,time) from (select to_timestamp(row_number() over()) as time,%s from %s)",columnName,columnName,tableName);
+            String execIfNoTimestamp_last=String.format("select first(%s,time) from (select to_timestamp(row_number() over()) as time,%s from %s)",columnName,columnName,tableName);
             try {
               ResultSet firstQuerySet = firstQueryStmt.executeQuery(firstQueryStatement);
               if (firstQuerySet.next()) {
                 long currMinTime = firstQuerySet.getLong(1);
                 minTime = Math.min(currMinTime, minTime);
               }
-            }catch (Exception e){
-              minTime=1000;    //没有时间列，按递增的序列排序,1000表示first
+            }catch (Exception e) {
+              ResultSet firstQuerySet = firstQueryStmt.executeQuery(execIfNoTimestamp_first);
+              if (firstQuerySet.next()) {
+                long currMinTime = firstQuerySet.getLong(1);
+                minTime = Math.min(currMinTime, minTime);    //没有时间列执行该语句
+              }
             }
             // 获取last
             String lastQueryStatement = String.format(LAST_QUERY, columnName, tableName);
-            String queryNumOfRow=String.format("select count(*) from %s",tableName);
             Statement lastQueryStmt = connection.createStatement();
             try {
               ResultSet lastQuerySet = lastQueryStmt.executeQuery(lastQueryStatement);
@@ -254,10 +259,10 @@ public class PostgreSQLStorage implements IStorage {
                 long currMaxTime = lastQuerySet.getLong(1);
                 maxTime = Math.max(currMaxTime, maxTime);
               }
-            }catch (Exception e){   //没有时间戳的表用行数表示last
-              ResultSet lastQuerySet=lastQueryStmt.executeQuery(queryNumOfRow);
+            }catch (Exception e){   //没有时间戳执行该部分
+              ResultSet lastQuerySet = lastQueryStmt.executeQuery(execIfNoTimestamp_last);
               if (lastQuerySet.next()) {
-                long currMaxTime = lastQuerySet.getLong(1)*1000;
+                long currMaxTime = lastQuerySet.getLong(1);
                 maxTime = Math.max(currMaxTime, maxTime);
               }
             }
@@ -292,50 +297,100 @@ public class PostgreSQLStorage implements IStorage {
       String t="";
       String c="";
       for (String path : project.getPatterns()) {
+        ArrayList allDatabase=new ArrayList<>();
+        Statement stmt = connection.createStatement();
+        ResultSet databaseSet = stmt.executeQuery(QUERY_DATABASES);
+        while (databaseSet.next()) {
+          allDatabase.add(databaseSet.getString(1));
+        }
+        ArrayList databases=new ArrayList<>();
         String database_table = path.substring(0, path.lastIndexOf('.'));
-        String database=database_table.substring(0,database_table.lastIndexOf('.'));
-        String table=database_table.substring(database_table.lastIndexOf('.')+1);
-        database=database.replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
-        String field = path.substring(path.lastIndexOf('.') + 1);
-        field = field.replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
-        if(db.equals(database) && t.equals(table) && c.equals(field)){
-          continue;
-        }
-        db=database;
-        t=table;
-        c=field;
-        // 查询序列类型
-        useDatabase(database);
+        String tableName="";
+        String field1="";
+        boolean allTable=false;
 
-        DatabaseMetaData databaseMetaData = connection.getMetaData();
-
-        ResultSet columnSet = databaseMetaData.getColumns(null, null, table, field);
-        if(field.equals("*")){
-           columnSet = databaseMetaData.getColumns(null, null, table,null);
-        }
-        while (columnSet.next()) {
-          field=columnSet.getString("COLUMN_NAME");
-          if(field.equals("time")){
-            continue;
+        if(path.equals("*.*")){
+          stmt = connection.createStatement();
+          databaseSet = stmt.executeQuery(QUERY_DATABASES);
+          while (databaseSet.next()) {
+            databases.add(databaseSet.getString(1));
           }
-          String statement="";
-          String typeName = columnSet.getString("TYPE_NAME");//列字段类型
-          fields.add(new Field(database.replace(POSTGRESQL_SEPARATOR,IGINX_SEPARATOR)+IGINX_SEPARATOR+table.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR) + IGINX_SEPARATOR
+          allTable=true;
+        }
+        else if (database_table.substring(database_table.lastIndexOf(".")).equals("*")) {
+          allTable=true;
+        }
+        else {
+//        String database_table = path.substring(0, path.lastIndexOf('.'));
+          String database = database_table.substring(0, database_table.lastIndexOf('.'));
+          tableName = database_table.substring(database_table.lastIndexOf('.') + 1);
+          if(tableName.equals("*")){
+            allTable=true;
+          }
+          database = database.replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
+          databases.add(database);
+          field1 = path.substring(path.lastIndexOf('.') + 1);
+          field1 = field1.replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
+//          if (db.equals(database) && t.equals(table) && c.equals(field)) {
+//            continue;
+//          }
+//          db = database;
+//          t = table;
+//          c = field;
+        }
+
+        for(int j=0;j<allDatabase.size();j++) {
+          for (int i = 0; i < databases.size(); i++) {
+            String database = (String) databases.get(i);
+            if (((String) allDatabase.get(j)).contains(database)) {
+//            String database = (String) databases.get(i);
+              // 查询序列类型
+
+              useDatabase(database);
+
+              DatabaseMetaData databaseMetaData = connection.getMetaData();
+              ResultSet tableSet = null;
+              if (allTable) {
+                tableSet = databaseMetaData.getTables(null, "%", "%", new String[]{"TABLE"});
+              } else {
+                tableSet = databaseMetaData.getTables(null, "%", tableName, new String[]{"TABLE"});
+              }
+              while (tableSet.next()) {
+                String table = tableSet.getString(3);//获取表名称
+//            ResultSet columnSet = databaseMetaData.getColumns(null, "%", tableName, "%");
+
+
+                ResultSet columnSet = databaseMetaData.getColumns(null, null, table, field1);
+                if (field1.equals("*")) {
+                  columnSet = databaseMetaData.getColumns(null, null, table, null);
+                }
+                while (columnSet.next()) {
+                  String field = columnSet.getString("COLUMN_NAME");
+                  if (field.equals("time")) {
+                    continue;
+                  }
+                  String statement = "";
+                  String typeName = columnSet.getString("TYPE_NAME");//列字段类型
+                  fields.add(new Field(database.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR) + IGINX_SEPARATOR + table.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR) + IGINX_SEPARATOR
                           + field.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR)
                           , DataTypeTransformer.fromPostgreSQL(typeName)));
-          ResultSet rs;
-          try {
-            statement = String
-                    .format("SELECT time,%s FROM %s where %s", field, table, filter1);
-            Statement stmt = connection.createStatement();
-            rs = stmt.executeQuery(statement);
-          }catch (Exception e){
-            statement = String
-                    .format("SELECT time,%s FROM %s", field, table);
-            Statement stmt = connection.createStatement();
-            rs = stmt.executeQuery(statement);
+                  ResultSet rs;
+                  try {
+                    statement = String
+                            .format("SELECT time,%s FROM %s where %s", field, table, filter1);
+                    stmt = connection.createStatement();
+                    rs = stmt.executeQuery(statement);
+                  } catch (Exception e) {
+                    statement = String
+                            .format("SELECT time,%s FROM (select to_timestamp(row_number() over()) as time,%s from %s) as a where %s", field, field, table, filter1);
+                    stmt = connection.createStatement();
+                    rs = stmt.executeQuery(statement);
+                  }
+                  resultSets.add(rs);
+                }
+              }
+            }
           }
-          resultSets.add(rs);
         }
       }
       RowStream rowStream = new PostgreSQLQueryRowStream(resultSets, fields);

@@ -35,20 +35,23 @@ public class PostgreSQLQueryRowStream implements RowStream {
     try {
       long j=1;
       for (int i = 0; i < this.currTimestamps.length; i++) {
+        j=1;
         ResultSet resultSet = this.resultSets.get(i);
         if (resultSet.next()) {
           try {
             this.currTimestamps[i] = resultSet.getTimestamp(1).getTime();
           }catch (Exception e){
-            this.currTimestamps[i]=j++;
+            this.currTimestamps[i] = j++;
           }
           this.currValues[i] = resultSet.getObject(2);
         }
       }
+      j++;
     } catch (SQLException e) {
       e.printStackTrace();
       // pass
     }
+
   }
 
   @Override
