@@ -96,7 +96,6 @@ public class PostgreSQLQueryRowStream implements RowStream {
             try {
               this.currTimestamps[i] = resultSet.getTimestamp(1).getTime();
             }catch (Exception e){
-              //this.currTimestamps[i]=j++;
               logger.info("have no timestamp,set default timestamp!");
             }
             this.currValues[i] = resultSet.getObject(2);

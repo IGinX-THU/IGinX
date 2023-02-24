@@ -6,7 +6,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.tag.OrTagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 
 public class TagFilterUtils {
-
+  @SuppressWarnings("unused")
   public static String transformToFilterStr(TagFilter filter) {
     StringBuilder builder = new StringBuilder();
     transformToFilterStr(filter, builder);
@@ -42,6 +42,12 @@ public class TagFilterUtils {
         builder.append(baseFilter.getTagKey());
         builder.append("=");
         builder.append(baseFilter.getTagValue());
+        break;
+      // TODO: case label
+      case BasePrecise:
+        break;
+      case Precise:
+      case WithoutTag:
         break;
     }
   }
