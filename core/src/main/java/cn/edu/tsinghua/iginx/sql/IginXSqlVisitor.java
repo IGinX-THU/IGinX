@@ -4,124 +4,22 @@ import cn.edu.tsinghua.iginx.engine.logical.utils.ExprUtils;
 import cn.edu.tsinghua.iginx.engine.shared.TimeRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.RawDataType;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.NotFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.OrFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.ValueFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.tag.AndTagFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.tag.BasePreciseTagFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.tag.BaseTagFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.tag.OrTagFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.tag.PreciseTagFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.tag.WithoutTagFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
+import cn.edu.tsinghua.iginx.engine.shared.operator.tag.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.FuncType;
 import cn.edu.tsinghua.iginx.exceptions.SQLParserException;
-import cn.edu.tsinghua.iginx.sql.SqlParser.AddStorageEngineStatementContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.AggLenContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.AndExpressionContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.AndPreciseExpressionContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.AndTagExpressionContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.AsClauseContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.CancelJobStatementContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.ClearDataStatementContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.CommitTransformJobStatementContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.ConstantContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.CountPointsStatementContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.DateExpressionContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.DateFormatContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.DeleteStatementContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.DeleteTimeSeriesStatementContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.DownsampleClauseContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.DropTaskStatementContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.ExpressionContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.FromClauseContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.GroupByClauseContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.InsertMultiValueContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.InsertStatementContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.InsertValuesSpecContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.JoinContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.JoinPartContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.LimitClauseContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.OrExpressionContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.OrPreciseExpressionContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.OrTagExpressionContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.OrderByClauseContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.PathContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.PreciseTagExpressionContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.PredicateContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.QueryClauseContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.RegisterTaskStatementContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.RemoveHistoryDataResourceStatementContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.SelectClauseContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.SelectStatementContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.ShowClusterInfoStatementContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.ShowEligibleJobStatementContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.ShowJobStatusStatementContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.ShowRegisterTaskStatementContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.ShowReplicationStatementContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.ShowTimeSeriesStatementContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.SpecialClauseContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.SqlStatementContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.StorageEngineContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.StringLiteralContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.TagEquationContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.TagExpressionContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.TagListContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.TimeIntervalContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.TimeValueContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.WithClauseContext;
-import cn.edu.tsinghua.iginx.sql.expression.BaseExpression;
-import cn.edu.tsinghua.iginx.sql.expression.BinaryExpression;
-import cn.edu.tsinghua.iginx.sql.expression.BracketExpression;
-import cn.edu.tsinghua.iginx.sql.expression.ConstantExpression;
-import cn.edu.tsinghua.iginx.sql.expression.Expression;
+import cn.edu.tsinghua.iginx.sql.SqlParser.*;
+import cn.edu.tsinghua.iginx.sql.expression.*;
 import cn.edu.tsinghua.iginx.sql.expression.Expression.ExpressionType;
-import cn.edu.tsinghua.iginx.sql.expression.Operator;
-import cn.edu.tsinghua.iginx.sql.expression.UnaryExpression;
-import cn.edu.tsinghua.iginx.sql.statement.AddStorageEngineStatement;
-import cn.edu.tsinghua.iginx.sql.statement.CancelJobStatement;
-import cn.edu.tsinghua.iginx.sql.statement.ClearDataStatement;
-import cn.edu.tsinghua.iginx.sql.statement.CommitTransformJobStatement;
-import cn.edu.tsinghua.iginx.sql.statement.CountPointsStatement;
-import cn.edu.tsinghua.iginx.sql.statement.DeleteStatement;
-import cn.edu.tsinghua.iginx.sql.statement.DeleteTimeSeriesStatement;
-import cn.edu.tsinghua.iginx.sql.statement.DropTaskStatement;
-import cn.edu.tsinghua.iginx.sql.statement.InsertFromSelectStatement;
-import cn.edu.tsinghua.iginx.sql.statement.InsertStatement;
-import cn.edu.tsinghua.iginx.sql.statement.RegisterTaskStatement;
-import cn.edu.tsinghua.iginx.sql.statement.RemoveHsitoryDataSourceStatement;
-import cn.edu.tsinghua.iginx.sql.statement.SelectStatement;
-import cn.edu.tsinghua.iginx.sql.statement.ShowClusterInfoStatement;
-import cn.edu.tsinghua.iginx.sql.statement.ShowEligibleJobStatement;
-import cn.edu.tsinghua.iginx.sql.statement.ShowJobStatusStatement;
-import cn.edu.tsinghua.iginx.sql.statement.ShowRegisterTaskStatement;
-import cn.edu.tsinghua.iginx.sql.statement.ShowReplicationStatement;
-import cn.edu.tsinghua.iginx.sql.statement.ShowTimeSeriesStatement;
-import cn.edu.tsinghua.iginx.sql.statement.Statement;
-import cn.edu.tsinghua.iginx.sql.statement.StatementType;
+import cn.edu.tsinghua.iginx.sql.statement.*;
 import cn.edu.tsinghua.iginx.sql.statement.join.JoinPart;
 import cn.edu.tsinghua.iginx.sql.statement.join.JoinType;
-import cn.edu.tsinghua.iginx.thrift.DataType;
-import cn.edu.tsinghua.iginx.thrift.JobState;
-import cn.edu.tsinghua.iginx.thrift.RemovedStorageEngineInfo;
-import cn.edu.tsinghua.iginx.thrift.StorageEngine;
-import cn.edu.tsinghua.iginx.thrift.UDFType;
+import cn.edu.tsinghua.iginx.thrift.*;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.TimeUtils;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import org.antlr.v4.runtime.tree.TerminalNode;
+
+import java.util.*;
 
 public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
@@ -408,14 +306,6 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
                 List<String> columns = new ArrayList<>();
                 if (joinPartContext.colList() != null && !joinPartContext.colList().isEmpty()) {
                     joinPartContext.colList().path().forEach(pathContext -> columns.add(pathContext.getText()));
-                    List<String> columns = new ArrayList<>();
-                    if (joinPartContext.colList() != null && !joinPartContext.colList().isEmpty()) {
-                        joinPartContext.colList().path()
-                            .forEach(pathContext -> columns.add(pathContext.getText()));
-                    }
-
-                    selectStatement
-                        .setJoinPart(new JoinPart(pathPrefix, joinType, filter, columns));
                 }
 
                 selectStatement.setJoinPart(new JoinPart(pathPrefix, joinType, filter, columns, subStatement));
@@ -702,7 +592,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
         ctx.path().forEach(pathContext -> {
             String path;
-            if (!selectStatement.hasJoinParts() && selectStatement.getSubStatement() == null) {
+            if (!selectStatement.hasJoinParts() && selectStatement.getFromSubStatement() == null) {
                 path = selectStatement.getFromPath() + SQLConstant.DOT + pathContext.getText();
             } else {
                 path = pathContext.getText();

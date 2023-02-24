@@ -23,6 +23,14 @@ public class JoinPart {
         this(pathPrefix, JoinType.CrossJoin, null, Collections.emptyList(), subStatement);
     }
 
+    public JoinPart(String pathPrefix, JoinType joinType, Filter filter, List<String> joinColumns) {
+        this.pathPrefix = pathPrefix;
+        this.joinType = joinType;
+        this.filter = filter;
+        this.joinColumns = joinColumns;
+        this.subStatement = null;
+    }
+    
     public JoinPart(String pathPrefix, JoinType joinType, Filter filter, List<String> joinColumns, SelectStatement subStatement) {
         this.pathPrefix = pathPrefix;
         this.joinType = joinType;
