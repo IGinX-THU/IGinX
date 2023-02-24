@@ -12,9 +12,9 @@ import cn.edu.tsinghua.iginx.sql.SqlParser.*;
 import cn.edu.tsinghua.iginx.sql.expression.*;
 import cn.edu.tsinghua.iginx.sql.expression.Expression.ExpressionType;
 import cn.edu.tsinghua.iginx.sql.statement.*;
-import cn.edu.tsinghua.iginx.sql.statement.join.FromPart;
-import cn.edu.tsinghua.iginx.sql.statement.join.JoinCondition;
-import cn.edu.tsinghua.iginx.sql.statement.join.JoinType;
+import cn.edu.tsinghua.iginx.sql.statement.frompart.*;
+import cn.edu.tsinghua.iginx.sql.statement.frompart.join.JoinCondition;
+import cn.edu.tsinghua.iginx.sql.statement.frompart.join.JoinType;
 import cn.edu.tsinghua.iginx.thrift.*;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.TimeUtils;
@@ -258,7 +258,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         List<FromPart> fromParts = new ArrayList<>();
         if (ctx.tableReference().path() != null) {
             String fromPath = ctx.tableReference().path().getText();
-            fromParts.add(new FromPart(fromPath));
+            fromParts.add(new PathFromPart(fromPath));
             selectStatement.setGlobalAlias(fromPath);
         } else {
             SelectStatement subStatement = new SelectStatement();
@@ -270,7 +270,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
             } else {
                 selectStatement.setGlobalAlias(subStatement.getGlobalAlias());
             }
-            fromParts.add(new FromPart(subStatement));
+            fromParts.add(new SubQueryFromPart(subStatement));
         }
 
         if (ctx.joinPart() != null && !ctx.joinPart().isEmpty()) {
@@ -293,9 +293,9 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
                 }
                 if (joinPartContext.join() == null) {  // cross join
                     if (subStatement == null) {
-                        fromParts.add(new FromPart(pathPrefix, new JoinCondition()));
+                        fromParts.add(new PathFromPart(pathPrefix, new JoinCondition()));
                     } else {
-                        fromParts.add(new FromPart(subStatement, new JoinCondition()));
+                        fromParts.add(new SubQueryFromPart(subStatement, new JoinCondition()));
                     }
                     continue;
                 }
@@ -313,9 +313,9 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
                 }
 
                 if (subStatement == null) {
-                    fromParts.add(new FromPart(pathPrefix, new JoinCondition(joinType, filter, columns)));
+                    fromParts.add(new PathFromPart(pathPrefix, new JoinCondition(joinType, filter, columns)));
                 } else {
-                    fromParts.add(new FromPart(subStatement, new JoinCondition(joinType, filter, columns)));
+                    fromParts.add(new SubQueryFromPart(subStatement, new JoinCondition(joinType, filter, columns)));
                 }
             }
         }
@@ -486,7 +486,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
         String selectedPath = ctx.path().getText();
 
-        if (!selectStatement.hasJoinParts() && !selectStatement.getFromParts().get(0).isSubStatement()) {
+        if (!selectStatement.hasJoinParts() && selectStatement.getFromParts().get(0).getType() != FromPartType.SubQueryFromPart) {
             String fromPath = selectStatement.getFromParts().get(0).getPath();
             String fullPath = fromPath + SQLConstant.DOT + selectedPath;
             BaseExpression expression = new BaseExpression(fullPath, funcName, alias);
@@ -500,7 +500,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     }
 
     private Expression parseBaseExpression(String selectedPath, SelectStatement selectStatement) {
-        if (!selectStatement.hasJoinParts() && !selectStatement.getFromParts().get(0).isSubStatement() && !selectStatement.isSubQuery()) {
+        if (!selectStatement.hasJoinParts() && !selectStatement.isSubQuery()
+                && selectStatement.getFromParts().get(0).getType() != FromPartType.SubQueryFromPart) {
             String fromPath = selectStatement.getFromParts().get(0).getPath();
             String fullPath = fromPath + SQLConstant.DOT + selectedPath;
             BaseExpression expression = new BaseExpression(fullPath);
@@ -601,7 +602,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
         ctx.path().forEach(pathContext -> {
             String path;
-            if (!selectStatement.hasJoinParts() && !selectStatement.getFromParts().get(0).isSubStatement()) {
+            if (!selectStatement.hasJoinParts() && selectStatement.getFromParts().get(0).getType() != FromPartType.SubQueryFromPart) {
                 path = selectStatement.getFromParts().get(0).getPath() + SQLConstant.DOT + pathContext.getText();
             } else {
                 path = pathContext.getText();
@@ -828,7 +829,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
     private Filter parseValueFilter(PredicateContext ctx, SelectStatement statement) {
         String path = ctx.path().get(0).getText();
-        if (!statement.hasJoinParts() && !statement.getFromParts().get(0).isSubStatement() && !statement.isSubQuery()) {
+        if (!statement.hasJoinParts() && !statement.isSubQuery()
+                && statement.getFromParts().get(0).getType() != FromPartType.SubQueryFromPart) {
             path = statement.getFromParts().get(0).getPath() + SQLConstant.DOT + path;
         }
         statement.setPathSet(path);
@@ -867,7 +869,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
         Op op = Op.str2Op(ctx.comparisonOperator().getText().trim().toLowerCase());
 
-        if (!statement.hasJoinParts() && !statement.getFromParts().get(0).isSubStatement() && !statement.isSubQuery()) {
+        if (!statement.hasJoinParts() && !statement.isSubQuery()
+                && statement.getFromParts().get(0).getType() != FromPartType.SubQueryFromPart) {
             pathA = statement.getFromParts().get(0).getPath() + SQLConstant.DOT + pathA;
             pathB = statement.getFromParts().get(0).getPath() + SQLConstant.DOT + pathB;
         }

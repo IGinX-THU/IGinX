@@ -10,7 +10,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.type.FuncType;
 import cn.edu.tsinghua.iginx.exceptions.SQLParserException;
 import cn.edu.tsinghua.iginx.sql.expression.BaseExpression;
 import cn.edu.tsinghua.iginx.sql.expression.Expression;
-import cn.edu.tsinghua.iginx.sql.statement.join.FromPart;
+import cn.edu.tsinghua.iginx.sql.statement.frompart.FromPart;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
 
 import java.util.*;

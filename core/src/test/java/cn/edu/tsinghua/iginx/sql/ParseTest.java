@@ -5,14 +5,17 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
 import cn.edu.tsinghua.iginx.exceptions.SQLParserException;
 import cn.edu.tsinghua.iginx.sql.expression.BaseExpression;
 import cn.edu.tsinghua.iginx.sql.statement.*;
-import cn.edu.tsinghua.iginx.sql.statement.join.JoinCondition;
-import cn.edu.tsinghua.iginx.sql.statement.join.JoinType;
+import cn.edu.tsinghua.iginx.sql.statement.frompart.FromPartType;
+import cn.edu.tsinghua.iginx.sql.statement.frompart.join.JoinCondition;
+import cn.edu.tsinghua.iginx.sql.statement.frompart.join.JoinType;
+import cn.edu.tsinghua.iginx.sql.statement.frompart.SubQueryFromPart;
 import cn.edu.tsinghua.iginx.thrift.StorageEngine;
 import org.junit.Test;
 
 import java.util.*;
 
 import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 public class ParseTest {
 
@@ -229,8 +232,9 @@ public class ParseTest {
         SelectStatement statement = (SelectStatement) TestUtils.buildStatement(selectWithSubQuery);
         assertEquals(Collections.singletonList("res.max_a"), statement.getSelectedPaths());
 
-        assertTrue(statement.getFromParts().get(0).isSubStatement());
-        SelectStatement subStatement = statement.getFromParts().get(0).getSubStatement();
+        assertEquals(FromPartType.SubQueryFromPart, statement.getFromParts().get(0).getType());
+        SubQueryFromPart subQueryFromPart = (SubQueryFromPart) statement.getFromParts().get(0);
+        SelectStatement subStatement = subQueryFromPart.getSubQuery();
 
         BaseExpression expression = subStatement.getBaseExpressionMap().get("max").get(0);
         assertEquals("root.a", expression.getPathName());

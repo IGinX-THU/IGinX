@@ -1,4 +1,4 @@
-package cn.edu.tsinghua.iginx.sql.statement.join;
+package cn.edu.tsinghua.iginx.sql.statement.frompart.join;
 
 public enum JoinType {
 

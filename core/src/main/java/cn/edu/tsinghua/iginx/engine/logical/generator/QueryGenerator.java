@@ -31,7 +31,9 @@ import cn.edu.tsinghua.iginx.sql.expression.Expression.ExpressionType;
 import cn.edu.tsinghua.iginx.sql.statement.SelectStatement;
 import cn.edu.tsinghua.iginx.sql.statement.SelectStatement.QueryType;
 import cn.edu.tsinghua.iginx.sql.statement.Statement;
-import cn.edu.tsinghua.iginx.sql.statement.join.JoinCondition;
+import cn.edu.tsinghua.iginx.sql.statement.frompart.FromPartType;
+import cn.edu.tsinghua.iginx.sql.statement.frompart.join.JoinCondition;
+import cn.edu.tsinghua.iginx.sql.statement.frompart.SubQueryFromPart;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.SortUtils;
 import org.slf4j.Logger;
@@ -75,8 +77,9 @@ public class QueryGenerator extends AbstractGenerator {
         if (selectStatement.hasJoinParts()) {
             root = filterAndMergeFragmentsWithJoin(selectStatement);
         } else {
-            if (selectStatement.getFromParts().get(0).isSubStatement()) {
-                root = generateRoot(selectStatement.getFromParts().get(0).getSubStatement());
+            if (selectStatement.getFromParts().get(0).getType() == FromPartType.SubQueryFromPart) {
+                SubQueryFromPart fromPart = (SubQueryFromPart) selectStatement.getFromParts().get(0);
+                root = generateRoot(fromPart.getSubQuery());
             } else {
                 policy.notify(selectStatement);
                 root = filterAndMergeFragments(selectStatement);
@@ -272,8 +275,9 @@ public class QueryGenerator extends AbstractGenerator {
         List<Operator> joinList = new ArrayList<>();
         // 1. get all data of single prefix like a.* or b.*
         selectStatement.getFromParts().forEach(fromPart -> {
-            if(fromPart.isSubStatement()) {
-                joinList.add(generateRoot(fromPart.getSubStatement()));
+            if(fromPart.getType() == FromPartType.SubQueryFromPart) {
+                SubQueryFromPart subQueryFromPart = (SubQueryFromPart) fromPart;
+                joinList.add(generateRoot(subQueryFromPart.getSubQuery()));
             } else {
                 String prefix = fromPart.getPath() + ALL_PATH_SUFFIX;
                 Pair<Map<TimeInterval, List<FragmentMeta>>, List<FragmentMeta>> pair = getFragmentsByTSInterval(selectStatement, new TimeSeriesInterval(prefix, prefix));
