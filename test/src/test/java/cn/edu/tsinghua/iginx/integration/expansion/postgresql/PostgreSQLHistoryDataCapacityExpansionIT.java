@@ -1,4 +1,4 @@
-package cn.edu.tsinghua.iginx.integration.expansion.postgresql
+package cn.edu.tsinghua.iginx.integration.expansion.postgresql;
 
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.SQLSessionIT;
@@ -56,10 +56,10 @@ public class PostgreSQLHistoryDataCapacityExpansionIT implements BaseCapacityExp
             }
         }
         if(act_true){
-            logger.info("testQueryHistoryDataFromInitialNode is ok!")
+            logger.info("testQueryHistoryDataFromInitialNode is ok!");
         }
         else{
-            logger.info("testQueryHistoryDataFromInitialNode have some problems!")
+            logger.info("testQueryHistoryDataFromInitialNode have some problems!");
         }
     }
 
