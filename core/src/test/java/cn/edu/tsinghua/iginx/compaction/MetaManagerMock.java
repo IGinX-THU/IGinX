@@ -294,11 +294,6 @@ public class MetaManagerMock implements IMetaManager {
     }
 
     @Override
-    public void updateTimeseriesHeat(Map<String, Long> timeseriesHeatMap) throws Exception {
-
-    }
-
-    @Override
     public Pair<Map<FragmentMeta, Long>, Map<FragmentMeta, Long>> loadFragmentHeat() throws Exception {
         return null;
     }
@@ -314,32 +309,7 @@ public class MetaManagerMock implements IMetaManager {
     }
 
     @Override
-    public Map<String, Long> loadTimeseriesHeat() throws Exception {
-        return null;
-    }
-
-    @Override
     public void clearMonitors() {
-
-    }
-
-    @Override
-    public boolean isResharding() {
-        return false;
-    }
-
-    @Override
-    public void executeReshardJudging() {
-
-    }
-
-    @Override
-    public boolean executeReshard() {
-        return false;
-    }
-
-    @Override
-    public void doneReshard() {
 
     }
 
