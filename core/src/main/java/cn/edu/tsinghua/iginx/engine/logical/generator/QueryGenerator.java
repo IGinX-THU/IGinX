@@ -221,10 +221,10 @@ public class QueryGenerator extends AbstractGenerator {
         }
         root = OperatorUtils.joinOperatorsByTime(exprList);
 
-        if (!selectStatement.getOrderByPath().equals("")) {
+        if (!selectStatement.getOrderByPaths().isEmpty()) {
             root = new Sort(
                 new OperatorSource(root),
-                selectStatement.getOrderByPath(),
+                selectStatement.getOrderByPaths(),
                 selectStatement.isAscending() ? Sort.SortType.ASC : Sort.SortType.DESC
             );
         }

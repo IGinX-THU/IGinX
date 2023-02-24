@@ -35,7 +35,7 @@ public class SelectStatement extends DataStatement {
     private String fromPath;
     private final List<JoinPart> joinParts;
     private final List<String> groupByPaths;
-    private String orderByPath;
+    private final List<String> orderByPaths;
     private Filter filter;
     private Filter havingFilter;
     private TagFilter tagFilter;
@@ -61,7 +61,7 @@ public class SelectStatement extends DataStatement {
         this.pathSet = new HashSet<>();
         this.joinParts = new ArrayList<>();
         this.groupByPaths = new ArrayList<>();
-        this.orderByPath = "";
+        this.orderByPaths = new ArrayList<>();
         this.limit = Integer.MAX_VALUE;
         this.offset = 0;
         this.layers = new ArrayList<>();
@@ -77,6 +77,7 @@ public class SelectStatement extends DataStatement {
         this.baseExpressionMap = new HashMap<>();
         this.joinParts = new ArrayList<>();
         this.groupByPaths = new ArrayList<>();
+        this.orderByPaths = new ArrayList<>();
         this.funcTypeSet = new HashSet<>();
 
         paths.forEach(path -> {
@@ -103,6 +104,7 @@ public class SelectStatement extends DataStatement {
         this.baseExpressionMap = new HashMap<>();
         this.joinParts = new ArrayList<>();
         this.groupByPaths = new ArrayList<>();
+        this.orderByPaths = new ArrayList<>();
         this.funcTypeSet = new HashSet<>();
 
         String func = aggregateType.toString().toLowerCase();
@@ -126,6 +128,7 @@ public class SelectStatement extends DataStatement {
         this.baseExpressionMap = new HashMap<>();
         this.joinParts = new ArrayList<>();
         this.groupByPaths = new ArrayList<>();
+        this.orderByPaths = new ArrayList<>();
         this.funcTypeSet = new HashSet<>();
 
         String func = aggregateType.toString().toLowerCase();
@@ -155,6 +158,7 @@ public class SelectStatement extends DataStatement {
         this.baseExpressionMap = new HashMap<>();
         this.joinParts = new ArrayList<>();
         this.groupByPaths = new ArrayList<>();
+        this.orderByPaths = new ArrayList<>();
         this.funcTypeSet = new HashSet<>();
         
         String func = aggregateType.toString().toLowerCase();
@@ -182,7 +186,6 @@ public class SelectStatement extends DataStatement {
         this.hasJoinParts = false;
         this.limit = Integer.MAX_VALUE;
         this.offset = 0;
-        this.orderByPath = "";
 
         this.filter = new AndFilter(new ArrayList<>(Arrays.asList(
             new KeyFilter(Op.GE, startTime),
@@ -337,10 +340,6 @@ public class SelectStatement extends DataStatement {
         this.joinParts.add(joinPart);
     }
 
-    public String getOrderByPath() {
-        return orderByPath;
-    }
-
     public void setGroupByPath(String path) {
         this.groupByPaths.add(path);
     }
@@ -349,8 +348,12 @@ public class SelectStatement extends DataStatement {
         return groupByPaths;
     }
 
+    public List<String> getOrderByPaths() {
+        return orderByPaths;
+    }
+
     public void setOrderByPath(String orderByPath) {
-        this.orderByPath = orderByPath;
+        this.orderByPaths.add(orderByPath);
     }
 
     public Filter getFilter() {
