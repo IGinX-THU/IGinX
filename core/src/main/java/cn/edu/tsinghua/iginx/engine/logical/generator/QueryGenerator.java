@@ -77,12 +77,17 @@ public class QueryGenerator extends AbstractGenerator {
         if (selectStatement.hasJoinParts()) {
             root = filterAndMergeFragmentsWithJoin(selectStatement);
         } else {
-            if (selectStatement.getFromParts().get(0).getType() == FromPartType.SubQueryFromPart) {
-                SubQueryFromPart fromPart = (SubQueryFromPart) selectStatement.getFromParts().get(0);
-                root = generateRoot(fromPart.getSubQuery());
-            } else {
+            if (selectStatement.getFromParts().isEmpty()) {
                 policy.notify(selectStatement);
                 root = filterAndMergeFragments(selectStatement);
+            } else {
+                if (selectStatement.getFromParts().get(0).getType() == FromPartType.SubQueryFromPart) {
+                    SubQueryFromPart fromPart = (SubQueryFromPart) selectStatement.getFromParts().get(0);
+                    root = generateRoot(fromPart.getSubQuery());
+                } else {
+                    policy.notify(selectStatement);
+                    root = filterAndMergeFragments(selectStatement);
+                }
             }
         }
 
