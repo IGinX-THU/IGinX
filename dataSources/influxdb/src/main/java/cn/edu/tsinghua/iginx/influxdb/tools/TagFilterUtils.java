@@ -5,6 +5,8 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.tag.BaseTagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.OrTagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 
+import java.util.List;
+
 public class TagFilterUtils {
 
     public static String transformToFilterStr(TagFilter filter) {
@@ -45,13 +47,6 @@ public class TagFilterUtils {
                 } else {
                     builder.append(" == \"").append(baseFilter.getTagValue()).append("\" ");
                 }
-                break;
-            // TODO: case label
-            case BasePrecise:
-                break;
-            case Precise:
-                break;
-            case WithoutTag:
                 break;
         }
     }

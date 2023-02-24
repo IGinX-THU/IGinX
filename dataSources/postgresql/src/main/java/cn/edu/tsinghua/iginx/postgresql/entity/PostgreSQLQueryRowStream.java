@@ -8,22 +8,22 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.List;
+
+import cn.edu.tsinghua.iginx.postgresql.PostgreSQLStorage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PostgreSQLQueryRowStream implements RowStream {
 
   private final List<ResultSet> resultSets;
+  private static final Logger logger = LoggerFactory.getLogger(PostgreSQLStorage.class);
 
   private final long[] currTimestamps;
 
   private final Object[] currValues;
 
   private final Header header;
-
-//  private Object[] values;
-//  private Object[] value;
-//  private final Long timestamp;
 
   public PostgreSQLQueryRowStream(List<ResultSet> resultSets, List<Field> fields) {
     this.resultSets = resultSets;
@@ -33,10 +33,15 @@ public class PostgreSQLQueryRowStream implements RowStream {
 //    this.values=new ArrayList<>();
     // 默认填充一下timestamp列表
     try {
+      long j=1;
       for (int i = 0; i < this.currTimestamps.length; i++) {
         ResultSet resultSet = this.resultSets.get(i);
         if (resultSet.next()) {
-          this.currTimestamps[i] = resultSet.getTimestamp(1).getTime();
+          try {
+            this.currTimestamps[i] = resultSet.getTimestamp(1).getTime();
+          }catch (Exception e){
+            this.currTimestamps[i]=j++;
+          }
           this.currValues[i] = resultSet.getObject(2);
         }
       }
@@ -65,7 +70,7 @@ public class PostgreSQLQueryRowStream implements RowStream {
   @Override
   public boolean hasNext() throws PhysicalException {
     for (long currTimestamp : this.currTimestamps) {
-      if (currTimestamp != Long.MIN_VALUE) {
+      if (currTimestamp != Long.MIN_VALUE && currTimestamp!=0) {
         return true;
       }
     }
@@ -82,13 +87,18 @@ public class PostgreSQLQueryRowStream implements RowStream {
           timestamp = Math.min(timestamp, currTimestamp);
         }
       }
-
+      long j=1;
       for (int i = 0; i < this.currTimestamps.length; i++) {
         if (this.currTimestamps[i] == timestamp) {
           values[i] = this.currValues[i];
           ResultSet resultSet = this.resultSets.get(i);
           if (resultSet.next()) {
-            this.currTimestamps[i] = resultSet.getTimestamp(1).getTime();
+            try {
+              this.currTimestamps[i] = resultSet.getTimestamp(1).getTime();
+            }catch (Exception e){
+              //this.currTimestamps[i]=j++;
+              logger.info("have no timestamp,set default timestamp!");
+            }
             this.currValues[i] = resultSet.getObject(2);
           } else {
             // 值已经取完

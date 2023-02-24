@@ -239,7 +239,7 @@ public class ByteUtils {
                     buffer.putInt((int) value);
                     break;
                 case LONG:
-                    buffer.putLong((long) value);
+                    buffer.putLong(((Number)value).longValue());
                     break;
                 case FLOAT:
                     buffer.putFloat((float) value);

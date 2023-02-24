@@ -179,8 +179,8 @@ public class InfluxDBStorage implements IStorage {
                     bucket.getName(),
                     0L,
                     Long.MAX_VALUE,
-                    measurementPrefix.equals(MEASUREMENTALL) ? MEASUREMENTALL : "= \"" + measurementPrefix + "\"",
-                    fieldPrefix.equals(FIELDALL) ? FIELDALL : "~ /" + fieldPrefix + ".*/"
+                    measurementPrefix == MEASUREMENTALL ? MEASUREMENTALL : "= \"" + measurementPrefix + "\"",
+                    fieldPrefix == FIELDALL ? FIELDALL : "~ /" + fieldPrefix + ".*/"
             );
             logger.debug("execute statement: " + statement);
             // 查询 first

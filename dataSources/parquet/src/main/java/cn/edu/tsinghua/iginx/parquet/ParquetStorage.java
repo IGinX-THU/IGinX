@@ -21,8 +21,11 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
 import cn.edu.tsinghua.iginx.parquet.exec.Executor;
+import cn.edu.tsinghua.iginx.parquet.exec.LocalExecutor;
 import cn.edu.tsinghua.iginx.parquet.exec.NewExecutor;
 import cn.edu.tsinghua.iginx.parquet.exec.RemoteExecutor;
+import cn.edu.tsinghua.iginx.parquet.policy.NaiveParquetStoragePolicy;
+import cn.edu.tsinghua.iginx.parquet.policy.ParquetStoragePolicy;
 import cn.edu.tsinghua.iginx.parquet.server.ParquetServer;
 import cn.edu.tsinghua.iginx.parquet.tools.FilterTransformer;
 import cn.edu.tsinghua.iginx.utils.Pair;
@@ -41,7 +44,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ParquetStorage implements IStorage {
-    @SuppressWarnings("unused")
+
     private static final Logger logger = LoggerFactory.getLogger(ParquetStorage.class);
 
     private static final Config config = ConfigDescriptor.getInstance().getConfig();
