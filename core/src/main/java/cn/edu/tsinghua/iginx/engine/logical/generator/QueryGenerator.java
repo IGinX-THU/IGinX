@@ -297,7 +297,7 @@ public class QueryGenerator extends AbstractGenerator {
         }
         // 2. merge by declare
         Operator left = joinList.get(0);
-        String prefixA = isSubList.get(0) ? selectStatement.getFromPathAlias() : selectStatement.getFromPath();
+        String prefixA = selectStatement.getFromPathAlias();
         for (int i = 1; i < joinList.size(); i++) {
             JoinPart joinPart = selectStatement.getJoinParts().get(i - 1);
             Operator right = joinList.get(i);
