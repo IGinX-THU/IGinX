@@ -31,7 +31,7 @@ public class IoTDBHistoryDataCapacityExpansionIT implements BaseCapacityExpansio
     }
 
     @BeforeClass
-    public static void setUp() {
+    public static void setUp() throws SessionException {
         session = new Session("127.0.0.1", 6888, "root", "root");
         sessionPool =
                 new SessionPool.Builder()
@@ -41,21 +41,13 @@ public class IoTDBHistoryDataCapacityExpansionIT implements BaseCapacityExpansio
                         .password("root")
                         .maxSize(3)
                         .build();
-        try {
-            session.openSession();
-        } catch (SessionException e) {
-            logger.error(e.getMessage());
-        }
+        session.openSession();
     }
 
     @AfterClass
-    public static void tearDown() {
-        try {
-            session.closeSession();
-            sessionPool.close();
-        } catch (SessionException e) {
-            logger.error(e.getMessage());
-        }
+    public static void tearDown() throws SessionException {
+        session.closeSession();
+        sessionPool.close();
     }
 
     @Test

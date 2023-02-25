@@ -13,6 +13,7 @@ import cn.edu.tsinghua.iginx.engine.shared.function.manager.FunctionManager;
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.FilterType;
+import cn.edu.tsinghua.iginx.engine.shared.operator.type.FuncType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.JoinAlgType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OuterJoinType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
@@ -26,6 +27,7 @@ import cn.edu.tsinghua.iginx.policy.PolicyManager;
 import cn.edu.tsinghua.iginx.sql.expression.Expression;
 import cn.edu.tsinghua.iginx.sql.expression.Expression.ExpressionType;
 import cn.edu.tsinghua.iginx.sql.statement.SelectStatement;
+import cn.edu.tsinghua.iginx.sql.statement.SelectStatement.QueryType;
 import cn.edu.tsinghua.iginx.sql.statement.Statement;
 import cn.edu.tsinghua.iginx.sql.statement.join.JoinPart;
 import cn.edu.tsinghua.iginx.utils.Pair;
@@ -91,7 +93,21 @@ public class QueryGenerator extends AbstractGenerator {
         }
 
         List<Operator> queryList = new ArrayList<>();
-        if (selectStatement.getQueryType() == SelectStatement.QueryType.DownSampleQuery) {
+        if (selectStatement.getQueryType() == QueryType.GroupByQuery) {
+            // Downsample Query
+            List<FunctionCall> functionCallList = new ArrayList<>();
+            selectStatement.getBaseExpressionMap().forEach((k, v) -> {
+                if (!k.equals("")) {
+                    v.forEach(expression -> {
+                        Map<String, Value> params = new HashMap<String, Value>(){{
+                            put(PARAM_PATHS, new Value(expression.getPathName()));
+                        }};
+                        functionCallList.add(new FunctionCall(functionManager.getFunction(k), params));
+                    });
+                }
+            });
+            queryList.add(new GroupBy(new OperatorSource(root), selectStatement.getGroupByPaths(), functionCallList));
+        } else if (selectStatement.getQueryType() == SelectStatement.QueryType.DownSampleQuery) {
             // DownSample Query
             Operator finalRoot = root;
             selectStatement.getBaseExpressionMap().forEach((k, v) -> v.forEach(expression -> {
@@ -176,11 +192,15 @@ public class QueryGenerator extends AbstractGenerator {
         } else if (selectStatement.getQueryType() == SelectStatement.QueryType.DownSampleQuery) {
             root = OperatorUtils.joinOperatorsByTime(queryList);
         } else {
-            if (selectStatement.getFuncTypeSet().contains(SelectStatement.FuncType.Udtf)) {
+            if (selectStatement.getFuncTypeSet().contains(FuncType.Udtf)) {
                 root = OperatorUtils.joinOperatorsByTime(queryList);
             } else {
                 root = OperatorUtils.joinOperators(queryList, ORDINAL);
             }
+        }
+
+        if (selectStatement.getHavingFilter() != null) {
+            root = new Select(new OperatorSource(root), selectStatement.getHavingFilter(), null);
         }
 
         List<Operator> exprList = new ArrayList<>();
@@ -201,10 +221,10 @@ public class QueryGenerator extends AbstractGenerator {
         }
         root = OperatorUtils.joinOperatorsByTime(exprList);
 
-        if (!selectStatement.getOrderByPath().equals("")) {
+        if (!selectStatement.getOrderByPaths().isEmpty()) {
             root = new Sort(
                 new OperatorSource(root),
-                selectStatement.getOrderByPath(),
+                selectStatement.getOrderByPaths(),
                 selectStatement.isAscending() ? Sort.SortType.ASC : Sort.SortType.DESC
             );
         }

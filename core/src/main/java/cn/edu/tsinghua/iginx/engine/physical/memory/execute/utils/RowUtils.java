@@ -21,14 +21,28 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils;
 import cn.edu.tsinghua.iginx.constant.GlobalConstant;
 import cn.edu.tsinghua.iginx.engine.physical.exception.InvalidOperatorParameterException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
+import cn.edu.tsinghua.iginx.engine.shared.Constants;
+import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
+import cn.edu.tsinghua.iginx.engine.shared.function.SetMappingFunction;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils;
+import cn.edu.tsinghua.iginx.engine.shared.operator.GroupBy;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 
 public class RowUtils {
@@ -98,9 +112,11 @@ public class RowUtils {
             } else if (value2 == null) {
                 return 1;
             }
-            DataType dataType1 = row1.getField(row1.getHeader().indexOf(prefix1 + '.' + columns1.get(index)))
+            DataType dataType1 = row1
+                .getField(row1.getHeader().indexOf(prefix1 + '.' + columns1.get(index)))
                 .getType();
-            DataType dataType2 = row2.getField(row2.getHeader().indexOf(prefix2 + '.' + columns2.get(index)))
+            DataType dataType2 = row2
+                .getField(row2.getHeader().indexOf(prefix2 + '.' + columns2.get(index)))
                 .getType();
             int cmp = ValueUtils.compare(value1, value2, dataType1, dataType2);
             if (cmp != 0) {
@@ -189,9 +205,11 @@ public class RowUtils {
         } else {
             if (halfRow.getHeader().hasKey()) {
                 valuesJoin[anotherRowSize] = halfRow.getKey();
-                System.arraycopy(halfRow.getValues(), 0, valuesJoin, anotherRowSize + 1, halfRow.getValues().length);
+                System.arraycopy(halfRow.getValues(), 0, valuesJoin, anotherRowSize + 1,
+                    halfRow.getValues().length);
             } else {
-                System.arraycopy(halfRow.getValues(), 0, valuesJoin, anotherRowSize, halfRow.getValues().length);
+                System.arraycopy(halfRow.getValues(), 0, valuesJoin, anotherRowSize,
+                    halfRow.getValues().length);
             }
         }
         return new Row(header, valuesJoin);
@@ -304,5 +322,142 @@ public class RowUtils {
         if (joinColumns.isEmpty()) {
             throw new PhysicalException("natural join has no matching columns");
         }
+    }
+
+    public static LinkedList<Row> cacheGroupByResult(GroupBy groupBy, RowStream stream)
+        throws PhysicalException {
+        List<String> cols = groupBy.getGroupByCols();
+        int[] colIndex = new int[cols.size()];
+        List<Field> fields = new LinkedList<>();
+        Header header = stream.getHeader();
+
+        int cur = 0;
+        for (String col : cols) {
+            int index = header.indexOf(col);
+            if (index == -1) {
+                throw new PhysicalTaskExecuteFailureException(
+                    String.format("Group by col [%s] not exist.", col));
+            }
+            colIndex[cur++] = index;
+            fields.add(header.getField(index));
+        }
+
+        Map<Integer, List<Row>> groups = new HashMap<>();
+        Map<Integer, List<Object>> hashValuesMap = new HashMap<>();
+        while (stream.hasNext()) {
+            Row row = stream.next();
+            Object[] values = row.getValues();
+            List<Object> hashValues = new LinkedList<>();
+            for (int index : colIndex) {
+                if (values[index] instanceof byte[]) {
+                    hashValues.add(new String((byte[]) values[index]));
+                } else {
+                    hashValues.add(values[index]);
+                }
+            }
+
+            int hash = hashValues.hashCode();
+            if (groups.containsKey(hash)) {
+                groups.get(hash).add(row);
+            } else {
+                List<Row> sameHashRows = new LinkedList<>();
+                sameHashRows.add(row);
+                groups.put(hash, sameHashRows);
+                hashValuesMap.put(hash, hashValues);
+            }
+        }
+
+        List<FunctionCall> functionCallList = groupBy.getFunctionCallList();
+        for (FunctionCall functionCall : functionCallList) {
+            SetMappingFunction function = (SetMappingFunction) functionCall.getFunction();
+            Map<String, Value> params = functionCall.getParams();
+
+            boolean hasAddedFields = false;
+            for (Map.Entry<Integer, List<Row>> entry : groups.entrySet()) {
+                List<Row> group = entry.getValue();
+                try {
+                    Row row = function.transform(new Table(header, group), params);
+                    if (row != null) {
+                        hashValuesMap.get(entry.getKey()).addAll(Arrays.asList(row.getValues()));
+                        if (!hasAddedFields) {
+                            fields.addAll(row.getHeader().getFields());
+                            hasAddedFields = true;
+                        }
+                    }
+                } catch (Exception e) {
+                    throw new PhysicalTaskExecuteFailureException(
+                        "encounter error when execute set mapping function " +
+                            function.getIdentifier() + ".", e);
+                }
+            }
+        }
+
+        Header newHeader = new Header(fields);
+        int fieldSize = newHeader.getFieldSize();
+
+        LinkedList<Row> cache = new LinkedList<>();
+        for (Entry<Integer, List<Object>> entry : hashValuesMap.entrySet()) {
+            Object[] values = new Object[fieldSize];
+            for (int i = 0; i < entry.getValue().size(); i++) {
+                Object val = entry.getValue().get(i);
+                if (val instanceof String) {
+                    values[i] = ((String) val).getBytes();
+                } else {
+                    values[i] = val;
+                }
+            }
+            cache.add(new Row(newHeader, values));
+        }
+        return cache;
+    }
+
+    public static void sortRows(List<Row> rows, boolean asc, List<String> sortByCols)
+        throws PhysicalTaskExecuteFailureException {
+        if (rows == null || rows.isEmpty()) {
+            return;
+        }
+        if (sortByCols == null || sortByCols.isEmpty()) {
+            return;
+        }
+        Header header = rows.get(0).getHeader();
+
+        List<Integer> indexList = new LinkedList<>();
+        List<DataType> typeList = new LinkedList<>();
+        boolean hasKey = false;
+        for (String col : sortByCols) {
+            if (col.equals(Constants.KEY)) {
+                hasKey = true;
+                continue;
+            }
+            int index = header.indexOf(col);
+            if (index == -1) {
+                throw new PhysicalTaskExecuteFailureException(
+                    String.format("SortBy key [%s] doesn't exist in table.", col));
+            }
+            indexList.add(index);
+            typeList.add(header.getField(index).getType());
+        }
+
+        boolean finalHasKey = hasKey;
+        rows.sort((a, b) -> {
+            if (finalHasKey) {
+                int cmp = asc ? Long.compare(a.getKey(), b.getKey()) :
+                    Long.compare(b.getKey(), a.getKey());
+                if (cmp != 0) {
+                    return cmp;
+                }
+            }
+            for (int i = 0; i < indexList.size(); i++) {
+                int cmp = asc ? ValueUtils
+                    .compare(a.getValue(indexList.get(i)), b.getValue(indexList.get(i)),
+                        typeList.get(i)) : ValueUtils
+                    .compare(b.getValue(indexList.get(i)), a.getValue(indexList.get(i)),
+                        typeList.get(i));
+                if (cmp != 0) {
+                    return cmp;
+                }
+            }
+            return 0;
+        });
     }
 }

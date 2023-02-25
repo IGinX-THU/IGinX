@@ -16,22 +16,14 @@ public class ParquetHistoryDataCapacityExpansionIT {
     private static Session session;
 
     @BeforeClass
-    public static void setUp() {
+    public static void setUp() throws SessionException {
         session = new Session("127.0.0.1", 6888, "root", "root");
-        try {
-            session.openSession();
-        } catch (SessionException e) {
-            logger.error(e.getMessage());
-        }
+        session.openSession();
     }
 
     @AfterClass
-    public static void tearDown() {
-        try {
-            session.closeSession();
-        } catch (SessionException e) {
-            logger.error(e.getMessage());
-        }
+    public static void tearDown() throws SessionException {
+        session.closeSession();
     }
 
     @Test
