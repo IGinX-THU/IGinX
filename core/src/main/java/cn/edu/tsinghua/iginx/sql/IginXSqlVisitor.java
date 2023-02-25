@@ -656,9 +656,9 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         }
         if (ctx.path() != null) {
             for (PathContext pathContext : ctx.path()) {
-                String suffix = pathContext.getText(), prefix = selectStatement.getFromPath();
+                String suffix = pathContext.getText(), prefix = selectStatement.getFromParts().get(0).getPath();
                 String orderByPath;
-                if (!selectStatement.hasJoinParts() && selectStatement.getSubStatement() == null) {
+                if (!selectStatement.hasJoinParts() && selectStatement.getFromParts().get(0).getType() == FromPartType.PathFromPart) {
                     orderByPath = prefix + SQLConstant.DOT + suffix;
                 } else {
                     orderByPath = suffix;
