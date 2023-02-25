@@ -14,6 +14,9 @@ public class GroupBy extends AbstractUnaryOperator {
 
     public GroupBy(Source source, List<String> groupByCols, List<FunctionCall> functionCallList) {
         super(OperatorType.GroupBy, source);
+        if (groupByCols == null || groupByCols.isEmpty()) {
+            throw new IllegalArgumentException("groupByCols shouldn't be null");
+        }
         this.groupByCols = groupByCols;
         this.functionCallList = functionCallList;
     }

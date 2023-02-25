@@ -53,21 +53,21 @@ public abstract class SQLSessionIT {
                 new Session(defaultTestHost, defaultTestPort, defaultTestUser, defaultTestPass));
         } else if (isForSessionPool) {
             session = new MultiConnection(
-                    new SessionPool(new ArrayList<IginxInfo>() {{
-                        add(new IginxInfo.Builder()
-                                .host("0.0.0.0")
-                                .port(6888)
-                                .user("root")
-                                .password("root")
-                                .build());
+                new SessionPool(new ArrayList<IginxInfo>() {{
+                    add(new IginxInfo.Builder()
+                        .host("0.0.0.0")
+                        .port(6888)
+                        .user("root")
+                        .password("root")
+                        .build());
 
-                        add(new IginxInfo.Builder()
-                                .host("0.0.0.0")
-                                .port(7888)
-                                .user("root")
-                                .password("root")
-                                .build());
-                    }}));
+                    add(new IginxInfo.Builder()
+                        .host("0.0.0.0")
+                        .port(7888)
+                        .user("root")
+                        .password("root")
+                        .build());
+                }}));
         }
         session.openSession();
     }
@@ -585,19 +585,123 @@ public abstract class SQLSessionIT {
     @Test
     public void testOrderByQuery() {
         String insert = "INSERT INTO us.d2 (key, s1, s2, s3) values " +
-            "(1, \"apple\", 871, 232.1), (2, \"peach\", 123, 132.5), (3, \"banana\", 356, 317.8);";
+            "(1, \"apple\", 871, 232.1), (2, \"peach\", 123, 132.5), (3, \"banana\", 356, 317.8),"
+            + "(4, \"cherry\", 621, 456.1), (5, \"grape\", 336, 132.5), (6, \"dates\", 119, 232.1),"
+            + "(7, \"melon\", 516, 113.6), (8, \"mango\", 458, 232.1), (9, \"pear\", 336, 613.1);";
         execute(insert);
 
-        String orderByQuery = "SELECT * FROM us.d2 ORDER BY TIME";
-        String expected = "ResultSets:\n" +
-            "+---+--------+--------+--------+\n" +
-            "|key|us.d2.s1|us.d2.s2|us.d2.s3|\n" +
-            "+---+--------+--------+--------+\n" +
-            "|  1|   apple|     871|   232.1|\n" +
-            "|  2|   peach|     123|   132.5|\n" +
-            "|  3|  banana|     356|   317.8|\n" +
-            "+---+--------+--------+--------+\n" +
-            "Total line number = 3\n";
+        String orderByQuery = "SELECT * FROM us.d2 ORDER BY KEY";
+        String expected =
+            "ResultSets:\n"
+                + "+---+--------+--------+--------+\n"
+                + "|key|us.d2.s1|us.d2.s2|us.d2.s3|\n"
+                + "+---+--------+--------+--------+\n"
+                + "|  1|   apple|     871|   232.1|\n"
+                + "|  2|   peach|     123|   132.5|\n"
+                + "|  3|  banana|     356|   317.8|\n"
+                + "|  4|  cherry|     621|   456.1|\n"
+                + "|  5|   grape|     336|   132.5|\n"
+                + "|  6|   dates|     119|   232.1|\n"
+                + "|  7|   melon|     516|   113.6|\n"
+                + "|  8|   mango|     458|   232.1|\n"
+                + "|  9|    pear|     336|   613.1|\n"
+                + "+---+--------+--------+--------+\n"
+                + "Total line number = 9\n";
+        executeAndCompare(orderByQuery, expected);
+
+        orderByQuery = "SELECT * FROM us.d2 ORDER BY s1";
+        expected =
+            "ResultSets:\n"
+                + "+---+--------+--------+--------+\n"
+                + "|key|us.d2.s1|us.d2.s2|us.d2.s3|\n"
+                + "+---+--------+--------+--------+\n"
+                + "|  1|   apple|     871|   232.1|\n"
+                + "|  3|  banana|     356|   317.8|\n"
+                + "|  4|  cherry|     621|   456.1|\n"
+                + "|  6|   dates|     119|   232.1|\n"
+                + "|  5|   grape|     336|   132.5|\n"
+                + "|  8|   mango|     458|   232.1|\n"
+                + "|  7|   melon|     516|   113.6|\n"
+                + "|  2|   peach|     123|   132.5|\n"
+                + "|  9|    pear|     336|   613.1|\n"
+                + "+---+--------+--------+--------+\n"
+                + "Total line number = 9\n";
+        executeAndCompare(orderByQuery, expected);
+
+        orderByQuery = "SELECT * FROM us.d2 ORDER BY s1 DESC";
+        expected =
+            "ResultSets:\n"
+                + "+---+--------+--------+--------+\n"
+                + "|key|us.d2.s1|us.d2.s2|us.d2.s3|\n"
+                + "+---+--------+--------+--------+\n"
+                + "|  9|    pear|     336|   613.1|\n"
+                + "|  2|   peach|     123|   132.5|\n"
+                + "|  7|   melon|     516|   113.6|\n"
+                + "|  8|   mango|     458|   232.1|\n"
+                + "|  5|   grape|     336|   132.5|\n"
+                + "|  6|   dates|     119|   232.1|\n"
+                + "|  4|  cherry|     621|   456.1|\n"
+                + "|  3|  banana|     356|   317.8|\n"
+                + "|  1|   apple|     871|   232.1|\n"
+                + "+---+--------+--------+--------+\n"
+                + "Total line number = 9\n";
+        executeAndCompare(orderByQuery, expected);
+
+        orderByQuery = "SELECT * FROM us.d2 ORDER BY s3";
+        expected =
+            "ResultSets:\n"
+                + "+---+--------+--------+--------+\n"
+                + "|key|us.d2.s1|us.d2.s2|us.d2.s3|\n"
+                + "+---+--------+--------+--------+\n"
+                + "|  7|   melon|     516|   113.6|\n"
+                + "|  2|   peach|     123|   132.5|\n"
+                + "|  5|   grape|     336|   132.5|\n"
+                + "|  1|   apple|     871|   232.1|\n"
+                + "|  6|   dates|     119|   232.1|\n"
+                + "|  8|   mango|     458|   232.1|\n"
+                + "|  3|  banana|     356|   317.8|\n"
+                + "|  4|  cherry|     621|   456.1|\n"
+                + "|  9|    pear|     336|   613.1|\n"
+                + "+---+--------+--------+--------+\n"
+                + "Total line number = 9\n";
+        executeAndCompare(orderByQuery, expected);
+
+        orderByQuery = "SELECT * FROM us.d2 ORDER BY s3, s2";
+        expected =
+            "ResultSets:\n"
+                + "+---+--------+--------+--------+\n"
+                + "|key|us.d2.s1|us.d2.s2|us.d2.s3|\n"
+                + "+---+--------+--------+--------+\n"
+                + "|  7|   melon|     516|   113.6|\n"
+                + "|  2|   peach|     123|   132.5|\n"
+                + "|  5|   grape|     336|   132.5|\n"
+                + "|  6|   dates|     119|   232.1|\n"
+                + "|  8|   mango|     458|   232.1|\n"
+                + "|  1|   apple|     871|   232.1|\n"
+                + "|  3|  banana|     356|   317.8|\n"
+                + "|  4|  cherry|     621|   456.1|\n"
+                + "|  9|    pear|     336|   613.1|\n"
+                + "+---+--------+--------+--------+\n"
+                + "Total line number = 9\n";
+        executeAndCompare(orderByQuery, expected);
+
+        orderByQuery = "SELECT * FROM us.d2 ORDER BY s3, s2 DESC";
+        expected =
+            "ResultSets:\n"
+                + "+---+--------+--------+--------+\n"
+                + "|key|us.d2.s1|us.d2.s2|us.d2.s3|\n"
+                + "+---+--------+--------+--------+\n"
+                + "|  9|    pear|     336|   613.1|\n"
+                + "|  4|  cherry|     621|   456.1|\n"
+                + "|  3|  banana|     356|   317.8|\n"
+                + "|  1|   apple|     871|   232.1|\n"
+                + "|  8|   mango|     458|   232.1|\n"
+                + "|  6|   dates|     119|   232.1|\n"
+                + "|  5|   grape|     336|   132.5|\n"
+                + "|  2|   peach|     123|   132.5|\n"
+                + "|  7|   melon|     516|   113.6|\n"
+                + "+---+--------+--------+--------+\n"
+                + "Total line number = 9\n";
         executeAndCompare(orderByQuery, expected);
     }
 
@@ -1552,6 +1656,21 @@ public abstract class SQLSessionIT {
                 + "Total line number = 5\n";
         executeAndCompare(query, expected);
 
+        query = "select avg(a), c, b, d from test group by c, b, d order by c";
+        expected =
+            "ResultSets:\n"
+                + "+-----------+------+------+------+\n"
+                + "|avg(test.a)|test.c|test.b|test.d|\n"
+                + "+-----------+------+------+------+\n"
+                + "|        2.0|   1.1|     2|  val5|\n"
+                + "|        3.0|   2.1|     2|  val2|\n"
+                + "|        1.0|   2.1|     3|  val2|\n"
+                + "|        2.0|   3.1|     2|  val1|\n"
+                + "|        2.0|   5.1|     2|  val3|\n"
+                + "+-----------+------+------+------+\n"
+                + "Total line number = 5\n";
+        executeAndCompare(query, expected);
+
         query = "select min(a), c from test group by c;";
         expected =
             "ResultSets:\n"
@@ -1561,6 +1680,20 @@ public abstract class SQLSessionIT {
                 + "|          1|   3.1|\n"
                 + "|          2|   1.1|\n"
                 + "|          1|   2.1|\n"
+                + "|          2|   5.1|\n"
+                + "+-----------+------+\n"
+                + "Total line number = 4\n";
+        executeAndCompare(query, expected);
+
+        query = "select min(a), c from test group by c order by c;";
+        expected =
+            "ResultSets:\n"
+                + "+-----------+------+\n"
+                + "|min(test.a)|test.c|\n"
+                + "+-----------+------+\n"
+                + "|          2|   1.1|\n"
+                + "|          1|   2.1|\n"
+                + "|          1|   3.1|\n"
                 + "|          2|   5.1|\n"
                 + "+-----------+------+\n"
                 + "Total line number = 4\n";
@@ -2819,9 +2952,6 @@ public abstract class SQLSessionIT {
         errClause = "SELECT s1 FROM us.d1 OVER (RANGE 100 IN (100, 10));";
         executeAndCompareErrMsg(errClause,
             "Start time should be smaller than endTime in time interval.");
-
-        errClause = "SELECT min(s1), max(s2) FROM us.d1 ORDER BY TIME;";
-        executeAndCompareErrMsg(errClause, "Not support ORDER BY clause in aggregate query.");
 
         errClause = "SELECT last(s1) FROM us.d1 GROUP BY s2;";
         executeAndCompareErrMsg(errClause, "Group by can not use SetToSet and RowToRow functions.");
