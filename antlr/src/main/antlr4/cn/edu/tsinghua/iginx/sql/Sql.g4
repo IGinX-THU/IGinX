@@ -166,7 +166,7 @@ havingClause
     ;
 
 orderByClause
-    : ORDER BY (TIME | TIMESTAMP | KEY | path) (DESC | ASC)?
+    : ORDER BY (KEY | path) (COMMA path)* (DESC | ASC)?
     ;
 
 downsampleWithLevelClause

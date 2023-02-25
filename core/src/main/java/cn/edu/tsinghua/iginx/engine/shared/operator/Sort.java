@@ -18,34 +18,31 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.operator;
 
-import cn.edu.tsinghua.iginx.engine.shared.Constants;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Sort extends AbstractUnaryOperator {
 
-    private final String sortBy;
+    private final List<String> sortByCols;
 
     private final SortType sortType;
 
-    public Sort(Source source) {
-        this(source, Constants.KEY, SortType.ASC);
-    }
-
-    public Sort(Source source, String sortBy, SortType sortType) {
+    public Sort(Source source, List<String> sortByCols, SortType sortType) {
         super(OperatorType.Sort, source);
-        if (sortBy == null) {
+        if (sortByCols == null || sortByCols.isEmpty()) {
             throw new IllegalArgumentException("sortBy shouldn't be null");
         }
         if (sortType == null) {
             throw new IllegalArgumentException("sortType shouldn't be null");
         }
-        this.sortBy = sortBy;
+        this.sortByCols = sortByCols;
         this.sortType = sortType;
     }
 
-    public String getSortBy() {
-        return sortBy;
+    public List<String> getSortByCols() {
+        return sortByCols;
     }
 
     public SortType getSortType() {
@@ -54,7 +51,7 @@ public class Sort extends AbstractUnaryOperator {
 
     @Override
     public Operator copy() {
-        return new Sort(getSource().copy(), sortBy, sortType);
+        return new Sort(getSource().copy(), new ArrayList<>(sortByCols), sortType);
     }
 
     public enum SortType {
@@ -64,6 +61,6 @@ public class Sort extends AbstractUnaryOperator {
 
     @Override
     public String getInfo() {
-        return "SortBy: " + sortBy + ", SortType: " + sortType;
+        return "SortBy: " + String.join(",", sortByCols) + ", SortType: " + sortType;
     }
 }

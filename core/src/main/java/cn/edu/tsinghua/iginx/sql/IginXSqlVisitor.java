@@ -723,19 +723,24 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     }
 
     private void parseOrderByClause(OrderByClauseContext ctx, SelectStatement selectStatement) {
-        if (selectStatement.hasFunc()) {
-            throw new SQLParserException("Not support ORDER BY clause in aggregate query.");
+        if (ctx.KEY() != null) {
+            selectStatement.setOrderByPath(SQLConstant.KEY);
         }
         if (ctx.path() != null) {
-            String orderByPath = ctx.path().getText();
-            if (orderByPath.contains("*")) {
-                throw new SQLParserException(String
-                    .format("ORDER BY path '%s' has '*', which is not supported.", orderByPath));
+            for (PathContext pathContext : ctx.path()) {
+                String suffix = pathContext.getText(), prefix = selectStatement.getFromPath();
+                String orderByPath;
+                if (!selectStatement.hasJoinParts() && selectStatement.getSubStatement() == null) {
+                    orderByPath = prefix + SQLConstant.DOT + suffix;
+                } else {
+                    orderByPath = suffix;
+                }
+                if (orderByPath.contains("*")) {
+                    throw new SQLParserException(String
+                        .format("ORDER BY path '%s' has '*', which is not supported.", orderByPath));
+                }
+                selectStatement.setOrderByPath(orderByPath);
             }
-            selectStatement.setOrderByPath(orderByPath);
-            selectStatement.setPathSet(orderByPath);
-        } else {
-            selectStatement.setOrderByPath(SQLConstant.KEY);
         }
         if (ctx.DESC() != null) {
             selectStatement.setAscending(false);
