@@ -36,26 +36,8 @@ import cn.edu.tsinghua.iginx.engine.shared.function.MappingFunction;
 import cn.edu.tsinghua.iginx.engine.shared.function.RowMappingFunction;
 import cn.edu.tsinghua.iginx.engine.shared.function.SetMappingFunction;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils;
-import cn.edu.tsinghua.iginx.engine.shared.operator.AddSchemaPrefix;
-import cn.edu.tsinghua.iginx.engine.shared.operator.BinaryOperator;
-import cn.edu.tsinghua.iginx.engine.shared.operator.CrossJoin;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Downsample;
-import cn.edu.tsinghua.iginx.engine.shared.operator.GroupBy;
-import cn.edu.tsinghua.iginx.engine.shared.operator.InnerJoin;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Join;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Limit;
-import cn.edu.tsinghua.iginx.engine.shared.operator.MappingTransform;
-import cn.edu.tsinghua.iginx.engine.shared.operator.OuterJoin;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Rename;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Reorder;
-import cn.edu.tsinghua.iginx.engine.shared.operator.RowTransform;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
-import cn.edu.tsinghua.iginx.engine.shared.operator.SetTransform;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Sort;
+import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Sort.SortType;
-import cn.edu.tsinghua.iginx.engine.shared.operator.UnaryOperator;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Union;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.FilterType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
@@ -64,16 +46,8 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
+
+import java.util.*;
 import java.util.regex.Pattern;
 
 public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
@@ -359,10 +333,22 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         header.getFields().forEach(field -> {
             String alias = "";
             for (String oldName : aliasMap.keySet()) {
-                Pattern pattern = Pattern.compile(StringUtils.reformatColumnName(oldName) + ".*");
-                if (pattern.matcher(field.getFullName()).matches()) {
-                    alias = aliasMap.get(oldName);
+                if (Objects.equals(oldName, "*") && aliasMap.get(oldName).endsWith(".*")) {
+                    String newPrefix = aliasMap.get(oldName).replace("*", "");
+                    alias = newPrefix + field.getFullName();
+                } else if (oldName.endsWith(".*") && aliasMap.get(oldName).endsWith(".*")) {
+                    String oldPrefix = oldName.replace(".*", "");
+                    String newPrefix = aliasMap.get(oldName).replace(".*", "");
+                    if (field.getFullName().startsWith(oldPrefix)) {
+                        alias = field.getFullName().replaceFirst(oldPrefix, newPrefix);
+                    }
                     break;
+                } else {
+                    Pattern pattern = Pattern.compile(StringUtils.reformatColumnName(oldName) + ".*");
+                    if (pattern.matcher(field.getFullName()).matches()) {
+                        alias = aliasMap.get(oldName);
+                        break;
+                    }
                 }
             }
             if (alias.equals("")) {

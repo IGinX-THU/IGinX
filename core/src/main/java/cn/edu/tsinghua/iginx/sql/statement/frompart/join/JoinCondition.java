@@ -1,33 +1,25 @@
-package cn.edu.tsinghua.iginx.sql.statement.join;
+package cn.edu.tsinghua.iginx.sql.statement.frompart.join;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-public class JoinPart {
-
-    private final String pathPrefix;
+public class JoinCondition {
 
     private final JoinType joinType;
-
     private final Filter filter;
-
     private final List<String> joinColumns;
 
-    public JoinPart(String pathPrefix) {
-        this(pathPrefix, JoinType.CrossJoin, null, Collections.emptyList());
+    public JoinCondition() {
+        this(JoinType.CrossJoin, null, Collections.emptyList());
     }
 
-    public JoinPart(String pathPrefix, JoinType joinType, Filter filter, List<String> joinColumns) {
-        this.pathPrefix = pathPrefix;
+    public JoinCondition(JoinType joinType, Filter filter, List<String> joinColumns) {
         this.joinType = joinType;
         this.filter = filter;
         this.joinColumns = joinColumns;
-    }
-
-    public String getPathPrefix() {
-        return pathPrefix;
     }
 
     public JoinType getJoinType() {
@@ -41,7 +33,7 @@ public class JoinPart {
     public List<String> getJoinColumns() {
         return joinColumns;
     }
-
+    
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -50,14 +42,13 @@ public class JoinPart {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        JoinPart joinPart = (JoinPart) o;
-        return Objects.equals(pathPrefix, joinPart.pathPrefix)
-            && joinType == joinPart.joinType && Objects.equals(filter, joinPart.filter)
-            && Objects.equals(joinColumns, joinPart.joinColumns);
+        JoinCondition joinCondition = (JoinCondition) o;
+        return joinType == joinCondition.joinType && Objects.equals(filter, joinCondition.filter)
+            && Objects.equals(joinColumns, joinCondition.joinColumns);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(pathPrefix, joinType, filter, joinColumns);
+        return Objects.hash(joinType, filter, joinColumns);
     }
 }
