@@ -124,17 +124,24 @@ tagValue
     ;
 
 fromClause
-    : FROM LR_BRACKET queryClause RR_BRACKET
-    | FROM path joinPart*
+    : FROM tableReference joinPart*
     ;
 
 joinPart
-    : COMMA path
-    | CROSS JOIN path
-    | join path (
+    : COMMA tableReference
+    | CROSS JOIN tableReference
+    | join tableReference (
         ON orExpression
         | USING colList
       )?
+    ;
+
+tableReference
+    : path | (subquery asClause?)
+    ;
+
+subquery
+    : LR_BRACKET queryClause RR_BRACKET
     ;
 
 colList
@@ -166,7 +173,7 @@ havingClause
     ;
 
 orderByClause
-    : ORDER BY (TIME | TIMESTAMP | KEY | path) (DESC | ASC)?
+    : ORDER BY (KEY | path) (COMMA path)* (DESC | ASC)?
     ;
 
 downsampleWithLevelClause

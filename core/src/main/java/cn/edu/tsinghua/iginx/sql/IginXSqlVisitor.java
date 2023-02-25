@@ -4,124 +4,23 @@ import cn.edu.tsinghua.iginx.engine.logical.utils.ExprUtils;
 import cn.edu.tsinghua.iginx.engine.shared.TimeRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.RawDataType;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.NotFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.OrFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.ValueFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.tag.AndTagFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.tag.BasePreciseTagFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.tag.BaseTagFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.tag.OrTagFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.tag.PreciseTagFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.tag.WithoutTagFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
+import cn.edu.tsinghua.iginx.engine.shared.operator.tag.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.FuncType;
 import cn.edu.tsinghua.iginx.exceptions.SQLParserException;
-import cn.edu.tsinghua.iginx.sql.SqlParser.AddStorageEngineStatementContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.AggLenContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.AndExpressionContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.AndPreciseExpressionContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.AndTagExpressionContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.AsClauseContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.CancelJobStatementContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.ClearDataStatementContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.CommitTransformJobStatementContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.ConstantContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.CountPointsStatementContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.DateExpressionContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.DateFormatContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.DeleteStatementContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.DeleteTimeSeriesStatementContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.DownsampleClauseContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.DropTaskStatementContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.ExpressionContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.FromClauseContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.GroupByClauseContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.InsertMultiValueContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.InsertStatementContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.InsertValuesSpecContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.JoinContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.JoinPartContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.LimitClauseContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.OrExpressionContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.OrPreciseExpressionContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.OrTagExpressionContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.OrderByClauseContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.PathContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.PreciseTagExpressionContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.PredicateContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.QueryClauseContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.RegisterTaskStatementContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.RemoveHistoryDataResourceStatementContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.SelectClauseContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.SelectStatementContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.ShowClusterInfoStatementContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.ShowEligibleJobStatementContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.ShowJobStatusStatementContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.ShowRegisterTaskStatementContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.ShowReplicationStatementContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.ShowTimeSeriesStatementContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.SpecialClauseContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.SqlStatementContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.StorageEngineContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.StringLiteralContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.TagEquationContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.TagExpressionContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.TagListContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.TimeIntervalContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.TimeValueContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.WithClauseContext;
-import cn.edu.tsinghua.iginx.sql.expression.BaseExpression;
-import cn.edu.tsinghua.iginx.sql.expression.BinaryExpression;
-import cn.edu.tsinghua.iginx.sql.expression.BracketExpression;
-import cn.edu.tsinghua.iginx.sql.expression.ConstantExpression;
-import cn.edu.tsinghua.iginx.sql.expression.Expression;
+import cn.edu.tsinghua.iginx.sql.SqlParser.*;
+import cn.edu.tsinghua.iginx.sql.expression.*;
 import cn.edu.tsinghua.iginx.sql.expression.Expression.ExpressionType;
-import cn.edu.tsinghua.iginx.sql.expression.Operator;
-import cn.edu.tsinghua.iginx.sql.expression.UnaryExpression;
-import cn.edu.tsinghua.iginx.sql.statement.AddStorageEngineStatement;
-import cn.edu.tsinghua.iginx.sql.statement.CancelJobStatement;
-import cn.edu.tsinghua.iginx.sql.statement.ClearDataStatement;
-import cn.edu.tsinghua.iginx.sql.statement.CommitTransformJobStatement;
-import cn.edu.tsinghua.iginx.sql.statement.CountPointsStatement;
-import cn.edu.tsinghua.iginx.sql.statement.DeleteStatement;
-import cn.edu.tsinghua.iginx.sql.statement.DeleteTimeSeriesStatement;
-import cn.edu.tsinghua.iginx.sql.statement.DropTaskStatement;
-import cn.edu.tsinghua.iginx.sql.statement.InsertFromSelectStatement;
-import cn.edu.tsinghua.iginx.sql.statement.InsertStatement;
-import cn.edu.tsinghua.iginx.sql.statement.RegisterTaskStatement;
-import cn.edu.tsinghua.iginx.sql.statement.RemoveHsitoryDataSourceStatement;
-import cn.edu.tsinghua.iginx.sql.statement.SelectStatement;
-import cn.edu.tsinghua.iginx.sql.statement.ShowClusterInfoStatement;
-import cn.edu.tsinghua.iginx.sql.statement.ShowEligibleJobStatement;
-import cn.edu.tsinghua.iginx.sql.statement.ShowJobStatusStatement;
-import cn.edu.tsinghua.iginx.sql.statement.ShowRegisterTaskStatement;
-import cn.edu.tsinghua.iginx.sql.statement.ShowReplicationStatement;
-import cn.edu.tsinghua.iginx.sql.statement.ShowTimeSeriesStatement;
-import cn.edu.tsinghua.iginx.sql.statement.Statement;
-import cn.edu.tsinghua.iginx.sql.statement.StatementType;
-import cn.edu.tsinghua.iginx.sql.statement.join.JoinPart;
-import cn.edu.tsinghua.iginx.sql.statement.join.JoinType;
-import cn.edu.tsinghua.iginx.thrift.DataType;
-import cn.edu.tsinghua.iginx.thrift.JobState;
-import cn.edu.tsinghua.iginx.thrift.RemovedStorageEngineInfo;
-import cn.edu.tsinghua.iginx.thrift.StorageEngine;
-import cn.edu.tsinghua.iginx.thrift.UDFType;
+import cn.edu.tsinghua.iginx.sql.statement.*;
+import cn.edu.tsinghua.iginx.sql.statement.frompart.*;
+import cn.edu.tsinghua.iginx.sql.statement.frompart.join.JoinCondition;
+import cn.edu.tsinghua.iginx.sql.statement.frompart.join.JoinType;
+import cn.edu.tsinghua.iginx.thrift.*;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.TimeUtils;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import org.antlr.v4.runtime.tree.TerminalNode;
+
+import java.util.*;
 
 public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
@@ -356,43 +255,71 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     }
 
     private void parseFromPaths(FromClauseContext ctx, SelectStatement selectStatement) {
-        if (ctx.queryClause() != null) {
-            // parse sub query
-            SelectStatement subStatement = new SelectStatement();
-            parseQueryClause(ctx.queryClause(), subStatement);
-            selectStatement.setSubStatement(subStatement);
+        List<FromPart> fromParts = new ArrayList<>();
+        if (ctx.tableReference().path() != null) {
+            String fromPath = ctx.tableReference().path().getText();
+            fromParts.add(new PathFromPart(fromPath));
+            selectStatement.setGlobalAlias(fromPath);
         } else {
-            String fromPath = ctx.path().getText();
-            selectStatement.setFromPath(fromPath);
-            if (ctx.joinPart() != null && !ctx.joinPart().isEmpty()) {
+            SelectStatement subStatement = new SelectStatement();
+            subStatement.setIsSubQuery(true);
+            parseQueryClause(ctx.tableReference().subquery().queryClause(), subStatement);
+            if (subStatement.hasJoinParts() || ctx.tableReference().asClause() != null) {
+                parseAsClause(ctx.tableReference().asClause(), subStatement);
+                selectStatement.setGlobalAlias(ctx.tableReference().asClause().ID().getText());
+            } else {
+                selectStatement.setGlobalAlias(subStatement.getGlobalAlias());
+            }
+            fromParts.add(new SubQueryFromPart(subStatement));
+        }
 
-                selectStatement.setHasJoinParts(true);
-
-                for (JoinPartContext joinPartContext : ctx.joinPart()) {
-                    String pathPrefix = joinPartContext.path().getText();
-                    if (joinPartContext.join() == null) {  // cross join
-                        selectStatement.setJoinPart(new JoinPart(pathPrefix));
-                        continue;
+        if (ctx.joinPart() != null && !ctx.joinPart().isEmpty()) {
+            selectStatement.setHasJoinParts(true);
+            for (JoinPartContext joinPartContext : ctx.joinPart()) {
+                String pathPrefix;
+                SelectStatement subStatement = new SelectStatement();
+                if (joinPartContext.tableReference().path() != null) {
+                    pathPrefix = joinPartContext.tableReference().path().getText();
+                    subStatement = null;
+                } else {
+                    subStatement.setIsSubQuery(true);
+                    parseQueryClause(joinPartContext.tableReference().subquery().queryClause(), subStatement);
+                    if (subStatement.hasJoinParts() || joinPartContext.tableReference().asClause() != null) {
+                        parseAsClause(joinPartContext.tableReference().asClause(), subStatement);
+                        pathPrefix = joinPartContext.tableReference().asClause().ID().getText();
+                    } else {
+                        pathPrefix = subStatement.getGlobalAlias();
                     }
-
-                    JoinType joinType = parseJoinType(joinPartContext.join());
-
-                    Filter filter = null;
-                    if (joinPartContext.orExpression() != null) {
-                        filter = parseOrExpression(joinPartContext.orExpression(), selectStatement);
+                }
+                if (joinPartContext.join() == null) {  // cross join
+                    if (subStatement == null) {
+                        fromParts.add(new PathFromPart(pathPrefix, new JoinCondition()));
+                    } else {
+                        fromParts.add(new SubQueryFromPart(subStatement, new JoinCondition()));
                     }
+                    continue;
+                }
 
-                    List<String> columns = new ArrayList<>();
-                    if (joinPartContext.colList() != null && !joinPartContext.colList().isEmpty()) {
-                        joinPartContext.colList().path()
-                            .forEach(pathContext -> columns.add(pathContext.getText()));
-                    }
+                JoinType joinType = parseJoinType(joinPartContext.join());
 
-                    selectStatement
-                        .setJoinPart(new JoinPart(pathPrefix, joinType, filter, columns));
+                Filter filter = null;
+                if (joinPartContext.orExpression() != null) {
+                    filter = parseOrExpression(joinPartContext.orExpression(), selectStatement);
+                }
+
+                List<String> columns = new ArrayList<>();
+                if (joinPartContext.colList() != null && !joinPartContext.colList().isEmpty()) {
+                    joinPartContext.colList().path().forEach(pathContext -> columns.add(pathContext.getText()));
+                }
+
+                if (subStatement == null) {
+                    fromParts.add(new PathFromPart(pathPrefix, new JoinCondition(joinType, filter, columns)));
+                } else {
+                    fromParts.add(new SubQueryFromPart(subStatement, new JoinCondition(joinType, filter, columns)));
                 }
             }
         }
+        selectStatement.setFromParts(fromParts);
     }
 
     private JoinType parseJoinType(JoinContext joinContext) {
@@ -559,8 +486,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
         String selectedPath = ctx.path().getText();
 
-        if (!selectStatement.hasJoinParts() && selectStatement.getSubStatement() == null) {
-            String fromPath = selectStatement.getFromPath();
+        if (!selectStatement.hasJoinParts() && selectStatement.getFromParts().get(0).getType() != FromPartType.SubQueryFromPart) {
+            String fromPath = selectStatement.getFromParts().get(0).getPath();
             String fullPath = fromPath + SQLConstant.DOT + selectedPath;
             BaseExpression expression = new BaseExpression(fullPath, funcName, alias);
             selectStatement.setSelectedFuncsAndPaths(funcName, expression);
@@ -573,8 +500,9 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     }
 
     private Expression parseBaseExpression(String selectedPath, SelectStatement selectStatement) {
-        if (!selectStatement.hasJoinParts() && selectStatement.getSubStatement() == null) {
-            String fromPath = selectStatement.getFromPath();
+        if (!selectStatement.hasJoinParts() && !selectStatement.isSubQuery()
+                && selectStatement.getFromParts().get(0).getType() != FromPartType.SubQueryFromPart) {
+            String fromPath = selectStatement.getFromParts().get(0).getPath();
             String fullPath = fromPath + SQLConstant.DOT + selectedPath;
             BaseExpression expression = new BaseExpression(fullPath);
             selectStatement.setSelectedFuncsAndPaths("", expression);
@@ -674,8 +602,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
         ctx.path().forEach(pathContext -> {
             String path;
-            if (!selectStatement.hasJoinParts() && selectStatement.getSubStatement() == null) {
-                path = selectStatement.getFromPath() + SQLConstant.DOT + pathContext.getText();
+            if (!selectStatement.hasJoinParts() && selectStatement.getFromParts().get(0).getType() != FromPartType.SubQueryFromPart) {
+                path = selectStatement.getFromParts().get(0).getPath() + SQLConstant.DOT + pathContext.getText();
             } else {
                 path = pathContext.getText();
             }
@@ -723,19 +651,24 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     }
 
     private void parseOrderByClause(OrderByClauseContext ctx, SelectStatement selectStatement) {
-        if (selectStatement.hasFunc()) {
-            throw new SQLParserException("Not support ORDER BY clause in aggregate query.");
+        if (ctx.KEY() != null) {
+            selectStatement.setOrderByPath(SQLConstant.KEY);
         }
         if (ctx.path() != null) {
-            String orderByPath = ctx.path().getText();
-            if (orderByPath.contains("*")) {
-                throw new SQLParserException(String
-                    .format("ORDER BY path '%s' has '*', which is not supported.", orderByPath));
+            for (PathContext pathContext : ctx.path()) {
+                String suffix = pathContext.getText(), prefix = selectStatement.getFromParts().get(0).getPath();
+                String orderByPath;
+                if (!selectStatement.hasJoinParts() && selectStatement.getFromParts().get(0).getType() == FromPartType.PathFromPart) {
+                    orderByPath = prefix + SQLConstant.DOT + suffix;
+                } else {
+                    orderByPath = suffix;
+                }
+                if (orderByPath.contains("*")) {
+                    throw new SQLParserException(String
+                        .format("ORDER BY path '%s' has '*', which is not supported.", orderByPath));
+                }
+                selectStatement.setOrderByPath(orderByPath);
             }
-            selectStatement.setOrderByPath(orderByPath);
-            selectStatement.setPathSet(orderByPath);
-        } else {
-            selectStatement.setOrderByPath(SQLConstant.KEY);
         }
         if (ctx.DESC() != null) {
             selectStatement.setAscending(false);
@@ -744,6 +677,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
     private void parseAsClause(AsClauseContext ctx, SelectStatement selectStatement) {
         String aliasPrefix = ctx.ID().getText();
+        selectStatement.setGlobalAlias(aliasPrefix);
         selectStatement.getBaseExpressionMap().forEach((k, v) -> v.forEach(expression -> {
             String alias = expression.getAlias();
             if (alias.equals("")) {
@@ -900,8 +834,9 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
     private Filter parseValueFilter(PredicateContext ctx, SelectStatement statement) {
         String path = ctx.path().get(0).getText();
-        if (!statement.hasJoinParts() && statement.getSubStatement() == null) {
-            path = statement.getFromPath() + SQLConstant.DOT + path;
+        if (!statement.hasJoinParts() && !statement.isSubQuery()
+                && statement.getFromParts().get(0).getType() != FromPartType.SubQueryFromPart) {
+            path = statement.getFromParts().get(0).getPath() + SQLConstant.DOT + path;
         }
         statement.setPathSet(path);
 
@@ -939,9 +874,10 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
         Op op = Op.str2Op(ctx.comparisonOperator().getText().trim().toLowerCase());
 
-        if (!statement.hasJoinParts() && statement.getSubStatement() == null) {
-            pathA = statement.getFromPath() + SQLConstant.DOT + pathA;
-            pathB = statement.getFromPath() + SQLConstant.DOT + pathB;
+        if (!statement.hasJoinParts() && !statement.isSubQuery()
+                && statement.getFromParts().get(0).getType() != FromPartType.SubQueryFromPart) {
+            pathA = statement.getFromParts().get(0).getPath() + SQLConstant.DOT + pathA;
+            pathB = statement.getFromParts().get(0).getPath() + SQLConstant.DOT + pathB;
         }
         statement.setPathSet(pathA);
         statement.setPathSet(pathB);
