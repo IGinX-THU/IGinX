@@ -32,7 +32,6 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
-import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.function.MappingFunction;
 import cn.edu.tsinghua.iginx.engine.shared.function.RowMappingFunction;
 import cn.edu.tsinghua.iginx.engine.shared.function.SetMappingFunction;
@@ -54,6 +53,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.RowTransform;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
 import cn.edu.tsinghua.iginx.engine.shared.operator.SetTransform;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Sort;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Sort.SortType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.UnaryOperator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Union;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
@@ -70,11 +70,8 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.regex.Pattern;
@@ -209,22 +206,11 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     }
 
     private RowStream executeSort(Sort sort, Table table) throws PhysicalException {
-        if (!sort.getSortBy().equals(Constants.KEY)) {
-            throw new InvalidOperatorParameterException(
-                "sort operator is not support for field " + sort.getSortBy() + " except for "
-                    + Constants.KEY);
-        }
-        if (sort.getSortType() == Sort.SortType.ASC) {
-            // 在默认的实现中，每张表都是根据时间已经升序排好的，因此依据时间升序排列的话，已经不需要做任何额外的操作了
-            return table;
-        }
-        // 降序排列的话，只需要将各行反过来就行
-        Header header = table.getHeader();
-        List<Row> rows = new ArrayList<>();
-        for (int i = table.getRowSize() - 1; i >= 0; i--) {
-            rows.add(table.getRow(i));
-        }
-        return new Table(header, rows);
+        RowUtils.sortRows(
+            table.getRows(),
+            sort.getSortType() == SortType.ASC,
+            sort.getSortByCols());
+        return table;
     }
 
     private RowStream executeLimit(Limit limit, Table table) throws PhysicalException {

@@ -1351,7 +1351,7 @@ public abstract class AbstractOperatorMemoryExecutorTest {
     @Test
     public void testSortByTimeAsc() throws PhysicalException {
         Table table = generateTableForUnaryOperator(true);
-        Sort sort = new Sort(EmptySource.EMPTY_SOURCE, Constants.KEY, Sort.SortType.ASC);
+        Sort sort = new Sort(EmptySource.EMPTY_SOURCE, Collections.singletonList(Constants.KEY), Sort.SortType.ASC);
         RowStream stream = getExecutor().executeUnaryOperator(sort, table);
         assertEquals(table.getHeader(), stream.getHeader());
         int index = 0;
@@ -1367,7 +1367,7 @@ public abstract class AbstractOperatorMemoryExecutorTest {
     @Test
     public void testSortByTimeDesc() throws PhysicalException {
         Table table = generateTableForUnaryOperator(true);
-        Sort sort = new Sort(EmptySource.EMPTY_SOURCE, Constants.KEY, Sort.SortType.DESC);
+        Sort sort = new Sort(EmptySource.EMPTY_SOURCE, Collections.singletonList(Constants.KEY), Sort.SortType.DESC);
         RowStream stream = getExecutor().executeUnaryOperator(sort, table);
         assertEquals(table.getHeader(), stream.getHeader());
         int index = table.getRowSize();
@@ -1384,9 +1384,8 @@ public abstract class AbstractOperatorMemoryExecutorTest {
     @Test(expected = InvalidOperatorParameterException.class)
     public void testSortByOtherField() throws PhysicalException {
         Table table = generateTableForUnaryOperator(true);
-        Sort sort = new Sort(EmptySource.EMPTY_SOURCE, "a.a.b", Sort.SortType.ASC);
+        Sort sort = new Sort(EmptySource.EMPTY_SOURCE, Collections.singletonList("a.a.b"), Sort.SortType.ASC);
         getExecutor().executeUnaryOperator(sort, table);
-        fail();
     }
 
     @Test
