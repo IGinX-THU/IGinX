@@ -17,6 +17,8 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
+import cn.edu.tsinghua.iginx.engine.shared.operator.tag.BaseTagFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
@@ -57,6 +59,8 @@ public class MongoDBStorage implements IStorage {
 
     public static final String NAME = "name";
 
+    public static final String TAG_PREFIX = "tag_";
+
     private final StorageEngineMeta meta;
 
     private final int SESSION_POOL_MAX_SIZE = 200;
@@ -81,9 +85,9 @@ public class MongoDBStorage implements IStorage {
     private void init() {
         String connectionString = String.format(CONNECTION_STRING, meta.getIp(), meta.getPort());
         mongoClient = MongoClients.create(MongoClientSettings.builder().applyConnectionString(new ConnectionString(connectionString))
-                .applyToConnectionPoolSettings(builder ->
-                        builder.maxWaitTime(MAX_WAIT_TIME, TimeUnit.SECONDS)
-                                .maxSize(SESSION_POOL_MAX_SIZE)).build());
+            .applyToConnectionPoolSettings(builder ->
+                builder.maxWaitTime(MAX_WAIT_TIME, TimeUnit.SECONDS)
+                    .maxSize(SESSION_POOL_MAX_SIZE)).build());
         mongoDatabase = mongoClient.getDatabase(DATABASE);
     }
 
@@ -147,12 +151,44 @@ public class MongoDBStorage implements IStorage {
         return or(patternRegexes);
     }
 
+    private Bson genTagKVBson(TagFilter tagFilter) {
+        switch (tagFilter.getType()) {
+            case Base:
+                BaseTagFilter baseTagFilter = (BaseTagFilter) tagFilter;
+                return eq(TAG_PREFIX + baseTagFilter.getTagKey(), baseTagFilter.getTagValue());
+            case And:
+                break;
+            case Or:
+                break;
+            case BasePrecise:
+                break;
+            case Precise:
+                break;
+            case WithoutTag:
+                return null;
+        }
+        return or(patternRegexes);
+    }
+
     private TaskExecuteResult executeProjectTask(TimeInterval timeInterval, TimeSeriesRange tsInterval, String storageUnit, Project project) {
         MongoCollection<Document> collection = getCollection(storageUnit);
         if (collection == null) {
             return new TaskExecuteResult(new PhysicalTaskExecuteFailureException("create collection failure!"));
         }
-        // TODO: @zhanglingzhe
+        TagFilter tagFilter = project.getTagFilter();
+        try (MongoCursor<Document> cursor = collection.find(
+            and(
+                genPatternBson(project.getPatterns()),
+                )
+        ).projection(
+            fields(
+                excludeId(),
+                include(TS, TYPE, NAME, TAGS, VALUE)
+            )
+        ).iterator()) {
+            MongoDBQueryRowStream rowStream = new MongoDBQueryRowStream(cursor, project);
+            return new TaskExecuteResult(rowStream);
+        }
         return null;
 
     }
