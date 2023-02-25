@@ -3,14 +3,14 @@ package cn.edu.tsinghua.iginx.sql.statement;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.FuncType;
 import cn.edu.tsinghua.iginx.exceptions.SQLParserException;
 import cn.edu.tsinghua.iginx.sql.expression.BaseExpression;
 import cn.edu.tsinghua.iginx.sql.expression.Expression;
-import cn.edu.tsinghua.iginx.sql.statement.join.JoinPart;
+import cn.edu.tsinghua.iginx.sql.statement.frompart.FromPart;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
 
 import java.util.*;
@@ -22,18 +22,18 @@ public class SelectStatement extends DataStatement {
     private boolean needExplain = false;
 
     private boolean hasFunc;
+    private boolean hasJoinParts = false;
     private boolean hasValueFilter;
     private boolean hasDownsample;
     private boolean hasGroupBy;
     private boolean ascending;
-    private boolean hasJoinParts;
+    private boolean isSubQuery = false;
 
     private final List<Expression> expressions;
     private final Map<String, List<BaseExpression>> baseExpressionMap;
     private final Set<FuncType> funcTypeSet;
     private final Set<String> pathSet;
-    private String fromPath;
-    private final List<JoinPart> joinParts;
+    private List<FromPart> fromParts;
     private final List<String> groupByPaths;
     private final List<String> orderByPaths;
     private Filter filter;
@@ -45,27 +45,23 @@ public class SelectStatement extends DataStatement {
     private int limit;
     private int offset;
     private long slideDistance;
-
     private List<Integer> layers;
-
-    private SelectStatement subStatement;
+    private String globalAlias;
 
     public SelectStatement() {
         this.statementType = StatementType.SELECT;
         this.queryType = QueryType.Unknown;
         this.ascending = true;
-        this.hasJoinParts = false;
         this.expressions = new ArrayList<>();
         this.baseExpressionMap = new HashMap<>();
         this.funcTypeSet = new HashSet<>();
         this.pathSet = new HashSet<>();
-        this.joinParts = new ArrayList<>();
+        this.fromParts = new ArrayList<>();
         this.groupByPaths = new ArrayList<>();
         this.orderByPaths = new ArrayList<>();
         this.limit = Integer.MAX_VALUE;
         this.offset = 0;
         this.layers = new ArrayList<>();
-        this.subStatement = null;
     }
 
     // simple query
@@ -75,7 +71,7 @@ public class SelectStatement extends DataStatement {
         this.pathSet = new HashSet<>();
         this.expressions = new ArrayList<>();
         this.baseExpressionMap = new HashMap<>();
-        this.joinParts = new ArrayList<>();
+        this.fromParts = new ArrayList<>();
         this.groupByPaths = new ArrayList<>();
         this.orderByPaths = new ArrayList<>();
         this.funcTypeSet = new HashSet<>();
@@ -102,7 +98,7 @@ public class SelectStatement extends DataStatement {
         this.pathSet = new HashSet<>();
         this.expressions = new ArrayList<>();
         this.baseExpressionMap = new HashMap<>();
-        this.joinParts = new ArrayList<>();
+        this.fromParts = new ArrayList<>();
         this.groupByPaths = new ArrayList<>();
         this.orderByPaths = new ArrayList<>();
         this.funcTypeSet = new HashSet<>();
@@ -126,7 +122,7 @@ public class SelectStatement extends DataStatement {
         this.pathSet = new HashSet<>();
         this.expressions = new ArrayList<>();
         this.baseExpressionMap = new HashMap<>();
-        this.joinParts = new ArrayList<>();
+        this.fromParts = new ArrayList<>();
         this.groupByPaths = new ArrayList<>();
         this.orderByPaths = new ArrayList<>();
         this.funcTypeSet = new HashSet<>();
@@ -156,7 +152,7 @@ public class SelectStatement extends DataStatement {
         this.pathSet = new HashSet<>();
         this.expressions = new ArrayList<>();
         this.baseExpressionMap = new HashMap<>();
-        this.joinParts = new ArrayList<>();
+        this.fromParts = new ArrayList<>();
         this.groupByPaths = new ArrayList<>();
         this.orderByPaths = new ArrayList<>();
         this.funcTypeSet = new HashSet<>();
@@ -183,7 +179,6 @@ public class SelectStatement extends DataStatement {
         this.statementType = StatementType.SELECT;
 
         this.ascending = true;
-        this.hasJoinParts = false;
         this.limit = Integer.MAX_VALUE;
         this.offset = 0;
 
@@ -193,7 +188,6 @@ public class SelectStatement extends DataStatement {
         )));
         this.hasValueFilter = true;
         this.layers = new ArrayList<>();
-        this.subStatement = null;
     }
 
 
@@ -279,6 +273,14 @@ public class SelectStatement extends DataStatement {
     public void setHasJoinParts(boolean hasJoinParts) {
         this.hasJoinParts = hasJoinParts;
     }
+    
+    public boolean isSubQuery() {
+        return isSubQuery;
+    }
+    
+    public void setIsSubQuery(boolean isSubQuery) {
+        this.isSubQuery = isSubQuery;
+    }
 
     public List<String> getSelectedPaths() {
         List<String> paths = new ArrayList<>();
@@ -324,20 +326,12 @@ public class SelectStatement extends DataStatement {
         this.pathSet.add(path);
     }
 
-    public String getFromPath() {
-        return fromPath;
+    public List<FromPart> getFromParts() {
+        return fromParts;
     }
-
-    public void setFromPath(String fromPath) {
-        this.fromPath = fromPath;
-    }
-
-    public List<JoinPart> getJoinParts() {
-        return joinParts;
-    }
-
-    public void setJoinPart(JoinPart joinPart) {
-        this.joinParts.add(joinPart);
+    
+    public void setFromParts(List<FromPart> fromParts) {
+        this.fromParts = fromParts;
     }
 
     public void setGroupByPath(String path) {
@@ -444,12 +438,12 @@ public class SelectStatement extends DataStatement {
         this.layers.add(layer);
     }
 
-    public SelectStatement getSubStatement() {
-        return subStatement;
+    public String getGlobalAlias() {
+        return globalAlias;
     }
 
-    public void setSubStatement(SelectStatement subStatement) {
-        this.subStatement = subStatement;
+    public void setGlobalAlias(String alias) {
+        this.globalAlias = alias;
     }
 
     public List<Expression> getExpressions() {
