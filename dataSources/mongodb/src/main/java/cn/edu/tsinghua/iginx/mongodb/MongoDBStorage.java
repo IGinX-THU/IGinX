@@ -8,6 +8,7 @@ import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Timeseries;
 import cn.edu.tsinghua.iginx.engine.physical.task.StoragePhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
+import cn.edu.tsinghua.iginx.engine.shared.TimeRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.BitmapView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.ColumnDataView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
@@ -25,6 +26,7 @@ import cn.edu.tsinghua.iginx.metadata.entity.TimeSeriesRange;
 import cn.edu.tsinghua.iginx.mongodb.query.entity.MongoDBQueryRowStream;
 import cn.edu.tsinghua.iginx.mongodb.query.entity.MongoDBSchema;
 import cn.edu.tsinghua.iginx.mongodb.tools.DataUtils;
+import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import com.alibaba.fastjson.JSONObject;
 import com.mongodb.ConnectionString;
@@ -36,10 +38,7 @@ import org.bson.conversions.Bson;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
@@ -229,8 +228,32 @@ public class MongoDBStorage implements IStorage {
         if (collection == null) {
             return new TaskExecuteResult(new PhysicalTaskExecuteFailureException("create collection failure!"));
         }
-        // TODO: @zhanglingzhe
-        return null;
+        checkNoTagFilter(delete);  // 删除暂时不支持精确到 tagkv
+        if (delete.getTimeRanges() == null || delete.getTimeRanges().size() == 0) { // 没有传任何 time range
+            List<String> paths = delete.getPatterns();
+            if (paths.size() == 1 && paths.get(0).equals("*") && delete.getTagFilter() == null) {
+                collection.drop();
+            } else {
+                // 整条序列级别的删除
+                collection.deleteMany(genPatternBson(delete.getPatterns()));
+            }
+        } else {
+            // 删除序列的一部分
+            for (TimeRange range : delete.getTimeRanges()) {
+                collection.deleteMany(and(
+                    gte(NAME, range.getActualBeginTime()),
+                    lte(NAME, range.getActualEndTime()),
+                    genPatternBson(delete.getPatterns())
+                ));
+            }
+        }
+        return new TaskExecuteResult(null, null);
+    }
+
+    private void checkNoTagFilter(Delete delete) {
+        if (delete.getTagFilter() != null) {
+            throw new IllegalArgumentException("mongodb doesn't support delete with tag filter");
+        }
     }
 
     private Exception insertRowRecords(RowDataView data, String storageUnit) {
@@ -283,14 +306,77 @@ public class MongoDBStorage implements IStorage {
         if (collection == null) {
             return new PhysicalTaskExecuteFailureException("create collection failure!");
         }
-        // TODO: @zhanglingzhe
+        List<Document> points = new ArrayList<>();
+        for (int i = 0; i < data.getPathNum(); i++) {
+            MongoDBSchema schema = new MongoDBSchema(data.getPath(i), data.getTags(i), data.getDataType(i));
+            BitmapView bitmapView = data.getBitmapView(i);
+            int index = 0;
+            List<JSONObject> jsonObjects = new ArrayList<>();
+            for (int j = 0; j < data.getTimeSize(); j++) {
+                if (bitmapView.get(j)) {
+                    Map<String, Object> timeAndValueMap = new HashMap<>();
+                    timeAndValueMap.put(MongoDBStorage.INNER_TIMESTAMP, data.getKey(j));
+                    timeAndValueMap.put(MongoDBStorage.INNER_VALUE, data.getValue(i, index));
+                    jsonObjects.add(new JSONObject(timeAndValueMap));
+                    index++;
+                }
+            }
+            String fullName = schema.getName() + "{" + schema.getTags() + "}";
+            Bson findQuery = eq(FULLNAME, fullName);
+            if (collection.find(findQuery).iterator().hasNext()) {
+                collection.findOneAndUpdate(findQuery, Updates.pushEach(VALUES, jsonObjects));
+            } else {
+                collection.insertOne(DataUtils.constructDocument(schema, schema.getType(), jsonObjects));
+            }
+        }
+
+        try {
+            collection.insertMany(points);
+        } catch (Exception e) {
+            logger.error("encounter error when write points to influxdb: ", e);
+        }
         return null;
     }
 
     @Override
     public List<Timeseries> getTimeSeries() {
-        // TODO: @zhanglingzhe
-        return null;
+        Set<String> storageUnits = new HashSet<>(collectionMap.keySet());
+        Map<String, Map<String, DataType>> deDupMap = new HashMap<>();
+        for (String storageUnit : storageUnits) {
+            MongoCollection<Document> collection = getCollection(storageUnit);
+            try (MongoCursor<Document> cursor = collection.find().projection(
+                fields(
+                    excludeId(),
+                    include(TYPE, NAME, FULLNAME)
+                )
+            ).iterator()) {
+                while (cursor.hasNext()) {
+                    Document document = cursor.next();
+                    String name = document.getString(NAME);
+                    DataType dataType = DataUtils.fromString(document.getString(TYPE));
+                    String fullName = document.getString(FULLNAME);
+                    String tagString = "";
+                    if (fullName.length() != name.length()) {
+                        tagString = fullName.substring(name.length(), fullName.length() - 1);
+                    }
+                    Map<String, DataType> dupMap = deDupMap.computeIfAbsent(name, key -> new HashMap<>());
+                    dupMap.put(tagString, dataType);
+                }
+            }
+        }
+        List<Timeseries> timeseriesList = new ArrayList<>();
+        for (String name : deDupMap.keySet()) {
+            Map<String, DataType> dupMap = deDupMap.get(name);
+            for (String tagString : dupMap.keySet()) {
+                DataType dataType = dupMap.get(tagString);
+                if (tagString == null || tagString.isEmpty()) {
+                    timeseriesList.add(new Timeseries(name, dataType));
+                } else {
+                    timeseriesList.add(new Timeseries(name, dataType, MongoDBSchema.resolveTagsFromString(tagString)));
+                }
+            }
+        }
+        return timeseriesList;
     }
 
     @Override
