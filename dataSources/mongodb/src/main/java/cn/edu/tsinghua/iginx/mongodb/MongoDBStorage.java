@@ -17,8 +17,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
-import cn.edu.tsinghua.iginx.engine.shared.operator.tag.BaseTagFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.tag.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
@@ -60,6 +59,10 @@ public class MongoDBStorage implements IStorage {
     public static final String NAME = "name";
 
     public static final String TAG_PREFIX = "tag_";
+
+    public static final String VALUES = "values";
+
+    public static final String TYPE = "type";
 
     private final StorageEngineMeta meta;
 
@@ -113,7 +116,7 @@ public class MongoDBStorage implements IStorage {
         String storageUnit = task.getStorageUnit();
         if (op.getType() == OperatorType.Project) { // 目前只实现 project 操作符，同时不支持历史数据
             Project project = (Project) op;
-            return executeProjectTask(fragment.getTimeInterval(), fragment.getTsInterval(), storageUnit, project);
+            return executeProjectTask(fragment.getTimeInterval(), storageUnit, project);
         } else if (op.getType() == OperatorType.Insert) {
             Insert insert = (Insert) op;
             return executeInsertTask(storageUnit, insert);
@@ -157,40 +160,60 @@ public class MongoDBStorage implements IStorage {
                 BaseTagFilter baseTagFilter = (BaseTagFilter) tagFilter;
                 return eq(TAG_PREFIX + baseTagFilter.getTagKey(), baseTagFilter.getTagValue());
             case And:
-                break;
+                AndTagFilter andTagFilter = (AndTagFilter) tagFilter;
+                List<Bson> andBsonFilters = new ArrayList<>();
+                for (TagFilter subTagFilter : andTagFilter.getChildren()) {
+                    andBsonFilters.add(genTagKVBson(subTagFilter));
+                }
+                return and(andBsonFilters);
             case Or:
-                break;
+                OrTagFilter orTagFilter = (OrTagFilter) tagFilter;
+                List<Bson> orBsonFilters = new ArrayList<>();
+                for (TagFilter subTagFilter : orTagFilter.getChildren()) {
+                    orBsonFilters.add(genTagKVBson(subTagFilter));
+                }
+                return or(orBsonFilters);
             case BasePrecise:
-                break;
+                BasePreciseTagFilter basePreciseTagFilter = (BasePreciseTagFilter) tagFilter;
+                List<Bson> basePreciseBsonFilters = new ArrayList<>();
+                Map<String, String> basePreciseMap = basePreciseTagFilter.getTags();
+                for (Map.Entry<String, String> basePreciseEntry : basePreciseMap.entrySet()) {
+                    basePreciseBsonFilters.add(eq(TAG_PREFIX + basePreciseEntry.getKey(), basePreciseEntry.getValue()));
+                }
+                return and(basePreciseBsonFilters);
             case Precise:
-                break;
+                PreciseTagFilter preciseTagFilter = (PreciseTagFilter) tagFilter;
+                List<Bson> preciseBsonFilters = new ArrayList<>();
+                List<BasePreciseTagFilter> basePreciseTagFilters = preciseTagFilter.getChildren();
+                for (BasePreciseTagFilter subBasePreciseTagFilter : basePreciseTagFilters) {
+                    preciseBsonFilters.add(genTagKVBson(subBasePreciseTagFilter));
+                }
+                return or(preciseBsonFilters);
             case WithoutTag:
+            default:
                 return null;
         }
-        return or(patternRegexes);
     }
 
-    private TaskExecuteResult executeProjectTask(TimeInterval timeInterval, TimeSeriesRange tsInterval, String storageUnit, Project project) {
+    private TaskExecuteResult executeProjectTask(TimeInterval timeInterval, String storageUnit, Project project) {
         MongoCollection<Document> collection = getCollection(storageUnit);
         if (collection == null) {
             return new TaskExecuteResult(new PhysicalTaskExecuteFailureException("create collection failure!"));
         }
-        TagFilter tagFilter = project.getTagFilter();
         try (MongoCursor<Document> cursor = collection.find(
             and(
                 genPatternBson(project.getPatterns()),
-                )
+                genTagKVBson(project.getTagFilter())
+            )
         ).projection(
             fields(
                 excludeId(),
-                include(TS, TYPE, NAME, TAGS, VALUE)
+                include(NAME, TYPE, VALUES)
             )
         ).iterator()) {
             MongoDBQueryRowStream rowStream = new MongoDBQueryRowStream(cursor, project);
             return new TaskExecuteResult(rowStream);
         }
-        return null;
-
     }
 
     private TaskExecuteResult executeDeleteTask(String storageUnit, Delete delete) {
