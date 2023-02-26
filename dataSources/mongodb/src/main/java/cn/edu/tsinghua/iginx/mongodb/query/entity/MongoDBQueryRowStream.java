@@ -17,60 +17,76 @@ import com.mongodb.client.MongoCursor;
 import org.bson.Document;
 import org.bson.types.Binary;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.PriorityQueue;
+import java.util.*;
 
 public class MongoDBQueryRowStream implements RowStream {
 
     private final Table table;
 
     public MongoDBQueryRowStream(MongoCursor<Document> cursor, TimeInterval timeInterval) {
+        Map<String, PriorityQueue<MongoDBPoint>> queueMap = new HashMap<>();
+        List<Field> fieldList = new ArrayList<>();
         while (cursor.hasNext()) {
             Document document = cursor.next();
             String name = document.getString(MongoDBStorage.NAME);
+            String fullname = document.getString(MongoDBStorage.FULLNAME);
             DataType dataType = DataUtils.fromString(document.getString(MongoDBStorage.TYPE));
             String values = document.getString(MongoDBStorage.VALUES);
             JSONArray jsonArray = JSONArray.parseArray(values);
 
-            Object value = null;
-            switch (dataType) {
-                case INTEGER:
-                    value = document.getInteger(MongoDBStorage.VALUE);
-                    break;
-                case LONG:
-                    value = document.getLong(MongoDBStorage.VALUE);
-                case BOOLEAN:
-                    value = document.getBoolean(MongoDBStorage.VALUE);
-                    break;
-                case DOUBLE:
-                    value = document.getDouble(MongoDBStorage.VALUE);
-                    break;
-                case FLOAT:
-                    double doubleValue = document.getDouble(MongoDBStorage.VALUE);
-                    value = (float) doubleValue;
-                    break;
-                case BINARY:
-                    Binary binary = (Binary) document.get(MongoDBStorage.VALUE);
-                    value = binary.getData();
-                    break;
+            for (int i = 0; i < jsonArray.size(); i++) {
+                JSONObject timeAndValueObject = jsonArray.getJSONObject(i);
+                long timestamp = timeAndValueObject.getLong(MongoDBStorage.INNER_TIMESTAMP);
+                if (timeInterval.getStartTime() <= timestamp && timestamp < timeInterval.getEndTime()) {
+                    Object value = null;
+                    switch (dataType) {
+                        case INTEGER:
+                            value = timeAndValueObject.getInteger(MongoDBStorage.INNER_VALUE);
+                            break;
+                        case LONG:
+                            value = timeAndValueObject.getLong(MongoDBStorage.INNER_VALUE);
+                        case BOOLEAN:
+                            value = timeAndValueObject.getBoolean(MongoDBStorage.INNER_VALUE);
+                            break;
+                        case DOUBLE:
+                            value = timeAndValueObject.getDouble(MongoDBStorage.INNER_VALUE);
+                            break;
+                        case FLOAT:
+                            value = timeAndValueObject.getFloat(MongoDBStorage.INNER_VALUE);
+                            break;
+                        case BINARY:
+                            Binary binary = (Binary) document.get(MongoDBStorage.INNER_VALUE);
+                            value = binary.getData();
+                            break;
+                    }
+                    MongoDBPoint point = new MongoDBPoint(new Value(dataType, value), timestamp);
+                    queueMap.computeIfAbsent(name, key -> new PriorityQueue<>()).add(point);
+                }
             }
-            MongoDBPoint point = new MongoDBPoint(new Value(dataType, value), timestamp);
-            queueMap.computeIfAbsent(schema, key -> new PriorityQueue<>()).add(point);
+
+            if (fullname.length() > name.length()) {
+                String tagKVStr = fullname.substring(name.length(), fullname.length() - 1);
+                String[] tagKVs = tagKVStr.split(",");
+                Map<String, String> tagKVMap = new HashMap<>();
+                for (String tagKV : tagKVs) {
+                    tagKVMap.put(tagKV.split("=")[0], tagKV.split("=")[1]);
+                }
+                fieldList.add(new Field(name, dataType, tagKVMap));
+            } else {
+                fieldList.add(new Field(name, dataType));
+            }
         }
-        List<Pair<MongoDBSchema, PriorityQueue<MongoDBPoint>>> queueList = new LinkedList<>();
-        List<Field> fieldList = new ArrayList<>();
-        for (MongoDBSchema schema: queueMap.keySet()) {
-            queueList.add(new Pair<>(schema, queueMap.get(schema)));
-            fieldList.add(schema.toField());
+
+        List<Pair<String, PriorityQueue<MongoDBPoint>>> queueList = new LinkedList<>();
+        for (Map.Entry<String, PriorityQueue<MongoDBPoint>> entry : queueMap.entrySet()) {
+            queueList.add(new Pair<>(entry.getKey(), entry.getValue()));
         }
         Header header = new Header(Field.KEY, fieldList);
         List<Row> rows = new ArrayList<>();
-        int queueHasData = queueList.size();
+        int queueHasData = queueMap.size();
         while (queueHasData != 0) {
             long minTimestamp = Long.MAX_VALUE;
-            for (Pair<MongoDBSchema, PriorityQueue<MongoDBPoint>> mongoDBSchemaPriorityQueuePair : queueList) {
+            for (Pair<String, PriorityQueue<MongoDBPoint>> mongoDBSchemaPriorityQueuePair : queueList) {
                 PriorityQueue<MongoDBPoint> queue = mongoDBSchemaPriorityQueuePair.getV();
                 if (queue.isEmpty()) {
                     continue;

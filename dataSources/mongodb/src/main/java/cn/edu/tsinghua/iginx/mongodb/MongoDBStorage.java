@@ -58,11 +58,17 @@ public class MongoDBStorage implements IStorage {
 
     public static final String NAME = "name";
 
+    public static final String FULLNAME = "fullname";
+
     public static final String TAG_PREFIX = "tag_";
 
     public static final String VALUES = "values";
 
     public static final String TYPE = "type";
+
+    public static final String INNER_TIMESTAMP = "t";
+
+    public static final String INNER_VALUE = "v";
 
     private final StorageEngineMeta meta;
 
@@ -208,7 +214,7 @@ public class MongoDBStorage implements IStorage {
         ).projection(
             fields(
                 excludeId(),
-                include(NAME, TYPE, VALUES)
+                include(FULLNAME, NAME, TYPE, VALUES)
             )
         ).iterator()) {
             MongoDBQueryRowStream rowStream = new MongoDBQueryRowStream(cursor, timeInterval);
