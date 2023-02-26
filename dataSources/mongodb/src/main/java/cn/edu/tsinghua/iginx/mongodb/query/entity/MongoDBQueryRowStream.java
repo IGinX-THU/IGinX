@@ -1,51 +1,39 @@
 package cn.edu.tsinghua.iginx.mongodb.query.entity;
 
-import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
+import cn.edu.tsinghua.iginx.metadata.entity.TimeInterval;
 import cn.edu.tsinghua.iginx.mongodb.MongoDBStorage;
 import cn.edu.tsinghua.iginx.mongodb.tools.DataUtils;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
 import com.mongodb.client.MongoCursor;
 import org.bson.Document;
 import org.bson.types.Binary;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.PriorityQueue;
 
 public class MongoDBQueryRowStream implements RowStream {
 
     private final Table table;
 
-    public MongoDBQueryRowStream(MongoCursor<Document> cursor, Project project) {
-        Map<String, Map<String, Pair<MongoDBSchema, Boolean>>> schemaCache = new HashMap<>();
-        Map<MongoDBSchema, PriorityQueue<MongoDBPoint>> queueMap = new HashMap<>();
+    public MongoDBQueryRowStream(MongoCursor<Document> cursor, TimeInterval timeInterval) {
         while (cursor.hasNext()) {
             Document document = cursor.next();
-            String name = document.getDouble(MongoDBStorage.VALUES);
-            String tagString = document.getString(MongoDBStorage.TAGS);
-
-            Map<String, Pair<MongoDBSchema, Boolean>> tagCache = schemaCache.computeIfAbsent(name, key -> new HashMap<>());
-            Pair<MongoDBSchema, Boolean> pair = tagCache.computeIfAbsent(tagString, key -> {
-                Map<String, String> tags = MongoDBSchema.resolveTagsFromString(key);
-                boolean match = project.getTagFilter() == null || MongoDBSchema.match(tags, project.getTagFilter());
-                MongoDBSchema schema = new MongoDBSchema(name, tags);
-                return new Pair<>(schema, match);
-            });
-            if (!pair.v) { // 被 tag filter 过滤掉
-                continue;
-            }
-            MongoDBSchema schema = pair.k;
-            long timestamp = document.getLong(MongoDBStorage.TS);
+            String name = document.getString(MongoDBStorage.NAME);
             DataType dataType = DataUtils.fromString(document.getString(MongoDBStorage.TYPE));
-            if (schema.getType() == null) {
-                schema.setType(dataType);
-            }
+            String values = document.getString(MongoDBStorage.VALUES);
+            JSONArray jsonArray = JSONArray.parseArray(values);
+
             Object value = null;
             switch (dataType) {
                 case INTEGER:

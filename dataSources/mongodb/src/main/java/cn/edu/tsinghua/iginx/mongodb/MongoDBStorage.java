@@ -211,7 +211,7 @@ public class MongoDBStorage implements IStorage {
                 include(NAME, TYPE, VALUES)
             )
         ).iterator()) {
-            MongoDBQueryRowStream rowStream = new MongoDBQueryRowStream(cursor, project);
+            MongoDBQueryRowStream rowStream = new MongoDBQueryRowStream(cursor, timeInterval);
             return new TaskExecuteResult(rowStream);
         }
     }
