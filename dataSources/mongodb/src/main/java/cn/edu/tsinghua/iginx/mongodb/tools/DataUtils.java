@@ -59,7 +59,7 @@ public class DataUtils {
         }
     }
 
-    public static Document constructDocument(MongoDBSchema schema, DataType type, List<Object> values, List<Long> timestamps) {
+    public static Document constructDocument(MongoDBSchema schema, DataType type, List<JSONObject> jsonObjects) {
         Document document = new Document();
         document.append(MongoDBStorage.NAME, schema.getName());
         document.append(MongoDBStorage.TYPE, toString(type));
@@ -68,11 +68,8 @@ public class DataUtils {
         }
         document.append(MongoDBStorage.FULLNAME, schema.getName() + "{" + schema.getTagsAsString() + "}");
         JSONArray jsonArray = new JSONArray();
-        for (int i = 0; i < timestamps.size(); i++) {
-            Map<String, Object> timeAndValueMap = new HashMap<>();
-            timeAndValueMap.put(MongoDBStorage.INNER_TIMESTAMP, timestamps.get(i));
-            timeAndValueMap.put(MongoDBStorage.INNER_VALUE, values.get(i));
-            jsonArray.add(new JSONObject(timeAndValueMap));
+        for (int i = 0; i < jsonObjects.size(); i++) {
+            jsonArray.add(jsonObjects);
         }
         document.append(MongoDBStorage.VALUES, jsonArray.toString());
         return document;

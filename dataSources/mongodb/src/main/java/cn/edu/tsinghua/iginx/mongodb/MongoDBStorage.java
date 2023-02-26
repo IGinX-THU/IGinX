@@ -8,7 +8,6 @@ import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Timeseries;
 import cn.edu.tsinghua.iginx.engine.physical.task.StoragePhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
-import cn.edu.tsinghua.iginx.engine.shared.TimeRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.BitmapView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.ColumnDataView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
@@ -26,25 +25,26 @@ import cn.edu.tsinghua.iginx.metadata.entity.TimeSeriesRange;
 import cn.edu.tsinghua.iginx.mongodb.query.entity.MongoDBQueryRowStream;
 import cn.edu.tsinghua.iginx.mongodb.query.entity.MongoDBSchema;
 import cn.edu.tsinghua.iginx.mongodb.tools.DataUtils;
-import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
-import cn.hutool.json.JSONObject;
+import com.alibaba.fastjson.JSONObject;
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.client.*;
-import com.mongodb.client.model.Indexes;
+import com.mongodb.client.model.Updates;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 
 import static com.mongodb.client.model.Filters.*;
-import static com.mongodb.client.model.Filters.regex;
 import static com.mongodb.client.model.Projections.*;
 
 // due to its schema, mongodb doesn't support history data
@@ -240,7 +240,7 @@ public class MongoDBStorage implements IStorage {
         }
         List<MongoDBSchema> schemas = new ArrayList<>();
         for (int i = 0; i < data.getPathNum(); i++) {
-            schemas.add(new MongoDBSchema(data.getPath(i), data.getTags(i), data.getDataType(j)));
+            schemas.add(new MongoDBSchema(data.getPath(i), data.getTags(i), data.getDataType(i)));
         }
 
         Map<MongoDBSchema, List<JSONObject>> points = new HashMap<>();
@@ -261,7 +261,17 @@ public class MongoDBStorage implements IStorage {
         }
 
         try {
-            collection.insertMany(points);
+            for (Map.Entry<MongoDBSchema, List<JSONObject>> entry : points.entrySet()) {
+                MongoDBSchema mongoDBSchema = entry.getKey();
+                String fullName = mongoDBSchema.getName() + "{" + mongoDBSchema.getTags() + "}";
+                List<JSONObject> jsonObjects = entry.getValue();
+                Bson findQuery = eq(FULLNAME, fullName);
+                if (collection.find(findQuery).iterator().hasNext()) {
+                    collection.findOneAndUpdate(findQuery, Updates.pushEach(VALUES, jsonObjects));
+                } else {
+                    collection.insertOne(DataUtils.constructDocument(mongoDBSchema, mongoDBSchema.getType(), jsonObjects));
+                }
+            }
         } catch (Exception e) {
             logger.error("encounter error when write points to mongodb: ", e);
         }
