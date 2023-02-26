@@ -23,7 +23,6 @@ import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.rest.query.QueryParser;
 import cn.edu.tsinghua.iginx.rest.query.aggregator.QueryAggregator;
 import cn.edu.tsinghua.iginx.rest.query.aggregator.QueryAggregatorType;
-import cn.edu.tsinghua.iginx.rest.RestUtils;
 import cn.edu.tsinghua.iginx.utils.TimeUtils;
 import lombok.Data;
 import org.slf4j.Logger;
@@ -32,6 +31,7 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 
 import static cn.edu.tsinghua.iginx.rest.RestUtils.TOPTIEM;
+import static cn.edu.tsinghua.iginx.utils.SpecialCharacter.CATEGORY;
 
 @Data
 public class QueryResult {
@@ -149,7 +149,7 @@ public class QueryResult {
         QueryParser parser = new QueryParser();
         Map<String,String> tags = parser.getTagsFromPaths(path, new StringBuilder());
         for (Map.Entry<String, String> entry : tags.entrySet()) {
-            if(!entry.getValue().equals(RestUtils.CATEGORY)) {
+            if(!entry.getValue().equals(CATEGORY)) {
                 ret.append("\"" + entry.getKey() + "\" : [\"" + entry.getValue() + "\"],");
             }
         }

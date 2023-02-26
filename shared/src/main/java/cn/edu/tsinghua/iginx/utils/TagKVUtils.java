@@ -23,13 +23,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
+import static cn.edu.tsinghua.iginx.utils.SpecialCharacter.*;
+
 public class TagKVUtils {
-
-    public static final String tagNameAnnotation = ""+'\u2E83';//"tagName@";
-
-    public static final String tagPrefix = ""+'\u2E80';//"tagPrefix#";
-
-    public static final String tagSuffix = ""+'\u2E81';//"#tagSuffix";
 
     public static String toPhysicalPath(String name, Map<String, String> tags) {
         StringBuilder builder = new StringBuilder();

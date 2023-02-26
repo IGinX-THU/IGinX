@@ -20,7 +20,6 @@ package cn.edu.tsinghua.iginx.rest.query;
 
 import cn.edu.tsinghua.iginx.rest.bean.*;
 import cn.edu.tsinghua.iginx.rest.query.aggregator.*;
-import cn.edu.tsinghua.iginx.rest.RestUtils;
 import cn.edu.tsinghua.iginx.utils.TimeUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -33,7 +32,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-import static cn.edu.tsinghua.iginx.utils.TagKVUtils.*;
+import static cn.edu.tsinghua.iginx.utils.SpecialCharacter.*;
 
 public class QueryParser {
     private static final Logger LOGGER = LoggerFactory.getLogger(QueryParser.class);
@@ -718,7 +717,7 @@ public class QueryParser {
 
         //数量相同就欧克克
         for(Map.Entry<String,String> entry : tags.entrySet()) {
-            if(entry.getValue().equals(RestUtils.CATEGORY)) num++;
+            if(entry.getValue().equals(CATEGORY)) num++;
         }
         if(num==annoLimit.getTag().size()) return true;
         return false;
@@ -773,7 +772,7 @@ public class QueryParser {
             List<String> tags = ret.getQueryMetrics().get(i).getAnnotationLimit().getTag();
             int annoCatLen = tags.size();
             for(int j=0;j<annoCatLen;j++){
-                ret.getQueryMetrics().get(i).addTag(tags.get(j),RestUtils.CATEGORY);
+                ret.getQueryMetrics().get(i).addTag(tags.get(j), CATEGORY);
             }
         }
         return ret;
@@ -786,7 +785,7 @@ public class QueryParser {
                 Map<String,String> tags = getTagsFromPaths(path.getQueryResultDatasets().get(i).getPaths().get(j),name);
                 List<String> categorys = new ArrayList<>();
                 for (Map.Entry<String, String> entry : tags.entrySet()) {
-                    if(entry.getValue().equals(RestUtils.CATEGORY))
+                    if(entry.getValue().equals(CATEGORY))
                         categorys.add(entry.getKey());
                 }
                 path.getQueryResultDatasets().get(i).addCategory(categorys);
