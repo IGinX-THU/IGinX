@@ -24,9 +24,11 @@ import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.metadata.entity.TimeInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.TimeSeriesRange;
 import cn.edu.tsinghua.iginx.mongodb.query.entity.MongoDBQueryRowStream;
+import cn.edu.tsinghua.iginx.mongodb.query.entity.MongoDBSchema;
 import cn.edu.tsinghua.iginx.mongodb.tools.DataUtils;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
+import cn.hutool.json.JSONObject;
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.client.*;
@@ -236,7 +238,33 @@ public class MongoDBStorage implements IStorage {
         if (collection == null) {
             return new PhysicalTaskExecuteFailureException("create collection failure!");
         }
-        // TODO: @zhanglingzhe
+        List<MongoDBSchema> schemas = new ArrayList<>();
+        for (int i = 0; i < data.getPathNum(); i++) {
+            schemas.add(new MongoDBSchema(data.getPath(i), data.getTags(i), data.getDataType(j)));
+        }
+
+        Map<MongoDBSchema, List<JSONObject>> points = new HashMap<>();
+        for (int i = 0; i < data.getTimeSize(); i++) {
+            BitmapView bitmapView = data.getBitmapView(i);
+            int index = 0;
+            for (int j = 0; j < data.getPathNum(); j++) {
+                if (bitmapView.get(j)) {
+                    MongoDBSchema schema = schemas.get(j);
+                    List<JSONObject> timeAndValues = points.computeIfAbsent(schema, k -> new ArrayList<>());
+                    Map<String, Object> timeAndValueMap = new HashMap<>();
+                    timeAndValueMap.put(MongoDBStorage.INNER_TIMESTAMP, data.getKey(i));
+                    timeAndValueMap.put(MongoDBStorage.INNER_VALUE, data.getValue(i, index));
+                    timeAndValues.add(new JSONObject(timeAndValueMap));
+                    index++;
+                }
+            }
+        }
+
+        try {
+            collection.insertMany(points);
+        } catch (Exception e) {
+            logger.error("encounter error when write points to mongodb: ", e);
+        }
         return null;
     }
 

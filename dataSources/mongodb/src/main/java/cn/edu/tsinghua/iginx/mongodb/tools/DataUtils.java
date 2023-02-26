@@ -2,8 +2,15 @@ package cn.edu.tsinghua.iginx.mongodb.tools;
 
 import cn.edu.tsinghua.iginx.exceptions.UnsupportedDataTypeException;
 import cn.edu.tsinghua.iginx.mongodb.MongoDBStorage;
+import cn.edu.tsinghua.iginx.mongodb.query.entity.MongoDBSchema;
 import cn.edu.tsinghua.iginx.thrift.DataType;
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
 import org.bson.Document;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static cn.edu.tsinghua.iginx.thrift.DataType.*;
 
@@ -50,6 +57,25 @@ public class DataUtils {
             default:
                 throw new UnsupportedDataTypeException(dataType);
         }
+    }
+
+    public static Document constructDocument(MongoDBSchema schema, DataType type, List<Object> values, List<Long> timestamps) {
+        Document document = new Document();
+        document.append(MongoDBStorage.NAME, schema.getName());
+        document.append(MongoDBStorage.TYPE, toString(type));
+        for (Map.Entry<String, String> entry : schema.getTags().entrySet()) {
+            document.append(MongoDBStorage.TAG_PREFIX + entry.getKey(), entry.getValue());
+        }
+        document.append(MongoDBStorage.FULLNAME, schema.getName() + "{" + schema.getTagsAsString() + "}");
+        JSONArray jsonArray = new JSONArray();
+        for (int i = 0; i < timestamps.size(); i++) {
+            Map<String, Object> timeAndValueMap = new HashMap<>();
+            timeAndValueMap.put(MongoDBStorage.INNER_TIMESTAMP, timestamps.get(i));
+            timeAndValueMap.put(MongoDBStorage.INNER_VALUE, values.get(i));
+            jsonArray.add(new JSONObject(timeAndValueMap));
+        }
+        document.append(MongoDBStorage.VALUES, jsonArray.toString());
+        return document;
     }
 
 }
