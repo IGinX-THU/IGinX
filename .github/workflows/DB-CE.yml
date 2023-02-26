@@ -6,6 +6,7 @@ on:
       - main
 env:
   VERSION: 0.6.0-SNAPSHOT
+  iotdb12ScaleOutIT: IoTDBTagScaleOutIT,IoTDBRestfulScaleOutIT,IoTDBSessionScaleOutIT,IoTDBSqlScaleOutIT
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -53,7 +54,7 @@ jobs:
         run: |
           if [ "${{matrix.DB-name}}" == "iotdb12" ]; then
             mvn test -q -Dtest=IoTDB12HistoryDataCapacityExpansionIT#oriHasDataExpHasData -DfailIfNoTests=false
-            mvn test -q -Dtest=IoTDBTagScaleOutIT,IoTDBRestfulScaleOutIT,IoTDBSessionScaleOutIT,IoTDBSqlScaleOutIT -DfailIfNoTests=false
+            mvn test -q -Dtest=${iotdb12ScaleOutIT} -DfailIfNoTests=false
           elif [ "${{matrix.DB-name}}" == "influxdb" ]; then
             mvn test -q -Dtest=InfluxDBHistoryDataCapacityExpansionIT#oriHasDataExpHasData -DfailIfNoTests=false
           else
@@ -72,7 +73,7 @@ jobs:
         run: |
           if [ "${{matrix.DB-name}}" == "iotdb12" ]; then
             mvn test -q -Dtest=IoTDB12HistoryDataCapacityExpansionIT#oriNoDataExpNoData -DfailIfNoTests=false
-            mvn test -q -Dtest=IoTDBTagScaleOutIT,IoTDBRestfulScaleOutIT,IoTDBSessionScaleOutIT,IoTDBSqlScaleOutIT -DfailIfNoTests=false
+            mvn test -q -Dtest=${iotdb12ScaleOutIT} -DfailIfNoTests=false
           elif [ "${{matrix.DB-name}}" == "influxdb" ]; then
             mvn test -q -Dtest=InfluxDBHistoryDataCapacityExpansionIT#oriNoDataExpNoData -DfailIfNoTests=false
           else
@@ -91,7 +92,7 @@ jobs:
         run: |
           if [ "${{matrix.DB-name}}" == "iotdb12" ]; then
             mvn test -q -Dtest=IoTDB12HistoryDataCapacityExpansionIT#oriHasDataExpNoData -DfailIfNoTests=false
-            mvn test -q -Dtest=IoTDBTagScaleOutIT,IoTDBRestfulScaleOutIT,IoTDBSessionScaleOutIT,IoTDBSqlScaleOutIT -DfailIfNoTests=false
+            mvn test -q -Dtest=${iotdb12ScaleOutIT} -DfailIfNoTests=false
           elif [ "${{matrix.DB-name}}" == "influxdb" ]; then
             mvn test -q -Dtest=InfluxDBHistoryDataCapacityExpansionIT#oriHasDataExpNoData -DfailIfNoTests=false
           else
@@ -110,7 +111,7 @@ jobs:
         run: |
           if [ "${{matrix.DB-name}}" == "iotdb12" ]; then
             mvn test -q -Dtest=IoTDB12HistoryDataCapacityExpansionIT#oriNoDataExpHasData -DfailIfNoTests=false
-            mvn test -q -Dtest=IoTDBTagScaleOutIT,IoTDBRestfulScaleOutIT,IoTDBSessionScaleOutIT,IoTDBSqlScaleOutIT -DfailIfNoTests=false
+            mvn test -q -Dtest=${iotdb12ScaleOutIT} -DfailIfNoTests=false
             mvn test -q -Dtest=IoTDB12HistoryDataCapacityExpansionIT#schemaPrefix -DfailIfNoTests=false
           elif [ "${{matrix.DB-name}}" == "influxdb" ]; then
             mvn test -q -Dtest=InfluxDBHistoryDataCapacityExpansionIT#oriNoDataExpHasData -DfailIfNoTests=false
