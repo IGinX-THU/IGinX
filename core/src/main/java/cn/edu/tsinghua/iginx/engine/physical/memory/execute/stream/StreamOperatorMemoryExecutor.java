@@ -95,9 +95,6 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
     }
 
     private RowStream executeSort(Sort sort, RowStream stream) throws PhysicalException {
-        if (!sort.getSortBy().equals(Constants.KEY)) {
-            throw new InvalidOperatorParameterException("sort operator is not support for field " + sort.getSortBy() + " except for " + Constants.KEY);
-        }
         return new SortLazyStream(sort, stream);
     }
 
