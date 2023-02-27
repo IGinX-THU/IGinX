@@ -22,7 +22,7 @@ public class TestControler {
     protected static final Logger logger = LoggerFactory.getLogger(TestControler.class);
     public static String CLEARDATAEXCP = "cn.edu.tsinghua.iginx.exceptions.ExecutionException: Caution: can not clear the data of read-only node.";
     private String CONFIG_FILE = "./src/test/java/cn/edu/tsinghua/iginx/integration/testcontroler/testConfig.properties";
-    private String FILEPATH = "./src/test/java/cn/edu/tsinghua/iginx/integration/testcontroler/testTask.txt";
+    private String FILEPATH = "./src/test/resources/testTask.txt";
     private String MVNRUNTEST = "../.github/testUnion.sh";
     private List<StorageEngineMeta> storageEngineMetas = new ArrayList<>();
 

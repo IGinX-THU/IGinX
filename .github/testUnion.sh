@@ -10,7 +10,7 @@ while read line
 do
   LISTS[$i]=$line
   let i+=1
-done <  ./test/src/test/java/cn/edu/tsinghua/iginx/integration/testcontroler/testTask.txt
+done <  ./test/src/test/resources/testTask.txt
 
 echo "test IT name list : "${LISTS[*]}
 
