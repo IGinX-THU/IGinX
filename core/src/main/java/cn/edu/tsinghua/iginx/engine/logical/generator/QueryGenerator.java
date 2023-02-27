@@ -242,15 +242,17 @@ public class QueryGenerator extends AbstractGenerator {
             );
         }
 
-        if (selectStatement.getQueryType().equals(SelectStatement.QueryType.LastFirstQuery)) {
-            root = new Reorder(new OperatorSource(root), Arrays.asList("path", "value"));
-        } else {
-            List<String> order = new ArrayList<>();
-            selectStatement.getExpressions().forEach(expression -> {
-                String colName = expression.getColumnName();
-                order.add(colName);
-            });
-            root = new Reorder(new OperatorSource(root), order);
+        if (selectStatement.getLayers().isEmpty()) {
+            if (selectStatement.getQueryType().equals(SelectStatement.QueryType.LastFirstQuery)) {
+                root = new Reorder(new OperatorSource(root), Arrays.asList("path", "value"));
+            } else {
+                List<String> order = new ArrayList<>();
+                selectStatement.getExpressions().forEach(expression -> {
+                    String colName = expression.getColumnName();
+                    order.add(colName);
+                });
+                root = new Reorder(new OperatorSource(root), order);
+            }
         }
 
         Map<String, String> aliasMap = selectStatement.getAliasMap();
