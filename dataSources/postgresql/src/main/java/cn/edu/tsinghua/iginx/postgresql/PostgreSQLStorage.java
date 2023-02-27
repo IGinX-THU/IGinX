@@ -299,10 +299,6 @@ public class PostgreSQLStorage implements IStorage {
     try {
       List<ResultSet> resultSets = new ArrayList<>();
       List<Field> fields = new ArrayList<>();
-//      String db="";
-      String db="";
-      String t="";
-      String c="";
       for (String path : project.getPatterns()) {
         ArrayList allDatabase=new ArrayList<>();
         Statement stmt = connection.createStatement();
@@ -313,7 +309,10 @@ public class PostgreSQLStorage implements IStorage {
         ArrayList databases=new ArrayList<>();
         String[] path_l=path.split("\\.");
         if (path_l.length<3){
-          path="postgres."+path;
+          if(path.equals("*.*")){}
+          else {
+            path = "postgres." + path;
+          }
         }
         String database_table = path.substring(0, path.lastIndexOf('.'));
         String tableName="";
@@ -610,6 +609,13 @@ public class PostgreSQLStorage implements IStorage {
     try {
       for (int i = 0; i < delete.getPatterns().size(); i++) {
         String path = delete.getPatterns().get(i);
+        String[] path_l=path.split("\\.");
+        if(path_l.length<3){
+          if(path.equals("*.*")){}
+          else {
+            path = "postgres." + path;
+          }
+        }
         TimeRange timeRange = delete.getTimeRanges().get(i);
         String db_ta=path.substring(0,path.lastIndexOf('.'));
         String database = db_ta.substring(0, db_ta.lastIndexOf('.'));
