@@ -93,22 +93,14 @@ public class TransformIT {
     }
 
     @BeforeClass
-    public static void setUp() {
+    public static void setUp() throws SessionException {
         session = new Session("127.0.0.1", 6888, "root", "root");
-        try {
-            session.openSession();
-        } catch (SessionException e) {
-            logger.error(e.getMessage());
-        }
+        session.openSession();
     }
 
     @AfterClass
-    public static void tearDown() {
-        try {
-            session.closeSession();
-        } catch (SessionException e) {
-            logger.error(e.getMessage());
-        }
+    public static void tearDown() throws SessionException {
+        session.closeSession();
     }
 
     @Before
@@ -590,10 +582,12 @@ public class TransformIT {
             logger.info("job {} state is {}", jobId, jobState.toString());
 
             session.cancelTransformJob(jobId);
+            jobState = session.queryTransformJobStatus(jobId);
+            logger.info("After cancellation, job {} state is {}", jobId, jobState.toString());
+            assertEquals(JobState.JOB_CLOSED, jobState);
 
-            List<Long> finishedJobIds = session.showEligibleJob(JobState.JOB_CLOSED);
-
-            assertTrue(finishedJobIds.contains(jobId));
+            List<Long> closedJobIds = session.showEligibleJob(JobState.JOB_CLOSED);
+            assertTrue(closedJobIds.contains(jobId));
         } catch (SessionException | ExecutionException | InterruptedException e) {
             logger.error("Transform:  execute fail. Caused by:", e);
             fail();

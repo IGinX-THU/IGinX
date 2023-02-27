@@ -14,12 +14,12 @@ public class BaseSessionPoolIT extends BaseSessionIT{
     public void setUp() {
         try {
             session = new MultiConnection( new SessionPool.Builder()
-                            .host(defaultTestHost)
-                            .port(defaultTestPort)
-                            .user(defaultTestUser)
-                            .password(defaultTestPass)
-                            .maxSize(MaxMultiThreadTaskNum)
-                            .build());
+                    .host(defaultTestHost)
+                    .port(defaultTestPort)
+                    .user(defaultTestUser)
+                    .password(defaultTestPass)
+                    .maxSize(MaxMultiThreadTaskNum)
+                    .build());
         } catch (Exception e) {
             logger.error(e.getMessage());
         }

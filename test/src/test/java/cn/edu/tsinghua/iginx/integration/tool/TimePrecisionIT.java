@@ -35,23 +35,18 @@ public class TimePrecisionIT {
     protected String storageEngineType;
 
     @BeforeClass
-    public static void setUp() {
-        if(isForSession)
-            session = new Session (defaultTestHost, defaultTestPort, defaultTestUser, defaultTestPass);
-        try {
-            session.openSession();
-        } catch (SessionException e) {
-            logger.error(e.getMessage());
+    public static void setUp() throws SessionException {
+        if(isForSession) {
+            session = new Session(defaultTestHost, defaultTestPort, defaultTestUser, defaultTestPass);
+        } else if (isForSessionPool) {
+            // TODO
         }
+        session.openSession();
     }
 
     @AfterClass
-    public static void tearDown() {
-        try {
-            session.closeSession();
-        } catch (SessionException e) {
-            logger.error(e.getMessage());
-        }
+    public static void tearDown() throws SessionException {
+        session.closeSession();
     }
 
     @Before
