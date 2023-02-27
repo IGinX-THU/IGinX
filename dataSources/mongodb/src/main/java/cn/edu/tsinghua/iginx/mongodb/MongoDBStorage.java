@@ -158,6 +158,7 @@ public class MongoDBStorage implements IStorage {
         for (String pattern : patterns) {
             patternRegexes.add(regex(NAME, DataUtils.reformatPattern(pattern)));
         }
+//        return new Document().append(NAME, new Document().append("$regex", DataUtils.reformatPattern(patterns.get(0))));
         return or(patternRegexes);
     }
 
@@ -198,7 +199,7 @@ public class MongoDBStorage implements IStorage {
                 return or(preciseBsonFilters);
             case WithoutTag:
             default:
-                return null;
+                return new Document();
         }
     }
 
@@ -207,17 +208,22 @@ public class MongoDBStorage implements IStorage {
         if (collection == null) {
             return new TaskExecuteResult(new PhysicalTaskExecuteFailureException("create collection failure!"));
         }
-        try (MongoCursor<Document> cursor = collection.find(
-            and(
+        Bson findQuery = genPatternBson(project.getPatterns());
+        if (project.getTagFilter() != null) {
+            findQuery = and(
                 genPatternBson(project.getPatterns()),
                 genTagKVBson(project.getTagFilter())
-            )
-        ).projection(
-            fields(
-                excludeId(),
-                include(FULLNAME, NAME, TYPE, VALUES)
-            )
-        ).iterator()) {
+            );
+        }
+
+        List<Document> findDocuments = new ArrayList<>();
+        findDocuments.add(new Document().append("$match", findQuery));
+//        findDocuments.add(new Document().append("$unwind", "$" + VALUES));
+//        findDocuments.add(new Document().append("$match", new Document().append(VALUES + "." + INNER_TIMESTAMP, new Document().append("$gt", timeInterval.getStartTime()).append("$lt", timeInterval.getEndTime()))));
+        for (Document document : findDocuments) {
+            logger.error(document.toString());
+        }
+        try (MongoCursor<Document> cursor = collection.aggregate(findDocuments).cursor()) {
             MongoDBQueryRowStream rowStream = new MongoDBQueryRowStream(cursor, timeInterval);
             return new TaskExecuteResult(rowStream);
         }
@@ -286,7 +292,10 @@ public class MongoDBStorage implements IStorage {
         try {
             for (Map.Entry<MongoDBSchema, List<JSONObject>> entry : points.entrySet()) {
                 MongoDBSchema mongoDBSchema = entry.getKey();
-                String fullName = mongoDBSchema.getName() + "{" + mongoDBSchema.getTags() + "}";
+                String fullName = mongoDBSchema.getName();
+                if (mongoDBSchema.getTags() != null && !mongoDBSchema.getTags().isEmpty()) {
+                    fullName = mongoDBSchema.getName() + "{" + mongoDBSchema.getTags() + "}";
+                }
                 List<JSONObject> jsonObjects = entry.getValue();
                 Bson findQuery = eq(FULLNAME, fullName);
                 if (collection.find(findQuery).iterator().hasNext()) {
@@ -321,7 +330,10 @@ public class MongoDBStorage implements IStorage {
                     index++;
                 }
             }
-            String fullName = schema.getName() + "{" + schema.getTags() + "}";
+            String fullName = schema.getName();
+            if (schema.getTags() != null && !schema.getTags().isEmpty()) {
+                fullName = schema.getName() + "{" + schema.getTags() + "}";
+            }
             Bson findQuery = eq(FULLNAME, fullName);
             if (collection.find(findQuery).iterator().hasNext()) {
                 collection.findOneAndUpdate(findQuery, Updates.pushEach(VALUES, jsonObjects));

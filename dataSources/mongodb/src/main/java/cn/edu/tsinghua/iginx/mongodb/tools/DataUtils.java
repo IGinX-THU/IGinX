@@ -63,10 +63,14 @@ public class DataUtils {
         Document document = new Document();
         document.append(MongoDBStorage.NAME, schema.getName());
         document.append(MongoDBStorage.TYPE, toString(type));
-        for (Map.Entry<String, String> entry : schema.getTags().entrySet()) {
-            document.append(MongoDBStorage.TAG_PREFIX + entry.getKey(), entry.getValue());
+        if (schema.getTags() != null && !schema.getTags().isEmpty()) {
+            for (Map.Entry<String, String> entry : schema.getTags().entrySet()) {
+                document.append(MongoDBStorage.TAG_PREFIX + entry.getKey(), entry.getValue());
+            }
+            document.append(MongoDBStorage.FULLNAME, schema.getName() + "{" + schema.getTagsAsString() + "}");
+        } else {
+            document.append(MongoDBStorage.FULLNAME, schema.getName());
         }
-        document.append(MongoDBStorage.FULLNAME, schema.getName() + "{" + schema.getTagsAsString() + "}");
         JSONArray jsonArray = new JSONArray();
         for (int i = 0; i < jsonObjects.size(); i++) {
             jsonArray.add(jsonObjects);
