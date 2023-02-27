@@ -64,7 +64,7 @@ jobs:
       - name: oriNoDataExpNoData IT
 #        if: always()
         run: |
-          mvn test -q -Dtest=${{matrix.DB-name}}HistoryDataCapacityExpansionIT#oriHasDataExpHasData -DfailIfNoTests=false
+          mvn test -q -Dtest=${{matrix.DB-name}}HistoryDataCapacityExpansionIT#oriNoDataExpNoData -DfailIfNoTests=false
           mvn test -q -Dtest=${{matrix.DB-name}}TagIT,${{matrix.DB-name}}BRestfulIT,${{matrix.DB-name}}SessionIT,${{matrix.DB-name}}SqlIT -DfailIfNoTests=false
       #第 3 阶段测试开始==========================================
       - name: Prepare CapExp environment oriHasDataExpNoData
@@ -77,7 +77,7 @@ jobs:
       - name: oriHasDataExpNoData IT
 #        if: always()
         run: |
-          mvn test -q -Dtest=${{matrix.DB-name}}HistoryDataCapacityExpansionIT#oriHasDataExpHasData -DfailIfNoTests=false
+          mvn test -q -Dtest=${{matrix.DB-name}}HistoryDataCapacityExpansionIT#oriHasDataExpNoData -DfailIfNoTests=false
           mvn test -q -Dtest=${{matrix.DB-name}}TagIT,${{matrix.DB-name}}BRestfulIT,${{matrix.DB-name}}SessionIT,${{matrix.DB-name}}SqlIT -DfailIfNoTests=false
       #第 4 阶段测试开始==========================================
       - name: Prepare CapExp environment oriNoDataExpHasData
