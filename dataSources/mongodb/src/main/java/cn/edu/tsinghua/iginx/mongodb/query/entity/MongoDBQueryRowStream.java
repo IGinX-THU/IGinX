@@ -25,45 +25,40 @@ public class MongoDBQueryRowStream implements RowStream {
 
     public MongoDBQueryRowStream(MongoCursor<Document> cursor, TimeInterval timeInterval) {
         Map<String, PriorityQueue<MongoDBPoint>> queueMap = new HashMap<>();
-        List<Field> fieldList = new ArrayList<>();
+        Set<Field> fieldList = new HashSet<>();
         while (cursor.hasNext()) {
             Document document = cursor.next();
             String name = document.getString(MongoDBStorage.NAME);
             String fullname = document.getString(MongoDBStorage.FULLNAME);
             DataType dataType = DataUtils.fromString(document.getString(MongoDBStorage.TYPE));
-            String values = document.getString(MongoDBStorage.VALUES);
-            JSONArray jsonArray = JSONArray.parseArray(values);
-            jsonArray = jsonArray.getJSONArray(0);
-
-            for (int i = 0; i < jsonArray.size(); i++) {
-                JSONObject timeAndValueObject = jsonArray.getJSONObject(i);
-                long timestamp = timeAndValueObject.getLong(MongoDBStorage.INNER_TIMESTAMP);
-                if (timeInterval.getStartTime() <= timestamp && timestamp < timeInterval.getEndTime()) {
-                    Object value = null;
-                    switch (dataType) {
-                        case INTEGER:
-                            value = timeAndValueObject.getInteger(MongoDBStorage.INNER_VALUE);
-                            break;
-                        case LONG:
-                            value = timeAndValueObject.getLong(MongoDBStorage.INNER_VALUE);
-                            break;
-                        case BOOLEAN:
-                            value = timeAndValueObject.getBoolean(MongoDBStorage.INNER_VALUE);
-                            break;
-                        case DOUBLE:
-                            value = timeAndValueObject.getDouble(MongoDBStorage.INNER_VALUE);
-                            break;
-                        case FLOAT:
-                            value = timeAndValueObject.getFloat(MongoDBStorage.INNER_VALUE);
-                            break;
-                        case BINARY:
-                            Binary binary = (Binary) document.get(MongoDBStorage.INNER_VALUE);
-                            value = binary.getData();
-                            break;
-                    }
-                    MongoDBPoint point = new MongoDBPoint(new Value(dataType, value), timestamp);
-                    queueMap.computeIfAbsent(name, key -> new PriorityQueue<>()).add(point);
+            Document timeAndValueDocument = document.get(MongoDBStorage.VALUES, Document.class);
+            long timestamp = timeAndValueDocument.getLong(MongoDBStorage.INNER_TIMESTAMP);
+            if (timeInterval.getStartTime() <= timestamp && timestamp < timeInterval.getEndTime()) {
+                Object value = null;
+                switch (dataType) {
+                    case INTEGER:
+                        value = timeAndValueDocument.getInteger(MongoDBStorage.INNER_VALUE);
+                        break;
+                    case LONG:
+                        value = timeAndValueDocument.getLong(MongoDBStorage.INNER_VALUE);
+                        break;
+                    case BOOLEAN:
+                        value = timeAndValueDocument.getBoolean(MongoDBStorage.INNER_VALUE);
+                        break;
+                    case DOUBLE:
+                        value = timeAndValueDocument.getDouble(MongoDBStorage.INNER_VALUE);
+                        break;
+                    case FLOAT:
+                        double doubleValue = timeAndValueDocument.getDouble(MongoDBStorage.INNER_VALUE);
+                        value = (float) doubleValue;
+                        break;
+                    case BINARY:
+                        Binary binary = (Binary) document.get(MongoDBStorage.INNER_VALUE);
+                        value = binary.getData();
+                        break;
                 }
+                MongoDBPoint point = new MongoDBPoint(new Value(dataType, value), timestamp);
+                queueMap.computeIfAbsent(name, key -> new PriorityQueue<>()).add(point);
             }
 
             if (fullname.length() > name.length()) {
@@ -83,7 +78,7 @@ public class MongoDBQueryRowStream implements RowStream {
         for (Map.Entry<String, PriorityQueue<MongoDBPoint>> entry : queueMap.entrySet()) {
             queueList.add(new Pair<>(entry.getKey(), entry.getValue()));
         }
-        Header header = new Header(Field.KEY, fieldList);
+        Header header = new Header(Field.KEY, new ArrayList<>(fieldList));
         List<Row> rows = new ArrayList<>();
         int queueHasData = queueMap.size();
         while (queueHasData != 0) {

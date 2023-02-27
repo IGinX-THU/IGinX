@@ -223,12 +223,12 @@ public class MongoDBStorage implements IStorage {
             Arrays.asList(
                 match(findQuery)
                 , unwind("$" + VALUES)
-//                , match(
-//                    and(
-//                        gte(VALUES + "." + INNER_TIMESTAMP, timeInterval.getStartTime())
-//                        , lt(VALUES + "." + INNER_TIMESTAMP, timeInterval.getEndTime())
-//                    )
-//                )
+                , match(
+                    and(
+                        gte(VALUES + "." + INNER_TIMESTAMP, timeInterval.getStartTime())
+                        , lt(VALUES + "." + INNER_TIMESTAMP, timeInterval.getEndTime())
+                    )
+                )
             ))
             .cursor()) {
             MongoDBQueryRowStream rowStream = new MongoDBQueryRowStream(cursor, timeInterval);
