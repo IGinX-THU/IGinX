@@ -71,11 +71,7 @@ public class DataUtils {
         } else {
             document.append(MongoDBStorage.FULLNAME, schema.getName());
         }
-        JSONArray jsonArray = new JSONArray();
-        for (int i = 0; i < jsonObjects.size(); i++) {
-            jsonArray.add(jsonObjects);
-        }
-        document.append(MongoDBStorage.VALUES, jsonArray.toString());
+        document.append(MongoDBStorage.VALUES, jsonObjects);
         return document;
     }
 

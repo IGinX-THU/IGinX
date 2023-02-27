@@ -33,6 +33,7 @@ public class MongoDBQueryRowStream implements RowStream {
             DataType dataType = DataUtils.fromString(document.getString(MongoDBStorage.TYPE));
             String values = document.getString(MongoDBStorage.VALUES);
             JSONArray jsonArray = JSONArray.parseArray(values);
+            jsonArray = jsonArray.getJSONArray(0);
 
             for (int i = 0; i < jsonArray.size(); i++) {
                 JSONObject timeAndValueObject = jsonArray.getJSONObject(i);
@@ -45,6 +46,7 @@ public class MongoDBQueryRowStream implements RowStream {
                             break;
                         case LONG:
                             value = timeAndValueObject.getLong(MongoDBStorage.INNER_VALUE);
+                            break;
                         case BOOLEAN:
                             value = timeAndValueObject.getBoolean(MongoDBStorage.INNER_VALUE);
                             break;

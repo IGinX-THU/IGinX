@@ -158,7 +158,6 @@ public class MongoDBStorage implements IStorage {
         for (String pattern : patterns) {
             patternRegexes.add(regex(NAME, DataUtils.reformatPattern(pattern)));
         }
-//        return new Document().append(NAME, new Document().append("$regex", DataUtils.reformatPattern(patterns.get(0))));
         return or(patternRegexes);
     }
 
@@ -218,11 +217,12 @@ public class MongoDBStorage implements IStorage {
 
         List<Document> findDocuments = new ArrayList<>();
         findDocuments.add(new Document().append("$match", findQuery));
-//        findDocuments.add(new Document().append("$unwind", "$" + VALUES));
-//        findDocuments.add(new Document().append("$match", new Document().append(VALUES + "." + INNER_TIMESTAMP, new Document().append("$gt", timeInterval.getStartTime()).append("$lt", timeInterval.getEndTime()))));
-        for (Document document : findDocuments) {
-            logger.error(document.toString());
-        }
+        findDocuments.add(new Document()
+            .append("$unwind", new Document()
+                .append("path", "$" + VALUES)
+                .append("includeArrayIndex", "arrayIndex")
+                .append("preserveNullAndEmptyArrays", false)));
+//        findDocuments.add(new Document().append("$match", new Document().append(VALUES + "." + INNER_TIMESTAMP, new Document().append("$gte", timeInterval.getStartTime()).append("$lt", timeInterval.getEndTime()))));
         try (MongoCursor<Document> cursor = collection.aggregate(findDocuments).cursor()) {
             MongoDBQueryRowStream rowStream = new MongoDBQueryRowStream(cursor, timeInterval);
             return new TaskExecuteResult(rowStream);
