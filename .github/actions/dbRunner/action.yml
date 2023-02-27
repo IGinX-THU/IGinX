@@ -24,16 +24,16 @@ runs:
           exit 1
         fi
 
-    - if: inputs.version=='iotdb12'
+    - if: inputs.version=='IoTDB12'
       name: Run DB
       shell: bash
       run: |
         if [ "$RUNNER_OS" == "Linux" ]; then
-          chmod +x "${GITHUB_WORKSPACE}/.github/${{inputs.version}}.sh"
-          "${GITHUB_WORKSPACE}/.github/${{inputs.version}}.sh"
+          chmod +x "${GITHUB_WORKSPACE}/.github/iotdb12.sh"
+          "${GITHUB_WORKSPACE}/.github/iotdb12.sh"
         elif [ "$RUNNER_OS" == "macOS" ]; then
-          chmod +x "${GITHUB_WORKSPACE}/.github/${{inputs.version}}_macos.sh"
-          "${GITHUB_WORKSPACE}/.github/${{inputs.version}}_macos.sh"
+          chmod +x "${GITHUB_WORKSPACE}/.github/iotdb12_macos.sh"
+          "${GITHUB_WORKSPACE}/.github/iotdb12_macos.sh"
         else
           echo "$RUNNER_OS is not supported"
           exit 1

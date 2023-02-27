@@ -6,7 +6,6 @@ on:
       - main
 env:
   VERSION: 0.6.0-SNAPSHOT
-  iotdb12ScaleOutIT: IoTDBTagScaleOutIT,IoTDBRestfulScaleOutIT,IoTDBSessionScaleOutIT,IoTDBSqlScaleOutIT
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -20,7 +19,7 @@ jobs:
         java: [ 8 ]
         python-version: [ "3.7" ]
         os: [ ubuntu-latest, macos-latest ]
-        DB-name: ["iotdb12", "influxdb"]
+        DB-name: ["IoTDB12", "InfluxDB"]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
@@ -52,14 +51,8 @@ jobs:
       - name: oriHasDataExpHasData IT
 #        if: always()
         run: |
-          if [ "${{matrix.DB-name}}" == "iotdb12" ]; then
-            mvn test -q -Dtest=IoTDB12HistoryDataCapacityExpansionIT#oriHasDataExpHasData -DfailIfNoTests=false
-            mvn test -q -Dtest=${iotdb12ScaleOutIT} -DfailIfNoTests=false
-          elif [ "${{matrix.DB-name}}" == "influxdb" ]; then
-            mvn test -q -Dtest=InfluxDBHistoryDataCapacityExpansionIT#oriHasDataExpHasData -DfailIfNoTests=false
-          else
-            echo "${{matrix.DB-name}} is not supported"
-          fi
+          mvn test -q -Dtest=${{matrix.DB-name}}HistoryDataCapacityExpansionIT#oriHasDataExpHasData -DfailIfNoTests=false
+          mvn test -q -Dtest=${{matrix.DB-name}}TagIT,${{matrix.DB-name}}BRestfulIT,${{matrix.DB-name}}SessionIT,${{matrix.DB-name}}SqlIT -DfailIfNoTests=false
       #第 2 阶段测试开始==========================================
       - name: Prepare CapExp environment oriNoDataExpNoData
 #        if: always()
@@ -71,14 +64,8 @@ jobs:
       - name: oriNoDataExpNoData IT
 #        if: always()
         run: |
-          if [ "${{matrix.DB-name}}" == "iotdb12" ]; then
-            mvn test -q -Dtest=IoTDB12HistoryDataCapacityExpansionIT#oriNoDataExpNoData -DfailIfNoTests=false
-            mvn test -q -Dtest=${iotdb12ScaleOutIT} -DfailIfNoTests=false
-          elif [ "${{matrix.DB-name}}" == "influxdb" ]; then
-            mvn test -q -Dtest=InfluxDBHistoryDataCapacityExpansionIT#oriNoDataExpNoData -DfailIfNoTests=false
-          else
-            echo "${{matrix.DB-name}} is not supported"
-          fi
+          mvn test -q -Dtest=${{matrix.DB-name}}HistoryDataCapacityExpansionIT#oriHasDataExpHasData -DfailIfNoTests=false
+          mvn test -q -Dtest=${{matrix.DB-name}}TagIT,${{matrix.DB-name}}BRestfulIT,${{matrix.DB-name}}SessionIT,${{matrix.DB-name}}SqlIT -DfailIfNoTests=false
       #第 3 阶段测试开始==========================================
       - name: Prepare CapExp environment oriHasDataExpNoData
 #        if: always()
@@ -90,14 +77,8 @@ jobs:
       - name: oriHasDataExpNoData IT
 #        if: always()
         run: |
-          if [ "${{matrix.DB-name}}" == "iotdb12" ]; then
-            mvn test -q -Dtest=IoTDB12HistoryDataCapacityExpansionIT#oriHasDataExpNoData -DfailIfNoTests=false
-            mvn test -q -Dtest=${iotdb12ScaleOutIT} -DfailIfNoTests=false
-          elif [ "${{matrix.DB-name}}" == "influxdb" ]; then
-            mvn test -q -Dtest=InfluxDBHistoryDataCapacityExpansionIT#oriHasDataExpNoData -DfailIfNoTests=false
-          else
-            echo "${{matrix.DB-name}} is not supported"
-          fi
+          mvn test -q -Dtest=${{matrix.DB-name}}HistoryDataCapacityExpansionIT#oriHasDataExpHasData -DfailIfNoTests=false
+          mvn test -q -Dtest=${{matrix.DB-name}}TagIT,${{matrix.DB-name}}BRestfulIT,${{matrix.DB-name}}SessionIT,${{matrix.DB-name}}SqlIT -DfailIfNoTests=false
       #第 4 阶段测试开始==========================================
       - name: Prepare CapExp environment oriNoDataExpHasData
 #        if: always()

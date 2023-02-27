@@ -1,10 +1,10 @@
-package cn.edu.tsinghua.iginx.integration.expansion.iotdb.scaleout;
+package cn.edu.tsinghua.iginx.integration.expansion.iotdb.func;
 
 import cn.edu.tsinghua.iginx.integration.func.tag.TagIT;
 import cn.edu.tsinghua.iginx.utils.FileReader;
 
-public class IoTDBTagScaleOutIT extends TagIT {
-    public IoTDBTagScaleOutIT() {
+public class IoTDB12TagIT extends TagIT {
+    public IoTDB12TagIT() {
         super();
         this.storageEngineType = FileReader.convertToString("./src/test/java/cn/edu/tsinghua/iginx/integration/DBConf.txt");
         TagIT.ifClearData = false;

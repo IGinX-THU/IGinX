@@ -12,13 +12,13 @@ inputs:
 runs:
   using: "composite" # Mandatory parameter
   steps:
-    - if: inputs.version=='iotdb12'
+    - if: inputs.version=='IoTDB12'
       name: Write history Data
       shell: bash
       run: |
         mvn test -q -Dtest=IoTDBHistoryDataGenerator#${{inputs.Test-Way}} -DfailIfNoTests=false
 
-    - if: inputs.version=='influxdb'
+    - if: inputs.version=='InfluxDB'
       name: Write history Data
       shell: bash
       run: |

@@ -1,10 +1,10 @@
-package cn.edu.tsinghua.iginx.integration.expansion.iotdb.scaleout;
+package cn.edu.tsinghua.iginx.integration.expansion.iotdb.func;
 
 import cn.edu.tsinghua.iginx.integration.func.rest.RestIT;
 import cn.edu.tsinghua.iginx.utils.FileReader;
 
-public class IoTDBRestfulScaleOutIT extends RestIT {
-    public IoTDBRestfulScaleOutIT() {
+public class IoTDB12RestfulIT extends RestIT {
+    public IoTDB12RestfulIT() {
         super();
         this.storageEngineType = FileReader.convertToString("./src/test/java/cn/edu/tsinghua/iginx/integration/DBConf.txt");
         this.ifClearData = false;
