@@ -29,6 +29,10 @@ import cn.edu.tsinghua.iginx.mongodb.tools.DataUtils;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import com.alibaba.fastjson.JSONObject;
+import com.mongodb.AggregationOptions;
+
+import static com.mongodb.client.model.Aggregates.*;
+
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.client.*;
@@ -215,15 +219,18 @@ public class MongoDBStorage implements IStorage {
             );
         }
 
-        List<Document> findDocuments = new ArrayList<>();
-        findDocuments.add(new Document().append("$match", findQuery));
-        findDocuments.add(new Document()
-            .append("$unwind", new Document()
-                .append("path", "$" + VALUES)
-                .append("includeArrayIndex", "arrayIndex")
-                .append("preserveNullAndEmptyArrays", false)));
-//        findDocuments.add(new Document().append("$match", new Document().append(VALUES + "." + INNER_TIMESTAMP, new Document().append("$gte", timeInterval.getStartTime()).append("$lt", timeInterval.getEndTime()))));
-        try (MongoCursor<Document> cursor = collection.aggregate(findDocuments).cursor()) {
+        try (MongoCursor<Document> cursor = collection.aggregate(
+            Arrays.asList(
+                match(findQuery)
+                , unwind("$" + VALUES)
+//                , match(
+//                    and(
+//                        gte(VALUES + "." + INNER_TIMESTAMP, timeInterval.getStartTime())
+//                        , lt(VALUES + "." + INNER_TIMESTAMP, timeInterval.getEndTime())
+//                    )
+//                )
+            ))
+            .cursor()) {
             MongoDBQueryRowStream rowStream = new MongoDBQueryRowStream(cursor, timeInterval);
             return new TaskExecuteResult(rowStream);
         }
