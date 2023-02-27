@@ -139,7 +139,7 @@ public class PostgreSQLStorage implements IStorage {
   }
 
   @Override
-  public TaskExecuteResult execute(StoragePhysicalTask task) throws SQLException {
+  public TaskExecuteResult execute(StoragePhysicalTask task) {
     List<Operator> operators = task.getOperators();
     if (operators.size() != 1) {
       return new TaskExecuteResult(
@@ -150,7 +150,11 @@ public class PostgreSQLStorage implements IStorage {
     String storageUnit = task.getStorageUnit();
     // 先切换数据库
     //connection.close();
-    useDatabase(storageUnit);
+    try {
+      useDatabase(storageUnit);
+    }catch (Exception e){
+      logger.info("pass");
+    }
 
     if (op.getType() == OperatorType.Project) { // 目前只实现 project 操作符
       Project project = (Project) op;
@@ -307,6 +311,10 @@ public class PostgreSQLStorage implements IStorage {
           allDatabase.add(databaseSet.getString(1));
         }
         ArrayList databases=new ArrayList<>();
+        String[] path_l=path.split("\\.");
+        if (path_l.length<3){
+          path="postgres."+path;
+        }
         String database_table = path.substring(0, path.lastIndexOf('.'));
         String tableName="";
         String field1="";
@@ -599,31 +607,43 @@ public class PostgreSQLStorage implements IStorage {
   }
 
   private TaskExecuteResult executeDeleteTask(Delete delete) {
-    // only support to the level of device now
-    // TODO support the delete to the level of sensor
     try {
       for (int i = 0; i < delete.getPatterns().size(); i++) {
         String path = delete.getPatterns().get(i);
         TimeRange timeRange = delete.getTimeRanges().get(i);
-        String table = path.substring(0, path.lastIndexOf('.'));
+        String db_ta=path.substring(0,path.lastIndexOf('.'));
+        String database = db_ta.substring(0, db_ta.lastIndexOf('.'));
+        String table=db_ta.substring(db_ta.lastIndexOf(',')+1);
+        database = database.replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
         table = table.replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
         String field = path.substring(path.lastIndexOf('.') + 1);
         field = field.replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
         // 查询序列类型
+        useDatabase(database);
         DatabaseMetaData databaseMetaData = connection.getMetaData();
-        ResultSet columnSet = databaseMetaData.getColumns(null, "%", table, field);
-        if (columnSet.next()) {
-          String statement = String
-              .format(DELETE_DATA, table,
-                  timeRange.getBeginTime(), Math.min(timeRange.getEndTime(), MAX_TIMESTAMP));
-          Statement stmt = connection.createStatement();
-          stmt.execute(statement);
+        ResultSet tableSet=null;
+        if(table.equals("*")){
+          tableSet=databaseMetaData.getTables(null, "%", "%", new String[]{"TABLE"});
+        }
+        else{
+          tableSet=databaseMetaData.getTables(null,"%",table,new String[]{"table"});
+        }
+        while(tableSet.next()) {
+          String tableName=tableSet.getString(3);
+          ResultSet columnSet = databaseMetaData.getColumns(null, "%", tableName, field);
+          if (columnSet.next()) {
+            String statement = String
+                    .format(DELETE_DATA, tableName,
+                            timeRange.getBeginTime(), Math.min(timeRange.getEndTime(), MAX_TIMESTAMP));
+            Statement stmt = connection.createStatement();
+            stmt.execute(statement);
+          }
         }
       }
       return new TaskExecuteResult(null, null);
     } catch (SQLException e) {
       return new TaskExecuteResult(
-          new PhysicalTaskExecuteFailureException("execute delete task in timescaledb failure",
+          new PhysicalTaskExecuteFailureException("execute delete task in postgresql failure",
               e));
     }
   }

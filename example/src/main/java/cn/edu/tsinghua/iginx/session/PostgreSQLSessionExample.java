@@ -21,6 +21,8 @@ package cn.edu.tsinghua.iginx.session;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
+import org.apache.commons.lang3.RandomStringUtils;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -45,9 +47,9 @@ public class PostgreSQLSessionExample {
         session = new Session("127.0.0.1", 6888, "root", "root");
         // 打开 Session
         session.openSession();
-        // 行式插入对齐数据
-//        insertRowRecords();
-//        queryData();
+//         行式插入对齐数据
+        insertRowRecords();
+        queryData();
         deleteDataInColumns();
         // 关闭 Session
         session.closeSession();
@@ -57,20 +59,20 @@ public class PostgreSQLSessionExample {
         List<String> paths = new ArrayList<>();
         paths.add(S1);
         paths.add(S2);
-//        paths.add(S3);
-//        paths.add(S4);
+        paths.add(S3);
+        paths.add(S4);
 
         int size = (int) (ROW_END_TIMESTAMP - ROW_START_TIMESTAMP + 1);
         long[] timestamps = new long[size];
         Object[] valuesList = new Object[size];
         for (long i = 0; i < size; i++) {
             timestamps[(int) i] = ROW_START_TIMESTAMP + i;
-            Object[] values = new Object[2];
+            Object[] values = new Object[4];
             for (long j = 0; j < 4; j++) {
                 if (j < 2) {
                     values[(int) j] = i + j;
                 } else {
-//                    values[(int) j] = RandomStringUtils.randomAlphanumeric(10).getBytes();
+                    values[(int) j] = RandomStringUtils.randomAlphanumeric(10).getBytes();
                 }
             }
             valuesList[(int) i] = values;
@@ -80,9 +82,9 @@ public class PostgreSQLSessionExample {
         for (int i = 0; i < 2; i++) {
             dataTypeList.add(DataType.LONG);
         }
-//        for (int i = 0; i < 2; i++) {
-//            dataTypeList.add(DataType.BINARY);
-//        }
+        for (int i = 0; i < 2; i++) {
+            dataTypeList.add(DataType.BINARY);
+        }
 
         session.insertRowRecords(paths, timestamps, valuesList, dataTypeList, null);
     }
@@ -91,8 +93,8 @@ public class PostgreSQLSessionExample {
         List<String> paths = new ArrayList<>();
         paths.add(S1);
         paths.add(S2);
-//        paths.add(S3);
-//        paths.add(S4);
+        paths.add(S3);
+        paths.add(S4);
 
         long startTime = NON_ALIGNED_COLUMN_END_TIMESTAMP - 100L;
         long endTime = ROW_START_TIMESTAMP + 100L;
