@@ -12,6 +12,7 @@ import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.CheckUtils;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.RowUtils;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.TypeUtils;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
+import java.util.concurrent.BlockingQueue;
 import pemja.core.PythonInterpreter;
 
 import java.util.*;
@@ -23,12 +24,12 @@ public class PyUDAF implements UDAF {
 
     private static final String PY_UDAF = "py_udaf";
 
-    private final PythonInterpreter interpreter;
+    private final BlockingQueue<PythonInterpreter> interpreters;
 
     private final String funcName;
 
-    public PyUDAF(PythonInterpreter interpreter, String funcName) {
-        this.interpreter = interpreter;
+    public PyUDAF(BlockingQueue<PythonInterpreter> interpreter, String funcName) {
+        this.interpreters = interpreter;
         this.funcName = funcName;
     }
 
@@ -52,6 +53,8 @@ public class PyUDAF implements UDAF {
         if (!CheckUtils.isLegal(params)) {
             throw new IllegalArgumentException("unexpected params for PyUDAF.");
         }
+
+        PythonInterpreter interpreter = interpreters.take();
 
         String target = params.get(PARAM_PATHS).getBinaryVAsString();
         if (StringUtils.isPattern(target)) {
@@ -82,6 +85,7 @@ public class PyUDAF implements UDAF {
             if (res.size() != name.size()) {
                 return Row.EMPTY_ROW;
             }
+            interpreters.add(interpreter);
 
             List<Field> targetFields = new ArrayList<>();
             for (int i = 0; i < name.size(); i++) {
@@ -104,6 +108,7 @@ public class PyUDAF implements UDAF {
             if (res.size() != 1) {
                 return Row.EMPTY_ROW;
             }
+            interpreters.add(interpreter);
 
             Field targetField = new Field(getFunctionName() + "(" + target + ")", TypeUtils.getDataTypeFromObject(res.get(0)));
             return RowUtils.constructNewRow(new Header(Collections.singletonList(targetField)), res);

@@ -12,13 +12,12 @@ import cn.edu.tsinghua.iginx.engine.shared.function.udf.UDSF;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.CheckUtils;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.RowUtils;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.TypeUtils;
-import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
+import java.util.concurrent.BlockingQueue;
 import pemja.core.PythonInterpreter;
 
 import java.util.*;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.*;
 
@@ -26,12 +25,12 @@ public class PyUDSF implements UDSF {
 
     private static final String PY_UDSF = "py_udsf";
 
-    private final PythonInterpreter interpreter;
+    private final BlockingQueue<PythonInterpreter> interpreters;
 
     private final String funcName;
 
-    public PyUDSF(PythonInterpreter interpreter, String funcName) {
-        this.interpreter = interpreter;
+    public PyUDSF(BlockingQueue<PythonInterpreter> interpreters, String funcName) {
+        this.interpreters = interpreters;
         this.funcName = funcName;
     }
 
@@ -55,6 +54,8 @@ public class PyUDSF implements UDSF {
         if (!CheckUtils.isLegal(params)) {
             throw new IllegalArgumentException("unexpected params for PyUDSF.");
         }
+
+        PythonInterpreter interpreter = interpreters.take();
 
         String target = params.get(PARAM_PATHS).getBinaryVAsString();
         if (StringUtils.isPattern(target)) {
@@ -85,6 +86,7 @@ public class PyUDSF implements UDSF {
             if (res == null || res.size() == 0) {
                 return Table.EMPTY_TABLE;
             }
+            interpreters.add(interpreter);
 
             List<Object> firstRow = res.get(0);
             List<Field> targetFields = new ArrayList<>();
@@ -108,6 +110,7 @@ public class PyUDSF implements UDSF {
             if (res == null || res.size() == 0) {
                 return Table.EMPTY_TABLE;
             }
+            interpreters.add(interpreter);
 
             List<Object> firstRow = res.get(0);
             Field targetField = new Field(getFunctionName() + "(" + target + ")", TypeUtils.getDataTypeFromObject(firstRow.get(0)));

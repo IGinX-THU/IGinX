@@ -10,8 +10,8 @@ import cn.edu.tsinghua.iginx.engine.shared.function.udf.UDTF;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.CheckUtils;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.RowUtils;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.TypeUtils;
-import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
+import java.util.concurrent.BlockingQueue;
 import pemja.core.PythonInterpreter;
 
 import java.util.*;
@@ -23,12 +23,12 @@ public class PyUDTF implements UDTF {
 
     private static final String PY_UDTF = "py_udtf";
 
-    private final PythonInterpreter interpreter;
+    private final BlockingQueue<PythonInterpreter> interpreters;
 
     private final String funcName;
 
-    public PyUDTF(PythonInterpreter interpreter, String funcName) {
-        this.interpreter = interpreter;
+    public PyUDTF(BlockingQueue<PythonInterpreter> interpreters, String funcName) {
+        this.interpreters = interpreters;
         this.funcName = funcName;
     }
 
@@ -53,6 +53,8 @@ public class PyUDTF implements UDTF {
             throw new IllegalArgumentException("unexpected params for PyUDTF.");
         }
 
+        PythonInterpreter interpreter = interpreters.take();
+
         String target = params.get(PARAM_PATHS).getBinaryVAsString();
         if (StringUtils.isPattern(target)) {
             Pattern pattern = Pattern.compile(StringUtils.reformatPath(target));
@@ -73,6 +75,7 @@ public class PyUDTF implements UDTF {
             if (res.size() != name.size()) {
                 return Row.EMPTY_ROW;
             }
+            interpreters.add(interpreter);
 
             List<Field> targetFields = new ArrayList<>();
             for (int i = 0; i < name.size(); i++) {
@@ -93,6 +96,7 @@ public class PyUDTF implements UDTF {
             if (res.size() != 1) {
                 return Row.EMPTY_ROW;
             }
+            interpreters.add(interpreter);
 
             Field targetField = new Field(getFunctionName() + "(" + target + ")", TypeUtils.getDataTypeFromObject(res.get(0)));
             Header header = row.getHeader().hasKey() ?
