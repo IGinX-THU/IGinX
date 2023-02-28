@@ -79,19 +79,19 @@ public class PyUDSF implements UDSF {
                 }
                 data.add(rowData);
             }
-            Object[] res = (Object[]) interpreter.invokeMethod(UDF_CLASS, UDF_FUNC, data);
-            if (res == null || res.length == 0) {
+            List<List<Object>> res = (List<List<Object>>) interpreter.invokeMethod(UDF_CLASS, UDF_FUNC, data);
+            if (res == null || res.size() == 0) {
                 return Table.EMPTY_TABLE;
             }
 
-            Object[] firstRow = (Object[])res[0];
+            List<Object> firstRow = res.get(0);
             List<Field> targetFields = new ArrayList<>();
             for (int i = 0; i < name.size(); i++) {
-                targetFields.add(new Field(name.get(i), TypeUtils.getDataTypeFromObject(firstRow[i])));
+                targetFields.add(new Field(name.get(i), TypeUtils.getDataTypeFromObject(firstRow.get(i))));
             }
             Header header = new Header(targetFields);
 
-            List<Row> rowList = Arrays.stream(res).map(row -> new Row(header, (Object[]) row)).collect(Collectors.toList());
+            List<Row> rowList = res.stream().map(row -> new Row(header, row.toArray())).collect(Collectors.toList());
             return new Table(header, rowList);
         } else {
             int index = rows.getHeader().indexOf(target);
@@ -104,16 +104,16 @@ public class PyUDSF implements UDSF {
                 Row row = rows.next();
                 data.add(Collections.singletonList(row.getValues()[index]));
             }
-            Object[] res = (Object[]) interpreter.invokeMethod(UDF_CLASS, UDF_FUNC, data);
-            if (res == null || res.length == 0) {
+            List<List<Object>> res = (List<List<Object>>) interpreter.invokeMethod(UDF_CLASS, UDF_FUNC, data);
+            if (res == null || res.size() == 0) {
                 return Table.EMPTY_TABLE;
             }
 
-            Object[] firstRow = (Object[])res[0];
-            Field targetField = new Field(getFunctionName() + "(" + target + ")", TypeUtils.getDataTypeFromObject(firstRow[0]));
+            List<Object> firstRow = res.get(0);
+            Field targetField = new Field(getFunctionName() + "(" + target + ")", TypeUtils.getDataTypeFromObject(firstRow.get(0)));
             Header header = new Header(Collections.singletonList(targetField));
 
-            List<Row> rowList = Arrays.stream(res).map(row -> new Row(header, (Object[]) row)).collect(Collectors.toList());
+            List<Row> rowList = res.stream().map(row -> new Row(header, row.toArray())).collect(Collectors.toList());
             return new Table(header, rowList);
         }
     }

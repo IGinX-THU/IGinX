@@ -67,37 +67,37 @@ public class PyUDTF implements UDTF {
                 return Row.EMPTY_ROW;
             }
 
-            Object[] res = (Object[]) interpreter.invokeMethod(UDF_CLASS, UDF_FUNC, data);
-            if (res.length != name.size()) {
+            List<Object> res = (List<Object>) interpreter.invokeMethod(UDF_CLASS, UDF_FUNC, data);
+            if (res.size() != name.size()) {
                 return Row.EMPTY_ROW;
             }
 
             List<Field> targetFields = new ArrayList<>();
             for (int i = 0; i < name.size(); i++) {
-                targetFields.add(new Field(name.get(i), TypeUtils.getDataTypeFromObject(res[i])));
+                targetFields.add(new Field(name.get(i), TypeUtils.getDataTypeFromObject(res.get(i))));
             }
             Header header = row.getHeader().hasKey() ?
                 new Header(Field.KEY, targetFields) :
                 new Header(targetFields);
 
-            return new Row(header, row.getKey(), res);
+            return new Row(header, row.getKey(), res.toArray());
         } else {
             int index = row.getHeader().indexOf(target);
             if (index == -1) {
                 return Row.EMPTY_ROW;
             }
 
-            Object[] res = (Object[]) interpreter.invokeMethod(UDF_CLASS, UDF_FUNC, Collections.singletonList(row.getValues()[index]));
-            if (res.length != 1) {
+            List<Object> res = (List<Object>) interpreter.invokeMethod(UDF_CLASS, UDF_FUNC, Collections.singletonList(row.getValues()[index]));
+            if (res.size() != 1) {
                 return Row.EMPTY_ROW;
             }
 
-            Field targetField = new Field(getFunctionName() + "(" + target + ")", TypeUtils.getDataTypeFromObject(res[0]));
+            Field targetField = new Field(getFunctionName() + "(" + target + ")", TypeUtils.getDataTypeFromObject(res.get(0)));
             Header header = row.getHeader().hasKey() ?
                 new Header(Field.KEY, Collections.singletonList(targetField)) :
                 new Header(Collections.singletonList(targetField));
 
-            return new Row(header, row.getKey(), res);
+            return new Row(header, row.getKey(), res.toArray());
         }
     }
 
