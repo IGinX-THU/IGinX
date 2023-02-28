@@ -92,7 +92,7 @@ jobs:
         run: |
           if [ "${{matrix.DB-name}}" == "IoTDB12" ]; then
             mvn test -q -Dtest=IoTDB12HistoryDataCapacityExpansionIT#oriNoDataExpHasData -DfailIfNoTests=false
-            mvn test -q -Dtest=${iotdb12ScaleOutIT} -DfailIfNoTests=false
+            mvn test -q -Dtest=${{matrix.DB-name}}TagIT,${{matrix.DB-name}}RestfulIT,${{matrix.DB-name}}SessionIT,${{matrix.DB-name}}SqlIT -DfailIfNoTests=false
             mvn test -q -Dtest=IoTDB12HistoryDataCapacityExpansionIT#schemaPrefix -DfailIfNoTests=false
           elif [ "${{matrix.DB-name}}" == "InfluxDB" ]; then
             mvn test -q -Dtest=InfluxDBHistoryDataCapacityExpansionIT#oriNoDataExpHasData -DfailIfNoTests=false
