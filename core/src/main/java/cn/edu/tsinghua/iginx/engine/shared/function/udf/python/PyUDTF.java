@@ -7,6 +7,8 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionType;
 import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.UDTF;
+import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.CheckUtils;
+import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.RowUtils;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.TypeUtils;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
@@ -47,7 +49,7 @@ public class PyUDTF implements UDTF {
 
     @Override
     public Row transform(Row row, Map<String, Value> params) throws Exception {
-        if (!isLegal(params)) {
+        if (!CheckUtils.isLegal(params)) {
             throw new IllegalArgumentException("unexpected params for PyUDTF.");
         }
 
@@ -80,7 +82,7 @@ public class PyUDTF implements UDTF {
                 new Header(Field.KEY, targetFields) :
                 new Header(targetFields);
 
-            return new Row(header, row.getKey(), res.toArray());
+            return RowUtils.constructNewRowWithKey(header, row.getKey(), res);
         } else {
             int index = row.getHeader().indexOf(target);
             if (index == -1) {
@@ -97,23 +99,8 @@ public class PyUDTF implements UDTF {
                 new Header(Field.KEY, Collections.singletonList(targetField)) :
                 new Header(Collections.singletonList(targetField));
 
-            return new Row(header, row.getKey(), res.toArray());
+            return RowUtils.constructNewRowWithKey(header, row.getKey(), res);
         }
-    }
-
-    private boolean isLegal(Map<String, Value> params) {
-        List<String> neededParams = Arrays.asList(PARAM_PATHS);
-        for (String param : neededParams) {
-            if (!params.containsKey(param)) {
-                return false;
-            }
-        }
-
-        Value paths = params.get(PARAM_PATHS);
-        if (paths == null || paths.getDataType() != DataType.BINARY) {
-            return false;
-        }
-        return true;
     }
 
     @Override

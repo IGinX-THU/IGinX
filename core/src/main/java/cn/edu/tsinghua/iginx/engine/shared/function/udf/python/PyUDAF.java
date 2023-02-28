@@ -8,8 +8,9 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionType;
 import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.UDAF;
+import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.CheckUtils;
+import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.RowUtils;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.TypeUtils;
-import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import pemja.core.PythonInterpreter;
 
@@ -48,7 +49,7 @@ public class PyUDAF implements UDAF {
 
     @Override
     public Row transform(RowStream rows, Map<String, Value> params) throws Exception {
-        if (!isLegal(params)) {
+        if (!CheckUtils.isLegal(params)) {
             throw new IllegalArgumentException("unexpected params for PyUDAF.");
         }
 
@@ -87,7 +88,7 @@ public class PyUDAF implements UDAF {
                 targetFields.add(new Field(name.get(i), TypeUtils.getDataTypeFromObject(res.get(i))));
             }
             Header header = new Header(targetFields);
-            return new Row(header, res.toArray());
+            return RowUtils.constructNewRow(header, res);
         } else {
             int index = rows.getHeader().indexOf(target);
             if (index == -1) {
@@ -105,23 +106,8 @@ public class PyUDAF implements UDAF {
             }
 
             Field targetField = new Field(getFunctionName() + "(" + target + ")", TypeUtils.getDataTypeFromObject(res.get(0)));
-            return new Row(new Header(Collections.singletonList(targetField)), res.toArray());
+            return RowUtils.constructNewRow(new Header(Collections.singletonList(targetField)), res);
         }
-    }
-
-    private boolean isLegal(Map<String, Value> params) {
-        List<String> neededParams = Arrays.asList(PARAM_PATHS);
-        for (String param : neededParams) {
-            if (!params.containsKey(param)) {
-                return false;
-            }
-        }
-
-        Value paths = params.get(PARAM_PATHS);
-        if (paths == null || paths.getDataType() != DataType.BINARY) {
-            return false;
-        }
-        return true;
     }
 
     @Override

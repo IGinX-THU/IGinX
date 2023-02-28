@@ -9,6 +9,8 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionType;
 import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.UDSF;
+import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.CheckUtils;
+import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.RowUtils;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.TypeUtils;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
@@ -50,8 +52,8 @@ public class PyUDSF implements UDSF {
 
     @Override
     public RowStream transform(RowStream rows, Map<String, Value> params) throws Exception {
-        if (!isLegal(params)) {
-            throw new IllegalArgumentException("unexpected params for PyUDAF.");
+        if (!CheckUtils.isLegal(params)) {
+            throw new IllegalArgumentException("unexpected params for PyUDSF.");
         }
 
         String target = params.get(PARAM_PATHS).getBinaryVAsString();
@@ -90,9 +92,7 @@ public class PyUDSF implements UDSF {
                 targetFields.add(new Field(name.get(i), TypeUtils.getDataTypeFromObject(firstRow.get(i))));
             }
             Header header = new Header(targetFields);
-
-            List<Row> rowList = res.stream().map(row -> new Row(header, row.toArray())).collect(Collectors.toList());
-            return new Table(header, rowList);
+            return RowUtils.constructNewTable(header, res);
         } else {
             int index = rows.getHeader().indexOf(target);
             if (index == -1) {
@@ -112,25 +112,8 @@ public class PyUDSF implements UDSF {
             List<Object> firstRow = res.get(0);
             Field targetField = new Field(getFunctionName() + "(" + target + ")", TypeUtils.getDataTypeFromObject(firstRow.get(0)));
             Header header = new Header(Collections.singletonList(targetField));
-
-            List<Row> rowList = res.stream().map(row -> new Row(header, row.toArray())).collect(Collectors.toList());
-            return new Table(header, rowList);
+            return RowUtils.constructNewTable(header, res);
         }
-    }
-
-    private boolean isLegal(Map<String, Value> params) {
-        List<String> neededParams = Arrays.asList(PARAM_PATHS);
-        for (String param : neededParams) {
-            if (!params.containsKey(param)) {
-                return false;
-            }
-        }
-
-        Value paths = params.get(PARAM_PATHS);
-        if (paths == null || paths.getDataType() != DataType.BINARY) {
-            return false;
-        }
-        return true;
     }
 
     @Override
