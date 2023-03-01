@@ -1394,6 +1394,63 @@ public abstract class SQLSessionIT {
     }
 
     @Test
+    public void testAggregateWithLevel() {
+        String insert = "INSERT INTO test(key, a1.b1, a1.b2, a2.b1, a2.b2) VALUES (0, 0, 0, 0, 0), (1, 1, 1, 1, 1)," +
+                "(2, NULL, 2, 2, 2), (3, NULL, NULL, 3, 3), (4, NULL, NULL, NULL, 4)";
+        execute(insert);
+        
+        String statement = "SELECT AVG(*), COUNT(*), SUM(*) FROM test AGG LEVEL = 0;";
+        String expected = "ResultSets:\n" +
+                "+------------------+---------------+-------------+\n" +
+                "|     avg(test.*.*)|count(test.*.*)|sum(test.*.*)|\n" +
+                "+------------------+---------------+-------------+\n" +
+                "|1.4285714285714286|             14|           20|\n" +
+                "+------------------+---------------+-------------+\n" +
+                "Total line number = 1\n";
+        executeAndCompare(statement, expected);
+    
+        statement = "SELECT AVG(*), COUNT(*), SUM(*) FROM test AGG LEVEL = 0,1;";
+        expected = "ResultSets:\n" +
+                "+--------------+------------------+----------------+----------------+--------------+--------------+\n" +
+                "|avg(test.a1.*)|    avg(test.a2.*)|count(test.a1.*)|count(test.a2.*)|sum(test.a1.*)|sum(test.a2.*)|\n" +
+                "+--------------+------------------+----------------+----------------+--------------+--------------+\n" +
+                "|           0.8|1.7777777777777777|               5|               9|             4|            16|\n" +
+                "+--------------+------------------+----------------+----------------+--------------+--------------+\n" +
+                "Total line number = 1\n";
+        executeAndCompare(statement, expected);
+    
+        statement = "SELECT AVG(*), COUNT(*), SUM(*) FROM test AGG LEVEL = 1;";
+        expected = "ResultSets:\n" +
+                "+-----------+------------------+-------------+-------------+-----------+-----------+\n" +
+                "|avg(*.a1.*)|       avg(*.a2.*)|count(*.a1.*)|count(*.a2.*)|sum(*.a1.*)|sum(*.a2.*)|\n" +
+                "+-----------+------------------+-------------+-------------+-----------+-----------+\n" +
+                "|        0.8|1.7777777777777777|            5|            9|          4|         16|\n" +
+                "+-----------+------------------+-------------+-------------+-----------+-----------+\n" +
+                "Total line number = 1\n";
+        executeAndCompare(statement, expected);
+    
+        statement = "SELECT AVG(*), COUNT(*), SUM(*) FROM test AGG LEVEL = 0,2;";
+        expected = "ResultSets:\n" +
+                "+--------------+------------------+----------------+----------------+--------------+--------------+\n" +
+                "|avg(test.*.b2)|    avg(test.*.b1)|count(test.*.b2)|count(test.*.b1)|sum(test.*.b2)|sum(test.*.b1)|\n" +
+                "+--------------+------------------+----------------+----------------+--------------+--------------+\n" +
+                "|         1.625|1.1666666666666667|               8|               6|            13|             7|\n" +
+                "+--------------+------------------+----------------+----------------+--------------+--------------+\n" +
+                "Total line number = 1\n";
+        executeAndCompare(statement, expected);
+    
+        statement = "SELECT AVG(*), COUNT(*), SUM(*) FROM test AGG LEVEL = 2;";
+        expected = "ResultSets:\n" +
+                "+-----------+------------------+-------------+-------------+-----------+-----------+\n" +
+                "|avg(*.*.b2)|       avg(*.*.b1)|count(*.*.b2)|count(*.*.b1)|sum(*.*.b2)|sum(*.*.b1)|\n" +
+                "+-----------+------------------+-------------+-------------+-----------+-----------+\n" +
+                "|      1.625|1.1666666666666667|            8|            6|         13|          7|\n" +
+                "+-----------+------------------+-------------+-------------+-----------+-----------+\n" +
+                "Total line number = 1\n";
+        executeAndCompare(statement, expected);
+    }
+
+    @Test
     public void testDelete() {
         if (!isAbleToDelete) {
             return;
