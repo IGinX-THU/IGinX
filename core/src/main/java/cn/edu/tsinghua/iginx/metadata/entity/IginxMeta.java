@@ -20,7 +20,6 @@ package cn.edu.tsinghua.iginx.metadata.entity;
 
 import cn.edu.tsinghua.iginx.pool.IginxInfo;
 
-import java.util.HashMap;
 import java.util.Map;
 
 public final class IginxMeta {
