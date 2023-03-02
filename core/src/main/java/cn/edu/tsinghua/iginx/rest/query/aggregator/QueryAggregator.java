@@ -21,6 +21,7 @@ package cn.edu.tsinghua.iginx.rest.query.aggregator;
 import cn.edu.tsinghua.iginx.rest.RestSession;
 import cn.edu.tsinghua.iginx.rest.bean.QueryResultDataset;
 import cn.edu.tsinghua.iginx.session.SessionQueryDataSet;
+import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.thrift.TimePrecision;
 import cn.edu.tsinghua.iginx.utils.TimeUtils;
 
@@ -36,10 +37,15 @@ public abstract class QueryAggregator {
     private String metric_name;
     private Filter filter;
     private QueryAggregatorType type;
-
+    private AggregateType aggregateType;
 
     protected QueryAggregator(QueryAggregatorType type) {
+        this(type, null);
+    }
+
+    protected QueryAggregator(QueryAggregatorType type, AggregateType aggregateType) {
         this.type = type;
+        this.aggregateType = aggregateType;
     }
 
     public Double getDivisor() {
@@ -103,8 +109,23 @@ public abstract class QueryAggregator {
     }
 
     public QueryResultDataset doAggregate(RestSession session, List<String> paths, Map<String, List<String>> tagList, long startTimestamp, long endTimestamp, TimePrecision timePrecision) {
+        SessionQueryDataSet sessionQueryDataSet = null;
+        try {
+            if (type == QueryAggregatorType.NONE) {
+                sessionQueryDataSet = session.queryData(paths, startTimestamp, endTimestamp, tagList, timePrecision);
+            } else if (aggregateType != null) {
+                sessionQueryDataSet = session.downsampleQuery(paths, tagList, startTimestamp, endTimestamp, aggregateType, getDur(), timePrecision);
+            }
+        } catch (Exception e) {
+            // TODO: more precise exception catch
+            e.printStackTrace();
+            return new QueryResultDataset();
+        }
+        if (sessionQueryDataSet == null) {
+            // type != QueryAggregatorType.NONE) and aggregateType == null
+            throw new RuntimeException("Unsupported Query");
+        }
         QueryResultDataset queryResultDataset = new QueryResultDataset();
-        SessionQueryDataSet sessionQueryDataSet = session.queryData(paths, startTimestamp, endTimestamp, tagList, timePrecision);
         queryResultDataset.setPaths(getPathsFromSessionQueryDataSet(sessionQueryDataSet));
         int n = sessionQueryDataSet.getKeys().length;
         int m = sessionQueryDataSet.getPaths().size();
@@ -115,17 +136,14 @@ public abstract class QueryAggregator {
             for (int i = 0; i < n; i++) {
                 if (sessionQueryDataSet.getValues().get(i).get(j) != null) {
                     value.add(sessionQueryDataSet.getValues().get(i).get(j));
-//                    long timeRes = TimeUtils.getTimeFromNsToSpecPrecision(sessionQueryDataSet.getTimestamps()[i], TimeUtils.DEFAULT_TIMESTAMP_PRECISION);
                     long timeRes = sessionQueryDataSet.getKeys()[i];
                     time.add(timeRes);
                     queryResultDataset.add(timeRes, sessionQueryDataSet.getValues().get(i).get(j));
                     datapoints += 1;
                 }
             }
-            if(!value.isEmpty())
-                queryResultDataset.addValueLists(value);
-            if(!time.isEmpty())
-                queryResultDataset.addTimeLists(time);
+            queryResultDataset.addValueLists(value);
+            queryResultDataset.addTimeLists(time);
         }
         queryResultDataset.setSampleSize(datapoints);
         return queryResultDataset;

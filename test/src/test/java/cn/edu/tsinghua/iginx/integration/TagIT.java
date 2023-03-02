@@ -23,23 +23,15 @@ public class TagIT {
     private String CLEARDATAEXCP = "cn.edu.tsinghua.iginx.exceptions.ExecutionException: Caution: can not clear the data of read-only node.";
 
     @BeforeClass
-    public static void setUp() {
+    public static void setUp() throws SessionException {
         ifClearData = true;
         session = new Session("127.0.0.1", 6888, "root", "root");
-        try {
-            session.openSession();
-        } catch (SessionException e) {
-            logger.error(e.getMessage());
-        }
+        session.openSession();
     }
 
     @AfterClass
-    public static void tearDown() {
-        try {
-            session.closeSession();
-        } catch (SessionException e) {
-            logger.error(e.getMessage());
-        }
+    public static void tearDown() throws SessionException {
+        session.closeSession();
     }
 
     @Before
@@ -1260,6 +1252,17 @@ public class TagIT {
                 "|                1|\n" +
                 "+-----------------+\n" +
                 "Total line number = 1\n";
+        executeAndCompare(statement, expected);
+    
+        statement = "SELECT ah.* FROM (SELECT * FROM ah.hr03 with t1=v1), (SELECT v FROM ah.hr02 with t1=v1);";
+        expected = "ResultSets:\n" +
+                "+-----------+----------------------+----------------+-----------+-----------------------+----------------+\n" +
+                "|ah.hr02.key|ah.hr02.v{t1=v1,t2=v2}|ah.hr02.v{t1=v1}|ah.hr03.key|ah.hr03.s{t1=v1,t2=vv2}|ah.hr03.v{t1=v1}|\n" +
+                "+-----------+----------------------+----------------+-----------+-----------------------+----------------+\n" +
+                "|        400|                  null|              v4|       3200|                   true|              16|\n" +
+                "|        800|                    v8|            null|       3200|                   true|              16|\n" +
+                "+-----------+----------------------+----------------+-----------+-----------------------+----------------+\n" +
+                "Total line number = 2\n";
         executeAndCompare(statement, expected);
     }
 
