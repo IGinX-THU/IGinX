@@ -53,47 +53,47 @@ import java.util.*;
 import java.util.Map.Entry;
 
 public class PostgreSQLStorage implements IStorage {
-    
+
     private static final Logger logger = LoggerFactory.getLogger(PostgreSQLStorage.class);
-    
+
     private static final int BATCH_SIZE = 10000;
-    
+
     private static final String STORAGE_ENGINE = "postgresql";
-    
+
     private static final String USERNAME = "username";
-    
+
     private static final String PASSWORD = "password";
-    
+
     private static final String DBNAME = "dbname";
-    
+
     private static final String DEFAULT_USERNAME = "postgres";
-    
+
     private static final String DEFAULT_PASSWORD = "postgres";
-    
+
     private static final String DEFAULT_DBNAME = "timeseries";
-    
+
     private static final String QUERY_DATABASES = "SELECT datname FROM pg_database";
-    
+
     private static final String FIRST_QUERY = "select first(%s, time) from %s";
-    
+
     private static final String LAST_QUERY = "select last(%s, time) from %s";
-    
+
     private static final String QUERY_DATA = "SELECT time, %s FROM %s WHERE %s and %s";
-    
+
     private static final String DELETE_DATA = "DELETE FROM %s WHERE time >= to_timestamp(%d) and time < to_timestamp(%d)";
-    
+
     private static final String IGINX_SEPARATOR = ".";
-    
+
     private static final String POSTGRESQL_SEPARATOR = "$";
-    
+
     private static final String DATABASE_PREFIX = "unit";
-    
+
     private static final long MAX_TIMESTAMP = Integer.MAX_VALUE;
-    
+
     private final StorageEngineMeta meta;
-    
+
     private Connection connection;
-    
+
     public PostgreSQLStorage(StorageEngineMeta meta) throws StorageInitializationException {
         this.meta = meta;
         if (!testConnection()) {
@@ -111,7 +111,7 @@ public class PostgreSQLStorage implements IStorage {
             throw new StorageInitializationException("cannot connect to " + meta.toString());
         }
     }
-    
+
     private boolean testConnection() {
         Map<String, String> extraParams = meta.getExtraParams();
         String username = extraParams.getOrDefault(USERNAME, DEFAULT_USERNAME);
@@ -127,7 +127,7 @@ public class PostgreSQLStorage implements IStorage {
             return false;
         }
     }
-    
+
     @Override
     public TaskExecuteResult execute(StoragePhysicalTask task) {
         List<Operator> operators = task.getOperators();
@@ -145,7 +145,7 @@ public class PostgreSQLStorage implements IStorage {
         } catch (Exception e) {
             logger.info("pass");
         }
-        
+
         if (op.getType() == OperatorType.Project) { // 目前只实现 project 操作符
             Project project = (Project) op;
             Filter filter;
@@ -167,7 +167,7 @@ public class PostgreSQLStorage implements IStorage {
         return new TaskExecuteResult(
             new NonExecutablePhysicalTaskException("unsupported physical task"));
     }
-    
+
     @Override
     public List<Timeseries> getTimeSeries() throws PhysicalException {
         List<Timeseries> timeseries = new ArrayList<>();
@@ -207,7 +207,7 @@ public class PostgreSQLStorage implements IStorage {
         }
         return timeseries;
     }
-    
+
     @Override
     public Pair<TimeSeriesRange, TimeInterval> getBoundaryOfStorage(String prefix) throws PhysicalException {
         long minTime = Long.MAX_VALUE, maxTime = 0;
@@ -271,11 +271,11 @@ public class PostgreSQLStorage implements IStorage {
             throw new PhysicalException(e);
         }
         paths.sort(String::compareTo);
-        
+
         return new Pair<>(new TimeSeriesInterval(paths.get(0), paths.get(paths.size() - 1)),
             new TimeInterval(minTime, maxTime + 1));
     }
-    
+
     private TaskExecuteResult executeProjectTask(Project project,
                                                  Filter filter) { // 未来可能要用 tsInterval 对查询出来的数据进行过滤
         String filter1 = filter.toString().replace("key", "time").replace("&&", filter.getType().toString());
@@ -308,7 +308,7 @@ public class PostgreSQLStorage implements IStorage {
                 String tableName = "";
                 String field1 = "";
                 boolean allTable = false;
-                
+
                 if (path.equals("*.*")) {
                     stmt = connection.createStatement();
                     databaseSet = stmt.executeQuery(QUERY_DATABASES);
@@ -330,7 +330,7 @@ public class PostgreSQLStorage implements IStorage {
                     field1 = path.substring(path.lastIndexOf('.') + 1);
                     field1 = field1.replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
                 }
-                
+
                 for (int i = 0; i < databases.size(); i++) {
                     String database = (String) databases.get(i);
                     useDatabase(database);
@@ -383,7 +383,7 @@ public class PostgreSQLStorage implements IStorage {
                     e));
         }
     }
-    
+
     private TaskExecuteResult executeInsertTask(Insert insert) {
         DataView dataView = insert.getData();
         Exception e = null;
@@ -403,45 +403,44 @@ public class PostgreSQLStorage implements IStorage {
         }
         return new TaskExecuteResult(null, null);
     }
-    
+
     private void createTimeSeriesIfNotExists(String table, String field,
                                              Map<String, String> tags, DataType dataType) {
         try {
-            if (tags == null) {
-                tags = new HashMap<>();
-            }
-            DatabaseMetaData databaseMetaData = connection.getMetaData();
-            ResultSet tableSet = databaseMetaData.getTables(null, "%", table, new String[]{"TABLE"});
-            if (!tableSet.next()) {
-                Statement stmt = connection.createStatement();
-                StringBuilder stringBuilder = new StringBuilder();
-                for (Entry<String, String> tagsEntry : tags.entrySet()) {
-                    stringBuilder.append(tagsEntry.getKey()).append(" TEXT,");
-                }
-                stringBuilder.append(field).append(" ").append(DataTypeTransformer.toPostgreSQL(dataType));
-                stmt.execute(String
-                    .format("CREATE TABLE %s (time TIMESTAMPTZ NOT NULL,%s NULL)", table,
-                        stringBuilder.toString()));
-            } else {
-                for (String tag : tags.keySet()) {
-                    ResultSet columnSet = databaseMetaData.getColumns(null, "%", table, tag);
+            if (tags != null && !tags.isEmpty()) {
+                DatabaseMetaData databaseMetaData = connection.getMetaData();
+                ResultSet tableSet = databaseMetaData.getTables(null, "%", table, new String[]{"TABLE"});
+                if (!tableSet.next()) {
+                    Statement stmt = connection.createStatement();
+                    StringBuilder stringBuilder = new StringBuilder();
+                    for (Entry<String, String> tagsEntry : tags.entrySet()) {
+                        stringBuilder.append(tagsEntry.getKey()).append(" TEXT,");
+                    }
+                    stringBuilder.append(field).append(" ").append(DataTypeTransformer.toPostgreSQL(dataType));
+                    stmt.execute(String
+                        .format("CREATE TABLE %s (time TIMESTAMPTZ NOT NULL,%s NULL)", table,
+                            stringBuilder.toString()));
+                } else {
+                    for (String tag : tags.keySet()) {
+                        ResultSet columnSet = databaseMetaData.getColumns(null, "%", table, tag);
+                        if (!columnSet.next()) {
+                            Statement stmt = connection.createStatement();
+                            stmt.execute(String.format("ALTER TABLE %s ADD COLUMN %s TEXT NULL", table, tag));
+                        }
+                    }
+                    ResultSet columnSet = databaseMetaData.getColumns(null, "%", table, field);
                     if (!columnSet.next()) {
                         Statement stmt = connection.createStatement();
-                        stmt.execute(String.format("ALTER TABLE %s ADD COLUMN %s TEXT NULL", table, tag));
+                        stmt.execute(String.format("ALTER TABLE %s ADD COLUMN %s %s NULL", table, field,
+                            DataTypeTransformer.toPostgreSQL(dataType)));
                     }
-                }
-                ResultSet columnSet = databaseMetaData.getColumns(null, "%", table, field);
-                if (!columnSet.next()) {
-                    Statement stmt = connection.createStatement();
-                    stmt.execute(String.format("ALTER TABLE %s ADD COLUMN %s %s NULL", table, field,
-                        DataTypeTransformer.toPostgreSQL(dataType)));
                 }
             }
         } catch (SQLException e) {
             logger.error("create timeseries error", e);
         }
     }
-    
+
     private void useDatabase(String dbname) throws SQLException {
         try {
             Statement stmt = connection.createStatement();
@@ -463,9 +462,9 @@ public class PostgreSQLStorage implements IStorage {
         } catch (SQLException e) {
             logger.info("change database error", e);
         }
-        
+
     }
-    
+
     private Exception insertRowRecords(RowDataView data) {
         int batchSize = Math.min(data.getTimeSize(), BATCH_SIZE);
         try {
@@ -489,41 +488,39 @@ public class PostgreSQLStorage implements IStorage {
                         } catch (Exception e) {
                             logger.info("tagList[i] is null!");
                         }
-                        if (tags == null) {
-                            tags = new HashMap<>();
+                        if (tags != null && !tags.isEmpty()) {
+                            //connection.close();
+                            useDatabase(database);
+                            stmt = connection.createStatement();
+                            createTimeSeriesIfNotExists(table, field, tags, dataType);
+
+                            long time = data.getKey(i) / 1000; // timescaledb存10位时间戳，java为13位时间戳
+                            String value;
+                            if (data.getDataType(j) == DataType.BINARY) {
+                                value = "'" + new String((byte[]) data.getValue(i, index), StandardCharsets.UTF_8)
+                                    + "'";
+                            } else {
+                                value = data.getValue(i, index).toString();
+                            }
+
+                            StringBuilder columnsKeys = new StringBuilder();
+                            StringBuilder columnValues = new StringBuilder();
+                            for (Entry<String, String> tagEntry : tags.entrySet()) {
+                                columnsKeys.append(tagEntry.getValue()).append(" ");
+                                columnValues.append(tagEntry.getValue()).append(" ");
+                            }
+                            columnsKeys.append(field);
+                            columnValues.append(value);
+
+                            stmt.addBatch(String
+                                .format("INSERT INTO %s (time, %s) values (to_timestamp(%d), %s)", table,
+                                    columnsKeys, time, columnValues));
+                            if (index > 0 && (index + 1) % batchSize == 0) {
+                                stmt.executeBatch();
+                            }
+
+                            index++;
                         }
-                        
-                        //connection.close();
-                        useDatabase(database);
-                        stmt = connection.createStatement();
-                        createTimeSeriesIfNotExists(table, field, tags, dataType);
-                        
-                        long time = data.getKey(i) / 1000; // timescaledb存10位时间戳，java为13位时间戳
-                        String value;
-                        if (data.getDataType(j) == DataType.BINARY) {
-                            value = "'" + new String((byte[]) data.getValue(i, index), StandardCharsets.UTF_8)
-                                + "'";
-                        } else {
-                            value = data.getValue(i, index).toString();
-                        }
-                        
-                        StringBuilder columnsKeys = new StringBuilder();
-                        StringBuilder columnValues = new StringBuilder();
-                        for (Entry<String, String> tagEntry : tags.entrySet()) {
-                            columnsKeys.append(tagEntry.getValue()).append(" ");
-                            columnValues.append(tagEntry.getValue()).append(" ");
-                        }
-                        columnsKeys.append(field);
-                        columnValues.append(value);
-                        
-                        stmt.addBatch(String
-                            .format("INSERT INTO %s (time, %s) values (to_timestamp(%d), %s)", table,
-                                columnsKeys, time, columnValues));
-                        if (index > 0 && (index + 1) % batchSize == 0) {
-                            stmt.executeBatch();
-                        }
-                        
-                        index++;
                     }
                 }
             }
@@ -531,10 +528,10 @@ public class PostgreSQLStorage implements IStorage {
         } catch (SQLException e) {
             return e;
         }
-        
+
         return null;
     }
-    
+
     private Exception insertColumnRecords(ColumnDataView data) {
         int batchSize = Math.min(data.getTimeSize(), BATCH_SIZE);
         try {
@@ -559,37 +556,35 @@ public class PostgreSQLStorage implements IStorage {
                 } catch (Exception e) {
                     logger.info("tagList[i] is null!");
                 }
-                if (tags == null) {
-                    tags = new HashMap<>();
-                }
-                
-                // connection.close();
-                useDatabase(database);
-                stmt = connection.createStatement();
-                createTimeSeriesIfNotExists(table, field, tags, dataType);
-                BitmapView bitmapView = data.getBitmapView(i);
-                int index = 0;
-                for (int j = 0; j < data.getTimeSize(); j++) {
-                    if (bitmapView.get(j)) {
-                        time = data.getKey(j) / 1000; // 时间戳
-                        String value;
-                        if (data.getDataType(i) == DataType.BINARY) {
-                            value = "'" + new String((byte[]) data.getValue(i, index), StandardCharsets.UTF_8)
-                                + "'";
-                        } else {
-                            value = data.getValue(i, index).toString();
+                if (tags != null && !tags.isEmpty()) {
+                    // connection.close();
+                    useDatabase(database);
+                    stmt = connection.createStatement();
+                    createTimeSeriesIfNotExists(table, field, tags, dataType);
+                    BitmapView bitmapView = data.getBitmapView(i);
+                    int index = 0;
+                    for (int j = 0; j < data.getTimeSize(); j++) {
+                        if (bitmapView.get(j)) {
+                            time = data.getKey(j) / 1000; // 时间戳
+                            String value;
+                            if (data.getDataType(i) == DataType.BINARY) {
+                                value = "'" + new String((byte[]) data.getValue(i, index), StandardCharsets.UTF_8)
+                                    + "'";
+                            } else {
+                                value = data.getValue(i, index).toString();
+                            }
+                            columnsKeys = columnsKeys + "," + field;
+                            columnValues = columnValues + "," + value;
+                            if (index > 0 && (index + 1) % batchSize == 0) {
+                                stmt.execute(String.format("INSERT INTO %s (time %s) values (to_timestamp(%d) %s)", table,
+                                    columnsKeys,
+                                    time,
+                                    columnValues));
+                                columnsKeys = "";
+                                columnValues = "";
+                            }
+                            index++;
                         }
-                        columnsKeys = columnsKeys + "," + field;
-                        columnValues = columnValues + "," + value;
-                        if (index > 0 && (index + 1) % batchSize == 0) {
-                            stmt.execute(String.format("INSERT INTO %s (time %s) values (to_timestamp(%d) %s)", table,
-                                columnsKeys,
-                                time,
-                                columnValues));
-                            columnsKeys = "";
-                            columnValues = "";
-                        }
-                        index++;
                     }
                 }
             }
@@ -601,10 +596,10 @@ public class PostgreSQLStorage implements IStorage {
         } catch (SQLException e) {
             return e;
         }
-        
+
         return null;
     }
-    
+
     private TaskExecuteResult executeDeleteTask(Delete delete) {
         try {
             for (int i = 0; i < delete.getPatterns().size(); i++) {
@@ -652,7 +647,7 @@ public class PostgreSQLStorage implements IStorage {
                     e));
         }
     }
-    
+
     @Override
     public void release() throws PhysicalException {
         try {
