@@ -2,7 +2,9 @@ package cn.edu.tsinghua.iginx.integration.func.sql;
 
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.integration.tool.MultiConnection;
+import cn.edu.tsinghua.iginx.integration.tool.TestConfLoder;
 import cn.edu.tsinghua.iginx.pool.IginxInfo;
 import cn.edu.tsinghua.iginx.integration.testcontroler.TestControler;
 import cn.edu.tsinghua.iginx.pool.SessionPool;
@@ -13,10 +15,12 @@ import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import static cn.edu.tsinghua.iginx.conf.Constants.CONFIG_FILE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
@@ -40,7 +44,7 @@ public abstract class SQLSessionIT {
 
     protected boolean isAbleToShowTimeSeries;
 
-    protected boolean ifScaleOutIn;
+    protected boolean ifScaleOutIn = false;
 
     private final long startKey = 0L;
 
@@ -49,6 +53,16 @@ public abstract class SQLSessionIT {
     protected boolean ifClearData = true;
 
     protected String storageEngineType;
+
+    public SQLSessionIT() throws IOException {
+        TestConfLoder conf = new TestConfLoder(TestControler.CONFIG_FILE);
+        DBConf dbConf = conf.loadDBConf();
+        this.ifScaleOutIn = conf.getStorageType() != null;
+        this.ifClearData = dbConf.getEnumValue(DBConf.DBConfType.isAbleToClearData);
+        this.isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
+        this.isAbleToShowTimeSeries = dbConf.getEnumValue(DBConf.DBConfType.isAbleToShowTimeSeries);
+        this.isSupportSpecialPath = dbConf.getEnumValue(DBConf.DBConfType.isSupportSpecialPath);
+    }
 
     @BeforeClass
     public static void setUp() throws SessionException {
@@ -172,57 +186,6 @@ public abstract class SQLSessionIT {
     }
 
     @Test
-    public void capacityExpansion() {
-        if (ifClearData) {
-            return;
-        }
-
-        testCountPath();
-
-        testShowReplicaNum();
-
-        testTimeRangeQuery();
-
-//        testValueFilter();
-
-        testPathFilter();
-
-        testOrderByQuery();
-
-        testFirstLastQuery();
-
-        testAggregateQuery();
-
-        testDownSampleQuery();
-
-        testRangeDownSampleQuery();
-
-        testSlideWindowByTimeQuery();
-
-        testRangeSlideWindowByTimeQuery();
-
-        testAlias();
-
-        testAggregateSubQuery();
-
-        testValueFilterSubQuery();
-
-        testMultiSubQuery();
-
-        testDateFormat();
-
-        testSpecialPath();
-
-        testErrorClause();
-
-        testDelete();
-
-        testMultiRangeDelete();
-
-        testCrossRangeDelete();
-    }
-
-    @Test
     public void testCountPath() {
         String statement = "SELECT COUNT(*) FROM us.d1;";
         String expected = "ResultSets:\n" +
@@ -245,7 +208,7 @@ public abstract class SQLSessionIT {
 
     @Test
     public void testShowTimeSeries() {
-        if (!isAbleToShowTimeSeries) {
+        if (!isAbleToShowTimeSeries || ifScaleOutIn) {
             return;
         }
         String statement = "SHOW TIME SERIES us.*;";
@@ -3004,7 +2967,7 @@ public abstract class SQLSessionIT {
 
     @Test
     public void testDeleteTimeSeries() {
-        if (!isAbleToDelete) {
+        if (!isAbleToDelete || ifScaleOutIn) {
             return;
         }
         String showTimeSeries = "SHOW TIME SERIES us.*;";

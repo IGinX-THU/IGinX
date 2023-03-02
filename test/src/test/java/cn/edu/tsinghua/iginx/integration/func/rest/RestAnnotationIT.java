@@ -228,7 +228,7 @@ public class RestAnnotationIT {
     public void clearDataMen() {
         try {
             String clearData = "CLEAR DATA;";
-            session.executeSql(clearData);
+            TestControler.clearData(session);
         } catch (Exception e) {
             LOGGER.error("Error occurred during execution ", e);
             fail();

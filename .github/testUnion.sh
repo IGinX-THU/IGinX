@@ -4,6 +4,8 @@ pwd
 
 cd ..
 
+cat ./test/src/test/resources/testTask.txt
+
 i=0
 
 while read line

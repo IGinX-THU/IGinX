@@ -9,7 +9,7 @@ inputs:
 runs:
   using: "composite" # Mandatory parameter
   steps:
-    - if: inputs.version=='influxdb'
+    - if: inputs.version=='InfluxDB'
       name: Run DB
       shell: bash
       run: |
@@ -34,6 +34,21 @@ runs:
         elif [ "$RUNNER_OS" == "macOS" ]; then
           chmod +x "${GITHUB_WORKSPACE}/.github/iotdb12_macos.sh"
           "${GITHUB_WORKSPACE}/.github/iotdb12_macos.sh"
+        else
+          echo "$RUNNER_OS is not supported"
+          exit 1
+        fi
+
+    - if: inputs.version=='Parquet'
+      name: Run DB
+      shell: bash
+      run: |
+        if [ "$RUNNER_OS" == "Linux" ]; then
+          chmod +x "${GITHUB_WORKSPACE}/.github/parquet.sh"
+          "${GITHUB_WORKSPACE}/.github/parquet.sh"
+        elif [ "$RUNNER_OS" == "macOS" ]; then
+          chmod +x "${GITHUB_WORKSPACE}/.github/parquet_macos.sh"
+          "${GITHUB_WORKSPACE}/.github/parquet_macos.sh"
         else
           echo "$RUNNER_OS is not supported"
           exit 1

@@ -1,5 +1,5 @@
 name: 'conf-writer'
-description: 'conf-writer'
+description: 'use conf-writer to change the target/conf after IGinX was installed'
 inputs:
   confFile:
     description: 'the conf that you want to write'
@@ -44,6 +44,12 @@ runs:
       shell: bash
       run: |
         echo "${{inputs.DB-name}}" > ${GITHUB_WORKSPACE}/test/src/test/java/cn/edu/tsinghua/iginx/integration/DBConf.txt
+        
+    - if: inputs.confFile=='TestModule'
+      name: Change conf/config.properties
+      shell: bash
+      run: |
+        echo "${{inputs.Test-Way}}" > ${GITHUB_WORKSPACE}/test/src/test/java/cn/edu/tsinghua/iginx/integration/TestModule.txt
 
     - if: inputs.confFile=='iginxConf'
       name: Change conf/config.properties

@@ -16,13 +16,9 @@ import org.slf4j.LoggerFactory;
 import static org.junit.Assert.fail;
 
 public class CapacityExpansionIT implements BaseCapacityExpansionIT {
-
     private static final Logger logger = LoggerFactory.getLogger(CapacityExpansionIT.class);
-
     protected static Session session;
-
     protected static SessionPool sessionPool;
-
     protected String ENGINE_TYPE;
 
     public CapacityExpansionIT(String engineType) {

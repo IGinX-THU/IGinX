@@ -2,13 +2,13 @@ package cn.edu.tsinghua.iginx.integration.func.sql;
 
 import org.junit.*;
 
-public class SQLSessionPoolIT extends SQLSessionIT{
+import java.io.IOException;
 
-    @BeforeClass
-    public static void beforeSetUp() {
+public class SQLSessionPoolIT extends SQLSessionIT{
+    public SQLSessionPoolIT() throws IOException {
+        super();
         isForSessionPool = true;
         isForSession = false;
         MaxMultiThreadTaskNum = 10;
     }
-
 }

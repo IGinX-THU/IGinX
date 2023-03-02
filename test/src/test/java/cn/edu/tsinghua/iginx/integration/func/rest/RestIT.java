@@ -3,6 +3,8 @@ package cn.edu.tsinghua.iginx.integration.func.rest;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.testcontroler.TestControler;
+import cn.edu.tsinghua.iginx.integration.tool.DBConf;
+import cn.edu.tsinghua.iginx.integration.tool.TestConfLoder;
 import cn.edu.tsinghua.iginx.rest.MetricsResource;
 import cn.edu.tsinghua.iginx.session.Session;
 import org.junit.*;
@@ -10,18 +12,25 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
+
+import static cn.edu.tsinghua.iginx.conf.Constants.CONFIG_FILE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 public class RestIT {
-
-    protected String storageEngineType;
-    protected boolean ifClearData = true;
+    protected Boolean ifClearData = true;
 
     protected static Logger logger = LoggerFactory.getLogger(MetricsResource.class);
 
     protected static Session session;
-    protected boolean isAbleToDelete = true;
+    protected Boolean isAbleToDelete = true;
+
+    public RestIT() throws IOException {
+        TestConfLoder conf = new TestConfLoder(TestControler.CONFIG_FILE);
+        DBConf dbConf = conf.loadDBConf();
+        this.ifClearData = dbConf.getEnumValue(DBConf.DBConfType.isAbleToClearData);
+        this.isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
+    }
 
     @BeforeClass
     public static void setUp() throws SessionException {
@@ -106,28 +115,6 @@ public class RestIT {
             logger.error("executeAndCompare fail. Caused by: {}.", e.toString());
         }
         assertEquals(output, result);
-    }
-
-    public void capacityExpansion() throws Exception {
-        if (ifClearData) {
-            return;
-        }
-
-        testQueryWithoutTags();
-        testQueryWithTags();
-        testQueryWrongTags();
-        testQueryOneTagWrong();
-        testQueryWrongName();
-        testQueryWrongTime();
-        testQueryAvg();
-        testQueryCount();
-        testQueryFirst();
-        testQueryLast();
-        testQueryMax();
-        testQueryMin();
-        testQuerySum();
-        testDelete();
-        testDeleteMetric();
     }
 
     @Test

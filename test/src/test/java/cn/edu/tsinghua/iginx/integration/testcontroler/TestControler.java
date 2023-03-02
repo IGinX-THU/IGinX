@@ -2,6 +2,7 @@ package cn.edu.tsinghua.iginx.integration.testcontroler;
 
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.integration.tool.TestConfLoder;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.session.Session;
@@ -21,7 +22,7 @@ import static org.junit.Assert.fail;
 public class TestControler {
     protected static final Logger logger = LoggerFactory.getLogger(TestControler.class);
     public static String CLEARDATAEXCP = "cn.edu.tsinghua.iginx.exceptions.ExecutionException: Caution: can not clear the data of read-only node.";
-    private String CONFIG_FILE = "./src/test/java/cn/edu/tsinghua/iginx/integration/testcontroler/testConfig.properties";
+    public static String CONFIG_FILE = "./src/test/java/cn/edu/tsinghua/iginx/integration/testcontroler/testConfig.properties";
     private String FILEPATH = "./src/test/resources/testTask.txt";
     private String MVNRUNTEST = "../.github/testUnion.sh";
     private List<StorageEngineMeta> storageEngineMetas = new ArrayList<>();
@@ -57,16 +58,22 @@ public class TestControler {
         ShellRunner shellRunner = new ShellRunner();
         TestEnvironmentControler envir = new TestEnvironmentControler();
 
-        // skip this when support remove Engine
+        // ori plan
+//        // skip this when support remove Engine
+//        shellRunner.runShellCommand(MVNRUNTEST);
+//        // for each storage , run the test
+//        for (StorageEngineMeta storageEngineMeta : storageEngineMetas) {
+//            // add the storage engine
+//            envir.addStorageEngine(storageEngineMeta);
+//            // set the task list
+//            envir.setTestTasks(testConfLoder.getTaskMap().get(storageEngineMeta.getStorageEngine()), FILEPATH);
+//            // run the test together
+//            shellRunner.runShellCommand(MVNRUNTEST);
+//        }
+
+        // set the task list
+        envir.setTestTasks(testConfLoder.getTaskMap().get(DBConf.getDBType(testConfLoder.getStorageType())), FILEPATH);
+        // run the test together
         shellRunner.runShellCommand(MVNRUNTEST);
-        // for each storage , run the test
-        for (StorageEngineMeta storageEngineMeta : storageEngineMetas) {
-            // add the storage engine
-            envir.addStorageEngine(storageEngineMeta);
-            // set the task list
-            envir.setTestTasks(testConfLoder.getTaskList().get(storageEngineMeta.getStorageEngine()), FILEPATH);
-            // run the test together
-            shellRunner.runShellCommand(MVNRUNTEST);
-        }
     }
 }

@@ -206,13 +206,6 @@ public abstract class BaseSessionIT extends BaseSessionConcurrencyIT {
     }
 
     @Test
-    public void capacityExpansion() throws ExecutionException, SessionException, InterruptedException {
-        if(ifClearData) return;
-
-        sessionTest();
-    }
-
-    @Test
     public void sessionTest() throws ExecutionException, SessionException, InterruptedException {
         int simpleLen = 2;
         List<String> paths = getPaths(currPath, simpleLen);

@@ -30,8 +30,9 @@ public class TestEnvironmentControler {
         try {
             File file = new File(filePath);//文件路径
             FileWriter fileWriter = new FileWriter(file);
+            logger.info("test should run {}", taskList);
             for (String taskName : taskList) {
-                fileWriter.write(taskName);
+                fileWriter.write(taskName + "\n");
             }
             fileWriter.flush();//刷新数据，不刷新写入不进去
             fileWriter.close();//关闭流

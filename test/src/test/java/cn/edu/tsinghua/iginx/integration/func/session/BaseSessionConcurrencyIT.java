@@ -27,7 +27,6 @@ public abstract class BaseSessionConcurrencyIT {
 
     //parameters to be flexibly configured by inheritance
     protected static MultiConnection session;
-    protected boolean ifClearData = true;
 
     //host info
     protected String defaultTestHost = "127.0.0.1";

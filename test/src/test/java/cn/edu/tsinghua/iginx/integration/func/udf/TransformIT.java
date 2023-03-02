@@ -21,6 +21,7 @@ package cn.edu.tsinghua.iginx.integration.func.udf;
 import cn.edu.tsinghua.iginx.constant.GlobalConstant;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.integration.testcontroler.TestControler;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.thrift.DataFlowType;
@@ -131,12 +132,7 @@ public class TransformIT {
 
     @After
     public void clearData() throws ExecutionException, SessionException {
-        String clearData = "CLEAR DATA;";
-        SessionExecuteSqlResult res = session.executeSql(clearData);
-        if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-            logger.error("Clear date execute fail. Caused by: {}.", res.getParseErrorMsg());
-            fail();
-        }
+        TestControler.clearData(session);
     }
 
     private void dropTask(String task) throws SessionException, ExecutionException {

@@ -3,22 +3,38 @@ package cn.edu.tsinghua.iginx.integration.tool;
 import cn.edu.tsinghua.iginx.conf.Constants;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.utils.EnvUtils;
+import cn.edu.tsinghua.iginx.utils.FileReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
 
 public class TestConfLoder {
+    private final void logInfo(String info, Object... args) {
+        if (DEBUG) logger.info(info, args);
+    }
     private static final Logger logger = LoggerFactory.getLogger(TestConfLoder.class);
-    private List<String> storageEngines = new ArrayList<>();
+    private static List<String> storageEngines = new ArrayList<>();
     private List<StorageEngineMeta> storageEngineMetas = new ArrayList<>();
-    private Map<String, List<String>> taskList = new HashMap<>();
-    private String confPath;
-    private String STORAGEENGINELIST = "storageEngineList";
-    private String TESTTASK = "%s-test";
+    private Map<DBConf.DBType, List<String>> taskMap = new HashMap<>();
+    private static String confPath;
+    private boolean DEBUG = false;
+    private static String STORAGEENGINELIST = "storageEngineList";
+    private String TESTTASK = "test-list";
+    private static String DBCONF = "%s-config";
+    private String RUNNINGSTORAGE = "./src/test/java/cn/edu/tsinghua/iginx/integration/DBConf.txt";
+
+    public String getStorageType() {
+        String storageType = FileReader.convertToString(RUNNINGSTORAGE);
+        logInfo("run the test on {}", storageType);
+        return storageType;
+    }
 
     public TestConfLoder(String confPath) {
         this.confPath = confPath;
@@ -28,7 +44,7 @@ public class TestConfLoder {
         InputStream in = new FileInputStream(confPath);
         Properties properties = new Properties();
         properties.load(in);
-        logger.info("loading the test conf...");
+        logInfo("loading the test conf...", null);
         String property = properties.getProperty(STORAGEENGINELIST);
         if (property == null || property.length() == 0) return;
         storageEngines.addAll(Arrays.asList(property.split(",")));
@@ -36,7 +52,7 @@ public class TestConfLoder {
         // load the storageEngine
         for (String storageEngine : storageEngines) {
             String storageEngineInfo = properties.getProperty(storageEngine);
-            logger.info("load the info of {} : {}", storageEngine, storageEngineInfo);
+            logInfo("load the info of {} : {}", storageEngine, storageEngineInfo);
             String[] storageEngineParts = storageEngineInfo.split("#");
             String ip = storageEngineParts[0];
             int port = -1;
@@ -62,16 +78,52 @@ public class TestConfLoder {
         }
 
         // load the task list
-        taskList = new HashMap<>();
         for (String storageEngine : storageEngines) {
-            String tasks = properties.getProperty(String.format(TESTTASK, storageEngine));
-            logger.info("the task of {} is : {}", storageEngine, tasks);
-            taskList.put(storageEngine, Arrays.asList(tasks.split(",")));
+            String tasks = null;
+            if (storageEngine.toLowerCase().equals("influxdb"))
+                tasks = properties.getProperty("influxdb-" + TESTTASK);
+            else
+                tasks = properties.getProperty(TESTTASK);
+            logInfo("the task of {} is :", storageEngine);
+            List<String> oriTaskList = Arrays.asList(tasks.split(",")), taskList = new ArrayList<>();
+            for(String taskName : oriTaskList) {
+                if (taskName.contains("{}")) {
+                    taskName = taskName.replace("{}", storageEngine);
+                }
+                taskList.add(taskName);
+                logInfo("{}", taskName);
+            }
+            taskMap.put(DBConf.getDBType(storageEngine), taskList);
         }
     }
 
-    public Map<String, List<String>> getTaskList() {
-        return taskList;
+    public DBConf loadDBConf() throws IOException {
+        InputStream in = Files.newInputStream(Paths.get(confPath));
+        Properties properties = new Properties();
+        properties.load(in);
+        logInfo("loading the DB conf...");
+        String property = properties.getProperty(STORAGEENGINELIST);
+        if (property == null || property.length() == 0) return null;
+        storageEngines.addAll(Arrays.asList(property.split(",")));
+
+        DBConf dbConf = new DBConf();
+        // load the DB conf
+        for (String storageEngine : storageEngines) {
+            String confs = properties.getProperty(String.format(DBCONF, storageEngine));
+            logInfo("the task of {} is : {}", storageEngine, confs);
+            List<String> confList = Arrays.asList(confs.split(","));
+            for(String conf : confList) {
+                String[] confKV = conf.split("=");
+                dbConf.setEnumValue(DBConf.getDBConfType(confKV[0]), Boolean.parseBoolean(confKV[1]));
+            }
+        }
+        return dbConf;
+    }
+
+
+
+    public Map<DBConf.DBType, List<String>> getTaskMap() {
+        return taskMap;
     }
 
     public List<String> getStorageEngines() {

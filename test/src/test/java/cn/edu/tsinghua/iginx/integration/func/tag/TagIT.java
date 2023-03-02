@@ -3,27 +3,36 @@ package cn.edu.tsinghua.iginx.integration.func.tag;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.testcontroler.TestControler;
+import cn.edu.tsinghua.iginx.integration.tool.DBConf;
+import cn.edu.tsinghua.iginx.integration.tool.TestConfLoder;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
+import cn.edu.tsinghua.iginx.utils.FileReader;
 import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+
+import static cn.edu.tsinghua.iginx.conf.Constants.CONFIG_FILE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 public class TagIT {
-
     protected static final Logger logger = LoggerFactory.getLogger(TagIT.class);
-
     protected static Session session;
-
-    protected String storageEngineType;
     protected static boolean ifClearData;
     protected boolean isAbleToDelete = true;
-    protected boolean ifScaleOutin = false;
-
+    protected boolean ifScaleOutIn = false;
     private String CLEARDATAEXCP = "cn.edu.tsinghua.iginx.exceptions.ExecutionException: Caution: can not clear the data of read-only node.";
+
+    public TagIT() throws IOException {
+        TestConfLoder conf = new TestConfLoder(TestControler.CONFIG_FILE);
+        DBConf dbConf = conf.loadDBConf();
+        this.ifClearData = dbConf.getEnumValue(DBConf.DBConfType.isAbleToClearData);
+        this.isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
+        this.ifScaleOutIn = conf.getStorageType() != null;
+    }
 
     @BeforeClass
     public static void setUp() throws SessionException {
@@ -92,41 +101,6 @@ public class TagIT {
         }
 
         return res.getResultInString(false, "");
-    }
-
-    @Test
-    public void capacityExpansion() {
-        if(ifClearData) return;
-
-        testShowTimeSeriesWithTags();
-
-        testCountPath();
-
-        testBasicQuery();
-
-        testQueryWithoutTags();
-
-        testQueryWithTag();
-
-        testQueryWithMultiTags();
-
-        testQueryWithWildcardTag();
-
-        testQueryWithAggregate();
-
-        testMixQueryWithAggregate();
-
-        testAlias();
-
-        testSubQuery();
-
-        testTagInsertWithSubQuery();
-
-//        testDeleteWithTag();
-
-        testDeleteWithMultiTags();
-
-        testDeleteTSWithMultiTags();
     }
 
     @Test
@@ -319,7 +293,7 @@ public class TagIT {
 
     @Test
     public void testCountPoints() {
-        if (ifScaleOutin) return;
+        if (ifScaleOutIn) return;
         String statement = "COUNT POINTS;";
         String expected = "Points num: 26\n";
         executeAndCompare(statement, expected);
@@ -1265,6 +1239,7 @@ public class TagIT {
 
     @Test
     public void testTagInsertWithSubQuery() {
+
         String query = "SELECT s AS ts1, v AS ts2 FROM ah.hr03 with t1=v1;";
         String expected = "ResultSets:\n" +
                 "+----+-----------------+----------+\n" +
