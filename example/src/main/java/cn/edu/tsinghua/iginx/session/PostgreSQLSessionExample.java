@@ -21,6 +21,7 @@ package cn.edu.tsinghua.iginx.session;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
+import cn.edu.tsinghua.iginx.thrift.TimePrecision;
 import org.apache.commons.lang3.RandomStringUtils;
 
 import java.util.ArrayList;
@@ -47,12 +48,53 @@ public class PostgreSQLSessionExample {
         session = new Session("127.0.0.1", 6888, "root", "root");
         // 打开 Session
         session.openSession();
-//         行式插入对齐数据
+
+        // 列式插入对齐数据
+        insertColumnRecords();
+        // 行式插入对齐数据
         insertRowRecords();
-        queryData();
-        deleteDataInColumns();
+//        queryData();
+//        deleteDataInColumns();
+
         // 关闭 Session
         session.closeSession();
+    }
+
+    private static void insertColumnRecords() throws SessionException, ExecutionException {
+        List<String> paths = new ArrayList<>();
+        paths.add(S1);
+        paths.add(S2);
+        paths.add(S3);
+        paths.add(S4);
+
+        int size = (int) (COLUMN_END_TIMESTAMP - COLUMN_START_TIMESTAMP + 1);
+        long[] timestamps = new long[size];
+        for (long i = 0; i < size; i++) {
+            timestamps[(int) i] = i + COLUMN_START_TIMESTAMP;
+        }
+
+        Object[] valuesList = new Object[4];
+        for (long i = 0; i < 4; i++) {
+            Object[] values = new Object[size];
+            for (long j = 0; j < size; j++) {
+                if (i < 2) {
+                    values[(int) j] = i + j;
+                } else {
+                    values[(int) j] = RandomStringUtils.randomAlphanumeric(10).getBytes();
+                }
+            }
+            valuesList[(int) i] = values;
+        }
+
+        List<DataType> dataTypeList = new ArrayList<>();
+        for (int i = 0; i < 2; i++) {
+            dataTypeList.add(DataType.LONG);
+        }
+        for (int i = 0; i < 2; i++) {
+            dataTypeList.add(DataType.BINARY);
+        }
+
+        session.insertColumnRecords(paths, timestamps, valuesList, dataTypeList, null, TimePrecision.NS);
     }
 
     private static void insertRowRecords() throws SessionException, ExecutionException {

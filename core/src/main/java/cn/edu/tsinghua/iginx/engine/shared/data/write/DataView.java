@@ -116,4 +116,8 @@ public abstract class DataView {
         return tagsList.get(startPathIndex + index);
     }
 
+    public boolean hasTagsList() {
+        return data.getTagsList() != null && data.getTagsList().size() != 0;
+    }
+
 }
