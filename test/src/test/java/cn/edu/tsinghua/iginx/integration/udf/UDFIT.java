@@ -155,4 +155,28 @@ public class UDFIT {
             assertEquals(expected, actual, delta);
         }
     }
+
+    @Test
+    public void testConcurrentCos() {
+        String insert = "INSERT INTO test(key, s1, s2) VALUES (1, 2, 3), (2, 3, 1), (3, 4, 3), (4, 9, 7), (5, 3, 6), (6, 6, 4);";
+        execute(insert);
+
+        String query = "SELECT * FROM (SELECT COS(s1) FROM test), (SELECT COS(s2) FROM test) LIMIT 10;";
+        SessionExecuteSqlResult ret = execute(query);
+        assertEquals(4, ret.getPaths().size());
+
+        List<Double> cosS1ExpectedValues = Arrays.asList(-0.4161468365471424,-0.4161468365471424,-0.4161468365471424,-0.4161468365471424,-0.4161468365471424,-0.4161468365471424,-0.9899924966004454,-0.9899924966004454,-0.9899924966004454,-0.9899924966004454);
+        List<Double> cosS2ExpectedValues = Arrays.asList(-0.9899924966004454,0.5403023058681398,-0.9899924966004454,0.7539022543433046,0.9601702866503661,-0.6536436208636119,-0.9899924966004454,0.5403023058681398,-0.9899924966004454,0.7539022543433046);
+
+        for (int i = 0; i < ret.getValues().size(); i++) {
+            assertEquals(4, ret.getValues().get(i).size());
+            double expected = cosS1ExpectedValues.get(i);
+            double actual = (double) ret.getValues().get(i).get(0);
+            assertEquals(expected, actual, delta);
+
+            expected = cosS2ExpectedValues.get(i);
+            actual = (double) ret.getValues().get(i).get(1);
+            assertEquals(expected, actual, delta);
+        }
+    }
 }
