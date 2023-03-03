@@ -11,7 +11,7 @@ import java.util.List;
 
 public class PemjaReader implements Reader {
 
-    private final Object[] data;
+    private final List<Object> data;
 
     private final int batchSize;
 
@@ -21,7 +21,7 @@ public class PemjaReader implements Reader {
 
     private int offset = 0;
 
-    public PemjaReader(Object[] data, int batchSize) {
+    public PemjaReader(List<Object> data, int batchSize) {
         this.data = data;
         this.batchSize = batchSize;
 
@@ -30,9 +30,9 @@ public class PemjaReader implements Reader {
     }
 
     private Header getHeaderFromData() {
-        Object[] firstRow;
-        if (isArray(data[0])) {
-            firstRow = (Object[]) data[0];
+        List<Object> firstRow;
+        if (isList(data.get(0))) {
+            firstRow = (List<Object>) data.get(0);
         } else {
             firstRow = data;
         }
@@ -47,20 +47,20 @@ public class PemjaReader implements Reader {
     private List<Row> getRowListFromData() {
         List<Row> rowList = new ArrayList<>();
 
-        boolean is2DList = isArray(data[0]);
+        boolean is2DList = isList(data.get(0));
         if (is2DList) {
-            for (int i = 1; i < data.length; i++) {
-                rowList.add(new Row(header, (Object[]) data[i]));
+            for (int i = 1; i < data.size(); i++) {
+                rowList.add(new Row(header, ((List<Object>) data.get(i)).toArray()));
             }
         }
         return rowList;
     }
 
-    private boolean isArray(Object object) {
+    private boolean isList(Object object) {
         if (object == null) {
             return false;
         }
-        return object.getClass().isArray();
+        return object instanceof List<?>;
     }
 
     @Override
