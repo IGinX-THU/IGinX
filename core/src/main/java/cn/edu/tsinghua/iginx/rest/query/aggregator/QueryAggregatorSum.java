@@ -18,31 +18,10 @@
  */
 package cn.edu.tsinghua.iginx.rest.query.aggregator;
 
-import cn.edu.tsinghua.iginx.rest.RestSession;
-import cn.edu.tsinghua.iginx.rest.RestUtils;
-import cn.edu.tsinghua.iginx.rest.bean.QueryResultDataset;
-import cn.edu.tsinghua.iginx.session.SessionQueryDataSet;
-import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
-import cn.edu.tsinghua.iginx.thrift.TimePrecision;
-import cn.edu.tsinghua.iginx.utils.TimeUtils;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 
 public class QueryAggregatorSum extends QueryAggregator {
     public QueryAggregatorSum() {
-        super(QueryAggregatorType.SUM);
-    }
-
-    @Override
-    public QueryResultDataset doAggregate(RestSession session, List<String> paths, Map<String, List<String>> tagList, long startTimestamp, long endTimestamp) {
-        return doAggregate(session, paths, tagList, startTimestamp, endTimestamp, TimeUtils.DEFAULT_TIMESTAMP_PRECISION);
-    }
-
-    @Override
-    public QueryResultDataset doAggregate(RestSession session, List<String> paths, Map<String, List<String>> tagList, long startTimestamp, long endTimestamp, TimePrecision timePrecision) {
-        return doAggregateWithDownsampleQuery(session, AggregateType.SUM, paths, tagList, startTimestamp, endTimestamp, timePrecision);
+        super(QueryAggregatorType.SUM, AggregateType.SUM);
     }
 }
