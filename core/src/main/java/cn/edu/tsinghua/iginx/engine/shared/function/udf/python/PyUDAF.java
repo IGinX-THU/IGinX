@@ -8,9 +8,11 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionType;
 import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.UDAF;
+import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.CheckUtils;
+import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.RowUtils;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.TypeUtils;
-import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
+import java.util.concurrent.BlockingQueue;
 import pemja.core.PythonInterpreter;
 
 import java.util.*;
@@ -22,12 +24,12 @@ public class PyUDAF implements UDAF {
 
     private static final String PY_UDAF = "py_udaf";
 
-    private final PythonInterpreter interpreter;
+    private final BlockingQueue<PythonInterpreter> interpreters;
 
     private final String funcName;
 
-    public PyUDAF(PythonInterpreter interpreter, String funcName) {
-        this.interpreter = interpreter;
+    public PyUDAF(BlockingQueue<PythonInterpreter> interpreter, String funcName) {
+        this.interpreters = interpreter;
         this.funcName = funcName;
     }
 
@@ -48,9 +50,11 @@ public class PyUDAF implements UDAF {
 
     @Override
     public Row transform(RowStream rows, Map<String, Value> params) throws Exception {
-        if (!isLegal(params)) {
+        if (!CheckUtils.isLegal(params)) {
             throw new IllegalArgumentException("unexpected params for PyUDAF.");
         }
+
+        PythonInterpreter interpreter = interpreters.take();
 
         String target = params.get(PARAM_PATHS).getBinaryVAsString();
         if (StringUtils.isPattern(target)) {
@@ -77,17 +81,18 @@ public class PyUDAF implements UDAF {
                 }
                 data.add(rowData);
             }
-            Object[] res = (Object[]) interpreter.invokeMethod(UDF_CLASS, UDF_FUNC, data);
-            if (res.length != name.size()) {
+            List<Object> res = (List<Object>) interpreter.invokeMethod(UDF_CLASS, UDF_FUNC, data);
+            if (res.size() != name.size()) {
                 return Row.EMPTY_ROW;
             }
+            interpreters.add(interpreter);
 
             List<Field> targetFields = new ArrayList<>();
             for (int i = 0; i < name.size(); i++) {
-                targetFields.add(new Field(name.get(i), TypeUtils.getDataTypeFromObject(res[i])));
+                targetFields.add(new Field(name.get(i), TypeUtils.getDataTypeFromObject(res.get(i))));
             }
             Header header = new Header(targetFields);
-            return new Row(header, res);
+            return RowUtils.constructNewRow(header, res);
         } else {
             int index = rows.getHeader().indexOf(target);
             if (index == -1) {
@@ -99,29 +104,15 @@ public class PyUDAF implements UDAF {
                 Row row = rows.next();
                 data.add(Collections.singletonList(row.getValues()[index]));
             }
-            Object[] res = (Object[]) interpreter.invokeMethod(UDF_CLASS, UDF_FUNC, data);
-            if (res.length != 1) {
+            List<Object> res = (List<Object>) interpreter.invokeMethod(UDF_CLASS, UDF_FUNC, data);
+            if (res.size() != 1) {
                 return Row.EMPTY_ROW;
             }
+            interpreters.add(interpreter);
 
-            Field targetField = new Field(getFunctionName() + "(" + target + ")", TypeUtils.getDataTypeFromObject(res[0]));
-            return new Row(new Header(Collections.singletonList(targetField)), res);
+            Field targetField = new Field(getFunctionName() + "(" + target + ")", TypeUtils.getDataTypeFromObject(res.get(0)));
+            return RowUtils.constructNewRow(new Header(Collections.singletonList(targetField)), res);
         }
-    }
-
-    private boolean isLegal(Map<String, Value> params) {
-        List<String> neededParams = Arrays.asList(PARAM_PATHS);
-        for (String param : neededParams) {
-            if (!params.containsKey(param)) {
-                return false;
-            }
-        }
-
-        Value paths = params.get(PARAM_PATHS);
-        if (paths == null || paths.getDataType() != DataType.BINARY) {
-            return false;
-        }
-        return true;
     }
 
     @Override

@@ -17,6 +17,8 @@ public class TypeUtils {
             return DataType.DOUBLE;
         } else if (object instanceof String) {
             return DataType.BINARY;
+        } else if (object instanceof byte[]) {
+            return DataType.BINARY;
         } else {
             return null;
         }
