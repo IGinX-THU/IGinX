@@ -1,25 +1,22 @@
 package cn.edu.tsinghua.iginx.integration.tool;
 
-import cn.edu.tsinghua.iginx.conf.Constants;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
-import cn.edu.tsinghua.iginx.utils.EnvUtils;
 import cn.edu.tsinghua.iginx.utils.FileReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
 
-public class TestConfLoder {
+public class ConfLoder {
     private final void logInfo(String info, Object... args) {
         if (DEBUG) logger.info(info, args);
     }
-    private static final Logger logger = LoggerFactory.getLogger(TestConfLoder.class);
+    private static final Logger logger = LoggerFactory.getLogger(ConfLoder.class);
     private static List<String> storageEngines = new ArrayList<>();
     private List<StorageEngineMeta> storageEngineMetas = new ArrayList<>();
     private Map<DBConf.DBType, List<String>> taskMap = new HashMap<>();
@@ -36,7 +33,7 @@ public class TestConfLoder {
         return storageType;
     }
 
-    public TestConfLoder(String confPath) {
+    public ConfLoder(String confPath) {
         this.confPath = confPath;
     }
 

@@ -1,9 +1,9 @@
-package cn.edu.tsinghua.iginx.integration.testcontroler;
+package cn.edu.tsinghua.iginx.integration.controller;
 
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
-import cn.edu.tsinghua.iginx.integration.tool.TestConfLoder;
+import cn.edu.tsinghua.iginx.integration.tool.ConfLoder;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
@@ -12,19 +12,17 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.Assert.fail;
 
-public class TestControler {
-    protected static final Logger logger = LoggerFactory.getLogger(TestControler.class);
+public class Controller {
+    protected static final Logger logger = LoggerFactory.getLogger(Controller.class);
     public static String CLEARDATAEXCP = "cn.edu.tsinghua.iginx.exceptions.ExecutionException: Caution: can not clear the data of read-only node.";
-    public static String CONFIG_FILE = "./src/test/java/cn/edu/tsinghua/iginx/integration/testcontroler/testConfig.properties";
+    public static String CONFIG_FILE = "./src/test/java/cn/edu/tsinghua/iginx/integration/controller/testConfig.properties";
     private String FILEPATH = "./src/test/resources/testTask.txt";
-    private String MVNRUNTEST = "../.github/testUnion.sh";
+    private String MVNRUNTEST = "../.github/test_union.sh";
     private List<StorageEngineMeta> storageEngineMetas = new ArrayList<>();
 
 
@@ -51,12 +49,12 @@ public class TestControler {
     @Test
     public void testUnion() throws Exception {
         // load the test conf
-        TestConfLoder testConfLoder = new TestConfLoder(CONFIG_FILE);
+        ConfLoder testConfLoder = new ConfLoder(CONFIG_FILE);
         testConfLoder.loadTestConf();
         storageEngineMetas = testConfLoder.getStorageEngineMetas();
 
         ShellRunner shellRunner = new ShellRunner();
-        TestEnvironmentControler envir = new TestEnvironmentControler();
+        TestEnvironmentController envir = new TestEnvironmentController();
 
         // ori plan
 //        // skip this when support remove Engine

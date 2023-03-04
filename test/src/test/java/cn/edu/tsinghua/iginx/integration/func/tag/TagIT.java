@@ -2,19 +2,17 @@ package cn.edu.tsinghua.iginx.integration.func.tag;
 
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
-import cn.edu.tsinghua.iginx.integration.testcontroler.TestControler;
+import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
-import cn.edu.tsinghua.iginx.integration.tool.TestConfLoder;
+import cn.edu.tsinghua.iginx.integration.tool.ConfLoder;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
-import cn.edu.tsinghua.iginx.utils.FileReader;
 import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
-import static cn.edu.tsinghua.iginx.conf.Constants.CONFIG_FILE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
@@ -27,7 +25,7 @@ public class TagIT {
     private String CLEARDATAEXCP = "cn.edu.tsinghua.iginx.exceptions.ExecutionException: Caution: can not clear the data of read-only node.";
 
     public TagIT() throws IOException {
-        TestConfLoder conf = new TestConfLoder(TestControler.CONFIG_FILE);
+        ConfLoder conf = new ConfLoder(Controller.CONFIG_FILE);
         DBConf dbConf = conf.loadDBConf();
         this.ifClearData = dbConf.getEnumValue(DBConf.DBConfType.isAbleToClearData);
         this.isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
@@ -68,7 +66,7 @@ public class TagIT {
 
     @After
     public void clearData() throws ExecutionException, SessionException {
-        TestControler.clearData(session);
+        Controller.clearData(session);
     }
 
     private void executeAndCompare(String statement, String expectedOutput) {

@@ -2,9 +2,9 @@ package cn.edu.tsinghua.iginx.integration.func.rest;
 
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
-import cn.edu.tsinghua.iginx.integration.testcontroler.TestControler;
+import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
-import cn.edu.tsinghua.iginx.integration.tool.TestConfLoder;
+import cn.edu.tsinghua.iginx.integration.tool.ConfLoder;
 import cn.edu.tsinghua.iginx.rest.MetricsResource;
 import cn.edu.tsinghua.iginx.session.Session;
 import org.junit.*;
@@ -13,7 +13,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.*;
 
-import static cn.edu.tsinghua.iginx.conf.Constants.CONFIG_FILE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
@@ -26,7 +25,7 @@ public class RestIT {
     protected Boolean isAbleToDelete = true;
 
     public RestIT() throws IOException {
-        TestConfLoder conf = new TestConfLoder(TestControler.CONFIG_FILE);
+        ConfLoder conf = new ConfLoder(Controller.CONFIG_FILE);
         DBConf dbConf = conf.loadDBConf();
         this.ifClearData = dbConf.getEnumValue(DBConf.DBConfType.isAbleToClearData);
         this.isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
@@ -55,7 +54,7 @@ public class RestIT {
 
     @After
     public void clearData() throws ExecutionException, SessionException {
-        TestControler.clearData(session);
+        Controller.clearData(session);
     }
 
     private enum TYPE {

@@ -7,14 +7,13 @@ import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.integration.tool.MultiConnection;
-import cn.edu.tsinghua.iginx.integration.tool.TestConfLoder;
+import cn.edu.tsinghua.iginx.integration.tool.ConfLoder;
 import cn.edu.tsinghua.iginx.pool.IginxInfo;
-import cn.edu.tsinghua.iginx.integration.testcontroler.TestControler;
+import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.pool.SessionPool;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,7 +22,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import static cn.edu.tsinghua.iginx.conf.Constants.CONFIG_FILE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 import org.junit.After;
@@ -63,7 +61,7 @@ public abstract class SQLSessionIT {
     protected String storageEngineType;
 
     public SQLSessionIT() throws IOException {
-        TestConfLoder conf = new TestConfLoder(TestControler.CONFIG_FILE);
+        ConfLoder conf = new ConfLoder(Controller.CONFIG_FILE);
         DBConf dbConf = conf.loadDBConf();
         this.ifScaleOutIn = conf.getStorageType() != null;
         this.ifClearData = dbConf.getEnumValue(DBConf.DBConfType.isAbleToClearData);
@@ -142,7 +140,7 @@ public abstract class SQLSessionIT {
             res = session.executeSql(clearData);
         } catch (SessionException | ExecutionException e) {
             logger.error("Statement: \"{}\" execute fail. Caused by: {}", clearData, e.toString());
-            if (e.toString().equals(TestControler.CLEARDATAEXCP)) {
+            if (e.toString().equals(Controller.CLEARDATAEXCP)) {
                 logger.error("clear data fail and go on....");
             }
             else fail();

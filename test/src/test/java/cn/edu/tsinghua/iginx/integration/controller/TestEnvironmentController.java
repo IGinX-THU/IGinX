@@ -1,4 +1,4 @@
-package cn.edu.tsinghua.iginx.integration.testcontroler;
+package cn.edu.tsinghua.iginx.integration.controller;
 
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
@@ -9,11 +9,11 @@ import org.slf4j.LoggerFactory;
 import java.io.*;
 import java.util.*;
 
-public class TestEnvironmentControler {
-    protected static final Logger logger = LoggerFactory.getLogger(TestEnvironmentControler.class);
+public class TestEnvironmentController {
+    protected static final Logger logger = LoggerFactory.getLogger(TestEnvironmentController.class);
     Session session;
     private String ADDSTORAGEENGINE = "ADD STORAGEENGINE (\"%s\", %s, \"%s\", \"%s\")";
-    public TestEnvironmentControler() {
+    public TestEnvironmentController() {
         session = new Session("127.0.0.1", 6888, "root", "root");
         try {
             session.openSession();

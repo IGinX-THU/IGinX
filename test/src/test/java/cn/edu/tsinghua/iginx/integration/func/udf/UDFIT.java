@@ -24,7 +24,7 @@ import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
-import cn.edu.tsinghua.iginx.integration.testcontroler.TestControler;
+import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.TransformTaskMeta;
@@ -99,7 +99,7 @@ public class UDFIT {
 
     @After
     public void clearData() throws ExecutionException, SessionException {
-        TestControler.clearData(session);
+        Controller.clearData(session);
     }
 
     private SessionExecuteSqlResult execute(String statement) {

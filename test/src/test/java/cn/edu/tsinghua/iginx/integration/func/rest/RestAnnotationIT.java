@@ -2,7 +2,7 @@ package cn.edu.tsinghua.iginx.integration.func.rest;
 
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
-import cn.edu.tsinghua.iginx.integration.testcontroler.TestControler;
+import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.rest.MetricsResource;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.thrift.DataType;
@@ -125,7 +125,7 @@ public class RestAnnotationIT {
 
     @After
     public void clearData() throws ExecutionException, SessionException {
-        TestControler.clearData(session);
+        Controller.clearData(session);
     }
 
     public void executeAndCompare(String json, String output, TYPE type, DataType dataType) {
@@ -228,7 +228,7 @@ public class RestAnnotationIT {
     public void clearDataMen() {
         try {
             String clearData = "CLEAR DATA;";
-            TestControler.clearData(session);
+            Controller.clearData(session);
         } catch (Exception e) {
             LOGGER.error("Error occurred during execution ", e);
             fail();
