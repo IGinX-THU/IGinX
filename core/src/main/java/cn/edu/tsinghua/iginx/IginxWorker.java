@@ -45,7 +45,6 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
@@ -591,8 +590,8 @@ public class IginxWorker implements IService.Iface {
     @Override
     public Status cancelTransformJob(CancelTransformJobReq req) {
         TransformJobManager manager = TransformJobManager.getInstance();
-        manager.cancel(req.getJobId());
-        return RpcUtils.SUCCESS;
+        boolean success = manager.cancel(req.getJobId());
+        return success ? RpcUtils.SUCCESS : RpcUtils.FAILURE;
     }
 
     @Override

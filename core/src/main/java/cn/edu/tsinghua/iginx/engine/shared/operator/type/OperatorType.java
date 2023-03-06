@@ -37,7 +37,6 @@ public enum OperatorType {
     OuterJoin,
     CrossJoin,
 
-
     // isUnaryOperator >= 40
     Binary(40),
     Unary,
@@ -54,26 +53,26 @@ public enum OperatorType {
     MappingTransform,
     Rename,
     Reorder,
-    AddSchemaPrefix;
-
-
+    AddSchemaPrefix,
+    GroupBy;
 
     private int value;
-    OperatorType(){
+
+    OperatorType() {
         this(OperatorTypeCounter.nextValue);
     }
-    OperatorType(int value){
+
+    OperatorType(int value) {
         this.value = value;
         OperatorTypeCounter.nextValue = value + 1;
     }
 
-    public int getValue()
-    {
+    public int getValue() {
         return value;
     }
 
-    private static class OperatorTypeCounter
-    {
+    private static class OperatorTypeCounter {
+
         private static int nextValue = 0;
     }
 

@@ -7,7 +7,7 @@ sqlStatement
 statement
     : INSERT INTO path tagList? insertColumnsSpec VALUES insertValuesSpec #insertStatement
     | DELETE FROM path (COMMA path)* whereClause? withClause? #deleteStatement
-    | queryClause #selectStatement
+    | EXPLAIN? queryClause #selectStatement
     | COUNT POINTS #countPointsStatement
     | DELETE TIME SERIES path (COMMA path)* withClause? #deleteTimeSeriesStatement
     | CLEAR DATA #clearDataStatement
@@ -68,8 +68,8 @@ andExpression
     ;
 
 predicate
-    : (KEY | path) comparisonOperator constant
-    | constant comparisonOperator (KEY | path)
+    : (KEY | path | functionName LR_BRACKET path RR_BRACKET) comparisonOperator constant
+    | constant comparisonOperator (KEY | path | functionName LR_BRACKET path RR_BRACKET)
     | path comparisonOperator path
     | path OPERATOR_LIKE regex=stringLiteral
     | OPERATOR_NOT? LR_BRACKET orExpression RR_BRACKET
@@ -124,17 +124,24 @@ tagValue
     ;
 
 fromClause
-    : FROM LR_BRACKET queryClause RR_BRACKET
-    | FROM path joinPart*
+    : FROM tableReference joinPart*
     ;
 
 joinPart
-    : COMMA path
-    | CROSS JOIN path
-    | join path (
+    : COMMA tableReference
+    | CROSS JOIN tableReference
+    | join tableReference (
         ON orExpression
         | USING colList
       )?
+    ;
+
+tableReference
+    : path | (subquery asClause?)
+    ;
+
+subquery
+    : LR_BRACKET queryClause RR_BRACKET
     ;
 
 colList
@@ -151,13 +158,22 @@ join
 specialClause
     : limitClause
     | aggregateWithLevelClause
+    | groupByClause havingClause? orderByClause? limitClause?
     | downsampleWithLevelClause limitClause?
     | downsampleClause limitClause?
     | orderByClause limitClause?
     ;
 
+groupByClause
+    : GROUP BY path (COMMA path)*
+    ;
+
+havingClause
+    : HAVING orExpression
+    ;
+
 orderByClause
-    : ORDER BY (TIME | TIMESTAMP | KEY | path) (DESC | ASC)?
+    : ORDER BY (KEY | path) (COMMA path)* (DESC | ASC)?
     ;
 
 downsampleWithLevelClause
@@ -293,6 +309,7 @@ keyWords
     | TIMESTAMP
     | GROUP
     | ORDER
+    | HAVING
     | AGG
     | LEVEL
     | ADD
@@ -349,6 +366,7 @@ keyWords
     | STEP
     | REMOVE
     | HISTORYDATARESOURCE
+    | EXPLAIN
     ;
 
 dateFormat
@@ -447,6 +465,10 @@ GROUP
 
 ORDER
     : O R D E R
+    ;
+
+HAVING
+    : H A V I N G
     ;
 
 AGG
@@ -736,6 +758,10 @@ REMOVE
 HISTORYDATARESOURCE
     : H I S T O R Y D A T A R E S O U R C E
     ;
+
+EXPLAIN
+    : E X P L A I N
+    ;
 //============================
 // End of the keywords list
 //============================
@@ -829,7 +855,7 @@ DATETIME
     ;
 
 /** Allow unicode rule/token names */
-ID : NAME_CHAR*;
+ID : NAME_CHAR+;
 
 fragment
 NAME_CHAR

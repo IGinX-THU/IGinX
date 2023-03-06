@@ -46,4 +46,9 @@ public class MappingTransform extends AbstractUnaryOperator {
     public Operator copy() {
         return null;
     }
+
+    @Override
+    public String getInfo() {
+        return "Func: " + functionCall.toString();
+    }
 }

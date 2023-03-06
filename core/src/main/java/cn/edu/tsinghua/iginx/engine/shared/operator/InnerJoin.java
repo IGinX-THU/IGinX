@@ -75,4 +75,23 @@ public class InnerJoin extends AbstractBinaryOperator {
         return new InnerJoin(getSourceA().copy(), getSourceB().copy(), prefixA, prefixB,
             filter.copy(), new ArrayList<>(joinColumns), isNaturalJoin, joinAlgType);
     }
+
+    @Override
+    public String getInfo() {
+        StringBuilder builder = new StringBuilder();
+        builder.append("PrefixA: ").append(prefixA);
+        builder.append(", PrefixB: ").append(prefixB);
+        builder.append(", IsNatural: ").append(isNaturalJoin);
+        if (filter != null) {
+            builder.append(", Filter: ").append(filter.toString());
+        }
+        if (joinColumns != null) {
+            builder.append(", JoinColumns: ");
+            for (String col : joinColumns) {
+                builder.append(col).append(",");
+            }
+            builder.deleteCharAt(builder.length() - 1);
+        }
+        return builder.toString();
+    }
 }

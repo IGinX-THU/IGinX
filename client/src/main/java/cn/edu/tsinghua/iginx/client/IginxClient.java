@@ -29,6 +29,7 @@ import cn.edu.tsinghua.iginx.utils.FormatUtils;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.Collections;
 import org.apache.commons.cli.*;
 import org.jline.reader.Completer;
 import org.jline.reader.LineReader;
@@ -335,7 +336,6 @@ public class IginxClient {
     }
 
     private static List<List<String>> cacheResult(QueryDataSet queryDataSet) throws ExecutionException, SessionException {
-        boolean hasKey = queryDataSet.getColumnList().get(0).equals(GlobalConstant.KEY_NAME);
         List<List<String>> cache = new ArrayList<>();
         cache.add(new ArrayList<>(queryDataSet.getColumnList()));
 
@@ -344,19 +344,11 @@ public class IginxClient {
             List<String> strRow = new ArrayList<>();
             Object[] nextRow = queryDataSet.nextRow();
             if (nextRow != null) {
-                if (hasKey) {
-//                    strRow.add(FormatUtils.formatTime((Long) nextRow[0], FormatUtils.DEFAULT_TIME_FORMAT, timestampPrecision));
-                    for (int i = 0; i < nextRow.length; i++) {
-                        strRow.add(FormatUtils.valueToString(nextRow[i]));
-                    }
-                } else {
-                    Arrays.stream(nextRow).forEach(val -> strRow.add(FormatUtils.valueToString(val)));
-                }
+                Arrays.stream(nextRow).forEach(val -> strRow.add(FormatUtils.valueToString(val)));
                 cache.add(strRow);
                 rowIndex++;
             }
         }
-
         return cache;
     }
 
@@ -386,13 +378,15 @@ public class IginxClient {
             Arrays.asList("insert", "into"),
             Arrays.asList("delete", "from"),
             Arrays.asList("delete", "time", "series"),
-            Arrays.asList("select"),
+            Arrays.asList("explain", "select"),
             Arrays.asList("add", "storageengine"),
             Arrays.asList("register", "python", "task"),
             Arrays.asList("drop", "python", "task"),
             Arrays.asList("commit", "transform", "job"),
             Arrays.asList("show", "transform", "job", "status"),
-            Arrays.asList("cancel", "transform", "job")
+            Arrays.asList("cancel", "transform", "job"),
+
+            Collections.singletonList("select")
         );
         addArgumentCompleters(iginxCompleters, withNullCompleters, true);
 

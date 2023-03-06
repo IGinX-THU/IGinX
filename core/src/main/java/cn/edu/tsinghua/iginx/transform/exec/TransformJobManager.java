@@ -89,36 +89,61 @@ public class TransformJobManager {
             runner.start();
             jobRunnerMap.put(job.getJobId(), runner);
             runner.run();
-            jobRunnerMap.remove(job.getJobId());
+            jobRunnerMap.remove(job.getJobId()); // since we will retry, we can't do this in finally
         } catch (Exception e) {
             logger.error(String.format("Fail to process transform job id=%d, because", job.getJobId()), e);
             throw e;
         } finally {
+            // TODO: is it legal to retry after runner.close()???
+            // TODO:
+            // we don't need to close runner for FINISHED or FAILED jobs
+            // can we move runner.close() into catch clause?
             runner.close();
-            job.setEndTime(System.currentTimeMillis());
         }
+        // TODO: should we set end time and log time cost for failed jobs?
+        job.setEndTime(System.currentTimeMillis());
         logger.info(String.format("Job id=%s cost %s ms.", job.getJobId(), job.getEndTime() - job.getStartTime()));
     }
 
-    public void cancel(long jobId) {
+    public boolean cancel(long jobId) {
         Job job = jobMap.get(jobId);
         if (job == null) {
-            return;
+            return false;
         }
-        if (!job.getState().equals(JobState.JOB_RUNNING) &&
-            !job.getState().equals(JobState.JOB_CREATED)) {
-            return;
-        }
-
-        job.setState(JobState.JOB_CLOSING);
-
         JobRunner runner = jobRunnerMap.get(jobId);
-        runner.close();
-        jobRunnerMap.remove(jobId);
+        if (runner == null) {
+            return false;
+        }
+        // Since job state is set to FINISHED/FAILING/FAILED before runner removed from jobRunnerMap,
+        // if runner == null, we can confirm that job state is not RUNNING or CREATED.
+        //
+        // Since job state is set before runner removed from jobRunnerMap,
+        // even if runner != null, there are still possibilities that
+        // job state is FINISHED/FAILING/FAILED.
+        // Even worse, we cannot simply avoid this by read before write because of concurrency.
+        // Thus, we add an atmoic Boolean field to Job to avoid concurrency.
 
-        job.setEndTime(System.currentTimeMillis());
+        // This guard is not reliable under concurrency,
+        // but can exclude UNKNOWN state and show our intention
+        switch (job.getState()) { // won't be null
+            case JOB_RUNNING:
+            case JOB_CREATED:
+                break; // continue execution
+            default:
+                return false;
+        }
+        // atomic guard
+        if (!job.getActive().compareAndSet(true, false)) {
+            return false;
+        }
+        // reorder as Normal run: [set-ING,] close, set-ED, remove[, set end time, log time cost].
+        job.setState(JobState.JOB_CLOSING);
+        runner.close();
         job.setState(JobState.JOB_CLOSED);
+        jobRunnerMap.remove(jobId);
+        job.setEndTime(System.currentTimeMillis());
         logger.info(String.format("Job id=%s cost %s ms.", job.getJobId(), job.getEndTime() - job.getStartTime()));
+        return true;
     }
 
     public JobState queryJobState(long jobId) {

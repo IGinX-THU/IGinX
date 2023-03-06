@@ -141,6 +141,8 @@ public class ConfigDescriptor {
             config.setHistoricalPrefixList(properties.getProperty("historicalPrefixList", ""));
             config.setExpectedStorageUnitNum(Integer.parseInt(properties.getProperty("expectedStorageUnitNum", "0")));
             config.setLocalParquetStorage(Boolean.parseBoolean(properties.getProperty("isLocalParquetStorage", "true")));
+            config.setMinThriftWorkerThreadNum(Integer.parseInt(properties.getProperty("minThriftWorkerThreadNum", "20")));
+            config.setMaxThriftWrokerThreadNum(Integer.parseInt(properties.getProperty("maxThriftWorkerThreadNum", "2147483647")));
         } catch (IOException e) {
             logger.error("Fail to load properties: ", e);
         }

@@ -50,4 +50,9 @@ public class Migration extends AbstractUnaryOperator {
     return new Migration((GlobalSource) getSource().copy(), sourceStorageEngineId,
         targetStorageEngineId, fragmentMeta, paths, targetStorageUnitMeta);
   }
+
+  @Override
+  public String getInfo() {
+    return "";
+  }
 }

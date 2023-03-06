@@ -57,7 +57,7 @@ public class PemjaWorker {
             }
         });
 
-        Object[] res = (Object[]) interpreter.invokeMethod(UDF_CLASS, UDF_FUNC, data);
+        List<Object> res = (List<Object>) interpreter.invokeMethod(UDF_CLASS, UDF_FUNC, data);
         PemjaReader reader = new PemjaReader(res, config.getBatchSize());
 
         try {
