@@ -264,17 +264,20 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
             SelectStatement subStatement = new SelectStatement();
             subStatement.setIsSubQuery(true);
             parseQueryClause(ctx.tableReference().subquery().queryClause(), subStatement);
-            if (subStatement.hasJoinParts() || ctx.tableReference().asClause() != null) {
-                parseAsClause(ctx.tableReference().asClause(), subStatement);
-                selectStatement.setGlobalAlias(ctx.tableReference().asClause().ID().getText());
-            } else {
-                selectStatement.setGlobalAlias(subStatement.getGlobalAlias());
-            }
+            selectStatement.setGlobalAlias(subStatement.getGlobalAlias());
             fromParts.add(new SubQueryFromPart(subStatement));
         }
 
         if (ctx.joinPart() != null && !ctx.joinPart().isEmpty()) {
             selectStatement.setHasJoinParts(true);
+            
+            if (fromParts.get(0).getType() == FromPartType.SubQueryFromPart) {
+                SubQueryFromPart subQueryFromPart = (SubQueryFromPart) fromParts.get(0);
+                if (subQueryFromPart.getSubQuery().hasJoinParts() && ctx.tableReference().subquery().queryClause().asClause() == null) {
+                    throw new SQLParserException("AS clause is required in this sub query");
+                }
+            }
+            
             for (JoinPartContext joinPartContext : ctx.joinPart()) {
                 String pathPrefix;
                 SelectStatement subStatement = new SelectStatement();
@@ -284,12 +287,10 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
                 } else {
                     subStatement.setIsSubQuery(true);
                     parseQueryClause(joinPartContext.tableReference().subquery().queryClause(), subStatement);
-                    if (subStatement.hasJoinParts() || joinPartContext.tableReference().asClause() != null) {
-                        parseAsClause(joinPartContext.tableReference().asClause(), subStatement);
-                        pathPrefix = joinPartContext.tableReference().asClause().ID().getText();
-                    } else {
-                        pathPrefix = subStatement.getGlobalAlias();
+                    if (subStatement.hasJoinParts() && joinPartContext.tableReference().subquery().queryClause().asClause() == null) {
+                        throw new SQLParserException("AS clause is required in this sub query");
                     }
+                    pathPrefix = subStatement.getGlobalAlias();
                 }
                 if (joinPartContext.join() == null) {  // cross join
                     if (subStatement == null) {

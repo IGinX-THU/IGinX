@@ -1392,6 +1392,39 @@ public abstract class SQLSessionIT {
             executeAndCompare(String.format(statement, type, type), expected);
         }
     }
+    
+    @Test
+    public void testComplexQuery() {
+        String insert = "insert into test1(key, a, b, c, d) values (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), " +
+                "(3, 2, 2, 1.1, \"val5\"), (4, 3, 2, 2.1, \"val2\"), (5, 1, 2, 3.1, \"val1\"), (6, 2, 2, 5.1, \"val3\")";
+        execute(insert);
+        insert = "insert into test2(key, a, b, c, d) values (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), " +
+                "(3, 2, 2, 1.1, \"val5\"), (4, 3, 2, 2.1, \"val2\"), (5, 1, 2, 3.1, \"val1\"), (6, 2, 2, 5.1, \"val3\")";
+        execute(insert);
+
+        String statement = "SELECT AVG(test1.a), MAX(test1.c), test2.d " +
+                           "FROM test1 JOIN test2 ON test1.a = test2.a " +
+                           "GROUP BY test2.d HAVING max(test1.c) > 3.5 " +
+                           "ORDER BY test2.d LIMIT 1;";
+        String expected = "ResultSets:\n" +
+                "+------------+------------+-------+\n" +
+                "|avg(test1.a)|max(test1.c)|test2.d|\n" +
+                "+------------+------------+-------+\n" +
+                "|         2.0|         5.1|   val3|\n" +
+                "+------------+------------+-------+\n" +
+                "Total line number = 1\n";
+        executeAndCompare(statement, expected);
+    
+        statement = "SELECT * FROM (SELECT s1 FROM us.d1 WHERE s1 < 10), (SELECT s2 FROM us.d1 WHERE s2 < 10);";
+        expected = "ResultSets:\n" +
+                "+----+\n" +
+                "| res|\n" +
+                "+----+\n" +
+                "|val3|\n" +
+                "+----+\n" +
+                "Total line number = 1\n";
+        executeAndCompare(statement, expected);
+    }
 
     @Test
     public void testDelete() {
@@ -2573,7 +2606,7 @@ public abstract class SQLSessionIT {
                 "Total line number = 4\n";
         executeAndCompare(statement, expected);
 
-        statement = "SELECT * FROM (SELECT test.a.a, test.b.a FROM test.a, test.b WHERE test.b.a < 6 AND test.a.a > 1) AS sub_query;";
+        statement = "SELECT * FROM (SELECT test.a.a, test.b.a FROM test.a, test.b WHERE test.b.a < 6 AND test.a.a > 1 AS sub_query);";
         expected = "ResultSets:\n" +
                 "+------------------+------------------+\n" +
                 "|sub_query.test.a.a|sub_query.test.b.a|\n" +
