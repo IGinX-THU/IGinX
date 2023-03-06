@@ -1,17 +1,11 @@
 package cn.edu.tsinghua.iginx.integration;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
-
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.pool.IginxInfo;
 import cn.edu.tsinghua.iginx.pool.SessionPool;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -20,6 +14,13 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 public abstract class SQLSessionIT {
 
@@ -1397,34 +1398,38 @@ public abstract class SQLSessionIT {
     }
     
     @Test
-    public void testComplexQuery() {
-        String insert = "insert into test1(key, a, b, c, d) values (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), " +
-                "(3, 2, 2, 1.1, \"val5\"), (4, 3, 2, 2.1, \"val2\"), (5, 1, 2, 3.1, \"val1\"), (6, 2, 2, 5.1, \"val3\")";
-        execute(insert);
-        insert = "insert into test2(key, a, b, c, d) values (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), " +
-                "(3, 2, 2, 1.1, \"val5\"), (4, 3, 2, 2.1, \"val2\"), (5, 1, 2, 3.1, \"val1\"), (6, 2, 2, 5.1, \"val3\")";
+    public void testAggregateWithLevel() {
+        String insert = "INSERT INTO test(key, a1.b1, a1.b2, a2.b1, a2.b2) VALUES (0, 0, 0, 0, 0), (1, 1, 1, 1, 1)," +
+                "(2, NULL, 2, 2, 2), (3, NULL, NULL, 3, 3), (4, NULL, NULL, NULL, 4)";
         execute(insert);
 
-        String statement = "SELECT AVG(test1.a), MAX(test1.c), test2.d " +
-                           "FROM test1 JOIN test2 ON test1.a = test2.a " +
-                           "GROUP BY test2.d HAVING max(test1.c) > 3.5 " +
-                           "ORDER BY test2.d LIMIT 1;";
+        String statement = "SELECT AVG(*), COUNT(*), SUM(*) FROM test AGG LEVEL = 0;";
         String expected = "ResultSets:\n" +
-                "+------------+------------+-------+\n" +
-                "|avg(test1.a)|max(test1.c)|test2.d|\n" +
-                "+------------+------------+-------+\n" +
-                "|         2.0|         5.1|   val3|\n" +
-                "+------------+------------+-------+\n" +
+                "+------------------+---------------+-------------+\n" +
+                "|     avg(test.*.*)|count(test.*.*)|sum(test.*.*)|\n" +
+                "+------------------+---------------+-------------+\n" +
+                "|1.4285714285714286|             14|           20|\n" +
+                "+------------------+---------------+-------------+\n" +
                 "Total line number = 1\n";
         executeAndCompare(statement, expected);
-    
-        statement = "SELECT * FROM (SELECT s1 FROM us.d1 WHERE s1 < 10), (SELECT s2 FROM us.d1 WHERE s2 < 10);";
+
+        statement = "SELECT AVG(*), COUNT(*), SUM(*) FROM test AGG LEVEL = 0,1;";
         expected = "ResultSets:\n" +
-                "+----+\n" +
-                "| res|\n" +
-                "+----+\n" +
-                "|val3|\n" +
-                "+----+\n" +
+                "+--------------+------------------+----------------+----------------+--------------+--------------+\n" +
+                "|avg(test.a1.*)|    avg(test.a2.*)|count(test.a1.*)|count(test.a2.*)|sum(test.a1.*)|sum(test.a2.*)|\n" +
+                "+--------------+------------------+----------------+----------------+--------------+--------------+\n" +
+                "|           0.8|1.7777777777777777|               5|               9|             4|            16|\n" +
+                "+--------------+------------------+----------------+----------------+--------------+--------------+\n" +
+                "Total line number = 1\n";
+        executeAndCompare(statement, expected);
+
+        statement = "SELECT AVG(*), COUNT(*), SUM(*) FROM test AGG LEVEL = 1;";
+        expected = "ResultSets:\n" +
+                "+-----------+------------------+-------------+-------------+-----------+-----------+\n" +
+                "|avg(*.a1.*)|       avg(*.a2.*)|count(*.a1.*)|count(*.a2.*)|sum(*.a1.*)|sum(*.a2.*)|\n" +
+                "+-----------+------------------+-------------+-------------+-----------+-----------+\n" +
+                "|        0.8|1.7777777777777777|            5|            9|          4|         16|\n" +
+                "+-----------+------------------+-------------+-------------+-----------+-----------+\n" +
                 "Total line number = 1\n";
         executeAndCompare(statement, expected);
     }
@@ -1889,15 +1894,15 @@ public abstract class SQLSessionIT {
                 + "Total line number = 2\n";
         executeAndCompare(query, expected);
 
-        query = "select avg(test1.a), max(test1.c), test2.d from test1 join test2 on test1.a = test2.a group by test2.d having max(test1.c) > 3.5 order by test2.d limit 1";
+        query = "select avg_a, test2.d as res from (select avg(test1.a) as avg_a, max(test1.c), test2.d from test1 join test2 on test1.a = test2.a group by test2.d having max(test1.c) > 3.5 order by test2.d limit 1);";
         expected =
-            "ResultSets:\n"
-                + "+------------+------------+-------+\n"
-                + "|avg(test1.a)|max(test1.c)|test2.d|\n"
-                + "+------------+------------+-------+\n"
-                + "|         2.0|         5.1|   val3|\n"
-                + "+------------+------------+-------+\n"
-                + "Total line number = 1\n";
+            "ResultSets:\n" +
+                "+-----+----+\n" +
+                "|avg_a| res|\n" +
+                "+-----+----+\n" +
+                "|  2.0|val3|\n" +
+                "+-----+----+\n" +
+                "Total line number = 1\n";
         executeAndCompare(query, expected);
     }
 
