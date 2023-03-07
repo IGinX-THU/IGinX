@@ -1,17 +1,11 @@
 package cn.edu.tsinghua.iginx.integration;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
-
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.pool.IginxInfo;
 import cn.edu.tsinghua.iginx.pool.SessionPool;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -20,6 +14,13 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 public abstract class SQLSessionIT {
 
@@ -2730,6 +2731,81 @@ public abstract class SQLSessionIT {
             "|       7|     7.1|         3|       4|         3|   false|         4|\n" +
             "+--------+--------+----------+--------+----------+--------+----------+\n" +
             "Total line number = 12\n";
+        executeAndCompare(statement, expected);
+    }
+
+    @Test
+    public void testSelectSubQuery() {
+        String insert = "INSERT INTO test.a(key, a, b, c, d) VALUES (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), " +
+            "(3, 2, 2, 1.1, \"val5\"), (4, 3, 2, 2.1, \"val2\"), (5, 1, 2, 3.1, \"val1\"), (6, 2, 2, 5.1, \"val3\");";
+        execute(insert);
+        insert = "INSERT INTO test.b(key, a, b, c, d) VALUES (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), " +
+            "(3, 2, 2, 1.1, \"val3\"), (4, 3, 2, 2.1, \"val2\"), (5, 1, 2, 3.1, \"val2\"), (6, 2, 2, 5.1, \"val3\");";
+        execute(insert);
+    
+        String statement = "SELECT a FROM test.a;";
+        String expected = "ResultSets:\n" +
+            "+---+--------+\n" +
+            "|key|test.a.a|\n" +
+            "+---+--------+\n" +
+            "|  1|       3|\n" +
+            "|  2|       1|\n" +
+            "|  3|       2|\n" +
+            "|  4|       3|\n" +
+            "|  5|       1|\n" +
+            "|  6|       2|\n" +
+            "+---+--------+\n" +
+            "Total line number = 6\n";
+        executeAndCompare(statement, expected);
+    
+        statement = "SELECT AVG(a) FROM test.b;";
+        expected = "ResultSets:\n" +
+            "+-------------+\n" +
+            "|avg(test.b.a)|\n" +
+            "+-------------+\n" +
+            "|          2.0|\n" +
+            "+-------------+\n" +
+            "Total line number = 1\n";
+        executeAndCompare(statement, expected);
+
+        statement = "SELECT a, (SELECT AVG(a) FROM test.b) FROM test.a;";
+        expected = "ResultSets:\n" +
+            "+--------+-------------+\n" +
+            "|test.a.a|avg(test.b.a)|\n" +
+            "+--------+-------------+\n" +
+            "|       3|          2.0|\n" +
+            "|       1|          2.0|\n" +
+            "|       2|          2.0|\n" +
+            "|       3|          2.0|\n" +
+            "|       1|          2.0|\n" +
+            "|       2|          2.0|\n" +
+            "+--------+-------------+\n" +
+            "Total line number = 6\n";
+        executeAndCompare(statement, expected);
+    
+        statement = "SELECT d, AVG(a) FROM test.b GROUP BY d HAVING avg(a) > 2;";
+        expected = "ResultSets:\n" +
+            "+--------+-------------+\n" +
+            "|test.b.d|avg(test.b.a)|\n" +
+            "+--------+-------------+\n" +
+            "|    val1|          3.0|\n" +
+            "+--------+-------------+\n" +
+            "Total line number = 1\n";
+        executeAndCompare(statement, expected);
+    
+        statement = "SELECT a, (SELECT d, AVG(a) FROM test.b GROUP BY d HAVING avg(test.b.a) > 2) FROM test.a;";
+        expected = "ResultSets:\n" +
+            "+--------+--------+-------------+\n" +
+            "|test.a.a|test.b.d|avg(test.b.a)|\n" +
+            "+--------+--------+-------------+\n" +
+            "|       3|    val1|          3.0|\n" +
+            "|       1|    val1|          3.0|\n" +
+            "|       2|    val1|          3.0|\n" +
+            "|       3|    val1|          3.0|\n" +
+            "|       1|    val1|          3.0|\n" +
+            "|       2|    val1|          3.0|\n" +
+            "+--------+--------+-------------+\n" +
+            "Total line number = 6\n";
         executeAndCompare(statement, expected);
     }
 

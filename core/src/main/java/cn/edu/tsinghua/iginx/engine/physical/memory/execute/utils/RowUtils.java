@@ -35,9 +35,9 @@ import cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils;
 import cn.edu.tsinghua.iginx.engine.shared.operator.GroupBy;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
+
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -124,6 +124,16 @@ public class RowUtils {
             }
         }
         return 0;
+    }
+
+    public static Header constructNewHead(Header headerA, Header headerB, String prefixA) {
+        List<Field> fields = new ArrayList<>();
+        if (headerA.hasKey()) {
+            fields.add(new Field(prefixA + "." + GlobalConstant.KEY_NAME, DataType.LONG));
+        }
+        fields.addAll(headerA.getFields());
+        fields.addAll(headerB.getFields());
+        return new Header(fields);
     }
 
     public static Header constructNewHead(Header headerA, Header headerB, String prefixA,

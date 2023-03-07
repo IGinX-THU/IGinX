@@ -341,6 +341,9 @@ public class QueryGenerator extends AbstractGenerator {
                 case RightOuterJoin:
                     left = new OuterJoin(new OperatorSource(left), new OperatorSource(right), prefixA, prefixB, OuterJoinType.RIGHT, filter, joinColumns, false, joinAlgType);
                     break;
+                case SingleJoin:
+                    left = new SingleJoin(new OperatorSource(left), new OperatorSource(right), prefixA, filter);
+                    break;
             }
 
             prefixA = prefixB;

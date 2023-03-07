@@ -333,6 +333,10 @@ public class SelectStatement extends DataStatement {
     public void setFromParts(List<FromPart> fromParts) {
         this.fromParts = fromParts;
     }
+    
+    public void addFromPart(FromPart fromPart) {
+        this.fromParts.add(fromPart);
+    }
 
     public void setGroupByPath(String path) {
         this.groupByPaths.add(path);
