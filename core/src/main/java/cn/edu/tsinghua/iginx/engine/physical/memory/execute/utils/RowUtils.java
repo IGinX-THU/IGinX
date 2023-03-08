@@ -62,6 +62,17 @@ public class RowUtils {
         return targetRow;
     }
 
+    public static Row combineMultipleColumns(List<Row> columnList) {
+        int size = columnList.size();
+        List<Field> fields = new ArrayList<>();
+        Object[] valuesCombine = new Object[size];
+        for (int i = 0; i < size; i++) {
+            fields.addAll(columnList.get(i).getHeader().getFields());
+            valuesCombine[i] = columnList.get(i).getValue(0);
+        }
+        return new Row(new Header(fields), valuesCombine);
+    }
+
     /**
      * @return <tt>-1</tt>: not sorted
      * <tt>0</tt>: all rows equal
@@ -126,11 +137,8 @@ public class RowUtils {
         return 0;
     }
 
-    public static Header constructNewHead(Header headerA, Header headerB, String prefixA) {
+    public static Header constructNewHead(Header headerA, Header headerB) {
         List<Field> fields = new ArrayList<>();
-        if (headerA.hasKey()) {
-            fields.add(new Field(prefixA + "." + GlobalConstant.KEY_NAME, DataType.LONG));
-        }
         fields.addAll(headerA.getFields());
         fields.addAll(headerB.getFields());
         return new Header(fields);
@@ -226,28 +234,36 @@ public class RowUtils {
     }
 
     public static Row constructNewRow(Header header, Row rowA, Row rowB) {
+        return constructNewRow(header, rowA, rowB, true);
+    }
+
+    public static Row constructNewRow(Header header, Row rowA, Row rowB, boolean remainKey) {
         Object[] valuesA = rowA.getValues();
         Object[] valuesB = rowB.getValues();
 
         int size = valuesA.length + valuesB.length;
         int rowAStartIndex = 0, rowBStartIndex = valuesA.length;
-        if (rowA.getHeader().hasKey()) {
-            size++;
-            rowAStartIndex++;
-            rowBStartIndex++;
-        }
-        if (rowB.getHeader().hasKey()) {
-            size++;
-            rowBStartIndex++;
+        if (remainKey) {
+            if (rowA.getHeader().hasKey()) {
+                size++;
+                rowAStartIndex++;
+                rowBStartIndex++;
+            }
+            if (rowB.getHeader().hasKey()) {
+                size++;
+                rowBStartIndex++;
+            }
         }
 
         Object[] valuesJoin = new Object[size];
 
-        if (rowA.getHeader().hasKey()) {
-            valuesJoin[0] = rowA.getKey();
-        }
-        if (rowB.getHeader().hasKey()) {
-            valuesJoin[rowBStartIndex - 1] = rowB.getKey();
+        if (remainKey) {
+            if (rowA.getHeader().hasKey()) {
+                valuesJoin[0] = rowA.getKey();
+            }
+            if (rowB.getHeader().hasKey()) {
+                valuesJoin[rowBStartIndex - 1] = rowB.getKey();
+            }
         }
         System.arraycopy(valuesA, 0, valuesJoin, rowAStartIndex, valuesA.length);
         System.arraycopy(valuesB, 0, valuesJoin, rowBStartIndex, valuesB.length);

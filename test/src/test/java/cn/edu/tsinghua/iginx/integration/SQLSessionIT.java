@@ -2168,7 +2168,7 @@ public abstract class SQLSessionIT {
                 + "Total line number = 6\n";
         executeAndCompare(statement, expected);
 
-        statement = "SELECT s1+1, s2-1, s3*2 FROM us.d3;";
+        statement = "explain SELECT s1+1, s2-1, s3*2 FROM us.d3;";
         expected =
             "ResultSets:\n"
                 + "+---+------------+------------+------------+\n"
@@ -2258,64 +2258,64 @@ public abstract class SQLSessionIT {
         statement = "SELECT (s1+s2)*s3 FROM us.d3;";
         expected =
             "ResultSets:\n"
-                + "+---+--------------------------------+\n"
-                + "|key|(us.d3.s1 + us.d3.s2) × us.d3.s3|\n"
-                + "+---+--------------------------------+\n"
-                + "|  1|                            10.5|\n"
-                + "|  2|                            17.5|\n"
-                + "|  3|                            24.5|\n"
-                + "|  4|                            31.5|\n"
-                + "|  5|                            38.5|\n"
-                + "|  6|                            45.5|\n"
-                + "+---+--------------------------------+\n"
+                + "+--------------------------------+\n"
+                + "|(us.d3.s1 + us.d3.s2) × us.d3.s3|\n"
+                + "+--------------------------------+\n"
+                + "|                            10.5|\n"
+                + "|                            17.5|\n"
+                + "|                            24.5|\n"
+                + "|                            31.5|\n"
+                + "|                            38.5|\n"
+                + "|                            45.5|\n"
+                + "+--------------------------------+\n"
                 + "Total line number = 6\n";
         executeAndCompare(statement, expected);
 
         statement = "SELECT (s1+s3)*(s2-s3) FROM us.d3;";
         expected =
             "ResultSets:\n"
-                + "+---+---------------------------------------------+\n"
-                + "|key|(us.d3.s1 + us.d3.s3) × (us.d3.s2 - us.d3.s3)|\n"
-                + "+---+---------------------------------------------+\n"
-                + "|  1|                                        11.25|\n"
-                + "|  2|                                        11.25|\n"
-                + "|  3|                                         3.25|\n"
-                + "|  4|                                       -12.75|\n"
-                + "|  5|                                       -36.75|\n"
-                + "|  6|                                       -68.75|\n"
-                + "+---+---------------------------------------------+\n"
+                + "+---------------------------------------------+\n"
+                + "|(us.d3.s1 + us.d3.s3) × (us.d3.s2 - us.d3.s3)|\n"
+                + "+---------------------------------------------+\n"
+                + "|                                        11.25|\n"
+                + "|                                        11.25|\n"
+                + "|                                         3.25|\n"
+                + "|                                       -12.75|\n"
+                + "|                                       -36.75|\n"
+                + "|                                       -68.75|\n"
+                + "+---------------------------------------------+\n"
                 + "Total line number = 6\n";
         executeAndCompare(statement, expected);
 
         statement = "SELECT ((s1+s2)*s3+s2)*s3 FROM us.d3;";
         expected =
             "ResultSets:\n"
-                + "+---+--------------------------------------------------------+\n"
-                + "|key|((us.d3.s1 + us.d3.s2) × us.d3.s3 + us.d3.s2) × us.d3.s3|\n"
-                + "+---+--------------------------------------------------------+\n"
-                + "|  1|                                                   24.75|\n"
-                + "|  2|                                                   56.25|\n"
-                + "|  3|                                                   99.75|\n"
-                + "|  4|                                                  155.25|\n"
-                + "|  5|                                                  222.75|\n"
-                + "|  6|                                                  302.25|\n"
-                + "+---+--------------------------------------------------------+\n"
+                + "+--------------------------------------------------------+\n"
+                + "|((us.d3.s1 + us.d3.s2) × us.d3.s3 + us.d3.s2) × us.d3.s3|\n"
+                + "+--------------------------------------------------------+\n"
+                + "|                                                   24.75|\n"
+                + "|                                                   56.25|\n"
+                + "|                                                   99.75|\n"
+                + "|                                                  155.25|\n"
+                + "|                                                  222.75|\n"
+                + "|                                                  302.25|\n"
+                + "+--------------------------------------------------------+\n"
                 + "Total line number = 6\n";
         executeAndCompare(statement, expected);
 
         statement = "SELECT (s1+1)*(s2-1)*(s3*2) FROM us.d3;";
         expected =
             "ResultSets:\n"
-                + "+---+------------------------------------------------+\n"
-                + "|key|(us.d3.s1 + 1) × (us.d3.s2 - 1) × (us.d3.s3 × 2)|\n"
-                + "+---+------------------------------------------------+\n"
-                + "|  1|                                            30.0|\n"
-                + "|  2|                                            60.0|\n"
-                + "|  3|                                            84.0|\n"
-                + "|  4|                                            90.0|\n"
-                + "|  5|                                            66.0|\n"
-                + "|  6|                                             0.0|\n"
-                + "+---+------------------------------------------------+\n"
+                + "+------------------------------------------------+\n"
+                + "|(us.d3.s1 + 1) × (us.d3.s2 - 1) × (us.d3.s3 × 2)|\n"
+                + "+------------------------------------------------+\n"
+                + "|                                            30.0|\n"
+                + "|                                            60.0|\n"
+                + "|                                            84.0|\n"
+                + "|                                            90.0|\n"
+                + "|                                            66.0|\n"
+                + "|                                             0.0|\n"
+                + "+------------------------------------------------+\n"
                 + "Total line number = 6\n";
         executeAndCompare(statement, expected);
     }
@@ -2737,10 +2737,13 @@ public abstract class SQLSessionIT {
     @Test
     public void testSelectSubQuery() {
         String insert = "INSERT INTO test.a(key, a, b, c, d) VALUES (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), " +
-            "(3, 2, 2, 1.1, \"val5\"), (4, 3, 2, 2.1, \"val2\"), (5, 1, 2, 3.1, \"val1\"), (6, 2, 2, 5.1, \"val3\");";
+            "(3, 2, 2, 1.1, \"val7\"), (4, 3, 2, 2.1, \"val8\"), (5, 1, 2, 3.1, \"val1\"), (6, 2, 2, 5.1, \"val3\");";
         execute(insert);
         insert = "INSERT INTO test.b(key, a, b, c, d) VALUES (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), " +
             "(3, 2, 2, 1.1, \"val3\"), (4, 3, 2, 2.1, \"val2\"), (5, 1, 2, 3.1, \"val2\"), (6, 2, 2, 5.1, \"val3\");";
+        execute(insert);
+        insert = "INSERT INTO test.c(key, a, b, c, d) VALUES (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), " +
+            "(3, 2, 2, 1.1, \"val3\"), (4, 3, 2, 2.1, \"val4\"), (5, 1, 2, 3.1, \"val5\"), (6, 2, 2, 5.1, \"val6\");";
         execute(insert);
     
         String statement = "SELECT a FROM test.a;";
@@ -2806,6 +2809,62 @@ public abstract class SQLSessionIT {
             "|       2|    val1|          3.0|\n" +
             "+--------+--------+-------------+\n" +
             "Total line number = 6\n";
+        executeAndCompare(statement, expected);
+
+        statement = "SELECT a, 1 + (SELECT AVG(a) FROM test.b) FROM test.a;";
+        expected = "ResultSets:\n" +
+            "+--------+-----------------+\n" +
+            "|test.a.a|1 + avg(test.b.a)|\n" +
+            "+--------+-----------------+\n" +
+            "|       3|              3.0|\n" +
+            "|       1|              3.0|\n" +
+            "|       2|              3.0|\n" +
+            "|       3|              3.0|\n" +
+            "|       1|              3.0|\n" +
+            "|       2|              3.0|\n" +
+            "+--------+-----------------+\n" +
+            "Total line number = 6\n";
+        executeAndCompare(statement, expected);
+    
+        statement = "SELECT a, (SELECT AVG(a) AS a1 FROM test.b GROUP BY d HAVING avg(test.b.a) > 2) * (SELECT AVG(a) AS a2 FROM test.b) FROM test.a;";
+        expected = "ResultSets:\n" +
+            "+--------+-------+\n" +
+            "|test.a.a|a1 × a2|\n" +
+            "+--------+-------+\n" +
+            "|       3|    6.0|\n" +
+            "|       1|    6.0|\n" +
+            "|       2|    6.0|\n" +
+            "|       3|    6.0|\n" +
+            "|       1|    6.0|\n" +
+            "|       2|    6.0|\n" +
+            "+--------+-------+\n" +
+            "Total line number = 6\n";
+        executeAndCompare(statement, expected);
+
+        statement = "SELECT test.a.a, test.c.a FROM test.a INNER JOIN test.c ON test.a.d = test.c.d";
+        expected = "ResultSets:\n" +
+            "+--------+--------+\n" +
+            "|test.a.a|test.c.a|\n" +
+            "+--------+--------+\n" +
+            "|       3|       3|\n" +
+            "|       1|       1|\n" +
+            "|       1|       3|\n" +
+            "|       2|       2|\n" +
+            "+--------+--------+\n" +
+            "Total line number = 4\n";
+        executeAndCompare(statement, expected);
+
+        statement = "SELECT test.a.a, test.c.a, (SELECT AVG(a) FROM test.b) FROM test.a INNER JOIN test.c ON test.a.d = test.c.d";
+        expected = "ResultSets:\n" +
+            "+--------+--------+-------------+\n" +
+            "|test.a.a|test.c.a|avg(test.b.a)|\n" +
+            "+--------+--------+-------------+\n" +
+            "|       3|       3|          2.0|\n" +
+            "|       1|       1|          2.0|\n" +
+            "|       1|       3|          2.0|\n" +
+            "|       2|       2|          2.0|\n" +
+            "+--------+--------+-------------+\n" +
+            "Total line number = 4\n";
         executeAndCompare(statement, expected);
     }
 

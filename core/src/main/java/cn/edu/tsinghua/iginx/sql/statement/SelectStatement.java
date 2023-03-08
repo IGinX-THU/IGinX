@@ -13,7 +13,13 @@ import cn.edu.tsinghua.iginx.sql.expression.Expression;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.FromPart;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class SelectStatement extends DataStatement {
 
@@ -479,6 +485,15 @@ public class SelectStatement extends DataStatement {
             });
         });
         return aliasMap;
+    }
+
+    public boolean needRowTransform() {
+        for (Expression expression : expressions) {
+            if (!expression.getType().equals(Expression.ExpressionType.Base)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public void checkQueryType() {

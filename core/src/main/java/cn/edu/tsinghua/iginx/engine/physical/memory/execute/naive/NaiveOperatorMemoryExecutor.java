@@ -79,6 +79,8 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.regex.Pattern;
 
+import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.combineMultipleColumns;
+
 public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
 
     private NaiveOperatorMemoryExecutor() {
@@ -300,21 +302,36 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
 
     private RowStream executeRowTransform(RowTransform rowTransform, Table table)
         throws PhysicalException {
-        RowMappingFunction function = (RowMappingFunction) rowTransform.getFunctionCall()
-            .getFunction();
-        Map<String, Value> params = rowTransform.getFunctionCall().getParams();
+        List<Pair<RowMappingFunction, Map<String, Value>>> list = new ArrayList<>();
+        rowTransform.getFunctionCallList().forEach(functionCall -> {
+            list.add(new Pair<>((RowMappingFunction) functionCall.getFunction(), functionCall.getParams()));
+        });
+        
         List<Row> rows = new ArrayList<>();
-        try {
-            while (table.hasNext()) {
-                Row row = function.transform(table.next(), params);
-                if (row != null) {
-                    rows.add(row);
+        while (table.hasNext()) {
+            Row current = table.next();
+            List<Row> columnList = new ArrayList<>();
+            list.forEach(pair -> {
+                RowMappingFunction function = pair.k;
+                Map<String, Value> params = pair.v;
+                try {
+                    Row column = function.transform(current, params);
+                    if (column != null) {
+                        columnList.add(column);
+                    }
+                } catch (Exception e) {
+                    try {
+                        throw new PhysicalTaskExecuteFailureException(
+                                "encounter error when execute row mapping function " + function.getIdentifier()
+                                        + ".", e);
+                    } catch (PhysicalTaskExecuteFailureException ex) {
+                        throw new RuntimeException(ex);
+                    }
                 }
+            });
+            if (columnList.size() == list.size()) {
+                rows.add(combineMultipleColumns(columnList));
             }
-        } catch (Exception e) {
-            throw new PhysicalTaskExecuteFailureException(
-                "encounter error when execute row mapping function " + function.getIdentifier()
-                    + ".", e);
         }
         if (rows.size() == 0) {
             return Table.EMPTY_TABLE;
@@ -1642,7 +1659,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     
     private RowStream executeSingleJoin(SingleJoin singleJoin, Table tableA, Table tableB)
         throws PhysicalException {
-        Header newHeader = RowUtils.constructNewHead(tableA.getHeader(), tableB.getHeader(), singleJoin.getPrefixA());
+        Header newHeader = RowUtils.constructNewHead(tableA.getHeader(), tableB.getHeader());
     
         List<Row> rowsA = tableA.getRows();
         List<Row> rowsB = tableB.getRows();
@@ -1654,13 +1671,13 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         for (Row rowA : rowsA) {
             matched = false;
             for (Row rowB : rowsB) {
-                Row joinedRow = RowUtils.constructNewRow(newHeader, rowA, rowB);
+                Row joinedRow = RowUtils.constructNewRow(newHeader, rowA, rowB, false);
                 if (FilterUtils.validate(filter, joinedRow)) {
                     if (!matched) {
                         matched = true;
                         transformedRows.add(joinedRow);
                     } else {
-                        throw new PhysicalException("the sub-query is not scalar sub-query");
+                        throw new PhysicalException("the return value of sub-query has more than one rows");
                     }
                 }
             }
