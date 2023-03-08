@@ -7,5 +7,5 @@ runs:
     - name: Start ETCD
       shell: bash
       run: |
-        chmod +x "${GITHUB_WORKSPACE}/.github/zk.sh"
-        "${GITHUB_WORKSPACE}/.github/zk.sh"
+        chmod +x "${GITHUB_WORKSPACE}/.github/etcd.sh"
+        "${GITHUB_WORKSPACE}/.github/etcd.sh"
