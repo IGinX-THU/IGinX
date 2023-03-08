@@ -47,14 +47,15 @@ public class PostgreSQLSessionExample {
     public static void main(String[] args) throws SessionException, ExecutionException {
         session = new Session("127.0.0.1", 6888, "root", "root");
         // 打开 Session
+
         session.openSession();
 
         // 列式插入对齐数据
         insertColumnRecords();
         // 行式插入对齐数据
         insertRowRecords();
-//        queryData();
-//        deleteDataInColumns();
+        queryData();
+        deleteDataInColumns();
 
         // 关闭 Session
         session.closeSession();

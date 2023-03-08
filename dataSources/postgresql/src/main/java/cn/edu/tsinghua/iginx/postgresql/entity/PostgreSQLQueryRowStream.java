@@ -17,47 +17,44 @@ import java.util.List;
 public class PostgreSQLQueryRowStream implements RowStream {
     private final List<ResultSet> resultSets;
     private static final Logger logger = LoggerFactory.getLogger(PostgreSQLStorage.class);
-    
+
     private final long[] currTimestamps;
-    
+
     private final Object[] currValues;
-    
+
     private final Header header;
-    
-    public PostgreSQLQueryRowStream(List<ResultSet> resultSets, List<Field> fields) {
+    private boolean isdummy;
+
+    public PostgreSQLQueryRowStream(List<ResultSet> resultSets, List<Field> fields, boolean isdummy) throws SQLException {
         this.resultSets = resultSets;
+        this.isdummy = isdummy;
         this.header = new Header(Field.KEY, fields);
         this.currTimestamps = new long[resultSets.size()];
         this.currValues = new Object[resultSets.size()];
-//    this.values=new ArrayList<>();
-        // 默认填充一下timestamp列表
         try {
-            long j = 1;
             for (int i = 0; i < this.currTimestamps.length; i++) {
-                j = 1;
                 ResultSet resultSet = this.resultSets.get(i);
                 if (resultSet.next()) {
-                    try {
-                        this.currTimestamps[i] = resultSet.getTimestamp(1).getTime();
-                    } catch (Exception e) {
-                        this.currTimestamps[i] = j++;
+                    if (isdummy) {
+                        this.currTimestamps[i] = toHash(resultSet.getString(1));
+                    } else {
+                        this.currTimestamps[i] = resultSet.getLong(1);
                     }
                     this.currValues[i] = resultSet.getObject(2);
                 }
             }
-            j++;
         } catch (SQLException e) {
             e.printStackTrace();
             // pass
         }
-        
+
     }
-    
+
     @Override
     public Header getHeader() {
         return this.header;
     }
-    
+
     @Override
     public void close() {
         try {
@@ -68,17 +65,21 @@ public class PostgreSQLQueryRowStream implements RowStream {
             // pass
         }
     }
-    
+
     @Override
-    public boolean hasNext() throws PhysicalException {
+    public boolean hasNext() {
         for (long currTimestamp : this.currTimestamps) {
-            if (currTimestamp != Long.MIN_VALUE && currTimestamp != 0) {
+            if (currTimestamp != Long.MIN_VALUE) {
                 return true;
             }
         }
         return false;
     }
-    
+
+    private long toHash(String s) {
+        return Math.abs((long) Integer.valueOf(s));
+    }
+
     @Override
     public Row next() throws PhysicalException {
         try {
@@ -89,16 +90,15 @@ public class PostgreSQLQueryRowStream implements RowStream {
                     timestamp = Math.min(timestamp, currTimestamp);
                 }
             }
-            long j = 1;
             for (int i = 0; i < this.currTimestamps.length; i++) {
                 if (this.currTimestamps[i] == timestamp) {
                     values[i] = this.currValues[i];
                     ResultSet resultSet = this.resultSets.get(i);
                     if (resultSet.next()) {
-                        try {
-                            this.currTimestamps[i] = resultSet.getTimestamp(1).getTime();
-                        } catch (Exception e) {
-                            logger.info("have no timestamp,set default timestamp!");
+                        if (isdummy) {
+                            this.currTimestamps[i] = toHash(resultSet.getString(1));
+                        } else {
+                            this.currTimestamps[i] = resultSet.getLong(1);
                         }
                         this.currValues[i] = resultSet.getObject(2);
                     } else {
@@ -110,6 +110,7 @@ public class PostgreSQLQueryRowStream implements RowStream {
             }
             return new Row(header, timestamp, values);
         } catch (SQLException e) {
+            logger.info("error:", e);
             throw new RowFetchException(e);
         }
     }
