@@ -1,0 +1,11 @@
+name: 'etcd-runner'
+description: 'etcd runner'
+
+runs:
+  using: "composite" # Mandatory parameter
+  steps:
+    - name: Start ETCD
+      shell: bash
+      run: |
+        chmod +x "${GITHUB_WORKSPACE}/.github/zk.sh"
+        "${GITHUB_WORKSPACE}/.github/zk.sh"
