@@ -70,7 +70,8 @@ public class RowUtils {
             fields.addAll(columnList.get(i).getHeader().getFields());
             valuesCombine[i] = columnList.get(i).getValue(0);
         }
-        return new Row(new Header(fields), valuesCombine);
+        Header newHeader = columnList.get(0).getHeader().hasKey()? new Header(Field.KEY, fields) : new Header(fields);
+        return new Row(newHeader, columnList.get(0).getKey(), valuesCombine);
     }
 
     /**
