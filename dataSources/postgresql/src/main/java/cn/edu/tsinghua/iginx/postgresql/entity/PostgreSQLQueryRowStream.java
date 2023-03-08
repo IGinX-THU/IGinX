@@ -77,7 +77,16 @@ public class PostgreSQLQueryRowStream implements RowStream {
     }
 
     private long toHash(String s) {
-        return Math.abs((long) Integer.valueOf(s));
+        char c[] = s.toCharArray();
+        long hv = 0;
+        long base = 131;
+        for (int i = 0; i < c.length; i++) {
+            hv = hv * base + (long) c[i];   //利用自然数溢出，即超过 LONG_MAX 自动溢出，节省时间
+        }
+        if (hv < 0) {
+            return -1 * hv;
+        }
+        return hv;
     }
 
     @Override

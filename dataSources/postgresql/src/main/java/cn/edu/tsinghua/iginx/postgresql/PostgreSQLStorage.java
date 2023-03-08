@@ -211,7 +211,7 @@ public class PostgreSQLStorage implements IStorage {
             while (databaseSet.next()) {
                 try {
                     String databaseName = databaseSet.getString(1);//获取数据库名称
-                    if (extraParams.get("has_data").equals("true")) {
+                    if (extraParams.get("has_data") != null && extraParams.get("has_data").equals("true")) {
                     } else {
                         if (databaseName.startsWith("unit")) {
                         } else {
