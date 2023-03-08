@@ -6,34 +6,9 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class IoTDBHistoryDataGenerator implements BaseHistoryDataGenerator {
+public class IoTDBHistoryDataGenerator extends BaseHistoryDataGenerator {
 
     private static final Logger logger = LoggerFactory.getLogger(IoTDBHistoryDataGenerator.class);
-
-    @Test
-    public void oriHasDataExpHasData() throws Exception {
-        writeHistoryDataToA();
-        writeHistoryDataToB();
-    }
-
-    @Test
-    public void oriHasDataExpNoData() throws Exception {
-        writeHistoryDataToA();
-    }
-
-    @Test
-    public void oriNoDataExpHasData() throws Exception {
-        writeHistoryDataToB();
-    }
-
-    @Test
-    public void oriNoDataExpNoData() throws Exception {
-    }
-
-    @Test
-    public void extraDataWrite() throws Exception {
-        extraDataWriteToB();
-    }
 
     @Test
     public void clearData() {
@@ -50,10 +25,10 @@ public class IoTDBHistoryDataGenerator implements BaseHistoryDataGenerator {
         } catch (Exception e) {
             logger.error(e.getMessage());
         }
-
         logger.info("clear data success!");
     }
 
+    @Test
     public void writeHistoryDataToA() throws Exception {
         Session session = new Session("127.0.0.1", 6667, "root", "root");
         session.open();
@@ -66,6 +41,7 @@ public class IoTDBHistoryDataGenerator implements BaseHistoryDataGenerator {
         logger.info("write data to 127.0.0.1:6667 success!");
     }
 
+    @Test
     public void writeHistoryDataToB() throws Exception {
         Session session = new Session("127.0.0.1", 6668, "root", "root");
         session.open();
