@@ -86,7 +86,7 @@ public class ETCDSyncProtocolImpl implements SyncProtocol {
 
     private void registerProposalListener() {
         this.proposalWatcher = client.getWatchClient().watch(ByteSequence.from(String.format(PROTOCOL_PROPOSAL_CONTAINER_TEMPLATE, category).getBytes()),
-                WatchOption.newBuilder().withPrefix(ByteSequence.from(String.format(PROTOCOL_PROPOSAL_CONTAINER_TEMPLATE, category).getBytes())).build(),
+                WatchOption.newBuilder().withPrefix(ByteSequence.from(String.format(PROTOCOL_PROPOSAL_CONTAINER_TEMPLATE, category).getBytes())).withPrevKV(true).build(),
                 new Watch.Listener() {
 
                     @Override
@@ -187,10 +187,10 @@ public class ETCDSyncProtocolImpl implements SyncProtocol {
         try {
             // lock proposal + category
             leaseId = client.getLeaseClient().grant(MAX_LOCK_TIME).get().getID();
-            client.getLockClient().lock(ByteSequence.from(lockPath.getBytes()), leaseId);
-
-            GetResponse response = client.getKVClient().get(ByteSequence.from(String.format(PROTOCOL_PROPOSAL_TEMPLATE, this.category, key).getBytes()),
-                    GetOption.newBuilder().withSortOrder(GetOption.SortOrder.DESCEND).withLimit(1L).build()).get();
+            client.getLockClient().lock(ByteSequence.from(lockPath.getBytes()), leaseId).get();
+            String proposalPrefix = String.format(PROTOCOL_PROPOSAL_TEMPLATE, this.category, key);
+            GetResponse response = client.getKVClient().get(ByteSequence.from(proposalPrefix.getBytes()),
+                    GetOption.newBuilder().withSortOrder(GetOption.SortOrder.DESCEND).withPrefix(ByteSequence.from(proposalPrefix.getBytes())).withLimit(1L).build()).get();
             if (response.getCount() >= 1L) {
                 long lastCreateTime = Long.parseLong(new String(response.getKvs().get(0).getKey().getBytes()).split("_")[1]);
                 if (lastCreateTime + MAX_NETWORK_LATENCY > createTime) {
@@ -204,7 +204,8 @@ public class ETCDSyncProtocolImpl implements SyncProtocol {
             proposalLock.writeLock().unlock();
 
             syncProposal.setCreateTime(createTime);
-            client.getKVClient().put(ByteSequence.from((String.format(PROTOCOL_PROPOSAL_TEMPLATE, this.category, key) + PATH_SEPARATOR + "proposal_" + createTime).getBytes()), ByteSequence.from(JsonUtils.toJson(syncProposal))).get();
+            String proposalPath = String.format(PROTOCOL_PROPOSAL_TEMPLATE, this.category, key) + PATH_SEPARATOR + "proposal_" + createTime;
+            client.getKVClient().put(ByteSequence.from(proposalPath.getBytes()), ByteSequence.from(JsonUtils.toJson(syncProposal))).get();
             return true;
         } catch (Exception e) {
             logger.error("start proposal failure: ", e);
@@ -261,8 +262,9 @@ public class ETCDSyncProtocolImpl implements SyncProtocol {
             leaseId = client.getLeaseClient().grant(MAX_LOCK_TIME).get().getID();
             client.getLockClient().lock(ByteSequence.from(lockPath.getBytes()), leaseId);
 
-            GetResponse response = client.getKVClient().get(ByteSequence.from(String.format(PROTOCOL_PROPOSAL_TEMPLATE, this.category, key).getBytes()),
-                    GetOption.newBuilder().withSortOrder(GetOption.SortOrder.DESCEND).withLimit(1L).build()).get();
+            String proposalPrefix = String.format(PROTOCOL_PROPOSAL_TEMPLATE, this.category, key);
+            GetResponse response = client.getKVClient().get(ByteSequence.from(proposalPrefix.getBytes()),
+                    GetOption.newBuilder().withSortOrder(GetOption.SortOrder.DESCEND).withPrefix(ByteSequence.from(proposalPrefix.getBytes())).withLimit(1L).build()).get();
             if (response.getCount() == 0) {
                 throw new ExecutionException("can't find proposal for " + key);
             }
