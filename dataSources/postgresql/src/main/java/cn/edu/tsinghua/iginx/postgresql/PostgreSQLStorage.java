@@ -320,12 +320,12 @@ public class PostgreSQLStorage implements IStorage {
             List<ResultSet> resultSets = new ArrayList<>();
             List<Field> fields = new ArrayList<>();
             for (String path : project.getPatterns()) {
-                Statement stmt = conn.createStatement();
                 String tableName = path.substring(0, path.lastIndexOf(".")).replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
                 String columnName = path.substring(path.lastIndexOf(".") + 1).replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
                 DatabaseMetaData databaseMetaData = conn.getMetaData();
                 ResultSet tableSet = null;
                 ResultSet columnSet = null;
+
                 if (path.equals("*.*")) {
                     tableSet = databaseMetaData.getTables(null, "%", "%", new String[]{"TABLE"});
                 } else if (columnName.equals("*")) {
@@ -333,8 +333,15 @@ public class PostgreSQLStorage implements IStorage {
                 } else {
                 }
 
+
                 if (tableSet == null && columnSet == null) {
-                    ResultSet rs = stmt.executeQuery(String.format("select time,%s from %s where %s", columnName, tableName, FilterTransformer.toString(filter)));
+                    Statement stmt = conn.createStatement();
+                    ResultSet rs = null;
+                    try {
+                        rs = stmt.executeQuery(String.format("select time,%s from %s where %s", columnName, tableName, FilterTransformer.toString(filter)));
+                    } catch (Exception e) {
+                        continue;
+                    }
                     resultSets.add(rs);
                     ResultSet columnSet_ = databaseMetaData.getColumns(null, null, tableName, columnName);
                     String typeName = "INT";
@@ -345,11 +352,18 @@ public class PostgreSQLStorage implements IStorage {
                         + columnName.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR)
                         , DataTypeTransformer.fromPostgreSQL(typeName)));
                 } else if (tableSet == null && columnSet != null) {
+//                    ResultSet columnSet_ = databaseMetaData.getColumns(null, null, tableName, null);
                     while (columnSet.next()) {
+                        Statement stmt = conn.createStatement();
                         String field = columnSet.getString("COLUMN_NAME");
                         if (!field.equals("time")) {
                             String typeName = columnSet.getString("TYPE_NAME");//列字段类型
-                            ResultSet rs = stmt.executeQuery(String.format("select time,%s from %s where %s", field, tableName, FilterTransformer.toString(filter)));
+                            ResultSet rs = null;
+                            try {
+                                rs = stmt.executeQuery(String.format("select time,%s from %s where %s", field, tableName, FilterTransformer.toString(filter)));
+                            } catch (Exception e) {
+                                continue;
+                            }
                             resultSets.add(rs);
                             fields.add(new Field(tableName.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR) + IGINX_SEPARATOR
                                 + field.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR)
@@ -361,10 +375,16 @@ public class PostgreSQLStorage implements IStorage {
                         String table = tableSet.getString(3);//获取表名称
                         ResultSet columnSet1 = databaseMetaData.getColumns(null, null, table, null);
                         while (columnSet1.next()) {
+                            Statement stmt = conn.createStatement();
                             String field = columnSet1.getString("COLUMN_NAME");
                             if (!field.equals("time")) {
+                                ResultSet rs = null;
                                 String typeName = columnSet1.getString("TYPE_NAME");//列字段类型
-                                ResultSet rs = stmt.executeQuery(String.format("select time,%s from %s where %s", field, table, FilterTransformer.toString(filter)));
+                                try {
+                                    rs = stmt.executeQuery(String.format("select time,%s from %s where %s", field, table, FilterTransformer.toString(filter)));
+                                } catch (Exception e) {
+                                    continue;
+                                }
                                 resultSets.add(rs);
                                 fields.add(new Field(table.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR) + IGINX_SEPARATOR
                                     + field.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR)
@@ -373,6 +393,8 @@ public class PostgreSQLStorage implements IStorage {
                         }
                     }
                 }
+
+
             }
             RowStream rowStream = new PostgreSQLQueryRowStream(resultSets, fields, false);
             return new TaskExecuteResult(rowStream);
@@ -389,6 +411,10 @@ public class PostgreSQLStorage implements IStorage {
             List<ResultSet> resultSets = new ArrayList<>();
             List<Field> fields = new ArrayList<>();
             for (String path : project.getPatterns()) {
+                String[] l = path.split("\\.");
+                if (l.length < 3) {
+                    continue;
+                }
                 String database_table = path.substring(0, path.lastIndexOf("."));
                 String dataBaseName = database_table.substring(0, database_table.lastIndexOf(".")).replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
                 String tableName = database_table.substring(database_table.lastIndexOf(".") + 1).replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
@@ -397,8 +423,6 @@ public class PostgreSQLStorage implements IStorage {
                 if (conn == null) {
                     continue;
                 }
-                Statement stmt = conn.createStatement();
-
                 DatabaseMetaData databaseMetaData = conn.getMetaData();
                 ResultSet tableSet = null;
                 ResultSet columnSet = null;
@@ -408,18 +432,30 @@ public class PostgreSQLStorage implements IStorage {
                     columnSet = databaseMetaData.getColumns(null, null, tableName, null);
                 }
 
+
+                ResultSet columnSet_all = databaseMetaData.getColumns(null, null, tableName, null);
+                String hv = "";
+                while (columnSet_all.next()) {
+                    String columnName2 = columnSet_all.getString("COLUMN_NAME");//获取列名称
+                    hv = hv + columnName2 + ",";     //c1,c2,c3,
+                }
+                if (hv.equals("")) {
+                    continue;
+                }
+                hv = hv.substring(0, hv.lastIndexOf(","));
+
+
                 if (tableSet == null && columnSet == null) {
-                    ResultSet columnSet2 = databaseMetaData.getColumns(null, null, tableName, null);
-                    String hv = "";
-                    while (columnSet2.next()) {
-                        String columnName2 = columnSet2.getString("COLUMN_NAME");//获取列名称
-                        hv = hv + columnName2 + ",";     //c1,c2,c3,
+                    Statement stmt = conn.createStatement();
+                    ResultSet rs = null;
+                    try {
+                        rs = stmt.executeQuery(String.format("select concat(%s) as time,%s from %s", hv, columnName, tableName));
+                    } catch (Exception e) {
+                        continue;
                     }
-                    hv = hv.substring(0, hv.lastIndexOf(","));
-                    ResultSet rs = stmt.executeQuery(String.format("select concat(%s) as time,%s from %s", hv, columnName, tableName));
                     resultSets.add(rs);
                     ResultSet columnSet_ = databaseMetaData.getColumns(null, null, tableName, columnName);
-                    String typeName = "INT";
+                    String typeName = "TEXT";
                     if (columnSet_.next()) {
                         typeName = columnSet_.getString("TYPE_NAME");//列字段类型
                     }
@@ -427,18 +463,17 @@ public class PostgreSQLStorage implements IStorage {
                         + columnName.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR)
                         , DataTypeTransformer.fromPostgreSQL(typeName)));
                 } else if (tableSet == null && columnSet != null) {
-                    while (columnSet.next()) {
-                        String hv = "";
-                        String typeName = columnSet.getString("TYPE_NAME");//列字段类型
-                        ResultSet columnSet_ = databaseMetaData.getColumns(null, null, tableName, null);
-                        while (columnSet_.next()) {
-                            String columnName2 = columnSet_.getString("COLUMN_NAME");//获取列名称
-                            hv = hv + columnName2 + ",";     //c1,c2,c3,
+                    ResultSet columnSet_ = databaseMetaData.getColumns(null, null, tableName, null);
+                    while (columnSet_.next()) {
+                        Statement stmt = conn.createStatement();
+                        String typeName = columnSet_.getString("TYPE_NAME");//列字段类型
+                        String field = columnSet_.getString("COLUMN_NAME");
+                        ResultSet rs = null;
+                        try {
+                            rs = stmt.executeQuery(String.format("select concat(%s) as time,%s from %s", hv, field, tableName));
+                        } catch (Exception e) {
+                            continue;
                         }
-                        hv = hv.substring(0, hv.lastIndexOf(","));
-
-                        String field = columnSet.getString("COLUMN_NAME");
-                        ResultSet rs = stmt.executeQuery(String.format("select concat(%s) as time,%s from %s", hv, field, tableName));
                         resultSets.add(rs);
                         fields.add(new Field(tableName.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR) + IGINX_SEPARATOR
                             + field.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR)
@@ -447,17 +482,17 @@ public class PostgreSQLStorage implements IStorage {
                 } else {
                     while (tableSet.next()) {
                         String table = tableSet.getString(3);//获取表名称
-                        ResultSet columnSet1 = databaseMetaData.getColumns(null, null, table, null);
-                        String hv = "";
-                        while (columnSet1.next()) {
-                            String columnName1 = columnSet1.getString("COLUMN_NAME");//获取列名称
-                            hv = hv + columnName1 + ",";     //c1,c2,c3,
-                        }
-                        hv = hv.substring(0, hv.lastIndexOf(","));
-                        while (columnSet1.next()) {
-                            String field = columnSet1.getString("COLUMN_NAME");
-                            String typeName = columnSet1.getString("TYPE_NAME");//列字段类型
-                            ResultSet rs = stmt.executeQuery(String.format("select concat(%s) as time,%s from %s", hv, field, table));
+                        ResultSet columnSet2 = databaseMetaData.getColumns(null, null, table, null);
+                        while (columnSet2.next()) {
+                            Statement stmt = conn.createStatement();
+                            String field = columnSet2.getString("COLUMN_NAME");
+                            String typeName = columnSet2.getString("TYPE_NAME");//列字段类型
+                            ResultSet rs = null;
+                            try {
+                                rs = stmt.executeQuery(String.format("select concat(%s) as time,%s from %s", hv, field, table));
+                            } catch (Exception e) {
+                                continue;
+                            }
                             resultSets.add(rs);
                             fields.add(new Field(table.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR) + IGINX_SEPARATOR
                                 + field.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR)

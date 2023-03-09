@@ -118,7 +118,7 @@ public class PostgreSQLQueryRowStream implements RowStream {
                 }
             }
             return new Row(header, timestamp, values);
-        } catch (SQLException e) {
+        } catch (Exception e) {
             logger.info("error:", e);
             throw new RowFetchException(e);
         }
