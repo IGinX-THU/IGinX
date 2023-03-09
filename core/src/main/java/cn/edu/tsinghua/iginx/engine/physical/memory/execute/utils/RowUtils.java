@@ -23,6 +23,7 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.InvalidOperatorParameterE
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
+import cn.edu.tsinghua.iginx.engine.shared.Constants;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
@@ -36,6 +37,7 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -110,9 +112,11 @@ public class RowUtils {
             } else if (value2 == null) {
                 return 1;
             }
-            DataType dataType1 = row1.getField(row1.getHeader().indexOf(prefix1 + '.' + columns1.get(index)))
+            DataType dataType1 = row1
+                .getField(row1.getHeader().indexOf(prefix1 + '.' + columns1.get(index)))
                 .getType();
-            DataType dataType2 = row2.getField(row2.getHeader().indexOf(prefix2 + '.' + columns2.get(index)))
+            DataType dataType2 = row2
+                .getField(row2.getHeader().indexOf(prefix2 + '.' + columns2.get(index)))
                 .getType();
             int cmp = ValueUtils.compare(value1, value2, dataType1, dataType2);
             if (cmp != 0) {
@@ -201,9 +205,11 @@ public class RowUtils {
         } else {
             if (halfRow.getHeader().hasKey()) {
                 valuesJoin[anotherRowSize] = halfRow.getKey();
-                System.arraycopy(halfRow.getValues(), 0, valuesJoin, anotherRowSize + 1, halfRow.getValues().length);
+                System.arraycopy(halfRow.getValues(), 0, valuesJoin, anotherRowSize + 1,
+                    halfRow.getValues().length);
             } else {
-                System.arraycopy(halfRow.getValues(), 0, valuesJoin, anotherRowSize, halfRow.getValues().length);
+                System.arraycopy(halfRow.getValues(), 0, valuesJoin, anotherRowSize,
+                    halfRow.getValues().length);
             }
         }
         return new Row(header, valuesJoin);
@@ -403,5 +409,55 @@ public class RowUtils {
             cache.add(new Row(newHeader, values));
         }
         return cache;
+    }
+
+    public static void sortRows(List<Row> rows, boolean asc, List<String> sortByCols)
+        throws PhysicalTaskExecuteFailureException {
+        if (rows == null || rows.isEmpty()) {
+            return;
+        }
+        if (sortByCols == null || sortByCols.isEmpty()) {
+            return;
+        }
+        Header header = rows.get(0).getHeader();
+
+        List<Integer> indexList = new LinkedList<>();
+        List<DataType> typeList = new LinkedList<>();
+        boolean hasKey = false;
+        for (String col : sortByCols) {
+            if (col.equals(Constants.KEY)) {
+                hasKey = true;
+                continue;
+            }
+            int index = header.indexOf(col);
+            if (index == -1) {
+                throw new PhysicalTaskExecuteFailureException(
+                    String.format("SortBy key [%s] doesn't exist in table.", col));
+            }
+            indexList.add(index);
+            typeList.add(header.getField(index).getType());
+        }
+
+        boolean finalHasKey = hasKey;
+        rows.sort((a, b) -> {
+            if (finalHasKey) {
+                int cmp = asc ? Long.compare(a.getKey(), b.getKey()) :
+                    Long.compare(b.getKey(), a.getKey());
+                if (cmp != 0) {
+                    return cmp;
+                }
+            }
+            for (int i = 0; i < indexList.size(); i++) {
+                int cmp = asc ? ValueUtils
+                    .compare(a.getValue(indexList.get(i)), b.getValue(indexList.get(i)),
+                        typeList.get(i)) : ValueUtils
+                    .compare(b.getValue(indexList.get(i)), a.getValue(indexList.get(i)),
+                        typeList.get(i));
+                if (cmp != 0) {
+                    return cmp;
+                }
+            }
+            return 0;
+        });
     }
 }

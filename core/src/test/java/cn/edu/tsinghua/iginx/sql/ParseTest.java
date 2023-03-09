@@ -5,14 +5,17 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
 import cn.edu.tsinghua.iginx.exceptions.SQLParserException;
 import cn.edu.tsinghua.iginx.sql.expression.BaseExpression;
 import cn.edu.tsinghua.iginx.sql.statement.*;
-import cn.edu.tsinghua.iginx.sql.statement.join.JoinPart;
-import cn.edu.tsinghua.iginx.sql.statement.join.JoinType;
+import cn.edu.tsinghua.iginx.sql.statement.frompart.FromPartType;
+import cn.edu.tsinghua.iginx.sql.statement.frompart.join.JoinCondition;
+import cn.edu.tsinghua.iginx.sql.statement.frompart.join.JoinType;
+import cn.edu.tsinghua.iginx.sql.statement.frompart.SubQueryFromPart;
 import cn.edu.tsinghua.iginx.thrift.StorageEngine;
 import org.junit.Test;
 
 import java.util.*;
 
 import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 public class ParseTest {
 
@@ -149,14 +152,14 @@ public class ParseTest {
         assertEquals(5, statement.getLimit());
         assertEquals(2, statement.getOffset());
 
-        String orderBy = "SELECT a FROM test ORDER BY timestamp";
+        String orderBy = "SELECT a FROM test ORDER BY KEY";
         statement = (SelectStatement) TestUtils.buildStatement(orderBy);
-        assertEquals(SQLConstant.KEY, statement.getOrderByPath());
+        assertEquals(Collections.singletonList(SQLConstant.KEY), statement.getOrderByPaths());
         assertTrue(statement.isAscending());
 
         String orderByAndLimit = "SELECT a FROM test ORDER BY test.a DESC LIMIT 10 OFFSET 5;";
         statement = (SelectStatement) TestUtils.buildStatement(orderByAndLimit);
-        assertEquals("test.a", statement.getOrderByPath());
+        assertEquals(Collections.singletonList("test.a"), statement.getOrderByPaths());
         assertFalse(statement.isAscending());
         assertEquals(5, statement.getOffset());
         assertEquals(10, statement.getLimit());
@@ -229,7 +232,9 @@ public class ParseTest {
         SelectStatement statement = (SelectStatement) TestUtils.buildStatement(selectWithSubQuery);
         assertEquals(Collections.singletonList("res.max_a"), statement.getSelectedPaths());
 
-        SelectStatement subStatement = statement.getSubStatement();
+        assertEquals(FromPartType.SubQueryFromPart, statement.getFromParts().get(0).getType());
+        SubQueryFromPart subQueryFromPart = (SubQueryFromPart) statement.getFromParts().get(0);
+        SelectStatement subStatement = subQueryFromPart.getSubQuery();
 
         BaseExpression expression = subStatement.getBaseExpressionMap().get("max").get(0);
         assertEquals("root.a", expression.getPathName());
@@ -302,72 +307,88 @@ public class ParseTest {
         String joinStr = "SELECT * FROM cpu1, cpu2";
         SelectStatement selectStatement = (SelectStatement) TestUtils.buildStatement(joinStr);
 
-        assertEquals("cpu1", selectStatement.getFromPath());
-        assertEquals(1, selectStatement.getJoinParts().size());
+        assertEquals(2, selectStatement.getFromParts().size());
+        assertEquals("cpu1", selectStatement.getFromParts().get(0).getPath());
+        assertEquals("cpu2", selectStatement.getFromParts().get(1).getPath());
 
-        JoinPart joinPart = new JoinPart("cpu2", JoinType.CrossJoin, null, Collections.emptyList());
-        assertEquals(joinPart, selectStatement.getJoinParts().get(0));
+        JoinCondition joinCondition = new JoinCondition(JoinType.CrossJoin, null, Collections.emptyList());
+        assertTrue(selectStatement.getFromParts().get(1).isJoinPart());
+        assertEquals(joinCondition, selectStatement.getFromParts().get(1).getJoinCondition());
 
         joinStr = "SELECT * FROM cpu1, cpu2, cpu3";
         selectStatement = (SelectStatement) TestUtils.buildStatement(joinStr);
 
-        assertEquals("cpu1", selectStatement.getFromPath());
-        assertEquals(2, selectStatement.getJoinParts().size());
+        assertEquals(3, selectStatement.getFromParts().size());
+        assertEquals("cpu1", selectStatement.getFromParts().get(0).getPath());
+        assertEquals("cpu2", selectStatement.getFromParts().get(1).getPath());
+        assertEquals("cpu3", selectStatement.getFromParts().get(2).getPath());
 
-        joinPart = new JoinPart("cpu2", JoinType.CrossJoin, null, Collections.emptyList());
-        assertEquals(joinPart, selectStatement.getJoinParts().get(0));
+        joinCondition = new JoinCondition(JoinType.CrossJoin, null, Collections.emptyList());
+        assertTrue(selectStatement.getFromParts().get(1).isJoinPart());
+        assertEquals(joinCondition, selectStatement.getFromParts().get(1).getJoinCondition());
 
-        joinPart = new JoinPart("cpu3", JoinType.CrossJoin, null, Collections.emptyList());
-        assertEquals(joinPart, selectStatement.getJoinParts().get(1));
+        joinCondition = new JoinCondition(JoinType.CrossJoin, null, Collections.emptyList());
+        assertTrue(selectStatement.getFromParts().get(2).isJoinPart());
+        assertEquals(joinCondition, selectStatement.getFromParts().get(2).getJoinCondition());
 
         joinStr = "SELECT * FROM cpu1 LEFT JOIN cpu2 ON cpu1.usage = cpu2.usage";
         selectStatement = (SelectStatement) TestUtils.buildStatement(joinStr);
 
-        assertEquals("cpu1", selectStatement.getFromPath());
-        assertEquals(1, selectStatement.getJoinParts().size());
+        assertEquals(2, selectStatement.getFromParts().size());
+        assertEquals("cpu1", selectStatement.getFromParts().get(0).getPath());
+        assertEquals("cpu2", selectStatement.getFromParts().get(1).getPath());
 
-        joinPart = new JoinPart("cpu2", JoinType.LeftOuterJoin,
+        joinCondition = new JoinCondition(JoinType.LeftOuterJoin,
             new PathFilter("cpu1.usage", Op.E, "cpu2.usage"), Collections.emptyList());
-        assertEquals(joinPart, selectStatement.getJoinParts().get(0));
+        assertTrue(selectStatement.getFromParts().get(1).isJoinPart());
+        assertEquals(joinCondition, selectStatement.getFromParts().get(1).getJoinCondition());
 
         joinStr = "SELECT * FROM cpu1 RIGHT OUTER JOIN cpu2 USING usage";
         selectStatement = (SelectStatement) TestUtils.buildStatement(joinStr);
 
-        assertEquals("cpu1", selectStatement.getFromPath());
-        assertEquals(1, selectStatement.getJoinParts().size());
+        assertEquals(2, selectStatement.getFromParts().size());
+        assertEquals("cpu1", selectStatement.getFromParts().get(0).getPath());
+        assertEquals("cpu2", selectStatement.getFromParts().get(1).getPath());
 
-        joinPart = new JoinPart("cpu2", JoinType.RightOuterJoin,
+        joinCondition = new JoinCondition(JoinType.RightOuterJoin,
             null, Collections.singletonList("usage"));
-        assertEquals(joinPart, selectStatement.getJoinParts().get(0));
+        assertTrue(selectStatement.getFromParts().get(1).isJoinPart());
+        assertEquals(joinCondition, selectStatement.getFromParts().get(1).getJoinCondition());
 
         joinStr = "SELECT * FROM cpu1 FULL OUTER JOIN cpu2 ON cpu1.usage = cpu2.usage";
         selectStatement = (SelectStatement) TestUtils.buildStatement(joinStr);
 
-        assertEquals("cpu1", selectStatement.getFromPath());
-        assertEquals(1, selectStatement.getJoinParts().size());
+        assertEquals(2, selectStatement.getFromParts().size());
+        assertEquals("cpu1", selectStatement.getFromParts().get(0).getPath());
+        assertEquals("cpu2", selectStatement.getFromParts().get(1).getPath());
 
-        joinPart = new JoinPart("cpu2", JoinType.FullOuterJoin,
+        joinCondition = new JoinCondition(JoinType.FullOuterJoin,
             new PathFilter("cpu1.usage", Op.E, "cpu2.usage"), Collections.emptyList());
-        assertEquals(joinPart, selectStatement.getJoinParts().get(0));
+        assertTrue(selectStatement.getFromParts().get(1).isJoinPart());
+        assertEquals(joinCondition, selectStatement.getFromParts().get(1).getJoinCondition());
 
         joinStr = "SELECT * FROM cpu1 JOIN cpu2 ON cpu1.usage = cpu2.usage";
         selectStatement = (SelectStatement) TestUtils.buildStatement(joinStr);
 
-        assertEquals("cpu1", selectStatement.getFromPath());
-        assertEquals(1, selectStatement.getJoinParts().size());
+        assertEquals(2, selectStatement.getFromParts().size());
+        assertEquals("cpu1", selectStatement.getFromParts().get(0).getPath());
+        assertEquals("cpu2", selectStatement.getFromParts().get(1).getPath());
 
-        joinPart = new JoinPart("cpu2", JoinType.InnerJoin,
+        joinCondition = new JoinCondition(JoinType.InnerJoin,
             new PathFilter("cpu1.usage", Op.E, "cpu2.usage"), Collections.emptyList());
-        assertEquals(joinPart, selectStatement.getJoinParts().get(0));
+        assertTrue(selectStatement.getFromParts().get(1).isJoinPart());
+        assertEquals(joinCondition, selectStatement.getFromParts().get(1).getJoinCondition());
 
         joinStr = "SELECT * FROM cpu1 INNER JOIN cpu2 USING usage";
         selectStatement = (SelectStatement) TestUtils.buildStatement(joinStr);
 
-        assertEquals("cpu1", selectStatement.getFromPath());
-        assertEquals(1, selectStatement.getJoinParts().size());
+        assertEquals(2, selectStatement.getFromParts().size());
+        assertEquals("cpu1", selectStatement.getFromParts().get(0).getPath());
+        assertEquals("cpu2", selectStatement.getFromParts().get(1).getPath());
 
-        joinPart = new JoinPart("cpu2", JoinType.InnerJoin,
+        joinCondition = new JoinCondition(JoinType.InnerJoin,
             null, Collections.singletonList("usage"));
-        assertEquals(joinPart, selectStatement.getJoinParts().get(0));
+        assertTrue(selectStatement.getFromParts().get(1).isJoinPart());
+        assertEquals(joinCondition, selectStatement.getFromParts().get(1).getJoinCondition());
     }
 }
