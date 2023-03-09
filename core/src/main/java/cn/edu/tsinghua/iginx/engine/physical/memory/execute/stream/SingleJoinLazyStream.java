@@ -39,7 +39,7 @@ public class SingleJoinLazyStream extends BinaryLazyStream {
 		if (hasInitialized) {
 			return;
 		}
-		this.header = RowUtils.constructNewHead(streamA.getHeader(), streamB.getHeader());
+		this.header = RowUtils.constructNewHead(streamA.getHeader(), streamB.getHeader(), true);
 		this.hasInitialized = true;
 	}
 
@@ -125,7 +125,7 @@ public class SingleJoinLazyStream extends BinaryLazyStream {
 			curStreamBIndex++;
 		}
 		
-		Row row = RowUtils.constructNewRow(header, nextA, nextB);
+		Row row = RowUtils.constructNewRow(header, nextA, nextB, true);
 		nextB = null;
 		if (FilterUtils.validate(singleJoin.getFilter(), row)) {
 			if (!this.curNextAHasMatched) {

@@ -1659,7 +1659,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     
     private RowStream executeSingleJoin(SingleJoin singleJoin, Table tableA, Table tableB)
         throws PhysicalException {
-        Header newHeader = RowUtils.constructNewHead(tableA.getHeader(), tableB.getHeader());
+        Header newHeader = RowUtils.constructNewHead(tableA.getHeader(), tableB.getHeader(), true);
     
         List<Row> rowsA = tableA.getRows();
         List<Row> rowsB = tableB.getRows();
@@ -1671,7 +1671,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         for (Row rowA : rowsA) {
             matched = false;
             for (Row rowB : rowsB) {
-                Row joinedRow = RowUtils.constructNewRow(newHeader, rowA, rowB, false);
+                Row joinedRow = RowUtils.constructNewRow(newHeader, rowA, rowB, true);
                 if (FilterUtils.validate(filter, joinedRow)) {
                     if (!matched) {
                         matched = true;
