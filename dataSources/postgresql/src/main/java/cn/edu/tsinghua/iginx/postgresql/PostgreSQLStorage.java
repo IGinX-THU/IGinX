@@ -54,6 +54,7 @@ import java.sql.*;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 public class PostgreSQLStorage implements IStorage {
 
@@ -465,11 +466,11 @@ public class PostgreSQLStorage implements IStorage {
         switch (dataView.getRawDataType()) {
             case Row:
             case NonAlignedRow:
-                e = insertRowRecords(conn, (RowDataView) dataView);
+                e = insertNonAlignedRowRecords(conn, (RowDataView) dataView);
                 break;
             case Column:
             case NonAlignedColumn:
-                e = insertColumnRecords(conn, (ColumnDataView) dataView);
+                e = insertNonAlignedColumnRecords(conn, (ColumnDataView) dataView);
                 break;
         }
         if (e != null) {
@@ -479,98 +480,153 @@ public class PostgreSQLStorage implements IStorage {
         return new TaskExecuteResult(null, null);
     }
 
-    private void createTimeSeriesIfNotExists(Connection conn, String table, String field, Map<String, String> tags, DataType dataType) {
-        try {
+    private void createOrAlterTables(Connection conn, List<String> paths, List<Map<String, String>> tagsList, List<DataType> dataTypeList) {
+        for (int i = 0; i < paths.size(); i++) {
+            String path = paths.get(i);
+            Map<String, String> tags = new HashMap<>();
+            if (tagsList != null && !tagsList.isEmpty()) {
+                tags = tagsList.get(i);
+            }
+            DataType dataType = dataTypeList.get(i);
+            String table = path.substring(0, path.lastIndexOf('.')).replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
+            String field = path.substring(path.lastIndexOf('.') + 1).replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
 
-            DatabaseMetaData databaseMetaData = conn.getMetaData();
-            ResultSet tableSet = databaseMetaData.getTables(null, "%", table, new String[]{"TABLE"});
-            if (!tableSet.next()) {
-                Statement stmt = conn.createStatement();
-                StringBuilder stringBuilder = new StringBuilder();
-                if (tags != null && !tags.isEmpty()) {
-                    for (Entry<String, String> tagsEntry : tags.entrySet()) {
-                        stringBuilder.append(tagsEntry.getKey()).append(" TEXT,");
-                    }
-                }
-                stringBuilder.append(field).append(" ").append(DataTypeTransformer.toPostgreSQL(dataType));
-                stmt.execute(String
-                    .format("CREATE TABLE %s (time INTEGER NOT NULL,%s NULL)", table,
-                        stringBuilder.toString()));
-            } else {
-                if (tags != null && tags.isEmpty()) {
-                    for (String tag : tags.keySet()) {
-                        ResultSet columnSet = databaseMetaData.getColumns(null, "%", table, tag);
-                        if (!columnSet.next()) {
-                            Statement stmt = conn.createStatement();
-                            stmt.execute(String.format("ALTER TABLE %s ADD COLUMN %s TEXT NULL", table, tag));
+            try {
+                DatabaseMetaData databaseMetaData = conn.getMetaData();
+                ResultSet tableSet = databaseMetaData.getTables(null, "%", table, new String[]{"TABLE"});
+                if (!tableSet.next()) {
+                    Statement stmt = conn.createStatement();
+                    StringBuilder stringBuilder = new StringBuilder();
+                    if (tags != null && !tags.isEmpty()) {
+                        for (String tag : tags.keySet()) {
+                            // 列名=序列名$tagKey
+                            stringBuilder.append(field).append(POSTGRESQL_SEPARATOR).append(tag).append(" TEXT, ");
                         }
                     }
+                    stringBuilder.append(field).append(" ").append(DataTypeTransformer.toPostgreSQL(dataType));
+                    stmt.execute(String.format("CREATE TABLE %s (time BIGINT NOT NULL, %s, PRIMARY KEY(time))", table, stringBuilder));
+                } else {
+                    if (tags != null && !tags.isEmpty()) {
+                        for (String tag : tags.keySet()) {
+                            ResultSet columnSet = databaseMetaData.getColumns(null, "%", table, field + POSTGRESQL_SEPARATOR + tag);
+                            if (!columnSet.next()) {
+                                Statement stmt = conn.createStatement();
+                                stmt.execute(String.format("ALTER TABLE %s ADD COLUMN %s TEXT", table, field + POSTGRESQL_SEPARATOR + tag));
+                            }
+                        }
+                    }
+                    ResultSet columnSet = databaseMetaData.getColumns(null, "%", table, field);
+                    if (!columnSet.next()) {
+                        Statement stmt = conn.createStatement();
+                        stmt.execute(String.format("ALTER TABLE %s ADD COLUMN %s %s NULL", table, field,
+                            DataTypeTransformer.toPostgreSQL(dataType)));
+                    }
                 }
-                ResultSet columnSet = databaseMetaData.getColumns(null, "%", table, field);
-                if (!columnSet.next()) {
-                    Statement stmt = conn.createStatement();
-                    stmt.execute(String.format("ALTER TABLE %s ADD COLUMN %s %s NULL", table, field,
-                        DataTypeTransformer.toPostgreSQL(dataType)));
-                }
+            } catch (SQLException e) {
+                logger.error("create or alter table {} field {} error: {}", table, field, e.getMessage());
             }
-        } catch (SQLException e) {
-            logger.error("create timeseries error", e);
         }
     }
 
-    private Exception insertRowRecords(Connection conn, RowDataView data) {
+    private Exception insertNonAlignedRowRecords(Connection conn, RowDataView data) {
         int batchSize = Math.min(data.getTimeSize(), BATCH_SIZE);
         try {
             Statement stmt = conn.createStatement();
+
+            // 创建表
+            createOrAlterTables(conn, data.getPaths(), data.getTagsList(), data.getDataTypeList());
+
+            // 插入数据
+            Map<String, Pair<String, List<String>>> tableToColumnEntries = new HashMap<>(); // <表名, <列名，值列表>>
             int cnt = 0;
-            for (int i = 0; i < data.getTimeSize(); i++) {
-                BitmapView bitmapView = data.getBitmapView(i);
-                int index = 0;
-                for (int j = 0; j < data.getPathNum(); j++) {
-                    if (bitmapView.get(j)) {
+            boolean firstRound = true;
+            while (cnt < data.getTimeSize()) {
+                int size = Math.min(data.getTimeSize() - cnt, batchSize);
+                Map<String, boolean[]> tableHasData = new HashMap<>(); // 记录每一张表的每一行是否有数据点
+                for (int i = cnt; i < cnt + size; i++) {
+                    BitmapView bitmapView = data.getBitmapView(i);
+                    int index = 0;
+                    for (int j = 0; j < data.getPathNum(); j++) {
                         String path = data.getPath(j);
                         DataType dataType = data.getDataType(j);
                         String table = path.substring(0, path.lastIndexOf('.')).replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
-                        String field = path.substring(path.lastIndexOf('.') + 1).replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
+                        String field = path.substring(path.lastIndexOf('.') + 1);
                         Map<String, String> tags = new HashMap<>();
                         if (data.hasTagsList()) {
                             tags = data.getTags(i);
                         }
-                        createTimeSeriesIfNotExists(conn, table, field, tags, dataType);
 
-                        long time = data.getKey(i);
-                        String value;
-                        if (data.getDataType(j) == DataType.BINARY) {
-                            value = "'" + new String((byte[]) data.getValue(i, index), StandardCharsets.UTF_8) + "'";
-                        } else {
-                            value = data.getValue(i, index).toString();
+                        StringBuilder columnKeys = new StringBuilder();
+                        List<String> columnValues = new ArrayList<>();
+                        if (tableToColumnEntries.containsKey(table)) {
+                            columnKeys = new StringBuilder(tableToColumnEntries.get(table).k);
+                            columnValues = tableToColumnEntries.get(table).v;
                         }
 
-                        StringBuilder columnsKeys = new StringBuilder();
-                        StringBuilder columnValues = new StringBuilder();
-                        if (tags != null && !tags.isEmpty()) {
-                            for (Entry<String, String> tagEntry : tags.entrySet()) {
-                                columnsKeys.append(tagEntry.getValue()).append(" ");
-                                columnValues.append(tagEntry.getValue()).append(" ");
+                        String value = "null";
+                        if (bitmapView.get(j)) {
+                            if (dataType == DataType.BINARY) {
+                                value = "'" + new String((byte[]) data.getValue(i, index), StandardCharsets.UTF_8) + "'";
+                            } else {
+                                value = data.getValue(i, index).toString();
+                            }
+                            index++;
+                            if (tableHasData.containsKey(table)) {
+                                tableHasData.get(table)[i - cnt] = true;
+                            } else {
+                                boolean[] hasData = new boolean[size];
+                                hasData[i - cnt] = true;
+                                tableHasData.put(table, hasData);
                             }
                         }
-                        columnsKeys.append(field);
-                        columnValues.append(value);
 
-                        stmt.addBatch(String
-                            .format("INSERT INTO %s (time, %s) values (%d, %s)", table,
-                                columnsKeys, time, columnValues));
-
-                        index++;
-                        cnt++;
-                        if (cnt % batchSize == 0) {
-                            stmt.executeBatch();
+                        if (firstRound) {
+                            if (tags != null && !tags.isEmpty()) {
+                                for (Entry<String, String> tagEntry : tags.entrySet()) {
+                                    columnKeys.append(field).append(POSTGRESQL_SEPARATOR).append(tagEntry.getKey()).append(", ");
+                                    columnValues = columnValues.stream().map(x -> x + tagEntry.getValue() + ", ").collect(Collectors.toList());
+                                }
+                            }
+                            columnKeys.append(field).append(", ");
                         }
 
+                        if (i - cnt < columnValues.size()) {
+                            columnValues.set(i - cnt, columnValues.get(i - cnt) + value + ", ");
+                        } else {
+                            columnValues.add(data.getKey(i) + ", " + value + ", ");  // 添加 key(time) 列
+                        }
+
+                        tableToColumnEntries.put(table, new Pair<>(columnKeys.toString(), columnValues));
+                    }
+
+                    firstRound = false;
+                }
+
+                for (Map.Entry<String, boolean[]> entry : tableHasData.entrySet()) {
+                    String table = entry.getKey();
+                    boolean[] hasData = entry.getValue();
+                    String columnKeys = tableToColumnEntries.get(table).k;
+                    List<String> columnValues = tableToColumnEntries.get(table).v;
+                    boolean needToInsert = false;
+                    for (int i = hasData.length - 1; i >= 0; i--) {
+                        if (!hasData[i]) {
+                            columnValues.remove(i);
+                        } else {
+                            needToInsert = true;
+                        }
+                    }
+                    if (needToInsert) {
+                        tableToColumnEntries.put(table, new Pair<>(columnKeys, columnValues));
                     }
                 }
+
+                executeBatch(stmt, tableToColumnEntries);
+                for (Pair<String, List<String>> columnEntries : tableToColumnEntries.values()) {
+                    columnEntries.v.clear();
+                }
+
+                cnt += size;
             }
-            stmt.executeBatch();
             conn.close();
         } catch (SQLException e) {
             logger.error(e.getMessage());
@@ -580,68 +636,134 @@ public class PostgreSQLStorage implements IStorage {
         return null;
     }
 
-    private Exception insertColumnRecords(Connection conn, ColumnDataView data) {
+    private Exception insertNonAlignedColumnRecords(Connection conn, ColumnDataView data) {
         int batchSize = Math.min(data.getTimeSize(), BATCH_SIZE);
         try {
             Statement stmt = conn.createStatement();
+
+            // 创建表
+            createOrAlterTables(conn, data.getPaths(), data.getTagsList(), data.getDataTypeList());
+
+            // 插入数据
+            Map<String, Pair<String, List<String>>> tableToColumnEntries = new HashMap<>(); // <表名, <列名，值列表>>
+            Map<Integer, Integer> pathIndexToBitmapIndex = new HashMap<>();
             int cnt = 0;
-            String fields = "";
-            String values = "";
-            String table = "";
-            long time = 0;
-            for (int i = 0; i < data.getPathNum(); i++) {
-                String path = data.getPath(i);
-                DataType dataType = data.getDataType(i);
-                table = path.substring(0, path.lastIndexOf('.')).replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
-                String field = path.substring(path.lastIndexOf('.') + 1).replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
-                Map<String, String> tags = new HashMap<>();
-                if (data.hasTagsList()) {
-                    tags = data.getTags(i);
-                }
-                fields = fields + "," + field;         // ,id1,id2
-                createTimeSeriesIfNotExists(conn, table, field, tags, dataType);
+            boolean firstRound = true;
+            while (cnt < data.getTimeSize()) {
+                int size = Math.min(data.getTimeSize() - cnt, batchSize);
+                Map<String, boolean[]> tableHasData = new HashMap<>(); // 记录每一张表的每一行是否有数据点
+                for (int i = 0; i < data.getPathNum(); i++) {
+                    String path = data.getPath(i);
+                    DataType dataType = data.getDataType(i);
+                    String table = path.substring(0, path.lastIndexOf('.')).replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
+                    String field = path.substring(path.lastIndexOf('.') + 1);
+                    Map<String, String> tags = new HashMap<>();
+                    if (data.hasTagsList()) {
+                        tags = data.getTags(i);
+                    }
 
-                BitmapView bitmapView = data.getBitmapView(i);
-                int index = 0;
-                for (int j = 0; j < data.getTimeSize(); j++) {
-                    if (bitmapView.get(j)) {
-                        time = data.getKey(j);
-                        String value;
-                        if (data.getDataType(i) == DataType.BINARY) {
-                            value = "'" + new String((byte[]) data.getValue(i, index), StandardCharsets.UTF_8) + "'";
-                        } else {
-                            value = data.getValue(i, index).toString();
-                        }
+                    BitmapView bitmapView = data.getBitmapView(i);
 
-                        StringBuilder columnsKeys = new StringBuilder();
-                        StringBuilder columnValues = new StringBuilder();
-                        if (tags != null && !tags.isEmpty()) {
-                            for (Entry<String, String> tagEntry : tags.entrySet()) {
-                                columnsKeys.append(tagEntry.getValue()).append(" ");
-                                columnValues.append(tagEntry.getValue()).append(" ");
+                    StringBuilder columnKeys = new StringBuilder();
+                    List<String> columnValues = new ArrayList<>();
+                    if (tableToColumnEntries.containsKey(table)) {
+                        columnKeys = new StringBuilder(tableToColumnEntries.get(table).k);
+                        columnValues = tableToColumnEntries.get(table).v;
+                    }
+
+                    int index = 0;
+                    if (pathIndexToBitmapIndex.containsKey(i)) {
+                        index = pathIndexToBitmapIndex.get(i);
+                    }
+                    for (int j = cnt; j < cnt + size; j++) {
+                        String value = "null";
+                        if (bitmapView.get(j)) {
+                            if (dataType == DataType.BINARY) {
+                                value = "'" + new String((byte[]) data.getValue(i, index), StandardCharsets.UTF_8) + "'";
+                            } else {
+                                value = data.getValue(i, index).toString();
+                            }
+                            index++;
+                            if (tableHasData.containsKey(table)) {
+                                tableHasData.get(table)[j - cnt] = true;
+                            } else {
+                                boolean[] hasData = new boolean[size];
+                                hasData[j - cnt] = true;
+                                tableHasData.put(table, hasData);
                             }
                         }
-                        columnsKeys.append(field);
-                        columnValues.append(value);
-                        values = values + "," + value;   //,123,456
 
-                        cnt++;
-                        index++;
-//                        stmt.addBatch(String.format("INSERT INTO %s (time, %s) values (%d, %s)", table, columnsKeys, time, columnValues));
-//                        if (cnt % batchSize == 0) {
-//                            stmt.executeBatch();
-//                        }
+                        if (j - cnt < columnValues.size()) {
+                            columnValues.set(j - cnt, columnValues.get(j - cnt) + value + ", ");
+                        } else {
+                            columnValues.add(data.getKey(j) + ", " + value + ", ");  // 添加 key(time) 列
+                        }
                     }
-//                    stmt.executeBatch();
+                    pathIndexToBitmapIndex.put(i, index);
+
+                    if (firstRound) {
+                        columnKeys.append(field).append(", ");
+                        if (tags != null && !tags.isEmpty()) {
+                            for (Entry<String, String> tagEntry : tags.entrySet()) {
+                                columnKeys.append(field).append(POSTGRESQL_SEPARATOR).append(tagEntry.getKey()).append(", ");
+                                columnValues = columnValues.stream().map(x -> x + tagEntry.getValue() + ", ").collect(Collectors.toList());
+                            }
+                        }
+                    }
+
+                    tableToColumnEntries.put(table, new Pair<>(columnKeys.toString(), columnValues));
                 }
+
+                for (Map.Entry<String, boolean[]> entry : tableHasData.entrySet()) {
+                    String table = entry.getKey();
+                    boolean[] hasData = entry.getValue();
+                    String columnKeys = tableToColumnEntries.get(table).k;
+                    List<String> columnValues = tableToColumnEntries.get(table).v;
+                    boolean needToInsert = false;
+                    for (int i = hasData.length - 1; i >= 0; i--) {
+                        if (!hasData[i]) {
+                            columnValues.remove(i);
+                        } else {
+                            needToInsert = true;
+                        }
+                    }
+                    if (needToInsert) {
+                        tableToColumnEntries.put(table, new Pair<>(columnKeys, columnValues));
+                    }
+                }
+
+                executeBatch(stmt, tableToColumnEntries);
+                for (Map.Entry<String, Pair<String, List<String>>> entry : tableToColumnEntries.entrySet()) {
+                    entry.getValue().v.clear();
+                }
+
+                firstRound = false;
+                cnt += size;
             }
-            stmt.execute(String.format("INSERT INTO %s (time %s) values (%d %s)", table, fields, time, values));
         } catch (SQLException e) {
             logger.info("error", e);
             return e;
         }
 
         return null;
+    }
+
+    private void executeBatch(Statement stmt, Map<String, Pair<String, List<String>>> tableToColumnEntries) throws SQLException {
+        for (Map.Entry<String, Pair<String, List<String>>> entry : tableToColumnEntries.entrySet()) {
+            StringBuilder insertStatement = new StringBuilder();
+            insertStatement.append("INSERT INTO ");
+            insertStatement.append(entry.getKey());
+            insertStatement.append(" (time, ");
+            insertStatement.append(entry.getValue().k, 0, entry.getValue().k.length() - 2);
+            insertStatement.append(") VALUES");
+            for (String value : entry.getValue().v) {
+                insertStatement.append(" (");
+                insertStatement.append(value, 0, value.length() - 2);
+                insertStatement.append("), ");
+            }
+            stmt.addBatch(insertStatement.substring(0, insertStatement.toString().length() - 2));
+        }
+        stmt.executeBatch();
     }
 
     private TaskExecuteResult executeDeleteTask(Connection conn, Delete delete) {
