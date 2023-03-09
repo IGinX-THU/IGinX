@@ -29,6 +29,8 @@ import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.TransformTaskMeta;
 import cn.edu.tsinghua.iginx.thrift.UDFType;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pemja.core.PythonInterpreter;
@@ -38,6 +40,8 @@ import java.io.File;
 import java.util.*;
 
 public class FunctionManager {
+
+    private final static int INTERPRETER_NUM = 5;
 
     private final Map<String, Function> functions;
 
@@ -157,29 +161,35 @@ public class FunctionManager {
             .addPythonPaths(PATH)
             .build();
 
-        PythonInterpreter interpreter = new PythonInterpreter(config);
         String fileName = taskMeta.getFileName();
         String moduleName = fileName.substring(0, fileName.indexOf(PY_SUFFIX));
         String className = taskMeta.getClassName();
 
         // init the python udf
-        interpreter.exec(String.format("import %s", moduleName));
-        interpreter.exec(String.format("t = %s.%s()", moduleName, className));
+        BlockingQueue<PythonInterpreter> queue = new LinkedBlockingQueue<>();
+        for (int i = 0; i < INTERPRETER_NUM; i++) {
+            PythonInterpreter interpreter = new PythonInterpreter(config);
+            interpreter.exec(String.format("import %s", moduleName));
+            interpreter.exec(String.format("t = %s.%s()", moduleName, className));
+            queue.add(interpreter);
+        }
 
         if (taskMeta.getType().equals(UDFType.UDAF)) {
-            PyUDAF udaf = new PyUDAF(interpreter, identifier);
+            PyUDAF udaf = new PyUDAF(queue, identifier);
             functions.put(identifier, udaf);
             return udaf;
         } else if (taskMeta.getType().equals(UDFType.UDTF)) {
-            PyUDTF udtf = new PyUDTF(interpreter, identifier);
+            PyUDTF udtf = new PyUDTF(queue, identifier);
             functions.put(identifier, udtf);
             return udtf;
         } else if (taskMeta.getType().equals(UDFType.UDSF)) {
-            PyUDSF udsf = new PyUDSF(interpreter, identifier);
+            PyUDSF udsf = new PyUDSF(queue, identifier);
             functions.put(identifier, udsf);
             return udsf;
         } else {
-            interpreter.close();
+            while (!queue.isEmpty()) {
+                queue.poll().close();
+            }
             throw new IllegalArgumentException(String.format("UDF %s registered in type %s", identifier, taskMeta.getType()));
         }
     }

@@ -31,11 +31,21 @@ public class GroupBy extends AbstractUnaryOperator {
 
     @Override
     public Operator copy() {
-        return new GroupBy(getSource().copy(), new ArrayList<>(groupByCols), new ArrayList<>(functionCallList));
+        return new GroupBy(getSource().copy(), new ArrayList<>(groupByCols),
+            new ArrayList<>(functionCallList));
     }
 
     @Override
     public String getInfo() {
-        return "";
+        StringBuilder builder = new StringBuilder();
+        builder.append("GroupByCols: ").append(String.join(",", groupByCols));
+        if (functionCallList != null && !functionCallList.isEmpty()) {
+            builder.append(", FunctionCallList: ");
+            for (FunctionCall functionCall : functionCallList) {
+                builder.append(functionCall.toString()).append(",");
+            }
+            builder.deleteCharAt(builder.length() - 1);
+        }
+        return builder.toString();
     }
 }
