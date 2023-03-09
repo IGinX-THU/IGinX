@@ -3,6 +3,7 @@ package cn.edu.tsinghua.iginx.integration;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.integration.tool.MultiConnection;
 import cn.edu.tsinghua.iginx.session.Session;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.After;
