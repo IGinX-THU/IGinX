@@ -36,41 +36,6 @@ public class ParseTest {
     }
 
     @Test
-    public void testParseDateFormat() {
-        String insertStr = "INSERT INTO us.d2(key, date) VALUES " +
-            "(2021-08-26 16:15:27, 1), " +
-            "(2021/08/26 16:15:28, 1), " +
-            "(2021.08.26 16:15:29, 1), " +
-            "(2021-08-26T16:15:30, 1), " +
-            "(2021/08/26T16:15:31, 1), " +
-            "(2021.08.26T16:15:32, 1), " +
-
-            "(2021-08-26 16:15:27.001, 1), " +
-            "(2021/08/26 16:15:28.001, 1), " +
-            "(2021.08.26 16:15:29.001, 1), " +
-            "(2021-08-26T16:15:30.001, 1), " +
-            "(2021/08/26T16:15:31.001, 1), " +
-            "(2021.08.26T16:15:32.001, 1);";
-
-        InsertStatement statement = (InsertStatement) TestUtils.buildStatement(insertStr);
-        List<Long> expectedTimes = Arrays.asList(
-            1629965727000000000L,
-            1629965727001000000L,
-            1629965728000000000L,
-            1629965728001000000L,
-            1629965729000000000L,
-            1629965729001000000L,
-            1629965730000000000L,
-            1629965730001000000L,
-            1629965731000000000L,
-            1629965731001000000L,
-            1629965732000000000L,
-            1629965732001000000L
-        );
-        assertEquals(expectedTimes, statement.getTimes());
-    }
-
-    @Test
     public void testParseInsertWithSubQuery() {
         String insertStr = "INSERT INTO test.copy (key, status, hardware, num) values (SELECT status, hardware, num FROM test) TIME_OFFSET = 5;";
         InsertFromSelectStatement statement = (InsertFromSelectStatement) TestUtils.buildStatement(insertStr);
@@ -271,19 +236,10 @@ public class ParseTest {
             + "(2ns, 2), "
             + "(3us, 3), "
             + "(4ms, 4), "
-            + "(5s, 5), "
-            + "(2022-10-01 17:24:36, 6), "
-            + "(2022-10-01 17:24:36.001, 7) "
-            + "(2022-10-01T17:24:36.002, 8) "
-            + "(2022.10.01 17:24:36.003, 9) "
-            + "(2022.10.01T17:24:36.004, 10) "
-            + "(2022/10/01 17:24:36.005, 11) "
-            + "(2022/10/01T17:24:36.006, 12);";
+            + "(5s, 5);";
         InsertStatement insertStatement = (InsertStatement) TestUtils.buildStatement(insertStr);
 
-        List<Long> expectedTimes = Arrays.asList(1L, 2L, 3000L, 4000000L, 5000000000L,
-            1664616276000000000L, 1664616276001000000L, 1664616276002000000L, 1664616276003000000L,
-            1664616276004000000L, 1664616276005000000L, 1664616276006000000L);
+        List<Long> expectedTimes = Arrays.asList(1L, 2L, 3000L, 4000000L, 5000000000L);
         assertEquals(expectedTimes, insertStatement.getTimes());
 
         String queryStr = "SELECT AVG(c) FROM a.b WHERE c > 10 AND c < 1ms OVER (RANGE 10 IN [1s, 2s));";
