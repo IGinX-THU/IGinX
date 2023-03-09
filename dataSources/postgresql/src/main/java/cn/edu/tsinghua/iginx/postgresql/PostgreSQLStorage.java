@@ -152,6 +152,7 @@ public class PostgreSQLStorage implements IStorage {
             stmt.execute(String.format("create database %s", dbname));
         } catch (SQLException e) {
             //database exists
+            logger.info("database exists!", e);
         }
         try {
             if (connectionPoolMap.containsKey(dbname)) {
@@ -212,7 +213,7 @@ public class PostgreSQLStorage implements IStorage {
             while (databaseSet.next()) {
                 try {
                     String databaseName = databaseSet.getString(1);//获取数据库名称
-                    if (extraParams.get("has_data").equals("true")) {
+                    if (extraParams.get("has_data") != null && extraParams.get("has_data").equals("true")) {
                     } else {
                         if (databaseName.startsWith("unit")) {
                         } else {
@@ -254,7 +255,16 @@ public class PostgreSQLStorage implements IStorage {
 
 
     private long toHash(String s) {
-        return (long) Integer.valueOf(s);
+        char c[] = s.toCharArray();
+        long hv = 0;
+        long base = 131;
+        for (int i = 0; i < c.length; i++) {
+            hv = hv * base + (long) c[i];   //利用自然数溢出，即超过 LONG_MAX 自动溢出，节省时间
+        }
+        if (hv < 0) {
+            return -1 * hv;
+        }
+        return hv;
     }
 
     @Override
@@ -267,6 +277,9 @@ public class PostgreSQLStorage implements IStorage {
             while (databaseSet.next()) {
                 String databaseName = databaseSet.getString(1);//获取database名称
                 Connection conn2 = getConnection(databaseName, getUrl(databaseName));
+                if (conn2 == null) {
+                    continue;
+                }
                 DatabaseMetaData databaseMetaData = conn2.getMetaData();
                 ResultSet tableSet = databaseMetaData.getTables(null, "%", "%", new String[]{"TABLE"});
                 while (tableSet.next()) {
@@ -286,7 +299,7 @@ public class PostgreSQLStorage implements IStorage {
                     Statement firstQueryStmt = conn2.createStatement();
                     ResultSet firstQuerySet = firstQueryStmt.executeQuery(firstQueryStatement);
                     while (firstQuerySet.next()) {
-                        String s = firstQuerySet.getString(0);
+                        String s = firstQuerySet.getString(1);
                         long logic_time = toHash(s);
                         minTime = Math.min(logic_time, minTime);
                         maxTime = Math.max(logic_time, maxTime);
@@ -381,6 +394,9 @@ public class PostgreSQLStorage implements IStorage {
                 String tableName = database_table.substring(database_table.lastIndexOf(".") + 1).replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
                 String columnName = path.substring(path.lastIndexOf(".") + 1).replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
                 Connection conn = getConnection(dataBaseName, getUrl(dataBaseName));
+                if (conn == null) {
+                    continue;
+                }
                 Statement stmt = conn.createStatement();
 
                 DatabaseMetaData databaseMetaData = conn.getMetaData();
