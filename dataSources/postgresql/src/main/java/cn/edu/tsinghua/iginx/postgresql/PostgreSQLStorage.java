@@ -152,7 +152,7 @@ public class PostgreSQLStorage implements IStorage {
             stmt.execute(String.format("create database %s", dbname));
         } catch (SQLException e) {
             //database exists
-            logger.info("database exists!", e);
+            //logger.info("database exists!", e);
         }
         try {
             if (connectionPoolMap.containsKey(dbname)) {
@@ -449,6 +449,7 @@ public class PostgreSQLStorage implements IStorage {
                     Statement stmt = conn.createStatement();
                     ResultSet rs = null;
                     try {
+                        //String s = String.format("select concat(%s) as time,%s from %s", hv, columnName, tableName);
                         rs = stmt.executeQuery(String.format("select concat(%s) as time,%s from %s", hv, columnName, tableName));
                     } catch (Exception e) {
                         continue;
@@ -459,7 +460,8 @@ public class PostgreSQLStorage implements IStorage {
                     if (columnSet_.next()) {
                         typeName = columnSet_.getString("TYPE_NAME");//列字段类型
                     }
-                    fields.add(new Field(tableName.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR) + IGINX_SEPARATOR
+                    fields.add(new Field(dataBaseName.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR) + IGINX_SEPARATOR
+                        + tableName.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR) + IGINX_SEPARATOR
                         + columnName.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR)
                         , DataTypeTransformer.fromPostgreSQL(typeName)));
                 } else if (tableSet == null && columnSet != null) {
@@ -475,7 +477,8 @@ public class PostgreSQLStorage implements IStorage {
                             continue;
                         }
                         resultSets.add(rs);
-                        fields.add(new Field(tableName.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR) + IGINX_SEPARATOR
+                        fields.add(new Field(dataBaseName.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR) + IGINX_SEPARATOR
+                            + tableName.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR) + IGINX_SEPARATOR
                             + field.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR)
                             , DataTypeTransformer.fromPostgreSQL(typeName)));
                     }
@@ -494,7 +497,8 @@ public class PostgreSQLStorage implements IStorage {
                                 continue;
                             }
                             resultSets.add(rs);
-                            fields.add(new Field(table.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR) + IGINX_SEPARATOR
+                            fields.add(new Field(dataBaseName.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR) + IGINX_SEPARATOR
+                                + table.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR) + IGINX_SEPARATOR
                                 + field.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR)
                                 , DataTypeTransformer.fromPostgreSQL(typeName)));
                         }

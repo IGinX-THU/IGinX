@@ -40,7 +40,17 @@ public class PostgreSQLQueryRowStream implements RowStream {
                     } else {
                         this.currTimestamps[i] = resultSet.getLong(1);
                     }
-                    this.currValues[i] = resultSet.getObject(2);
+                    String typeName = "";
+                    if (resultSet.getObject(2) != null) {
+                        typeName = resultSet.getObject(2).getClass().getTypeName();
+                    } else {
+                        typeName = "";
+                    }
+                    if (typeName.contains("String")) {
+                        this.currValues[i] = resultSet.getObject(2).toString().getBytes();
+                    } else {
+                        this.currValues[i] = resultSet.getObject(2);
+                    }
                 }
             }
         } catch (SQLException e) {
@@ -109,7 +119,17 @@ public class PostgreSQLQueryRowStream implements RowStream {
                         } else {
                             this.currTimestamps[i] = resultSet.getLong(1);
                         }
-                        this.currValues[i] = resultSet.getObject(2);
+                        String typeName = "";
+                        if (resultSet.getObject(2) != null) {
+                            typeName = resultSet.getObject(2).getClass().getTypeName();
+                        } else {
+                            typeName = "null";
+                        }
+                        if (typeName.contains("String")) {
+                            this.currValues[i] = resultSet.getObject(2).toString().getBytes();
+                        } else {
+                            this.currValues[i] = resultSet.getObject(2);
+                        }
                     } else {
                         // 值已经取完
                         this.currTimestamps[i] = Long.MIN_VALUE;
