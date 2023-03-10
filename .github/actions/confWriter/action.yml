@@ -25,7 +25,7 @@ runs:
       name: Change conf/config.properties
       shell: bash
       run: |
-        echo "${{inputs.Test-Way}" > ${GITHUB_WORKSPACE}/test/src/test/java/cn/edu/tsinghua/iginx/integration/ifScaleOutIn.txt
+        echo "${{inputs.Test-Way}}" > ${GITHUB_WORKSPACE}/test/src/test/java/cn/edu/tsinghua/iginx/integration/ifScaleOutIn.txt
         if [[ "${{inputs.Test-Way}}" == "oriHasDataExpHasData" || "${{inputs.Test-Way}}" == "oriHasDataExpNoData" ]]; then
           if [ "$RUNNER_OS" == "Linux" ]; then
             sed -i "s/has_data=false/has_data=true/g" ${GITHUB_WORKSPACE}/core/target/iginx-core-0.6.0-SNAPSHOT/conf/config.properties
