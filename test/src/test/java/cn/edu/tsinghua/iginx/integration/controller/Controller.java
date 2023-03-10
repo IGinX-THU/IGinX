@@ -20,7 +20,7 @@ import static org.junit.Assert.fail;
 public class Controller {
     protected static final Logger logger = LoggerFactory.getLogger(Controller.class);
     public static String CLEARDATAEXCP = "cn.edu.tsinghua.iginx.exceptions.ExecutionException: Caution: can not clear the data of read-only node.";
-    public static String CONFIG_FILE = "./src/test/java/cn/edu/tsinghua/iginx/integration/controller/testConfig.properties";
+    public static String CONFIG_FILE = "./src/test/resources/testConfig.properties";
     private String FILEPATH = "./src/test/resources/testTask.txt";
     private String MVNRUNTEST = "../.github/test_union.sh";
     private List<StorageEngineMeta> storageEngineMetas = new ArrayList<>();
@@ -36,8 +36,7 @@ public class Controller {
             logger.error("Statement: \"{}\" execute fail. Caused by: {}", clearData, e.toString());
             if (e.toString().equals(CLEARDATAEXCP) || e.toString().equals("\n" + CLEARDATAEXCP)) {
                 logger.error("clear data fail and go on....");
-            }
-            else fail();
+            } else fail();
         }
 
         if (res != null && res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {

@@ -29,7 +29,7 @@ public class TagIT {
         DBConf dbConf = conf.loadDBConf(conf.getStorageType());
         this.ifClearData = dbConf.getEnumValue(DBConf.DBConfType.isAbleToClearData);
         this.isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
-        this.ifScaleOutIn = conf.getStorageType() != null;
+        this.ifScaleOutIn = conf.ifScaleOutIn();
     }
 
     @BeforeClass
@@ -47,12 +47,12 @@ public class TagIT {
     @Before
     public void insertData() throws ExecutionException, SessionException {
         String[] insertStatements = (
-            "insert into ah.hr01 (key, s, v, s[t1=v1, t2=vv1], v[t1=v2, t2=vv1]) values (0, 1, 2, 3, 4), (1, 2, 3, 4, 5), (2, 3, 4, 5, 6), (3, 4, 5, 6, 7);\n" +
-            "insert into ah.hr02 (key, s, v) values (100, true, \"v1\");\n" +
-            "insert into ah.hr02[t1=v1] (key, s, v) values (400, false, \"v4\");\n" +
-            "insert into ah.hr02[t1=v1,t2=v2] (key, v) values (800, \"v8\");\n" +
-            "insert into ah.hr03 (key, s[t1=vv1,t2=v2], v[t1=vv11]) values (1600, true, 16);\n" +
-            "insert into ah.hr03 (key, s[t1=v1,t2=vv2], v[t1=v1], v[t1=vv11]) values (3200, true, 16, 32);"
+                "insert into ah.hr01 (key, s, v, s[t1=v1, t2=vv1], v[t1=v2, t2=vv1]) values (0, 1, 2, 3, 4), (1, 2, 3, 4, 5), (2, 3, 4, 5, 6), (3, 4, 5, 6, 7);\n" +
+                        "insert into ah.hr02 (key, s, v) values (100, true, \"v1\");\n" +
+                        "insert into ah.hr02[t1=v1] (key, s, v) values (400, false, \"v4\");\n" +
+                        "insert into ah.hr02[t1=v1,t2=v2] (key, v) values (800, \"v8\");\n" +
+                        "insert into ah.hr03 (key, s[t1=vv1,t2=v2], v[t1=vv11]) values (1600, true, 16);\n" +
+                        "insert into ah.hr03 (key, s[t1=v1,t2=vv2], v[t1=v1], v[t1=vv11]) values (3200, true, 16, 32);"
         ).split("\n");
 
         for (String insertStatement : insertStatements) {
@@ -84,11 +84,10 @@ public class TagIT {
             logger.error("Statement: \"{}\" execute fail. Caused by:", statement, e);
             if (e.toString().equals(CLEARDATAEXCP)) {
                 logger.error("clear data fail and go on....");
-            }
-            else fail();
+            } else fail();
         }
 
-        if (res==null) {
+        if (res == null) {
             return "";
         }
 
@@ -697,7 +696,7 @@ public class TagIT {
 
     @Test
     public void testDeleteTSWithMultiTags() {
-        if (!isAbleToDelete|| ifScaleOutIn) return;
+        if (!isAbleToDelete || ifScaleOutIn) return;
         String showTimeSeries = "SHOW TIME SERIES ah.*;";
         String expected =
                 "Time series:\n"
@@ -752,7 +751,8 @@ public class TagIT {
                 "|key|\n" +
                 "+---+\n" +
                 "+---+\n" +
-                "Empty set.\n";;
+                "Empty set.\n";
+        ;
         executeAndCompare(showTimeSeriesData, expected);
 
         deleteTimeSeries = "DELETE TIME SERIES * WITH t1=v1 AND t2=vv2 OR t1=vv1 AND t2=v2;";
@@ -784,7 +784,8 @@ public class TagIT {
                 "|key|\n" +
                 "+---+\n" +
                 "+---+\n" +
-                "Empty set.\n";;
+                "Empty set.\n";
+        ;
         executeAndCompare(showTimeSeriesData, expected);
     }
 
@@ -1222,7 +1223,7 @@ public class TagIT {
                 "+-----------------+\n" +
                 "Total line number = 1\n";
         executeAndCompare(statement, expected);
-    
+
         statement = "SELECT ah.* FROM (SELECT * FROM ah.hr03 with t1=v1), (SELECT v FROM ah.hr02 with t1=v1);";
         expected = "ResultSets:\n" +
                 "+-----------+----------------------+----------------+-----------+-----------------------+----------------+\n" +
@@ -1279,7 +1280,7 @@ public class TagIT {
 
     @Test
     public void testClearData() throws SessionException, ExecutionException {
-        if (!ifClearData|| ifScaleOutIn) return;
+        if (!ifClearData || ifScaleOutIn) return;
         clearData();
 
         String countPoints = "COUNT POINTS;";
