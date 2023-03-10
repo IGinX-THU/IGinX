@@ -3117,6 +3117,12 @@ public abstract class SQLSessionIT {
                 + "+----------------+-------------+---------------------------------------------+\n"
                 + "Total line number = 4\n";
         executeAndCompare(explain, expected);
+
+        explain = "explain physical select max(s2), min(s1) from us.d1;";
+        logger.info(execute(explain));
+
+        explain = "explain physical select s1 from us.d1 where s1 > 10 and s1 < 100;";
+        logger.info(execute(explain));
     }
 
     @Test
