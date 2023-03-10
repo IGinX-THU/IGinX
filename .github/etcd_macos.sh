@@ -16,7 +16,7 @@ export PATH=$PATH:$GOBIN
 
 sh -c "wget -nv https://github.com/etcd-io/etcd/releases/download/v3.5.0/etcd-v3.5.0-darwin-amd64.zip"
 
-sh -c "unzip etcd-v3.5.0-darwin-amd64.tar.gz"
+sh -c "unzip etcd-v3.5.0-darwin-amd64.zip"
 
 sh -c "mv etcd-v3.5.0-darwin-amd64/etcd* $GOBIN"
 
