@@ -260,7 +260,7 @@ public class ETCDSyncProtocolImpl implements SyncProtocol {
         try {
             // lock proposal + category
             leaseId = client.getLeaseClient().grant(MAX_LOCK_TIME).get().getID();
-            client.getLockClient().lock(ByteSequence.from(lockPath.getBytes()), leaseId);
+            client.getLockClient().lock(ByteSequence.from(lockPath.getBytes()), leaseId).get();
 
             String proposalPrefix = String.format(PROTOCOL_PROPOSAL_TEMPLATE, this.category, key);
             GetResponse response = client.getKVClient().get(ByteSequence.from(proposalPrefix.getBytes()),
