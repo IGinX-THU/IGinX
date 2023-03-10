@@ -2816,7 +2816,7 @@ public abstract class SQLSessionIT {
             "Total line number = 6\n";
         executeAndCompare(statement, expected);
 
-        statement = "SELECT a, (SELECT AVG(a) FROM test.b) FROM test.a WHERE test.a.a > 1;";
+        statement = "SELECT a, (SELECT AVG(a) FROM test.b) FROM test.a WHERE a > 1;";
         expected = "ResultSets:\n" +
             "+---+--------+-------------+\n" +
             "|key|test.a.a|avg(test.b.a)|\n" +
@@ -2827,6 +2827,15 @@ public abstract class SQLSessionIT {
             "|  6|       2|          2.0|\n" +
             "+---+--------+-------------+\n" +
             "Total line number = 4\n";
+        executeAndCompare(statement, expected);
+
+        statement = "SELECT a, (SELECT AVG(a) AS avg_b_a FROM test.b) FROM test.a WHERE avg_b_a > 1;";
+        expected = "ResultSets:\n" +
+            "+---+\n" +
+            "|key|\n" +
+            "+---+\n" +
+            "+---+\n" +
+            "Empty set.\n";
         executeAndCompare(statement, expected);
     
         statement = "SELECT d, AVG(a) FROM test.b GROUP BY d HAVING avg(a) > 2;";
@@ -2950,36 +2959,6 @@ public abstract class SQLSessionIT {
             "|  5|       1|          2.0|\n" +
             "|  6|       2|          2.0|\n" +
             "+---+--------+-------------+\n" +
-            "Total line number = 6\n";
-        executeAndCompare(statement, expected);
-
-        statement = "SELECT test.a.a, (SELECT AVG(a) FROM test.b) FROM (SELECT * FROM test.a) WHERE avg(test.b.a) = 2;";
-        expected = "ResultSets:\n" +
-            "+---+--------+-------------+\n" +
-            "|key|test.a.a|avg(test.b.a)|\n" +
-            "+---+--------+-------------+\n" +
-            "|  1|       3|          2.0|\n" +
-            "|  2|       1|          2.0|\n" +
-            "|  3|       2|          2.0|\n" +
-            "|  4|       3|          2.0|\n" +
-            "|  5|       1|          2.0|\n" +
-            "|  6|       2|          2.0|\n" +
-            "+---+--------+-------------+\n" +
-            "Total line number = 6\n";
-        executeAndCompare(statement, expected);
-
-        statement = "SELECT test.a.a, (SELECT AVG(a) AS avg_a FROM test.b) FROM (SELECT * FROM test.a) WHERE avg_a = 2;";
-        expected = "ResultSets:\n" +
-            "+---+--------+-----+\n" +
-            "|key|test.a.a|avg_a|\n" +
-            "+---+--------+-----+\n" +
-            "|  1|       3|  2.0|\n" +
-            "|  2|       1|  2.0|\n" +
-            "|  3|       2|  2.0|\n" +
-            "|  4|       3|  2.0|\n" +
-            "|  5|       1|  2.0|\n" +
-            "|  6|       2|  2.0|\n" +
-            "+---+--------+-----+\n" +
             "Total line number = 6\n";
         executeAndCompare(statement, expected);
     }

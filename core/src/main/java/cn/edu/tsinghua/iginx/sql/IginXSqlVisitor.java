@@ -476,8 +476,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
             subStatement.setIsSubQuery(true);
             parseQueryClause(ctx.subquery().queryClause(), subStatement);
             // TODO: check correlated
-            selectStatement.setHasJoinParts(true);
-            selectStatement.addFromPart(new SubQueryFromPart(subStatement, new JoinCondition(JoinType.SingleJoin, new BoolFilter(true), new ArrayList<>())));
+            selectStatement.addSelectSubQueryPart(new SubQueryFromPart(subStatement, new JoinCondition(JoinType.SingleJoin, new BoolFilter(true), new ArrayList<>())));
             subStatement.getBaseExpressionMap().forEach((k, v) -> v.forEach(expression -> {
                 String selectedPath;
                 if (expression.hasAlias()) {
@@ -486,7 +485,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
                     selectedPath = expression.getColumnName();
                 }
                 BaseExpression baseExpression = new BaseExpression(selectedPath);
-                selectStatement.setSelectedFuncsAndPaths("", baseExpression);
+                selectStatement.setSelectedFuncsAndPaths("", baseExpression, false);
                 ret.add(baseExpression);
             }));
         } else {

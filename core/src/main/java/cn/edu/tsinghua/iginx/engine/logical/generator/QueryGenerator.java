@@ -54,6 +54,7 @@ import cn.edu.tsinghua.iginx.sql.statement.Statement;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.FromPartType;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.SubQueryFromPart;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.join.JoinCondition;
+import cn.edu.tsinghua.iginx.sql.statement.frompart.join.JoinType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.SortUtils;
 import org.slf4j.Logger;
@@ -67,7 +68,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static cn.edu.tsinghua.iginx.engine.shared.Constants.*;
+import static cn.edu.tsinghua.iginx.engine.shared.Constants.ALL_PATH_SUFFIX;
+import static cn.edu.tsinghua.iginx.engine.shared.Constants.ORDINAL;
+import static cn.edu.tsinghua.iginx.engine.shared.Constants.PARAM_EXPR;
+import static cn.edu.tsinghua.iginx.engine.shared.Constants.PARAM_LEVELS;
+import static cn.edu.tsinghua.iginx.engine.shared.Constants.PARAM_PATHS;
 import static cn.edu.tsinghua.iginx.engine.shared.function.system.ArithmeticExpr.ARITHMETIC_EXPR;
 import static cn.edu.tsinghua.iginx.metadata.utils.FragmentUtils.keyFromTSIntervalToTimeInterval;
 
@@ -120,6 +125,18 @@ public class QueryGenerator extends AbstractGenerator {
 
         if (selectStatement.hasValueFilter()) {
             root = new Select(new OperatorSource(root), selectStatement.getFilter(), tagFilter);
+        }
+
+        if (selectStatement.getSelectSubQueryParts().size() > 0) {
+            int sizeSelectSubQuery = selectStatement.getSelectSubQueryParts().size();
+            List<SubQueryFromPart> selectSubQueryParts = selectStatement.getSelectSubQueryParts();
+            for (int i = 0; i < sizeSelectSubQuery; i++) {
+                if (selectSubQueryParts.get(i).getJoinCondition().getJoinType() == JoinType.SingleJoin) {
+                    Operator right = generateRoot(selectSubQueryParts.get(i).getSubQuery());
+                    Filter filter = selectSubQueryParts.get(i).getJoinCondition().getFilter();
+                    root = new SingleJoin(new OperatorSource(root), new OperatorSource(right), filter);
+                }
+            }
         }
 
         List<Operator> queryList = new ArrayList<>();
