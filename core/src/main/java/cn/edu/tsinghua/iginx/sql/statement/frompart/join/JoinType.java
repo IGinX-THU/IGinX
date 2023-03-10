@@ -9,6 +9,7 @@ public enum JoinType {
     RightNatualJoin,
     LeftOuterJoin,
     RightOuterJoin,
-    FullOuterJoin
+    FullOuterJoin,
+    SingleJoin
 
 }

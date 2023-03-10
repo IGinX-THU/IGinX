@@ -11,9 +11,16 @@ import cn.edu.tsinghua.iginx.exceptions.SQLParserException;
 import cn.edu.tsinghua.iginx.sql.expression.BaseExpression;
 import cn.edu.tsinghua.iginx.sql.expression.Expression;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.FromPart;
+import cn.edu.tsinghua.iginx.sql.statement.frompart.SubQueryFromPart;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class SelectStatement extends DataStatement {
 
@@ -34,6 +41,7 @@ public class SelectStatement extends DataStatement {
     private final Map<String, List<BaseExpression>> baseExpressionMap;
     private final Set<FuncType> funcTypeSet;
     private final Set<String> pathSet;
+    private List<SubQueryFromPart> selectSubQueryParts;
     private List<FromPart> fromParts;
     private final List<String> groupByPaths;
     private final List<String> orderByPaths;
@@ -57,6 +65,7 @@ public class SelectStatement extends DataStatement {
         this.baseExpressionMap = new HashMap<>();
         this.funcTypeSet = new HashSet<>();
         this.pathSet = new HashSet<>();
+        this.selectSubQueryParts = new ArrayList<>();
         this.fromParts = new ArrayList<>();
         this.groupByPaths = new ArrayList<>();
         this.orderByPaths = new ArrayList<>();
@@ -72,6 +81,7 @@ public class SelectStatement extends DataStatement {
         this.pathSet = new HashSet<>();
         this.expressions = new ArrayList<>();
         this.baseExpressionMap = new HashMap<>();
+        this.selectSubQueryParts = new ArrayList<>();
         this.fromParts = new ArrayList<>();
         this.groupByPaths = new ArrayList<>();
         this.orderByPaths = new ArrayList<>();
@@ -99,6 +109,7 @@ public class SelectStatement extends DataStatement {
         this.pathSet = new HashSet<>();
         this.expressions = new ArrayList<>();
         this.baseExpressionMap = new HashMap<>();
+        this.selectSubQueryParts = new ArrayList<>();
         this.fromParts = new ArrayList<>();
         this.groupByPaths = new ArrayList<>();
         this.orderByPaths = new ArrayList<>();
@@ -123,6 +134,7 @@ public class SelectStatement extends DataStatement {
         this.pathSet = new HashSet<>();
         this.expressions = new ArrayList<>();
         this.baseExpressionMap = new HashMap<>();
+        this.selectSubQueryParts = new ArrayList<>();
         this.fromParts = new ArrayList<>();
         this.groupByPaths = new ArrayList<>();
         this.orderByPaths = new ArrayList<>();
@@ -153,6 +165,7 @@ public class SelectStatement extends DataStatement {
         this.pathSet = new HashSet<>();
         this.expressions = new ArrayList<>();
         this.baseExpressionMap = new HashMap<>();
+        this.selectSubQueryParts = new ArrayList<>();
         this.fromParts = new ArrayList<>();
         this.groupByPaths = new ArrayList<>();
         this.orderByPaths = new ArrayList<>();
@@ -296,6 +309,10 @@ public class SelectStatement extends DataStatement {
     }
 
     public void setSelectedFuncsAndPaths(String func, BaseExpression expression) {
+        setSelectedFuncsAndPaths(func, expression, true);
+    }
+
+    public void setSelectedFuncsAndPaths(String func, BaseExpression expression, boolean addToPathSet) {
         func = func.trim().toLowerCase();
 
         List<BaseExpression> expressions = this.baseExpressionMap.get(func);
@@ -307,7 +324,9 @@ public class SelectStatement extends DataStatement {
             expressions.add(expression);
         }
 
-        this.pathSet.add(expression.getPathName());
+        if (addToPathSet) {
+            this.pathSet.add(expression.getPathName());
+        }
 
         FuncType type = str2FuncType(func);
         if (type != null) {
@@ -327,12 +346,24 @@ public class SelectStatement extends DataStatement {
         this.pathSet.add(path);
     }
 
+    public List<SubQueryFromPart> getSelectSubQueryParts() {
+        return selectSubQueryParts;
+    }
+
+    public void addSelectSubQueryPart(SubQueryFromPart selectSubQueryPart) {
+        this.selectSubQueryParts.add(selectSubQueryPart);
+    }
+
     public List<FromPart> getFromParts() {
         return fromParts;
     }
     
     public void setFromParts(List<FromPart> fromParts) {
         this.fromParts = fromParts;
+    }
+    
+    public void addFromPart(FromPart fromPart) {
+        this.fromParts.add(fromPart);
     }
 
     public void setGroupByPath(String path) {
@@ -484,6 +515,15 @@ public class SelectStatement extends DataStatement {
             });
         });
         return aliasMap;
+    }
+
+    public boolean needRowTransform() {
+        for (Expression expression : expressions) {
+            if (!expression.getType().equals(Expression.ExpressionType.Base)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public void checkQueryType() {
