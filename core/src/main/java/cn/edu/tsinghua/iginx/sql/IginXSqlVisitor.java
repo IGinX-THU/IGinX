@@ -264,17 +264,21 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
             SelectStatement subStatement = new SelectStatement();
             subStatement.setIsSubQuery(true);
             parseQueryClause(ctx.tableReference().subquery().queryClause(), subStatement);
-            if (subStatement.hasJoinParts() || ctx.tableReference().asClause() != null) {
-                parseAsClause(ctx.tableReference().asClause(), subStatement);
-                selectStatement.setGlobalAlias(ctx.tableReference().asClause().ID().getText());
-            } else {
-                selectStatement.setGlobalAlias(subStatement.getGlobalAlias());
-            }
+            selectStatement.setGlobalAlias(subStatement.getGlobalAlias());
             fromParts.add(new SubQueryFromPart(subStatement));
         }
 
         if (ctx.joinPart() != null && !ctx.joinPart().isEmpty()) {
             selectStatement.setHasJoinParts(true);
+
+            // 当FROM子句有多个部分时，如果某一部分是子查询，该子查询必须使用AS子句
+            if (fromParts.get(0).getType() == FromPartType.SubQueryFromPart) {
+                SubQueryFromPart subQueryFromPart = (SubQueryFromPart) fromParts.get(0);
+                if (subQueryFromPart.getSubQuery().hasJoinParts() && ctx.tableReference().subquery().queryClause().asClause() == null) {
+                    throw new SQLParserException("AS clause is required in this sub query");
+                }
+            }
+            
             for (JoinPartContext joinPartContext : ctx.joinPart()) {
                 String pathPrefix;
                 SelectStatement subStatement = new SelectStatement();
@@ -284,12 +288,11 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
                 } else {
                     subStatement.setIsSubQuery(true);
                     parseQueryClause(joinPartContext.tableReference().subquery().queryClause(), subStatement);
-                    if (subStatement.hasJoinParts() || joinPartContext.tableReference().asClause() != null) {
-                        parseAsClause(joinPartContext.tableReference().asClause(), subStatement);
-                        pathPrefix = joinPartContext.tableReference().asClause().ID().getText();
-                    } else {
-                        pathPrefix = subStatement.getGlobalAlias();
+                    // 当FROM子句有多个部分时，如果某一部分是子查询，该子查询必须使用AS子句
+                    if (subStatement.hasJoinParts() && joinPartContext.tableReference().subquery().queryClause().asClause() == null) {
+                        throw new SQLParserException("AS clause is required in this sub query");
                     }
+                    pathPrefix = subStatement.getGlobalAlias();
                 }
                 if (joinPartContext.join() == null) {  // cross join
                     if (subStatement == null) {
@@ -491,7 +494,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
         String selectedPath = ctx.path().getText();
 
-        if (!selectStatement.hasJoinParts() && selectStatement.getFromParts().get(0).getType() != FromPartType.SubQueryFromPart) {
+        // 如果查询语句中FROM子句只有一个部分且FROM一个前缀，则SELECT子句中的path只用写出后缀
+        if (!selectStatement.hasJoinParts() && selectStatement.getFromParts().get(0).getType() == FromPartType.PathFromPart) {
             String fromPath = selectStatement.getFromParts().get(0).getPath();
             String fullPath = fromPath + SQLConstant.DOT + selectedPath;
             BaseExpression expression = new BaseExpression(fullPath, funcName, alias);
@@ -505,8 +509,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     }
 
     private Expression parseBaseExpression(String selectedPath, SelectStatement selectStatement) {
-        if (!selectStatement.hasJoinParts() && !selectStatement.isSubQuery()
-                && selectStatement.getFromParts().get(0).getType() != FromPartType.SubQueryFromPart) {
+        // 如果查询语句不是一个子查询，FROM子句只有一个部分且FROM一个前缀，则WHERE条件中的path只用写出后缀
+        if (!selectStatement.hasJoinParts() && selectStatement.getFromParts().get(0).getType() == FromPartType.PathFromPart) {
             String fromPath = selectStatement.getFromParts().get(0).getPath();
             String fullPath = fromPath + SQLConstant.DOT + selectedPath;
             BaseExpression expression = new BaseExpression(fullPath);
@@ -607,7 +611,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
         ctx.path().forEach(pathContext -> {
             String path;
-            if (!selectStatement.hasJoinParts() && selectStatement.getFromParts().get(0).getType() != FromPartType.SubQueryFromPart) {
+            // 如果查询语句的FROM子句只有一个部分且FROM一个前缀，则GROUP BY后的path只用写出后缀
+            if (!selectStatement.hasJoinParts() && selectStatement.getFromParts().get(0).getType() == FromPartType.PathFromPart) {
                 path = selectStatement.getFromParts().get(0).getPath() + SQLConstant.DOT + pathContext.getText();
             } else {
                 path = pathContext.getText();
@@ -663,6 +668,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
             for (PathContext pathContext : ctx.path()) {
                 String suffix = pathContext.getText(), prefix = selectStatement.getFromParts().get(0).getPath();
                 String orderByPath;
+                // 如果查询语句的FROM子句只有一个部分且FROM一个前缀，则ORDER BY后的path只用写出后缀
                 if (!selectStatement.hasJoinParts() && selectStatement.getFromParts().get(0).getType() == FromPartType.PathFromPart) {
                     orderByPath = prefix + SQLConstant.DOT + suffix;
                 } else {
@@ -839,8 +845,9 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
     private Filter parseValueFilter(PredicateContext ctx, SelectStatement statement) {
         String path = ctx.path().get(0).getText();
+        // 如果查询语句不是一个子查询，FROM子句只有一个部分且FROM一个前缀，则WHERE条件中的path只用写出后缀
         if (!statement.hasJoinParts() && !statement.isSubQuery()
-                && statement.getFromParts().get(0).getType() != FromPartType.SubQueryFromPart) {
+                && statement.getFromParts().get(0).getType() == FromPartType.PathFromPart) {
             path = statement.getFromParts().get(0).getPath() + SQLConstant.DOT + path;
         }
         statement.setPathSet(path);
@@ -879,8 +886,9 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
         Op op = Op.str2Op(ctx.comparisonOperator().getText().trim().toLowerCase());
 
+        // 如果查询语句不是一个子查询，FROM子句只有一个部分且FROM一个前缀，则WHERE条件中的path只用写出后缀
         if (!statement.hasJoinParts() && !statement.isSubQuery()
-                && statement.getFromParts().get(0).getType() != FromPartType.SubQueryFromPart) {
+                && statement.getFromParts().get(0).getType() == FromPartType.PathFromPart) {
             pathA = statement.getFromParts().get(0).getPath() + SQLConstant.DOT + pathA;
             pathB = statement.getFromParts().get(0).getPath() + SQLConstant.DOT + pathB;
         }
