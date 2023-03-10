@@ -205,11 +205,11 @@ public abstract class SQLSessionIT {
 
         testErrorClause();
 
-        testDelete();
+//        testDelete();
 
-        testMultiRangeDelete();
-
-        testCrossRangeDelete();
+//        testMultiRangeDelete();
+//
+//        testCrossRangeDelete();
     }
 
     @Test

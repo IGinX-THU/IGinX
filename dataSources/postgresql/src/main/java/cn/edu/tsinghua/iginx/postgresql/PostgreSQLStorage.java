@@ -232,7 +232,7 @@ public class PostgreSQLStorage implements IStorage {
                         while (columnSet.next()) {
                             String columnName = columnSet.getString("COLUMN_NAME");//获取列名称
                             String typeName = columnSet.getString("TYPE_NAME");//列字段类型
-                            if (columnName.equals("time") || columnName.contains("$")) {   //tagKV的列不显示 ,time列就是key列，不显示
+                            if (columnName.equals("time") || columnName.contains("$")) { //tagKV 和 time 列不显示
                                 continue;
                             }
                             if (databaseName.startsWith(DATABASE_PREFIX)) {
