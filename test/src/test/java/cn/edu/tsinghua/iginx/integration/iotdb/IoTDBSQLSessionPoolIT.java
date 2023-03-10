@@ -6,7 +6,7 @@ public class IoTDBSQLSessionPoolIT extends SQLSessionPoolIT {
 
     public IoTDBSQLSessionPoolIT() {
         super();
-        this.isAbleToDelete = true;
+        this.isAbleToDelete = false;
         this.isAbleToShowTimeSeries = true;
     }
 }

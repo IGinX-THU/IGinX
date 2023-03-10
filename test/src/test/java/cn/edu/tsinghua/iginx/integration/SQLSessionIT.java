@@ -77,7 +77,7 @@ public abstract class SQLSessionIT {
         session.closeSession();
     }
 
-    @Before
+    //    @Before
     public void insertData() throws ExecutionException, SessionException {
         String insertStrPrefix = "INSERT INTO us.d1 (key, s1, s2, s3, s4) values ";
 
@@ -107,7 +107,7 @@ public abstract class SQLSessionIT {
         }
     }
 
-    @After
+    //    @After
     public void clearData() throws ExecutionException, SessionException {
         if (!ifClearData) {
             return;
@@ -173,7 +173,7 @@ public abstract class SQLSessionIT {
 
         testTimeRangeQuery();
 
-//        testValueFilter();
+        testValueFilter();
 
         testPathFilter();
 
@@ -2483,9 +2483,9 @@ public abstract class SQLSessionIT {
         executeAndCompare(statement, expected);
 
         statement = "SELECT avg_s1, sum_s2 " +
-                    "FROM (SELECT AVG(s1) AS avg_s1, SUM(s2) AS sum_s2 " +
-                          "FROM us.d1 OVER (RANGE 10 IN [1000, 1100))) " +
-                    "WHERE avg_s1 > 1020 AND sum_s2 < 10800;";
+            "FROM (SELECT AVG(s1) AS avg_s1, SUM(s2) AS sum_s2 " +
+            "FROM us.d1 OVER (RANGE 10 IN [1000, 1100))) " +
+            "WHERE avg_s1 > 1020 AND sum_s2 < 10800;";
         expected = "ResultSets:\n" +
             "+----+------+------+\n" +
             "| key|avg_s1|sum_s2|\n" +
@@ -2501,10 +2501,10 @@ public abstract class SQLSessionIT {
         executeAndCompare(statement, expected);
 
         statement = "SELECT MAX(avg_s1), MIN(sum_s2) " +
-                    "FROM (SELECT avg_s1, sum_s2 " +
-                          "FROM (SELECT AVG(s1) AS avg_s1, SUM(s2) AS sum_s2 " +
-                                "FROM us.d1 OVER (RANGE 10 IN [1000, 1100))) " +
-                          "WHERE avg_s1 > 1020 AND sum_s2 < 10800);";
+            "FROM (SELECT avg_s1, sum_s2 " +
+            "FROM (SELECT AVG(s1) AS avg_s1, SUM(s2) AS sum_s2 " +
+            "FROM us.d1 OVER (RANGE 10 IN [1000, 1100))) " +
+            "WHERE avg_s1 > 1020 AND sum_s2 < 10800);";
         expected = "ResultSets:\n" +
             "+-----------+-----------+\n" +
             "|max(avg_s1)|min(sum_s2)|\n" +
@@ -2514,7 +2514,7 @@ public abstract class SQLSessionIT {
             "Total line number = 1\n";
         executeAndCompare(statement, expected);
     }
-    
+
     @Test
     public void testFromSubQuery() {
         String insert = "INSERT INTO test(key, a.a, a.b) VALUES (1, 1, 1.1), (2, 3, 3.1), (3, 7, 7.1);";
@@ -2523,117 +2523,117 @@ public abstract class SQLSessionIT {
         execute(insert);
         insert = "INSERT INTO test(key, c.a, c.b) VALUES (2, \"eee\", false), (3, \"aaa\", true), (4, \"bbb\", false);";
         execute(insert);
-        
+
         String statement = "SELECT * FROM test.a, (SELECT * FROM test.b);";
         String expected = "ResultSets:\n" +
-                "+--------+--------+----------+--------+--------+----------+\n" +
-                "|test.a.a|test.a.b|test.a.key|test.b.a|test.b.b|test.b.key|\n" +
-                "+--------+--------+----------+--------+--------+----------+\n" +
-                "|       1|     1.1|         1|       2|     aaa|         1|\n" +
-                "|       1|     1.1|         1|       4|     ccc|         3|\n" +
-                "|       1|     1.1|         1|       6|     eee|         5|\n" +
-                "|       3|     3.1|         2|       2|     aaa|         1|\n" +
-                "|       3|     3.1|         2|       4|     ccc|         3|\n" +
-                "|       3|     3.1|         2|       6|     eee|         5|\n" +
-                "|       7|     7.1|         3|       2|     aaa|         1|\n" +
-                "|       7|     7.1|         3|       4|     ccc|         3|\n" +
-                "|       7|     7.1|         3|       6|     eee|         5|\n" +
-                "+--------+--------+----------+--------+--------+----------+\n" +
-                "Total line number = 9\n";
+            "+--------+--------+----------+--------+--------+----------+\n" +
+            "|test.a.a|test.a.b|test.a.key|test.b.a|test.b.b|test.b.key|\n" +
+            "+--------+--------+----------+--------+--------+----------+\n" +
+            "|       1|     1.1|         1|       2|     aaa|         1|\n" +
+            "|       1|     1.1|         1|       4|     ccc|         3|\n" +
+            "|       1|     1.1|         1|       6|     eee|         5|\n" +
+            "|       3|     3.1|         2|       2|     aaa|         1|\n" +
+            "|       3|     3.1|         2|       4|     ccc|         3|\n" +
+            "|       3|     3.1|         2|       6|     eee|         5|\n" +
+            "|       7|     7.1|         3|       2|     aaa|         1|\n" +
+            "|       7|     7.1|         3|       4|     ccc|         3|\n" +
+            "|       7|     7.1|         3|       6|     eee|         5|\n" +
+            "+--------+--------+----------+--------+--------+----------+\n" +
+            "Total line number = 9\n";
         executeAndCompare(statement, expected);
 
         statement = "SELECT * FROM (SELECT * FROM test.b), test.a;";
         expected = "ResultSets:\n" +
-                "+--------+--------+----------+--------+--------+----------+\n" +
-                "|test.a.a|test.a.b|test.a.key|test.b.a|test.b.b|test.b.key|\n" +
-                "+--------+--------+----------+--------+--------+----------+\n" +
-                "|       1|     1.1|         1|       2|     aaa|         1|\n" +
-                "|       3|     3.1|         2|       2|     aaa|         1|\n" +
-                "|       7|     7.1|         3|       2|     aaa|         1|\n" +
-                "|       1|     1.1|         1|       4|     ccc|         3|\n" +
-                "|       3|     3.1|         2|       4|     ccc|         3|\n" +
-                "|       7|     7.1|         3|       4|     ccc|         3|\n" +
-                "|       1|     1.1|         1|       6|     eee|         5|\n" +
-                "|       3|     3.1|         2|       6|     eee|         5|\n" +
-                "|       7|     7.1|         3|       6|     eee|         5|\n" +
-                "+--------+--------+----------+--------+--------+----------+\n" +
-                "Total line number = 9\n";
+            "+--------+--------+----------+--------+--------+----------+\n" +
+            "|test.a.a|test.a.b|test.a.key|test.b.a|test.b.b|test.b.key|\n" +
+            "+--------+--------+----------+--------+--------+----------+\n" +
+            "|       1|     1.1|         1|       2|     aaa|         1|\n" +
+            "|       3|     3.1|         2|       2|     aaa|         1|\n" +
+            "|       7|     7.1|         3|       2|     aaa|         1|\n" +
+            "|       1|     1.1|         1|       4|     ccc|         3|\n" +
+            "|       3|     3.1|         2|       4|     ccc|         3|\n" +
+            "|       7|     7.1|         3|       4|     ccc|         3|\n" +
+            "|       1|     1.1|         1|       6|     eee|         5|\n" +
+            "|       3|     3.1|         2|       6|     eee|         5|\n" +
+            "|       7|     7.1|         3|       6|     eee|         5|\n" +
+            "+--------+--------+----------+--------+--------+----------+\n" +
+            "Total line number = 9\n";
         executeAndCompare(statement, expected);
 
         statement = "SELECT * FROM test.a, (SELECT * FROM test.b WHERE test.b.a < 6) WHERE test.a.a > 1;";
         expected = "ResultSets:\n" +
-                "+--------+--------+----------+--------+--------+----------+\n" +
-                "|test.a.a|test.a.b|test.a.key|test.b.a|test.b.b|test.b.key|\n" +
-                "+--------+--------+----------+--------+--------+----------+\n" +
-                "|       3|     3.1|         2|       2|     aaa|         1|\n" +
-                "|       3|     3.1|         2|       4|     ccc|         3|\n" +
-                "|       7|     7.1|         3|       2|     aaa|         1|\n" +
-                "|       7|     7.1|         3|       4|     ccc|         3|\n" +
-                "+--------+--------+----------+--------+--------+----------+\n" +
-                "Total line number = 4\n";
+            "+--------+--------+----------+--------+--------+----------+\n" +
+            "|test.a.a|test.a.b|test.a.key|test.b.a|test.b.b|test.b.key|\n" +
+            "+--------+--------+----------+--------+--------+----------+\n" +
+            "|       3|     3.1|         2|       2|     aaa|         1|\n" +
+            "|       3|     3.1|         2|       4|     ccc|         3|\n" +
+            "|       7|     7.1|         3|       2|     aaa|         1|\n" +
+            "|       7|     7.1|         3|       4|     ccc|         3|\n" +
+            "+--------+--------+----------+--------+--------+----------+\n" +
+            "Total line number = 4\n";
         executeAndCompare(statement, expected);
 
         statement = "SELECT * FROM (SELECT test.a.a, test.b.a FROM test.a, test.b WHERE test.b.a < 6 AND test.a.a > 1) AS sub_query;";
         expected = "ResultSets:\n" +
-                "+------------------+------------------+\n" +
-                "|sub_query.test.a.a|sub_query.test.b.a|\n" +
-                "+------------------+------------------+\n" +
-                "|                 3|                 2|\n" +
-                "|                 3|                 4|\n" +
-                "|                 7|                 2|\n" +
-                "|                 7|                 4|\n" +
-                "+------------------+------------------+\n" +
-                "Total line number = 4\n";
+            "+------------------+------------------+\n" +
+            "|sub_query.test.a.a|sub_query.test.b.a|\n" +
+            "+------------------+------------------+\n" +
+            "|                 3|                 2|\n" +
+            "|                 3|                 4|\n" +
+            "|                 7|                 2|\n" +
+            "|                 7|                 4|\n" +
+            "+------------------+------------------+\n" +
+            "Total line number = 4\n";
         executeAndCompare(statement, expected);
 
         statement = "SELECT * FROM test.a INNER JOIN (SELECT a FROM test.b) ON test.a.a < test.b.a";
         expected = "ResultSets:\n" +
-                "+--------+--------+----------+--------+----------+\n" +
-                "|test.a.a|test.a.b|test.a.key|test.b.a|test.b.key|\n" +
-                "+--------+--------+----------+--------+----------+\n" +
-                "|       1|     1.1|         1|       2|         1|\n" +
-                "|       1|     1.1|         1|       4|         3|\n" +
-                "|       1|     1.1|         1|       6|         5|\n" +
-                "|       3|     3.1|         2|       4|         3|\n" +
-                "|       3|     3.1|         2|       6|         5|\n" +
-                "+--------+--------+----------+--------+----------+\n" +
-                "Total line number = 5\n";
+            "+--------+--------+----------+--------+----------+\n" +
+            "|test.a.a|test.a.b|test.a.key|test.b.a|test.b.key|\n" +
+            "+--------+--------+----------+--------+----------+\n" +
+            "|       1|     1.1|         1|       2|         1|\n" +
+            "|       1|     1.1|         1|       4|         3|\n" +
+            "|       1|     1.1|         1|       6|         5|\n" +
+            "|       3|     3.1|         2|       4|         3|\n" +
+            "|       3|     3.1|         2|       6|         5|\n" +
+            "+--------+--------+----------+--------+----------+\n" +
+            "Total line number = 5\n";
         executeAndCompare(statement, expected);
 
         statement = "SELECT * FROM test.a LEFT OUTER JOIN (SELECT a FROM test.b) ON test.a.a < test.b.a";
         expected = "ResultSets:\n" +
-                "+--------+--------+----------+--------+----------+\n" +
-                "|test.a.a|test.a.b|test.a.key|test.b.a|test.b.key|\n" +
-                "+--------+--------+----------+--------+----------+\n" +
-                "|       1|     1.1|         1|       2|         1|\n" +
-                "|       1|     1.1|         1|       4|         3|\n" +
-                "|       1|     1.1|         1|       6|         5|\n" +
-                "|       3|     3.1|         2|       4|         3|\n" +
-                "|       3|     3.1|         2|       6|         5|\n" +
-                "|       7|     7.1|         3|    null|      null|\n" +
-                "+--------+--------+----------+--------+----------+\n" +
-                "Total line number = 6\n";
+            "+--------+--------+----------+--------+----------+\n" +
+            "|test.a.a|test.a.b|test.a.key|test.b.a|test.b.key|\n" +
+            "+--------+--------+----------+--------+----------+\n" +
+            "|       1|     1.1|         1|       2|         1|\n" +
+            "|       1|     1.1|         1|       4|         3|\n" +
+            "|       1|     1.1|         1|       6|         5|\n" +
+            "|       3|     3.1|         2|       4|         3|\n" +
+            "|       3|     3.1|         2|       6|         5|\n" +
+            "|       7|     7.1|         3|    null|      null|\n" +
+            "+--------+--------+----------+--------+----------+\n" +
+            "Total line number = 6\n";
         executeAndCompare(statement, expected);
 
         statement = "SELECT * FROM test.a, (SELECT a FROM test.b WHERE test.b.a < 6), (SELECT b FROM test.c WHERE test.c.b = false);";
         expected = "ResultSets:\n" +
-                "+--------+--------+----------+--------+----------+--------+----------+\n" +
-                "|test.a.a|test.a.b|test.a.key|test.b.a|test.b.key|test.c.b|test.c.key|\n" +
-                "+--------+--------+----------+--------+----------+--------+----------+\n" +
-                "|       1|     1.1|         1|       2|         1|   false|         2|\n" +
-                "|       1|     1.1|         1|       2|         1|   false|         4|\n" +
-                "|       1|     1.1|         1|       4|         3|   false|         2|\n" +
-                "|       1|     1.1|         1|       4|         3|   false|         4|\n" +
-                "|       3|     3.1|         2|       2|         1|   false|         2|\n" +
-                "|       3|     3.1|         2|       2|         1|   false|         4|\n" +
-                "|       3|     3.1|         2|       4|         3|   false|         2|\n" +
-                "|       3|     3.1|         2|       4|         3|   false|         4|\n" +
-                "|       7|     7.1|         3|       2|         1|   false|         2|\n" +
-                "|       7|     7.1|         3|       2|         1|   false|         4|\n" +
-                "|       7|     7.1|         3|       4|         3|   false|         2|\n" +
-                "|       7|     7.1|         3|       4|         3|   false|         4|\n" +
-                "+--------+--------+----------+--------+----------+--------+----------+\n" +
-                "Total line number = 12\n";
+            "+--------+--------+----------+--------+----------+--------+----------+\n" +
+            "|test.a.a|test.a.b|test.a.key|test.b.a|test.b.key|test.c.b|test.c.key|\n" +
+            "+--------+--------+----------+--------+----------+--------+----------+\n" +
+            "|       1|     1.1|         1|       2|         1|   false|         2|\n" +
+            "|       1|     1.1|         1|       2|         1|   false|         4|\n" +
+            "|       1|     1.1|         1|       4|         3|   false|         2|\n" +
+            "|       1|     1.1|         1|       4|         3|   false|         4|\n" +
+            "|       3|     3.1|         2|       2|         1|   false|         2|\n" +
+            "|       3|     3.1|         2|       2|         1|   false|         4|\n" +
+            "|       3|     3.1|         2|       4|         3|   false|         2|\n" +
+            "|       3|     3.1|         2|       4|         3|   false|         4|\n" +
+            "|       7|     7.1|         3|       2|         1|   false|         2|\n" +
+            "|       7|     7.1|         3|       2|         1|   false|         4|\n" +
+            "|       7|     7.1|         3|       4|         3|   false|         2|\n" +
+            "|       7|     7.1|         3|       4|         3|   false|         4|\n" +
+            "+--------+--------+----------+--------+----------+--------+----------+\n" +
+            "Total line number = 12\n";
         executeAndCompare(statement, expected);
     }
 
@@ -2809,9 +2809,9 @@ public abstract class SQLSessionIT {
         executeAndCompare(query, expected);
 
         insert = "INSERT INTO us.d5(key, s1, s2) VALUES (SELECT avg_s1, sum_s2 " +
-                                                        "FROM (SELECT AVG(s1) AS avg_s1, SUM(s2) AS sum_s2 " +
-                                                              "FROM us.d1 OVER (RANGE 10 IN [1000, 1100))) " +
-                                                        "WHERE avg_s1 > 1020 AND sum_s2 < 10800);";
+            "FROM (SELECT AVG(s1) AS avg_s1, SUM(s2) AS sum_s2 " +
+            "FROM us.d1 OVER (RANGE 10 IN [1000, 1100))) " +
+            "WHERE avg_s1 > 1020 AND sum_s2 < 10800);";
         execute(insert);
 
         query = "SELECT s1, s2 FROM us.d5";
@@ -2830,10 +2830,10 @@ public abstract class SQLSessionIT {
         executeAndCompare(query, expected);
 
         insert = "INSERT INTO us.d6(key, s1, s2) VALUES (SELECT MAX(avg_s1), MIN(sum_s2) " +
-                                                        "FROM (SELECT avg_s1, sum_s2 " +
-                                                              "FROM (SELECT AVG(s1) AS avg_s1, SUM(s2) AS sum_s2 " +
-                                                                    "FROM us.d1 OVER (RANGE 10 IN [1000, 1100))) " +
-                                                              "WHERE avg_s1 > 1020 AND sum_s2 < 10800));";
+            "FROM (SELECT avg_s1, sum_s2 " +
+            "FROM (SELECT AVG(s1) AS avg_s1, SUM(s2) AS sum_s2 " +
+            "FROM us.d1 OVER (RANGE 10 IN [1000, 1100))) " +
+            "WHERE avg_s1 > 1020 AND sum_s2 < 10800));";
         execute(insert);
 
         query = "SELECT s1, s2 FROM us.d6";

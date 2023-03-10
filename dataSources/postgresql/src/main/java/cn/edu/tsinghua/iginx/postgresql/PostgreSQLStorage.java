@@ -229,6 +229,9 @@ public class PostgreSQLStorage implements IStorage {
                         while (columnSet.next()) {
                             String columnName = columnSet.getString("COLUMN_NAME");//获取列名称
                             String typeName = columnSet.getString("TYPE_NAME");//列字段类型
+                            if (columnName.equals("time") || columnName.contains("$")) {   //tagKV的列不显示 ,time列就是key列，不显示
+                                continue;
+                            }
                             if (databaseName.startsWith(DATABASE_PREFIX)) {
                                 timeseries.add(new Timeseries(
                                     tableName.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR) + IGINX_SEPARATOR
@@ -825,6 +828,9 @@ public class PostgreSQLStorage implements IStorage {
         try {
             for (int i = 0; i < delete.getPatterns().size(); i++) {
                 String path = delete.getPatterns().get(i);
+                if (delete.getTimeRanges() == null) {
+                    continue;
+                }
                 TimeRange timeRange = delete.getTimeRanges().get(i);
                 String table = path.substring(0, path.lastIndexOf('.'));
                 table = table.replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
