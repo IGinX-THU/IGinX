@@ -2758,6 +2758,19 @@ public abstract class SQLSessionIT {
             "+---+--------+-------------+\n" +
             "Total line number = 6\n";
         executeAndCompare(statement, expected);
+
+        statement = "SELECT a, (SELECT AVG(a) FROM test.b) FROM test.a WHERE test.a.a > 1;";
+        expected = "ResultSets:\n" +
+            "+---+--------+-------------+\n" +
+            "|key|test.a.a|avg(test.b.a)|\n" +
+            "+---+--------+-------------+\n" +
+            "|  1|       3|          2.0|\n" +
+            "|  3|       2|          2.0|\n" +
+            "|  4|       3|          2.0|\n" +
+            "|  6|       2|          2.0|\n" +
+            "+---+--------+-------------+\n" +
+            "Total line number = 4\n";
+        executeAndCompare(statement, expected);
     
         statement = "SELECT d, AVG(a) FROM test.b GROUP BY d HAVING avg(a) > 2;";
         expected = "ResultSets:\n" +
