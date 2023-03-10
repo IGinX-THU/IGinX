@@ -51,27 +51,27 @@ public class IoTDBSessionExample {
         session.openSession();
 
         // 列式插入对齐数据
-//        insertColumnRecords();
-//        // 列式插入非对齐数据
-//        insertNonAlignedColumnRecords();
-//        // 行式插入对齐数据
-//        insertRowRecords();
-//        // 行式插入非对齐数据
-//        insertNonAlignedRowRecords();
+        insertColumnRecords();
+        // 列式插入非对齐数据
+        insertNonAlignedColumnRecords();
+        // 行式插入对齐数据
+        insertRowRecords();
+        // 行式插入非对齐数据
+        insertNonAlignedRowRecords();
         // 查询序列
         showTimeSeries();
         // 查询数据
         queryData();
         // 聚合查询
-//        aggregateQuery();
+        aggregateQuery();
         // Last 查询
         lastQuery();
         // 降采样聚合查询
-//        downsampleQuery();
+        downsampleQuery();
         // 曲线匹配
-//        curveMatch();
+        curveMatch();
         // 删除数据
-//        deleteDataInColumns();
+        deleteDataInColumns();
         // 再次查询数据
         queryData();
         // 查看集群信息
