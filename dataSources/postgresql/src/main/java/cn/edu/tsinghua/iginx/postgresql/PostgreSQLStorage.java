@@ -38,6 +38,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
+import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
 import cn.edu.tsinghua.iginx.postgresql.entity.PostgreSQLQueryRowStream;
@@ -45,6 +46,7 @@ import cn.edu.tsinghua.iginx.postgresql.tools.DataTypeTransformer;
 import cn.edu.tsinghua.iginx.postgresql.tools.FilterTransformer;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
+import cn.edu.tsinghua.iginx.utils.StringUtils;
 import org.postgresql.ds.PGConnectionPoolDataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,6 +56,7 @@ import java.sql.*;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class PostgreSQLStorage implements IStorage {
@@ -197,7 +200,7 @@ public class PostgreSQLStorage implements IStorage {
             return executeInsertTask(conn, insert);
         } else if (op.getType() == OperatorType.Delete) {
             Delete delete = (Delete) op;
-            return executeDeleteTask(conn, delete);
+            return executeDeleteTask(conn, storageUnit, delete);
         }
         return new TaskExecuteResult(
             new NonExecutablePhysicalTaskException("unsupported physical task in postgresql "));
@@ -795,6 +798,7 @@ public class PostgreSQLStorage implements IStorage {
                 firstRound = false;
                 cnt += size;
             }
+            conn.close();
         } catch (SQLException e) {
             logger.info("error", e);
             return e;
@@ -821,28 +825,50 @@ public class PostgreSQLStorage implements IStorage {
         stmt.executeBatch();
     }
 
-    private TaskExecuteResult executeDeleteTask(Connection conn, Delete delete) {
+    private TaskExecuteResult executeDeleteTask(Connection conn, String storageUnit, Delete delete) {
         try {
-            for (int i = 0; i < delete.getPatterns().size(); i++) {
-                String path = delete.getPatterns().get(i);
-                TimeRange timeRange = delete.getTimeRanges().get(i);
-                String table = path.substring(0, path.lastIndexOf('.'));
-                table = table.replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
-                String field = path.substring(path.lastIndexOf('.') + 1);
-                field = field.replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
-                // 查询序列类型
-                DatabaseMetaData databaseMetaData = conn.getMetaData();
-                ResultSet columnSet = databaseMetaData.getColumns(null, "%", table, field);
-                if (columnSet.next()) {
-                    String statement = String.format("delete from %s where (time>%d and time<%d)", table,
-                        timeRange.getBeginTime(), Math.min(timeRange.getEndTime(), MAX_TIMESTAMP));
-                    Statement stmt = conn.createStatement();
-                    stmt.execute(statement);
+            Statement stmt = conn.createStatement();
+            List<String> paths = delete.getPatterns();
+            String table;
+            String field;
+            DatabaseMetaData databaseMetaData = conn.getMetaData();
+            ResultSet columnSet;
+            if (delete.getTimeRanges() == null || delete.getTimeRanges().size() == 0) {
+                if (paths.size() == 1 && paths.get(0).equals("*") && delete.getTagFilter() == null) {
+                    conn.close();
+                    Connection postgresConn = getConnection("postgres", getUrl("postgres")); // 正在使用的数据库无法被删除，因为需要切换到名为postgres的默认数据库
+                    if (postgresConn != null) {
+                        stmt = postgresConn.createStatement();
+                        stmt.execute(String.format("drop database %s", storageUnit)); // 删除数据库
+                        postgresConn.close();
+                        return new TaskExecuteResult(null, null);
+                    } else {
+                        return new TaskExecuteResult(new PhysicalTaskExecuteFailureException("cannot connect to database: postgres", new SQLException()));
+                    }
+                } else {
+                    for (String path : paths) {
+                        table = path.substring(0, path.lastIndexOf('.')).replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
+                        field = path.substring(path.lastIndexOf('.') + 1);
+                        stmt.execute(String.format("alter table %s drop column if exists %s", table, field)); // 删除列
+                    }
+                }
+            } else {
+                for (int i = 0; i < paths.size(); i++) {
+                    String path = paths.get(i);
+                    TimeRange timeRange = delete.getTimeRanges().get(i);
+                    table = path.substring(0, path.lastIndexOf('.')).replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
+                    field = path.substring(path.lastIndexOf('.') + 1);
+                    columnSet = databaseMetaData.getColumns(null, "%", table, field);
+                    if (columnSet.next()) {
+                        stmt.execute(String.format("update %s set %s = null where (time > %d and time < %d)", table, field,
+                            timeRange.getBeginTime(), Math.min(timeRange.getEndTime(), MAX_TIMESTAMP))); // 将目标列的目标范围的值置为空
+                    }
                 }
             }
+            conn.close();
             return new TaskExecuteResult(null, null);
         } catch (SQLException e) {
-            logger.info("error:", e);
+            logger.error(e.getMessage());
             return new TaskExecuteResult(
                 new PhysicalTaskExecuteFailureException("execute delete task in postgresql failure", e));
         }

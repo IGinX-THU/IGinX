@@ -674,7 +674,7 @@ public class IoTDBStorage implements IStorage {
                     deletedPaths = determineDeletePathList(storageUnit, delete);
                 } catch (PhysicalException e) {
                     logger.warn("encounter error when delete path: " + e.getMessage());
-                    return new TaskExecuteResult(new PhysicalTaskExecuteFailureException("execute delete path task in iotdb11 failure", e));
+                    return new TaskExecuteResult(new PhysicalTaskExecuteFailureException("execute delete path task in iotdb12 failure", e));
                 }
                 for (String path: deletedPaths) {
                     try {
