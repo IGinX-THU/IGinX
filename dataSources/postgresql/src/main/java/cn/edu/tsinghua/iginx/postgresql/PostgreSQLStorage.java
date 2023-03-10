@@ -249,6 +249,7 @@ public class PostgreSQLStorage implements IStorage {
                             }
                         }
                     }
+                    conn1.close();
                 } catch (Exception e) {
                     logger.info("error:", e);
                 }
@@ -325,20 +326,22 @@ public class PostgreSQLStorage implements IStorage {
         try {
             List<ResultSet> resultSets = new ArrayList<>();
             List<Field> fields = new ArrayList<>();
+            DatabaseMetaData databaseMetaData = conn.getMetaData();;
+            ResultSet tableSet = null;
+            ResultSet columnSet = null;
+            String tableName = "";
+            String columnName = "";
+
             for (String path : project.getPatterns()) {
-                String tableName = path.substring(0, path.lastIndexOf(".")).replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
-                String columnName = path.substring(path.lastIndexOf(".") + 1).replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
-                DatabaseMetaData databaseMetaData = conn.getMetaData();
-                ResultSet tableSet = null;
-                ResultSet columnSet = null;
-
-                if (path.equals("*.*")) {
+                if (path.equals("*") || path.equals("*.*")) {
                     tableSet = databaseMetaData.getTables(null, "%", "%", new String[]{"TABLE"});
-                } else if (columnName.equals("*")) {
-                    columnSet = databaseMetaData.getColumns(null, null, tableName, null);
                 } else {
+                    tableName = path.substring(0, path.lastIndexOf(".")).replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
+                    columnName = path.substring(path.lastIndexOf(".") + 1);
+                    if (columnName.equals("*")) {
+                        columnSet = databaseMetaData.getColumns(null, null, tableName, null);
+                    }
                 }
-
 
                 if (tableSet == null && columnSet == null) {
                     Statement stmt = conn.createStatement();
@@ -357,7 +360,7 @@ public class PostgreSQLStorage implements IStorage {
                     fields.add(new Field(tableName.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR) + IGINX_SEPARATOR
                         + columnName.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR)
                         , DataTypeTransformer.fromPostgreSQL(typeName)));
-                } else if (tableSet == null && columnSet != null) {
+                } else if (tableSet == null) {
 //                    ResultSet columnSet_ = databaseMetaData.getColumns(null, null, tableName, null);
                     while (columnSet.next()) {
                         Statement stmt = conn.createStatement();
@@ -399,10 +402,9 @@ public class PostgreSQLStorage implements IStorage {
                         }
                     }
                 }
-
-
             }
             RowStream rowStream = new PostgreSQLQueryRowStream(resultSets, fields, false);
+            conn.close();
             return new TaskExecuteResult(rowStream);
         } catch (SQLException e) {
             logger.info("error:  ", e);
@@ -828,6 +830,8 @@ public class PostgreSQLStorage implements IStorage {
         stmt.executeBatch();
     }
 
+    // TODO 处理带*路径
+    // TODO 处理tagKV
     private TaskExecuteResult executeDeleteTask(Connection conn, String storageUnit, Delete delete) {
         try {
             Statement stmt = conn.createStatement();
