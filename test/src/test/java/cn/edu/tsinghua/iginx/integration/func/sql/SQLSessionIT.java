@@ -1369,6 +1369,63 @@ public abstract class SQLSessionIT {
             executeAndCompare(String.format(statement, type, type), expected);
         }
     }
+    
+    @Test
+    public void testAggregateWithLevel() {
+        String insert = "INSERT INTO test(key, a1.b1, a1.b2, a2.b1, a2.b2) VALUES (0, 0, 0, 0, 0), (1, 1, 1, 1, 1)," +
+                "(2, NULL, 2, 2, 2), (3, NULL, NULL, 3, 3), (4, NULL, NULL, NULL, 4)";
+        execute(insert);
+
+        String statement = "SELECT AVG(*), COUNT(*), SUM(*) FROM test AGG LEVEL = 0;";
+        String expected = "ResultSets:\n" +
+            "+------------------+---------------+-------------+\n" +
+            "|     avg(test.*.*)|count(test.*.*)|sum(test.*.*)|\n" +
+            "+------------------+---------------+-------------+\n" +
+            "|1.4285714285714286|             14|           20|\n" +
+            "+------------------+---------------+-------------+\n" +
+            "Total line number = 1\n";
+        executeAndCompare(statement, expected);
+
+        statement = "SELECT AVG(*), COUNT(*), SUM(*) FROM test AGG LEVEL = 0,1;";
+        expected = "ResultSets:\n" +
+            "+--------------+------------------+----------------+----------------+--------------+--------------+\n" +
+            "|avg(test.a1.*)|    avg(test.a2.*)|count(test.a1.*)|count(test.a2.*)|sum(test.a1.*)|sum(test.a2.*)|\n" +
+            "+--------------+------------------+----------------+----------------+--------------+--------------+\n" +
+            "|           0.8|1.7777777777777777|               5|               9|             4|            16|\n" +
+            "+--------------+------------------+----------------+----------------+--------------+--------------+\n" +
+            "Total line number = 1\n";
+        executeAndCompare(statement, expected);
+
+        statement = "SELECT AVG(*), COUNT(*), SUM(*) FROM test AGG LEVEL = 1;";
+        expected = "ResultSets:\n" +
+            "+-----------+------------------+-------------+-------------+-----------+-----------+\n" +
+            "|avg(*.a1.*)|       avg(*.a2.*)|count(*.a1.*)|count(*.a2.*)|sum(*.a1.*)|sum(*.a2.*)|\n" +
+            "+-----------+------------------+-------------+-------------+-----------+-----------+\n" +
+            "|        0.8|1.7777777777777777|            5|            9|          4|         16|\n" +
+            "+-----------+------------------+-------------+-------------+-----------+-----------+\n" +
+            "Total line number = 1\n";
+        executeAndCompare(statement, expected);
+
+        statement = "SELECT SUM(*), COUNT(*), AVG(*) FROM test AGG LEVEL = 0,2;";
+        expected = "ResultSets:\n" +
+            "+--------------+--------------+----------------+----------------+------------------+--------------+\n" +
+            "|sum(test.*.b1)|sum(test.*.b2)|count(test.*.b1)|count(test.*.b2)|    avg(test.*.b1)|avg(test.*.b2)|\n" +
+            "+--------------+--------------+----------------+----------------+------------------+--------------+\n" +
+            "|             7|            13|               6|               8|1.1666666666666667|         1.625|\n" +
+            "+--------------+--------------+----------------+----------------+------------------+--------------+\n" +
+            "Total line number = 1\n";
+        executeAndCompare(statement, expected);
+
+        statement = "SELECT SUM(*), COUNT(*), AVG(*) FROM test AGG LEVEL = 2;";
+        expected = "ResultSets:\n" +
+            "+-----------+-----------+-------------+-------------+------------------+-----------+\n" +
+            "|sum(*.*.b1)|sum(*.*.b2)|count(*.*.b1)|count(*.*.b2)|       avg(*.*.b1)|avg(*.*.b2)|\n" +
+            "+-----------+-----------+-------------+-------------+------------------+-----------+\n" +
+            "|          7|         13|            6|            8|1.1666666666666667|      1.625|\n" +
+            "+-----------+-----------+-------------+-------------+------------------+-----------+\n" +
+            "Total line number = 1\n";
+        executeAndCompare(statement, expected);
+    }
 
     @Test
     public void testDelete() {
@@ -1830,15 +1887,15 @@ public abstract class SQLSessionIT {
                 + "Total line number = 2\n";
         executeAndCompare(query, expected);
 
-        query = "select avg(test1.a), max(test1.c), test2.d from test1 join test2 on test1.a = test2.a group by test2.d having max(test1.c) > 3.5 order by test2.d limit 1";
+        query = "select avg_a, test2.d as res from (select avg(test1.a) as avg_a, max(test1.c), test2.d from test1 join test2 on test1.a = test2.a group by test2.d having max(test1.c) > 3.5 order by test2.d limit 1);";
         expected =
-            "ResultSets:\n"
-                + "+------------+------------+-------+\n"
-                + "|avg(test1.a)|max(test1.c)|test2.d|\n"
-                + "+------------+------------+-------+\n"
-                + "|         2.0|         5.1|   val3|\n"
-                + "+------------+------------+-------+\n"
-                + "Total line number = 1\n";
+            "ResultSets:\n" +
+                "+-----+----+\n" +
+                "|avg_a| res|\n" +
+                "+-----+----+\n" +
+                "|  2.0|val3|\n" +
+                "+-----+----+\n" +
+                "Total line number = 1\n";
         executeAndCompare(query, expected);
     }
 
@@ -2643,7 +2700,7 @@ public abstract class SQLSessionIT {
             "Total line number = 4\n";
         executeAndCompare(statement, expected);
 
-        statement = "SELECT * FROM (SELECT test.a.a, test.b.a FROM test.a, test.b WHERE test.b.a < 6 AND test.a.a > 1) AS sub_query;";
+        statement = "SELECT * FROM (SELECT test.a.a, test.b.a FROM test.a, test.b WHERE test.b.a < 6 AND test.a.a > 1 AS sub_query);";
         expected = "ResultSets:\n" +
             "+------------------+------------------+\n" +
             "|sub_query.test.a.a|sub_query.test.b.a|\n" +

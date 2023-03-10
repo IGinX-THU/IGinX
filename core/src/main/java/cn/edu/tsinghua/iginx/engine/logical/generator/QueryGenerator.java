@@ -46,6 +46,7 @@ import cn.edu.tsinghua.iginx.metadata.entity.TimeSeriesInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.TimeSeriesRange;
 import cn.edu.tsinghua.iginx.policy.IPolicy;
 import cn.edu.tsinghua.iginx.policy.PolicyManager;
+import cn.edu.tsinghua.iginx.sql.SQLConstant;
 import cn.edu.tsinghua.iginx.sql.expression.Expression;
 import cn.edu.tsinghua.iginx.sql.statement.SelectStatement;
 import cn.edu.tsinghua.iginx.sql.statement.SelectStatement.QueryType;
@@ -269,6 +270,14 @@ public class QueryGenerator extends AbstractGenerator {
                 });
                 root = new Reorder(new OperatorSource(root), order);
             }
+        } else {
+            List<String> order = new ArrayList<>();
+            selectStatement.getExpressions().forEach(expression -> {
+                String colName = expression.getColumnName();
+                colName = colName.replaceFirst(selectStatement.getFromParts().get(0).getPath() + SQLConstant.DOT, "");
+                order.add(colName);
+            });
+            root = new Reorder(new OperatorSource(root), order);
         }
 
         Map<String, String> aliasMap = selectStatement.getAliasMap();
