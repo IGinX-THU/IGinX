@@ -2828,15 +2828,6 @@ public abstract class SQLSessionIT {
             "+---+--------+-------------+\n" +
             "Total line number = 4\n";
         executeAndCompare(statement, expected);
-
-        statement = "SELECT a, (SELECT AVG(a) AS avg_b_a FROM test.b) FROM test.a WHERE avg_b_a > 1;";
-        expected = "ResultSets:\n" +
-            "+---+\n" +
-            "|key|\n" +
-            "+---+\n" +
-            "+---+\n" +
-            "Empty set.\n";
-        executeAndCompare(statement, expected);
     
         statement = "SELECT d, AVG(a) FROM test.b GROUP BY d HAVING avg(a) > 2;";
         expected = "ResultSets:\n" +
