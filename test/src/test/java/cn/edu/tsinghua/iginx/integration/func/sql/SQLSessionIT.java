@@ -2868,6 +2868,36 @@ public abstract class SQLSessionIT {
             "+---+--------+-----------------+\n" +
             "Total line number = 6\n";
         executeAndCompare(statement, expected);
+
+        statement = "SELECT a / (SELECT AVG(a) FROM test.b) FROM test.a;";
+        expected = "ResultSets:\n" +
+            "+---+------------------------+\n" +
+            "|key|test.a.a ÷ avg(test.b.a)|\n" +
+            "+---+------------------------+\n" +
+            "|  1|                     1.5|\n" +
+            "|  2|                     0.5|\n" +
+            "|  3|                     1.0|\n" +
+            "|  4|                     1.5|\n" +
+            "|  5|                     0.5|\n" +
+            "|  6|                     1.0|\n" +
+            "+---+------------------------+\n" +
+            "Total line number = 6\n";
+        executeAndCompare(statement, expected);
+
+        statement = "SELECT a / (1 + (SELECT AVG(a) FROM test.b)) FROM test.a;";
+        expected = "ResultSets:\n" +
+            "+---+------------------------------+\n" +
+            "|key|test.a.a ÷ (1 + avg(test.b.a))|\n" +
+            "+---+------------------------------+\n" +
+            "|  1|                           1.0|\n" +
+            "|  2|            0.3333333333333333|\n" +
+            "|  3|            0.6666666666666666|\n" +
+            "|  4|                           1.0|\n" +
+            "|  5|            0.3333333333333333|\n" +
+            "|  6|            0.6666666666666666|\n" +
+            "+---+------------------------------+\n" +
+            "Total line number = 6\n";
+        executeAndCompare(statement, expected);
     
         statement = "SELECT a, (SELECT AVG(a) AS a1 FROM test.b GROUP BY d HAVING avg(test.b.a) > 2) * (SELECT AVG(a) AS a2 FROM test.b) FROM test.a;";
         expected = "ResultSets:\n" +
