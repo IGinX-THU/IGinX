@@ -5,7 +5,6 @@ import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoder;
-import cn.edu.tsinghua.iginx.integration.tool.MultiConnection;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import org.junit.*;
@@ -19,7 +18,7 @@ import static org.junit.Assert.fail;
 
 public class TagIT {
     protected static final Logger logger = LoggerFactory.getLogger(TagIT.class);
-    protected static MultiConnection session;
+    protected static Session session;
     protected static boolean ifClearData;
     protected boolean isAbleToDelete = true;
     protected boolean ifScaleOutIn = false;
@@ -36,7 +35,7 @@ public class TagIT {
     @BeforeClass
     public static void setUp() throws SessionException {
         ifClearData = true;
-        session = new MultiConnection(new Session("127.0.0.1", 6888, "root", "root"));
+        session = new Session("127.0.0.1", 6888, "root", "root");
         session.openSession();
     }
 
@@ -67,23 +66,7 @@ public class TagIT {
 
     @After
     public void clearData() throws ExecutionException, SessionException {
-        String clearData = "CLEAR DATA;";
-
-        SessionExecuteSqlResult res = null;
-        try {
-            res = session.executeSql(clearData);
-        } catch (SessionException | ExecutionException e) {
-            logger.error("Statement: \"{}\" execute fail. Caused by: {}", clearData, e.toString());
-            if (e.toString().equals(Controller.CLEARDATAEXCP)) {
-                logger.error("clear data fail and go on....");
-            }
-            else fail();
-        }
-
-        if (res != null && res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-            logger.error("Statement: \"{}\" execute fail. Caused by: {}.", clearData, res.getParseErrorMsg());
-            fail();
-        }
+        Controller.clearData(session);
     }
 
     private void executeAndCompare(String statement, String expectedOutput) {
