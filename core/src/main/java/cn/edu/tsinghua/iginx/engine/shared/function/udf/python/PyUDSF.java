@@ -9,14 +9,15 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionType;
 import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.UDSF;
+import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.CheckUtils;
+import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.RowUtils;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.TypeUtils;
-import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
+import java.util.concurrent.BlockingQueue;
 import pemja.core.PythonInterpreter;
 
 import java.util.*;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.*;
 
@@ -24,12 +25,12 @@ public class PyUDSF implements UDSF {
 
     private static final String PY_UDSF = "py_udsf";
 
-    private final PythonInterpreter interpreter;
+    private final BlockingQueue<PythonInterpreter> interpreters;
 
     private final String funcName;
 
-    public PyUDSF(PythonInterpreter interpreter, String funcName) {
-        this.interpreter = interpreter;
+    public PyUDSF(BlockingQueue<PythonInterpreter> interpreters, String funcName) {
+        this.interpreters = interpreters;
         this.funcName = funcName;
     }
 
@@ -50,9 +51,11 @@ public class PyUDSF implements UDSF {
 
     @Override
     public RowStream transform(RowStream rows, Map<String, Value> params) throws Exception {
-        if (!isLegal(params)) {
-            throw new IllegalArgumentException("unexpected params for PyUDAF.");
+        if (!CheckUtils.isLegal(params)) {
+            throw new IllegalArgumentException("unexpected params for PyUDSF.");
         }
+
+        PythonInterpreter interpreter = interpreters.take();
 
         String target = params.get(PARAM_PATHS).getBinaryVAsString();
         if (StringUtils.isPattern(target)) {
@@ -79,20 +82,19 @@ public class PyUDSF implements UDSF {
                 }
                 data.add(rowData);
             }
-            Object[] res = (Object[]) interpreter.invokeMethod(UDF_CLASS, UDF_FUNC, data);
-            if (res == null || res.length == 0) {
+            List<List<Object>> res = (List<List<Object>>) interpreter.invokeMethod(UDF_CLASS, UDF_FUNC, data);
+            if (res == null || res.size() == 0) {
                 return Table.EMPTY_TABLE;
             }
+            interpreters.add(interpreter);
 
-            Object[] firstRow = (Object[])res[0];
+            List<Object> firstRow = res.get(0);
             List<Field> targetFields = new ArrayList<>();
             for (int i = 0; i < name.size(); i++) {
-                targetFields.add(new Field(name.get(i), TypeUtils.getDataTypeFromObject(firstRow[i])));
+                targetFields.add(new Field(name.get(i), TypeUtils.getDataTypeFromObject(firstRow.get(i))));
             }
             Header header = new Header(targetFields);
-
-            List<Row> rowList = Arrays.stream(res).map(row -> new Row(header, (Object[]) row)).collect(Collectors.toList());
-            return new Table(header, rowList);
+            return RowUtils.constructNewTable(header, res);
         } else {
             int index = rows.getHeader().indexOf(target);
             if (index == -1) {
@@ -104,33 +106,17 @@ public class PyUDSF implements UDSF {
                 Row row = rows.next();
                 data.add(Collections.singletonList(row.getValues()[index]));
             }
-            Object[] res = (Object[]) interpreter.invokeMethod(UDF_CLASS, UDF_FUNC, data);
-            if (res == null || res.length == 0) {
+            List<List<Object>> res = (List<List<Object>>) interpreter.invokeMethod(UDF_CLASS, UDF_FUNC, data);
+            if (res == null || res.size() == 0) {
                 return Table.EMPTY_TABLE;
             }
+            interpreters.add(interpreter);
 
-            Object[] firstRow = (Object[])res[0];
-            Field targetField = new Field(getFunctionName() + "(" + target + ")", TypeUtils.getDataTypeFromObject(firstRow[0]));
+            List<Object> firstRow = res.get(0);
+            Field targetField = new Field(getFunctionName() + "(" + target + ")", TypeUtils.getDataTypeFromObject(firstRow.get(0)));
             Header header = new Header(Collections.singletonList(targetField));
-
-            List<Row> rowList = Arrays.stream(res).map(row -> new Row(header, (Object[]) row)).collect(Collectors.toList());
-            return new Table(header, rowList);
+            return RowUtils.constructNewTable(header, res);
         }
-    }
-
-    private boolean isLegal(Map<String, Value> params) {
-        List<String> neededParams = Arrays.asList(PARAM_PATHS);
-        for (String param : neededParams) {
-            if (!params.containsKey(param)) {
-                return false;
-            }
-        }
-
-        Value paths = params.get(PARAM_PATHS);
-        if (paths == null || paths.getDataType() != DataType.BINARY) {
-            return false;
-        }
-        return true;
     }
 
     @Override

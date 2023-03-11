@@ -61,6 +61,8 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
                 return executeReorder((Reorder) operator, stream);
             case AddSchemaPrefix:
                 return executeAddSchemaPrefix((AddSchemaPrefix) operator, stream);
+            case GroupBy:
+                return executeGroupBy((GroupBy) operator, stream);
             default:
                 throw new UnexpectedOperatorException("unknown unary operator: " + operator.getType());
         }
@@ -93,9 +95,6 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
     }
 
     private RowStream executeSort(Sort sort, RowStream stream) throws PhysicalException {
-        if (!sort.getSortBy().equals(Constants.KEY)) {
-            throw new InvalidOperatorParameterException("sort operator is not support for field " + sort.getSortBy() + " except for " + Constants.KEY);
-        }
         return new SortLazyStream(sort, stream);
     }
 
@@ -132,6 +131,10 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
 
     private RowStream executeAddSchemaPrefix(AddSchemaPrefix addSchemaPrefix, RowStream stream) {
         return new AddSchemaPrefixLazyStream(addSchemaPrefix, stream);
+    }
+
+    private RowStream executeGroupBy(GroupBy groupBy, RowStream stream) {
+        return new GroupByLazyStream(groupBy, stream);
     }
 
     private RowStream executeJoin(Join join, RowStream streamA, RowStream streamB) throws PhysicalException {

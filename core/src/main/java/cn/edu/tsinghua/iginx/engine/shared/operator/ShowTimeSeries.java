@@ -1,9 +1,8 @@
 package cn.edu.tsinghua.iginx.engine.shared.operator;
 
-import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.GlobalSource;
-
 import java.util.HashSet;
 import java.util.Set;
 
@@ -15,7 +14,8 @@ public class ShowTimeSeries extends AbstractUnaryOperator {
     private final int limit;
     private final int offset;
 
-    public ShowTimeSeries(GlobalSource source, Set<String> pathRegexSet, TagFilter tagFilter, int limit, int offset) {
+    public ShowTimeSeries(GlobalSource source, Set<String> pathRegexSet, TagFilter tagFilter,
+        int limit, int offset) {
         super(OperatorType.ShowTimeSeries, source);
         this.pathRegexSet = pathRegexSet;
         this.tagFilter = tagFilter;
@@ -41,6 +41,23 @@ public class ShowTimeSeries extends AbstractUnaryOperator {
 
     @Override
     public Operator copy() {
-        return new ShowTimeSeries((GlobalSource) getSource().copy(), new HashSet<>(pathRegexSet), tagFilter.copy(), limit, offset);
+        return new ShowTimeSeries((GlobalSource) getSource().copy(), new HashSet<>(pathRegexSet),
+            tagFilter.copy(), limit, offset);
+    }
+
+    @Override
+    public String getInfo() {
+        StringBuilder builder = new StringBuilder();
+        if (pathRegexSet != null && !pathRegexSet.isEmpty()) {
+            builder.append("Patterns: ");
+            for (String regex : pathRegexSet) {
+                builder.append(regex).append(",");
+            }
+            builder.deleteCharAt(builder.length() - 1);
+        }
+        if (tagFilter != null) {
+            builder.append(", TagFilter: ").append(tagFilter.toString());
+        }
+        return builder.toString();
     }
 }

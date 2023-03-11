@@ -748,7 +748,7 @@ public class QueryParser {
         Map<String,List<String>> taglist = new TreeMap<>();
 
         for (Map.Entry<String, String> entry : tags.entrySet()) {
-            List val = new ArrayList<>();
+            List<String> val = new ArrayList<>();
             val.add(entry.getValue());
             taglist.put(entry.getKey(),val);
         }

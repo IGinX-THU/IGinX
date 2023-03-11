@@ -15,6 +15,7 @@ public class DropTaskStatement extends SystemStatement {
 
     private final IginxWorker worker = IginxWorker.getInstance();
 
+    @SuppressWarnings("unused")
     private final static Logger logger = LoggerFactory.getLogger(DropTaskStatement.class);
 
     public DropTaskStatement(String name) {

@@ -7,7 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ETCDSyncProtocolTest extends SyncProtocolTest {
-
+    @SuppressWarnings("unused")
     private static final Logger logger = LoggerFactory.getLogger(ETCDSyncProtocolTest.class);
 
     public static final String END_POINTS = "http://localhost:2379";

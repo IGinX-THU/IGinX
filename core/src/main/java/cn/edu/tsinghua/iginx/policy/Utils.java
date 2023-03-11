@@ -21,12 +21,15 @@ public class Utils {
                 return ((DeleteStatement) statement).getPaths();
             case INSERT:
                 return ((InsertStatement) statement).getPaths();
+            default:
+                // TODO: case label. should we return empty list for other statements?
+                break;
         }
         return Collections.emptyList();
     }
 
     public static List<String> getNonWildCardPaths(List<String> paths) {
-        Set<String> beCutPaths = new HashSet<>();
+        Set<String> beCutPaths = new TreeSet<>();
         for (String path: paths) {
             if (!path.contains(Constants.LEVEL_PLACEHOLDER)) {
                 beCutPaths.add(path);

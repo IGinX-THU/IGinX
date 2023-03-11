@@ -225,20 +225,25 @@ public class Session {
         }
     }
 
-    public void addStorageEngine(String ip, int port, String type, Map<String, String> extraParams) throws SessionException, ExecutionException {
-        StorageEngine storageEngine = new StorageEngine(ip, port, type, extraParams);
-        addStorageEngines(Collections.singletonList(storageEngine));
+    private class Reference<V> {
+        public V resp;
+        public Reference() {
+            resp = null;
+        }
     }
 
-    public void addStorageEngines(List<StorageEngine> storageEngines) throws SessionException, ExecutionException {
-        AddStorageEnginesReq req = new AddStorageEnginesReq(sessionId, storageEngines);
+    @FunctionalInterface
+    public interface SessionExecution {
+        Status exec() throws TException;
+    }
 
+    private void executeWithCheck(SessionExecution proc) throws SessionException, ExecutionException {
         try {
             Status status;
             do {
                 lock.readLock().lock();
                 try {
-                    status = client.addStorageEngines(req);
+                    status = proc.exec();
                 } finally {
                     lock.readLock().unlock();
                 }
@@ -249,26 +254,23 @@ public class Session {
         }
     }
 
+    public void addStorageEngine(String ip, int port, String type, Map<String, String> extraParams) throws SessionException, ExecutionException {
+        StorageEngine storageEngine = new StorageEngine(ip, port, type, extraParams);
+        addStorageEngines(Collections.singletonList(storageEngine));
+    }
+
+    public void addStorageEngines(List<StorageEngine> storageEngines) throws SessionException, ExecutionException {
+        AddStorageEnginesReq req = new AddStorageEnginesReq(sessionId, storageEngines);
+        executeWithCheck(() -> client.addStorageEngines(req));
+    }
+
     public List<Column> showColumns() throws SessionException, ExecutionException {
         ShowColumnsReq req = new ShowColumnsReq(sessionId);
-
-        ShowColumnsResp resp;
-        try {
-            do {
-                lock.readLock().lock();
-                try {
-                    resp = client.showColumns(req);
-                } finally {
-                    lock.readLock().unlock();
-                }
-            } while (checkRedirect(resp.status));
-            RpcUtils.verifySuccess(resp.status);
-        } catch (TException e) {
-            throw new SessionException(e);
-        }
+        Reference<ShowColumnsResp> ref = new Reference<>();
+        executeWithCheck(() -> (ref.resp = client.showColumns(req)).status);
         List<Column> columns = new ArrayList<>();
-        for (int i = 0; i < resp.paths.size(); i++) {
-            columns.add(new Column(resp.paths.get(i), resp.dataTypeList.get(i)));
+        for (int i = 0; i < ref.resp.paths.size(); i++) {
+            columns.add(new Column(ref.resp.paths.get(i), ref.resp.dataTypeList.get(i)));
         }
         return columns;
     }
@@ -282,21 +284,7 @@ public class Session {
 
     public void deleteColumns(List<String> paths) throws SessionException, ExecutionException {
         DeleteColumnsReq req = new DeleteColumnsReq(sessionId, mergeAndSortPaths(paths));
-
-        try {
-            Status status;
-            do {
-                lock.readLock().lock();
-                try {
-                    status = client.deleteColumns(req);
-                } finally {
-                    lock.readLock().unlock();
-                }
-            } while (checkRedirect(status));
-            RpcUtils.verifySuccess(status);
-        } catch (TException e) {
-            throw new SessionException(e);
-        }
+        executeWithCheck(() -> client.deleteColumns(req));
     }
 
     public void insertColumnRecords(List<String> paths, long[] timestamps, Object[] valuesList,
@@ -387,20 +375,7 @@ public class Session {
         req.setTagsList(sortedTagsList);
         req.setTimePrecision(precision);
 
-        try {
-            Status status;
-            do {
-                lock.readLock().lock();
-                try {
-                    status = client.insertColumnRecords(req);
-                } finally {
-                    lock.readLock().unlock();
-                }
-            } while (checkRedirect(status));
-            RpcUtils.verifySuccess(status);
-        } catch (TException e) {
-            throw new SessionException(e);
-        }
+        executeWithCheck(() -> client.insertColumnRecords(req));
     }
 
     public void insertNonAlignedColumnRecords(List<String> paths, long[] timestamps, Object[] valuesList,
@@ -491,20 +466,7 @@ public class Session {
         req.setTagsList(sortedTagsList);
         req.setTimePrecision(precision);
 
-        try {
-            Status status;
-            do {
-                lock.readLock().lock();
-                try {
-                    status = client.insertNonAlignedColumnRecords(req);
-                } finally {
-                    lock.readLock().unlock();
-                }
-            } while (checkRedirect(status));
-            RpcUtils.verifySuccess(status);
-        } catch (TException e) {
-            throw new SessionException(e);
-        }
+        executeWithCheck(() -> client.insertNonAlignedColumnRecords(req));
     }
 
     public void insertRowRecords(List<String> paths, long[] timestamps, Object[] valuesList,
@@ -596,20 +558,7 @@ public class Session {
         req.setTagsList(sortedTagsList);
         req.setTimePrecision(precision);
 
-        try {
-            Status status;
-            do {
-                lock.readLock().lock();
-                try {
-                    status = client.insertRowRecords(req);
-                } finally {
-                    lock.readLock().unlock();
-                }
-            } while (checkRedirect(status));
-            RpcUtils.verifySuccess(status);
-        } catch (TException e) {
-            throw new SessionException(e);
-        }
+        executeWithCheck(() -> client.insertRowRecords(req));
     }
 
     public void insertNonAlignedRowRecords(List<String> paths, long[] timestamps, Object[] valuesList,
@@ -706,20 +655,7 @@ public class Session {
         req.setTagsList(sortedTagsList);
         req.setTimePrecision(precision);
 
-        try {
-            Status status;
-            do {
-                lock.readLock().lock();
-                try {
-                    status = client.insertNonAlignedRowRecords(req);
-                } finally {
-                    lock.readLock().unlock();
-                }
-            } while (checkRedirect(status));
-            RpcUtils.verifySuccess(status);
-        } catch (TException e) {
-            throw new SessionException(e);
-        }
+        executeWithCheck(() -> client.insertNonAlignedRowRecords(req));
     }
 
     public void deleteDataInColumn(String path, long startTime, long endTime) throws SessionException, ExecutionException {
@@ -738,20 +674,7 @@ public class Session {
             req.setTagsList(tagsList);
         }
 
-        try {
-            Status status;
-            do {
-                lock.readLock().lock();
-                try {
-                    status = client.deleteDataInColumns(req);
-                } finally {
-                    lock.readLock().unlock();
-                }
-            } while (checkRedirect(status));
-            RpcUtils.verifySuccess(status);
-        } catch (TException e) {
-            throw new SessionException(e);
-        }
+        executeWithCheck(() -> client.deleteDataInColumns(req));
     }
 
     public SessionQueryDataSet queryData(List<String> paths, long startTime, long endTime)
@@ -777,23 +700,10 @@ public class Session {
         }
         req.setTimePrecision(timePrecision);
 
-        QueryDataResp resp;
+        Reference<QueryDataResp> ref = new Reference<>();
+        executeWithCheck(() -> (ref.resp = client.queryData(req)).status);
 
-        try {
-            do {
-                lock.readLock().lock();
-                try {
-                    resp = client.queryData(req);
-                } finally {
-                    lock.readLock().unlock();
-                }
-            } while (checkRedirect(resp.status));
-            RpcUtils.verifySuccess(resp.status);
-        } catch (TException e) {
-            throw new SessionException(e);
-        }
-
-        return new SessionQueryDataSet(resp);
+        return new SessionQueryDataSet(ref.resp);
     }
 
     public SessionAggregateQueryDataSet aggregateQuery(List<String> paths, long startTime, long endTime, AggregateType aggregateType)
@@ -820,22 +730,10 @@ public class Session {
         }
         req.setTimePrecision(timePrecision);
 
-        AggregateQueryResp resp;
-        try {
-            do {
-                lock.readLock().lock();
-                try {
-                    resp = client.aggregateQuery(req);
-                } finally {
-                    lock.readLock().unlock();
-                }
-            } while (checkRedirect(resp.status));
-            RpcUtils.verifySuccess(resp.status);
-        } catch (TException e) {
-            throw new SessionException(e);
-        }
+        Reference<AggregateQueryResp> ref = new Reference<>();
+        executeWithCheck(() -> (ref.resp = client.aggregateQuery(req)).status);
 
-        return new SessionAggregateQueryDataSet(resp, aggregateType);
+        return new SessionAggregateQueryDataSet(ref.resp, aggregateType);
     }
 
     public SessionQueryDataSet downsampleQuery(List<String> paths, long startTime, long endTime, AggregateType aggregateType, long precision, TimePrecision timePrecision)
@@ -863,66 +761,26 @@ public class Session {
         }
         req.setTimePrecision(timePrecision);
 
-        DownsampleQueryResp resp;
+        Reference<DownsampleQueryResp> ref = new Reference<>();
+        executeWithCheck(() -> (ref.resp = client.downsampleQuery(req)).status);
 
-        try {
-            do {
-                lock.readLock().lock();
-                try {
-                    resp = client.downsampleQuery(req);
-                } finally {
-                    lock.readLock().unlock();
-                }
-            } while (checkRedirect(resp.status));
-            RpcUtils.verifySuccess(resp.status);
-        } catch (TException e) {
-            throw new SessionException(e);
-        }
-
-        return new SessionQueryDataSet(resp);
+        return new SessionQueryDataSet(ref.resp);
     }
 
     public int getReplicaNum() throws SessionException, ExecutionException {
         GetReplicaNumReq req = new GetReplicaNumReq(sessionId);
-        GetReplicaNumResp resp;
+        Reference<GetReplicaNumResp> ref = new Reference<>();
+        executeWithCheck(() -> (ref.resp = client.getReplicaNum(req)).status);
 
-        try {
-            do {
-                lock.readLock().lock();
-                try {
-                    resp = client.getReplicaNum(req);
-                } finally {
-                    lock.readLock().unlock();
-                }
-            } while (checkRedirect(resp.status));
-            RpcUtils.verifySuccess(resp.status);
-        } catch (TException e) {
-            throw new SessionException(e);
-        }
-
-        return resp.getReplicaNum();
+        return ref.resp.getReplicaNum();
     }
 
     public SessionExecuteSqlResult executeSql(String statement) throws SessionException, ExecutionException {
         ExecuteSqlReq req = new ExecuteSqlReq(sessionId, statement);
-        ExecuteSqlResp resp;
+        Reference<ExecuteSqlResp> ref = new Reference<>();
+        executeWithCheck(() -> (ref.resp = client.executeSql(req)).status);
 
-        try {
-            do {
-                lock.readLock().lock();
-                try {
-                    resp = client.executeSql(req);
-                } finally {
-                    lock.readLock().unlock();
-                }
-            } while (checkRedirect(resp.status));
-            RpcUtils.verifySuccess(resp.status);
-        } catch (TException e) {
-            e.printStackTrace();
-            throw new SessionException(e);
-        }
-
-        return new SessionExecuteSqlResult(resp);
+        return new SessionExecuteSqlResult(ref.resp);
     }
 
     public SessionQueryDataSet queryLast(List<String> paths, long startTime, TimePrecision timePrecision)
@@ -953,41 +811,16 @@ public class Session {
         }
         req.setTimePrecision(timePrecision);
 
-        LastQueryResp resp;
+        Reference<LastQueryResp> ref = new Reference<>();
+        executeWithCheck(() -> (ref.resp = client.lastQuery(req)).status);
 
-        try {
-            do {
-                lock.readLock().lock();
-                try {
-                    resp = client.lastQuery(req);
-                } finally {
-                    lock.readLock().unlock();
-                }
-            } while(checkRedirect(resp.status));
-            RpcUtils.verifySuccess(resp.status);
-        } catch (TException e) {
-            throw new SessionException(e);
-        }
 
-        return new SessionQueryDataSet(resp);
+        return new SessionQueryDataSet(ref.resp);
     }
 
     public void addUser(String username, String password, Set<AuthType> auths) throws SessionException, ExecutionException  {
         AddUserReq req = new AddUserReq(sessionId, username, password, auths);
-        try {
-            Status status;
-            do {
-                lock.readLock().lock();
-                try {
-                    status = client.addUser(req);
-                } finally {
-                    lock.readLock().unlock();
-                }
-            } while(checkRedirect(status));
-            RpcUtils.verifySuccess(status);
-        } catch (TException e) {
-            throw new SessionException(e);
-        }
+        executeWithCheck(() -> client.addUser(req));
     }
 
     public void updateUser(String username, String password, Set<AuthType> auths) throws SessionException, ExecutionException {
@@ -998,60 +831,21 @@ public class Session {
         if (auths != null) {
             req.setAuths(auths);
         }
-        try {
-            Status status;
-            do {
-                lock.readLock().lock();
-                try {
-                    status = client.updateUser(req);
-                } finally {
-                    lock.readLock().unlock();
-                }
-            } while(checkRedirect(status));
-            RpcUtils.verifySuccess(status);
-        } catch (TException e) {
-            throw new SessionException(e);
-        }
+        executeWithCheck(() -> client.updateUser(req));
     }
 
     public void deleteUser(String username) throws SessionException, ExecutionException {
         DeleteUserReq req = new DeleteUserReq(sessionId, username);
-        try {
-            Status status;
-            do {
-                lock.readLock().lock();
-                try {
-                    status = client.deleteUser(req);
-                } finally {
-                    lock.readLock().unlock();
-                }
-            } while(checkRedirect(status));
-            RpcUtils.verifySuccess(status);
-        } catch (TException e) {
-            throw new SessionException(e);
-        }
+        executeWithCheck(() -> client.deleteUser(req));
     }
 
     public ClusterInfo getClusterInfo() throws SessionException, ExecutionException {
         GetClusterInfoReq req = new GetClusterInfoReq(sessionId);
 
-        GetClusterInfoResp resp;
+        Reference<GetClusterInfoResp> ref = new Reference<>();
+        executeWithCheck(() -> (ref.resp = client.getClusterInfo(req)).status);
 
-        try {
-            do {
-                lock.readLock().lock();
-                try {
-                    resp = client.getClusterInfo(req);
-                } finally {
-                    lock.readLock().unlock();
-                }
-            } while(checkRedirect(resp.status));
-            RpcUtils.verifySuccess(resp.status);
-        } catch (TException e) {
-            throw new SessionException(e);
-        }
-
-        return new ClusterInfo(resp);
+        return new ClusterInfo(ref.resp);
 
     }
 
@@ -1094,26 +888,13 @@ public class Session {
     public QueryDataSet executeQuery(String statement, int fetchSize) throws SessionException, ExecutionException  {
         ExecuteStatementReq req = new ExecuteStatementReq(sessionId, statement);
         req.setFetchSize(fetchSize);
-        ExecuteStatementResp resp;
-        try {
-            do {
-                lock.readLock().lock();
-                try {
-                    resp = client.executeStatement(req);
-                } finally {
-                    lock.readLock().unlock();
-                }
-            } while (checkRedirect(resp.status));
-            RpcUtils.verifySuccess(resp.status);
-        } catch (TException e) {
-            e.printStackTrace();
-            throw new SessionException(e);
-        }
+        Reference<ExecuteStatementResp> ref = new Reference<>();
+        executeWithCheck(() -> (ref.resp = client.executeStatement(req)).status);
 
-        long queryId = resp.getQueryId();
-        List<String> columns = resp.getColumns();
-        List<DataType> dataTypes = resp.getDataTypeList();
-        QueryDataSetV2 dataSetV2 = resp.getQueryDataSet();
+        long queryId = ref.resp.getQueryId();
+        List<String> columns = ref.resp.getColumns();
+        List<DataType> dataTypes = ref.resp.getDataTypeList();
+        QueryDataSetV2 dataSetV2 = ref.resp.getQueryDataSet();
 
         return new QueryDataSet(this, queryId, columns, dataTypes, fetchSize, dataSetV2.valuesList, dataSetV2.bitmapList);
     }
@@ -1121,43 +902,16 @@ public class Session {
     Pair<QueryDataSetV2, Boolean> fetchResult(long queryId, int fetchSize) throws SessionException, ExecutionException {
         FetchResultsReq req = new FetchResultsReq(sessionId, queryId);
         req.setFetchSize(fetchSize);
-        FetchResultsResp resp;
+        Reference<FetchResultsResp> ref = new Reference<>();
+        executeWithCheck(() -> (ref.resp = client.fetchResults(req)).status);
 
-        try {
-            do {
-                lock.readLock().lock();
-                try {
-                    resp = client.fetchResults(req);
-                } finally {
-                    lock.readLock().unlock();
-                }
-            } while (checkRedirect(resp.status));
-            RpcUtils.verifySuccess(resp.status);
-        } catch (TException e) {
-            e.printStackTrace();
-            throw new SessionException(e);
-        }
-
-        return new Pair<>(resp.getQueryDataSet(), resp.isHasMoreResults());
+        return new Pair<>(ref.resp.getQueryDataSet(), ref.resp.isHasMoreResults());
     }
 
 
     void closeQuery(long queryId) throws SessionException, ExecutionException {
         CloseStatementReq req = new CloseStatementReq(sessionId, queryId);
-        try {
-            Status status;
-            do {
-                lock.readLock().lock();
-                try {
-                    status = client.closeStatement(req);
-                } finally {
-                    lock.readLock().unlock();
-                }
-            } while(checkRedirect(status));
-            RpcUtils.verifySuccess(status);
-        } catch (TException e) {
-            throw new SessionException(e);
-        }
+        executeWithCheck(() -> client.closeStatement(req));
     }
 
     public long commitTransformJob(List<TaskInfo> taskInfoList, ExportType exportType,
@@ -1167,114 +921,55 @@ public class Session {
             req.setFileName(fileName);
         }
 
-        CommitTransformJobResp resp;
-        try {
-            do {
-                lock.readLock().lock();
-                try {
-                    resp = client.commitTransformJob(req);
-                } finally {
-                    lock.readLock().unlock();
-                }
-            } while (checkRedirect(resp.status));
-            RpcUtils.verifySuccess(resp.status);
-        } catch (TException e) {
-            e.printStackTrace();
-            throw new SessionException(e);
-        }
-        return resp.getJobId();
+        Reference<CommitTransformJobResp> ref = new Reference<>();
+        executeWithCheck(() -> (ref.resp = client.commitTransformJob(req)).status);
+        return ref.resp.getJobId();
     }
 
     public JobState queryTransformJobStatus(long jobId) throws SessionException, ExecutionException {
         QueryTransformJobStatusReq req = new QueryTransformJobStatusReq(sessionId, jobId);
-        QueryTransformJobStatusResp resp;
-        try {
-            do {
-                lock.readLock().lock();
-                try {
-                    resp = client.queryTransformJobStatus(req);
-                } finally {
-                    lock.readLock().unlock();
-                }
-            } while(checkRedirect(resp.status));
-            RpcUtils.verifySuccess(resp.status);
-        } catch (TException e) {
-            throw new SessionException(e);
-        }
-        return resp.getJobState();
+        Reference<QueryTransformJobStatusResp> ref = new Reference<>();
+        executeWithCheck(() -> (ref.resp = client.queryTransformJobStatus(req)).status);
+        return ref.resp.getJobState();
     }
 
     public List<Long> showEligibleJob(JobState jobState) throws SessionException, ExecutionException {
         ShowEligibleJobReq req = new ShowEligibleJobReq(sessionId, jobState);
-        ShowEligibleJobResp resp;
-        try {
-            do {
-                lock.readLock().lock();
-                try {
-                    resp = client.showEligibleJob(req);
-                } finally {
-                    lock.readLock().unlock();
-                }
-            } while(checkRedirect(resp.status));
-            RpcUtils.verifySuccess(resp.status);
-        } catch (TException e) {
-            throw new SessionException(e);
-        }
-        return resp.getJobIdList();
+        Reference<ShowEligibleJobResp> ref = new Reference<>();
+        executeWithCheck(() -> (ref.resp = client.showEligibleJob(req)).status);
+        return ref.resp.getJobIdList();
     }
 
     public void cancelTransformJob(long jobId) throws SessionException, ExecutionException {
         CancelTransformJobReq req = new CancelTransformJobReq(sessionId, jobId);
-        try {
-            Status status;
-            do {
-                lock.readLock().lock();
-                try {
-                    status = client.cancelTransformJob(req);
-                } finally {
-                    lock.readLock().unlock();
-                }
-            } while(checkRedirect(status));
-            RpcUtils.verifySuccess(status);
-        } catch (TException e) {
-            throw new SessionException(e);
-        }
+        executeWithCheck(() -> client.cancelTransformJob(req));
     }
 
     public CurveMatchResult curveMatch(List<String> paths, long startTime, long endTime, List<Double> curveQuery, long curveUnit) throws SessionException, ExecutionException {
         CurveMatchReq req = new CurveMatchReq(sessionId, paths, startTime, endTime, curveQuery, curveUnit);
-        CurveMatchResp resp;
-        try {
-            do {
-                lock.readLock().lock();
-                try {
-                    resp = client.curveMatch(req);
-                } finally {
-                    lock.readLock().unlock();
-                }
-            } while(checkRedirect(resp.status));
-            RpcUtils.verifySuccess(resp.status);
-        } catch (TException e) {
-            throw new SessionException(e);
-        }
-        return new CurveMatchResult(resp.getMatchedTimestamp(), resp.getMatchedPath());
+        Reference<CurveMatchResp> ref = new Reference<>();
+        executeWithCheck(() -> (ref.resp = client.curveMatch(req)).status);
+        return new CurveMatchResult(ref.resp.getMatchedTimestamp(), ref.resp.getMatchedPath());
     }
 
     public void removeHistoryDataSource(List<RemovedStorageEngineInfo> removedStorageEngineList) throws SessionException, ExecutionException {
         RemoveHistoryDataSourceReq req = new RemoveHistoryDataSourceReq(sessionId, removedStorageEngineList);
-        try {
-            Status status;
-            do {
-                lock.readLock().lock();
-                try {
-                    status = client.removeHistoryDataSource(req);
-                } finally {
-                    lock.readLock().unlock();
-                }
-            } while(checkRedirect(status));
-            RpcUtils.verifySuccess(status);
-        } catch (TException e) {
-            throw new SessionException(e);
-        }
+        executeWithCheck(() -> client.removeHistoryDataSource(req));
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public String getHost() {
+        return host;
+    }
+
+    public int getPort() {
+        return port;
     }
 }
