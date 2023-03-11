@@ -60,7 +60,7 @@ runs:
       run: |
         if [ "$RUNNER_OS" == "Linux" ]; then
           chmod +x "${GITHUB_WORKSPACE}/.github/mongodb.sh"
-          "${GITHUB_WORKSPACE}/.github/parquet.sh"
+          "${GITHUB_WORKSPACE}/.github/mongodb.sh"
         elif [ "$RUNNER_OS" == "macOS" ]; then
           chmod +x "${GITHUB_WORKSPACE}/.github/mongodb_macos.sh"
           "${GITHUB_WORKSPACE}/.github/mongodb_macos.sh"
