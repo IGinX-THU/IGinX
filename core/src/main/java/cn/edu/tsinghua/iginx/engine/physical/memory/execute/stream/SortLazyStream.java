@@ -19,29 +19,34 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Sort;
 
-import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
+import java.util.LinkedList;
+import java.util.List;
 
 public class SortLazyStream extends UnaryLazyStream {
 
     private final Sort sort;
 
-    private boolean asc;
+    private final boolean asc;
 
-    private Deque<Row> stack;
+    private final List<Row> rows;
+
+    private boolean hasSorted = false;
+
+    private int cur = 0;
 
     public SortLazyStream(Sort sort, RowStream stream) {
         super(stream);
         this.sort = sort;
         this.asc = sort.getSortType() == Sort.SortType.ASC;
-        if (!asc) {
-            stack = new ArrayDeque<>();
-        }
+        this.rows = new ArrayList<>();
     }
 
     @Override
@@ -51,10 +56,14 @@ public class SortLazyStream extends UnaryLazyStream {
 
     @Override
     public boolean hasNext() throws PhysicalException {
-        if (asc) {
-            return stream.hasNext();
+        if (!hasSorted) {
+            while (stream.hasNext()) {
+                rows.add(stream.next());
+            }
+            RowUtils.sortRows(rows, asc, sort.getSortByCols());
+            hasSorted = true;
         }
-        return !stack.isEmpty() || stream.hasNext();
+        return cur < rows.size();
     }
 
     @Override
@@ -62,12 +71,6 @@ public class SortLazyStream extends UnaryLazyStream {
         if (!hasNext()) {
             throw new IllegalStateException("row stream doesn't have more data!");
         }
-        if (asc) {
-            return stream.next();
-        }
-        while(stream.hasNext()) {
-            stack.push(stream.next());
-        }
-        return stack.pop();
+        return rows.get(cur++);
     }
 }

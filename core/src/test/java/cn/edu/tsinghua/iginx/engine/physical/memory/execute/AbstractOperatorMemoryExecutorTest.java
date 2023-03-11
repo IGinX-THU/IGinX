@@ -1112,6 +1112,110 @@ public abstract class AbstractOperatorMemoryExecutorTest {
         }
         
     }
+
+    @Test
+    public void testSingleJoin() throws PhysicalException {
+        Table tableA = generateTableFromValues(
+                true,
+                Arrays.asList(
+                        new Field("a.a", DataType.INTEGER),
+                        new Field("a.b", DataType.DOUBLE),
+                        new Field("a.c", DataType.BOOLEAN)
+                ),
+                Arrays.asList(
+                        Arrays.asList(2, 2.0, true),
+                        Arrays.asList(3, 3.0, false),
+                        Arrays.asList(4, 4.0, true),
+                        Arrays.asList(5, 5.0, false),
+                        Arrays.asList(6, 6.0, true)
+                ));
+
+        Table tableB = generateTableFromValues(
+                true,
+                Arrays.asList(
+                        new Field("b.b", DataType.INTEGER),
+                        new Field("b.e", DataType.BOOLEAN)
+                ),
+                Collections.singletonList(
+                        Arrays.asList(1, true)
+                ));
+
+        Table tableC = generateTableFromValues(
+                true,
+                Arrays.asList(
+                        new Field("c.a", DataType.INTEGER),
+                        new Field("c.b", DataType.DOUBLE),
+                        new Field("c.c", DataType.BOOLEAN)
+                ),
+                Arrays.asList(
+                        Arrays.asList(2, 2.0, false),
+                        Arrays.asList(3, 3.0, true),
+                        Arrays.asList(4, 4.0, false),
+                        Arrays.asList(5, 5.0, true),
+                        Arrays.asList(6, 6.0, false)
+                ));
+
+        {
+            tableA.reset();
+            tableB.reset();
+
+            SingleJoin singleJoin = new SingleJoin(
+                    EmptySource.EMPTY_SOURCE,
+                    EmptySource.EMPTY_SOURCE,
+                    new BoolFilter(true));
+
+            Table target = generateTableFromValues(
+                    true,
+                    Arrays.asList(
+                            new Field("a.a", DataType.INTEGER),
+                            new Field("a.b", DataType.DOUBLE),
+                            new Field("a.c", DataType.BOOLEAN),
+                            new Field("b.b", DataType.INTEGER),
+                            new Field("b.e", DataType.BOOLEAN)
+                    ),
+                    Arrays.asList(
+                            Arrays.asList(2, 2.0, true, 1, true),
+                            Arrays.asList(3, 3.0, false, 1, true),
+                            Arrays.asList(4, 4.0, true, 1, true),
+                            Arrays.asList(5, 5.0, false, 1, true),
+                            Arrays.asList(6, 6.0, true, 1, true)
+                    ));
+
+            RowStream stream = getExecutor().executeBinaryOperator(singleJoin, tableA, tableB);
+            assertStreamEqual(stream, target);
+        }
+
+        {
+            tableA.reset();
+            tableC.reset();
+
+            SingleJoin singleJoin = new SingleJoin(
+                    EmptySource.EMPTY_SOURCE,
+                    EmptySource.EMPTY_SOURCE,
+                    new PathFilter("a.b", Op.E, "c.b"));
+
+            Table target = generateTableFromValues(
+                    true,
+                    Arrays.asList(
+                            new Field("a.a", DataType.INTEGER),
+                            new Field("a.b", DataType.DOUBLE),
+                            new Field("a.c", DataType.BOOLEAN),
+                            new Field("c.a", DataType.INTEGER),
+                            new Field("c.b", DataType.DOUBLE),
+                            new Field("c.c", DataType.BOOLEAN)
+                    ),
+                    Arrays.asList(
+                            Arrays.asList(2, 2.0, true, 2, 2.0, false),
+                            Arrays.asList(3, 3.0, false, 3, 3.0, true),
+                            Arrays.asList(4, 4.0, true, 4, 4.0, false),
+                            Arrays.asList(5, 5.0, false, 5, 5.0, true),
+                            Arrays.asList(6, 6.0, true, 6, 6.0, false)
+                    ));
+
+            RowStream stream = getExecutor().executeBinaryOperator(singleJoin, tableA, tableC);
+            assertStreamEqual(stream, target);
+        }
+    }
     
     // for debug
     private Table transformToTable(RowStream stream) throws PhysicalException {
@@ -1351,7 +1455,7 @@ public abstract class AbstractOperatorMemoryExecutorTest {
     @Test
     public void testSortByTimeAsc() throws PhysicalException {
         Table table = generateTableForUnaryOperator(true);
-        Sort sort = new Sort(EmptySource.EMPTY_SOURCE, Constants.KEY, Sort.SortType.ASC);
+        Sort sort = new Sort(EmptySource.EMPTY_SOURCE, Collections.singletonList(Constants.KEY), Sort.SortType.ASC);
         RowStream stream = getExecutor().executeUnaryOperator(sort, table);
         assertEquals(table.getHeader(), stream.getHeader());
         int index = 0;
@@ -1367,7 +1471,7 @@ public abstract class AbstractOperatorMemoryExecutorTest {
     @Test
     public void testSortByTimeDesc() throws PhysicalException {
         Table table = generateTableForUnaryOperator(true);
-        Sort sort = new Sort(EmptySource.EMPTY_SOURCE, Constants.KEY, Sort.SortType.DESC);
+        Sort sort = new Sort(EmptySource.EMPTY_SOURCE, Collections.singletonList(Constants.KEY), Sort.SortType.DESC);
         RowStream stream = getExecutor().executeUnaryOperator(sort, table);
         assertEquals(table.getHeader(), stream.getHeader());
         int index = table.getRowSize();
@@ -1384,9 +1488,8 @@ public abstract class AbstractOperatorMemoryExecutorTest {
     @Test(expected = InvalidOperatorParameterException.class)
     public void testSortByOtherField() throws PhysicalException {
         Table table = generateTableForUnaryOperator(true);
-        Sort sort = new Sort(EmptySource.EMPTY_SOURCE, "a.a.b", Sort.SortType.ASC);
+        Sort sort = new Sort(EmptySource.EMPTY_SOURCE, Collections.singletonList("a.a.b"), Sort.SortType.ASC);
         getExecutor().executeUnaryOperator(sort, table);
-        fail();
     }
 
     @Test

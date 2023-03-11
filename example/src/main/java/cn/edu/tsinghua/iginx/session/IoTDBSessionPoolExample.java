@@ -9,9 +9,7 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 import org.apache.commons.lang3.RandomStringUtils;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class IoTDBSessionPoolExample {
     private static final String S1 = "sg.d1.s1";
