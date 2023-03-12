@@ -137,6 +137,15 @@ public class PostgreSQLQueryRowStream implements RowStream {
                     }
                 }
             }
+            boolean f = false;  //判断是否是全为空的行
+            for (Object i : values) {
+                if (i != null) {
+                    f = true;
+                }
+            }
+            if (!f && timestamp == 0) {
+                return next();
+            }
             return new Row(header, timestamp, values);
         } catch (Exception e) {
             logger.info("error:", e);
