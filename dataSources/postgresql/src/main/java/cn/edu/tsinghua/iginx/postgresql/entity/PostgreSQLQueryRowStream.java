@@ -78,6 +78,52 @@ public class PostgreSQLQueryRowStream implements RowStream {
 
     @Override
     public boolean hasNext() {
+        boolean f = false;  //判断是否是全为空的行
+        for (Object i : currValues) {
+            if (i != null) {
+                f = true;
+            }
+        }
+        long timestamp = Long.MAX_VALUE;
+        for (long currTimestamp : this.currTimestamps) {
+            if (currTimestamp != Long.MIN_VALUE) {
+                timestamp = Math.min(timestamp, currTimestamp);
+            }
+        }
+        if (!f && timestamp == 0) {
+            try {
+                for (int i = 0; i < this.currTimestamps.length; i++) {
+                    ResultSet resultSet = this.resultSets.get(i);
+                    if (resultSet.next()) {
+                        if (isdummy) {
+                            this.currTimestamps[i] = toHash(resultSet.getString(1));
+                        } else {
+                            this.currTimestamps[i] = resultSet.getLong(1);
+                        }
+                        String typeName = "";
+                        if (resultSet.getObject(2) != null) {
+                            typeName = resultSet.getObject(2).getClass().getTypeName();
+                        } else {
+                            typeName = "null";
+                        }
+                        if (typeName.contains("String")) {
+                            this.currValues[i] = resultSet.getObject(2).toString().getBytes();
+                        } else {
+                            this.currValues[i] = resultSet.getObject(2);
+                        }
+                    } else {
+                        // 值已经取完
+                        this.currTimestamps[i] = Long.MIN_VALUE;
+                        this.currValues[i] = null;
+                    }
+                }
+            } catch (Exception e) {
+                //error
+                logger.error("error in postgresqlrowstream ");
+            }
+            return hasNext();
+        }
+
         for (long currTimestamp : this.currTimestamps) {
             if (currTimestamp != Long.MIN_VALUE) {
                 return true;
@@ -136,15 +182,6 @@ public class PostgreSQLQueryRowStream implements RowStream {
                         this.currValues[i] = null;
                     }
                 }
-            }
-            boolean f = false;  //判断是否是全为空的行
-            for (Object i : values) {
-                if (i != null) {
-                    f = true;
-                }
-            }
-            if (!f && timestamp == 0) {
-                return next();
             }
             return new Row(header, timestamp, values);
         } catch (Exception e) {
