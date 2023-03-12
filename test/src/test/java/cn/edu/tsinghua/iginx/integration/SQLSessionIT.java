@@ -77,7 +77,7 @@ public abstract class SQLSessionIT {
         session.closeSession();
     }
 
-    //    @Before
+    @Before
     public void insertData() throws ExecutionException, SessionException {
         String insertStrPrefix = "INSERT INTO us.d1 (key, s1, s2, s3, s4) values ";
 
