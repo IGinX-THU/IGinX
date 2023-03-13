@@ -2764,6 +2764,226 @@ public abstract class SQLSessionIT {
     }
 
     @Test
+    public void testSelectSubQuery() {
+        String insert = "INSERT INTO test.a(key, a, b, c, d) VALUES (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), " +
+            "(3, 2, 2, 1.1, \"val7\"), (4, 3, 2, 2.1, \"val8\"), (5, 1, 2, 3.1, \"val1\"), (6, 2, 2, 5.1, \"val3\");";
+        execute(insert);
+        insert = "INSERT INTO test.b(key, a, b, c, d) VALUES (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), " +
+            "(3, 2, 2, 1.1, \"val3\"), (4, 3, 2, 2.1, \"val2\"), (5, 1, 2, 3.1, \"val2\"), (6, 2, 2, 5.1, \"val3\");";
+        execute(insert);
+        insert = "INSERT INTO test.c(key, a, b, c, d) VALUES (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), " +
+            "(3, 2, 2, 1.1, \"val3\"), (4, 3, 2, 2.1, \"val4\"), (5, 1, 2, 3.1, \"val5\"), (6, 2, 2, 5.1, \"val6\");";
+        execute(insert);
+    
+        String statement = "SELECT a FROM test.a;";
+        String expected = "ResultSets:\n" +
+            "+---+--------+\n" +
+            "|key|test.a.a|\n" +
+            "+---+--------+\n" +
+            "|  1|       3|\n" +
+            "|  2|       1|\n" +
+            "|  3|       2|\n" +
+            "|  4|       3|\n" +
+            "|  5|       1|\n" +
+            "|  6|       2|\n" +
+            "+---+--------+\n" +
+            "Total line number = 6\n";
+        executeAndCompare(statement, expected);
+    
+        statement = "SELECT AVG(a) FROM test.b;";
+        expected = "ResultSets:\n" +
+            "+-------------+\n" +
+            "|avg(test.b.a)|\n" +
+            "+-------------+\n" +
+            "|          2.0|\n" +
+            "+-------------+\n" +
+            "Total line number = 1\n";
+        executeAndCompare(statement, expected);
+
+        statement = "SELECT a, (SELECT AVG(a) FROM test.b) FROM test.a;";
+        expected = "ResultSets:\n" +
+            "+---+--------+-------------+\n" +
+            "|key|test.a.a|avg(test.b.a)|\n" +
+            "+---+--------+-------------+\n" +
+            "|  1|       3|          2.0|\n" +
+            "|  2|       1|          2.0|\n" +
+            "|  3|       2|          2.0|\n" +
+            "|  4|       3|          2.0|\n" +
+            "|  5|       1|          2.0|\n" +
+            "|  6|       2|          2.0|\n" +
+            "+---+--------+-------------+\n" +
+            "Total line number = 6\n";
+        executeAndCompare(statement, expected);
+
+        statement = "SELECT a, (SELECT AVG(a) FROM test.b) FROM test.a WHERE a > 1;";
+        expected = "ResultSets:\n" +
+            "+---+--------+-------------+\n" +
+            "|key|test.a.a|avg(test.b.a)|\n" +
+            "+---+--------+-------------+\n" +
+            "|  1|       3|          2.0|\n" +
+            "|  3|       2|          2.0|\n" +
+            "|  4|       3|          2.0|\n" +
+            "|  6|       2|          2.0|\n" +
+            "+---+--------+-------------+\n" +
+            "Total line number = 4\n";
+        executeAndCompare(statement, expected);
+    
+        statement = "SELECT d, AVG(a) FROM test.b GROUP BY d HAVING avg(a) > 2;";
+        expected = "ResultSets:\n" +
+            "+--------+-------------+\n" +
+            "|test.b.d|avg(test.b.a)|\n" +
+            "+--------+-------------+\n" +
+            "|    val1|          3.0|\n" +
+            "+--------+-------------+\n" +
+            "Total line number = 1\n";
+        executeAndCompare(statement, expected);
+    
+        statement = "SELECT a, (SELECT d, AVG(a) FROM test.b GROUP BY d HAVING avg(test.b.a) > 2) FROM test.a;";
+        expected = "ResultSets:\n" +
+            "+---+--------+--------+-------------+\n" +
+            "|key|test.a.a|test.b.d|avg(test.b.a)|\n" +
+            "+---+--------+--------+-------------+\n" +
+            "|  1|       3|    val1|          3.0|\n" +
+            "|  2|       1|    val1|          3.0|\n" +
+            "|  3|       2|    val1|          3.0|\n" +
+            "|  4|       3|    val1|          3.0|\n" +
+            "|  5|       1|    val1|          3.0|\n" +
+            "|  6|       2|    val1|          3.0|\n" +
+            "+---+--------+--------+-------------+\n" +
+            "Total line number = 6\n";
+        executeAndCompare(statement, expected);
+
+        statement = "SELECT a, 1 + (SELECT AVG(a) FROM test.b) FROM test.a;";
+        expected = "ResultSets:\n" +
+            "+---+--------+-----------------+\n" +
+            "|key|test.a.a|1 + avg(test.b.a)|\n" +
+            "+---+--------+-----------------+\n" +
+            "|  1|       3|              3.0|\n" +
+            "|  2|       1|              3.0|\n" +
+            "|  3|       2|              3.0|\n" +
+            "|  4|       3|              3.0|\n" +
+            "|  5|       1|              3.0|\n" +
+            "|  6|       2|              3.0|\n" +
+            "+---+--------+-----------------+\n" +
+            "Total line number = 6\n";
+        executeAndCompare(statement, expected);
+
+        statement = "SELECT a / (SELECT AVG(a) FROM test.b) FROM test.a;";
+        expected = "ResultSets:\n" +
+            "+---+------------------------+\n" +
+            "|key|test.a.a ÷ avg(test.b.a)|\n" +
+            "+---+------------------------+\n" +
+            "|  1|                     1.5|\n" +
+            "|  2|                     0.5|\n" +
+            "|  3|                     1.0|\n" +
+            "|  4|                     1.5|\n" +
+            "|  5|                     0.5|\n" +
+            "|  6|                     1.0|\n" +
+            "+---+------------------------+\n" +
+            "Total line number = 6\n";
+        executeAndCompare(statement, expected);
+
+        statement = "SELECT a / (1 + (SELECT AVG(a) FROM test.b)) FROM test.a;";
+        expected = "ResultSets:\n" +
+            "+---+------------------------------+\n" +
+            "|key|test.a.a ÷ (1 + avg(test.b.a))|\n" +
+            "+---+------------------------------+\n" +
+            "|  1|                           1.0|\n" +
+            "|  2|            0.3333333333333333|\n" +
+            "|  3|            0.6666666666666666|\n" +
+            "|  4|                           1.0|\n" +
+            "|  5|            0.3333333333333333|\n" +
+            "|  6|            0.6666666666666666|\n" +
+            "+---+------------------------------+\n" +
+            "Total line number = 6\n";
+        executeAndCompare(statement, expected);
+    
+        statement = "SELECT a, (SELECT AVG(a) AS a1 FROM test.b GROUP BY d HAVING avg(test.b.a) > 2) * (SELECT AVG(a) AS a2 FROM test.b) FROM test.a;";
+        expected = "ResultSets:\n" +
+            "+---+--------+-------+\n" +
+            "|key|test.a.a|a1 × a2|\n" +
+            "+---+--------+-------+\n" +
+            "|  1|       3|    6.0|\n" +
+            "|  2|       1|    6.0|\n" +
+            "|  3|       2|    6.0|\n" +
+            "|  4|       3|    6.0|\n" +
+            "|  5|       1|    6.0|\n" +
+            "|  6|       2|    6.0|\n" +
+            "+---+--------+-------+\n" +
+            "Total line number = 6\n";
+        executeAndCompare(statement, expected);
+
+        statement = "SELECT test.a.a, test.c.a FROM test.a INNER JOIN test.c ON test.a.d = test.c.d";
+        expected = "ResultSets:\n" +
+            "+--------+--------+\n" +
+            "|test.a.a|test.c.a|\n" +
+            "+--------+--------+\n" +
+            "|       3|       3|\n" +
+            "|       1|       1|\n" +
+            "|       1|       3|\n" +
+            "|       2|       2|\n" +
+            "+--------+--------+\n" +
+            "Total line number = 4\n";
+        executeAndCompare(statement, expected);
+
+        statement = "SELECT test.a.a, test.c.a, (SELECT AVG(a) FROM test.b) FROM test.a INNER JOIN test.c ON test.a.d = test.c.d";
+        expected = "ResultSets:\n" +
+            "+--------+--------+-------------+\n" +
+            "|test.a.a|test.c.a|avg(test.b.a)|\n" +
+            "+--------+--------+-------------+\n" +
+            "|       3|       3|          2.0|\n" +
+            "|       1|       1|          2.0|\n" +
+            "|       1|       3|          2.0|\n" +
+            "|       2|       2|          2.0|\n" +
+            "+--------+--------+-------------+\n" +
+            "Total line number = 4\n";
+        executeAndCompare(statement, expected);
+    }
+
+    @Test
+    public void testMixedSubQuery() {
+        String insert = "INSERT INTO test.a(key, a, b, c, d) VALUES (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), " +
+                "(3, 2, 2, 1.1, \"val7\"), (4, 3, 2, 2.1, \"val8\"), (5, 1, 2, 3.1, \"val1\"), (6, 2, 2, 5.1, \"val3\");";
+        execute(insert);
+        insert = "INSERT INTO test.b(key, a, b, c, d) VALUES (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), " +
+                "(3, 2, 2, 1.1, \"val3\"), (4, 3, 2, 2.1, \"val2\"), (5, 1, 2, 3.1, \"val2\"), (6, 2, 2, 5.1, \"val3\");";
+        execute(insert);
+        insert = "INSERT INTO test.c(key, a, b, c, d) VALUES (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), " +
+                "(3, 2, 2, 1.1, \"val3\"), (4, 3, 2, 2.1, \"val4\"), (5, 1, 2, 3.1, \"val5\"), (6, 2, 2, 5.1, \"val6\");";
+        execute(insert);
+
+        String statement = "SELECT test.a.a FROM (SELECT * FROM test.a);";
+        String expected = "ResultSets:\n" +
+            "+---+--------+\n" +
+            "|key|test.a.a|\n" +
+            "+---+--------+\n" +
+            "|  1|       3|\n" +
+            "|  2|       1|\n" +
+            "|  3|       2|\n" +
+            "|  4|       3|\n" +
+            "|  5|       1|\n" +
+            "|  6|       2|\n" +
+            "+---+--------+\n" +
+            "Total line number = 6\n";
+        executeAndCompare(statement, expected);
+
+        statement = "SELECT test.a.a, (SELECT AVG(a) FROM test.b) FROM (SELECT * FROM test.a);";
+        expected = "ResultSets:\n" +
+            "+---+--------+-------------+\n" +
+            "|key|test.a.a|avg(test.b.a)|\n" +
+            "+---+--------+-------------+\n" +
+            "|  1|       3|          2.0|\n" +
+            "|  2|       1|          2.0|\n" +
+            "|  3|       2|          2.0|\n" +
+            "|  4|       3|          2.0|\n" +
+            "|  5|       1|          2.0|\n" +
+            "|  6|       2|          2.0|\n" +
+            "+---+--------+-------------+\n" +
+            "Total line number = 6\n";
+        executeAndCompare(statement, expected);
+    }
+
+    @Test
     public void testDateFormat() {
         if (!isAbleToDelete) {
             return;
