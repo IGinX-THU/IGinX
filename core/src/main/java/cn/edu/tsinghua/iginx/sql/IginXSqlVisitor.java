@@ -329,11 +329,11 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     private JoinType parseJoinType(JoinContext joinContext) {
         if (joinContext.NATURAL() != null) {
             if (joinContext.LEFT() != null) {
-                return JoinType.LeftNatualJoin;
+                return JoinType.LeftNaturalJoin;
             } else if (joinContext.RIGHT() != null) {
-                return JoinType.RightNatualJoin;
+                return JoinType.RightNaturalJoin;
             } else {
-                return JoinType.InnerNatualJoin;
+                return JoinType.InnerNaturalJoin;
             }
         } else if (joinContext.LEFT() != null) {
             return JoinType.LeftOuterJoin;

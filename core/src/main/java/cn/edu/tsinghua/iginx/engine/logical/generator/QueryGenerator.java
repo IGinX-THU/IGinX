@@ -365,13 +365,13 @@ public class QueryGenerator extends AbstractGenerator {
                 case InnerJoin:
                     left = new InnerJoin(new OperatorSource(left), new OperatorSource(right), prefixA, prefixB, filter, joinColumns, false, joinAlgType);
                     break;
-                case InnerNatualJoin:
+                case InnerNaturalJoin:
                     left = new InnerJoin(new OperatorSource(left), new OperatorSource(right), prefixA, prefixB, filter, joinColumns, true, joinAlgType);
                     break;
-                case LeftNatualJoin:
+                case LeftNaturalJoin:
                     left = new OuterJoin(new OperatorSource(left), new OperatorSource(right), prefixA, prefixB, OuterJoinType.LEFT, filter, joinColumns, true, joinAlgType);
                     break;
-                case RightNatualJoin:
+                case RightNaturalJoin:
                     new OuterJoin(new OperatorSource(left), new OperatorSource(right), prefixA, prefixB, OuterJoinType.RIGHT, filter, joinColumns, true, joinAlgType);
                     break;
                 case FullOuterJoin:
