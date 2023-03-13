@@ -555,8 +555,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     private void parseSpecialClause(SpecialClauseContext ctx, SelectStatement selectStatement) {
         if (ctx.downsampleWithLevelClause() != null) {
             // downsampleWithLevelClause = downsampleClause + aggregateWithLevelClause
-            parseDownsampleClause(ctx.downsampleClause(), selectStatement);
-            parseAggregateWithLevelClause(ctx.aggregateWithLevelClause().INT(), selectStatement);
+            parseDownsampleClause(ctx.downsampleWithLevelClause().downsampleClause(), selectStatement);
+            parseAggregateWithLevelClause(ctx.downsampleWithLevelClause().aggregateWithLevelClause().INT(), selectStatement);
         }
         if (ctx.downsampleClause() != null) {
             parseDownsampleClause(ctx.downsampleClause(), selectStatement);

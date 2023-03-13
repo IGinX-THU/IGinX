@@ -336,7 +336,7 @@ public class ExprUtils {
                 break;
             case Or:
                 List<TimeRange> ranges = getTimeRangeFromOrFilter((OrFilter) f);
-                if (ranges != null && !ranges.isEmpty()) {
+                if (!ranges.isEmpty()) {
                     timeRanges.addAll(ranges);
                 }
                 break;
@@ -452,8 +452,6 @@ public class ExprUtils {
                     andChildren.set(i, childFilter);
                 }
                 return new AndFilter(andChildren);
-            case Key:
-                return filter;
             case Value:
                 String path = ((ValueFilter) filter).getPath();
                 if (interval.getStartTimeSeries() != null && interval.getStartTimeSeries().compareTo(path) > 0) {
