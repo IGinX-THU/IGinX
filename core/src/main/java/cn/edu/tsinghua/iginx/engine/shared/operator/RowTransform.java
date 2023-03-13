@@ -23,32 +23,50 @@ import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class RowTransform extends AbstractUnaryOperator {
 
-    private final FunctionCall functionCall;
+    private final List<FunctionCall> functionCallList;
 
     public RowTransform(Source source, FunctionCall functionCall) {
         super(OperatorType.RowTransform, source);
+        this.functionCallList = new ArrayList<>();
         if (functionCall == null || functionCall.getFunction() == null) {
             throw new IllegalArgumentException("function shouldn't be null");
         }
         if (functionCall.getFunction().getMappingType() != MappingType.RowMapping) {
             throw new IllegalArgumentException("function should be set mapping function");
         }
-        this.functionCall = functionCall;
+        this.functionCallList.add(functionCall);
     }
 
-    public FunctionCall getFunctionCall() {
-        return functionCall;
+    public RowTransform(Source source, List<FunctionCall> functionCallList) {
+        super(OperatorType.RowTransform, source);
+        this.functionCallList = new ArrayList<>();
+        functionCallList.forEach(functionCall -> {
+            if (functionCall == null || functionCall.getFunction() == null) {
+                throw new IllegalArgumentException("function shouldn't be null");
+            }
+            if (functionCall.getFunction().getMappingType() != MappingType.RowMapping) {
+                throw new IllegalArgumentException("function should be set mapping function");
+            }
+            this.functionCallList.add(functionCall);
+        });
+    }
+
+    public List<FunctionCall> getFunctionCallList() {
+        return functionCallList;
     }
 
     @Override
     public Operator copy() {
-        return new RowTransform(getSource().copy(), functionCall.copy());
+        return new RowTransform(getSource().copy(), new ArrayList<>(functionCallList));
     }
 
     @Override
     public String getInfo() {
-        return "Func: " + functionCall.toString();
+        return "FuncList: " + functionCallList.toString();
     }
 }

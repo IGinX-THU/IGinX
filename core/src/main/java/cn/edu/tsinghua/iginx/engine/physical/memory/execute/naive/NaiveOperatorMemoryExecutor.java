@@ -36,8 +36,27 @@ import cn.edu.tsinghua.iginx.engine.shared.function.MappingFunction;
 import cn.edu.tsinghua.iginx.engine.shared.function.RowMappingFunction;
 import cn.edu.tsinghua.iginx.engine.shared.function.SetMappingFunction;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils;
-import cn.edu.tsinghua.iginx.engine.shared.operator.*;
+import cn.edu.tsinghua.iginx.engine.shared.operator.AddSchemaPrefix;
+import cn.edu.tsinghua.iginx.engine.shared.operator.BinaryOperator;
+import cn.edu.tsinghua.iginx.engine.shared.operator.CrossJoin;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Downsample;
+import cn.edu.tsinghua.iginx.engine.shared.operator.GroupBy;
+import cn.edu.tsinghua.iginx.engine.shared.operator.InnerJoin;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Join;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Limit;
+import cn.edu.tsinghua.iginx.engine.shared.operator.MappingTransform;
+import cn.edu.tsinghua.iginx.engine.shared.operator.OuterJoin;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Rename;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Reorder;
+import cn.edu.tsinghua.iginx.engine.shared.operator.RowTransform;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
+import cn.edu.tsinghua.iginx.engine.shared.operator.SetTransform;
+import cn.edu.tsinghua.iginx.engine.shared.operator.SingleJoin;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Sort;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Sort.SortType;
+import cn.edu.tsinghua.iginx.engine.shared.operator.UnaryOperator;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Union;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.FilterType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
@@ -47,8 +66,20 @@ import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.TreeMap;
 import java.util.regex.Pattern;
+
+import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.combineMultipleColumns;
 
 public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
 
@@ -110,6 +141,9 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
             case OuterJoin:
                 return executeOuterJoin((OuterJoin) operator, transformToTable(streamA),
                     transformToTable(streamB));
+            case SingleJoin:
+                return executeSingleJoin((SingleJoin) operator, transformToTable(streamA),
+                    transformToTable(streamB));
             case Union:
                 return executeUnion((Union) operator, transformToTable(streamA),
                     transformToTable(streamB));
@@ -140,7 +174,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         for (Field field : header.getFields()) {
             for (String pattern : patterns) {
                 if (!StringUtils.isPattern(pattern)) {
-                    if (pattern.equals(field.getName()) || field.getName().startsWith(pattern)) {
+                    if (pattern.equals(field.getName())) {
                         targetFields.add(field);
                     }
                 } else {
@@ -268,21 +302,36 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
 
     private RowStream executeRowTransform(RowTransform rowTransform, Table table)
         throws PhysicalException {
-        RowMappingFunction function = (RowMappingFunction) rowTransform.getFunctionCall()
-            .getFunction();
-        Map<String, Value> params = rowTransform.getFunctionCall().getParams();
+        List<Pair<RowMappingFunction, Map<String, Value>>> list = new ArrayList<>();
+        rowTransform.getFunctionCallList().forEach(functionCall -> {
+            list.add(new Pair<>((RowMappingFunction) functionCall.getFunction(), functionCall.getParams()));
+        });
+        
         List<Row> rows = new ArrayList<>();
-        try {
-            while (table.hasNext()) {
-                Row row = function.transform(table.next(), params);
-                if (row != null) {
-                    rows.add(row);
+        while (table.hasNext()) {
+            Row current = table.next();
+            List<Row> columnList = new ArrayList<>();
+            list.forEach(pair -> {
+                RowMappingFunction function = pair.k;
+                Map<String, Value> params = pair.v;
+                try {
+                    Row column = function.transform(current, params);
+                    if (column != null) {
+                        columnList.add(column);
+                    }
+                } catch (Exception e) {
+                    try {
+                        throw new PhysicalTaskExecuteFailureException(
+                                "encounter error when execute row mapping function " + function.getIdentifier()
+                                        + ".", e);
+                    } catch (PhysicalTaskExecuteFailureException ex) {
+                        throw new RuntimeException(ex);
+                    }
                 }
+            });
+            if (columnList.size() == list.size()) {
+                rows.add(combineMultipleColumns(columnList));
             }
-        } catch (Exception e) {
-            throw new PhysicalTaskExecuteFailureException(
-                "encounter error when execute row mapping function " + function.getIdentifier()
-                    + ".", e);
         }
         if (rows.size() == 0) {
             return Table.EMPTY_TABLE;
@@ -1603,6 +1652,38 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
                         .constructUnmatchedRow(newHeader, rowsB.get(i), anotherRowSize, false);
                     transformedRows.add(unMatchedRow);
                 }
+            }
+        }
+        return new Table(newHeader, transformedRows);
+    }
+    
+    private RowStream executeSingleJoin(SingleJoin singleJoin, Table tableA, Table tableB)
+        throws PhysicalException {
+        Header newHeader = RowUtils.constructNewHead(tableA.getHeader(), tableB.getHeader(), true);
+    
+        List<Row> rowsA = tableA.getRows();
+        List<Row> rowsB = tableB.getRows();
+    
+        List<Row> transformedRows = new ArrayList<>();
+        Filter filter = singleJoin.getFilter();
+        boolean matched;
+        int anotherRowSize = tableB.getHeader().getFieldSize();
+        for (Row rowA : rowsA) {
+            matched = false;
+            for (Row rowB : rowsB) {
+                Row joinedRow = RowUtils.constructNewRow(newHeader, rowA, rowB, true);
+                if (FilterUtils.validate(filter, joinedRow)) {
+                    if (!matched) {
+                        matched = true;
+                        transformedRows.add(joinedRow);
+                    } else {
+                        throw new PhysicalException("the return value of sub-query has more than one rows");
+                    }
+                }
+            }
+            if (!matched) {
+                Row unmatchedRow = RowUtils.constructUnmatchedRow(newHeader, rowA, anotherRowSize, true);
+                transformedRows.add(unmatchedRow);
             }
         }
         return new Table(newHeader, transformedRows);
