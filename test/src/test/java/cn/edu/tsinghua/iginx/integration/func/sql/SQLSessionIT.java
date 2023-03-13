@@ -3018,6 +3018,41 @@ public abstract class SQLSessionIT {
             "Total line number = 2\n";
         executeAndCompare(statement, expected);
 
+        statement = "SELECT * FROM test.a WHERE d IN (SELECT d FROM test.b);";
+        expected = "ResultSets:\n" +
+            "+---+--------+--------+--------+--------+\n" +
+            "|key|test.a.a|test.a.b|test.a.c|test.a.d|\n" +
+            "+---+--------+--------+--------+--------+\n" +
+            "|  1|       3|       2|     3.1|    val1|\n" +
+            "|  2|       1|       3|     2.1|    val2|\n" +
+            "|  5|       1|       2|     3.1|    val1|\n" +
+            "|  6|       2|       2|     5.1|    val3|\n" +
+            "+---+--------+--------+--------+--------+\n" +
+            "Total line number = 4\n";
+        executeAndCompare(statement, expected);
+
+        statement = "SELECT * FROM test.a WHERE d NOT IN (SELECT d FROM test.b);";
+        expected = "ResultSets:\n" +
+            "+---+--------+--------+--------+--------+\n" +
+            "|key|test.a.a|test.a.b|test.a.c|test.a.d|\n" +
+            "+---+--------+--------+--------+--------+\n" +
+            "|  3|       2|       2|     1.1|    val7|\n" +
+            "|  4|       3|       2|     2.1|    val8|\n" +
+            "+---+--------+--------+--------+--------+\n" +
+            "Total line number = 2\n";
+        executeAndCompare(statement, expected);
+
+        statement = "SELECT * FROM test.a WHERE a IN (SELECT AVG(a) FROM test.b);";
+        expected = "ResultSets:\n" +
+            "+---+--------+--------+--------+--------+\n" +
+            "|key|test.a.a|test.a.b|test.a.c|test.a.d|\n" +
+            "+---+--------+--------+--------+--------+\n" +
+            "|  3|       2|       2|     1.1|    val7|\n" +
+            "|  6|       2|       2|     5.1|    val3|\n" +
+            "+---+--------+--------+--------+--------+\n" +
+            "Total line number = 2\n";
+        executeAndCompare(statement, expected);
+
     }
 
     @Test

@@ -917,6 +917,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     private Filter parsePredicateWithSubQuery(PredicateWithSubqueryContext ctx, SelectStatement statement) {
         if (ctx.EXISTS() != null) {
             return parseExistsPredicate(ctx, statement);
+        } else if (ctx.IN() != null) {
+            return parseInPredicate(ctx, statement);
         }
         return null;
     }
@@ -930,6 +932,38 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         Filter filter;
         // TODO: check correlated
         filter = new BoolFilter(true);
+        if (ctx.OPERATOR_NOT() != null) {
+            statement.addWhereSubQueryPart(new SubQueryFromPart(subStatement, new JoinCondition(JoinType.AntiMarkJoin, filter, markColumn)));
+        } else {
+            statement.addWhereSubQueryPart(new SubQueryFromPart(subStatement, new JoinCondition(JoinType.MarkJoin, filter, markColumn)));
+        }
+        return new ValueFilter(markColumn, Op.E, new Value(true));
+    }
+
+    private Filter parseInPredicate(PredicateWithSubqueryContext ctx, SelectStatement statement) {
+        SelectStatement subStatement = new SelectStatement();
+        subStatement.setIsSubQuery(true);
+        parseQueryClause(ctx.subquery().queryClause(), subStatement);
+        if (subStatement.getExpressions().size() != 1) {
+            throw new SQLParserException("The number of columns in sub-query doesn't equal to outer row.");
+        }
+        String markColumn = "&mark" + markJoinCount;
+        markJoinCount += 1;
+        Filter filter;
+        if (ctx.constant() != null) {
+            Value value = new Value(parseValue(ctx.constant()));
+            String path = subStatement.getExpressions().get(0).getColumnName();
+            filter = new ValueFilter(path, Op.E, value);
+        } else {
+            String pathA = ctx.path().getText();
+            if (!statement.hasJoinParts() && !statement.isSubQuery()
+                    && statement.getFromParts().get(0).getType() == FromPartType.PathFromPart) {
+                pathA = statement.getFromParts().get(0).getPath() + SQLConstant.DOT + pathA;
+            }
+            String pathB = subStatement.getExpressions().get(0).getColumnName();
+            filter = new PathFilter(pathA, Op.E, pathB);
+        }
+        // TODO: check correlated
         if (ctx.OPERATOR_NOT() != null) {
             statement.addWhereSubQueryPart(new SubQueryFromPart(subStatement, new JoinCondition(JoinType.AntiMarkJoin, filter, markColumn)));
         } else {
