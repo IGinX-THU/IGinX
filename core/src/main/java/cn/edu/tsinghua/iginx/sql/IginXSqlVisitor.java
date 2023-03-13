@@ -919,8 +919,12 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
             return parseExistsPredicate(ctx, statement);
         } else if (ctx.IN() != null) {
             return parseInPredicate(ctx, statement);
+        } else if (ctx.quantifier() != null) {
+            Op op = Op.str2Op(ctx.comparisonOperator().getText().trim().toLowerCase());
+            return parseQuantifierComparisonPredicate(ctx, statement);
+        } else {
+            return null;
         }
-        return null;
     }
 
     private Filter parseExistsPredicate(PredicateWithSubqueryContext ctx, SelectStatement statement) {
@@ -965,6 +969,42 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         }
         // TODO: check correlated
         if (ctx.OPERATOR_NOT() != null) {
+            statement.addWhereSubQueryPart(new SubQueryFromPart(subStatement, new JoinCondition(JoinType.AntiMarkJoin, filter, markColumn)));
+        } else {
+            statement.addWhereSubQueryPart(new SubQueryFromPart(subStatement, new JoinCondition(JoinType.MarkJoin, filter, markColumn)));
+        }
+        return new ValueFilter(markColumn, Op.E, new Value(true));
+    }
+
+    private Filter parseQuantifierComparisonPredicate(PredicateWithSubqueryContext ctx, SelectStatement statement) {
+        SelectStatement subStatement = new SelectStatement();
+        subStatement.setIsSubQuery(true);
+        parseQueryClause(ctx.subquery().queryClause(), subStatement);
+        if (subStatement.getExpressions().size() != 1) {
+            throw new SQLParserException("The number of columns in sub-query doesn't equal to outer row.");
+        }
+        String markColumn = "&mark" + markJoinCount;
+        markJoinCount += 1;
+        Filter filter;
+        Op op = Op.str2Op(ctx.comparisonOperator().getText().trim().toLowerCase());
+        if (ctx.constant() != null) {
+            Value value = new Value(parseValue(ctx.constant()));
+            String path = subStatement.getExpressions().get(0).getColumnName();
+            filter = new ValueFilter(path, op, value);
+        } else {
+            String pathA = ctx.path().getText();
+            if (!statement.hasJoinParts() && !statement.isSubQuery()
+                    && statement.getFromParts().get(0).getType() == FromPartType.PathFromPart) {
+                pathA = statement.getFromParts().get(0).getPath() + SQLConstant.DOT + pathA;
+            }
+            String pathB = subStatement.getExpressions().get(0).getColumnName();
+            filter = new PathFilter(pathA, op, pathB);
+        }
+        if (ctx.quantifier().all() != null) {
+            filter = new NotFilter(filter);
+        }
+        // TODO: check correlated
+        if (ctx.quantifier().all() != null) {
             statement.addWhereSubQueryPart(new SubQueryFromPart(subStatement, new JoinCondition(JoinType.AntiMarkJoin, filter, markColumn)));
         } else {
             statement.addWhereSubQueryPart(new SubQueryFromPart(subStatement, new JoinCondition(JoinType.MarkJoin, filter, markColumn)));
