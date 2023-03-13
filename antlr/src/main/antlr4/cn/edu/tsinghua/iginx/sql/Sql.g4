@@ -41,6 +41,7 @@ expression
     | (PLUS | MINUS) expr=expression
     | leftExpr=expression (STAR | DIV | MOD) rightExpr=expression
     | leftExpr=expression (PLUS | MINUS) rightExpr=expression
+    | subquery
     ;
 
 functionName
@@ -137,7 +138,7 @@ joinPart
     ;
 
 tableReference
-    : path | (subquery asClause?)
+    : path | subquery
     ;
 
 subquery
