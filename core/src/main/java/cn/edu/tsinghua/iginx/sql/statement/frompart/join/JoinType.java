@@ -10,6 +10,8 @@ public enum JoinType {
     LeftOuterJoin,
     RightOuterJoin,
     FullOuterJoin,
-    SingleJoin
+    SingleJoin,
+    MarkJoin,
+    AntiMarkJoin
 
 }

@@ -2942,6 +2942,85 @@ public abstract class SQLSessionIT {
     }
 
     @Test
+    public void testWhereSubQuery() {
+        String insert = "INSERT INTO test.a(key, a, b, c, d) VALUES (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), " +
+                "(3, 2, 2, 1.1, \"val7\"), (4, 3, 2, 2.1, \"val8\"), (5, 1, 2, 3.1, \"val1\"), (6, 2, 2, 5.1, \"val3\");";
+        execute(insert);
+        insert = "INSERT INTO test.b(key, a, b, c, d) VALUES (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), " +
+                "(3, 2, 2, 1.1, \"val3\"), (4, 3, 2, 2.1, \"val2\"), (5, 1, 2, 3.1, \"val2\"), (6, 2, 2, 5.1, \"val3\");";
+        execute(insert);
+        insert = "INSERT INTO test.c(key, a, b, c, d) VALUES (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), " +
+                "(3, 2, 2, 1.1, \"val3\"), (4, 3, 2, 2.1, \"val4\"), (5, 1, 2, 3.1, \"val5\"), (6, 2, 2, 5.1, \"val6\");";
+        execute(insert);
+
+        String statement = "SELECT * FROM test.a;";
+        String expected = "ResultSets:\n" +
+            "+---+--------+--------+--------+--------+\n" +
+            "|key|test.a.a|test.a.b|test.a.c|test.a.d|\n" +
+            "+---+--------+--------+--------+--------+\n" +
+            "|  1|       3|       2|     3.1|    val1|\n" +
+            "|  2|       1|       3|     2.1|    val2|\n" +
+            "|  3|       2|       2|     1.1|    val7|\n" +
+            "|  4|       3|       2|     2.1|    val8|\n" +
+            "|  5|       1|       2|     3.1|    val1|\n" +
+            "|  6|       2|       2|     5.1|    val3|\n" +
+            "+---+--------+--------+--------+--------+\n" +
+            "Total line number = 6\n";
+        executeAndCompare(statement, expected);
+
+        statement = "SELECT * FROM test.b;";
+        expected = "ResultSets:\n" +
+            "+---+--------+--------+--------+--------+\n" +
+            "|key|test.b.a|test.b.b|test.b.c|test.b.d|\n" +
+            "+---+--------+--------+--------+--------+\n" +
+            "|  1|       3|       2|     3.1|    val1|\n" +
+            "|  2|       1|       3|     2.1|    val2|\n" +
+            "|  3|       2|       2|     1.1|    val3|\n" +
+            "|  4|       3|       2|     2.1|    val2|\n" +
+            "|  5|       1|       2|     3.1|    val2|\n" +
+            "|  6|       2|       2|     5.1|    val3|\n" +
+            "+---+--------+--------+--------+--------+\n" +
+            "Total line number = 6\n";
+        executeAndCompare(statement, expected);
+
+        statement = "SELECT * FROM test.a WHERE EXISTS (SELECT * FROM test.b WHERE test.b.d = \"val2\");";
+        expected = "ResultSets:\n" +
+            "+---+--------+--------+--------+--------+\n" +
+            "|key|test.a.a|test.a.b|test.a.c|test.a.d|\n" +
+            "+---+--------+--------+--------+--------+\n" +
+            "|  1|       3|       2|     3.1|    val1|\n" +
+            "|  2|       1|       3|     2.1|    val2|\n" +
+            "|  3|       2|       2|     1.1|    val7|\n" +
+            "|  4|       3|       2|     2.1|    val8|\n" +
+            "|  5|       1|       2|     3.1|    val1|\n" +
+            "|  6|       2|       2|     5.1|    val3|\n" +
+            "+---+--------+--------+--------+--------+\n" +
+            "Total line number = 6\n";
+        executeAndCompare(statement, expected);
+
+        statement = "SELECT * FROM test.a WHERE EXISTS (SELECT * FROM test.b WHERE test.b.d = \"val4\");";
+        expected = "ResultSets:\n" +
+            "+---+\n" +
+            "|key|\n" +
+            "+---+\n" +
+            "+---+\n" +
+            "Empty set.\n";
+        executeAndCompare(statement, expected);
+
+        statement = "SELECT * FROM test.a WHERE EXISTS (SELECT * FROM test.b WHERE test.b.d = \"val4\") OR d = \"val1\";";
+        expected = "ResultSets:\n" +
+            "+---+--------+--------+--------+--------+\n" +
+            "|key|test.a.a|test.a.b|test.a.c|test.a.d|\n" +
+            "+---+--------+--------+--------+--------+\n" +
+            "|  1|       3|       2|     3.1|    val1|\n" +
+            "|  5|       1|       2|     3.1|    val1|\n" +
+            "+---+--------+--------+--------+--------+\n" +
+            "Total line number = 2\n";
+        executeAndCompare(statement, expected);
+
+    }
+
+    @Test
     public void testMixedSubQuery() {
         String insert = "INSERT INTO test.a(key, a, b, c, d) VALUES (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), " +
                 "(3, 2, 2, 1.1, \"val7\"), (4, 3, 2, 2.1, \"val8\"), (5, 1, 2, 3.1, \"val1\"), (6, 2, 2, 5.1, \"val3\");";

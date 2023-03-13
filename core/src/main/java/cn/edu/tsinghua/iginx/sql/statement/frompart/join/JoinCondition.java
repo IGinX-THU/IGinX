@@ -2,6 +2,7 @@ package cn.edu.tsinghua.iginx.sql.statement.frompart.join;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -12,6 +13,8 @@ public class JoinCondition {
     private final Filter filter;
     private final List<String> joinColumns;
 
+    private final String markColumn;
+
     public JoinCondition() {
         this(JoinType.CrossJoin, null, Collections.emptyList());
     }
@@ -20,6 +23,14 @@ public class JoinCondition {
         this.joinType = joinType;
         this.filter = filter;
         this.joinColumns = joinColumns;
+        this.markColumn = null;
+    }
+
+    public JoinCondition(JoinType joinType, Filter filter, String markColumn) {
+        this.joinType = joinType;
+        this.filter = filter;
+        this.joinColumns = new ArrayList<>();
+        this.markColumn = markColumn;
     }
 
     public JoinType getJoinType() {
@@ -33,7 +44,11 @@ public class JoinCondition {
     public List<String> getJoinColumns() {
         return joinColumns;
     }
-    
+
+    public String getMarkColumn() {
+        return markColumn;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {

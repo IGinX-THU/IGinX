@@ -74,6 +74,25 @@ predicate
     | path comparisonOperator path
     | path OPERATOR_LIKE regex=stringLiteral
     | OPERATOR_NOT? LR_BRACKET orExpression RR_BRACKET
+    | predicateWithSubquery
+    ;
+
+predicateWithSubquery
+    : OPERATOR_NOT? EXISTS subquery
+    | (path | constant) OPERATOR_NOT? IN subquery
+    | (path | constant) comparisonOperator quantifier subquery
+    ;
+
+quantifier
+    : all | some
+    ;
+
+all
+    : ALL
+    ;
+
+some
+    : SOME | ANY
     ;
 
 withClause
@@ -762,6 +781,22 @@ HISTORYDATARESOURCE
 
 EXPLAIN
     : E X P L A I N
+    ;
+
+EXISTS
+    : E X I S T S
+    ;
+
+SOME
+    : S O M E
+    ;
+
+ANY
+    : A N Y
+    ;
+
+ALL
+    : A L L
     ;
 //============================
 // End of the keywords list

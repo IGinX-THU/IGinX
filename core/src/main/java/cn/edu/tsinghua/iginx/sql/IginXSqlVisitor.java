@@ -32,6 +32,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         )
     );
 
+    private static int markJoinCount = 0;
+
     @Override
     public Statement visitSqlStatement(SqlStatementContext ctx) {
         return visit(ctx.statement());
@@ -826,7 +828,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
             Filter filter = parseOrExpression(ctx.orExpression(), statement);
             return ctx.OPERATOR_NOT() == null ? filter : new NotFilter(filter);
         } else {
-            if (ctx.path().size() == 0) {
+            if (ctx.path().size() == 0 && ctx.predicateWithSubquery() == null) {
                 return parseKeyFilter(ctx);
             } else {
                 StatementType type = statement.getType();
@@ -837,7 +839,9 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
                     );
                 }
 
-                if (ctx.path().size() == 1) {
+                if (ctx.predicateWithSubquery() != null) {
+                    return parsePredicateWithSubQuery(ctx.predicateWithSubquery(), (SelectStatement) statement);
+                } else if (ctx.path().size() == 1) {
                     return parseValueFilter(ctx, (SelectStatement) statement);
                 } else {
                     return parsePathFilter(ctx, (SelectStatement) statement);
@@ -908,6 +912,30 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         statement.setPathSet(pathA);
         statement.setPathSet(pathB);
         return new PathFilter(pathA, op, pathB);
+    }
+
+    private Filter parsePredicateWithSubQuery(PredicateWithSubqueryContext ctx, SelectStatement statement) {
+        if (ctx.EXISTS() != null) {
+            return parseExistsPredicate(ctx, statement);
+        }
+        return null;
+    }
+
+    private Filter parseExistsPredicate(PredicateWithSubqueryContext ctx, SelectStatement statement) {
+        SelectStatement subStatement = new SelectStatement();
+        subStatement.setIsSubQuery(true);
+        parseQueryClause(ctx.subquery().queryClause(), subStatement);
+        String markColumn = "&mark" + markJoinCount;
+        markJoinCount += 1;
+        Filter filter;
+        // TODO: check correlated
+        filter = new BoolFilter(true);
+        if (ctx.OPERATOR_NOT() != null) {
+            statement.addWhereSubQueryPart(new SubQueryFromPart(subStatement, new JoinCondition(JoinType.AntiMarkJoin, filter, markColumn)));
+        } else {
+            statement.addWhereSubQueryPart(new SubQueryFromPart(subStatement, new JoinCondition(JoinType.MarkJoin, filter, markColumn)));
+        }
+        return new ValueFilter(markColumn, Op.E, new Value(true));
     }
 
     private Map<String, String> parseExtra(StringLiteralContext ctx) {

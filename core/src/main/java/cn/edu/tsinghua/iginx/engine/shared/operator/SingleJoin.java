@@ -24,6 +24,6 @@ public class SingleJoin extends AbstractBinaryOperator{
 	
 	@Override
 	public String getInfo() {
-		return " Filter: " + filter.toString();
+		return "Filter: " + filter.toString();
 	}
 }
