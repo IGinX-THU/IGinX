@@ -34,7 +34,7 @@ public class TagIT {
 
     @BeforeClass
     public static void setUp() throws SessionException {
-        ifClearData = true;
+        ifClearData = false;
         session = new Session("127.0.0.1", 6888, "root", "root");
         session.openSession();
     }
