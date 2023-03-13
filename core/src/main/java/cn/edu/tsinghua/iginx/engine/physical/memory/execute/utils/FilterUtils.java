@@ -22,7 +22,15 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.BoolFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.NotFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.OrFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.ValueFilter;
 import cn.edu.tsinghua.iginx.utils.Pair;
 
 import java.util.ArrayList;
@@ -41,7 +49,8 @@ public class FilterUtils {
                 }
                 return false;
             case Bool:
-                break;
+                BoolFilter booleanFilter = (BoolFilter) filter;
+                return booleanFilter.isTrue();
             case And:
                 AndFilter andFilter = (AndFilter) filter;
                 for (Filter childFilter : andFilter.getChildren()) {

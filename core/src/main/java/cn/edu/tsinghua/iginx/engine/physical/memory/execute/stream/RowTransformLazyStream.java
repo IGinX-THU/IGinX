@@ -26,16 +26,19 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.function.RowMappingFunction;
 import cn.edu.tsinghua.iginx.engine.shared.operator.RowTransform;
+import cn.edu.tsinghua.iginx.utils.Pair;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+
+import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.combineMultipleColumns;
 
 public class RowTransformLazyStream extends UnaryLazyStream {
 
     private final RowTransform rowTransform;
 
-    private final RowMappingFunction function;
-
-    private final Map<String, Value> params;
+    private final List<Pair<RowMappingFunction, Map<String, Value>>> functionAndParamslist;
 
     private Row nextRow;
 
@@ -44,8 +47,10 @@ public class RowTransformLazyStream extends UnaryLazyStream {
     public RowTransformLazyStream(RowTransform rowTransform, RowStream stream) {
         super(stream);
         this.rowTransform = rowTransform;
-        this.function = (RowMappingFunction) rowTransform.getFunctionCall().getFunction();
-        this.params = rowTransform.getFunctionCall().getParams();
+        this.functionAndParamslist = new ArrayList<>();
+        rowTransform.getFunctionCallList().forEach(functionCall -> {
+            this.functionAndParamslist.add(new Pair<>((RowMappingFunction) functionCall.getFunction(), functionCall.getParams()));
+        });
     }
 
     @Override
@@ -60,15 +65,28 @@ public class RowTransformLazyStream extends UnaryLazyStream {
     }
 
     private Row calculateNext() throws PhysicalException {
-        try {
-            while(stream.hasNext()) {
-                Row row = function.transform(stream.next(), params);
-                if (row != null) {
-                    return row;
+        while(stream.hasNext()) {
+            List<Row> columnList = new ArrayList<>();
+            functionAndParamslist.forEach(pair -> {
+                RowMappingFunction function = pair.k;
+                Map<String, Value> params = pair.v;
+                Row column = null;
+                try {
+                    column = function.transform(stream.next(), params);
+                } catch (Exception e) {
+                    try {
+                        throw new PhysicalTaskExecuteFailureException("encounter error when execute row mapping function " + function.getIdentifier() + ".", e);
+                    } catch (PhysicalTaskExecuteFailureException ex) {
+                        throw new RuntimeException(ex);
+                    }
                 }
+                if (column != null) {
+                    columnList.add(column);
+                }
+            });
+            if (columnList.size() == functionAndParamslist.size()) {
+                return combineMultipleColumns(columnList);
             }
-        } catch (Exception e) {
-            throw new PhysicalTaskExecuteFailureException("encounter error when execute row mapping function " + function.getIdentifier() + ".", e);
         }
         return null;
     }
