@@ -29,11 +29,5 @@ jobs:
           python-version: ${{ matrix.python-version }}
           java: ${{ matrix.java }}
 
-      - name: Run ZooKeeper
-        uses: ./.github/actions/zookeeperRunner
-
-      - name: Run ETCD
-        uses: ./.github/actions/etcdRunner
-
       - name: Test with Maven
         run: mvn clean package -pl core -am
