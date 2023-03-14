@@ -167,11 +167,11 @@ public class Config {
 
     //////////////
 
-    public static final String tagNameAnnotation = SpecialCharacter.tagNameAnnotation;
+    public static final String tagNameAnnotation = SpecialCharacter.TAG_NAME_ANNOTATION;
 
-    public static final String tagPrefix = SpecialCharacter.tagPrefix;
+    public static final String tagPrefix = SpecialCharacter.TAG_PREFIX;
 
-    public static final String tagSuffix = SpecialCharacter.tagSuffix;
+    public static final String tagSuffix = SpecialCharacter.TAG_SUFFIX;
 
     /////////////
 

@@ -341,7 +341,7 @@ public class QueryParser {
         AnnotationLimit annotationLimit = new AnnotationLimit();
         List<String> category = new ArrayList<>();
         JsonNode categoryNode = anno.get("category");
-        if(categoryNode != null) {
+        if (categoryNode != null) {
             if (categoryNode.isArray())
                 for (JsonNode objNode : categoryNode)
                     category.add(objNode.asText());
@@ -364,14 +364,14 @@ public class QueryParser {
     private void setAnnotationLimit(Query ret, QueryMetric ins, JsonNode query) {
         AnnotationLimit annotationLimit = null;
         JsonNode anno = query.get("annotation");
-        if(anno != null){
+        if (anno != null) {
             annotationLimit = parserAnno(anno);
             ins.setAnnotationLimit(annotationLimit);
             ins.setAnnotation(true);
         }
         //设置annotation-new属性
         anno = query.get("annotation-new");
-        if(anno != null){
+        if (anno != null) {
             annotationLimit = parserAnno(anno);
             ins.setNewAnnotationLimit(annotationLimit);
             ins.setAnnotation(true);
@@ -532,15 +532,15 @@ public class QueryParser {
         for (int i = 0; i < anno.getQueryResultDatasets().size(); i++) {
             QueryResultDataset dataSet = anno.getQueryResultDatasets().get(i);
             QueryMetric metric = anno.getQueryMetrics().get(i);
-            for(int j=0; j<dataSet.getPaths().size(); j++) {
+            for (int j = 0; j < dataSet.getPaths().size(); j++) {
                 //只解析特定的路径信息
-                if(!dataSet.getPaths().get(j).equals(metric.getQueryOriPath())) continue;
-                String tmpPath = metric.getQueryOriPath()+dataSet.getTitles().get(j);
-                if(!paths.contains(tmpPath)) {
+                if (!dataSet.getPaths().get(j).equals(metric.getQueryOriPath())) continue;
+                String tmpPath = metric.getQueryOriPath() + dataSet.getTitles().get(j);
+                if (!paths.contains(tmpPath)) {
                     paths.add(tmpPath);
                 } else continue;
 
-                ret.append(anno.toResultStringAnno(j,i));
+                ret.append(anno.toResultStringAnno(j, i));
                 ret.append(",");
             }
         }
@@ -557,15 +557,15 @@ public class QueryParser {
         for (int i = 0; i < data.getQueryResultDatasets().size(); i++) {
             QueryResultDataset dataSet = data.getQueryResultDatasets().get(i);
             QueryMetric metric = data.getQueryMetrics().get(i);
-            for(int j=0; j<dataSet.getPaths().size(); j++) {
+            for (int j = 0; j < dataSet.getPaths().size(); j++) {
                 //只解析特定的路径信息
-                if(!dataSet.getPaths().get(j).equals(metric.getQueryOriPath())) continue;
-                String tmpPath = metric.getQueryOriPath()+dataSet.getTitles().get(j);
-                if(!paths.contains(tmpPath)) {
+                if (!dataSet.getPaths().get(j).equals(metric.getQueryOriPath())) continue;
+                String tmpPath = metric.getQueryOriPath() + dataSet.getTitles().get(j);
+                if (!paths.contains(tmpPath)) {
                     paths.add(tmpPath);
                 } else continue;
 
-                ret.append(data.toResultString(j,i));
+                ret.append(data.toResultString(j, i));
                 ret.append(",");
             }
         }
@@ -594,7 +594,7 @@ public class QueryParser {
 
     public String parseResultToAnnotationJson(QueryResult path, QueryResult anno, boolean isGrafana) {
         return "[" + path.toAnnotationResultString(anno, isGrafana) +
-            "]";
+                "]";
     }
 
     public String parseResultToGrafanaJson(QueryResult result) {
@@ -634,24 +634,24 @@ public class QueryParser {
         Map<String, String> ret = new LinkedHashMap<>();
         int firstBrace = path.indexOf("{");
         int lastBrace = path.indexOf("}");
-        if(firstBrace==-1 || lastBrace==-1) {
+        if (firstBrace == -1 || lastBrace == -1) {
             name.append(path);
             return ret;
         }
         name.append(path.substring(0, firstBrace));
-        String tagLists = path.substring(firstBrace+1, lastBrace);
+        String tagLists = path.substring(firstBrace + 1, lastBrace);
         String[] splitpaths = tagLists.split(",");
-        for(String tag : splitpaths){
+        for (String tag : splitpaths) {
             int equalPos = tag.indexOf("=");
             String tagKey = tag.substring(0, equalPos);
-            String tagVal = tag.substring(equalPos+1);
-            ret.put(tagKey,tagVal);
+            String tagVal = tag.substring(equalPos + 1);
+            ret.put(tagKey, tagVal);
         }
         return ret;
     }
 
     //将传入的path（格式为name{tagkey=tagval}）转换为正常的QueryMetric
-    public QueryMetric parseQueryResultAnnoDataPaths(String path){
+    public QueryMetric parseQueryResultAnnoDataPaths(String path) {
         StringBuilder name = new StringBuilder();
         QueryMetric queryMetric = new QueryMetric();
         Map<String, List<String>> tags = new TreeMap<>();
@@ -660,7 +660,7 @@ public class QueryParser {
         for (Map.Entry<String, String> entry : result.entrySet()) {
             List<String> val = new ArrayList<>();
             val.add(entry.getValue());
-            tags.put(entry.getKey(),val);
+            tags.put(entry.getKey(), val);
         }
         queryMetric.setTags(tags);
         queryMetric.setName(name.toString());
@@ -668,28 +668,28 @@ public class QueryParser {
     }
 
     //筛选出全部包含prefix集合信息的路径集合
-    public List<String> getPrefixPaths(List<String> Prefix, List<String> paths){
+    public List<String> getPrefixPaths(List<String> Prefix, List<String> paths) {
         List<String> ret = new ArrayList<>();
         boolean ifok = true;
-        for(String path : paths){
+        for (String path : paths) {
             ifok = true;
-            for(String prefix : Prefix){
-                if(!path.contains(prefix)) {
+            for (String prefix : Prefix) {
+                if (!path.contains(prefix)) {
                     ifok = false;
                     break;
                 }
             }
-            if(ifok) ret.add(path);
+            if (ifok) ret.add(path);
         }
         return ret;
     }
 
     //（title应用）筛选出全部包含prefix集合信息的路径集合
-    public List<String> getPathsFromAnnoTitle(String prefix, List<String> paths, List<Object> titles){
+    public List<String> getPathsFromAnnoTitle(String prefix, List<String> paths, List<Object> titles) {
         List<String> ret = new ArrayList<>();
-        for(int i=0;i<titles.size();i++){
+        for (int i = 0; i < titles.size(); i++) {
             String path = paths.get(i);
-            if(String.valueOf(titles.get(i)).contains(prefix) || prefix.equals(".*") || prefix.isEmpty()) {//LHZ这里要支持正则！！！！！一定要改
+            if (String.valueOf(titles.get(i)).contains(prefix) || prefix.equals(".*") || prefix.isEmpty()) {//LHZ这里要支持正则！！！！！一定要改
                 ret.add(path);
             }
         }
@@ -700,8 +700,8 @@ public class QueryParser {
     public Query splitPath(QueryResult result, Query queryBase) {
         Query ret = new Query();
         int pos = 0;
-        for(QueryResultDataset queryResultDataset : result.getQueryResultDatasets()){
-            for(String path : queryResultDataset.getPaths()) {
+        for (QueryResultDataset queryResultDataset : result.getQueryResultDatasets()) {
+            for (String path : queryResultDataset.getPaths()) {
                 QueryMetric metric = parseResultAnnoDataPaths(path);
                 //设置anno信息
                 metric.setAnnotationLimit(result.getQueryMetrics().get(pos).getAnnotationLimit());
@@ -716,10 +716,10 @@ public class QueryParser {
         int num = 0;
 
         //数量相同就欧克克
-        for(Map.Entry<String,String> entry : tags.entrySet()) {
-            if(entry.getValue().equals(CATEGORY)) num++;
+        for (Map.Entry<String, String> entry : tags.entrySet()) {
+            if (entry.getValue().equals(CATEGORY)) num++;
         }
-        if(num==annoLimit.getTag().size()) return true;
+        if (num == annoLimit.getTag().size()) return true;
         return false;
     }
 
@@ -727,8 +727,8 @@ public class QueryParser {
     public Query getSpecificQuery(QueryResult result, Query queryBase) {
         Query ret = new Query();
         int pos = 0;
-        for(QueryResultDataset queryResultDataset : result.getQueryResultDatasets()){
-            for(String path : queryResultDataset.getPaths()) {
+        for (QueryResultDataset queryResultDataset : result.getQueryResultDatasets()) {
+            for (String path : queryResultDataset.getPaths()) {
                 /*如果要获取完全匹配的路径，在这里对每个path路径修改*/
                 QueryMetric metric = parseResultAnnoDataPaths(path);
                 metric.setAnnotationLimit(result.getQueryMetrics().get(pos).getAnnotationLimit());
@@ -740,25 +740,25 @@ public class QueryParser {
     }
 
     //将传入的path（格式为name{tagkey=tagval}）转换为正常的QueryMetric，这里加入了@@@@@@
-    private QueryMetric parseResultAnnoDataPaths(String path){
-        StringBuilder name =  new StringBuilder();
+    private QueryMetric parseResultAnnoDataPaths(String path) {
+        StringBuilder name = new StringBuilder();
         QueryMetric metric = new QueryMetric();
         Map<String, String> tags = getTagsFromPaths(path, name);
-        Map<String,List<String>> taglist = new TreeMap<>();
+        Map<String, List<String>> taglist = new TreeMap<>();
 
         for (Map.Entry<String, String> entry : tags.entrySet()) {
             List<String> val = new ArrayList<>();
             val.add(entry.getValue());
-            taglist.put(entry.getKey(),val);
+            taglist.put(entry.getKey(), val);
         }
 
         metric.setName(name.toString());
 
-        name.append("."+tagPrefix);
+        name.append("." + TAG_PREFIX);
         for (Map.Entry<String, String> entry : tags.entrySet()) {
-            name.append("." + tagNameAnnotation + entry.getKey() + "." + entry.getValue());
+            name.append("." + TAG_NAME_ANNOTATION + entry.getKey() + "." + entry.getValue());
         }
-        name.append("."+tagSuffix);
+        name.append("." + TAG_SUFFIX);
 
         metric.setTags(taglist);
         metric.setPathName(name.toString());
@@ -768,10 +768,10 @@ public class QueryParser {
     public Query addAnnoTags(Query query) {
         Query ret = new Query();
         ret.setQueryMetrics(query.getQueryMetrics());
-        for(int i=0;i<ret.getQueryMetrics().size();i++){
+        for (int i = 0; i < ret.getQueryMetrics().size(); i++) {
             List<String> tags = ret.getQueryMetrics().get(i).getAnnotationLimit().getTag();
             int annoCatLen = tags.size();
-            for(int j=0;j<annoCatLen;j++){
+            for (int j = 0; j < annoCatLen; j++) {
                 ret.getQueryMetrics().get(i).addTag(tags.get(j), CATEGORY);
             }
         }
@@ -779,13 +779,13 @@ public class QueryParser {
     }
 
     public void getAnnoCategory(QueryResult path) {
-        for(int i=0; i<path.getQueryResultDatasets().size(); i++) {
-            StringBuilder name =  new StringBuilder();
-            for(int j=0; j<path.getQueryResultDatasets().get(i).getPaths().size(); j++) {
-                Map<String,String> tags = getTagsFromPaths(path.getQueryResultDatasets().get(i).getPaths().get(j),name);
+        for (int i = 0; i < path.getQueryResultDatasets().size(); i++) {
+            StringBuilder name = new StringBuilder();
+            for (int j = 0; j < path.getQueryResultDatasets().get(i).getPaths().size(); j++) {
+                Map<String, String> tags = getTagsFromPaths(path.getQueryResultDatasets().get(i).getPaths().get(j), name);
                 List<String> categorys = new ArrayList<>();
                 for (Map.Entry<String, String> entry : tags.entrySet()) {
-                    if(entry.getValue().equals(CATEGORY))
+                    if (entry.getValue().equals(CATEGORY))
                         categorys.add(entry.getKey());
                 }
                 path.getQueryResultDatasets().get(i).addCategory(categorys);
@@ -795,12 +795,12 @@ public class QueryParser {
     }
 
     public void removeAggPath(QueryResult result) {
-        for(QueryResultDataset data : result.getQueryResultDatasets()) {
+        for (QueryResultDataset data : result.getQueryResultDatasets()) {
             List<String> paths = new ArrayList<>();
-            for(String path : data.getPaths()) {
-                if(path.contains("(") && path.contains(")")) {
+            for (String path : data.getPaths()) {
+                if (path.contains("(") && path.contains(")")) {
                     int first = path.indexOf("("), last = path.indexOf(")");
-                    path = path.substring(first+1,last);
+                    path = path.substring(first + 1, last);
                 }
                 paths.add(path);
             }
@@ -810,19 +810,19 @@ public class QueryParser {
 
     public Query splitAnnoPathToQuery(QueryResult result) {
         Query ret = new Query();
-        for(QueryResultDataset data : result.getQueryResultDatasets()) {
-            for(String path : data.getPaths()) {
+        for (QueryResultDataset data : result.getQueryResultDatasets()) {
+            for (String path : data.getPaths()) {
                 boolean ifhasAnno = false;
                 QueryMetric metric;
                 metric = parseQueryResultAnnoDataPaths(path);
                 metric.setQueryOriPath(path);
-                for(Map.Entry<String,List<String>> entry : metric.getTags().entrySet()) {
-                    if(entry.getValue().get(0).equals("category")) {
+                for (Map.Entry<String, List<String>> entry : metric.getTags().entrySet()) {
+                    if (entry.getValue().get(0).equals("category")) {
                         ifhasAnno = true;
                         break;
                     }
                 }
-                if(ifhasAnno) ret.addQueryMetrics(metric);
+                if (ifhasAnno) ret.addQueryMetrics(metric);
             }
         }
         return ret;
