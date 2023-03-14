@@ -46,10 +46,10 @@ public class TimescaleDBSessionExample {
         // 打开 Session
         session.openSession();
         // 行式插入对齐数据
-        insertRowRecords();
-        insertColumnRecords();
+//        insertRowRecords();
+//        insertColumnRecords();
         queryData();
-        deleteDataInColumns();
+//        deleteDataInColumns();
         // 关闭 Session
         session.closeSession();
     }
