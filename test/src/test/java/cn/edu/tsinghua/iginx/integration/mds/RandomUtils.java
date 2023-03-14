@@ -1,4 +1,4 @@
-package cn.edu.tsinghua.iginx.metadata.sync;
+package cn.edu.tsinghua.iginx.integration.mds;
 
 import java.util.Random;
 
