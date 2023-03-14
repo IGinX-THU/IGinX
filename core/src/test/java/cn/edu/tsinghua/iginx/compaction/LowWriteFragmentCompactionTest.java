@@ -6,6 +6,7 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageUnitMeta;
+import cn.edu.tsinghua.iginx.utils.SnowFlakeUtils;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -29,6 +30,8 @@ public class LowWriteFragmentCompactionTest {
 
     @Before
     public void setUp() {
+        SnowFlakeUtils.init(0);
+
         StorageUnitMeta storageUnitMeta1 = new StorageUnitMeta("1", 1);
         StorageUnitMeta storageUnitMeta2 = new StorageUnitMeta("2", 2);
         FragmentMeta fragmentMeta1 = new FragmentMeta("root.a.b", "root.z", 0L, 1000L, storageUnitMeta1);
@@ -39,16 +42,16 @@ public class LowWriteFragmentCompactionTest {
         fragmentMetaSet.add(fragmentMeta2);
         fragmentMetaSet.add(fragmentMeta3);
         fragmentMetaSet.add(fragmentMeta4);
-        fragmentHeatWriteMap.put(fragmentMeta1, 50L);
-        fragmentHeatWriteMap.put(fragmentMeta2, 100L);
-        fragmentHeatReadMap.put(fragmentMeta1, 500L);
-        fragmentHeatReadMap.put(fragmentMeta2, 100L);
-        fragmentHeatReadMap.put(fragmentMeta3, 100L);
-        fragmentHeatReadMap.put(fragmentMeta4, 100L);
-        fragmentMetaPointsMap.put(fragmentMeta1, 100L);
-        fragmentMetaPointsMap.put(fragmentMeta1, 100L);
-        fragmentMetaPointsMap.put(fragmentMeta1, 50L);
-        fragmentMetaPointsMap.put(fragmentMeta1, 100L);
+        fragmentHeatWriteMap.put(fragmentMeta1, 5000L);
+        fragmentHeatWriteMap.put(fragmentMeta2, 10000L);
+        fragmentHeatReadMap.put(fragmentMeta1, 50000L);
+        fragmentHeatReadMap.put(fragmentMeta2, 10000L);
+        fragmentHeatReadMap.put(fragmentMeta3, 10000L);
+        fragmentHeatReadMap.put(fragmentMeta4, 10000L);
+        fragmentMetaPointsMap.put(fragmentMeta1, 10000L);
+        fragmentMetaPointsMap.put(fragmentMeta1, 10000L);
+        fragmentMetaPointsMap.put(fragmentMeta1, 5000L);
+        fragmentMetaPointsMap.put(fragmentMeta1, 10000L);
 
         ConfigDescriptor.getInstance().getConfig().setFragmentCompactionWriteThreshold(1000);
         ConfigDescriptor.getInstance().getConfig().setFragmentCompactionReadRatioThreshold(0.8);
@@ -68,7 +71,7 @@ public class LowWriteFragmentCompactionTest {
         compaction.executeCompaction(toCompactFragmentGroups, fragmentMetaPointsMap);
         List<FragmentMeta> fragmentMetas = metaManager.getFragments();
         assertEquals(fragmentMetas.size(), 1);
-        assertEquals(fragmentMetas.get(0).getTsInterval().getStartTimeSeries(), "root.z");
+        assertEquals(fragmentMetas.get(0).getTsInterval().getStartTimeSeries(), "root.z.a");
         assertNull(fragmentMetas.get(0).getTsInterval().getEndTimeSeries());
         assertEquals(fragmentMetas.get(0).getMasterStorageUnit().getStorageEngineId(), 1);
         assertEquals(fragmentMetas.get(0).getTimeInterval().getStartTime(), 0);

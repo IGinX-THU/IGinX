@@ -6,6 +6,7 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageUnitMeta;
+import cn.edu.tsinghua.iginx.utils.SnowFlakeUtils;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -29,6 +30,8 @@ public class LowAccessFragmentCompactionTest {
 
     @Before
     public void setUp() {
+        SnowFlakeUtils.init(0);
+
         StorageUnitMeta storageUnitMeta1 = new StorageUnitMeta("1", 1);
         StorageUnitMeta storageUnitMeta2 = new StorageUnitMeta("2", 2);
         FragmentMeta fragmentMeta1 = new FragmentMeta("root.a.b", "root.z", 0L, 1000L, storageUnitMeta1);
