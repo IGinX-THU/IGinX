@@ -115,6 +115,7 @@ public class StoragePhysicalTaskExecutor {
                             pair.v.submit(() -> {
                                 TaskExecuteResult result = null;
                                 long taskId = System.nanoTime();
+                                long startTime = System.currentTimeMillis();
                                 try {
                                     result = pair.k.execute(task);
                                 } catch (Exception e) {
@@ -130,6 +131,8 @@ public class StoragePhysicalTaskExecutor {
                                 } catch (Exception e) {
                                     logger.error("Monitor catch error:", e);
                                 }
+                                long span = System.currentTimeMillis() - startTime;
+                                task.setSpan(span);
                                 task.setResult(result);
                                 if (task.getFollowerTask() != null && task.isSync()) { // 只有同步任务才会影响后续任务的执行
                                     MemoryPhysicalTask followerTask = (MemoryPhysicalTask) task.getFollowerTask();

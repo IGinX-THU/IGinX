@@ -2,6 +2,7 @@ package cn.edu.tsinghua.iginx.compaction;
 
 import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngine;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.TimeRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
@@ -105,7 +106,7 @@ public abstract class Compaction {
                 Set<String> pathRegexSet = new HashSet<>();
                 ShowTimeSeries showTimeSeries = new ShowTimeSeries(new GlobalSource(),
                     pathRegexSet, null, Integer.MAX_VALUE, 0);
-                RowStream rowStream = physicalEngine.execute(showTimeSeries);
+                RowStream rowStream = physicalEngine.execute(new RequestContext(), showTimeSeries);
                 SortedSet<String> pathSet = new TreeSet<>();
                 while (rowStream != null && rowStream.hasNext()) {
                     Row row = rowStream.next();
@@ -118,7 +119,7 @@ public abstract class Compaction {
                     }
                 }
                 Migration migration = new Migration(new GlobalSource(), fragmentMeta, new ArrayList<>(pathSet), targetStorageUnit);
-                physicalEngine.execute(migration);
+                physicalEngine.execute(new RequestContext(), migration);
             }
         }
         // TODO add write lock
@@ -141,9 +142,9 @@ public abstract class Compaction {
                 paths.add(fragmentMeta.getMasterStorageUnitId() + "*");
                 List<TimeRange> timeRanges = new ArrayList<>();
                 timeRanges.add(new TimeRange(fragmentMeta.getTimeInterval().getStartTime(), true,
-                        fragmentMeta.getTimeInterval().getEndTime(), false));
+                    fragmentMeta.getTimeInterval().getEndTime(), false));
                 Delete delete = new Delete(new FragmentSource(fragmentMeta), timeRanges, paths, null);
-                physicalEngine.execute(delete);
+                physicalEngine.execute(new RequestContext(), delete);
             }
         }
     }

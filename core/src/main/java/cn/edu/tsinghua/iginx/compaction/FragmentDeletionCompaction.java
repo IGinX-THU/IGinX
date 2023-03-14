@@ -2,6 +2,7 @@ package cn.edu.tsinghua.iginx.compaction;
 
 import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngine;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.TimeRange;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
 import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
@@ -26,7 +27,7 @@ public class FragmentDeletionCompaction extends Compaction {
     public boolean needCompaction() throws Exception {
         //集中信息（初版主要是统计分区热度）
         Pair<Map<FragmentMeta, Long>, Map<FragmentMeta, Long>> fragmentHeatPair = metaManager
-                .loadFragmentHeat();
+            .loadFragmentHeat();
         Map<FragmentMeta, Long> fragmentHeatWriteMap = fragmentHeatPair.getK();
         Map<FragmentMeta, Long> fragmentHeatReadMap = fragmentHeatPair.getV();
         if (fragmentHeatWriteMap == null) {
@@ -59,9 +60,9 @@ public class FragmentDeletionCompaction extends Compaction {
             paths.add(fragmentMeta.getMasterStorageUnitId() + "*");
             List<TimeRange> timeRanges = new ArrayList<>();
             timeRanges.add(new TimeRange(fragmentMeta.getTimeInterval().getStartTime(), true,
-                    fragmentMeta.getTimeInterval().getEndTime(), false));
+                fragmentMeta.getTimeInterval().getEndTime(), false));
             Delete delete = new Delete(new FragmentSource(fragmentMeta), timeRanges, paths, null);
-            physicalEngine.execute(delete);
+            physicalEngine.execute(new RequestContext(), delete);
         }
     }
 }
