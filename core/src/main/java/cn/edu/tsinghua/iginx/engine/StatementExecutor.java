@@ -13,6 +13,12 @@ import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngine;
 import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngineImpl;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
+import cn.edu.tsinghua.iginx.engine.physical.task.BinaryMemoryPhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.MultipleMemoryPhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.StoragePhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.TaskType;
+import cn.edu.tsinghua.iginx.engine.physical.task.UnaryMemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.Result;
 import cn.edu.tsinghua.iginx.engine.shared.constraint.ConstraintManager;
@@ -302,14 +308,24 @@ public class StatementExecutor {
             if (constraintManager.check(root) && checker.check(root)) {
                 if (type == StatementType.SELECT) {
                     SelectStatement selectStatement = (SelectStatement) ctx.getStatement();
-                    if (selectStatement.isNeedExplain()) {
-                        processExplainStatement(ctx, root);
+                    if (selectStatement.isNeedLogicalExplain()) {
+                        processExplainLogicalStatement(ctx, root);
                         return;
                     }
                 }
+
                 before(ctx, prePhysicalProcessors);
-                RowStream stream = engine.execute(root);
+                RowStream stream = engine.execute(ctx, root);
                 after(ctx, postPhysicalProcessors);
+
+                if (type == StatementType.SELECT) {
+                    SelectStatement selectStatement = (SelectStatement) ctx.getStatement();
+                    if (selectStatement.isNeedPhysicalExplain()) {
+                        processExplainPhysicalStatement(ctx);
+                        return;
+                    }
+                }
+
                 setResult(ctx, stream);
                 return;
             }
@@ -317,7 +333,7 @@ public class StatementExecutor {
         throw new ExecutionException("Execute Error: can not construct a legal logical tree.");
     }
 
-    private void processExplainStatement(RequestContext ctx, Operator root)
+    private void processExplainLogicalStatement(RequestContext ctx, Operator root)
         throws PhysicalException, ExecutionException {
         List<Field> fields = new ArrayList<>(Arrays.asList(
             new Field("Logical Tree", DataType.BINARY),
@@ -326,21 +342,10 @@ public class StatementExecutor {
         ));
         Header header = new Header(fields);
 
-        List<Row> rows = new ArrayList<>();
         List<Object[]> cache = new ArrayList<>();
         int[] maxLen = new int[]{0};
         dfsLogicalTree(cache, root, 0, maxLen);
-        for (Object[] rowValues : cache) {
-            StringBuilder str = new StringBuilder(((String) rowValues[0]));
-            while (str.length() < maxLen[0]) {
-                str.append(" ");
-            }
-            rowValues[0] = str.toString().getBytes();
-            rows.add(new Row(header, rowValues));
-        }
-
-        RowStream stream = new Table(header, rows);
-        setResult(ctx, stream);
+        formatTree(ctx, header, cache, maxLen[0]);
     }
 
     private void dfsLogicalTree(List<Object[]> cache, Operator op, int depth, int[] maxLen) {
@@ -386,6 +391,76 @@ public class StatementExecutor {
                 }
             }
         }
+    }
+
+    private void processExplainPhysicalStatement(RequestContext ctx)
+        throws PhysicalException, ExecutionException {
+        PhysicalTask root = ctx.getPhysicalTree();
+        List<Field> fields = new ArrayList<>(Arrays.asList(
+            new Field("Physical Tree", DataType.BINARY),
+            new Field("Execute Time", DataType.BINARY),
+            new Field("Task Type", DataType.BINARY),
+            new Field("Task Info", DataType.BINARY),
+            new Field("Affect Rows", DataType.INTEGER)
+        ));
+        Header header = new Header(fields);
+
+        List<Object[]> cache = new ArrayList<>();
+        int[] maxLen = new int[]{0};
+        dfsPhysicalTree(cache, root, 0, maxLen);
+        formatTree(ctx, header, cache, maxLen[0]);
+    }
+
+    private void dfsPhysicalTree(List<Object[]> cache, PhysicalTask task, int depth, int[] maxLen) {
+        TaskType type = task.getType();
+        StringBuilder builder = new StringBuilder();
+        if (depth != 0) {
+            for (int i = 0; i < depth; i++) {
+                builder.append("  ");
+            }
+            builder.append("+--");
+        }
+        builder.append(type);
+
+        maxLen[0] = Math.max(maxLen[0], builder.length());
+
+        Object[] values = new Object[5];
+        values[0] = builder.toString();
+        values[1] = (task.getSpan() + "ms").getBytes();
+        values[2] = task.getType().toString().getBytes();
+        values[3] = task.getInfo().getBytes();
+        values[4] = task.getAffectedRows();
+        cache.add(values);
+
+        if (task.getType() == TaskType.BinaryMemory) {
+            BinaryMemoryPhysicalTask binaryTask = (BinaryMemoryPhysicalTask) task;
+            dfsPhysicalTree(cache, binaryTask.getParentTaskA(), depth + 1, maxLen);
+            dfsPhysicalTree(cache, binaryTask.getParentTaskB(), depth + 1, maxLen);
+        } else if (task.getType() == TaskType.UnaryMemory) {
+            UnaryMemoryPhysicalTask unaryTask = (UnaryMemoryPhysicalTask) task;
+            dfsPhysicalTree(cache, unaryTask.getParentTask(), depth + 1, maxLen);
+        } else if (task.getType() == TaskType.MultipleMemory) {
+            MultipleMemoryPhysicalTask multipleTask = (MultipleMemoryPhysicalTask) task;
+            for (PhysicalTask parentTask : multipleTask.getParentTasks()) {
+                dfsPhysicalTree(cache, parentTask, depth + 1, maxLen);
+            }
+        }
+    }
+
+    private void formatTree(RequestContext ctx, Header header, List<Object[]> cache, int maxLen)
+        throws PhysicalException, ExecutionException {
+        List<Row> rows = new ArrayList<>();
+        for (Object[] rowValues : cache) {
+            StringBuilder str = new StringBuilder(((String) rowValues[0]));
+            while (str.length() < maxLen) {
+                str.append(" ");
+            }
+            rowValues[0] = str.toString().getBytes();
+            rows.add(new Row(header, rowValues));
+        }
+
+        RowStream stream = new Table(header, rows);
+        setResult(ctx, stream);
     }
 
     private void processInsertFromSelect(RequestContext ctx)
