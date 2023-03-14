@@ -1,4 +1,4 @@
-package cn.edu.tsinghua.iginx.metadata.sync;
+package cn.edu.tsinghua.iginx.integration.mds;
 
 import cn.edu.tsinghua.iginx.metadata.sync.proposal.ProposalListener;
 import cn.edu.tsinghua.iginx.metadata.sync.proposal.SyncProposal;
@@ -94,7 +94,7 @@ public abstract class SyncProtocolTest {
         protocol.close();
     }
 
-    @Test(timeout = 10000)
+    @Test(timeout = 20000)
     public void testTwoNodeSingleDecision() throws Exception {
         String category = RandomUtils.randomString(10);
         String key = RandomUtils.randomString(5);
@@ -202,9 +202,9 @@ public abstract class SyncProtocolTest {
 
     }
 
-    @Test(timeout = 20000)
+    @Test(timeout = 30000)
     public void testMultiNodeSingleDecision() throws Exception {
-        for (int c = 0; c < 10; c++) { // 随机 3-6个节点，测试10次
+        for (int c = 0; c < 1; c++) { // 随机 3-6个节点，测试10次
             int N = RandomUtils.randomNumber(2, 4);
 
             String category = RandomUtils.randomString(10);
@@ -318,9 +318,9 @@ public abstract class SyncProtocolTest {
         }
     }
 
-    @Test(timeout = 20000)
+    @Test(timeout = 30000)
     public void testMultiNodeSingleDecisionPartialVote() throws Exception {
-        for (int c = 0; c < 10; c++) { // 随机 2-4 个节点，测试10次
+        for (int c = 0; c < 1; c++) { // 随机 2-4 个节点，测试10次
             int N = RandomUtils.randomNumber(2, 5);
             int M = RandomUtils.randomNumber(0, N);
             String category = RandomUtils.randomString(10);

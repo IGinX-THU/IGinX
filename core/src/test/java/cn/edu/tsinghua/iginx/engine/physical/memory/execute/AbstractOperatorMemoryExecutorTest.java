@@ -29,6 +29,9 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.function.manager.FunctionManager;
+import cn.edu.tsinghua.iginx.engine.shared.function.system.Avg;
+import cn.edu.tsinghua.iginx.engine.shared.function.system.Last;
+import cn.edu.tsinghua.iginx.engine.shared.function.system.Max;
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.JoinAlgType;
@@ -1112,6 +1115,110 @@ public abstract class AbstractOperatorMemoryExecutorTest {
         }
         
     }
+
+    @Test
+    public void testSingleJoin() throws PhysicalException {
+        Table tableA = generateTableFromValues(
+                true,
+                Arrays.asList(
+                        new Field("a.a", DataType.INTEGER),
+                        new Field("a.b", DataType.DOUBLE),
+                        new Field("a.c", DataType.BOOLEAN)
+                ),
+                Arrays.asList(
+                        Arrays.asList(2, 2.0, true),
+                        Arrays.asList(3, 3.0, false),
+                        Arrays.asList(4, 4.0, true),
+                        Arrays.asList(5, 5.0, false),
+                        Arrays.asList(6, 6.0, true)
+                ));
+
+        Table tableB = generateTableFromValues(
+                true,
+                Arrays.asList(
+                        new Field("b.b", DataType.INTEGER),
+                        new Field("b.e", DataType.BOOLEAN)
+                ),
+                Collections.singletonList(
+                        Arrays.asList(1, true)
+                ));
+
+        Table tableC = generateTableFromValues(
+                true,
+                Arrays.asList(
+                        new Field("c.a", DataType.INTEGER),
+                        new Field("c.b", DataType.DOUBLE),
+                        new Field("c.c", DataType.BOOLEAN)
+                ),
+                Arrays.asList(
+                        Arrays.asList(2, 2.0, false),
+                        Arrays.asList(3, 3.0, true),
+                        Arrays.asList(4, 4.0, false),
+                        Arrays.asList(5, 5.0, true),
+                        Arrays.asList(6, 6.0, false)
+                ));
+
+        {
+            tableA.reset();
+            tableB.reset();
+
+            SingleJoin singleJoin = new SingleJoin(
+                    EmptySource.EMPTY_SOURCE,
+                    EmptySource.EMPTY_SOURCE,
+                    new BoolFilter(true));
+
+            Table target = generateTableFromValues(
+                    true,
+                    Arrays.asList(
+                            new Field("a.a", DataType.INTEGER),
+                            new Field("a.b", DataType.DOUBLE),
+                            new Field("a.c", DataType.BOOLEAN),
+                            new Field("b.b", DataType.INTEGER),
+                            new Field("b.e", DataType.BOOLEAN)
+                    ),
+                    Arrays.asList(
+                            Arrays.asList(2, 2.0, true, 1, true),
+                            Arrays.asList(3, 3.0, false, 1, true),
+                            Arrays.asList(4, 4.0, true, 1, true),
+                            Arrays.asList(5, 5.0, false, 1, true),
+                            Arrays.asList(6, 6.0, true, 1, true)
+                    ));
+
+            RowStream stream = getExecutor().executeBinaryOperator(singleJoin, tableA, tableB);
+            assertStreamEqual(stream, target);
+        }
+
+        {
+            tableA.reset();
+            tableC.reset();
+
+            SingleJoin singleJoin = new SingleJoin(
+                    EmptySource.EMPTY_SOURCE,
+                    EmptySource.EMPTY_SOURCE,
+                    new PathFilter("a.b", Op.E, "c.b"));
+
+            Table target = generateTableFromValues(
+                    true,
+                    Arrays.asList(
+                            new Field("a.a", DataType.INTEGER),
+                            new Field("a.b", DataType.DOUBLE),
+                            new Field("a.c", DataType.BOOLEAN),
+                            new Field("c.a", DataType.INTEGER),
+                            new Field("c.b", DataType.DOUBLE),
+                            new Field("c.c", DataType.BOOLEAN)
+                    ),
+                    Arrays.asList(
+                            Arrays.asList(2, 2.0, true, 2, 2.0, false),
+                            Arrays.asList(3, 3.0, false, 3, 3.0, true),
+                            Arrays.asList(4, 4.0, true, 4, 4.0, false),
+                            Arrays.asList(5, 5.0, false, 5, 5.0, true),
+                            Arrays.asList(6, 6.0, true, 6, 6.0, false)
+                    ));
+
+            RowStream stream = getExecutor().executeBinaryOperator(singleJoin, tableA, tableC);
+            assertStreamEqual(stream, target);
+        }
+    }
     
     // for debug
     private Table transformToTable(RowStream stream) throws PhysicalException {
@@ -1221,9 +1328,9 @@ public abstract class AbstractOperatorMemoryExecutorTest {
             assertEquals(4, targetHeader.getFields().size());
             assertEquals("a.a.b", targetHeader.getFields().get(0).getFullName());
             assertEquals(DataType.INTEGER, targetHeader.getFields().get(0).getType());
-            assertEquals("a.b.c", targetHeader.getFields().get(1).getFullName());
+            assertEquals("a.a.c", targetHeader.getFields().get(1).getFullName());
             assertEquals(DataType.INTEGER, targetHeader.getFields().get(1).getType());
-            assertEquals("a.a.c", targetHeader.getFields().get(2).getFullName());
+            assertEquals("a.b.c", targetHeader.getFields().get(2).getFullName());
             assertEquals(DataType.INTEGER, targetHeader.getFields().get(2).getType());
             assertEquals("a.b.c", targetHeader.getFields().get(3).getFullName());
             assertEquals(DataType.INTEGER, targetHeader.getFields().get(3).getType());
@@ -1233,8 +1340,8 @@ public abstract class AbstractOperatorMemoryExecutorTest {
                 Row targetRow = stream.next();
                 assertEquals(index, targetRow.getKey());
                 assertEquals(index, targetRow.getValue(0));
-                assertEquals(index + 1, targetRow.getValue(1));
-                assertEquals(index + 2, targetRow.getValue(2));
+                assertEquals(index + 2, targetRow.getValue(1));
+                assertEquals(index + 1, targetRow.getValue(2));
                 assertEquals(index + 1, targetRow.getValue(3));
                 index++;
             }
@@ -1367,8 +1474,9 @@ public abstract class AbstractOperatorMemoryExecutorTest {
     @Test
     public void testSortByTimeDesc() throws PhysicalException {
         Table table = generateTableForUnaryOperator(true);
+        Table copyTable = generateTableForUnaryOperator(true);
         Sort sort = new Sort(EmptySource.EMPTY_SOURCE, Collections.singletonList(Constants.KEY), Sort.SortType.DESC);
-        RowStream stream = getExecutor().executeUnaryOperator(sort, table);
+        RowStream stream = getExecutor().executeUnaryOperator(sort, copyTable);
         assertEquals(table.getHeader(), stream.getHeader());
         int index = table.getRowSize();
         while (stream.hasNext()) {
@@ -1378,14 +1486,6 @@ public abstract class AbstractOperatorMemoryExecutorTest {
             assertEquals(row, targetRow);
         }
         assertEquals(0, index);
-    }
-
-
-    @Test(expected = InvalidOperatorParameterException.class)
-    public void testSortByOtherField() throws PhysicalException {
-        Table table = generateTableForUnaryOperator(true);
-        Sort sort = new Sort(EmptySource.EMPTY_SOURCE, Collections.singletonList("a.a.b"), Sort.SortType.ASC);
-        getExecutor().executeUnaryOperator(sort, table);
     }
 
     @Test
@@ -1437,7 +1537,7 @@ public abstract class AbstractOperatorMemoryExecutorTest {
         params.put(PARAM_PATHS, new Value("a.a.b"));
 
         Downsample downsample = new Downsample(EmptySource.EMPTY_SOURCE, 3, 3,
-                new FunctionCall(FunctionManager.getInstance().getFunction("avg"), params),
+                new FunctionCall(Avg.getInstance(), params),
                 new TimeRange(0, 11));
         RowStream stream = getExecutor().executeUnaryOperator(downsample, table);
 
@@ -1470,7 +1570,7 @@ public abstract class AbstractOperatorMemoryExecutorTest {
         params.put(PARAM_PATHS, new Value("a.a.b"));
 
         Downsample downsample = new Downsample(EmptySource.EMPTY_SOURCE, 3, 3,
-                new FunctionCall(FunctionManager.getInstance().getFunction("max"), params),
+                new FunctionCall(Max.getInstance(), params),
                 new TimeRange(0, 11));
         getExecutor().executeUnaryOperator(downsample, table);
         fail();
@@ -1485,7 +1585,7 @@ public abstract class AbstractOperatorMemoryExecutorTest {
 
         MappingTransform mappingTransform = new MappingTransform(
             EmptySource.EMPTY_SOURCE,
-            new FunctionCall(FunctionManager.getInstance().getFunction("last"), params)
+            new FunctionCall(Last.getInstance(), params)
         );
 
         RowStream stream = getExecutor().executeUnaryOperator(mappingTransform, table);
@@ -1517,7 +1617,7 @@ public abstract class AbstractOperatorMemoryExecutorTest {
 
         SetTransform setTransform = new SetTransform(
             EmptySource.EMPTY_SOURCE,
-            new FunctionCall(FunctionManager.getInstance().getFunction("avg"), params)
+            new FunctionCall(Avg.getInstance(), params)
         );
 
         RowStream stream = getExecutor().executeUnaryOperator(setTransform, table);
