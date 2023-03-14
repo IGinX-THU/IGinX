@@ -11,12 +11,14 @@ import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils;
 import cn.edu.tsinghua.iginx.engine.shared.function.manager.FunctionManager;
 import cn.edu.tsinghua.iginx.engine.shared.operator.AddSchemaPrefix;
+import cn.edu.tsinghua.iginx.engine.shared.operator.AntiMarkJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.CrossJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Downsample;
 import cn.edu.tsinghua.iginx.engine.shared.operator.GroupBy;
 import cn.edu.tsinghua.iginx.engine.shared.operator.InnerJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Limit;
 import cn.edu.tsinghua.iginx.engine.shared.operator.MappingTransform;
+import cn.edu.tsinghua.iginx.engine.shared.operator.MarkJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.OuterJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
@@ -117,6 +119,24 @@ public class QueryGenerator extends AbstractGenerator {
                 } else {
                     policy.notify(selectStatement);
                     root = filterAndMergeFragments(selectStatement);
+                }
+            }
+        }
+
+        if (selectStatement.getWhereSubQueryParts().size() > 0) {
+            int sizeWhereSubQueryParts = selectStatement.getWhereSubQueryParts().size();
+            List<SubQueryFromPart> whereSubQueryParts = selectStatement.getWhereSubQueryParts();
+            for (int i = 0; i < sizeWhereSubQueryParts; i++) {
+                SubQueryFromPart whereSubQueryPart = whereSubQueryParts.get(i);
+                Operator right = generateRoot(whereSubQueryPart.getSubQuery());
+                Filter filter = whereSubQueryPart.getJoinCondition().getFilter();
+                String markColumn = whereSubQueryPart.getJoinCondition().getMarkColumn();
+                if (whereSubQueryPart.getJoinCondition().getJoinType() == JoinType.MarkJoin) {
+                    root = new MarkJoin(new OperatorSource(root), new OperatorSource(right), filter, markColumn);
+                } else if (whereSubQueryPart.getJoinCondition().getJoinType() == JoinType.AntiMarkJoin) {
+                    root = new AntiMarkJoin(new OperatorSource(root), new OperatorSource(right), filter, markColumn);
+                } else if (whereSubQueryPart.getJoinCondition().getJoinType() == JoinType.SingleJoin) {
+                    root = new SingleJoin(new OperatorSource(root), new OperatorSource(right), filter);
                 }
             }
         }
@@ -246,6 +266,24 @@ public class QueryGenerator extends AbstractGenerator {
             }
         }
 
+        if (selectStatement.getHavingSubQueryParts().size() > 0) {
+            int sizeHavingSubQueryParts = selectStatement.getHavingSubQueryParts().size();
+            List<SubQueryFromPart> havingSubQueryParts = selectStatement.getHavingSubQueryParts();
+            for (int i = 0; i < sizeHavingSubQueryParts; i++) {
+                SubQueryFromPart havingSubQueryPart = havingSubQueryParts.get(i);
+                Operator right = generateRoot(havingSubQueryPart.getSubQuery());
+                Filter filter = havingSubQueryPart.getJoinCondition().getFilter();
+                String markColumn = havingSubQueryPart.getJoinCondition().getMarkColumn();
+                if (havingSubQueryPart.getJoinCondition().getJoinType() == JoinType.MarkJoin) {
+                    root = new MarkJoin(new OperatorSource(root), new OperatorSource(right), filter, markColumn);
+                } else if (havingSubQueryPart.getJoinCondition().getJoinType() == JoinType.AntiMarkJoin) {
+                    root = new AntiMarkJoin(new OperatorSource(root), new OperatorSource(right), filter, markColumn);
+                } else if (havingSubQueryPart.getJoinCondition().getJoinType() == JoinType.SingleJoin) {
+                    root = new SingleJoin(new OperatorSource(root), new OperatorSource(right), filter);
+                }
+            }
+        }
+
         if (selectStatement.getHavingFilter() != null) {
             root = new Select(new OperatorSource(root), selectStatement.getHavingFilter(), null);
         }
@@ -365,13 +403,13 @@ public class QueryGenerator extends AbstractGenerator {
                 case InnerJoin:
                     left = new InnerJoin(new OperatorSource(left), new OperatorSource(right), prefixA, prefixB, filter, joinColumns, false, joinAlgType);
                     break;
-                case InnerNatualJoin:
+                case InnerNaturalJoin:
                     left = new InnerJoin(new OperatorSource(left), new OperatorSource(right), prefixA, prefixB, filter, joinColumns, true, joinAlgType);
                     break;
-                case LeftNatualJoin:
+                case LeftNaturalJoin:
                     left = new OuterJoin(new OperatorSource(left), new OperatorSource(right), prefixA, prefixB, OuterJoinType.LEFT, filter, joinColumns, true, joinAlgType);
                     break;
-                case RightNatualJoin:
+                case RightNaturalJoin:
                     new OuterJoin(new OperatorSource(left), new OperatorSource(right), prefixA, prefixB, OuterJoinType.RIGHT, filter, joinColumns, true, joinAlgType);
                     break;
                 case FullOuterJoin:

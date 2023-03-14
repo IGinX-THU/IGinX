@@ -41,9 +41,11 @@ public class SelectStatement extends DataStatement {
     private final Map<String, List<BaseExpression>> baseExpressionMap;
     private final Set<FuncType> funcTypeSet;
     private final Set<String> pathSet;
-    private List<SubQueryFromPart> selectSubQueryParts;
+    private final List<SubQueryFromPart> selectSubQueryParts;
     private List<FromPart> fromParts;
+    private final List<SubQueryFromPart> whereSubQueryParts;
     private final List<String> groupByPaths;
+    private final List<SubQueryFromPart> havingSubQueryParts;
     private final List<String> orderByPaths;
     private Filter filter;
     private Filter havingFilter;
@@ -67,7 +69,9 @@ public class SelectStatement extends DataStatement {
         this.pathSet = new HashSet<>();
         this.selectSubQueryParts = new ArrayList<>();
         this.fromParts = new ArrayList<>();
+        this.whereSubQueryParts = new ArrayList<>();
         this.groupByPaths = new ArrayList<>();
+        this.havingSubQueryParts = new ArrayList<>();
         this.orderByPaths = new ArrayList<>();
         this.limit = Integer.MAX_VALUE;
         this.offset = 0;
@@ -83,7 +87,9 @@ public class SelectStatement extends DataStatement {
         this.baseExpressionMap = new HashMap<>();
         this.selectSubQueryParts = new ArrayList<>();
         this.fromParts = new ArrayList<>();
+        this.whereSubQueryParts = new ArrayList<>();
         this.groupByPaths = new ArrayList<>();
+        this.havingSubQueryParts = new ArrayList<>();
         this.orderByPaths = new ArrayList<>();
         this.funcTypeSet = new HashSet<>();
 
@@ -111,7 +117,9 @@ public class SelectStatement extends DataStatement {
         this.baseExpressionMap = new HashMap<>();
         this.selectSubQueryParts = new ArrayList<>();
         this.fromParts = new ArrayList<>();
+        this.whereSubQueryParts = new ArrayList<>();
         this.groupByPaths = new ArrayList<>();
+        this.havingSubQueryParts = new ArrayList<>();
         this.orderByPaths = new ArrayList<>();
         this.funcTypeSet = new HashSet<>();
 
@@ -136,7 +144,9 @@ public class SelectStatement extends DataStatement {
         this.baseExpressionMap = new HashMap<>();
         this.selectSubQueryParts = new ArrayList<>();
         this.fromParts = new ArrayList<>();
+        this.whereSubQueryParts = new ArrayList<>();
         this.groupByPaths = new ArrayList<>();
+        this.havingSubQueryParts = new ArrayList<>();
         this.orderByPaths = new ArrayList<>();
         this.funcTypeSet = new HashSet<>();
 
@@ -167,7 +177,9 @@ public class SelectStatement extends DataStatement {
         this.baseExpressionMap = new HashMap<>();
         this.selectSubQueryParts = new ArrayList<>();
         this.fromParts = new ArrayList<>();
+        this.whereSubQueryParts = new ArrayList<>();
         this.groupByPaths = new ArrayList<>();
+        this.havingSubQueryParts = new ArrayList<>();
         this.orderByPaths = new ArrayList<>();
         this.funcTypeSet = new HashSet<>();
         
@@ -366,8 +378,24 @@ public class SelectStatement extends DataStatement {
         this.fromParts.add(fromPart);
     }
 
+    public List<SubQueryFromPart> getWhereSubQueryParts() {
+        return whereSubQueryParts;
+    }
+
+    public void addWhereSubQueryPart(SubQueryFromPart whereSubQueryPart) {
+        this.whereSubQueryParts.add(whereSubQueryPart);
+    }
+
     public void setGroupByPath(String path) {
         this.groupByPaths.add(path);
+    }
+
+    public List<SubQueryFromPart> getHavingSubQueryParts() {
+        return havingSubQueryParts;
+    }
+
+    public void addHavingSubQueryPart(SubQueryFromPart havingSubQueryPart) {
+        this.havingSubQueryParts.add(havingSubQueryPart);
     }
 
     public List<String> getGroupByPaths() {

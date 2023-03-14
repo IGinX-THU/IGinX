@@ -37,6 +37,7 @@ import cn.edu.tsinghua.iginx.engine.shared.function.RowMappingFunction;
 import cn.edu.tsinghua.iginx.engine.shared.function.SetMappingFunction;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils;
 import cn.edu.tsinghua.iginx.engine.shared.operator.AddSchemaPrefix;
+import cn.edu.tsinghua.iginx.engine.shared.operator.AntiMarkJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.BinaryOperator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.CrossJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Downsample;
@@ -45,6 +46,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.InnerJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Join;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Limit;
 import cn.edu.tsinghua.iginx.engine.shared.operator.MappingTransform;
+import cn.edu.tsinghua.iginx.engine.shared.operator.MarkJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.OuterJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Rename;
@@ -80,6 +82,7 @@ import java.util.TreeMap;
 import java.util.regex.Pattern;
 
 import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.combineMultipleColumns;
+import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.constructNewHead;
 
 public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
 
@@ -144,6 +147,12 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
             case SingleJoin:
                 return executeSingleJoin((SingleJoin) operator, transformToTable(streamA),
                     transformToTable(streamB));
+            case MarkJoin:
+                return executeMarkJoin((MarkJoin) operator, transformToTable(streamA),
+                    transformToTable(streamB));
+            case AntiMarkJoin:
+                return executeAntiMarkJoin((AntiMarkJoin) operator, transformToTable(streamA),
+                        transformToTable(streamB));
             case Union:
                 return executeUnion((Union) operator, transformToTable(streamA),
                     transformToTable(streamB));
@@ -1687,6 +1696,66 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
             }
         }
         return new Table(newHeader, transformedRows);
+    }
+
+    private RowStream executeMarkJoin(MarkJoin markJoin, Table tableA, Table tableB)
+        throws PhysicalException {
+        Header targetHeader = constructNewHead(tableA.getHeader(), markJoin.getMarkColumn());
+        Header joinHeader = RowUtils.constructNewHead(tableA.getHeader(), tableB.getHeader(), true);;
+
+        List<Row> rowsA = tableA.getRows();
+        List<Row> rowsB = tableB.getRows();
+
+        List<Row> transformedRows = new ArrayList<>();
+        Filter filter = markJoin.getFilter();
+        boolean matched;
+        for (Row rowA: rowsA) {
+            matched = false;
+            for (Row rowB: rowsB) {
+                Row joinedRow = RowUtils.constructNewRow(joinHeader, rowA, rowB, true);
+                if (FilterUtils.validate(filter, joinedRow)) {
+                    matched = true;
+                    Row returnRow = RowUtils.constructNewRowWithMark(targetHeader, rowA, true);
+                    transformedRows.add(returnRow);
+                    break;
+                }
+            }
+            if (!matched) {
+                Row unmatchedRow = RowUtils.constructNewRowWithMark(targetHeader, rowA, false);
+                transformedRows.add(unmatchedRow);
+            }
+        }
+        return new Table(targetHeader, transformedRows);
+    }
+
+    private RowStream executeAntiMarkJoin(AntiMarkJoin antiMarkJoin, Table tableA, Table tableB)
+        throws PhysicalException {
+        Header targetHeader = constructNewHead(tableA.getHeader(), antiMarkJoin.getMarkColumn());
+        Header joinHeader = RowUtils.constructNewHead(tableA.getHeader(), tableB.getHeader(), true);;
+
+        List<Row> rowsA = tableA.getRows();
+        List<Row> rowsB = tableB.getRows();
+
+        List<Row> transformedRows = new ArrayList<>();
+        Filter filter = antiMarkJoin.getFilter();
+        boolean matched;
+        for (Row rowA: rowsA) {
+            matched = false;
+            for (Row rowB: rowsB) {
+                Row joinedRow = RowUtils.constructNewRow(joinHeader, rowA, rowB, true);
+                if (FilterUtils.validate(filter, joinedRow)) {
+                    matched = true;
+                    Row returnRow = RowUtils.constructNewRowWithMark(targetHeader, rowA, false);
+                    transformedRows.add(returnRow);
+                    break;
+                }
+            }
+            if (!matched) {
+                Row unmatchedRow = RowUtils.constructNewRowWithMark(targetHeader, rowA, true);
+                transformedRows.add(unmatchedRow);
+            }
+        }
+        return new Table(targetHeader, transformedRows);
     }
 
     private static void writeToNewRow(Object[] values, Row row, Map<Field, Integer> fieldIndices) {

@@ -75,6 +75,28 @@ predicate
     | path comparisonOperator path
     | path OPERATOR_LIKE regex=stringLiteral
     | OPERATOR_NOT? LR_BRACKET orExpression RR_BRACKET
+    | predicateWithSubquery
+    ;
+
+predicateWithSubquery
+    : OPERATOR_NOT? EXISTS subquery
+    | (path | constant | functionName LR_BRACKET path RR_BRACKET) OPERATOR_NOT? IN subquery
+    | (path | constant | functionName LR_BRACKET path RR_BRACKET) comparisonOperator quantifier subquery
+    | (path | constant | functionName LR_BRACKET path RR_BRACKET) comparisonOperator subquery
+    | subquery comparisonOperator (path | constant | functionName LR_BRACKET path RR_BRACKET)
+    | subquery comparisonOperator subquery
+    ;
+
+quantifier
+    : all | some
+    ;
+
+all
+    : ALL
+    ;
+
+some
+    : SOME | ANY
     ;
 
 withClause
@@ -778,6 +800,22 @@ LOGICAL
 
 PHYSICAL
     : P H Y S I C A L
+    ;
+
+EXISTS
+    : E X I S T S
+    ;
+
+SOME
+    : S O M E
+    ;
+
+ANY
+    : A N Y
+    ;
+
+ALL
+    : A L L
     ;
 //============================
 // End of the keywords list
