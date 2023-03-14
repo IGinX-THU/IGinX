@@ -29,7 +29,7 @@ public class LowAccessFragmentCompaction extends Compaction {
     public boolean needCompaction() throws Exception {
         //集中信息（初版主要是统计分区热度）
         Pair<Map<FragmentMeta, Long>, Map<FragmentMeta, Long>> fragmentHeatPair = metaManager
-                .loadFragmentHeat();
+            .loadFragmentHeat();
         Map<FragmentMeta, Long> fragmentHeatWriteMap = fragmentHeatPair.getK();
         Map<FragmentMeta, Long> fragmentHeatReadMap = fragmentHeatPair.getV();
         if (fragmentHeatWriteMap == null) {
@@ -86,25 +86,29 @@ public class LowAccessFragmentCompaction extends Compaction {
         }
 
         for (List<FragmentMeta> fragmentGroup : toCompactFragmentGroups) {
-            // 分别计算每个du的数据量，取其中数据量最多的du作为目标合并du
-            StorageUnitMeta maxStorageUnitMeta = fragmentGroup.get(0).getMasterStorageUnit();
-            long maxStorageUnitPoint = 0;
-            long totalPoints = 0;
-            Map<String, Long> storageUnitPointsMap = new HashMap<>();
-            for (FragmentMeta fragmentMeta : fragmentGroup) {
-                // 优先按照节点当前存储的点数最小做选择
-                if (fragmentMeta.getMasterStorageUnit().getStorageEngineId() == minStorageEngineId) {
-                    long pointsNum = storageUnitPointsMap.getOrDefault(fragmentMeta.getMasterStorageUnitId(), 0L);
-                    pointsNum += fragmentMetaPointsMap.getOrDefault(fragmentMeta, 0L);
-                    if (pointsNum > maxStorageUnitPoint) {
-                        maxStorageUnitMeta = fragmentMeta.getMasterStorageUnit();
+            if (fragmentGroup.size() > 1) {
+                // 分别计算每个du的数据量，取其中数据量最多的du作为目标合并du
+                StorageUnitMeta maxStorageUnitMeta = fragmentGroup.get(0).getMasterStorageUnit();
+                long maxStorageUnitPoint = 0;
+                long totalPoints = 0;
+                Map<String, Long> storageUnitPointsMap = new HashMap<>();
+                for (FragmentMeta fragmentMeta : fragmentGroup) {
+                    // 优先按照节点当前存储的点数最小做选择
+                    if (fragmentMeta.getMasterStorageUnit().getStorageEngineId() == minStorageEngineId) {
+                        long pointsNum = storageUnitPointsMap.getOrDefault(fragmentMeta.getMasterStorageUnitId(), 0L);
+                        pointsNum += fragmentMetaPointsMap.getOrDefault(fragmentMeta, 0L);
+                        if (pointsNum > maxStorageUnitPoint) {
+                            maxStorageUnitMeta = fragmentMeta.getMasterStorageUnit();
+                        }
+                        storageUnitPointsMap.put(fragmentMeta.getMasterStorageUnitId(), pointsNum);
                     }
-                    storageUnitPointsMap.put(fragmentMeta.getMasterStorageUnitId(), pointsNum);
+                    totalPoints += fragmentMetaPointsMap.getOrDefault(fragmentMeta, 0L);
                 }
-                totalPoints += fragmentMetaPointsMap.getOrDefault(fragmentMeta, 0L);
-            }
 
-            compactFragmentGroupToTargetStorageUnit(fragmentGroup, maxStorageUnitMeta, totalPoints);
+                compactFragmentGroupToTargetStorageUnit(fragmentGroup, maxStorageUnitMeta, totalPoints);
+            } else {
+                logger.info("fragmentGroup size = {}", fragmentGroup.size());
+            }
         }
     }
 }

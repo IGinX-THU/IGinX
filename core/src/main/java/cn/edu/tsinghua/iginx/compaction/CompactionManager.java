@@ -31,7 +31,7 @@ public class CompactionManager {
         logger.info("start to compact fragments");
         if (ConfigDescriptor.getInstance().getConfig().isEnableInstantCompaction()) {
             new InstantCompaction(PhysicalEngineImpl.getInstance(), DefaultMetaManager.getInstance()).compact();
-        } else {
+        } else if (ConfigDescriptor.getInstance().getConfig().isEnableFragmentCompaction()) {
             for (Compaction compaction : compactionList) {
                 if (compaction.needCompaction()) {
                     compaction.compact();

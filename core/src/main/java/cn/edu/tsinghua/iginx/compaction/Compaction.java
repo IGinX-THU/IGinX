@@ -34,7 +34,13 @@ public abstract class Compaction {
         fragmentMetas.sort((o1, o2) -> {
             // 先按照时间维度排序，再按照时间序列维度排序
             if (o1.getTimeInterval().getStartTime() == o2.getTimeInterval().getStartTime()) {
-                return o1.getTsInterval().getStartTimeSeries().compareTo(o2.getTsInterval().getEndTimeSeries());
+                if (o1.getTsInterval().getStartTimeSeries() == null) {
+                    return -1;
+                } else if (o2.getTsInterval().getStartTimeSeries() == null) {
+                    return 1;
+                } else {
+                    return o1.getTsInterval().getStartTimeSeries().compareTo(o2.getTsInterval().getStartTimeSeries());
+                }
             } else {
                 // 所有分片在时间维度上是统一的，因此只需要根据起始时间排序即可
                 return Long.compare(o1.getTimeInterval().getStartTime(), o2.getTimeInterval().getStartTime());
@@ -67,7 +73,11 @@ public abstract class Compaction {
     }
 
     private boolean isNext(FragmentMeta firstFragment, FragmentMeta secondFragment) {
-        return firstFragment.getTimeInterval().equals(secondFragment.getTimeInterval()) && firstFragment.getTsInterval().getEndTimeSeries().equals(secondFragment.getTsInterval().getStartTimeSeries());
+        if (firstFragment.getTsInterval().getEndTimeSeries() == null || secondFragment.getTsInterval().getStartTimeSeries() == null) {
+            return false;
+        } else {
+            return firstFragment.getTimeInterval().equals(secondFragment.getTimeInterval()) && firstFragment.getTsInterval().getEndTimeSeries().equals(secondFragment.getTsInterval().getStartTimeSeries());
+        }
     }
 
     protected void compactFragmentGroupToTargetStorageUnit(List<FragmentMeta> fragmentGroup, StorageUnitMeta targetStorageUnit, long totalPoints) throws PhysicalException {
@@ -78,11 +88,15 @@ public abstract class Compaction {
 
         for (FragmentMeta fragmentMeta : fragmentGroup) {
             // 找到新分片空间
-            startTimeseries = startTimeseries.compareTo(fragmentMeta.getTsInterval().getStartTimeSeries()) > 0 ? fragmentMeta.getTsInterval().getStartTimeSeries() : startTimeseries;
-            if (endTimeseries == null || fragmentMeta.getTsInterval().getEndTimeSeries() == null) {
-                endTimeseries = null;
+            if (startTimeseries == null || fragmentMeta.getTsInterval().getStartTimeSeries() == null) {
+                startTimeseries = null;
             } else {
-                endTimeseries = endTimeseries.compareTo(fragmentMeta.getTsInterval().getEndTimeSeries()) > 0 ? endTimeseries : fragmentMeta.getTsInterval().getEndTimeSeries();
+                startTimeseries = startTimeseries.compareTo(fragmentMeta.getTsInterval().getStartTimeSeries()) > 0 ? fragmentMeta.getTsInterval().getStartTimeSeries() : startTimeseries;
+                if (endTimeseries == null || fragmentMeta.getTsInterval().getEndTimeSeries() == null) {
+                    endTimeseries = null;
+                } else {
+                    endTimeseries = endTimeseries.compareTo(fragmentMeta.getTsInterval().getEndTimeSeries()) > 0 ? endTimeseries : fragmentMeta.getTsInterval().getEndTimeSeries();
+                }
             }
 
             String storageUnitId = fragmentMeta.getMasterStorageUnitId();
@@ -90,7 +104,7 @@ public abstract class Compaction {
                 // 重写该分片的数据
                 Set<String> pathRegexSet = new HashSet<>();
                 ShowTimeSeries showTimeSeries = new ShowTimeSeries(new GlobalSource(),
-                        pathRegexSet, null, Integer.MAX_VALUE, 0);
+                    pathRegexSet, null, Integer.MAX_VALUE, 0);
                 RowStream rowStream = physicalEngine.execute(showTimeSeries);
                 SortedSet<String> pathSet = new TreeSet<>();
                 while (rowStream != null && rowStream.hasNext()) {
@@ -105,21 +119,17 @@ public abstract class Compaction {
                 }
                 Migration migration = new Migration(new GlobalSource(), fragmentMeta, new ArrayList<>(pathSet), targetStorageUnit);
                 physicalEngine.execute(migration);
-                // 更新存储点数信息
-                metaManager.updateFragmentPoints(fragmentMeta, totalPoints);
             }
         }
         // TODO add write lock
         // 创建新分片
         FragmentMeta newFragment = new FragmentMeta(startTimeseries, endTimeseries, startTime, endTime, targetStorageUnit);
         metaManager.addFragment(newFragment);
+        // 更新存储点数信息
+        metaManager.updateFragmentPoints(newFragment, totalPoints);
 
         for (FragmentMeta fragmentMeta : fragmentGroup) {
-            String storageUnitId = fragmentMeta.getMasterStorageUnitId();
-            if (!storageUnitId.equals(targetStorageUnit.getId())) {
-                // 删除原分片元数据信息
-                metaManager.removeFragment(fragmentMeta);
-            }
+            metaManager.removeFragment(fragmentMeta);
         }
         // TODO release write lock
 
