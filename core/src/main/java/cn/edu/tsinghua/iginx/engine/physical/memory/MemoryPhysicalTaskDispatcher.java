@@ -66,12 +66,15 @@ public class MemoryPhysicalTaskDispatcher {
                         MemoryPhysicalTask currentTask = task;
                         while (currentTask != null) {
                             TaskExecuteResult result;
+                            long startTime = System.currentTimeMillis();
                             try {
                                 result = currentTask.execute();
                             } catch (Exception e) {
                                 logger.error("execute memory task failure: ", e);
                                 result = new TaskExecuteResult(new PhysicalException(e));
                             }
+                            long span = System.currentTimeMillis() - startTime;
+                            currentTask.setSpan(span);
                             currentTask.setResult(result);
                             if (currentTask.getFollowerTask() != null) { // 链式执行可以被执行的任务
                                 MemoryPhysicalTask followerTask = (MemoryPhysicalTask) currentTask.getFollowerTask();

@@ -119,7 +119,11 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     public Statement visitSelectStatement(SelectStatementContext ctx) {
         SelectStatement selectStatement = new SelectStatement();
         if (ctx.EXPLAIN() != null) {
-            selectStatement.setNeedExplain(true);
+            if (ctx.PHYSICAL() != null) {
+                selectStatement.setNeedPhysicalExplain(true);
+            } else {
+                selectStatement.setNeedLogicalExplain(true);
+            }
         }
         if (ctx.queryClause() != null) {
             parseQueryClause(ctx.queryClause(), selectStatement);
@@ -420,6 +424,11 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         return new ShowEligibleJobStatement(jobState);
     }
 
+    @Override
+    public Statement visitCompactStatement(CompactStatementContext ctx) {
+        return new CompactStatement();
+    }
+
     private void parseSelectPaths(SelectClauseContext ctx, SelectStatement selectStatement) {
         List<ExpressionContext> expressions = ctx.expression();
 
@@ -555,8 +564,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     private void parseSpecialClause(SpecialClauseContext ctx, SelectStatement selectStatement) {
         if (ctx.downsampleWithLevelClause() != null) {
             // downsampleWithLevelClause = downsampleClause + aggregateWithLevelClause
-            parseDownsampleClause(ctx.downsampleClause(), selectStatement);
-            parseAggregateWithLevelClause(ctx.aggregateWithLevelClause().INT(), selectStatement);
+            parseDownsampleClause(ctx.downsampleWithLevelClause().downsampleClause(), selectStatement);
+            parseAggregateWithLevelClause(ctx.downsampleWithLevelClause().aggregateWithLevelClause().INT(), selectStatement);
         }
         if (ctx.downsampleClause() != null) {
             parseDownsampleClause(ctx.downsampleClause(), selectStatement);
