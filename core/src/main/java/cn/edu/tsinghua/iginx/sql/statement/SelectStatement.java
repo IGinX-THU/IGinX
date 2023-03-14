@@ -26,7 +26,8 @@ public class SelectStatement extends DataStatement {
 
     private QueryType queryType;
 
-    private boolean needExplain = false;
+    private boolean needLogicalExplain = false;
+    private boolean needPhysicalExplain = false;
 
     private boolean hasFunc;
     private boolean hasJoinParts = false;
@@ -485,12 +486,20 @@ public class SelectStatement extends DataStatement {
         expressions.add(expression);
     }
 
-    public boolean isNeedExplain() {
-        return needExplain;
+    public boolean isNeedLogicalExplain() {
+        return needLogicalExplain;
     }
 
-    public void setNeedExplain(boolean needExplain) {
-        this.needExplain = needExplain;
+    public void setNeedLogicalExplain(boolean needLogicalExplain) {
+        this.needLogicalExplain = needLogicalExplain;
+    }
+
+    public boolean isNeedPhysicalExplain() {
+        return needPhysicalExplain;
+    }
+
+    public void setNeedPhysicalExplain(boolean needPhysicalExplain) {
+        this.needPhysicalExplain = needPhysicalExplain;
     }
 
     public Map<String, String> getAliasMap() {
