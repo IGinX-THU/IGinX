@@ -26,6 +26,12 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
+            <groupId>io.etcd</groupId>
+            <artifactId>jetcd-core</artifactId>
+            <version>0.5.7</version>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
             <groupId>org.apache.iotdb</groupId>
             <artifactId>iotdb-session</artifactId>
             <version>0.12.6</version>

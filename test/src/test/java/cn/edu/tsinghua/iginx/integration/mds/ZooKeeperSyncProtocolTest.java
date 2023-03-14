@@ -1,4 +1,4 @@
-package cn.edu.tsinghua.iginx.metadata.sync;
+package cn.edu.tsinghua.iginx.integration.mds;
 
 import cn.edu.tsinghua.iginx.metadata.sync.protocol.NetworkException;
 import cn.edu.tsinghua.iginx.metadata.sync.protocol.SyncProtocol;

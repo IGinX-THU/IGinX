@@ -5,6 +5,7 @@ import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngine;
 import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngineImpl;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.TimeRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
@@ -238,7 +239,7 @@ public abstract class MigrationPolicy {
       pathRegexSet.add(fragmentMeta.getMasterStorageUnitId());
       ShowTimeSeries showTimeSeries = new ShowTimeSeries(new GlobalSource(),
           pathRegexSet, null, Integer.MAX_VALUE, 0);
-      RowStream rowStream = physicalEngine.execute(showTimeSeries);
+      RowStream rowStream = physicalEngine.execute(new RequestContext(), showTimeSeries);
       SortedSet<String> pathSet = new TreeSet<>();
       while (rowStream.hasNext()) {
         Row row = rowStream.next();
@@ -421,7 +422,7 @@ public abstract class MigrationPolicy {
       pathRegexSet.add(fragmentMeta.getMasterStorageUnitId());
       ShowTimeSeries showTimeSeries = new ShowTimeSeries(new GlobalSource(), pathRegexSet, null,
           Integer.MAX_VALUE, 0);
-      RowStream rowStream = physicalEngine.execute(showTimeSeries);
+      RowStream rowStream = physicalEngine.execute(new RequestContext(), showTimeSeries);
       SortedSet<String> pathSet = new TreeSet<>();
       rowStream.getHeader().getFields().forEach(field -> {
         String timeSeries = field.getName();
@@ -432,7 +433,7 @@ public abstract class MigrationPolicy {
       // 开始迁移数据
       Migration migration = new Migration(new GlobalSource(), sourceStorageId, targetStorageId,
           fragmentMeta, new ArrayList<>(pathSet), storageUnitMeta);
-      physicalEngine.execute(migration);
+      physicalEngine.execute(new RequestContext(), migration);
       // 迁移完开始删除原数据
 
       List<String> paths = new ArrayList<>();
@@ -441,7 +442,7 @@ public abstract class MigrationPolicy {
       timeRanges.add(new TimeRange(fragmentMeta.getTimeInterval().getStartTime(), true,
           fragmentMeta.getTimeInterval().getEndTime(), false));
       Delete delete = new Delete(new FragmentSource(fragmentMeta), timeRanges, paths, null);
-      physicalEngine.execute(delete);
+      physicalEngine.execute(new RequestContext(), delete);
     } catch (Exception e) {
       logger.error("encounter error when migrate data from {} to {} ", sourceStorageId,
           targetStorageId, e);
@@ -457,7 +458,7 @@ public abstract class MigrationPolicy {
       Set<String> pathRegexSet = new HashSet<>();
       ShowTimeSeries showTimeSeries = new ShowTimeSeries(new GlobalSource(),
               pathRegexSet, null, Integer.MAX_VALUE, 0);
-      RowStream rowStream = physicalEngine.execute(showTimeSeries);
+      RowStream rowStream = physicalEngine.execute(new RequestContext(), showTimeSeries);
       SortedSet<String> pathSet = new TreeSet<>();
       while (rowStream.hasNext()) {
         Row row = rowStream.next();
@@ -479,7 +480,7 @@ public abstract class MigrationPolicy {
       for (FragmentMeta fragmentMeta: fragmentMetas) {
         Migration migration = new Migration(new GlobalSource(), sourceStorageUnit.getStorageEngineId(), targetStorageUnit.getStorageEngineId(),
                 fragmentMeta, new ArrayList<>(pathSet), targetStorageUnit);
-        physicalEngine.execute(migration);
+        physicalEngine.execute(new RequestContext(), migration);
       }
       return true;
     } catch (Exception e) {

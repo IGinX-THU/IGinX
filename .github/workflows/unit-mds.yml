@@ -39,6 +39,8 @@ jobs:
           "${GITHUB_WORKSPACE}/.github/zk.sh"
       - name: Run Test For Meta Manager
         run: mvn test -q -Dtest=IMetaManagerTest -DfailIfNoTests=false
+      - name: Run Test For Sync Protocol
+        run: mvn test -q -Dtest=ZooKeeperSyncProtocolTest -DfailIfNoTests=false
       - uses: codecov/codecov-action@v1
         with:
           file: ./**/target/site/jacoco/jacoco.xml
@@ -72,6 +74,8 @@ jobs:
           "${GITHUB_WORKSPACE}/.github/etcd.sh"
       #- name: Run Test For Meta Manager
       #  run: mvn test -q -Dtest=IMetaManagerTest -DfailIfNoTests=false
+      - name: Run Test For Sync Protocol
+        run: mvn test -q -Dtest=ETCDSyncProtocolTest -DfailIfNoTests=false
       - uses: codecov/codecov-action@v1
         with:
           file: ./**/target/site/jacoco/jacoco.xml

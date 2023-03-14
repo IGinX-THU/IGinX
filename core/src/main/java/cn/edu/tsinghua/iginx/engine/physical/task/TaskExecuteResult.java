@@ -19,9 +19,12 @@
 package cn.edu.tsinghua.iginx.engine.physical.task;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 
 public class TaskExecuteResult {
+
+    private int affectRows;
 
     private RowStream rowStream;
 
@@ -33,6 +36,10 @@ public class TaskExecuteResult {
 
     public TaskExecuteResult(RowStream rowStream) {
         this(rowStream, null);
+        if (rowStream instanceof Table) {
+            Table table = (Table) rowStream;
+            affectRows = table.getRowSize();
+        }
     }
 
     public TaskExecuteResult(PhysicalException exception) {
@@ -60,5 +67,9 @@ public class TaskExecuteResult {
 
     public void setException(PhysicalException exception) {
         this.exception = exception;
+    }
+
+    public int getAffectRows() {
+        return affectRows;
     }
 }
