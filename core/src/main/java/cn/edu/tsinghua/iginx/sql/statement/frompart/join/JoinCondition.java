@@ -19,6 +19,10 @@ public class JoinCondition {
         this(JoinType.CrossJoin, null, Collections.emptyList());
     }
 
+    public JoinCondition(JoinType joinType, Filter filter) {
+        this(joinType, filter, Collections.emptyList());
+    }
+
     public JoinCondition(JoinType joinType, Filter filter, List<String> joinColumns) {
         this.joinType = joinType;
         this.filter = filter;

@@ -132,9 +132,11 @@ public class QueryGenerator extends AbstractGenerator {
                 Filter filter = whereSubQueryPart.getJoinCondition().getFilter();
                 String markColumn = whereSubQueryPart.getJoinCondition().getMarkColumn();
                 if (whereSubQueryPart.getJoinCondition().getJoinType() == JoinType.MarkJoin) {
-                    root = new MarkJoin(new OperatorSource((root)), new OperatorSource(right), filter, markColumn);
+                    root = new MarkJoin(new OperatorSource(root), new OperatorSource(right), filter, markColumn);
                 } else if (whereSubQueryPart.getJoinCondition().getJoinType() == JoinType.AntiMarkJoin) {
-                    root = new AntiMarkJoin(new OperatorSource((root)), new OperatorSource(right), filter, markColumn);
+                    root = new AntiMarkJoin(new OperatorSource(root), new OperatorSource(right), filter, markColumn);
+                } else if (whereSubQueryPart.getJoinCondition().getJoinType() == JoinType.SingleJoin) {
+                    root = new SingleJoin(new OperatorSource(root), new OperatorSource(right), filter);
                 }
             }
         }
@@ -261,6 +263,24 @@ public class QueryGenerator extends AbstractGenerator {
                 root = OperatorUtils.joinOperatorsByTime(queryList);
             } else {
                 root = OperatorUtils.joinOperators(queryList, ORDINAL);
+            }
+        }
+
+        if (selectStatement.getHavingSubQueryParts().size() > 0) {
+            int sizeHavingSubQueryParts = selectStatement.getHavingSubQueryParts().size();
+            List<SubQueryFromPart> havingSubQueryParts = selectStatement.getHavingSubQueryParts();
+            for (int i = 0; i < sizeHavingSubQueryParts; i++) {
+                SubQueryFromPart havingSubQueryPart = havingSubQueryParts.get(i);
+                Operator right = generateRoot(havingSubQueryPart.getSubQuery());
+                Filter filter = havingSubQueryPart.getJoinCondition().getFilter();
+                String markColumn = havingSubQueryPart.getJoinCondition().getMarkColumn();
+                if (havingSubQueryPart.getJoinCondition().getJoinType() == JoinType.MarkJoin) {
+                    root = new MarkJoin(new OperatorSource(root), new OperatorSource(right), filter, markColumn);
+                } else if (havingSubQueryPart.getJoinCondition().getJoinType() == JoinType.AntiMarkJoin) {
+                    root = new AntiMarkJoin(new OperatorSource(root), new OperatorSource(right), filter, markColumn);
+                } else if (havingSubQueryPart.getJoinCondition().getJoinType() == JoinType.SingleJoin) {
+                    root = new SingleJoin(new OperatorSource(root), new OperatorSource(right), filter);
+                }
             }
         }
 

@@ -79,8 +79,11 @@ predicate
 
 predicateWithSubquery
     : OPERATOR_NOT? EXISTS subquery
-    | (path | constant) OPERATOR_NOT? IN subquery
-    | (path | constant) comparisonOperator quantifier subquery
+    | (path | constant | functionName LR_BRACKET path RR_BRACKET) OPERATOR_NOT? IN subquery
+    | (path | constant | functionName LR_BRACKET path RR_BRACKET) comparisonOperator quantifier subquery
+    | (path | constant | functionName LR_BRACKET path RR_BRACKET) comparisonOperator subquery
+    | subquery comparisonOperator (path | constant | functionName LR_BRACKET path RR_BRACKET)
+    | subquery comparisonOperator subquery
     ;
 
 quantifier

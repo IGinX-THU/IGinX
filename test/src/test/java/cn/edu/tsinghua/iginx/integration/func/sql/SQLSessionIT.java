@@ -2983,6 +2983,21 @@ public abstract class SQLSessionIT {
             "Total line number = 6\n";
         executeAndCompare(statement, expected);
 
+        statement = "SELECT * FROM test.c;";
+        expected = "ResultSets:\n" +
+            "+---+--------+--------+--------+--------+\n" +
+            "|key|test.c.a|test.c.b|test.c.c|test.c.d|\n" +
+            "+---+--------+--------+--------+--------+\n" +
+            "|  1|       3|       2|     3.1|    val1|\n" +
+            "|  2|       1|       3|     2.1|    val2|\n" +
+            "|  3|       2|       2|     1.1|    val3|\n" +
+            "|  4|       3|       2|     2.1|    val4|\n" +
+            "|  5|       1|       2|     3.1|    val5|\n" +
+            "|  6|       2|       2|     5.1|    val6|\n" +
+            "+---+--------+--------+--------+--------+\n" +
+            "Total line number = 6\n";
+        executeAndCompare(statement, expected);
+
         statement = "SELECT * FROM test.a WHERE EXISTS (SELECT * FROM test.b WHERE test.b.d = \"val2\");";
         expected = "ResultSets:\n" +
             "+---+--------+--------+--------+--------+\n" +
@@ -2998,13 +3013,19 @@ public abstract class SQLSessionIT {
             "Total line number = 6\n";
         executeAndCompare(statement, expected);
 
-        statement = "SELECT * FROM test.a WHERE EXISTS (SELECT * FROM test.b WHERE test.b.d = \"val4\");";
+        statement = "SELECT * FROM test.a WHERE NOT EXISTS (SELECT * FROM test.b WHERE test.b.d = \"val4\");";
         expected = "ResultSets:\n" +
-            "+---+\n" +
-            "|key|\n" +
-            "+---+\n" +
-            "+---+\n" +
-            "Empty set.\n";
+            "+---+--------+--------+--------+--------+\n" +
+            "|key|test.a.a|test.a.b|test.a.c|test.a.d|\n" +
+            "+---+--------+--------+--------+--------+\n" +
+            "|  1|       3|       2|     3.1|    val1|\n" +
+            "|  2|       1|       3|     2.1|    val2|\n" +
+            "|  3|       2|       2|     1.1|    val7|\n" +
+            "|  4|       3|       2|     2.1|    val8|\n" +
+            "|  5|       1|       2|     3.1|    val1|\n" +
+            "|  6|       2|       2|     5.1|    val3|\n" +
+            "+---+--------+--------+--------+--------+\n" +
+            "Total line number = 6\n";
         executeAndCompare(statement, expected);
 
         statement = "SELECT * FROM test.a WHERE EXISTS (SELECT * FROM test.b WHERE test.b.d = \"val4\") OR d = \"val1\";";
@@ -3042,17 +3063,6 @@ public abstract class SQLSessionIT {
             "Total line number = 2\n";
         executeAndCompare(statement, expected);
 
-        statement = "SELECT * FROM test.a WHERE a IN (SELECT AVG(a) FROM test.b);";
-        expected = "ResultSets:\n" +
-            "+---+--------+--------+--------+--------+\n" +
-            "|key|test.a.a|test.a.b|test.a.c|test.a.d|\n" +
-            "+---+--------+--------+--------+--------+\n" +
-            "|  3|       2|       2|     1.1|    val7|\n" +
-            "|  6|       2|       2|     5.1|    val3|\n" +
-            "+---+--------+--------+--------+--------+\n" +
-            "Total line number = 2\n";
-        executeAndCompare(statement, expected);
-
         statement = "SELECT * FROM test.a WHERE d = SOME (SELECT d FROM test.b);";
         expected = "ResultSets:\n" +
             "+---+--------+--------+--------+--------+\n" +
@@ -3077,6 +3087,83 @@ public abstract class SQLSessionIT {
             "Total line number = 2\n";
         executeAndCompare(statement, expected);
 
+        statement = "SELECT * FROM test.a WHERE a = (SELECT AVG(a) FROM test.b);";
+        expected = "ResultSets:\n" +
+            "+---+--------+--------+--------+--------+\n" +
+            "|key|test.a.a|test.a.b|test.a.c|test.a.d|\n" +
+            "+---+--------+--------+--------+--------+\n" +
+            "|  3|       2|       2|     1.1|    val7|\n" +
+            "|  6|       2|       2|     5.1|    val3|\n" +
+            "+---+--------+--------+--------+--------+\n" +
+            "Total line number = 2\n";
+        executeAndCompare(statement, expected);
+
+        statement = "SELECT * FROM test.a WHERE a > (SELECT AVG(a) FROM test.b);";
+        expected = "ResultSets:\n" +
+            "+---+--------+--------+--------+--------+\n" +
+            "|key|test.a.a|test.a.b|test.a.c|test.a.d|\n" +
+            "+---+--------+--------+--------+--------+\n" +
+            "|  1|       3|       2|     3.1|    val1|\n" +
+            "|  4|       3|       2|     2.1|    val8|\n" +
+            "+---+--------+--------+--------+--------+\n" +
+            "Total line number = 2\n";
+        executeAndCompare(statement, expected);
+
+        statement = "SELECT * FROM test.a WHERE (SELECT AVG(a) FROM test.c) = (SELECT AVG(a) FROM test.b);";
+        expected = "ResultSets:\n" +
+            "+---+--------+--------+--------+--------+\n" +
+            "|key|test.a.a|test.a.b|test.a.c|test.a.d|\n" +
+            "+---+--------+--------+--------+--------+\n" +
+            "|  1|       3|       2|     3.1|    val1|\n" +
+            "|  2|       1|       3|     2.1|    val2|\n" +
+            "|  3|       2|       2|     1.1|    val7|\n" +
+            "|  4|       3|       2|     2.1|    val8|\n" +
+            "|  5|       1|       2|     3.1|    val1|\n" +
+            "|  6|       2|       2|     5.1|    val3|\n" +
+            "+---+--------+--------+--------+--------+\n" +
+            "Total line number = 6\n";
+        executeAndCompare(statement, expected);
+    }
+
+    @Test
+    public void testHavingSubQuery() {
+        String insert = "INSERT INTO test.a(key, a, b, c, d) VALUES (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), " +
+                "(3, 2, 2, 1.1, \"val5\"), (4, 3, 2, 2.1, \"val2\"), (5, 1, 2, 3.1, \"val1\"), (6, 2, 2, 5.1, \"val3\");";
+        execute(insert);
+        insert = "INSERT INTO test.b(key, a, b, c, d) VALUES (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), " +
+                "(3, 2, 2, 1.1, \"val3\"), (4, 3, 2, 2.1, \"val2\"), (5, 1, 2, 3.1, \"val2\"), (6, 2, 2, 5.1, \"val3\");";
+        execute(insert);
+
+        String statement = "SELECT AVG(a), b FROM test.a GROUP BY b;";
+        String expected = "ResultSets:\n" +
+            "+-------------+--------+\n" +
+            "|avg(test.a.a)|test.a.b|\n" +
+            "+-------------+--------+\n" +
+            "|          2.2|       2|\n" +
+            "|          1.0|       3|\n" +
+            "+-------------+--------+\n" +
+            "Total line number = 2\n";
+        executeAndCompare(statement, expected);
+
+        statement = "SELECT AVG(a) FROM test.b;";
+        expected = "ResultSets:\n" +
+            "+-------------+\n" +
+            "|avg(test.b.a)|\n" +
+            "+-------------+\n" +
+            "|          2.0|\n" +
+            "+-------------+\n" +
+            "Total line number = 1\n";
+        executeAndCompare(statement, expected);
+
+        statement = "SELECT AVG(a), b FROM test.a GROUP BY b HAVING avg(a) > (SELECT AVG(a) FROM test.b);";
+        expected = "ResultSets:\n" +
+            "+-------------+--------+\n" +
+            "|avg(test.a.a)|test.a.b|\n" +
+            "+-------------+--------+\n" +
+            "|          2.2|       2|\n" +
+            "+-------------+--------+\n" +
+            "Total line number = 1\n";
+        executeAndCompare(statement, expected);
     }
 
     @Test
