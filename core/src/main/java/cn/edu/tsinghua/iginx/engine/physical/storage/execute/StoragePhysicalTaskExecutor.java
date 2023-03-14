@@ -41,6 +41,8 @@ import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageUnitMeta;
 import cn.edu.tsinghua.iginx.metadata.hook.StorageEngineChangeHook;
 import cn.edu.tsinghua.iginx.metadata.hook.StorageUnitHook;
+import cn.edu.tsinghua.iginx.monitor.HotSpotMonitor;
+import cn.edu.tsinghua.iginx.monitor.RequestsMonitor;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import org.slf4j.Logger;
@@ -112,12 +114,25 @@ public class StoragePhysicalTaskExecutor {
                             }
                             pair.v.submit(() -> {
                                 TaskExecuteResult result = null;
+                                long taskId = System.nanoTime();
+                                long startTime = System.currentTimeMillis();
                                 try {
                                     result = pair.k.execute(task);
                                 } catch (Exception e) {
                                     logger.error("execute task error: " + e);
                                     result = new TaskExecuteResult(new PhysicalException(e));
                                 }
+                                try {
+                                    HotSpotMonitor.getInstance()
+                                            .recordAfter(taskId, task.getTargetFragment(),
+                                                    task.getOperators().get(0).getType());
+                                    RequestsMonitor.getInstance()
+                                            .record(task.getTargetFragment(), task.getOperators().get(0));
+                                } catch (Exception e) {
+                                    logger.error("Monitor catch error:", e);
+                                }
+                                long span = System.currentTimeMillis() - startTime;
+                                task.setSpan(span);
                                 task.setResult(result);
                                 if (task.getFollowerTask() != null && task.isSync()) { // 只有同步任务才会影响后续任务的执行
                                     MemoryPhysicalTask followerTask = (MemoryPhysicalTask) task.getFollowerTask();

@@ -79,6 +79,8 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
                 return executeInnerJoin((InnerJoin) operator, streamA, streamB);
             case OuterJoin:
                 return executeOuterJoin((OuterJoin) operator, streamA, streamB);
+            case SingleJoin:
+                return executeSingleJoin((SingleJoin) operator, streamA,streamB);
             case Union:
                 return executeUnion((Union) operator, streamA, streamB);
             default:
@@ -197,6 +199,10 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
 
     private RowStream executeSortedMergeOuterJoin(OuterJoin outerJoin, RowStream streamA, RowStream streamB) throws PhysicalException {
         return new SortedMergeOuterJoinLazyStream(outerJoin, streamA, streamB);
+    }
+
+    private RowStream executeSingleJoin(SingleJoin singleJoin, RowStream streamA, RowStream streamB) {
+        return new SingleJoinLazyStream(singleJoin, streamA, streamB);
     }
 
     private RowStream executeUnion(Union union, RowStream streamA, RowStream streamB) {
