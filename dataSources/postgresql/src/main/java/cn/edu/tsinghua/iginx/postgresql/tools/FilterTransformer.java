@@ -18,13 +18,8 @@
  */
 package cn.edu.tsinghua.iginx.postgresql.tools;
 
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.NotFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.OrFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.ValueFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
+
 import java.util.stream.Collectors;
 
 public class FilterTransformer {
@@ -60,7 +55,7 @@ public class FilterTransformer {
     }
 
     private static String toString(KeyFilter filter) {
-        return "time " + Op.op2Str(filter.getOp()) + " to_timestamp(" + Math.min(filter.getValue(), MAX_TIMESTAMP) + ")";
+        return "time " + Op.op2Str(filter.getOp()) + Math.min(filter.getValue(), MAX_TIMESTAMP);
     }
 
     private static String toString(ValueFilter filter) {
@@ -70,7 +65,6 @@ public class FilterTransformer {
     private static String toString(OrFilter filter) {
         return filter.getChildren().stream().map(FilterTransformer::toString).collect(Collectors.joining(" or ", "(", ")"));
     }
-
 
 
 }
