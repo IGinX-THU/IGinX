@@ -19,7 +19,7 @@
 package cn.edu.tsinghua.iginx.conf;
 
 import cn.edu.tsinghua.iginx.thrift.TimePrecision;
-import cn.edu.tsinghua.iginx.utils.TagKVUtils;
+import cn.edu.tsinghua.iginx.utils.SpecialCharacter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -181,11 +181,11 @@ public class Config {
 
     //////////////
 
-    public static final String tagNameAnnotation = TagKVUtils.tagNameAnnotation;
+    public static final String tagNameAnnotation = SpecialCharacter.TAG_NAME_ANNOTATION;
 
-    public static final String tagPrefix = TagKVUtils.tagPrefix;
+    public static final String tagPrefix = SpecialCharacter.TAG_PREFIX;
 
-    public static final String tagSuffix = TagKVUtils.tagSuffix;
+    public static final String tagSuffix = SpecialCharacter.TAG_SUFFIX;
 
     /////////////
 

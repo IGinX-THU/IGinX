@@ -23,25 +23,21 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
+import static cn.edu.tsinghua.iginx.utils.SpecialCharacter.*;
+
 public class TagKVUtils {
-
-    public static final String tagNameAnnotation = ""+'\u2E83';//"tagName@";
-
-    public static final String tagPrefix = ""+'\u2E80';//"tagPrefix#";
-
-    public static final String tagSuffix = ""+'\u2E81';//"#tagSuffix";
 
     public static String toPhysicalPath(String name, Map<String, String> tags) {
         StringBuilder builder = new StringBuilder();
         builder.append(name);
-        builder.append('.').append(tagPrefix);
+        builder.append('.').append(TAG_PREFIX);
         if (tags != null && !tags.isEmpty()) {
             TreeMap<String, String> sortedTags = new TreeMap<>(tags);
             sortedTags.forEach((tagKey, tagValue) ->
-                    builder.append('.').append(tagNameAnnotation).append(tagKey).append('.').append(tagValue)
+                    builder.append('.').append(TAG_NAME_ANNOTATION).append(tagKey).append('.').append(tagValue)
             );
         }
-        builder.append('.').append(tagSuffix);
+        builder.append('.').append(TAG_SUFFIX);
         return builder.toString();
     }
 
@@ -55,7 +51,7 @@ public class TagKVUtils {
             TreeMap<String, String> treeMap = new TreeMap<>(tags);
 
             int cnt = 0;
-            for (String key: treeMap.keySet()) {
+            for (String key : treeMap.keySet()) {
                 if (cnt != 0) {
                     builder.append(',');
                 }
@@ -73,11 +69,11 @@ public class TagKVUtils {
         int index = fullName.indexOf('{');
         if (index == -1) {
             return new Pair<>(fullName, Collections.emptyMap());
-         } else {
+        } else {
             String name = fullName.substring(0, index);
             String[] tagKVs = fullName.substring(index + 1, fullName.length() - 1).split(",");
             Map<String, String> tags = new HashMap<>();
-            for (String tagKV: tagKVs) {
+            for (String tagKV : tagKVs) {
                 String[] KV = tagKV.split("=", 2);
                 tags.put(KV[0], KV[1]);
             }
