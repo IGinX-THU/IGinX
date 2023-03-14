@@ -439,6 +439,21 @@ public class DefaultMetaCache implements IMetaCache {
     }
 
     @Override
+    public List<FragmentMeta> getFragmentMapByExactTimeSeriesInterval(TimeSeriesRange tsInterval) {
+        List<FragmentMeta> res = fragmentMetaListMap.getOrDefault(tsInterval, new ArrayList<>());
+        // 对象不匹配的情况需要手动匹配（?）
+        if (res.size() == 0) {
+            for (Map.Entry<TimeSeriesRange, List<FragmentMeta>> fragmentMetaListEntry : fragmentMetaListMap
+                    .entrySet()) {
+                if (fragmentMetaListEntry.getKey().toString().equals(tsInterval.toString())) {
+                    return fragmentMetaListEntry.getValue();
+                }
+            }
+        }
+        return res;
+    }
+
+    @Override
     public List<FragmentMeta> getFragmentListByTimeSeriesNameAndTimeInterval(String tsName, TimeInterval timeInterval) {
         List<FragmentMeta> resultList;
         fragmentLock.readLock().lock();
