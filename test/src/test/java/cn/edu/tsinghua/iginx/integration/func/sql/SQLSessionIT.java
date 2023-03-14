@@ -59,8 +59,8 @@ public abstract class SQLSessionIT {
 
     public SQLSessionIT() throws IOException {
         ConfLoder conf = new ConfLoder(Controller.CONFIG_FILE);
-        DBConf dbConf = conf.loadDBConf();
-        this.ifScaleOutIn = conf.getStorageType() != null;
+        DBConf dbConf = conf.loadDBConf(conf.getStorageType());
+        this.ifScaleOutIn = conf.ifScaleOutIn();
         this.ifClearData = dbConf.getEnumValue(DBConf.DBConfType.isAbleToClearData);
         this.isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
         this.isAbleToShowTimeSeries = dbConf.getEnumValue(DBConf.DBConfType.isAbleToShowTimeSeries);
@@ -139,8 +139,7 @@ public abstract class SQLSessionIT {
             logger.error("Statement: \"{}\" execute fail. Caused by: {}", clearData, e.toString());
             if (e.toString().equals(Controller.CLEARDATAEXCP)) {
                 logger.error("clear data fail and go on....");
-            }
-            else fail();
+            } else fail();
         }
 
         if (res != null && res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
@@ -1369,11 +1368,11 @@ public abstract class SQLSessionIT {
             executeAndCompare(String.format(statement, type, type), expected);
         }
     }
-    
+
     @Test
     public void testAggregateWithLevel() {
         String insert = "INSERT INTO test(key, a1.b1, a1.b2, a2.b1, a2.b2) VALUES (0, 0, 0, 0, 0), (1, 1, 1, 1, 1)," +
-                "(2, NULL, 2, 2, 2), (3, NULL, NULL, 3, 3), (4, NULL, NULL, NULL, 4)";
+            "(2, NULL, 2, 2, 2), (3, NULL, NULL, 3, 3), (4, NULL, NULL, NULL, 4)";
         execute(insert);
 
         String statement = "SELECT AVG(*), COUNT(*), SUM(*) FROM test AGG LEVEL = 0;";
@@ -3417,7 +3416,7 @@ public abstract class SQLSessionIT {
 
     @Test
     public void testClearData() throws SessionException, ExecutionException {
-        if (!ifClearData) return;
+        if (!ifClearData || ifScaleOutIn) return;
         clearData();
 
         String countPoints = "COUNT POINTS;";
