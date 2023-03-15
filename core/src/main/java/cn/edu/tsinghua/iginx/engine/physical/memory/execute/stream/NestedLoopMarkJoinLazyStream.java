@@ -13,7 +13,7 @@ import java.util.List;
 
 import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.constructNewHead;
 
-public class MarkJoinLazyStream extends BinaryLazyStream {
+public class NestedLoopMarkJoinLazyStream extends BinaryLazyStream {
 
 	private final MarkJoin markJoin;
 	private final List<Row> streamBCache;
@@ -30,7 +30,7 @@ public class MarkJoinLazyStream extends BinaryLazyStream {
 	private Row nextB;
 	private Row nextRow;
 
-	public MarkJoinLazyStream(MarkJoin markJoin, RowStream streamA, RowStream streamB) {
+	public NestedLoopMarkJoinLazyStream(MarkJoin markJoin, RowStream streamA, RowStream streamB) {
 		super(streamA, streamB);
 		this.markJoin = markJoin;
 		this.streamBCache = new ArrayList<>();

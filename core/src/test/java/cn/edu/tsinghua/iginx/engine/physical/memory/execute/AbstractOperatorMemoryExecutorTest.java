@@ -1222,7 +1222,7 @@ public abstract class AbstractOperatorMemoryExecutorTest {
                     EmptySource.EMPTY_SOURCE,
                     EmptySource.EMPTY_SOURCE,
                     new PathFilter("a.b", Op.E, "c.b"),
-                    JoinAlgType.NestedLoopJoin);
+                    JoinAlgType.HashJoin);
 
             Table target = generateTableFromValues(
                     true,
@@ -1286,10 +1286,41 @@ public abstract class AbstractOperatorMemoryExecutorTest {
             MarkJoin markJoin = new MarkJoin(
                     EmptySource.EMPTY_SOURCE,
                     EmptySource.EMPTY_SOURCE,
-                    new PathFilter("a.b", Op.E, "b.b"),
+                    new PathFilter("a.b", Op.L, "b.b"),
                     "&mark0",
                     false,
                     JoinAlgType.NestedLoopJoin);
+
+            Table target = generateTableFromValues(true,
+                    Arrays.asList(
+                            new Field("a.a", DataType.INTEGER),
+                            new Field("a.b", DataType.DOUBLE),
+                            new Field("a.c", DataType.BOOLEAN),
+                            new Field("&mark0", DataType.BOOLEAN)
+                    ),
+                    Arrays.asList(
+                            Arrays.asList(3, 3.0, true, true),
+                            Arrays.asList(4, 4.0, false, true),
+                            Arrays.asList(5, 5.0, true, false),
+                            Arrays.asList(6, 6.0, false, false),
+                            Arrays.asList(7, 7.0, true, false)
+                    ));
+
+            RowStream stream = getExecutor().executeBinaryOperator(markJoin, tableA, tableB);
+            assertStreamEqual(stream, target);
+        }
+
+        {
+            tableA.reset();
+            tableB.reset();
+
+            MarkJoin markJoin = new MarkJoin(
+                    EmptySource.EMPTY_SOURCE,
+                    EmptySource.EMPTY_SOURCE,
+                    new PathFilter("a.b", Op.E, "b.b"),
+                    "&mark0",
+                    false,
+                    JoinAlgType.HashJoin);
 
             Table target = generateTableFromValues(true,
                     Arrays.asList(
@@ -1320,7 +1351,7 @@ public abstract class AbstractOperatorMemoryExecutorTest {
                     new PathFilter("a.b", Op.E, "b.b"),
                     "&mark0",
                     true,
-                    JoinAlgType.NestedLoopJoin);
+                    JoinAlgType.HashJoin);
 
             Table target = generateTableFromValues(true,
                     Arrays.asList(

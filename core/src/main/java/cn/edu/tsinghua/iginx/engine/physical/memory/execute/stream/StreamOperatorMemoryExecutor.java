@@ -203,12 +203,44 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
         return new SortedMergeOuterJoinLazyStream(outerJoin, streamA, streamB);
     }
 
-    private RowStream executeSingleJoin(SingleJoin singleJoin, RowStream streamA, RowStream streamB) {
-        return new SingleJoinLazyStream(singleJoin, streamA, streamB);
+    private RowStream executeSingleJoin(SingleJoin singleJoin, RowStream streamA, RowStream streamB)
+            throws PhysicalException {
+        switch (singleJoin.getJoinAlgType()) {
+            case NestedLoopJoin:
+                return executeNestedLoopMarkJoin(singleJoin, streamA, streamB);
+            case HashJoin:
+                return executeHashMarkJoin(singleJoin, streamA, streamB);
+            default:
+                throw new PhysicalException("Unsupported single join algorithm type: " + singleJoin.getJoinAlgType());
+        }
     }
 
-    private RowStream executeMarkJoin(MarkJoin markJoin, RowStream streamA, RowStream streamB) {
-        return new MarkJoinLazyStream(markJoin, streamA, streamB);
+    private RowStream executeNestedLoopMarkJoin(SingleJoin singleJoin, RowStream streamA, RowStream streamB) {
+        return new NestedLoopSingleJoinLazyStream(singleJoin, streamA, streamB);
+    }
+
+    private RowStream executeHashMarkJoin(SingleJoin singleJoin, RowStream streamA, RowStream streamB) {
+        return new HashSingleJoinLazyStream(singleJoin, streamA, streamB);
+    }
+
+    private RowStream executeMarkJoin(MarkJoin markJoin, RowStream streamA, RowStream streamB)
+            throws PhysicalException{
+        switch (markJoin.getJoinAlgType()) {
+            case NestedLoopJoin:
+                return executeNestedLoopMarkJoin(markJoin, streamA, streamB);
+            case HashJoin:
+                return executeHashMarkJoin(markJoin, streamA, streamB);
+            default:
+                throw new PhysicalException("Unsupported mark join algorithm type: " + markJoin.getJoinAlgType());
+        }
+    }
+
+    private RowStream executeNestedLoopMarkJoin(MarkJoin markJoin, RowStream streamA, RowStream streamB) {
+        return new NestedLoopMarkJoinLazyStream(markJoin, streamA, streamB);
+    }
+
+    private RowStream executeHashMarkJoin(MarkJoin markJoin, RowStream streamA, RowStream streamB) {
+        return new HashMarkJoinLazyStream(markJoin, streamA, streamB);
     }
 
     private RowStream executeUnion(Union union, RowStream streamA, RowStream streamB) {
