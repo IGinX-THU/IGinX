@@ -59,7 +59,8 @@ enum SqlType {
     ShowJobStatus,
     CancelJob,
     ShowEligibleJob,
-    RemoveHistoryDataResource
+    RemoveHistoryDataResource,
+    Compact
 }
 
 enum AuthType {
