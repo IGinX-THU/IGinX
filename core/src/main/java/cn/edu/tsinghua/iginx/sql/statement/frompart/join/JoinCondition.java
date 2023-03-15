@@ -12,8 +12,8 @@ public class JoinCondition {
     private final JoinType joinType;
     private final Filter filter;
     private final List<String> joinColumns;
-
     private final String markColumn;
+    private final boolean isAntiJoin;
 
     public JoinCondition() {
         this(JoinType.CrossJoin, null, Collections.emptyList());
@@ -28,13 +28,15 @@ public class JoinCondition {
         this.filter = filter;
         this.joinColumns = joinColumns;
         this.markColumn = null;
+        this.isAntiJoin = false;
     }
 
-    public JoinCondition(JoinType joinType, Filter filter, String markColumn) {
+    public JoinCondition(JoinType joinType, Filter filter, String markColumn, boolean isAntiJoin) {
         this.joinType = joinType;
         this.filter = filter;
         this.joinColumns = new ArrayList<>();
         this.markColumn = markColumn;
+        this.isAntiJoin = isAntiJoin;
     }
 
     public JoinType getJoinType() {
@@ -51,6 +53,10 @@ public class JoinCondition {
 
     public String getMarkColumn() {
         return markColumn;
+    }
+
+    public boolean isAntiJoin() {
+        return isAntiJoin;
     }
 
     @Override

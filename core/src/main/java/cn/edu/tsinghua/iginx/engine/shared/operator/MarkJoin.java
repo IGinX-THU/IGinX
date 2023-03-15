@@ -8,11 +8,13 @@ public class MarkJoin extends AbstractBinaryOperator {
 
 	private final Filter filter;
 	private final String markColumn;
+	private final boolean isAntiJoin;
 
-	public MarkJoin(Source sourceA, Source sourceB, Filter filter, String markColumn) {
+	public MarkJoin(Source sourceA, Source sourceB, Filter filter, String markColumn, boolean isAntiJoin) {
 		super(OperatorType.MarkJoin, sourceA, sourceB);
 		this.filter = filter;
 		this.markColumn = markColumn;
+		this.isAntiJoin = isAntiJoin;
 	}
 
 	public Filter getFilter() {
@@ -23,13 +25,17 @@ public class MarkJoin extends AbstractBinaryOperator {
 		return markColumn;
 	}
 
+	public boolean isAntiJoin() {
+		return isAntiJoin;
+	}
+
 	@Override
 	public Operator copy() {
-		return new MarkJoin(getSourceA().copy(), getSourceB().copy(), filter.copy(), markColumn);
+		return new MarkJoin(getSourceA().copy(), getSourceB().copy(), filter.copy(), markColumn, isAntiJoin);
 	}
 
 	@Override
 	public String getInfo() {
-		return "Filter: " + filter.toString() + ", MarkColumn: " + markColumn;
+		return "Filter: " + filter.toString() + ", MarkColumn: " + markColumn + ", IsAntiJoin: " + isAntiJoin;
 	}
 }

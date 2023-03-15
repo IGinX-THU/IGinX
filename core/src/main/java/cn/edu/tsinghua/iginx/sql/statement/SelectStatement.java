@@ -24,6 +24,8 @@ import java.util.Set;
 
 public class SelectStatement extends DataStatement {
 
+    public static int markJoinCount = 0;
+
     private QueryType queryType;
 
     private boolean needLogicalExplain = false;
@@ -137,35 +139,7 @@ public class SelectStatement extends DataStatement {
 
     // downSample query
     public SelectStatement(List<String> paths, long startTime, long endTime, AggregateType aggregateType, long precision) {
-        this.queryType = QueryType.DownSampleQuery;
-
-        this.pathSet = new HashSet<>();
-        this.expressions = new ArrayList<>();
-        this.baseExpressionMap = new HashMap<>();
-        this.selectSubQueryParts = new ArrayList<>();
-        this.fromParts = new ArrayList<>();
-        this.whereSubQueryParts = new ArrayList<>();
-        this.groupByPaths = new ArrayList<>();
-        this.havingSubQueryParts = new ArrayList<>();
-        this.orderByPaths = new ArrayList<>();
-        this.funcTypeSet = new HashSet<>();
-
-        String func = aggregateType.toString().toLowerCase();
-        paths.forEach(path -> {
-            BaseExpression baseExpression = new BaseExpression(path, func);
-            expressions.add(baseExpression);
-            setSelectedFuncsAndPaths(func, baseExpression);
-        });
-        this.hasFunc = true;
-        this.hasGroupBy = false;
-
-        this.precision = precision;
-        this.slideDistance = precision;
-        this.startTime = startTime;
-        this.endTime = endTime;
-        this.hasDownsample = true;
-
-        this.setFromSession(startTime, endTime);
+        this(paths, startTime, endTime, aggregateType, precision, precision);
     }
 
     // downsample with slide window query

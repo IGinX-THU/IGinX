@@ -11,7 +11,6 @@ import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils;
 import cn.edu.tsinghua.iginx.engine.shared.function.manager.FunctionManager;
 import cn.edu.tsinghua.iginx.engine.shared.operator.AddSchemaPrefix;
-import cn.edu.tsinghua.iginx.engine.shared.operator.AntiMarkJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.CrossJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Downsample;
 import cn.edu.tsinghua.iginx.engine.shared.operator.GroupBy;
@@ -123,6 +122,7 @@ public class QueryGenerator extends AbstractGenerator {
             }
         }
 
+        // 处理where子查询
         if (selectStatement.getWhereSubQueryParts().size() > 0) {
             int sizeWhereSubQueryParts = selectStatement.getWhereSubQueryParts().size();
             List<SubQueryFromPart> whereSubQueryParts = selectStatement.getWhereSubQueryParts();
@@ -131,10 +131,9 @@ public class QueryGenerator extends AbstractGenerator {
                 Operator right = generateRoot(whereSubQueryPart.getSubQuery());
                 Filter filter = whereSubQueryPart.getJoinCondition().getFilter();
                 String markColumn = whereSubQueryPart.getJoinCondition().getMarkColumn();
+                boolean isAntiJoin = whereSubQueryPart.getJoinCondition().isAntiJoin();
                 if (whereSubQueryPart.getJoinCondition().getJoinType() == JoinType.MarkJoin) {
-                    root = new MarkJoin(new OperatorSource(root), new OperatorSource(right), filter, markColumn);
-                } else if (whereSubQueryPart.getJoinCondition().getJoinType() == JoinType.AntiMarkJoin) {
-                    root = new AntiMarkJoin(new OperatorSource(root), new OperatorSource(right), filter, markColumn);
+                    root = new MarkJoin(new OperatorSource(root), new OperatorSource(right), filter, markColumn, isAntiJoin);
                 } else if (whereSubQueryPart.getJoinCondition().getJoinType() == JoinType.SingleJoin) {
                     root = new SingleJoin(new OperatorSource(root), new OperatorSource(right), filter);
                 }
@@ -147,6 +146,7 @@ public class QueryGenerator extends AbstractGenerator {
             root = new Select(new OperatorSource(root), selectStatement.getFilter(), tagFilter);
         }
 
+        // 处理select子查询
         if (selectStatement.getSelectSubQueryParts().size() > 0) {
             int sizeSelectSubQuery = selectStatement.getSelectSubQueryParts().size();
             List<SubQueryFromPart> selectSubQueryParts = selectStatement.getSelectSubQueryParts();
@@ -266,6 +266,7 @@ public class QueryGenerator extends AbstractGenerator {
             }
         }
 
+        // 处理having子查询
         if (selectStatement.getHavingSubQueryParts().size() > 0) {
             int sizeHavingSubQueryParts = selectStatement.getHavingSubQueryParts().size();
             List<SubQueryFromPart> havingSubQueryParts = selectStatement.getHavingSubQueryParts();
@@ -274,10 +275,9 @@ public class QueryGenerator extends AbstractGenerator {
                 Operator right = generateRoot(havingSubQueryPart.getSubQuery());
                 Filter filter = havingSubQueryPart.getJoinCondition().getFilter();
                 String markColumn = havingSubQueryPart.getJoinCondition().getMarkColumn();
+                boolean isAntiJoin = havingSubQueryPart.getJoinCondition().isAntiJoin();
                 if (havingSubQueryPart.getJoinCondition().getJoinType() == JoinType.MarkJoin) {
-                    root = new MarkJoin(new OperatorSource(root), new OperatorSource(right), filter, markColumn);
-                } else if (havingSubQueryPart.getJoinCondition().getJoinType() == JoinType.AntiMarkJoin) {
-                    root = new AntiMarkJoin(new OperatorSource(root), new OperatorSource(right), filter, markColumn);
+                    root = new MarkJoin(new OperatorSource(root), new OperatorSource(right), filter, markColumn, isAntiJoin);
                 } else if (havingSubQueryPart.getJoinCondition().getJoinType() == JoinType.SingleJoin) {
                     root = new SingleJoin(new OperatorSource(root), new OperatorSource(right), filter);
                 }

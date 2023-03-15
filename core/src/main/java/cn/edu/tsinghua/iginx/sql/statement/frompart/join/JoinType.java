@@ -12,6 +12,5 @@ public enum JoinType {
     FullOuterJoin,
     SingleJoin,
     MarkJoin,
-    AntiMarkJoin
 
 }

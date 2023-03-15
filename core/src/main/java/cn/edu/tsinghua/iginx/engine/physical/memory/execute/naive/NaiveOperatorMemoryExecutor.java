@@ -37,7 +37,6 @@ import cn.edu.tsinghua.iginx.engine.shared.function.RowMappingFunction;
 import cn.edu.tsinghua.iginx.engine.shared.function.SetMappingFunction;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils;
 import cn.edu.tsinghua.iginx.engine.shared.operator.AddSchemaPrefix;
-import cn.edu.tsinghua.iginx.engine.shared.operator.AntiMarkJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.BinaryOperator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.CrossJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Downsample;
@@ -150,9 +149,6 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
             case MarkJoin:
                 return executeMarkJoin((MarkJoin) operator, transformToTable(streamA),
                     transformToTable(streamB));
-            case AntiMarkJoin:
-                return executeAntiMarkJoin((AntiMarkJoin) operator, transformToTable(streamA),
-                        transformToTable(streamB));
             case Union:
                 return executeUnion((Union) operator, transformToTable(streamA),
                     transformToTable(streamB));
@@ -324,6 +320,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
                 RowMappingFunction function = pair.k;
                 Map<String, Value> params = pair.v;
                 try {
+                    // 分别计算每个表达式得到相应的结果
                     Row column = function.transform(current, params);
                     if (column != null) {
                         columnList.add(column);
@@ -338,6 +335,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
                     }
                 }
             });
+            // 如果计算结果都不为空，将计算结果合并成一行
             if (columnList.size() == list.size()) {
                 rows.add(combineMultipleColumns(columnList));
             }
@@ -1715,43 +1713,13 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
                 Row joinedRow = RowUtils.constructNewRow(joinHeader, rowA, rowB, true);
                 if (FilterUtils.validate(filter, joinedRow)) {
                     matched = true;
-                    Row returnRow = RowUtils.constructNewRowWithMark(targetHeader, rowA, true);
+                    Row returnRow = RowUtils.constructNewRowWithMark(targetHeader, rowA, !markJoin.isAntiJoin());
                     transformedRows.add(returnRow);
                     break;
                 }
             }
             if (!matched) {
-                Row unmatchedRow = RowUtils.constructNewRowWithMark(targetHeader, rowA, false);
-                transformedRows.add(unmatchedRow);
-            }
-        }
-        return new Table(targetHeader, transformedRows);
-    }
-
-    private RowStream executeAntiMarkJoin(AntiMarkJoin antiMarkJoin, Table tableA, Table tableB)
-        throws PhysicalException {
-        Header targetHeader = constructNewHead(tableA.getHeader(), antiMarkJoin.getMarkColumn());
-        Header joinHeader = RowUtils.constructNewHead(tableA.getHeader(), tableB.getHeader(), true);;
-
-        List<Row> rowsA = tableA.getRows();
-        List<Row> rowsB = tableB.getRows();
-
-        List<Row> transformedRows = new ArrayList<>();
-        Filter filter = antiMarkJoin.getFilter();
-        boolean matched;
-        for (Row rowA: rowsA) {
-            matched = false;
-            for (Row rowB: rowsB) {
-                Row joinedRow = RowUtils.constructNewRow(joinHeader, rowA, rowB, true);
-                if (FilterUtils.validate(filter, joinedRow)) {
-                    matched = true;
-                    Row returnRow = RowUtils.constructNewRowWithMark(targetHeader, rowA, false);
-                    transformedRows.add(returnRow);
-                    break;
-                }
-            }
-            if (!matched) {
-                Row unmatchedRow = RowUtils.constructNewRowWithMark(targetHeader, rowA, true);
+                Row unmatchedRow = RowUtils.constructNewRowWithMark(targetHeader, rowA, markJoin.isAntiJoin());
                 transformedRows.add(unmatchedRow);
             }
         }

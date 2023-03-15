@@ -22,6 +22,8 @@ import org.antlr.v4.runtime.tree.TerminalNode;
 
 import java.util.*;
 
+import static cn.edu.tsinghua.iginx.sql.statement.SelectStatement.markJoinCount;
+
 public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
     private final static Set<FuncType> supportedAggregateWithLevelFuncSet = new HashSet<>(
@@ -32,7 +34,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         )
     );
 
-    private static int markJoinCount = 0;
+
 
     @Override
     public Statement visitSqlStatement(SqlStatementContext ctx) {
@@ -957,14 +959,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         // TODO: check correlated
         filter = new BoolFilter(true);
 
-        JoinType type;
-        if (ctx.OPERATOR_NOT() != null) {
-            type = JoinType.AntiMarkJoin;
-        } else {
-            type = JoinType.MarkJoin;
-        }
-
-        SubQueryFromPart subQueryPart = new SubQueryFromPart(subStatement, new JoinCondition(type, filter, markColumn));
+        boolean isAntiJoin = ctx.OPERATOR_NOT() != null;
+        SubQueryFromPart subQueryPart = new SubQueryFromPart(subStatement, new JoinCondition(JoinType.MarkJoin, filter, markColumn, isAntiJoin));
         if (isHavingFilter) {
             statement.addHavingSubQueryPart(subQueryPart);
         } else {
@@ -1004,14 +1000,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         }
         // TODO: check correlated
 
-        JoinType type;
-        if (ctx.OPERATOR_NOT() != null) {
-            type = JoinType.AntiMarkJoin;
-        } else {
-            type = JoinType.MarkJoin;
-        }
-
-        SubQueryFromPart subQueryPart = new SubQueryFromPart(subStatement, new JoinCondition(type, filter, markColumn));
+        boolean isAntiJoin = ctx.OPERATOR_NOT() != null;
+        SubQueryFromPart subQueryPart = new SubQueryFromPart(subStatement, new JoinCondition(JoinType.MarkJoin, filter, markColumn, isAntiJoin));
         if (isHavingFilter) {
             statement.addHavingSubQueryPart(subQueryPart);
         } else {
@@ -1055,14 +1045,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         }
         // TODO: check correlated
 
-        JoinType type;
-        if (ctx.quantifier().all() != null) {
-            type = JoinType.AntiMarkJoin;
-        } else {
-            type = JoinType.MarkJoin;
-        }
-
-        SubQueryFromPart subQueryPart = new SubQueryFromPart(subStatement, new JoinCondition(type, filter, markColumn));
+        boolean isAntiJoin = ctx.quantifier().all() != null;
+        SubQueryFromPart subQueryPart = new SubQueryFromPart(subStatement, new JoinCondition(JoinType.MarkJoin, filter, markColumn, isAntiJoin));
         if (isHavingFilter) {
             statement.addHavingSubQueryPart(subQueryPart);
         } else {
