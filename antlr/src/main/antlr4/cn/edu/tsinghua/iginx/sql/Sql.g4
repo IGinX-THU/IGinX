@@ -23,6 +23,7 @@ statement
     | CANCEL TRANSFORM JOB jobId=INT #cancelJobStatement
     | SHOW jobStatus TRANSFORM JOB #showEligibleJobStatement
     | REMOVE HISTORYDATARESOURCE removedStorageEngine (COMMA removedStorageEngine)* #removeHistoryDataResourceStatement
+    | COMPACT #compactStatement
     ;
 
 queryClause
@@ -389,6 +390,7 @@ keyWords
     | STEP
     | REMOVE
     | HISTORYDATARESOURCE
+    | COMPACT
     | EXPLAIN
     | LOGICAL
     | PHYSICAL
@@ -782,6 +784,10 @@ REMOVE
 
 HISTORYDATARESOURCE
     : H I S T O R Y D A T A R E S O U R C E
+    ;
+
+COMPACT
+    : C O M P A C T
     ;
 
 EXPLAIN

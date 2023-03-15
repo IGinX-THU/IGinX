@@ -431,8 +431,7 @@ public abstract class MigrationPolicy {
         }
       });
       // 开始迁移数据
-      Migration migration = new Migration(new GlobalSource(), sourceStorageId, targetStorageId,
-          fragmentMeta, new ArrayList<>(pathSet), storageUnitMeta);
+      Migration migration = new Migration(new GlobalSource(), fragmentMeta, new ArrayList<>(pathSet), storageUnitMeta);
       physicalEngine.execute(new RequestContext(), migration);
       // 迁移完开始删除原数据
 
@@ -474,12 +473,10 @@ public abstract class MigrationPolicy {
           }
         }
       }
-      StorageUnitMeta sourceStorageUnit = DefaultMetaManager.getInstance().getStorageUnit(sourceStorageUnitId);
       StorageUnitMeta targetStorageUnit = DefaultMetaManager.getInstance().getStorageUnit(targetStorageUnitId);
       // 开始迁移数据
       for (FragmentMeta fragmentMeta: fragmentMetas) {
-        Migration migration = new Migration(new GlobalSource(), sourceStorageUnit.getStorageEngineId(), targetStorageUnit.getStorageEngineId(),
-                fragmentMeta, new ArrayList<>(pathSet), targetStorageUnit);
+        Migration migration = new Migration(new GlobalSource(), fragmentMeta, new ArrayList<>(pathSet), targetStorageUnit);
         physicalEngine.execute(new RequestContext(), migration);
       }
       return true;

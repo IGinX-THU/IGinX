@@ -72,6 +72,12 @@ public class ConfigDescriptor {
 
             config.setPolicyClassName(properties.getProperty("policyClassName", "cn.edu.tsinghua.iginx.policy.naive.NativePolicy"));
             config.setMigrationBatchSize(Integer.parseInt(properties.getProperty("migrationBatchSize", "100")));
+            config.setEnableMonitor(Boolean.parseBoolean(properties.getProperty("enableMonitor", "true")));
+            config.setLoadBalanceCheckInterval(Integer.parseInt(properties.getProperty("loadBalanceCheckInterval", "10")));
+            config.setEnableFragmentCompaction(Boolean.parseBoolean(properties.getProperty("enableFragmentCompaction", "false")));
+            config.setFragmentCompactionWriteThreshold(Long.parseLong(properties.getProperty("fragmentCompactionWriteThreshold", "1000")));
+            config.setFragmentCompactionReadThreshold(Long.parseLong(properties.getProperty("fragmentCompactionReadThreshold", "1000")));
+            config.setFragmentCompactionReadRatioThreshold(Double.parseDouble(properties.getProperty("fragmentCompactionReadRatioThreshold", "0.1")));
             config.setReshardFragmentTimeMargin(Long.parseLong(properties.getProperty("reshardFragmentTimeMargin", "60")));
             config.setMaxReshardFragmentsNum(Integer.parseInt(properties.getProperty("maxReshardFragmentsNum", "3")));
             config.setMaxTimeseriesLoadBalanceThreshold(Double.parseDouble(properties.getProperty("maxTimeseriesLoadBalanceThreshold", "2")));
