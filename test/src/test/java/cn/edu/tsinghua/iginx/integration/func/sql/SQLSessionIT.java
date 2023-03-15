@@ -3076,6 +3076,20 @@ public abstract class SQLSessionIT {
             "Total line number = 4\n";
         executeAndCompare(statement, expected);
 
+        statement = "SELECT * FROM test.a WHERE c > SOME (SELECT c FROM test.b);";
+        expected = "ResultSets:\n" +
+            "+---+--------+--------+--------+--------+\n" +
+            "|key|test.a.a|test.a.b|test.a.c|test.a.d|\n" +
+            "+---+--------+--------+--------+--------+\n" +
+            "|  1|       3|       2|     3.1|    val1|\n" +
+            "|  2|       1|       3|     2.1|    val2|\n" +
+            "|  4|       3|       2|     2.1|    val8|\n" +
+            "|  5|       1|       2|     3.1|    val1|\n" +
+            "|  6|       2|       2|     5.1|    val3|\n" +
+            "+---+--------+--------+--------+--------+\n" +
+            "Total line number = 5\n";
+        executeAndCompare(statement, expected);
+
         statement = "SELECT * FROM test.a WHERE d != ALL (SELECT d FROM test.b);";
         expected = "ResultSets:\n" +
             "+---+--------+--------+--------+--------+\n" +
@@ -3085,6 +3099,16 @@ public abstract class SQLSessionIT {
             "|  4|       3|       2|     2.1|    val8|\n" +
             "+---+--------+--------+--------+--------+\n" +
             "Total line number = 2\n";
+        executeAndCompare(statement, expected);
+
+        statement = "SELECT * FROM test.a WHERE c >= ALL (SELECT c FROM test.b);";
+        expected = "ResultSets:\n" +
+                "+---+--------+--------+--------+--------+\n" +
+                "|key|test.a.a|test.a.b|test.a.c|test.a.d|\n" +
+                "+---+--------+--------+--------+--------+\n" +
+                "|  6|       2|       2|     5.1|    val3|\n" +
+                "+---+--------+--------+--------+--------+\n" +
+                "Total line number = 1\n";
         executeAndCompare(statement, expected);
 
         statement = "SELECT * FROM test.a WHERE a = (SELECT AVG(a) FROM test.b);";
