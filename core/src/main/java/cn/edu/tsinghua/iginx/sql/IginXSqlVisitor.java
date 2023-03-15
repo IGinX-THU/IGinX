@@ -834,10 +834,6 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         return children.size() == 1 ? children.get(0) : new OrFilter(children);
     }
 
-    private Filter parseAndExpression(AndExpressionContext ctx, Statement statement) {
-        return parseAndExpression(ctx, statement, false);
-    }
-
     private Filter parseAndExpression(AndExpressionContext ctx, Statement statement, boolean isHavingFilter) {
         List<Filter> children = new ArrayList<>();
         for (PredicateContext predicateCtx : ctx.predicate()) {
@@ -1027,6 +1023,10 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
         Filter filter;
         Op op = Op.str2Op(ctx.comparisonOperator().getText().trim().toLowerCase());
+        if (ctx.quantifier().all() != null) {
+            op = Op.getOpposite(op);
+        }
+
         if (ctx.constant() != null) {
             Value value = new Value(parseValue(ctx.constant()));
             String path = subStatement.getExpressions().get(0).getColumnName();
@@ -1044,9 +1044,6 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
             String pathB = subStatement.getExpressions().get(0).getColumnName();
             filter = new PathFilter(pathA, op, pathB);
-        }
-        if (ctx.quantifier().all() != null) {
-            filter = new NotFilter(filter);
         }
         // TODO: check correlated
 

@@ -80,6 +80,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.regex.Pattern;
 
+import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils.getJoinPathFromFilter;
 import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.combineMultipleColumns;
 import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.constructNewHead;
 
@@ -1663,8 +1664,21 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         }
         return new Table(newHeader, transformedRows);
     }
-    
+
     private RowStream executeSingleJoin(SingleJoin singleJoin, Table tableA, Table tableB)
+            throws PhysicalException {
+        switch (singleJoin.getJoinAlgType()) {
+            case NestedLoopJoin:
+                return executeNestedLoopSingleJoin(singleJoin, tableA, tableB);
+            case HashJoin:
+                return executeHashSingleJoin(singleJoin, tableA, tableB);
+            default:
+                throw new PhysicalException(
+                        "Unsupported single join algorithm type: " + singleJoin.getJoinAlgType());
+        }
+    }
+
+    private RowStream executeNestedLoopSingleJoin(SingleJoin singleJoin, Table tableA, Table tableB)
         throws PhysicalException {
         Header newHeader = RowUtils.constructNewHead(tableA.getHeader(), tableB.getHeader(), true);
     
@@ -1696,7 +1710,93 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         return new Table(newHeader, transformedRows);
     }
 
+    private RowStream executeHashSingleJoin(SingleJoin singleJoin, Table tableA, Table tableB)
+            throws PhysicalException {
+        Header newHeader = RowUtils.constructNewHead(tableA.getHeader(), tableB.getHeader(), true);
+        Pair<String, String> joinPath = getJoinPathFromFilter(singleJoin.getFilter(), tableA.getHeader(), tableB.getHeader());
+        String joinPathA = joinPath.k;
+        String joinPathB = joinPath.v;
+
+        boolean needTypeCast = false;
+        List<Row> rowsA = tableA.getRows();
+        List<Row> rowsB = tableB.getRows();
+        if (!rowsA.isEmpty() && !rowsB.isEmpty()) {
+            Value valueA = rowsA.get(0).getAsValue(joinPathA);
+            Value valueB = rowsB.get(0).getAsValue(joinPathB);
+            if (valueA.getDataType() != valueB.getDataType()) {
+                if (ValueUtils.isNumericType(valueA) && ValueUtils.isNumericType(valueB)) {
+                    needTypeCast = true;
+                }
+            }
+        }
+
+        HashMap<Integer, List<Row>> rowsBHashMap = new HashMap<>();
+        for (Row rowB: rowsB) {
+            Value value = rowB.getAsValue(joinPathB);
+            if (value == null) {
+                continue;
+            }
+            if (needTypeCast) {
+                value = ValueUtils.transformToDouble(value);
+            }
+            int hash;
+            if (value.getDataType() == DataType.BINARY) {
+                hash = Arrays.hashCode(value.getBinaryV());
+            } else {
+                hash = value.getValue().hashCode();
+            }
+            List<Row> l = rowsBHashMap.containsKey(hash) ? rowsBHashMap.get(hash) : new ArrayList<>();
+            l.add(rowB);
+            rowsBHashMap.put(hash, l);
+        }
+
+        List<Row> transformedRows = new ArrayList<>();
+        int anotherRowSize = tableB.getHeader().getFieldSize();
+        for (Row rowA : rowsA) {
+            Value value = rowA.getAsValue(joinPathA);
+            if (value == null) {
+                continue;
+            }
+            if (needTypeCast) {
+                value = ValueUtils.transformToDouble(value);
+            }
+            int hash;
+            if (value.getDataType() == DataType.BINARY) {
+                hash = Arrays.hashCode(value.getBinaryV());
+            } else {
+                hash = value.getValue().hashCode();
+            }
+
+            if (rowsBHashMap.containsKey(hash)) {
+                List<Row> hashRowsB = rowsBHashMap.get(hash);
+                if (hashRowsB.size() == 1) {
+                    Row joinedRow = RowUtils.constructNewRow(newHeader, rowA, hashRowsB.get(0), true);
+                    transformedRows.add(joinedRow);
+                } else {
+                    throw new PhysicalException("the return value of sub-query has more than one rows");
+                }
+            } else {
+                Row unmatchedRow = RowUtils.constructUnmatchedRow(newHeader, rowA, anotherRowSize, true);
+                transformedRows.add(unmatchedRow);
+            }
+        }
+        return new Table(newHeader, transformedRows);
+    }
+
     private RowStream executeMarkJoin(MarkJoin markJoin, Table tableA, Table tableB)
+            throws PhysicalException {
+        switch (markJoin.getJoinAlgType()) {
+            case NestedLoopJoin:
+                return executeNestedLoopMarkJoin(markJoin, tableA, tableB);
+            case HashJoin:
+                return executeHashMarkJoin(markJoin, tableA, tableB);
+            default:
+                throw new PhysicalException(
+                        "Unsupported mark join algorithm type: " + markJoin.getJoinAlgType());
+        }
+    }
+
+    private RowStream executeNestedLoopMarkJoin(MarkJoin markJoin, Table tableA, Table tableB)
         throws PhysicalException {
         Header targetHeader = constructNewHead(tableA.getHeader(), markJoin.getMarkColumn());
         Header joinHeader = RowUtils.constructNewHead(tableA.getHeader(), tableB.getHeader(), true);;
@@ -1724,6 +1824,73 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
             }
         }
         return new Table(targetHeader, transformedRows);
+    }
+
+    private RowStream executeHashMarkJoin(MarkJoin markJoin, Table tableA, Table tableB)
+            throws PhysicalException {
+        Header newHeader = constructNewHead(tableA.getHeader(), markJoin.getMarkColumn());
+        Pair<String, String> joinPath = getJoinPathFromFilter(markJoin.getFilter(), tableA.getHeader(), tableB.getHeader());
+        String joinPathA = joinPath.k;
+        String joinPathB = joinPath.v;
+
+        boolean needTypeCast = false;
+        List<Row> rowsA = tableA.getRows();
+        List<Row> rowsB = tableB.getRows();
+        if (!rowsA.isEmpty() && !rowsB.isEmpty()) {
+            Value valueA = rowsA.get(0).getAsValue(joinPathA);
+            Value valueB = rowsB.get(0).getAsValue(joinPathB);
+            if (valueA.getDataType() != valueB.getDataType()) {
+                if (ValueUtils.isNumericType(valueA) && ValueUtils.isNumericType(valueB)) {
+                    needTypeCast = true;
+                }
+            }
+        }
+
+        HashMap<Integer, List<Row>> rowsBHashMap = new HashMap<>();
+        for (Row rowB: rowsB) {
+            Value value = rowB.getAsValue(joinPathB);
+            if (value == null) {
+                continue;
+            }
+            if (needTypeCast) {
+                value = ValueUtils.transformToDouble(value);
+            }
+            int hash;
+            if (value.getDataType() == DataType.BINARY) {
+                hash = Arrays.hashCode(value.getBinaryV());
+            } else {
+                hash = value.getValue().hashCode();
+            }
+            List<Row> l = rowsBHashMap.containsKey(hash) ? rowsBHashMap.get(hash) : new ArrayList<>();
+            l.add(rowB);
+            rowsBHashMap.put(hash, l);
+        }
+
+        List<Row> transformedRows = new ArrayList<>();
+        for (Row rowA : rowsA) {
+            Value value = rowA.getAsValue(joinPathA);
+            if (value == null) {
+                continue;
+            }
+            if (needTypeCast) {
+                value = ValueUtils.transformToDouble(value);
+            }
+            int hash;
+            if (value.getDataType() == DataType.BINARY) {
+                hash = Arrays.hashCode(value.getBinaryV());
+            } else {
+                hash = value.getValue().hashCode();
+            }
+
+            if (rowsBHashMap.containsKey(hash)) {
+                Row returnRow = RowUtils.constructNewRowWithMark(newHeader, rowA, !markJoin.isAntiJoin());
+                transformedRows.add(returnRow);
+            } else {
+                Row unmatchedRow = RowUtils.constructNewRowWithMark(newHeader, rowA, markJoin.isAntiJoin());
+                transformedRows.add(unmatchedRow);
+            }
+        }
+        return new Table(newHeader, transformedRows);
     }
 
     private static void writeToNewRow(Object[] values, Row row, Map<Field, Integer> fieldIndices) {

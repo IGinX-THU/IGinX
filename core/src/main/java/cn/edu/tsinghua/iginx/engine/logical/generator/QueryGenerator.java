@@ -129,13 +129,22 @@ public class QueryGenerator extends AbstractGenerator {
             for (int i = 0; i < sizeWhereSubQueryParts; i++) {
                 SubQueryFromPart whereSubQueryPart = whereSubQueryParts.get(i);
                 Operator right = generateRoot(whereSubQueryPart.getSubQuery());
+
                 Filter filter = whereSubQueryPart.getJoinCondition().getFilter();
                 String markColumn = whereSubQueryPart.getJoinCondition().getMarkColumn();
                 boolean isAntiJoin = whereSubQueryPart.getJoinCondition().isAntiJoin();
+                JoinAlgType joinAlgType = JoinAlgType.NestedLoopJoin;
+                if (filter.getType().equals(FilterType.Path)) {
+                    PathFilter pathFilter = (PathFilter) filter;
+                    if (pathFilter.getOp().equals(Op.E)) {
+                        joinAlgType = JoinAlgType.HashJoin;
+                    }
+                }
+
                 if (whereSubQueryPart.getJoinCondition().getJoinType() == JoinType.MarkJoin) {
-                    root = new MarkJoin(new OperatorSource(root), new OperatorSource(right), filter, markColumn, isAntiJoin);
+                    root = new MarkJoin(new OperatorSource(root), new OperatorSource(right), filter, markColumn, isAntiJoin, joinAlgType);
                 } else if (whereSubQueryPart.getJoinCondition().getJoinType() == JoinType.SingleJoin) {
-                    root = new SingleJoin(new OperatorSource(root), new OperatorSource(right), filter);
+                    root = new SingleJoin(new OperatorSource(root), new OperatorSource(right), filter, joinAlgType);
                 }
             }
         }
@@ -153,8 +162,17 @@ public class QueryGenerator extends AbstractGenerator {
             for (int i = 0; i < sizeSelectSubQuery; i++) {
                 if (selectSubQueryParts.get(i).getJoinCondition().getJoinType() == JoinType.SingleJoin) {
                     Operator right = generateRoot(selectSubQueryParts.get(i).getSubQuery());
+
                     Filter filter = selectSubQueryParts.get(i).getJoinCondition().getFilter();
-                    root = new SingleJoin(new OperatorSource(root), new OperatorSource(right), filter);
+                    JoinAlgType joinAlgType = JoinAlgType.NestedLoopJoin;
+                    if (filter.getType().equals(FilterType.Path)) {
+                        PathFilter pathFilter = (PathFilter) filter;
+                        if (pathFilter.getOp().equals(Op.E)) {
+                            joinAlgType = JoinAlgType.HashJoin;
+                        }
+                    }
+
+                    root = new SingleJoin(new OperatorSource(root), new OperatorSource(right), filter, joinAlgType);
                 }
             }
         }
@@ -273,13 +291,22 @@ public class QueryGenerator extends AbstractGenerator {
             for (int i = 0; i < sizeHavingSubQueryParts; i++) {
                 SubQueryFromPart havingSubQueryPart = havingSubQueryParts.get(i);
                 Operator right = generateRoot(havingSubQueryPart.getSubQuery());
+
                 Filter filter = havingSubQueryPart.getJoinCondition().getFilter();
                 String markColumn = havingSubQueryPart.getJoinCondition().getMarkColumn();
                 boolean isAntiJoin = havingSubQueryPart.getJoinCondition().isAntiJoin();
+                JoinAlgType joinAlgType = JoinAlgType.NestedLoopJoin;
+                if (filter.getType().equals(FilterType.Path)) {
+                    PathFilter pathFilter = (PathFilter) filter;
+                    if (pathFilter.getOp().equals(Op.E)) {
+                        joinAlgType = JoinAlgType.HashJoin;
+                    }
+                }
+
                 if (havingSubQueryPart.getJoinCondition().getJoinType() == JoinType.MarkJoin) {
-                    root = new MarkJoin(new OperatorSource(root), new OperatorSource(right), filter, markColumn, isAntiJoin);
+                    root = new MarkJoin(new OperatorSource(root), new OperatorSource(right), filter, markColumn, isAntiJoin, joinAlgType);
                 } else if (havingSubQueryPart.getJoinCondition().getJoinType() == JoinType.SingleJoin) {
-                    root = new SingleJoin(new OperatorSource(root), new OperatorSource(right), filter);
+                    root = new SingleJoin(new OperatorSource(root), new OperatorSource(right), filter, joinAlgType);
                 }
             }
         }
@@ -421,8 +448,7 @@ public class QueryGenerator extends AbstractGenerator {
                 case RightOuterJoin:
                     left = new OuterJoin(new OperatorSource(left), new OperatorSource(right), prefixA, prefixB, OuterJoinType.RIGHT, filter, joinColumns, false, joinAlgType);
                     break;
-                case SingleJoin:
-                    left = new SingleJoin(new OperatorSource(left), new OperatorSource(right), filter);
+                default:
                     break;
             }
 

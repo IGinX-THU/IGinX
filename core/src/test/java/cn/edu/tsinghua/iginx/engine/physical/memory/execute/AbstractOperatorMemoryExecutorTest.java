@@ -1190,7 +1190,8 @@ public abstract class AbstractOperatorMemoryExecutorTest {
             SingleJoin singleJoin = new SingleJoin(
                     EmptySource.EMPTY_SOURCE,
                     EmptySource.EMPTY_SOURCE,
-                    new BoolFilter(true));
+                    new BoolFilter(true),
+                    JoinAlgType.NestedLoopJoin);
 
             Table target = generateTableFromValues(
                     true,
@@ -1220,7 +1221,8 @@ public abstract class AbstractOperatorMemoryExecutorTest {
             SingleJoin singleJoin = new SingleJoin(
                     EmptySource.EMPTY_SOURCE,
                     EmptySource.EMPTY_SOURCE,
-                    new PathFilter("a.b", Op.E, "c.b"));
+                    new PathFilter("a.b", Op.E, "c.b"),
+                    JoinAlgType.NestedLoopJoin);
 
             Table target = generateTableFromValues(
                     true,
@@ -1286,7 +1288,8 @@ public abstract class AbstractOperatorMemoryExecutorTest {
                     EmptySource.EMPTY_SOURCE,
                     new PathFilter("a.b", Op.E, "b.b"),
                     "&mark0",
-                    false);
+                    false,
+                    JoinAlgType.NestedLoopJoin);
 
             Table target = generateTableFromValues(true,
                     Arrays.asList(
@@ -1316,7 +1319,8 @@ public abstract class AbstractOperatorMemoryExecutorTest {
                     EmptySource.EMPTY_SOURCE,
                     new PathFilter("a.b", Op.E, "b.b"),
                     "&mark0",
-                    true);
+                    true,
+                    JoinAlgType.NestedLoopJoin);
 
             Table target = generateTableFromValues(true,
                     Arrays.asList(
