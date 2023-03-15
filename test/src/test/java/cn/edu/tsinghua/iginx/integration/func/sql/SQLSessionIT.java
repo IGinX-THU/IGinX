@@ -139,7 +139,9 @@ public abstract class SQLSessionIT {
             logger.error("Statement: \"{}\" execute fail. Caused by: {}", clearData, e.toString());
             if (e.toString().equals(Controller.CLEARDATAEXCP)) {
                 logger.error("clear data fail and go on....");
-            } else fail();
+            } else {
+                fail();
+            }
         }
 
         if (res != null && res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
@@ -2774,7 +2776,7 @@ public abstract class SQLSessionIT {
         insert = "INSERT INTO test.c(key, a, b, c, d) VALUES (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), " +
             "(3, 2, 2, 1.1, \"val3\"), (4, 3, 2, 2.1, \"val4\"), (5, 1, 2, 3.1, \"val5\"), (6, 2, 2, 5.1, \"val6\");";
         execute(insert);
-    
+
         String statement = "SELECT a FROM test.a;";
         String expected = "ResultSets:\n" +
             "+---+--------+\n" +
@@ -2789,7 +2791,7 @@ public abstract class SQLSessionIT {
             "+---+--------+\n" +
             "Total line number = 6\n";
         executeAndCompare(statement, expected);
-    
+
         statement = "SELECT AVG(a) FROM test.b;";
         expected = "ResultSets:\n" +
             "+-------------+\n" +
@@ -2827,7 +2829,7 @@ public abstract class SQLSessionIT {
             "+---+--------+-------------+\n" +
             "Total line number = 4\n";
         executeAndCompare(statement, expected);
-    
+
         statement = "SELECT d, AVG(a) FROM test.b GROUP BY d HAVING avg(a) > 2;";
         expected = "ResultSets:\n" +
             "+--------+-------------+\n" +
@@ -2837,7 +2839,7 @@ public abstract class SQLSessionIT {
             "+--------+-------------+\n" +
             "Total line number = 1\n";
         executeAndCompare(statement, expected);
-    
+
         statement = "SELECT a, (SELECT d, AVG(a) FROM test.b GROUP BY d HAVING avg(test.b.a) > 2) FROM test.a;";
         expected = "ResultSets:\n" +
             "+---+--------+--------+-------------+\n" +
@@ -2897,7 +2899,7 @@ public abstract class SQLSessionIT {
             "+---+------------------------------+\n" +
             "Total line number = 6\n";
         executeAndCompare(statement, expected);
-    
+
         statement = "SELECT a, (SELECT AVG(a) AS a1 FROM test.b GROUP BY d HAVING avg(test.b.a) > 2) * (SELECT AVG(a) AS a2 FROM test.b) FROM test.a;";
         expected = "ResultSets:\n" +
             "+---+--------+-------+\n" +
@@ -2943,13 +2945,13 @@ public abstract class SQLSessionIT {
     @Test
     public void testMixedSubQuery() {
         String insert = "INSERT INTO test.a(key, a, b, c, d) VALUES (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), " +
-                "(3, 2, 2, 1.1, \"val7\"), (4, 3, 2, 2.1, \"val8\"), (5, 1, 2, 3.1, \"val1\"), (6, 2, 2, 5.1, \"val3\");";
+            "(3, 2, 2, 1.1, \"val7\"), (4, 3, 2, 2.1, \"val8\"), (5, 1, 2, 3.1, \"val1\"), (6, 2, 2, 5.1, \"val3\");";
         execute(insert);
         insert = "INSERT INTO test.b(key, a, b, c, d) VALUES (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), " +
-                "(3, 2, 2, 1.1, \"val3\"), (4, 3, 2, 2.1, \"val2\"), (5, 1, 2, 3.1, \"val2\"), (6, 2, 2, 5.1, \"val3\");";
+            "(3, 2, 2, 1.1, \"val3\"), (4, 3, 2, 2.1, \"val2\"), (5, 1, 2, 3.1, \"val2\"), (6, 2, 2, 5.1, \"val3\");";
         execute(insert);
         insert = "INSERT INTO test.c(key, a, b, c, d) VALUES (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), " +
-                "(3, 2, 2, 1.1, \"val3\"), (4, 3, 2, 2.1, \"val4\"), (5, 1, 2, 3.1, \"val5\"), (6, 2, 2, 5.1, \"val6\");";
+            "(3, 2, 2, 1.1, \"val3\"), (4, 3, 2, 2.1, \"val4\"), (5, 1, 2, 3.1, \"val5\"), (6, 2, 2, 5.1, \"val6\");";
         execute(insert);
 
         String statement = "SELECT test.a.a FROM (SELECT * FROM test.a);";
