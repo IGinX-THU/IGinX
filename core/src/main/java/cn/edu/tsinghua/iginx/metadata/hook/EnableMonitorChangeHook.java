@@ -16,27 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package cn.edu.tsinghua.iginx.engine.physical.task;
+package cn.edu.tsinghua.iginx.metadata.hook;
 
+public interface EnableMonitorChangeHook {
 
-import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
-
-import java.util.List;
-
-public interface PhysicalTask extends Measurable {
-
-    TaskType getType();
-
-    List<Operator> getOperators();
-
-    TaskExecuteResult getResult();
-
-    void setResult(TaskExecuteResult result);
-
-    PhysicalTask getFollowerTask();
-
-    void setFollowerTask(PhysicalTask task);
-
-    String getInfo();
+    void onChange(boolean status);
 
 }

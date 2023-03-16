@@ -26,6 +26,7 @@ import cn.edu.tsinghua.iginx.engine.physical.optimizer.PhysicalOptimizerManager;
 import cn.edu.tsinghua.iginx.engine.physical.storage.StorageManager;
 import cn.edu.tsinghua.iginx.engine.physical.storage.execute.StoragePhysicalTaskExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.task.*;
+import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.constraint.ConstraintManager;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
@@ -83,7 +84,7 @@ public class PhysicalEngineImpl implements PhysicalEngine {
     }
 
     @Override
-    public RowStream execute(Operator root) throws PhysicalException {
+    public RowStream execute(RequestContext ctx, Operator root) throws PhysicalException {
         if (OperatorType.isGlobalOperator(root.getType())) { // 全局任务临时兼容逻辑
             // 迁移任务单独处理
             if (root.getType() == OperatorType.Migration) {
@@ -156,9 +157,6 @@ public class PhysicalEngineImpl implements PhysicalEngine {
                 }
                 insertDataByBatch(timestampList, valuesList, bitmapList, bitmapBufferList,
                     toMigrateFragment, selectResultPaths, selectResultTypes, targetStorageUnitMeta.getId());
-
-                // 设置分片现在所属的du
-                toMigrateFragment.setMasterStorageUnit(targetStorageUnitMeta);
                 return selectResult.getRowStream();
             } else {
                 GlobalPhysicalTask task = new GlobalPhysicalTask(root);
@@ -170,6 +168,7 @@ public class PhysicalEngineImpl implements PhysicalEngine {
             }
         }
         PhysicalTask task = optimizer.optimize(root);
+        ctx.setPhysicalTree(task);
         List<StoragePhysicalTask> storageTasks = new ArrayList<>();
         getStorageTasks(storageTasks, task);
         storageTaskExecutor.commit(storageTasks);

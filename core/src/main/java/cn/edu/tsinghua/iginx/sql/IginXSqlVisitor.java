@@ -119,7 +119,11 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     public Statement visitSelectStatement(SelectStatementContext ctx) {
         SelectStatement selectStatement = new SelectStatement();
         if (ctx.EXPLAIN() != null) {
-            selectStatement.setNeedExplain(true);
+            if (ctx.PHYSICAL() != null) {
+                selectStatement.setNeedPhysicalExplain(true);
+            } else {
+                selectStatement.setNeedLogicalExplain(true);
+            }
         }
         if (ctx.queryClause() != null) {
             parseQueryClause(ctx.queryClause(), selectStatement);
@@ -418,6 +422,11 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
             jobState = JobState.JOB_CLOSED;
         }
         return new ShowEligibleJobStatement(jobState);
+    }
+
+    @Override
+    public Statement visitCompactStatement(CompactStatementContext ctx) {
+        return new CompactStatement();
     }
 
     private void parseSelectPaths(SelectClauseContext ctx, SelectStatement selectStatement) {

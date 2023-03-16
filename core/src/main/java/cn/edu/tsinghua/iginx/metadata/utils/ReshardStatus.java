@@ -16,27 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package cn.edu.tsinghua.iginx.engine.physical.task;
+package cn.edu.tsinghua.iginx.metadata.utils;
 
-
-import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
-
-import java.util.List;
-
-public interface PhysicalTask extends Measurable {
-
-    TaskType getType();
-
-    List<Operator> getOperators();
-
-    TaskExecuteResult getResult();
-
-    void setResult(TaskExecuteResult result);
-
-    PhysicalTask getFollowerTask();
-
-    void setFollowerTask(PhysicalTask task);
-
-    String getInfo();
-
+public enum ReshardStatus {
+    RECOVER, // 恢复阶段
+    NON_RESHARDING, // 非重分片阶段
+    JUDGING, // 重分片判断阶段
+    EXECUTING; // 重分片执行阶段
 }
