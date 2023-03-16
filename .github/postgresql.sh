@@ -12,6 +12,8 @@ sh -c "wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | su
 
 sh -c "sudo apt-get update"
 
-sh -c "sudo apt-get -y install postgresql-12"
+sh -c "sudo apt-get -y install postgresql-15"
 
 sh -c "sudo su postgres"
+
+sh -c "sudo systemctl status postgresql.service"
