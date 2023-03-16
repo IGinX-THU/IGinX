@@ -81,7 +81,7 @@ public class PostgreSQLStorage implements IStorage {
 
     private static final String DEFAULT_USERNAME = "postgres";
 
-    private static final String DEFAULT_PASSWORD = "postgres";
+    private static final String DEFAULT_PASSWORD = "";
 
     private static final String DEFAULT_DBNAME = "timeseries";
 
