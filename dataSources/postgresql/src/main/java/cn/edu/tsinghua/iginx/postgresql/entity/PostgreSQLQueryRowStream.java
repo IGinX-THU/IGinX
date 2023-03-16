@@ -2,67 +2,112 @@ package cn.edu.tsinghua.iginx.postgresql.entity;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.RowFetchException;
+import cn.edu.tsinghua.iginx.engine.physical.storage.utils.TagKVUtils;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
-import cn.edu.tsinghua.iginx.postgresql.PostgreSQLStorage;
+import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
+import cn.edu.tsinghua.iginx.postgresql.tools.DataTypeTransformer;
+import cn.edu.tsinghua.iginx.thrift.DataType;
+import cn.edu.tsinghua.iginx.utils.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.util.List;
+import java.util.*;
+
+import static cn.edu.tsinghua.iginx.postgresql.tools.Constants.IGINX_SEPARATOR;
+import static cn.edu.tsinghua.iginx.postgresql.tools.Constants.POSTGRESQL_SEPARATOR;
+import static cn.edu.tsinghua.iginx.postgresql.tools.TagKVUtils.splitFullName;
 
 public class PostgreSQLQueryRowStream implements RowStream {
+
+    private static final Logger logger = LoggerFactory.getLogger(PostgreSQLQueryRowStream.class);
+
     private final List<ResultSet> resultSets;
-    private static final Logger logger = LoggerFactory.getLogger(PostgreSQLStorage.class);
-
-    private final long[] currTimestamps;
-
-    private final Object[] currValues;
 
     private final Header header;
-    private boolean isdummy;
 
-    public PostgreSQLQueryRowStream(List<ResultSet> resultSets, List<Field> fields, boolean isdummy) throws SQLException {
+    private final boolean isDummy;
+
+    private boolean[] gotNext; // 标记每个结果集是否已经获取到下一行，如果是，则在下次调用 next() 时无需再调用该结果集的 next()
+
+    private long[] cachedTimestamps; // 缓存每个结果集当前的 time 列的值
+
+    private Object[] cachedValues; // 缓存每列当前的值
+
+    private int[] resultSetSizes; // 记录每个结果集的列数
+
+    private Map<Field, String> fieldToColumnName; // 记录匹配 tagFilter 的列名
+
+    private Row cachedRow;
+
+    private boolean hasCachedRow;
+
+    public PostgreSQLQueryRowStream(List<ResultSet> resultSets, boolean isDummy, TagFilter tagFilter) throws SQLException {
         this.resultSets = resultSets;
-        this.isdummy = isdummy;
-        this.header = new Header(Field.KEY, fields);
-        this.currTimestamps = new long[resultSets.size()];
-        this.currValues = new Object[resultSets.size()];
-        try {
-            for (int i = 0; i < this.currTimestamps.length; i++) {
-                ResultSet resultSet = this.resultSets.get(i);
-                if (resultSet.next()) {
-                    if (isdummy) {
-                        this.currTimestamps[i] = toHash(resultSet.getString(1));
-                    } else {
-                        this.currTimestamps[i] = resultSet.getLong(1);
-                    }
-                    String typeName = "";
-                    if (resultSet.getObject(2) != null) {
-                        typeName = resultSet.getObject(2).getClass().getTypeName();
-                    } else {
-                        typeName = "";
-                    }
-                    if (typeName.contains("String")) {
-                        this.currValues[i] = resultSet.getObject(2).toString().getBytes();
-                    } else {
-                        this.currValues[i] = resultSet.getObject(2);
-                    }
-                }
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-            // pass
+        this.isDummy = isDummy;
+
+        if (resultSets.isEmpty()) {
+            this.header = new Header(Field.KEY, Collections.emptyList());
+            return;
         }
 
+        boolean filterByTags = tagFilter != null;
+
+        Field time = null;
+        List<Field> fields = new ArrayList<>();
+        this.resultSetSizes = new int[resultSets.size()];
+        this.fieldToColumnName = new HashMap<>();
+
+        for (int i = 0; i < resultSets.size(); i++) {
+            ResultSetMetaData resultSetMetaData = resultSets.get(i).getMetaData();
+            String tableName = resultSetMetaData.getTableName(1);
+            int cnt = 0;
+            for (int j = 1; j <= resultSetMetaData.getColumnCount(); j++) {
+                String columnName = resultSetMetaData.getColumnName(j);
+                String typeName = resultSetMetaData.getColumnTypeName(j);
+                if (j == 1 && columnName.equals("time")) {
+                    time = Field.KEY;
+                    continue;
+                }
+
+                Pair<String, Map<String, String>> namesAndTags = splitFullName(columnName);
+                Field field = new Field(
+                    tableName.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR) + IGINX_SEPARATOR
+                        + namesAndTags.k.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR),
+                    DataTypeTransformer.fromPostgreSQL(typeName),
+                    namesAndTags.v
+                );
+
+                if (filterByTags && !TagKVUtils.match(namesAndTags.v, tagFilter)) {
+                    continue;
+                }
+                fieldToColumnName.put(field, columnName);
+                fields.add(field);
+                cnt++;
+            }
+            resultSetSizes[i] = cnt;
+        }
+
+        this.header = new Header(time, fields);
+
+        this.gotNext = new boolean[resultSets.size()];
+        Arrays.fill(gotNext, false);
+        this.cachedTimestamps = new long[resultSets.size()];
+        Arrays.fill(cachedTimestamps, Long.MAX_VALUE);
+        this.cachedValues = new Object[fields.size()];
+        Arrays.fill(cachedValues, null);
+        this.cachedRow = null;
+        this.hasCachedRow = false;
     }
 
     @Override
     public Header getHeader() {
-        return this.header;
+        return header;
     }
 
     @Override
@@ -72,64 +117,119 @@ public class PostgreSQLQueryRowStream implements RowStream {
                 resultSet.close();
             }
         } catch (SQLException e) {
-            // pass
+            logger.error(e.getMessage());
         }
     }
 
     @Override
     public boolean hasNext() {
-        boolean f = false;  //判断是否是全为空的行
-        for (Object i : currValues) {
-            if (i != null) {
-                f = true;
-            }
-        }
-        long timestamp = Long.MAX_VALUE;
-        for (long currTimestamp : this.currTimestamps) {
-            if (currTimestamp != Long.MIN_VALUE) {
-                timestamp = Math.min(timestamp, currTimestamp);
-            }
-        }
-        if (!f && timestamp == 0) {
-            try {
-                for (int i = 0; i < this.currTimestamps.length; i++) {
-                    ResultSet resultSet = this.resultSets.get(i);
-                    if (resultSet.next()) {
-                        if (isdummy) {
-                            this.currTimestamps[i] = toHash(resultSet.getString(1));
-                        } else {
-                            this.currTimestamps[i] = resultSet.getLong(1);
-                        }
-                        String typeName = "";
-                        if (resultSet.getObject(2) != null) {
-                            typeName = resultSet.getObject(2).getClass().getTypeName();
-                        } else {
-                            typeName = "null";
-                        }
-                        if (typeName.contains("String")) {
-                            this.currValues[i] = resultSet.getObject(2).toString().getBytes();
-                        } else {
-                            this.currValues[i] = resultSet.getObject(2);
-                        }
-                    } else {
-                        // 值已经取完
-                        this.currTimestamps[i] = Long.MIN_VALUE;
-                        this.currValues[i] = null;
-                    }
-                }
-            } catch (Exception e) {
-                //error
-                logger.error("error in postgresqlrowstream ");
-            }
-            return hasNext();
+        if (resultSets.isEmpty()) {
+            return false;
         }
 
-        for (long currTimestamp : this.currTimestamps) {
-            if (currTimestamp != Long.MIN_VALUE) {
-                return true;
+        try {
+            if (!hasCachedRow) {
+                cacheOneRow();
             }
+        } catch (SQLException e) {
+            logger.error(e.getMessage());
         }
-        return false;
+
+        return cachedRow != null;
+    }
+
+    @Override
+    public Row next() throws PhysicalException {
+        try {
+            Row row;
+            if (!hasCachedRow) {
+                cacheOneRow();
+            }
+            row = cachedRow;
+            hasCachedRow = false;
+            cachedRow = null;
+            return row;
+        } catch (SQLException e) {
+            logger.error(e.getMessage());
+            throw new RowFetchException(e);
+        }
+    }
+
+    private void cacheOneRow() throws SQLException {
+        boolean hasNext = false;
+        long timestamp;
+        Object[] values = new Object[header.getFieldSize()];
+
+        int startIndex = 0;
+        int endIndex = 0;
+        for (int i = 0; i < resultSets.size(); i++) {
+            ResultSet resultSet = resultSets.get(i);
+            if (resultSetSizes[i] == 0) {
+                continue;
+            }
+            endIndex += resultSetSizes[i];
+            if (!gotNext[i]) {
+                boolean tempHasNext = resultSet.next();
+                hasNext |= tempHasNext;
+                gotNext[i] = true;
+
+                if (tempHasNext) {
+                    long tempTimestamp;
+                    Object tempValue;
+
+                    if (isDummy) {
+                        tempTimestamp = toHash(resultSet.getString("time"));
+                    } else {
+                        tempTimestamp = resultSet.getLong("time");
+                    }
+                    cachedTimestamps[i] = tempTimestamp;
+
+                    ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
+                    for (int j = 0; j < resultSetSizes[i]; j++) {
+                        Object value = resultSet.getObject(fieldToColumnName.get(header.getField(startIndex + j)));
+                        if (header.getField(startIndex + j).getType() == DataType.BINARY && value != null) {
+                            tempValue = value.toString().getBytes();
+                        } else {
+                            tempValue = value;
+                        }
+                        cachedValues[startIndex + j] = tempValue;
+                    }
+                } else {
+                    cachedTimestamps[i] = Long.MAX_VALUE;
+                    for (int j = startIndex; j < endIndex; j++) {
+                        cachedValues[j] = null;
+                    }
+                }
+            } else {
+                hasNext = true;
+            }
+            startIndex = endIndex;
+        }
+
+        if (hasNext) {
+            timestamp = Arrays.stream(cachedTimestamps).min().getAsLong();
+            startIndex = 0;
+            endIndex = 0;
+            for (int i = 0; i < resultSets.size(); i++) {
+                endIndex += resultSetSizes[i];
+                if (cachedTimestamps[i] == timestamp) {
+                    for (int j = 0; j < resultSetSizes[i]; j++) {
+                        values[startIndex + j] = cachedValues[startIndex + j];
+                    }
+                    gotNext[i] = false;
+                } else {
+                    for (int j = 0; j < resultSetSizes[i]; j++) {
+                        values[startIndex + j] = null;
+                    }
+                    gotNext[i] = true;
+                }
+                startIndex = endIndex;
+            }
+            cachedRow = new Row(header, timestamp, values);
+        } else {
+            cachedRow = null;
+        }
+        hasCachedRow = true;
     }
 
     private long toHash(String s) {
@@ -143,50 +243,5 @@ public class PostgreSQLQueryRowStream implements RowStream {
             return -1 * hv;
         }
         return hv;
-    }
-
-    @Override
-    public Row next() throws PhysicalException {
-        try {
-            long timestamp = Long.MAX_VALUE;
-            Object[] values = new Object[this.resultSets.size()];
-            for (long currTimestamp : this.currTimestamps) {
-                if (currTimestamp != Long.MIN_VALUE) {
-                    timestamp = Math.min(timestamp, currTimestamp);
-                }
-            }
-            for (int i = 0; i < this.currTimestamps.length; i++) {
-                if (this.currTimestamps[i] == timestamp) {
-                    values[i] = this.currValues[i];
-                    ResultSet resultSet = this.resultSets.get(i);
-                    if (resultSet.next()) {
-                        if (isdummy) {
-                            this.currTimestamps[i] = toHash(resultSet.getString(1));
-                        } else {
-                            this.currTimestamps[i] = resultSet.getLong(1);
-                        }
-                        String typeName = "";
-                        if (resultSet.getObject(2) != null) {
-                            typeName = resultSet.getObject(2).getClass().getTypeName();
-                        } else {
-                            typeName = "null";
-                        }
-                        if (typeName.contains("String")) {
-                            this.currValues[i] = resultSet.getObject(2).toString().getBytes();
-                        } else {
-                            this.currValues[i] = resultSet.getObject(2);
-                        }
-                    } else {
-                        // 值已经取完
-                        this.currTimestamps[i] = Long.MIN_VALUE;
-                        this.currValues[i] = null;
-                    }
-                }
-            }
-            return new Row(header, timestamp, values);
-        } catch (Exception e) {
-            logger.info("error:", e);
-            throw new RowFetchException(e);
-        }
     }
 }

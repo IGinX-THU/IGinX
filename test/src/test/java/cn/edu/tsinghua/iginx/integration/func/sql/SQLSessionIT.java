@@ -201,7 +201,7 @@ public abstract class SQLSessionIT {
         executeAndCompare(statement, expected);
     }
 
-//    @Test
+    @Test
     public void testCountPoints() {
         if (ifScaleOutIn) return;
         String statement = "COUNT POINTS;";
@@ -209,7 +209,7 @@ public abstract class SQLSessionIT {
         executeAndCompare(statement, expected);
     }
 
-//    @Test
+    @Test
     public void testShowTimeSeries() {
         if (!isAbleToShowTimeSeries || ifScaleOutIn) {
             return;
@@ -303,14 +303,14 @@ public abstract class SQLSessionIT {
         executeAndCompare(statement, expected);
     }
 
-//    @Test
+    @Test
     public void testShowReplicaNum() {
         String statement = "SHOW REPLICA NUMBER;";
         String expected = "Replica num: 1\n";
         executeAndCompare(statement, expected);
     }
 
-//    @Test
+    @Test
     public void testTimeRangeQuery() {
         String statement = "SELECT s1 FROM us.d1 WHERE key > 100 AND key < 120;";
         String expected = "ResultSets:\n" +
@@ -431,7 +431,7 @@ public abstract class SQLSessionIT {
         executeAndCompare(query, expected);
     }
 
-//    @Test
+    @Test
     public void testPathFilter() {
         String insert = "INSERT INTO us.d9(key, a, b) VALUES (1, 1, 9), (2, 2, 8), (3, 3, 7), (4, 4, 6), (5, 5, 5), (6, 6, 4), (7, 7, 3), (8, 8, 2), (9, 9, 1);";
         execute(insert);
@@ -518,7 +518,7 @@ public abstract class SQLSessionIT {
         executeAndCompare(query, expected);
     }
 
-//    @Test
+    @Test
     public void testLimitAndOffsetQuery() {
         String statement = "SELECT s1 FROM us.d1 WHERE key > 0 AND key < 10000 limit 10;";
         String expected = "ResultSets:\n" +
@@ -559,7 +559,7 @@ public abstract class SQLSessionIT {
         executeAndCompare(statement, expected);
     }
 
-//    @Test
+    @Test
     public void testOrderByQuery() {
         String insert = "INSERT INTO us.d2 (key, s1, s2, s3) values " +
             "(1, \"apple\", 871, 232.1), (2, \"peach\", 123, 132.5), (3, \"banana\", 356, 317.8),"
@@ -682,7 +682,7 @@ public abstract class SQLSessionIT {
         executeAndCompare(orderByQuery, expected);
     }
 
-//    @Test
+    @Test
     public void testFirstLastQuery() {
         String statement = "SELECT FIRST(s2) FROM us.d1 WHERE key > 0;";
         String expected = "ResultSets:\n" +
@@ -805,7 +805,7 @@ public abstract class SQLSessionIT {
         executeAndCompare(statement, expected);
     }
 
-//    @Test
+    @Test
     public void testAggregateQuery() {
         String statement = "SELECT %s(s1), %s(s2) FROM us.d1 WHERE key > 0 AND key < 1000;";
         List<String> funcTypeList = Arrays.asList(
@@ -869,7 +869,7 @@ public abstract class SQLSessionIT {
         }
     }
 
-//    @Test
+    @Test
     public void testDownSampleQuery() {
         String statement = "SELECT %s(s1), %s(s4) FROM us.d1 OVER (RANGE 100 IN (0, 1000));";
         List<String> funcTypeList = Arrays.asList(
@@ -996,7 +996,7 @@ public abstract class SQLSessionIT {
         }
     }
 
-//    @Test
+    @Test
     public void testRangeDownSampleQuery() {
         String statement = "SELECT %s(s1), %s(s4) FROM us.d1 WHERE key > 600 AND s1 <= 900 OVER (RANGE 100 IN (0, 1000));";
         List<String> funcTypeList = Arrays.asList(
@@ -1074,7 +1074,7 @@ public abstract class SQLSessionIT {
         }
     }
 
-//    @Test
+    @Test
     public void testSlideWindowByTimeQuery() {
         String statement = "SELECT %s(s1), %s(s4) FROM us.d1 OVER (RANGE 100 IN (0, 1000) STEP 50);";
         List<String> funcTypeList = Arrays.asList(
@@ -1264,7 +1264,7 @@ public abstract class SQLSessionIT {
         }
     }
 
-//    @Test
+    @Test
     public void testRangeSlideWindowByTimeQuery() {
         String statement = "SELECT %s(s1), %s(s4) FROM us.d1 WHERE key > 300 AND s1 <= 600 OVER (RANGE 100 IN (0, 1000) STEP 50);";
         List<String> funcTypeList = Arrays.asList(
@@ -1627,7 +1627,7 @@ public abstract class SQLSessionIT {
         executeAndCompare(queryOverDeleteRange, expected);
     }
 
-//    @Test
+    @Test
     public void testGroupBy() {
         String insert = "insert into test(key, a, b, c, d) values (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), (3, 2, 2, 1.1, \"val5\"), (4, 3, 2, 2.1, \"val2\"), (5, 1, 2, 3.1, \"val1\"), (6, 2, 2, 5.1, \"val3\");";
         execute(insert);
@@ -1748,7 +1748,7 @@ public abstract class SQLSessionIT {
         executeAndCompare(query, expected);
     }
 
-//    @Test
+    @Test
     public void testGroupByAndHaving() {
         String insert = "insert into test(key, a, b, c, d) values (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), (3, 2, 2, 1.1, \"val5\"), (4, 3, 2, 2.1, \"val2\"), (5, 1, 2, 3.1, \"val1\"), (6, 2, 2, 5.1, \"val3\");";
         execute(insert);
@@ -2176,7 +2176,7 @@ public abstract class SQLSessionIT {
         executeAndCompare(statement, expected);
     }
 
-//    @Test
+    @Test
     public void testBasicArithmeticExpr() {
         String insert = "INSERT INTO us.d3 (key, s1, s2, s3) values " +
             "(1, 1, 6, 1.5), (2, 2, 5, 2.5), (3, 3, 4, 3.5), (4, 4, 3, 4.5), (5, 5, 2, 5.5), (6, 6, 1, 6.5);";
@@ -2263,7 +2263,7 @@ public abstract class SQLSessionIT {
         executeAndCompare(statement, expected);
     }
 
-//    @Test
+    @Test
     public void testComplexArithmeticExpr() {
         String insert = "INSERT INTO us.d3 (key, s1, s2, s3) values " +
             "(1, 1, 6, 1.5), (2, 2, 5, 2.5), (3, 3, 4, 3.5), (4, 4, 3, 4.5), (5, 5, 2, 5.5), (6, 6, 1, 6.5);";
@@ -2350,7 +2350,7 @@ public abstract class SQLSessionIT {
         executeAndCompare(statement, expected);
     }
 
-//    @Test
+    @Test
     public void testAlias() {
         // time series alias
         String statement = "SELECT s1 AS rename_series, s2 FROM us.d1 WHERE s1 >= 1000 AND s1 < 1010;";
@@ -2413,7 +2413,7 @@ public abstract class SQLSessionIT {
         executeAndCompare(statement, expected);
     }
 
-//    @Test
+    @Test
     public void testAggregateSubQuery() {
         String statement = "SELECT %s_s1 FROM (SELECT %s(s1) AS %s_s1 FROM us.d1 OVER(RANGE 60 IN [1000, 1600)));";
         List<String> funcTypeList = Arrays.asList(
@@ -2541,7 +2541,7 @@ public abstract class SQLSessionIT {
         }
     }
 
-//    @Test
+    @Test
     public void testValueFilterSubQuery() {
         String statement = "SELECT ts FROM (SELECT s1 AS ts FROM us.d1 WHERE us.d1.s1 >= 1000 AND us.d1.s1 < 1010);";
         String expected = "ResultSets:\n" +
@@ -2588,7 +2588,7 @@ public abstract class SQLSessionIT {
         executeAndCompare(statement, expected);
     }
 
-//    @Test
+    @Test
     public void testMultiSubQuery() {
         String statement = "SELECT AVG(s1) AS avg_s1, SUM(s2) AS sum_s2 FROM us.d1 OVER (RANGE 10 IN [1000, 1100));";
         String expected = "ResultSets:\n" +
@@ -2642,7 +2642,7 @@ public abstract class SQLSessionIT {
         executeAndCompare(statement, expected);
     }
 
-//    @Test
+    @Test
     public void testFromSubQuery() {
         String insert = "INSERT INTO test(key, a.a, a.b) VALUES (1, 1, 1.1), (2, 3, 3.1), (3, 7, 7.1);";
         execute(insert);
@@ -3010,7 +3010,7 @@ public abstract class SQLSessionIT {
             execute(String.format(insert, dateFormats.get(i), i));
         }
 
-        String query = "SELECT date FROM us.d2;";
+        String query = "SELECT date FROM us.d2 ORDER BY key;";
         String expected =
             "ResultSets:\n"
                 + "+-------------------+----------+\n"
@@ -3032,7 +3032,7 @@ public abstract class SQLSessionIT {
                 + "Total line number = 12\n";
         executeAndCompare(query, expected);
 
-        query = "SELECT date FROM us.d2 WHERE key >= 2021-08-26 16:15:27 AND key <= 2021.08.26T16:15:32.001;";
+        query = "SELECT date FROM us.d2 WHERE key >= 2021-08-26 16:15:27 AND key <= 2021.08.26T16:15:32.001 ORDER BY key;";
         expected =
             "ResultSets:\n"
                 + "+-------------------+----------+\n"
@@ -3054,7 +3054,7 @@ public abstract class SQLSessionIT {
                 + "Total line number = 12\n";
         executeAndCompare(query, expected);
 
-        query = "SELECT date FROM us.d2 WHERE key >= 2021.08.26 16:15:29 AND key <= 2021-08-26T16:15:30.001;";
+        query = "SELECT date FROM us.d2 WHERE key >= 2021.08.26 16:15:29 AND key <= 2021-08-26T16:15:30.001 ORDER BY key;";
         expected =
             "ResultSets:\n"
                 + "+-------------------+----------+\n"
@@ -3068,7 +3068,7 @@ public abstract class SQLSessionIT {
                 + "Total line number = 4\n";
         executeAndCompare(query, expected);
 
-        query = "SELECT date FROM us.d2 WHERE key >= 2021/08/26 16:15:28 AND key <= 2021/08/26T16:15:31.001;";
+        query = "SELECT date FROM us.d2 WHERE key >= 2021/08/26 16:15:28 AND key <= 2021/08/26T16:15:31.001 ORDER BY key;";
         expected =
             "ResultSets:\n"
                 + "+-------------------+----------+\n"
@@ -3304,7 +3304,7 @@ public abstract class SQLSessionIT {
         executeAndCompareErrMsg(errClause, "Group by can not use SetToSet and RowToRow functions.");
     }
 
-//    @Test
+    @Test
     public void testExplain() {
         if (ifScaleOutIn) return;
         String explain = "explain select max(s2), min(s1) from us.d1;";
@@ -3338,7 +3338,7 @@ public abstract class SQLSessionIT {
         executeAndCompare(explain, expected);
     }
 
-//    @Test
+    @Test
     public void testDeleteTimeSeries() {
         if (!isAbleToDelete || ifScaleOutIn) {
             return;

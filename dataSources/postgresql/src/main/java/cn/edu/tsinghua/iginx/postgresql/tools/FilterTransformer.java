@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
 
 public class FilterTransformer {
 
-    public static final long MAX_TIMESTAMP = Integer.MAX_VALUE;
+    public static final long MAX_TIMESTAMP = Long.MAX_VALUE;
 
     public static String toString(Filter filter) {
         if (filter == null) {
@@ -55,7 +55,7 @@ public class FilterTransformer {
     }
 
     private static String toString(KeyFilter filter) {
-        return "time " + Op.op2Str(filter.getOp()) + Math.min(filter.getValue(), MAX_TIMESTAMP);
+        return "time " + Op.op2Str(filter.getOp()) + " " + Math.min(filter.getValue(), MAX_TIMESTAMP);
     }
 
     private static String toString(ValueFilter filter) {
@@ -65,6 +65,5 @@ public class FilterTransformer {
     private static String toString(OrFilter filter) {
         return filter.getChildren().stream().map(FilterTransformer::toString).collect(Collectors.joining(" or ", "(", ")"));
     }
-
 
 }

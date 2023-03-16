@@ -3,8 +3,8 @@ package cn.edu.tsinghua.iginx.postgresql.tools;
 import cn.edu.tsinghua.iginx.utils.Pair;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
+import static cn.edu.tsinghua.iginx.postgresql.tools.Constants.IGINX_SEPARATOR;
 import static cn.edu.tsinghua.iginx.postgresql.tools.Constants.POSTGRESQL_SEPARATOR;
 
 // TODO 目前未考虑 annotation
