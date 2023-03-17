@@ -7,7 +7,7 @@ sqlStatement
 statement
     : INSERT INTO path tagList? insertColumnsSpec VALUES insertValuesSpec #insertStatement
     | DELETE FROM path (COMMA path)* whereClause? withClause? #deleteStatement
-    | EXPLAIN? queryClause #selectStatement
+    | EXPLAIN? (LOGICAL|PHYSICAL)? queryClause #selectStatement
     | COUNT POINTS #countPointsStatement
     | DELETE TIME SERIES path (COMMA path)* withClause? #deleteTimeSeriesStatement
     | CLEAR DATA #clearDataStatement
@@ -23,6 +23,7 @@ statement
     | CANCEL TRANSFORM JOB jobId=INT #cancelJobStatement
     | SHOW jobStatus TRANSFORM JOB #showEligibleJobStatement
     | REMOVE HISTORYDATARESOURCE removedStorageEngine (COMMA removedStorageEngine)* #removeHistoryDataResourceStatement
+    | COMPACT #compactStatement
     ;
 
 queryClause
@@ -41,6 +42,7 @@ expression
     | (PLUS | MINUS) expr=expression
     | leftExpr=expression (STAR | DIV | MOD) rightExpr=expression
     | leftExpr=expression (PLUS | MINUS) rightExpr=expression
+    | subquery
     ;
 
 functionName
@@ -68,8 +70,8 @@ andExpression
     ;
 
 predicate
-    : (KEY | path) comparisonOperator constant
-    | constant comparisonOperator (KEY | path)
+    : (KEY | path | functionName LR_BRACKET path RR_BRACKET) comparisonOperator constant
+    | constant comparisonOperator (KEY | path | functionName LR_BRACKET path RR_BRACKET)
     | path comparisonOperator path
     | path OPERATOR_LIKE regex=stringLiteral
     | OPERATOR_NOT? LR_BRACKET orExpression RR_BRACKET
@@ -124,17 +126,24 @@ tagValue
     ;
 
 fromClause
-    : FROM LR_BRACKET queryClause RR_BRACKET
-    | FROM path joinPart*
+    : FROM tableReference joinPart*
     ;
 
 joinPart
-    : COMMA path
-    | CROSS JOIN path
-    | join path (
+    : COMMA tableReference
+    | CROSS JOIN tableReference
+    | join tableReference (
         ON orExpression
         | USING colList
       )?
+    ;
+
+tableReference
+    : path | subquery
+    ;
+
+subquery
+    : LR_BRACKET queryClause RR_BRACKET
     ;
 
 colList
@@ -151,13 +160,22 @@ join
 specialClause
     : limitClause
     | aggregateWithLevelClause
+    | groupByClause havingClause? orderByClause? limitClause?
     | downsampleWithLevelClause limitClause?
     | downsampleClause limitClause?
     | orderByClause limitClause?
     ;
 
+groupByClause
+    : GROUP BY path (COMMA path)*
+    ;
+
+havingClause
+    : HAVING orExpression
+    ;
+
 orderByClause
-    : ORDER BY (TIME | TIMESTAMP | KEY | path) (DESC | ASC)?
+    : ORDER BY (KEY | path) (COMMA path)* (DESC | ASC)?
     ;
 
 downsampleWithLevelClause
@@ -293,6 +311,7 @@ keyWords
     | TIMESTAMP
     | GROUP
     | ORDER
+    | HAVING
     | AGG
     | LEVEL
     | ADD
@@ -349,7 +368,10 @@ keyWords
     | STEP
     | REMOVE
     | HISTORYDATARESOURCE
+    | COMPACT
     | EXPLAIN
+    | LOGICAL
+    | PHYSICAL
     ;
 
 dateFormat
@@ -448,6 +470,10 @@ GROUP
 
 ORDER
     : O R D E R
+    ;
+
+HAVING
+    : H A V I N G
     ;
 
 AGG
@@ -738,8 +764,20 @@ HISTORYDATARESOURCE
     : H I S T O R Y D A T A R E S O U R C E
     ;
 
+COMPACT
+    : C O M P A C T
+    ;
+
 EXPLAIN
     : E X P L A I N
+    ;
+
+LOGICAL
+    : L O G I C A L
+    ;
+
+PHYSICAL
+    : P H Y S I C A L
     ;
 //============================
 // End of the keywords list

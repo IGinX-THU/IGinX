@@ -2,20 +2,20 @@ package cn.edu.tsinghua.iginx.engine.logical.utils;
 
 import cn.edu.tsinghua.iginx.engine.shared.TimeRange;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
+import cn.edu.tsinghua.iginx.exceptions.SQLParserException;
 import cn.edu.tsinghua.iginx.metadata.entity.TimeSeriesInterval;
 import cn.edu.tsinghua.iginx.sql.TestUtils;
 import cn.edu.tsinghua.iginx.sql.statement.DeleteStatement;
 import cn.edu.tsinghua.iginx.sql.statement.SelectStatement;
 import org.junit.Test;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
 
-class FilterTransformer {
+class InfluxDBFilterTransformer {
 
     public static String toString(Filter filter) {
         switch (filter.getType()) {
@@ -35,7 +35,7 @@ class FilterTransformer {
     }
 
     private static String toString(AndFilter filter) {
-        return filter.getChildren().stream().map(FilterTransformer::toString).collect(Collectors.joining(" and ", "(", ")"));
+        return filter.getChildren().stream().map(InfluxDBFilterTransformer::toString).collect(Collectors.joining(" and ", "(", ")"));
     }
 
     private static String toString(NotFilter filter) {
@@ -51,7 +51,7 @@ class FilterTransformer {
     }
 
     private static String toString(OrFilter filter) {
-        return filter.getChildren().stream().map(FilterTransformer::toString).collect(Collectors.joining(" or ", "(", ")"));
+        return filter.getChildren().stream().map(InfluxDBFilterTransformer::toString).collect(Collectors.joining(" or ", "(", ")"));
     }
 
 
@@ -118,38 +118,38 @@ public class ExprUtilsTest {
         SelectStatement statement = (SelectStatement) TestUtils.buildStatement(select);
         Filter filter = statement.getFilter();
         System.out.println(filter.toString());
-        System.out.println(FilterTransformer.toString(filter));
+        System.out.println(InfluxDBFilterTransformer.toString(filter));
         System.out.println(ExprUtils.toCNF(filter).toString());
-        System.out.println(FilterTransformer.toString(ExprUtils.toCNF(filter)));
+        System.out.println(InfluxDBFilterTransformer.toString(ExprUtils.toCNF(filter)));
 
         select = "SELECT a FROM root WHERE (a > 5 AND b <= 10) OR (c > 7 AND d == 8);";
         statement = (SelectStatement) TestUtils.buildStatement(select);
         filter = statement.getFilter();
         System.out.println(filter.toString());
-        System.out.println(FilterTransformer.toString(filter));
+        System.out.println(InfluxDBFilterTransformer.toString(filter));
         System.out.println(ExprUtils.toCNF(filter).toString());
-        System.out.println(FilterTransformer.toString(ExprUtils.toCNF(filter)));
+        System.out.println(InfluxDBFilterTransformer.toString(ExprUtils.toCNF(filter)));
 
         select = "SELECT a FROM root WHERE (a > 5 AND b <= 10) OR (c > 7 OR d == 8) OR (e < 3 AND f != 2);";
         statement = (SelectStatement) TestUtils.buildStatement(select);
         filter = statement.getFilter();
         System.out.println(filter.toString());
-        System.out.println(FilterTransformer.toString(filter));
+        System.out.println(InfluxDBFilterTransformer.toString(filter));
         System.out.println(ExprUtils.toCNF(filter).toString());
-        System.out.println(FilterTransformer.toString(ExprUtils.toCNF(filter)));
+        System.out.println(InfluxDBFilterTransformer.toString(ExprUtils.toCNF(filter)));
 
         select = "SELECT a FROM root WHERE (a > 5 OR b <= 10) OR (c > 7 AND d == 8);";
         statement = (SelectStatement) TestUtils.buildStatement(select);
         filter = statement.getFilter();
         System.out.println(filter.toString());
-        System.out.println(FilterTransformer.toString(filter));
+        System.out.println(InfluxDBFilterTransformer.toString(filter));
         System.out.println(ExprUtils.toCNF(filter).toString());
-        System.out.println(FilterTransformer.toString(ExprUtils.toCNF(filter)));
+        System.out.println(InfluxDBFilterTransformer.toString(ExprUtils.toCNF(filter)));
     }
 
     @Test
     public void testTimeRange() {
-        String delete = "DELETE FROM root.a WHERE (time > 5 AND time <= 10) OR (time > 12 AND time < 15);";
+        String delete = "DELETE FROM root.a WHERE (key > 5 AND key <= 10) OR (key > 12 AND key < 15);";
         DeleteStatement statement = (DeleteStatement) TestUtils.buildStatement(delete);
         assertEquals(
             Arrays.asList(
@@ -159,7 +159,7 @@ public class ExprUtilsTest {
             statement.getTimeRanges()
         );
 
-        delete = "DELETE FROM root.a WHERE (time > 1 AND time <= 8) OR (time >= 5 AND time < 11) OR time >= 66;";
+        delete = "DELETE FROM root.a WHERE (key > 1 AND key <= 8) OR (key >= 5 AND key < 11) OR key >= 66;";
         statement = (DeleteStatement) TestUtils.buildStatement(delete);
         assertEquals(
             Arrays.asList(
@@ -169,7 +169,7 @@ public class ExprUtilsTest {
             statement.getTimeRanges()
         );
 
-        delete = "DELETE FROM root.a WHERE time >= 16 AND time < 61;";
+        delete = "DELETE FROM root.a WHERE key >= 16 AND key < 61;";
         statement = (DeleteStatement) TestUtils.buildStatement(delete);
         assertEquals(
             Collections.singletonList(
@@ -178,7 +178,7 @@ public class ExprUtilsTest {
             statement.getTimeRanges()
         );
 
-        delete = "DELETE FROM root.a WHERE time >= 16;";
+        delete = "DELETE FROM root.a WHERE key >= 16;";
         statement = (DeleteStatement) TestUtils.buildStatement(delete);
         assertEquals(
             Collections.singletonList(
@@ -187,7 +187,7 @@ public class ExprUtilsTest {
             statement.getTimeRanges()
         );
 
-        delete = "DELETE FROM root.a WHERE time < 61;";
+        delete = "DELETE FROM root.a WHERE key < 61;";
         statement = (DeleteStatement) TestUtils.buildStatement(delete);
         assertEquals(
             Collections.singletonList(
@@ -196,46 +196,47 @@ public class ExprUtilsTest {
             statement.getTimeRanges()
         );
 
-        delete = "DELETE FROM root.a WHERE time < 61 AND time > 616;";
-        statement = (DeleteStatement) TestUtils.buildStatement(delete);
-        assertEquals(
-            new ArrayList<>(),
-            statement.getTimeRanges()
-        );
-
         delete = "DELETE FROM root.a;";
         statement = (DeleteStatement) TestUtils.buildStatement(delete);
         assertEquals(
-            new ArrayList<>(),
+            Collections.singletonList(
+                new TimeRange(0, Long.MAX_VALUE)
+            ),
             statement.getTimeRanges()
         );
+    }
+
+    @Test(expected=SQLParserException.class)
+    public void testErrDelete() {
+        String delete = "DELETE FROM root.a WHERE key < 61 AND key > 616;";
+        TestUtils.buildStatement(delete);
     }
 
     @Test
     public void testGetSubFilterFromFragment() {
         // sub1
-        String select = "SELECT a FROM root WHERE (a > 5 OR d < 15) AND !(e < 27) AND (c < 10 OR b > 2) AND time > 10 AND time <= 100;";
+        String select = "SELECT a FROM root WHERE (a > 5 OR d < 15) AND !(e < 27) AND (c < 10 OR b > 2) AND key > 10 AND key <= 100;";
         SelectStatement statement = (SelectStatement) TestUtils.buildStatement(select);
         Filter filter = statement.getFilter();
         assertEquals(
-            "((((root.a > 5) || (root.d < 15)) && !((root.e < 27)) && ((root.c < 10) || (root.b > 2)) && time > 10 && time <= 100))",
+            "((root.a > 5 || root.d < 15) && !(root.e < 27) && (root.c < 10 || root.b > 2) && key > 10 && key <= 100)",
             filter.toString()
         );
         assertEquals(
-            "((time > 10 && time <= 100))",
+            "(key > 10 && key <= 100)",
             ExprUtils.getSubFilterFromFragment(filter, new TimeSeriesInterval("root.a", "root.c")).toString()
         );
 
         // sub2
-        select = "SELECT a FROM root WHERE (a > 5 OR d < 15) AND !(e < 27) AND (c < 10 OR b > 2) AND time > 10 AND time <= 100;";
+        select = "SELECT a FROM root WHERE (a > 5 OR d < 15) AND !(e < 27) AND (c < 10 OR b > 2) AND key > 10 AND key <= 100;";
         statement = (SelectStatement) TestUtils.buildStatement(select);
         filter = statement.getFilter();
         assertEquals(
-            "((((root.a > 5) || (root.d < 15)) && !((root.e < 27)) && ((root.c < 10) || (root.b > 2)) && time > 10 && time <= 100))",
+            "((root.a > 5 || root.d < 15) && !(root.e < 27) && (root.c < 10 || root.b > 2) && key > 10 && key <= 100)",
             filter.toString()
         );
         assertEquals(
-            "(((root.e >= 27) && time > 10 && time <= 100))",
+            "(root.e >= 27 && key > 10 && key <= 100)",
             ExprUtils.getSubFilterFromFragment(filter, new TimeSeriesInterval("root.c", "root.z")).toString()
         );
 
@@ -244,11 +245,11 @@ public class ExprUtilsTest {
         statement = (SelectStatement) TestUtils.buildStatement(select);
         filter = statement.getFilter();
         assertEquals(
-            "((((root.a > 5) || (root.d < 15)) && !((root.e < 27)) && ((root.c < 10) || (root.b > 2))))",
+            "((root.a > 5 || root.d < 15) && !(root.e < 27) && (root.c < 10 || root.b > 2))",
             filter.toString()
         );
         assertEquals(
-            "(((root.a > 5 || root.d < 15) && (root.e >= 27) && (root.c < 10 || root.b > 2)))",
+            "((root.a > 5 || root.d < 15) && root.e >= 27 && (root.c < 10 || root.b > 2))",
             ExprUtils.getSubFilterFromFragment(filter, new TimeSeriesInterval("root.a", "root.z")).toString()
         );
 
@@ -257,7 +258,7 @@ public class ExprUtilsTest {
         statement = (SelectStatement) TestUtils.buildStatement(select);
         filter = statement.getFilter();
         assertEquals(
-            "((((root.a > 5) || (root.d < 15)) && !((root.e < 27)) && ((root.c < 10) || (root.b > 2))))",
+            "((root.a > 5 || root.d < 15) && !(root.e < 27) && (root.c < 10 || root.b > 2))",
             filter.toString()
         );
         assertEquals(

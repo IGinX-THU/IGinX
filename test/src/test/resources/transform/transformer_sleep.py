@@ -1,4 +1,3 @@
-import pandas as pd
 import time
 
 
@@ -7,5 +6,5 @@ class SleepTransformer:
         pass
 
     def transform(self, rows):
-        time.sleep(5)
-        return rows
+        while True:
+            time.sleep(60)

@@ -10,38 +10,69 @@ import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils;
 import cn.edu.tsinghua.iginx.engine.shared.function.manager.FunctionManager;
-import cn.edu.tsinghua.iginx.engine.shared.operator.*;
+import cn.edu.tsinghua.iginx.engine.shared.operator.AddSchemaPrefix;
+import cn.edu.tsinghua.iginx.engine.shared.operator.CrossJoin;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Downsample;
+import cn.edu.tsinghua.iginx.engine.shared.operator.GroupBy;
+import cn.edu.tsinghua.iginx.engine.shared.operator.InnerJoin;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Limit;
+import cn.edu.tsinghua.iginx.engine.shared.operator.MappingTransform;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
+import cn.edu.tsinghua.iginx.engine.shared.operator.OuterJoin;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Rename;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Reorder;
+import cn.edu.tsinghua.iginx.engine.shared.operator.RowTransform;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
+import cn.edu.tsinghua.iginx.engine.shared.operator.SetTransform;
+import cn.edu.tsinghua.iginx.engine.shared.operator.SingleJoin;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Sort;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.FilterType;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.type.FuncType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.JoinAlgType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OuterJoinType;
-import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
-import cn.edu.tsinghua.iginx.metadata.entity.*;
+import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
+import cn.edu.tsinghua.iginx.metadata.entity.StorageUnitMeta;
+import cn.edu.tsinghua.iginx.metadata.entity.TimeInterval;
+import cn.edu.tsinghua.iginx.metadata.entity.TimeSeriesInterval;
+import cn.edu.tsinghua.iginx.metadata.entity.TimeSeriesRange;
 import cn.edu.tsinghua.iginx.policy.IPolicy;
 import cn.edu.tsinghua.iginx.policy.PolicyManager;
+import cn.edu.tsinghua.iginx.sql.SQLConstant;
 import cn.edu.tsinghua.iginx.sql.expression.Expression;
-import cn.edu.tsinghua.iginx.sql.expression.Expression.ExpressionType;
 import cn.edu.tsinghua.iginx.sql.statement.SelectStatement;
+import cn.edu.tsinghua.iginx.sql.statement.SelectStatement.QueryType;
 import cn.edu.tsinghua.iginx.sql.statement.Statement;
-import cn.edu.tsinghua.iginx.sql.statement.join.JoinPart;
+import cn.edu.tsinghua.iginx.sql.statement.frompart.FromPartType;
+import cn.edu.tsinghua.iginx.sql.statement.frompart.SubQueryFromPart;
+import cn.edu.tsinghua.iginx.sql.statement.frompart.join.JoinCondition;
+import cn.edu.tsinghua.iginx.sql.statement.frompart.join.JoinType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.SortUtils;
-import java.util.Arrays;
-import java.util.Collections;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static cn.edu.tsinghua.iginx.engine.shared.Constants.*;
+import static cn.edu.tsinghua.iginx.engine.shared.Constants.ALL_PATH_SUFFIX;
+import static cn.edu.tsinghua.iginx.engine.shared.Constants.ORDINAL;
+import static cn.edu.tsinghua.iginx.engine.shared.Constants.PARAM_EXPR;
+import static cn.edu.tsinghua.iginx.engine.shared.Constants.PARAM_LEVELS;
+import static cn.edu.tsinghua.iginx.engine.shared.Constants.PARAM_PATHS;
 import static cn.edu.tsinghua.iginx.engine.shared.function.system.ArithmeticExpr.ARITHMETIC_EXPR;
 import static cn.edu.tsinghua.iginx.metadata.utils.FragmentUtils.keyFromTSIntervalToTimeInterval;
 
@@ -73,14 +104,20 @@ public class QueryGenerator extends AbstractGenerator {
         SelectStatement selectStatement = (SelectStatement) statement;
 
         Operator root;
-        if (selectStatement.getSubStatement() != null) {
-            root = generateRoot(selectStatement.getSubStatement());
+        if (selectStatement.hasJoinParts()) {
+            root = filterAndMergeFragmentsWithJoin(selectStatement);
         } else {
-            policy.notify(selectStatement);
-            if (selectStatement.hasJoinParts()) {
-                root = filterAndMergeFragmentsWithJoin(selectStatement);
-            } else {
+            if (selectStatement.getFromParts().isEmpty()) {
+                policy.notify(selectStatement);
                 root = filterAndMergeFragments(selectStatement);
+            } else {
+                if (selectStatement.getFromParts().get(0).getType() == FromPartType.SubQueryFromPart) {
+                    SubQueryFromPart fromPart = (SubQueryFromPart) selectStatement.getFromParts().get(0);
+                    root = generateRoot(fromPart.getSubQuery());
+                } else {
+                    policy.notify(selectStatement);
+                    root = filterAndMergeFragments(selectStatement);
+                }
             }
         }
 
@@ -90,8 +127,34 @@ public class QueryGenerator extends AbstractGenerator {
             root = new Select(new OperatorSource(root), selectStatement.getFilter(), tagFilter);
         }
 
+        if (selectStatement.getSelectSubQueryParts().size() > 0) {
+            int sizeSelectSubQuery = selectStatement.getSelectSubQueryParts().size();
+            List<SubQueryFromPart> selectSubQueryParts = selectStatement.getSelectSubQueryParts();
+            for (int i = 0; i < sizeSelectSubQuery; i++) {
+                if (selectSubQueryParts.get(i).getJoinCondition().getJoinType() == JoinType.SingleJoin) {
+                    Operator right = generateRoot(selectSubQueryParts.get(i).getSubQuery());
+                    Filter filter = selectSubQueryParts.get(i).getJoinCondition().getFilter();
+                    root = new SingleJoin(new OperatorSource(root), new OperatorSource(right), filter);
+                }
+            }
+        }
+
         List<Operator> queryList = new ArrayList<>();
-        if (selectStatement.getQueryType() == SelectStatement.QueryType.DownSampleQuery) {
+        if (selectStatement.getQueryType() == QueryType.GroupByQuery) {
+            // Downsample Query
+            List<FunctionCall> functionCallList = new ArrayList<>();
+            selectStatement.getBaseExpressionMap().forEach((k, v) -> {
+                if (!k.equals("")) {
+                    v.forEach(expression -> {
+                        Map<String, Value> params = new HashMap<String, Value>(){{
+                            put(PARAM_PATHS, new Value(expression.getPathName()));
+                        }};
+                        functionCallList.add(new FunctionCall(functionManager.getFunction(k), params));
+                    });
+                }
+            });
+            queryList.add(new GroupBy(new OperatorSource(root), selectStatement.getGroupByPaths(), functionCallList));
+        } else if (selectStatement.getQueryType() == SelectStatement.QueryType.DownSampleQuery) {
             // DownSample Query
             Operator finalRoot = root;
             selectStatement.getBaseExpressionMap().forEach((k, v) -> v.forEach(expression -> {
@@ -176,35 +239,31 @@ public class QueryGenerator extends AbstractGenerator {
         } else if (selectStatement.getQueryType() == SelectStatement.QueryType.DownSampleQuery) {
             root = OperatorUtils.joinOperatorsByTime(queryList);
         } else {
-            if (selectStatement.getFuncTypeSet().contains(SelectStatement.FuncType.Udtf)) {
+            if (selectStatement.getFuncTypeSet().contains(FuncType.Udtf)) {
                 root = OperatorUtils.joinOperatorsByTime(queryList);
             } else {
                 root = OperatorUtils.joinOperators(queryList, ORDINAL);
             }
         }
 
-        List<Operator> exprList = new ArrayList<>();
-        exprList.add(root);
-        for (Expression expression : selectStatement.getExpressions()) {
-            if (!expression.getType().equals(ExpressionType.Base)) {
-                Operator copySelect = root.copy();
+        if (selectStatement.getHavingFilter() != null) {
+            root = new Select(new OperatorSource(root), selectStatement.getHavingFilter(), null);
+        }
+
+        if (selectStatement.needRowTransform()) {
+            List<FunctionCall> functionCallList = new ArrayList<>();
+            for (Expression expression : selectStatement.getExpressions()) {
                 Map<String, Value> params = new HashMap<>();
                 params.put(PARAM_EXPR, new Value(expression));
-
-                exprList.add(
-                    new RowTransform(
-                        new OperatorSource(copySelect),
-                        new FunctionCall(functionManager.getFunction(ARITHMETIC_EXPR), params)
-                    )
-                );
+                functionCallList.add(new FunctionCall(functionManager.getFunction(ARITHMETIC_EXPR), params));
             }
+            root = new RowTransform(new OperatorSource(root), functionCallList);
         }
-        root = OperatorUtils.joinOperatorsByTime(exprList);
 
-        if (!selectStatement.getOrderByPath().equals("")) {
+        if (!selectStatement.getOrderByPaths().isEmpty()) {
             root = new Sort(
                 new OperatorSource(root),
-                selectStatement.getOrderByPath(),
+                selectStatement.getOrderByPaths(),
                 selectStatement.isAscending() ? Sort.SortType.ASC : Sort.SortType.DESC
             );
         }
@@ -217,12 +276,22 @@ public class QueryGenerator extends AbstractGenerator {
             );
         }
 
-        if (selectStatement.getQueryType().equals(SelectStatement.QueryType.LastFirstQuery)) {
-            root = new Reorder(new OperatorSource(root), Arrays.asList("path", "value"));
+        if (selectStatement.getLayers().isEmpty()) {
+            if (selectStatement.getQueryType().equals(SelectStatement.QueryType.LastFirstQuery)) {
+                root = new Reorder(new OperatorSource(root), Arrays.asList("path", "value"));
+            } else {
+                List<String> order = new ArrayList<>();
+                selectStatement.getExpressions().forEach(expression -> {
+                    String colName = expression.getColumnName();
+                    order.add(colName);
+                });
+                root = new Reorder(new OperatorSource(root), order);
+            }
         } else {
             List<String> order = new ArrayList<>();
             selectStatement.getExpressions().forEach(expression -> {
                 String colName = expression.getColumnName();
+                colName = colName.replaceFirst(selectStatement.getFromParts().get(0).getPath() + SQLConstant.DOT, "");
                 order.add(colName);
             });
             root = new Reorder(new OperatorSource(root), order);
@@ -250,41 +319,46 @@ public class QueryGenerator extends AbstractGenerator {
     }
 
     private Operator filterAndMergeFragmentsWithJoin(SelectStatement selectStatement) {
-        List<String> prefixList = new ArrayList<>();
-        prefixList.add(selectStatement.getFromPath() + ALL_PATH_SUFFIX);
-        selectStatement.getJoinParts().forEach(joinPart -> prefixList.add(joinPart.getPathPrefix() + ALL_PATH_SUFFIX));
-
         TagFilter tagFilter = selectStatement.getTagFilter();
 
         List<Operator> joinList = new ArrayList<>();
         // 1. get all data of single prefix like a.* or b.*
-        prefixList.forEach(prefix -> {
-            Pair<Map<TimeInterval, List<FragmentMeta>>, List<FragmentMeta>> pair = getFragmentsByTSInterval(selectStatement, new TimeSeriesInterval(prefix, prefix));
-            Map<TimeInterval, List<FragmentMeta>> fragments = pair.k;
-            List<FragmentMeta> dummyFragments = pair.v;
-            joinList.add(mergeRawData(fragments, dummyFragments, Collections.singletonList(prefix), tagFilter));
+        selectStatement.getFromParts().forEach(fromPart -> {
+            if(fromPart.getType() == FromPartType.SubQueryFromPart) {
+                SubQueryFromPart subQueryFromPart = (SubQueryFromPart) fromPart;
+                joinList.add(generateRoot(subQueryFromPart.getSubQuery()));
+            } else {
+                String prefix = fromPart.getPath() + ALL_PATH_SUFFIX;
+                Pair<Map<TimeInterval, List<FragmentMeta>>, List<FragmentMeta>> pair = getFragmentsByTSInterval(selectStatement, new TimeSeriesInterval(prefix, prefix));
+                Map<TimeInterval, List<FragmentMeta>> fragments = pair.k;
+                List<FragmentMeta> dummyFragments = pair.v;
+                joinList.add(mergeRawData(fragments, dummyFragments, Collections.singletonList(prefix), tagFilter));
+            }
         });
         // 2. merge by declare
         Operator left = joinList.get(0);
-        String prefixA = selectStatement.getFromPath();
+        String prefixA = selectStatement.getGlobalAlias();
         for (int i = 1; i < joinList.size(); i++) {
-            JoinPart joinPart = selectStatement.getJoinParts().get(i - 1);
+            JoinCondition joinCondition = selectStatement.getFromParts().get(i).getJoinCondition();
             Operator right = joinList.get(i);
 
-            String prefixB = joinPart.getPathPrefix();
+            String prefixB = selectStatement.getFromParts().get(i).getPath();
 
             JoinAlgType joinAlgType = JoinAlgType.NestedLoopJoin;
-            Filter filter = joinPart.getFilter();
+            Filter filter = joinCondition.getFilter();
             if (filter != null && filter.getType().equals(FilterType.Path)) {
-                joinAlgType = JoinAlgType.HashJoin;
+                PathFilter pathFilter = (PathFilter) filter;
+                if (pathFilter.getOp() == Op.E) {
+                    joinAlgType = JoinAlgType.HashJoin;
+                }
             }
 
-            List<String> joinColumns = joinPart.getJoinColumns();
+            List<String> joinColumns = joinCondition.getJoinColumns();
             if (joinColumns != null && joinColumns.size() == 1) {
                 joinAlgType = JoinAlgType.HashJoin;
             }
 
-            switch (joinPart.getJoinType()) {
+            switch (joinCondition.getJoinType()) {
                 case CrossJoin:
                     left = new CrossJoin(new OperatorSource(left), new OperatorSource(right), prefixA, prefixB);
                     break;
@@ -308,6 +382,9 @@ public class QueryGenerator extends AbstractGenerator {
                     break;
                 case RightOuterJoin:
                     left = new OuterJoin(new OperatorSource(left), new OperatorSource(right), prefixA, prefixB, OuterJoinType.RIGHT, filter, joinColumns, false, joinAlgType);
+                    break;
+                case SingleJoin:
+                    left = new SingleJoin(new OperatorSource(left), new OperatorSource(right), filter);
                     break;
             }
 
