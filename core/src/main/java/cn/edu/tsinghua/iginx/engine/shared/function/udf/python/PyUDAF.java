@@ -57,22 +57,27 @@ public class PyUDAF implements UDAF {
         PythonInterpreter interpreter = interpreters.take();
 
         String target = params.get(PARAM_PATHS).getBinaryVAsString();
+        List<List<Object>> res;
         if (StringUtils.isPattern(target)) {
             Pattern pattern = Pattern.compile(StringUtils.reformatPath(target));
-            List<String> name = new ArrayList<>();
+            List<Object> colNames = new ArrayList<>();
+            List<Object> colTypes = new ArrayList<>();
             List<Integer> indices = new ArrayList<>();
             for (int i = 0; i < rows.getHeader().getFieldSize(); i++) {
                 Field field = rows.getHeader().getField(i);
                 if (pattern.matcher(field.getName()).matches()) {
-                    name.add(getFunctionName() + "(" + field.getName() + ")");
+                    colNames.add(field.getName());
+                    colTypes.add(field.getType().toString());
                     indices.add(i);
                 }
             }
-            if (name.isEmpty()) {
+            if (colNames.isEmpty()) {
                 return Row.EMPTY_ROW;
             }
 
             List<List<Object>> data = new ArrayList<>();
+            data.add(colNames);
+            data.add(colTypes);
             while (rows.hasNext()) {
                 Row row = rows.next();
                 List<Object> rowData = new ArrayList<>();
@@ -81,18 +86,8 @@ public class PyUDAF implements UDAF {
                 }
                 data.add(rowData);
             }
-            List<Object> res = (List<Object>) interpreter.invokeMethod(UDF_CLASS, UDF_FUNC, data);
-            if (res.size() != name.size()) {
-                return Row.EMPTY_ROW;
-            }
-            interpreters.add(interpreter);
 
-            List<Field> targetFields = new ArrayList<>();
-            for (int i = 0; i < name.size(); i++) {
-                targetFields.add(new Field(name.get(i), TypeUtils.getDataTypeFromObject(res.get(i))));
-            }
-            Header header = new Header(targetFields);
-            return RowUtils.constructNewRow(header, res);
+            res = (List<List<Object>>) interpreter.invokeMethod(UDF_CLASS, UDF_FUNC, data);
         } else {
             int index = rows.getHeader().indexOf(target);
             if (index == -1) {
@@ -100,19 +95,23 @@ public class PyUDAF implements UDAF {
             }
 
             List<List<Object>> data = new ArrayList<>();
+            data.add(Collections.singletonList(target));
+            data.add(Collections.singletonList(rows.getHeader().getField(index).getType().toString()));
             while (rows.hasNext()) {
                 Row row = rows.next();
                 data.add(Collections.singletonList(row.getValues()[index]));
             }
-            List<Object> res = (List<Object>) interpreter.invokeMethod(UDF_CLASS, UDF_FUNC, data);
-            if (res.size() != 1) {
-                return Row.EMPTY_ROW;
-            }
-            interpreters.add(interpreter);
 
-            Field targetField = new Field(getFunctionName() + "(" + target + ")", TypeUtils.getDataTypeFromObject(res.get(0)));
-            return RowUtils.constructNewRow(new Header(Collections.singletonList(targetField)), res);
+            res = (List<List<Object>>) interpreter.invokeMethod(UDF_CLASS, UDF_FUNC, data);
         }
+
+        interpreters.add(interpreter);
+        if (res == null || res.size() < 3) {
+            return Row.EMPTY_ROW;
+        }
+
+        Header header = RowUtils.constructHeaderWithFirstTwoRows(res, false);
+        return RowUtils.constructNewRow(header, res.get(2));
     }
 
     @Override
