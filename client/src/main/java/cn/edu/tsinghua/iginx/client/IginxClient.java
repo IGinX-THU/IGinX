@@ -30,6 +30,8 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 import org.apache.commons.cli.*;
 import org.jline.reader.Completer;
 import org.jline.reader.LineReader;
@@ -87,7 +89,9 @@ public class IginxClient {
     static String execute = "";
 
     private static int MAX_GETDATA_NUM = 100;
-    private static String timestampPrecision = "ns";
+    private static String timestampPrecision = "";
+    private static final Set<String> legalTimeUnitSet = new HashSet<>(
+        Arrays.asList("week", "day", "hour", "min", "s", "ns", "us", "ns"));
 
     private static CommandLine commandLine;
     private static Session session;
@@ -237,6 +241,8 @@ public class IginxClient {
 
         if (isQuery(statement) || isShowTimeSeries(statement)) {
             processSqlWithStream(statement);
+        } else if (isSetTimeUnit(statement)) {
+            processSetTimeUnit(statement);
         } else {
             processSql(statement);
         }
@@ -251,6 +257,25 @@ public class IginxClient {
         return sql.contains("show") && sql.contains("time") && sql.contains("series");
     }
 
+    private static boolean isSetTimeUnit(String sql) {
+        return sql.startsWith("set time unit in");
+    }
+
+    private static void processSetTimeUnit(String sql) {
+        String[] args = sql.split(" ");
+        if (args.length != 5 || !legalTimeUnitSet.contains(args[4])) {
+            System.out.println("Legal clause: set time unit in xx, "
+                + "xx can be week, day, hour, min, s, ns, us, ns");
+            return;
+        }
+        timestampPrecision = args[4];
+        System.out.printf("Current time unit: %s\n", timestampPrecision);
+    }
+
+    private static boolean isSetTimeUnit() {
+        return !timestampPrecision.equals("");
+    }
+
     private static void processSql(String sql) {
         try {
             SessionExecuteSqlResult res = session.executeSql(sql);
@@ -262,7 +287,7 @@ public class IginxClient {
             }
 
             if (res.isQuery()) {
-                res.print(true, timestampPrecision);
+                res.print(isSetTimeUnit(), timestampPrecision);
             } else if (res.getSqlType() == SqlType.ShowTimeSeries) {
                 res.print(false, "");
             } else if (res.getSqlType() == SqlType.ShowClusterInfo) {
@@ -336,6 +361,7 @@ public class IginxClient {
     }
 
     private static List<List<String>> cacheResult(QueryDataSet queryDataSet) throws ExecutionException, SessionException {
+        boolean hasKey = queryDataSet.getColumnList().get(0).equals(GlobalConstant.KEY_NAME);
         List<List<String>> cache = new ArrayList<>();
         cache.add(new ArrayList<>(queryDataSet.getColumnList()));
 
@@ -344,7 +370,14 @@ public class IginxClient {
             List<String> strRow = new ArrayList<>();
             Object[] nextRow = queryDataSet.nextRow();
             if (nextRow != null) {
-                Arrays.stream(nextRow).forEach(val -> strRow.add(FormatUtils.valueToString(val)));
+                if (hasKey && isSetTimeUnit()) {
+                    strRow.add(FormatUtils.formatTime((Long) nextRow[0], FormatUtils.DEFAULT_TIME_FORMAT, timestampPrecision));
+                    for (int i = 1; i < nextRow.length; i++) {
+                        strRow.add(FormatUtils.valueToString(nextRow[i]));
+                    }
+                } else {
+                    Arrays.stream(nextRow).forEach(val -> strRow.add(FormatUtils.valueToString(val)));
+                }
                 cache.add(strRow);
                 rowIndex++;
             }
@@ -385,6 +418,7 @@ public class IginxClient {
             Arrays.asList("commit", "transform", "job"),
             Arrays.asList("show", "transform", "job", "status"),
             Arrays.asList("cancel", "transform", "job"),
+            Arrays.asList("set", "time", "unit", "in"),
 
             Collections.singletonList("select")
         );
