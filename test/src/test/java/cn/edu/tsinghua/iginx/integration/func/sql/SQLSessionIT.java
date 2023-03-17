@@ -1811,14 +1811,14 @@ public abstract class SQLSessionIT {
     public void testJoinWithGroupBy() {
         String insert = "insert into test1(key, a, b, c, d) values (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), (3, 2, 2, 1.1, \"val5\"), (4, 3, 2, 2.1, \"val2\"), (5, 1, 2, 3.1, \"val1\"), (6, 2, 2, 5.1, \"val3\")";
         execute(insert);
-        insert = "insert into test(key, a, b, c, d) values (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), (3, 2, 2, 1.1, \"val5\"), (4, 3, 2, 2.1, \"val2\"), (5, 1, 2, 3.1, \"val1\"), (6, 2, 2, 5.1, \"val3\")";
+        insert = "insert into test2(key, a, b, c, d) values (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), (3, 2, 2, 1.1, \"val5\"), (4, 3, 2, 2.1, \"val2\"), (5, 1, 2, 3.1, \"val1\"), (6, 2, 2, 5.1, \"val3\")";
         execute(insert);
 
-        String query = "select * from test1 join test on test1.a = test.a";
+        String query = "select * from test1 join test2 on test1.a = test2.a";
         String expected =
             "ResultSets:\n"
                 + "+-------+-------+-------+-------+---------+-------+-------+-------+-------+---------+\n"
-                + "|test1.a|test1.b|test1.c|test1.d|test1.key|test.a|test.b|test.c|test.d|test.key|\n"
+                + "|test1.a|test1.b|test1.c|test1.d|test1.key|test2.a|test2.b|test2.c|test2.d|test2.key|\n"
                 + "+-------+-------+-------+-------+---------+-------+-------+-------+-------+---------+\n"
                 + "|      3|      2|    3.1|   val1|        1|      3|      2|    3.1|   val1|        1|\n"
                 + "|      3|      2|    3.1|   val1|        1|      3|      2|    2.1|   val2|        4|\n"
@@ -1836,11 +1836,11 @@ public abstract class SQLSessionIT {
                 + "Total line number = 12\n";
         executeAndCompare(query, expected);
 
-        query = "select avg(test1.a), test.d from test1 join test on test1.a = test.a group by test.d";
+        query = "select avg(test1.a), test2.d from test1 join test2 on test1.a = test2.a group by test2.d";
         expected =
             "ResultSets:\n"
                 + "+------------+-------+\n"
-                + "|avg(test1.a)|test.d|\n"
+                + "|avg(test1.a)|test2.d|\n"
                 + "+------------+-------+\n"
                 + "|         2.0|   val5|\n"
                 + "|         2.0|   val3|\n"
@@ -1850,11 +1850,11 @@ public abstract class SQLSessionIT {
                 + "Total line number = 4\n";
         executeAndCompare(query, expected);
 
-        query = "select avg(test1.a), max(test1.c), test.d from test1 join test on test1.a = test.a group by test.d";
+        query = "select avg(test1.a), max(test1.c), test2.d from test1 join test2 on test1.a = test2.a group by test2.d";
         expected =
             "ResultSets:\n"
                 + "+------------+------------+-------+\n"
-                + "|avg(test1.a)|max(test1.c)|test.d|\n"
+                + "|avg(test1.a)|max(test1.c)|test2.d|\n"
                 + "+------------+------------+-------+\n"
                 + "|         2.0|         5.1|   val5|\n"
                 + "|         2.0|         5.1|   val3|\n"
@@ -1864,11 +1864,11 @@ public abstract class SQLSessionIT {
                 + "Total line number = 4\n";
         executeAndCompare(query, expected);
 
-        query = "select avg(test1.a), max(test1.c), test.d from test1 join test on test1.a = test.a group by test.d having max(test1.c) > 3.5";
+        query = "select avg(test1.a), max(test1.c), test2.d from test1 join test2 on test1.a = test2.a group by test2.d having max(test1.c) > 3.5";
         expected =
             "ResultSets:\n"
                 + "+------------+------------+-------+\n"
-                + "|avg(test1.a)|max(test1.c)|test.d|\n"
+                + "|avg(test1.a)|max(test1.c)|test2.d|\n"
                 + "+------------+------------+-------+\n"
                 + "|         2.0|         5.1|   val5|\n"
                 + "|         2.0|         5.1|   val3|\n"
@@ -1876,11 +1876,11 @@ public abstract class SQLSessionIT {
                 + "Total line number = 2\n";
         executeAndCompare(query, expected);
 
-        query = "select avg(test1.a), max(test1.c), test.d from test1 join test on test1.a = test.a group by test.d having max(test1.c) > 3.5 order by test.d";
+        query = "select avg(test1.a), max(test1.c), test2.d from test1 join test2 on test1.a = test2.a group by test2.d having max(test1.c) > 3.5 order by test2.d";
         expected =
             "ResultSets:\n"
                 + "+------------+------------+-------+\n"
-                + "|avg(test1.a)|max(test1.c)|test.d|\n"
+                + "|avg(test1.a)|max(test1.c)|test2.d|\n"
                 + "+------------+------------+-------+\n"
                 + "|         2.0|         5.1|   val3|\n"
                 + "|         2.0|         5.1|   val5|\n"
@@ -1888,7 +1888,7 @@ public abstract class SQLSessionIT {
                 + "Total line number = 2\n";
         executeAndCompare(query, expected);
 
-        query = "select avg_a, test.d as res from (select avg(test1.a) as avg_a, max(test1.c), test.d from test1 join test on test1.a = test.a group by test.d having max(test1.c) > 3.5 order by test.d limit 1);";
+        query = "select avg_a, test2.d as res from (select avg(test1.a) as avg_a, max(test1.c), test2.d from test1 join test2 on test1.a = test2.a group by test2.d having max(test1.c) > 3.5 order by test2.d limit 1);";
         expected =
             "ResultSets:\n" +
                 "+-----+----+\n" +
