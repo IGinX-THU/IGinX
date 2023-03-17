@@ -272,6 +272,10 @@ public class IginxClient {
         System.out.printf("Current time unit: %s\n", timestampPrecision);
     }
 
+    private static boolean isSetTimeUnit() {
+        return !timestampPrecision.equals("");
+    }
+
     private static void processSql(String sql) {
         try {
             SessionExecuteSqlResult res = session.executeSql(sql);
@@ -283,7 +287,7 @@ public class IginxClient {
             }
 
             if (res.isQuery()) {
-                res.print(!timestampPrecision.equals(""), timestampPrecision);
+                res.print(isSetTimeUnit(), timestampPrecision);
             } else if (res.getSqlType() == SqlType.ShowTimeSeries) {
                 res.print(false, "");
             } else if (res.getSqlType() == SqlType.ShowClusterInfo) {
@@ -366,7 +370,7 @@ public class IginxClient {
             List<String> strRow = new ArrayList<>();
             Object[] nextRow = queryDataSet.nextRow();
             if (nextRow != null) {
-                if (hasKey && !timestampPrecision.equals("")) {
+                if (hasKey && isSetTimeUnit()) {
                     strRow.add(FormatUtils.formatTime((Long) nextRow[0], FormatUtils.DEFAULT_TIME_FORMAT, timestampPrecision));
                     for (int i = 1; i < nextRow.length; i++) {
                         strRow.add(FormatUtils.valueToString(nextRow[i]));
