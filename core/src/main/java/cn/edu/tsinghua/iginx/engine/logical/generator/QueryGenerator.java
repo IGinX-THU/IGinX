@@ -65,8 +65,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.ALL_PATH_SUFFIX;
@@ -266,10 +268,10 @@ public class QueryGenerator extends AbstractGenerator {
                 );
             }));
         } else {
-            List<String> selectedPath = new ArrayList<>();
+            Set<String> selectedPath = new HashSet<>();
             selectStatement.getBaseExpressionMap().forEach((k, v) ->
                 v.forEach(expression -> selectedPath.add(expression.getPathName())));
-            queryList.add(new Project(new OperatorSource(root), selectedPath, tagFilter));
+            queryList.add(new Project(new OperatorSource(root), new ArrayList<>(selectedPath), tagFilter));
         }
 
         if (selectStatement.getQueryType() == SelectStatement.QueryType.LastFirstQuery) {
