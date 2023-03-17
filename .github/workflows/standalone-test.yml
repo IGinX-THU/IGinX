@@ -1,7 +1,7 @@
 name: "Union Database Test"
 on:
   pull_request:
-    types: [opened, reopened]
+    types: [ opened, reopened ]
     branches:
       - main
 env:
@@ -19,7 +19,7 @@ jobs:
         java: [ 8 ]
         python-version: [ "3.7" ]
         os: [ ubuntu-latest, macos-latest ]
-        DB-name: ["IoTDB12", "InfluxDB", "Parquet"]
+        DB-name: [ "IoTDB12", "InfluxDB", "Parquet" ]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
