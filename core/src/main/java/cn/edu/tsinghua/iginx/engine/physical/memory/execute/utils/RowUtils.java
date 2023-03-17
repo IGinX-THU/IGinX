@@ -44,6 +44,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class RowUtils {
 
@@ -63,18 +64,21 @@ public class RowUtils {
     }
 
     public static Row combineMultipleColumns(List<Row> columnList) {
-        int size = columnList.size();
-        if (size < 1) {
+        if (columnList == null || columnList.isEmpty()) {
             return Row.EMPTY_ROW;
         }
+        if (columnList.size() == 1) {
+            return columnList.get(0);
+        }
+
         List<Field> fields = new ArrayList<>();
-        Object[] valuesCombine = new Object[size];
-        for (int i = 0; i < size; i++) {
-            fields.addAll(columnList.get(i).getHeader().getFields());
-            valuesCombine[i] = columnList.get(i).getValue(0);
+        List<Object> valuesCombine = new ArrayList<>();
+        for (Row cols : columnList) {
+            fields.addAll(cols.getHeader().getFields());
+            valuesCombine.addAll(Arrays.asList(cols.getValues()));
         }
         Header newHeader = columnList.get(0).getHeader().hasKey()? new Header(Field.KEY, fields) : new Header(fields);
-        return new Row(newHeader, columnList.get(0).getKey(), valuesCombine);
+        return new Row(newHeader, columnList.get(0).getKey(), valuesCombine.toArray());
     }
 
     /**
