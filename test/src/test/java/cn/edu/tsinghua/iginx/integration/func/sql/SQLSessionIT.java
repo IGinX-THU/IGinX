@@ -1648,7 +1648,7 @@ public abstract class SQLSessionIT {
                 + "Total line number = 6\n";
         executeAndCompare(query, expected);
 
-        query = "select avg(a), b from test group by b;";
+        query = "select avg(a), b from test group by b order by b;";
         expected =
             "ResultSets:\n"
                 + "+-----------+------+\n"
@@ -1660,37 +1660,22 @@ public abstract class SQLSessionIT {
                 + "Total line number = 2\n";
         executeAndCompare(query, expected);
 
-        query = "select avg(a), b, d from test group by b, d;";
+        query = "select avg(a), b, d from test group by b, d order by b, d;";
         expected =
             "ResultSets:\n"
                 + "+-----------+------+------+\n"
                 + "|avg(test.a)|test.b|test.d|\n"
                 + "+-----------+------+------+\n"
-                + "|        2.0|     2|  val5|\n"
-                + "|        2.0|     2|  val3|\n"
-                + "|        3.0|     2|  val2|\n"
                 + "|        2.0|     2|  val1|\n"
+                + "|        3.0|     2|  val2|\n"
+                + "|        2.0|     2|  val3|\n"
+                + "|        2.0|     2|  val5|\n"
                 + "|        1.0|     3|  val2|\n"
                 + "+-----------+------+------+\n"
                 + "Total line number = 5\n";
         executeAndCompare(query, expected);
 
-        query = "select avg(a), c, b, d from test group by c, b, d";
-        expected =
-            "ResultSets:\n"
-                + "+-----------+------+------+------+\n"
-                + "|avg(test.a)|test.c|test.b|test.d|\n"
-                + "+-----------+------+------+------+\n"
-                + "|        2.0|   3.1|     2|  val1|\n"
-                + "|        2.0|   5.1|     2|  val3|\n"
-                + "|        2.0|   1.1|     2|  val5|\n"
-                + "|        3.0|   2.1|     2|  val2|\n"
-                + "|        1.0|   2.1|     3|  val2|\n"
-                + "+-----------+------+------+------+\n"
-                + "Total line number = 5\n";
-        executeAndCompare(query, expected);
-
-        query = "select avg(a), c, b, d from test group by c, b, d order by c";
+        query = "select avg(a), c, b, d from test group by c, b, d order by c, b, d";
         expected =
             "ResultSets:\n"
                 + "+-----------+------+------+------+\n"
@@ -1705,15 +1690,30 @@ public abstract class SQLSessionIT {
                 + "Total line number = 5\n";
         executeAndCompare(query, expected);
 
-        query = "select min(a), c from test group by c;";
+        query = "select avg(a), c, b, d from test group by c, b, d order by c, b, d";
+        expected =
+            "ResultSets:\n"
+                + "+-----------+------+------+------+\n"
+                + "|avg(test.a)|test.c|test.b|test.d|\n"
+                + "+-----------+------+------+------+\n"
+                + "|        2.0|   1.1|     2|  val5|\n"
+                + "|        3.0|   2.1|     2|  val2|\n"
+                + "|        1.0|   2.1|     3|  val2|\n"
+                + "|        2.0|   3.1|     2|  val1|\n"
+                + "|        2.0|   5.1|     2|  val3|\n"
+                + "+-----------+------+------+------+\n"
+                + "Total line number = 5\n";
+        executeAndCompare(query, expected);
+
+        query = "select min(a), c from test group by c order by c;";
         expected =
             "ResultSets:\n"
                 + "+-----------+------+\n"
                 + "|min(test.a)|test.c|\n"
                 + "+-----------+------+\n"
-                + "|          1|   3.1|\n"
                 + "|          2|   1.1|\n"
                 + "|          1|   2.1|\n"
+                + "|          1|   3.1|\n"
                 + "|          2|   5.1|\n"
                 + "+-----------+------+\n"
                 + "Total line number = 4\n";
@@ -1733,15 +1733,15 @@ public abstract class SQLSessionIT {
                 + "Total line number = 4\n";
         executeAndCompare(query, expected);
 
-        query = "select max(a), c from test group by c;";
+        query = "select max(a), c from test group by c order by c;";
         expected =
             "ResultSets:\n"
                 + "+-----------+------+\n"
                 + "|max(test.a)|test.c|\n"
                 + "+-----------+------+\n"
-                + "|          3|   3.1|\n"
                 + "|          2|   1.1|\n"
                 + "|          3|   2.1|\n"
+                + "|          3|   3.1|\n"
                 + "|          2|   5.1|\n"
                 + "+-----------+------+\n"
                 + "Total line number = 4\n";
@@ -1780,27 +1780,27 @@ public abstract class SQLSessionIT {
                 + "Total line number = 1\n";
         executeAndCompare(query, expected);
 
-        query = "select min(a), c from test group by c having c > 1.5;";
+        query = "select min(a), c from test group by c having c > 1.5 order by c;";
         expected =
             "ResultSets:\n"
                 + "+-----------+------+\n"
                 + "|min(test.a)|test.c|\n"
                 + "+-----------+------+\n"
-                + "|          1|   3.1|\n"
                 + "|          1|   2.1|\n"
+                + "|          1|   3.1|\n"
                 + "|          2|   5.1|\n"
                 + "+-----------+------+\n"
                 + "Total line number = 3\n";
         executeAndCompare(query, expected);
 
-        query = "select max(a), c from test group by c having max(a) > 2;";
+        query = "select max(a), c from test group by c having max(a) > 2 order by c;";
         expected =
             "ResultSets:\n"
                 + "+-----------+------+\n"
                 + "|max(test.a)|test.c|\n"
                 + "+-----------+------+\n"
-                + "|          3|   3.1|\n"
                 + "|          3|   2.1|\n"
+                + "|          3|   3.1|\n"
                 + "+-----------+------+\n"
                 + "Total line number = 2\n";
         executeAndCompare(query, expected);
@@ -1835,7 +1835,7 @@ public abstract class SQLSessionIT {
                 + "Total line number = 12\n";
         executeAndCompare(query, expected);
 
-        query = "select avg(test1.a), test2.d from test1 join test2 on test1.a = test2.a group by test2.d";
+        query = "select avg(test1.a), test2.d from test1 join test2 on test1.a = test2.a group by test2.d order by test2.d desc";
         expected =
             "ResultSets:\n"
                 + "+------------+-------+\n"
@@ -1849,7 +1849,7 @@ public abstract class SQLSessionIT {
                 + "Total line number = 4\n";
         executeAndCompare(query, expected);
 
-        query = "select avg(test1.a), max(test1.c), test2.d from test1 join test2 on test1.a = test2.a group by test2.d";
+        query = "select avg(test1.a), max(test1.c), test2.d from test1 join test2 on test1.a = test2.a group by test2.d order by test2.d desc";
         expected =
             "ResultSets:\n"
                 + "+------------+------------+-------+\n"
@@ -1863,7 +1863,7 @@ public abstract class SQLSessionIT {
                 + "Total line number = 4\n";
         executeAndCompare(query, expected);
 
-        query = "select avg(test1.a), max(test1.c), test2.d from test1 join test2 on test1.a = test2.a group by test2.d having max(test1.c) > 3.5";
+        query = "select avg(test1.a), max(test1.c), test2.d from test1 join test2 on test1.a = test2.a group by test2.d having max(test1.c) > 3.5 order by test2.d desc";
         expected =
             "ResultSets:\n"
                 + "+------------+------------+-------+\n"
