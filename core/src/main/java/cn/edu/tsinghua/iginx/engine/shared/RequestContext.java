@@ -1,5 +1,6 @@
 package cn.edu.tsinghua.iginx.engine.shared;
 
+import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
 import cn.edu.tsinghua.iginx.sql.statement.Statement;
 import cn.edu.tsinghua.iginx.thrift.SqlType;
 import cn.edu.tsinghua.iginx.thrift.Status;
@@ -36,10 +37,16 @@ public class RequestContext {
 
     private boolean useStream;
 
+    private PhysicalTask physicalTree;
+
     private void init() {
         this.id = SnowFlakeUtils.getInstance().nextId();
         this.startTime = System.currentTimeMillis();
         this.extraParams = new HashMap<>();
+    }
+
+    public RequestContext() {
+        init();
     }
 
     public RequestContext(long sessionId) {

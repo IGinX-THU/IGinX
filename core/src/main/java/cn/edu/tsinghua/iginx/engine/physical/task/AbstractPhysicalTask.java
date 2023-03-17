@@ -19,11 +19,11 @@
 package cn.edu.tsinghua.iginx.engine.physical.task;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class AbstractPhysicalTask implements PhysicalTask {
 
@@ -35,6 +35,10 @@ public abstract class AbstractPhysicalTask implements PhysicalTask {
     private final CountDownLatch resultLatch = new CountDownLatch(1);
     private PhysicalTask followerTask;
     private TaskExecuteResult result;
+
+    private int affectRows = 0;
+
+    private long span = 0;
 
     public AbstractPhysicalTask(TaskType type, List<Operator> operators) {
         this.type = type;
@@ -75,5 +79,30 @@ public abstract class AbstractPhysicalTask implements PhysicalTask {
     public void setResult(TaskExecuteResult result) {
         this.result = result;
         this.resultLatch.countDown();
+        this.affectRows = result.getAffectRows();
+    }
+
+    @Override
+    public long getSpan() {
+        return span;
+    }
+
+    @Override
+    public void setSpan(long span) {
+        this.span = span;
+    }
+
+    @Override
+    public int getAffectedRows() {
+        return affectRows;
+    }
+
+    @Override
+    public String getInfo() {
+        List<String> info = operators
+            .stream()
+            .map(op -> op.getType() + ":{" + op.getInfo() + "}")
+            .collect(Collectors.toList());
+        return String.join(",", info);
     }
 }
