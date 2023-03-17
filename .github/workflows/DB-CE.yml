@@ -6,8 +6,8 @@ on:
       - main
 env:
   VERSION: 0.6.0-SNAPSHOT
-  FUNCTEST: TagIT,RestIT,UDFIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT
-  INFLUXDB-FUNCTEST: SQLSessionIT,SQLSessionPoolIT
+  FUNCTEST: TagIT,RestIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT
+  INFLUXDB-FUNCTEST: RestAnnotationIT,UDFIT,SQLSessionIT,SQLSessionPoolIT
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -122,6 +122,7 @@ jobs:
             mvn test -q -Dtest=IoTDB12HistoryDataCapacityExpansionIT#schemaPrefix -DfailIfNoTests=false
           elif [ "${{matrix.DB-name}}" == "InfluxDB" ]; then
             mvn test -q -Dtest=InfluxDBHistoryDataCapacityExpansionIT#oriNoDataExpHasData -DfailIfNoTests=false
+            mvn test -q -Dtest=${INFLUXDB-FUNCTEST} -DfailIfNoTests=false
           else
             echo "${{matrix.DB-name}} is not supported"
           fi

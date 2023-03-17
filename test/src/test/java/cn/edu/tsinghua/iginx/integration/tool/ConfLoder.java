@@ -22,7 +22,7 @@ public class ConfLoder {
     private List<StorageEngineMeta> storageEngineMetas = new ArrayList<>();
     private Map<DBConf.DBType, List<String>> taskMap = new HashMap<>();
     private static String confPath;
-    private boolean DEBUG = false;
+    private boolean DEBUG = true;
     private static String STORAGEENGINELIST = "storageEngineList";
     private String TESTTASK = "test-list";
     private static String DBCONF = "%s-config";
