@@ -81,7 +81,7 @@ public class RowUtils {
         
         Header newHeader = columnList.get(0).getHeader().hasKey() ? new Header(Field.KEY, fields)
             : new Header(fields);
-        return new Row(newHeader, columnList.get(0).getKey(), valuesCombine);
+        return new Row(newHeader, columnList.get(0).getKey(), valuesCombine.toArray());
     }
 
     /**
