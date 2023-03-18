@@ -46,6 +46,8 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import static cn.edu.tsinghua.iginx.thrift.DataType.BOOLEAN;
+
 public class RowUtils {
 
     public static Row transform(Row row, Header targetHeader) {
@@ -143,6 +145,12 @@ public class RowUtils {
             }
         }
         return 0;
+    }
+
+    public static Header constructNewHead(Header header, String markColumn) {
+        List<Field> fields = new ArrayList<>(header.getFields());
+        fields.add(new Field(markColumn, BOOLEAN));
+        return header.hasKey()? new Header(Field.KEY, fields) : new Header(fields);
     }
 
     public static Header constructNewHead(Header headerA, Header headerB, boolean remainKeyA) {
@@ -342,6 +350,14 @@ public class RowUtils {
         }
 
         return new Row(header, valuesJoin);
+    }
+
+    public static Row constructNewRowWithMark(Header header, Row row, boolean markValue) {
+        Object[] values = row.getValues();
+        Object[] newValues = new Object[values.length + 1];
+        System.arraycopy(values, 0, newValues, 0, values.length);
+        newValues[values.length] = markValue;
+        return row.getHeader().hasKey()? new Row(header, row.getKey(), newValues) : new Row(header, newValues);
     }
 
     public static void fillNaturalJoinColumns(List<String> joinColumns, Header headerA,
