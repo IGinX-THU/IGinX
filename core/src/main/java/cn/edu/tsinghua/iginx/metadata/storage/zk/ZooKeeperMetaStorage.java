@@ -1836,10 +1836,10 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
                 this.client.create().creatingParentsIfNeeded().withMode(CreateMode.PERSISTENT)
                     .forPath(STATISTICS_FRAGMENT_HEAT_COUNTER_PREFIX, JsonUtils.toJson(1));
             } else {
-                logger.error("inc FragmentHeatCounter");
+//                logger.error("inc FragmentHeatCounter");
                 int counter = JsonUtils.fromJson(
                     this.client.getData().forPath(STATISTICS_FRAGMENT_HEAT_COUNTER_PREFIX), Integer.class);
-                logger.error("counter=" + counter);
+//                logger.error("counter=" + counter);
                 this.client.setData()
                     .forPath(STATISTICS_FRAGMENT_HEAT_COUNTER_PREFIX, JsonUtils.toJson(counter + 1));
             }

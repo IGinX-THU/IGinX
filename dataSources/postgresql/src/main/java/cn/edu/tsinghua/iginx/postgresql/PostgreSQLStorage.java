@@ -63,7 +63,6 @@ import static cn.edu.tsinghua.iginx.postgresql.tools.Constants.IGINX_SEPARATOR;
 import static cn.edu.tsinghua.iginx.postgresql.tools.Constants.POSTGRESQL_SEPARATOR;
 import static cn.edu.tsinghua.iginx.postgresql.tools.TagKVUtils.splitFullName;
 import static cn.edu.tsinghua.iginx.postgresql.tools.TagKVUtils.toFullName;
-import static java.sql.ResultSet.*;
 
 public class PostgreSQLStorage implements IStorage {
 
@@ -81,7 +80,7 @@ public class PostgreSQLStorage implements IStorage {
 
     private static final String DEFAULT_USERNAME = "postgres";
 
-    private static final String DEFAULT_PASSWORD = "";
+    private static final String DEFAULT_PASSWORD = "postgres";
 
     private static final String DEFAULT_DBNAME = "timeseries";
 
@@ -341,21 +340,25 @@ public class PostgreSQLStorage implements IStorage {
         String columnNames;
 
         for (String pattern : patterns) {
-
             if (pattern.equals("*") || pattern.equals("*.*")) {
                 tableName = "%";
                 columnNames = "%";
             } else {
-                tableName = pattern.substring(0, pattern.lastIndexOf(".")).replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
-                columnNames = pattern.substring(pattern.lastIndexOf(".") + 1);
-                boolean columnEqualsStar = columnNames.equals("*");
-                boolean tableContainsStar = tableName.contains("*");
-                if (columnEqualsStar || tableContainsStar) {
-                    tableName = tableName.replace('*', '%');
-                    if (columnEqualsStar) {
-                        columnNames = "%";
-                        if (!tableName.endsWith("%")) {
-                            tableName += "%";
+                if (pattern.split("\\" + IGINX_SEPARATOR).length == 1) { // REST 查询的路径中可能不含 .
+                    tableName = pattern;
+                    columnNames = "%";
+                } else {
+                    tableName = pattern.substring(0, pattern.lastIndexOf(".")).replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
+                    columnNames = pattern.substring(pattern.lastIndexOf(".") + 1);
+                    boolean columnEqualsStar = columnNames.equals("*");
+                    boolean tableContainsStar = tableName.contains("*");
+                    if (columnEqualsStar || tableContainsStar) {
+                        tableName = tableName.replace('*', '%');
+                        if (columnEqualsStar) {
+                            columnNames = "%";
+                            if (!tableName.endsWith("%")) {
+                                tableName += "%";
+                            }
                         }
                     }
                 }
@@ -392,13 +395,18 @@ public class PostgreSQLStorage implements IStorage {
             for (Map.Entry<String, String> entry : tableNameToColumnNames.entrySet()) {
                 String tableName = entry.getKey();
                 String columnNames = entry.getValue();
+                String[] parts = columnNames.split(", ");
                 StringBuilder statement = new StringBuilder();
                 try {
                     stmt = conn.createStatement();
                     statement.append("select time, ");
-                    statement.append(columnNames);
+                    for (String part : parts) {
+                        statement.append(getCompleteName(part));
+                        statement.append(", ");
+                    }
+                    statement = new StringBuilder(statement.substring(0, statement.length() - 2));
                     statement.append(" from ");
-                    statement.append(tableName);
+                    statement.append(getCompleteName(tableName));
                     statement.append(" where ");
                     statement.append(FilterTransformer.toString(filter));
                     rs = stmt.executeQuery(statement.toString());
@@ -567,15 +575,19 @@ public class PostgreSQLStorage implements IStorage {
                 if (!tableSet.next()) {
                     Statement stmt = conn.createStatement();
                     String columnName = toFullName(field, tags);
-                    stmt.execute(String.format("CREATE TABLE %s (time BIGINT NOT NULL, %s %s, PRIMARY KEY(time))",
-                        table, columnName, DataTypeTransformer.toPostgreSQL(dataType)));
+                    String statement = String.format("CREATE TABLE %s (time BIGINT NOT NULL, %s %s, PRIMARY KEY(time))",
+                        getCompleteName(table), getCompleteName(columnName), DataTypeTransformer.toPostgreSQL(dataType));
+                    logger.info("[Create] execute create: {}", statement);
+                    stmt.execute(statement);
                 } else {
                     String columnName = toFullName(field, tags);
                     ResultSet columnSet = databaseMetaData.getColumns(null, "%", table, columnName);
                     if (!columnSet.next()) {
                         Statement stmt = conn.createStatement();
-                        stmt.execute(String.format("ALTER TABLE %s ADD COLUMN %s %s NULL",
-                            table, columnName, DataTypeTransformer.toPostgreSQL(dataType)));
+                        String statement = String.format("ALTER TABLE %s ADD COLUMN %s %s NULL",
+                            getCompleteName(table), getCompleteName(columnName), DataTypeTransformer.toPostgreSQL(dataType));
+                        logger.info("[Create] execute: {}", statement);
+                        stmt.execute(statement);
                     }
                 }
             } catch (SQLException e) {
@@ -670,7 +682,7 @@ public class PostgreSQLStorage implements IStorage {
                     }
                 }
 
-                executeBatch(stmt, tableToColumnEntries);
+                executeBatchInsert(stmt, tableToColumnEntries);
                 for (Pair<String, List<String>> columnEntries : tableToColumnEntries.values()) {
                     columnEntries.v.clear();
                 }
@@ -776,7 +788,7 @@ public class PostgreSQLStorage implements IStorage {
                     }
                 }
 
-                executeBatch(stmt, tableToColumnEntries);
+                executeBatchInsert(stmt, tableToColumnEntries);
                 for (Map.Entry<String, Pair<String, List<String>>> entry : tableToColumnEntries.entrySet()) {
                     entry.getValue().v.clear();
                 }
@@ -793,46 +805,57 @@ public class PostgreSQLStorage implements IStorage {
         return null;
     }
 
-    private void executeBatch(Statement stmt, Map<String, Pair<String, List<String>>> tableToColumnEntries) throws SQLException {
+    private void executeBatchInsert(Statement stmt, Map<String, Pair<String, List<String>>> tableToColumnEntries) throws SQLException {
         for (Map.Entry<String, Pair<String, List<String>>> entry : tableToColumnEntries.entrySet()) {
             String tableName = entry.getKey();
             String columnNames = entry.getValue().k.substring(0, entry.getValue().k.length() - 2);
             List<String> values = entry.getValue().v;
+            String[] parts = columnNames.split(", ");
+            boolean hasMultipleRows = parts.length != 1;
 
             StringBuilder insertStatement = new StringBuilder();
             insertStatement.append("INSERT INTO ");
-            insertStatement.append(tableName);
+            insertStatement.append(getCompleteName(tableName));
             insertStatement.append(" (time, ");
-            insertStatement.append(columnNames);
+            for (String part : parts) {
+                insertStatement.append(getCompleteName(part));
+                insertStatement.append(", ");
+            }
+            insertStatement = new StringBuilder(insertStatement.substring(0, insertStatement.length() - 2));
             insertStatement.append(") VALUES");
             for (String value : values) {
                 insertStatement.append(" (");
                 insertStatement.append(value, 0, value.length() - 2);
                 insertStatement.append("), ");
             }
-            insertStatement = new StringBuilder(insertStatement.substring(0, insertStatement.toString().length() - 2));
+            insertStatement = new StringBuilder(insertStatement.substring(0, insertStatement.length() - 2));
+
             insertStatement.append(" ON CONFLICT (time) DO UPDATE SET ");
-            String[] parts = columnNames.split(", ");
-            if (parts.length != 1) {
+            if (hasMultipleRows) {
                 insertStatement.append("("); // 只有一列不加括号
             }
-            insertStatement.append(columnNames);
-            if (parts.length != 1) {
+            for (String part : parts) {
+                insertStatement.append(getCompleteName(part));
+                insertStatement.append(", ");
+            }
+            insertStatement = new StringBuilder(insertStatement.substring(0, insertStatement.length() - 2));
+            if (hasMultipleRows) {
                 insertStatement.append(")"); // 只有一列不加括号
             }
             insertStatement.append(" = ");
-            if (parts.length != 1) {
+            if (hasMultipleRows) {
                 insertStatement.append("("); // 只有一列不加括号
             }
-            for (String part : columnNames.split(", ")) {
+            for (String part : parts) {
                 insertStatement.append("excluded.");
-                insertStatement.append(part);
+                insertStatement.append(getCompleteName(part));
                 insertStatement.append(", ");
             }
-            insertStatement = new StringBuilder(insertStatement.substring(0, insertStatement.toString().length() - 2));
-            if (parts.length != 1) {
+            insertStatement = new StringBuilder(insertStatement.substring(0, insertStatement.length() - 2));
+            if (hasMultipleRows) {
                 insertStatement.append(")"); // 只有一列不加括号
             }
+
             stmt.addBatch(insertStatement.toString());
         }
         stmt.executeBatch();
@@ -871,7 +894,7 @@ public class PostgreSQLStorage implements IStorage {
                         columnName = pair.v;
                         tableSet = databaseMetaData.getTables(null, "%", tableName, new String[]{"TABLE"});
                         if (tableSet.next()) {
-                            statement = String.format("alter table %s drop column if exists %s", tableName, columnName);
+                            statement = String.format("alter table %s drop column if exists %s", getCompleteName(tableName), getCompleteName(columnName));
                             logger.info("[Delete] execute delete: {}", statement);
                             stmt.execute(statement); // 删除列
                         }
@@ -885,7 +908,7 @@ public class PostgreSQLStorage implements IStorage {
                     columnSet = databaseMetaData.getColumns(null, "%", tableName, columnName);
                     if (columnSet.next()) {
                         for (TimeRange timeRange : delete.getTimeRanges()) {
-                            statement = String.format("update %s set %s = null where (time >= %d and time < %d)", tableName, columnName,
+                            statement = String.format("update %s set %s = null where (time >= %d and time < %d)", getCompleteName(tableName), getCompleteName(columnName),
                                 timeRange.getBeginTime(), timeRange.getEndTime());
                             logger.info("[Delete] execute delete: {}", statement);
                             stmt.execute(statement); // 将目标列的目标范围的值置为空
@@ -929,6 +952,11 @@ public class PostgreSQLStorage implements IStorage {
         }
 
         return deletedPaths;
+    }
+
+    private String getCompleteName(String name) {
+        return "\"" + name + "\"";
+//        return Character.isDigit(name.charAt(0)) ? "\"" + name + "\"" : name;
     }
 
     @Override
