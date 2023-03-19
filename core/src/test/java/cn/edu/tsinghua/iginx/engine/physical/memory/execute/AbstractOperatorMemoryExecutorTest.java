@@ -28,12 +28,29 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
-import cn.edu.tsinghua.iginx.engine.shared.function.manager.FunctionManager;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Avg;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Last;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Max;
-import cn.edu.tsinghua.iginx.engine.shared.operator.*;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
+import cn.edu.tsinghua.iginx.engine.shared.operator.CrossJoin;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Downsample;
+import cn.edu.tsinghua.iginx.engine.shared.operator.InnerJoin;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Limit;
+import cn.edu.tsinghua.iginx.engine.shared.operator.MappingTransform;
+import cn.edu.tsinghua.iginx.engine.shared.operator.MarkJoin;
+import cn.edu.tsinghua.iginx.engine.shared.operator.OuterJoin;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Reorder;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
+import cn.edu.tsinghua.iginx.engine.shared.operator.SetTransform;
+import cn.edu.tsinghua.iginx.engine.shared.operator.SingleJoin;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Sort;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.BoolFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.ValueFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.JoinAlgType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OuterJoinType;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
@@ -41,10 +58,18 @@ import cn.edu.tsinghua.iginx.engine.shared.source.SourceType;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import org.junit.Test;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.PARAM_PATHS;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public abstract class AbstractOperatorMemoryExecutorTest {
 
@@ -1165,7 +1190,8 @@ public abstract class AbstractOperatorMemoryExecutorTest {
             SingleJoin singleJoin = new SingleJoin(
                     EmptySource.EMPTY_SOURCE,
                     EmptySource.EMPTY_SOURCE,
-                    new BoolFilter(true));
+                    new BoolFilter(true),
+                    JoinAlgType.NestedLoopJoin);
 
             Table target = generateTableFromValues(
                     true,
@@ -1195,7 +1221,8 @@ public abstract class AbstractOperatorMemoryExecutorTest {
             SingleJoin singleJoin = new SingleJoin(
                     EmptySource.EMPTY_SOURCE,
                     EmptySource.EMPTY_SOURCE,
-                    new PathFilter("a.b", Op.E, "c.b"));
+                    new PathFilter("a.b", Op.E, "c.b"),
+                    JoinAlgType.HashJoin);
 
             Table target = generateTableFromValues(
                     true,
@@ -1219,7 +1246,134 @@ public abstract class AbstractOperatorMemoryExecutorTest {
             assertStreamEqual(stream, target);
         }
     }
-    
+
+    @Test
+    public void testMarkJoin() throws PhysicalException {
+        Table tableA = generateTableFromValues(
+                true,
+                Arrays.asList(
+                        new Field("a.a", DataType.INTEGER),
+                        new Field("a.b", DataType.DOUBLE),
+                        new Field("a.c", DataType.BOOLEAN)
+                ),
+                Arrays.asList(
+                        Arrays.asList(3, 3.0, true),
+                        Arrays.asList(4, 4.0, false),
+                        Arrays.asList(5, 5.0, true),
+                        Arrays.asList(6, 6.0, false),
+                        Arrays.asList(7, 7.0, true)
+                ));
+
+        Table tableB = generateTableFromValues(
+                true,
+                Arrays.asList(
+                        new Field("b.a", DataType.INTEGER),
+                        new Field("b.b", DataType.DOUBLE),
+                        new Field("b.c", DataType.BOOLEAN)
+                ),
+                Arrays.asList(
+                        Arrays.asList(1, 1.0, false),
+                        Arrays.asList(2, 2.0, true),
+                        Arrays.asList(3, 3.0, false),
+                        Arrays.asList(4, 4.0, true),
+                        Arrays.asList(5, 5.0, false)
+                ));
+
+        {
+            tableA.reset();
+            tableB.reset();
+
+            MarkJoin markJoin = new MarkJoin(
+                    EmptySource.EMPTY_SOURCE,
+                    EmptySource.EMPTY_SOURCE,
+                    new PathFilter("a.b", Op.L, "b.b"),
+                    "&mark0",
+                    false,
+                    JoinAlgType.NestedLoopJoin);
+
+            Table target = generateTableFromValues(true,
+                    Arrays.asList(
+                            new Field("a.a", DataType.INTEGER),
+                            new Field("a.b", DataType.DOUBLE),
+                            new Field("a.c", DataType.BOOLEAN),
+                            new Field("&mark0", DataType.BOOLEAN)
+                    ),
+                    Arrays.asList(
+                            Arrays.asList(3, 3.0, true, true),
+                            Arrays.asList(4, 4.0, false, true),
+                            Arrays.asList(5, 5.0, true, false),
+                            Arrays.asList(6, 6.0, false, false),
+                            Arrays.asList(7, 7.0, true, false)
+                    ));
+
+            RowStream stream = getExecutor().executeBinaryOperator(markJoin, tableA, tableB);
+            assertStreamEqual(stream, target);
+        }
+
+        {
+            tableA.reset();
+            tableB.reset();
+
+            MarkJoin markJoin = new MarkJoin(
+                    EmptySource.EMPTY_SOURCE,
+                    EmptySource.EMPTY_SOURCE,
+                    new PathFilter("a.b", Op.E, "b.b"),
+                    "&mark0",
+                    false,
+                    JoinAlgType.HashJoin);
+
+            Table target = generateTableFromValues(true,
+                    Arrays.asList(
+                            new Field("a.a", DataType.INTEGER),
+                            new Field("a.b", DataType.DOUBLE),
+                            new Field("a.c", DataType.BOOLEAN),
+                            new Field("&mark0", DataType.BOOLEAN)
+                    ),
+                    Arrays.asList(
+                            Arrays.asList(3, 3.0, true, true),
+                            Arrays.asList(4, 4.0, false, true),
+                            Arrays.asList(5, 5.0, true, true),
+                            Arrays.asList(6, 6.0, false, false),
+                            Arrays.asList(7, 7.0, true, false)
+                    ));
+
+            RowStream stream = getExecutor().executeBinaryOperator(markJoin, tableA, tableB);
+            assertStreamEqual(stream, target);
+        }
+
+        {
+            tableA.reset();
+            tableB.reset();
+
+            MarkJoin markJoin = new MarkJoin(
+                    EmptySource.EMPTY_SOURCE,
+                    EmptySource.EMPTY_SOURCE,
+                    new PathFilter("a.b", Op.E, "b.b"),
+                    "&mark0",
+                    true,
+                    JoinAlgType.HashJoin);
+
+            Table target = generateTableFromValues(true,
+                    Arrays.asList(
+                            new Field("a.a", DataType.INTEGER),
+                            new Field("a.b", DataType.DOUBLE),
+                            new Field("a.c", DataType.BOOLEAN),
+                            new Field("&mark0", DataType.BOOLEAN)
+                    ),
+                    Arrays.asList(
+                            Arrays.asList(3, 3.0, true, false),
+                            Arrays.asList(4, 4.0, false, false),
+                            Arrays.asList(5, 5.0, true, false),
+                            Arrays.asList(6, 6.0, false, true),
+                            Arrays.asList(7, 7.0, true, true)
+                    ));
+
+            RowStream stream = getExecutor().executeBinaryOperator(markJoin, tableA, tableB);
+            assertStreamEqual(stream, target);
+        }
+
+    }
+
     // for debug
     private Table transformToTable(RowStream stream) throws PhysicalException {
         if (stream instanceof Table) {

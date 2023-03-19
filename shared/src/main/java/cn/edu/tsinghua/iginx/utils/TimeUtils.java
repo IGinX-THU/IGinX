@@ -470,6 +470,28 @@ public class TimeUtils {
         return time;
     }
 
+    public static TimePrecision strToTimePrecision(String str) {
+        switch (str.toLowerCase()) {
+            case "week":
+                return TimePrecision.WEEK;
+            case "day":
+                return TimePrecision.DAY;
+            case "hour":
+                return TimePrecision.HOUR;
+            case "min":
+                return TimePrecision.MIN;
+            case "s":
+                return TimePrecision.S;
+            case "ms":
+                return TimePrecision.MS;
+            case "us":
+                return TimePrecision.US;
+            case "ns":
+            default:
+                return TimePrecision.NS;
+        }
+    }
+
     public static long getMicrosecond() {
         long currentTime = System.currentTimeMillis() * 1000;
         long nanoTime = System.nanoTime();
