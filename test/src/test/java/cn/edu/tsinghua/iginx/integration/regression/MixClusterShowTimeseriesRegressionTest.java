@@ -62,7 +62,7 @@ public class MixClusterShowTimeseriesRegressionTest {
                         "| n.d|  DOUBLE|\n" +
                         "| n.n|  DOUBLE|\n" +
                         "+----+--------+\n" +
-                        "Total line number = 9";
+                        "Total line number = 9\n";
         executeAndCompare(statement, expected);
 
         statement = "show time series m.*";
