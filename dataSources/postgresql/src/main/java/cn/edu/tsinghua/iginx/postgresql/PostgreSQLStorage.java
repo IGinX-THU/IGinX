@@ -586,7 +586,7 @@ public class PostgreSQLStorage implements IStorage {
                         Statement stmt = conn.createStatement();
                         String statement = String.format("ALTER TABLE %s ADD COLUMN %s %s NULL",
                             getCompleteName(table), getCompleteName(columnName), DataTypeTransformer.toPostgreSQL(dataType));
-                        logger.info("[Create] execute: {}", statement);
+                        logger.info("[Create] execute create: {}", statement);
                         stmt.execute(statement);
                     }
                 }
@@ -856,6 +856,7 @@ public class PostgreSQLStorage implements IStorage {
                 insertStatement.append(")"); // 只有一列不加括号
             }
 
+//            logger.info("[Insert] execute insert: {}", insertStatement);
             stmt.addBatch(insertStatement.toString());
         }
         stmt.executeBatch();
