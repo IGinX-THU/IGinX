@@ -40,23 +40,52 @@ public class MixClusterShowTimeseriesRegressionTest {
                 "insert into m (key, h, n) values (4000000, 2, 3)",
                 "insert into m (key, d, o) values (1000000, 1, 2)",
                 "insert into m (key, d, n) values (8000000, 9, 9)",
-                "insert into m (key, p) values (8000000, 9)"
+                "insert into m (key, p) values (8000000, 9)",
+                "insert into n (key, d, n) values (10000000, 11.0, 11.0)"
         };
         for (String insertStatement: insertStatements) {
             execute(insertStatement);
         }
         String statement = "show time series";
-        System.out.println(execute(statement));
+//        String expected =
+//                "Time series:\n" +
+//                        "+----+--------+\n" +
+//                        "|Path|DataType|\n" +
+//                        "+----+--------+\n" +
+//                        "| m.a|    LONG|\n" +
+//                        "| m.d|    LONG|\n" +
+//                        "| m.h|    LONG|\n" +
+//                        "| m.n|    LONG|\n" +
+//                        "| m.o|    LONG|\n" +
+//                        "| m.p|    LONG|\n" +
+//                        "| m.z|    LONG|\n" +
+//                        "+----+--------+\n" +
+//                        "Total line number = 7\n";
+//        executeAndCompare(statement, expected);
+        execute(statement);
 
         statement = "show time series m.*";
-        System.out.println(execute(statement));
-
-        statement = "show time series m.a, m.d, m.p";
-        System.out.println(statement);
+//        expected =
+//                "Time series:\n" +
+//                        "+----+--------+\n" +
+//                        "|Path|DataType|\n" +
+//                        "+----+--------+\n" +
+//                        "| m.a|    LONG|\n" +
+//                        "| m.d|    LONG|\n" +
+//                        "| m.h|    LONG|\n" +
+//                        "| m.n|    LONG|\n" +
+//                        "| m.o|    LONG|\n" +
+//                        "| m.p|    LONG|\n" +
+//                        "| m.z|    LONG|\n" +
+//                        "+----+--------+\n" +
+//                        "Total line number = 7\n";
+//        executeAndCompare(statement, expected);
+        execute(statement);
     }
 
     private void executeAndCompare(String statement, String expectedOutput) {
         String actualOutput = execute(statement);
+        System.out.println(actualOutput);
         assertEquals(expectedOutput, actualOutput);
     }
 
