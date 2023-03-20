@@ -56,55 +56,50 @@ public class PyUDTF implements UDTF {
         PythonInterpreter interpreter = interpreters.take();
 
         String target = params.get(PARAM_PATHS).getBinaryVAsString();
+        List<List<Object>> res;
         if (StringUtils.isPattern(target)) {
             Pattern pattern = Pattern.compile(StringUtils.reformatPath(target));
-            List<String> name = new ArrayList<>();
-            List<Object> data = new ArrayList<>();
+            List<Object> colNames = new ArrayList<>();
+            List<Object> colTypes = new ArrayList<>();
+            List<Object> rowData = new ArrayList<>();
             for (int i = 0; i < row.getHeader().getFieldSize(); i++) {
                 Field field = row.getHeader().getField(i);
                 if (pattern.matcher(field.getName()).matches()) {
-                    name.add(getFunctionName() + "(" + field.getName() + ")");
-                    data.add(row.getValues()[i]);
+                    colNames.add(field.getName());
+                    colTypes.add(field.getType().toString());
+                    rowData.add(row.getValues()[i]);
                 }
             }
-            if (name.isEmpty()) {
+            if (colNames.isEmpty()) {
                 return Row.EMPTY_ROW;
             }
 
-            List<Object> res = (List<Object>) interpreter.invokeMethod(UDF_CLASS, UDF_FUNC, data);
-            if (res.size() != name.size()) {
-                return Row.EMPTY_ROW;
-            }
-            interpreters.add(interpreter);
-
-            List<Field> targetFields = new ArrayList<>();
-            for (int i = 0; i < name.size(); i++) {
-                targetFields.add(new Field(name.get(i), TypeUtils.getDataTypeFromObject(res.get(i))));
-            }
-            Header header = row.getHeader().hasKey() ?
-                new Header(Field.KEY, targetFields) :
-                new Header(targetFields);
-
-            return RowUtils.constructNewRowWithKey(header, row.getKey(), res);
+            List<List<Object>> data = new ArrayList<>();
+            data.add(colNames);
+            data.add(colTypes);
+            data.add(rowData);
+            res = (List<List<Object>>) interpreter.invokeMethod(UDF_CLASS, UDF_FUNC, data);
         } else {
             int index = row.getHeader().indexOf(target);
             if (index == -1) {
                 return Row.EMPTY_ROW;
             }
+            List<List<Object>> data = Arrays.asList(
+                Collections.singletonList(target),
+                Collections.singletonList(row.getField(index).getType().toString()),
+                Collections.singletonList(row.getValues()[index])
+            );
 
-            List<Object> res = (List<Object>) interpreter.invokeMethod(UDF_CLASS, UDF_FUNC, Collections.singletonList(row.getValues()[index]));
-            if (res.size() != 1) {
-                return Row.EMPTY_ROW;
-            }
-            interpreters.add(interpreter);
-
-            Field targetField = new Field(getFunctionName() + "(" + target + ")", TypeUtils.getDataTypeFromObject(res.get(0)));
-            Header header = row.getHeader().hasKey() ?
-                new Header(Field.KEY, Collections.singletonList(targetField)) :
-                new Header(Collections.singletonList(targetField));
-
-            return RowUtils.constructNewRowWithKey(header, row.getKey(), res);
+            res = (List<List<Object>>) interpreter.invokeMethod(UDF_CLASS, UDF_FUNC, data);
         }
+
+        if (res == null || res.size() < 3) {
+            return Row.EMPTY_ROW;
+        }
+        interpreters.add(interpreter);
+
+        Header header = RowUtils.constructHeaderWithFirstTwoRows(res, row.getHeader().hasKey());
+        return RowUtils.constructNewRowWithKey(header, row.getKey(), res.get(2));
     }
 
     @Override
