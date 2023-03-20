@@ -47,40 +47,40 @@ public class MixClusterShowTimeseriesRegressionTest {
             execute(insertStatement);
         }
         String statement = "show time series";
-//        String expected =
-//                "Time series:\n" +
-//                        "+----+--------+\n" +
-//                        "|Path|DataType|\n" +
-//                        "+----+--------+\n" +
-//                        "| m.a|    LONG|\n" +
-//                        "| m.d|    LONG|\n" +
-//                        "| m.h|    LONG|\n" +
-//                        "| m.n|    LONG|\n" +
-//                        "| m.o|    LONG|\n" +
-//                        "| m.p|    LONG|\n" +
-//                        "| m.z|    LONG|\n" +
-//                        "+----+--------+\n" +
-//                        "Total line number = 7\n";
-//        executeAndCompare(statement, expected);
-        System.out.println(execute(statement));
+        String expected =
+                "Time series:\n" +
+                        "+----+--------+\n" +
+                        "|Path|DataType|\n" +
+                        "+----+--------+\n" +
+                        "| m.a|    LONG|\n" +
+                        "| m.d|    LONG|\n" +
+                        "| m.h|    LONG|\n" +
+                        "| m.n|    LONG|\n" +
+                        "| m.o|    LONG|\n" +
+                        "| m.p|    LONG|\n" +
+                        "| m.z|    LONG|\n" +
+                        "| n.d|  DOUBLE|\n" +
+                        "| n.n|  DOUBLE|\n" +
+                        "+----+--------+\n" +
+                        "Total line number = 9";
+        executeAndCompare(statement, expected);
 
         statement = "show time series m.*";
-//        expected =
-//                "Time series:\n" +
-//                        "+----+--------+\n" +
-//                        "|Path|DataType|\n" +
-//                        "+----+--------+\n" +
-//                        "| m.a|    LONG|\n" +
-//                        "| m.d|    LONG|\n" +
-//                        "| m.h|    LONG|\n" +
-//                        "| m.n|    LONG|\n" +
-//                        "| m.o|    LONG|\n" +
-//                        "| m.p|    LONG|\n" +
-//                        "| m.z|    LONG|\n" +
-//                        "+----+--------+\n" +
-//                        "Total line number = 7\n";
-//        executeAndCompare(statement, expected);
-        System.out.println(execute(statement));
+        expected =
+                "Time series:\n" +
+                        "+----+--------+\n" +
+                        "|Path|DataType|\n" +
+                        "+----+--------+\n" +
+                        "| m.a|    LONG|\n" +
+                        "| m.d|    LONG|\n" +
+                        "| m.h|    LONG|\n" +
+                        "| m.n|    LONG|\n" +
+                        "| m.o|    LONG|\n" +
+                        "| m.p|    LONG|\n" +
+                        "| m.z|    LONG|\n" +
+                        "+----+--------+\n" +
+                        "Total line number = 7\n";
+        executeAndCompare(statement, expected);
     }
 
     private void executeAndCompare(String statement, String expectedOutput) {
