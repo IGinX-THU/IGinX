@@ -62,7 +62,7 @@ public class MixClusterShowTimeseriesRegressionTest {
 //                        "+----+--------+\n" +
 //                        "Total line number = 7\n";
 //        executeAndCompare(statement, expected);
-        execute(statement);
+        System.out.println(execute(statement));
 
         statement = "show time series m.*";
 //        expected =
@@ -80,7 +80,7 @@ public class MixClusterShowTimeseriesRegressionTest {
 //                        "+----+--------+\n" +
 //                        "Total line number = 7\n";
 //        executeAndCompare(statement, expected);
-        execute(statement);
+        System.out.println(execute(statement));
     }
 
     private void executeAndCompare(String statement, String expectedOutput) {

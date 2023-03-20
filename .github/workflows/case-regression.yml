@@ -44,7 +44,7 @@ jobs:
       - name: Start IginX
         uses: ./.github/actions/iginxRunner
 
-      - name: TestController IT
+      - name: TestMixCluster
         if: always()
         shell: bash
         run: |
