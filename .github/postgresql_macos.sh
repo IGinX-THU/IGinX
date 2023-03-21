@@ -38,8 +38,6 @@ sh -c "cd pgsql/bin; sudo -u postgres ./pg_ctl -D /var/lib/postgresql/15/main st
 
 sh -c "cd pgsql/bin; sudo -u postgres psql -c \"ALTER USER postgres WITH PASSWORD 'postgres';\""
 
-sh -c "sudo mkdir pgsql2"
-
 sh -c "sudo cp -R pgsql pgsql2"
 
 sh -c "sudo mkdir -p /var/lib/postgresql2/15/main"
