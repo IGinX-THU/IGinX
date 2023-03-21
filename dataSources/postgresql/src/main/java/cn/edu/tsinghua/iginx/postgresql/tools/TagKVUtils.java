@@ -4,10 +4,8 @@ import cn.edu.tsinghua.iginx.utils.Pair;
 
 import java.util.*;
 
-import static cn.edu.tsinghua.iginx.postgresql.tools.Constants.IGINX_SEPARATOR;
 import static cn.edu.tsinghua.iginx.postgresql.tools.Constants.POSTGRESQL_SEPARATOR;
 
-// TODO 目前未考虑 annotation
 public class TagKVUtils {
 
     public static Pair<String, Map<String, String>> splitFullName(String fullName) {

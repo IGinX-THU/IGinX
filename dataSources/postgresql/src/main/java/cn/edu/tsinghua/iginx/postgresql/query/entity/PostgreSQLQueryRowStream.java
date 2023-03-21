@@ -1,4 +1,4 @@
-package cn.edu.tsinghua.iginx.postgresql.entity;
+package cn.edu.tsinghua.iginx.postgresql.query.entity;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.RowFetchException;
@@ -7,6 +7,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.postgresql.tools.DataTypeTransformer;
 import cn.edu.tsinghua.iginx.thrift.DataType;
@@ -19,8 +20,10 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.*;
 
+import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils.validate;
 import static cn.edu.tsinghua.iginx.postgresql.tools.Constants.IGINX_SEPARATOR;
 import static cn.edu.tsinghua.iginx.postgresql.tools.Constants.POSTGRESQL_SEPARATOR;
+import static cn.edu.tsinghua.iginx.postgresql.tools.HashUtils.toHash;
 import static cn.edu.tsinghua.iginx.postgresql.tools.TagKVUtils.splitFullName;
 
 public class PostgreSQLQueryRowStream implements RowStream {
@@ -32,6 +35,8 @@ public class PostgreSQLQueryRowStream implements RowStream {
     private final Header header;
 
     private final boolean isDummy;
+
+    private final Filter filter;
 
     private boolean[] gotNext; // 标记每个结果集是否已经获取到下一行，如果是，则在下次调用 next() 时无需再调用该结果集的 next()
 
@@ -47,9 +52,10 @@ public class PostgreSQLQueryRowStream implements RowStream {
 
     private boolean hasCachedRow;
 
-    public PostgreSQLQueryRowStream(List<ResultSet> resultSets, boolean isDummy, TagFilter tagFilter) throws SQLException {
+    public PostgreSQLQueryRowStream(List<ResultSet> resultSets, boolean isDummy, Filter filter, TagFilter tagFilter) throws SQLException {
         this.resultSets = resultSets;
         this.isDummy = isDummy;
+        this.filter = filter;
 
         if (resultSets.isEmpty()) {
             this.header = new Header(Field.KEY, Collections.emptyList());
@@ -131,7 +137,7 @@ public class PostgreSQLQueryRowStream implements RowStream {
             if (!hasCachedRow) {
                 cacheOneRow();
             }
-        } catch (SQLException e) {
+        } catch (SQLException | PhysicalException e) {
             logger.error(e.getMessage());
         }
 
@@ -149,13 +155,13 @@ public class PostgreSQLQueryRowStream implements RowStream {
             hasCachedRow = false;
             cachedRow = null;
             return row;
-        } catch (SQLException e) {
+        } catch (SQLException | PhysicalException e) {
             logger.error(e.getMessage());
             throw new RowFetchException(e);
         }
     }
 
-    private void cacheOneRow() throws SQLException {
+    private void cacheOneRow() throws SQLException, PhysicalException {
         boolean hasNext = false;
         long timestamp;
         Object[] values = new Object[header.getFieldSize()];
@@ -226,22 +232,12 @@ public class PostgreSQLQueryRowStream implements RowStream {
                 startIndex = endIndex;
             }
             cachedRow = new Row(header, timestamp, values);
+            if (isDummy && !validate(filter, cachedRow)) {
+                cacheOneRow();
+            }
         } else {
             cachedRow = null;
         }
         hasCachedRow = true;
-    }
-
-    private long toHash(String s) {
-        char c[] = s.toCharArray();
-        long hv = 0;
-        long base = 131;
-        for (int i = 0; i < c.length; i++) {
-            hv = hv * base + (long) c[i];   //利用自然数溢出，即超过 LONG_MAX 自动溢出，节省时间
-        }
-        if (hv < 0) {
-            return -1 * hv;
-        }
-        return hv;
     }
 }
