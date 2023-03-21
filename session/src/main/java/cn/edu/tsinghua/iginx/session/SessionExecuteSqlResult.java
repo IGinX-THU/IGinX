@@ -49,6 +49,16 @@ public class SessionExecuteSqlResult {
     public SessionExecuteSqlResult() {
     }
 
+    // Only for mock test
+    public SessionExecuteSqlResult(SqlType sqlType, long[] keys, List<String> paths,
+        List<List<Object>> values, List<DataType> dataTypeList) {
+        this.sqlType = sqlType;
+        this.keys = keys;
+        this.paths = paths;
+        this.values = values;
+        this.dataTypeList = dataTypeList;
+    }
+
     public SessionExecuteSqlResult(ExecuteSqlResp resp) {
         this.sqlType = resp.getType();
         this.parseErrorMsg = resp.getParseErrorMsg();
