@@ -4,7 +4,7 @@ import org.junit.*;
 
 import java.io.IOException;
 
-public class SQLSessionPoolIT extends SQLSessionIT{
+public class SQLSessionPoolIT extends SQLSessionIT {
     public SQLSessionPoolIT() throws IOException {
         super();
         isForSessionPool = true;

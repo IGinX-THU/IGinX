@@ -54,6 +54,21 @@ runs:
           exit 1
         fi
 
+    - if: inputs.version=='Mix-IoTDB12-InfluxDB'
+      name: Run DB
+      shell: bash
+      run: |
+        if [ "$RUNNER_OS" == "Linux" ]; then
+          chmod +x "${GITHUB_WORKSPACE}/.github/mix_iotdb12_influxdb.sh"
+          "${GITHUB_WORKSPACE}/.github/mix_iotdb12_influxdb.sh"
+        elif [ "$RUNNER_OS" == "macOS" ]; then
+          chmod +x "${GITHUB_WORKSPACE}/.github/mix_iotdb12_influxdb_macos.sh"
+          "${GITHUB_WORKSPACE}/.github/mix_iotdb12_influxdb_macos.sh"
+        else
+          echo "$RUNNER_OS is not supported"
+          exit 1
+        fi
+
     - if: inputs.version=='PostgreSQL'
       name: Run DB
       shell: bash
