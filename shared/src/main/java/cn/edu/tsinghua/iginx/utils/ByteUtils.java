@@ -239,17 +239,7 @@ public class ByteUtils {
                     buffer.putInt((int) value);
                     break;
                 case LONG:
-                    try {
-                        buffer.putLong((long) value);
-                    } catch (Exception e) {
-                        if (value.getClass().getTypeName().contains("INT")) {  //integer
-                            buffer.putLong(((Number) value).longValue());
-                        }
-                        if (value.getClass().getTypeName().contains("Timestamp")) {  //pg timestamp
-                            java.sql.Timestamp ts2 = java.sql.Timestamp.valueOf(value.toString());
-                            buffer.putLong(ts2.getTime());
-                        }
-                    }
+                    buffer.putLong((long) value);
                     break;
                 case FLOAT:
                     buffer.putFloat((float) value);
