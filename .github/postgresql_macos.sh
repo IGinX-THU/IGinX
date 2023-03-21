@@ -48,6 +48,6 @@ sh -c "sudo chmod -R 777 /var/lib/postgresql2/15/main"
 
 sh -c "cd pgsql2/bin; sudo -u postgres ./initdb -D /var/lib/postgresql2/15/main --auth trust --no-instructions"
 
-sh -c "cd pgsql2/bin; sudo -u postgres ./pg_ctl -D /var/lib/postgresql2/15/main start"
+sh -c "cd pgsql2/bin; sudo -u postgres ./pg_ctl -D /var/lib/postgresql2/15/main -o \"-F -p 5433\"  start"
 
 sh -c "cd pgsql2/bin; sudo -u postgres ./psql -c \"ALTER USER postgres WITH PASSWORD 'postgres';\""
