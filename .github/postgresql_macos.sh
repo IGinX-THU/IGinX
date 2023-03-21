@@ -32,8 +32,24 @@ sh -c "sudo chown -R postgres /var/lib/postgresql/15/main"
 
 sh -c "sudo chmod -R 777 /var/lib/postgresql/15/main"
 
-sh -c "cd pgsql/bin; sudo -u postgres ./initdb -D /var/lib/postgresql/15/main"
+sh -c "cd pgsql/bin; sudo -u postgres ./initdb -D /var/lib/postgresql/15/main --auth trust --no-instructions"
 
 sh -c "cd pgsql/bin; sudo -u postgres ./pg_ctl -D /var/lib/postgresql/15/main start"
 
-sh -c "sudo -u postgres psql -c \"ALTER USER postgres WITH PASSWORD 'postgres';\""
+sh -c "cd pgsql/bin; sudo -u postgres psql -c \"ALTER USER postgres WITH PASSWORD 'postgres';\""
+
+sh -c "sudo mkdir pgsql2"
+
+sh -c "sudo cp -R pgsql pgsql2"
+
+sh -c "sudo mkdir -p /var/lib/postgresql2/15/main"
+
+sh -c "sudo chown -R postgres /var/lib/postgresql2/15/main"
+
+sh -c "sudo chmod -R 777 /var/lib/postgresql2/15/main"
+
+sh -c "cd pgsql2/bin; sudo -u postgres ./initdb -D /var/lib/postgresql2/15/main --auth trust --no-instructions"
+
+sh -c "cd pgsql2/bin; sudo -u postgres ./pg_ctl -D /var/lib/postgresql2/15/main start"
+
+sh -c "cd pgsql2/bin; sudo -u postgres ./psql -c \"ALTER USER postgres WITH PASSWORD 'postgres';\""
