@@ -4,12 +4,13 @@ public enum JoinType {
 
     CrossJoin,
     InnerJoin,
-    InnerNatualJoin,
-    LeftNatualJoin,
-    RightNatualJoin,
+    InnerNaturalJoin,
+    LeftNaturalJoin,
+    RightNaturalJoin,
     LeftOuterJoin,
     RightOuterJoin,
     FullOuterJoin,
-    SingleJoin
+    SingleJoin,
+    MarkJoin,
 
 }
