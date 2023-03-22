@@ -1,6 +1,8 @@
 package cn.edu.tsinghua.iginx.integration.expansion.influxdb;
 
 import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
+import cn.edu.tsinghua.iginx.thrift.DataType;
+import cn.edu.tsinghua.iginx.utils.Pair;
 import com.influxdb.client.InfluxDBClient;
 import com.influxdb.client.InfluxDBClientFactory;
 import com.influxdb.client.domain.Organization;
@@ -34,64 +36,78 @@ public class InfluxDBHistoryDataGenerator extends BaseHistoryDataGenerator {
 
     private static final WritePrecision WRITE_PRECISION = WritePrecision.NS;
 
+    private void writeHistoryData(Map<String, Pair<DataType, List<Pair<Long, Object>>>> series, String URL) throws Exception {
+        InfluxDBClient client = InfluxDBClientFactory.create(URL, TOKEN.toCharArray(), ORGANIZATION);
+        Organization organization = client.getOrganizationsApi()
+            .findOrganizations().stream()
+            .filter(o -> ORGANIZATION.equals(o.getName()))
+            .findFirst()
+            .orElseThrow(IllegalAccessError::new);
+
+
+        series.entrySet().stream().forEach(entry -> {
+            String key = entry.getKey();
+            Pair<DataType, List<Pair<Long, Object>>> value = entry.getValue();
+            String[] parts = key.split("\\.");
+            String p1 = parts[0];
+            String p2 = parts[1];
+            String p3 = new String();
+            for (int i = 2; i < parts.length; i++) {
+                p3 += parts[i] + ".";
+            }
+            p3 = p3.substring(0, p3.length() - 1);
+
+            if (client.getBucketsApi().findBucketByName(p1) == null)
+                client.getBucketsApi().createBucket(p1, organization);
+            List<Point> points = new ArrayList<>();
+
+
+            List<Pair<Long, Object>> valList = value.v;
+            DataType type = value.k;
+
+            for (Pair<Long, Object> val : valList) {
+                switch (type) {
+                    case BOOLEAN:
+                        points.add(Point.measurement(p2)
+                            .addField(p3, (boolean) val.v)
+                            .time(val.k, WRITE_PRECISION));
+                        break;
+                    case BINARY:
+                        points.add(Point.measurement(p2)
+                            .addField(p3, (String) val.v)
+                            .time(val.k, WRITE_PRECISION));
+                        break;
+                    case DOUBLE:
+                        points.add(Point.measurement(p2)
+                            .addField(p3, (Double) val.v)
+                            .time(val.k, WRITE_PRECISION));
+                        break;
+                    case INTEGER:
+                        points.add(Point.measurement(p2)
+                            .addField(p3, (Integer) val.v)
+                            .time(val.k, WRITE_PRECISION));
+                        break;
+                    default:
+                        logger.error("not support data type: {}", type);
+                        break;
+                }
+
+            }
+            client.getWriteApiBlocking().writePoints(p1, organization.getId(), points);
+        });
+
+        client.close();
+        logger.info("write data to " + URL + " success!");
+    }
+
     @Test
     public void writeHistoryDataToA() throws Exception {
-        InfluxDBClient client = InfluxDBClientFactory.create(URL, TOKEN.toCharArray(), ORGANIZATION);
-
-        Organization organization = client.getOrganizationsApi()
-                .findOrganizations().stream()
-                .filter(o -> ORGANIZATION.equals(o.getName()))
-                .findFirst()
-                .orElseThrow(IllegalAccessError::new);
-
-        if (client.getBucketsApi().findBucketByName("ln") == null)
-            client.getBucketsApi().createBucket("ln", organization);
-        List<Point> points = new ArrayList<>();
-
-        long timestamp = 100;
-        points.add(Point.measurement("wf01")
-                .addField("wt01.status", true)
-                .time(timestamp, WRITE_PRECISION));
-        timestamp = 200;
-        points.add(Point.measurement("wf01")
-                .addField("wt01.status", false)
-                .addField("wt01.temperature", 20.71)
-                .time(timestamp, WRITE_PRECISION));
-
-        client.getWriteApiBlocking().writePoints("ln", organization.getId(), points);
-        client.close();
-
-        logger.info("write data to 127.0.0.1:8086 success!");
+        writeHistoryData(seriesA, URL);
     }
 
     @Test
     public void writeHistoryDataToB() throws Exception {
-        InfluxDBClient client = InfluxDBClientFactory.create(URL2, TOKEN.toCharArray(), ORGANIZATION);
-
-        Organization organization = client.getOrganizationsApi()
-                .findOrganizations().stream()
-                .filter(o -> ORGANIZATION.equals(o.getName()))
-                .findFirst()
-                .orElseThrow(IllegalAccessError::new);
-
-        if (client.getBucketsApi().findBucketByName("ln") == null)
-            client.getBucketsApi().createBucket("ln", organization);
-        List<Point> points = new ArrayList<>();
-
-        long timestamp = 77;
-        points.add(Point.measurement("wf03")
-                .addField("wt01.status", true)
-                .time(timestamp, WRITE_PRECISION));
-        timestamp = 200;
-        points.add(Point.measurement("wf03")
-                .addField("wt01.status", false)
-                .addField("wt01.temperature", 77.71)
-                .time(timestamp, WRITE_PRECISION));
-
-        client.getWriteApiBlocking().writePoints("ln", organization.getId(), points);
-        client.close();
-
-        logger.info("write data to 127.0.0.1:8087 success!");
+        writeHistoryData(seriesB, URL2);
     }
 
     @Test
@@ -100,19 +116,19 @@ public class InfluxDBHistoryDataGenerator extends BaseHistoryDataGenerator {
             InfluxDBClient client = InfluxDBClientFactory.create(URL, TOKEN.toCharArray(), ORGANIZATION);
 
             client.getDeleteApi().delete(
-                    OffsetDateTime.ofInstant(Instant.ofEpochMilli(0), ZoneId.of("UTC")),
-                    OffsetDateTime.ofInstant(Instant.ofEpochMilli(500), ZoneId.of("UTC")),
-                    String.format(DELETE_DATA, "wf01", "wt01.status"),
-                    "ln",
-                    ORGANIZATION
+                OffsetDateTime.ofInstant(Instant.ofEpochMilli(0), ZoneId.of("UTC")),
+                OffsetDateTime.ofInstant(Instant.ofEpochMilli(500), ZoneId.of("UTC")),
+                String.format(DELETE_DATA, "wf01", "wt01.status"),
+                "ln",
+                ORGANIZATION
             );
 
             client.getDeleteApi().delete(
-                    OffsetDateTime.ofInstant(Instant.ofEpochMilli(0), ZoneId.of("UTC")),
-                    OffsetDateTime.ofInstant(Instant.ofEpochMilli(500), ZoneId.of("UTC")),
-                    String.format(DELETE_DATA, "wf01", "wt01.temperature"),
-                    "ln",
-                    ORGANIZATION
+                OffsetDateTime.ofInstant(Instant.ofEpochMilli(0), ZoneId.of("UTC")),
+                OffsetDateTime.ofInstant(Instant.ofEpochMilli(500), ZoneId.of("UTC")),
+                String.format(DELETE_DATA, "wf01", "wt01.temperature"),
+                "ln",
+                ORGANIZATION
             );
             client.close();
             logger.info("clear data of 127.0.0.1:8086 success!");
@@ -120,75 +136,25 @@ public class InfluxDBHistoryDataGenerator extends BaseHistoryDataGenerator {
             client = InfluxDBClientFactory.create(URL2, TOKEN.toCharArray(), ORGANIZATION);
 
             client.getDeleteApi().delete(
-                    OffsetDateTime.ofInstant(Instant.ofEpochMilli(0), ZoneId.of("UTC")),
-                    OffsetDateTime.ofInstant(Instant.ofEpochMilli(500), ZoneId.of("UTC")),
-                    String.format(DELETE_DATA, "wf03", "wt01.status"),
-                    "ln",
-                    ORGANIZATION
+                OffsetDateTime.ofInstant(Instant.ofEpochMilli(0), ZoneId.of("UTC")),
+                OffsetDateTime.ofInstant(Instant.ofEpochMilli(500), ZoneId.of("UTC")),
+                String.format(DELETE_DATA, "wf03", "wt01.status"),
+                "ln",
+                ORGANIZATION
             );
 
             client.getDeleteApi().delete(
-                    OffsetDateTime.ofInstant(Instant.ofEpochMilli(0), ZoneId.of("UTC")),
-                    OffsetDateTime.ofInstant(Instant.ofEpochMilli(500), ZoneId.of("UTC")),
-                    String.format(DELETE_DATA, "wf03", "wt01.temperature"),
-                    "ln",
-                    ORGANIZATION
+                OffsetDateTime.ofInstant(Instant.ofEpochMilli(0), ZoneId.of("UTC")),
+                OffsetDateTime.ofInstant(Instant.ofEpochMilli(500), ZoneId.of("UTC")),
+                String.format(DELETE_DATA, "wf03", "wt01.temperature"),
+                "ln",
+                ORGANIZATION
             );
             client.close();
             logger.info("clear data of 127.0.0.1:8087 success!");
         } catch (Exception e) {
             logger.error("clear data fail! caused by {}", e.toString());
         }
-    }
-
-
-
-    @Test
-    public void writeHistoryData() {
-        InfluxDBClient client = InfluxDBClientFactory.create(URL, TOKEN.toCharArray(), ORGANIZATION);
-
-        Organization organization = client.getOrganizationsApi()
-                .findOrganizations().stream()
-                .filter(o -> ORGANIZATION.equals(o.getName()))
-                .findFirst()
-                .orElseThrow(IllegalAccessError::new);
-
-        client.getBucketsApi().createBucket("data_center", organization);
-
-        List<Point> points = new ArrayList<>();
-
-        long timestamp = 1000 * 1000;
-
-        Map<String, String> tags = new HashMap<>();
-        tags.put("host", "1");
-        tags.put("rack", "A");
-        tags.put("room", "ROOMA");
-        points.add(Point.measurement("cpu").addTags(tags)
-                .addField("usage", 66.3).addField("temperature", 56.4)
-                .time(timestamp, WRITE_PRECISION));
-        points.add(Point.measurement("cpu").addTags(tags)
-                .addField("usage", 67.1).addField("temperature", 56.2)
-                .time(timestamp + 1000 * 300, WRITE_PRECISION));
-
-        tags = new HashMap<>();
-        tags.put("host", "2");
-        tags.put("rack", "B");
-        tags.put("room", "ROOMA");
-        points.add(Point.measurement("cpu").addTags(tags)
-                .addField("usage", 72.1).addField("temperature", 55.1)
-                .time(timestamp, WRITE_PRECISION));
-
-        tags = new HashMap<>();
-        tags.put("host", "4");
-        tags.put("rack", "B");
-        tags.put("room", "ROOMB");
-        points.add(Point.measurement("cpu").addTags(tags)
-                .addField("usage", 22.1).addField("temperature", 99.8)
-                .time(timestamp + 1000 * 300, WRITE_PRECISION));
-
-
-        client.getWriteApiBlocking().writePoints("data_center", organization.getId(), points);
-        client.close();
     }
 
 }

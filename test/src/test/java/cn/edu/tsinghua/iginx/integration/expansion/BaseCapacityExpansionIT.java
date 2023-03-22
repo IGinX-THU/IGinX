@@ -14,4 +14,7 @@ public interface BaseCapacityExpansionIT {
 
     @Test
     public void oriNoDataExpNoData() throws Exception;
+
+    @Test
+    public void testPrefixAndRemoveHistoryDataSource() throws Exception;
 }
