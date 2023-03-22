@@ -25,7 +25,7 @@ do
      echo " test  -- Faile  : "$?
      exit 1
    else
-     echo " test  -- Success !"
+     echo " test " $line " Success !"
    fi
 done
 
