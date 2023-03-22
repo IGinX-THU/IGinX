@@ -37,6 +37,7 @@ public enum OperatorType {
     OuterJoin,
     CrossJoin,
     SingleJoin,
+    MarkJoin,
 
     // isUnaryOperator >= 40
     Binary(40),

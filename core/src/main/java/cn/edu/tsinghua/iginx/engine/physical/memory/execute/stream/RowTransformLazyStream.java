@@ -72,6 +72,7 @@ public class RowTransformLazyStream extends UnaryLazyStream {
                 Map<String, Value> params = pair.v;
                 Row column = null;
                 try {
+                    // 分别计算每个表达式得到相应的结果
                     column = function.transform(stream.next(), params);
                 } catch (Exception e) {
                     try {
@@ -84,6 +85,7 @@ public class RowTransformLazyStream extends UnaryLazyStream {
                     columnList.add(column);
                 }
             });
+            // 如果计算结果都不为空，将计算结果合并成一行
             if (columnList.size() == functionAndParamslist.size()) {
                 return combineMultipleColumns(columnList);
             }

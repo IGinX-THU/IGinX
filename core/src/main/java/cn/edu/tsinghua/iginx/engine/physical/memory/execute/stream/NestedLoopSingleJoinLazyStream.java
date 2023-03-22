@@ -11,7 +11,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.SingleJoin;
 import java.util.ArrayList;
 import java.util.List;
 
-public class SingleJoinLazyStream extends BinaryLazyStream {
+public class NestedLoopSingleJoinLazyStream extends BinaryLazyStream {
 
 	private final SingleJoin singleJoin;
 	private final List<Row> streamBCache;
@@ -27,7 +27,7 @@ public class SingleJoinLazyStream extends BinaryLazyStream {
 	private Row nextB;
 	private Row nextRow;
 
-	public SingleJoinLazyStream(SingleJoin singleJoin, RowStream streamA, RowStream streamB) {
+	public NestedLoopSingleJoinLazyStream(SingleJoin singleJoin, RowStream streamA, RowStream streamB) {
 		super(streamA, streamB);
 		this.singleJoin = singleJoin;
 		this.unmatchedStreamARows = new ArrayList<>();
