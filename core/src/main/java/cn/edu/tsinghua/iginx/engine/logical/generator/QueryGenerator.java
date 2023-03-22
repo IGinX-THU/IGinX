@@ -17,6 +17,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.GroupBy;
 import cn.edu.tsinghua.iginx.engine.shared.operator.InnerJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Limit;
 import cn.edu.tsinghua.iginx.engine.shared.operator.MappingTransform;
+import cn.edu.tsinghua.iginx.engine.shared.operator.MarkJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.OuterJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
@@ -64,8 +65,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.ALL_PATH_SUFFIX;
@@ -121,20 +124,57 @@ public class QueryGenerator extends AbstractGenerator {
             }
         }
 
+        // 处理where子查询
+        if (selectStatement.getWhereSubQueryParts().size() > 0) {
+            int sizeWhereSubQueryParts = selectStatement.getWhereSubQueryParts().size();
+            List<SubQueryFromPart> whereSubQueryParts = selectStatement.getWhereSubQueryParts();
+            for (int i = 0; i < sizeWhereSubQueryParts; i++) {
+                SubQueryFromPart whereSubQueryPart = whereSubQueryParts.get(i);
+                Operator right = generateRoot(whereSubQueryPart.getSubQuery());
+
+                Filter filter = whereSubQueryPart.getJoinCondition().getFilter();
+                String markColumn = whereSubQueryPart.getJoinCondition().getMarkColumn();
+                boolean isAntiJoin = whereSubQueryPart.getJoinCondition().isAntiJoin();
+                JoinAlgType joinAlgType = JoinAlgType.NestedLoopJoin;
+                if (filter.getType().equals(FilterType.Path)) {
+                    PathFilter pathFilter = (PathFilter) filter;
+                    if (pathFilter.getOp().equals(Op.E)) {
+                        joinAlgType = JoinAlgType.HashJoin;
+                    }
+                }
+
+                if (whereSubQueryPart.getJoinCondition().getJoinType() == JoinType.MarkJoin) {
+                    root = new MarkJoin(new OperatorSource(root), new OperatorSource(right), filter, markColumn, isAntiJoin, joinAlgType);
+                } else if (whereSubQueryPart.getJoinCondition().getJoinType() == JoinType.SingleJoin) {
+                    root = new SingleJoin(new OperatorSource(root), new OperatorSource(right), filter, joinAlgType);
+                }
+            }
+        }
+
         TagFilter tagFilter = selectStatement.getTagFilter();
 
         if (selectStatement.hasValueFilter()) {
             root = new Select(new OperatorSource(root), selectStatement.getFilter(), tagFilter);
         }
 
+        // 处理select子查询
         if (selectStatement.getSelectSubQueryParts().size() > 0) {
             int sizeSelectSubQuery = selectStatement.getSelectSubQueryParts().size();
             List<SubQueryFromPart> selectSubQueryParts = selectStatement.getSelectSubQueryParts();
             for (int i = 0; i < sizeSelectSubQuery; i++) {
                 if (selectSubQueryParts.get(i).getJoinCondition().getJoinType() == JoinType.SingleJoin) {
                     Operator right = generateRoot(selectSubQueryParts.get(i).getSubQuery());
+
                     Filter filter = selectSubQueryParts.get(i).getJoinCondition().getFilter();
-                    root = new SingleJoin(new OperatorSource(root), new OperatorSource(right), filter);
+                    JoinAlgType joinAlgType = JoinAlgType.NestedLoopJoin;
+                    if (filter.getType().equals(FilterType.Path)) {
+                        PathFilter pathFilter = (PathFilter) filter;
+                        if (pathFilter.getOp().equals(Op.E)) {
+                            joinAlgType = JoinAlgType.HashJoin;
+                        }
+                    }
+
+                    root = new SingleJoin(new OperatorSource(root), new OperatorSource(right), filter, joinAlgType);
                 }
             }
         }
@@ -228,10 +268,10 @@ public class QueryGenerator extends AbstractGenerator {
                 );
             }));
         } else {
-            List<String> selectedPath = new ArrayList<>();
+            Set<String> selectedPath = new HashSet<>();
             selectStatement.getBaseExpressionMap().forEach((k, v) ->
                 v.forEach(expression -> selectedPath.add(expression.getPathName())));
-            queryList.add(new Project(new OperatorSource(root), selectedPath, tagFilter));
+            queryList.add(new Project(new OperatorSource(root), new ArrayList<>(selectedPath), tagFilter));
         }
 
         if (selectStatement.getQueryType() == SelectStatement.QueryType.LastFirstQuery) {
@@ -243,6 +283,33 @@ public class QueryGenerator extends AbstractGenerator {
                 root = OperatorUtils.joinOperatorsByTime(queryList);
             } else {
                 root = OperatorUtils.joinOperators(queryList, ORDINAL);
+            }
+        }
+
+        // 处理having子查询
+        if (selectStatement.getHavingSubQueryParts().size() > 0) {
+            int sizeHavingSubQueryParts = selectStatement.getHavingSubQueryParts().size();
+            List<SubQueryFromPart> havingSubQueryParts = selectStatement.getHavingSubQueryParts();
+            for (int i = 0; i < sizeHavingSubQueryParts; i++) {
+                SubQueryFromPart havingSubQueryPart = havingSubQueryParts.get(i);
+                Operator right = generateRoot(havingSubQueryPart.getSubQuery());
+
+                Filter filter = havingSubQueryPart.getJoinCondition().getFilter();
+                String markColumn = havingSubQueryPart.getJoinCondition().getMarkColumn();
+                boolean isAntiJoin = havingSubQueryPart.getJoinCondition().isAntiJoin();
+                JoinAlgType joinAlgType = JoinAlgType.NestedLoopJoin;
+                if (filter.getType().equals(FilterType.Path)) {
+                    PathFilter pathFilter = (PathFilter) filter;
+                    if (pathFilter.getOp().equals(Op.E)) {
+                        joinAlgType = JoinAlgType.HashJoin;
+                    }
+                }
+
+                if (havingSubQueryPart.getJoinCondition().getJoinType() == JoinType.MarkJoin) {
+                    root = new MarkJoin(new OperatorSource(root), new OperatorSource(right), filter, markColumn, isAntiJoin, joinAlgType);
+                } else if (havingSubQueryPart.getJoinCondition().getJoinType() == JoinType.SingleJoin) {
+                    root = new SingleJoin(new OperatorSource(root), new OperatorSource(right), filter, joinAlgType);
+                }
             }
         }
 
@@ -365,13 +432,13 @@ public class QueryGenerator extends AbstractGenerator {
                 case InnerJoin:
                     left = new InnerJoin(new OperatorSource(left), new OperatorSource(right), prefixA, prefixB, filter, joinColumns, false, joinAlgType);
                     break;
-                case InnerNatualJoin:
+                case InnerNaturalJoin:
                     left = new InnerJoin(new OperatorSource(left), new OperatorSource(right), prefixA, prefixB, filter, joinColumns, true, joinAlgType);
                     break;
-                case LeftNatualJoin:
+                case LeftNaturalJoin:
                     left = new OuterJoin(new OperatorSource(left), new OperatorSource(right), prefixA, prefixB, OuterJoinType.LEFT, filter, joinColumns, true, joinAlgType);
                     break;
-                case RightNatualJoin:
+                case RightNaturalJoin:
                     new OuterJoin(new OperatorSource(left), new OperatorSource(right), prefixA, prefixB, OuterJoinType.RIGHT, filter, joinColumns, true, joinAlgType);
                     break;
                 case FullOuterJoin:
@@ -383,8 +450,7 @@ public class QueryGenerator extends AbstractGenerator {
                 case RightOuterJoin:
                     left = new OuterJoin(new OperatorSource(left), new OperatorSource(right), prefixA, prefixB, OuterJoinType.RIGHT, filter, joinColumns, false, joinAlgType);
                     break;
-                case SingleJoin:
-                    left = new SingleJoin(new OperatorSource(left), new OperatorSource(right), filter);
+                default:
                     break;
             }
 

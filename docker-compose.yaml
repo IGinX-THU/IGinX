@@ -1,0 +1,29 @@
+version: "3.9"
+services:
+  zookeeper:
+    container_name: zookeeper
+    image: zookeeper:latest
+    networks:
+      - net
+  iotdb:
+    container_name: iotdb
+    image: apache/iotdb:0.12.6-node
+    networks:
+      - net
+  iginx:
+    container_name: iginx
+    depends_on:
+      - zookeeper
+      - iotdb
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["/bin/bash", "/root/IGinX/sbin/start_iginx.sh"]
+    networks:
+      - net
+    ports:
+      - "6666:6666"
+
+networks:
+  net:
+    driver: bridge

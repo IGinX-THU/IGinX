@@ -22,6 +22,8 @@ import org.antlr.v4.runtime.tree.TerminalNode;
 
 import java.util.*;
 
+import static cn.edu.tsinghua.iginx.sql.statement.SelectStatement.markJoinCount;
+
 public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
     private final static Set<FuncType> supportedAggregateWithLevelFuncSet = new HashSet<>(
@@ -31,6 +33,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
             FuncType.Avg
         )
     );
+
+
 
     @Override
     public Statement visitSqlStatement(SqlStatementContext ctx) {
@@ -333,11 +337,11 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     private JoinType parseJoinType(JoinContext joinContext) {
         if (joinContext.NATURAL() != null) {
             if (joinContext.LEFT() != null) {
-                return JoinType.LeftNatualJoin;
+                return JoinType.LeftNaturalJoin;
             } else if (joinContext.RIGHT() != null) {
-                return JoinType.RightNatualJoin;
+                return JoinType.RightNaturalJoin;
             } else {
-                return JoinType.InnerNatualJoin;
+                return JoinType.InnerNaturalJoin;
             }
         } else if (joinContext.LEFT() != null) {
             return JoinType.LeftOuterJoin;
@@ -484,8 +488,12 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
             SelectStatement subStatement = new SelectStatement();
             subStatement.setIsSubQuery(true);
             parseQueryClause(ctx.subquery().queryClause(), subStatement);
+
+            Filter filter;
             // TODO: check correlated
-            selectStatement.addSelectSubQueryPart(new SubQueryFromPart(subStatement, new JoinCondition(JoinType.SingleJoin, new BoolFilter(true), new ArrayList<>())));
+            filter = new BoolFilter(true);
+
+            selectStatement.addSelectSubQueryPart(new SubQueryFromPart(subStatement, new JoinCondition(JoinType.SingleJoin, filter)));
             subStatement.getBaseExpressionMap().forEach((k, v) -> v.forEach(expression -> {
                 String selectedPath;
                 if (expression.hasAlias()) {
@@ -577,7 +585,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
             parseGroupByClause(ctx.groupByClause(), selectStatement);
         }
         if (ctx.havingClause() != null) {
-            Filter filter = parseOrExpression(ctx.havingClause().orExpression(), selectStatement);
+            Filter filter = parseOrExpression(ctx.havingClause().orExpression(), selectStatement, true);
             selectStatement.setHavingFilter(filter);
         }
         if (ctx.limitClause() != null) {
@@ -815,27 +823,31 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     }
 
     private Filter parseOrExpression(OrExpressionContext ctx, Statement statement) {
+        return parseOrExpression(ctx, statement, false);
+    }
+
+    private Filter parseOrExpression(OrExpressionContext ctx, Statement statement, boolean isHavingFilter) {
         List<Filter> children = new ArrayList<>();
         for (AndExpressionContext andCtx : ctx.andExpression()) {
-            children.add(parseAndExpression(andCtx, statement));
+            children.add(parseAndExpression(andCtx, statement, isHavingFilter));
         }
         return children.size() == 1 ? children.get(0) : new OrFilter(children);
     }
 
-    private Filter parseAndExpression(AndExpressionContext ctx, Statement statement) {
+    private Filter parseAndExpression(AndExpressionContext ctx, Statement statement, boolean isHavingFilter) {
         List<Filter> children = new ArrayList<>();
         for (PredicateContext predicateCtx : ctx.predicate()) {
-            children.add(parsePredicate(predicateCtx, statement));
+            children.add(parsePredicate(predicateCtx, statement, isHavingFilter));
         }
         return children.size() == 1 ? children.get(0) : new AndFilter(children);
     }
 
-    private Filter parsePredicate(PredicateContext ctx, Statement statement) {
+    private Filter parsePredicate(PredicateContext ctx, Statement statement, boolean isHavingFilter) {
         if (ctx.orExpression() != null) {
-            Filter filter = parseOrExpression(ctx.orExpression(), statement);
+            Filter filter = parseOrExpression(ctx.orExpression(), statement, isHavingFilter);
             return ctx.OPERATOR_NOT() == null ? filter : new NotFilter(filter);
         } else {
-            if (ctx.path().size() == 0) {
+            if (ctx.path().size() == 0 && ctx.predicateWithSubquery() == null) {
                 return parseKeyFilter(ctx);
             } else {
                 StatementType type = statement.getType();
@@ -846,7 +858,9 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
                     );
                 }
 
-                if (ctx.path().size() == 1) {
+                if (ctx.predicateWithSubquery() != null) {
+                    return parseFilterWithSubQuery(ctx.predicateWithSubquery(), (SelectStatement) statement, isHavingFilter);
+                } else if (ctx.path().size() == 1) {
                     return parseValueFilter(ctx, (SelectStatement) statement);
                 } else {
                     return parsePathFilter(ctx, (SelectStatement) statement);
@@ -917,6 +931,198 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         statement.setPathSet(pathA);
         statement.setPathSet(pathB);
         return new PathFilter(pathA, op, pathB);
+    }
+
+    private Filter parseFilterWithSubQuery(PredicateWithSubqueryContext ctx, SelectStatement statement, boolean isHavingFilter) {
+        if (ctx.EXISTS() != null) {
+            return parseExistsFilter(ctx, statement, isHavingFilter);
+        } else if (ctx.IN() != null) {
+            return parseInFilter(ctx, statement, isHavingFilter);
+        } else if (ctx.quantifier() != null) {
+            return parseQuantifierComparisonFilter(ctx, statement, isHavingFilter);
+        } else {
+            if (ctx.subquery().size() == 1) {
+                return parseScalarSubQueryComparisonFilter(ctx, statement, isHavingFilter);
+            } else {
+                return parseTwoScalarSubQueryComparisonFilter(ctx, statement, isHavingFilter);
+            }
+        }
+    }
+
+    private Filter parseExistsFilter(PredicateWithSubqueryContext ctx, SelectStatement statement, boolean isHavingFilter) {
+        SelectStatement subStatement = new SelectStatement();
+        subStatement.setIsSubQuery(true);
+        parseQueryClause(ctx.subquery().get(0).queryClause(), subStatement);
+        String markColumn = "&mark" + markJoinCount;
+        markJoinCount += 1;
+
+        Filter filter;
+        // TODO: check correlated
+        filter = new BoolFilter(true);
+
+        boolean isAntiJoin = ctx.OPERATOR_NOT() != null;
+        SubQueryFromPart subQueryPart = new SubQueryFromPart(subStatement, new JoinCondition(JoinType.MarkJoin, filter, markColumn, isAntiJoin));
+        if (isHavingFilter) {
+            statement.addHavingSubQueryPart(subQueryPart);
+        } else {
+            statement.addWhereSubQueryPart(subQueryPart);
+        }
+        return new ValueFilter(markColumn, Op.E, new Value(true));
+    }
+
+    private Filter parseInFilter(PredicateWithSubqueryContext ctx, SelectStatement statement, boolean isHavingFilter) {
+        SelectStatement subStatement = new SelectStatement();
+        subStatement.setIsSubQuery(true);
+        parseQueryClause(ctx.subquery().get(0).queryClause(), subStatement);
+        if (subStatement.getExpressions().size() != 1) {
+            throw new SQLParserException("The number of columns in sub-query doesn't equal to outer row.");
+        }
+        String markColumn = "&mark" + markJoinCount;
+        markJoinCount += 1;
+
+        Filter filter;
+        if (ctx.constant() != null) {
+            Value value = new Value(parseValue(ctx.constant()));
+            String path = subStatement.getExpressions().get(0).getColumnName();
+            filter = new ValueFilter(path, Op.E, value);
+        } else {
+            String pathA = ctx.path().getText();
+            if (!statement.hasJoinParts() && !statement.isSubQuery()
+                    && statement.getFromParts().get(0).getType() == FromPartType.PathFromPart) {
+                pathA = statement.getFromParts().get(0).getPath() + SQLConstant.DOT + pathA;
+            }
+            // deal with having filter with functions
+            if (ctx.functionName() != null) {
+                pathA = ctx.functionName().getText() + "(" + pathA + ")";
+            }
+
+            String pathB = subStatement.getExpressions().get(0).getColumnName();
+            filter = new PathFilter(pathA, Op.E, pathB);
+        }
+        // TODO: check correlated
+
+        boolean isAntiJoin = ctx.OPERATOR_NOT() != null;
+        SubQueryFromPart subQueryPart = new SubQueryFromPart(subStatement, new JoinCondition(JoinType.MarkJoin, filter, markColumn, isAntiJoin));
+        if (isHavingFilter) {
+            statement.addHavingSubQueryPart(subQueryPart);
+        } else {
+            statement.addWhereSubQueryPart(subQueryPart);
+        }
+        return new ValueFilter(markColumn, Op.E, new Value(true));
+    }
+
+    private Filter parseQuantifierComparisonFilter(PredicateWithSubqueryContext ctx, SelectStatement statement, boolean isHavingFilter) {
+        SelectStatement subStatement = new SelectStatement();
+        subStatement.setIsSubQuery(true);
+        parseQueryClause(ctx.subquery().get(0).queryClause(), subStatement);
+        if (subStatement.getExpressions().size() != 1) {
+            throw new SQLParserException("The number of columns in sub-query doesn't equal to outer row.");
+        }
+        String markColumn = "&mark" + markJoinCount;
+        markJoinCount += 1;
+
+        Filter filter;
+        Op op = Op.str2Op(ctx.comparisonOperator().getText().trim().toLowerCase());
+        if (ctx.quantifier().all() != null) {
+            op = Op.getOpposite(op);
+        }
+
+        if (ctx.constant() != null) {
+            Value value = new Value(parseValue(ctx.constant()));
+            String path = subStatement.getExpressions().get(0).getColumnName();
+            filter = new ValueFilter(path, op, value);
+        } else {
+            String pathA = ctx.path().getText();
+            if (!statement.hasJoinParts() && !statement.isSubQuery()
+                    && statement.getFromParts().get(0).getType() == FromPartType.PathFromPart) {
+                pathA = statement.getFromParts().get(0).getPath() + SQLConstant.DOT + pathA;
+            }
+            // deal with having filter with functions
+            if (ctx.functionName() != null) {
+                pathA = ctx.functionName().getText() + "(" + pathA + ")";
+            }
+
+            String pathB = subStatement.getExpressions().get(0).getColumnName();
+            filter = new PathFilter(pathA, op, pathB);
+        }
+        // TODO: check correlated
+
+        boolean isAntiJoin = ctx.quantifier().all() != null;
+        SubQueryFromPart subQueryPart = new SubQueryFromPart(subStatement, new JoinCondition(JoinType.MarkJoin, filter, markColumn, isAntiJoin));
+        if (isHavingFilter) {
+            statement.addHavingSubQueryPart(subQueryPart);
+        } else {
+            statement.addWhereSubQueryPart(subQueryPart);
+        }
+        return new ValueFilter(markColumn, Op.E, new Value(true));
+    }
+
+    private Filter parseScalarSubQueryComparisonFilter(PredicateWithSubqueryContext ctx, SelectStatement statement, boolean isHavingFilter) {
+        SelectStatement subStatement = new SelectStatement();
+        subStatement.setIsSubQuery(true);
+        parseQueryClause(ctx.subquery().get(0).queryClause(), subStatement);
+        if (subStatement.getExpressions().size() != 1) {
+            throw new SQLParserException("The number of columns in sub-query doesn't equal to outer row.");
+        }
+
+        Filter filter;
+        // TODO: check correlated
+        filter = new BoolFilter(true);
+
+        SubQueryFromPart subQueryPart = new SubQueryFromPart(subStatement, new JoinCondition(JoinType.SingleJoin, filter));
+        if (isHavingFilter) {
+            statement.addHavingSubQueryPart(subQueryPart);
+        } else {
+            statement.addWhereSubQueryPart(subQueryPart);
+        }
+
+        Op op = Op.str2Op(ctx.comparisonOperator().getText().trim().toLowerCase());
+        if (ctx.constant() != null) {
+            Value value = new Value(parseValue(ctx.constant()));
+            String path = subStatement.getExpressions().get(0).getColumnName();
+            return new ValueFilter(path, op, value);
+        } else {
+            String pathA = ctx.path().getText();
+            if (!statement.hasJoinParts() && !statement.isSubQuery()
+                    && statement.getFromParts().get(0).getType() == FromPartType.PathFromPart) {
+                pathA = statement.getFromParts().get(0).getPath() + SQLConstant.DOT + pathA;
+            }
+            // deal with having filter with functions
+            if (ctx.functionName() != null) {
+                pathA = ctx.functionName().getText() + "(" + pathA + ")";
+            }
+
+            String pathB = subStatement.getExpressions().get(0).getColumnName();
+            return new PathFilter(pathA, op, pathB);
+        }
+    }
+
+    private Filter parseTwoScalarSubQueryComparisonFilter(PredicateWithSubqueryContext ctx, SelectStatement statement, boolean isHavingFilter) {
+        List<String> paths = new ArrayList<>();
+
+        for (int i = 0; i < 2; i++) {
+            SelectStatement subStatement = new SelectStatement();
+            subStatement.setIsSubQuery(true);
+            parseQueryClause(ctx.subquery().get(i).queryClause(), subStatement);
+            if (subStatement.getExpressions().size() != 1) {
+                throw new SQLParserException("The number of columns in sub-query doesn't equal to outer row.");
+            }
+            paths.add(subStatement.getExpressions().get(0).getColumnName());
+
+            Filter filter;
+            // TODO: check correlated
+            filter = new BoolFilter(true);
+
+            SubQueryFromPart subQueryPart = new SubQueryFromPart(subStatement, new JoinCondition(JoinType.SingleJoin, filter));
+            if (isHavingFilter) {
+                statement.addHavingSubQueryPart(subQueryPart);
+            } else {
+                statement.addWhereSubQueryPart(subQueryPart);
+            }
+        }
+
+        Op op = Op.str2Op(ctx.comparisonOperator().getText().trim().toLowerCase());
+        return new PathFilter(paths.get(0), op, paths.get(1));
     }
 
     private Map<String, String> parseExtra(StringLiteralContext ctx) {
