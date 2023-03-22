@@ -1,4 +1,4 @@
-package cn.edu.tsinghua.iginx.metadata.sync;
+package cn.edu.tsinghua.iginx.integration.mds;
 
 import cn.edu.tsinghua.iginx.metadata.sync.protocol.SyncProtocol;
 import cn.edu.tsinghua.iginx.metadata.sync.protocol.etcd.ETCDSyncProtocolImpl;

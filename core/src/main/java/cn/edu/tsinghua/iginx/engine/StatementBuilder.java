@@ -39,6 +39,7 @@ public class StatementBuilder {
         typeMap.put(StatementType.SHOW_JOB_STATUS, SqlType.ShowJobStatus);
         typeMap.put(StatementType.CANCEL_JOB, SqlType.CancelJob);
         typeMap.put(StatementType.SHOW_ELIGIBLE_JOB, SqlType.ShowEligibleJob);
+        typeMap.put(StatementType.COMPACT, SqlType.Compact);
     }
 
     private static final StatementBuilder instance = new StatementBuilder();

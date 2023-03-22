@@ -18,13 +18,16 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils;
 
+import cn.edu.tsinghua.iginx.engine.physical.exception.InvalidOperatorParameterException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.BoolFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.FilterType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.NotFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
@@ -187,5 +190,23 @@ public class FilterUtils {
             return new Pair<>(pathFilter.getPathA(), pathFilter.getPathB());
         }
         return null;
+    }
+
+    public static Pair<String, String> getJoinPathFromFilter(Filter filter, Header headerA, Header headerB)
+            throws PhysicalException{
+        if (!filter.getType().equals(FilterType.Path)) {
+            throw new InvalidOperatorParameterException("Unsupported hash join filter type: " + filter.getType());
+        }
+        PathFilter pathFilter = (PathFilter) filter;
+        if (!pathFilter.getOp().equals(Op.E)) {
+            throw new InvalidOperatorParameterException("Unsupported hash join filter op type: " + pathFilter.getOp());
+        }
+        if (headerA.indexOf(pathFilter.getPathA()) != -1 && headerB.indexOf(pathFilter.getPathB()) != -1) {
+            return new Pair<>(pathFilter.getPathA(), pathFilter.getPathB());
+        } else if (headerA.indexOf(pathFilter.getPathB()) != -1 && headerB.indexOf(pathFilter.getPathA()) != -1) {
+            return new Pair<>(pathFilter.getPathB(), pathFilter.getPathA());
+        } else {
+            throw new InvalidOperatorParameterException("invalid hash join path filter input.");
+        }
     }
 }

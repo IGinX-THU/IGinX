@@ -7,7 +7,7 @@ sqlStatement
 statement
     : INSERT INTO path tagList? insertColumnsSpec VALUES insertValuesSpec #insertStatement
     | DELETE FROM path (COMMA path)* whereClause? withClause? #deleteStatement
-    | EXPLAIN? queryClause #selectStatement
+    | EXPLAIN? (LOGICAL|PHYSICAL)? queryClause #selectStatement
     | COUNT POINTS #countPointsStatement
     | DELETE TIME SERIES path (COMMA path)* withClause? #deleteTimeSeriesStatement
     | CLEAR DATA #clearDataStatement
@@ -23,6 +23,7 @@ statement
     | CANCEL TRANSFORM JOB jobId=INT #cancelJobStatement
     | SHOW jobStatus TRANSFORM JOB #showEligibleJobStatement
     | REMOVE HISTORYDATARESOURCE removedStorageEngine (COMMA removedStorageEngine)* #removeHistoryDataResourceStatement
+    | COMPACT #compactStatement
     ;
 
 queryClause
@@ -74,6 +75,28 @@ predicate
     | path comparisonOperator path
     | path OPERATOR_LIKE regex=stringLiteral
     | OPERATOR_NOT? LR_BRACKET orExpression RR_BRACKET
+    | predicateWithSubquery
+    ;
+
+predicateWithSubquery
+    : OPERATOR_NOT? EXISTS subquery
+    | (path | constant | functionName LR_BRACKET path RR_BRACKET) OPERATOR_NOT? IN subquery
+    | (path | constant | functionName LR_BRACKET path RR_BRACKET) comparisonOperator quantifier subquery
+    | (path | constant | functionName LR_BRACKET path RR_BRACKET) comparisonOperator subquery
+    | subquery comparisonOperator (path | constant | functionName LR_BRACKET path RR_BRACKET)
+    | subquery comparisonOperator subquery
+    ;
+
+quantifier
+    : all | some
+    ;
+
+all
+    : ALL
+    ;
+
+some
+    : SOME | ANY
     ;
 
 withClause
@@ -367,7 +390,10 @@ keyWords
     | STEP
     | REMOVE
     | HISTORYDATARESOURCE
+    | COMPACT
     | EXPLAIN
+    | LOGICAL
+    | PHYSICAL
     ;
 
 dateFormat
@@ -760,8 +786,36 @@ HISTORYDATARESOURCE
     : H I S T O R Y D A T A R E S O U R C E
     ;
 
+COMPACT
+    : C O M P A C T
+    ;
+
 EXPLAIN
     : E X P L A I N
+    ;
+
+LOGICAL
+    : L O G I C A L
+    ;
+
+PHYSICAL
+    : P H Y S I C A L
+    ;
+
+EXISTS
+    : E X I S T S
+    ;
+
+SOME
+    : S O M E
+    ;
+
+ANY
+    : A N Y
+    ;
+
+ALL
+    : A L L
     ;
 //============================
 // End of the keywords list

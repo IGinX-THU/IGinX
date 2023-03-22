@@ -24,9 +24,12 @@ import java.util.Set;
 
 public class SelectStatement extends DataStatement {
 
+    public static int markJoinCount = 0;
+
     private QueryType queryType;
 
-    private boolean needExplain = false;
+    private boolean needLogicalExplain = false;
+    private boolean needPhysicalExplain = false;
 
     private boolean hasFunc;
     private boolean hasJoinParts = false;
@@ -40,9 +43,11 @@ public class SelectStatement extends DataStatement {
     private final Map<String, List<BaseExpression>> baseExpressionMap;
     private final Set<FuncType> funcTypeSet;
     private final Set<String> pathSet;
-    private List<SubQueryFromPart> selectSubQueryParts;
+    private final List<SubQueryFromPart> selectSubQueryParts;
     private List<FromPart> fromParts;
+    private final List<SubQueryFromPart> whereSubQueryParts;
     private final List<String> groupByPaths;
+    private final List<SubQueryFromPart> havingSubQueryParts;
     private final List<String> orderByPaths;
     private Filter filter;
     private Filter havingFilter;
@@ -66,7 +71,9 @@ public class SelectStatement extends DataStatement {
         this.pathSet = new HashSet<>();
         this.selectSubQueryParts = new ArrayList<>();
         this.fromParts = new ArrayList<>();
+        this.whereSubQueryParts = new ArrayList<>();
         this.groupByPaths = new ArrayList<>();
+        this.havingSubQueryParts = new ArrayList<>();
         this.orderByPaths = new ArrayList<>();
         this.limit = Integer.MAX_VALUE;
         this.offset = 0;
@@ -82,7 +89,9 @@ public class SelectStatement extends DataStatement {
         this.baseExpressionMap = new HashMap<>();
         this.selectSubQueryParts = new ArrayList<>();
         this.fromParts = new ArrayList<>();
+        this.whereSubQueryParts = new ArrayList<>();
         this.groupByPaths = new ArrayList<>();
+        this.havingSubQueryParts = new ArrayList<>();
         this.orderByPaths = new ArrayList<>();
         this.funcTypeSet = new HashSet<>();
 
@@ -110,7 +119,9 @@ public class SelectStatement extends DataStatement {
         this.baseExpressionMap = new HashMap<>();
         this.selectSubQueryParts = new ArrayList<>();
         this.fromParts = new ArrayList<>();
+        this.whereSubQueryParts = new ArrayList<>();
         this.groupByPaths = new ArrayList<>();
+        this.havingSubQueryParts = new ArrayList<>();
         this.orderByPaths = new ArrayList<>();
         this.funcTypeSet = new HashSet<>();
 
@@ -128,33 +139,7 @@ public class SelectStatement extends DataStatement {
 
     // downSample query
     public SelectStatement(List<String> paths, long startTime, long endTime, AggregateType aggregateType, long precision) {
-        this.queryType = QueryType.DownSampleQuery;
-
-        this.pathSet = new HashSet<>();
-        this.expressions = new ArrayList<>();
-        this.baseExpressionMap = new HashMap<>();
-        this.selectSubQueryParts = new ArrayList<>();
-        this.fromParts = new ArrayList<>();
-        this.groupByPaths = new ArrayList<>();
-        this.orderByPaths = new ArrayList<>();
-        this.funcTypeSet = new HashSet<>();
-
-        String func = aggregateType.toString().toLowerCase();
-        paths.forEach(path -> {
-            BaseExpression baseExpression = new BaseExpression(path, func);
-            expressions.add(baseExpression);
-            setSelectedFuncsAndPaths(func, baseExpression);
-        });
-        this.hasFunc = true;
-        this.hasGroupBy = false;
-
-        this.precision = precision;
-        this.slideDistance = precision;
-        this.startTime = startTime;
-        this.endTime = endTime;
-        this.hasDownsample = true;
-
-        this.setFromSession(startTime, endTime);
+        this(paths, startTime, endTime, aggregateType, precision, precision);
     }
 
     // downsample with slide window query
@@ -166,7 +151,9 @@ public class SelectStatement extends DataStatement {
         this.baseExpressionMap = new HashMap<>();
         this.selectSubQueryParts = new ArrayList<>();
         this.fromParts = new ArrayList<>();
+        this.whereSubQueryParts = new ArrayList<>();
         this.groupByPaths = new ArrayList<>();
+        this.havingSubQueryParts = new ArrayList<>();
         this.orderByPaths = new ArrayList<>();
         this.funcTypeSet = new HashSet<>();
         
@@ -365,8 +352,24 @@ public class SelectStatement extends DataStatement {
         this.fromParts.add(fromPart);
     }
 
+    public List<SubQueryFromPart> getWhereSubQueryParts() {
+        return whereSubQueryParts;
+    }
+
+    public void addWhereSubQueryPart(SubQueryFromPart whereSubQueryPart) {
+        this.whereSubQueryParts.add(whereSubQueryPart);
+    }
+
     public void setGroupByPath(String path) {
         this.groupByPaths.add(path);
+    }
+
+    public List<SubQueryFromPart> getHavingSubQueryParts() {
+        return havingSubQueryParts;
+    }
+
+    public void addHavingSubQueryPart(SubQueryFromPart havingSubQueryPart) {
+        this.havingSubQueryParts.add(havingSubQueryPart);
     }
 
     public List<String> getGroupByPaths() {
@@ -485,12 +488,20 @@ public class SelectStatement extends DataStatement {
         expressions.add(expression);
     }
 
-    public boolean isNeedExplain() {
-        return needExplain;
+    public boolean isNeedLogicalExplain() {
+        return needLogicalExplain;
     }
 
-    public void setNeedExplain(boolean needExplain) {
-        this.needExplain = needExplain;
+    public void setNeedLogicalExplain(boolean needLogicalExplain) {
+        this.needLogicalExplain = needLogicalExplain;
+    }
+
+    public boolean isNeedPhysicalExplain() {
+        return needPhysicalExplain;
+    }
+
+    public void setNeedPhysicalExplain(boolean needPhysicalExplain) {
+        this.needPhysicalExplain = needPhysicalExplain;
     }
 
     public Map<String, String> getAliasMap() {

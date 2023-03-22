@@ -23,7 +23,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 
 import java.util.List;
 
-public interface PhysicalTask {
+public interface PhysicalTask extends Measurable {
 
     TaskType getType();
 
@@ -36,5 +36,7 @@ public interface PhysicalTask {
     PhysicalTask getFollowerTask();
 
     void setFollowerTask(PhysicalTask task);
+
+    String getInfo();
 
 }

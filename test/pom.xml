@@ -40,6 +40,12 @@
             <artifactId>duckdb_jdbc</artifactId>
             <version>0.5.1</version>
         </dependency>
+        <dependency>
+            <groupId>io.etcd</groupId>
+            <artifactId>jetcd-core</artifactId>
+            <version>0.5.7</version>
+            <optional>true</optional>
+        </dependency>
     </dependencies>
 
     <build>
