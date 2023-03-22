@@ -24,8 +24,8 @@ public class MongoDBQueryRowStream implements RowStream {
     private final Table table;
 
     public MongoDBQueryRowStream(MongoCursor<Document> cursor, TimeInterval timeInterval) {
-        Map<String, PriorityQueue<MongoDBPoint>> queueMap = new HashMap<>();
-        Set<Field> fieldList = new HashSet<>();
+        Map<String, PriorityQueue<MongoDBPoint>> queueMap = new LinkedHashMap<>();
+        Set<Field> fieldList = new LinkedHashSet<>();
         while (cursor.hasNext()) {
             Document document = cursor.next();
             String name = document.getString(MongoDBStorage.NAME);
@@ -53,7 +53,7 @@ public class MongoDBQueryRowStream implements RowStream {
                         value = (float) doubleValue;
                         break;
                     case BINARY:
-                        Binary binary = (Binary) document.get(MongoDBStorage.INNER_VALUE);
+                        Binary binary = (Binary) timeAndValueDocument.get(MongoDBStorage.INNER_VALUE);
                         value = binary.getData();
                         break;
                 }

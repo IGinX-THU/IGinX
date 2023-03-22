@@ -29,14 +29,13 @@ import cn.edu.tsinghua.iginx.mongodb.tools.DataUtils;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import com.alibaba.fastjson.JSONObject;
-import com.mongodb.AggregationOptions;
 
 import static com.mongodb.client.model.Aggregates.*;
 
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.client.*;
-import com.mongodb.client.model.Updates;
+import com.mongodb.client.model.*;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.slf4j.Logger;
@@ -152,7 +151,7 @@ public class MongoDBStorage implements IStorage {
                 break;
         }
         if (e != null) {
-            return new TaskExecuteResult(null, new PhysicalException("execute insert task in influxdb failure", e));
+            return new TaskExecuteResult(null, new PhysicalException("execute insert task in mongodb failure", e));
         }
         return new TaskExecuteResult(null, null);
     }
@@ -253,11 +252,13 @@ public class MongoDBStorage implements IStorage {
         } else {
             // 删除序列的一部分
             for (TimeRange range : delete.getTimeRanges()) {
-                collection.deleteMany(and(
-                    gte(NAME, range.getActualBeginTime()),
-                    lte(NAME, range.getActualEndTime()),
-                    genPatternBson(delete.getPatterns())
-                ));
+                collection.updateMany(
+                    genPatternBson(delete.getPatterns()),
+                    new Document("$pull", new Document("values", and(
+                        gte("t", range.getActualBeginTime()),
+                        lte("t", range.getActualEndTime()))) // TODO 为什么是lte
+                    )
+                );
             }
         }
         return new TaskExecuteResult(null, null);
@@ -296,23 +297,27 @@ public class MongoDBStorage implements IStorage {
             }
         }
 
+        List<WriteModel<Document>> operations = new ArrayList<>();
+        for (Map.Entry<MongoDBSchema, List<JSONObject>> entry : points.entrySet()) {
+            MongoDBSchema mongoDBSchema = entry.getKey();
+            List<JSONObject> jsonObjects = entry.getValue();
+            String fullName = getFullName(mongoDBSchema);
+            Bson findQuery = eq(FULLNAME, fullName);
+            if (collection.find(findQuery).iterator().hasNext()) {
+                operations.add(new UpdateOneModel<>(findQuery, Updates.pushEach(VALUES, jsonObjects)));
+            } else {
+                operations.add(new InsertOneModel<>(DataUtils.constructDocument(mongoDBSchema, mongoDBSchema.getType(), jsonObjects)));
+            }
+        }
+
         try {
-            for (Map.Entry<MongoDBSchema, List<JSONObject>> entry : points.entrySet()) {
-                MongoDBSchema mongoDBSchema = entry.getKey();
-                String fullName = mongoDBSchema.getName();
-                if (mongoDBSchema.getTags() != null && !mongoDBSchema.getTags().isEmpty()) {
-                    fullName = mongoDBSchema.getName() + "{" + mongoDBSchema.getTags() + "}";
-                }
-                List<JSONObject> jsonObjects = entry.getValue();
-                Bson findQuery = eq(FULLNAME, fullName);
-                if (collection.find(findQuery).iterator().hasNext()) {
-                    collection.findOneAndUpdate(findQuery, Updates.pushEach(VALUES, jsonObjects));
-                } else {
-                    collection.insertOne(DataUtils.constructDocument(mongoDBSchema, mongoDBSchema.getType(), jsonObjects));
-                }
+            if (!operations.isEmpty()) {
+                collection.bulkWrite(operations);
+                operations.clear();
             }
         } catch (Exception e) {
-            logger.error("encounter error when write points to mongodb: ", e);
+            logger.error("encounter error when write points to mongodb: {}", e.getMessage());
+            return e;
         }
         return null;
     }
@@ -322,7 +327,8 @@ public class MongoDBStorage implements IStorage {
         if (collection == null) {
             return new PhysicalTaskExecuteFailureException("create collection failure!");
         }
-        List<Document> points = new ArrayList<>();
+
+        List<WriteModel<Document>> operations = new ArrayList<>();
         for (int i = 0; i < data.getPathNum(); i++) {
             MongoDBSchema schema = new MongoDBSchema(data.getPath(i), data.getTags(i), data.getDataType(i));
             BitmapView bitmapView = data.getBitmapView(i);
@@ -337,24 +343,34 @@ public class MongoDBStorage implements IStorage {
                     index++;
                 }
             }
-            String fullName = schema.getName();
-            if (schema.getTags() != null && !schema.getTags().isEmpty()) {
-                fullName = schema.getName() + "{" + schema.getTags() + "}";
-            }
+
+            String fullName = getFullName(schema);
             Bson findQuery = eq(FULLNAME, fullName);
             if (collection.find(findQuery).iterator().hasNext()) {
-                collection.findOneAndUpdate(findQuery, Updates.pushEach(VALUES, jsonObjects));
+                operations.add(new UpdateOneModel<>(findQuery, Updates.pushEach(VALUES, jsonObjects)));
             } else {
-                collection.insertOne(DataUtils.constructDocument(schema, schema.getType(), jsonObjects));
+                operations.add(new InsertOneModel<>(DataUtils.constructDocument(schema, schema.getType(), jsonObjects)));
             }
         }
 
         try {
-            collection.insertMany(points);
+            if (!operations.isEmpty()) {
+                collection.bulkWrite(operations);
+                operations.clear();
+            }
         } catch (Exception e) {
-            logger.error("encounter error when write points to influxdb: ", e);
+            logger.error("encounter error when write points to mongodb: {}", e.getMessage());
+            return e;
         }
         return null;
+    }
+
+    private String getFullName(MongoDBSchema schema) {
+        String fullName = schema.getName();
+        if (schema.getTags() != null && !schema.getTags().isEmpty()) {
+            fullName += "{" + schema.getTags() + "}";
+        }
+        return fullName;
     }
 
     @Override
@@ -400,12 +416,13 @@ public class MongoDBStorage implements IStorage {
 
     @Override
     public Pair<TimeSeriesRange, TimeInterval> getBoundaryOfStorage(String prefix) {
-        // DOESN'T NEED TO IMPLEMENT
+        // TODO DOESN'T NEED TO IMPLEMENT
         return null;
     }
 
     @Override
     public void release() {
+        collectionMap.clear();
         collectionMap = null;
         mongoDatabase = null;
         mongoClient.close();
