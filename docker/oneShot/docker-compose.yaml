@@ -16,7 +16,7 @@ services:
       - zookeeper
       - iotdb
     build:
-      context: .
+      context: ../..
       dockerfile: Dockerfile
     command: ["/bin/bash", "/root/IGinX/sbin/start_iginx.sh"]
     networks:

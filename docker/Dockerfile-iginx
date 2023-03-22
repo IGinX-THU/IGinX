@@ -1,8 +1,0 @@
-FROM openjdk:11-jre-slim
-
-ADD ../core/target/iginx-core-0.6.0-SNAPSHOT/ /iginx
-
-EXPOSE 6888
-VOLUME /iginx/logs
-ENV PATH="/iginx/sbin/:${PATH}"
-ENTRYPOINT /iginx/sbin/start_iginx.sh > /iginx/logs/iginx.log 2>&1
