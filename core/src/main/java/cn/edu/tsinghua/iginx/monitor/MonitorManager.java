@@ -37,10 +37,8 @@ public class MonitorManager implements Runnable {
     while (true) {
       try {
         //清空节点信息
-        logger.info("start to clear monitors");
         compactionManager.clearFragment();
         metaManager.clearMonitors();
-        logger.error("end clear monitors");
         Thread.sleep(interval * 1000L);
 
         //上传本地统计数据
