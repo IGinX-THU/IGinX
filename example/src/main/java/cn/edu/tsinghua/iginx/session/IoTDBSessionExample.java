@@ -46,7 +46,7 @@ public class IoTDBSessionExample {
     private static Session session;
 
     public static void main(String[] args) throws SessionException, ExecutionException {
-        session = new Session("172.40.0.2", 6888, "root", "root");
+        session = new Session("127.0.0.1", 6888, "root", "root");
         // 打开 Session
         session.openSession();
 
