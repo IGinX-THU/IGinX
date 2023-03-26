@@ -8,9 +8,7 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import org.bson.Document;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static cn.edu.tsinghua.iginx.thrift.DataType.*;
 
@@ -59,7 +57,7 @@ public class DataUtils {
         }
     }
 
-    public static Document constructDocument(MongoDBSchema schema, DataType type, List<JSONObject> jsonObjects) {
+    public static Document constructDocument(MongoDBSchema schema, DataType type) {
         Document document = new Document();
         document.append(MongoDBStorage.NAME, schema.getName());
         document.append(MongoDBStorage.TYPE, toString(type));
@@ -71,7 +69,7 @@ public class DataUtils {
         } else {
             document.append(MongoDBStorage.FULLNAME, schema.getName());
         }
-        document.append(MongoDBStorage.VALUES, jsonObjects);
+        document.append(MongoDBStorage.VALUES, new ArrayList<>());
         return document;
     }
 
