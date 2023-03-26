@@ -350,7 +350,7 @@ public class MongoDBStorage implements IStorage {
             if (!collection.find(findQuery).iterator().hasNext()) {
                 inserts.add(new InsertOneModel<>(DataUtils.constructDocument(mongoDBSchema, mongoDBSchema.getType())));
             }
-            updates.add(new UpdateOneModel<>(findQuery, Updates.pushEach(VALUES, jsonObjects)));
+            updates.add(new UpdateOneModel<>(findQuery, Updates.addEachToSet(VALUES, jsonObjects)));
         }
 
         try {
@@ -397,7 +397,7 @@ public class MongoDBStorage implements IStorage {
             if (!collection.find(findQuery).iterator().hasNext()) {
                 inserts.add(new InsertOneModel<>(DataUtils.constructDocument(schema, schema.getType())));
             }
-            updates.add(new UpdateOneModel<>(findQuery, Updates.pushEach(VALUES, jsonObjects)));
+            updates.add(new UpdateOneModel<>(findQuery, Updates.addEachToSet(VALUES, jsonObjects)));
         }
 
         try {
