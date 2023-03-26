@@ -281,8 +281,8 @@ public class MongoDBStorage implements IStorage {
                 collection.updateMany(
                     in("_id", determineDeletedPaths(collection, delete.getPatterns(), delete.getTagFilter())),
                     new Document("$pull", new Document(VALUES, and(
-                        gte(INNER_TIMESTAMP, range.getActualBeginTime()),
-                        lte(INNER_TIMESTAMP, range.getActualEndTime()))) // TODO 为什么是lte
+                        gte(INNER_TIMESTAMP, range.getBeginTime()),
+                        lt(INNER_TIMESTAMP, range.getEndTime())))
                     )
                 );
             }

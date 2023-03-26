@@ -61,7 +61,7 @@ public class MongoDBSchema {
             return null;
         }
         String[] partitions = tagString.split(",");
-        Map<String, String> tags = new HashMap<>();
+        Map<String, String> tags = new TreeMap<>();
         for (String partition: partitions) {
             String[] kAndV = partition.split("=");
             tags.put(kAndV[0], kAndV[1]);
