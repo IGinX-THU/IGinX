@@ -85,9 +85,7 @@ public class ConfLoder {
         // load the task list
         for (String storageEngine : storageEngines) {
             String tasks = null;
-            if (storageEngine.toLowerCase().equals("influxdb"))
-                tasks = properties.getProperty("influxdb-" + TESTTASK);
-            else if (storageEngine.toLowerCase().equals("parquet"))
+            if (storageEngine.toLowerCase().equals("parquet"))
                 tasks = properties.getProperty("parquet-" + TESTTASK);
             else
                 tasks = properties.getProperty(TESTTASK);
@@ -115,6 +113,9 @@ public class ConfLoder {
 
         DBConf dbConf = new DBConf();
 
+        if (storageEngine == null || storageEngine.isEmpty()) {
+            return dbConf;
+        }
         String confs = properties.getProperty(String.format(DBCONF, storageEngine));
         logInfo("the conf of {} is : {}", storageEngine, confs);
         List<String> confList = Arrays.asList(confs.split(","));

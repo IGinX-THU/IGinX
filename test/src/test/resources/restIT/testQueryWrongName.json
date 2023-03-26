@@ -6,7 +6,7 @@
   },
   "metrics": [
     {
-      "name": "archive_"
+      "name": "archive_.file.tracked"
     }
   ]
 }

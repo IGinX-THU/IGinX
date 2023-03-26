@@ -34,6 +34,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.write.RowDataView;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
+import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilterType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
@@ -114,10 +115,10 @@ public class InfluxDBStorage implements IStorage {
         client = InfluxDBClientFactory.create(url, extraParams.get("token").toCharArray());
         organizationName = extraParams.get("organization");
         organization = client.getOrganizationsApi()
-                .findOrganizations().stream()
-                .filter(o -> o.getName().equals(this.organizationName))
-                .findFirst()
-                .orElseThrow(IllegalStateException::new);
+            .findOrganizations().stream()
+            .filter(o -> o.getName().equals(this.organizationName))
+            .findFirst()
+            .orElseThrow(IllegalStateException::new);
         if (meta.isHasData()) {
             reloadHistoryData();
         }
@@ -138,7 +139,7 @@ public class InfluxDBStorage implements IStorage {
 
     private void reloadHistoryData() {
         List<Bucket> buckets = client.getBucketsApi().findBucketsByOrg(organization);
-        for (Bucket bucket: buckets) {
+        for (Bucket bucket : buckets) {
             if (bucket.getType() == Bucket.TypeEnum.SYSTEM) {
                 continue;
             }
@@ -158,35 +159,35 @@ public class InfluxDBStorage implements IStorage {
             throw new PhysicalTaskExecuteFailureException("no data!");
         }
         TimeSeriesRange tsInterval = null;
-        if(dataPrefix == null)
+        if (dataPrefix == null)
             tsInterval = new TimeSeriesInterval(bucketNames.get(0), StringUtils.nextString(bucketNames.get(bucketNames.size() - 1)));
         else
             tsInterval = new TimeSeriesInterval(dataPrefix, StringUtils.nextString(dataPrefix));
         long minTime = Long.MAX_VALUE, maxTime = 0;
 
         String measurementPrefix = MEASUREMENTALL, fieldPrefix = FIELDALL;
-        if(dataPrefix!=null && dataPrefix.contains(".")) { //get the measurement and field from dataPrefix
+        if (dataPrefix != null && dataPrefix.contains(".")) { //get the measurement and field from dataPrefix
             int indexPrefix = dataPrefix.indexOf(".");
             measurementPrefix = dataPrefix.substring(0, indexPrefix);
             fieldPrefix = dataPrefix.substring(indexPrefix + 1);
-        } else if (dataPrefix!=null) {
+        } else if (dataPrefix != null) {
             measurementPrefix = dataPrefix;
         }
 
-        for (Bucket bucket: historyBucketMap.values()) {
+        for (Bucket bucket : historyBucketMap.values()) {
             String statement = String.format(
-                    QUERY_DATA_ALL,
-                    bucket.getName(),
-                    0L,
-                    Long.MAX_VALUE,
-                    measurementPrefix.equals(MEASUREMENTALL) ? MEASUREMENTALL : "= \"" + measurementPrefix + "\"",
-                    fieldPrefix.equals(FIELDALL) ? FIELDALL : "~ /" + fieldPrefix + ".*/"
+                QUERY_DATA_ALL,
+                bucket.getName(),
+                0L,
+                Long.MAX_VALUE,
+                measurementPrefix.equals(MEASUREMENTALL) ? MEASUREMENTALL : "= \"" + measurementPrefix + "\"",
+                fieldPrefix.equals(FIELDALL) ? FIELDALL : "~ /" + fieldPrefix + ".*/"
             );
             logger.debug("execute statement: " + statement);
             // 查询 first
             List<FluxTable> tables = client.getQueryApi().query(statement + " |> first()", organization.getId());
-            for (FluxTable table: tables) {
-                for (FluxRecord record: table.getRecords()) {
+            for (FluxTable table : tables) {
+                for (FluxRecord record : table.getRecords()) {
                     long time = instantToNs(record.getTime());
                     minTime = Math.min(time, minTime);
                     maxTime = Math.max(time, maxTime);
@@ -195,8 +196,8 @@ public class InfluxDBStorage implements IStorage {
             }
             // 查询 last
             tables = client.getQueryApi().query(statement + " |> last()", organization.getId());
-            for (FluxTable table: tables) {
-                for (FluxRecord record: table.getRecords()) {
+            for (FluxTable table : tables) {
+                for (FluxRecord record : table.getRecords()) {
                     long time = instantToNs(record.getTime());
                     minTime = Math.min(time, minTime);
                     maxTime = Math.max(time, maxTime);
@@ -213,6 +214,7 @@ public class InfluxDBStorage implements IStorage {
         TimeInterval timeInterval = new TimeInterval(minTime, maxTime + 1);
         return new Pair<>(tsInterval, timeInterval);
     }
+
     @Override
     public TaskExecuteResult execute(StoragePhysicalTask task) {
         List<Operator> operators = task.getOperators();
@@ -239,7 +241,7 @@ public class InfluxDBStorage implements IStorage {
     private TaskExecuteResult executeHistoryProjectTask(TimeSeriesRange timeSeriesInterval, TimeInterval timeInterval, Project project) {
         Map<String, String> bucketQueries = new HashMap<>();
         TagFilter tagFilter = project.getTagFilter();
-        for (String pattern: project.getPatterns()) {
+        for (String pattern : project.getPatterns()) {
             Pair<String, String> pair = SchemaTransformer.processPatternForQuery(pattern, tagFilter);
             String bucketName = pair.k;
             String query = pair.v;
@@ -256,11 +258,11 @@ public class InfluxDBStorage implements IStorage {
         long endTime = timeInterval.getEndTime();
 
         Map<String, List<FluxTable>> bucketQueryResults = new HashMap<>();
-        for (String bucket: bucketQueries.keySet()) {
+        for (String bucket : bucketQueries.keySet()) {
             String statement = String.format("from(bucket:\"%s\") |> range(start: time(v: %s), stop: time(v: %s))",
-                    bucket,
-                    startTime,
-                    endTime
+                bucket,
+                startTime,
+                endTime
             );
             if (!bucketQueries.get(bucket).equals("()")) {
                 statement += String.format(" |> filter(fn: (r) => %s)", bucketQueries.get(bucket));
@@ -279,15 +281,15 @@ public class InfluxDBStorage implements IStorage {
         List<Timeseries> timeseries = new ArrayList<>();
 
         List<FluxTable> tables = new ArrayList<>();
-        for (Bucket bucket: client.getBucketsApi().findBucketsByOrgName(organization.getName())) {//get all the bucket
+        for (Bucket bucket : client.getBucketsApi().findBucketsByOrgName(organization.getName())) {//get all the bucket
             // query all the series by querying all the data with first()
             if (!bucket.getName().contains("unit"))
                 continue;
             String statement = String.format(
-                    SHOW_TIME_SERIES,
-                    bucket.getName()
+                SHOW_TIME_SERIES,
+                bucket.getName()
             );
-            tables.addAll(client.getQueryApi().query(statement, organization.getId())) ;
+            tables.addAll(client.getQueryApi().query(statement, organization.getId()));
         }
 
         for (FluxTable table : tables) {
@@ -299,7 +301,7 @@ public class InfluxDBStorage implements IStorage {
             // get the tag cause the 8 is the begin index of the tag information
             for (int i = 8; i < len; i++) {
                 String key = column.get(i).getLabel();
-                String val = (String)table.getRecords().get(0).getValues().get(key);
+                String val = (String) table.getRecords().get(0).getValues().get(key);
                 tag.put(key, val);
             }
 
@@ -343,24 +345,25 @@ public class InfluxDBStorage implements IStorage {
 
         if (client.getBucketsApi().findBucketByName(storageUnit) == null) {
             logger.warn("storage engine {} doesn't exist", storageUnit);
-            return new TaskExecuteResult(new InfluxDBQueryRowStream(Collections.emptyList()));
+            return new TaskExecuteResult(new InfluxDBQueryRowStream(Collections.emptyList(), project));
         }
 
         String statement = generateQueryStatement(storageUnit, project.getPatterns(), project.getTagFilter(), timeInterval.getStartTime(), timeInterval.getEndTime());
         List<FluxTable> tables = client.getQueryApi().query(statement, organization.getId());
-        InfluxDBQueryRowStream rowStream = new InfluxDBQueryRowStream(tables);
+        InfluxDBQueryRowStream rowStream = new InfluxDBQueryRowStream(tables, project);
         return new TaskExecuteResult(rowStream);
     }
 
     private static String generateQueryStatement(String bucketName, List<String> paths, TagFilter tagFilter, long startTime, long endTime) {
         String statement = String.format(
-                QUERY_DATA,
-                bucketName,
-                startTime,
-                endTime
+            QUERY_DATA,
+            bucketName,
+            startTime,
+            endTime
         );
         if (paths.size() != 1 || !paths.get(0).equals("*")) {
             StringBuilder filterStr = new StringBuilder(" |> filter(fn: (r) => ");
+            filterStr.append('(');// make the or statement together
             for (int i = 0; i < paths.size(); i++) {
                 String path = paths.get(i);
                 InfluxDBSchema schema = new InfluxDBSchema(path);
@@ -404,7 +407,8 @@ public class InfluxDBStorage implements IStorage {
 
                 filterStr.append(')');
             }
-            if (tagFilter != null) {
+            filterStr.append(')');// make the or statement together
+            if (tagFilter != null && tagFilter.getType() != TagFilterType.WithoutTag) {
                 filterStr.append(" and ").append(TagFilterUtils.transformToFilterStr(tagFilter));
             }
             filterStr.append(')');
@@ -441,9 +445,9 @@ public class InfluxDBStorage implements IStorage {
                 bucket = bucketMap.get(storageUnit);
                 if (bucket == null) {
                     List<Bucket> bucketList = client.getBucketsApi()
-                            .findBucketsByOrgName(this.organizationName).stream()
-                            .filter(b -> b.getName().equals(storageUnit))
-                            .collect(Collectors.toList());
+                        .findBucketsByOrgName(this.organizationName).stream()
+                        .filter(b -> b.getName().equals(storageUnit))
+                        .collect(Collectors.toList());
                     if (bucketList.isEmpty()) {
                         bucket = client.getBucketsApi().createBucket(storageUnit, organization);
                     } else {
@@ -512,9 +516,9 @@ public class InfluxDBStorage implements IStorage {
                 bucket = bucketMap.get(storageUnit);
                 if (bucket == null) {
                     List<Bucket> bucketList = client.getBucketsApi()
-                            .findBucketsByOrgName(this.organizationName).stream()
-                            .filter(b -> b.getName().equals(storageUnit))
-                            .collect(Collectors.toList());
+                        .findBucketsByOrgName(this.organizationName).stream()
+                        .filter(b -> b.getName().equals(storageUnit))
+                        .collect(Collectors.toList());
                     if (bucketList.isEmpty()) {
                         bucket = client.getBucketsApi().createBucket(storageUnit, organization);
                     } else {
@@ -589,9 +593,9 @@ public class InfluxDBStorage implements IStorage {
                 bucket = bucketMap.get(storageUnit);
                 if (bucket == null) {
                     List<Bucket> bucketList = client.getBucketsApi()
-                            .findBucketsByOrgName(this.organizationName).stream()
-                            .filter(b -> b.getName().equals(storageUnit))
-                            .collect(Collectors.toList());
+                        .findBucketsByOrgName(this.organizationName).stream()
+                        .filter(b -> b.getName().equals(storageUnit))
+                        .collect(Collectors.toList());
                     if (bucketList.isEmpty()) {
                         bucket = client.getBucketsApi().createBucket(storageUnit, organization);
                     } else {
@@ -606,14 +610,14 @@ public class InfluxDBStorage implements IStorage {
         }
 
         List<InfluxDBSchema> schemas = delete.getPatterns().stream().map(InfluxDBSchema::new).collect(Collectors.toList());
-        for (InfluxDBSchema schema: schemas) {
-            for (TimeRange timeRange: delete.getTimeRanges()) {
+        for (InfluxDBSchema schema : schemas) {
+            for (TimeRange timeRange : delete.getTimeRanges()) {
                 client.getDeleteApi().delete(
-                        OffsetDateTime.ofInstant(Instant.ofEpochMilli(timeRange.getActualBeginTime()), ZoneId.of("UTC")),
-                        OffsetDateTime.ofInstant(Instant.ofEpochMilli(timeRange.getActualEndTime()), ZoneId.of("UTC")),
-                        String.format(DELETE_DATA, schema.getMeasurement(), schema.getField()),
-                        bucket,
-                        organization
+                    OffsetDateTime.ofInstant(Instant.ofEpochMilli(timeRange.getActualBeginTime()), ZoneId.of("UTC")),
+                    OffsetDateTime.ofInstant(Instant.ofEpochMilli(timeRange.getActualEndTime()), ZoneId.of("UTC")),
+                    String.format(DELETE_DATA, schema.getMeasurement(), schema.getField()),
+                    bucket,
+                    organization
                 );
 
             }

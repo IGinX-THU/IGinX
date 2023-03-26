@@ -23,12 +23,16 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
+import cn.edu.tsinghua.iginx.influxdb.tools.TagFilterUtils;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.influxdb.query.FluxRecord;
 import com.influxdb.query.FluxTable;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static cn.edu.tsinghua.iginx.influxdb.tools.DataTypeTransformer.fromInfluxDB;
@@ -42,26 +46,47 @@ public class InfluxDBQueryRowStream implements RowStream {
 
     private final int[] indices;
 
-    private int hasMoreRecords;
+    private int hasMoreRecords = 0;
 
-    public InfluxDBQueryRowStream(List<FluxTable> tables) {
+    private boolean[] filterMap;
+
+    private final boolean filterByTags;
+
+    public InfluxDBQueryRowStream(List<FluxTable> tables, Project project) {
+        List<Boolean> filterList = new ArrayList<>();
+        this.filterByTags = project.getTagFilter() != null;
         this.tables = tables.stream().filter(e -> e.getRecords().size() > 0).collect(Collectors.toList()); // 只保留还有数据的二维表
 
         List<Field> fields = new ArrayList<>();
-        for (FluxTable table: this.tables) {
+        for (FluxTable table : this.tables) {
+            Map<String, String> tags = new HashMap<>();
             String path;
             if (table.getRecords().get(0).getValueByKey("t") == null) {
                 path = table.getRecords().get(0).getMeasurement() + "." + table.getRecords().get(0).getField();
             } else {
                 path = table.getRecords().get(0).getMeasurement() + "." + table.getRecords().get(0).getValueByKey(InfluxDBSchema.TAG) + "." + table.getRecords().get(0).getField();
             }
+            for (int i = 8; i < table.getColumns().size(); i++) {
+                String key = table.getColumns().get(i).getLabel();
+                String val = (String) table.getRecords().get(0).getValueByKey(key);
+                tags.put(key, val);
+            }
+            if (this.filterByTags && !TagFilterUtils.match(tags, project.getTagFilter())) {
+                filterList.add(true);
+                continue;
+            } else {
+                this.hasMoreRecords++;
+                filterList.add(false);
+            }
             DataType dataType = fromInfluxDB(table.getColumns().stream().filter(x -> x.getLabel().equals("_value")).collect(Collectors.toList()).get(0).getDataType());
-            fields.add(new Field(path, dataType));
+            fields.add(new Field(path, dataType, tags));
+        }
+        filterMap = new boolean[filterList.size()];
+        for (int i = 0; i < filterList.size(); i++) {
+            filterMap[i] = filterList.get(i);
         }
         this.header = new Header(Field.KEY, fields);
         this.indices = new int[this.tables.size()];
-
-        this.hasMoreRecords = this.tables.size();
     }
 
     @Override
@@ -83,6 +108,9 @@ public class InfluxDBQueryRowStream implements RowStream {
     public Row next() throws PhysicalException {
         long timestamp = Long.MAX_VALUE;
         for (int i = 0; i < this.tables.size(); i++) {
+            if (filterMap[i]) {
+                continue;
+            }
             int index = indices[i];
             FluxTable table = this.tables.get(i);
             List<FluxRecord> records = table.getRecords();
@@ -97,6 +125,9 @@ public class InfluxDBQueryRowStream implements RowStream {
         }
         Object[] values = new Object[this.tables.size()];
         for (int i = 0; i < this.tables.size(); i++) {
+            if (filterMap[i]) {
+                continue;
+            }
             int index = indices[i];
             FluxTable table = this.tables.get(i);
             List<FluxRecord> records = table.getRecords();

@@ -44,8 +44,8 @@ public class RestIT {
 
     @Before
     public void insertData() {
-        try{
-            execute("insert.json",TYPE.INSERT);
+        try {
+            execute("insert.json", TYPE.INSERT);
         } catch (Exception e) {
             logger.error("insertData fail. Caused by: {}.", e.toString());
             fail();
@@ -58,21 +58,21 @@ public class RestIT {
     }
 
     private enum TYPE {
-       QUERY, INSERT, DELETE, DELETEMETRIC
+        QUERY, INSERT, DELETE, DELETEMETRIC
     }
 
     public String orderGen(String json, TYPE type) {
         String ret = new String();
-        if(type.equals(TYPE.DELETEMETRIC)) {
+        if (type.equals(TYPE.DELETEMETRIC)) {
             ret = "curl -XDELETE";
             ret += " http://127.0.0.1:6666/api/v1/metric/{" + json + "}";
         } else {
             String prefix = "curl -XPOST -H\"Content-Type: application/json\" -d @";
-            ret = prefix +  json;
-            if(type.equals(TYPE.QUERY))
+            ret = prefix + json;
+            if (type.equals(TYPE.QUERY))
                 ret += " http://127.0.0.1:6666/api/v1/datapoints/query";
-            else if(type.equals(TYPE.INSERT)) ret += " http://127.0.0.1:6666/api/v1/datapoints";
-            else if(type.equals(TYPE.DELETE)) ret += " http://127.0.0.1:6666/api/v1/datapoints/delete";
+            else if (type.equals(TYPE.INSERT)) ret += " http://127.0.0.1:6666/api/v1/datapoints";
+            else if (type.equals(TYPE.DELETE)) ret += " http://127.0.0.1:6666/api/v1/datapoints/delete";
         }
         return ret;
     }
@@ -105,10 +105,10 @@ public class RestIT {
         }
     }
 
-    public void executeAndCompare(String json,String output){
+    public void executeAndCompare(String json, String output) {
         String result = new String();
         try {
-            result = execute(json,TYPE.QUERY);
+            result = execute(json, TYPE.QUERY);
         } catch (Exception e) {
 //            if (e.toString().equals())
             logger.error("executeAndCompare fail. Caused by: {}.", e.toString());
@@ -118,44 +118,44 @@ public class RestIT {
 
     @Test
     public void testQueryWithoutTags() throws Exception {
-        String json ="testQueryWithoutTags.json";
+        String json = "testQueryWithoutTags.json";
         String result = "{\"queries\":[{\"sample_size\": 3,\"results\": [{ \"name\": \"archive.file.tracked\",\"group_by\": [{\"name\": \"type\",\"type\": \"number\"}], \"tags\": {\"data_center\": [\"DC1\"],\"host\": [\"server1\"]}, \"values\": [[1359788300000,13.2],[1359788400000,123.3],[1359788410000,23.1]]}]},{\"sample_size\": 1,\"results\": [{ \"name\": \"archive.file.search\",\"group_by\": [{\"name\": \"type\",\"type\": \"number\"}], \"tags\": {\"host\": [\"server2\"]}, \"values\": [[1359786400000,321.0]]}]}]}";
-        executeAndCompare(json,result);
+        executeAndCompare(json, result);
     }
 
     @Test
-    public void testQueryWithTags(){
+    public void testQueryWithTags() {
         String json = "testQueryWithTags.json";
         String result = "{\"queries\":[{\"sample_size\": 3,\"results\": [{ \"name\": \"archive.file.tracked\",\"group_by\": [{\"name\": \"type\",\"type\": \"number\"}], \"tags\": {\"data_center\": [\"DC1\"],\"host\": [\"server1\"]}, \"values\": [[1359788300000,13.2],[1359788400000,123.3],[1359788410000,23.1]]}]}]}";
-        executeAndCompare(json,result);
+        executeAndCompare(json, result);
     }
 
     @Test
-    public void testQueryWrongTags(){
+    public void testQueryWrongTags() {
         String json = "testQueryWrongTags.json";
         String result = "{\"queries\":[{\"sample_size\": 0,\"results\": [{ \"name\": \"archive.file.tracked\",\"group_by\": [{\"name\": \"type\",\"type\": \"number\"}], \"tags\": {}, \"values\": []}]}]}";
-        executeAndCompare(json,result);
+        executeAndCompare(json, result);
     }
 
     @Test
-    public void testQueryOneTagWrong(){
+    public void testQueryOneTagWrong() {
         String json = "testQueryOneTagWrong.json";
         String result = "{\"queries\":[{\"sample_size\": 0,\"results\": [{ \"name\": \"archive.file.tracked\",\"group_by\": [{\"name\": \"type\",\"type\": \"number\"}], \"tags\": {}, \"values\": []}]}]}";
-        executeAndCompare(json,result);
+        executeAndCompare(json, result);
     }
 
     @Test
-    public void testQueryWrongName(){
+    public void testQueryWrongName() {
         String json = "testQueryWrongName.json";
-        String result = "{\"queries\":[{\"sample_size\": 0,\"results\": [{ \"name\": \"archive_\",\"group_by\": [{\"name\": \"type\",\"type\": \"number\"}], \"tags\": {}, \"values\": []}]}]}";
-        executeAndCompare(json,result);
+        String result = "{\"queries\":[{\"sample_size\": 0,\"results\": [{ \"name\": \"archive_.file.tracked\",\"group_by\": [{\"name\": \"type\",\"type\": \"number\"}], \"tags\": {}, \"values\": []}]}]}";
+        executeAndCompare(json, result);
     }
 
     @Test
-    public void testQueryWrongTime(){
+    public void testQueryWrongTime() {
         String json = "testQueryWrongTime.json";
         String result = "{\"queries\":[{\"sample_size\": 0,\"results\": [{ \"name\": \"archive.file.tracked\",\"group_by\": [{\"name\": \"type\",\"type\": \"number\"}], \"tags\": {}, \"values\": []}]}]}";
-        executeAndCompare(json,result);
+        executeAndCompare(json, result);
     }
 
 //    @Test
@@ -167,81 +167,81 @@ public class RestIT {
 
 
     @Test
-    public void testQueryAvg(){
+    public void testQueryAvg() {
         String json = "testQueryAvg.json";
         String result = "{\"queries\":[{\"sample_size\": 3,\"results\": [{ \"name\": \"archive.file.tracked\",\"group_by\": [{\"name\": \"type\",\"type\": \"number\"}], \"tags\": {\"data_center\": [\"DC1\"],\"host\": [\"server1\"]}, \"values\": [[1359788298001,13.2],[1359788398001,123.3],[1359788408001,23.1]]}]}]}";
-        executeAndCompare(json,result);
+        executeAndCompare(json, result);
     }
 
     @Test
-    public void testQueryCount(){
+    public void testQueryCount() {
         String json = "testQueryCount.json";
         String result = "{\"queries\":[{\"sample_size\": 1,\"results\": [{ \"name\": \"archive.file.tracked\",\"group_by\": [{\"name\": \"type\",\"type\": \"number\"}], \"tags\": {\"data_center\": [\"DC1\"],\"host\": [\"server1\"]}, \"values\": [[1359763200001,3]]}]}]}";
-        executeAndCompare(json,result);
+        executeAndCompare(json, result);
     }
 
     @Test
-    public void testQueryFirst(){
+    public void testQueryFirst() {
         String json = "testQueryFirst.json";
         String result = "{\"queries\":[{\"sample_size\": 1,\"results\": [{ \"name\": \"archive.file.tracked\",\"group_by\": [{\"name\": \"type\",\"type\": \"number\"}], \"tags\": {\"data_center\": [\"DC1\"],\"host\": [\"server1\"]}, \"values\": [[1359763200001,13.2]]}]}]}";
-        executeAndCompare(json,result);
+        executeAndCompare(json, result);
     }
 
     @Test
-    public void testQueryLast(){
+    public void testQueryLast() {
         String json = "testQueryLast.json";
         String result = "{\"queries\":[{\"sample_size\": 1,\"results\": [{ \"name\": \"archive.file.tracked\",\"group_by\": [{\"name\": \"type\",\"type\": \"number\"}], \"tags\": {\"data_center\": [\"DC1\"],\"host\": [\"server1\"]}, \"values\": [[1359763200001,23.1]]}]}]}";
-        executeAndCompare(json,result);
+        executeAndCompare(json, result);
     }
 
     @Test
-    public void testQueryMax(){
+    public void testQueryMax() {
         String json = "testQueryMax.json";
         String result = "{\"queries\":[{\"sample_size\": 1,\"results\": [{ \"name\": \"archive.file.tracked\",\"group_by\": [{\"name\": \"type\",\"type\": \"number\"}], \"tags\": {\"data_center\": [\"DC1\"],\"host\": [\"server1\"]}, \"values\": [[1359763200001,123.3]]}]}]}";
-        executeAndCompare(json,result);
+        executeAndCompare(json, result);
     }
 
     @Test
-    public void testQueryMin(){
+    public void testQueryMin() {
         String json = "testQueryMin.json";
         String result = "{\"queries\":[{\"sample_size\": 1,\"results\": [{ \"name\": \"archive.file.tracked\",\"group_by\": [{\"name\": \"type\",\"type\": \"number\"}], \"tags\": {\"data_center\": [\"DC1\"],\"host\": [\"server1\"]}, \"values\": [[1359763200001,13.2]]}]}]}";
-        executeAndCompare(json,result);
+        executeAndCompare(json, result);
     }
 
     @Test
-    public void testQuerySum(){
+    public void testQuerySum() {
         String json = "testQuerySum.json";
         String result = "{\"queries\":[{\"sample_size\": 1,\"results\": [{ \"name\": \"archive.file.tracked\",\"group_by\": [{\"name\": \"type\",\"type\": \"number\"}], \"tags\": {\"data_center\": [\"DC1\"],\"host\": [\"server1\"]}, \"values\": [[1359763200001,159.6]]}]}]}";
-        executeAndCompare(json,result);
+        executeAndCompare(json, result);
     }
 
     @Test
-    public void testDelete()  throws Exception {
+    public void testDelete() throws Exception {
         if (!isAbleToDelete) return;
         String json = "testDelete.json";
-        execute(json,TYPE.DELETE);
+        execute(json, TYPE.DELETE);
 
         String result = "{\"queries\":[{\"sample_size\": 2,\"results\": [{ \"name\": \"archive.file.tracked\",\"group_by\": [{\"name\": \"type\",\"type\": \"number\"}], \"tags\": {\"data_center\": [\"DC1\"],\"host\": [\"server1\"]}, \"values\": [[1359788300000,13.2],[1359788410000,23.1]]}]}]}";
         json = "testQueryWithTags.json";
-        executeAndCompare(json,result);
+        executeAndCompare(json, result);
     }
 
     @Test
-    public void testDeleteMetric()  throws Exception {
+    public void testDeleteMetric() throws Exception {
         if (!isAbleToDelete) return;
         String json = "archive.file.tracked";
-        execute(json,TYPE.DELETEMETRIC);
+        execute(json, TYPE.DELETEMETRIC);
 
         String result = "{\"queries\":[{\"sample_size\": 0,\"results\": [{ \"name\": \"archive.file.tracked\",\"group_by\": [{\"name\": \"type\",\"type\": \"number\"}], \"tags\": {}, \"values\": []}]}]}";
         json = "testQueryWithTags.json";
-        executeAndCompare(json,result);
+        executeAndCompare(json, result);
     }
 
     @Test
 //    @Ignore
-    public void pathVaildTest()  throws Exception {
-        try{
-            String res = execute("pathVaildTest.json",TYPE.INSERT);
+    public void pathVaildTest() throws Exception {
+        try {
+            String res = execute("pathVaildTest.json", TYPE.INSERT);
             logger.error("insertData fail. Caused by: {}.", res);
         } catch (Exception e) {
             logger.error("insertData fail. Caused by: {}.", e.toString());

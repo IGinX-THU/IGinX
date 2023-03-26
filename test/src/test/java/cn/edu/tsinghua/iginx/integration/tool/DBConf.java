@@ -8,7 +8,7 @@ public final class DBConf {
     }
 
     public static DBType getDBType(String dbName) {
-        switch(dbName.toLowerCase()) {
+        switch (dbName.toLowerCase()) {
             case "iotdb12":
                 return DBType.iotdb12;
             case "influxdb":
@@ -28,14 +28,14 @@ public final class DBConf {
         isSupportTagKV
     }
 
-    private boolean ableToClearData;
-    private boolean ableToDelete;
-    private boolean ableToShowTimeSeries;
-    private boolean supportSpecialPath;
-    private boolean supportTagKV;
+    private boolean ableToClearData = true;
+    private boolean ableToDelete = true;
+    private boolean ableToShowTimeSeries = true;
+    private boolean supportSpecialPath = true;
+    private boolean supportTagKV = true;
 
     public static DBConfType getDBConfType(String str) {
-        switch(str) {
+        switch (str) {
             case "isAbleToClearData":
                 return DBConfType.isAbleToClearData;
             case "isAbleToDelete":
@@ -52,7 +52,7 @@ public final class DBConf {
     }
 
     public void setEnumValue(DBConfType myEnum, boolean value) {
-        switch(myEnum) {
+        switch (myEnum) {
             case isAbleToClearData:
                 ableToClearData = value;
                 break;
@@ -74,7 +74,7 @@ public final class DBConf {
     }
 
     public boolean getEnumValue(DBConfType myEnum) {
-        switch(myEnum) {
+        switch (myEnum) {
             case isAbleToClearData:
                 return ableToClearData;
             case isAbleToDelete:
