@@ -28,7 +28,6 @@ public class CompactionManager {
     }
 
     public void clearFragment() throws Exception {
-        logger.info("start to compact fragments");
         if (ConfigDescriptor.getInstance().getConfig().isEnableInstantCompaction()) {
             new InstantCompaction(PhysicalEngineImpl.getInstance(), DefaultMetaManager.getInstance()).compact();
         } else if (ConfigDescriptor.getInstance().getConfig().isEnableFragmentCompaction()) {
@@ -38,6 +37,5 @@ public class CompactionManager {
                 }
             }
         }
-        logger.info("end compact fragments");
     }
 }
