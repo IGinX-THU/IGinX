@@ -254,7 +254,17 @@ public class MongoDBStorage implements IStorage {
 
         try (MongoCursor<Document> cursor = collection.aggregate(
             Arrays.asList(
-                match(findQuery), unwind("$" + VALUES, new UnwindOptions().preserveNullAndEmptyArrays(true)) // TODO 如果加上时间范围判断，则无法处理 values 为空的情况（因为不存在字段 values.t）
+                match(findQuery),
+                match(
+                    or(
+                        exists(VALUES + "." + INNER_TIMESTAMP, false), // 空序列
+                        and( // 非空序列
+                            gte(VALUES + "." + INNER_TIMESTAMP, timeInterval.getStartTime()),
+                            lt(VALUES + "." + INNER_TIMESTAMP, timeInterval.getEndTime())
+                        )
+                    )
+                ),
+                unwind("$" + VALUES, new UnwindOptions().preserveNullAndEmptyArrays(true))
             ))
             .cursor()) {
             MongoDBQueryRowStream rowStream = new MongoDBQueryRowStream(cursor, timeInterval, project.getTagFilter());
@@ -273,13 +283,15 @@ public class MongoDBStorage implements IStorage {
                 collection.drop();
             } else {
                 // 整条序列级别的删除
-                collection.deleteMany(in("_id", determineDeletedPaths(collection, delete.getPatterns(), delete.getTagFilter())));
+                List<ObjectId> deletedObjectIds = determineDeletedObjectIds(collection, delete);
+                collection.deleteMany(in("_id", deletedObjectIds));
             }
         } else {
             // 删除序列的一部分
+            List<ObjectId> deletedObjectIds = determineDeletedObjectIds(collection, delete);
             for (TimeRange range : delete.getTimeRanges()) {
                 collection.updateMany(
-                    in("_id", determineDeletedPaths(collection, delete.getPatterns(), delete.getTagFilter())),
+                    in("_id", deletedObjectIds),
                     new Document("$pull", new Document(VALUES, and(
                         gte(INNER_TIMESTAMP, range.getBeginTime()),
                         lt(INNER_TIMESTAMP, range.getEndTime())))
@@ -290,19 +302,19 @@ public class MongoDBStorage implements IStorage {
         return new TaskExecuteResult(null, null);
     }
 
-    private List<ObjectId> determineDeletedPaths(MongoCollection<Document> collection, List<String> paths, TagFilter tagFilter) {
+    private List<ObjectId> determineDeletedObjectIds(MongoCollection<Document> collection, Delete delete) {
         List<Timeseries> timeSeries = getTimeSeries();
-        List<ObjectId> deletedPaths = new ArrayList<>();
+        List<ObjectId> deletedObjectIds = new ArrayList<>();
 
         for (Timeseries ts: timeSeries) {
-            for (String path : paths) {
+            for (String path : delete.getPatterns()) {
                 if (Pattern.matches(StringUtils.reformatPath(path), ts.getPath())) {
-                    if (tagFilter != null && !TagKVUtils.match(ts.getTags(), tagFilter)) {
+                    if (delete.getTagFilter() != null && !TagKVUtils.match(ts.getTags(), delete.getTagFilter())) {
                         continue;
                     }
                     try (MongoCursor<Document> cursor = collection.find(and(eq(NAME, ts.getPath()), eq(FULLNAME, getFullName(ts.getPath(), ts.getTags())))).cursor()) {
                         if (cursor.hasNext()) {
-                            deletedPaths.add(cursor.next().get("_id", ObjectId.class));
+                            deletedObjectIds.add(cursor.next().get("_id", ObjectId.class));
                         }
                     }
                     break;
@@ -310,7 +322,7 @@ public class MongoDBStorage implements IStorage {
             }
         }
 
-        return deletedPaths;
+        return deletedObjectIds;
     }
 
     private Exception insertRowRecords(RowDataView data, String storageUnit) {
@@ -340,27 +352,23 @@ public class MongoDBStorage implements IStorage {
             }
         }
 
-        List<WriteModel<Document>> inserts = new ArrayList<>();
-        List<WriteModel<Document>> updates = new ArrayList<>();
+        List<WriteModel<Document>> operations = new ArrayList<>();
         for (Map.Entry<MongoDBSchema, List<JSONObject>> entry : points.entrySet()) {
             MongoDBSchema mongoDBSchema = entry.getKey();
             List<JSONObject> jsonObjects = entry.getValue();
             String fullName = getFullName(mongoDBSchema);
             Bson findQuery = eq(FULLNAME, fullName);
             if (!collection.find(findQuery).iterator().hasNext()) {
-                inserts.add(new InsertOneModel<>(DataUtils.constructDocument(mongoDBSchema, mongoDBSchema.getType())));
+                operations.add(new InsertOneModel<>(DataUtils.constructDocument(mongoDBSchema, mongoDBSchema.getType(), jsonObjects)));
+            } else {
+                operations.add(new UpdateOneModel<>(findQuery, Updates.addEachToSet(VALUES, jsonObjects)));
             }
-            updates.add(new UpdateOneModel<>(findQuery, Updates.addEachToSet(VALUES, jsonObjects)));
         }
 
         try {
-            if (!inserts.isEmpty()) {
-                collection.bulkWrite(inserts);
-                inserts.clear();
-            }
-            if (!updates.isEmpty()) {
-                collection.bulkWrite(updates);
-                updates.clear();
+            if (!operations.isEmpty()) {
+                collection.bulkWrite(operations);
+                operations.clear();
             }
         } catch (Exception e) {
             logger.error("encounter error when write points to mongodb: {}", e.getMessage());
@@ -375,8 +383,7 @@ public class MongoDBStorage implements IStorage {
             return new PhysicalTaskExecuteFailureException("create collection failure!");
         }
 
-        List<WriteModel<Document>> inserts = new ArrayList<>();
-        List<WriteModel<Document>> updates = new ArrayList<>();
+        List<WriteModel<Document>> operations = new ArrayList<>();
         for (int i = 0; i < data.getPathNum(); i++) {
             MongoDBSchema schema = new MongoDBSchema(data.getPath(i), data.getTags(i), data.getDataType(i));
             BitmapView bitmapView = data.getBitmapView(i);
@@ -395,19 +402,16 @@ public class MongoDBStorage implements IStorage {
             String fullName = getFullName(schema);
             Bson findQuery = eq(FULLNAME, fullName);
             if (!collection.find(findQuery).iterator().hasNext()) {
-                inserts.add(new InsertOneModel<>(DataUtils.constructDocument(schema, schema.getType())));
+                operations.add(new InsertOneModel<>(DataUtils.constructDocument(schema, schema.getType(), jsonObjects)));
+            } else {
+                operations.add(new UpdateOneModel<>(findQuery, Updates.addEachToSet(VALUES, jsonObjects)));
             }
-            updates.add(new UpdateOneModel<>(findQuery, Updates.addEachToSet(VALUES, jsonObjects)));
         }
 
         try {
-            if (!inserts.isEmpty()) {
-                collection.bulkWrite(inserts);
-                inserts.clear();
-            }
-            if (!updates.isEmpty()) {
-                collection.bulkWrite(updates);
-                updates.clear();
+            if (!operations.isEmpty()) {
+                collection.bulkWrite(operations);
+                operations.clear();
             }
         } catch (Exception e) {
             logger.error("encounter error when write points to mongodb: {}", e.getMessage());

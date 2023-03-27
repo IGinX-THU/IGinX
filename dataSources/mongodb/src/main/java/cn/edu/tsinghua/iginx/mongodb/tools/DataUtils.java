@@ -57,7 +57,7 @@ public class DataUtils {
         }
     }
 
-    public static Document constructDocument(MongoDBSchema schema, DataType type) {
+    public static Document constructDocument(MongoDBSchema schema, DataType type, List<JSONObject> jsonObjects) {
         Document document = new Document();
         document.append(MongoDBStorage.NAME, schema.getName());
         document.append(MongoDBStorage.TYPE, toString(type));
@@ -69,7 +69,7 @@ public class DataUtils {
         } else {
             document.append(MongoDBStorage.FULLNAME, schema.getName());
         }
-        document.append(MongoDBStorage.VALUES, new ArrayList<>());
+        document.append(MongoDBStorage.VALUES, jsonObjects);
         return document;
     }
 

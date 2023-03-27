@@ -56,35 +56,33 @@ public class MongoDBQueryRowStream implements RowStream {
                 fieldList.add(new Field(name, dataType));
             }
 
-            if ((timestamp >= timeInterval.getStartTime() && timestamp < timeInterval.getEndTime()) || timestamp == Long.MIN_VALUE) {
-                Object value = null;
-                if (timestamp != Long.MIN_VALUE) {
-                    switch (dataType) {
-                        case INTEGER:
-                            value = timeAndValueDocument.getInteger(MongoDBStorage.INNER_VALUE);
-                            break;
-                        case LONG:
-                            value = timeAndValueDocument.getLong(MongoDBStorage.INNER_VALUE);
-                            break;
-                        case BOOLEAN:
-                            value = timeAndValueDocument.getBoolean(MongoDBStorage.INNER_VALUE);
-                            break;
-                        case DOUBLE:
-                            value = timeAndValueDocument.getDouble(MongoDBStorage.INNER_VALUE);
-                            break;
-                        case FLOAT:
-                            double doubleValue = timeAndValueDocument.getDouble(MongoDBStorage.INNER_VALUE);
-                            value = (float) doubleValue;
-                            break;
-                        case BINARY:
-                            Binary binary = (Binary) timeAndValueDocument.get(MongoDBStorage.INNER_VALUE);
-                            value = binary.getData();
-                            break;
-                    }
+            Object value = null;
+            if (timestamp != Long.MIN_VALUE) {
+                switch (dataType) {
+                    case INTEGER:
+                        value = timeAndValueDocument.getInteger(MongoDBStorage.INNER_VALUE);
+                        break;
+                    case LONG:
+                        value = timeAndValueDocument.getLong(MongoDBStorage.INNER_VALUE);
+                        break;
+                    case BOOLEAN:
+                        value = timeAndValueDocument.getBoolean(MongoDBStorage.INNER_VALUE);
+                        break;
+                    case DOUBLE:
+                        value = timeAndValueDocument.getDouble(MongoDBStorage.INNER_VALUE);
+                        break;
+                    case FLOAT:
+                        double doubleValue = timeAndValueDocument.getDouble(MongoDBStorage.INNER_VALUE);
+                        value = (float) doubleValue;
+                        break;
+                    case BINARY:
+                        Binary binary = (Binary) timeAndValueDocument.get(MongoDBStorage.INNER_VALUE);
+                        value = binary.getData();
+                        break;
                 }
-                MongoDBPoint point = new MongoDBPoint(new Value(dataType, value), timestamp);
-                queueMap.computeIfAbsent(fullname, key -> new PriorityQueue<>()).add(point);
             }
+            MongoDBPoint point = new MongoDBPoint(new Value(dataType, value), timestamp);
+            queueMap.computeIfAbsent(fullname, key -> new PriorityQueue<>()).add(point);
         }
 
         Header header = new Header(Field.KEY, new ArrayList<>(fieldList)); // TODO 不一定是 Field.KEY
