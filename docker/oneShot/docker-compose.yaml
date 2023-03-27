@@ -11,18 +11,18 @@ services:
     networks:
       - net
   iginx:
-    container_name: iginx
+    container_name: iginx1
     depends_on:
       - zookeeper
       - iotdb
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ../../
+      dockerfile: ./docker/oneShot/Dockerfile
     command: ["/bin/bash", "/root/IGinX/sbin/start_iginx.sh"]
     networks:
       - net
     ports:
-      - "6666:6666"
+      - "10001:6888"
 
 networks:
   net:
