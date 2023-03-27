@@ -37,7 +37,7 @@ import java.util.Random;
 
 import static org.junit.Assert.*;
 
-public abstract class BaseSessionIT extends BaseSessionConcurrencyIT {
+public class BaseSessionIT extends BaseSessionConcurrencyIT {
 
     protected String storageEngineType;
     protected int defaultPort2 = 6668;
@@ -64,8 +64,7 @@ public abstract class BaseSessionIT extends BaseSessionConcurrencyIT {
             logger.error("Statement: \"{}\" execute fail. Caused by: {}", clearData, e.toString());
             if (e.toString().equals(Controller.CLEARDATAEXCP)) {
                 logger.error("clear data fail and go on....");
-            }
-            else fail();
+            } else fail();
         }
 
         if (res != null && res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
@@ -89,9 +88,9 @@ public abstract class BaseSessionIT extends BaseSessionConcurrencyIT {
         return sb.toString();
     }
 
-    private void insertTestsByFourInterfaces()throws SessionException, ExecutionException {
-       CombinedInsertTests test = new CombinedInsertTests(session);
-       test.testInserts();
+    private void insertTestsByFourInterfaces() throws SessionException, ExecutionException {
+        CombinedInsertTests test = new CombinedInsertTests(session);
+        test.testInserts();
     }
 
     private void insertFakeNumRecords(List<String> insertPaths, long count) throws SessionException, ExecutionException {
