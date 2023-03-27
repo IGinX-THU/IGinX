@@ -37,7 +37,6 @@ public class CompactionIT {
 
     @After
     public void tearDown() throws SessionException, ExecutionException {
-        session.executeSql("CLEAR DATA");
         ConfigDescriptor.getInstance().getConfig().setEnableInstantCompaction(false);
         session.closeSession();
     }
