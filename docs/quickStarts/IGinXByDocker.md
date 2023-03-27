@@ -138,131 +138,120 @@ Server: Docker Engine - Community
 
 ## 编译镜像
 
-目前 IGinX 的 docker 镜像需要手动安装到本地。首先需要下载 Iginx 源码并编译：
+目前 IGinX 的 docker 镜像需要手动安装到本地。首先需要下载 Iginx 源码：
 
 ```shell
 $ cd ~
 $ git clone git@github.com:IGinX-THU/IGinX.git # 拉取最新的 IGinX 代码
 $ cd IGinX
-$ mvn clean install -Dmaven.test.skip=true # 编译 IGinX
 ```
 
-显示出如下字样表示编译成功：
+随后开始构建 IGinX 镜像：
 
+目前 IGinx 镜像的构建分为两种：
+- oneShot: 可以将包括 ZooKeeper、IGinX 以及 IoTDB 在内所有依赖进行一键打包及运行。
+- onlyIginx: 另一种为单独构建 IGinx 镜像，需要用户在外部手动启动 ZooKeeper 和 IoTDB 节点。
+
+## oneShot 镜像
+
+对于 oneShot 镜像，其构建方法并运行如下：
 ```shell
-[INFO] ------------------------------------------------------------------------
-[INFO] Reactor Summary for IGinX 0.6.0:
-[INFO]
-[INFO] IGinX .............................................. SUCCESS [  0.274 s]
-[INFO] IGinX Thrift ....................................... SUCCESS [  6.484 s]
-[INFO] IGinX Shared ....................................... SUCCESS [  1.015 s]
-[INFO] IGinX Session ...................................... SUCCESS [  0.713 s]
-[INFO] IGinX Antlr ........................................ SUCCESS [  1.654 s]
-[INFO] IGinX Core ......................................... SUCCESS [  9.471 s]
-[INFO] IGinX IoTDB ........................................ SUCCESS [  1.234 s]
-[INFO] IGinX InfluxDB ..................................... SUCCESS [  0.823 s]
-[INFO] IGinX Client ....................................... SUCCESS [  3.045 s]
-[INFO] IGinX JDBC ......................................... SUCCESS [  0.802 s]
-[INFO] IGinX Example ...................................... SUCCESS [  0.606 s]
-[INFO] IGinX Test ......................................... SUCCESS [  0.116 s]
-[INFO] ------------------------------------------------------------------------
-[INFO] BUILD SUCCESS
-[INFO] ------------------------------------------------------------------------
-[INFO] Total time:  26.432 s
-[INFO] Finished at: 2021-08-19T11:06:12+08:00
-[INFO] ------------------------------------------------------------------------
-
+$ cd docker/oneShot
+$ ./build_and_run_iginx_docker.sh
 ```
 
-随后使用 maven 插件构建 IGinX 镜像：
+显示出如下的字样表示镜像构建成功并且成功启动：
 
 ```shell
-$ mvn package shade:shade -pl core -DskipTests docker:build
+[+] Building 2.0s (12/12) FINISHED                                                                                                                                                                                                                                       
+ => [internal] load build definition from Dockerfile                                                                                                                                                                                                                0.0s
+ => => transferring dockerfile: 32B                                                                                                                                                                                                                                 0.0s
+ => [internal] load .dockerignore                                                                                                                                                                                                                                   0.0s
+ => => transferring context: 2B                                                                                                                                                                                                                                     0.0s
+ => [internal] load metadata for docker.io/library/amazoncorretto:8                                                                                                                                                                                                 1.1s
+ => [internal] load metadata for docker.io/library/maven:3-amazoncorretto-8                                                                                                                                                                                         1.1s
+ => [builder 1/4] FROM docker.io/library/maven:3-amazoncorretto-8@sha256:38be03b00a04502751725aabcdf40e8b74711b5f5a19a4b5cadcbcc6362761a0                                                                                                                           0.0s
+ => => resolve docker.io/library/maven:3-amazoncorretto-8@sha256:38be03b00a04502751725aabcdf40e8b74711b5f5a19a4b5cadcbcc6362761a0                                                                                                                                   0.0s
+ => [stage-1 1/2] FROM docker.io/library/amazoncorretto:8@sha256:0b713bebcce236a89ed36afaa2542a68d215045cbbfd391b749190f3218d9b0d                                                                                                                                   0.0s
+ => [internal] load build context                                                                                                                                                                                                                                   0.7s
+ => => transferring context: 875.73kB                                                                                                                                                                                                                               0.6s
+ => CACHED [builder 2/4] COPY . /root/IGinX                                                                                                                                                                                                                         0.0s
+ => CACHED [builder 3/4] WORKDIR /root/IGinX                                                                                                                                                                                                                        0.0s
+ => CACHED [builder 4/4] RUN --mount=type=cache,target=/root/.m2 mvn clean package -pl core,dataSources/iotdb12 -am -Dmaven.test.skip=true -Drevision=dev                                                                                                           0.0s
+ => CACHED [stage-1 2/2] COPY --from=builder /root/IGinX/core/target/iginx-core-dev /root/IGinX                                                                                                                                                                     0.0s
+ => exporting to image                                                                                                                                                                                                                                              0.0s
+ => => exporting layers                                                                                                                                                                                                                                             0.0s
+ => => writing image sha256:c112090e67e2904e1656e3f22588a0456755443c73bb56dd31c1194c3b60ddf3                                                                                                                                                                        0.0s
+ => => naming to docker.io/library/oneshot_iginx                                                                                                                                                                                                                    0.0s
+
+Use 'docker scan' to run Snyk tests against images to find vulnerabilities and learn how to fix them
+[+] Running 3/3
+ ⠿ Container iotdb      Started                                                                                                                                                                                                                                     0.7s
+ ⠿ Container zookeeper  Started                                                                                                                                                                                                                                     0.7s
+ ⠿ Container iginx1     Started                                                                                                                                                                                                                                     1.6s
+```
+
+## onlyIginx 镜像
+
+对于 oneShot 镜像，其构建方法如下：
+```shell
+$ cd docker/onlyIginx
+$ ./build_iginx_docker.sh
 ```
 
 显示出如下的字样表示镜像构建成功：
 
 ```shell
-Successfully tagged iginx:latest
-[INFO] Built iginx
-[INFO] ------------------------------------------------------------------------
-[INFO] BUILD SUCCESS
-[INFO] ------------------------------------------------------------------------
-[INFO] Total time:  21.268 s
-[INFO] Finished at: 2021-08-19T11:08:46+08:00
-[INFO] ------------------------------------------------------------------------
+[+] Building 578.0s (12/12) FINISHED                                                                                                                                                                                                                                     
+=> [internal] load build definition from Dockerfile-iginx                                                                                                                                                                                                          0.0s
+=> => transferring dockerfile: 400B                                                                                                                                                                                                                                0.0s
+=> [internal] load .dockerignore                                                                                                                                                                                                                                   0.0s
+=> => transferring context: 2B                                                                                                                                                                                                                                     0.0s
+=> [internal] load metadata for docker.io/library/openjdk:11-jre-slim                                                                                                                                                                                              1.2s
+=> [internal] load metadata for docker.io/library/maven:3-amazoncorretto-8                                                                                                                                                                                         1.2s
+=> [internal] load build context                                                                                                                                                                                                                                  10.7s
+=> => transferring context: 271.34MB                                                                                                                                                                                                                              10.5s
+=> CACHED [builder 1/4] FROM docker.io/library/maven:3-amazoncorretto-8@sha256:38be03b00a04502751725aabcdf40e8b74711b5f5a19a4b5cadcbcc6362761a0                                                                                                                    0.0s
+=> => resolve docker.io/library/maven:3-amazoncorretto-8@sha256:38be03b00a04502751725aabcdf40e8b74711b5f5a19a4b5cadcbcc6362761a0                                                                                                                                   0.0s
+=> CACHED [stage-1 1/2] FROM docker.io/library/openjdk:11-jre-slim@sha256:93af7df2308c5141a751c4830e6b6c5717db102b3b31f012ea29d842dc4f2b02                                                                                                                         0.0s
+=> [builder 2/4] COPY . /root/iginx                                                                                                                                                                                                                                2.6s
+=> [builder 3/4] WORKDIR /root/iginx                                                                                                                                                                                                                               0.0s
+=> [builder 4/4] RUN ls;mvn clean package -DskipTests                                                                                                                                                                                                            560.0s
+=> [stage-1 2/2] COPY --from=builder /root/iginx/core/target/iginx-core-0.6.0-SNAPSHOT /iginx                                                                                                                                                                      1.1s
+=> exporting to image                                                                                                                                                                                                                                              1.4s
+=> => exporting layers                                                                                                                                                                                                                                             1.3s
+=> => writing image sha256:bca6377f80dab1689d6cc9975c2db50046722931edc4e314a1aecceb78833204                                                                                                                                                                        0.0s
+=> => naming to docker.io/library/iginx:0.6.0                                                                                                                                                                                                                      0.0s
 ```
 
-可以使用 docker 命令查看已经安装到本地的 IGinX 镜像：
+接下来开始运行镜像
+考虑到 IGinX 和 IoTDB 之前通过网络进行通讯，因此需要建立 Docker 网络，允许其通过网络互联。在这里我们创建一个名为 docker-cluster-iginx 的 bridge 网络：
 
 ```shell
-$ docker images
-REPOSITORY					TAG					IMAGE ID					CREATED					SIZE
-iginx								latest			7f00b2b9510b			36 seconds ago	702MB
+$ docker network create -d bridge --attachable --subnet 172.40.0.0/16 docker-cluster-iginx
 ```
 
-## 基于镜像运行
-
-首先需要从 DockerHub 上拉取 IoTDB 镜像：
+然后启动 Zookeeper：
 
 ```shell
-$ docker pull apache/iotdb:0.11.4
-0.11.4: Pulling from apache/iotdb
-a076a628af6f: Pull complete
-943d8acaac04: Downloading
-b9998d19c116: Download complete
-8162353a3d61: Waiting
-af85646a1131: Waiting
-0.11.4: Pulling from apache/iotdb
-a076a628af6f: Pull complete
-943d8acaac04: Pull complete
-b9998d19c116: Pull complete
-8162353a3d61: Pull complete
-af85646a1131: Pull complete
-Digest: sha256:a29a48297e6785ac13abe63b4d06bdf77d50203c13be98b773b2cfb07b76d135
-Status: Downloaded newer image for apache/iotdb:0.11.4
-docker.io/apache/iotdb:0.11.4
-```
-
-考虑到 IGinX 和 IoTDB 之前通过网络进行通讯，因此需要建立 Docker 网络，允许其通过网络互联。在这里我们创建一个名为 iot 的 bridge 网络：
-
-```shell
-$ docker network create -d bridge iot
+$ cd ${zookeeper_path}
+$ ./bin/zkServer.sh start
 ```
 
 然后启动一个 IoTDB 实例：
 
 ```shell
-$ docker run -d --name iotdb --network iot apache/iotdb:0.11.4
+$ cd ${iotdb_path}
+# ./sbin/start-server.sh
 ```
 
-最后启动 IGinX，选择使用本地文件作为元数据存储后端，并设置后端存储为刚刚启动的 IoTDB 实例即可完成整个系统的启动：
+最后启动 IGinX，选择使用 zookeeper 作为元数据存储后端，并设置后端存储为刚刚启动的 IoTDB 实例即可完成整个系统的启动：
 
 ```shell
-$ docker run -e "metaStorage=file" -e "storageEngineList=iotdb#6667#iotdb#sessionPoolSize=20" -p 6888:6888 --network iot -it iginx
+$ cd ${iginx_path}/docker/onlyIginx
+$ ./run_iginx_docker.sh 172.40.0.2 10000
 ```
 
-该命令会将本地的 6888 接口暴露出来，作为与 IGinX 集群的通讯接口。
+该命令会将本地的 10000 接口暴露出来，作为与 IGinX 集群的通讯接口。通过地址 172.40.0.2:8086 即可开始访问 IGinx
 
-在系统启动完毕后，可以运行 IGinX 源码 example 目录下的 cn.edu.tsinghua.iginx.session.IoTDBSessionExample 类，往其中尝试插入/读取数据。
-
-> 关于 IGinX docker 版本的参数设置：
->
-> 通常情况下，IGinX 使用本地文件作为配置参数的来源。不过在 main 分支最新的版本，支持使用环境变量来配置参数。
->
-> 例如配置文件中的参数 port，表示系统的启动端口，在配置文件中指定为 6888，即 IGinX 对外暴露的端口为 6888。
->
-> ```shell
-> port=6888
-> ```
->
-> 可以设置环境变量 port 为其他值，例如 6889，那么在此情况下 IGinX 的启动端口将变更为 6889。
->
-> ```shell
->  export port=6889
-> ```
->
-> 设置在环境变量的参数会覆盖掉配置文件中的参数。
->
-> 在 Docker 环境中，更改配置文件的方式较为繁琐，因此推荐使用设置 Docker 容器环境变量的方式来配置系统参数。
-
+注：在开始构建镜像前需要把 IGinx 中的 IoTDB 和 Zookeeper 地址参数进行更改（请勿使用 127.0.0.1 作为 IP 参数）
