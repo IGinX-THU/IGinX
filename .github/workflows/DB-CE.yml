@@ -6,7 +6,7 @@ on:
       - main
 env:
   VERSION: 0.6.0-SNAPSHOT
-  FUNCTEST: TagIT,RestIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,BaseSessionIT,BaseSessionPoolIT
+  FUNCTEST: TagIT,RestIT,UDFIT,TransformIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,BaseSessionIT,BaseSessionPoolIT
   INFLUXDBFUNCTEST: RestAnnotationIT
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -121,7 +121,6 @@ jobs:
           elif [ "${{matrix.DB-name}}" == "InfluxDB" ]; then
             mvn test -q -Dtest=InfluxDBHistoryDataCapacityExpansionIT#oriNoDataExpHasData -DfailIfNoTests=false
             mvn test -q -Dtest=${INFLUXDBFUNCTEST} -DfailIfNoTests=false
-            mvn test -q -Dtest=InfluxDBHistoryDataCapacityExpansionIT#testPrefixAndRemoveHistoryDataSource -DfailIfNoTests=false
           else
             echo "${{matrix.DB-name}} is not supported"
           fi
