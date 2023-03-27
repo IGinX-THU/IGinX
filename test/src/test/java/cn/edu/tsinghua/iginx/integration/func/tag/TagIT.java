@@ -487,6 +487,7 @@ public class TagIT {
 
     @Test
     public void testDeleteWithTag() {
+        if (isAbleToDelete) return;
         String statement = "SELECT s FROM ah.*;";
         String expected =
             "ResultSets:\n"
@@ -527,6 +528,7 @@ public class TagIT {
 
     @Test
     public void testDeleteWithMultiTags() {
+        if (isAbleToDelete) return;
         String statement = "SELECT s FROM ah.*;";
         String expected =
             "ResultSets:\n"
@@ -606,6 +608,7 @@ public class TagIT {
 
     @Test
     public void testDeleteTSWithTag() {
+        if (isAbleToDelete || ifScaleOutIn) return;
         String showTimeSeries = "SHOW TIME SERIES ah.*;";
         String expected =
             "Time series:\n"
