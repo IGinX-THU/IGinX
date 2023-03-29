@@ -53,26 +53,6 @@ public class BaseSessionIT extends BaseSessionConcurrencyIT {
     long factSampleLen = (TIME_PERIOD / PRECISION) + ((TIME_PERIOD % PRECISION == 0) ? 0 : 1);
     double originAvg = (START_TIME + END_TIME) / 2.0;
 
-    @After
-    public void clearData() throws ExecutionException, SessionException {
-        String clearData = "CLEAR DATA;";
-
-        SessionExecuteSqlResult res = null;
-        try {
-            res = session.executeSql(clearData);
-        } catch (SessionException | ExecutionException e) {
-            logger.error("Statement: \"{}\" execute fail. Caused by: {}", clearData, e.toString());
-            if (e.toString().equals(Controller.CLEARDATAEXCP)) {
-                logger.error("clear data fail and go on....");
-            } else fail();
-        }
-
-        if (res != null && res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-            logger.error("Statement: \"{}\" execute fail. Caused by: {}.", clearData, res.getParseErrorMsg());
-            fail();
-        }
-    }
-
     private String getSinglePath(int startPosition, int offset) {
         int pos = startPosition + offset;
         return ("sg1.d" + pos + ".s" + pos);

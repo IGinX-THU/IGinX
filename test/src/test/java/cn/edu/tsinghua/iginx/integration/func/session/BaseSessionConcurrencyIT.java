@@ -46,7 +46,7 @@ public abstract class BaseSessionConcurrencyIT {
     protected long delEndTime = START_TIME + TIME_PERIOD / 10 * 9;
     protected long delTimePeriod = delEndTime - delStartTime;
     protected double deleteAvg = ((START_TIME + END_TIME) * TIME_PERIOD / 2.0
-            - (delStartTime + delEndTime - 1) * delTimePeriod / 2.0) / (TIME_PERIOD - delTimePeriod);
+        - (delStartTime + delEndTime - 1) * delTimePeriod / 2.0) / (TIME_PERIOD - delTimePeriod);
 
     protected int currPath = 0;
 
@@ -55,7 +55,7 @@ public abstract class BaseSessionConcurrencyIT {
     @Before
     public void setUp() {
         try {
-            session = new MultiConnection (new Session(defaultTestHost, defaultTestPort, defaultTestUser, defaultTestPass));
+            session = new MultiConnection(new Session(defaultTestHost, defaultTestPort, defaultTestUser, defaultTestPass));
             session.openSession();
         } catch (Exception e) {
             logger.error(e.getMessage());
@@ -76,20 +76,27 @@ public abstract class BaseSessionConcurrencyIT {
         String clearData = "CLEAR DATA;";
 
         SessionExecuteSqlResult res = null;
+        if (session.isClosed()) {
+            session = new MultiConnection(new Session(defaultTestHost, defaultTestPort,
+                defaultTestUser, defaultTestPass));
+            session.openSession();
+        }
+
         try {
             res = session.executeSql(clearData);
         } catch (SessionException | ExecutionException e) {
             logger.error("Statement: \"{}\" execute fail. Caused by: {}", clearData, e.toString());
             if (e.toString().equals(Controller.CLEARDATAEXCP)) {
                 logger.error("clear data fail and go on....");
-            }
-            else fail();
+            } else fail();
         }
 
         if (res != null && res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
             logger.error("Statement: \"{}\" execute fail. Caused by: {}.", clearData, res.getParseErrorMsg());
             fail();
         }
+
+        session.closeSession();
     }
 
     //TODO: a very suspicious test; somebody should do something
@@ -103,7 +110,7 @@ public abstract class BaseSessionConcurrencyIT {
         Thread[] mulStInsertThreads = new Thread[mulStQueryLen];
         for (int i = 0; i < mulStQueryLen; i++) {
             mulStInsertTasks[i] = new BaseSessionConcurrencyIT.MultiThreadTask(1, getPaths(currPath + i, 1), START_TIME, END_TIME,
-                    TIME_PERIOD, 1, null, 6888);
+                TIME_PERIOD, 1, null, 6888);
             mulStInsertThreads[i] = new Thread(mulStInsertTasks[i]);
         }
         for (int i = 0; i < mulStQueryLen; i++) {
@@ -122,7 +129,7 @@ public abstract class BaseSessionConcurrencyIT {
 
         for (int i = 0; i < queryTaskNum; i++) {
             mulStQueryTasks[i] = new BaseSessionConcurrencyIT.MultiThreadTask(3, mulStPaths, START_TIME, END_TIME + 1,
-                    0, 0, null, 6888);
+                0, 0, null, 6888);
             mulStQueryThreads[i] = new Thread(mulStQueryTasks[i]);
         }
         for (int i = 0; i < queryTaskNum; i++) {
@@ -180,7 +187,7 @@ public abstract class BaseSessionConcurrencyIT {
         Thread[] mulTimeInsertThreads = new Thread[mulTimeQueryLen];
         for (int i = 0; i < mulTimeQueryLen; i++) {
             mulTimeInsertTasks[i] = new BaseSessionConcurrencyIT.MultiThreadTask(1, mulTimePaths, START_TIME + i, END_TIME - (4 - i),
-                    TIME_PERIOD / mulTimeQueryLen, mulTimeQueryLen, null, 6888);
+                TIME_PERIOD / mulTimeQueryLen, mulTimeQueryLen, null, 6888);
             mulTimeInsertThreads[i] = new Thread(mulTimeInsertTasks[i]);
         }
         for (int i = 0; i < mulTimeQueryLen; i++) {
@@ -224,7 +231,7 @@ public abstract class BaseSessionConcurrencyIT {
         assertEquals(mulTimeQueryLen, mulTimeAvgDataSet.getValues().length);
         for (int i = 0; i < mulTimeQueryLen; i++) {
             assertEquals(getPathNum(mulTimeAvgResPaths.get(i)) + (START_TIME + END_TIME) / 2.0,
-                    changeResultToDouble(mulTimeAvgResult[i]), delta);
+                changeResultToDouble(mulTimeAvgResult[i]), delta);
         }
         currPath += mulTimeQueryLen;
 
@@ -244,7 +251,7 @@ public abstract class BaseSessionConcurrencyIT {
             Thread[] delPSThreads = new Thread[delPSThreadNum];
             for (int i = 0; i < delPSThreadNum; i++) {
                 delPSTasks[i] = new BaseSessionConcurrencyIT.MultiThreadTask(2, getPaths(currPath + i, 1), delStartTime,
-                        delEndTime, delTimePeriod, 1, null, 6888);
+                    delEndTime, delTimePeriod, 1, null, 6888);
                 delPSThreads[i] = new Thread(delPSTasks[i]);
             }
             for (int i = 0; i < delPSThreadNum; i++) {
@@ -287,13 +294,13 @@ public abstract class BaseSessionConcurrencyIT {
             assertEquals(mulDelPSLen, delPSAvgDataSet.getValues().length);
             for (int i = 0; i < mulDelPSLen; i++) {
                 double avg = ((START_TIME + END_TIME) * TIME_PERIOD / 2.0
-                        - (delStartTime + delEndTime - 1) * delTimePeriod / 2.0) / (TIME_PERIOD - delTimePeriod);
+                    - (delStartTime + delEndTime - 1) * delTimePeriod / 2.0) / (TIME_PERIOD - delTimePeriod);
                 if (getPathNum(delPSAvgResPaths.get(i)) >= currPath + delPSThreadNum) {
                     assertEquals(getPathNum(delPSAvgResPaths.get(i)) + (START_TIME + END_TIME) / 2.0,
-                            changeResultToDouble(delPSAvgResult[i]), delta);
+                        changeResultToDouble(delPSAvgResult[i]), delta);
                 } else {
                     assertEquals(avg + getPathNum(delPSAvgResPaths.get(i)),
-                            changeResultToDouble(delPSAvgResult[i]), delta);
+                        changeResultToDouble(delPSAvgResult[i]), delta);
                 }
             }
 
@@ -322,7 +329,7 @@ public abstract class BaseSessionConcurrencyIT {
             long delPTEndTime = delPTStartTime + TIME_PERIOD / 10 * delPTThreadNum - 1;
             for (int i = 0; i < delPTThreadNum; i++) {
                 delPTTasks[i] = new BaseSessionConcurrencyIT.MultiThreadTask(2, delPTPaths, delPTStartTime + delPTStep * i,
-                        delPTStartTime + delPTStep * (i + 1), delPTStep, 1, null, 6888);
+                    delPTStartTime + delPTStep * (i + 1), delPTStep, 1, null, 6888);
                 delPTThreads[i] = new Thread(delPTTasks[i]);
             }
             for (int i = 0; i < delPTThreadNum; i++) {
@@ -364,13 +371,13 @@ public abstract class BaseSessionConcurrencyIT {
             assertEquals(mulDelPTLen, delPTAvgDataSet.getValues().length);
             for (int i = 0; i < mulDelPTLen; i++) {
                 double avg = ((START_TIME + END_TIME) * TIME_PERIOD / 2.0
-                        - (delPTStartTime + delPTEndTime) * delPTTimePeriod / 2.0) / (TIME_PERIOD - delPTTimePeriod);
+                    - (delPTStartTime + delPTEndTime) * delPTTimePeriod / 2.0) / (TIME_PERIOD - delPTTimePeriod);
                 if (getPathNum(delPTAvgResPaths.get(i)) >= currPath + delPTPathNum) {
                     assertEquals(getPathNum(delPTAvgResPaths.get(i)) + (START_TIME + END_TIME) / 2.0,
-                            changeResultToDouble(delPTAvgResult[i]), delta);
+                        changeResultToDouble(delPTAvgResult[i]), delta);
                 } else {
                     assertEquals(avg + getPathNum(delPTAvgResPaths.get(i)),
-                            changeResultToDouble(delPTAvgResult[i]), delta);
+                        changeResultToDouble(delPTAvgResult[i]), delta);
                 }
             }
             currPath += mulDelPTLen;
@@ -386,7 +393,7 @@ public abstract class BaseSessionConcurrencyIT {
             Thread[] delASThreads = new Thread[delASThreadNum];
             for (int i = 0; i < delASThreadNum; i++) {
                 delASTasks[i] = new BaseSessionConcurrencyIT.MultiThreadTask(2, getPaths(currPath + i, 1), START_TIME,
-                        END_TIME + 1, TIME_PERIOD, 1, null, 6888);
+                    END_TIME + 1, TIME_PERIOD, 1, null, 6888);
                 delASThreads[i] = new Thread(delASTasks[i]);
             }
             for (int i = 0; i < delASThreadNum; i++) {
@@ -426,7 +433,7 @@ public abstract class BaseSessionConcurrencyIT {
             for (int i = 0; i < mulDelASLen; i++) {
                 if (getPathNum(delASAvgResPaths.get(i)) >= currPath + delASThreadNum) {
                     assertEquals(getPathNum(delASAvgResPaths.get(i)) + (START_TIME + END_TIME) / 2.0,
-                            changeResultToDouble(delASAvgResult[i]), delta);
+                        changeResultToDouble(delASAvgResult[i]), delta);
                 } else {
 //                    assertEquals("null", new String((byte[]) delASAvgResult[i]));
                     assertTrue(Double.isNaN((Double) delASAvgResult[i]));
@@ -450,7 +457,7 @@ public abstract class BaseSessionConcurrencyIT {
 
             for (int i = 0; i < delATThreadNum; i++) {
                 delATTasks[i] = new BaseSessionConcurrencyIT.MultiThreadTask(2, delATPath, delATStartTime + delATStep * i,
-                        delATStartTime + delATStep * (i + 1), delATStep, 1, null, 6888);
+                    delATStartTime + delATStep * (i + 1), delATStep, 1, null, 6888);
                 delATThreads[i] = new Thread(delATTasks[i]);
             }
             for (int i = 0; i < delATThreadNum; i++) {
@@ -489,7 +496,7 @@ public abstract class BaseSessionConcurrencyIT {
             for (int i = 0; i < mulDelATLen; i++) {
                 if (getPathNum(delATAvgResPaths.get(i)) >= currPath + delATPathLen) {
                     assertEquals(getPathNum(delATAvgResPaths.get(i)) + (START_TIME + END_TIME) / 2.0,
-                            changeResultToDouble(delATAvgResult[i]), delta);
+                        changeResultToDouble(delATAvgResult[i]), delta);
                 } else {
 //                    assertEquals("null", new String((byte[]) delATAvgResult[i]));
                     assertTrue(Double.isNaN((Double) delATAvgResult[i]));
@@ -593,8 +600,8 @@ public abstract class BaseSessionConcurrencyIT {
             this.queryDataSet = null;
             this.aggregateType = aggrType;
 
-            this.localSession = session.isSession()?new MultiConnection( new Session(defaultTestHost, defaultTestPort,
-                    defaultTestUser, defaultTestPass) ):session;
+            this.localSession = new MultiConnection(new Session(defaultTestHost, defaultTestPort,
+                defaultTestUser, defaultTestPass));
             this.localSession.openSession();
         }
 
@@ -650,7 +657,7 @@ public abstract class BaseSessionConcurrencyIT {
                     break;
             }
             try {
-                if(localSession.isSession())
+                if (localSession.isSession())
                     this.localSession.closeSession();
             } catch (SessionException e) {
                 logger.error(e.getMessage());

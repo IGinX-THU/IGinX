@@ -93,6 +93,10 @@ public class Session {
         this.lock = new ReentrantReadWriteLock();
     }
 
+    public boolean isClosed() {
+        return isClosed;
+    }
+
     private synchronized boolean checkRedirect(Status status) throws SessionException, TException {
         if (RpcUtils.verifyNoRedirect(status)) {
             redirectTimes = 0;
@@ -227,6 +231,7 @@ public class Session {
 
     private class Reference<V> {
         public V resp;
+
         public Reference() {
             resp = null;
         }
@@ -276,7 +281,7 @@ public class Session {
     }
 
     public void deleteColumn(String path) throws SessionException,
-            ExecutionException {
+        ExecutionException {
         List<String> paths = new ArrayList<>();
         paths.add(path);
         deleteColumns(paths);
@@ -678,17 +683,17 @@ public class Session {
     }
 
     public SessionQueryDataSet queryData(List<String> paths, long startTime, long endTime)
-            throws SessionException, ExecutionException {
+        throws SessionException, ExecutionException {
         return queryData(paths, startTime, endTime, null, timeUnit);
     }
 
     public SessionQueryDataSet queryData(List<String> paths, long startTime, long endTime, Map<String, List<String>> tagsList)
-            throws SessionException, ExecutionException {
+        throws SessionException, ExecutionException {
         return queryData(paths, startTime, endTime, tagsList, timeUnit);
     }
 
     public SessionQueryDataSet queryData(List<String> paths, long startTime, long endTime, Map<String, List<String>> tagsList, TimePrecision timePrecision)
-            throws SessionException, ExecutionException {
+        throws SessionException, ExecutionException {
         if (paths.isEmpty() || startTime > endTime) {
             logger.error("Invalid query request!");
             return null;
@@ -707,22 +712,22 @@ public class Session {
     }
 
     public SessionAggregateQueryDataSet aggregateQuery(List<String> paths, long startTime, long endTime, AggregateType aggregateType)
-            throws SessionException, ExecutionException {
+        throws SessionException, ExecutionException {
         return aggregateQuery(paths, startTime, endTime, aggregateType, null, timeUnit);
     }
 
     public SessionAggregateQueryDataSet aggregateQuery(List<String> paths, long startTime, long endTime, AggregateType aggregateType, TimePrecision timePrecision)
-            throws SessionException, ExecutionException {
+        throws SessionException, ExecutionException {
         return aggregateQuery(paths, startTime, endTime, aggregateType, null, timePrecision);
     }
 
     public SessionAggregateQueryDataSet aggregateQuery(List<String> paths, long startTime, long endTime, AggregateType aggregateType, Map<String, List<String>> tagsList)
-            throws SessionException, ExecutionException {
+        throws SessionException, ExecutionException {
         return aggregateQuery(paths, startTime, endTime, aggregateType, tagsList, timeUnit);
     }
 
     public SessionAggregateQueryDataSet aggregateQuery(List<String> paths, long startTime, long endTime, AggregateType aggregateType, Map<String, List<String>> tagsList, TimePrecision timePrecision)
-            throws SessionException, ExecutionException {
+        throws SessionException, ExecutionException {
         AggregateQueryReq req = new AggregateQueryReq(sessionId, mergeAndSortPaths(paths), startTime, endTime, aggregateType);
 
         if (tagsList != null && !tagsList.isEmpty()) {
@@ -737,24 +742,24 @@ public class Session {
     }
 
     public SessionQueryDataSet downsampleQuery(List<String> paths, long startTime, long endTime, AggregateType aggregateType, long precision, TimePrecision timePrecision)
-            throws SessionException, ExecutionException {
+        throws SessionException, ExecutionException {
         return downsampleQuery(paths, startTime, endTime, aggregateType, precision, null, timePrecision);
     }
 
     public SessionQueryDataSet downsampleQuery(List<String> paths, long startTime, long endTime, AggregateType aggregateType, long precision)
-            throws SessionException, ExecutionException {
+        throws SessionException, ExecutionException {
         return downsampleQuery(paths, startTime, endTime, aggregateType, precision, null, timeUnit);
     }
 
     public SessionQueryDataSet downsampleQuery(List<String> paths, long startTime, long endTime, AggregateType aggregateType, long precision, Map<String, List<String>> tagsList)
-            throws SessionException, ExecutionException {
+        throws SessionException, ExecutionException {
         return downsampleQuery(paths, startTime, endTime, aggregateType, precision, tagsList, timeUnit);
     }
 
     public SessionQueryDataSet downsampleQuery(List<String> paths, long startTime, long endTime, AggregateType aggregateType, long precision, Map<String, List<String>> tagsList, TimePrecision timePrecision)
-            throws SessionException, ExecutionException {
+        throws SessionException, ExecutionException {
         DownsampleQueryReq req = new DownsampleQueryReq(sessionId, mergeAndSortPaths(paths), startTime, endTime,
-                aggregateType, precision);
+            aggregateType, precision);
 
         if (tagsList != null && !tagsList.isEmpty()) {
             req.setTagsList(tagsList);
@@ -784,22 +789,22 @@ public class Session {
     }
 
     public SessionQueryDataSet queryLast(List<String> paths, long startTime, TimePrecision timePrecision)
-            throws SessionException, ExecutionException {
+        throws SessionException, ExecutionException {
         return queryLast(paths, startTime, null, timePrecision);
     }
 
     public SessionQueryDataSet queryLast(List<String> paths, long startTime)
-            throws SessionException, ExecutionException {
+        throws SessionException, ExecutionException {
         return queryLast(paths, startTime, null, timeUnit);
     }
 
     public SessionQueryDataSet queryLast(List<String> paths, long startTime, Map<String, List<String>> tagsList)
-            throws SessionException, ExecutionException {
+        throws SessionException, ExecutionException {
         return queryLast(paths, startTime, tagsList, timeUnit);
     }
 
     public SessionQueryDataSet queryLast(List<String> paths, long startTime, Map<String, List<String>> tagsList, TimePrecision timePrecision)
-            throws SessionException, ExecutionException {
+        throws SessionException, ExecutionException {
         if (paths.isEmpty()) {
             logger.error("Invalid query request!");
             return null;
@@ -818,7 +823,7 @@ public class Session {
         return new SessionQueryDataSet(ref.resp);
     }
 
-    public void addUser(String username, String password, Set<AuthType> auths) throws SessionException, ExecutionException  {
+    public void addUser(String username, String password, Set<AuthType> auths) throws SessionException, ExecutionException {
         AddUserReq req = new AddUserReq(sessionId, username, password, auths);
         executeWithCheck(() -> client.addUser(req));
     }
@@ -885,7 +890,7 @@ public class Session {
         return executeQuery(statement, Integer.MAX_VALUE);
     }
 
-    public QueryDataSet executeQuery(String statement, int fetchSize) throws SessionException, ExecutionException  {
+    public QueryDataSet executeQuery(String statement, int fetchSize) throws SessionException, ExecutionException {
         ExecuteStatementReq req = new ExecuteStatementReq(sessionId, statement);
         req.setFetchSize(fetchSize);
         Reference<ExecuteStatementResp> ref = new Reference<>();

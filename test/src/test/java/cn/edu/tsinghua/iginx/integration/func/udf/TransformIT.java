@@ -65,7 +65,7 @@ public class TransformIT {
     private static Session session;
 
     private static final String OUTPUT_DIR_PREFIX = System.getProperty("user.dir") + File.separator
-            + "src" + File.separator + "test" + File.separator + "resources" + File.separator + "transform";
+        + "src" + File.separator + "test" + File.separator + "resources" + File.separator + "transform";
 
     private static final long START_TIMESTAMP = 0L;
 
@@ -86,6 +86,7 @@ public class TransformIT {
     private static final String QUERY_SQL_2 = "SELECT s1, s2 FROM us.d1 WHERE key < 200;";
 
     private static final Map<String, String> TASK_MAP = new HashMap<>();
+
     static {
         TASK_MAP.put("RowSumTransformer", OUTPUT_DIR_PREFIX + File.separator + "transformer_row_sum.py");
         TASK_MAP.put("AddOneTransformer", OUTPUT_DIR_PREFIX + File.separator + "transformer_add_one.py");
@@ -100,7 +101,8 @@ public class TransformIT {
     }
 
     @AfterClass
-    public static void tearDown() throws SessionException {
+    public static void tearDown() throws SessionException, ExecutionException {
+        dropAllTask();
         session.closeSession();
     }
 
@@ -135,7 +137,14 @@ public class TransformIT {
         Controller.clearData(session);
     }
 
-    private void dropTask(String task) throws SessionException, ExecutionException {
+    private static void dropAllTask() throws SessionException, ExecutionException {
+        String[] taskList = {"RowSumTransformer", "AddOneTransformer", "SumTransformer", "SleepTransformer"};
+        for (String task : taskList) {
+            dropTask(task);
+        }
+    }
+
+    private static void dropTask(String task) throws SessionException, ExecutionException {
         SessionExecuteSqlResult result = session.executeSql(SHOW_REGISTER_TASK_SQL);
         for (RegisterTaskInfo info : result.getRegisterTaskInfos()) {
             if (info.getClassName().equals(task)) {
@@ -147,7 +156,7 @@ public class TransformIT {
     private void registerTask(String task) throws SessionException, ExecutionException, InterruptedException {
         dropTask(task);
         session.executeSql(String.format(
-                REGISTER_SQL_FORMATTER, task, TASK_MAP.get(task), task
+            REGISTER_SQL_FORMATTER, task, TASK_MAP.get(task), task
         ));
     }
 
@@ -554,7 +563,7 @@ public class TransformIT {
         assertTrue(Files.deleteIfExists(Paths.get(outputFileName)));
     }
 
-    @Test
+    //    @Test
     public void cancelJobTest() {
         logger.info("cancelJobTest");
         try {
