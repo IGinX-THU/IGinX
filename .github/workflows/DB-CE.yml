@@ -7,7 +7,8 @@ on:
 env:
   VERSION: 0.6.0-SNAPSHOT
   FUNCTEST: TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,BaseSessionIT,BaseSessionPoolIT
-  INFLUXDBFUNCTEST: RestAnnotationIT
+  IoTDB12FUNCTEST: TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,BaseSessionIT,BaseSessionPoolIT
+  InfluxDBFUNCTEST: RestAnnotationIT
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -66,11 +67,7 @@ jobs:
         #        if: always()
         run: |
           mvn test -q -Dtest=${{matrix.DB-name}}HistoryDataCapacityExpansionIT#oriHasDataExpHasData -DfailIfNoTests=false
-          if [ "${{matrix.DB-name}}" == "InfluxDB" ]; then
-            mvn test -q -Dtest=${INFLUXDBFUNCTEST} -DfailIfNoTests=false
-          else
-            mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false
-          fi
+          mvn test -q -Dtest=${${{matrix.DB-name}}FUNCTEST} -DfailIfNoTests=false
       #第 2 阶段测试开始==========================================
       - name: Prepare CapExp environment oriNoDataExpNoData
         #        if: always()
@@ -83,11 +80,7 @@ jobs:
         #        if: always()
         run: |
           mvn test -q -Dtest=${{matrix.DB-name}}HistoryDataCapacityExpansionIT#oriNoDataExpNoData -DfailIfNoTests=false
-          if [ "${{matrix.DB-name}}" == "InfluxDB" ]; then
-            mvn test -q -Dtest=${INFLUXDBFUNCTEST} -DfailIfNoTests=false
-          else
-            mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false
-          fi
+          mvn test -q -Dtest=${${{matrix.DB-name}}FUNCTEST} -DfailIfNoTests=false
       #第 3 阶段测试开始==========================================
       - name: Prepare CapExp environment oriHasDataExpNoData
         #        if: always()
@@ -100,11 +93,7 @@ jobs:
         #        if: always()
         run: |
           mvn test -q -Dtest=${{matrix.DB-name}}HistoryDataCapacityExpansionIT#oriHasDataExpNoData -DfailIfNoTests=false
-          if [ "${{matrix.DB-name}}" == "InfluxDB" ]; then
-            mvn test -q -Dtest=${INFLUXDBFUNCTEST} -DfailIfNoTests=false
-          else
-            mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false
-          fi
+          mvn test -q -Dtest=${${{matrix.DB-name}}FUNCTEST} -DfailIfNoTests=false
       #第 4 阶段测试开始==========================================
       - name: Prepare CapExp environment oriNoDataExpHasData
         uses: ./.github/actions/capacityExpansionUnionTest
@@ -116,11 +105,11 @@ jobs:
         run: |
           if [ "${{matrix.DB-name}}" == "IoTDB12" ]; then
             mvn test -q -Dtest=IoTDB12HistoryDataCapacityExpansionIT#oriNoDataExpHasData -DfailIfNoTests=false
-            mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false
+            mvn test -q -Dtest=${${{matrix.DB-name}}FUNCTEST} -DfailIfNoTests=false
             mvn test -q -Dtest=IoTDB12HistoryDataCapacityExpansionIT#testPrefixAndRemoveHistoryDataSource -DfailIfNoTests=false
           elif [ "${{matrix.DB-name}}" == "InfluxDB" ]; then
             mvn test -q -Dtest=InfluxDBHistoryDataCapacityExpansionIT#oriNoDataExpHasData -DfailIfNoTests=false
-            mvn test -q -Dtest=${INFLUXDBFUNCTEST} -DfailIfNoTests=false
+            mvn test -q -Dtest=${${{matrix.DB-name}}FUNCTEST} -DfailIfNoTests=false
           else
             echo "${{matrix.DB-name}} is not supported"
           fi

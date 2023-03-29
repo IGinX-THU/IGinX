@@ -85,11 +85,9 @@ public class ConfLoder {
         // load the task list
         for (String storageEngine : storageEngines) {
             String tasks = null;
-            if (storageEngine.toLowerCase().equals("influxdb"))
-                tasks = properties.getProperty("influxdb-" + TESTTASK);
-            else if (storageEngine.toLowerCase().equals("parquet"))
-                tasks = properties.getProperty("parquet-" + TESTTASK);
-            else
+            String storage = storageEngine.toLowerCase();
+            tasks = properties.getProperty(storage + "-" + TESTTASK);
+            if (tasks == null)
                 tasks = properties.getProperty(TESTTASK);
             logInfo("the task of {} is :", storageEngine);
             List<String> oriTaskList = Arrays.asList(tasks.split(",")), taskList = new ArrayList<>();
