@@ -207,13 +207,7 @@ public class MongoDBStorage implements IStorage {
                 BasePreciseTagFilter basePreciseTagFilter = (BasePreciseTagFilter) tagFilter;
                 List<Bson> basePreciseBsonFilters = new ArrayList<>();
                 Map<String, String> basePreciseMap = basePreciseTagFilter.getTags();
-                for (Map.Entry<String, String> basePreciseEntry : basePreciseMap.entrySet()) {
-                    if (!basePreciseEntry.getValue().contains("*")) {
-                        basePreciseBsonFilters.add(eq(TAG_PREFIX + basePreciseEntry.getKey(), basePreciseEntry.getValue()));
-                    } else {
-                        basePreciseBsonFilters.add(regex(TAG_PREFIX + basePreciseEntry.getKey(), DataUtils.reformatPattern(basePreciseEntry.getValue())));
-                    }
-                }
+                basePreciseBsonFilters.add(regex(FULLNAME, ".*" + DataUtils.fromTagKVToString(basePreciseMap)));
                 if (basePreciseBsonFilters.isEmpty()) {
                     return null;
                 }
@@ -308,7 +302,7 @@ public class MongoDBStorage implements IStorage {
         List<Timeseries> timeSeries = getTimeSeries();
         List<ObjectId> deletedObjectIds = new ArrayList<>();
 
-        for (Timeseries ts: timeSeries) {
+        for (Timeseries ts : timeSeries) {
             for (String path : delete.getPatterns()) {
                 if (Pattern.matches(StringUtils.reformatPath(path), ts.getPath())) {
                     if (delete.getTagFilter() != null && !TagKVUtils.match(ts.getTags(), delete.getTagFilter())) {

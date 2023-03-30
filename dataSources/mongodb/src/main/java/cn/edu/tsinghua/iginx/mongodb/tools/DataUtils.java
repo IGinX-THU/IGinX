@@ -57,6 +57,22 @@ public class DataUtils {
         }
     }
 
+    public static String fromTagKVToString(Map<String, String> basePreciseMap) {
+        basePreciseMap = new TreeMap<>(basePreciseMap);
+        StringBuilder builder = new StringBuilder();
+        int cnt = 0;
+        for (String key: basePreciseMap.keySet()) {
+            if (cnt != 0) {
+                builder.append(',');
+            }
+            builder.append(key);
+            builder.append("=");
+            builder.append(basePreciseMap.get(key));
+            cnt++;
+        }
+        return builder.toString();
+    }
+
     public static Document constructDocument(MongoDBSchema schema, DataType type, List<JSONObject> jsonObjects) {
         Document document = new Document();
         document.append(MongoDBStorage.NAME, schema.getName());
