@@ -208,8 +208,10 @@ public class MongoDBStorage implements IStorage {
                 List<Bson> basePreciseBsonFilters = new ArrayList<>();
                 Map<String, String> basePreciseMap = basePreciseTagFilter.getTags();
                 for (Map.Entry<String, String> basePreciseEntry : basePreciseMap.entrySet()) {
-                    if (!basePreciseEntry.getValue().contains("*")) { // TODO 正则匹配无法处理带 * 的精确匹配
+                    if (!basePreciseEntry.getValue().contains("*")) {
                         basePreciseBsonFilters.add(eq(TAG_PREFIX + basePreciseEntry.getKey(), basePreciseEntry.getValue()));
+                    } else {
+                        basePreciseBsonFilters.add(regex(TAG_PREFIX + basePreciseEntry.getKey(), DataUtils.reformatPattern(basePreciseEntry.getValue())));
                     }
                 }
                 if (basePreciseBsonFilters.isEmpty()) {
