@@ -7,9 +7,7 @@ import java.util.List;
 
 public class MigrationUtils {
 
-  /**
-   * 获取列表的排列组合
-   */
+  /** 获取列表的排列组合 */
   public static <T> List<List<T>> combination(List<T> values, int size) {
 
     if (0 == size) {
@@ -44,9 +42,7 @@ public class MigrationUtils {
     return data.stream().mapToLong(Long::longValue).sum() * 1.0 / data.size();
   }
 
-  /**
-   * 标准差计算
-   */
+  /** 标准差计算 */
   public static double variance(Collection<Long> data) {
     double variance = 0;
     for (long dataItem : data) {
@@ -55,5 +51,4 @@ public class MigrationUtils {
     variance = variance / (data.size() - 1);
     return Math.sqrt(variance);
   }
-
 }

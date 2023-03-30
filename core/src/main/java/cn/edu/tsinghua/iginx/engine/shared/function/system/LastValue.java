@@ -18,6 +18,8 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.function.system;
 
+import static cn.edu.tsinghua.iginx.engine.shared.Constants.PARAM_PATHS;
+
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
@@ -28,77 +30,72 @@ import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
 import cn.edu.tsinghua.iginx.engine.shared.function.SetMappingFunction;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-import static cn.edu.tsinghua.iginx.engine.shared.Constants.PARAM_PATHS;
-
 public class LastValue implements SetMappingFunction {
 
-    public static final String LAST_VALUE = "last_value";
+  public static final String LAST_VALUE = "last_value";
 
-    private static final LastValue INSTANCE = new LastValue();
+  private static final LastValue INSTANCE = new LastValue();
 
-    private LastValue() {
+  private LastValue() {}
+
+  public static LastValue getInstance() {
+    return INSTANCE;
+  }
+
+  @Override
+  public FunctionType getFunctionType() {
+    return FunctionType.System;
+  }
+
+  @Override
+  public MappingType getMappingType() {
+    return MappingType.SetMapping;
+  }
+
+  @Override
+  public String getIdentifier() {
+    return LAST_VALUE;
+  }
+
+  @Override
+  public Row transform(RowStream rows, Map<String, Value> params) throws Exception {
+    if (params.size() != 1) {
+      throw new IllegalArgumentException("unexpected params for last value.");
     }
-
-    public static LastValue getInstance() {
-        return INSTANCE;
+    Value param = params.get(PARAM_PATHS);
+    if (param == null || param.getDataType() != DataType.BINARY) {
+      throw new IllegalArgumentException("unexpected param type for last value.");
     }
-
-    @Override
-    public FunctionType getFunctionType() {
-        return FunctionType.System;
+    String target = param.getBinaryVAsString();
+    List<Field> fields = rows.getHeader().getFields();
+    Pattern pattern = Pattern.compile(StringUtils.reformatPath(target) + ".*");
+    List<Field> targetFields = new ArrayList<>();
+    List<Integer> indices = new ArrayList<>();
+    for (int i = 0; i < fields.size(); i++) {
+      Field field = fields.get(i);
+      if (pattern.matcher(field.getFullName()).matches()) {
+        String name = getIdentifier() + "(" + field.getName() + ")";
+        String fullName = getIdentifier() + "(" + field.getFullName() + ")";
+        targetFields.add(new Field(name, fullName, field.getType()));
+        indices.add(i);
+      }
     }
-
-    @Override
-    public MappingType getMappingType() {
-        return MappingType.SetMapping;
-    }
-
-    @Override
-    public String getIdentifier() {
-        return LAST_VALUE;
-    }
-
-    @Override
-    public Row transform(RowStream rows, Map<String, Value> params) throws Exception {
-        if (params.size() != 1) {
-            throw new IllegalArgumentException("unexpected params for last value.");
+    Object[] targetValues = new Object[targetFields.size()];
+    while (rows.hasNext()) {
+      Row row = rows.next();
+      for (int i = 0; i < indices.size(); i++) {
+        Object value = row.getValue(indices.get(i));
+        if (value == null) {
+          continue;
         }
-        Value param = params.get(PARAM_PATHS);
-        if (param == null || param.getDataType() != DataType.BINARY) {
-            throw new IllegalArgumentException("unexpected param type for last value.");
-        }
-        String target = param.getBinaryVAsString();
-        List<Field> fields = rows.getHeader().getFields();
-        Pattern pattern = Pattern.compile(StringUtils.reformatPath(target) + ".*");
-        List<Field> targetFields = new ArrayList<>();
-        List<Integer> indices = new ArrayList<>();
-        for (int i = 0; i < fields.size(); i++) {
-            Field field = fields.get(i);
-            if (pattern.matcher(field.getFullName()).matches()) {
-                String name = getIdentifier() + "(" + field.getName() + ")";
-                String fullName = getIdentifier() + "(" + field.getFullName() + ")";
-                targetFields.add(new Field(name, fullName, field.getType()));
-                indices.add(i);
-            }
-        }
-        Object[] targetValues = new Object[targetFields.size()];
-        while (rows.hasNext()) {
-            Row row = rows.next();
-            for (int i = 0; i < indices.size(); i++) {
-                Object value = row.getValue(indices.get(i));
-                if (value == null) {
-                    continue;
-                }
-                targetValues[i] = value;
-            }
-        }
-        return new Row(new Header(targetFields), targetValues);
+        targetValues[i] = value;
+      }
     }
-
+    return new Row(new Header(targetFields), targetValues);
+  }
 }

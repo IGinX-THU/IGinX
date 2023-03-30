@@ -29,106 +29,106 @@ import cn.edu.tsinghua.iginx.influxdb.tools.SchemaTransformer;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.influxdb.query.FluxRecord;
 import com.influxdb.query.FluxTable;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 public class InfluxDBHistoryQueryRowStream implements RowStream {
 
-    private final List<Map.Entry<String, List<FluxTable>>> bucketQueryResults;
+  private final List<Map.Entry<String, List<FluxTable>>> bucketQueryResults;
 
-    private final List<int[]> indexList;
+  private final List<int[]> indexList;
 
-    private final Header header;
+  private final Header header;
 
-    private int hasMoreRecords;
+  private int hasMoreRecords;
 
-    private int size;
+  private int size;
 
-    public InfluxDBHistoryQueryRowStream(Map<String, List<FluxTable>> bucketQueryResults, List<String> patterns) {
-        this.bucketQueryResults = new ArrayList<>(bucketQueryResults.entrySet());
-        this.indexList = new ArrayList<>();
-        List<Field> fields = new ArrayList<>();
-        for (int i = 0; i < bucketQueryResults.size(); i++) {
-            String bucket = this.bucketQueryResults.get(i).getKey();
-            List<FluxTable> tables = this.bucketQueryResults.get(i).getValue();
-            this.indexList.add(new int[tables.size()]);
-            for (FluxTable table: tables) {
-                fields.add(SchemaTransformer.toField(bucket, table));
-                this.hasMoreRecords++;
-                this.size++;
-            }
+  public InfluxDBHistoryQueryRowStream(
+      Map<String, List<FluxTable>> bucketQueryResults, List<String> patterns) {
+    this.bucketQueryResults = new ArrayList<>(bucketQueryResults.entrySet());
+    this.indexList = new ArrayList<>();
+    List<Field> fields = new ArrayList<>();
+    for (int i = 0; i < bucketQueryResults.size(); i++) {
+      String bucket = this.bucketQueryResults.get(i).getKey();
+      List<FluxTable> tables = this.bucketQueryResults.get(i).getValue();
+      this.indexList.add(new int[tables.size()]);
+      for (FluxTable table : tables) {
+        fields.add(SchemaTransformer.toField(bucket, table));
+        this.hasMoreRecords++;
+        this.size++;
+      }
+    }
+
+    header = new Header(Field.KEY, fields);
+  }
+
+  @Override
+  public Header getHeader() throws PhysicalException {
+    return header;
+  }
+
+  @Override
+  public void close() throws PhysicalException {
+    // need to do nothing
+  }
+
+  @Override
+  public boolean hasNext() throws PhysicalException {
+    return this.hasMoreRecords != 0;
+  }
+
+  @Override
+  public Row next() throws PhysicalException {
+    long timestamp = Long.MAX_VALUE;
+    for (int i = 0; i < this.bucketQueryResults.size(); i++) {
+      int[] indices = indexList.get(i);
+      List<FluxTable> tables = bucketQueryResults.get(i).getValue();
+      for (int j = 0; j < tables.size(); j++) {
+        int index = indices[j];
+        FluxTable table = tables.get(j);
+        List<FluxRecord> records = table.getRecords();
+        if (index == records.size()) { // 数据已经消费完毕了
+          continue;
         }
-
-        header = new Header(Field.KEY, fields);
+        FluxRecord record = records.get(index);
+        timestamp = Math.min(instantToNs(record.getTime()), timestamp);
+      }
     }
-
-    @Override
-    public Header getHeader() throws PhysicalException {
-        return header;
+    if (timestamp == Long.MAX_VALUE) {
+      return null;
     }
-
-    @Override
-    public void close() throws PhysicalException {
-        // need to do nothing
-    }
-
-    @Override
-    public boolean hasNext() throws PhysicalException {
-        return this.hasMoreRecords != 0;
-    }
-
-    @Override
-    public Row next() throws PhysicalException {
-        long timestamp = Long.MAX_VALUE;
-        for (int i = 0; i < this.bucketQueryResults.size(); i++) {
-            int[] indices = indexList.get(i);
-            List<FluxTable> tables = bucketQueryResults.get(i).getValue();
-            for (int j = 0; j < tables.size(); j++) {
-                int index = indices[j];
-                FluxTable table = tables.get(j);
-                List<FluxRecord> records = table.getRecords();
-                if (index == records.size()) { // 数据已经消费完毕了
-                    continue;
-                }
-                FluxRecord record = records.get(index);
-                timestamp = Math.min(instantToNs(record.getTime()), timestamp);
-            }
+    Object[] values = new Object[size];
+    int ptr = 0;
+    for (int i = 0; i < this.bucketQueryResults.size(); i++) {
+      int[] indices = indexList.get(i);
+      List<FluxTable> tables = bucketQueryResults.get(i).getValue();
+      for (int j = 0; j < tables.size(); j++) {
+        int index = indices[j];
+        FluxTable table = tables.get(j);
+        List<FluxRecord> records = table.getRecords();
+        if (index == records.size()) { // 数据已经消费完毕了
+          values[ptr++] = null;
+          continue;
         }
-        if (timestamp == Long.MAX_VALUE) {
-            return null;
+        FluxRecord record = records.get(index);
+        if (instantToNs(record.getTime()) == timestamp) {
+          DataType dataType = header.getField(ptr).getType();
+          Object value = record.getValue();
+          if (dataType == DataType.BINARY) {
+            value = ((String) value).getBytes();
+          }
+          values[ptr++] = value;
+          indices[j]++;
+          if (indices[j] == records.size()) {
+            hasMoreRecords--;
+          }
+        } else {
+          values[ptr++] = null;
         }
-        Object[] values = new Object[size];
-        int ptr = 0;
-        for (int i = 0; i < this.bucketQueryResults.size(); i++) {
-            int[] indices = indexList.get(i);
-            List<FluxTable> tables = bucketQueryResults.get(i).getValue();
-            for (int j = 0; j < tables.size(); j++) {
-                int index = indices[j];
-                FluxTable table = tables.get(j);
-                List<FluxRecord> records = table.getRecords();
-                if (index == records.size()) { // 数据已经消费完毕了
-                    values[ptr++] = null;
-                    continue;
-                }
-                FluxRecord record = records.get(index);
-                if (instantToNs(record.getTime()) == timestamp) {
-                    DataType dataType = header.getField(ptr).getType();
-                    Object value = record.getValue();
-                    if (dataType == DataType.BINARY) {
-                        value = ((String) value).getBytes();
-                    }
-                    values[ptr++] = value;
-                    indices[j]++;
-                    if (indices[j] == records.size()) {
-                        hasMoreRecords--;
-                    }
-                } else {
-                    values[ptr++] = null;
-                }
-            }
-        }
-        return new Row(header, timestamp, values);
+      }
     }
+    return new Row(header, timestamp, values);
+  }
 }

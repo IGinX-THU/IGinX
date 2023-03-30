@@ -10,7 +10,7 @@ Currently, IGinX directly supports big data service over relational database Pos
 
 Since ZooKeeper, IGinX and IoTDB are all developed using Java, Java needs to be installed first. If a running environment of JDK >= 1.8 has been installed locally, **skip this step entirely**.
 
-1. First, visit the [official Java website] (https://www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html) to download the JDK package for your current system.
+1. First, visit the [official Java website](https://www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html) to download the JDK package for your current system.
 
 2. Installation
 
@@ -89,20 +89,20 @@ Docker provides an official installation script that allows users to automatical
 
 ```shell
 $ curl -fsSL https://get.docker.com | bash -s docker --mirror Aliyun
-````
+```
 
 You can also use the internal daocloud one-click installation command:
 
 ```shell
 $ curl -sSL https://get.daocloud.io/docker | sh
-````
+```
 
 Run this command to start the docker engine and check the docker version:
 
 ```shell
 $ systemctl start docker
 $ docker version
-````
+```
 
 If the words above are displayed, it means the installation was successful:
 
@@ -135,7 +135,7 @@ Server: Docker Engine - Community
  docker-init:
   Version: 0.19.0
   GitCommit: de40ad0
-````
+```
 
 ## Compile the Image
 
@@ -145,7 +145,7 @@ Currently, the docker image of IGinX needs to be manually installed locally. Fir
 $ cd ~
 $ git clone git@github.com:IGinX-THU/IGinX.git # Pull the latest IGinX code
 $ cd IGinX
-````
+```
 
 Then start building the IGinX image:
 
@@ -160,7 +160,7 @@ Then use the following command to build and run the IGinX image:
 ```shell
 $ cd docker/oneShot
 $ ./build_and_run_iginx_docker.sh
-````
+```
 
 The following words are displayed to indicate that the image was built and run successfully:
 
@@ -200,7 +200,7 @@ Use the following command to build the IGinX image:
 ```shell
 $ cd docker/onlyIginx
 $ ./build_iginx_docker.sh
-````
+```
 
 The following words are displayed to indicate that the image was built successfully:
 
@@ -235,6 +235,7 @@ $ docker network create -d bridge --attachable --subnet 172.40.0.0/16 docker-clu
 ```
 
 Now start Zookeeper:
+
 ```shell
 $ cd ${zookeeper_path}
 $ ./bin/zkServer.sh start

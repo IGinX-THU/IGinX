@@ -7,122 +7,136 @@ import cn.edu.tsinghua.iginx.transform.api.Writer;
 import cn.edu.tsinghua.iginx.transform.data.ArrowReader;
 import cn.edu.tsinghua.iginx.transform.data.BatchData;
 import cn.edu.tsinghua.iginx.transform.exception.WriteBatchException;
-import org.apache.arrow.memory.RootAllocator;
-import org.apache.arrow.vector.VectorSchemaRoot;
-import org.apache.arrow.vector.ipc.ArrowStreamReader;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import org.apache.arrow.memory.RootAllocator;
+import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.ipc.ArrowStreamReader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class IPCWorker extends Thread {
 
-    private final long pid;
+  private final long pid;
 
-    private final String ip;
+  private final String ip;
 
-    private final int javaPort;
+  private final int javaPort;
 
-    private final int pyPort;
+  private final int pyPort;
 
-    private final Process process;
+  private final Process process;
 
-    private final ServerSocket serverSocket;
+  private final ServerSocket serverSocket;
 
-    private final Writer writer;
+  private final Writer writer;
 
-    private final static Logger logger = LoggerFactory.getLogger(IPCWorker.class);
+  private static final Logger logger = LoggerFactory.getLogger(IPCWorker.class);
 
-    private final static Config config = ConfigDescriptor.getInstance().getConfig();
+  private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
-    private final ExecutorService threadPool = Executors.newFixedThreadPool(5);
+  private final ExecutorService threadPool = Executors.newFixedThreadPool(5);
 
-    public IPCWorker(long pid, int javaPort, int pyPort, Process process, ServerSocket serverSocket, Writer writer) {
-        this.pid = pid;
-        this.ip = config.getIp();
-        this.javaPort = javaPort;
-        this.pyPort = pyPort;
-        this.process = process;
-        this.serverSocket = serverSocket;
-        this.writer = writer;
+  public IPCWorker(
+      long pid,
+      int javaPort,
+      int pyPort,
+      Process process,
+      ServerSocket serverSocket,
+      Writer writer) {
+    this.pid = pid;
+    this.ip = config.getIp();
+    this.javaPort = javaPort;
+    this.pyPort = pyPort;
+    this.process = process;
+    this.serverSocket = serverSocket;
+    this.writer = writer;
+  }
+
+  @Override
+  public void run() {
+    try {
+      while (true) {
+        Socket socket = serverSocket.accept();
+        threadPool.submit(() -> process(socket));
+      }
+    } catch (SocketException ignored) {
+      logger.info(toString() + " stop server socket.");
+    } catch (IOException e) {
+      throw new RuntimeException("An error occurred while listening.", e);
     }
+  }
 
-    @Override
-    public void run() {
-        try {
-            while (true) {
-                Socket socket = serverSocket.accept();
-                threadPool.submit(() -> process(socket));
-            }
-        } catch (SocketException ignored) {
-            logger.info(toString() + " stop server socket.");
-        } catch (IOException e) {
-            throw new RuntimeException("An error occurred while listening.", e);
-        }
+  public void process(Socket socket) {
+    RootAllocator allocator = new RootAllocator(Long.MAX_VALUE);
+    try (ArrowStreamReader reader = new ArrowStreamReader(socket.getInputStream(), allocator)) {
+      VectorSchemaRoot readBatch = reader.getVectorSchemaRoot();
+      reader.loadNextBatch();
+
+      Reader arrowReader = new ArrowReader(readBatch, config.getBatchSize());
+      while (arrowReader.hasNextBatch()) {
+        BatchData batchData = arrowReader.loadNextBatch();
+        writer.writeBatch(batchData);
+      }
+
+      reader.close();
+      socket.close();
+    } catch (IOException | WriteBatchException e) {
+      logger.error(String.format("Worker pid=%d fail to process socket.", pid));
+      throw new RuntimeException("Fail to process socket", e);
     }
+  }
 
-    public void process(Socket socket) {
-        RootAllocator allocator = new RootAllocator(Long.MAX_VALUE);
-        try (ArrowStreamReader reader = new ArrowStreamReader(socket.getInputStream(), allocator)) {
-            VectorSchemaRoot readBatch = reader.getVectorSchemaRoot();
-            reader.loadNextBatch();
-
-            Reader arrowReader = new ArrowReader(readBatch, config.getBatchSize());
-            while (arrowReader.hasNextBatch()) {
-                BatchData batchData = arrowReader.loadNextBatch();
-                writer.writeBatch(batchData);
-            }
-
-            reader.close();
-            socket.close();
-        } catch (IOException | WriteBatchException e) {
-            logger.error(String.format("Worker pid=%d fail to process socket.", pid));
-            throw new RuntimeException("Fail to process socket", e);
-        }
+  public void close() {
+    if (process.isAlive()) {
+      this.process.destroy();
     }
-
-    public void close() {
-        if (process.isAlive()) {
-            this.process.destroy();
-        }
-        if (serverSocket != null && !serverSocket.isClosed()) {
-            try {
-                this.serverSocket.close();
-            } catch (IOException e) {
-                e.printStackTrace(System.err);
-            }
-        }
-        threadPool.shutdown();
+    if (serverSocket != null && !serverSocket.isClosed()) {
+      try {
+        this.serverSocket.close();
+      } catch (IOException e) {
+        e.printStackTrace(System.err);
+      }
     }
+    threadPool.shutdown();
+  }
 
-    public long getPid() {
-        return pid;
-    }
+  public long getPid() {
+    return pid;
+  }
 
-    public int getPyPort() {
-        return pyPort;
-    }
+  public int getPyPort() {
+    return pyPort;
+  }
 
-    public Process getProcess() {
-        return process;
-    }
+  public Process getProcess() {
+    return process;
+  }
 
-    @Override
-    public String toString() {
-        return "Worker{" +
-            "pid=" + pid +
-            ", ip='" + ip + '\'' +
-            ", javaPort=" + javaPort +
-            ", pyPort=" + pyPort +
-            ", process=" + process +
-            ", serverSocket=" + serverSocket +
-            ", writer=" + writer +
-            ", threadPool=" + threadPool +
-            '}';
-    }
+  @Override
+  public String toString() {
+    return "Worker{"
+        + "pid="
+        + pid
+        + ", ip='"
+        + ip
+        + '\''
+        + ", javaPort="
+        + javaPort
+        + ", pyPort="
+        + pyPort
+        + ", process="
+        + process
+        + ", serverSocket="
+        + serverSocket
+        + ", writer="
+        + writer
+        + ", threadPool="
+        + threadPool
+        + '}';
+  }
 }

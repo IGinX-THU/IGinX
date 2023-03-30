@@ -32,246 +32,208 @@ import java.util.Set;
 
 public interface IMetaManager {
 
-    /**
-     * 批量新增存储引擎节点
-     */
-    boolean addStorageEngines(List<StorageEngineMeta> storageEngineMetas);
-
-    /**
-     * 更新存储引擎节点
-     */
-    boolean updateStorageEngine(long storageID, StorageEngineMeta storageEngineMeta);
-
-    /**
-     * 获取所有的存储引擎实例的原信息（包括每个存储引擎的存储单元列表）
-     */
-    List<StorageEngineMeta> getStorageEngineList();
-
-    List<StorageEngineMeta> getWriteableStorageEngineList();
-
-    /**
-     * 获取存储引擎实例的数量
-     */
-    int getStorageEngineNum();
-
-    /**
-     * 获取某个存储引擎实例的原信息（包括存储引擎的存储单元列表）
-     */
-    StorageEngineMeta getStorageEngine(long id);
-
-    StorageUnitMeta getStorageUnit(String id);
-
-    Map<String, StorageUnitMeta> getStorageUnits(Set<String> ids);
-
-    List<StorageUnitMeta> getStorageUnits();
-
-    /**
-     * 获取所有活跃的 iginx 节点的元信息
-     */
-    List<IginxMeta> getIginxList();
-
-    /**
-     * 获取当前 iginx 节点的 ID
-     */
-    long getIginxId();
-
-    /**
-     * 获取所有的分片，用于 debug
-     */
-    List<FragmentMeta> getFragments();
-
-    List<FragmentMeta> getFragmentsByStorageUnit(String storageUnitId);
-
-    /**
-     * 获取某个du的时空范围
-     * */
-    Pair<TimeSeriesRange,TimeInterval> getBoundaryOfStorageUnit(String storageUnitId);
-
-    /**
-     * 获取某个时间序列区间的所有分片，不会返回虚拟堆叠分片
-     */
-    Map<TimeSeriesRange, List<FragmentMeta>> getFragmentMapByTimeSeriesInterval(TimeSeriesRange tsInterval);
-
-    /**
-     * 获取某个时间序列区间的所有分片，根据参数决定是否返回虚拟堆叠分片
-     */
-    Map<TimeSeriesRange, List<FragmentMeta>> getFragmentMapByTimeSeriesInterval(TimeSeriesRange tsInterval, boolean withDummyFragment);
-
-    /**
-     * 查询某个时间序列区间是否有虚拟堆叠分片
-     */
-    boolean hasDummyFragment(TimeSeriesRange tsInterval);
-
-    /**
-     * 获取某个时间区间的所有最新的分片（这些分片一定也都是未终结的分片）
-     */
-    Map<TimeSeriesRange, FragmentMeta> getLatestFragmentMapByTimeSeriesInterval(TimeSeriesRange tsInterval);
-
-    /**
-     * 获取全部最新的分片，不会返回虚拟堆叠分片
-     */
-    Map<TimeSeriesRange, FragmentMeta> getLatestFragmentMap();
-
-    /**
-     * 获取某个时间序列区间在某个时间区间的所有分片，不会返回虚拟堆叠分片。
-     */
-    Map<TimeSeriesRange, List<FragmentMeta>> getFragmentMapByTimeSeriesIntervalAndTimeInterval(TimeSeriesRange tsInterval,
-                                                                                                  TimeInterval timeInterval);
-
-    /**
-     * 获取某个时间序列区间在某个时间区间的所有分片，根据参数决定是否返回虚拟堆叠分片
-     */
-    Map<TimeSeriesRange, List<FragmentMeta>> getFragmentMapByTimeSeriesIntervalAndTimeInterval(TimeSeriesRange tsInterval,
-                                                                                                  TimeInterval timeInterval, boolean withDummyFragment);
-
-    /**
-     * 获取某个时间序列的所有分片（按照分片时间戳排序），会返回虚拟堆叠分片
-     */
-    List<FragmentMeta> getFragmentListByTimeSeriesName(String tsName);
-
-    /**
-     * 获取某个时间序列的最新分片
-     */
-    FragmentMeta getLatestFragmentByTimeSeriesName(String tsName);
-
+  /** 批量新增存储引擎节点 */
+  boolean addStorageEngines(List<StorageEngineMeta> storageEngineMetas);
 
-    /**
-     * 获取某个时间序列在某个时间区间的所有分片（按照分片时间戳排序）
-     */
-    List<FragmentMeta> getFragmentListByTimeSeriesNameAndTimeInterval(String tsName, TimeInterval timeInterval);
+  /** 更新存储引擎节点 */
+  boolean updateStorageEngine(long storageID, StorageEngineMeta storageEngineMeta);
 
-    /**
-     * 创建分片和存储单元
-     */
-    boolean createFragmentsAndStorageUnits(List<StorageUnitMeta> storageUnits, List<FragmentMeta> fragments);
+  /** 获取所有的存储引擎实例的原信息（包括每个存储引擎的存储单元列表） */
+  List<StorageEngineMeta> getStorageEngineList();
 
-    /**
-     * 用于负载均衡，切割分片和du
-     * @return
-     */
-    FragmentMeta splitFragmentAndStorageUnit(StorageUnitMeta toAddStorageUnit, FragmentMeta toAddFragment, FragmentMeta fragment);
+  List<StorageEngineMeta> getWriteableStorageEngineList();
 
-    /**
-     * 是否已经创建过分片
-     */
-    boolean hasFragment();
+  /** 获取存储引擎实例的数量 */
+  int getStorageEngineNum();
 
-    /**
-     * 创建初始分片和初始存储单元
-     */
-    boolean createInitialFragmentsAndStorageUnits(List<StorageUnitMeta> storageUnits, List<FragmentMeta> initialFragments);
+  /** 获取某个存储引擎实例的原信息（包括存储引擎的存储单元列表） */
+  StorageEngineMeta getStorageEngine(long id);
 
-    /**
-     * 用于重分片，在目标节点创建相应的du
-     */
-    StorageUnitMeta generateNewStorageUnitMetaByFragment(FragmentMeta fragmentMeta, long targetStorageId)
-        throws MetaStorageException;
+  StorageUnitMeta getStorageUnit(String id);
 
-    /**
-     * 为新创建的分片选择存储引擎实例
-     *
-     * @return 选出的存储引擎实例 Id 列表
-     */
-    List<Long> selectStorageEngineIdList();
+  Map<String, StorageUnitMeta> getStorageUnits(Set<String> ids);
 
-    void registerStorageEngineChangeHook(StorageEngineChangeHook hook);
+  List<StorageUnitMeta> getStorageUnits();
 
-    /**
-     * 增加或更新 schemaMappings
-     *
-     * @param schema        待更新的 schema 名
-     * @param schemaMapping 待更新的 schema，如果 schema 为空，则表示删除给定的 schema
-     */
-    void addOrUpdateSchemaMapping(String schema, Map<String, Integer> schemaMapping);
+  /** 获取所有活跃的 iginx 节点的元信息 */
+  List<IginxMeta> getIginxList();
 
-    /**
-     * 增加或更新某个给定 schemaMapping 的数据项
-     *
-     * @param schema 待更新的 schema 名
-     * @param key    待更新的数据项的名
-     * @param value  待更新的数据项，如果 value = -1 表示删除该数据项
-     */
-    void addOrUpdateSchemaMappingItem(String schema, String key, int value);
+  /** 获取当前 iginx 节点的 ID */
+  long getIginxId();
 
-    /**
-     * 获取某个 schemaMapping
-     *
-     * @param schema 需要获取的 schema
-     * @return schema。如果不存在则返回空指针
-     */
-    Map<String, Integer> getSchemaMapping(String schema);
+  /** 获取所有的分片，用于 debug */
+  List<FragmentMeta> getFragments();
 
-    /**
-     * 获取某个 schemaMapping 中的数据项
-     *
-     * @param schema 需要获取的 schema
-     * @param key    需要获取的数据项的名
-     * @return 数据项的值。如果不存在则返回 -1
-     */
-    int getSchemaMappingItem(String schema, String key);
+  List<FragmentMeta> getFragmentsByStorageUnit(String storageUnitId);
 
-    boolean addUser(UserMeta user);
+  /** 获取某个du的时空范围 */
+  Pair<TimeSeriesRange, TimeInterval> getBoundaryOfStorageUnit(String storageUnitId);
 
-    boolean updateUser(String username, String password, Set<AuthType> auths);
+  /** 获取某个时间序列区间的所有分片，不会返回虚拟堆叠分片 */
+  Map<TimeSeriesRange, List<FragmentMeta>> getFragmentMapByTimeSeriesInterval(
+      TimeSeriesRange tsInterval);
 
-    boolean removeUser(String username);
+  /** 获取某个时间序列区间的所有分片，根据参数决定是否返回虚拟堆叠分片 */
+  Map<TimeSeriesRange, List<FragmentMeta>> getFragmentMapByTimeSeriesInterval(
+      TimeSeriesRange tsInterval, boolean withDummyFragment);
 
-    UserMeta getUser(String username);
+  /** 查询某个时间序列区间是否有虚拟堆叠分片 */
+  boolean hasDummyFragment(TimeSeriesRange tsInterval);
 
-    List<UserMeta> getUsers();
+  /** 获取某个时间区间的所有最新的分片（这些分片一定也都是未终结的分片） */
+  Map<TimeSeriesRange, FragmentMeta> getLatestFragmentMapByTimeSeriesInterval(
+      TimeSeriesRange tsInterval);
 
-    List<UserMeta> getUsers(List<String> username);
+  /** 获取全部最新的分片，不会返回虚拟堆叠分片 */
+  Map<TimeSeriesRange, FragmentMeta> getLatestFragmentMap();
 
-    void registerStorageUnitHook(StorageUnitHook hook);
+  /** 获取某个时间序列区间在某个时间区间的所有分片，不会返回虚拟堆叠分片。 */
+  Map<TimeSeriesRange, List<FragmentMeta>> getFragmentMapByTimeSeriesIntervalAndTimeInterval(
+      TimeSeriesRange tsInterval, TimeInterval timeInterval);
 
-    boolean election();
+  /** 获取某个时间序列区间在某个时间区间的所有分片，根据参数决定是否返回虚拟堆叠分片 */
+  Map<TimeSeriesRange, List<FragmentMeta>> getFragmentMapByTimeSeriesIntervalAndTimeInterval(
+      TimeSeriesRange tsInterval, TimeInterval timeInterval, boolean withDummyFragment);
 
-    void saveTimeSeriesData(InsertStatement statement);
+  /** 获取某个时间序列的所有分片（按照分片时间戳排序），会返回虚拟堆叠分片 */
+  List<FragmentMeta> getFragmentListByTimeSeriesName(String tsName);
 
-    List<TimeSeriesCalDO> getMaxValueFromTimeSeries();
+  /** 获取某个时间序列的最新分片 */
+  FragmentMeta getLatestFragmentByTimeSeriesName(String tsName);
 
-    Map<String, Double> getTimeseriesData();
+  /** 获取某个时间序列在某个时间区间的所有分片（按照分片时间戳排序） */
+  List<FragmentMeta> getFragmentListByTimeSeriesNameAndTimeInterval(
+      String tsName, TimeInterval timeInterval);
 
-    int updateVersion();
+  /** 创建分片和存储单元 */
+  boolean createFragmentsAndStorageUnits(
+      List<StorageUnitMeta> storageUnits, List<FragmentMeta> fragments);
 
-    Map<Integer, Integer> getTimeseriesVersionMap();
+  /**
+   * 用于负载均衡，切割分片和du
+   *
+   * @return
+   */
+  FragmentMeta splitFragmentAndStorageUnit(
+      StorageUnitMeta toAddStorageUnit, FragmentMeta toAddFragment, FragmentMeta fragment);
 
-    boolean addTransformTask(TransformTaskMeta transformTask);
+  /** 是否已经创建过分片 */
+  boolean hasFragment();
 
-    boolean updateTransformTask(TransformTaskMeta transformTask);
+  /** 创建初始分片和初始存储单元 */
+  boolean createInitialFragmentsAndStorageUnits(
+      List<StorageUnitMeta> storageUnits, List<FragmentMeta> initialFragments);
 
-    boolean dropTransformTask(String name);
+  /** 用于重分片，在目标节点创建相应的du */
+  StorageUnitMeta generateNewStorageUnitMetaByFragment(
+      FragmentMeta fragmentMeta, long targetStorageId) throws MetaStorageException;
 
-    TransformTaskMeta getTransformTask(String name);
+  /**
+   * 为新创建的分片选择存储引擎实例
+   *
+   * @return 选出的存储引擎实例 Id 列表
+   */
+  List<Long> selectStorageEngineIdList();
 
-    List<TransformTaskMeta> getTransformTasks();
+  void registerStorageEngineChangeHook(StorageEngineChangeHook hook);
 
-    void updateFragmentRequests(Map<FragmentMeta, Long> writeRequestsMap,
-                                Map<FragmentMeta, Long> readRequestsMap) throws Exception;
+  /**
+   * 增加或更新 schemaMappings
+   *
+   * @param schema 待更新的 schema 名
+   * @param schemaMapping 待更新的 schema，如果 schema 为空，则表示删除给定的 schema
+   */
+  void addOrUpdateSchemaMapping(String schema, Map<String, Integer> schemaMapping);
 
-    void updateFragmentHeat(Map<FragmentMeta, Long> writeHotspotMap,
-                            Map<FragmentMeta, Long> readHotspotMap) throws Exception;
+  /**
+   * 增加或更新某个给定 schemaMapping 的数据项
+   *
+   * @param schema 待更新的 schema 名
+   * @param key 待更新的数据项的名
+   * @param value 待更新的数据项，如果 value = -1 表示删除该数据项
+   */
+  void addOrUpdateSchemaMappingItem(String schema, String key, int value);
 
-    Pair<Map<FragmentMeta, Long>, Map<FragmentMeta, Long>> loadFragmentHeat() throws Exception;
+  /**
+   * 获取某个 schemaMapping
+   *
+   * @param schema 需要获取的 schema
+   * @return schema。如果不存在则返回空指针
+   */
+  Map<String, Integer> getSchemaMapping(String schema);
 
-    void updateFragmentPoints(FragmentMeta fragmentMeta, long points);
+  /**
+   * 获取某个 schemaMapping 中的数据项
+   *
+   * @param schema 需要获取的 schema
+   * @param key 需要获取的数据项的名
+   * @return 数据项的值。如果不存在则返回 -1
+   */
+  int getSchemaMappingItem(String schema, String key);
 
-    Map<FragmentMeta, Long> loadFragmentPoints() throws Exception;
+  boolean addUser(UserMeta user);
 
-    void clearMonitors();
+  boolean updateUser(String username, String password, Set<AuthType> auths);
 
-    void removeFragment(FragmentMeta fragmentMeta);
+  boolean removeUser(String username);
 
-    void addFragment(FragmentMeta fragmentMeta);
+  UserMeta getUser(String username);
 
-    void endFragmentByTimeSeriesInterval(FragmentMeta fragmentMeta, String endTimeSeries);
+  List<UserMeta> getUsers();
 
-    void updateFragmentByTsInterval(TimeSeriesRange tsInterval, FragmentMeta fragmentMeta);
+  List<UserMeta> getUsers(List<String> username);
 
-    void updateMaxActiveEndTime(long endTime);
+  void registerStorageUnitHook(StorageUnitHook hook);
 
-    long getMaxActiveEndTime();
+  boolean election();
 
-    void submitMaxActiveEndTime();
+  void saveTimeSeriesData(InsertStatement statement);
 
+  List<TimeSeriesCalDO> getMaxValueFromTimeSeries();
+
+  Map<String, Double> getTimeseriesData();
+
+  int updateVersion();
+
+  Map<Integer, Integer> getTimeseriesVersionMap();
+
+  boolean addTransformTask(TransformTaskMeta transformTask);
+
+  boolean updateTransformTask(TransformTaskMeta transformTask);
+
+  boolean dropTransformTask(String name);
+
+  TransformTaskMeta getTransformTask(String name);
+
+  List<TransformTaskMeta> getTransformTasks();
+
+  void updateFragmentRequests(
+      Map<FragmentMeta, Long> writeRequestsMap, Map<FragmentMeta, Long> readRequestsMap)
+      throws Exception;
+
+  void updateFragmentHeat(
+      Map<FragmentMeta, Long> writeHotspotMap, Map<FragmentMeta, Long> readHotspotMap)
+      throws Exception;
+
+  Pair<Map<FragmentMeta, Long>, Map<FragmentMeta, Long>> loadFragmentHeat() throws Exception;
+
+  void updateFragmentPoints(FragmentMeta fragmentMeta, long points);
+
+  Map<FragmentMeta, Long> loadFragmentPoints() throws Exception;
+
+  void clearMonitors();
+
+  void removeFragment(FragmentMeta fragmentMeta);
+
+  void addFragment(FragmentMeta fragmentMeta);
+
+  void endFragmentByTimeSeriesInterval(FragmentMeta fragmentMeta, String endTimeSeries);
+
+  void updateFragmentByTsInterval(TimeSeriesRange tsInterval, FragmentMeta fragmentMeta);
+
+  void updateMaxActiveEndTime(long endTime);
+
+  long getMaxActiveEndTime();
+
+  void submitMaxActiveEndTime();
 }

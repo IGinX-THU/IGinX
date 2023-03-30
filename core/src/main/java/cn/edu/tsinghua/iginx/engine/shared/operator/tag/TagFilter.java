@@ -20,8 +20,7 @@ package cn.edu.tsinghua.iginx.engine.shared.operator.tag;
 
 public interface TagFilter {
 
-    TagFilterType getType();
+  TagFilterType getType();
 
-    TagFilter copy();
-
+  TagFilter copy();
 }

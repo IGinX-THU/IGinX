@@ -19,126 +19,129 @@
 package cn.edu.tsinghua.iginx.session_v2.query;
 
 import cn.edu.tsinghua.iginx.session_v2.Arguments;
-
 import java.util.*;
 
 public class SimpleQuery extends Query {
 
-    private final long startTime;
+  private final long startTime;
 
-    private final long endTime;
+  private final long endTime;
 
-    private final String timePrecision;
+  private final String timePrecision;
 
-    private SimpleQuery(Set<String> measurements, Map<String, List<String>> tagsList, long startTime, long endTime) {
-        super(Collections.unmodifiableSet(measurements), tagsList);
-        this.startTime = startTime;
-        this.endTime = endTime;
-        this.timePrecision = null;
+  private SimpleQuery(
+      Set<String> measurements, Map<String, List<String>> tagsList, long startTime, long endTime) {
+    super(Collections.unmodifiableSet(measurements), tagsList);
+    this.startTime = startTime;
+    this.endTime = endTime;
+    this.timePrecision = null;
+  }
+
+  private SimpleQuery(
+      Set<String> measurements,
+      Map<String, List<String>> tagsList,
+      long startTime,
+      long endTime,
+      String timePrecision) {
+    super(Collections.unmodifiableSet(measurements), tagsList);
+    this.startTime = startTime;
+    this.endTime = endTime;
+    this.timePrecision = timePrecision;
+  }
+
+  public static SimpleQuery.Builder builder() {
+    return new Builder();
+  }
+
+  public long getStartTime() {
+    return startTime;
+  }
+
+  public long getEndTime() {
+    return endTime;
+  }
+
+  public String getTimePrecision() {
+    return timePrecision;
+  }
+
+  public static class Builder {
+
+    private final Set<String> measurements;
+
+    private final Map<String, List<String>> tagsList;
+
+    private long startTime;
+
+    private long endTime;
+
+    private String timePrecision;
+
+    private Builder() {
+      this.measurements = new HashSet<>();
+      this.tagsList = new HashMap<>();
+      this.startTime = 0L;
+      this.endTime = Long.MAX_VALUE;
+      this.timePrecision = null;
     }
 
-    private SimpleQuery(Set<String> measurements, Map<String, List<String>> tagsList, long startTime, long endTime, String timePrecision) {
-        super(Collections.unmodifiableSet(measurements), tagsList);
-        this.startTime = startTime;
-        this.endTime = endTime;
-        this.timePrecision = timePrecision;
+    public SimpleQuery.Builder addMeasurement(String measurement) {
+      Arguments.checkNonEmpty(measurement, "measurement");
+      this.measurements.add(measurement);
+      return this;
     }
 
-    public static SimpleQuery.Builder builder() {
-        return new Builder();
+    public SimpleQuery.Builder addMeasurements(Set<String> measurements) {
+      measurements.forEach(measurement -> Arguments.checkNonEmpty(measurement, "measurement"));
+      this.measurements.addAll(measurements);
+      return this;
     }
 
-    public long getStartTime() {
-        return startTime;
+    public SimpleQuery.Builder addTags(String tagK, List<String> valueList) {
+      Arguments.checkListNonEmpty(valueList, "valueList");
+      this.tagsList.put(tagK, valueList);
+      return this;
     }
 
-    public long getEndTime() {
-        return endTime;
+    public SimpleQuery.Builder addTagsList(Map<String, List<String>> tagsList) {
+      tagsList.forEach((key, valueList) -> Arguments.checkListNonEmpty(valueList, "valueList"));
+      this.tagsList.putAll(tagsList);
+      return this;
     }
 
-    public String getTimePrecision() {
-        return timePrecision;
+    public SimpleQuery.Builder startTime(long startTime) {
+      if (startTime < 0) {
+        throw new IllegalArgumentException("startTime must greater than zero.");
+      }
+      if (startTime >= endTime) {
+        throw new IllegalArgumentException("startTime must less than endTime.");
+      }
+      this.startTime = startTime;
+      return this;
     }
 
-    public static class Builder {
-
-        private final Set<String> measurements;
-
-        private final Map<String, List<String>> tagsList;
-
-        private long startTime;
-
-        private long endTime;
-
-        private String timePrecision;
-
-        private Builder() {
-            this.measurements = new HashSet<>();
-            this.tagsList = new HashMap<>();
-            this.startTime = 0L;
-            this.endTime = Long.MAX_VALUE;
-            this.timePrecision = null;
-        }
-
-        public SimpleQuery.Builder addMeasurement(String measurement) {
-            Arguments.checkNonEmpty(measurement, "measurement");
-            this.measurements.add(measurement);
-            return this;
-        }
-
-        public SimpleQuery.Builder addMeasurements(Set<String> measurements) {
-            measurements.forEach(measurement -> Arguments.checkNonEmpty(measurement, "measurement"));
-            this.measurements.addAll(measurements);
-            return this;
-        }
-
-        public SimpleQuery.Builder addTags(String tagK, List<String> valueList) {
-            Arguments.checkListNonEmpty(valueList, "valueList");
-            this.tagsList.put(tagK, valueList);
-            return this;
-        }
-
-        public SimpleQuery.Builder addTagsList(Map<String, List<String>> tagsList) {
-            tagsList.forEach((key, valueList) -> Arguments.checkListNonEmpty(valueList, "valueList"));
-            this.tagsList.putAll(tagsList);
-            return this;
-        }
-
-        public SimpleQuery.Builder startTime(long startTime) {
-            if (startTime < 0) {
-                throw new IllegalArgumentException("startTime must greater than zero.");
-            }
-            if (startTime >= endTime) {
-                throw new IllegalArgumentException("startTime must less than endTime.");
-            }
-            this.startTime = startTime;
-            return this;
-        }
-
-        public SimpleQuery.Builder endTime(long endTime) {
-            if (endTime < 0) {
-                throw new IllegalArgumentException("endTime mush greater than zero.");
-            }
-            if (endTime <= startTime) {
-                throw new IllegalArgumentException("endTime must greater than startTime.");
-            }
-            this.endTime = endTime;
-            return this;
-        }
-
-        public SimpleQuery.Builder timePrecision(String timePrecision) {
-            Arguments.checkNotNull(timePrecision, "timePrecision");
-            this.timePrecision = timePrecision;
-            return this;
-        }
-
-        public SimpleQuery build() {
-            if (this.measurements.isEmpty()) {
-                throw new IllegalStateException("simple query at least has one measurement.");
-            }
-            return new SimpleQuery(measurements, tagsList, startTime, endTime, timePrecision);
-        }
-
+    public SimpleQuery.Builder endTime(long endTime) {
+      if (endTime < 0) {
+        throw new IllegalArgumentException("endTime mush greater than zero.");
+      }
+      if (endTime <= startTime) {
+        throw new IllegalArgumentException("endTime must greater than startTime.");
+      }
+      this.endTime = endTime;
+      return this;
     }
 
+    public SimpleQuery.Builder timePrecision(String timePrecision) {
+      Arguments.checkNotNull(timePrecision, "timePrecision");
+      this.timePrecision = timePrecision;
+      return this;
+    }
+
+    public SimpleQuery build() {
+      if (this.measurements.isEmpty()) {
+        throw new IllegalStateException("simple query at least has one measurement.");
+      }
+      return new SimpleQuery(measurements, tagsList, startTime, endTime, timePrecision);
+    }
+  }
 }

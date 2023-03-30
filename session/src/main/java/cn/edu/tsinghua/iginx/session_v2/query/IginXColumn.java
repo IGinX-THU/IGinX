@@ -19,43 +19,40 @@
 package cn.edu.tsinghua.iginx.session_v2.query;
 
 import cn.edu.tsinghua.iginx.thrift.DataType;
-
 import java.util.Collections;
 import java.util.Map;
 
 public class IginXColumn {
 
-    public static final IginXColumn TIME = new IginXColumn("timestamp", Collections.emptyMap(), DataType.LONG);
+  public static final IginXColumn TIME =
+      new IginXColumn("timestamp", Collections.emptyMap(), DataType.LONG);
 
-    private final String name;
+  private final String name;
 
-    private final Map<String, String> tags;
+  private final Map<String, String> tags;
 
-    private final DataType dataType;
+  private final DataType dataType;
 
-    public IginXColumn(String name, Map<String, String> tags, DataType dataType) {
-        this.name = name;
-        this.tags = tags;
-        this.dataType = dataType;
-    }
+  public IginXColumn(String name, Map<String, String> tags, DataType dataType) {
+    this.name = name;
+    this.tags = tags;
+    this.dataType = dataType;
+  }
 
-    public String getName() {
-        return name;
-    }
+  public String getName() {
+    return name;
+  }
 
-    public Map<String, String> getTags() {
-        return tags;
-    }
+  public Map<String, String> getTags() {
+    return tags;
+  }
 
-    public DataType getDataType() {
-        return dataType;
-    }
+  public DataType getDataType() {
+    return dataType;
+  }
 
-    @Override
-    public String toString() {
-        return "IginXColumn{" +
-                "name='" + name + '\'' +
-                ", dataType=" + dataType +
-                '}';
-    }
+  @Override
+  public String toString() {
+    return "IginXColumn{" + "name='" + name + '\'' + ", dataType=" + dataType + '}';
+  }
 }

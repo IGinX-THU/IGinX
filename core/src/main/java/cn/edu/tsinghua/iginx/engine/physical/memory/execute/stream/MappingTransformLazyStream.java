@@ -26,55 +26,55 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.function.MappingFunction;
 import cn.edu.tsinghua.iginx.engine.shared.operator.MappingTransform;
-
 import java.util.Map;
 
 public class MappingTransformLazyStream extends UnaryLazyStream {
 
-    private final MappingTransform transform;
+  private final MappingTransform transform;
 
-    private final MappingFunction function;
+  private final MappingFunction function;
 
-    private final Map<String, Value> params;
+  private final Map<String, Value> params;
 
-    private RowStream resultStream;
+  private RowStream resultStream;
 
-    public MappingTransformLazyStream(MappingTransform transform, RowStream stream) {
-        super(stream);
-        this.transform = transform;
-        this.function = (MappingFunction) transform.getFunctionCall().getFunction();
-        this.params = transform.getFunctionCall().getParams();
+  public MappingTransformLazyStream(MappingTransform transform, RowStream stream) {
+    super(stream);
+    this.transform = transform;
+    this.function = (MappingFunction) transform.getFunctionCall().getFunction();
+    this.params = transform.getFunctionCall().getParams();
+  }
+
+  @Override
+  public Header getHeader() throws PhysicalException {
+    if (resultStream == null) {
+      resultStream = calculateResults();
     }
+    return resultStream == null ? Header.EMPTY_HEADER : resultStream.getHeader();
+  }
 
-    @Override
-    public Header getHeader() throws PhysicalException {
-        if (resultStream == null) {
-            resultStream = calculateResults();
-        }
-        return resultStream == null ? Header.EMPTY_HEADER : resultStream.getHeader();
+  @Override
+  public boolean hasNext() throws PhysicalException {
+    if (resultStream == null) {
+      resultStream = calculateResults();
     }
+    return resultStream != null && resultStream.hasNext();
+  }
 
-    @Override
-    public boolean hasNext() throws PhysicalException {
-        if (resultStream == null) {
-            resultStream = calculateResults();
-        }
-        return resultStream != null && resultStream.hasNext();
+  @Override
+  public Row next() throws PhysicalException {
+    if (!hasNext()) {
+      throw new IllegalStateException("row stream doesn't have more data!");
     }
+    return resultStream.next();
+  }
 
-    @Override
-    public Row next() throws PhysicalException {
-        if (!hasNext()) {
-            throw new IllegalStateException("row stream doesn't have more data!");
-        }
-        return resultStream.next();
+  private RowStream calculateResults() throws PhysicalException {
+    try {
+      return function.transform(stream, params);
+    } catch (Exception e) {
+      throw new PhysicalTaskExecuteFailureException(
+          "encounter error when execute mapping function " + function.getIdentifier() + ".", e);
     }
-
-    private RowStream calculateResults() throws PhysicalException {
-        try {
-            return function.transform(stream, params);
-        } catch (Exception e) {
-            throw new PhysicalTaskExecuteFailureException("encounter error when execute mapping function " + function.getIdentifier() + ".", e);
-        }
-    }
+  }
 }

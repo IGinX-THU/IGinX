@@ -7,48 +7,48 @@ import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 
 public class Select extends AbstractUnaryOperator {
 
-    private Filter filter;
+  private Filter filter;
 
-    private TagFilter tagFilter;
+  private TagFilter tagFilter;
 
-    public Select(Source source, Filter filter, TagFilter tagFilter) {
-        super(OperatorType.Select, source);
-        if (filter == null) {
-            throw new IllegalArgumentException("filter shouldn't be null");
-        }
-        this.filter = filter;
-        this.tagFilter = tagFilter;
+  public Select(Source source, Filter filter, TagFilter tagFilter) {
+    super(OperatorType.Select, source);
+    if (filter == null) {
+      throw new IllegalArgumentException("filter shouldn't be null");
     }
+    this.filter = filter;
+    this.tagFilter = tagFilter;
+  }
 
-    public Filter getFilter() {
-        return filter;
-    }
+  public Filter getFilter() {
+    return filter;
+  }
 
-    public void setFilter(Filter filter) {
-        this.filter = filter;
-    }
+  public void setFilter(Filter filter) {
+    this.filter = filter;
+  }
 
-    public TagFilter getTagFilter() {
-        return tagFilter;
-    }
+  public TagFilter getTagFilter() {
+    return tagFilter;
+  }
 
-    public void setTagFilter(TagFilter tagFilter) {
-        this.tagFilter = tagFilter;
-    }
+  public void setTagFilter(TagFilter tagFilter) {
+    this.tagFilter = tagFilter;
+  }
 
-    @Override
-    public Operator copy() {
-        return new Select(getSource().copy(), filter.copy(),
-            tagFilter == null ? null : tagFilter.copy());
-    }
+  @Override
+  public Operator copy() {
+    return new Select(
+        getSource().copy(), filter.copy(), tagFilter == null ? null : tagFilter.copy());
+  }
 
-    @Override
-    public String getInfo() {
-        StringBuilder builder = new StringBuilder();
-        builder.append("Filter: ").append(filter.toString());
-        if (tagFilter != null) {
-            builder.append(", TagFilter: ").append(tagFilter.toString());
-        }
-        return builder.toString();
+  @Override
+  public String getInfo() {
+    StringBuilder builder = new StringBuilder();
+    builder.append("Filter: ").append(filter.toString());
+    if (tagFilter != null) {
+      builder.append(", TagFilter: ").append(tagFilter.toString());
     }
+    return builder.toString();
+  }
 }

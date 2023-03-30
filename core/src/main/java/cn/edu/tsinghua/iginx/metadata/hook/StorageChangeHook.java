@@ -22,6 +22,5 @@ import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 
 public interface StorageChangeHook {
 
-    void onChange(long id, StorageEngineMeta storageEngine);
-
+  void onChange(long id, StorageEngineMeta storageEngine);
 }

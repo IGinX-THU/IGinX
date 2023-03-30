@@ -5,24 +5,24 @@ import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 
 public class AddSchemaPrefix extends AbstractUnaryOperator {
 
-    private final String schemaPrefix;// 可以为 null
+  private final String schemaPrefix; // 可以为 null
 
-    public AddSchemaPrefix(Source source, String schemaPrefix) {
-        super(OperatorType.AddSchemaPrefix, source);
-        this.schemaPrefix = schemaPrefix;
-    }
+  public AddSchemaPrefix(Source source, String schemaPrefix) {
+    super(OperatorType.AddSchemaPrefix, source);
+    this.schemaPrefix = schemaPrefix;
+  }
 
-    @Override
-    public Operator copy() {
-        return new AddSchemaPrefix(getSource().copy(), schemaPrefix);
-    }
+  @Override
+  public Operator copy() {
+    return new AddSchemaPrefix(getSource().copy(), schemaPrefix);
+  }
 
-    @Override
-    public String getInfo() {
-        return "SchemaPrefix: " + schemaPrefix;
-    }
+  @Override
+  public String getInfo() {
+    return "SchemaPrefix: " + schemaPrefix;
+  }
 
-    public String getSchemaPrefix() {
-        return schemaPrefix;
-    }
+  public String getSchemaPrefix() {
+    return schemaPrefix;
+  }
 }

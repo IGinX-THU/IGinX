@@ -23,14 +23,18 @@ public class MigrationManager {
   }
 
   public MigrationPolicy getMigration() {
-    String policyClassName = ConfigDescriptor.getInstance().getConfig()
-        .getMigrationPolicyClassName();
+    String policyClassName =
+        ConfigDescriptor.getInstance().getConfig().getMigrationPolicyClassName();
     MigrationPolicy policy;
     synchronized (policies) {
       policy = policies.get(policyClassName);
       if (policy == null) {
         try {
-          Class<? extends MigrationPolicy> clazz = this.getClass().getClassLoader().loadClass(policyClassName).asSubclass(MigrationPolicy.class);
+          Class<? extends MigrationPolicy> clazz =
+              this.getClass()
+                  .getClassLoader()
+                  .loadClass(policyClassName)
+                  .asSubclass(MigrationPolicy.class);
           policy = clazz.getConstructor().newInstance();
           policies.put(policyClassName, policy);
         } catch (Exception e) {

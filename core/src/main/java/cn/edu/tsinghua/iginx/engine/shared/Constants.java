@@ -20,19 +20,19 @@ package cn.edu.tsinghua.iginx.engine.shared;
 
 public class Constants {
 
-    public static final String KEY = "key";
+  public static final String KEY = "key";
 
-    public static final String ORDINAL = "ordinal";
+  public static final String ORDINAL = "ordinal";
 
-    public static final String ALL_PATH = "*";
-    public static final String ALL_PATH_SUFFIX = ".*";
+  public static final String ALL_PATH = "*";
+  public static final String ALL_PATH_SUFFIX = ".*";
 
-    public static final String PARAM_PATHS = "param_paths";
-    public static final String PARAM_LEVELS = "param_levels";
-    public static final String PARAM_EXPR = "param_expr";
-    public static final String PARAM_MODULE = "param_module";
-    public static final String PARAM_CLASS = "param_class";
+  public static final String PARAM_PATHS = "param_paths";
+  public static final String PARAM_LEVELS = "param_levels";
+  public static final String PARAM_EXPR = "param_expr";
+  public static final String PARAM_MODULE = "param_module";
+  public static final String PARAM_CLASS = "param_class";
 
-    public static final String UDF_CLASS = "t";
-    public static final String UDF_FUNC = "transform";
+  public static final String UDF_CLASS = "t";
+  public static final String UDF_FUNC = "transform";
 }

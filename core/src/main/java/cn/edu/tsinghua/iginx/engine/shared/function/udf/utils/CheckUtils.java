@@ -11,26 +11,26 @@ import java.util.Map;
 
 public class CheckUtils {
 
-    public static <T> List<T> castList(Object obj, Class<T> clazz) {
-        List<T> result = new ArrayList<T>();
-        if (obj instanceof List<?>) {
-            for (Object o : (List<?>) obj) {
-                result.add(clazz.cast(o));
-            }
-            return result;
-        }
-        return null;
+  public static <T> List<T> castList(Object obj, Class<T> clazz) {
+    List<T> result = new ArrayList<T>();
+    if (obj instanceof List<?>) {
+      for (Object o : (List<?>) obj) {
+        result.add(clazz.cast(o));
+      }
+      return result;
+    }
+    return null;
+  }
+
+  public static boolean isLegal(Map<String, Value> params) {
+    List<String> neededParams = Collections.singletonList(PARAM_PATHS);
+    for (String param : neededParams) {
+      if (!params.containsKey(param)) {
+        return false;
+      }
     }
 
-    public static boolean isLegal(Map<String, Value> params) {
-        List<String> neededParams = Collections.singletonList(PARAM_PATHS);
-        for (String param : neededParams) {
-            if (!params.containsKey(param)) {
-                return false;
-            }
-        }
-
-        Value paths = params.get(PARAM_PATHS);
-        return paths != null && paths.getDataType() == DataType.BINARY;
-    }
+    Value paths = params.get(PARAM_PATHS);
+    return paths != null && paths.getDataType() == DataType.BINARY;
+  }
 }

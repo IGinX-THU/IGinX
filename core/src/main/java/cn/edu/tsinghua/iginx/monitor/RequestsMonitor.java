@@ -5,14 +5,13 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
-
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class RequestsMonitor implements IMonitor {
 
-  private final boolean isEnableMonitor = ConfigDescriptor.getInstance().getConfig()
-      .isEnableMonitor();
+  private final boolean isEnableMonitor =
+      ConfigDescriptor.getInstance().getConfig().isEnableMonitor();
   private final Map<FragmentMeta, Long> writeRequestsMap = new ConcurrentHashMap<>(); // 数据分区->请求个数
   private final Map<FragmentMeta, Long> readRequestsMap = new ConcurrentHashMap<>(); // 数据分区->请求个数
   private static final RequestsMonitor instance = new RequestsMonitor();

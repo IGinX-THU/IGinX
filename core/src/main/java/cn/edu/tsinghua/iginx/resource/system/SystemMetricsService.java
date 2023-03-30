@@ -20,12 +20,11 @@ package cn.edu.tsinghua.iginx.resource.system;
 
 public interface SystemMetricsService {
 
-    void start();
+  void start();
 
-    void stop();
+  void stop();
 
-    double getRecentCpuUsage();
+  double getRecentCpuUsage();
 
-    double getRecentMemoryUsage();
-
+  double getRecentMemoryUsage();
 }

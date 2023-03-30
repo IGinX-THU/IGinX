@@ -26,60 +26,60 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.function.SetMappingFunction;
 import cn.edu.tsinghua.iginx.engine.shared.operator.SetTransform;
-
 import java.util.Map;
 
 public class SetTransformLazyStream extends UnaryLazyStream {
 
-    private final SetTransform setTransform;
+  private final SetTransform setTransform;
 
-    private final SetMappingFunction function;
+  private final SetMappingFunction function;
 
-    private final Map<String, Value> params;
+  private final Map<String, Value> params;
 
-    private Row nextRow;
+  private Row nextRow;
 
-    private boolean hasConsumed = false;
+  private boolean hasConsumed = false;
 
-    public SetTransformLazyStream(SetTransform setTransform, RowStream stream) {
-        super(stream);
-        this.setTransform = setTransform;
-        this.function = (SetMappingFunction) setTransform.getFunctionCall().getFunction();
-        this.params = setTransform.getFunctionCall().getParams();
+  public SetTransformLazyStream(SetTransform setTransform, RowStream stream) {
+    super(stream);
+    this.setTransform = setTransform;
+    this.function = (SetMappingFunction) setTransform.getFunctionCall().getFunction();
+    this.params = setTransform.getFunctionCall().getParams();
+  }
+
+  @Override
+  public Header getHeader() throws PhysicalException {
+    if (!hasConsumed && nextRow == null) { // 没有被消费过并且当前值为空，实际上表示当前值还没有被计算过
+      nextRow = calculate();
+      hasConsumed = nextRow == null;
     }
+    return nextRow == null ? Header.EMPTY_HEADER : nextRow.getHeader();
+  }
 
-    @Override
-    public Header getHeader() throws PhysicalException {
-        if (!hasConsumed && nextRow == null) { // 没有被消费过并且当前值为空，实际上表示当前值还没有被计算过
-            nextRow = calculate();
-            hasConsumed = nextRow == null;
-        }
-        return nextRow == null ? Header.EMPTY_HEADER : nextRow.getHeader();
+  @Override
+  public boolean hasNext() throws PhysicalException {
+    if (!hasConsumed && nextRow == null) { // 没有被消费过并且当前值为空，实际上表示当前值还没有被计算过
+      nextRow = calculate();
+      hasConsumed = nextRow == null;
     }
+    return !hasConsumed;
+  }
 
-    @Override
-    public boolean hasNext() throws PhysicalException {
-        if (!hasConsumed && nextRow == null) { // 没有被消费过并且当前值为空，实际上表示当前值还没有被计算过
-            nextRow = calculate();
-            hasConsumed = nextRow == null;
-        }
-        return !hasConsumed;
+  private Row calculate() throws PhysicalException {
+    try {
+      return function.transform(stream, params);
+    } catch (Exception e) {
+      throw new PhysicalTaskExecuteFailureException(
+          "encounter error when execute set mapping function " + function.getIdentifier() + ".", e);
     }
+  }
 
-    private Row calculate() throws PhysicalException {
-        try {
-            return function.transform(stream, params);
-        } catch (Exception e) {
-            throw new PhysicalTaskExecuteFailureException("encounter error when execute set mapping function " + function.getIdentifier() + ".", e);
-        }
+  @Override
+  public Row next() throws PhysicalException {
+    if (!hasNext()) {
+      throw new IllegalStateException("row stream doesn't have more data!");
     }
-
-    @Override
-    public Row next() throws PhysicalException {
-        if (!hasNext()) {
-            throw new IllegalStateException("row stream doesn't have more data!");
-        }
-        hasConsumed = true;
-        return nextRow;
-    }
+    hasConsumed = true;
+    return nextRow;
+  }
 }

@@ -4,5 +4,5 @@ import cn.edu.tsinghua.iginx.transform.pojo.Job;
 
 public interface Checker {
 
-    boolean check(Job job);
+  boolean check(Job job);
 }

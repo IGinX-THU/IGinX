@@ -10,7 +10,9 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 public class DataTypeTransformer {
 
   public static DataType fromPostgreSQL(String dataType) {
-    if (dataType.contains("int") || dataType.contains("timestamptz") || dataType.contains("serial")) {
+    if (dataType.contains("int")
+        || dataType.contains("timestamptz")
+        || dataType.contains("serial")) {
       return LONG;
     } else if (dataType.contains("bool")) {
       return BOOLEAN;
@@ -22,7 +24,7 @@ public class DataTypeTransformer {
   }
 
   public static String toPostgreSQL(DataType dataType) {
-    switch (dataType){
+    switch (dataType) {
       case BOOLEAN:
         return "BOOLEAN";
       case INTEGER:

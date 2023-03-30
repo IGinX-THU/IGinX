@@ -18,6 +18,8 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.function.system;
 
+import static cn.edu.tsinghua.iginx.engine.shared.Constants.PARAM_PATHS;
+
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
@@ -28,77 +30,72 @@ import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
 import cn.edu.tsinghua.iginx.engine.shared.function.SetMappingFunction;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-import static cn.edu.tsinghua.iginx.engine.shared.Constants.PARAM_PATHS;
-
 public class FirstValue implements SetMappingFunction {
 
-    public static final String FIRST_VALUE = "first_value";
+  public static final String FIRST_VALUE = "first_value";
 
-    private static final FirstValue INSTANCE = new FirstValue();
+  private static final FirstValue INSTANCE = new FirstValue();
 
-    private FirstValue() {
+  private FirstValue() {}
+
+  public static FirstValue getInstance() {
+    return INSTANCE;
+  }
+
+  @Override
+  public FunctionType getFunctionType() {
+    return FunctionType.System;
+  }
+
+  @Override
+  public MappingType getMappingType() {
+    return MappingType.SetMapping;
+  }
+
+  @Override
+  public String getIdentifier() {
+    return FIRST_VALUE;
+  }
+
+  @Override
+  public Row transform(RowStream rows, Map<String, Value> params) throws Exception {
+    if (params.size() != 1) {
+      throw new IllegalArgumentException("unexpected params for first value.");
     }
-
-    public static FirstValue getInstance() {
-        return INSTANCE;
+    Value param = params.get(PARAM_PATHS);
+    if (param == null || param.getDataType() != DataType.BINARY) {
+      throw new IllegalArgumentException("unexpected param type for first value.");
     }
-
-    @Override
-    public FunctionType getFunctionType() {
-        return FunctionType.System;
+    String target = param.getBinaryVAsString();
+    List<Field> fields = rows.getHeader().getFields();
+    Pattern pattern = Pattern.compile(StringUtils.reformatPath(target) + ".*");
+    List<Field> targetFields = new ArrayList<>();
+    List<Integer> indices = new ArrayList<>();
+    for (int i = 0; i < fields.size(); i++) {
+      Field field = fields.get(i);
+      if (pattern.matcher(field.getFullName()).matches()) {
+        String name = getIdentifier() + "(" + field.getName() + ")";
+        String fullName = getIdentifier() + "(" + field.getFullName() + ")";
+        targetFields.add(new Field(name, fullName, field.getType()));
+        indices.add(i);
+      }
     }
-
-    @Override
-    public MappingType getMappingType() {
-        return MappingType.SetMapping;
-    }
-
-    @Override
-    public String getIdentifier() {
-        return FIRST_VALUE;
-    }
-
-    @Override
-    public Row transform(RowStream rows, Map<String, Value> params) throws Exception {
-        if (params.size() != 1) {
-            throw new IllegalArgumentException("unexpected params for first value.");
+    Object[] targetValues = new Object[targetFields.size()];
+    while (rows.hasNext()) {
+      Row row = rows.next();
+      for (int i = 0; i < indices.size(); i++) {
+        Object value = row.getValue(indices.get(i));
+        if (targetValues[i] != null) { // 找到第一个非空值之后，后续不再找了
+          continue;
         }
-        Value param = params.get(PARAM_PATHS);
-        if (param == null || param.getDataType() != DataType.BINARY) {
-            throw new IllegalArgumentException("unexpected param type for first value.");
-        }
-        String target = param.getBinaryVAsString();
-        List<Field> fields = rows.getHeader().getFields();
-        Pattern pattern = Pattern.compile(StringUtils.reformatPath(target) + ".*");
-        List<Field> targetFields = new ArrayList<>();
-        List<Integer> indices = new ArrayList<>();
-        for (int i = 0; i < fields.size(); i++) {
-            Field field = fields.get(i);
-            if (pattern.matcher(field.getFullName()).matches()) {
-                String name = getIdentifier() + "(" + field.getName() + ")";
-                String fullName = getIdentifier() + "(" + field.getFullName() + ")";
-                targetFields.add(new Field(name, fullName, field.getType()));
-                indices.add(i);
-            }
-        }
-        Object[] targetValues = new Object[targetFields.size()];
-        while (rows.hasNext()) {
-            Row row = rows.next();
-            for (int i = 0; i < indices.size(); i++) {
-                Object value = row.getValue(indices.get(i));
-                if (targetValues[i] != null) { // 找到第一个非空值之后，后续不再找了
-                    continue;
-                }
-                targetValues[i] = value;
-            }
-        }
-        return new Row(new Header(targetFields), targetValues);
+        targetValues[i] = value;
+      }
     }
-
+    return new Row(new Header(targetFields), targetValues);
+  }
 }

@@ -4,6 +4,5 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 
 public interface Optimizer {
 
-    Operator optimize(Operator root);
-
+  Operator optimize(Operator root);
 }

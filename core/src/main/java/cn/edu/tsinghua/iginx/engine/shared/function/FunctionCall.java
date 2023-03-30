@@ -19,38 +19,36 @@
 package cn.edu.tsinghua.iginx.engine.shared.function;
 
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
-
 import java.util.HashMap;
 import java.util.Map;
 
 public class FunctionCall {
 
-    private final Function function;
+  private final Function function;
 
-    private final Map<String, Value> params;
+  private final Map<String, Value> params;
 
-    public FunctionCall(Function function, Map<String, Value> params) {
-        this.function = function;
-        this.params = params;
-    }
+  public FunctionCall(Function function, Map<String, Value> params) {
+    this.function = function;
+    this.params = params;
+  }
 
-    public Function getFunction() {
-        return function;
-    }
+  public Function getFunction() {
+    return function;
+  }
 
-    public Map<String, Value> getParams() {
-        return params;
-    }
+  public Map<String, Value> getParams() {
+    return params;
+  }
 
-    public FunctionCall copy() {
-        return new FunctionCall(function, new HashMap<>(params));
-    }
+  public FunctionCall copy() {
+    return new FunctionCall(function, new HashMap<>(params));
+  }
 
-    @Override
-    public String toString() {
-        return String.format("{Name: %s, FuncType: %s, MappingType: %s}",
-            function.getIdentifier(),
-            function.getFunctionType(),
-            function.getMappingType());
-    }
+  @Override
+  public String toString() {
+    return String.format(
+        "{Name: %s, FuncType: %s, MappingType: %s}",
+        function.getIdentifier(), function.getFunctionType(), function.getMappingType());
+  }
 }

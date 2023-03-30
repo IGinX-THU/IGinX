@@ -27,82 +27,83 @@ import org.slf4j.LoggerFactory;
 
 public abstract class AbstractPhysicalTask implements PhysicalTask {
 
-    private static final Logger logger = LoggerFactory.getLogger(AbstractPhysicalTask.class);
+  private static final Logger logger = LoggerFactory.getLogger(AbstractPhysicalTask.class);
 
-    private final TaskType type;
+  private final TaskType type;
 
-    private final List<Operator> operators;
-    private final CountDownLatch resultLatch = new CountDownLatch(1);
-    private PhysicalTask followerTask;
-    private TaskExecuteResult result;
+  private final List<Operator> operators;
+  private final CountDownLatch resultLatch = new CountDownLatch(1);
+  private PhysicalTask followerTask;
+  private TaskExecuteResult result;
 
-    private int affectRows = 0;
+  private int affectRows = 0;
 
-    private long span = 0;
+  private long span = 0;
 
-    public AbstractPhysicalTask(TaskType type, List<Operator> operators) {
-        this.type = type;
-        this.operators = operators;
+  public AbstractPhysicalTask(TaskType type, List<Operator> operators) {
+    this.type = type;
+    this.operators = operators;
+  }
+
+  @Override
+  public TaskType getType() {
+    return type;
+  }
+
+  @Override
+  public List<Operator> getOperators() {
+    return operators;
+  }
+
+  @Override
+  public PhysicalTask getFollowerTask() {
+    return followerTask;
+  }
+
+  @Override
+  public void setFollowerTask(PhysicalTask task) {
+    this.followerTask = task;
+  }
+
+  @Override
+  public TaskExecuteResult getResult() {
+    try {
+      this.resultLatch.await();
+    } catch (InterruptedException e) {
+      logger.error("unexpected interrupted when get result: ", e);
     }
+    return result;
+  }
 
-    @Override
-    public TaskType getType() {
-        return type;
-    }
+  @Override
+  public void setResult(TaskExecuteResult result) {
+    this.result = result;
+    this.resultLatch.countDown();
+    this.affectRows = result.getAffectRows();
+  }
 
-    @Override
-    public List<Operator> getOperators() {
-        return operators;
-    }
+  @Override
+  public long getSpan() {
+    return span;
+  }
 
-    @Override
-    public PhysicalTask getFollowerTask() {
-        return followerTask;
-    }
+  @Override
+  public void setSpan(long span) {
+    this.span = span;
+  }
 
-    @Override
-    public void setFollowerTask(PhysicalTask task) {
-        this.followerTask = task;
-    }
+  @Override
+  public int getAffectedRows() {
+    return affectRows;
+  }
 
-    @Override
-    public TaskExecuteResult getResult() {
-        try {
-            this.resultLatch.await();
-        } catch (InterruptedException e) {
-            logger.error("unexpected interrupted when get result: ", e);
-        }
-        return result;
-    }
-
-    @Override
-    public void setResult(TaskExecuteResult result) {
-        this.result = result;
-        this.resultLatch.countDown();
-        this.affectRows = result.getAffectRows();
-    }
-
-    @Override
-    public long getSpan() {
-        return span;
-    }
-
-    @Override
-    public void setSpan(long span) {
-        this.span = span;
-    }
-
-    @Override
-    public int getAffectedRows() {
-        return affectRows;
-    }
-
-    @Override
-    public String getInfo() {
-        List<String> info = operators
+  @Override
+  public String getInfo() {
+    List<String> info =
+        operators
             .stream()
             .map(op -> op.getType() + ":{" + op.getInfo() + "}")
             .collect(Collectors.toList());
-        return String.join(",", info);
-    }
+    return String.join(",", info);
+  }
 }

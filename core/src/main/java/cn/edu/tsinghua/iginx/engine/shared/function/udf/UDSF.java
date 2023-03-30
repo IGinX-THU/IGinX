@@ -4,6 +4,5 @@ import cn.edu.tsinghua.iginx.engine.shared.function.MappingFunction;
 
 public interface UDSF extends MappingFunction {
 
-    String getFunctionName();
-
+  String getFunctionName();
 }

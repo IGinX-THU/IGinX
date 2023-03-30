@@ -23,14 +23,14 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.OperatorMemoryExecut
 
 public class NaiveOperatorMemoryExecutorTest extends AbstractOperatorMemoryExecutorTest {
 
-    private final NaiveOperatorMemoryExecutor executor;
+  private final NaiveOperatorMemoryExecutor executor;
 
-    public NaiveOperatorMemoryExecutorTest() {
-        executor = NaiveOperatorMemoryExecutor.getInstance();
-    }
+  public NaiveOperatorMemoryExecutorTest() {
+    executor = NaiveOperatorMemoryExecutor.getInstance();
+  }
 
-    @Override
-    protected OperatorMemoryExecutor getExecutor() {
-        return executor;
-    }
+  @Override
+  protected OperatorMemoryExecutor getExecutor() {
+    return executor;
+  }
 }

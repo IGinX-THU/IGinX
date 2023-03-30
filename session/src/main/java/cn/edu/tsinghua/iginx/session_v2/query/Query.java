@@ -24,24 +24,24 @@ import java.util.Set;
 
 public abstract class Query {
 
-    protected final Set<String> measurements;
+  protected final Set<String> measurements;
 
-    protected final Map<String, List<String>> tagsList;
+  protected final Map<String, List<String>> tagsList;
 
-    public Query(Set<String> measurements) {
-        this(measurements, null);
-    }
+  public Query(Set<String> measurements) {
+    this(measurements, null);
+  }
 
-    public Query(Set<String> measurements, Map<String, List<String>> tagsList) {
-        this.measurements = measurements;
-        this.tagsList = tagsList;
-    }
+  public Query(Set<String> measurements, Map<String, List<String>> tagsList) {
+    this.measurements = measurements;
+    this.tagsList = tagsList;
+  }
 
-    public Set<String> getMeasurements() {
-        return measurements;
-    }
+  public Set<String> getMeasurements() {
+    return measurements;
+  }
 
-    public Map<String, List<String>> getTagsList() {
-        return tagsList;
-    }
+  public Map<String, List<String>> getTagsList() {
+    return tagsList;
+  }
 }

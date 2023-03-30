@@ -18,7 +18,6 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream;
 
-
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
@@ -29,46 +28,46 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 
 public class SelectLazyStream extends UnaryLazyStream {
 
-    private final Select select;
+  private final Select select;
 
-    private Row nextRow = null;
+  private Row nextRow = null;
 
-    public SelectLazyStream(Select select, RowStream stream) {
-        super(stream);
-        this.select = select;
+  public SelectLazyStream(Select select, RowStream stream) {
+    super(stream);
+    this.select = select;
+  }
+
+  @Override
+  public Header getHeader() throws PhysicalException {
+    return stream.getHeader();
+  }
+
+  @Override
+  public boolean hasNext() throws PhysicalException {
+    if (nextRow == null) {
+      nextRow = calculateNext();
     }
+    return nextRow != null;
+  }
 
-    @Override
-    public Header getHeader() throws PhysicalException {
-        return stream.getHeader();
-    }
-
-    @Override
-    public boolean hasNext() throws PhysicalException {
-        if (nextRow == null) {
-            nextRow = calculateNext();
-        }
-        return nextRow != null;
-    }
-
-    private Row calculateNext() throws PhysicalException {
-        Filter filter = select.getFilter();
-        while(stream.hasNext()) {
-            Row row = stream.next();
-            if (FilterUtils.validate(filter, row)) {
-                return row;
-            }
-        }
-        return null;
-    }
-
-    @Override
-    public Row next() throws PhysicalException {
-        if (!hasNext()) {
-            throw new IllegalStateException("row stream doesn't have more data!");
-        }
-        Row row = nextRow;
-        nextRow = null;
+  private Row calculateNext() throws PhysicalException {
+    Filter filter = select.getFilter();
+    while (stream.hasNext()) {
+      Row row = stream.next();
+      if (FilterUtils.validate(filter, row)) {
         return row;
+      }
     }
+    return null;
+  }
+
+  @Override
+  public Row next() throws PhysicalException {
+    if (!hasNext()) {
+      throw new IllegalStateException("row stream doesn't have more data!");
+    }
+    Row row = nextRow;
+    nextRow = null;
+    return row;
+  }
 }

@@ -18,68 +18,75 @@
  */
 package cn.edu.tsinghua.iginx.rest.bean;
 
-import lombok.Data;
-
 import java.util.ArrayList;
 import java.util.List;
+import lombok.Data;
 
 @Data
 public class QueryResultDataset {
-    private int size = 0;
-    private int sampleSize = 0;
-    private List<Long> timestamps = new ArrayList<>();
-    private List<Object> values = new ArrayList<>();
-    private List<List<Object>> valueLists = new ArrayList<>();//对应一个path的数据点序列值
-    private List<List<Long>> timeLists = new ArrayList<>();//数据点的对应时间序列
-    private List<String> paths = new ArrayList<>();
-    private List<String> titles = new ArrayList<>();
-    private List<String> descriptions = new ArrayList<>();
-    private List<List<String>> categorys = new ArrayList<>();
+  private int size = 0;
+  private int sampleSize = 0;
+  private List<Long> timestamps = new ArrayList<>();
+  private List<Object> values = new ArrayList<>();
+  private List<List<Object>> valueLists = new ArrayList<>(); // 对应一个path的数据点序列值
+  private List<List<Long>> timeLists = new ArrayList<>(); // 数据点的对应时间序列
+  private List<String> paths = new ArrayList<>();
+  private List<String> titles = new ArrayList<>();
+  private List<String> descriptions = new ArrayList<>();
+  private List<List<String>> categorys = new ArrayList<>();
 
-    public void addPath(String path) { paths.add(path); }
-    public void addTitle(String title) {
-        titles.add(title);
-    }
+  public void addPath(String path) {
+    paths.add(path);
+  }
 
-    public void addDescription(String description) {
-        descriptions.add(description);
-    }
+  public void addTitle(String title) {
+    titles.add(title);
+  }
 
-    public void addCategory(List<String> category) {
-        categorys.add(category);
-    }
-    private void addSize() {
-        this.size++;
-    }
+  public void addDescription(String description) {
+    descriptions.add(description);
+  }
 
-    private void addTimestamp(long timestamp) {
-        this.timestamps.add(timestamp);
-    }
+  public void addCategory(List<String> category) {
+    categorys.add(category);
+  }
 
-    public void addValue(Object value) {
-        this.values.add(value);
-    }
+  private void addSize() {
+    this.size++;
+  }
 
-    public void add(long timestamp, Object value) {
-        addTimestamp(timestamp);
-        addValue(value);
-        addSize();
-    }
+  private void addTimestamp(long timestamp) {
+    this.timestamps.add(timestamp);
+  }
 
-    public void addValueLists(List<Object> value) {
-        valueLists.add(value);
-    }
+  public void addValue(Object value) {
+    this.values.add(value);
+  }
 
-    public void addTimeLists(List<Long> time) {
-        timeLists.add(time);
-    }
+  public void add(long timestamp, Object value) {
+    addTimestamp(timestamp);
+    addValue(value);
+    addSize();
+  }
 
-    public void addPlus(String path, String description, List<String> category, List<Object> valueList, List<Long> timeList) {
-        paths.add(path);
-        descriptions.add(description);
-        categorys.add(category);
-        valueLists.add(valueList);
-        timeLists.add(timeList);
-    }
+  public void addValueLists(List<Object> value) {
+    valueLists.add(value);
+  }
 
+  public void addTimeLists(List<Long> time) {
+    timeLists.add(time);
+  }
+
+  public void addPlus(
+      String path,
+      String description,
+      List<String> category,
+      List<Object> valueList,
+      List<Long> timeList) {
+    paths.add(path);
+    descriptions.add(description);
+    categorys.add(category);
+    valueLists.add(valueList);
+    timeLists.add(timeList);
+  }
 }

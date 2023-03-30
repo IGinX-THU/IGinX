@@ -10,47 +10,47 @@ import java.util.Deque;
 
 public class GroupByLazyStream extends UnaryLazyStream {
 
-    private final GroupBy groupBy;
+  private final GroupBy groupBy;
 
-    private Deque<Row> cache;
+  private Deque<Row> cache;
 
-    private Header header;
+  private Header header;
 
-    public GroupByLazyStream(GroupBy groupBy, RowStream stream) {
-        super(stream);
-        this.groupBy = groupBy;
+  public GroupByLazyStream(GroupBy groupBy, RowStream stream) {
+    super(stream);
+    this.groupBy = groupBy;
+  }
+
+  @Override
+  public Header getHeader() throws PhysicalException {
+    if (header == null) {
+      cacheResult();
     }
+    return header;
+  }
 
-    @Override
-    public Header getHeader() throws PhysicalException {
-        if (header == null) {
-            cacheResult();
-        }
-        return header;
+  @Override
+  public boolean hasNext() throws PhysicalException {
+    if (header == null) {
+      cacheResult();
     }
+    return cache.isEmpty();
+  }
 
-    @Override
-    public boolean hasNext() throws PhysicalException {
-        if (header == null) {
-            cacheResult();
-        }
-        return cache.isEmpty();
+  @Override
+  public Row next() throws PhysicalException {
+    if (!hasNext()) {
+      throw new IllegalStateException("row stream doesn't have more data!");
     }
+    return cache.pollFirst();
+  }
 
-    @Override
-    public Row next() throws PhysicalException {
-        if (!hasNext()) {
-            throw new IllegalStateException("row stream doesn't have more data!");
-        }
-        return cache.pollFirst();
+  private void cacheResult() throws PhysicalException {
+    this.cache = RowUtils.cacheGroupByResult(groupBy, stream);
+    if (cache.isEmpty()) {
+      header = Header.EMPTY_HEADER;
+    } else {
+      header = cache.peekFirst().getHeader();
     }
-
-    private void cacheResult() throws PhysicalException {
-        this.cache = RowUtils.cacheGroupByResult(groupBy, stream);
-        if (cache.isEmpty()) {
-            header = Header.EMPTY_HEADER;
-        } else {
-            header = cache.peekFirst().getHeader();
-        }
-    }
+  }
 }

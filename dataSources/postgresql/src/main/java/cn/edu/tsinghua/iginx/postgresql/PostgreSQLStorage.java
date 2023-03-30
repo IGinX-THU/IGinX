@@ -36,13 +36,13 @@ import cn.edu.tsinghua.iginx.engine.shared.data.write.RowDataView;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
-import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
+import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
 import cn.edu.tsinghua.iginx.postgresql.entity.PostgreSQLQueryRowStream;
 import cn.edu.tsinghua.iginx.postgresql.tools.DataTypeTransformer;
@@ -93,7 +93,8 @@ public class PostgreSQLStorage implements IStorage {
 
   private static final String QUERY_DATA = "SELECT time, %s FROM %s WHERE %s and %s";
 
-  private static final String DELETE_DATA = "DELETE FROM %s WHERE time >= to_timestamp(%d) and time < to_timestamp(%d)";
+  private static final String DELETE_DATA =
+      "DELETE FROM %s WHERE time >= to_timestamp(%d) and time < to_timestamp(%d)";
 
   private static final String IGINX_SEPARATOR = ".";
 
@@ -115,9 +116,10 @@ public class PostgreSQLStorage implements IStorage {
     Map<String, String> extraParams = meta.getExtraParams();
     String username = extraParams.getOrDefault(USERNAME, DEFAULT_USERNAME);
     String password = extraParams.getOrDefault(PASSWORD, DEFAULT_PASSWORD);
-    String connUrl = String
-        .format("jdbc:postgresql://%s:%s/?user=%s&password=%s", meta.getIp(), meta.getPort(),
-            username, password);
+    String connUrl =
+        String.format(
+            "jdbc:postgresql://%s:%s/?user=%s&password=%s",
+            meta.getIp(), meta.getPort(), username, password);
     try {
       connection = DriverManager.getConnection(connUrl);
     } catch (SQLException e) {
@@ -129,9 +131,10 @@ public class PostgreSQLStorage implements IStorage {
     Map<String, String> extraParams = meta.getExtraParams();
     String username = extraParams.getOrDefault(USERNAME, DEFAULT_USERNAME);
     String password = extraParams.getOrDefault(PASSWORD, DEFAULT_PASSWORD);
-    String connUrl = String
-        .format("jdbc:postgresql://%s:%s/?user=%s&password=%s", meta.getIp(), meta.getPort(),
-            username, password);
+    String connUrl =
+        String.format(
+            "jdbc:postgresql://%s:%s/?user=%s&password=%s",
+            meta.getIp(), meta.getPort(), username, password);
     try {
       Class.forName("org.postgresql.Driver");
       DriverManager.getConnection(connUrl);
@@ -160,9 +163,11 @@ public class PostgreSQLStorage implements IStorage {
       if (operators.size() == 2) {
         filter = ((Select) operators.get(1)).getFilter();
       } else {
-        filter = new AndFilter(Arrays
-            .asList(new KeyFilter(Op.GE, fragment.getTimeInterval().getStartTime()),
-                new KeyFilter(Op.L, fragment.getTimeInterval().getEndTime())));
+        filter =
+            new AndFilter(
+                Arrays.asList(
+                    new KeyFilter(Op.GE, fragment.getTimeInterval().getStartTime()),
+                    new KeyFilter(Op.L, fragment.getTimeInterval().getEndTime())));
       }
       return executeProjectTask(project, filter);
     } else if (op.getType() == OperatorType.Insert) {
@@ -181,20 +186,22 @@ public class PostgreSQLStorage implements IStorage {
     List<Timeseries> timeseries = new ArrayList<>();
     try {
       DatabaseMetaData databaseMetaData = connection.getMetaData();
-      ResultSet tableSet = databaseMetaData.getTables(null, "%", "%", new String[]{"TABLE"});
+      ResultSet tableSet = databaseMetaData.getTables(null, "%", "%", new String[] {"TABLE"});
       while (tableSet.next()) {
-        String tableName = tableSet.getString(3);//获取表名称
+        String tableName = tableSet.getString(3); // 获取表名称
         ResultSet columnSet = databaseMetaData.getColumns(null, "%", tableName, "%");
         if (tableName.startsWith("unit")) {
           tableName = tableName.substring(tableName.indexOf(POSTGRESQL_SEPARATOR) + 1);
         }
         while (columnSet.next()) {
-          String columnName = columnSet.getString("COLUMN_NAME");//获取列名称
-          String typeName = columnSet.getString("TYPE_NAME");//列字段类型
-          timeseries.add(new Timeseries(
-              tableName.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR) + IGINX_SEPARATOR
-                  + columnName.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR),
-              DataTypeTransformer.fromPostgreSQL(typeName)));
+          String columnName = columnSet.getString("COLUMN_NAME"); // 获取列名称
+          String typeName = columnSet.getString("TYPE_NAME"); // 列字段类型
+          timeseries.add(
+              new Timeseries(
+                  tableName.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR)
+                      + IGINX_SEPARATOR
+                      + columnName.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR),
+                  DataTypeTransformer.fromPostgreSQL(typeName)));
         }
       }
     } catch (SQLException e) {
@@ -204,25 +211,28 @@ public class PostgreSQLStorage implements IStorage {
   }
 
   @Override
-  public Pair<TimeSeriesRange, TimeInterval> getBoundaryOfStorage(String prefix) throws PhysicalException {
+  public Pair<TimeSeriesRange, TimeInterval> getBoundaryOfStorage(String prefix)
+      throws PhysicalException {
     long minTime = Long.MAX_VALUE, maxTime = 0;
     List<String> paths = new ArrayList<>();
     try {
       Statement stmt = connection.createStatement();
       ResultSet databaseSet = stmt.executeQuery(QUERY_DATABASES);
       while (databaseSet.next()) {
-        String databaseName = databaseSet.getString(1);//获取表名称
+        String databaseName = databaseSet.getString(1); // 获取表名称
         if (databaseName.startsWith(DATABASE_PREFIX)) {
           useDatabase(databaseName);
           DatabaseMetaData databaseMetaData = connection.getMetaData();
-          ResultSet tableSet = databaseMetaData.getTables(null, "%", "%", new String[]{"TABLE"});
+          ResultSet tableSet = databaseMetaData.getTables(null, "%", "%", new String[] {"TABLE"});
           while (tableSet.next()) {
-            String tableName = tableSet.getString(3);//获取表名称
+            String tableName = tableSet.getString(3); // 获取表名称
             ResultSet columnSet = databaseMetaData.getColumns(null, "%", tableName, "%");
             while (columnSet.next()) {
-              String columnName = columnSet.getString("COLUMN_NAME");//获取列名称
-              paths.add(tableName.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR) + IGINX_SEPARATOR
-                  + columnName.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR));
+              String columnName = columnSet.getString("COLUMN_NAME"); // 获取列名称
+              paths.add(
+                  tableName.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR)
+                      + IGINX_SEPARATOR
+                      + columnName.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR));
               // 获取first
               String firstQueryStatement = String.format(FIRST_QUERY, columnName, tableName);
               Statement firstQueryStmt = connection.createStatement();
@@ -248,12 +258,13 @@ public class PostgreSQLStorage implements IStorage {
     }
     paths.sort(String::compareTo);
 
-    return new Pair<>(new TimeSeriesInterval(paths.get(0), paths.get(paths.size() - 1)),
+    return new Pair<>(
+        new TimeSeriesInterval(paths.get(0), paths.get(paths.size() - 1)),
         new TimeInterval(minTime, maxTime + 1));
   }
 
-  private TaskExecuteResult executeProjectTask(Project project,
-      Filter filter) { // 未来可能要用 tsInterval 对查询出来的数据进行过滤
+  private TaskExecuteResult executeProjectTask(
+      Project project, Filter filter) { // 未来可能要用 tsInterval 对查询出来的数据进行过滤
     try {
       List<ResultSet> resultSets = new ArrayList<>();
       List<Field> fields = new ArrayList<>();
@@ -266,13 +277,18 @@ public class PostgreSQLStorage implements IStorage {
         DatabaseMetaData databaseMetaData = connection.getMetaData();
         ResultSet columnSet = databaseMetaData.getColumns(null, "%", table, field);
         if (columnSet.next()) {
-          String typeName = columnSet.getString("TYPE_NAME");//列字段类型
-          fields
-              .add(new Field(table.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR) + IGINX_SEPARATOR
-                  + field.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR)
-                  , DataTypeTransformer.fromPostgreSQL(typeName)));
-          String statement = String
-              .format(QUERY_DATA, field, table,
+          String typeName = columnSet.getString("TYPE_NAME"); // 列字段类型
+          fields.add(
+              new Field(
+                  table.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR)
+                      + IGINX_SEPARATOR
+                      + field.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR),
+                  DataTypeTransformer.fromPostgreSQL(typeName)));
+          String statement =
+              String.format(
+                  QUERY_DATA,
+                  field,
+                  table,
                   TagFilterUtils.transformToFilterStr(project.getTagFilter()),
                   FilterTransformer.toString(filter));
           Statement stmt = connection.createStatement();
@@ -284,8 +300,8 @@ public class PostgreSQLStorage implements IStorage {
       return new TaskExecuteResult(rowStream);
     } catch (SQLException e) {
       return new TaskExecuteResult(
-          new PhysicalTaskExecuteFailureException("execute project task in timescaledb failure",
-              e));
+          new PhysicalTaskExecuteFailureException(
+              "execute project task in timescaledb failure", e));
     }
   }
 
@@ -303,17 +319,17 @@ public class PostgreSQLStorage implements IStorage {
         break;
     }
     if (e != null) {
-      return new TaskExecuteResult(null,
-          new PhysicalException("execute insert task in iotdb12 failure", e));
+      return new TaskExecuteResult(
+          null, new PhysicalException("execute insert task in iotdb12 failure", e));
     }
     return new TaskExecuteResult(null, null);
   }
 
-  private void createTimeSeriesIfNotExists(String table, String field,
-      Map<String, String> tags, DataType dataType) {
+  private void createTimeSeriesIfNotExists(
+      String table, String field, Map<String, String> tags, DataType dataType) {
     try {
       DatabaseMetaData databaseMetaData = connection.getMetaData();
-      ResultSet tableSet = databaseMetaData.getTables(null, "%", table, new String[]{"TABLE"});
+      ResultSet tableSet = databaseMetaData.getTables(null, "%", table, new String[] {"TABLE"});
       if (!tableSet.next()) {
         Statement stmt = connection.createStatement();
         StringBuilder stringBuilder = new StringBuilder();
@@ -321,9 +337,10 @@ public class PostgreSQLStorage implements IStorage {
           stringBuilder.append(tagsEntry.getKey()).append(" TEXT,");
         }
         stringBuilder.append(field).append(" ").append(DataTypeTransformer.toPostgreSQL(dataType));
-        stmt.execute(String
-            .format("CREATE TABLE %s (time TIMESTAMPTZ NOT NULL,%s NULL)", table,
-                stringBuilder.toString()));
+        stmt.execute(
+            String.format(
+                "CREATE TABLE %s (time TIMESTAMPTZ NOT NULL,%s NULL)",
+                table, stringBuilder.toString()));
       } else {
         for (String tag : tags.keySet()) {
           ResultSet columnSet = databaseMetaData.getColumns(null, "%", table, tag);
@@ -335,8 +352,10 @@ public class PostgreSQLStorage implements IStorage {
         ResultSet columnSet = databaseMetaData.getColumns(null, "%", table, field);
         if (!columnSet.next()) {
           Statement stmt = connection.createStatement();
-          stmt.execute(String.format("ALTER TABLE %s ADD COLUMN %s %s NULL", table, field,
-              DataTypeTransformer.toPostgreSQL(dataType)));
+          stmt.execute(
+              String.format(
+                  "ALTER TABLE %s ADD COLUMN %s %s NULL",
+                  table, field, DataTypeTransformer.toPostgreSQL(dataType)));
         }
       }
     } catch (SQLException e) {
@@ -355,9 +374,10 @@ public class PostgreSQLStorage implements IStorage {
       Map<String, String> extraParams = meta.getExtraParams();
       String username = extraParams.getOrDefault(USERNAME, DEFAULT_USERNAME);
       String password = extraParams.getOrDefault(PASSWORD, DEFAULT_PASSWORD);
-      String connUrl = String
-          .format("jdbc:postgresql://%s:%s/%s?user=%s&password=%s", meta.getIp(), meta.getPort(),
-              dbname, username, password);
+      String connUrl =
+          String.format(
+              "jdbc:postgresql://%s:%s/%s?user=%s&password=%s",
+              meta.getIp(), meta.getPort(), dbname, username, password);
       connection = DriverManager.getConnection(connUrl);
     } catch (SQLException e) {
       logger.info("change database error", e);
@@ -385,8 +405,8 @@ public class PostgreSQLStorage implements IStorage {
             long time = data.getKey(i) / 1000; // timescaledb存10位时间戳，java为13位时间戳
             String value;
             if (data.getDataType(j) == DataType.BINARY) {
-              value = "'" + new String((byte[]) data.getValue(i, index), StandardCharsets.UTF_8)
-                  + "'";
+              value =
+                  "'" + new String((byte[]) data.getValue(i, index), StandardCharsets.UTF_8) + "'";
             } else {
               value = data.getValue(i, index).toString();
             }
@@ -400,9 +420,10 @@ public class PostgreSQLStorage implements IStorage {
             columnsKeys.append(field);
             columnValues.append(value);
 
-            stmt.addBatch(String
-                .format("INSERT INTO %s (time, %s) values (to_timestamp(%d), %s)", table,
-                    columnsKeys, time, columnValues));
+            stmt.addBatch(
+                String.format(
+                    "INSERT INTO %s (time, %s) values (to_timestamp(%d), %s)",
+                    table, columnsKeys, time, columnValues));
             if (index > 0 && (index + 1) % batchSize == 0) {
               stmt.executeBatch();
             }
@@ -439,8 +460,8 @@ public class PostgreSQLStorage implements IStorage {
             long time = data.getKey(j) / 1000; // timescaledb存10位时间戳，java为13位时间戳
             String value;
             if (data.getDataType(i) == DataType.BINARY) {
-              value = "'" + new String((byte[]) data.getValue(i, index), StandardCharsets.UTF_8)
-                  + "'";
+              value =
+                  "'" + new String((byte[]) data.getValue(i, index), StandardCharsets.UTF_8) + "'";
             } else {
               value = data.getValue(i, index).toString();
             }
@@ -454,11 +475,10 @@ public class PostgreSQLStorage implements IStorage {
             columnsKeys.append(field);
             columnValues.append(value);
 
-            stmt.addBatch(String
-                .format("INSERT INTO %s (time, %s) values (to_timestamp(%d), %s)", table,
-                    columnsKeys,
-                    time,
-                    columnValues));
+            stmt.addBatch(
+                String.format(
+                    "INSERT INTO %s (time, %s) values (to_timestamp(%d), %s)",
+                    table, columnsKeys, time, columnValues));
             if (index > 0 && (index + 1) % batchSize == 0) {
               stmt.executeBatch();
             }
@@ -489,9 +509,12 @@ public class PostgreSQLStorage implements IStorage {
         DatabaseMetaData databaseMetaData = connection.getMetaData();
         ResultSet columnSet = databaseMetaData.getColumns(null, "%", table, field);
         if (columnSet.next()) {
-          String statement = String
-              .format(DELETE_DATA, table,
-                  timeRange.getBeginTime(), Math.min(timeRange.getEndTime(), MAX_TIMESTAMP));
+          String statement =
+              String.format(
+                  DELETE_DATA,
+                  table,
+                  timeRange.getBeginTime(),
+                  Math.min(timeRange.getEndTime(), MAX_TIMESTAMP));
           Statement stmt = connection.createStatement();
           stmt.execute(statement);
         }
@@ -499,8 +522,7 @@ public class PostgreSQLStorage implements IStorage {
       return new TaskExecuteResult(null, null);
     } catch (SQLException e) {
       return new TaskExecuteResult(
-          new PhysicalTaskExecuteFailureException("execute delete task in timescaledb failure",
-              e));
+          new PhysicalTaskExecuteFailureException("execute delete task in timescaledb failure", e));
     }
   }
 
