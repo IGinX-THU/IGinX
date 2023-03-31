@@ -7,7 +7,7 @@ import org.apache.commons.lang3.StringUtils;
 
 public class FormatUtils {
 
-    public static final String DEFAULT_TIME_FORMAT = "default_time_format";
+    public static final String DEFAULT_TIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS";
 
     public static String formatResult(List<List<String>> result) {
         if (result.isEmpty()) {
@@ -46,7 +46,8 @@ public class FormatUtils {
         return blockLine.toString();
     }
 
-    private static String buildRow(List<List<String>> cache, int rowIdx, List<Integer> maxSizeList) {
+    private static String buildRow(
+            List<List<String>> cache, int rowIdx, List<Integer> maxSizeList) {
         StringBuilder builder = new StringBuilder();
         builder.append("|");
         int maxSize;
@@ -69,12 +70,9 @@ public class FormatUtils {
     }
 
     public static String formatTime(long timestamp, String timeFormat, String timePrecision) {
-        long timeInMs = TimeUtils.getTimeInMs(timestamp, timePrecision);
-        if (timeFormat.equals(DEFAULT_TIME_FORMAT)) {
-            return new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS").format(timeInMs);
-        } else {
-            return new SimpleDateFormat(timeFormat).format(timeInMs);
-        }
+        long timeInMs =
+                TimeUtils.getTimeInNs(timestamp, TimeUtils.strToTimePrecision(timePrecision));
+        return new SimpleDateFormat(timeFormat).format(timeInMs);
     }
 
     public static String valueToString(Object value) {

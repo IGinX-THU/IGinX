@@ -68,7 +68,8 @@ public class DuckDBConnPool {
                 synchronized (this) {
                     size--;
                     this.notify();
-                    logger.error("create new connection failed, reduce the count and notify others...");
+                    logger.error(
+                            "create new connection failed, reduce the count and notify others...");
                 }
                 throw e;
             }

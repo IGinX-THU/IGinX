@@ -36,13 +36,13 @@ import cn.edu.tsinghua.iginx.engine.shared.data.write.RowDataView;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Migration;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
-import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
+import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
@@ -52,12 +52,11 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.ByteUtils;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class PhysicalEngineImpl implements PhysicalEngine {
     @SuppressWarnings("unused")
@@ -72,7 +71,10 @@ public class PhysicalEngineImpl implements PhysicalEngine {
     private final StoragePhysicalTaskExecutor storageTaskExecutor;
 
     private PhysicalEngineImpl() {
-        optimizer = PhysicalOptimizerManager.getInstance().getOptimizer(ConfigDescriptor.getInstance().getConfig().getPhysicalOptimizer());
+        optimizer =
+                PhysicalOptimizerManager.getInstance()
+                        .getOptimizer(
+                                ConfigDescriptor.getInstance().getConfig().getPhysicalOptimizer());
         memoryTaskExecutor = MemoryPhysicalTaskDispatcher.getInstance();
         storageTaskExecutor = StoragePhysicalTaskExecutor.getInstance();
         storageTaskExecutor.init(memoryTaskExecutor, optimizer.getReplicaDispatcher());
@@ -104,10 +106,13 @@ public class PhysicalEngineImpl implements PhysicalEngine {
                 List<Filter> selectTimeFilters = new ArrayList<>();
                 selectTimeFilters.add(new KeyFilter(Op.GE, timeInterval.getStartTime()));
                 selectTimeFilters.add(new KeyFilter(Op.L, timeInterval.getEndTime()));
-                selectOperators
-                    .add(new Select(new OperatorSource(project), new AndFilter(selectTimeFilters), null));
-                MemoryPhysicalTask selectPhysicalTask = new UnaryMemoryPhysicalTask(selectOperators,
-                    projectPhysicalTask);
+                selectOperators.add(
+                        new Select(
+                                new OperatorSource(project),
+                                new AndFilter(selectTimeFilters),
+                                null));
+                MemoryPhysicalTask selectPhysicalTask =
+                        new UnaryMemoryPhysicalTask(selectOperators, projectPhysicalTask);
                 projectPhysicalTask.setFollowerTask(selectPhysicalTask);
 
                 storageTaskExecutor.commit(projectPhysicalTask);
@@ -117,10 +122,14 @@ public class PhysicalEngineImpl implements PhysicalEngine {
 
                 List<String> selectResultPaths = new ArrayList<>();
                 List<DataType> selectResultTypes = new ArrayList<>();
-                selectRowStream.getHeader().getFields().forEach(field -> {
-                    selectResultPaths.add(field.getName());
-                    selectResultTypes.add(field.getType());
-                });
+                selectRowStream
+                        .getHeader()
+                        .getFields()
+                        .forEach(
+                                field -> {
+                                    selectResultPaths.add(field.getName());
+                                    selectResultTypes.add(field.getType());
+                                });
 
                 List<Long> timestampList = new ArrayList<>();
                 List<ByteBuffer> valuesList = new ArrayList<>();
@@ -145,18 +154,32 @@ public class PhysicalEngineImpl implements PhysicalEngine {
                     }
 
                     // 按行批量插入数据
-                    if (timestampList.size() == ConfigDescriptor.getInstance().getConfig()
-                        .getMigrationBatchSize()) {
-                        insertDataByBatch(timestampList, valuesList, bitmapList, bitmapBufferList,
-                            toMigrateFragment, selectResultPaths, selectResultTypes, targetStorageUnitMeta.getId());
+                    if (timestampList.size()
+                            == ConfigDescriptor.getInstance().getConfig().getMigrationBatchSize()) {
+                        insertDataByBatch(
+                                timestampList,
+                                valuesList,
+                                bitmapList,
+                                bitmapBufferList,
+                                toMigrateFragment,
+                                selectResultPaths,
+                                selectResultTypes,
+                                targetStorageUnitMeta.getId());
                         timestampList.clear();
                         valuesList.clear();
                         bitmapList.clear();
                         bitmapBufferList.clear();
                     }
                 }
-                insertDataByBatch(timestampList, valuesList, bitmapList, bitmapBufferList,
-                    toMigrateFragment, selectResultPaths, selectResultTypes, targetStorageUnitMeta.getId());
+                insertDataByBatch(
+                        timestampList,
+                        valuesList,
+                        bitmapList,
+                        bitmapBufferList,
+                        toMigrateFragment,
+                        selectResultPaths,
+                        selectResultTypes,
+                        targetStorageUnitMeta.getId());
                 return selectResult.getRowStream();
             } else {
                 GlobalPhysicalTask task = new GlobalPhysicalTask(root);
@@ -179,16 +202,29 @@ public class PhysicalEngineImpl implements PhysicalEngine {
         return result.getRowStream();
     }
 
-    private void insertDataByBatch(List<Long> timestampList, List<ByteBuffer> valuesList,
-        List<Bitmap> bitmapList, List<ByteBuffer> bitmapBufferList, FragmentMeta toMigrateFragment,
-        List<String> selectResultPaths, List<DataType> selectResultTypes, String storageUnitId)
-        throws PhysicalException {
+    private void insertDataByBatch(
+            List<Long> timestampList,
+            List<ByteBuffer> valuesList,
+            List<Bitmap> bitmapList,
+            List<ByteBuffer> bitmapBufferList,
+            FragmentMeta toMigrateFragment,
+            List<String> selectResultPaths,
+            List<DataType> selectResultTypes,
+            String storageUnitId)
+            throws PhysicalException {
         // 按行批量插入数据
-        RawData rowData = new RawData(selectResultPaths, Collections.emptyList(), timestampList,
-            ByteUtils.getRowValuesByDataType(valuesList, selectResultTypes, bitmapBufferList),
-            selectResultTypes, bitmapList, RawDataType.NonAlignedRow);
-        RowDataView rowDataView = new RowDataView(rowData, 0, selectResultPaths.size(), 0,
-            timestampList.size());
+        RawData rowData =
+                new RawData(
+                        selectResultPaths,
+                        Collections.emptyList(),
+                        timestampList,
+                        ByteUtils.getRowValuesByDataType(
+                                valuesList, selectResultTypes, bitmapBufferList),
+                        selectResultTypes,
+                        bitmapList,
+                        RawDataType.NonAlignedRow);
+        RowDataView rowDataView =
+                new RowDataView(rowData, 0, selectResultPaths.size(), 0, timestampList.size());
         List<Operator> insertOperators = new ArrayList<>();
         insertOperators.add(new Insert(new FragmentSource(toMigrateFragment), rowDataView));
         StoragePhysicalTask insertPhysicalTask = new StoragePhysicalTask(insertOperators);

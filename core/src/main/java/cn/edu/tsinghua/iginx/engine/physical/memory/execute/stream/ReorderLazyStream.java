@@ -8,7 +8,6 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Reorder;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -42,25 +41,27 @@ public class ReorderLazyStream extends UnaryLazyStream {
                 List<Pair<Field, Integer>> matchedFields = new ArrayList<>();
                 if (StringUtils.isPattern(pattern)) {
                     for (int i = 0; i < header.getFields().size(); i++) {
-                        Field field  = header.getField(i);
-                        if (Pattern.matches(StringUtils.reformatColumnName(pattern), field.getName())) {
+                        Field field = header.getField(i);
+                        if (Pattern.matches(
+                                StringUtils.reformatColumnName(pattern), field.getName())) {
                             matchedFields.add(new Pair<>(field, i));
                         }
                     }
                 } else {
                     for (int i = 0; i < header.getFields().size(); i++) {
-                        Field field  = header.getField(i);
-                        if (pattern.equals(field.getName()) || field.getName().startsWith(pattern)) {
+                        Field field = header.getField(i);
+                        if (pattern.equals(field.getName())) {
                             matchedFields.add(new Pair<>(field, i));
                         }
                     }
                 }
                 if (!matchedFields.isEmpty()) {
                     matchedFields.sort(Comparator.comparing(pair -> pair.getK().getFullName()));
-                    matchedFields.forEach(pair -> {
-                        reorderMap.put(targetFields.size(), pair.getV());
-                        targetFields.add(pair.getK());
-                    });
+                    matchedFields.forEach(
+                            pair -> {
+                                reorderMap.put(targetFields.size(), pair.getV());
+                                targetFields.add(pair.getK());
+                            });
                 }
             }
             this.header = new Header(header.getKey(), targetFields);
@@ -93,7 +94,6 @@ public class ReorderLazyStream extends UnaryLazyStream {
         }
         return null;
     }
-
 
     @Override
     public Row next() throws PhysicalException {

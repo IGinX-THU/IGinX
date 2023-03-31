@@ -21,7 +21,6 @@ package cn.edu.tsinghua.iginx.metadata.cache;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
 import cn.edu.tsinghua.iginx.policy.simple.TimeSeriesCalDO;
 import cn.edu.tsinghua.iginx.sql.statement.InsertStatement;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -43,23 +42,28 @@ public interface IMetaCache {
 
     List<FragmentMeta> getFragmentMapByExactTimeSeriesInterval(TimeSeriesRange tsInterval);
 
-    Map<TimeSeriesRange, List<FragmentMeta>> getFragmentMapByTimeSeriesInterval(TimeSeriesRange tsInterval);
+    Map<TimeSeriesRange, List<FragmentMeta>> getFragmentMapByTimeSeriesInterval(
+            TimeSeriesRange tsInterval);
 
     List<FragmentMeta> getDummyFragmentsByTimeSeriesInterval(TimeSeriesRange tsInterval);
 
     Map<TimeSeriesRange, FragmentMeta> getLatestFragmentMap();
 
-    Map<TimeSeriesRange, FragmentMeta> getLatestFragmentMapByTimeSeriesInterval(TimeSeriesRange tsInterval);
+    Map<TimeSeriesRange, FragmentMeta> getLatestFragmentMapByTimeSeriesInterval(
+            TimeSeriesRange tsInterval);
 
-    Map<TimeSeriesRange, List<FragmentMeta>> getFragmentMapByTimeSeriesIntervalAndTimeInterval(TimeSeriesRange tsInterval, TimeInterval timeInterval);
+    Map<TimeSeriesRange, List<FragmentMeta>> getFragmentMapByTimeSeriesIntervalAndTimeInterval(
+            TimeSeriesRange tsInterval, TimeInterval timeInterval);
 
-    List<FragmentMeta> getDummyFragmentsByTimeSeriesIntervalAndTimeInterval(TimeSeriesRange tsInterval, TimeInterval timeInterval);
+    List<FragmentMeta> getDummyFragmentsByTimeSeriesIntervalAndTimeInterval(
+            TimeSeriesRange tsInterval, TimeInterval timeInterval);
 
     List<FragmentMeta> getFragmentListByTimeSeriesName(String tsName);
 
     FragmentMeta getLatestFragmentByTimeSeriesName(String tsName);
 
-    List<FragmentMeta> getFragmentListByTimeSeriesNameAndTimeInterval(String tsName, TimeInterval timeInterval);
+    List<FragmentMeta> getFragmentListByTimeSeriesNameAndTimeInterval(
+            String tsName, TimeInterval timeInterval);
 
     List<FragmentMeta> getFragmentListByStorageUnitId(String storageUnitId);
 

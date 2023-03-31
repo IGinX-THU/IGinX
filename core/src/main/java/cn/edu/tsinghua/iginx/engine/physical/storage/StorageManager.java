@@ -24,9 +24,6 @@ import cn.edu.tsinghua.iginx.metadata.entity.TimeInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.TimeSeriesInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.TimeSeriesRange;
 import cn.edu.tsinghua.iginx.utils.Pair;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -34,6 +31,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class StorageManager {
 
@@ -45,7 +44,8 @@ public class StorageManager {
 
     private static final Map<String, String> drivers = new ConcurrentHashMap<>();
 
-    private static final Map<Long, Pair<IStorage, ThreadPoolExecutor>> storageMap = new ConcurrentHashMap<>();
+    private static final Map<Long, Pair<IStorage, ThreadPoolExecutor>> storageMap =
+            new ConcurrentHashMap<>();
 
     public StorageManager(List<StorageEngineMeta> metaList) {
         initClassLoaderAndDrivers();
@@ -60,7 +60,8 @@ public class StorageManager {
         return getBoundaryOfStorage(meta, null);
     }
 
-    public static Pair<TimeSeriesRange, TimeInterval> getBoundaryOfStorage(StorageEngineMeta meta, String dataPrefix) {
+    public static Pair<TimeSeriesRange, TimeInterval> getBoundaryOfStorage(
+            StorageEngineMeta meta, String dataPrefix) {
         initClassLoaderAndDrivers();
         String engine = meta.getStorageEngine();
         String driver = drivers.get(engine);
@@ -72,8 +73,11 @@ public class StorageManager {
                 storage = storageMap.get(id).k;
             } else {
                 ClassLoader loader = classLoaders.get(engine);
-                storage = (IStorage) loader.loadClass(driver)
-                        .getConstructor(StorageEngineMeta.class).newInstance(meta);
+                storage =
+                        (IStorage)
+                                loader.loadClass(driver)
+                                        .getConstructor(StorageEngineMeta.class)
+                                        .newInstance(meta);
                 needRelease = true;
             }
             return storage.getBoundaryOfStorage(dataPrefix);
@@ -100,12 +104,21 @@ public class StorageManager {
         try {
             if (!storageMap.containsKey(id)) {
                 ClassLoader loader = classLoaders.get(engine);
-                IStorage storage = (IStorage) loader.loadClass(driver)
-                        .getConstructor(StorageEngineMeta.class).newInstance(meta);
+                IStorage storage =
+                        (IStorage)
+                                loader.loadClass(driver)
+                                        .getConstructor(StorageEngineMeta.class)
+                                        .newInstance(meta);
                 // 启动一个派发线程池
-                ThreadPoolExecutor dispatcher = new ThreadPoolExecutor(ConfigDescriptor.getInstance().getConfig().getPhysicalTaskThreadPoolSizePerStorage(),
-                        Integer.MAX_VALUE,
-                        60L, TimeUnit.SECONDS, new SynchronousQueue<>());
+                ThreadPoolExecutor dispatcher =
+                        new ThreadPoolExecutor(
+                                ConfigDescriptor.getInstance()
+                                        .getConfig()
+                                        .getPhysicalTaskThreadPoolSizePerStorage(),
+                                Integer.MAX_VALUE,
+                                60L,
+                                TimeUnit.SECONDS,
+                                new SynchronousQueue<>());
                 storageMap.put(meta.getId(), new Pair<>(storage, dispatcher));
             }
         } catch (ClassNotFoundException e) {
@@ -122,7 +135,8 @@ public class StorageManager {
         if (hasInitLoaders) {
             return;
         }
-        String[] parts = ConfigDescriptor.getInstance().getConfig().getDatabaseClassNames().split(",");
+        String[] parts =
+                ConfigDescriptor.getInstance().getConfig().getDatabaseClassNames().split(",");
         for (String part : parts) {
             String[] kAndV = part.split("=");
             if (kAndV.length != 2) {

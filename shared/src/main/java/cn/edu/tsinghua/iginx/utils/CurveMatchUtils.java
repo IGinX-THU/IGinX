@@ -26,7 +26,8 @@ public class CurveMatchUtils {
 
     private static final int maxQuerySize = 256;
 
-    public static List<Double> fetch(List<Long> timestamps, List<Double> value, int startIndex, Long unit, int num) {
+    public static List<Double> fetch(
+            List<Long> timestamps, List<Double> value, int startIndex, Long unit, int num) {
         List<Double> ret = new ArrayList<>();
         long now = timestamps.get(startIndex);
         int index = startIndex;
@@ -35,14 +36,19 @@ public class CurveMatchUtils {
             if (now == timestamps.get(index)) {
                 ret.add(value.get(index));
             } else {
-                ret.add(value.get(index - 1) + (value.get(index) - value.get(index - 1)) / (timestamps.get(index) - timestamps.get(index - 1))
-                        * (now - timestamps.get(index - 1)));
+                ret.add(
+                        value.get(index - 1)
+                                + (value.get(index) - value.get(index - 1))
+                                        / (timestamps.get(index) - timestamps.get(index - 1))
+                                        * (now - timestamps.get(index - 1)));
             }
             if (ret.size() == num) {
                 return ret;
             }
             now += unit;
-            while (now < last && index + 1 < timestamps.size() && now >= timestamps.get(index + 1)) {
+            while (now < last
+                    && index + 1 < timestamps.size()
+                    && now >= timestamps.get(index + 1)) {
                 index++;
             }
         }
@@ -52,7 +58,13 @@ public class CurveMatchUtils {
         return ret;
     }
 
-    public static List<Double> calcShapePattern(List<Double> list, boolean enable, boolean useShape, boolean useAmplitude, double slopeDelta, double concavityDelta) {
+    public static List<Double> calcShapePattern(
+            List<Double> list,
+            boolean enable,
+            boolean useShape,
+            boolean useAmplitude,
+            double slopeDelta,
+            double concavityDelta) {
         List<Double> ret = new ArrayList<>();
         if (!enable) {
             ret.addAll(list);
@@ -106,8 +118,16 @@ public class CurveMatchUtils {
 
     public static List<Double> norm(List<Double> p) {
         double aver = p.stream().mapToDouble(Double::doubleValue).average().orElse(0);
-        double std = Math.sqrt(p.stream().mapToDouble(Double::doubleValue).map(e -> Math.pow(e - aver, 2)).average().orElse(1));
-        return p.stream().map(e -> std == 0.0 ? 0.0 : (e - aver) / std).collect(Collectors.toList());
+        double std =
+                Math.sqrt(
+                        p.stream()
+                                .mapToDouble(Double::doubleValue)
+                                .map(e -> Math.pow(e - aver, 2))
+                                .average()
+                                .orElse(1));
+        return p.stream()
+                .map(e -> std == 0.0 ? 0.0 : (e - aver) / std)
+                .collect(Collectors.toList());
     }
 
     public static double LB_Kim_FL(List<Double> query, List<Double> sequence) {
@@ -122,13 +142,18 @@ public class CurveMatchUtils {
         List<Double> ret = new ArrayList<>();
         int n = list.size();
         for (int i = 0; i < n; i++) {
-            ret.add(list.subList(Math.max(0, i - windows), Math.min(i + windows, n - 1) + 1).stream().mapToDouble(Double::doubleValue).
-                reduce(isUpper ? Double::max : Double::min).orElse(isUpper ? Double.MAX_VALUE : -Double.MAX_VALUE));
+            ret.add(
+                    list.subList(Math.max(0, i - windows), Math.min(i + windows, n - 1) + 1)
+                            .stream()
+                            .mapToDouble(Double::doubleValue)
+                            .reduce(isUpper ? Double::max : Double::min)
+                            .orElse(isUpper ? Double.MAX_VALUE : -Double.MAX_VALUE));
         }
         return ret;
     }
 
-    public static double LB_Keogh(List<Double> sequence, List<Double> upper, List<Double> lower, double nowBest) {
+    public static double LB_Keogh(
+            List<Double> sequence, List<Double> upper, List<Double> lower, double nowBest) {
         double ret = 0.0;
         int n = sequence.size();
         for (int i = 0; i < n; i++) {
@@ -145,7 +170,13 @@ public class CurveMatchUtils {
         return ret;
     }
 
-    public static synchronized double calcDTW(List<Double> query, List<Double> sequence, int maxWarpingWindow, double nowBest, List<Double> upper, List<Double> lower) {
+    public static synchronized double calcDTW(
+            List<Double> query,
+            List<Double> sequence,
+            int maxWarpingWindow,
+            double nowBest,
+            List<Double> upper,
+            List<Double> lower) {
         int n = query.size();
         sequence = norm(sequence);
         double lb = LB_Kim_FL(query, sequence);
@@ -170,11 +201,13 @@ public class CurveMatchUtils {
             return lb + dis[0][0];
         }
         for (int i = 1; i <= maxWarpingWindow; i++) {
-            dis[0][i] = dis[0][i-1] + Math.pow(query.get(0) - sequence.get(i), 2);
-            dis[i][0] = dis[i-1][0] + Math.pow(query.get(i) - sequence.get(0), 2);
+            dis[0][i] = dis[0][i - 1] + Math.pow(query.get(0) - sequence.get(i), 2);
+            dis[i][0] = dis[i - 1][0] + Math.pow(query.get(i) - sequence.get(0), 2);
         }
         for (int i = 1; i < n; i++) {
-            for (int j = Math.max(1, i - maxWarpingWindow); j < Math.min(n, i + maxWarpingWindow); j++) {
+            for (int j = Math.max(1, i - maxWarpingWindow);
+                    j < Math.min(n, i + maxWarpingWindow);
+                    j++) {
                 dis[i][j] = dis[i - 1][j - 1];
                 if (i + maxWarpingWindow != j) {
                     dis[i][j] = Math.min(dis[i][j], dis[i - 1][j]);

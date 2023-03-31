@@ -21,7 +21,6 @@ package cn.edu.tsinghua.iginx.session_v2.write;
 import cn.edu.tsinghua.iginx.session_v2.Arguments;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.TagKVUtils;
-
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -37,7 +36,12 @@ public class Table {
 
     private final List<Object[]> valuesList;
 
-    private Table(List<Long> keys, List<String> measurements, List<Map<String, String>> tagsList, List<DataType> dataTypes, List<Object[]> valuesList) {
+    private Table(
+            List<Long> keys,
+            List<String> measurements,
+            List<Map<String, String>> tagsList,
+            List<DataType> dataTypes,
+            List<Object[]> valuesList) {
         this.keys = keys;
         this.measurements = measurements;
         this.tagsList = tagsList;
@@ -133,7 +137,8 @@ public class Table {
                 this.dataTypes.add(dataType);
             } else {
                 if (dataType != this.dataTypes.get(index)) {
-                    throw new IllegalStateException("field " + field + " has add to table, but has different dataType");
+                    throw new IllegalStateException(
+                            "field " + field + " has add to table, but has different dataType");
                 }
             }
             return this;
@@ -288,7 +293,11 @@ public class Table {
                 indexMap.put(index, i);
             }
             if (measurement != null) {
-                measurements = measurements.stream().map(e -> measurement + "." + e).collect(Collectors.toList());
+                measurements =
+                        measurements
+                                .stream()
+                                .map(e -> measurement + "." + e)
+                                .collect(Collectors.toList());
             }
             List<Object[]> valuesList = new ArrayList<>();
             for (Map<Integer, Object> rowMap : this.valuesList) {
@@ -300,7 +309,5 @@ public class Table {
             }
             return new Table(this.keys, measurements, tagsList, dataTypes, valuesList);
         }
-
     }
-
 }

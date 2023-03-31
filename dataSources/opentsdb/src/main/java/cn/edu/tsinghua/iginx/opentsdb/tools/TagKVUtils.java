@@ -25,15 +25,14 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.tag.OrTagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TagKVUtils {
     @SuppressWarnings("unused")
@@ -50,13 +49,17 @@ public class TagKVUtils {
         assert parts.length == 2;
         String name = parts[0].substring(0, parts[0].length() - 1);
 
-        List<String> tagKVList = Arrays.stream(parts[1].split("\\.")).map(e -> {
-            if (e.startsWith(tagNameAnnotation)) {
-                return e.substring(tagNameAnnotation.length());
-            } else {
-                return e;
-            }
-        }).collect(Collectors.toList());
+        List<String> tagKVList =
+                Arrays.stream(parts[1].split("\\."))
+                        .map(
+                                e -> {
+                                    if (e.startsWith(tagNameAnnotation)) {
+                                        return e.substring(tagNameAnnotation.length());
+                                    } else {
+                                        return e;
+                                    }
+                                })
+                        .collect(Collectors.toList());
         assert tagKVList.size() % 2 == 0;
         Map<String, String> tags = new HashMap<>();
         for (int i = 0; i < tagKVList.size(); i++) {
@@ -82,7 +85,7 @@ public class TagKVUtils {
                 return match(tags, (OrTagFilter) tagFilter);
             case Base:
                 return match(tags, (BaseTagFilter) tagFilter);
-            // TODO: case label
+                // TODO: case label
             case BasePrecise:
                 break;
             case Precise:
@@ -95,7 +98,7 @@ public class TagKVUtils {
 
     private static boolean match(Map<String, String> tags, AndTagFilter tagFilter) {
         List<TagFilter> children = tagFilter.getChildren();
-        for (TagFilter child: children) {
+        for (TagFilter child : children) {
             if (!match(tags, child)) {
                 return false;
             }
@@ -105,7 +108,7 @@ public class TagKVUtils {
 
     private static boolean match(Map<String, String> tags, OrTagFilter tagFilter) {
         List<TagFilter> children = tagFilter.getChildren();
-        for (TagFilter child: children) {
+        for (TagFilter child : children) {
             if (match(tags, child)) {
                 return true;
             }
@@ -126,6 +129,4 @@ public class TagKVUtils {
             return Pattern.matches(StringUtils.reformatPath(expectedValue), actualValue);
         }
     }
-
-
 }

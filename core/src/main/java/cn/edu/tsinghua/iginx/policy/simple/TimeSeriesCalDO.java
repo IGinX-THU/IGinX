@@ -35,7 +35,12 @@ public class TimeSeriesCalDO implements Comparable<TimeSeriesCalDO> {
         return 0;
     }
 
-    public void merge(Long recentTimeStamp, Long firstTimestamp, Long lastTimestamp, Integer count, Long totalByte) {
+    public void merge(
+            Long recentTimeStamp,
+            Long firstTimestamp,
+            Long lastTimestamp,
+            Integer count,
+            Long totalByte) {
         this.recentTimeStamp = recentTimeStamp;
         this.firstTimestamp = Math.min(firstTimestamp, this.firstTimestamp);
         this.lastTimestamp = Math.max(lastTimestamp, this.lastTimestamp);

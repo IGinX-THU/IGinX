@@ -22,11 +22,13 @@ public class TypeUtils {
             case "Utf8":
                 return DataType.BINARY;
             default:
-                throw new IllegalArgumentException(String.format("Can not convert %s to iginx DataType", type.toString()));
+                throw new IllegalArgumentException(
+                        String.format("Can not convert %s to iginx DataType", type.toString()));
         }
     }
 
-    public static FieldVector getFieldVectorByType(String name, DataType dataType, RootAllocator allocator) {
+    public static FieldVector getFieldVectorByType(
+            String name, DataType dataType, RootAllocator allocator) {
         switch (dataType) {
             case LONG:
                 return new BigIntVector(name, allocator);
@@ -68,7 +70,8 @@ public class TypeUtils {
         }
     }
 
-    public static ValueVector getValueVectorByDataType(DataType dataType, String name, RootAllocator allocator) {
+    public static ValueVector getValueVectorByDataType(
+            DataType dataType, String name, RootAllocator allocator) {
         switch (dataType) {
             case LONG:
                 return new BigIntVector(name, allocator);

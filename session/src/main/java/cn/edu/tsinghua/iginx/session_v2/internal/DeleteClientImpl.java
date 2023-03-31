@@ -27,9 +27,8 @@ import cn.edu.tsinghua.iginx.thrift.DeleteDataInColumnsReq;
 import cn.edu.tsinghua.iginx.thrift.Status;
 import cn.edu.tsinghua.iginx.thrift.TimePrecision;
 import cn.edu.tsinghua.iginx.utils.RpcUtils;
-import org.apache.thrift.TException;
-
 import java.util.*;
+import org.apache.thrift.TException;
 
 public class DeleteClientImpl extends AbstractFunctionClient implements DeleteClient {
 
@@ -51,7 +50,10 @@ public class DeleteClientImpl extends AbstractFunctionClient implements DeleteCl
         Arguments.checkNotNull(measurements, "measurements");
         measurements.forEach(measurement -> Arguments.checkNotNull(measurement, "measurement"));
 
-        DeleteColumnsReq req = new DeleteColumnsReq(sessionId, MeasurementUtils.mergeAndSortMeasurements(new ArrayList<>(measurements)));
+        DeleteColumnsReq req =
+                new DeleteColumnsReq(
+                        sessionId,
+                        MeasurementUtils.mergeAndSortMeasurements(new ArrayList<>(measurements)));
 
         synchronized (iginXClient) {
             iginXClient.checkIsClosed();
@@ -72,58 +74,100 @@ public class DeleteClientImpl extends AbstractFunctionClient implements DeleteCl
     }
 
     @Override
-    public void deleteMeasurementData(String measurement, long startTime, long endTime) throws IginXException {
+    public void deleteMeasurementData(String measurement, long startTime, long endTime)
+            throws IginXException {
         deleteMeasurementData(measurement, startTime, endTime, null, null);
     }
 
     @Override
-    public void deleteMeasurementData(String measurement, long startTime, long endTime, TimePrecision timePrecision) throws IginXException {
+    public void deleteMeasurementData(
+            String measurement, long startTime, long endTime, TimePrecision timePrecision)
+            throws IginXException {
         deleteMeasurementData(measurement, startTime, endTime, null, timePrecision);
     }
 
     @Override
-    public void deleteMeasurementsData(Collection<String> measurements, long startTime, long endTime) throws IginXException {
+    public void deleteMeasurementsData(
+            Collection<String> measurements, long startTime, long endTime) throws IginXException {
         deleteMeasurementsData(measurements, startTime, endTime, null, null);
     }
 
     @Override
-    public void deleteMeasurementsData(Collection<String> measurements, long startTime, long endTime, TimePrecision timePrecision) throws IginXException {
+    public void deleteMeasurementsData(
+            Collection<String> measurements,
+            long startTime,
+            long endTime,
+            TimePrecision timePrecision)
+            throws IginXException {
         deleteMeasurementsData(measurements, startTime, endTime, null, timePrecision);
     }
 
     @Override
-    public void deleteMeasurementData(Class<?> measurementType, long startTime, long endTime) throws IginXException {
+    public void deleteMeasurementData(Class<?> measurementType, long startTime, long endTime)
+            throws IginXException {
         deleteMeasurementData(measurementType, startTime, endTime, null, null);
     }
 
     @Override
-    public void deleteMeasurementData(Class<?> measurementType, long startTime, long endTime, TimePrecision timePrecision) throws IginXException {
+    public void deleteMeasurementData(
+            Class<?> measurementType, long startTime, long endTime, TimePrecision timePrecision)
+            throws IginXException {
         deleteMeasurementData(measurementType, startTime, endTime, null, timePrecision);
     }
 
     @Override
-    public void deleteMeasurementData(String measurement, long startTime, long endTime, Map<String, List<String>> tagsList) throws IginXException {
+    public void deleteMeasurementData(
+            String measurement, long startTime, long endTime, Map<String, List<String>> tagsList)
+            throws IginXException {
         Arguments.checkNotNull(measurement, "measurement");
-        deleteMeasurementsData(Collections.singletonList(measurement), startTime, endTime, tagsList, null);
+        deleteMeasurementsData(
+                Collections.singletonList(measurement), startTime, endTime, tagsList, null);
     }
 
     @Override
-    public void deleteMeasurementData(String measurement, long startTime, long endTime, Map<String, List<String>> tagsList, TimePrecision timePrecision) throws IginXException {
+    public void deleteMeasurementData(
+            String measurement,
+            long startTime,
+            long endTime,
+            Map<String, List<String>> tagsList,
+            TimePrecision timePrecision)
+            throws IginXException {
         Arguments.checkNotNull(measurement, "measurement");
-        deleteMeasurementsData(Collections.singletonList(measurement), startTime, endTime, tagsList, timePrecision);
+        deleteMeasurementsData(
+                Collections.singletonList(measurement),
+                startTime,
+                endTime,
+                tagsList,
+                timePrecision);
     }
 
     @Override
-    public void deleteMeasurementsData(Collection<String> measurements, long startTime, long endTime, Map<String, List<String>> tagsList) throws IginXException {
+    public void deleteMeasurementsData(
+            Collection<String> measurements,
+            long startTime,
+            long endTime,
+            Map<String, List<String>> tagsList)
+            throws IginXException {
         deleteMeasurementsData(measurements, startTime, endTime, tagsList, null);
     }
 
     @Override
-    public void deleteMeasurementsData(Collection<String> measurements, long startTime, long endTime, Map<String, List<String>> tagsList, TimePrecision timePrecision) throws IginXException {
+    public void deleteMeasurementsData(
+            Collection<String> measurements,
+            long startTime,
+            long endTime,
+            Map<String, List<String>> tagsList,
+            TimePrecision timePrecision)
+            throws IginXException {
         Arguments.checkNotNull(measurements, "measurements");
         measurements.forEach(measurement -> Arguments.checkNotNull(measurement, "measurement"));
 
-        DeleteDataInColumnsReq req = new DeleteDataInColumnsReq(sessionId, MeasurementUtils.mergeAndSortMeasurements(new ArrayList<>(measurements)), startTime, endTime);
+        DeleteDataInColumnsReq req =
+                new DeleteDataInColumnsReq(
+                        sessionId,
+                        MeasurementUtils.mergeAndSortMeasurements(new ArrayList<>(measurements)),
+                        startTime,
+                        endTime);
 
         if (tagsList != null && !tagsList.isEmpty()) {
             req.setTagsList(tagsList);
@@ -142,14 +186,25 @@ public class DeleteClientImpl extends AbstractFunctionClient implements DeleteCl
     }
 
     @Override
-    public void deleteMeasurementData(Class<?> measurementType, long startTime, long endTime, Map<String, List<String>> tagsList) throws IginXException {
+    public void deleteMeasurementData(
+            Class<?> measurementType,
+            long startTime,
+            long endTime,
+            Map<String, List<String>> tagsList)
+            throws IginXException {
         Arguments.checkNotNull(measurementType, "measurementType");
         Collection<String> measurements = measurementMapper.toMeasurements(measurementType);
         deleteMeasurementsData(measurements, startTime, endTime, tagsList);
     }
 
     @Override
-    public void deleteMeasurementData(Class<?> measurementType, long startTime, long endTime, Map<String, List<String>> tagsList, TimePrecision timePrecision) throws IginXException {
+    public void deleteMeasurementData(
+            Class<?> measurementType,
+            long startTime,
+            long endTime,
+            Map<String, List<String>> tagsList,
+            TimePrecision timePrecision)
+            throws IginXException {
         Arguments.checkNotNull(measurementType, "measurementType");
         Collection<String> measurements = measurementMapper.toMeasurements(measurementType);
         deleteMeasurementsData(measurements, startTime, endTime, tagsList, timePrecision);

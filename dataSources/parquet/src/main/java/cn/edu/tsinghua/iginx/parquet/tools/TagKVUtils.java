@@ -4,16 +4,15 @@ import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.*;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-import java.util.TreeMap;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TagKVUtils {
     @SuppressWarnings("unused")
@@ -30,13 +29,17 @@ public class TagKVUtils {
         assert parts.length == 2;
         String name = parts[0].substring(0, parts[0].length() - 1);
 
-        List<String> tagKVList = Arrays.stream(parts[1].split("\\.")).map(e -> {
-            if (e.startsWith(tagNameAnnotation)) {
-                return e.substring(tagNameAnnotation.length());
-            } else {
-                return e;
-            }
-        }).collect(Collectors.toList());
+        List<String> tagKVList =
+                Arrays.stream(parts[1].split("\\."))
+                        .map(
+                                e -> {
+                                    if (e.startsWith(tagNameAnnotation)) {
+                                        return e.substring(tagNameAnnotation.length());
+                                    } else {
+                                        return e;
+                                    }
+                                })
+                        .collect(Collectors.toList());
         assert tagKVList.size() % 2 == 0;
         Map<String, String> tags = new HashMap<>();
         for (int i = 0; i < tagKVList.size(); i++) {
@@ -54,9 +57,15 @@ public class TagKVUtils {
         if (tags != null && !tags.isEmpty()) {
             TreeMap<String, String> sortedTags = new TreeMap<>(tags);
             StringBuilder pathBuilder = new StringBuilder();
-            sortedTags.forEach((tagKey, tagValue) -> {
-                pathBuilder.append('.').append(TagKVUtils.tagNameAnnotation).append(tagKey).append('.').append(tagValue);
-            });
+            sortedTags.forEach(
+                    (tagKey, tagValue) -> {
+                        pathBuilder
+                                .append('.')
+                                .append(TagKVUtils.tagNameAnnotation)
+                                .append(tagKey)
+                                .append('.')
+                                .append(tagValue);
+                    });
             name += pathBuilder.toString();
         }
         return name;
@@ -85,7 +94,7 @@ public class TagKVUtils {
             return false;
         }
         List<TagFilter> children = tagFilter.getChildren();
-        for (TagFilter child: children) {
+        for (TagFilter child : children) {
             if (!match(tags, child)) {
                 return false;
             }
@@ -98,7 +107,7 @@ public class TagKVUtils {
             return false;
         }
         List<TagFilter> children = tagFilter.getChildren();
-        for (TagFilter child: children) {
+        for (TagFilter child : children) {
             if (match(tags, child)) {
                 return true;
             }
@@ -128,7 +137,7 @@ public class TagKVUtils {
             return false;
         }
         List<BasePreciseTagFilter> children = tagFilter.getChildren();
-        for (TagFilter child: children) {
+        for (TagFilter child : children) {
             if (match(tags, child)) {
                 return true;
             }

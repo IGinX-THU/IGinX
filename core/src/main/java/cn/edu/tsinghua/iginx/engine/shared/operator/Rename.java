@@ -30,8 +30,14 @@ public class Rename extends AbstractUnaryOperator {
     public String getInfo() {
         StringBuilder builder = new StringBuilder();
         builder.append("AliasMap: ");
-        aliasMap.forEach((k, v) ->
-            builder.append("(").append(k).append(", ").append(v).append(")").append(","));
+        aliasMap.forEach(
+                (k, v) ->
+                        builder.append("(")
+                                .append(k)
+                                .append(", ")
+                                .append(v)
+                                .append(")")
+                                .append(","));
         builder.deleteCharAt(builder.length() - 1);
         return builder.toString();
     }

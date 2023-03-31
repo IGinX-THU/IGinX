@@ -21,7 +21,6 @@ package cn.edu.tsinghua.iginx.session_v2.write;
 import cn.edu.tsinghua.iginx.session_v2.Arguments;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.TagKVUtils;
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -39,7 +38,12 @@ public class Point {
 
     private final String fullName;
 
-    public Point(long key, Object value, DataType dataType, String measurement, Map<String, String> tags) {
+    public Point(
+            long key,
+            Object value,
+            DataType dataType,
+            String measurement,
+            Map<String, String> tags) {
         this.key = key;
         this.value = value;
         this.dataType = dataType;
@@ -92,9 +96,7 @@ public class Point {
 
         private final Map<String, String> tags = new HashMap<>();
 
-        private Builder() {
-
-        }
+        private Builder() {}
 
         public Point.Builder key(long key) {
             this.key = key;
@@ -175,7 +177,5 @@ public class Point {
             }
             return new Point(this);
         }
-
     }
-
 }

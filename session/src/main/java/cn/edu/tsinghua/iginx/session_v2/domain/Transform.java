@@ -2,7 +2,6 @@ package cn.edu.tsinghua.iginx.session_v2.domain;
 
 import cn.edu.tsinghua.iginx.session_v2.Arguments;
 import cn.edu.tsinghua.iginx.thrift.ExportType;
-
 import java.util.ArrayList;
 import java.util.List;
 

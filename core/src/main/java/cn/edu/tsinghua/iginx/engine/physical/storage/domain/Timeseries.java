@@ -25,7 +25,6 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.TagKVUtils;
-
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -50,8 +49,23 @@ public final class Timeseries {
     }
 
     public static RowStream toRowStream(Collection<Timeseries> timeseries) {
-        Header header = new Header(Arrays.asList(new Field("path", DataType.BINARY), new Field("type", DataType.BINARY)));
-        List<Row> rows = timeseries.stream().map(e -> new Row(header, new Object[]{Field.toFullName(e.path, e.tags).getBytes(), e.dataType.toString().getBytes()})).collect(Collectors.toList());
+        Header header =
+                new Header(
+                        Arrays.asList(
+                                new Field("path", DataType.BINARY),
+                                new Field("type", DataType.BINARY)));
+        List<Row> rows =
+                timeseries
+                        .stream()
+                        .map(
+                                e ->
+                                        new Row(
+                                                header,
+                                                new Object[] {
+                                                    Field.toFullName(e.path, e.tags).getBytes(),
+                                                    e.dataType.toString().getBytes()
+                                                }))
+                        .collect(Collectors.toList());
         return new Table(header, rows);
     }
 
@@ -83,12 +97,13 @@ public final class Timeseries {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Timeseries that = (Timeseries) o;
-        return Objects.equals(path, that.path) && dataType == that.dataType && Objects.equals(tags, that.tags);
+        return Objects.equals(path, that.path)
+                && dataType == that.dataType
+                && Objects.equals(tags, that.tags);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(path, dataType, tags);
     }
-
 }

@@ -11,7 +11,6 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.GetClusterInfoReq;
 import cn.edu.tsinghua.iginx.thrift.GetClusterInfoResp;
-
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -31,23 +30,78 @@ public class ShowClusterInfoStatement extends SystemStatement {
 
         Result result = new Result(getClusterInfoResp.getStatus());
         if (ctx.isUseStream()) {
-            Header header = new Header(Arrays.asList(
-                new Field("InfoName", DataType.BINARY),
-                new Field("InfoDetails", DataType.BINARY)
-            ));
+            Header header =
+                    new Header(
+                            Arrays.asList(
+                                    new Field("InfoName", DataType.BINARY),
+                                    new Field("InfoDetails", DataType.BINARY)));
             List<Row> rowList = new ArrayList<>();
 
             if (getClusterInfoResp.isSetIginxInfos()) {
-                getClusterInfoResp.getIginxInfos().forEach(iginxInfo -> rowList.add(new Row(header, new Object[]{"IginX".getBytes(StandardCharsets.UTF_8), iginxInfo.toString().getBytes(StandardCharsets.UTF_8)})));
+                getClusterInfoResp
+                        .getIginxInfos()
+                        .forEach(
+                                iginxInfo ->
+                                        rowList.add(
+                                                new Row(
+                                                        header,
+                                                        new Object[] {
+                                                            "IginX"
+                                                                    .getBytes(
+                                                                            StandardCharsets.UTF_8),
+                                                            iginxInfo
+                                                                    .toString()
+                                                                    .getBytes(
+                                                                            StandardCharsets.UTF_8)
+                                                        })));
             }
             if (getClusterInfoResp.isSetStorageEngineInfos()) {
-                getClusterInfoResp.getStorageEngineInfos().forEach(storageEngineInfo -> rowList.add(new Row(header, new Object[]{"StorageEngine".getBytes(StandardCharsets.UTF_8), storageEngineInfo.toString().getBytes(StandardCharsets.UTF_8)})));
+                getClusterInfoResp
+                        .getStorageEngineInfos()
+                        .forEach(
+                                storageEngineInfo ->
+                                        rowList.add(
+                                                new Row(
+                                                        header,
+                                                        new Object[] {
+                                                            "StorageEngine"
+                                                                    .getBytes(
+                                                                            StandardCharsets.UTF_8),
+                                                            storageEngineInfo
+                                                                    .toString()
+                                                                    .getBytes(
+                                                                            StandardCharsets.UTF_8)
+                                                        })));
             }
             if (getClusterInfoResp.isSetMetaStorageInfos()) {
-                getClusterInfoResp.getMetaStorageInfos().forEach(metaStorageInfo -> rowList.add(new Row(header, new Object[]{"MetaStorage".getBytes(StandardCharsets.UTF_8), metaStorageInfo.toString().getBytes(StandardCharsets.UTF_8)})));
+                getClusterInfoResp
+                        .getMetaStorageInfos()
+                        .forEach(
+                                metaStorageInfo ->
+                                        rowList.add(
+                                                new Row(
+                                                        header,
+                                                        new Object[] {
+                                                            "MetaStorage"
+                                                                    .getBytes(
+                                                                            StandardCharsets.UTF_8),
+                                                            metaStorageInfo
+                                                                    .toString()
+                                                                    .getBytes(
+                                                                            StandardCharsets.UTF_8)
+                                                        })));
             }
             if (getClusterInfoResp.isSetLocalMetaStorageInfo()) {
-                rowList.add(new Row(header, new Object[]{"LocalMetaStorage".getBytes(StandardCharsets.UTF_8), getClusterInfoResp.getLocalMetaStorageInfo().toString().getBytes(StandardCharsets.UTF_8)}));
+                rowList.add(
+                        new Row(
+                                header,
+                                new Object[] {
+                                    "LocalMetaStorage".getBytes(StandardCharsets.UTF_8),
+                                    getClusterInfoResp
+                                            .getLocalMetaStorageInfo()
+                                            .toString()
+                                            .getBytes(StandardCharsets.UTF_8)
+                                }));
             }
 
             RowStream table = new Table(header, rowList);

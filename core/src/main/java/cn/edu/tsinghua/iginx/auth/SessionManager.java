@@ -21,7 +21,6 @@ package cn.edu.tsinghua.iginx.auth;
 import cn.edu.tsinghua.iginx.metadata.entity.UserMeta;
 import cn.edu.tsinghua.iginx.thrift.AuthType;
 import cn.edu.tsinghua.iginx.utils.SnowFlakeUtils;
-
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -58,7 +57,11 @@ public class SessionManager {
         if (userMeta == null) {
             throw new IllegalArgumentException("non-existed user: " + username);
         }
-        long sessionId = (username.hashCode() + System.currentTimeMillis() + SnowFlakeUtils.getInstance().nextId()) << 4;
+        long sessionId =
+                (username.hashCode()
+                                + System.currentTimeMillis()
+                                + SnowFlakeUtils.getInstance().nextId())
+                        << 4;
         for (AuthType auth : userMeta.getAuths()) {
             sessionId += (1L << auth.getValue());
         }
@@ -69,5 +72,4 @@ public class SessionManager {
     public void closeSession(long sessionId) {
         sessionIds.remove(sessionId);
     }
-
 }

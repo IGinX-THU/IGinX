@@ -30,9 +30,7 @@ public class TaskExecuteResult {
 
     private PhysicalException exception;
 
-    public TaskExecuteResult() {
-
-    }
+    public TaskExecuteResult() {}
 
     public TaskExecuteResult(RowStream rowStream) {
         this(rowStream, null);

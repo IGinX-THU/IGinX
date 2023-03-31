@@ -20,7 +20,6 @@ package cn.edu.tsinghua.iginx.engine.shared.data.read;
 
 import cn.edu.tsinghua.iginx.constant.GlobalConstant;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
@@ -59,7 +58,7 @@ public final class Field {
             TreeMap<String, String> treeMap = new TreeMap<>(tags);
 
             int cnt = 0;
-            for (String key: treeMap.keySet()) {
+            for (String key : treeMap.keySet()) {
                 if (cnt != 0) {
                     builder.append(',');
                 }
@@ -102,11 +101,16 @@ public final class Field {
 
     @Override
     public String toString() {
-        return "Field{" +
-                "name='" + name + '\'' +
-                ", fullName='" + fullName + '\'' +
-                ", type=" + type +
-                '}';
+        return "Field{"
+                + "name='"
+                + name
+                + '\''
+                + ", fullName='"
+                + fullName
+                + '\''
+                + ", type="
+                + type
+                + '}';
     }
 
     @Override
@@ -114,7 +118,10 @@ public final class Field {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Field that = (Field) o;
-        return Objects.equals(name, that.name) && Objects.equals(fullName, that.fullName) && type == that.type && Objects.equals(tags, that.tags);
+        return Objects.equals(name, that.name)
+                && Objects.equals(fullName, that.fullName)
+                && type == that.type
+                && Objects.equals(tags, that.tags);
     }
 
     @Override
@@ -132,7 +139,7 @@ public final class Field {
             TreeMap<String, String> treeMap = new TreeMap<>(tags);
 
             int cnt = 0;
-            for (String key: treeMap.keySet()) {
+            for (String key : treeMap.keySet()) {
                 if (cnt != 0) {
                     builder.append(',');
                 }
@@ -145,5 +152,4 @@ public final class Field {
             return builder.toString();
         }
     }
-
 }

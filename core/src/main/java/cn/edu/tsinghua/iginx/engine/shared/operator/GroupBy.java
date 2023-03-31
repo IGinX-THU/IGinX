@@ -31,8 +31,10 @@ public class GroupBy extends AbstractUnaryOperator {
 
     @Override
     public Operator copy() {
-        return new GroupBy(getSource().copy(), new ArrayList<>(groupByCols),
-            new ArrayList<>(functionCallList));
+        return new GroupBy(
+                getSource().copy(),
+                new ArrayList<>(groupByCols),
+                new ArrayList<>(functionCallList));
     }
 
     @Override

@@ -2,7 +2,6 @@ package cn.edu.tsinghua.iginx.engine.shared.data.write;
 
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Bitmap;
-
 import java.util.List;
 import java.util.Map;
 
@@ -22,8 +21,14 @@ public class RawData {
 
     private final RawDataType type;
 
-    public RawData(List<String> paths, List<Map<String, String>> tagsList, List<Long> keys, Object[] valuesList,
-                   List<DataType> dataTypeList, List<Bitmap> bitmaps, RawDataType type) {
+    public RawData(
+            List<String> paths,
+            List<Map<String, String>> tagsList,
+            List<Long> keys,
+            Object[] valuesList,
+            List<DataType> dataTypeList,
+            List<Bitmap> bitmaps,
+            RawDataType type) {
         this.paths = paths;
         this.tagsList = tagsList;
         this.keys = keys;
@@ -68,5 +73,4 @@ public class RawData {
     public boolean isColumnData() {
         return type == RawDataType.Column || type == RawDataType.NonAlignedColumn;
     }
-
 }

@@ -4,15 +4,14 @@ import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.transform.api.Writer;
 import cn.edu.tsinghua.iginx.transform.exception.WriteBatchException;
-import org.apache.arrow.vector.VectorSchemaRoot;
-import org.apache.arrow.vector.ipc.ArrowStreamWriter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.nio.channels.Channels;
+import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.ipc.ArrowStreamWriter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ArrowWriter implements Writer {
 
@@ -20,9 +19,9 @@ public class ArrowWriter implements Writer {
 
     private final int writerPort;
 
-    private final static Config config = ConfigDescriptor.getInstance().getConfig();
+    private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
-    private final static Logger logger = LoggerFactory.getLogger(ArrowWriter.class);
+    private static final Logger logger = LoggerFactory.getLogger(ArrowWriter.class);
 
     public ArrowWriter(int writerPort) {
         this.ip = config.getIp();

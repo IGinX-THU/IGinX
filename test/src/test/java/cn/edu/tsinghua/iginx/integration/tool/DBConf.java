@@ -4,17 +4,20 @@ public final class DBConf {
     public enum DBType {
         parquet,
         iotdb12,
-        influxdb
+        influxdb,
+        mongodb
     }
 
     public static DBType getDBType(String dbName) {
-        switch(dbName.toLowerCase()) {
+        switch (dbName.toLowerCase()) {
             case "iotdb12":
                 return DBType.iotdb12;
             case "influxdb":
                 return DBType.influxdb;
             case "parquet":
                 return DBType.parquet;
+            case "mongodb":
+                return DBType.mongodb;
             default:
                 throw new IllegalArgumentException("Invalid DBName value provided");
         }
@@ -35,7 +38,7 @@ public final class DBConf {
     private boolean supportTagKV;
 
     public static DBConfType getDBConfType(String str) {
-        switch(str) {
+        switch (str) {
             case "isAbleToClearData":
                 return DBConfType.isAbleToClearData;
             case "isAbleToDelete":
@@ -52,7 +55,7 @@ public final class DBConf {
     }
 
     public void setEnumValue(DBConfType myEnum, boolean value) {
-        switch(myEnum) {
+        switch (myEnum) {
             case isAbleToClearData:
                 ableToClearData = value;
                 break;
@@ -74,7 +77,7 @@ public final class DBConf {
     }
 
     public boolean getEnumValue(DBConfType myEnum) {
-        switch(myEnum) {
+        switch (myEnum) {
             case isAbleToClearData:
                 return ableToClearData;
             case isAbleToDelete:

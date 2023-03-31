@@ -1,15 +1,14 @@
 package cn.edu.tsinghua.iginx.sql.statement.frompart.join;
 
 public enum JoinType {
-
     CrossJoin,
     InnerJoin,
-    InnerNatualJoin,
-    LeftNatualJoin,
-    RightNatualJoin,
+    InnerNaturalJoin,
+    LeftNaturalJoin,
+    RightNaturalJoin,
     LeftOuterJoin,
     RightOuterJoin,
     FullOuterJoin,
-    SingleJoin
-
+    SingleJoin,
+    MarkJoin,
 }

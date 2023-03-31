@@ -5,13 +5,12 @@ import cn.edu.tsinghua.iginx.engine.shared.TimeRange;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.exceptions.SQLParserException;
-
 import java.util.ArrayList;
 import java.util.List;
 
 public class DeleteStatement extends DataStatement {
 
-    private boolean deleteAll;  // delete data & path
+    private boolean deleteAll; // delete data & path
 
     private List<String> paths;
     private List<TimeRange> timeRanges;
@@ -87,7 +86,8 @@ public class DeleteStatement extends DataStatement {
         if (filter != null) {
             this.timeRanges = ExprUtils.getTimeRangesFromFilter(filter);
             if (timeRanges.isEmpty()) {
-                throw new SQLParserException("This clause delete nothing, check your filter again.");
+                throw new SQLParserException(
+                        "This clause delete nothing, check your filter again.");
             }
         }
     }

@@ -45,5 +45,4 @@ public enum QueryAggregatorType {
     public String getType() {
         return type;
     }
-
 }

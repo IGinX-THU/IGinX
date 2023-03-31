@@ -3,9 +3,9 @@ package cn.edu.tsinghua.iginx.integration.tool;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-import org.apache.commons.lang3.RandomStringUtils;
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.commons.lang3.RandomStringUtils;
 
 public class CombinedInsertTests {
 
@@ -24,7 +24,7 @@ public class CombinedInsertTests {
 
     private static MultiConnection session = null;
 
-    public CombinedInsertTests(MultiConnection passedSession){
+    public CombinedInsertTests(MultiConnection passedSession) {
         session = passedSession;
     }
 
@@ -42,10 +42,10 @@ public class CombinedInsertTests {
     private static void insertColumnRecords() throws SessionException, ExecutionException {
         String PREFIX = "insertCR.";
         List<String> paths = new ArrayList<>();
-        paths.add(PREFIX+S1);
-        paths.add(PREFIX+S2);
-        paths.add(PREFIX+S3);
-        paths.add(PREFIX+S4);
+        paths.add(PREFIX + S1);
+        paths.add(PREFIX + S2);
+        paths.add(PREFIX + S3);
+        paths.add(PREFIX + S4);
 
         int size = (int) (COLUMN_END_TIMESTAMP - COLUMN_START_TIMESTAMP + 1);
         long[] timestamps = new long[size];
@@ -57,7 +57,7 @@ public class CombinedInsertTests {
         for (long i = 0; i < 4; i++) {
             Object[] values = new Object[size];
             for (long j = 0; j < size; j++) {
-                if (i%2==1) {
+                if (i % 2 == 1) {
                     values[(int) j] = i + j;
                 } else {
                     values[(int) j] = RandomStringUtils.randomAlphanumeric(10).getBytes();
@@ -68,25 +68,25 @@ public class CombinedInsertTests {
 
         List<DataType> dataTypeList = new ArrayList<>();
         for (long j = 0; j < 4; j++) {
-            if (j%2==1)
-                dataTypeList.add(DataType.LONG);
-            else
-                dataTypeList.add(DataType.BINARY);
+            if (j % 2 == 1) dataTypeList.add(DataType.LONG);
+            else dataTypeList.add(DataType.BINARY);
         }
 
         System.out.println("insertColumnRecords...");
         session.insertColumnRecords(paths, timestamps, valuesList, dataTypeList, null);
     }
 
-    private static void insertNonAlignedColumnRecords() throws SessionException, ExecutionException {
+    private static void insertNonAlignedColumnRecords()
+            throws SessionException, ExecutionException {
         String PREFIX = "insertCNAR.";
         List<String> paths = new ArrayList<>();
-        paths.add(PREFIX+S1);
-        paths.add(PREFIX+S2);
-        paths.add(PREFIX+S3);
-        paths.add(PREFIX+S4);
+        paths.add(PREFIX + S1);
+        paths.add(PREFIX + S2);
+        paths.add(PREFIX + S3);
+        paths.add(PREFIX + S4);
 
-        int size = (int) (NON_ALIGNED_COLUMN_END_TIMESTAMP - NON_ALIGNED_COLUMN_START_TIMESTAMP + 1);
+        int size =
+                (int) (NON_ALIGNED_COLUMN_END_TIMESTAMP - NON_ALIGNED_COLUMN_START_TIMESTAMP + 1);
         long[] timestamps = new long[size];
         for (long i = 0; i < size; i++) {
             timestamps[(int) i] = i + NON_ALIGNED_COLUMN_START_TIMESTAMP;
@@ -99,7 +99,7 @@ public class CombinedInsertTests {
                 if (j >= size - 50) {
                     values[(int) j] = null;
                 } else {
-                    if (i%2==0) {
+                    if (i % 2 == 0) {
                         values[(int) j] = i + j;
                     } else {
                         values[(int) j] = RandomStringUtils.randomAlphanumeric(10).getBytes();
@@ -111,10 +111,8 @@ public class CombinedInsertTests {
 
         List<DataType> dataTypeList = new ArrayList<>();
         for (long j = 0; j < 4; j++) {
-            if (j%2==0)
-                dataTypeList.add(DataType.LONG);
-            else
-                dataTypeList.add(DataType.BINARY);
+            if (j % 2 == 0) dataTypeList.add(DataType.LONG);
+            else dataTypeList.add(DataType.BINARY);
         }
 
         System.out.println("insertNonAlignedColumnRecords...");
@@ -124,11 +122,11 @@ public class CombinedInsertTests {
     private static void insertRowRecords() throws SessionException, ExecutionException {
         String PREFIX = "insertRR.";
         List<String> paths = new ArrayList<>();
-        paths.add(PREFIX+S1);
-        paths.add(PREFIX+S2);
-        paths.add(PREFIX+S3);
-        paths.add(PREFIX+S4);
-        paths.add(PREFIX+S3+S4);
+        paths.add(PREFIX + S1);
+        paths.add(PREFIX + S2);
+        paths.add(PREFIX + S3);
+        paths.add(PREFIX + S4);
+        paths.add(PREFIX + S3 + S4);
 
         int size = (int) (ROW_END_TIMESTAMP - ROW_START_TIMESTAMP + 1);
         int colNum = 5;
@@ -138,7 +136,7 @@ public class CombinedInsertTests {
             timestamps[(int) i] = ROW_START_TIMESTAMP + i;
             Object[] values = new Object[colNum];
             for (long j = 0; j < colNum; j++) {
-                if (j%2==0) {
+                if (j % 2 == 0) {
                     values[(int) j] = i + j;
                 } else {
                     values[(int) j] = RandomStringUtils.randomAlphanumeric(10).getBytes();
@@ -149,10 +147,8 @@ public class CombinedInsertTests {
 
         List<DataType> dataTypeList = new ArrayList<>();
         for (long j = 0; j < colNum; j++) {
-            if (j%2==0)
-                dataTypeList.add(DataType.LONG);
-            else
-                dataTypeList.add(DataType.BINARY);
+            if (j % 2 == 0) dataTypeList.add(DataType.LONG);
+            else dataTypeList.add(DataType.BINARY);
         }
 
         System.out.println("insertRowRecords...");
@@ -162,10 +158,10 @@ public class CombinedInsertTests {
     private static void insertNonAlignedRowRecords() throws SessionException, ExecutionException {
         String PREFIX = "insertNARR.";
         List<String> paths = new ArrayList<>();
-        paths.add(PREFIX+S1);
-        paths.add(PREFIX+S2);
-        paths.add(PREFIX+S3);
-        paths.add(PREFIX+S4);
+        paths.add(PREFIX + S1);
+        paths.add(PREFIX + S2);
+        paths.add(PREFIX + S3);
+        paths.add(PREFIX + S4);
 
         int size = (int) (NON_ALIGNED_ROW_END_TIMESTAMP - NON_ALIGNED_ROW_START_TIMESTAMP + 1);
         int colNum = 4;
@@ -178,7 +174,7 @@ public class CombinedInsertTests {
                 if ((i + j) % 2 == 0) {
                     values[(int) j] = null;
                 } else {
-                    if (j%2==0){
+                    if (j % 2 == 0) {
                         values[(int) j] = i + j;
                     } else {
                         values[(int) j] = RandomStringUtils.randomAlphanumeric(10).getBytes();
@@ -190,14 +186,11 @@ public class CombinedInsertTests {
 
         List<DataType> dataTypeList = new ArrayList<>();
         for (long j = 0; j < colNum; j++) {
-            if (j%2==0)
-                dataTypeList.add(DataType.LONG);
-            else
-                dataTypeList.add(DataType.BINARY);
+            if (j % 2 == 0) dataTypeList.add(DataType.LONG);
+            else dataTypeList.add(DataType.BINARY);
         }
 
         System.out.println("insertNonAlignedRowRecords...");
         session.insertNonAlignedRowRecords(paths, timestamps, valuesList, dataTypeList, null);
     }
-
 }

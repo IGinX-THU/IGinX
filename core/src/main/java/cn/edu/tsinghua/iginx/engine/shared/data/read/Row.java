@@ -20,7 +20,6 @@ package cn.edu.tsinghua.iginx.engine.shared.data.read;
 
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -104,11 +103,13 @@ public class Row {
         List<Value> retValueList = new ArrayList<>();
         List<Integer> indexList = header.patternIndexOf(pattern);
         if (indexList != null && !indexList.isEmpty()) {
-            indexList.forEach(index -> {
-                if (index != -1) {
-                    retValueList.add(new Value(header.getField(index).getType(), values[index]));
-                }
-            });
+            indexList.forEach(
+                    index -> {
+                        if (index != -1) {
+                            retValueList.add(
+                                    new Value(header.getField(index).getType(), values[index]));
+                        }
+                    });
         }
         return retValueList;
     }
@@ -122,7 +123,7 @@ public class Row {
             if (value instanceof byte[]) {
                 builder.append(new String((byte[]) value)).append(",");
             } else if (value instanceof Byte) {
-                builder.append(new String(new byte[]{(byte) value})).append(",");
+                builder.append(new String(new byte[] {(byte) value})).append(",");
             } else {
                 builder.append(value).append(",");
             }
@@ -133,10 +134,7 @@ public class Row {
 
     @Override
     public String toString() {
-        return "Row{" +
-            "timestamp=" + key +
-            ", values=" + Arrays.toString(values) +
-            '}';
+        return "Row{" + "timestamp=" + key + ", values=" + Arrays.toString(values) + '}';
     }
 
     @Override
@@ -144,7 +142,9 @@ public class Row {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Row row = (Row) o;
-        return key == row.key && Objects.equals(header, row.header) && Arrays.equals(values, row.values);
+        return key == row.key
+                && Objects.equals(header, row.header)
+                && Arrays.equals(values, row.values);
     }
 
     public boolean isEmpty() {

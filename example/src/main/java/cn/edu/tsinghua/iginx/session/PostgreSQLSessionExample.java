@@ -46,8 +46,8 @@ public class PostgreSQLSessionExample {
         // 打开 Session
         session.openSession();
         // 行式插入对齐数据
-//        insertRowRecords();
-//        queryData();
+        //        insertRowRecords();
+        //        queryData();
         deleteDataInColumns();
         // 关闭 Session
         session.closeSession();
@@ -57,8 +57,8 @@ public class PostgreSQLSessionExample {
         List<String> paths = new ArrayList<>();
         paths.add(S1);
         paths.add(S2);
-//        paths.add(S3);
-//        paths.add(S4);
+        //        paths.add(S3);
+        //        paths.add(S4);
 
         int size = (int) (ROW_END_TIMESTAMP - ROW_START_TIMESTAMP + 1);
         long[] timestamps = new long[size];
@@ -70,7 +70,8 @@ public class PostgreSQLSessionExample {
                 if (j < 2) {
                     values[(int) j] = i + j;
                 } else {
-//                    values[(int) j] = RandomStringUtils.randomAlphanumeric(10).getBytes();
+                    //                    values[(int) j] =
+                    // RandomStringUtils.randomAlphanumeric(10).getBytes();
                 }
             }
             valuesList[(int) i] = values;
@@ -80,9 +81,9 @@ public class PostgreSQLSessionExample {
         for (int i = 0; i < 2; i++) {
             dataTypeList.add(DataType.LONG);
         }
-//        for (int i = 0; i < 2; i++) {
-//            dataTypeList.add(DataType.BINARY);
-//        }
+        //        for (int i = 0; i < 2; i++) {
+        //            dataTypeList.add(DataType.BINARY);
+        //        }
 
         session.insertRowRecords(paths, timestamps, valuesList, dataTypeList, null);
     }
@@ -91,8 +92,8 @@ public class PostgreSQLSessionExample {
         List<String> paths = new ArrayList<>();
         paths.add(S1);
         paths.add(S2);
-//        paths.add(S3);
-//        paths.add(S4);
+        //        paths.add(S3);
+        //        paths.add(S4);
 
         long startTime = NON_ALIGNED_COLUMN_END_TIMESTAMP - 100L;
         long endTime = ROW_START_TIMESTAMP + 100L;

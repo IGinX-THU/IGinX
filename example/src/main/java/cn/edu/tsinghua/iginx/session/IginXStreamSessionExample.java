@@ -1,7 +1,6 @@
 package cn.edu.tsinghua.iginx.session;
 
 import cn.edu.tsinghua.iginx.thrift.DataType;
-
 import java.util.List;
 
 public class IginXStreamSessionExample {
@@ -16,14 +15,14 @@ public class IginXStreamSessionExample {
         List<String> columns = dataSet.getColumnList();
         List<DataType> dataTypes = dataSet.getDataTypeList();
 
-        for (String column: columns) {
+        for (String column : columns) {
             System.out.print(column + "\t");
         }
         System.out.println();
 
         while (dataSet.hasMore()) {
             Object[] row = dataSet.nextRow();
-            for (Object o: row) {
+            for (Object o : row) {
                 System.out.print(o);
                 System.out.print("\t\t\t");
             }
@@ -33,5 +32,4 @@ public class IginXStreamSessionExample {
 
         session.closeSession();
     }
-
 }

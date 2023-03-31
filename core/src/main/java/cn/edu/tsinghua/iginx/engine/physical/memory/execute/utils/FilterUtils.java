@@ -18,13 +18,16 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils;
 
+import cn.edu.tsinghua.iginx.engine.physical.exception.InvalidOperatorParameterException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.BoolFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.FilterType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.NotFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
@@ -32,7 +35,6 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.OrFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.ValueFilter;
 import cn.edu.tsinghua.iginx.utils.Pair;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -101,7 +103,8 @@ public class FilterUtils {
         return false;
     }
 
-    private static boolean validateValueFilter(ValueFilter valueFilter, Row row) throws PhysicalException {
+    private static boolean validateValueFilter(ValueFilter valueFilter, Row row)
+            throws PhysicalException {
         String path = valueFilter.getPath();
         Value targetValue = valueFilter.getValue();
         if (targetValue.isNull()) { // targetValue是空值，则认为不可比较
@@ -114,7 +117,8 @@ public class FilterUtils {
                 if (value == null || value.isNull()) { // 任何一个value是空值，则认为不可比较
                     return false;
                 }
-                if (!validateValueCompare(valueFilter.getOp(), value, targetValue)) { // 任何一个子条件不满足，都直接返回
+                if (!validateValueCompare(
+                        valueFilter.getOp(), value, targetValue)) { // 任何一个子条件不满足，都直接返回
                     return false;
                 }
             }
@@ -128,21 +132,26 @@ public class FilterUtils {
         }
     }
 
-    private static boolean validatePathFilter(PathFilter pathFilter, Row row) throws PhysicalException {
+    private static boolean validatePathFilter(PathFilter pathFilter, Row row)
+            throws PhysicalException {
         Value valueA = row.getAsValue(pathFilter.getPathA());
         Value valueB = row.getAsValue(pathFilter.getPathB());
-        if (valueA == null || valueA.isNull() || valueB == null || valueB.isNull()) { // 如果任何一个是空值，则认为不可比较
+        if (valueA == null
+                || valueA.isNull()
+                || valueB == null
+                || valueB.isNull()) { // 如果任何一个是空值，则认为不可比较
             return false;
         }
         return validateValueCompare(pathFilter.getOp(), valueA, valueB);
     }
 
-    private static boolean validateValueCompare(Op op, Value valueA, Value valueB) throws PhysicalException {
+    private static boolean validateValueCompare(Op op, Value valueA, Value valueB)
+            throws PhysicalException {
         if (valueA.getDataType() != valueB.getDataType()) {
             if (ValueUtils.isNumericType(valueA) && ValueUtils.isNumericType(valueB)) {
                 valueA = ValueUtils.transformToDouble(valueA);
                 valueB = ValueUtils.transformToDouble(valueB);
-            } else {  // 数值类型和非数值类型无法比较
+            } else { // 数值类型和非数值类型无法比较
                 return false;
             }
         }
@@ -165,7 +174,7 @@ public class FilterUtils {
         }
         return false;
     }
-    
+
     public static List<Pair<String, String>> getJoinColumnsFromFilter(Filter filter) {
         List<Pair<String, String>> l = new ArrayList<>();
         switch (filter.getType()) {
@@ -181,11 +190,33 @@ public class FilterUtils {
         }
         return l;
     }
-    
+
     public static Pair<String, String> getJoinColumnFromPathFilter(PathFilter pathFilter) {
         if (pathFilter.getOp().equals(Op.E)) {
             return new Pair<>(pathFilter.getPathA(), pathFilter.getPathB());
         }
         return null;
+    }
+
+    public static Pair<String, String> getJoinPathFromFilter(
+            Filter filter, Header headerA, Header headerB) throws PhysicalException {
+        if (!filter.getType().equals(FilterType.Path)) {
+            throw new InvalidOperatorParameterException(
+                    "Unsupported hash join filter type: " + filter.getType());
+        }
+        PathFilter pathFilter = (PathFilter) filter;
+        if (!pathFilter.getOp().equals(Op.E)) {
+            throw new InvalidOperatorParameterException(
+                    "Unsupported hash join filter op type: " + pathFilter.getOp());
+        }
+        if (headerA.indexOf(pathFilter.getPathA()) != -1
+                && headerB.indexOf(pathFilter.getPathB()) != -1) {
+            return new Pair<>(pathFilter.getPathA(), pathFilter.getPathB());
+        } else if (headerA.indexOf(pathFilter.getPathB()) != -1
+                && headerB.indexOf(pathFilter.getPathA()) != -1) {
+            return new Pair<>(pathFilter.getPathB(), pathFilter.getPathA());
+        } else {
+            throw new InvalidOperatorParameterException("invalid hash join path filter input.");
+        }
     }
 }

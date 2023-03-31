@@ -22,7 +22,6 @@ import cn.edu.tsinghua.iginx.session_v2.write.Point;
 import cn.edu.tsinghua.iginx.session_v2.write.Record;
 import cn.edu.tsinghua.iginx.session_v2.write.Table;
 import cn.edu.tsinghua.iginx.thrift.TimePrecision;
-
 import java.util.List;
 
 public interface AsyncWriteClient extends AutoCloseable {

@@ -23,7 +23,6 @@ import cn.edu.tsinghua.iginx.rest.bean.Metric;
 import cn.edu.tsinghua.iginx.rest.bean.QueryResultDataset;
 import cn.edu.tsinghua.iginx.rest.insert.DataPointsParser;
 import cn.edu.tsinghua.iginx.session.SessionQueryDataSet;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -34,7 +33,12 @@ public class QueryAggregatorSaveAs extends QueryAggregator {
     }
 
     @Override
-    public QueryResultDataset doAggregate(RestSession session, List<String> paths, Map<String, List<String>> tagList, long startTimestamp, long endTimestamp) {
+    public QueryResultDataset doAggregate(
+            RestSession session,
+            List<String> paths,
+            Map<String, List<String>> tagList,
+            long startTimestamp,
+            long endTimestamp) {
         DataPointsParser parser = new DataPointsParser();
         List<Metric> metrics = new ArrayList<>();
         Metric ins = new Metric();
@@ -42,7 +46,8 @@ public class QueryAggregatorSaveAs extends QueryAggregator {
         ins.setName(getMetric_name());
         ins.addTag("saved_from", name);
         QueryResultDataset queryResultDataset = new QueryResultDataset();
-        SessionQueryDataSet sessionQueryDataSet = session.queryData(paths, startTimestamp, endTimestamp, tagList);
+        SessionQueryDataSet sessionQueryDataSet =
+                session.queryData(paths, startTimestamp, endTimestamp, tagList);
         queryResultDataset.setPaths(getPathsFromSessionQueryDataSet(sessionQueryDataSet));
         int n = sessionQueryDataSet.getKeys().length;
         int m = sessionQueryDataSet.getPaths().size();
@@ -52,7 +57,9 @@ public class QueryAggregatorSaveAs extends QueryAggregator {
             for (int j = 0; j < m; j++) {
                 if (sessionQueryDataSet.getValues().get(i).get(j) != null) {
                     if (!flag) {
-                        queryResultDataset.add(sessionQueryDataSet.getKeys()[i], sessionQueryDataSet.getValues().get(i).get(j));
+                        queryResultDataset.add(
+                                sessionQueryDataSet.getKeys()[i],
+                                sessionQueryDataSet.getValues().get(i).get(j));
                         flag = true;
                         ins.addKey(sessionQueryDataSet.getKeys()[i]);
                         ins.addValue(sessionQueryDataSet.getValues().get(i).get(j).toString());

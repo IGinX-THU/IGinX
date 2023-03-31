@@ -5,7 +5,6 @@ import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.sql.statement.Statement;
 import cn.edu.tsinghua.iginx.sql.statement.StatementType;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -16,7 +15,7 @@ public abstract class AbstractGenerator implements LogicalGenerator {
     protected GeneratorType type;
 
     private final List<Optimizer> optimizerList = new ArrayList<>();
-    private final static Map<GeneratorType, StatementType> typeMap = new HashMap<>();
+    private static final Map<GeneratorType, StatementType> typeMap = new HashMap<>();
 
     static {
         typeMap.put(GeneratorType.Query, StatementType.SELECT);
@@ -26,8 +25,7 @@ public abstract class AbstractGenerator implements LogicalGenerator {
     }
 
     public void registerOptimizer(Optimizer optimizer) {
-        if (optimizer != null)
-            optimizerList.add(optimizer);
+        if (optimizer != null) optimizerList.add(optimizer);
     }
 
     @Override
@@ -38,10 +36,8 @@ public abstract class AbstractGenerator implements LogicalGenerator {
     @Override
     public Operator generate(RequestContext ctx) {
         Statement statement = ctx.getStatement();
-        if (statement == null)
-            return null;
-        if (statement.getType() != typeMap.get(type))
-            return null;
+        if (statement == null) return null;
+        if (statement.getType() != typeMap.get(type)) return null;
         Operator root = generateRoot(statement);
         for (Optimizer optimizer : optimizerList) {
             root = optimizer.optimize(root);

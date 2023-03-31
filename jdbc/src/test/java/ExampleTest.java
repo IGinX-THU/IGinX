@@ -1,7 +1,6 @@
 import cn.edu.tsinghua.iginx.jdbc.IginXPreparedStatement;
-import org.apache.commons.lang3.RandomStringUtils;
-
 import java.sql.*;
+import org.apache.commons.lang3.RandomStringUtils;
 
 public class ExampleTest {
 
@@ -34,49 +33,69 @@ public class ExampleTest {
         // Insert use batch
         // batch only support update statement.
         int size = (int) (END_TIMESTAMP - START_TIMESTAMP);
-        String insertClause = "INSERT INTO us.d2 (timestamp, long, double, boolean, string) values (%s, %s, %s, %s, %s);";
+        String insertClause =
+                "INSERT INTO us.d2 (timestamp, long, double, boolean, string) values (%s, %s, %s, %s, %s);";
         for (int i = 0; i < size; i++) {
-            String sql = String.format(insertClause,
-                START_TIMESTAMP + i, // timestamp
-                i + 1, // long
-                i + 0.5, // double
-                i % 2 == 0, //boolean
-                "\"" + new String(RandomStringUtils.randomAlphanumeric(10).getBytes()) + "\"" // string
-            );
+            String sql =
+                    String.format(
+                            insertClause,
+                            START_TIMESTAMP + i, // timestamp
+                            i + 1, // long
+                            i + 0.5, // double
+                            i % 2 == 0, // boolean
+                            "\""
+                                    + new String(
+                                            RandomStringUtils.randomAlphanumeric(10).getBytes())
+                                    + "\"" // string
+                            );
             statement.addBatch(sql);
         }
         statement.executeBatch();
         statement.clearBatch();
 
         // Insert use execute
-        String sql = String.format(insertClause,
-            100, // timestamp
-            101, // long
-            100.5, // double
-            true, //boolean
-            "\"" + new String(RandomStringUtils.randomAlphanumeric(10).getBytes()) + "\"" // string
-        );
+        String sql =
+                String.format(
+                        insertClause,
+                        100, // timestamp
+                        101, // long
+                        100.5, // double
+                        true, // boolean
+                        "\""
+                                + new String(RandomStringUtils.randomAlphanumeric(10).getBytes())
+                                + "\"" // string
+                        );
         System.out.println("sql: " + sql);
         statement.execute(sql);
 
         // Insert use executeUpdate
-        sql = String.format(insertClause,
-            101, // timestamp
-            102, // long
-            101.5, // double
-            false, //boolean
-            "\"" + new String(RandomStringUtils.randomAlphanumeric(10).getBytes()) + "\"" // string
-        );
+        sql =
+                String.format(
+                        insertClause,
+                        101, // timestamp
+                        102, // long
+                        101.5, // double
+                        false, // boolean
+                        "\""
+                                + new String(RandomStringUtils.randomAlphanumeric(10).getBytes())
+                                + "\"" // string
+                        );
         System.out.println("sql: " + sql);
         statement.executeUpdate(sql);
 
         // Full query use executeQuery
         String fullQueryClause = "SELECT %s, %s, %s, %s FROM %s WHERE TIME > %s AND TIME < %s;";
-        sql = String.format(fullQueryClause,
-            S1, S2, S3, S4, // select
-            prefix, // from
-            0, 200 // time range
-        );
+        sql =
+                String.format(
+                        fullQueryClause,
+                        S1,
+                        S2,
+                        S3,
+                        S4, // select
+                        prefix, // from
+                        0,
+                        200 // time range
+                        );
         ResultSet resultSet = statement.executeQuery(sql);
         System.out.println("sql: " + sql);
         outputResult(resultSet);
@@ -111,7 +130,8 @@ public class ExampleTest {
 
         // Create prepareStatement
         String preparedClause = "SELECT %s FROM %s WHERE TIME > ? AND TIME < ? AND %s < ?;";
-        preparedStatement = connection.prepareStatement(String.format(preparedClause, S1, prefix, S1));
+        preparedStatement =
+                connection.prepareStatement(String.format(preparedClause, S1, prefix, S1));
         if (statement == null) {
             System.out.println("create statement fail.");
             return;

@@ -8,12 +8,11 @@ import cn.edu.tsinghua.iginx.sql.SqlParser;
 import cn.edu.tsinghua.iginx.sql.statement.Statement;
 import cn.edu.tsinghua.iginx.sql.statement.StatementType;
 import cn.edu.tsinghua.iginx.thrift.SqlType;
+import java.util.HashMap;
+import java.util.Map;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTree;
-
-import java.util.HashMap;
-import java.util.Map;
 
 public class StatementBuilder {
 
@@ -44,8 +43,7 @@ public class StatementBuilder {
 
     private static final StatementBuilder instance = new StatementBuilder();
 
-    private StatementBuilder() {
-    }
+    private StatementBuilder() {}
 
     public static StatementBuilder getInstance() {
         return instance;

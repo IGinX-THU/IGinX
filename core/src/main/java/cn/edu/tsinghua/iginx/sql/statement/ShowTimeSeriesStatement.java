@@ -1,7 +1,6 @@
 package cn.edu.tsinghua.iginx.sql.statement;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
-
 import java.util.HashSet;
 import java.util.Set;
 

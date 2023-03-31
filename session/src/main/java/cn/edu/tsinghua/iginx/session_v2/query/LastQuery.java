@@ -19,7 +19,6 @@
 package cn.edu.tsinghua.iginx.session_v2.query;
 
 import cn.edu.tsinghua.iginx.session_v2.Arguments;
-
 import java.util.*;
 
 public class LastQuery extends Query {
@@ -34,7 +33,11 @@ public class LastQuery extends Query {
         this.timePrecision = null;
     }
 
-    public LastQuery(Set<String> measurements, Map<String, List<String>> tagsList, long startTime, String timePrecision) {
+    public LastQuery(
+            Set<String> measurements,
+            Map<String, List<String>> tagsList,
+            long startTime,
+            String timePrecision) {
         super(measurements, tagsList);
         this.startTime = startTime;
         this.timePrecision = timePrecision;
@@ -76,7 +79,8 @@ public class LastQuery extends Query {
         }
 
         public LastQuery.Builder addMeasurements(Set<String> measurements) {
-            measurements.forEach(measurement -> Arguments.checkNonEmpty(measurement, "measurement"));
+            measurements.forEach(
+                    measurement -> Arguments.checkNonEmpty(measurement, "measurement"));
             this.measurements.addAll(measurements);
             return this;
         }
@@ -88,7 +92,8 @@ public class LastQuery extends Query {
         }
 
         public LastQuery.Builder addTagsList(Map<String, List<String>> tagsList) {
-            tagsList.forEach((key, valueList) -> Arguments.checkListNonEmpty(valueList, "valueList"));
+            tagsList.forEach(
+                    (key, valueList) -> Arguments.checkListNonEmpty(valueList, "valueList"));
             this.tagsList.putAll(tagsList);
             return this;
         }
@@ -113,7 +118,5 @@ public class LastQuery extends Query {
             }
             return new LastQuery(measurements, tagsList, startTime, timePrecision);
         }
-
     }
-
 }

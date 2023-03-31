@@ -18,7 +18,9 @@ public class JsonUtils {
         StringBuilder json = new StringBuilder(new String(data));
         if (json.indexOf(type) != -1) {
             // 3 is the length of the ":{", and the position +1
-            json.insert(json.indexOf(type) + type.length() + 3, "\"type\":" + "\"" + typeSpecificName + "\",");
+            json.insert(
+                    json.indexOf(type) + type.length() + 3,
+                    "\"type\":" + "\"" + typeSpecificName + "\",");
         }
         return json.toString().getBytes();
     }

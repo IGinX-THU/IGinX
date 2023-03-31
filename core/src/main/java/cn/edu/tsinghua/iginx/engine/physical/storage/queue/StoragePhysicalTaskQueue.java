@@ -19,11 +19,10 @@
 package cn.edu.tsinghua.iginx.engine.physical.storage.queue;
 
 import cn.edu.tsinghua.iginx.engine.physical.task.StoragePhysicalTask;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class StoragePhysicalTaskQueue {
 
@@ -51,5 +50,4 @@ public class StoragePhysicalTaskQueue {
         }
         return null;
     }
-
 }

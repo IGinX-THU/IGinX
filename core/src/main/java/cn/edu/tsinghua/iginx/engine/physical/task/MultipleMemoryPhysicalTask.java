@@ -4,15 +4,12 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
+import java.util.ArrayList;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.List;
-
-/**
- * 目前专门用于 CombineNonQuery 操作符
- */
+/** 目前专门用于 CombineNonQuery 操作符 */
 public class MultipleMemoryPhysicalTask extends MemoryPhysicalTask {
     @SuppressWarnings("unused")
     private static final Logger logger = LoggerFactory.getLogger(MultipleMemoryPhysicalTask.class);
@@ -32,14 +29,18 @@ public class MultipleMemoryPhysicalTask extends MemoryPhysicalTask {
     public TaskExecuteResult execute() {
         List<Operator> operators = getOperators();
         if (operators.size() != 1) {
-            return new TaskExecuteResult(new PhysicalException("unexpected multiple memory physical task"));
+            return new TaskExecuteResult(
+                    new PhysicalException("unexpected multiple memory physical task"));
         }
         Operator operator = operators.get(0);
         if (operator.getType() != OperatorType.CombineNonQuery) {
-            return new TaskExecuteResult(new PhysicalException("unexpected multiple memory physical task"));
+            return new TaskExecuteResult(
+                    new PhysicalException("unexpected multiple memory physical task"));
         }
         if (getFollowerTask() != null) {
-            return new TaskExecuteResult(new PhysicalException("multiple memory physical task shouldn't have follower task"));
+            return new TaskExecuteResult(
+                    new PhysicalException(
+                            "multiple memory physical task shouldn't have follower task"));
         }
         List<PhysicalException> exceptions = new ArrayList<>();
         for (PhysicalTask parentTask : parentTasks) {
@@ -53,7 +54,8 @@ public class MultipleMemoryPhysicalTask extends MemoryPhysicalTask {
             for (PhysicalException exception : exceptions) {
                 message.append(exception.getMessage());
             }
-            return new TaskExecuteResult(new PhysicalTaskExecuteFailureException(message.toString()));
+            return new TaskExecuteResult(
+                    new PhysicalTaskExecuteFailureException(message.toString()));
         }
         return new TaskExecuteResult();
     }

@@ -26,8 +26,8 @@ import java.util.regex.Pattern;
 public class StringUtils {
 
     /**
-     * @param ts      时间序列(可能等于/含有*，不可能为null)
-     * @param border  分片的开始/结束边界(不可能等于/含有*，可能为null)
+     * @param ts 时间序列(可能等于/含有*，不可能为null)
+     * @param border 分片的开始/结束边界(不可能等于/含有*，可能为null)
      * @param isStart 是否为开始边界
      */
     public static int compare(String ts, String border, boolean isStart) {
@@ -52,27 +52,24 @@ public class StringUtils {
     }
 
     /**
-     * @return        返回值为 0 表示包含，>0 表示在这个序列在 border 前，<0 表示 ts 在 border 后
-     * @param ts      时间序列(可能等于/含有*，不可能为null)
-     * @param border  前缀式时间范围
+     * @return 返回值为 0 表示包含，>0 表示在这个序列在 border 前，<0 表示 ts 在 border 后
+     * @param ts 时间序列(可能等于/含有*，不可能为null)
+     * @param border 前缀式时间范围
      */
     public static int compare(String ts, String border) {
         // *.*.*
         String regex = "[*][.*]*";
-        if(Pattern.matches(regex, ts))
-            return 0;
+        if (Pattern.matches(regex, ts)) return 0;
         // a.b.c.*.*
         String tss = ts;
-        if (tss.contains("*"))
-            tss = ts.substring(0, ts.indexOf("*")-1);
+        if (tss.contains("*")) tss = ts.substring(0, ts.indexOf("*") - 1);
         if (tss.indexOf(border) == 0) {
             return 0;
-        } else
-            return tss.compareTo(border);
+        } else return tss.compareTo(border);
     }
 
     public static String nextString(String str) {
-        return str.substring(0, str.length() - 1) + (char)(str.charAt(str.length() - 1) + 1);
+        return str.substring(0, str.length() - 1) + (char) (str.charAt(str.length() - 1) + 1);
     }
 
     public static boolean allHasMoreThanOneSubPath(List<String> pathList) {
@@ -99,16 +96,14 @@ public class StringUtils {
     }
 
     public static String reformatPath(String path) {
-        if (!path.contains("*"))
-            return path;
+        if (!path.contains("*")) return path;
         path = path.replaceAll("[.]", "[.]");
         path = path.replaceAll("[*]", ".*");
         return path;
     }
 
     public static String reformatColumnName(String name) {
-        if (!name.contains("*") && !name.contains("(") && !name.contains(")"))
-            return name;
+        if (!name.contains("*") && !name.contains("(") && !name.contains(")")) return name;
         name = name.replaceAll("[.]", "[.]");
         name = name.replaceAll("[*]", ".*");
         name = name.replaceAll("[(]", "[(]");

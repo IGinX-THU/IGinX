@@ -21,7 +21,6 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
-
 import java.util.Collections;
 import java.util.List;
 
@@ -75,12 +74,9 @@ public class Table implements RowStream {
     }
 
     @Override
-    public void close() {
-
-    }
+    public void close() {}
 
     public void reset() {
         this.index = 0;
     }
-
 }

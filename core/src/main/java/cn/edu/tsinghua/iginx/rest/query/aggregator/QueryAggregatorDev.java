@@ -23,7 +23,6 @@ import cn.edu.tsinghua.iginx.rest.RestUtils;
 import cn.edu.tsinghua.iginx.rest.bean.QueryResultDataset;
 import cn.edu.tsinghua.iginx.session.SessionQueryDataSet;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-
 import java.util.List;
 import java.util.Map;
 
@@ -33,10 +32,16 @@ public class QueryAggregatorDev extends QueryAggregator {
     }
 
     @Override
-    public QueryResultDataset doAggregate(RestSession session, List<String> paths, Map<String, List<String>> tagList, long startTimestamp, long endTimestamp) {
+    public QueryResultDataset doAggregate(
+            RestSession session,
+            List<String> paths,
+            Map<String, List<String>> tagList,
+            long startTimestamp,
+            long endTimestamp) {
         QueryResultDataset queryResultDataset = new QueryResultDataset();
         try {
-            SessionQueryDataSet sessionQueryDataSet = session.queryData(paths, startTimestamp, endTimestamp, tagList);
+            SessionQueryDataSet sessionQueryDataSet =
+                    session.queryData(paths, startTimestamp, endTimestamp, tagList);
             queryResultDataset.setPaths(getPathsFromSessionQueryDataSet(sessionQueryDataSet));
             DataType type = RestUtils.checkType(sessionQueryDataSet);
             int n = sessionQueryDataSet.getKeys().length;
@@ -51,15 +56,33 @@ public class QueryAggregatorDev extends QueryAggregator {
                         for (int j = 0; j < m; j++) {
                             if (sessionQueryDataSet.getValues().get(i).get(j) != null) {
                                 sum += (double) sessionQueryDataSet.getValues().get(i).get(j);
-                                sum2 += Math.pow((double) sessionQueryDataSet.getValues().get(i).get(j), 2);
+                                sum2 +=
+                                        Math.pow(
+                                                (double)
+                                                        sessionQueryDataSet
+                                                                .getValues()
+                                                                .get(i)
+                                                                .get(j),
+                                                2);
                                 cnt += 1;
                                 datapoints += 1;
                             }
                         }
-                        if (i == n - 1 || RestUtils.getInterval(sessionQueryDataSet.getKeys()[i], startTimestamp, getDur()) !=
-                            RestUtils.getInterval(sessionQueryDataSet.getKeys()[i + 1], startTimestamp, getDur())) {
-                            queryResultDataset.add(RestUtils.getIntervalStart(sessionQueryDataSet.getKeys()[i], startTimestamp, getDur()),
-                                sum2 / cnt - Math.pow(sum / cnt, 2));
+                        if (i == n - 1
+                                || RestUtils.getInterval(
+                                                sessionQueryDataSet.getKeys()[i],
+                                                startTimestamp,
+                                                getDur())
+                                        != RestUtils.getInterval(
+                                                sessionQueryDataSet.getKeys()[i + 1],
+                                                startTimestamp,
+                                                getDur())) {
+                            queryResultDataset.add(
+                                    RestUtils.getIntervalStart(
+                                            sessionQueryDataSet.getKeys()[i],
+                                            startTimestamp,
+                                            getDur()),
+                                    sum2 / cnt - Math.pow(sum / cnt, 2));
                             sum = 0;
                             sum2 = 0;
                             cnt = 0;

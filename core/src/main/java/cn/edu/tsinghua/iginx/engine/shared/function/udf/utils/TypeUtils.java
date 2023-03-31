@@ -4,6 +4,25 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 
 public class TypeUtils {
 
+    public static DataType getDataTypeFromString(String type) {
+        switch (type.toLowerCase()) {
+            case "boolean":
+                return DataType.BOOLEAN;
+            case "integer":
+                return DataType.INTEGER;
+            case "long":
+                return DataType.LONG;
+            case "float":
+                return DataType.FLOAT;
+            case "double":
+                return DataType.DOUBLE;
+            case "binary":
+                return DataType.BINARY;
+            default:
+                return null;
+        }
+    }
+
     public static DataType getDataTypeFromObject(Object object) {
         if (object instanceof Boolean) {
             return DataType.BOOLEAN;

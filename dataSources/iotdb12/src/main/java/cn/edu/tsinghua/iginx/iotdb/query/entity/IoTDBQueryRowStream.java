@@ -18,6 +18,8 @@
  */
 package cn.edu.tsinghua.iginx.iotdb.query.entity;
 
+import static org.apache.iotdb.tsfile.file.metadata.enums.TSDataType.TEXT;
+
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.RowFetchException;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
@@ -29,16 +31,13 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.iotdb.tools.DataTypeTransformer;
 import cn.edu.tsinghua.iginx.iotdb.tools.TagKVUtils;
 import cn.edu.tsinghua.iginx.utils.Pair;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import org.apache.iotdb.rpc.IoTDBConnectionException;
 import org.apache.iotdb.rpc.StatementExecutionException;
 import org.apache.iotdb.session.pool.SessionDataSetWrapper;
 import org.apache.iotdb.tsfile.read.common.RowRecord;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
-import static org.apache.iotdb.tsfile.file.metadata.enums.TSDataType.TEXT;
 
 public class IoTDBQueryRowStream implements RowStream {
 
@@ -64,7 +63,8 @@ public class IoTDBQueryRowStream implements RowStream {
 
     private State state;
 
-    public IoTDBQueryRowStream(SessionDataSetWrapper dataset, boolean trimStorageUnit, Project project) {
+    public IoTDBQueryRowStream(
+            SessionDataSetWrapper dataset, boolean trimStorageUnit, Project project) {
         this.dataset = dataset;
         this.trimStorageUnit = trimStorageUnit;
         this.filterByTags = project.getTagFilter() != null;
@@ -86,7 +86,8 @@ public class IoTDBQueryRowStream implements RowStream {
             }
             name = transformColumnName(name);
             Pair<String, Map<String, String>> pair = TagKVUtils.splitFullName(name);
-            Field field = new Field(pair.getK(), DataTypeTransformer.strFromIoTDB(type), pair.getV());
+            Field field =
+                    new Field(pair.getK(), DataTypeTransformer.strFromIoTDB(type), pair.getV());
             if (!this.trimStorageUnit && field.getFullName().startsWith(UNIT)) {
                 filterList.add(true);
                 continue;
@@ -127,7 +128,11 @@ public class IoTDBQueryRowStream implements RowStream {
             columnName = columnName.substring(columnName.indexOf('(') + 1, columnName.length() - 1);
         }
         if (columnName.startsWith(PREFIX)) {
-            columnName = columnName.substring(columnName.indexOf('.', trimStorageUnit ? columnName.indexOf('.') + 1: 0) + 1);
+            columnName =
+                    columnName.substring(
+                            columnName.indexOf(
+                                            '.', trimStorageUnit ? columnName.indexOf('.') + 1 : 0)
+                                    + 1);
         }
         return columnName;
     }

@@ -30,5 +30,4 @@ public @interface Field {
     String name() default "";
 
     boolean timestamp() default false;
-
 }

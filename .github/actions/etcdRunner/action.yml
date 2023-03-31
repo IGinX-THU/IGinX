@@ -1,19 +1,19 @@
-name: 'etcd-runner'
-description: 'etcd runner'
+name: "etcd-runner"
+description: "etcd runner"
 
 runs:
-  using: "composite" # Mandatory parameter
-  steps:
-    - name: Start ETCD
-      shell: bash
-      run: |
-        if [ "$RUNNER_OS" == "Linux" ]; then
-          chmod +x "${GITHUB_WORKSPACE}/.github/etcd.sh"
-          "${GITHUB_WORKSPACE}/.github/etcd.sh"
-        elif [ "$RUNNER_OS" == "macOS" ]; then
-          chmod +x "${GITHUB_WORKSPACE}/.github/etcd_macos.sh"
-          "${GITHUB_WORKSPACE}/.github/etcd_macos.sh"
-        else
-          echo "$RUNNER_OS is not supported"
-          exit 1
-        fi
+    using: "composite" # Mandatory parameter
+    steps:
+        - name: Start ETCD
+          shell: bash
+          run: |
+              if [ "$RUNNER_OS" == "Linux" ]; then
+                chmod +x "${GITHUB_WORKSPACE}/.github/etcd.sh"
+                "${GITHUB_WORKSPACE}/.github/etcd.sh"
+              elif [ "$RUNNER_OS" == "macOS" ]; then
+                chmod +x "${GITHUB_WORKSPACE}/.github/etcd_macos.sh"
+                "${GITHUB_WORKSPACE}/.github/etcd_macos.sh"
+              else
+                echo "$RUNNER_OS is not supported"
+                exit 1
+              fi

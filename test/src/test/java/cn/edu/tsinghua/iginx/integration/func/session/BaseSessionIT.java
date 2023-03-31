@@ -18,24 +18,23 @@
  */
 package cn.edu.tsinghua.iginx.integration.func.session;
 
+import static org.junit.Assert.*;
+
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
-import cn.edu.tsinghua.iginx.integration.tool.CombinedInsertTests;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
+import cn.edu.tsinghua.iginx.integration.tool.CombinedInsertTests;
 import cn.edu.tsinghua.iginx.session.SessionAggregateQueryDataSet;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.session.SessionQueryDataSet;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-import org.junit.After;
-import org.junit.Test;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-
-import static org.junit.Assert.*;
+import org.junit.After;
+import org.junit.Test;
 
 public abstract class BaseSessionIT extends BaseSessionConcurrencyIT {
 
@@ -44,13 +43,16 @@ public abstract class BaseSessionIT extends BaseSessionConcurrencyIT {
     protected Map<String, String> extraParams;
     protected Boolean ifNeedCapExp = false;
 
-    //params for downSample
+    // params for downSample
     private static final long PRECISION = 123L;
-    //params for datatype test
-    private static final String ranStr = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    // params for datatype test
+    private static final String ranStr =
+            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     private static final int STRING_LEN = 1000;
+
     @SuppressWarnings("unused") // dead code because 100000 % 123 != 0
     long factSampleLen = (TIME_PERIOD / PRECISION) + ((TIME_PERIOD % PRECISION == 0) ? 0 : 1);
+
     double originAvg = (START_TIME + END_TIME) / 2.0;
 
     @After
@@ -64,12 +66,14 @@ public abstract class BaseSessionIT extends BaseSessionConcurrencyIT {
             logger.error("Statement: \"{}\" execute fail. Caused by: {}", clearData, e.toString());
             if (e.toString().equals(Controller.CLEARDATAEXCP)) {
                 logger.error("clear data fail and go on....");
-            }
-            else fail();
+            } else fail();
         }
 
         if (res != null && res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-            logger.error("Statement: \"{}\" execute fail. Caused by: {}.", clearData, res.getParseErrorMsg());
+            logger.error(
+                    "Statement: \"{}\" execute fail. Caused by: {}.",
+                    clearData,
+                    res.getParseErrorMsg());
             fail();
         }
     }
@@ -89,12 +93,13 @@ public abstract class BaseSessionIT extends BaseSessionConcurrencyIT {
         return sb.toString();
     }
 
-    private void insertTestsByFourInterfaces()throws SessionException, ExecutionException {
-       CombinedInsertTests test = new CombinedInsertTests(session);
-       test.testInserts();
+    private void insertTestsByFourInterfaces() throws SessionException, ExecutionException {
+        CombinedInsertTests test = new CombinedInsertTests(session);
+        test.testInserts();
     }
 
-    private void insertFakeNumRecords(List<String> insertPaths, long count) throws SessionException, ExecutionException {
+    private void insertFakeNumRecords(List<String> insertPaths, long count)
+            throws SessionException, ExecutionException {
         int pathLen = insertPaths.size();
         long[] timestamps = new long[(int) TIME_PERIOD];
         for (long i = 0; i < TIME_PERIOD; i++) {
@@ -123,11 +128,13 @@ public abstract class BaseSessionIT extends BaseSessionConcurrencyIT {
                 dataTypeList.add(DataType.LONG);
             }
         }
-        session.insertNonAlignedColumnRecords(insertPaths, timestamps, valuesList, dataTypeList, null);
+        session.insertNonAlignedColumnRecords(
+                insertPaths, timestamps, valuesList, dataTypeList, null);
     }
 
     // the length of the insertPaths must be 6
-    private void insertDataTypeRecords(List<String> insertPaths, int startPathNum) throws SessionException, ExecutionException {
+    private void insertDataTypeRecords(List<String> insertPaths, int startPathNum)
+            throws SessionException, ExecutionException {
         long[] timestamps = new long[(int) TIME_PERIOD];
         for (long i = 0; i < TIME_PERIOD; i++) {
             timestamps[(int) i] = i + START_TIME;
@@ -140,27 +147,27 @@ public abstract class BaseSessionIT extends BaseSessionConcurrencyIT {
             for (int j = 0; j < TIME_PERIOD; j++) {
                 switch (pathNum) {
                     case 1:
-                        //integer
+                        // integer
                         values[j] = (int) (pathNum + (TIME_PERIOD - j - 1) + START_TIME);
                         break;
                     case 2:
-                        //long
+                        // long
                         values[j] = (pathNum + j + START_TIME) * 1000;
                         break;
                     case 3:
                         values[j] = (float) (pathNum + j + START_TIME + 0.01);
-                        //float
+                        // float
                         break;
                     case 4:
-                        //double
+                        // double
                         values[j] = (pathNum + (TIME_PERIOD - j - 1) + START_TIME + 0.01) * 999;
                         break;
                     case 5:
-                        //binary
+                        // binary
                         values[j] = getRandomStr(j, STRING_LEN).getBytes();
                         break;
                     default:
-                        //boolean
+                        // boolean
                         values[j] = (j % 2 == 0);
                         break;
                 }
@@ -172,7 +179,8 @@ public abstract class BaseSessionIT extends BaseSessionConcurrencyIT {
         for (int i = 0; i < 6; i++) {
             dataTypeList.add(DataType.findByValue(i));
         }
-        session.insertNonAlignedColumnRecords(insertPaths, timestamps, valuesList, dataTypeList, null);
+        session.insertNonAlignedColumnRecords(
+                insertPaths, timestamps, valuesList, dataTypeList, null);
     }
 
     private float changeResultToFloat(Object rawResult) {
@@ -209,10 +217,10 @@ public abstract class BaseSessionIT extends BaseSessionConcurrencyIT {
     public void sessionTest() throws ExecutionException, SessionException, InterruptedException {
         int simpleLen = 2;
         List<String> paths = getPaths(currPath, simpleLen);
-        //Simple Test(Including query,valueFilter,aggr:max/min/first/last/count/sum/avg)
+        // Simple Test(Including query,valueFilter,aggr:max/min/first/last/count/sum/avg)
         insertTestsByFourInterfaces();
         insertNumRecords(paths);
-        //query
+        // query
         SessionQueryDataSet simpleQueryDataSet = session.queryData(paths, START_TIME, END_TIME + 1);
         int simpleResLen = simpleQueryDataSet.getKeys().length;
         List<String> queryResPaths = simpleQueryDataSet.getPaths();
@@ -230,57 +238,62 @@ public abstract class BaseSessionIT extends BaseSessionConcurrencyIT {
             }
         }
         // aggrMax
-        SessionAggregateQueryDataSet maxDataSet = session.aggregateQuery(paths, START_TIME, END_TIME + 1, AggregateType.MAX);
+        SessionAggregateQueryDataSet maxDataSet =
+                session.aggregateQuery(paths, START_TIME, END_TIME + 1, AggregateType.MAX);
         List<String> maxResPaths = maxDataSet.getPaths();
         Object[] maxResult = maxDataSet.getValues();
         assertEquals(simpleLen, maxResPaths.size());
-//        assertEquals(simpleLen, maxDataSet.getTimestamps().length);
+        //        assertEquals(simpleLen, maxDataSet.getTimestamps().length);
         assertEquals(simpleLen, maxDataSet.getValues().length);
         for (int i = 0; i < simpleLen; i++) {
-            //assertEquals(-1, maxDataSet.getTimestamps()[i]);
+            // assertEquals(-1, maxDataSet.getTimestamps()[i]);
             int pathNum = getPathNum(maxResPaths.get(i));
             assertNotEquals(pathNum, -1);
             assertEquals(END_TIME + pathNum, maxResult[i]);
         }
         // aggrMin
-        SessionAggregateQueryDataSet minDataSet = session.aggregateQuery(paths, START_TIME, END_TIME + 1, AggregateType.MIN);
+        SessionAggregateQueryDataSet minDataSet =
+                session.aggregateQuery(paths, START_TIME, END_TIME + 1, AggregateType.MIN);
         List<String> minResPaths = minDataSet.getPaths();
         Object[] minResult = minDataSet.getValues();
         assertEquals(simpleLen, minResPaths.size());
-//        assertEquals(simpleLen, minDataSet.getTimestamps().length);
+        //        assertEquals(simpleLen, minDataSet.getTimestamps().length);
         assertEquals(simpleLen, minDataSet.getValues().length);
         for (int i = 0; i < simpleLen; i++) {
-            //assertEquals(-1, minDataSet.getTimestamps()[i]);
+            // assertEquals(-1, minDataSet.getTimestamps()[i]);
             int pathNum = getPathNum(minResPaths.get(i));
             assertNotEquals(pathNum, -1);
             assertEquals(START_TIME + pathNum, minResult[i]);
         }
-        //aggrFirst
-        SessionAggregateQueryDataSet firstDataSet = session.aggregateQuery(paths, START_TIME, END_TIME + 1, AggregateType.FIRST_VALUE);
+        // aggrFirst
+        SessionAggregateQueryDataSet firstDataSet =
+                session.aggregateQuery(paths, START_TIME, END_TIME + 1, AggregateType.FIRST_VALUE);
         List<String> firstResPaths = firstDataSet.getPaths();
         Object[] firstResult = firstDataSet.getValues();
         assertEquals(simpleLen, firstResPaths.size());
-//        assertEquals(simpleLen, firstDataSet.getTimestamps().length);
+        //        assertEquals(simpleLen, firstDataSet.getTimestamps().length);
         assertEquals(simpleLen, firstDataSet.getValues().length);
         for (int i = 0; i < simpleLen; i++) {
             int pathNum = getPathNum(firstResPaths.get(i));
             assertNotEquals(pathNum, -1);
             assertEquals(START_TIME + pathNum, firstResult[i]);
         }
-        //aggrLast
-        SessionAggregateQueryDataSet lastDataSet = session.aggregateQuery(paths, START_TIME, END_TIME + 1, AggregateType.LAST_VALUE);
+        // aggrLast
+        SessionAggregateQueryDataSet lastDataSet =
+                session.aggregateQuery(paths, START_TIME, END_TIME + 1, AggregateType.LAST_VALUE);
         List<String> lastResPaths = lastDataSet.getPaths();
         Object[] lastResult = lastDataSet.getValues();
         assertEquals(simpleLen, lastResPaths.size());
-//        assertEquals(simpleLen, lastDataSet.getTimestamps().length);
+        //        assertEquals(simpleLen, lastDataSet.getTimestamps().length);
         assertEquals(simpleLen, lastDataSet.getValues().length);
         for (int i = 0; i < simpleLen; i++) {
             int pathNum = getPathNum(lastResPaths.get(i));
             assertNotEquals(pathNum, -1);
             assertEquals(END_TIME + pathNum, lastResult[i]);
         }
-        //aggrCount
-        SessionAggregateQueryDataSet countDataSet = session.aggregateQuery(paths, START_TIME, END_TIME + 1, AggregateType.COUNT);
+        // aggrCount
+        SessionAggregateQueryDataSet countDataSet =
+                session.aggregateQuery(paths, START_TIME, END_TIME + 1, AggregateType.COUNT);
         assertNull(countDataSet.getKeys());
         List<String> countResPaths = countDataSet.getPaths();
         Object[] countResult = countDataSet.getValues();
@@ -289,8 +302,9 @@ public abstract class BaseSessionIT extends BaseSessionConcurrencyIT {
         for (int i = 0; i < simpleLen; i++) {
             assertEquals(TIME_PERIOD, countResult[i]);
         }
-        //aggrSum
-        SessionAggregateQueryDataSet sumDataSet = session.aggregateQuery(paths, START_TIME, END_TIME + 1, AggregateType.SUM);
+        // aggrSum
+        SessionAggregateQueryDataSet sumDataSet =
+                session.aggregateQuery(paths, START_TIME, END_TIME + 1, AggregateType.SUM);
         assertNull(sumDataSet.getKeys());
         List<String> sumResPaths = sumDataSet.getPaths();
         Object[] sumResult = sumDataSet.getValues();
@@ -303,8 +317,9 @@ public abstract class BaseSessionIT extends BaseSessionConcurrencyIT {
             assertEquals(sum + pathNum * TIME_PERIOD, changeResultToDouble(sumResult[i]), delta);
         }
 
-        //aggrAvg
-        SessionAggregateQueryDataSet avgDataSet = session.aggregateQuery(paths, START_TIME, END_TIME + 1, AggregateType.AVG);
+        // aggrAvg
+        SessionAggregateQueryDataSet avgDataSet =
+                session.aggregateQuery(paths, START_TIME, END_TIME + 1, AggregateType.AVG);
         assertNull(avgDataSet.getKeys());
         List<String> avgResPaths = avgDataSet.getPaths();
         Object[] avgResult = avgDataSet.getValues();
@@ -448,14 +463,14 @@ public abstract class BaseSessionIT extends BaseSessionConcurrencyIT {
             }
         }*/
 
-        //Simple delete and aggregate
+        // Simple delete and aggregate
         if (isAbleToDelete) {
-            //deletePartialDataInColumnTest
+            // deletePartialDataInColumnTest
             int removeLen = 1;
             List<String> delPartPaths = getPaths(currPath, removeLen);
             // ensure after delete there are still points in the timeseries
 
-            //delete data
+            // delete data
             session.deleteDataInColumns(delPartPaths, delStartTime, delEndTime);
             Thread.sleep(1000);
             SessionQueryDataSet delPartDataSet = session.queryData(paths, START_TIME, END_TIME + 1);
@@ -489,7 +504,8 @@ public abstract class BaseSessionIT extends BaseSessionConcurrencyIT {
             }
 
             // Test avg for the delete
-            SessionAggregateQueryDataSet delPartAvgDataSet = session.aggregateQuery(paths, START_TIME, END_TIME + 1, AggregateType.AVG);
+            SessionAggregateQueryDataSet delPartAvgDataSet =
+                    session.aggregateQuery(paths, START_TIME, END_TIME + 1, AggregateType.AVG);
             List<String> delPartAvgResPaths = delPartAvgDataSet.getPaths();
             Object[] delPartAvgResult = delPartAvgDataSet.getValues();
             assertEquals(simpleLen, delPartAvgResPaths.size());
@@ -498,14 +514,17 @@ public abstract class BaseSessionIT extends BaseSessionConcurrencyIT {
                 int pathNum = getPathNum(delPartAvgResPaths.get(i));
                 assertNotEquals(pathNum, -1);
                 if (pathNum < currPath + removeLen) { // Here is the removed rows
-                    assertEquals(deleteAvg + pathNum, changeResultToDouble(delPartAvgResult[i]), delta);
+                    assertEquals(
+                            deleteAvg + pathNum, changeResultToDouble(delPartAvgResult[i]), delta);
                 } else {
-                    assertEquals(originAvg + pathNum, changeResultToDouble(delPartAvgResult[i]), delta);
+                    assertEquals(
+                            originAvg + pathNum, changeResultToDouble(delPartAvgResult[i]), delta);
                 }
             }
 
             // Test count for the delete
-            SessionAggregateQueryDataSet delPartCountDataSet = session.aggregateQuery(paths, START_TIME, END_TIME + 1, AggregateType.COUNT);
+            SessionAggregateQueryDataSet delPartCountDataSet =
+                    session.aggregateQuery(paths, START_TIME, END_TIME + 1, AggregateType.COUNT);
             List<String> delPartCountResPaths = delPartCountDataSet.getPaths();
             Object[] delPartCountResult = delPartCountDataSet.getValues();
             assertEquals(simpleLen, delPartCountResPaths.size());
@@ -520,9 +539,10 @@ public abstract class BaseSessionIT extends BaseSessionConcurrencyIT {
                 }
             }
 
-
             // Test downSample avg of the delete
-            SessionQueryDataSet delDsAvgDataSet = session.downsampleQuery(paths, START_TIME, END_TIME + 1, AggregateType.AVG, PRECISION);
+            SessionQueryDataSet delDsAvgDataSet =
+                    session.downsampleQuery(
+                            paths, START_TIME, END_TIME + 1, AggregateType.AVG, PRECISION);
             int delDsLen = delDsAvgDataSet.getKeys().length;
             List<String> delDsResPaths = delDsAvgDataSet.getPaths();
             assertEquals(factSampleLen, delDsLen);
@@ -538,33 +558,44 @@ public abstract class BaseSessionIT extends BaseSessionConcurrencyIT {
                     assertNotEquals(pathNum, -1);
                     if (pathNum < currPath + removeLen) { // Here is the removed rows
                         if (dsStartTime > delEndTime || dsEndTime < delStartTime) {
-                            assertEquals(delDsAvg + pathNum, changeResultToDouble(dsResult.get(j)), delta);
+                            assertEquals(
+                                    delDsAvg + pathNum,
+                                    changeResultToDouble(dsResult.get(j)),
+                                    delta);
                         } else if (dsStartTime >= delStartTime && dsEndTime < delEndTime) {
-//                            assertNull(dsResult.get(j));
+                            //                            assertNull(dsResult.get(j));
                             assertTrue(Double.isNaN((Double) dsResult.get(j)));
                         } else if (dsStartTime < delStartTime) {
-                            assertEquals((dsStartTime + delStartTime - 1) / 2.0 + pathNum, changeResultToDouble(dsResult.get(j)), delta);
+                            assertEquals(
+                                    (dsStartTime + delStartTime - 1) / 2.0 + pathNum,
+                                    changeResultToDouble(dsResult.get(j)),
+                                    delta);
                         } else {
-                            assertEquals((dsEndTime + (delEndTime - 1) + 1) / 2.0 + pathNum, changeResultToDouble(dsResult.get(j)), delta);
+                            assertEquals(
+                                    (dsEndTime + (delEndTime - 1) + 1) / 2.0 + pathNum,
+                                    changeResultToDouble(dsResult.get(j)),
+                                    delta);
                         }
                     } else {
-                        assertEquals(delDsAvg + pathNum, changeResultToDouble(dsResult.get(j)), delta);
+                        assertEquals(
+                                delDsAvg + pathNum, changeResultToDouble(dsResult.get(j)), delta);
                     }
                 }
             }
 
             currPath += simpleLen;
 
-            //deleteAllDataInColumnTest, make new insert and delete here
+            // deleteAllDataInColumnTest, make new insert and delete here
             int dataInColumnLen = 3;
             List<String> delDataInColumnPaths = getPaths(currPath, dataInColumnLen);
             insertNumRecords(delDataInColumnPaths);
-            //TODO add test to test if the insert is right(Is it necessary?)
+            // TODO add test to test if the insert is right(Is it necessary?)
             int deleteDataInColumnLen = 2;
             List<String> delAllDataInColumnPaths = getPaths(currPath, deleteDataInColumnLen);
             session.deleteDataInColumns(delAllDataInColumnPaths, START_TIME, END_TIME + 1);
             Thread.sleep(1000);
-            SessionQueryDataSet delDataInColumnDataSet = session.queryData(delDataInColumnPaths, START_TIME, END_TIME + 1);
+            SessionQueryDataSet delDataInColumnDataSet =
+                    session.queryData(delDataInColumnPaths, START_TIME, END_TIME + 1);
             int delDataInColumnLen = delDataInColumnDataSet.getKeys().length;
             List<String> delDataInColumnResPaths = delDataInColumnDataSet.getPaths();
             assertEquals(TIME_PERIOD, delDataInColumnLen);
@@ -608,7 +639,9 @@ public abstract class BaseSessionIT extends BaseSessionConcurrencyIT {
             }*/
 
             // Test aggregate function for the delete
-            SessionAggregateQueryDataSet delDataAvgSet = session.aggregateQuery(delDataInColumnPaths, START_TIME, END_TIME + 1, AggregateType.AVG);
+            SessionAggregateQueryDataSet delDataAvgSet =
+                    session.aggregateQuery(
+                            delDataInColumnPaths, START_TIME, END_TIME + 1, AggregateType.AVG);
             List<String> delDataAvgResPaths = delDataAvgSet.getPaths();
             Object[] delDataAvgResult = delDataAvgSet.getValues();
             assertEquals(dataInColumnLen, delDataAvgResPaths.size());
@@ -617,16 +650,22 @@ public abstract class BaseSessionIT extends BaseSessionConcurrencyIT {
                 int pathNum = getPathNum(delDataAvgResPaths.get(i));
                 assertNotEquals(pathNum, -1);
                 if (pathNum < currPath + deleteDataInColumnLen) { // Here is the removed rows
-//                    assertEquals("null", new String((byte[]) delDataAvgResult[i]));
+                    //                    assertEquals("null", new String((byte[])
+                    // delDataAvgResult[i]));
                     assertTrue(Double.isNaN((Double) delDataAvgResult[i]));
                 } else {
                     assertEquals((START_TIME + END_TIME) / 2.0 + pathNum, delDataAvgResult[i]);
                 }
             }
 
-
             // Test downsample function for the delete
-            SessionQueryDataSet dsDelDataInColSet = session.downsampleQuery(delDataInColumnPaths, START_TIME, END_TIME + 1, AggregateType.AVG, PRECISION);
+            SessionQueryDataSet dsDelDataInColSet =
+                    session.downsampleQuery(
+                            delDataInColumnPaths,
+                            START_TIME,
+                            END_TIME + 1,
+                            AggregateType.AVG,
+                            PRECISION);
             int dsDelDataLen = dsDelDataInColSet.getKeys().length;
             List<String> dsDelDataResPaths = dsDelDataInColSet.getPaths();
             assertEquals(factSampleLen, dsDelDataLen);
@@ -641,7 +680,7 @@ public abstract class BaseSessionIT extends BaseSessionConcurrencyIT {
                     int pathNum = getPathNum(dsDelDataResPaths.get(j));
                     assertNotEquals(pathNum, -1);
                     if (pathNum < currPath + deleteDataInColumnLen) { // Here is the removed rows
-//                        assertNull(dsResult.get(j));
+                        //                        assertNull(dsResult.get(j));
                         assertTrue(Double.isNaN((Double) dsResult.get(j)));
                     } else {
                         assertEquals(avg + pathNum, changeResultToDouble(dsResult.get(j)), delta);
@@ -655,7 +694,8 @@ public abstract class BaseSessionIT extends BaseSessionConcurrencyIT {
             List<String> delAllColumnPaths = getPaths(currPath, delAllColumnLen);
             insertNumRecords(delAllColumnPaths);
             session.deleteColumns(delAllColumnPaths);
-            SessionQueryDataSet delAllColumnDataSet = session.queryData(delAllColumnPaths, START_TIME, END_TIME + 1);
+            SessionQueryDataSet delAllColumnDataSet =
+                    session.queryData(delAllColumnPaths, START_TIME, END_TIME + 1);
             assertEquals(0, delAllColumnDataSet.getPaths().size());
             assertEquals(0, delAllColumnDataSet.getKeys().length);
             assertEquals(0, delAllColumnDataSet.getValues().size());
@@ -668,7 +708,8 @@ public abstract class BaseSessionIT extends BaseSessionConcurrencyIT {
             int delPartColumnNum = 2;
             List<String> delPartColumnPaths = getPaths(currPath, delPartColumnNum);
             session.deleteColumns(delPartColumnPaths);
-            SessionQueryDataSet delPartColumnDataSet = session.queryData(partColumnPaths, START_TIME, END_TIME + 1);
+            SessionQueryDataSet delPartColumnDataSet =
+                    session.queryData(partColumnPaths, START_TIME, END_TIME + 1);
             int delPartResLen = delPartColumnDataSet.getKeys().length;
             List<String> delPartColResPaths = delPartColumnDataSet.getPaths();
             assertEquals(delPartColumnLen - delPartColumnNum, delPartColResPaths.size());
@@ -706,17 +747,18 @@ public abstract class BaseSessionIT extends BaseSessionConcurrencyIT {
             logger.error(e.getMessage());
             isError = true;
         } finally {
-            //assertTrue(isError);
+            // assertTrue(isError);
         }
         currPath += fakeDataLen;
 
-        //dataTypeTest
+        // dataTypeTest
         int dataTypeLen = 6;
         List<String> dataTypePaths = getPaths(currPath, dataTypeLen);
         insertDataTypeRecords(dataTypePaths, currPath);
 
-        //queryData
-        SessionQueryDataSet dtQueryDataSet = session.queryData(dataTypePaths, START_TIME, END_TIME + 1);
+        // queryData
+        SessionQueryDataSet dtQueryDataSet =
+                session.queryData(dataTypePaths, START_TIME, END_TIME + 1);
         int dtQueryLen = dtQueryDataSet.getKeys().length;
         List<String> dataTypeResPaths = dtQueryDataSet.getPaths();
         assertEquals(6, dataTypeResPaths.size());
@@ -730,20 +772,27 @@ public abstract class BaseSessionIT extends BaseSessionConcurrencyIT {
                 int currPathPos = getPathNum(dataTypeResPaths.get(j)) - currPath;
                 switch (currPathPos) {
                     case 1:
-                        assertEquals((int) ((END_TIME - i) + 1), changeResultToInteger(result.get(j)));
+                        assertEquals(
+                                (int) ((END_TIME - i) + 1), changeResultToInteger(result.get(j)));
                         break;
                     case 2:
                         assertEquals((i + 2 + START_TIME) * 1000, result.get(j));
                         break;
                     case 3:
-                        assertEquals((float) (i + 3 + START_TIME + 0.01),
-                            changeResultToFloat(result.get(j)), (float) delta);
+                        assertEquals(
+                                (float) (i + 3 + START_TIME + 0.01),
+                                changeResultToFloat(result.get(j)),
+                                (float) delta);
                         break;
                     case 4:
-                        assertEquals(((END_TIME - i) + 4 + 0.01) * 999, changeResultToDouble(result.get(j)), delta);
+                        assertEquals(
+                                ((END_TIME - i) + 4 + 0.01) * 999,
+                                changeResultToDouble(result.get(j)),
+                                delta);
                         break;
                     case 5:
-                        assertArrayEquals(getRandomStr(i, STRING_LEN).getBytes(), (byte[]) (result.get(j)));
+                        assertArrayEquals(
+                                getRandomStr(i, STRING_LEN).getBytes(), (byte[]) (result.get(j)));
                         break;
                     case 0:
                         assertEquals(i % 2 == 0, result.get(j));
@@ -755,10 +804,11 @@ public abstract class BaseSessionIT extends BaseSessionConcurrencyIT {
             }
         }
 
-        //aggregateData max & avg
+        // aggregateData max & avg
         List<String> dTAggrPaths = getPaths(currPath + 1, 4);
-        //max
-        SessionAggregateQueryDataSet dtMaxDataSet = session.aggregateQuery(dTAggrPaths, START_TIME, END_TIME + 1, AggregateType.MAX);
+        // max
+        SessionAggregateQueryDataSet dtMaxDataSet =
+                session.aggregateQuery(dTAggrPaths, START_TIME, END_TIME + 1, AggregateType.MAX);
         List<String> dtMaxPaths = dtMaxDataSet.getPaths();
         Object[] dtMaxResult = dtMaxDataSet.getValues();
         assertEquals(4, dtMaxPaths.size());
@@ -773,11 +823,16 @@ public abstract class BaseSessionIT extends BaseSessionConcurrencyIT {
                     assertEquals((END_TIME + 2) * 1000, dtMaxResult[i]);
                     break;
                 case 3:
-                    assertEquals((float) (END_TIME + 3 + 0.01),
-                        changeResultToFloat(dtMaxResult[i]), (float) delta);
+                    assertEquals(
+                            (float) (END_TIME + 3 + 0.01),
+                            changeResultToFloat(dtMaxResult[i]),
+                            (float) delta);
                     break;
                 case 4:
-                    assertEquals((END_TIME + 4 + 0.01) * 999, changeResultToDouble(dtMaxResult[i]), delta);
+                    assertEquals(
+                            (END_TIME + 4 + 0.01) * 999,
+                            changeResultToDouble(dtMaxResult[i]),
+                            delta);
                     break;
                 default:
                     fail();
@@ -785,8 +840,9 @@ public abstract class BaseSessionIT extends BaseSessionConcurrencyIT {
             }
         }
 
-        //avg
-        SessionAggregateQueryDataSet dtAvgDataSet = session.aggregateQuery(dTAggrPaths, START_TIME, END_TIME + 1, AggregateType.AVG);
+        // avg
+        SessionAggregateQueryDataSet dtAvgDataSet =
+                session.aggregateQuery(dTAggrPaths, START_TIME, END_TIME + 1, AggregateType.AVG);
         List<String> dtAvgPaths = dtAvgDataSet.getPaths();
         Object[] dtAvgResult = dtAvgDataSet.getValues();
         assertEquals(4, dtAvgPaths.size());
@@ -795,16 +851,25 @@ public abstract class BaseSessionIT extends BaseSessionConcurrencyIT {
             int currPathPos = getPathNum(dtAvgPaths.get(i)) - currPath;
             switch (currPathPos) {
                 case 1:
-                    assertEquals((START_TIME + END_TIME) / 2.0 + 1, changeResultToDouble(dtAvgResult[i]), delta);
+                    assertEquals(
+                            (START_TIME + END_TIME) / 2.0 + 1,
+                            changeResultToDouble(dtAvgResult[i]),
+                            delta);
                     break;
                 case 2:
                     assertEquals((START_TIME + END_TIME) * 500.0 + 2000, dtAvgResult[i]);
                     break;
                 case 3:
-                    assertEquals((START_TIME + END_TIME) / 2.0 + 3 + 0.01, changeResultToDouble(dtAvgResult[i]), delta * 10000);
+                    assertEquals(
+                            (START_TIME + END_TIME) / 2.0 + 3 + 0.01,
+                            changeResultToDouble(dtAvgResult[i]),
+                            delta * 10000);
                     break;
                 case 4:
-                    assertEquals((START_TIME + END_TIME) * 999 / 2.0 + 4.01 * 999, changeResultToDouble(dtAvgResult[i]), delta * 10000);
+                    assertEquals(
+                            (START_TIME + END_TIME) * 999 / 2.0 + 4.01 * 999,
+                            changeResultToDouble(dtAvgResult[i]),
+                            delta * 10000);
                     break;
                 default:
                     fail();
@@ -813,7 +878,7 @@ public abstract class BaseSessionIT extends BaseSessionConcurrencyIT {
         }
 
         if (isAbleToDelete) {
-            //deletePartialData
+            // deletePartialData
 
             List<String> dtDelPaths = new ArrayList<>();
             dtDelPaths.add(getSinglePath(currPath, 1));
@@ -827,7 +892,8 @@ public abstract class BaseSessionIT extends BaseSessionConcurrencyIT {
 
             session.deleteDataInColumns(dtDelPaths, dtDelStartTime, dtDelEndTime);
             Thread.sleep(1000);
-            SessionQueryDataSet dtDelPartDataSet = session.queryData(dataTypePaths, START_TIME, END_TIME + 1);
+            SessionQueryDataSet dtDelPartDataSet =
+                    session.queryData(dataTypePaths, START_TIME, END_TIME + 1);
 
             int dtDelPartLen = dtDelPartDataSet.getKeys().length;
             List<String> dtDelPartResPaths = dtDelPartDataSet.getPaths();
@@ -847,28 +913,37 @@ public abstract class BaseSessionIT extends BaseSessionConcurrencyIT {
                             assertEquals((timestamp + 2) * 1000, result.get(j));
                             break;
                         case 4:
-                            assertEquals((4 + (END_TIME - timestamp) + START_TIME + 0.01) * 999, changeResultToDouble(result.get(j)), delta);
+                            assertEquals(
+                                    (4 + (END_TIME - timestamp) + START_TIME + 0.01) * 999,
+                                    changeResultToDouble(result.get(j)),
+                                    delta);
                             break;
                         case 1:
                             if (delStartTime <= timestamp && timestamp < delEndTime) {
                                 assertNull(result.get(j));
                             } else {
-                                assertEquals((int) ((END_TIME - i) + 1), changeResultToInteger(result.get(j)));
+                                assertEquals(
+                                        (int) ((END_TIME - i) + 1),
+                                        changeResultToInteger(result.get(j)));
                             }
                             break;
                         case 3:
                             if (delStartTime <= timestamp && timestamp < delEndTime) {
                                 assertNull(result.get(j));
                             } else {
-                                assertEquals((float) (i + 3 + START_TIME + 0.01),
-                                    changeResultToFloat(result.get(j)), (float) delta);
+                                assertEquals(
+                                        (float) (i + 3 + START_TIME + 0.01),
+                                        changeResultToFloat(result.get(j)),
+                                        (float) delta);
                             }
                             break;
                         case 5:
                             if (delStartTime <= timestamp && timestamp < delEndTime) {
                                 assertNull(result.get(j));
                             } else {
-                                assertArrayEquals(getRandomStr(i, STRING_LEN).getBytes(), (byte[]) (result.get(j)));
+                                assertArrayEquals(
+                                        getRandomStr(i, STRING_LEN).getBytes(),
+                                        (byte[]) (result.get(j)));
                             }
                             break;
                         default:
@@ -879,28 +954,52 @@ public abstract class BaseSessionIT extends BaseSessionConcurrencyIT {
             }
 
             // Test aggregate function for the delete
-            SessionAggregateQueryDataSet dtDelPartAvgDataSet = session.aggregateQuery(dTAggrPaths, START_TIME, END_TIME + 1, AggregateType.AVG);
+            SessionAggregateQueryDataSet dtDelPartAvgDataSet =
+                    session.aggregateQuery(
+                            dTAggrPaths, START_TIME, END_TIME + 1, AggregateType.AVG);
             List<String> dtDelPartAvgResPaths = dtDelPartAvgDataSet.getPaths();
             Object[] dtDelPartAvgResult = dtDelPartAvgDataSet.getValues();
-            assertEquals(4, dtDelPartAvgResPaths.size());//fixed
+            assertEquals(4, dtDelPartAvgResPaths.size()); // fixed
             assertEquals(4, dtDelPartAvgResult.length);
             for (int i = 0; i < 4; i++) {
                 int currPathPos = getPathNum(dtDelPartAvgResPaths.get(i)) - currPath;
                 switch (currPathPos) {
                     case 1:
-                        assertEquals(((START_TIME + END_TIME) * TIME_PERIOD / 2.0 - (END_TIME -
-                            (dtDelStartTime - START_TIME) + END_TIME - (dtDelEndTime - 1 - START_TIME)) * dtDelTimePeriod / 2.0)
-                            / (TIME_PERIOD - dtDelTimePeriod) + 1.0, changeResultToDouble(dtDelPartAvgResult[i]), delta * 10000);
+                        assertEquals(
+                                ((START_TIME + END_TIME) * TIME_PERIOD / 2.0
+                                                        - (END_TIME
+                                                                        - (dtDelStartTime
+                                                                                - START_TIME)
+                                                                        + END_TIME
+                                                                        - (dtDelEndTime
+                                                                                - 1
+                                                                                - START_TIME))
+                                                                * dtDelTimePeriod
+                                                                / 2.0)
+                                                / (TIME_PERIOD - dtDelTimePeriod)
+                                        + 1.0,
+                                changeResultToDouble(dtDelPartAvgResult[i]),
+                                delta * 10000);
                         break;
                     case 2:
                         assertEquals((START_TIME + END_TIME) * 500.0 + 2000, dtDelPartAvgResult[i]);
                         break;
                     case 3:
-                        assertEquals(((START_TIME + END_TIME) * TIME_PERIOD / 2.0 -
-                            (dtDelStartTime + dtDelEndTime - 1) * dtDelTimePeriod / 2.0) / (TIME_PERIOD - dtDelTimePeriod) + 3.01, changeResultToDouble(dtDelPartAvgResult[i]), delta * 10000);
+                        assertEquals(
+                                ((START_TIME + END_TIME) * TIME_PERIOD / 2.0
+                                                        - (dtDelStartTime + dtDelEndTime - 1)
+                                                                * dtDelTimePeriod
+                                                                / 2.0)
+                                                / (TIME_PERIOD - dtDelTimePeriod)
+                                        + 3.01,
+                                changeResultToDouble(dtDelPartAvgResult[i]),
+                                delta * 10000);
                         break;
                     case 4:
-                        assertEquals((START_TIME + END_TIME) * 999 / 2.0 + 4.01 * 999, changeResultToDouble(dtDelPartAvgResult[i]), delta * 10000);
+                        assertEquals(
+                                (START_TIME + END_TIME) * 999 / 2.0 + 4.01 * 999,
+                                changeResultToDouble(dtDelPartAvgResult[i]),
+                                delta * 10000);
                         break;
                     default:
                         fail();
@@ -910,14 +1009,15 @@ public abstract class BaseSessionIT extends BaseSessionConcurrencyIT {
 
             currPath += dataTypeLen;
 
-            //deleteAll data in column, before deletion must insert first
+            // deleteAll data in column, before deletion must insert first
             List<String> dataTypePaths2 = getPaths(currPath, dataTypeLen);
             insertDataTypeRecords(dataTypePaths2, currPath);
             int dtDelColumnNum = 2;
             List<String> dtDelColumnPaths = getPaths(currPath, dtDelColumnNum);
             session.deleteDataInColumns(dtDelColumnPaths, START_TIME, END_TIME + 1);
             Thread.sleep(1000);
-            SessionQueryDataSet dtDelColDataSet = session.queryData(dataTypePaths2, START_TIME, END_TIME + 1);
+            SessionQueryDataSet dtDelColDataSet =
+                    session.queryData(dataTypePaths2, START_TIME, END_TIME + 1);
             int dtDelColLen = dtDelColDataSet.getKeys().length;
             List<String> dtDelColResPaths = dtDelColDataSet.getPaths();
             assertEquals(TIME_PERIOD, dtDelColDataSet.getKeys().length);
@@ -936,19 +1036,29 @@ public abstract class BaseSessionIT extends BaseSessionConcurrencyIT {
                                 assertEquals(timestamp % 2 == 0, result.get(j));
                                 break;
                             case 1:
-                                assertEquals((int) ((END_TIME - timestamp) + 1), changeResultToInteger(result.get(j)));
+                                assertEquals(
+                                        (int) ((END_TIME - timestamp) + 1),
+                                        changeResultToInteger(result.get(j)));
                                 break;
                             case 2:
                                 assertEquals((timestamp + 2) * 1000, result.get(j));
                                 break;
                             case 3:
-                                assertEquals((float) (timestamp + 3 + 0.01), changeResultToFloat(result.get(j)), (float) delta);
+                                assertEquals(
+                                        (float) (timestamp + 3 + 0.01),
+                                        changeResultToFloat(result.get(j)),
+                                        (float) delta);
                                 break;
                             case 4:
-                                assertEquals((4 + (END_TIME - timestamp) + START_TIME + 0.01) * 999, changeResultToDouble(result.get(j)), delta);
+                                assertEquals(
+                                        (4 + (END_TIME - timestamp) + START_TIME + 0.01) * 999,
+                                        changeResultToDouble(result.get(j)),
+                                        delta);
                                 break;
                             case 5:
-                                assertArrayEquals(getRandomStr(i, STRING_LEN).getBytes(), (byte[]) (result.get(j)));
+                                assertArrayEquals(
+                                        getRandomStr(i, STRING_LEN).getBytes(),
+                                        (byte[]) (result.get(j)));
                                 break;
                             default:
                                 fail();
@@ -960,9 +1070,12 @@ public abstract class BaseSessionIT extends BaseSessionConcurrencyIT {
 
             // Test aggregate function for the delete
 
-            List<String> dTDeleteAggrPaths = getPaths(currPath + 1, 4);//only the 1-4 columns are numbers
+            List<String> dTDeleteAggrPaths =
+                    getPaths(currPath + 1, 4); // only the 1-4 columns are numbers
 
-            SessionAggregateQueryDataSet dtDelColAvgDataSet = session.aggregateQuery(dTDeleteAggrPaths, START_TIME, END_TIME + 1, AggregateType.AVG);
+            SessionAggregateQueryDataSet dtDelColAvgDataSet =
+                    session.aggregateQuery(
+                            dTDeleteAggrPaths, START_TIME, END_TIME + 1, AggregateType.AVG);
             List<String> dtDelColAvgPaths = dtDelColAvgDataSet.getPaths();
             Object[] dtDelColAvgResult = dtDelColAvgDataSet.getValues();
             assertEquals(4, dtDelColAvgPaths.size());
@@ -970,21 +1083,32 @@ public abstract class BaseSessionIT extends BaseSessionConcurrencyIT {
             for (int i = 0; i < 4; i++) {
                 int currPathPos = getPathNum(dtDelColAvgPaths.get(i)) - currPath;
                 if (currPathPos < dtDelColumnNum) {
-//                    assertEquals("null", new String((byte[]) dtDelColAvgResult[i]));
+                    //                    assertEquals("null", new String((byte[])
+                    // dtDelColAvgResult[i]));
                     assertTrue(Double.isNaN((Double) dtDelColAvgResult[i]));
                 } else {
                     switch (currPathPos) {
                         case 1:
-                            assertEquals((START_TIME + END_TIME) / 2.0 + 1, changeResultToDouble(dtDelColAvgResult[i]), delta);
+                            assertEquals(
+                                    (START_TIME + END_TIME) / 2.0 + 1,
+                                    changeResultToDouble(dtDelColAvgResult[i]),
+                                    delta);
                             break;
                         case 2:
-                            assertEquals((START_TIME + END_TIME) * 500.0 + 2000, dtDelColAvgResult[i]);
+                            assertEquals(
+                                    (START_TIME + END_TIME) * 500.0 + 2000, dtDelColAvgResult[i]);
                             break;
                         case 3:
-                            assertEquals((START_TIME + END_TIME) / 2.0 + 3 + 0.01, changeResultToDouble(dtDelColAvgResult[i]), delta * 10000);
+                            assertEquals(
+                                    (START_TIME + END_TIME) / 2.0 + 3 + 0.01,
+                                    changeResultToDouble(dtDelColAvgResult[i]),
+                                    delta * 10000);
                             break;
                         case 4:
-                            assertEquals((START_TIME + END_TIME) * 999 / 2.0 + 4.01 * 999, changeResultToDouble(dtDelColAvgResult[i]), delta * 10000);
+                            assertEquals(
+                                    (START_TIME + END_TIME) * 999 / 2.0 + 4.01 * 999,
+                                    changeResultToDouble(dtDelColAvgResult[i]),
+                                    delta * 10000);
                             break;
                         default:
                             fail();
@@ -993,21 +1117,21 @@ public abstract class BaseSessionIT extends BaseSessionConcurrencyIT {
                 }
             }
 
-
             currPath += dataTypeLen;
         } else {
             currPath += dataTypeLen;
         }
 
         if (ifNeedCapExp) {
-            //addSameTypeOfStorageEngineTest
+            // addSameTypeOfStorageEngineTest
             session.addStorageEngine("127.0.0.1", defaultPort2, storageEngineType, extraParams);
 
             int addStorageLen = 5;
             List<String> addStoragePaths = getPaths(currPath, addStorageLen);
             insertNumRecords(addStoragePaths);
-            //query Test
-            SessionQueryDataSet addStQueryDataSet = session.queryData(addStoragePaths, START_TIME, END_TIME + 1);
+            // query Test
+            SessionQueryDataSet addStQueryDataSet =
+                    session.queryData(addStoragePaths, START_TIME, END_TIME + 1);
             int addStResLen = addStQueryDataSet.getKeys().length;
             List<String> addStResPaths = addStQueryDataSet.getPaths();
             assertEquals(addStorageLen, addStResPaths.size());
@@ -1023,8 +1147,10 @@ public abstract class BaseSessionIT extends BaseSessionConcurrencyIT {
                     assertEquals(timestamp + pathNum, queryResult.get(j));
                 }
             }
-            //aggr Count
-            SessionAggregateQueryDataSet addStCountDataSet = session.aggregateQuery(addStoragePaths, START_TIME, END_TIME + 1, AggregateType.COUNT);
+            // aggr Count
+            SessionAggregateQueryDataSet addStCountDataSet =
+                    session.aggregateQuery(
+                            addStoragePaths, START_TIME, END_TIME + 1, AggregateType.COUNT);
             assertNull(addStCountDataSet.getKeys());
             List<String> addStCountResPaths = addStCountDataSet.getPaths();
             Object[] addStCountResult = addStCountDataSet.getValues();
@@ -1033,8 +1159,10 @@ public abstract class BaseSessionIT extends BaseSessionConcurrencyIT {
             for (int i = 0; i < addStorageLen; i++) {
                 assertEquals(TIME_PERIOD, addStCountResult[i]);
             }
-            //aggr Avg
-            SessionAggregateQueryDataSet addStAvgDataSet = session.aggregateQuery(addStoragePaths, START_TIME, END_TIME + 1, AggregateType.AVG);
+            // aggr Avg
+            SessionAggregateQueryDataSet addStAvgDataSet =
+                    session.aggregateQuery(
+                            addStoragePaths, START_TIME, END_TIME + 1, AggregateType.AVG);
             assertNull(addStAvgDataSet.getKeys());
             List<String> addStAvgResPaths = addStAvgDataSet.getPaths();
             Object[] addStAvgResult = addStAvgDataSet.getValues();
@@ -1046,17 +1174,18 @@ public abstract class BaseSessionIT extends BaseSessionConcurrencyIT {
                 assertNotEquals(pathNum, -1);
                 assertEquals(avg + pathNum, changeResultToDouble(addStAvgResult[i]), delta);
             }
-            //deletePartial, with query, aggr count and aggr Avg
+            // deletePartial, with query, aggr count and aggr Avg
             if (isAbleToDelete) {
                 int stRemoveLen = 3;
                 List<String> stDelPartPaths = getPaths(currPath, stRemoveLen);
                 // ensure after delete there are still points in the timeseries
 
-                //delete data
+                // delete data
                 session.deleteDataInColumns(stDelPartPaths, delStartTime, delEndTime);
                 Thread.sleep(1000);
-                SessionQueryDataSet stDelPartDataSet = session.queryData(addStoragePaths, START_TIME, END_TIME + 1);
-                //query
+                SessionQueryDataSet stDelPartDataSet =
+                        session.queryData(addStoragePaths, START_TIME, END_TIME + 1);
+                // query
                 int stDelPartLen = stDelPartDataSet.getKeys().length;
                 List<String> stDelPartResPaths = stDelPartDataSet.getPaths();
                 assertEquals(addStorageLen, stDelPartResPaths.size());
@@ -1086,7 +1215,9 @@ public abstract class BaseSessionIT extends BaseSessionConcurrencyIT {
                 }
 
                 // Test avg for the delete
-                SessionAggregateQueryDataSet stDelPartAvgDataSet = session.aggregateQuery(addStoragePaths, START_TIME, END_TIME + 1, AggregateType.AVG);
+                SessionAggregateQueryDataSet stDelPartAvgDataSet =
+                        session.aggregateQuery(
+                                addStoragePaths, START_TIME, END_TIME + 1, AggregateType.AVG);
                 List<String> stDelPartAvgResPaths = stDelPartAvgDataSet.getPaths();
                 Object[] stDelPartAvgResult = stDelPartAvgDataSet.getValues();
                 assertEquals(addStorageLen, stDelPartAvgResPaths.size());
@@ -1095,14 +1226,22 @@ public abstract class BaseSessionIT extends BaseSessionConcurrencyIT {
                     int pathNum = getPathNum(stDelPartAvgResPaths.get(i));
                     assertNotEquals(pathNum, -1);
                     if (pathNum < currPath + stRemoveLen) { // Here is the removed rows
-                        assertEquals(deleteAvg + pathNum, changeResultToDouble(stDelPartAvgResult[i]), delta);
+                        assertEquals(
+                                deleteAvg + pathNum,
+                                changeResultToDouble(stDelPartAvgResult[i]),
+                                delta);
                     } else {
-                        assertEquals(originAvg + pathNum, changeResultToDouble(stDelPartAvgResult[i]), delta);
+                        assertEquals(
+                                originAvg + pathNum,
+                                changeResultToDouble(stDelPartAvgResult[i]),
+                                delta);
                     }
                 }
 
                 // Test count for the delete
-                SessionAggregateQueryDataSet stDelPartCountDataSet = session.aggregateQuery(addStoragePaths, START_TIME, END_TIME + 1, AggregateType.COUNT);
+                SessionAggregateQueryDataSet stDelPartCountDataSet =
+                        session.aggregateQuery(
+                                addStoragePaths, START_TIME, END_TIME + 1, AggregateType.COUNT);
                 List<String> stDelPartCountResPaths = stDelPartCountDataSet.getPaths();
                 Object[] stDelPartCountResult = stDelPartCountDataSet.getValues();
                 assertEquals(addStorageLen, stDelPartCountResPaths.size());
@@ -1120,5 +1259,4 @@ public abstract class BaseSessionIT extends BaseSessionConcurrencyIT {
         }
         logger.info("session test finished");
     }
-
 }

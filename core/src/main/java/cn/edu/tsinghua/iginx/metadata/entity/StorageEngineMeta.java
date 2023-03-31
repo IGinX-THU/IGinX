@@ -24,19 +24,13 @@ import java.util.Map;
 
 public final class StorageEngineMeta {
 
-    /**
-     * 数据库的 id
-     */
+    /** 数据库的 id */
     private long id;
 
-    /**
-     * 时序数据库所在的 ip
-     */
+    /** 时序数据库所在的 ip */
     private final String ip;
 
-    /**
-     * 时序数据库开放的端口
-     */
+    /** 时序数据库开放的端口 */
     private final int port;
 
     private final boolean readOnly;
@@ -51,42 +45,96 @@ public final class StorageEngineMeta {
 
     private FragmentMeta dummyFragment;
 
-    /**
-     * 时序数据库需要的其他参数信息，例如用户名、密码等
-     */
+    /** 时序数据库需要的其他参数信息，例如用户名、密码等 */
     private final Map<String, String> extraParams;
 
-    /**
-     * 数据库类型
-     */
+    /** 数据库类型 */
     private final String storageEngine;
 
-    /**
-     * 实例上管理的存储单元列表
-     */
+    /** 实例上管理的存储单元列表 */
     private transient List<StorageUnitMeta> storageUnitList = new ArrayList<>();
 
     private final long createdBy;
 
     private boolean needReAllocate;
 
-    public StorageEngineMeta(long id, String ip, int port, Map<String, String> extraParams, String storageEngine, long createdBy) {
+    public StorageEngineMeta(
+            long id,
+            String ip,
+            int port,
+            Map<String, String> extraParams,
+            String storageEngine,
+            long createdBy) {
         this(id, ip, port, false, null, null, false, extraParams, storageEngine, createdBy);
     }
 
-    public StorageEngineMeta(long id, String ip, int port, boolean hasData, String dataPrefix, boolean readOnly,
-                             Map<String, String> extraParams, String storageEngine, long createdBy) {
-        this(id, ip, port, hasData, dataPrefix, null, readOnly, null, null, extraParams, storageEngine, createdBy, false);
+    public StorageEngineMeta(
+            long id,
+            String ip,
+            int port,
+            boolean hasData,
+            String dataPrefix,
+            boolean readOnly,
+            Map<String, String> extraParams,
+            String storageEngine,
+            long createdBy) {
+        this(
+                id,
+                ip,
+                port,
+                hasData,
+                dataPrefix,
+                null,
+                readOnly,
+                null,
+                null,
+                extraParams,
+                storageEngine,
+                createdBy,
+                false);
     }
 
-    public StorageEngineMeta(long id, String ip, int port, boolean hasData, String dataPrefix, String schemaPrefix, boolean readOnly,
-                             Map<String, String> extraParams, String storageEngine, long createdBy) {
-        this(id, ip, port, hasData, dataPrefix, schemaPrefix, readOnly, null, null, extraParams, storageEngine, createdBy, false);
+    public StorageEngineMeta(
+            long id,
+            String ip,
+            int port,
+            boolean hasData,
+            String dataPrefix,
+            String schemaPrefix,
+            boolean readOnly,
+            Map<String, String> extraParams,
+            String storageEngine,
+            long createdBy) {
+        this(
+                id,
+                ip,
+                port,
+                hasData,
+                dataPrefix,
+                schemaPrefix,
+                readOnly,
+                null,
+                null,
+                extraParams,
+                storageEngine,
+                createdBy,
+                false);
     }
 
-    public StorageEngineMeta(long id, String ip, int port, boolean hasData, String dataPrefix, String schemaPrefix, boolean readOnly, StorageUnitMeta dummyStorageUnit, FragmentMeta dummyFragment,
-                             Map<String, String> extraParams, String storageEngine,
-                             long createdBy, boolean needReAllocate) {
+    public StorageEngineMeta(
+            long id,
+            String ip,
+            int port,
+            boolean hasData,
+            String dataPrefix,
+            String schemaPrefix,
+            boolean readOnly,
+            StorageUnitMeta dummyStorageUnit,
+            FragmentMeta dummyFragment,
+            Map<String, String> extraParams,
+            String storageEngine,
+            long createdBy,
+            boolean needReAllocate) {
         this.id = id;
         this.ip = ip;
         this.port = port;
@@ -102,9 +150,21 @@ public final class StorageEngineMeta {
         this.schemaPrefix = schemaPrefix;
     }
 
-
-
-    public StorageEngineMeta(long id, String ip, int port, boolean hasData, String dataPrefix, String schemaPrefix, boolean readOnly, StorageUnitMeta dummyStorageUnit, FragmentMeta dummyFragment, Map<String, String> extraParams, String storageEngine, List<StorageUnitMeta> storageUnitList, long createdBy, boolean needReAllocate) {
+    public StorageEngineMeta(
+            long id,
+            String ip,
+            int port,
+            boolean hasData,
+            String dataPrefix,
+            String schemaPrefix,
+            boolean readOnly,
+            StorageUnitMeta dummyStorageUnit,
+            FragmentMeta dummyFragment,
+            Map<String, String> extraParams,
+            String storageEngine,
+            List<StorageUnitMeta> storageUnitList,
+            long createdBy,
+            boolean needReAllocate) {
         this.id = id;
         this.ip = ip;
         this.port = port;
@@ -215,10 +275,15 @@ public final class StorageEngineMeta {
 
     @Override
     public String toString() {
-        return "StorageEngineMeta {" +
-            "ip='" + ip + '\'' +
-            ", port=" + port +
-            ", type='" + storageEngine + '\'' +
-            '}';
+        return "StorageEngineMeta {"
+                + "ip='"
+                + ip
+                + '\''
+                + ", port="
+                + port
+                + ", type='"
+                + storageEngine
+                + '\''
+                + '}';
     }
 }

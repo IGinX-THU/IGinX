@@ -27,8 +27,7 @@ public class ArithmeticExpr implements RowMappingFunction {
 
     private static final ArithmeticExpr INSTANCE = new ArithmeticExpr();
 
-    private ArithmeticExpr() {
-    }
+    private ArithmeticExpr() {}
 
     public static ArithmeticExpr getInstance() {
         return INSTANCE;
@@ -63,11 +62,12 @@ public class ArithmeticExpr implements RowMappingFunction {
 
         Field targetField = new Field(expr.getColumnName(), ret.getDataType());
 
-        Header header = row.getHeader().hasKey() ?
-            new Header(Field.KEY, Collections.singletonList(targetField)) :
-            new Header(Collections.singletonList(targetField));
+        Header header =
+                row.getHeader().hasKey()
+                        ? new Header(Field.KEY, Collections.singletonList(targetField))
+                        : new Header(Collections.singletonList(targetField));
 
-        return new Row(header, row.getKey(), new Object[]{ret.getValue()});
+        return new Row(header, row.getKey(), new Object[] {ret.getValue()});
     }
 
     private Value calculateExpr(Row row, Expression expr) {
@@ -83,7 +83,8 @@ public class ArithmeticExpr implements RowMappingFunction {
             case Binary:
                 return calculateBinaryExpr(row, (BinaryExpression) expr);
             default:
-                throw new IllegalArgumentException(String.format("Unknown expr type: %s", expr.getType()));
+                throw new IllegalArgumentException(
+                        String.format("Unknown expr type: %s", expr.getType()));
         }
     }
 
@@ -110,11 +111,11 @@ public class ArithmeticExpr implements RowMappingFunction {
         Operator operator = unaryExpr.getOperator();
 
         Value value = calculateExpr(row, expr);
-        if (operator.equals(Operator.PLUS)) {  // positive
+        if (operator.equals(Operator.PLUS)) { // positive
             return value;
         }
 
-        switch (value.getDataType()) {  // negative
+        switch (value.getDataType()) { // negative
             case INTEGER:
                 return new Value(-value.getIntV());
             case LONG:
@@ -136,8 +137,9 @@ public class ArithmeticExpr implements RowMappingFunction {
         Value leftVal = calculateExpr(row, leftExpr);
         Value rightVal = calculateExpr(row, rightExpr);
 
-        if (!leftVal.getDataType().equals(rightVal.getDataType())) {  // 两值类型不同，但均为数值类型，转为double再运算
-            if (DataTypeUtils.isNumber(leftVal.getDataType()) && DataTypeUtils.isNumber(rightVal.getDataType())) {
+        if (!leftVal.getDataType().equals(rightVal.getDataType())) { // 两值类型不同，但均为数值类型，转为double再运算
+            if (DataTypeUtils.isNumber(leftVal.getDataType())
+                    && DataTypeUtils.isNumber(rightVal.getDataType())) {
                 leftVal = ValueUtils.transformToDouble(leftVal);
                 rightVal = ValueUtils.transformToDouble(rightVal);
             } else {
@@ -157,7 +159,8 @@ public class ArithmeticExpr implements RowMappingFunction {
             case MOD:
                 return calculateMod(leftVal, rightVal);
             default:
-                throw new IllegalArgumentException(String.format("Unknown operator type: %s", operator));
+                throw new IllegalArgumentException(
+                        String.format("Unknown operator type: %s", operator));
         }
     }
 

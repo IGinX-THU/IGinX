@@ -23,7 +23,8 @@ import java.util.List;
 
 public class IginXTable {
 
-    public static final IginXTable EMPTY_TABLE = new IginXTable(IginXHeader.EMPTY_HEADER, Collections.emptyList());
+    public static final IginXTable EMPTY_TABLE =
+            new IginXTable(IginXHeader.EMPTY_HEADER, Collections.emptyList());
 
     private final IginXHeader header;
 
@@ -44,9 +45,6 @@ public class IginXTable {
 
     @Override
     public String toString() {
-        return "IginXTable{" +
-                "header=" + header +
-                ", records=" + records +
-                '}';
+        return "IginXTable{" + "header=" + header + ", records=" + records + '}';
     }
 }
