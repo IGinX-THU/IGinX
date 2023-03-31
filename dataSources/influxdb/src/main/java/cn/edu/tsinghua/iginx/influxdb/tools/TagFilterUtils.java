@@ -46,7 +46,7 @@ public class TagFilterUtils {
                     builder.append(" == \"").append(baseFilter.getTagValue()).append("\" ");
                 }
                 break;
-            // TODO: case label
+                // TODO: case label
             case BasePrecise:
                 break;
             case Precise:
@@ -55,7 +55,4 @@ public class TagFilterUtils {
                 break;
         }
     }
-
-
-
 }

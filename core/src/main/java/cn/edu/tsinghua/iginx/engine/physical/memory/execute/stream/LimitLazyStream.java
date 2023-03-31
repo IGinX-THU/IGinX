@@ -42,7 +42,7 @@ public class LimitLazyStream extends UnaryLazyStream {
 
     @Override
     public boolean hasNext() throws PhysicalException {
-        while(index < limit.getOffset() && stream.hasNext()) {
+        while (index < limit.getOffset() && stream.hasNext()) {
             stream.next();
             index++;
         }

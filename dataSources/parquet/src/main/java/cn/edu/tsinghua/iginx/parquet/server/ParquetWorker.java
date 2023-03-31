@@ -77,12 +77,13 @@ public class ParquetWorker implements ParquetService.Iface {
     public ProjectResp executeProject(ProjectReq req) throws TException {
         TagFilter tagFilter = resolveRawTagFilter(req.getTagFilter());
 
-        TaskExecuteResult result = executor.executeProjectTask(
-            req.getPaths(),
-            tagFilter,
-            req.getFilter(),
-            req.getStorageUnit(),
-            req.isDummyStorageUnit);
+        TaskExecuteResult result =
+                executor.executeProjectTask(
+                        req.getPaths(),
+                        tagFilter,
+                        req.getFilter(),
+                        req.getStorageUnit(),
+                        req.isDummyStorageUnit);
 
         RowStream rowStream = result.getRowStream();
 
@@ -97,13 +98,18 @@ public class ParquetWorker implements ParquetService.Iface {
         boolean hasTime;
         try {
             hasTime = rowStream.getHeader().hasKey();
-            rowStream.getHeader().getFields().forEach(field -> {
-                names.add(field.getName());
-                types.add(field.getType().toString());
-                dataTypes.add(field.getType());
-                Map<String, String> tags = field.getTags() == null ? new HashMap<>() : field.getTags();
-                tagsList.add(tags);
-            });
+            rowStream
+                    .getHeader()
+                    .getFields()
+                    .forEach(
+                            field -> {
+                                names.add(field.getName());
+                                types.add(field.getType().toString());
+                                dataTypes.add(field.getType());
+                                Map<String, String> tags =
+                                        field.getTags() == null ? new HashMap<>() : field.getTags();
+                                tagsList.add(tags);
+                            });
         } catch (PhysicalException e) {
             logger.error("encounter error when get header from RowStream ", e);
             return new ProjectResp(EXEC_PROJECT_FAIL);
@@ -121,9 +127,10 @@ public class ParquetWorker implements ParquetService.Iface {
                         bitmap.mark(j);
                     }
                 }
-                ParquetRow parquetRow = new ParquetRow(
-                    ByteUtils.getRowByteBuffer(rowValues, dataTypes),
-                    ByteBuffer.wrap(bitmap.getBytes()));
+                ParquetRow parquetRow =
+                        new ParquetRow(
+                                ByteUtils.getRowByteBuffer(rowValues, dataTypes),
+                                ByteBuffer.wrap(bitmap.getBytes()));
                 if (hasTime) {
                     parquetRow.setTimestamp(row.getKey());
                 }
@@ -162,30 +169,42 @@ public class ParquetWorker implements ParquetService.Iface {
         List<Bitmap> bitmaps;
         Object[] values;
         if (rawDataType == RawDataType.Row || rawDataType == RawDataType.NonAlignedRow) {
-            bitmaps = parquetRawData.getBitmapList().stream().map(x -> new Bitmap(paths.size(), x.array())).collect(Collectors.toList());
+            bitmaps =
+                    parquetRawData
+                            .getBitmapList()
+                            .stream()
+                            .map(x -> new Bitmap(paths.size(), x.array()))
+                            .collect(Collectors.toList());
             values = ByteUtils.getRowValuesByDataType(valueList, types, bitmapList);
         } else {
-            bitmaps = bitmapList.stream().map(x -> new Bitmap(times.size(), x.array())).collect(Collectors.toList());
-            values = ByteUtils.getColumnValuesByDataType(valueList, types, bitmapList, times.size());
+            bitmaps =
+                    bitmapList
+                            .stream()
+                            .map(x -> new Bitmap(times.size(), x.array()))
+                            .collect(Collectors.toList());
+            values =
+                    ByteUtils.getColumnValuesByDataType(valueList, types, bitmapList, times.size());
         }
 
-        RawData rawData = new RawData(paths, parquetRawData.getTagsList(), times, values, types, bitmaps, rawDataType);
+        RawData rawData =
+                new RawData(
+                        paths,
+                        parquetRawData.getTagsList(),
+                        times,
+                        values,
+                        types,
+                        bitmaps,
+                        rawDataType);
 
         DataView dataView;
         if (rawDataType == RawDataType.Row || rawDataType == RawDataType.NonAlignedRow) {
-            dataView = new RowDataView(
-                rawData,
-                0,
-                rawData.getPaths().size(),
-                0,
-                rawData.getKeys().size());
+            dataView =
+                    new RowDataView(
+                            rawData, 0, rawData.getPaths().size(), 0, rawData.getKeys().size());
         } else {
-            dataView = new ColumnDataView(
-                rawData,
-                0,
-                rawData.getPaths().size(),
-                0,
-                rawData.getKeys().size());
+            dataView =
+                    new ColumnDataView(
+                            rawData, 0, rawData.getPaths().size(), 0, rawData.getKeys().size());
         }
 
         TaskExecuteResult result = executor.executeInsertTask(dataView, req.getStorageUnit());
@@ -224,11 +243,9 @@ public class ParquetWorker implements ParquetService.Iface {
             }
         }
 
-        TaskExecuteResult result = executor.executeDeleteTask(
-            req.getPaths(),
-            timeRanges,
-            tagFilter,
-            req.getStorageUnit());
+        TaskExecuteResult result =
+                executor.executeDeleteTask(
+                        req.getPaths(), timeRanges, tagFilter, req.getStorageUnit());
         if (result.getException() == null) {
             return SUCCESS;
         } else {
@@ -247,40 +264,56 @@ public class ParquetWorker implements ParquetService.Iface {
                 return new WithoutTagFilter();
             case BasePrecise:
                 return new BasePreciseTagFilter(rawTagFilter.getTags());
-            case Precise: {
-                List<BasePreciseTagFilter> children = new ArrayList<>();
-                rawTagFilter.getChildren().forEach(child -> children.add((BasePreciseTagFilter) resolveRawTagFilter(child)));
-                return new PreciseTagFilter(children);
-            }
-            case And: {
-                List<TagFilter> children = new ArrayList<>();
-                rawTagFilter.getChildren().forEach(child -> children.add(resolveRawTagFilter(child)));
-                return new AndTagFilter(children);
-            }
-            case Or: {
-                List<TagFilter> children = new ArrayList<>();
-                rawTagFilter.getChildren().forEach(child -> children.add(resolveRawTagFilter(child)));
-                return new OrTagFilter(children);
-            }
-            default: {
-                logger.error("unknown tag filter type: {}", rawTagFilter.getType());
-                return null;
-            }
+            case Precise:
+                {
+                    List<BasePreciseTagFilter> children = new ArrayList<>();
+                    rawTagFilter
+                            .getChildren()
+                            .forEach(
+                                    child ->
+                                            children.add(
+                                                    (BasePreciseTagFilter)
+                                                            resolveRawTagFilter(child)));
+                    return new PreciseTagFilter(children);
+                }
+            case And:
+                {
+                    List<TagFilter> children = new ArrayList<>();
+                    rawTagFilter
+                            .getChildren()
+                            .forEach(child -> children.add(resolveRawTagFilter(child)));
+                    return new AndTagFilter(children);
+                }
+            case Or:
+                {
+                    List<TagFilter> children = new ArrayList<>();
+                    rawTagFilter
+                            .getChildren()
+                            .forEach(child -> children.add(resolveRawTagFilter(child)));
+                    return new OrTagFilter(children);
+                }
+            default:
+                {
+                    logger.error("unknown tag filter type: {}", rawTagFilter.getType());
+                    return null;
+                }
         }
     }
 
     @Override
-    public GetTimeSeriesOfStorageUnitResp getTimeSeriesOfStorageUnit(String storageUnit) throws TException {
+    public GetTimeSeriesOfStorageUnitResp getTimeSeriesOfStorageUnit(String storageUnit)
+            throws TException {
         List<TS> ret = new ArrayList<>();
         try {
             List<Timeseries> tsList = executor.getTimeSeriesOfStorageUnit(storageUnit);
-            tsList.forEach(timeseries -> {
-                TS ts = new TS(timeseries.getPath(), timeseries.getDataType().toString());
-                if (timeseries.getTags() != null) {
-                    ts.setTags(timeseries.getTags());
-                }
-                ret.add(ts);
-            });
+            tsList.forEach(
+                    timeseries -> {
+                        TS ts = new TS(timeseries.getPath(), timeseries.getDataType().toString());
+                        if (timeseries.getTags() != null) {
+                            ts.setTags(timeseries.getTags());
+                        }
+                        ret.add(ts);
+                    });
             GetTimeSeriesOfStorageUnitResp resp = new GetTimeSeriesOfStorageUnitResp(SUCCESS);
             resp.setTsList(ret);
             return resp;

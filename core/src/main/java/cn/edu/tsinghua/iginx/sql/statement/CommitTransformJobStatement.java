@@ -9,7 +9,6 @@ import cn.edu.tsinghua.iginx.utils.JobFromYAML;
 import cn.edu.tsinghua.iginx.utils.RpcUtils;
 import cn.edu.tsinghua.iginx.utils.SnowFlakeUtils;
 import cn.edu.tsinghua.iginx.utils.YAMLReader;
-
 import java.io.FileNotFoundException;
 
 public class CommitTransformJobStatement extends SystemStatement {

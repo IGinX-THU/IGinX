@@ -2,20 +2,20 @@ package cn.edu.tsinghua.iginx.integration.tool;
 
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.utils.FileReader;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ConfLoder {
     private final void logInfo(String info, Object... args) {
         if (DEBUG) logger.info(info, args);
     }
+
     private static final Logger logger = LoggerFactory.getLogger(ConfLoder.class);
     private static List<String> storageEngines = new ArrayList<>();
     private List<StorageEngineMeta> storageEngineMetas = new ArrayList<>();
@@ -71,7 +71,8 @@ public class ConfLoder {
                     extraParams.put(KAndV[0], KAndV[1]);
                 }
             }
-            storageEngineMetas.add(new StorageEngineMeta(-1, ip, port, extraParams, storageEngine, -1));
+            storageEngineMetas.add(
+                    new StorageEngineMeta(-1, ip, port, extraParams, storageEngine, -1));
         }
 
         // load the task list
@@ -79,11 +80,11 @@ public class ConfLoder {
             String tasks = null;
             if (storageEngine.toLowerCase().equals("influxdb"))
                 tasks = properties.getProperty("influxdb-" + TESTTASK);
-            else
-                tasks = properties.getProperty(TESTTASK);
+            else tasks = properties.getProperty(TESTTASK);
             logInfo("the task of {} is :", storageEngine);
-            List<String> oriTaskList = Arrays.asList(tasks.split(",")), taskList = new ArrayList<>();
-            for(String taskName : oriTaskList) {
+            List<String> oriTaskList = Arrays.asList(tasks.split(",")),
+                    taskList = new ArrayList<>();
+            for (String taskName : oriTaskList) {
                 if (taskName.contains("{}")) {
                     taskName = taskName.replace("{}", storageEngine);
                 }
@@ -109,15 +110,14 @@ public class ConfLoder {
             String confs = properties.getProperty(String.format(DBCONF, storageEngine));
             logInfo("the task of {} is : {}", storageEngine, confs);
             List<String> confList = Arrays.asList(confs.split(","));
-            for(String conf : confList) {
+            for (String conf : confList) {
                 String[] confKV = conf.split("=");
-                dbConf.setEnumValue(DBConf.getDBConfType(confKV[0]), Boolean.parseBoolean(confKV[1]));
+                dbConf.setEnumValue(
+                        DBConf.getDBConfType(confKV[0]), Boolean.parseBoolean(confKV[1]));
             }
         }
         return dbConf;
     }
-
-
 
     public Map<DBConf.DBType, List<String>> getTaskMap() {
         return taskMap;

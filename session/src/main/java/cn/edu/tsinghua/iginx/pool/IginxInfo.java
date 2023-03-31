@@ -1,24 +1,16 @@
 package cn.edu.tsinghua.iginx.pool;
 
 public class IginxInfo {
-    /**
-     * iginx 的 host
-     */
+    /** iginx 的 host */
     private final String host;
 
-    /**
-     * iginx 对外暴露的端口
-     */
+    /** iginx 对外暴露的端口 */
     private final int port;
 
-    /**
-     * iginx 用户名
-     */
+    /** iginx 用户名 */
     private final String user;
 
-    /**
-     * iginx 的密码
-     */
+    /** iginx 的密码 */
     private final String password;
 
     IginxInfo(String host, int port, String user, String password) {
@@ -71,12 +63,7 @@ public class IginxInfo {
         }
 
         public IginxInfo build() {
-            return new IginxInfo(
-                    host,
-                    port,
-                    user,
-                    password
-            );
+            return new IginxInfo(host, port, user, password);
         }
     }
 }

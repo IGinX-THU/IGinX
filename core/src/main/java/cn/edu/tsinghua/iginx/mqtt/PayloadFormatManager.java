@@ -18,12 +18,11 @@
  */
 package cn.edu.tsinghua.iginx.mqtt;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PayloadFormatManager {
 
@@ -47,15 +46,22 @@ public class PayloadFormatManager {
             formatter = formatters.get(formatterClassName);
             if (formatter == null) {
                 try {
-                    Class<? extends IPayloadFormatter> clazz = this.getClass().getClassLoader().loadClass(formatterClassName).asSubclass(IPayloadFormatter.class);
+                    Class<? extends IPayloadFormatter> clazz =
+                            this.getClass()
+                                    .getClassLoader()
+                                    .loadClass(formatterClassName)
+                                    .asSubclass(IPayloadFormatter.class);
                     formatter = clazz.getConstructor().newInstance();
                     formatters.put(formatterClassName, formatter);
-                } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
+                } catch (ClassNotFoundException
+                        | InstantiationException
+                        | IllegalAccessException
+                        | NoSuchMethodException
+                        | InvocationTargetException e) {
                     logger.error(e.getMessage());
                 }
             }
         }
         return formatter;
     }
-
 }

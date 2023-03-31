@@ -22,7 +22,6 @@ import cn.edu.tsinghua.iginx.thrift.IginxInfo;
 import cn.edu.tsinghua.iginx.thrift.LocalMetaStorageInfo;
 import cn.edu.tsinghua.iginx.thrift.MetaStorageInfo;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineInfo;
-
 import java.util.List;
 
 public final class ClusterInfo {
@@ -35,18 +34,28 @@ public final class ClusterInfo {
 
     private final List<MetaStorageInfo> metaStorageInfos;
 
-    public ClusterInfo(List<IginxInfo> iginxInfos, List<StorageEngineInfo> storageEngineInfos, LocalMetaStorageInfo localMetaStorageInfo, List<MetaStorageInfo> metaStorageInfos) {
+    public ClusterInfo(
+            List<IginxInfo> iginxInfos,
+            List<StorageEngineInfo> storageEngineInfos,
+            LocalMetaStorageInfo localMetaStorageInfo,
+            List<MetaStorageInfo> metaStorageInfos) {
         this.iginxInfos = iginxInfos;
         this.storageEngineInfos = storageEngineInfos;
         this.localMetaStorageInfo = localMetaStorageInfo;
         this.metaStorageInfos = metaStorageInfos;
     }
 
-    public ClusterInfo(List<IginxInfo> iginxInfos, List<StorageEngineInfo> storageEngineInfos, LocalMetaStorageInfo localMetaStorageInfo) {
+    public ClusterInfo(
+            List<IginxInfo> iginxInfos,
+            List<StorageEngineInfo> storageEngineInfos,
+            LocalMetaStorageInfo localMetaStorageInfo) {
         this(iginxInfos, storageEngineInfos, localMetaStorageInfo, null);
     }
 
-    public ClusterInfo(List<IginxInfo> iginxInfos, List<StorageEngineInfo> storageEngineInfos, List<MetaStorageInfo> metaStorageInfo) {
+    public ClusterInfo(
+            List<IginxInfo> iginxInfos,
+            List<StorageEngineInfo> storageEngineInfos,
+            List<MetaStorageInfo> metaStorageInfo) {
         this(iginxInfos, storageEngineInfos, null, metaStorageInfo);
     }
 
@@ -69,5 +78,4 @@ public final class ClusterInfo {
     public boolean isUseLocalMetaStorage() {
         return localMetaStorageInfo != null;
     }
-
 }

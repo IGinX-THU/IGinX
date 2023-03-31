@@ -24,15 +24,15 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.queue.MemoryPhysicalTaskQueu
 import cn.edu.tsinghua.iginx.engine.physical.memory.queue.MemoryPhysicalTaskQueueImpl;
 import cn.edu.tsinghua.iginx.engine.physical.task.MemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
 public class MemoryPhysicalTaskDispatcher {
 
-    private static final Logger logger = LoggerFactory.getLogger(MemoryPhysicalTaskDispatcher.class);
+    private static final Logger logger =
+            LoggerFactory.getLogger(MemoryPhysicalTaskDispatcher.class);
 
     private static final MemoryPhysicalTaskDispatcher INSTANCE = new MemoryPhysicalTaskDispatcher();
 
@@ -44,7 +44,9 @@ public class MemoryPhysicalTaskDispatcher {
 
     private MemoryPhysicalTaskDispatcher() {
         taskQueue = new MemoryPhysicalTaskQueueImpl();
-        taskExecuteThreadPool = Executors.newFixedThreadPool(ConfigDescriptor.getInstance().getConfig().getMemoryTaskThreadPoolSize());
+        taskExecuteThreadPool =
+                Executors.newFixedThreadPool(
+                        ConfigDescriptor.getInstance().getConfig().getMemoryTaskThreadPoolSize());
         taskDispatcher = Executors.newSingleThreadExecutor();
     }
 
@@ -57,46 +59,53 @@ public class MemoryPhysicalTaskDispatcher {
     }
 
     public void startDispatcher() {
-        taskDispatcher.submit(() -> {
-            try {
-                while (true) {
-                    final MemoryPhysicalTask task = taskQueue.getTask();
-                    taskExecuteThreadPool.submit(() -> {
-
-                        MemoryPhysicalTask currentTask = task;
-                        while (currentTask != null) {
-                            TaskExecuteResult result;
-                            long startTime = System.currentTimeMillis();
-                            try {
-                                result = currentTask.execute();
-                            } catch (Exception e) {
-                                logger.error("execute memory task failure: ", e);
-                                result = new TaskExecuteResult(new PhysicalException(e));
-                            }
-                            long span = System.currentTimeMillis() - startTime;
-                            currentTask.setSpan(span);
-                            currentTask.setResult(result);
-                            if (currentTask.getFollowerTask() != null) { // 链式执行可以被执行的任务
-                                MemoryPhysicalTask followerTask = (MemoryPhysicalTask) currentTask.getFollowerTask();
-                                if (followerTask.notifyParentReady()) {
-                                    currentTask = followerTask;
-                                } else {
-                                    currentTask = null;
-                                }
-                            } else {
-                                currentTask = null;
-                            }
+        taskDispatcher.submit(
+                () -> {
+                    try {
+                        while (true) {
+                            final MemoryPhysicalTask task = taskQueue.getTask();
+                            taskExecuteThreadPool.submit(
+                                    () -> {
+                                        MemoryPhysicalTask currentTask = task;
+                                        while (currentTask != null) {
+                                            TaskExecuteResult result;
+                                            long startTime = System.currentTimeMillis();
+                                            try {
+                                                result = currentTask.execute();
+                                            } catch (Exception e) {
+                                                logger.error("execute memory task failure: ", e);
+                                                result =
+                                                        new TaskExecuteResult(
+                                                                new PhysicalException(e));
+                                            }
+                                            long span = System.currentTimeMillis() - startTime;
+                                            currentTask.setSpan(span);
+                                            currentTask.setResult(result);
+                                            if (currentTask.getFollowerTask()
+                                                    != null) { // 链式执行可以被执行的任务
+                                                MemoryPhysicalTask followerTask =
+                                                        (MemoryPhysicalTask)
+                                                                currentTask.getFollowerTask();
+                                                if (followerTask.notifyParentReady()) {
+                                                    currentTask = followerTask;
+                                                } else {
+                                                    currentTask = null;
+                                                }
+                                            } else {
+                                                currentTask = null;
+                                            }
+                                        }
+                                    });
                         }
-                    });
-                }
-            } catch (Exception e){
-                logger.error("unexpected exception during dispatcher memory task, please contact developer to check: ", e);
-            }
-        });
+                    } catch (Exception e) {
+                        logger.error(
+                                "unexpected exception during dispatcher memory task, please contact developer to check: ",
+                                e);
+                    }
+                });
     }
 
     public void stopDispatcher() {
         taskDispatcher.shutdown();
     }
-
 }

@@ -24,7 +24,6 @@ import cn.edu.tsinghua.iginx.session.SessionQueryDataSet;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.thrift.TimePrecision;
 import cn.edu.tsinghua.iginx.utils.TimeUtils;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -104,17 +103,44 @@ public abstract class QueryAggregator {
         this.type = type;
     }
 
-    public QueryResultDataset doAggregate(RestSession session, List<String> paths, Map<String, List<String>> tagList, long startTimestamp, long endTimestamp) {
-        return doAggregate(session, paths, tagList, startTimestamp, endTimestamp, TimeUtils.DEFAULT_TIMESTAMP_PRECISION);
+    public QueryResultDataset doAggregate(
+            RestSession session,
+            List<String> paths,
+            Map<String, List<String>> tagList,
+            long startTimestamp,
+            long endTimestamp) {
+        return doAggregate(
+                session,
+                paths,
+                tagList,
+                startTimestamp,
+                endTimestamp,
+                TimeUtils.DEFAULT_TIMESTAMP_PRECISION);
     }
 
-    public QueryResultDataset doAggregate(RestSession session, List<String> paths, Map<String, List<String>> tagList, long startTimestamp, long endTimestamp, TimePrecision timePrecision) {
+    public QueryResultDataset doAggregate(
+            RestSession session,
+            List<String> paths,
+            Map<String, List<String>> tagList,
+            long startTimestamp,
+            long endTimestamp,
+            TimePrecision timePrecision) {
         SessionQueryDataSet sessionQueryDataSet = null;
         try {
             if (type == QueryAggregatorType.NONE) {
-                sessionQueryDataSet = session.queryData(paths, startTimestamp, endTimestamp, tagList, timePrecision);
+                sessionQueryDataSet =
+                        session.queryData(
+                                paths, startTimestamp, endTimestamp, tagList, timePrecision);
             } else if (aggregateType != null) {
-                sessionQueryDataSet = session.downsampleQuery(paths, tagList, startTimestamp, endTimestamp, aggregateType, getDur(), timePrecision);
+                sessionQueryDataSet =
+                        session.downsampleQuery(
+                                paths,
+                                tagList,
+                                startTimestamp,
+                                endTimestamp,
+                                aggregateType,
+                                getDur(),
+                                timePrecision);
             }
         } catch (Exception e) {
             // TODO: more precise exception catch

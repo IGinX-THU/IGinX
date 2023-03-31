@@ -20,31 +20,33 @@ package cn.edu.tsinghua.iginx.session_v2;
 
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.TaskType;
-
 import java.util.List;
 import java.util.Objects;
 
 public final class Arguments {
 
-    private Arguments() {
-    }
+    private Arguments() {}
 
-    public static void checkUrl(final String url, final String name) throws IllegalArgumentException {
+    public static void checkUrl(final String url, final String name)
+            throws IllegalArgumentException {
         checkNonEmpty(url, name);
         // TODO: 检查 url 合法性
     }
 
-    public static void checkNonEmpty(final String string, final String name) throws IllegalArgumentException {
+    public static void checkNonEmpty(final String string, final String name)
+            throws IllegalArgumentException {
         if (string == null || string.isEmpty()) {
             throw new IllegalArgumentException("Expecting a non-empty string for " + name);
         }
     }
 
-    public static void checkNotNull(final Object obj, final String name) throws NullPointerException {
+    public static void checkNotNull(final Object obj, final String name)
+            throws NullPointerException {
         Objects.requireNonNull(obj, () -> "Expecting a not null reference for " + name);
     }
 
-    public static void checkDataType(final Object value, final DataType dataType, final String name) throws IllegalStateException {
+    public static void checkDataType(final Object value, final DataType dataType, final String name)
+            throws IllegalStateException {
         switch (dataType) {
             case INTEGER:
                 if (!(value instanceof Integer)) {
@@ -87,8 +89,8 @@ public final class Arguments {
 
     public static void checkTaskType(TaskType expected, TaskType actual) {
         if (actual != null && !expected.equals(actual)) {
-            throw new IllegalArgumentException("Expecting task type: " + expected + ", actual: " + actual);
+            throw new IllegalArgumentException(
+                    "Expecting task type: " + expected + ", actual: " + actual);
         }
     }
-
 }

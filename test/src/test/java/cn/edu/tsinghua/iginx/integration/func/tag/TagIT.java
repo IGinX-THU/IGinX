@@ -1,20 +1,19 @@
 package cn.edu.tsinghua.iginx.integration.func.tag;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
-import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoder;
+import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
+import java.io.IOException;
 import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 
 public class TagIT {
     protected static final Logger logger = LoggerFactory.getLogger(TagIT.class);
@@ -22,7 +21,8 @@ public class TagIT {
     protected static boolean ifClearData;
     protected boolean isAbleToDelete = true;
     protected boolean ifScaleOutIn = false;
-    private String CLEARDATAEXCP = "cn.edu.tsinghua.iginx.exceptions.ExecutionException: Caution: can not clear the data of read-only node.";
+    private String CLEARDATAEXCP =
+            "cn.edu.tsinghua.iginx.exceptions.ExecutionException: Caution: can not clear the data of read-only node.";
 
     public TagIT() throws IOException {
         ConfLoder conf = new ConfLoder(Controller.CONFIG_FILE);
@@ -46,14 +46,14 @@ public class TagIT {
 
     @Before
     public void insertData() throws ExecutionException, SessionException {
-        String[] insertStatements = (
-            "insert into ah.hr01 (key, s, v, s[t1=v1, t2=vv1], v[t1=v2, t2=vv1]) values (0, 1, 2, 3, 4), (1, 2, 3, 4, 5), (2, 3, 4, 5, 6), (3, 4, 5, 6, 7);\n" +
-            "insert into ah.hr02 (key, s, v) values (100, true, \"v1\");\n" +
-            "insert into ah.hr02[t1=v1] (key, s, v) values (400, false, \"v4\");\n" +
-            "insert into ah.hr02[t1=v1,t2=v2] (key, v) values (800, \"v8\");\n" +
-            "insert into ah.hr03 (key, s[t1=vv1,t2=v2], v[t1=vv11]) values (1600, true, 16);\n" +
-            "insert into ah.hr03 (key, s[t1=v1,t2=vv2], v[t1=v1], v[t1=vv11]) values (3200, true, 16, 32);"
-        ).split("\n");
+        String[] insertStatements =
+                ("insert into ah.hr01 (key, s, v, s[t1=v1, t2=vv1], v[t1=v2, t2=vv1]) values (0, 1, 2, 3, 4), (1, 2, 3, 4, 5), (2, 3, 4, 5, 6), (3, 4, 5, 6, 7);\n"
+                                + "insert into ah.hr02 (key, s, v) values (100, true, \"v1\");\n"
+                                + "insert into ah.hr02[t1=v1] (key, s, v) values (400, false, \"v4\");\n"
+                                + "insert into ah.hr02[t1=v1,t2=v2] (key, v) values (800, \"v8\");\n"
+                                + "insert into ah.hr03 (key, s[t1=vv1,t2=v2], v[t1=vv11]) values (1600, true, 16);\n"
+                                + "insert into ah.hr03 (key, s[t1=v1,t2=vv2], v[t1=v1], v[t1=vv11]) values (3200, true, 16, 32);")
+                        .split("\n");
 
         for (String insertStatement : insertStatements) {
             SessionExecuteSqlResult res = session.executeSql(insertStatement);
@@ -84,16 +84,18 @@ public class TagIT {
             logger.error("Statement: \"{}\" execute fail. Caused by:", statement, e);
             if (e.toString().equals(CLEARDATAEXCP)) {
                 logger.error("clear data fail and go on....");
-            }
-            else fail();
+            } else fail();
         }
 
-        if (res==null) {
+        if (res == null) {
             return "";
         }
 
         if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-            logger.error("Statement: \"{}\" execute fail. Caused by: {}.", statement, res.getParseErrorMsg());
+            logger.error(
+                    "Statement: \"{}\" execute fail. Caused by: {}.",
+                    statement,
+                    res.getParseErrorMsg());
             fail();
             return "";
         }
@@ -453,13 +455,14 @@ public class TagIT {
         executeAndCompare(statement, expected);
 
         statement = "SELECT s FROM ah.* with t1=v1 AND t2=vv2;";
-        expected = "ResultSets:\n" +
-                "+----+-----------------------+\n" +
-                "| key|ah.hr03.s{t1=v1,t2=vv2}|\n" +
-                "+----+-----------------------+\n" +
-                "|3200|                   true|\n" +
-                "+----+-----------------------+\n" +
-                "Total line number = 1\n";
+        expected =
+                "ResultSets:\n"
+                        + "+----+-----------------------+\n"
+                        + "| key|ah.hr03.s{t1=v1,t2=vv2}|\n"
+                        + "+----+-----------------------+\n"
+                        + "|3200|                   true|\n"
+                        + "+----+-----------------------+\n"
+                        + "Total line number = 1\n";
         executeAndCompare(statement, expected);
 
         statement = "SELECT s FROM ah.* with_precise t1=v1 AND t2=vv2 OR t1=vv1 AND t2=v2;";
@@ -602,7 +605,6 @@ public class TagIT {
                         + "+---+---------+-----------------------+---------+----------------+-----------------------+-----------------------+\n"
                         + "Total line number = 5\n";
         executeAndCompare(statement, expected);
-
     }
 
     @Test
@@ -654,12 +656,7 @@ public class TagIT {
         executeAndCompare(showTimeSeries, expected);
 
         String showTimeSeriesData = "SELECT s FROM ah.* WITH t1=v1;";
-        expected = "ResultSets:\n" +
-                "+---+\n" +
-                "|key|\n" +
-                "+---+\n" +
-                "+---+\n" +
-                "Empty set.\n";
+        expected = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
         executeAndCompare(showTimeSeriesData, expected);
 
         deleteTimeSeries = "DELETE TIME SERIES ah.*.v WITH_PRECISE t1=v1";
@@ -747,12 +744,8 @@ public class TagIT {
         executeAndCompare(showTimeSeries, expected);
 
         String showTimeSeriesData = "SELECT v FROM ah.* WITH t1=v1 AND t2=v2;";
-        expected = "ResultSets:\n" +
-                "+---+\n" +
-                "|key|\n" +
-                "+---+\n" +
-                "+---+\n" +
-                "Empty set.\n";;
+        expected = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
+        ;
         executeAndCompare(showTimeSeriesData, expected);
 
         deleteTimeSeries = "DELETE TIME SERIES * WITH t1=v1 AND t2=vv2 OR t1=vv1 AND t2=v2;";
@@ -779,12 +772,8 @@ public class TagIT {
         executeAndCompare(showTimeSeries, expected);
 
         showTimeSeriesData = "SELECT * FROM * WITH t1=v1 AND t2=vv2 OR t1=vv1 AND t2=v2;";
-        expected = "ResultSets:\n" +
-                "+---+\n" +
-                "|key|\n" +
-                "+---+\n" +
-                "+---+\n" +
-                "Empty set.\n";;
+        expected = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
+        ;
         executeAndCompare(showTimeSeriesData, expected);
     }
 
@@ -810,53 +799,58 @@ public class TagIT {
     @Test
     public void testQueryWithAggregate() {
         String statement = "SELECT sum(v) FROM ah.hr03 with t1=vv11;";
-        String expected = "ResultSets:\n" +
-                "+-----------------------+\n" +
-                "|sum(ah.hr03.v{t1=vv11})|\n" +
-                "+-----------------------+\n" +
-                "|                     48|\n" +
-                "+-----------------------+\n" +
-                "Total line number = 1\n";
+        String expected =
+                "ResultSets:\n"
+                        + "+-----------------------+\n"
+                        + "|sum(ah.hr03.v{t1=vv11})|\n"
+                        + "+-----------------------+\n"
+                        + "|                     48|\n"
+                        + "+-----------------------+\n"
+                        + "Total line number = 1\n";
         executeAndCompare(statement, expected);
 
         statement = "SELECT max(v) FROM ah.hr03 with t1=vv11;";
-        expected = "ResultSets:\n" +
-                "+-----------------------+\n" +
-                "|max(ah.hr03.v{t1=vv11})|\n" +
-                "+-----------------------+\n" +
-                "|                     32|\n" +
-                "+-----------------------+\n" +
-                "Total line number = 1\n";
+        expected =
+                "ResultSets:\n"
+                        + "+-----------------------+\n"
+                        + "|max(ah.hr03.v{t1=vv11})|\n"
+                        + "+-----------------------+\n"
+                        + "|                     32|\n"
+                        + "+-----------------------+\n"
+                        + "Total line number = 1\n";
         executeAndCompare(statement, expected);
 
         statement = "SELECT min(v) FROM ah.hr03 with t1=vv11;";
-        expected = "ResultSets:\n" +
-                "+-----------------------+\n" +
-                "|min(ah.hr03.v{t1=vv11})|\n" +
-                "+-----------------------+\n" +
-                "|                     16|\n" +
-                "+-----------------------+\n" +
-                "Total line number = 1\n";
+        expected =
+                "ResultSets:\n"
+                        + "+-----------------------+\n"
+                        + "|min(ah.hr03.v{t1=vv11})|\n"
+                        + "+-----------------------+\n"
+                        + "|                     16|\n"
+                        + "+-----------------------+\n"
+                        + "Total line number = 1\n";
         executeAndCompare(statement, expected);
 
         statement = "SELECT avg(v) FROM ah.hr03 with t1=vv11;";
-        expected = "ResultSets:\n" +
-                "+-----------------------+\n" +
-                "|avg(ah.hr03.v{t1=vv11})|\n" +
-                "+-----------------------+\n" +
-                "|                   24.0|\n" +
-                "+-----------------------+\n" +
-                "Total line number = 1\n";
+        expected =
+                "ResultSets:\n"
+                        + "+-----------------------+\n"
+                        + "|avg(ah.hr03.v{t1=vv11})|\n"
+                        + "+-----------------------+\n"
+                        + "|                   24.0|\n"
+                        + "+-----------------------+\n"
+                        + "Total line number = 1\n";
         executeAndCompare(statement, expected);
 
         statement = "SELECT count(v) FROM ah.hr03 with t1=vv11;";
-        expected = "ResultSets:\n" +
-                "+-------------------------+\n" +
-                "|count(ah.hr03.v{t1=vv11})|\n" +
-                "+-------------------------+\n" +
-                "|                        2|\n" +
-                "+-------------------------+\n" +
-                "Total line number = 1\n";
+        expected =
+                "ResultSets:\n"
+                        + "+-------------------------+\n"
+                        + "|count(ah.hr03.v{t1=vv11})|\n"
+                        + "+-------------------------+\n"
+                        + "|                        2|\n"
+                        + "+-------------------------+\n"
+                        + "Total line number = 1\n";
         executeAndCompare(statement, expected);
     }
 
@@ -1148,90 +1142,100 @@ public class TagIT {
     @Test
     public void testAlias() {
         String statement = "SELECT s AS ts FROM ah.hr02;";
-        String expected = "ResultSets:\n" +
-                "+---+----+---------+\n" +
-                "|key|  ts|ts{t1=v1}|\n" +
-                "+---+----+---------+\n" +
-                "|100|true|     null|\n" +
-                "|400|null|    false|\n" +
-                "+---+----+---------+\n" +
-                "Total line number = 2\n";
+        String expected =
+                "ResultSets:\n"
+                        + "+---+----+---------+\n"
+                        + "|key|  ts|ts{t1=v1}|\n"
+                        + "+---+----+---------+\n"
+                        + "|100|true|     null|\n"
+                        + "|400|null|    false|\n"
+                        + "+---+----+---------+\n"
+                        + "Total line number = 2\n";
         executeAndCompare(statement, expected);
 
         statement = "SELECT s FROM ah.hr02 AS result_set;";
-        expected = "ResultSets:\n" +
-                "+---+--------------------+---------------------------+\n" +
-                "|key|result_set.ah.hr02.s|result_set.ah.hr02.s{t1=v1}|\n" +
-                "+---+--------------------+---------------------------+\n" +
-                "|100|                true|                       null|\n" +
-                "|400|                null|                      false|\n" +
-                "+---+--------------------+---------------------------+\n" +
-                "Total line number = 2\n";
+        expected =
+                "ResultSets:\n"
+                        + "+---+--------------------+---------------------------+\n"
+                        + "|key|result_set.ah.hr02.s|result_set.ah.hr02.s{t1=v1}|\n"
+                        + "+---+--------------------+---------------------------+\n"
+                        + "|100|                true|                       null|\n"
+                        + "|400|                null|                      false|\n"
+                        + "+---+--------------------+---------------------------+\n"
+                        + "Total line number = 2\n";
         executeAndCompare(statement, expected);
 
         statement = "SELECT s AS ts FROM ah.hr02 AS result_set;";
-        expected = "ResultSets:\n" +
-                "+---+-------------+--------------------+\n" +
-                "|key|result_set.ts|result_set.ts{t1=v1}|\n" +
-                "+---+-------------+--------------------+\n" +
-                "|100|         true|                null|\n" +
-                "|400|         null|               false|\n" +
-                "+---+-------------+--------------------+\n" +
-                "Total line number = 2\n";
+        expected =
+                "ResultSets:\n"
+                        + "+---+-------------+--------------------+\n"
+                        + "|key|result_set.ts|result_set.ts{t1=v1}|\n"
+                        + "+---+-------------+--------------------+\n"
+                        + "|100|         true|                null|\n"
+                        + "|400|         null|               false|\n"
+                        + "+---+-------------+--------------------+\n"
+                        + "Total line number = 2\n";
         executeAndCompare(statement, expected);
     }
 
     @Test
     public void testSubQuery() {
-        String statement = "SELECT SUM(ts2) FROM (SELECT s AS ts1, v AS ts2 FROM ah.hr03 with t1=v1);";
-        String expected = "ResultSets:\n" +
-                "+---------------+\n" +
-                "|sum(ts2{t1=v1})|\n" +
-                "+---------------+\n" +
-                "|             16|\n" +
-                "+---------------+\n" +
-                "Total line number = 1\n";
+        String statement =
+                "SELECT SUM(ts2) FROM (SELECT s AS ts1, v AS ts2 FROM ah.hr03 with t1=v1);";
+        String expected =
+                "ResultSets:\n"
+                        + "+---------------+\n"
+                        + "|sum(ts2{t1=v1})|\n"
+                        + "+---------------+\n"
+                        + "|             16|\n"
+                        + "+---------------+\n"
+                        + "Total line number = 1\n";
         executeAndCompare(statement, expected);
 
         statement = "SELECT AVG(ts2) FROM (SELECT s AS ts1, v AS ts2 FROM ah.hr03 with t1=v1);";
-        expected = "ResultSets:\n" +
-                "+---------------+\n" +
-                "|avg(ts2{t1=v1})|\n" +
-                "+---------------+\n" +
-                "|           16.0|\n" +
-                "+---------------+\n" +
-                "Total line number = 1\n";
+        expected =
+                "ResultSets:\n"
+                        + "+---------------+\n"
+                        + "|avg(ts2{t1=v1})|\n"
+                        + "+---------------+\n"
+                        + "|           16.0|\n"
+                        + "+---------------+\n"
+                        + "Total line number = 1\n";
         executeAndCompare(statement, expected);
 
         statement = "SELECT MAX(ts2) FROM (SELECT s AS ts1, v AS ts2 FROM ah.hr03 with t1=v1);";
-        expected = "ResultSets:\n" +
-                "+---------------+\n" +
-                "|max(ts2{t1=v1})|\n" +
-                "+---------------+\n" +
-                "|             16|\n" +
-                "+---------------+\n" +
-                "Total line number = 1\n";
+        expected =
+                "ResultSets:\n"
+                        + "+---------------+\n"
+                        + "|max(ts2{t1=v1})|\n"
+                        + "+---------------+\n"
+                        + "|             16|\n"
+                        + "+---------------+\n"
+                        + "Total line number = 1\n";
         executeAndCompare(statement, expected);
 
         statement = "SELECT COUNT(ts2) FROM (SELECT s AS ts1, v AS ts2 FROM ah.hr03 with t1=v1);";
-        expected = "ResultSets:\n" +
-                "+-----------------+\n" +
-                "|count(ts2{t1=v1})|\n" +
-                "+-----------------+\n" +
-                "|                1|\n" +
-                "+-----------------+\n" +
-                "Total line number = 1\n";
+        expected =
+                "ResultSets:\n"
+                        + "+-----------------+\n"
+                        + "|count(ts2{t1=v1})|\n"
+                        + "+-----------------+\n"
+                        + "|                1|\n"
+                        + "+-----------------+\n"
+                        + "Total line number = 1\n";
         executeAndCompare(statement, expected);
-    
-        statement = "SELECT ah.* FROM (SELECT * FROM ah.hr03 with t1=v1), (SELECT v FROM ah.hr02 with t1=v1);";
-        expected = "ResultSets:\n" +
-                "+-----------+----------------------+----------------+-----------+-----------------------+----------------+\n" +
-                "|ah.hr02.key|ah.hr02.v{t1=v1,t2=v2}|ah.hr02.v{t1=v1}|ah.hr03.key|ah.hr03.s{t1=v1,t2=vv2}|ah.hr03.v{t1=v1}|\n" +
-                "+-----------+----------------------+----------------+-----------+-----------------------+----------------+\n" +
-                "|        400|                  null|              v4|       3200|                   true|              16|\n" +
-                "|        800|                    v8|            null|       3200|                   true|              16|\n" +
-                "+-----------+----------------------+----------------+-----------+-----------------------+----------------+\n" +
-                "Total line number = 2\n";
+
+        statement =
+                "SELECT ah.* FROM (SELECT * FROM ah.hr03 with t1=v1), (SELECT v FROM ah.hr02 with t1=v1);";
+        expected =
+                "ResultSets:\n"
+                        + "+-----------+----------------------+----------------+-----------+-----------------------+----------------+\n"
+                        + "|ah.hr02.key|ah.hr02.v{t1=v1,t2=v2}|ah.hr02.v{t1=v1}|ah.hr03.key|ah.hr03.s{t1=v1,t2=vv2}|ah.hr03.v{t1=v1}|\n"
+                        + "+-----------+----------------------+----------------+-----------+-----------------------+----------------+\n"
+                        + "|        400|                  null|              v4|       3200|                   true|              16|\n"
+                        + "|        800|                    v8|            null|       3200|                   true|              16|\n"
+                        + "+-----------+----------------------+----------------+-----------+-----------------------+----------------+\n"
+                        + "Total line number = 2\n";
         executeAndCompare(statement, expected);
     }
 
@@ -1239,16 +1243,18 @@ public class TagIT {
     public void testTagInsertWithSubQuery() {
 
         String query = "SELECT s AS ts1, v AS ts2 FROM ah.hr03 with t1=v1;";
-        String expected = "ResultSets:\n" +
-                "+----+-----------------+----------+\n" +
-                "| key|ts1{t1=v1,t2=vv2}|ts2{t1=v1}|\n" +
-                "+----+-----------------+----------+\n" +
-                "|3200|             true|        16|\n" +
-                "+----+-----------------+----------+\n" +
-                "Total line number = 1\n";
+        String expected =
+                "ResultSets:\n"
+                        + "+----+-----------------+----------+\n"
+                        + "| key|ts1{t1=v1,t2=vv2}|ts2{t1=v1}|\n"
+                        + "+----+-----------------+----------+\n"
+                        + "|3200|             true|        16|\n"
+                        + "+----+-----------------+----------+\n"
+                        + "Total line number = 1\n";
         executeAndCompare(query, expected);
 
-        String insert = "INSERT INTO copy.ah.hr01(key, s, v) VALUES (SELECT s AS ts1, v AS ts2 FROM ah.hr03 with t1=v1);";
+        String insert =
+                "INSERT INTO copy.ah.hr01(key, s, v) VALUES (SELECT s AS ts1, v AS ts2 FROM ah.hr03 with t1=v1);";
         execute(insert);
 
         query = "SELECT s, v FROM copy.ah.hr01;";
@@ -1262,7 +1268,8 @@ public class TagIT {
                         + "Total line number = 1\n";
         executeAndCompare(query, expected);
 
-        insert = "INSERT INTO copy.ah.hr02(key, s, v[t2=v2]) VALUES (SELECT s AS ts1, v AS ts2 FROM ah.hr03 with t1=v1);";
+        insert =
+                "INSERT INTO copy.ah.hr02(key, s, v[t2=v2]) VALUES (SELECT s AS ts1, v AS ts2 FROM ah.hr03 with t1=v1);";
         execute(insert);
 
         query = "SELECT s, v FROM copy.ah.hr02;";
@@ -1287,13 +1294,7 @@ public class TagIT {
         executeAndCompare(countPoints, expected);
 
         String showTimeSeries = "SELECT * FROM *;";
-        expected = "ResultSets:\n" +
-                "+---+\n" +
-                "|key|\n" +
-                "+---+\n" +
-                "+---+\n" +
-                "Empty set.\n";
+        expected = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
         executeAndCompare(showTimeSeries, expected);
     }
-
 }

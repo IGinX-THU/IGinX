@@ -7,13 +7,12 @@ import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageUnitMeta;
 import cn.edu.tsinghua.iginx.utils.Pair;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class LowAccessFragmentCompaction extends Compaction {
 
@@ -27,9 +26,9 @@ public class LowAccessFragmentCompaction extends Compaction {
 
     @Override
     public boolean needCompaction() throws Exception {
-        //集中信息（初版主要是统计分区热度）
-        Pair<Map<FragmentMeta, Long>, Map<FragmentMeta, Long>> fragmentHeatPair = metaManager
-            .loadFragmentHeat();
+        // 集中信息（初版主要是统计分区热度）
+        Pair<Map<FragmentMeta, Long>, Map<FragmentMeta, Long>> fragmentHeatPair =
+                metaManager.loadFragmentHeat();
         Map<FragmentMeta, Long> fragmentHeatWriteMap = fragmentHeatPair.getK();
         Map<FragmentMeta, Long> fragmentHeatReadMap = fragmentHeatPair.getV();
         if (fragmentHeatWriteMap == null) {
@@ -40,17 +39,29 @@ public class LowAccessFragmentCompaction extends Compaction {
         }
 
         List<FragmentMeta> fragmentMetaSet = metaManager.getFragments();
-        toCompactFragmentGroups = judgeCompaction(fragmentMetaSet, fragmentHeatWriteMap, fragmentHeatReadMap);
+        toCompactFragmentGroups =
+                judgeCompaction(fragmentMetaSet, fragmentHeatWriteMap, fragmentHeatReadMap);
         return !toCompactFragmentGroups.isEmpty();
     }
 
-    public List<List<FragmentMeta>> judgeCompaction(List<FragmentMeta> fragmentMetaSet, Map<FragmentMeta, Long> fragmentHeatWriteMap, Map<FragmentMeta, Long> fragmentHeatReadMap) {
+    public List<List<FragmentMeta>> judgeCompaction(
+            List<FragmentMeta> fragmentMetaSet,
+            Map<FragmentMeta, Long> fragmentHeatWriteMap,
+            Map<FragmentMeta, Long> fragmentHeatReadMap) {
         List<FragmentMeta> candidateFragments = new ArrayList<>();
         // 判断是否要合并不再被写入的的历史分片
         for (FragmentMeta fragmentMeta : fragmentMetaSet) {
             long writeLoad = fragmentHeatWriteMap.getOrDefault(fragmentMeta, 0L);
             long readLoad = fragmentHeatReadMap.getOrDefault(fragmentMeta, 0L);
-            if (fragmentMeta.getTimeInterval().getEndTime() != Long.MAX_VALUE && writeLoad < ConfigDescriptor.getInstance().getConfig().getFragmentCompactionWriteThreshold() && readLoad <= ConfigDescriptor.getInstance().getConfig().getFragmentCompactionReadThreshold()) {
+            if (fragmentMeta.getTimeInterval().getEndTime() != Long.MAX_VALUE
+                    && writeLoad
+                            < ConfigDescriptor.getInstance()
+                                    .getConfig()
+                                    .getFragmentCompactionWriteThreshold()
+                    && readLoad
+                            <= ConfigDescriptor.getInstance()
+                                    .getConfig()
+                                    .getFragmentCompactionReadThreshold()) {
                 candidateFragments.add(fragmentMeta);
             }
         }
@@ -65,10 +76,14 @@ public class LowAccessFragmentCompaction extends Compaction {
         executeCompaction(toCompactFragmentGroups, fragmentMetaPointsMap);
     }
 
-    public void executeCompaction(List<List<FragmentMeta>> toCompactFragmentGroups, Map<FragmentMeta, Long> fragmentMetaPointsMap) throws PhysicalException {
+    public void executeCompaction(
+            List<List<FragmentMeta>> toCompactFragmentGroups,
+            Map<FragmentMeta, Long> fragmentMetaPointsMap)
+            throws PhysicalException {
         // 优先存储到点数最少的节点上（剩余磁盘空间较大）
         Map<Long, Long> storageEnginePointsMap = new HashMap<>();
-        for (Map.Entry<FragmentMeta, Long> fragmentMetaPointsEntry : fragmentMetaPointsMap.entrySet()) {
+        for (Map.Entry<FragmentMeta, Long> fragmentMetaPointsEntry :
+                fragmentMetaPointsMap.entrySet()) {
             FragmentMeta fragmentMeta = fragmentMetaPointsEntry.getKey();
             long storageEngineId = fragmentMeta.getMasterStorageUnit().getStorageEngineId();
             long points = fragmentMetaPointsEntry.getValue();
@@ -94,8 +109,11 @@ public class LowAccessFragmentCompaction extends Compaction {
                 Map<String, Long> storageUnitPointsMap = new HashMap<>();
                 for (FragmentMeta fragmentMeta : fragmentGroup) {
                     // 优先按照节点当前存储的点数最小做选择
-                    if (fragmentMeta.getMasterStorageUnit().getStorageEngineId() == minStorageEngineId) {
-                        long pointsNum = storageUnitPointsMap.getOrDefault(fragmentMeta.getMasterStorageUnitId(), 0L);
+                    if (fragmentMeta.getMasterStorageUnit().getStorageEngineId()
+                            == minStorageEngineId) {
+                        long pointsNum =
+                                storageUnitPointsMap.getOrDefault(
+                                        fragmentMeta.getMasterStorageUnitId(), 0L);
                         pointsNum += fragmentMetaPointsMap.getOrDefault(fragmentMeta, 0L);
                         if (pointsNum > maxStorageUnitPoint) {
                             maxStorageUnitMeta = fragmentMeta.getMasterStorageUnit();
@@ -105,7 +123,8 @@ public class LowAccessFragmentCompaction extends Compaction {
                     totalPoints += fragmentMetaPointsMap.getOrDefault(fragmentMeta, 0L);
                 }
 
-                compactFragmentGroupToTargetStorageUnit(fragmentGroup, maxStorageUnitMeta, totalPoints);
+                compactFragmentGroupToTargetStorageUnit(
+                        fragmentGroup, maxStorageUnitMeta, totalPoints);
             } else {
                 logger.info("fragmentGroup size = {}", fragmentGroup.size());
             }

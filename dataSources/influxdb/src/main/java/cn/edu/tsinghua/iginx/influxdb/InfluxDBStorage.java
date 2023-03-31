@@ -18,6 +18,9 @@
  */
 package cn.edu.tsinghua.iginx.influxdb;
 
+import static cn.edu.tsinghua.iginx.influxdb.tools.TimeUtils.instantToNs;
+import static com.influxdb.client.domain.WritePrecision.NS;
+
 import cn.edu.tsinghua.iginx.engine.physical.exception.NonExecutablePhysicalTaskException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
@@ -34,9 +37,9 @@ import cn.edu.tsinghua.iginx.engine.shared.data.write.RowDataView;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
-import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.influxdb.query.entity.InfluxDBHistoryQueryRowStream;
 import cn.edu.tsinghua.iginx.influxdb.query.entity.InfluxDBQueryRowStream;
 import cn.edu.tsinghua.iginx.influxdb.query.entity.InfluxDBSchema;
@@ -55,19 +58,14 @@ import com.influxdb.client.write.Point;
 import com.influxdb.query.FluxColumn;
 import com.influxdb.query.FluxRecord;
 import com.influxdb.query.FluxTable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
-
-
-import static cn.edu.tsinghua.iginx.influxdb.tools.TimeUtils.instantToNs;
-import static com.influxdb.client.domain.WritePrecision.NS;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class InfluxDBStorage implements IStorage {
 
@@ -81,13 +79,16 @@ public class InfluxDBStorage implements IStorage {
 
     private static final String FIELDALL = "~ /.+/";
 
-    private static final String QUERY_DATA = "from(bucket:\"%s\") |> range(start: time(v: %s), stop: time(v: %s))";
+    private static final String QUERY_DATA =
+            "from(bucket:\"%s\") |> range(start: time(v: %s), stop: time(v: %s))";
 
-    private static final String QUERY_DATA_ALL = "from(bucket:\"%s\") |> range(start: time(v: %s), stop: time(v: %s)) |> filter(fn: (r) => (r._measurement =%s and r._field =%s))";
+    private static final String QUERY_DATA_ALL =
+            "from(bucket:\"%s\") |> range(start: time(v: %s), stop: time(v: %s)) |> filter(fn: (r) => (r._measurement =%s and r._field =%s))";
 
     private static final String DELETE_DATA = "_measurement=\"%s\" AND _field=\"%s\"";
 
-    private static final String SHOW_TIME_SERIES = "from(bucket:\"%s\") |> range(start: time(v: 0), stop: time(v: 9223372036854775807)) |> filter(fn: (r) => (r._measurement =~ /.*/ and r._field =~ /.+/)) |> first()";
+    private static final String SHOW_TIME_SERIES =
+            "from(bucket:\"%s\") |> range(start: time(v: 0), stop: time(v: 9223372036854775807)) |> filter(fn: (r) => (r._measurement =~ /.*/ and r._field =~ /.+/)) |> first()";
 
     private final StorageEngineMeta meta;
 
@@ -104,7 +105,8 @@ public class InfluxDBStorage implements IStorage {
     public InfluxDBStorage(StorageEngineMeta meta) throws StorageInitializationException {
         this.meta = meta;
         if (!meta.getStorageEngine().equals(STORAGE_ENGINE)) {
-            throw new StorageInitializationException("unexpected database: " + meta.getStorageEngine());
+            throw new StorageInitializationException(
+                    "unexpected database: " + meta.getStorageEngine());
         }
         if (!testConnection()) {
             throw new StorageInitializationException("cannot connect to " + meta.toString());
@@ -113,11 +115,13 @@ public class InfluxDBStorage implements IStorage {
         String url = extraParams.getOrDefault("url", "http://localhost:8086/");
         client = InfluxDBClientFactory.create(url, extraParams.get("token").toCharArray());
         organizationName = extraParams.get("organization");
-        organization = client.getOrganizationsApi()
-                .findOrganizations().stream()
-                .filter(o -> o.getName().equals(this.organizationName))
-                .findFirst()
-                .orElseThrow(IllegalStateException::new);
+        organization =
+                client.getOrganizationsApi()
+                        .findOrganizations()
+                        .stream()
+                        .filter(o -> o.getName().equals(this.organizationName))
+                        .findFirst()
+                        .orElseThrow(IllegalStateException::new);
         if (meta.isHasData()) {
             reloadHistoryData();
         }
@@ -127,7 +131,8 @@ public class InfluxDBStorage implements IStorage {
         Map<String, String> extraParams = meta.getExtraParams();
         String url = extraParams.get("url");
         try {
-            InfluxDBClient client = InfluxDBClientFactory.create(url, extraParams.get("token").toCharArray());
+            InfluxDBClient client =
+                    InfluxDBClientFactory.create(url, extraParams.get("token").toCharArray());
             client.close();
         } catch (Exception e) {
             logger.error("test connection error: {}", e.getMessage());
@@ -138,7 +143,7 @@ public class InfluxDBStorage implements IStorage {
 
     private void reloadHistoryData() {
         List<Bucket> buckets = client.getBucketsApi().findBucketsByOrg(organization);
-        for (Bucket bucket: buckets) {
+        for (Bucket bucket : buckets) {
             if (bucket.getType() == Bucket.TypeEnum.SYSTEM) {
                 continue;
             }
@@ -151,42 +156,49 @@ public class InfluxDBStorage implements IStorage {
     }
 
     @Override
-    public Pair<TimeSeriesRange, TimeInterval> getBoundaryOfStorage(String dataPrefix) throws PhysicalException {
+    public Pair<TimeSeriesRange, TimeInterval> getBoundaryOfStorage(String dataPrefix)
+            throws PhysicalException {
         List<String> bucketNames = new ArrayList<>(historyBucketMap.keySet());
         bucketNames.sort(String::compareTo);
         if (bucketNames.size() == 0) {
             throw new PhysicalTaskExecuteFailureException("no data!");
         }
         TimeSeriesRange tsInterval = null;
-        if(dataPrefix == null)
-            tsInterval = new TimeSeriesInterval(bucketNames.get(0), StringUtils.nextString(bucketNames.get(bucketNames.size() - 1)));
-        else
-            tsInterval = new TimeSeriesInterval(dataPrefix, StringUtils.nextString(dataPrefix));
+        if (dataPrefix == null)
+            tsInterval =
+                    new TimeSeriesInterval(
+                            bucketNames.get(0),
+                            StringUtils.nextString(bucketNames.get(bucketNames.size() - 1)));
+        else tsInterval = new TimeSeriesInterval(dataPrefix, StringUtils.nextString(dataPrefix));
         long minTime = Long.MAX_VALUE, maxTime = 0;
 
         String measurementPrefix = MEASUREMENTALL, fieldPrefix = FIELDALL;
-        if(dataPrefix!=null && dataPrefix.contains(".")) { //get the measurement and field from dataPrefix
+        if (dataPrefix != null
+                && dataPrefix.contains(".")) { // get the measurement and field from dataPrefix
             int indexPrefix = dataPrefix.indexOf(".");
             measurementPrefix = dataPrefix.substring(0, indexPrefix);
             fieldPrefix = dataPrefix.substring(indexPrefix + 1);
-        } else if (dataPrefix!=null) {
+        } else if (dataPrefix != null) {
             measurementPrefix = dataPrefix;
         }
 
-        for (Bucket bucket: historyBucketMap.values()) {
-            String statement = String.format(
-                    QUERY_DATA_ALL,
-                    bucket.getName(),
-                    0L,
-                    Long.MAX_VALUE,
-                    measurementPrefix.equals(MEASUREMENTALL) ? MEASUREMENTALL : "= \"" + measurementPrefix + "\"",
-                    fieldPrefix.equals(FIELDALL) ? FIELDALL : "~ /" + fieldPrefix + ".*/"
-            );
+        for (Bucket bucket : historyBucketMap.values()) {
+            String statement =
+                    String.format(
+                            QUERY_DATA_ALL,
+                            bucket.getName(),
+                            0L,
+                            Long.MAX_VALUE,
+                            measurementPrefix.equals(MEASUREMENTALL)
+                                    ? MEASUREMENTALL
+                                    : "= \"" + measurementPrefix + "\"",
+                            fieldPrefix.equals(FIELDALL) ? FIELDALL : "~ /" + fieldPrefix + ".*/");
             logger.debug("execute statement: " + statement);
             // 查询 first
-            List<FluxTable> tables = client.getQueryApi().query(statement + " |> first()", organization.getId());
-            for (FluxTable table: tables) {
-                for (FluxRecord record: table.getRecords()) {
+            List<FluxTable> tables =
+                    client.getQueryApi().query(statement + " |> first()", organization.getId());
+            for (FluxTable table : tables) {
+                for (FluxRecord record : table.getRecords()) {
                     long time = instantToNs(record.getTime());
                     minTime = Math.min(time, minTime);
                     maxTime = Math.max(time, maxTime);
@@ -195,8 +207,8 @@ public class InfluxDBStorage implements IStorage {
             }
             // 查询 last
             tables = client.getQueryApi().query(statement + " |> last()", organization.getId());
-            for (FluxTable table: tables) {
-                for (FluxRecord record: table.getRecords()) {
+            for (FluxTable table : tables) {
+                for (FluxRecord record : table.getRecords()) {
                     long time = instantToNs(record.getTime());
                     minTime = Math.min(time, minTime);
                     maxTime = Math.max(time, maxTime);
@@ -213,11 +225,13 @@ public class InfluxDBStorage implements IStorage {
         TimeInterval timeInterval = new TimeInterval(minTime, maxTime + 1);
         return new Pair<>(tsInterval, timeInterval);
     }
+
     @Override
     public TaskExecuteResult execute(StoragePhysicalTask task) {
         List<Operator> operators = task.getOperators();
         if (operators.size() != 1) {
-            return new TaskExecuteResult(new NonExecutablePhysicalTaskException("unsupported physical task"));
+            return new TaskExecuteResult(
+                    new NonExecutablePhysicalTaskException("unsupported physical task"));
         }
         FragmentMeta fragment = task.getTargetFragment();
         Operator op = operators.get(0);
@@ -225,7 +239,16 @@ public class InfluxDBStorage implements IStorage {
         boolean isDummyStorageUnit = task.isDummyStorageUnit();
         if (op.getType() == OperatorType.Project) { // 目前只实现 project 操作符
             Project project = (Project) op;
-            return isDummyStorageUnit ? executeHistoryProjectTask(task.getTargetFragment().getTsInterval(), fragment.getTimeInterval(), project) : executeProjectTask(fragment.getTimeInterval(), fragment.getTsInterval(), storageUnit, project);
+            return isDummyStorageUnit
+                    ? executeHistoryProjectTask(
+                            task.getTargetFragment().getTsInterval(),
+                            fragment.getTimeInterval(),
+                            project)
+                    : executeProjectTask(
+                            fragment.getTimeInterval(),
+                            fragment.getTsInterval(),
+                            storageUnit,
+                            project);
         } else if (op.getType() == OperatorType.Insert) {
             Insert insert = (Insert) op;
             return executeInsertTask(storageUnit, insert);
@@ -233,14 +256,17 @@ public class InfluxDBStorage implements IStorage {
             Delete delete = (Delete) op;
             return executeDeleteTask(storageUnit, delete);
         }
-        return new TaskExecuteResult(new NonExecutablePhysicalTaskException("unsupported physical task"));
+        return new TaskExecuteResult(
+                new NonExecutablePhysicalTaskException("unsupported physical task"));
     }
 
-    private TaskExecuteResult executeHistoryProjectTask(TimeSeriesRange timeSeriesInterval, TimeInterval timeInterval, Project project) {
+    private TaskExecuteResult executeHistoryProjectTask(
+            TimeSeriesRange timeSeriesInterval, TimeInterval timeInterval, Project project) {
         Map<String, String> bucketQueries = new HashMap<>();
         TagFilter tagFilter = project.getTagFilter();
-        for (String pattern: project.getPatterns()) {
-            Pair<String, String> pair = SchemaTransformer.processPatternForQuery(pattern, tagFilter);
+        for (String pattern : project.getPatterns()) {
+            Pair<String, String> pair =
+                    SchemaTransformer.processPatternForQuery(pattern, tagFilter);
             String bucketName = pair.k;
             String query = pair.v;
             String fullQuery = "";
@@ -256,55 +282,56 @@ public class InfluxDBStorage implements IStorage {
         long endTime = timeInterval.getEndTime();
 
         Map<String, List<FluxTable>> bucketQueryResults = new HashMap<>();
-        for (String bucket: bucketQueries.keySet()) {
-            String statement = String.format("from(bucket:\"%s\") |> range(start: time(v: %s), stop: time(v: %s))",
-                    bucket,
-                    startTime,
-                    endTime
-            );
+        for (String bucket : bucketQueries.keySet()) {
+            String statement =
+                    String.format(
+                            "from(bucket:\"%s\") |> range(start: time(v: %s), stop: time(v: %s))",
+                            bucket, startTime, endTime);
             if (!bucketQueries.get(bucket).equals("()")) {
                 statement += String.format(" |> filter(fn: (r) => %s)", bucketQueries.get(bucket));
             }
             logger.info("execute query: " + statement);
-            bucketQueryResults.put(bucket, client.getQueryApi().query(statement, organization.getId()));
+            bucketQueryResults.put(
+                    bucket, client.getQueryApi().query(statement, organization.getId()));
         }
 
-        InfluxDBHistoryQueryRowStream rowStream = new InfluxDBHistoryQueryRowStream(bucketQueryResults, project.getPatterns());
+        InfluxDBHistoryQueryRowStream rowStream =
+                new InfluxDBHistoryQueryRowStream(bucketQueryResults, project.getPatterns());
         return new TaskExecuteResult(rowStream);
     }
-
 
     @Override
     public List<Timeseries> getTimeSeries() {
         List<Timeseries> timeseries = new ArrayList<>();
 
         List<FluxTable> tables = new ArrayList<>();
-        for (Bucket bucket: client.getBucketsApi().findBucketsByOrgName(organization.getName())) {//get all the bucket
+        for (Bucket bucket :
+                client.getBucketsApi()
+                        .findBucketsByOrgName(organization.getName())) { // get all the bucket
             // query all the series by querying all the data with first()
-            if (!bucket.getName().contains("unit"))
-                continue;
-            String statement = String.format(
-                    SHOW_TIME_SERIES,
-                    bucket.getName()
-            );
-            tables.addAll(client.getQueryApi().query(statement, organization.getId())) ;
+            if (!bucket.getName().contains("unit")) continue;
+            String statement = String.format(SHOW_TIME_SERIES, bucket.getName());
+            tables.addAll(client.getQueryApi().query(statement, organization.getId()));
         }
 
         for (FluxTable table : tables) {
             List<FluxColumn> column = table.getColumns();
             // get the path
-            String path = table.getRecords().get(0).getMeasurement() + "." + table.getRecords().get(0).getField();
+            String path =
+                    table.getRecords().get(0).getMeasurement()
+                            + "."
+                            + table.getRecords().get(0).getField();
             Map<String, String> tag = new HashMap<>();
             int len = column.size();
             // get the tag cause the 8 is the begin index of the tag information
             for (int i = 8; i < len; i++) {
                 String key = column.get(i).getLabel();
-                String val = (String)table.getRecords().get(0).getValues().get(key);
+                String val = (String) table.getRecords().get(0).getValues().get(key);
                 tag.put(key, val);
             }
 
             DataType dataType = null;
-            switch (column.get(5).getDataType()) {//the index 1 is the type of the data
+            switch (column.get(5).getDataType()) { // the index 1 is the type of the data
                 case "boolean":
                     dataType = DataType.BOOLEAN;
                     break;
@@ -339,26 +366,36 @@ public class InfluxDBStorage implements IStorage {
         client.close();
     }
 
-    private TaskExecuteResult executeProjectTask(TimeInterval timeInterval, TimeSeriesRange tsInterval, String storageUnit, Project project) {
+    private TaskExecuteResult executeProjectTask(
+            TimeInterval timeInterval,
+            TimeSeriesRange tsInterval,
+            String storageUnit,
+            Project project) {
 
         if (client.getBucketsApi().findBucketByName(storageUnit) == null) {
             logger.warn("storage engine {} doesn't exist", storageUnit);
             return new TaskExecuteResult(new InfluxDBQueryRowStream(Collections.emptyList()));
         }
 
-        String statement = generateQueryStatement(storageUnit, project.getPatterns(), project.getTagFilter(), timeInterval.getStartTime(), timeInterval.getEndTime());
+        String statement =
+                generateQueryStatement(
+                        storageUnit,
+                        project.getPatterns(),
+                        project.getTagFilter(),
+                        timeInterval.getStartTime(),
+                        timeInterval.getEndTime());
         List<FluxTable> tables = client.getQueryApi().query(statement, organization.getId());
         InfluxDBQueryRowStream rowStream = new InfluxDBQueryRowStream(tables);
         return new TaskExecuteResult(rowStream);
     }
 
-    private static String generateQueryStatement(String bucketName, List<String> paths, TagFilter tagFilter, long startTime, long endTime) {
-        String statement = String.format(
-                QUERY_DATA,
-                bucketName,
-                startTime,
-                endTime
-        );
+    private static String generateQueryStatement(
+            String bucketName,
+            List<String> paths,
+            TagFilter tagFilter,
+            long startTime,
+            long endTime) {
+        String statement = String.format(QUERY_DATA, bucketName, startTime, endTime);
         if (paths.size() != 1 || !paths.get(0).equals("*")) {
             StringBuilder filterStr = new StringBuilder(" |> filter(fn: (r) => ");
             for (int i = 0; i < paths.size(); i++) {
@@ -369,9 +406,15 @@ public class InfluxDBStorage implements IStorage {
                 }
                 filterStr.append('(');
 
-                filterStr.append(schema.getMeasurement().equals("*") ? "r._measurement =~ /.*/" : "r._measurement == \"" + schema.getMeasurement() + "\"");
+                filterStr.append(
+                        schema.getMeasurement().equals("*")
+                                ? "r._measurement =~ /.*/"
+                                : "r._measurement == \"" + schema.getMeasurement() + "\"");
                 filterStr.append(" and ");
-                filterStr.append("r._field =~ /").append(InfluxDBSchema.transformField(schema.getField())).append("/");
+                filterStr
+                        .append("r._field =~ /")
+                        .append(InfluxDBSchema.transformField(schema.getField()))
+                        .append("/");
 
                 Map<String, String> tags = schema.getTags();
                 if (!tags.isEmpty()) {
@@ -429,7 +472,8 @@ public class InfluxDBStorage implements IStorage {
                 break;
         }
         if (e != null) {
-            return new TaskExecuteResult(null, new PhysicalException("execute insert task in influxdb failure", e));
+            return new TaskExecuteResult(
+                    null, new PhysicalException("execute insert task in influxdb failure", e));
         }
         return new TaskExecuteResult(null, null);
     }
@@ -440,10 +484,12 @@ public class InfluxDBStorage implements IStorage {
             synchronized (this) {
                 bucket = bucketMap.get(storageUnit);
                 if (bucket == null) {
-                    List<Bucket> bucketList = client.getBucketsApi()
-                            .findBucketsByOrgName(this.organizationName).stream()
-                            .filter(b -> b.getName().equals(storageUnit))
-                            .collect(Collectors.toList());
+                    List<Bucket> bucketList =
+                            client.getBucketsApi()
+                                    .findBucketsByOrgName(this.organizationName)
+                                    .stream()
+                                    .filter(b -> b.getName().equals(storageUnit))
+                                    .collect(Collectors.toList());
                     if (bucketList.isEmpty()) {
                         bucket = client.getBucketsApi().createBucket(storageUnit, organization);
                     } else {
@@ -471,22 +517,58 @@ public class InfluxDBStorage implements IStorage {
                     InfluxDBSchema schema = schemas.get(j);
                     switch (data.getDataType(j)) {
                         case BOOLEAN:
-                            points.add(Point.measurement(schema.getMeasurement()).addTags(schema.getTags()).addField(schema.getField(), (boolean) data.getValue(i, index)).time(data.getKey(i), WRITE_PRECISION));
+                            points.add(
+                                    Point.measurement(schema.getMeasurement())
+                                            .addTags(schema.getTags())
+                                            .addField(
+                                                    schema.getField(),
+                                                    (boolean) data.getValue(i, index))
+                                            .time(data.getKey(i), WRITE_PRECISION));
                             break;
                         case INTEGER:
-                            points.add(Point.measurement(schema.getMeasurement()).addTags(schema.getTags()).addField(schema.getField(), (int) data.getValue(i, index)).time(data.getKey(i), WRITE_PRECISION));
+                            points.add(
+                                    Point.measurement(schema.getMeasurement())
+                                            .addTags(schema.getTags())
+                                            .addField(
+                                                    schema.getField(),
+                                                    (int) data.getValue(i, index))
+                                            .time(data.getKey(i), WRITE_PRECISION));
                             break;
                         case LONG:
-                            points.add(Point.measurement(schema.getMeasurement()).addTags(schema.getTags()).addField(schema.getField(), (long) data.getValue(i, index)).time(data.getKey(i), WRITE_PRECISION));
+                            points.add(
+                                    Point.measurement(schema.getMeasurement())
+                                            .addTags(schema.getTags())
+                                            .addField(
+                                                    schema.getField(),
+                                                    (long) data.getValue(i, index))
+                                            .time(data.getKey(i), WRITE_PRECISION));
                             break;
                         case FLOAT:
-                            points.add(Point.measurement(schema.getMeasurement()).addTags(schema.getTags()).addField(schema.getField(), (float) data.getValue(i, index)).time(data.getKey(i), WRITE_PRECISION));
+                            points.add(
+                                    Point.measurement(schema.getMeasurement())
+                                            .addTags(schema.getTags())
+                                            .addField(
+                                                    schema.getField(),
+                                                    (float) data.getValue(i, index))
+                                            .time(data.getKey(i), WRITE_PRECISION));
                             break;
                         case DOUBLE:
-                            points.add(Point.measurement(schema.getMeasurement()).addTags(schema.getTags()).addField(schema.getField(), (double) data.getValue(i, index)).time(data.getKey(i), WRITE_PRECISION));
+                            points.add(
+                                    Point.measurement(schema.getMeasurement())
+                                            .addTags(schema.getTags())
+                                            .addField(
+                                                    schema.getField(),
+                                                    (double) data.getValue(i, index))
+                                            .time(data.getKey(i), WRITE_PRECISION));
                             break;
                         case BINARY:
-                            points.add(Point.measurement(schema.getMeasurement()).addTags(schema.getTags()).addField(schema.getField(), new String((byte[]) data.getValue(i, index))).time(data.getKey(i), WRITE_PRECISION));
+                            points.add(
+                                    Point.measurement(schema.getMeasurement())
+                                            .addTags(schema.getTags())
+                                            .addField(
+                                                    schema.getField(),
+                                                    new String((byte[]) data.getValue(i, index)))
+                                            .time(data.getKey(i), WRITE_PRECISION));
                             break;
                     }
 
@@ -511,10 +593,12 @@ public class InfluxDBStorage implements IStorage {
             synchronized (this) {
                 bucket = bucketMap.get(storageUnit);
                 if (bucket == null) {
-                    List<Bucket> bucketList = client.getBucketsApi()
-                            .findBucketsByOrgName(this.organizationName).stream()
-                            .filter(b -> b.getName().equals(storageUnit))
-                            .collect(Collectors.toList());
+                    List<Bucket> bucketList =
+                            client.getBucketsApi()
+                                    .findBucketsByOrgName(this.organizationName)
+                                    .stream()
+                                    .filter(b -> b.getName().equals(storageUnit))
+                                    .collect(Collectors.toList());
                     if (bucketList.isEmpty()) {
                         bucket = client.getBucketsApi().createBucket(storageUnit, organization);
                     } else {
@@ -537,22 +621,58 @@ public class InfluxDBStorage implements IStorage {
                 if (bitmapView.get(j)) {
                     switch (data.getDataType(i)) {
                         case BOOLEAN:
-                            points.add(Point.measurement(schema.getMeasurement()).addTags(schema.getTags()).addField(schema.getField(), (boolean) data.getValue(i, index)).time(data.getKey(j), WRITE_PRECISION));
+                            points.add(
+                                    Point.measurement(schema.getMeasurement())
+                                            .addTags(schema.getTags())
+                                            .addField(
+                                                    schema.getField(),
+                                                    (boolean) data.getValue(i, index))
+                                            .time(data.getKey(j), WRITE_PRECISION));
                             break;
                         case INTEGER:
-                            points.add(Point.measurement(schema.getMeasurement()).addTags(schema.getTags()).addField(schema.getField(), (int) data.getValue(i, index)).time(data.getKey(j), WRITE_PRECISION));
+                            points.add(
+                                    Point.measurement(schema.getMeasurement())
+                                            .addTags(schema.getTags())
+                                            .addField(
+                                                    schema.getField(),
+                                                    (int) data.getValue(i, index))
+                                            .time(data.getKey(j), WRITE_PRECISION));
                             break;
                         case LONG:
-                            points.add(Point.measurement(schema.getMeasurement()).addTags(schema.getTags()).addField(schema.getField(), (long) data.getValue(i, index)).time(data.getKey(j), WRITE_PRECISION));
+                            points.add(
+                                    Point.measurement(schema.getMeasurement())
+                                            .addTags(schema.getTags())
+                                            .addField(
+                                                    schema.getField(),
+                                                    (long) data.getValue(i, index))
+                                            .time(data.getKey(j), WRITE_PRECISION));
                             break;
                         case FLOAT:
-                            points.add(Point.measurement(schema.getMeasurement()).addTags(schema.getTags()).addField(schema.getField(), (float) data.getValue(i, index)).time(data.getKey(j), WRITE_PRECISION));
+                            points.add(
+                                    Point.measurement(schema.getMeasurement())
+                                            .addTags(schema.getTags())
+                                            .addField(
+                                                    schema.getField(),
+                                                    (float) data.getValue(i, index))
+                                            .time(data.getKey(j), WRITE_PRECISION));
                             break;
                         case DOUBLE:
-                            points.add(Point.measurement(schema.getMeasurement()).addTags(schema.getTags()).addField(schema.getField(), (double) data.getValue(i, index)).time(data.getKey(j), WRITE_PRECISION));
+                            points.add(
+                                    Point.measurement(schema.getMeasurement())
+                                            .addTags(schema.getTags())
+                                            .addField(
+                                                    schema.getField(),
+                                                    (double) data.getValue(i, index))
+                                            .time(data.getKey(j), WRITE_PRECISION));
                             break;
                         case BINARY:
-                            points.add(Point.measurement(schema.getMeasurement()).addTags(schema.getTags()).addField(schema.getField(), new String((byte[]) data.getValue(i, index))).time(data.getKey(j), WRITE_PRECISION));
+                            points.add(
+                                    Point.measurement(schema.getMeasurement())
+                                            .addTags(schema.getTags())
+                                            .addField(
+                                                    schema.getField(),
+                                                    new String((byte[]) data.getValue(i, index)))
+                                            .time(data.getKey(j), WRITE_PRECISION));
                             break;
                     }
                     index++;
@@ -573,7 +693,8 @@ public class InfluxDBStorage implements IStorage {
     }
 
     private TaskExecuteResult executeDeleteTask(String storageUnit, Delete delete) {
-        if (delete.getTimeRanges() == null || delete.getTimeRanges().size() == 0) { // 没有传任何 time range
+        if (delete.getTimeRanges() == null
+                || delete.getTimeRanges().size() == 0) { // 没有传任何 time range
             Bucket bucket = bucketMap.get(storageUnit);
             if (bucket == null) {
                 return new TaskExecuteResult(null, null);
@@ -588,10 +709,12 @@ public class InfluxDBStorage implements IStorage {
             synchronized (this) {
                 bucket = bucketMap.get(storageUnit);
                 if (bucket == null) {
-                    List<Bucket> bucketList = client.getBucketsApi()
-                            .findBucketsByOrgName(this.organizationName).stream()
-                            .filter(b -> b.getName().equals(storageUnit))
-                            .collect(Collectors.toList());
+                    List<Bucket> bucketList =
+                            client.getBucketsApi()
+                                    .findBucketsByOrgName(this.organizationName)
+                                    .stream()
+                                    .filter(b -> b.getName().equals(storageUnit))
+                                    .collect(Collectors.toList());
                     if (bucketList.isEmpty()) {
                         bucket = client.getBucketsApi().createBucket(storageUnit, organization);
                     } else {
@@ -605,28 +728,44 @@ public class InfluxDBStorage implements IStorage {
             return new TaskExecuteResult(null, null);
         }
 
-        List<InfluxDBSchema> schemas = delete.getPatterns().stream().map(InfluxDBSchema::new).collect(Collectors.toList());
-        for (InfluxDBSchema schema: schemas) {
-            for (TimeRange timeRange: delete.getTimeRanges()) {
-                client.getDeleteApi().delete(
-                        OffsetDateTime.ofInstant(Instant.ofEpochMilli(timeRange.getActualBeginTime()), ZoneId.of("UTC")),
-                        OffsetDateTime.ofInstant(Instant.ofEpochMilli(timeRange.getActualEndTime()), ZoneId.of("UTC")),
-                        String.format(DELETE_DATA, schema.getMeasurement(), schema.getField()),
-                        bucket,
-                        organization
-                );
-
+        List<InfluxDBSchema> schemas =
+                delete.getPatterns().stream().map(InfluxDBSchema::new).collect(Collectors.toList());
+        for (InfluxDBSchema schema : schemas) {
+            for (TimeRange timeRange : delete.getTimeRanges()) {
+                client.getDeleteApi()
+                        .delete(
+                                OffsetDateTime.ofInstant(
+                                        Instant.ofEpochMilli(timeRange.getActualBeginTime()),
+                                        ZoneId.of("UTC")),
+                                OffsetDateTime.ofInstant(
+                                        Instant.ofEpochMilli(timeRange.getActualEndTime()),
+                                        ZoneId.of("UTC")),
+                                String.format(
+                                        DELETE_DATA, schema.getMeasurement(), schema.getField()),
+                                bucket,
+                                organization);
             }
         }
         return new TaskExecuteResult(null, null);
     }
 
     public static String toString(FluxTable table, FluxRecord record) {
-        StringBuilder str = new StringBuilder("measurement: " + record.getMeasurement() + ", field: " + record.getField() + ", value: " + record.getValue() + ", time: " + instantToNs(record.getTime()));
+        StringBuilder str =
+                new StringBuilder(
+                        "measurement: "
+                                + record.getMeasurement()
+                                + ", field: "
+                                + record.getField()
+                                + ", value: "
+                                + record.getValue()
+                                + ", time: "
+                                + instantToNs(record.getTime()));
         for (int i = 8; i < table.getColumns().size(); i++) {
-            str.append(", ").append(table.getColumns().get(i).getLabel()).append(" = ").append(record.getValueByIndex(i));
+            str.append(", ")
+                    .append(table.getColumns().get(i).getLabel())
+                    .append(" = ")
+                    .append(record.getValueByIndex(i));
         }
         return str.toString();
     }
-
 }

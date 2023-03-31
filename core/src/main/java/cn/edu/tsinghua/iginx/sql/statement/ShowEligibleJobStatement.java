@@ -8,7 +8,6 @@ import cn.edu.tsinghua.iginx.thrift.JobState;
 import cn.edu.tsinghua.iginx.thrift.ShowEligibleJobReq;
 import cn.edu.tsinghua.iginx.thrift.ShowEligibleJobResp;
 import cn.edu.tsinghua.iginx.utils.RpcUtils;
-
 import java.util.List;
 
 public class ShowEligibleJobStatement extends SystemStatement {

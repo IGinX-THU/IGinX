@@ -20,14 +20,13 @@ package cn.edu.tsinghua.iginx.rest;
 
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
+import java.net.URI;
+import javax.ws.rs.core.UriBuilder;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpServerFactory;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.ws.rs.core.UriBuilder;
-import java.net.URI;
 
 public class RestServer implements Runnable {
     private static final Logger LOGGER = LoggerFactory.getLogger(RestServer.class);
@@ -35,7 +34,9 @@ public class RestServer implements Runnable {
     private static URI baseURI;
 
     private static URI getbaseuri() {
-        return UriBuilder.fromUri("http://" + config.getRestIp() + "/").port(config.getRestPort()).build();
+        return UriBuilder.fromUri("http://" + config.getRestIp() + "/")
+                .port(config.getRestPort())
+                .build();
     }
 
     private static HttpServer startServer() {

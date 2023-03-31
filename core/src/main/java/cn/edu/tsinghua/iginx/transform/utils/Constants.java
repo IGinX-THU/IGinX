@@ -16,6 +16,7 @@ public class Constants {
     public static final String UDF_FUNC = "transform";
 
     public static final Map<Integer, String> WORKER_STATUS_MAP = new HashMap<>();
+
     static {
         WORKER_STATUS_MAP.put(0, "SUCCESS");
         WORKER_STATUS_MAP.put(-1, "FAIL_TO_CREATE_SOCKET");

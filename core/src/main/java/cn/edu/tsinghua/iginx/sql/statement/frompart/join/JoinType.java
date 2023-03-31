@@ -1,7 +1,6 @@
 package cn.edu.tsinghua.iginx.sql.statement.frompart.join;
 
 public enum JoinType {
-
     CrossJoin,
     InnerJoin,
     InnerNaturalJoin,
@@ -12,5 +11,4 @@ public enum JoinType {
     FullOuterJoin,
     SingleJoin,
     MarkJoin,
-
 }

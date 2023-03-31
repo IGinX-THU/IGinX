@@ -46,10 +46,10 @@ public class TimescaleDBSessionExample {
         // 打开 Session
         session.openSession();
         // 行式插入对齐数据
-//        insertRowRecords();
-//        insertColumnRecords();
+        //        insertRowRecords();
+        //        insertColumnRecords();
         queryData();
-//        deleteDataInColumns();
+        //        deleteDataInColumns();
         // 关闭 Session
         session.closeSession();
     }
@@ -112,8 +112,8 @@ public class TimescaleDBSessionExample {
         List<String> paths = new ArrayList<>();
         paths.add(S1);
         paths.add(S2);
-//        paths.add(S3);
-//        paths.add(S4);
+        //        paths.add(S3);
+        //        paths.add(S4);
 
         long startTime = NON_ALIGNED_COLUMN_END_TIMESTAMP - 100L;
         long endTime = ROW_START_TIMESTAMP + 100L;

@@ -1,6 +1,6 @@
 package cn.edu.tsinghua.iginx.transform.exception;
 
-public class TransformException extends Exception{
+public class TransformException extends Exception {
 
     private static final long serialVersionUID = -222780953901154063L;
 
@@ -20,7 +20,11 @@ public class TransformException extends Exception{
         super(cause);
     }
 
-    protected TransformException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
+    protected TransformException(
+            String message,
+            Throwable cause,
+            boolean enableSuppression,
+            boolean writableStackTrace) {
         super(message, cause, enableSuppression, writableStackTrace);
     }
 }

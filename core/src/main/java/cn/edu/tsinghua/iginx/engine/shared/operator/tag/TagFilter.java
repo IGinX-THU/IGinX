@@ -23,5 +23,4 @@ public interface TagFilter {
     TagFilterType getType();
 
     TagFilter copy();
-
 }

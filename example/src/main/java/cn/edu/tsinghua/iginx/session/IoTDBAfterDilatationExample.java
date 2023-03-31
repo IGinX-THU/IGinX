@@ -21,11 +21,10 @@ package cn.edu.tsinghua.iginx.session;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class IoTDBAfterDilatationExample {
 
@@ -56,7 +55,8 @@ public class IoTDBAfterDilatationExample {
         session.closeSession();
     }
 
-    private static void insertRecords() throws SessionException, ExecutionException, InterruptedException {
+    private static void insertRecords()
+            throws SessionException, ExecutionException, InterruptedException {
         List<DataType> dataTypeList = new ArrayList<>();
         for (int i = 0; i < paths.size(); i++) {
             dataTypeList.add(DataType.LONG);
@@ -75,12 +75,12 @@ public class IoTDBAfterDilatationExample {
                 }
                 valuesList[k] = values;
             }
-            session.insertNonAlignedColumnRecords(paths, timestamps, valuesList, dataTypeList, null);
+            session.insertNonAlignedColumnRecords(
+                    paths, timestamps, valuesList, dataTypeList, null);
             Thread.sleep(1);
             if ((i + 1) % 10 == 0) {
                 logger.info("insert progress: " + (i + 1) + "/1000.");
             }
         }
     }
-
 }

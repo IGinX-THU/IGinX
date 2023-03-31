@@ -25,8 +25,7 @@ public class NaiveReplicaDispatcher implements ReplicaDispatcher {
 
     private static final NaiveReplicaDispatcher INSTANCE = new NaiveReplicaDispatcher();
 
-    private NaiveReplicaDispatcher() {
-    }
+    private NaiveReplicaDispatcher() {}
 
     @Override
     public String chooseReplica(StoragePhysicalTask task) {

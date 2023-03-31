@@ -22,16 +22,15 @@ import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
-import org.apache.commons.cli.Options;
-import org.apache.commons.csv.CSVFormat;
-import org.apache.commons.csv.CSVPrinter;
-import org.apache.commons.csv.QuoteMode;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
+import org.apache.commons.cli.Options;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVPrinter;
+import org.apache.commons.csv.QuoteMode;
 
 public class ExportCsv extends AbstractCsvTool {
 
@@ -61,10 +60,12 @@ public class ExportCsv extends AbstractCsvTool {
 
         hf.setWidth(MAX_HELP_CONSOLE_WIDTH);
         SCRIPT_HINT = "./export_csv.sh(export_csv.bat if Windows)";
-        HELP_HINT = String.format("Require more params input, e.g. %n"
-            + " ./export_csv.sh(export_csv.bat if Windows) [-h xxx.xxx.xxx.xxx] [-p xxxx] [-u xxx] [-pw xxx] [-d xxx] -q xxx %n"
-            + " or %n"
-            + " ./export_csv.sh(export_csv.bat if Windows) [-h xxx.xxx.xxx.xxx] [-p xxxx] [-u xxx] [-pw xxx] [-d xxx] -s xxx");
+        HELP_HINT =
+                String.format(
+                        "Require more params input, e.g. %n"
+                                + " ./export_csv.sh(export_csv.bat if Windows) [-h xxx.xxx.xxx.xxx] [-p xxxx] [-u xxx] [-pw xxx] [-d xxx] -q xxx %n"
+                                + " or %n"
+                                + " ./export_csv.sh(export_csv.bat if Windows) [-h xxx.xxx.xxx.xxx] [-p xxxx] [-u xxx] [-pw xxx] [-d xxx] -s xxx");
 
         if (args == null || args.length == 0) {
             System.out.println(HELP_HINT);
@@ -82,10 +83,22 @@ public class ExportCsv extends AbstractCsvTool {
     private static Options createOptions() {
         Options options = createCommonOptions();
 
-        options.addOption(DIRECTORY_ARGS, DIRECTORY_NAME, true, "Export directory (optional, default current directory)");
-        options.addOption(QUERY_STATEMENT_ARGS, QUERY_STATEMENT_NAME, true, "Query statement to export (optional)");
+        options.addOption(
+                DIRECTORY_ARGS,
+                DIRECTORY_NAME,
+                true,
+                "Export directory (optional, default current directory)");
+        options.addOption(
+                QUERY_STATEMENT_ARGS,
+                QUERY_STATEMENT_NAME,
+                true,
+                "Query statement to export (optional)");
         options.addOption(SQL_FILE_ARGS, SQL_FILE_NAME, true, "SQL file to export (optional)");
-        options.addOption(TIME_PRECISION_ARGS, TIME_PRECISION_NAME, true, "Time precision (optional, default \"ms\")");
+        options.addOption(
+                TIME_PRECISION_ARGS,
+                TIME_PRECISION_NAME,
+                true,
+                "Time precision (optional, default \"ms\")");
 
         return options;
     }
@@ -96,13 +109,15 @@ public class ExportCsv extends AbstractCsvTool {
 
         // 查询语句和查询文件均未指定
         if (queryStatements.equals("") && sqlFile.equals("")) {
-            System.out.println("[ERROR] Either -q(query statement to export) or -s(sql file to export) must be specified!");
+            System.out.println(
+                    "[ERROR] Either -q(query statement to export) or -s(sql file to export) must be specified!");
             return;
         }
 
         // 查询语句和查询文件均指定
         if (!queryStatements.equals("") && !sqlFile.equals("")) {
-            System.out.println("[ERROR] Only one of -q(query statement to export) and -s(sql file to export) can be specified!");
+            System.out.println(
+                    "[ERROR] Only one of -q(query statement to export) and -s(sql file to export) can be specified!");
             return;
         }
 
@@ -119,9 +134,13 @@ public class ExportCsv extends AbstractCsvTool {
                 processSqlFile();
             }
         } catch (SessionException e) {
-            System.out.printf("[ERROR] Encounter an error when opening session, because %s%n", e.getMessage());
+            System.out.printf(
+                    "[ERROR] Encounter an error when opening session, because %s%n",
+                    e.getMessage());
         } catch (IOException e) {
-            System.out.printf("[ERROR] Encounter an error when opening sql file [%s], because %s%n", sqlFile, e.getMessage());
+            System.out.printf(
+                    "[ERROR] Encounter an error when opening sql file [%s], because %s%n",
+                    sqlFile, e.getMessage());
         }
     }
 
@@ -162,26 +181,25 @@ public class ExportCsv extends AbstractCsvTool {
                 writeCsvFile(res, filePath);
                 System.out.printf("Finish to export file [%s].%n", filePath);
             } else {
-                System.out.printf(
-                    "[ERROR] Non-query sql statement [%s] is not supported.%n", sql);
+                System.out.printf("[ERROR] Non-query sql statement [%s] is not supported.%n", sql);
             }
         } catch (SessionException | ExecutionException e) {
             System.out.printf(
-                "[ERROR] Encounter an error when executing sql statement [%s], because %s%n",
-                sql, e.getMessage());
+                    "[ERROR] Encounter an error when executing sql statement [%s], because %s%n",
+                    sql, e.getMessage());
         }
     }
 
     private static void writeCsvFile(SessionExecuteSqlResult res, String filePath) {
         try {
-            CSVPrinter printer = CSVFormat.Builder
-                .create(CSVFormat.DEFAULT)
-                .setHeader()
-                .setSkipHeaderRecord(true)
-                .setEscape('\\')
-                .setQuoteMode(QuoteMode.NONE)
-                .build()
-                .print(new PrintWriter(filePath));
+            CSVPrinter printer =
+                    CSVFormat.Builder.create(CSVFormat.DEFAULT)
+                            .setHeader()
+                            .setSkipHeaderRecord(true)
+                            .setEscape('\\')
+                            .setQuoteMode(QuoteMode.NONE)
+                            .build()
+                            .print(new PrintWriter(filePath));
 
             printer.printRecords(res.getResultInList(needToParseTime, timeFormat, timePrecision));
 
@@ -189,8 +207,8 @@ public class ExportCsv extends AbstractCsvTool {
             printer.close();
         } catch (IOException e) {
             System.out.printf(
-                "[ERROR] Encounter an error when writing csv file [%s], because %s%n",
-                filePath, e.getMessage());
+                    "[ERROR] Encounter an error when writing csv file [%s], because %s%n",
+                    filePath, e.getMessage());
         }
     }
 }

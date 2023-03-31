@@ -23,11 +23,6 @@ import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.tools.utils.DataTypeInferenceUtils;
-import org.apache.commons.cli.Options;
-import org.apache.commons.csv.CSVFormat;
-import org.apache.commons.csv.CSVParser;
-import org.apache.commons.csv.CSVRecord;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -38,6 +33,10 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import org.apache.commons.cli.Options;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVParser;
+import org.apache.commons.csv.CSVRecord;
 
 public class ImportCsv extends AbstractCsvTool {
 
@@ -58,8 +57,10 @@ public class ImportCsv extends AbstractCsvTool {
 
         hf.setWidth(MAX_HELP_CONSOLE_WIDTH);
         SCRIPT_HINT = "./import_csv.sh(import_csv.bat if Windows)";
-        HELP_HINT = String.format("Require more params input, e.g. %n"
-            + " ./import_csv.sh(import-csv.bat if Windows) [-h xxx.xxx.xxx.xxx] [-p xxxx] [-u xxx] [-pw xxx] -f xxx");
+        HELP_HINT =
+                String.format(
+                        "Require more params input, e.g. %n"
+                                + " ./import_csv.sh(import-csv.bat if Windows) [-h xxx.xxx.xxx.xxx] [-p xxxx] [-u xxx] [-pw xxx] -f xxx");
 
         if (args == null || args.length == 0) {
             System.out.println(HELP_HINT);
@@ -93,13 +94,15 @@ public class ImportCsv extends AbstractCsvTool {
 
             // 导入文件和导入目录均未指定
             if (filePaths.equals("") && directory.equals("")) {
-                System.out.println("[ERROR] Either -f(file to import) or -d(directory to import) must be specified!");
+                System.out.println(
+                        "[ERROR] Either -f(file to import) or -d(directory to import) must be specified!");
                 return;
             }
 
             // 导入文件和导入目录均指定
             if (!filePaths.equals("") && !directory.equals("")) {
-                System.out.println("[ERROR] Only one of -f(file to import) and -d(directory to import) can be specified!");
+                System.out.println(
+                        "[ERROR] Only one of -f(file to import) and -d(directory to import) can be specified!");
                 return;
             }
 
@@ -112,7 +115,9 @@ public class ImportCsv extends AbstractCsvTool {
                 processDirectory();
             }
         } catch (SessionException e) {
-            System.out.printf("[ERROR] Encounter an error when opening session, because %s%n", e.getMessage());
+            System.out.printf(
+                    "[ERROR] Encounter an error when opening session, because %s%n",
+                    e.getMessage());
         }
     }
 
@@ -156,28 +161,30 @@ public class ImportCsv extends AbstractCsvTool {
         }
         if (!fileName.endsWith(".csv")) {
             System.out.printf(
-                "[ERROR] The file name must end with [csv]! [%s] doesn't satisfy the requirement!%n", fileName);
+                    "[ERROR] The file name must end with [csv]! [%s] doesn't satisfy the requirement!%n",
+                    fileName);
             return;
         }
 
         try {
             System.out.printf("Processing file [%s].%n", fileName);
-            CSVParser csvParser = CSVFormat.Builder
-                .create(CSVFormat.DEFAULT)
-                .setHeader()
-                .setSkipHeaderRecord(true)
-                .setEscape('\\')
-                .setQuote('`')
-                .setIgnoreEmptyLines(true)
-                .build()
-                .parse(new InputStreamReader(Files.newInputStream(file.toPath())));
+            CSVParser csvParser =
+                    CSVFormat.Builder.create(CSVFormat.DEFAULT)
+                            .setHeader()
+                            .setSkipHeaderRecord(true)
+                            .setEscape('\\')
+                            .setQuote('`')
+                            .setIgnoreEmptyLines(true)
+                            .build()
+                            .parse(new InputStreamReader(Files.newInputStream(file.toPath())));
 
             List<String> headerNames = csvParser.getHeaderNames();
             List<CSVRecord> records = csvParser.getRecords();
 
             if (!headerNames.get(0).equalsIgnoreCase("time")) {
                 System.out.printf(
-                    "[ERROR] The first column must be named as [Time]! [%s] doesn't satisfy the requirement!%n", fileName);
+                        "[ERROR] The first column must be named as [Time]! [%s] doesn't satisfy the requirement!%n",
+                        fileName);
                 return;
             }
 
@@ -204,7 +211,8 @@ public class ImportCsv extends AbstractCsvTool {
                     if (!dataTypeIndex.contains(j - 1)) {
                         continue;
                     }
-                    DataType inferredDataType = DataTypeInferenceUtils.getInferredDataType(record.get(j));
+                    DataType inferredDataType =
+                            DataTypeInferenceUtils.getInferredDataType(record.get(j));
                     if (inferredDataType != null) { // 找到每一列第一个不为 null 的值进行类型推断
                         dataTypeList.set(j - 1, inferredDataType);
                         dataTypeIndex.remove(j - 1);
@@ -263,7 +271,8 @@ public class ImportCsv extends AbstractCsvTool {
             System.out.printf("Finish to import file [%s].%n", fileName);
         } catch (IOException | SessionException | ExecutionException | ParseException e) {
             System.out.printf(
-                "[ERROR] Encounter an error when processing file [%s], because %s%n", fileName, e.getMessage());
+                    "[ERROR] Encounter an error when processing file [%s], because %s%n",
+                    fileName, e.getMessage());
         }
     }
 }

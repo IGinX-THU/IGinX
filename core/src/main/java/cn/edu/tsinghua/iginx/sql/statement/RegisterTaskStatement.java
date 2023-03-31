@@ -21,8 +21,9 @@ public class RegisterTaskStatement extends SystemStatement {
     private final UDFType type;
 
     private final IginxWorker worker = IginxWorker.getInstance();
+
     @SuppressWarnings("unused")
-    private final static Logger logger = LoggerFactory.getLogger(RegisterTaskStatement.class);
+    private static final Logger logger = LoggerFactory.getLogger(RegisterTaskStatement.class);
 
     public RegisterTaskStatement(String name, String filePath, String className, UDFType type) {
         this.statementType = StatementType.REGISTER_TASK;
@@ -34,7 +35,8 @@ public class RegisterTaskStatement extends SystemStatement {
 
     @Override
     public void execute(RequestContext ctx) throws ExecutionException {
-        RegisterTaskReq req = new RegisterTaskReq(ctx.getSessionId(), name, filePath, className, type);
+        RegisterTaskReq req =
+                new RegisterTaskReq(ctx.getSessionId(), name, filePath, className, type);
         Status status = worker.registerTask(req);
         ctx.setResult(new Result(status));
     }

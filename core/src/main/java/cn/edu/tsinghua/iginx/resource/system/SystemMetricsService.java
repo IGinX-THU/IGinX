@@ -27,5 +27,4 @@ public interface SystemMetricsService {
     double getRecentCpuUsage();
 
     double getRecentMemoryUsage();
-
 }

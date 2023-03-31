@@ -19,7 +19,6 @@
 package cn.edu.tsinghua.iginx.engine.shared.function;
 
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -48,9 +47,8 @@ public class FunctionCall {
 
     @Override
     public String toString() {
-        return String.format("{Name: %s, FuncType: %s, MappingType: %s}",
-            function.getIdentifier(),
-            function.getFunctionType(),
-            function.getMappingType());
+        return String.format(
+                "{Name: %s, FuncType: %s, MappingType: %s}",
+                function.getIdentifier(), function.getFunctionType(), function.getMappingType());
     }
 }

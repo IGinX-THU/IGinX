@@ -28,16 +28,15 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 
 public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
 
-    private StreamOperatorMemoryExecutor() {
-    }
+    private StreamOperatorMemoryExecutor() {}
 
     public static StreamOperatorMemoryExecutor getInstance() {
         return StreamOperatorMemoryExecutor.StreamOperatorMemoryExecutorHolder.INSTANCE;
     }
 
-
     @Override
-    public RowStream executeUnaryOperator(UnaryOperator operator, RowStream stream) throws PhysicalException {
+    public RowStream executeUnaryOperator(UnaryOperator operator, RowStream stream)
+            throws PhysicalException {
         switch (operator.getType()) {
             case Project:
                 return executeProject((Project) operator, stream);
@@ -64,12 +63,15 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
             case GroupBy:
                 return executeGroupBy((GroupBy) operator, stream);
             default:
-                throw new UnexpectedOperatorException("unknown unary operator: " + operator.getType());
+                throw new UnexpectedOperatorException(
+                        "unknown unary operator: " + operator.getType());
         }
     }
 
     @Override
-    public RowStream executeBinaryOperator(BinaryOperator operator, RowStream streamA, RowStream streamB) throws PhysicalException {
+    public RowStream executeBinaryOperator(
+            BinaryOperator operator, RowStream streamA, RowStream streamB)
+            throws PhysicalException {
         switch (operator.getType()) {
             case Join:
                 return executeJoin((Join) operator, streamA, streamB);
@@ -86,7 +88,8 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
             case Union:
                 return executeUnion((Union) operator, streamA, streamB);
             default:
-                throw new UnexpectedOperatorException("unknown unary operator: " + operator.getType());
+                throw new UnexpectedOperatorException(
+                        "unknown unary operator: " + operator.getType());
         }
     }
 
@@ -106,9 +109,11 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
         return new LimitLazyStream(limit, stream);
     }
 
-    private RowStream executeDownsample(Downsample downsample, RowStream stream) throws PhysicalException {
+    private RowStream executeDownsample(Downsample downsample, RowStream stream)
+            throws PhysicalException {
         if (!stream.getHeader().hasKey()) {
-            throw new InvalidOperatorParameterException("downsample operator is not support for row stream without timestamps.");
+            throw new InvalidOperatorParameterException(
+                    "downsample operator is not support for row stream without timestamps.");
         }
         return new DownsampleLazyStream(downsample, stream);
     }
@@ -141,19 +146,28 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
         return new GroupByLazyStream(groupBy, stream);
     }
 
-    private RowStream executeJoin(Join join, RowStream streamA, RowStream streamB) throws PhysicalException {
-        if (!join.getJoinBy().equals(Constants.KEY) && !join.getJoinBy().equals(Constants.ORDINAL)) {
-            throw new InvalidOperatorParameterException("join operator is not support for field " + join.getJoinBy() + " except for " + Constants.KEY
-                + " and " + Constants.ORDINAL);
+    private RowStream executeJoin(Join join, RowStream streamA, RowStream streamB)
+            throws PhysicalException {
+        if (!join.getJoinBy().equals(Constants.KEY)
+                && !join.getJoinBy().equals(Constants.ORDINAL)) {
+            throw new InvalidOperatorParameterException(
+                    "join operator is not support for field "
+                            + join.getJoinBy()
+                            + " except for "
+                            + Constants.KEY
+                            + " and "
+                            + Constants.ORDINAL);
         }
         return new JoinLazyStream(join, streamA, streamB);
     }
 
-    private RowStream executeCrossJoin(CrossJoin crossJoin, RowStream streamA, RowStream streamB) throws PhysicalException {
+    private RowStream executeCrossJoin(CrossJoin crossJoin, RowStream streamA, RowStream streamB)
+            throws PhysicalException {
         return new CrossJoinLazyStream(crossJoin, streamA, streamB);
     }
 
-    private RowStream executeInnerJoin(InnerJoin innerJoin, RowStream streamA, RowStream streamB) throws PhysicalException {
+    private RowStream executeInnerJoin(InnerJoin innerJoin, RowStream streamA, RowStream streamB)
+            throws PhysicalException {
         switch (innerJoin.getJoinAlgType()) {
             case NestedLoopJoin:
                 return executeNestedLoopInnerJoin(innerJoin, streamA, streamB);
@@ -162,23 +176,28 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
             case SortedMergeJoin:
                 return executeSortedMergeInnerJoin(innerJoin, streamA, streamB);
             default:
-                throw new PhysicalException("Unknown join algorithm type: " + innerJoin.getJoinAlgType());
+                throw new PhysicalException(
+                        "Unknown join algorithm type: " + innerJoin.getJoinAlgType());
         }
     }
 
-    private RowStream executeNestedLoopInnerJoin(InnerJoin innerJoin, RowStream streamA, RowStream streamB) throws PhysicalException {
+    private RowStream executeNestedLoopInnerJoin(
+            InnerJoin innerJoin, RowStream streamA, RowStream streamB) throws PhysicalException {
         return new NestedLoopInnerJoinLazyStream(innerJoin, streamA, streamB);
     }
 
-    private RowStream executeHashInnerJoin(InnerJoin innerJoin, RowStream streamA, RowStream streamB) throws PhysicalException {
+    private RowStream executeHashInnerJoin(
+            InnerJoin innerJoin, RowStream streamA, RowStream streamB) throws PhysicalException {
         return new HashInnerJoinLazyStream(innerJoin, streamA, streamB);
     }
 
-    private RowStream executeSortedMergeInnerJoin(InnerJoin innerJoin, RowStream streamA, RowStream streamB) throws PhysicalException {
+    private RowStream executeSortedMergeInnerJoin(
+            InnerJoin innerJoin, RowStream streamA, RowStream streamB) throws PhysicalException {
         return new SortedMergeInnerJoinLazyStream(innerJoin, streamA, streamB);
     }
 
-    private RowStream executeOuterJoin(OuterJoin outerJoin, RowStream streamA, RowStream streamB) throws PhysicalException {
+    private RowStream executeOuterJoin(OuterJoin outerJoin, RowStream streamA, RowStream streamB)
+            throws PhysicalException {
         switch (outerJoin.getJoinAlgType()) {
             case NestedLoopJoin:
                 return executeNestedLoopOuterJoin(outerJoin, streamA, streamB);
@@ -187,19 +206,23 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
             case SortedMergeJoin:
                 return executeSortedMergeOuterJoin(outerJoin, streamA, streamB);
             default:
-                throw new PhysicalException("Unknown join algorithm type: " + outerJoin.getJoinAlgType());
+                throw new PhysicalException(
+                        "Unknown join algorithm type: " + outerJoin.getJoinAlgType());
         }
     }
 
-    private RowStream executeNestedLoopOuterJoin(OuterJoin outerJoin, RowStream streamA, RowStream streamB) throws PhysicalException {
+    private RowStream executeNestedLoopOuterJoin(
+            OuterJoin outerJoin, RowStream streamA, RowStream streamB) throws PhysicalException {
         return new NestedLoopOuterJoinLazyStream(outerJoin, streamA, streamB);
     }
 
-    private RowStream executeHashOuterJoin(OuterJoin outerJoin, RowStream streamA, RowStream streamB) throws PhysicalException {
+    private RowStream executeHashOuterJoin(
+            OuterJoin outerJoin, RowStream streamA, RowStream streamB) throws PhysicalException {
         return new HashOuterJoinLazyStream(outerJoin, streamA, streamB);
     }
 
-    private RowStream executeSortedMergeOuterJoin(OuterJoin outerJoin, RowStream streamA, RowStream streamB) throws PhysicalException {
+    private RowStream executeSortedMergeOuterJoin(
+            OuterJoin outerJoin, RowStream streamA, RowStream streamB) throws PhysicalException {
         return new SortedMergeOuterJoinLazyStream(outerJoin, streamA, streamB);
     }
 
@@ -211,31 +234,36 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
             case HashJoin:
                 return executeHashMarkJoin(singleJoin, streamA, streamB);
             default:
-                throw new PhysicalException("Unsupported single join algorithm type: " + singleJoin.getJoinAlgType());
+                throw new PhysicalException(
+                        "Unsupported single join algorithm type: " + singleJoin.getJoinAlgType());
         }
     }
 
-    private RowStream executeNestedLoopMarkJoin(SingleJoin singleJoin, RowStream streamA, RowStream streamB) {
+    private RowStream executeNestedLoopMarkJoin(
+            SingleJoin singleJoin, RowStream streamA, RowStream streamB) {
         return new NestedLoopSingleJoinLazyStream(singleJoin, streamA, streamB);
     }
 
-    private RowStream executeHashMarkJoin(SingleJoin singleJoin, RowStream streamA, RowStream streamB) {
+    private RowStream executeHashMarkJoin(
+            SingleJoin singleJoin, RowStream streamA, RowStream streamB) {
         return new HashSingleJoinLazyStream(singleJoin, streamA, streamB);
     }
 
     private RowStream executeMarkJoin(MarkJoin markJoin, RowStream streamA, RowStream streamB)
-            throws PhysicalException{
+            throws PhysicalException {
         switch (markJoin.getJoinAlgType()) {
             case NestedLoopJoin:
                 return executeNestedLoopMarkJoin(markJoin, streamA, streamB);
             case HashJoin:
                 return executeHashMarkJoin(markJoin, streamA, streamB);
             default:
-                throw new PhysicalException("Unsupported mark join algorithm type: " + markJoin.getJoinAlgType());
+                throw new PhysicalException(
+                        "Unsupported mark join algorithm type: " + markJoin.getJoinAlgType());
         }
     }
 
-    private RowStream executeNestedLoopMarkJoin(MarkJoin markJoin, RowStream streamA, RowStream streamB) {
+    private RowStream executeNestedLoopMarkJoin(
+            MarkJoin markJoin, RowStream streamA, RowStream streamB) {
         return new NestedLoopMarkJoinLazyStream(markJoin, streamA, streamB);
     }
 
@@ -249,10 +277,9 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
 
     private static class StreamOperatorMemoryExecutorHolder {
 
-        private static final StreamOperatorMemoryExecutor INSTANCE = new StreamOperatorMemoryExecutor();
+        private static final StreamOperatorMemoryExecutor INSTANCE =
+                new StreamOperatorMemoryExecutor();
 
-        private StreamOperatorMemoryExecutorHolder() {
-        }
-
+        private StreamOperatorMemoryExecutorHolder() {}
     }
 }

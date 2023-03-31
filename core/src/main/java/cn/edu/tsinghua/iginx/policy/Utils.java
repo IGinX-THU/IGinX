@@ -7,7 +7,6 @@ import cn.edu.tsinghua.iginx.sql.statement.DataStatement;
 import cn.edu.tsinghua.iginx.sql.statement.DeleteStatement;
 import cn.edu.tsinghua.iginx.sql.statement.InsertStatement;
 import cn.edu.tsinghua.iginx.sql.statement.SelectStatement;
-
 import cn.edu.tsinghua.iginx.sql.statement.StatementType;
 import java.util.*;
 
@@ -30,7 +29,7 @@ public class Utils {
 
     public static List<String> getNonWildCardPaths(List<String> paths) {
         Set<String> beCutPaths = new TreeSet<>();
-        for (String path: paths) {
+        for (String path : paths) {
             if (!path.contains(Constants.LEVEL_PLACEHOLDER)) {
                 beCutPaths.add(path);
                 continue;
@@ -40,7 +39,7 @@ public class Utils {
                 continue;
             }
             StringBuilder pathBuilder = new StringBuilder();
-            for (String part: parts) {
+            for (String part : parts) {
                 if (part.equals(Constants.LEVEL_PLACEHOLDER)) {
                     break;
                 }
@@ -63,7 +62,8 @@ public class Utils {
                 return new TimeInterval(times.get(0), times.get(times.size() - 1));
             case SELECT:
                 SelectStatement selectStatement = (SelectStatement) statement;
-                return new TimeInterval(selectStatement.getStartTime(), selectStatement.getEndTime());
+                return new TimeInterval(
+                        selectStatement.getStartTime(), selectStatement.getEndTime());
             case DELETE:
                 DeleteStatement deleteStatement = (DeleteStatement) statement;
                 List<TimeRange> timeRanges = deleteStatement.getTimeRanges();

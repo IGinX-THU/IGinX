@@ -19,7 +19,6 @@
 package cn.edu.tsinghua.iginx.engine.shared.operator.tag;
 
 public enum TagFilterType {
-
     Base,
 
     And,
@@ -31,5 +30,4 @@ public enum TagFilterType {
     Precise,
 
     WithoutTag,
-
 }

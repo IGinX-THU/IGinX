@@ -18,6 +18,10 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.naive;
 
+import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils.getJoinPathFromFilter;
+import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.combineMultipleColumns;
+import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.constructNewHead;
+
 import cn.edu.tsinghua.iginx.engine.physical.exception.InvalidOperatorParameterException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
@@ -66,7 +70,6 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -80,14 +83,9 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.regex.Pattern;
 
-import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils.getJoinPathFromFilter;
-import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.combineMultipleColumns;
-import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.constructNewHead;
-
 public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
 
-    private NaiveOperatorMemoryExecutor() {
-    }
+    private NaiveOperatorMemoryExecutor() {}
 
     public static NaiveOperatorMemoryExecutor getInstance() {
         return NaiveOperatorMemoryExecutorHolder.INSTANCE;
@@ -95,7 +93,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
 
     @Override
     public RowStream executeUnaryOperator(UnaryOperator operator, RowStream stream)
-        throws PhysicalException {
+            throws PhysicalException {
         switch (operator.getType()) {
             case Project:
                 return executeProject((Project) operator, transformToTable(stream));
@@ -112,8 +110,8 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
             case SetTransform:
                 return executeSetTransform((SetTransform) operator, transformToTable(stream));
             case MappingTransform:
-                return executeMappingTransform((MappingTransform) operator,
-                    transformToTable(stream));
+                return executeMappingTransform(
+                        (MappingTransform) operator, transformToTable(stream));
             case Rename:
                 return executeRename((Rename) operator, transformToTable(stream));
             case Reorder:
@@ -124,38 +122,41 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
                 return executeGroupBy((GroupBy) operator, stream);
             default:
                 throw new UnexpectedOperatorException(
-                    "unknown unary operator: " + operator.getType());
+                        "unknown unary operator: " + operator.getType());
         }
     }
 
     @Override
-    public RowStream executeBinaryOperator(BinaryOperator operator, RowStream streamA,
-        RowStream streamB) throws PhysicalException {
+    public RowStream executeBinaryOperator(
+            BinaryOperator operator, RowStream streamA, RowStream streamB)
+            throws PhysicalException {
         switch (operator.getType()) {
             case Join:
-                return executeJoin((Join) operator, transformToTable(streamA),
-                    transformToTable(streamB));
+                return executeJoin(
+                        (Join) operator, transformToTable(streamA), transformToTable(streamB));
             case CrossJoin:
-                return executeCrossJoin((CrossJoin) operator, transformToTable(streamA),
-                    transformToTable(streamB));
+                return executeCrossJoin(
+                        (CrossJoin) operator, transformToTable(streamA), transformToTable(streamB));
             case InnerJoin:
-                return executeInnerJoin((InnerJoin) operator, transformToTable(streamA),
-                    transformToTable(streamB));
+                return executeInnerJoin(
+                        (InnerJoin) operator, transformToTable(streamA), transformToTable(streamB));
             case OuterJoin:
-                return executeOuterJoin((OuterJoin) operator, transformToTable(streamA),
-                    transformToTable(streamB));
+                return executeOuterJoin(
+                        (OuterJoin) operator, transformToTable(streamA), transformToTable(streamB));
             case SingleJoin:
-                return executeSingleJoin((SingleJoin) operator, transformToTable(streamA),
-                    transformToTable(streamB));
+                return executeSingleJoin(
+                        (SingleJoin) operator,
+                        transformToTable(streamA),
+                        transformToTable(streamB));
             case MarkJoin:
-                return executeMarkJoin((MarkJoin) operator, transformToTable(streamA),
-                    transformToTable(streamB));
+                return executeMarkJoin(
+                        (MarkJoin) operator, transformToTable(streamA), transformToTable(streamB));
             case Union:
-                return executeUnion((Union) operator, transformToTable(streamA),
-                    transformToTable(streamB));
+                return executeUnion(
+                        (Union) operator, transformToTable(streamA), transformToTable(streamB));
             default:
                 throw new UnexpectedOperatorException(
-                    "unknown unary operator: " + operator.getType());
+                        "unknown unary operator: " + operator.getType());
         }
     }
 
@@ -221,9 +222,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
 
     private RowStream executeSort(Sort sort, Table table) throws PhysicalException {
         RowUtils.sortRows(
-            table.getRows(),
-            sort.getSortType() == SortType.ASC,
-            sort.getSortByCols());
+                table.getRows(), sort.getSortType() == SortType.ASC, sort.getSortByCols());
         return table;
     }
 
@@ -232,8 +231,9 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         Header header = table.getHeader();
         List<Row> rows = new ArrayList<>();
         if (rowSize > limit.getOffset()) { // 没有把所有的行都跳过
-            for (int i = limit.getOffset(); i < rowSize && i - limit.getOffset() < limit.getLimit();
-                i++) {
+            for (int i = limit.getOffset();
+                    i < rowSize && i - limit.getOffset() < limit.getLimit();
+                    i++) {
                 rows.add(table.getRow(i));
             }
         }
@@ -241,11 +241,11 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     }
 
     private RowStream executeDownsample(Downsample downsample, Table table)
-        throws PhysicalException {
+            throws PhysicalException {
         Header header = table.getHeader();
         if (!header.hasKey()) {
             throw new InvalidOperatorParameterException(
-                "downsample operator is not support for row stream without timestamps.");
+                    "downsample operator is not support for row stream without timestamps.");
         }
         List<Row> rows = table.getRows();
         long bias = downsample.getTimeRange().getActualBeginTime();
@@ -255,8 +255,8 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         // startTime + (n - 1) * slideDistance + precision - 1 >= endTime
         int n = (int) (Math.ceil((double) (endTime - bias - precision + 1) / slideDistance) + 1);
         TreeMap<Long, List<Row>> groups = new TreeMap<>();
-        SetMappingFunction function = (SetMappingFunction) downsample.getFunctionCall()
-            .getFunction();
+        SetMappingFunction function =
+                (SetMappingFunction) downsample.getFunctionCall().getFunction();
         Map<String, Value> params = downsample.getFunctionCall().getParams();
         if (precision == slideDistance) {
             for (Row row : rows) {
@@ -272,9 +272,9 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
                 long rowTimestamp = row.getKey();
                 for (int i = 0; i < n; i++) {
                     if (rowTimestamp - timestamps[i] >= 0
-                        && rowTimestamp - timestamps[i] < precision) {
+                            && rowTimestamp - timestamps[i] < precision) {
                         groups.compute(timestamps[i], (k, v) -> v == null ? new ArrayList<>() : v)
-                            .add(row);
+                                .add(row);
                     }
                 }
             }
@@ -291,14 +291,16 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
             }
         } catch (Exception e) {
             throw new PhysicalTaskExecuteFailureException(
-                "encounter error when execute set mapping function " + function.getIdentifier()
-                    + ".", e);
+                    "encounter error when execute set mapping function "
+                            + function.getIdentifier()
+                            + ".",
+                    e);
         }
         if (transformedRawRows.size() == 0) {
             return Table.EMPTY_TABLE;
         }
-        Header newHeader = new Header(Field.KEY,
-            transformedRawRows.get(0).v.getHeader().getFields());
+        Header newHeader =
+                new Header(Field.KEY, transformedRawRows.get(0).v.getHeader().getFields());
         List<Row> transformedRows = new ArrayList<>();
         for (Pair<Long, Row> pair : transformedRawRows) {
             transformedRows.add(new Row(newHeader, pair.k, pair.v.getValues()));
@@ -307,35 +309,44 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     }
 
     private RowStream executeRowTransform(RowTransform rowTransform, Table table)
-        throws PhysicalException {
+            throws PhysicalException {
         List<Pair<RowMappingFunction, Map<String, Value>>> list = new ArrayList<>();
-        rowTransform.getFunctionCallList().forEach(functionCall -> {
-            list.add(new Pair<>((RowMappingFunction) functionCall.getFunction(), functionCall.getParams()));
-        });
-        
+        rowTransform
+                .getFunctionCallList()
+                .forEach(
+                        functionCall -> {
+                            list.add(
+                                    new Pair<>(
+                                            (RowMappingFunction) functionCall.getFunction(),
+                                            functionCall.getParams()));
+                        });
+
         List<Row> rows = new ArrayList<>();
         while (table.hasNext()) {
             Row current = table.next();
             List<Row> columnList = new ArrayList<>();
-            list.forEach(pair -> {
-                RowMappingFunction function = pair.k;
-                Map<String, Value> params = pair.v;
-                try {
-                    // 分别计算每个表达式得到相应的结果
-                    Row column = function.transform(current, params);
-                    if (column != null) {
-                        columnList.add(column);
-                    }
-                } catch (Exception e) {
-                    try {
-                        throw new PhysicalTaskExecuteFailureException(
-                                "encounter error when execute row mapping function " + function.getIdentifier()
-                                        + ".", e);
-                    } catch (PhysicalTaskExecuteFailureException ex) {
-                        throw new RuntimeException(ex);
-                    }
-                }
-            });
+            list.forEach(
+                    pair -> {
+                        RowMappingFunction function = pair.k;
+                        Map<String, Value> params = pair.v;
+                        try {
+                            // 分别计算每个表达式得到相应的结果
+                            Row column = function.transform(current, params);
+                            if (column != null) {
+                                columnList.add(column);
+                            }
+                        } catch (Exception e) {
+                            try {
+                                throw new PhysicalTaskExecuteFailureException(
+                                        "encounter error when execute row mapping function "
+                                                + function.getIdentifier()
+                                                + ".",
+                                        e);
+                            } catch (PhysicalTaskExecuteFailureException ex) {
+                                throw new RuntimeException(ex);
+                            }
+                        }
+                    });
             // 如果计算结果都不为空，将计算结果合并成一行
             if (columnList.size() == list.size()) {
                 rows.add(combineMultipleColumns(columnList));
@@ -349,9 +360,9 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     }
 
     private RowStream executeSetTransform(SetTransform setTransform, Table table)
-        throws PhysicalException {
-        SetMappingFunction function = (SetMappingFunction) setTransform.getFunctionCall()
-            .getFunction();
+            throws PhysicalException {
+        SetMappingFunction function =
+                (SetMappingFunction) setTransform.getFunctionCall().getFunction();
         Map<String, Value> params = setTransform.getFunctionCall().getParams();
         try {
             Row row = function.transform(table, params);
@@ -362,23 +373,26 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
             return new Table(header, Collections.singletonList(row));
         } catch (Exception e) {
             throw new PhysicalTaskExecuteFailureException(
-                "encounter error when execute set mapping function " + function.getIdentifier()
-                    + ".", e);
+                    "encounter error when execute set mapping function "
+                            + function.getIdentifier()
+                            + ".",
+                    e);
         }
-
     }
 
     private RowStream executeMappingTransform(MappingTransform mappingTransform, Table table)
-        throws PhysicalException {
-        MappingFunction function = (MappingFunction) mappingTransform.getFunctionCall()
-            .getFunction();
+            throws PhysicalException {
+        MappingFunction function =
+                (MappingFunction) mappingTransform.getFunctionCall().getFunction();
         Map<String, Value> params = mappingTransform.getFunctionCall().getParams();
         try {
             return function.transform(table, params);
         } catch (Exception e) {
             throw new PhysicalTaskExecuteFailureException(
-                "encounter error when execute mapping function " + function.getIdentifier() + ".",
-                e);
+                    "encounter error when execute mapping function "
+                            + function.getIdentifier()
+                            + ".",
+                    e);
         }
     }
 
@@ -387,73 +401,92 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         Map<String, String> aliasMap = rename.getAliasMap();
 
         List<Field> fields = new ArrayList<>();
-        header.getFields().forEach(field -> {
-            String alias = "";
-            for (String oldName : aliasMap.keySet()) {
-                if (Objects.equals(oldName, "*") && aliasMap.get(oldName).endsWith(".*")) {
-                    String newPrefix = aliasMap.get(oldName).replace("*", "");
-                    alias = newPrefix + field.getFullName();
-                } else if (oldName.endsWith(".*") && aliasMap.get(oldName).endsWith(".*")) {
-                    String oldPrefix = oldName.replace(".*", "");
-                    String newPrefix = aliasMap.get(oldName).replace(".*", "");
-                    if (field.getFullName().startsWith(oldPrefix)) {
-                        alias = field.getFullName().replaceFirst(oldPrefix, newPrefix);
-                    }
-                    break;
-                } else {
-                    Pattern pattern = Pattern.compile(StringUtils.reformatColumnName(oldName) + ".*");
-                    if (pattern.matcher(field.getFullName()).matches()) {
-                        alias = aliasMap.get(oldName);
-                        break;
-                    }
-                }
-            }
-            if (alias.equals("")) {
-                fields.add(field);
-            } else {
-                fields.add(new Field(alias, field.getType(), field.getTags()));
-            }
-        });
+        header.getFields()
+                .forEach(
+                        field -> {
+                            String alias = "";
+                            for (String oldName : aliasMap.keySet()) {
+                                if (Objects.equals(oldName, "*")
+                                        && aliasMap.get(oldName).endsWith(".*")) {
+                                    String newPrefix = aliasMap.get(oldName).replace("*", "");
+                                    alias = newPrefix + field.getFullName();
+                                } else if (oldName.endsWith(".*")
+                                        && aliasMap.get(oldName).endsWith(".*")) {
+                                    String oldPrefix = oldName.replace(".*", "");
+                                    String newPrefix = aliasMap.get(oldName).replace(".*", "");
+                                    if (field.getFullName().startsWith(oldPrefix)) {
+                                        alias =
+                                                field.getFullName()
+                                                        .replaceFirst(oldPrefix, newPrefix);
+                                    }
+                                    break;
+                                } else {
+                                    Pattern pattern =
+                                            Pattern.compile(
+                                                    StringUtils.reformatColumnName(oldName) + ".*");
+                                    if (pattern.matcher(field.getFullName()).matches()) {
+                                        alias = aliasMap.get(oldName);
+                                        break;
+                                    }
+                                }
+                            }
+                            if (alias.equals("")) {
+                                fields.add(field);
+                            } else {
+                                fields.add(new Field(alias, field.getType(), field.getTags()));
+                            }
+                        });
 
         Header newHeader = new Header(header.getKey(), fields);
 
         List<Row> rows = new ArrayList<>();
-        table.getRows().forEach(row -> {
-            if (newHeader.hasKey()) {
-                rows.add(new Row(newHeader, row.getKey(), row.getValues()));
-            } else {
-                rows.add(new Row(newHeader, row.getValues()));
-            }
-        });
+        table.getRows()
+                .forEach(
+                        row -> {
+                            if (newHeader.hasKey()) {
+                                rows.add(new Row(newHeader, row.getKey(), row.getValues()));
+                            } else {
+                                rows.add(new Row(newHeader, row.getValues()));
+                            }
+                        });
 
         return new Table(newHeader, rows);
     }
 
     private RowStream executeAddSchemaPrefix(AddSchemaPrefix addSchemaPrefix, Table table)
-        throws PhysicalException {
+            throws PhysicalException {
         Header header = table.getHeader();
         String schemaPrefix = addSchemaPrefix.getSchemaPrefix();
 
         List<Field> fields = new ArrayList<>();
-        header.getFields().forEach(field -> {
-            if (schemaPrefix != null) {
-                fields.add(new Field(schemaPrefix + "." + field.getName(), field.getType(),
-                    field.getTags()));
-            } else {
-                fields.add(new Field(field.getName(), field.getType(), field.getTags()));
-            }
-        });
+        header.getFields()
+                .forEach(
+                        field -> {
+                            if (schemaPrefix != null) {
+                                fields.add(
+                                        new Field(
+                                                schemaPrefix + "." + field.getName(),
+                                                field.getType(),
+                                                field.getTags()));
+                            } else {
+                                fields.add(
+                                        new Field(
+                                                field.getName(), field.getType(), field.getTags()));
+                            }
+                        });
 
         Header newHeader = new Header(header.getKey(), fields);
 
         List<Row> rows = new ArrayList<>();
-        table.getRows().forEach(row -> {
-            if (newHeader.hasKey()) {
-                rows.add(new Row(newHeader, row.getKey(), row.getValues()));
-            } else {
-                rows.add(new Row(newHeader, row.getValues()));
-            }
-        });
+        table.getRows()
+                .forEach(
+                        row -> {
+                            if (newHeader.hasKey()) {
+                                rows.add(new Row(newHeader, row.getKey(), row.getValues()));
+                            } else {
+                                rows.add(new Row(newHeader, row.getValues()));
+                            }
+                        });
 
         return new Table(newHeader, rows);
     }
@@ -492,26 +525,29 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
             }
             if (!matchedFields.isEmpty()) {
                 matchedFields.sort(Comparator.comparing(pair -> pair.getK().getFullName()));
-                matchedFields.forEach(pair -> {
-                    reorderMap.put(targetFields.size(), pair.getV());
-                    targetFields.add(pair.getK());
-                });
+                matchedFields.forEach(
+                        pair -> {
+                            reorderMap.put(targetFields.size(), pair.getV());
+                            targetFields.add(pair.getK());
+                        });
             }
         }
 
         Header newHeader = new Header(header.getKey(), targetFields);
         List<Row> rows = new ArrayList<>();
-        table.getRows().forEach(row -> {
-            Object[] values = new Object[targetFields.size()];
-            for (int i = 0; i < values.length; i++) {
-                values[i] = row.getValue(reorderMap.get(i));
-            }
-            if (newHeader.hasKey()) {
-                rows.add(new Row(newHeader, row.getKey(), values));
-            } else {
-                rows.add(new Row(newHeader, values));
-            }
-        });
+        table.getRows()
+                .forEach(
+                        row -> {
+                            Object[] values = new Object[targetFields.size()];
+                            for (int i = 0; i < values.length; i++) {
+                                values[i] = row.getValue(reorderMap.get(i));
+                            }
+                            if (newHeader.hasKey()) {
+                                rows.add(new Row(newHeader, row.getKey(), values));
+                            } else {
+                                rows.add(new Row(newHeader, values));
+                            }
+                        });
         return new Table(newHeader, rows);
     }
 
@@ -534,7 +570,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
             // 检查时间戳
             if (!headerA.hasKey() || !headerB.hasKey()) {
                 throw new InvalidOperatorParameterException(
-                    "row streams for join operator by time should have timestamp.");
+                        "row streams for join operator by time should have timestamp.");
             }
             List<Field> newFields = new ArrayList<>();
             newFields.addAll(headerA.getFields());
@@ -550,8 +586,12 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
                 if (rowA.getKey() == rowB.getKey()) {
                     timestamp = rowA.getKey();
                     System.arraycopy(rowA.getValues(), 0, values, 0, headerA.getFieldSize());
-                    System.arraycopy(rowB.getValues(), 0, values, headerA.getFieldSize(),
-                        headerB.getFieldSize());
+                    System.arraycopy(
+                            rowB.getValues(),
+                            0,
+                            values,
+                            headerA.getFieldSize(),
+                            headerB.getFieldSize());
                     index1++;
                     index2++;
                 } else if (rowA.getKey() < rowB.getKey()) {
@@ -560,8 +600,12 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
                     index1++;
                 } else {
                     timestamp = rowB.getKey();
-                    System.arraycopy(rowB.getValues(), 0, values, headerA.getFieldSize(),
-                        headerB.getFieldSize());
+                    System.arraycopy(
+                            rowB.getValues(),
+                            0,
+                            values,
+                            headerA.getFieldSize(),
+                            headerB.getFieldSize());
                     index2++;
                 }
                 newRows.add(new Row(newHeader, timestamp, values));
@@ -577,15 +621,19 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
             for (; index2 < tableB.getRowSize(); index2++) {
                 Row rowB = tableB.getRow(index2);
                 Object[] values = new Object[newHeader.getFieldSize()];
-                System.arraycopy(rowB.getValues(), 0, values, headerA.getFieldSize(),
-                    headerB.getFieldSize());
+                System.arraycopy(
+                        rowB.getValues(),
+                        0,
+                        values,
+                        headerA.getFieldSize(),
+                        headerB.getFieldSize());
                 newRows.add(new Row(newHeader, rowB.getKey(), values));
             }
             return new Table(newHeader, newRows);
         } else if (join.getJoinBy().equals(Constants.ORDINAL)) {
             if (headerA.hasKey() || headerB.hasKey()) {
                 throw new InvalidOperatorParameterException(
-                    "row streams for join operator by ordinal shouldn't have timestamp.");
+                        "row streams for join operator by ordinal shouldn't have timestamp.");
             }
             List<Field> newFields = new ArrayList<>();
             newFields.addAll(headerA.getFields());
@@ -598,8 +646,12 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
                 Row rowA = tableA.getRow(index1), rowB = tableB.getRow(index2);
                 Object[] values = new Object[newHeader.getFieldSize()];
                 System.arraycopy(rowA.getValues(), 0, values, 0, headerA.getFieldSize());
-                System.arraycopy(rowB.getValues(), 0, values, headerA.getFieldSize(),
-                    headerB.getFieldSize());
+                System.arraycopy(
+                        rowB.getValues(),
+                        0,
+                        values,
+                        headerA.getFieldSize(),
+                        headerB.getFieldSize());
                 index1++;
                 index2++;
                 newRows.add(new Row(newHeader, values));
@@ -614,24 +666,34 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
             for (; index2 < tableB.getRowSize(); index2++) {
                 Row rowB = tableB.getRow(index2);
                 Object[] values = new Object[newHeader.getFieldSize()];
-                System.arraycopy(rowB.getValues(), 0, values, headerA.getFieldSize(),
-                    headerB.getFieldSize());
+                System.arraycopy(
+                        rowB.getValues(),
+                        0,
+                        values,
+                        headerA.getFieldSize(),
+                        headerB.getFieldSize());
                 newRows.add(new Row(newHeader, values));
             }
             return new Table(newHeader, newRows);
         } else {
             throw new InvalidOperatorParameterException(
-                "join operator is not support for field " + join.getJoinBy() + " except for "
-                    + Constants.KEY
-                    + " and " + Constants.ORDINAL);
+                    "join operator is not support for field "
+                            + join.getJoinBy()
+                            + " except for "
+                            + Constants.KEY
+                            + " and "
+                            + Constants.ORDINAL);
         }
     }
 
     private RowStream executeCrossJoin(CrossJoin crossJoin, Table tableA, Table tableB)
-        throws PhysicalException {
-        Header newHeader = RowUtils
-            .constructNewHead(tableA.getHeader(), tableB.getHeader(), crossJoin.getPrefixA(),
-                crossJoin.getPrefixB());
+            throws PhysicalException {
+        Header newHeader =
+                RowUtils.constructNewHead(
+                        tableA.getHeader(),
+                        tableB.getHeader(),
+                        crossJoin.getPrefixA(),
+                        crossJoin.getPrefixB());
 
         List<Row> rowsA = tableA.getRows();
         List<Row> rowsB = tableB.getRows();
@@ -647,7 +709,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     }
 
     private RowStream executeInnerJoin(InnerJoin innerJoin, Table tableA, Table tableB)
-        throws PhysicalException {
+            throws PhysicalException {
         switch (innerJoin.getJoinAlgType()) {
             case NestedLoopJoin:
                 return executeNestedLoopInnerJoin(innerJoin, tableA, tableB);
@@ -657,23 +719,27 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
                 return executeSortedMergeInnerJoin(innerJoin, tableA, tableB);
             default:
                 throw new PhysicalException(
-                    "Unknown join algorithm type: " + innerJoin.getJoinAlgType());
+                        "Unknown join algorithm type: " + innerJoin.getJoinAlgType());
         }
     }
 
     private RowStream executeNestedLoopInnerJoin(InnerJoin innerJoin, Table tableA, Table tableB)
-        throws PhysicalException {
+            throws PhysicalException {
         Filter filter = innerJoin.getFilter();
         List<String> joinColumns = new ArrayList<>(innerJoin.getJoinColumns());
 
         if (innerJoin.isNaturalJoin()) {
-            RowUtils.fillNaturalJoinColumns(joinColumns, tableA.getHeader(), tableB.getHeader(),
-                innerJoin.getPrefixA(), innerJoin.getPrefixB());
+            RowUtils.fillNaturalJoinColumns(
+                    joinColumns,
+                    tableA.getHeader(),
+                    tableB.getHeader(),
+                    innerJoin.getPrefixA(),
+                    innerJoin.getPrefixB());
         }
-        if ((filter == null && joinColumns.isEmpty()) || (filter != null && !joinColumns
-            .isEmpty())) {
+        if ((filter == null && joinColumns.isEmpty())
+                || (filter != null && !joinColumns.isEmpty())) {
             throw new InvalidOperatorParameterException(
-                "using(or natural) and on operator cannot be used at the same time");
+                    "using(or natural) and on operator cannot be used at the same time");
         }
 
         Header headerA = tableA.getHeader();
@@ -684,8 +750,9 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         Header newHeader;
         List<Row> transformedRows = new ArrayList<>();
         if (filter != null) { // Join condition: on
-            newHeader = RowUtils
-                .constructNewHead(headerA, headerB, innerJoin.getPrefixA(), innerJoin.getPrefixB());
+            newHeader =
+                    RowUtils.constructNewHead(
+                            headerA, headerB, innerJoin.getPrefixA(), innerJoin.getPrefixB());
             for (Row rowA : rowsA) {
                 for (Row rowB : rowsB) {
                     Row joinedRow = RowUtils.constructNewRow(newHeader, rowA, rowB);
@@ -695,23 +762,30 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
                 }
             }
         } else { // Join condition: natural or using
-            Pair<int[], Header> pair = RowUtils
-                .constructNewHead(headerA, headerB, innerJoin.getPrefixA(), innerJoin.getPrefixB(),
-                    joinColumns, true);
+            Pair<int[], Header> pair =
+                    RowUtils.constructNewHead(
+                            headerA,
+                            headerB,
+                            innerJoin.getPrefixA(),
+                            innerJoin.getPrefixB(),
+                            joinColumns,
+                            true);
             int[] indexOfJoinColumnInTableB = pair.getK();
             newHeader = pair.getV();
             for (Row rowA : rowsA) {
                 flag:
                 for (Row rowB : rowsB) {
                     for (String joinColumn : joinColumns) {
-                        if (ValueUtils
-                            .compare(rowA.getAsValue(innerJoin.getPrefixA() + '.' + joinColumn),
-                                rowB.getAsValue(innerJoin.getPrefixB() + '.' + joinColumn)) != 0) {
+                        if (ValueUtils.compare(
+                                        rowA.getAsValue(innerJoin.getPrefixA() + '.' + joinColumn),
+                                        rowB.getAsValue(innerJoin.getPrefixB() + '.' + joinColumn))
+                                != 0) {
                             continue flag;
                         }
                     }
-                    Row joinedRow = RowUtils
-                        .constructNewRow(newHeader, rowA, rowB, indexOfJoinColumnInTableB, true);
+                    Row joinedRow =
+                            RowUtils.constructNewRow(
+                                    newHeader, rowA, rowB, indexOfJoinColumnInTableB, true);
                     transformedRows.add(joinedRow);
                 }
             }
@@ -720,18 +794,22 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     }
 
     private RowStream executeHashInnerJoin(InnerJoin innerJoin, Table tableA, Table tableB)
-        throws PhysicalException {
+            throws PhysicalException {
         Filter filter = innerJoin.getFilter();
 
         List<String> joinColumns = new ArrayList<>(innerJoin.getJoinColumns());
         if (innerJoin.isNaturalJoin()) {
-            RowUtils.fillNaturalJoinColumns(joinColumns, tableA.getHeader(), tableB.getHeader(),
-                innerJoin.getPrefixA(), innerJoin.getPrefixB());
+            RowUtils.fillNaturalJoinColumns(
+                    joinColumns,
+                    tableA.getHeader(),
+                    tableB.getHeader(),
+                    innerJoin.getPrefixA(),
+                    innerJoin.getPrefixB());
         }
-        if ((filter == null && joinColumns.isEmpty()) || (filter != null && !joinColumns
-            .isEmpty())) {
+        if ((filter == null && joinColumns.isEmpty())
+                || (filter != null && !joinColumns.isEmpty())) {
             throw new InvalidOperatorParameterException(
-                "using(or natural) and on operator cannot be used at the same time");
+                    "using(or natural) and on operator cannot be used at the same time");
         }
 
         Header headerA = tableA.getHeader();
@@ -741,12 +819,12 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         if (filter != null) {
             if (!filter.getType().equals(FilterType.Path)) {
                 throw new InvalidOperatorParameterException(
-                    "hash join only support one path filter yet.");
+                        "hash join only support one path filter yet.");
             }
             Pair<String, String> p = FilterUtils.getJoinColumnFromPathFilter((PathFilter) filter);
             if (p == null) {
                 throw new InvalidOperatorParameterException(
-                    "hash join only support equal path filter yet.");
+                        "hash join only support equal path filter yet.");
             }
             if (headerA.indexOf(p.k) != -1 && headerB.indexOf(p.v) != -1) {
                 joinColumnA = p.k.replaceFirst(innerJoin.getPrefixA() + '.', "");
@@ -760,10 +838,10 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         } else {
             if (joinColumns.size() != 1) {
                 throw new InvalidOperatorParameterException(
-                    "hash join only support the number of join column is one yet.");
+                        "hash join only support the number of join column is one yet.");
             }
             if (headerA.indexOf(innerJoin.getPrefixA() + '.' + joinColumns.get(0)) != -1
-                && headerB.indexOf(innerJoin.getPrefixB() + '.' + joinColumns.get(0)) != -1) {
+                    && headerB.indexOf(innerJoin.getPrefixB() + '.' + joinColumns.get(0)) != -1) {
                 joinColumnA = joinColumnB = joinColumns.get(0);
             } else {
                 throw new InvalidOperatorParameterException("invalid hash join column input.");
@@ -799,15 +877,16 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
                 hash = value.getValue().hashCode();
             }
             List<Row> l =
-                rowsBHashMap.containsKey(hash) ? rowsBHashMap.get(hash) : new ArrayList<>();
+                    rowsBHashMap.containsKey(hash) ? rowsBHashMap.get(hash) : new ArrayList<>();
             l.add(rowB);
             rowsBHashMap.put(hash, l);
         }
         Header newHeader;
         List<Row> transformedRows = new ArrayList<>();
         if (filter != null) { // Join condition: on
-            newHeader = RowUtils
-                .constructNewHead(headerA, headerB, innerJoin.getPrefixA(), innerJoin.getPrefixB());
+            newHeader =
+                    RowUtils.constructNewHead(
+                            headerA, headerB, innerJoin.getPrefixA(), innerJoin.getPrefixB());
             for (Row rowA : rowsA) {
                 Value value = rowA.getAsValue(innerJoin.getPrefixA() + '.' + joinColumnA);
                 if (value == null) {
@@ -834,9 +913,15 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
                 }
             }
         } else { // Join condition: natural or using
-            newHeader = RowUtils
-                .constructNewHead(headerA, headerB, innerJoin.getPrefixA(), innerJoin.getPrefixB(),
-                    Collections.singletonList(joinColumnB), true).getV();
+            newHeader =
+                    RowUtils.constructNewHead(
+                                    headerA,
+                                    headerB,
+                                    innerJoin.getPrefixA(),
+                                    innerJoin.getPrefixB(),
+                                    Collections.singletonList(joinColumnB),
+                                    true)
+                            .getV();
             int index = headerB.indexOf(innerJoin.getPrefixB() + '.' + joinColumnB);
             for (Row rowA : rowsA) {
                 Value value = rowA.getAsValue(innerJoin.getPrefixA() + '.' + joinColumnA);
@@ -856,8 +941,9 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
                 if (rowsBHashMap.containsKey(hash)) {
                     List<Row> hashRowsB = rowsBHashMap.get(hash);
                     for (Row rowB : hashRowsB) {
-                        Row joinedRow = RowUtils
-                            .constructNewRow(newHeader, rowA, rowB, new int[]{index}, true);
+                        Row joinedRow =
+                                RowUtils.constructNewRow(
+                                        newHeader, rowA, rowB, new int[] {index}, true);
                         transformedRows.add(joinedRow);
                     }
                 }
@@ -867,17 +953,21 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     }
 
     private RowStream executeSortedMergeInnerJoin(InnerJoin innerJoin, Table tableA, Table tableB)
-        throws PhysicalException {
+            throws PhysicalException {
         Filter filter = innerJoin.getFilter();
         List<String> joinColumns = new ArrayList<>(innerJoin.getJoinColumns());
         if (innerJoin.isNaturalJoin()) {
-            RowUtils.fillNaturalJoinColumns(joinColumns, tableA.getHeader(), tableB.getHeader(),
-                innerJoin.getPrefixA(), innerJoin.getPrefixB());
+            RowUtils.fillNaturalJoinColumns(
+                    joinColumns,
+                    tableA.getHeader(),
+                    tableB.getHeader(),
+                    innerJoin.getPrefixA(),
+                    innerJoin.getPrefixB());
         }
-        if ((filter == null && joinColumns.isEmpty()) || (filter != null && !joinColumns
-            .isEmpty())) {
+        if ((filter == null && joinColumns.isEmpty())
+                || (filter != null && !joinColumns.isEmpty())) {
             throw new InvalidOperatorParameterException(
-                "using(or natural) and on operator cannot be used at the same time");
+                    "using(or natural) and on operator cannot be used at the same time");
         }
         Header headerA = tableA.getHeader();
         Header headerB = tableB.getHeader();
@@ -892,7 +982,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
             List<Pair<String, String>> pairs = FilterUtils.getJoinColumnsFromFilter(filter);
             if (pairs.isEmpty()) {
                 throw new InvalidOperatorParameterException(
-                    "on condition in join operator has no join columns.");
+                        "on condition in join operator has no join columns.");
             }
             for (Pair<String, String> p : pairs) {
                 if (headerA.indexOf(p.k) != -1 && headerB.indexOf(p.v) != -1) {
@@ -912,10 +1002,10 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         int flagB = RowUtils.checkRowsSortedByColumns(rowsB, innerJoin.getPrefixB(), joinColumnsB);
         if (flagA == -1 || flagB == -1) {
             throw new InvalidOperatorParameterException(
-                "input rows in merge join haven't be sorted.");
+                    "input rows in merge join haven't be sorted.");
         } else if (flagA + flagB == 3) {
             throw new InvalidOperatorParameterException(
-                "input two rows in merge join shouldn't have different sort order.");
+                    "input two rows in merge join shouldn't have different sort order.");
         } else if ((flagA == flagB)) {
             isAscendingSorted = flagA == 0 || flagA == 1;
         } else {
@@ -933,18 +1023,25 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         Header newHeader;
         List<Row> transformedRows = new ArrayList<>();
         if (filter != null) {
-            newHeader = RowUtils
-                .constructNewHead(headerA, headerB, innerJoin.getPrefixA(), innerJoin.getPrefixB());
+            newHeader =
+                    RowUtils.constructNewHead(
+                            headerA, headerB, innerJoin.getPrefixA(), innerJoin.getPrefixB());
             int indexA = 0;
             int indexB = 0;
             int startIndexOfContinuousEqualValuesB = 0;
             while (indexA < rowsA.size() && indexB < rowsB.size()) {
-                int flagAEqualB = RowUtils
-                    .compareRowsSortedByColumns(rowsA.get(indexA), rowsB.get(indexB),
-                        innerJoin.getPrefixA(), innerJoin.getPrefixB(), joinColumnsA, joinColumnsB);
+                int flagAEqualB =
+                        RowUtils.compareRowsSortedByColumns(
+                                rowsA.get(indexA),
+                                rowsB.get(indexB),
+                                innerJoin.getPrefixA(),
+                                innerJoin.getPrefixB(),
+                                joinColumnsA,
+                                joinColumnsB);
                 if (flagAEqualB == 0) {
-                    Row joinedRow = RowUtils
-                        .constructNewRow(newHeader, rowsA.get(indexA), rowsB.get(indexB));
+                    Row joinedRow =
+                            RowUtils.constructNewRow(
+                                    newHeader, rowsA.get(indexA), rowsB.get(indexB));
                     if (FilterUtils.validate(filter, joinedRow)) {
                         transformedRows.add(joinedRow);
                     }
@@ -960,14 +1057,22 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
                             indexA++;
                             indexB = startIndexOfContinuousEqualValuesB;
                         } else {
-                            int flagAEqualNextA = RowUtils
-                                .compareRowsSortedByColumns(rowsA.get(indexA),
-                                    rowsA.get(indexA + 1), innerJoin.getPrefixA(),
-                                    innerJoin.getPrefixA(), joinColumnsA, joinColumnsA);
-                            int flagBEqualNextB = RowUtils
-                                .compareRowsSortedByColumns(rowsB.get(indexB),
-                                    rowsB.get(indexB + 1), innerJoin.getPrefixB(),
-                                    innerJoin.getPrefixB(), joinColumnsB, joinColumnsB);
+                            int flagAEqualNextA =
+                                    RowUtils.compareRowsSortedByColumns(
+                                            rowsA.get(indexA),
+                                            rowsA.get(indexA + 1),
+                                            innerJoin.getPrefixA(),
+                                            innerJoin.getPrefixA(),
+                                            joinColumnsA,
+                                            joinColumnsA);
+                            int flagBEqualNextB =
+                                    RowUtils.compareRowsSortedByColumns(
+                                            rowsB.get(indexB),
+                                            rowsB.get(indexB + 1),
+                                            innerJoin.getPrefixB(),
+                                            innerJoin.getPrefixB(),
+                                            joinColumnsB,
+                                            joinColumnsB);
                             if (flagBEqualNextB == 0) {
                                 indexB++;
                             } else {
@@ -989,22 +1094,36 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
                 }
             }
         } else { // Join condition: natural or using
-            Pair<int[], Header> pair = RowUtils
-                .constructNewHead(headerA, headerB, innerJoin.getPrefixA(), innerJoin.getPrefixB(),
-                    joinColumns, true);
+            Pair<int[], Header> pair =
+                    RowUtils.constructNewHead(
+                            headerA,
+                            headerB,
+                            innerJoin.getPrefixA(),
+                            innerJoin.getPrefixB(),
+                            joinColumns,
+                            true);
             int[] indexOfJoinColumnInTableB = pair.getK();
             newHeader = pair.getV();
             int indexA = 0;
             int indexB = 0;
             int startIndexOfContinuousEqualValuesB = 0;
             while (indexA < rowsA.size() && indexB < rowsB.size()) {
-                int flagAEqualB = RowUtils
-                    .compareRowsSortedByColumns(rowsA.get(indexA), rowsB.get(indexB),
-                        innerJoin.getPrefixA(), innerJoin.getPrefixB(), joinColumnsA, joinColumnsB);
+                int flagAEqualB =
+                        RowUtils.compareRowsSortedByColumns(
+                                rowsA.get(indexA),
+                                rowsB.get(indexB),
+                                innerJoin.getPrefixA(),
+                                innerJoin.getPrefixB(),
+                                joinColumnsA,
+                                joinColumnsB);
                 if (flagAEqualB == 0) {
-                    Row joinedRow = RowUtils
-                        .constructNewRow(newHeader, rowsA.get(indexA), rowsB.get(indexB),
-                            indexOfJoinColumnInTableB, true);
+                    Row joinedRow =
+                            RowUtils.constructNewRow(
+                                    newHeader,
+                                    rowsA.get(indexA),
+                                    rowsB.get(indexB),
+                                    indexOfJoinColumnInTableB,
+                                    true);
                     transformedRows.add(joinedRow);
 
                     if (indexA + 1 == rowsA.size()) {
@@ -1018,14 +1137,22 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
                             indexA++;
                             indexB = startIndexOfContinuousEqualValuesB;
                         } else {
-                            int flagAEqualNextA = RowUtils
-                                .compareRowsSortedByColumns(rowsA.get(indexA),
-                                    rowsA.get(indexA + 1), innerJoin.getPrefixA(),
-                                    innerJoin.getPrefixA(), joinColumnsA, joinColumnsA);
-                            int flagBEqualNextB = RowUtils
-                                .compareRowsSortedByColumns(rowsB.get(indexB),
-                                    rowsB.get(indexB + 1), innerJoin.getPrefixB(),
-                                    innerJoin.getPrefixB(), joinColumnsB, joinColumnsB);
+                            int flagAEqualNextA =
+                                    RowUtils.compareRowsSortedByColumns(
+                                            rowsA.get(indexA),
+                                            rowsA.get(indexA + 1),
+                                            innerJoin.getPrefixA(),
+                                            innerJoin.getPrefixA(),
+                                            joinColumnsA,
+                                            joinColumnsA);
+                            int flagBEqualNextB =
+                                    RowUtils.compareRowsSortedByColumns(
+                                            rowsB.get(indexB),
+                                            rowsB.get(indexB + 1),
+                                            innerJoin.getPrefixB(),
+                                            innerJoin.getPrefixB(),
+                                            joinColumnsB,
+                                            joinColumnsB);
                             if (flagBEqualNextB == 0) {
                                 indexB++;
                             } else {
@@ -1057,7 +1184,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     }
 
     private RowStream executeOuterJoin(OuterJoin outerJoin, Table tableA, Table tableB)
-        throws PhysicalException {
+            throws PhysicalException {
         switch (outerJoin.getJoinAlgType()) {
             case NestedLoopJoin:
                 return executeNestedLoopOuterJoin(outerJoin, tableA, tableB);
@@ -1067,24 +1194,28 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
                 return executeSortedMergeOuterJoin(outerJoin, tableA, tableB);
             default:
                 throw new PhysicalException(
-                    "Unknown join algorithm type: " + outerJoin.getJoinAlgType());
+                        "Unknown join algorithm type: " + outerJoin.getJoinAlgType());
         }
     }
 
     private RowStream executeNestedLoopOuterJoin(OuterJoin outerJoin, Table tableA, Table tableB)
-        throws PhysicalException {
+            throws PhysicalException {
         OuterJoinType outerType = outerJoin.getOuterJoinType();
         Filter filter = outerJoin.getFilter();
 
         List<String> joinColumns = new ArrayList<>(outerJoin.getJoinColumns());
         if (outerJoin.isNaturalJoin()) {
-            RowUtils.fillNaturalJoinColumns(joinColumns, tableA.getHeader(), tableB.getHeader(),
-                outerJoin.getPrefixA(), outerJoin.getPrefixB());
+            RowUtils.fillNaturalJoinColumns(
+                    joinColumns,
+                    tableA.getHeader(),
+                    tableB.getHeader(),
+                    outerJoin.getPrefixA(),
+                    outerJoin.getPrefixB());
         }
-        if ((filter == null && joinColumns.isEmpty()) || (filter != null && !joinColumns
-            .isEmpty())) {
+        if ((filter == null && joinColumns.isEmpty())
+                || (filter != null && !joinColumns.isEmpty())) {
             throw new InvalidOperatorParameterException(
-                "using(or natural) and on operator cannot be used at the same time");
+                    "using(or natural) and on operator cannot be used at the same time");
         }
 
         Header headerA = tableA.getHeader();
@@ -1099,8 +1230,9 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         Header newHeader;
         List<Row> transformedRows = new ArrayList<>();
         if (filter != null) { // Join condition: on
-            newHeader = RowUtils
-                .constructNewHead(headerA, headerB, outerJoin.getPrefixA(), outerJoin.getPrefixB());
+            newHeader =
+                    RowUtils.constructNewHead(
+                            headerA, headerB, outerJoin.getPrefixA(), outerJoin.getPrefixB());
             for (int indexA = 0; indexA < rowsA.size(); indexA++) {
                 Row rowA = rowsA.get(indexA);
                 for (int indexB = 0; indexB < rowsB.size(); indexB++) {
@@ -1120,11 +1252,23 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         } else { // Join condition: natural or using
             Pair<int[], Header> pair;
             if (outerType == OuterJoinType.RIGHT) {
-                pair = RowUtils.constructNewHead(headerA, headerB, outerJoin.getPrefixA(),
-                    outerJoin.getPrefixB(), joinColumns, false);
+                pair =
+                        RowUtils.constructNewHead(
+                                headerA,
+                                headerB,
+                                outerJoin.getPrefixA(),
+                                outerJoin.getPrefixB(),
+                                joinColumns,
+                                false);
             } else {
-                pair = RowUtils.constructNewHead(headerA, headerB, outerJoin.getPrefixA(),
-                    outerJoin.getPrefixB(), joinColumns, true);
+                pair =
+                        RowUtils.constructNewHead(
+                                headerA,
+                                headerB,
+                                outerJoin.getPrefixA(),
+                                outerJoin.getPrefixB(),
+                                joinColumns,
+                                true);
             }
             int[] indexOfJoinColumnInTable = pair.getK();
             newHeader = pair.getV();
@@ -1135,21 +1279,23 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
                 for (int indexB = 0; indexB < rowsB.size(); indexB++) {
                     Row rowB = rowsB.get(indexB);
                     for (String joinColumn : joinColumns) {
-                        if (ValueUtils
-                            .compare(rowA.getAsValue(outerJoin.getPrefixA() + '.' + joinColumn),
-                                rowB.getAsValue(outerJoin.getPrefixB() + '.' + joinColumn)) != 0) {
+                        if (ValueUtils.compare(
+                                        rowA.getAsValue(outerJoin.getPrefixA() + '.' + joinColumn),
+                                        rowB.getAsValue(outerJoin.getPrefixB() + '.' + joinColumn))
+                                != 0) {
                             continue flag;
                         }
                     }
 
                     Row joinedRow;
                     if (outerType == OuterJoinType.RIGHT) {
-                        joinedRow = RowUtils
-                            .constructNewRow(newHeader, rowA, rowB, indexOfJoinColumnInTable,
-                                false);
+                        joinedRow =
+                                RowUtils.constructNewRow(
+                                        newHeader, rowA, rowB, indexOfJoinColumnInTable, false);
                     } else {
-                        joinedRow = RowUtils
-                            .constructNewRow(newHeader, rowA, rowB, indexOfJoinColumnInTable, true);
+                        joinedRow =
+                                RowUtils.constructNewRow(
+                                        newHeader, rowA, rowB, indexOfJoinColumnInTable, true);
                     }
 
                     if (!bitmapA.get(indexA)) {
@@ -1164,29 +1310,35 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
             }
         }
         if (outerType == OuterJoinType.FULL || outerType == OuterJoinType.LEFT) {
-            int anotherRowSize = headerB.hasKey() ? rowsB.get(0).getValues().length + 1
-                : rowsB.get(0).getValues().length;
+            int anotherRowSize =
+                    headerB.hasKey()
+                            ? rowsB.get(0).getValues().length + 1
+                            : rowsB.get(0).getValues().length;
             if (filter == null) {
                 anotherRowSize -= joinColumns.size();
             }
             for (int i = 0; i < rowsA.size(); i++) {
                 if (!bitmapA.get(i)) {
-                    Row unmatchedRow = RowUtils
-                        .constructUnmatchedRow(newHeader, rowsA.get(i), anotherRowSize, true);
+                    Row unmatchedRow =
+                            RowUtils.constructUnmatchedRow(
+                                    newHeader, rowsA.get(i), anotherRowSize, true);
                     transformedRows.add(unmatchedRow);
                 }
             }
         }
         if (outerType == OuterJoinType.FULL || outerType == OuterJoinType.RIGHT) {
-            int anotherRowSize = headerA.hasKey() ? rowsA.get(0).getValues().length + 1
-                : rowsA.get(0).getValues().length;
+            int anotherRowSize =
+                    headerA.hasKey()
+                            ? rowsA.get(0).getValues().length + 1
+                            : rowsA.get(0).getValues().length;
             if (filter == null) {
                 anotherRowSize -= joinColumns.size();
             }
             for (int i = 0; i < rowsB.size(); i++) {
                 if (!bitmapB.get(i)) {
-                    Row unmatchedRow = RowUtils
-                        .constructUnmatchedRow(newHeader, rowsB.get(i), anotherRowSize, false);
+                    Row unmatchedRow =
+                            RowUtils.constructUnmatchedRow(
+                                    newHeader, rowsB.get(i), anotherRowSize, false);
                     transformedRows.add(unmatchedRow);
                 }
             }
@@ -1195,19 +1347,23 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     }
 
     private RowStream executeHashOuterJoin(OuterJoin outerJoin, Table tableA, Table tableB)
-        throws PhysicalException {
+            throws PhysicalException {
         OuterJoinType outerType = outerJoin.getOuterJoinType();
         Filter filter = outerJoin.getFilter();
 
         List<String> joinColumns = new ArrayList<>(outerJoin.getJoinColumns());
         if (outerJoin.isNaturalJoin()) {
-            RowUtils.fillNaturalJoinColumns(joinColumns, tableA.getHeader(), tableB.getHeader(),
-                outerJoin.getPrefixA(), outerJoin.getPrefixB());
+            RowUtils.fillNaturalJoinColumns(
+                    joinColumns,
+                    tableA.getHeader(),
+                    tableB.getHeader(),
+                    outerJoin.getPrefixA(),
+                    outerJoin.getPrefixB());
         }
-        if ((filter == null && joinColumns.isEmpty()) || (filter != null && !joinColumns
-            .isEmpty())) {
+        if ((filter == null && joinColumns.isEmpty())
+                || (filter != null && !joinColumns.isEmpty())) {
             throw new InvalidOperatorParameterException(
-                "using(or natural) and on operator cannot be used at the same time");
+                    "using(or natural) and on operator cannot be used at the same time");
         }
 
         Header headerA = tableA.getHeader();
@@ -1217,12 +1373,12 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         if (filter != null) {
             if (!filter.getType().equals(FilterType.Path)) {
                 throw new InvalidOperatorParameterException(
-                    "hash join only support one path filter yet.");
+                        "hash join only support one path filter yet.");
             }
             Pair<String, String> p = FilterUtils.getJoinColumnFromPathFilter((PathFilter) filter);
             if (p == null) {
                 throw new InvalidOperatorParameterException(
-                    "hash join only support equal path filter yet.");
+                        "hash join only support equal path filter yet.");
             }
             if (headerA.indexOf(p.k) != -1 && headerB.indexOf(p.v) != -1) {
                 joinColumnA = p.k.replaceFirst(outerJoin.getPrefixA() + '.', "");
@@ -1236,10 +1392,10 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         } else {
             if (joinColumns.size() != 1) {
                 throw new InvalidOperatorParameterException(
-                    "hash join only support the number of join column is one yet.");
+                        "hash join only support the number of join column is one yet.");
             }
             if (headerA.indexOf(outerJoin.getPrefixA() + '.' + joinColumns.get(0)) != -1
-                && headerB.indexOf(outerJoin.getPrefixB() + '.' + joinColumns.get(0)) != -1) {
+                    && headerB.indexOf(outerJoin.getPrefixB() + '.' + joinColumns.get(0)) != -1) {
                 joinColumnA = joinColumnB = joinColumns.get(0);
             } else {
                 throw new InvalidOperatorParameterException("invalid hash join column input.");
@@ -1279,9 +1435,11 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
                 hash = value.getValue().hashCode();
             }
             List<Row> l =
-                rowsBHashMap.containsKey(hash) ? rowsBHashMap.get(hash) : new ArrayList<>();
+                    rowsBHashMap.containsKey(hash) ? rowsBHashMap.get(hash) : new ArrayList<>();
             List<Integer> il =
-                rowsBHashMap.containsKey(hash) ? indexOfRowBHashMap.get(hash) : new ArrayList<>();
+                    rowsBHashMap.containsKey(hash)
+                            ? indexOfRowBHashMap.get(hash)
+                            : new ArrayList<>();
             l.add(rowsB.get(indexB));
             il.add(indexB);
             rowsBHashMap.put(hash, l);
@@ -1291,8 +1449,9 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         Header newHeader;
         List<Row> transformedRows = new ArrayList<>();
         if (filter != null) { // Join condition: on
-            newHeader = RowUtils
-                .constructNewHead(headerA, headerB, outerJoin.getPrefixA(), outerJoin.getPrefixB());
+            newHeader =
+                    RowUtils.constructNewHead(
+                            headerA, headerB, outerJoin.getPrefixA(), outerJoin.getPrefixB());
             for (int indexA = 0; indexA < rowsA.size(); indexA++) {
                 Row rowA = rowsA.get(indexA);
                 Value value = rowA.getAsValue(outerJoin.getPrefixA() + '.' + joinColumnA);
@@ -1330,11 +1489,23 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         } else { // Join condition: natural or using
             Pair<int[], Header> pair;
             if (outerType == OuterJoinType.RIGHT) {
-                pair = RowUtils.constructNewHead(headerA, headerB, outerJoin.getPrefixA(),
-                    outerJoin.getPrefixB(), Collections.singletonList(joinColumnA), false);
+                pair =
+                        RowUtils.constructNewHead(
+                                headerA,
+                                headerB,
+                                outerJoin.getPrefixA(),
+                                outerJoin.getPrefixB(),
+                                Collections.singletonList(joinColumnA),
+                                false);
             } else {
-                pair = RowUtils.constructNewHead(headerA, headerB, outerJoin.getPrefixA(),
-                    outerJoin.getPrefixB(), Collections.singletonList(joinColumnB), true);
+                pair =
+                        RowUtils.constructNewHead(
+                                headerA,
+                                headerB,
+                                outerJoin.getPrefixA(),
+                                outerJoin.getPrefixB(),
+                                Collections.singletonList(joinColumnB),
+                                true);
             }
             int[] indexOfJoinColumnInTable = pair.getK();
             newHeader = pair.getV();
@@ -1361,11 +1532,21 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
                     for (int i = 0; i < hashRowsB.size(); i++) {
                         Row joinedRow;
                         if (outerType == OuterJoinType.RIGHT) {
-                            joinedRow = RowUtils.constructNewRow(newHeader, rowA, hashRowsB.get(i),
-                                indexOfJoinColumnInTable, false);
+                            joinedRow =
+                                    RowUtils.constructNewRow(
+                                            newHeader,
+                                            rowA,
+                                            hashRowsB.get(i),
+                                            indexOfJoinColumnInTable,
+                                            false);
                         } else {
-                            joinedRow = RowUtils.constructNewRow(newHeader, rowA, hashRowsB.get(i),
-                                indexOfJoinColumnInTable, true);
+                            joinedRow =
+                                    RowUtils.constructNewRow(
+                                            newHeader,
+                                            rowA,
+                                            hashRowsB.get(i),
+                                            indexOfJoinColumnInTable,
+                                            true);
                         }
 
                         int indexB = hashIndexB.get(i);
@@ -1382,29 +1563,35 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
             }
         }
         if (outerType == OuterJoinType.FULL || outerType == OuterJoinType.LEFT) {
-            int anotherRowSize = headerB.hasKey() ? rowsB.get(0).getValues().length + 1
-                : rowsB.get(0).getValues().length;
+            int anotherRowSize =
+                    headerB.hasKey()
+                            ? rowsB.get(0).getValues().length + 1
+                            : rowsB.get(0).getValues().length;
             if (filter == null) {
                 anotherRowSize -= joinColumns.size();
             }
             for (int i = 0; i < rowsA.size(); i++) {
                 if (!bitmapA.get(i)) {
-                    Row unMatchedRow = RowUtils
-                        .constructUnmatchedRow(newHeader, rowsA.get(i), anotherRowSize, true);
+                    Row unMatchedRow =
+                            RowUtils.constructUnmatchedRow(
+                                    newHeader, rowsA.get(i), anotherRowSize, true);
                     transformedRows.add(unMatchedRow);
                 }
             }
         }
         if (outerType == OuterJoinType.FULL || outerType == OuterJoinType.RIGHT) {
-            int anotherRowSize = headerA.hasKey() ? rowsA.get(0).getValues().length + 1
-                : rowsA.get(0).getValues().length;
+            int anotherRowSize =
+                    headerA.hasKey()
+                            ? rowsA.get(0).getValues().length + 1
+                            : rowsA.get(0).getValues().length;
             if (filter == null) {
                 anotherRowSize -= joinColumns.size();
             }
             for (int i = 0; i < rowsB.size(); i++) {
                 if (!bitmapB.get(i)) {
-                    Row unMatchedRow = RowUtils
-                        .constructUnmatchedRow(newHeader, rowsB.get(i), anotherRowSize, false);
+                    Row unMatchedRow =
+                            RowUtils.constructUnmatchedRow(
+                                    newHeader, rowsB.get(i), anotherRowSize, false);
                     transformedRows.add(unMatchedRow);
                 }
             }
@@ -1413,7 +1600,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     }
 
     private RowStream executeSortedMergeOuterJoin(OuterJoin outerJoin, Table tableA, Table tableB)
-        throws PhysicalException {
+            throws PhysicalException {
         OuterJoinType outerType = outerJoin.getOuterJoinType();
         Filter filter = outerJoin.getFilter();
         List<String> joinColumns = new ArrayList<>(outerJoin.getJoinColumns());
@@ -1422,14 +1609,14 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         if (outerJoin.isNaturalJoin()) {
             if (!joinColumns.isEmpty()) {
                 throw new InvalidOperatorParameterException(
-                    "natural inner join operator should not have using operator");
+                        "natural inner join operator should not have using operator");
             }
             for (Field fieldA : fieldsA) {
                 for (Field fieldB : fieldsB) {
-                    String joinColumnA = fieldA.getName()
-                        .replaceFirst(outerJoin.getPrefixA() + '.', "");
-                    String joinColumnB = fieldB.getName()
-                        .replaceFirst(outerJoin.getPrefixB() + '.', "");
+                    String joinColumnA =
+                            fieldA.getName().replaceFirst(outerJoin.getPrefixA() + '.', "");
+                    String joinColumnB =
+                            fieldB.getName().replaceFirst(outerJoin.getPrefixB() + '.', "");
                     if (joinColumnA.equals(joinColumnB)) {
                         joinColumns.add(joinColumnA);
                     }
@@ -1439,10 +1626,10 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
                 throw new PhysicalException("natural join has no matching columns");
             }
         }
-        if ((filter == null && joinColumns.isEmpty()) || (filter != null && !joinColumns
-            .isEmpty())) {
+        if ((filter == null && joinColumns.isEmpty())
+                || (filter != null && !joinColumns.isEmpty())) {
             throw new InvalidOperatorParameterException(
-                "using(or natural) and on operator cannot be used at the same time");
+                    "using(or natural) and on operator cannot be used at the same time");
         }
         Header headerA = tableA.getHeader();
         Header headerB = tableB.getHeader();
@@ -1457,7 +1644,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
             List<Pair<String, String>> pairs = FilterUtils.getJoinColumnsFromFilter(filter);
             if (pairs.isEmpty()) {
                 throw new InvalidOperatorParameterException(
-                    "on condition in join operator has no join columns.");
+                        "on condition in join operator has no join columns.");
             }
             for (Pair<String, String> p : pairs) {
                 if (headerA.indexOf(p.k) != -1 && headerB.indexOf(p.v) != -1) {
@@ -1477,10 +1664,10 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         int flagB = RowUtils.checkRowsSortedByColumns(rowsB, outerJoin.getPrefixB(), joinColumnsB);
         if (flagA == -1 || flagB == -1) {
             throw new InvalidOperatorParameterException(
-                "input rows in merge join haven't be sorted.");
+                    "input rows in merge join haven't be sorted.");
         } else if (flagA + flagB == 3) {
             throw new InvalidOperatorParameterException(
-                "input two rows in merge join shouldn't have different sort order.");
+                    "input two rows in merge join shouldn't have different sort order.");
         } else if ((flagA == flagB)) {
             isAscendingSorted = flagA == 0 || flagA == 1;
         } else {
@@ -1501,18 +1688,25 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         Header newHeader;
         List<Row> transformedRows = new ArrayList<>();
         if (filter != null) {
-            newHeader = RowUtils
-                .constructNewHead(headerA, headerB, outerJoin.getPrefixA(), outerJoin.getPrefixB());
+            newHeader =
+                    RowUtils.constructNewHead(
+                            headerA, headerB, outerJoin.getPrefixA(), outerJoin.getPrefixB());
             int indexA = 0;
             int indexB = 0;
             int startIndexOfContinuousEqualValuesB = 0;
             while (indexA < rowsA.size() && indexB < rowsB.size()) {
-                int flagAEqualB = RowUtils
-                    .compareRowsSortedByColumns(rowsA.get(indexA), rowsB.get(indexB),
-                        outerJoin.getPrefixA(), outerJoin.getPrefixB(), joinColumnsA, joinColumnsB);
+                int flagAEqualB =
+                        RowUtils.compareRowsSortedByColumns(
+                                rowsA.get(indexA),
+                                rowsB.get(indexB),
+                                outerJoin.getPrefixA(),
+                                outerJoin.getPrefixB(),
+                                joinColumnsA,
+                                joinColumnsB);
                 if (flagAEqualB == 0) {
-                    Row joinedRow = RowUtils
-                        .constructNewRow(newHeader, rowsA.get(indexA), rowsB.get(indexB));
+                    Row joinedRow =
+                            RowUtils.constructNewRow(
+                                    newHeader, rowsA.get(indexA), rowsB.get(indexB));
                     if (FilterUtils.validate(filter, joinedRow)) {
                         if (!bitmapA.get(indexA)) {
                             bitmapA.mark(indexA);
@@ -1534,14 +1728,22 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
                             indexA++;
                             indexB = startIndexOfContinuousEqualValuesB;
                         } else {
-                            int flagAEqualNextA = RowUtils
-                                .compareRowsSortedByColumns(rowsA.get(indexA),
-                                    rowsA.get(indexA + 1), outerJoin.getPrefixA(),
-                                    outerJoin.getPrefixA(), joinColumnsA, joinColumnsA);
-                            int flagBEqualNextB = RowUtils
-                                .compareRowsSortedByColumns(rowsB.get(indexB),
-                                    rowsB.get(indexB + 1), outerJoin.getPrefixB(),
-                                    outerJoin.getPrefixB(), joinColumnsB, joinColumnsB);
+                            int flagAEqualNextA =
+                                    RowUtils.compareRowsSortedByColumns(
+                                            rowsA.get(indexA),
+                                            rowsA.get(indexA + 1),
+                                            outerJoin.getPrefixA(),
+                                            outerJoin.getPrefixA(),
+                                            joinColumnsA,
+                                            joinColumnsA);
+                            int flagBEqualNextB =
+                                    RowUtils.compareRowsSortedByColumns(
+                                            rowsB.get(indexB),
+                                            rowsB.get(indexB + 1),
+                                            outerJoin.getPrefixB(),
+                                            outerJoin.getPrefixB(),
+                                            joinColumnsB,
+                                            joinColumnsB);
                             if (flagBEqualNextB == 0) {
                                 indexB++;
                             } else {
@@ -1565,11 +1767,23 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         } else { // Join condition: natural or using
             Pair<int[], Header> pair;
             if (outerType == OuterJoinType.RIGHT) {
-                pair = RowUtils.constructNewHead(headerA, headerB, outerJoin.getPrefixA(),
-                    outerJoin.getPrefixB(), joinColumns, false);
+                pair =
+                        RowUtils.constructNewHead(
+                                headerA,
+                                headerB,
+                                outerJoin.getPrefixA(),
+                                outerJoin.getPrefixB(),
+                                joinColumns,
+                                false);
             } else {
-                pair = RowUtils.constructNewHead(headerA, headerB, outerJoin.getPrefixA(),
-                    outerJoin.getPrefixB(), joinColumns, true);
+                pair =
+                        RowUtils.constructNewHead(
+                                headerA,
+                                headerB,
+                                outerJoin.getPrefixA(),
+                                outerJoin.getPrefixB(),
+                                joinColumns,
+                                true);
             }
             int[] indexOfJoinColumnInTable = pair.getK();
             newHeader = pair.getV();
@@ -1577,19 +1791,32 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
             int indexB = 0;
             int startIndexOfContinuousEqualValuesB = 0;
             while (indexA < rowsA.size() && indexB < rowsB.size()) {
-                int flagAEqualB = RowUtils
-                    .compareRowsSortedByColumns(rowsA.get(indexA), rowsB.get(indexB),
-                        outerJoin.getPrefixA(), outerJoin.getPrefixB(), joinColumnsA, joinColumnsB);
+                int flagAEqualB =
+                        RowUtils.compareRowsSortedByColumns(
+                                rowsA.get(indexA),
+                                rowsB.get(indexB),
+                                outerJoin.getPrefixA(),
+                                outerJoin.getPrefixB(),
+                                joinColumnsA,
+                                joinColumnsB);
                 if (flagAEqualB == 0) {
                     Row joinedRow;
                     if (outerType == OuterJoinType.RIGHT) {
-                        joinedRow = RowUtils
-                            .constructNewRow(newHeader, rowsA.get(indexA), rowsB.get(indexB),
-                                indexOfJoinColumnInTable, false);
+                        joinedRow =
+                                RowUtils.constructNewRow(
+                                        newHeader,
+                                        rowsA.get(indexA),
+                                        rowsB.get(indexB),
+                                        indexOfJoinColumnInTable,
+                                        false);
                     } else {
-                        joinedRow = RowUtils
-                            .constructNewRow(newHeader, rowsA.get(indexA), rowsB.get(indexB),
-                                indexOfJoinColumnInTable, true);
+                        joinedRow =
+                                RowUtils.constructNewRow(
+                                        newHeader,
+                                        rowsA.get(indexA),
+                                        rowsB.get(indexB),
+                                        indexOfJoinColumnInTable,
+                                        true);
                     }
 
                     if (!bitmapA.get(indexA)) {
@@ -1600,14 +1827,22 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
                     }
                     transformedRows.add(joinedRow);
 
-                    int flagAEqualNextA = RowUtils
-                        .compareRowsSortedByColumns(rowsA.get(indexA), rowsA.get(indexA + 1),
-                            outerJoin.getPrefixA(), outerJoin.getPrefixA(), joinColumnsA,
-                            joinColumnsA);
-                    int flagBEqualNextB = RowUtils
-                        .compareRowsSortedByColumns(rowsB.get(indexB), rowsB.get(indexB + 1),
-                            outerJoin.getPrefixB(), outerJoin.getPrefixB(), joinColumnsB,
-                            joinColumnsB);
+                    int flagAEqualNextA =
+                            RowUtils.compareRowsSortedByColumns(
+                                    rowsA.get(indexA),
+                                    rowsA.get(indexA + 1),
+                                    outerJoin.getPrefixA(),
+                                    outerJoin.getPrefixA(),
+                                    joinColumnsA,
+                                    joinColumnsA);
+                    int flagBEqualNextB =
+                            RowUtils.compareRowsSortedByColumns(
+                                    rowsB.get(indexB),
+                                    rowsB.get(indexB + 1),
+                                    outerJoin.getPrefixB(),
+                                    outerJoin.getPrefixB(),
+                                    joinColumnsB,
+                                    joinColumnsB);
                     if (flagBEqualNextB == 0) {
                         indexB++;
                     } else {
@@ -1635,29 +1870,35 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         }
 
         if (outerType == OuterJoinType.FULL || outerType == OuterJoinType.LEFT) {
-            int anotherRowSize = headerB.hasKey() ? rowsB.get(0).getValues().length + 1
-                : rowsB.get(0).getValues().length;
+            int anotherRowSize =
+                    headerB.hasKey()
+                            ? rowsB.get(0).getValues().length + 1
+                            : rowsB.get(0).getValues().length;
             if (filter == null) {
                 anotherRowSize -= joinColumns.size();
             }
             for (int i = 0; i < rowsA.size(); i++) {
                 if (!bitmapA.get(i)) {
-                    Row unMatchedRow = RowUtils
-                        .constructUnmatchedRow(newHeader, rowsA.get(i), anotherRowSize, true);
+                    Row unMatchedRow =
+                            RowUtils.constructUnmatchedRow(
+                                    newHeader, rowsA.get(i), anotherRowSize, true);
                     transformedRows.add(unMatchedRow);
                 }
             }
         }
         if (outerType == OuterJoinType.FULL || outerType == OuterJoinType.RIGHT) {
-            int anotherRowSize = headerA.hasKey() ? rowsA.get(0).getValues().length + 1
-                : rowsA.get(0).getValues().length;
+            int anotherRowSize =
+                    headerA.hasKey()
+                            ? rowsA.get(0).getValues().length + 1
+                            : rowsA.get(0).getValues().length;
             if (filter == null) {
                 anotherRowSize -= joinColumns.size();
             }
             for (int i = 0; i < rowsB.size(); i++) {
                 if (!bitmapB.get(i)) {
-                    Row unMatchedRow = RowUtils
-                        .constructUnmatchedRow(newHeader, rowsB.get(i), anotherRowSize, false);
+                    Row unMatchedRow =
+                            RowUtils.constructUnmatchedRow(
+                                    newHeader, rowsB.get(i), anotherRowSize, false);
                     transformedRows.add(unMatchedRow);
                 }
             }
@@ -1679,12 +1920,12 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     }
 
     private RowStream executeNestedLoopSingleJoin(SingleJoin singleJoin, Table tableA, Table tableB)
-        throws PhysicalException {
+            throws PhysicalException {
         Header newHeader = RowUtils.constructNewHead(tableA.getHeader(), tableB.getHeader(), true);
-    
+
         List<Row> rowsA = tableA.getRows();
         List<Row> rowsB = tableB.getRows();
-    
+
         List<Row> transformedRows = new ArrayList<>();
         Filter filter = singleJoin.getFilter();
         boolean matched;
@@ -1698,12 +1939,14 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
                         matched = true;
                         transformedRows.add(joinedRow);
                     } else {
-                        throw new PhysicalException("the return value of sub-query has more than one rows");
+                        throw new PhysicalException(
+                                "the return value of sub-query has more than one rows");
                     }
                 }
             }
             if (!matched) {
-                Row unmatchedRow = RowUtils.constructUnmatchedRow(newHeader, rowA, anotherRowSize, true);
+                Row unmatchedRow =
+                        RowUtils.constructUnmatchedRow(newHeader, rowA, anotherRowSize, true);
                 transformedRows.add(unmatchedRow);
             }
         }
@@ -1713,7 +1956,9 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     private RowStream executeHashSingleJoin(SingleJoin singleJoin, Table tableA, Table tableB)
             throws PhysicalException {
         Header newHeader = RowUtils.constructNewHead(tableA.getHeader(), tableB.getHeader(), true);
-        Pair<String, String> joinPath = getJoinPathFromFilter(singleJoin.getFilter(), tableA.getHeader(), tableB.getHeader());
+        Pair<String, String> joinPath =
+                getJoinPathFromFilter(
+                        singleJoin.getFilter(), tableA.getHeader(), tableB.getHeader());
         String joinPathA = joinPath.k;
         String joinPathB = joinPath.v;
 
@@ -1731,7 +1976,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         }
 
         HashMap<Integer, List<Row>> rowsBHashMap = new HashMap<>();
-        for (Row rowB: rowsB) {
+        for (Row rowB : rowsB) {
             Value value = rowB.getAsValue(joinPathB);
             if (value == null) {
                 continue;
@@ -1745,7 +1990,8 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
             } else {
                 hash = value.getValue().hashCode();
             }
-            List<Row> l = rowsBHashMap.containsKey(hash) ? rowsBHashMap.get(hash) : new ArrayList<>();
+            List<Row> l =
+                    rowsBHashMap.containsKey(hash) ? rowsBHashMap.get(hash) : new ArrayList<>();
             l.add(rowB);
             rowsBHashMap.put(hash, l);
         }
@@ -1770,13 +2016,16 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
             if (rowsBHashMap.containsKey(hash)) {
                 List<Row> hashRowsB = rowsBHashMap.get(hash);
                 if (hashRowsB.size() == 1) {
-                    Row joinedRow = RowUtils.constructNewRow(newHeader, rowA, hashRowsB.get(0), true);
+                    Row joinedRow =
+                            RowUtils.constructNewRow(newHeader, rowA, hashRowsB.get(0), true);
                     transformedRows.add(joinedRow);
                 } else {
-                    throw new PhysicalException("the return value of sub-query has more than one rows");
+                    throw new PhysicalException(
+                            "the return value of sub-query has more than one rows");
                 }
             } else {
-                Row unmatchedRow = RowUtils.constructUnmatchedRow(newHeader, rowA, anotherRowSize, true);
+                Row unmatchedRow =
+                        RowUtils.constructUnmatchedRow(newHeader, rowA, anotherRowSize, true);
                 transformedRows.add(unmatchedRow);
             }
         }
@@ -1797,9 +2046,10 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     }
 
     private RowStream executeNestedLoopMarkJoin(MarkJoin markJoin, Table tableA, Table tableB)
-        throws PhysicalException {
+            throws PhysicalException {
         Header targetHeader = constructNewHead(tableA.getHeader(), markJoin.getMarkColumn());
-        Header joinHeader = RowUtils.constructNewHead(tableA.getHeader(), tableB.getHeader(), true);;
+        Header joinHeader = RowUtils.constructNewHead(tableA.getHeader(), tableB.getHeader(), true);
+        ;
 
         List<Row> rowsA = tableA.getRows();
         List<Row> rowsB = tableB.getRows();
@@ -1807,19 +2057,22 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         List<Row> transformedRows = new ArrayList<>();
         Filter filter = markJoin.getFilter();
         boolean matched;
-        for (Row rowA: rowsA) {
+        for (Row rowA : rowsA) {
             matched = false;
-            for (Row rowB: rowsB) {
+            for (Row rowB : rowsB) {
                 Row joinedRow = RowUtils.constructNewRow(joinHeader, rowA, rowB, true);
                 if (FilterUtils.validate(filter, joinedRow)) {
                     matched = true;
-                    Row returnRow = RowUtils.constructNewRowWithMark(targetHeader, rowA, !markJoin.isAntiJoin());
+                    Row returnRow =
+                            RowUtils.constructNewRowWithMark(
+                                    targetHeader, rowA, !markJoin.isAntiJoin());
                     transformedRows.add(returnRow);
                     break;
                 }
             }
             if (!matched) {
-                Row unmatchedRow = RowUtils.constructNewRowWithMark(targetHeader, rowA, markJoin.isAntiJoin());
+                Row unmatchedRow =
+                        RowUtils.constructNewRowWithMark(targetHeader, rowA, markJoin.isAntiJoin());
                 transformedRows.add(unmatchedRow);
             }
         }
@@ -1829,7 +2082,8 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     private RowStream executeHashMarkJoin(MarkJoin markJoin, Table tableA, Table tableB)
             throws PhysicalException {
         Header newHeader = constructNewHead(tableA.getHeader(), markJoin.getMarkColumn());
-        Pair<String, String> joinPath = getJoinPathFromFilter(markJoin.getFilter(), tableA.getHeader(), tableB.getHeader());
+        Pair<String, String> joinPath =
+                getJoinPathFromFilter(markJoin.getFilter(), tableA.getHeader(), tableB.getHeader());
         String joinPathA = joinPath.k;
         String joinPathB = joinPath.v;
 
@@ -1847,7 +2101,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         }
 
         HashMap<Integer, List<Row>> rowsBHashMap = new HashMap<>();
-        for (Row rowB: rowsB) {
+        for (Row rowB : rowsB) {
             Value value = rowB.getAsValue(joinPathB);
             if (value == null) {
                 continue;
@@ -1861,7 +2115,8 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
             } else {
                 hash = value.getValue().hashCode();
             }
-            List<Row> l = rowsBHashMap.containsKey(hash) ? rowsBHashMap.get(hash) : new ArrayList<>();
+            List<Row> l =
+                    rowsBHashMap.containsKey(hash) ? rowsBHashMap.get(hash) : new ArrayList<>();
             l.add(rowB);
             rowsBHashMap.put(hash, l);
         }
@@ -1883,10 +2138,12 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
             }
 
             if (rowsBHashMap.containsKey(hash)) {
-                Row returnRow = RowUtils.constructNewRowWithMark(newHeader, rowA, !markJoin.isAntiJoin());
+                Row returnRow =
+                        RowUtils.constructNewRowWithMark(newHeader, rowA, !markJoin.isAntiJoin());
                 transformedRows.add(returnRow);
             } else {
-                Row unmatchedRow = RowUtils.constructNewRowWithMark(newHeader, rowA, markJoin.isAntiJoin());
+                Row unmatchedRow =
+                        RowUtils.constructNewRowWithMark(newHeader, rowA, markJoin.isAntiJoin());
                 transformedRows.add(unmatchedRow);
             }
         }
@@ -1904,7 +2161,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     }
 
     private RowStream executeIntersectJoin(Join join, Table tableA, Table tableB)
-        throws PhysicalException {
+            throws PhysicalException {
         Header headerA = tableA.getHeader();
         Header headerB = tableB.getHeader();
         List<Field> newFields = new ArrayList<>();
@@ -1929,7 +2186,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
             // 检查时间戳
             if (!headerA.hasKey() || !headerB.hasKey()) {
                 throw new InvalidOperatorParameterException(
-                    "row streams for join operator by time should have timestamp.");
+                        "row streams for join operator by time should have timestamp.");
             }
             Header newHeader = new Header(Field.KEY, newFields);
             List<Row> newRows = new ArrayList<>();
@@ -1974,7 +2231,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         } else if (join.getJoinBy().equals(Constants.ORDINAL)) {
             if (headerA.hasKey() || headerB.hasKey()) {
                 throw new InvalidOperatorParameterException(
-                    "row streams for join operator by ordinal shouldn't have timestamp.");
+                        "row streams for join operator by ordinal shouldn't have timestamp.");
             }
             Header newHeader = new Header(newFields);
             List<Row> newRows = new ArrayList<>();
@@ -2005,20 +2262,23 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
             return new Table(newHeader, newRows);
         } else {
             throw new InvalidOperatorParameterException(
-                "join operator is not support for field " + join.getJoinBy() + " except for "
-                    + Constants.KEY
-                    + " and " + Constants.ORDINAL);
+                    "join operator is not support for field "
+                            + join.getJoinBy()
+                            + " except for "
+                            + Constants.KEY
+                            + " and "
+                            + Constants.ORDINAL);
         }
     }
 
     private RowStream executeUnion(Union union, Table tableA, Table tableB)
-        throws PhysicalException {
+            throws PhysicalException {
         // 检查时间是否一致
         Header headerA = tableA.getHeader();
         Header headerB = tableB.getHeader();
         if (headerA.hasKey() ^ headerB.hasKey()) {
             throw new InvalidOperatorParameterException(
-                "row stream to be union must have same fields");
+                    "row stream to be union must have same fields");
         }
         boolean hasTimestamp = headerA.hasKey();
         Set<Field> targetFieldSet = new HashSet<>();
@@ -2061,11 +2321,9 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
 
     private static class NaiveOperatorMemoryExecutorHolder {
 
-        private static final NaiveOperatorMemoryExecutor INSTANCE = new NaiveOperatorMemoryExecutor();
+        private static final NaiveOperatorMemoryExecutor INSTANCE =
+                new NaiveOperatorMemoryExecutor();
 
-        private NaiveOperatorMemoryExecutorHolder() {
-        }
-
+        private NaiveOperatorMemoryExecutorHolder() {}
     }
-
 }

@@ -41,9 +41,6 @@ public class Column {
 
     @Override
     public String toString() {
-        return "Column{" +
-                "path='" + path + '\'' +
-                ", dataType=" + dataType +
-                '}';
+        return "Column{" + "path='" + path + '\'' + ", dataType=" + dataType + '}';
     }
 }

@@ -155,6 +155,7 @@ $ cd IGinX
 ## oneShot 镜像
 
 对于 oneShot 镜像，其构建方法并运行如下：
+
 ```shell
 $ cd docker/oneShot
 $ ./build_and_run_iginx_docker.sh
@@ -194,6 +195,7 @@ Use 'docker scan' to run Snyk tests against images to find vulnerabilities and l
 ## onlyIginx 镜像
 
 对于 oneShot 镜像，其构建方法如下：
+
 ```shell
 $ cd docker/onlyIginx
 $ ./build_iginx_docker.sh

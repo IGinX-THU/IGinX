@@ -18,9 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.task;
 
-
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
-
 import java.util.List;
 
 public interface PhysicalTask extends Measurable {
@@ -38,5 +36,4 @@ public interface PhysicalTask extends Measurable {
     void setFollowerTask(PhysicalTask task);
 
     String getInfo();
-
 }

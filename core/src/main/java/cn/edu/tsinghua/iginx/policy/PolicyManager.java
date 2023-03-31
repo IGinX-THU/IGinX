@@ -1,12 +1,11 @@
 package cn.edu.tsinghua.iginx.policy;
 
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PolicyManager {
 
@@ -30,11 +29,19 @@ public class PolicyManager {
             policy = policies.get(policyClassName);
             if (policy == null) {
                 try {
-                    Class<? extends IPolicy> clazz = this.getClass().getClassLoader().loadClass(policyClassName).asSubclass(IPolicy.class);
+                    Class<? extends IPolicy> clazz =
+                            this.getClass()
+                                    .getClassLoader()
+                                    .loadClass(policyClassName)
+                                    .asSubclass(IPolicy.class);
                     policy = clazz.getConstructor().newInstance();
                     policy.init(DefaultMetaManager.getInstance());
                     policies.put(policyClassName, policy);
-                } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
+                } catch (ClassNotFoundException
+                        | InstantiationException
+                        | IllegalAccessException
+                        | NoSuchMethodException
+                        | InvocationTargetException e) {
                     logger.error(e.getMessage());
                 }
             }

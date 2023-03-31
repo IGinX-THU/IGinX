@@ -18,6 +18,8 @@
  */
 package cn.edu.tsinghua.iginx.rest;
 
+import static cn.edu.tsinghua.iginx.utils.ByteUtils.getByteArrayFromLongArray;
+
 import cn.edu.tsinghua.iginx.IginxWorker;
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
@@ -31,16 +33,13 @@ import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.ByteUtils;
 import cn.edu.tsinghua.iginx.utils.RpcUtils;
 import cn.edu.tsinghua.iginx.utils.TimeUtils;
-import org.apache.commons.lang3.ArrayUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-
-import static cn.edu.tsinghua.iginx.utils.ByteUtils.getByteArrayFromLongArray;
+import org.apache.commons.lang3.ArrayUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RestSession {
     private static final Logger logger = LoggerFactory.getLogger(RestSession.class);
@@ -60,7 +59,6 @@ public class RestSession {
         this.username = config.getUsername();
         this.password = config.getPassword();
     }
-
 
     private OpenSessionResp tryOpenSession() {
         client = IginxWorker.getInstance();
@@ -88,10 +86,10 @@ public class RestSession {
                 break;
             }
 
-
             String[] targetAddress = resp.status.getMessage().split(":");
             if (targetAddress.length != 2) {
-                throw new SessionException("unexpected redirect address " + resp.status.getMessage());
+                throw new SessionException(
+                        "unexpected redirect address " + resp.status.getMessage());
             }
             logger.info("当前请求将被重定向到：" + resp.status.getMessage());
             redirectTimes += 1;
@@ -121,9 +119,11 @@ public class RestSession {
         return false;
     }
 
-    public void addStorageEngine(String ip, int port, String type, Map<String, String> extraParams) throws ExecutionException {
+    public void addStorageEngine(String ip, int port, String type, Map<String, String> extraParams)
+            throws ExecutionException {
         StorageEngine storageEngine = new StorageEngine(ip, port, type, extraParams);
-        AddStorageEnginesReq req = new AddStorageEnginesReq(sessionId, Collections.singletonList(storageEngine));
+        AddStorageEnginesReq req =
+                new AddStorageEnginesReq(sessionId, Collections.singletonList(storageEngine));
 
         Status status;
         do {
@@ -158,14 +158,34 @@ public class RestSession {
         RpcUtils.verifySuccess(status);
     }
 
-    public void insertNonAlignedColumnRecords(List<String> paths, long[] timestamps, Object[] valuesList,
-                                              List<DataType> dataTypeList, List<Map<String, String>> tagsList) throws ExecutionException {
-        insertNonAlignedColumnRecords(paths, timestamps, valuesList, dataTypeList, tagsList, TimeUtils.DEFAULT_TIMESTAMP_PRECISION);
+    public void insertNonAlignedColumnRecords(
+            List<String> paths,
+            long[] timestamps,
+            Object[] valuesList,
+            List<DataType> dataTypeList,
+            List<Map<String, String>> tagsList)
+            throws ExecutionException {
+        insertNonAlignedColumnRecords(
+                paths,
+                timestamps,
+                valuesList,
+                dataTypeList,
+                tagsList,
+                TimeUtils.DEFAULT_TIMESTAMP_PRECISION);
     }
 
-    public void insertNonAlignedColumnRecords(List<String> paths, long[] timestamps, Object[] valuesList,
-                                              List<DataType> dataTypeList, List<Map<String, String>> tagsList, TimePrecision timePrecision) throws ExecutionException {
-        if (paths.isEmpty() || timestamps.length == 0 || valuesList.length == 0 || dataTypeList.isEmpty()) {
+    public void insertNonAlignedColumnRecords(
+            List<String> paths,
+            long[] timestamps,
+            Object[] valuesList,
+            List<DataType> dataTypeList,
+            List<Map<String, String>> tagsList,
+            TimePrecision timePrecision)
+            throws ExecutionException {
+        if (paths.isEmpty()
+                || timestamps.length == 0
+                || valuesList.length == 0
+                || dataTypeList.isEmpty()) {
             logger.error("Invalid insert request!");
             return;
         }
@@ -174,7 +194,8 @@ public class RestSession {
             return;
         }
         if (tagsList != null && paths.size() != tagsList.size()) {
-            logger.error("The sizes of paths, valuesList, dataTypeList and tagsList should be equal.");
+            logger.error(
+                    "The sizes of paths, valuesList, dataTypeList and tagsList should be equal.");
             return;
         }
 
@@ -182,7 +203,9 @@ public class RestSession {
         for (int i = 0; i < timestamps.length; i++) {
             index[i] = i;
         }
-        Arrays.sort(index, Comparator.comparingLong(Arrays.asList(ArrayUtils.toObject(timestamps))::get));
+        Arrays.sort(
+                index,
+                Comparator.comparingLong(Arrays.asList(ArrayUtils.toObject(timestamps))::get));
         Arrays.sort(timestamps);
         for (int i = 0; i < valuesList.length; i++) {
             Object[] values = new Object[index.length];
@@ -197,7 +220,8 @@ public class RestSession {
         for (int i = 0; i < valuesList.length; i++) {
             Object[] values = (Object[]) valuesList[i];
             if (values.length != timestamps.length) {
-                logger.error("The sizes of timestamps and the element of valuesList should be equal.");
+                logger.error(
+                        "The sizes of timestamps and the element of valuesList should be equal.");
                 return;
             }
             valueBufferList.add(ByteUtils.getColumnByteBuffer(values, dataTypeList.get(i)));
@@ -232,9 +256,18 @@ public class RestSession {
         RpcUtils.verifySuccess(status);
     }
 
-    public void insertNonAlignedRowRecords(List<String> paths, long[] timestamps, Object[] valuesList,
-                                           List<DataType> dataTypeList, List<Map<String, String>> tagsList, TimePrecision timePrecision) throws ExecutionException {
-        if (paths.isEmpty() || timestamps.length == 0 || valuesList.length == 0 || dataTypeList.isEmpty()) {
+    public void insertNonAlignedRowRecords(
+            List<String> paths,
+            long[] timestamps,
+            Object[] valuesList,
+            List<DataType> dataTypeList,
+            List<Map<String, String>> tagsList,
+            TimePrecision timePrecision)
+            throws ExecutionException {
+        if (paths.isEmpty()
+                || timestamps.length == 0
+                || valuesList.length == 0
+                || dataTypeList.isEmpty()) {
             logger.error("Invalid insert request!");
             return;
         }
@@ -247,7 +280,8 @@ public class RestSession {
             return;
         }
         if (tagsList != null && paths.size() != tagsList.size()) {
-            logger.error("The sizes of paths, valuesList, dataTypeList and tagsList should be equal.");
+            logger.error(
+                    "The sizes of paths, valuesList, dataTypeList and tagsList should be equal.");
             return;
         }
 
@@ -255,7 +289,9 @@ public class RestSession {
         for (int i = 0; i < timestamps.length; i++) {
             index[i] = i;
         }
-        Arrays.sort(index, Comparator.comparingLong(Arrays.asList(ArrayUtils.toObject(timestamps))::get));
+        Arrays.sort(
+                index,
+                Comparator.comparingLong(Arrays.asList(ArrayUtils.toObject(timestamps))::get));
         Arrays.sort(timestamps);
         Object[] sortedValuesList = new Object[valuesList.length];
         for (int i = 0; i < valuesList.length; i++) {
@@ -326,20 +362,29 @@ public class RestSession {
         RpcUtils.verifySuccess(status);
     }
 
-    public void deleteDataInColumn(String path, Map<String, List<String>> tagList, long startTime, long endTime) {
+    public void deleteDataInColumn(
+            String path, Map<String, List<String>> tagList, long startTime, long endTime) {
         List<String> paths = new ArrayList<>();
         paths.add(path);
         deleteDataInColumns(paths, tagList, startTime, endTime);
     }
 
-    public void deleteDataInColumns(List<String> paths, Map<String, List<String>> tagList, long startTime, long endTime) {
-        deleteDataInColumns(paths, tagList, startTime, endTime, TimeUtils.DEFAULT_TIMESTAMP_PRECISION);
+    public void deleteDataInColumns(
+            List<String> paths, Map<String, List<String>> tagList, long startTime, long endTime) {
+        deleteDataInColumns(
+                paths, tagList, startTime, endTime, TimeUtils.DEFAULT_TIMESTAMP_PRECISION);
     }
 
-    public void deleteDataInColumns(List<String> paths, Map<String, List<String>> tagList, long startTime, long endTime, TimePrecision timePrecision) {
-        DeleteDataInColumnsReq req = new DeleteDataInColumnsReq(sessionId, paths, startTime, endTime);
-        if (!tagList.isEmpty())//LHZ这里要全部将size改为这个empty的判断
-            req.setTagsList(tagList);
+    public void deleteDataInColumns(
+            List<String> paths,
+            Map<String, List<String>> tagList,
+            long startTime,
+            long endTime,
+            TimePrecision timePrecision) {
+        DeleteDataInColumnsReq req =
+                new DeleteDataInColumnsReq(sessionId, paths, startTime, endTime);
+        if (!tagList.isEmpty()) // LHZ这里要全部将size改为这个empty的判断
+        req.setTagsList(tagList);
         req.setTimePrecision(timePrecision);
 
         Status status;
@@ -353,18 +398,23 @@ public class RestSession {
         } while (checkRedirect(status));
     }
 
-    public SessionQueryDataSet queryData(List<String> paths, long startTime, long endTime, Map<String, List<String>> tagList) {
+    public SessionQueryDataSet queryData(
+            List<String> paths, long startTime, long endTime, Map<String, List<String>> tagList) {
         return queryData(paths, startTime, endTime, tagList);
     }
 
-    public SessionQueryDataSet queryData(List<String> paths, long startTime, long endTime, Map<String, List<String>> tagList, TimePrecision timePrecision) {
+    public SessionQueryDataSet queryData(
+            List<String> paths,
+            long startTime,
+            long endTime,
+            Map<String, List<String>> tagList,
+            TimePrecision timePrecision) {
         if (paths.isEmpty() || startTime > endTime) {
             logger.error("Invalid query request!");
             return null;
         }
         QueryDataReq req = new QueryDataReq(sessionId, paths, startTime, endTime);
-        if(tagList.size()!=0)
-            req.setTagsList(tagList);
+        if (tagList.size() != 0) req.setTagsList(tagList);
         req.setTimePrecision(timePrecision);
 
         QueryDataResp resp;
@@ -381,11 +431,18 @@ public class RestSession {
         return new SessionQueryDataSet(resp);
     }
 
-    public SessionAggregateQueryDataSet aggregateQuery(List<String> paths, long startTime, long endTime, Map<String, List<String>> tagList, AggregateType aggregateType, TimePrecision timePrecision) {
-        AggregateQueryReq req = new AggregateQueryReq(sessionId, paths, startTime, endTime, aggregateType);
+    public SessionAggregateQueryDataSet aggregateQuery(
+            List<String> paths,
+            long startTime,
+            long endTime,
+            Map<String, List<String>> tagList,
+            AggregateType aggregateType,
+            TimePrecision timePrecision) {
+        AggregateQueryReq req =
+                new AggregateQueryReq(sessionId, paths, startTime, endTime, aggregateType);
         req.setTagsList(tagList);
         req.setTimePrecision(timePrecision);
-        
+
         AggregateQueryResp resp;
         do {
             lock.readLock().lock();
@@ -399,8 +456,17 @@ public class RestSession {
         return new SessionAggregateQueryDataSet(resp, aggregateType);
     }
 
-    public SessionQueryDataSet downsampleQuery(List<String> paths, Map<String, List<String>> tagList, long startTime, long endTime, AggregateType aggregateType, long precision, TimePrecision timePrecision) {
-        DownsampleQueryReq req = new DownsampleQueryReq(sessionId, paths, startTime, endTime, aggregateType, precision);
+    public SessionQueryDataSet downsampleQuery(
+            List<String> paths,
+            Map<String, List<String>> tagList,
+            long startTime,
+            long endTime,
+            AggregateType aggregateType,
+            long precision,
+            TimePrecision timePrecision) {
+        DownsampleQueryReq req =
+                new DownsampleQueryReq(
+                        sessionId, paths, startTime, endTime, aggregateType, precision);
         req.setTagsList(tagList);
         req.setTimePrecision(timePrecision);
 
@@ -432,7 +498,6 @@ public class RestSession {
             }
         } while (checkRedirect(resp.status));
 
-        return new SessionQueryDataSet(resp);//这个初始化方法没有定义LHZ
+        return new SessionQueryDataSet(resp); // 这个初始化方法没有定义LHZ
     }
-
 }

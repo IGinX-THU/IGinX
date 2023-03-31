@@ -13,7 +13,7 @@ public class RowStreamReader implements Reader {
 
     private final int batchSize;
 
-    private final static Logger logger = LoggerFactory.getLogger(RowStreamReader.class);
+    private static final Logger logger = LoggerFactory.getLogger(RowStreamReader.class);
 
     public RowStreamReader(RowStream rowStream, int batchSize) {
         this.rowStream = rowStream;

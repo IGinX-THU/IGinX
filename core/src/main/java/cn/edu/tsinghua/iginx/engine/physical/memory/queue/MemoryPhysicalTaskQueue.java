@@ -36,5 +36,4 @@ public interface MemoryPhysicalTaskQueue {
      * @return 距今最久的未执行的计划
      */
     MemoryPhysicalTask getTask();
-
 }

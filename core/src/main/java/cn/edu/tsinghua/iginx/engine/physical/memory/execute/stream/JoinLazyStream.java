@@ -26,7 +26,6 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Join;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -68,8 +67,13 @@ public class JoinLazyStream extends BinaryLazyStream {
             joinByOrdinal = true;
         }
         if (!joinByTime && !joinByOrdinal) {
-            throw new InvalidOperatorParameterException("join operator is not support for field " + join.getJoinBy() + " except for " + Constants.KEY
-                + " and " + Constants.ORDINAL);
+            throw new InvalidOperatorParameterException(
+                    "join operator is not support for field "
+                            + join.getJoinBy()
+                            + " except for "
+                            + Constants.KEY
+                            + " and "
+                            + Constants.ORDINAL);
         }
         Header headerA = streamA.getHeader();
         Header headerB = streamB.getHeader();
@@ -81,14 +85,14 @@ public class JoinLazyStream extends BinaryLazyStream {
         List<Field> newFields = new ArrayList<>();
         if (hasIntersect) {
             fieldIndices = new HashMap<>();
-            for (Field field: headerA.getFields()) {
+            for (Field field : headerA.getFields()) {
                 if (fieldIndices.containsKey(field)) {
                     continue;
                 }
                 fieldIndices.put(field, newFields.size());
                 newFields.add(field);
             }
-            for (Field field: headerB.getFields()) {
+            for (Field field : headerB.getFields()) {
                 if (fieldIndices.containsKey(field)) {
                     continue;
                 }
@@ -102,12 +106,14 @@ public class JoinLazyStream extends BinaryLazyStream {
 
         if (joinByTime) {
             if (!headerA.hasKey() || !headerB.hasKey()) {
-                throw new InvalidOperatorParameterException("row streams for join operator by time should have timestamp.");
+                throw new InvalidOperatorParameterException(
+                        "row streams for join operator by time should have timestamp.");
             }
             header = new Header(Field.KEY, newFields);
         } else {
             if (headerA.hasKey() || headerB.hasKey()) {
-                throw new InvalidOperatorParameterException("row streams for join operator by ordinal shouldn't have timestamp.");
+                throw new InvalidOperatorParameterException(
+                        "row streams for join operator by ordinal shouldn't have timestamp.");
             }
             header = new Header(newFields);
         }
@@ -207,6 +213,7 @@ public class JoinLazyStream extends BinaryLazyStream {
         }
         return null;
     }
+
     private void writeToNewRow(Object[] values, Row row) {
         List<Field> fields = row.getHeader().getFields();
         for (int i = 0; i < fields.size(); i++) {

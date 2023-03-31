@@ -19,7 +19,6 @@
 package cn.edu.tsinghua.iginx.engine.shared.data.write;
 
 import cn.edu.tsinghua.iginx.thrift.DataType;
-
 import java.util.List;
 import java.util.Map;
 
@@ -35,7 +34,12 @@ public abstract class DataView {
 
     protected final int endKeyIndex;
 
-    public DataView(RawData data, int startPathIndex, int endPathIndex, int startKeyIndex, int endKeyIndex) {
+    public DataView(
+            RawData data,
+            int startPathIndex,
+            int endPathIndex,
+            int startKeyIndex,
+            int endKeyIndex) {
         this.data = data;
         this.startPathIndex = startPathIndex;
         this.endPathIndex = endPathIndex;
@@ -45,18 +49,23 @@ public abstract class DataView {
 
     protected void checkPathIndexRange(int index) {
         if (index < 0 || index >= endPathIndex - startPathIndex)
-            throw new IllegalArgumentException(String.format("path index out of range [%d, %d)", 0, endPathIndex - startPathIndex));
+            throw new IllegalArgumentException(
+                    String.format(
+                            "path index out of range [%d, %d)", 0, endPathIndex - startPathIndex));
     }
 
     protected void checkTypeIndexRange(int index) {
         if (index < 0 || index >= endPathIndex - startPathIndex)
-            throw new IllegalArgumentException(String.format("type index out of range [%d, %d)", 0, endPathIndex - startPathIndex));
+            throw new IllegalArgumentException(
+                    String.format(
+                            "type index out of range [%d, %d)", 0, endPathIndex - startPathIndex));
     }
 
     protected void checkTimeIndexRange(int index) {
         if (index < 0 || index >= endKeyIndex - startKeyIndex)
-            throw new IllegalArgumentException(String.format("time index out of range [%d, %d)", 0, endKeyIndex
-                - startKeyIndex));
+            throw new IllegalArgumentException(
+                    String.format(
+                            "time index out of range [%d, %d)", 0, endKeyIndex - startKeyIndex));
     }
 
     public int getPathNum() {
@@ -94,8 +103,9 @@ public abstract class DataView {
     }
 
     public int getKeyIndex(long timestamp) {
-        return data.getKeys().contains(timestamp) ? data.getKeys().indexOf(timestamp) - startKeyIndex
-            : -1;
+        return data.getKeys().contains(timestamp)
+                ? data.getKeys().indexOf(timestamp) - startKeyIndex
+                : -1;
     }
 
     public Long getKey(int index) {
@@ -115,5 +125,4 @@ public abstract class DataView {
         }
         return tagsList.get(startPathIndex + index);
     }
-
 }

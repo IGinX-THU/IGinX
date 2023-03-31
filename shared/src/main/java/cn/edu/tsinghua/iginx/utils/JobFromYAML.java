@@ -8,9 +8,7 @@ public class JobFromYAML {
     private String exportFile;
     private String exportType;
 
-    public JobFromYAML() {
-
-    }
+    public JobFromYAML() {}
 
     public List<TaskFromYAML> getTaskList() {
         return taskList;

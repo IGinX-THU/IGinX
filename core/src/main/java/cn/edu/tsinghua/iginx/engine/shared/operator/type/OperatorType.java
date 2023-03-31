@@ -26,7 +26,7 @@ public enum OperatorType {
     // MultipleOperator[10,19]
     CombineNonQuery(10),
 
-    //isGlobalOperator[20,29]
+    // isGlobalOperator[20,29]
     ShowTimeSeries(20),
     Migration,
 
@@ -97,5 +97,4 @@ public enum OperatorType {
     public static boolean isNeedBroadcasting(OperatorType op) {
         return op == Delete || op == Insert;
     }
-
 }

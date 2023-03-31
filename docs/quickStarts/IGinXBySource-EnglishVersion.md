@@ -12,7 +12,7 @@ Currently, IGinX directly supports big data service over relational database Pos
 
 Since ZooKeeper, IGinX and IoTDB are all developed using Java, Java needs to be installed first. If a running environment of JDK >= 1.8 has been installed locally, **skip this step entirely**.
 
-1. First, visit the [official Java website] (https://www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html) to download the JDK package for your current system.
+1. First, visit the [official Java website](https://www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html) to download the JDK package for your current system.
 
 2. Installation
 
@@ -99,7 +99,7 @@ $ unzip apache-iotdb-0.12.0-server-bin.zip
 
 ### IGinX Installation
 
-Compile with source code. If you need to modify code yourself, you can use this installation method. 
+Compile with source code. If you need to modify code yourself, you can use this installation method.
 
 #### Compilation with source code
 
@@ -144,7 +144,7 @@ This may not work, which is not an immediate issue because you don't need Docker
 
 ## Launch
 
-### IoTDB 
+### IoTDB
 
 First of all, you need to launch IoTDB.
 
@@ -339,7 +339,7 @@ Below is a short tutorial on how to use it.
 
 ### RPC Interface
 
-Since the IGinX 0.5.1 version has not been released to the Maven central repository, if you want to use it, you need to manually install it to the local Maven repository. 
+Since the IGinX 0.5.1 version has not been released to the Maven central repository, if you want to use it, you need to manually install it to the local Maven repository.
 
 The specific installation method is as follows:
 
@@ -371,10 +371,9 @@ Session session = new Session("127.0.0.1", 6888, "root", "root");
 session.openSession();
 ```
 
-You can then try to insert data into IGinX. Since IGinX supports the creation of time-series when data is written for the first time, there is no need to call the relevant series creation interface in advance. IGinX provides row-style and column-style data writing interfaces. 
+You can then try to insert data into IGinX. Since IGinX supports the creation of time-series when data is written for the first time, there is no need to call the relevant series creation interface in advance. IGinX provides row-style and column-style data writing interfaces.
 
 The following is an example of using the column-style data writing interface:
-
 
 ```java
 private static void insertColumnRecords(Session session) throws SessionException, ExecutionException {

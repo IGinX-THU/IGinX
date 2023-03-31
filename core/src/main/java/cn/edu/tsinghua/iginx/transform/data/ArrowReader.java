@@ -5,13 +5,12 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.transform.api.Reader;
 import cn.edu.tsinghua.iginx.transform.utils.Constants;
 import cn.edu.tsinghua.iginx.transform.utils.TypeUtils;
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.arrow.vector.BigIntVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.types.pojo.Schema;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class ArrowReader implements Reader {
 
@@ -43,10 +42,8 @@ public class ArrowReader implements Reader {
                 hasTime = true;
             } else {
                 fieldList.add(
-                    new cn.edu.tsinghua.iginx.engine.shared.data.read.Field(
-                        field.getName(),
-                        TypeUtils.arrowTypeToDataType(field.getType()))
-                );
+                        new cn.edu.tsinghua.iginx.engine.shared.data.read.Field(
+                                field.getName(), TypeUtils.arrowTypeToDataType(field.getType())));
             }
         }
 

@@ -35,8 +35,12 @@ public class CrossJoinLazyStream extends BinaryLazyStream {
         if (hasInitialized) {
             return;
         }
-        this.header = RowUtils.constructNewHead(streamA.getHeader(), streamB.getHeader(),
-            crossJoin.getPrefixA(), crossJoin.getPrefixB());
+        this.header =
+                RowUtils.constructNewHead(
+                        streamA.getHeader(),
+                        streamB.getHeader(),
+                        crossJoin.getPrefixA(),
+                        crossJoin.getPrefixB());
         this.hasInitialized = true;
     }
 
@@ -75,7 +79,7 @@ public class CrossJoinLazyStream extends BinaryLazyStream {
                 streamBCache.add(nextB);
             } else if (curStreamBIndex < streamBCache.size()) {
                 nextB = streamBCache.get(curStreamBIndex);
-            } else {  // streamB和streamA中的一行全部匹配过了一遍
+            } else { // streamB和streamA中的一行全部匹配过了一遍
                 nextA = streamA.next();
                 curStreamBIndex = 0;
                 nextB = streamBCache.get(curStreamBIndex);

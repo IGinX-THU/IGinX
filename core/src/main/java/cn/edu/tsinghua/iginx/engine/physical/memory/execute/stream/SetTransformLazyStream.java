@@ -26,7 +26,6 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.function.SetMappingFunction;
 import cn.edu.tsinghua.iginx.engine.shared.operator.SetTransform;
-
 import java.util.Map;
 
 public class SetTransformLazyStream extends UnaryLazyStream {
@@ -70,7 +69,11 @@ public class SetTransformLazyStream extends UnaryLazyStream {
         try {
             return function.transform(stream, params);
         } catch (Exception e) {
-            throw new PhysicalTaskExecuteFailureException("encounter error when execute set mapping function " + function.getIdentifier() + ".", e);
+            throw new PhysicalTaskExecuteFailureException(
+                    "encounter error when execute set mapping function "
+                            + function.getIdentifier()
+                            + ".",
+                    e);
         }
     }
 

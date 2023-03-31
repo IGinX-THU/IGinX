@@ -4,6 +4,7 @@ public interface ProposalListener {
 
     /**
      * when proposal created, this method will be called.
+     *
      * @param key proposal key
      * @param syncProposal proposal content
      */
@@ -11,10 +12,10 @@ public interface ProposalListener {
 
     /**
      * when proposal updated, this method will be called.
+     *
      * @param key proposal key
      * @param beforeSyncProposal proposal content before update
      * @param afterSyncProposal proposal content after update
      */
     void onUpdate(String key, SyncProposal beforeSyncProposal, SyncProposal afterSyncProposal);
-
 }

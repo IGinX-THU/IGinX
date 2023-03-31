@@ -46,7 +46,8 @@ public class FormatUtils {
         return blockLine.toString();
     }
 
-    private static String buildRow(List<List<String>> cache, int rowIdx, List<Integer> maxSizeList) {
+    private static String buildRow(
+            List<List<String>> cache, int rowIdx, List<Integer> maxSizeList) {
         StringBuilder builder = new StringBuilder();
         builder.append("|");
         int maxSize;
@@ -69,7 +70,8 @@ public class FormatUtils {
     }
 
     public static String formatTime(long timestamp, String timeFormat, String timePrecision) {
-        long timeInMs = TimeUtils.getTimeInNs(timestamp, TimeUtils.strToTimePrecision(timePrecision));
+        long timeInMs =
+                TimeUtils.getTimeInNs(timestamp, TimeUtils.strToTimePrecision(timePrecision));
         return new SimpleDateFormat(timeFormat).format(timeInMs);
     }
 

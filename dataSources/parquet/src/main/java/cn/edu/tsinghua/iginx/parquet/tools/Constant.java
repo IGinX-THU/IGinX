@@ -34,7 +34,8 @@ public class Constant {
 
     public static final String INSERT_STMT_PREFIX = "INSERT INTO %s(%s) VALUES ";
 
-    public static final String CREATE_TABLE_FROM_PARQUET_STMT = "CREATE TABLE %s AS SELECT * FROM '%s'";
+    public static final String CREATE_TABLE_FROM_PARQUET_STMT =
+            "CREATE TABLE %s AS SELECT * FROM '%s'";
 
     public static final String ADD_COLUMNS_STMT = "ALTER TABLE %s ADD COLUMN %s %s";
 
@@ -50,14 +51,16 @@ public class Constant {
 
     public static final String SELECT_TIME_STMT = "SELECT time FROM '%s' ORDER BY time";
 
-    public static final String SELECT_FIRST_TIME_STMT = "SELECT time FROM '%s' order by time limit 1";
+    public static final String SELECT_FIRST_TIME_STMT =
+            "SELECT time FROM '%s' order by time limit 1";
 
-    public static final String SELECT_LAST_TIME_STMT = "SELECT time FROM '%s' order by time desc limit 1";
+    public static final String SELECT_LAST_TIME_STMT =
+            "SELECT time FROM '%s' order by time desc limit 1";
 
     public static final String SELECT_PARQUET_SCHEMA = "SELECT * FROM parquet_schema('%s')";
 
-    public static final String DELETE_DATA_STMT = "UPDATE %s SET %s=NULL WHERE time >= %s AND time <= %s";
+    public static final String DELETE_DATA_STMT =
+            "UPDATE %s SET %s=NULL WHERE time >= %s AND time <= %s";
 
     public static final String DROP_COLUMN_STMT = "ALTER TABLE %s DROP %s";
-
 }

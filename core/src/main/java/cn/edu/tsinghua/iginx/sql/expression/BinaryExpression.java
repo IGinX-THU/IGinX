@@ -26,9 +26,11 @@ public class BinaryExpression implements Expression {
 
     @Override
     public String getColumnName() {
-        return leftExpression.getColumnName() + " " +
-            Operator.operatorToString(op) + " " +
-            rightExpression.getColumnName();
+        return leftExpression.getColumnName()
+                + " "
+                + Operator.operatorToString(op)
+                + " "
+                + rightExpression.getColumnName();
     }
 
     @Override

@@ -4,7 +4,6 @@ import cn.edu.tsinghua.iginx.engine.shared.TimeRange;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.exceptions.SQLParserException;
 import cn.edu.tsinghua.iginx.metadata.entity.TimeSeriesRange;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -47,13 +46,14 @@ public class ExprUtils {
 
         List<Filter> newChildren = new ArrayList<>();
         if (childrenWithoutOr) {
-            dnfChildren.forEach(child -> {
-                if (FilterType.isLeafFilter(child.getType())) {
-                    newChildren.add(child);
-                } else {
-                    newChildren.addAll(((AndFilter) child).getChildren());
-                }
-            });
+            dnfChildren.forEach(
+                    child -> {
+                        if (FilterType.isLeafFilter(child.getType())) {
+                            newChildren.add(child);
+                        } else {
+                            newChildren.addAll(((AndFilter) child).getChildren());
+                        }
+                    });
             return new AndFilter(newChildren);
         } else {
             newChildren.addAll(getConjunctions(dnfChildren));
@@ -64,14 +64,16 @@ public class ExprUtils {
     private static Filter toDNF(OrFilter orFilter) {
         List<Filter> children = orFilter.getChildren();
         List<Filter> newChildren = new ArrayList<>();
-        children.forEach(child -> {
-            Filter newChild = toDNF(child);
-            if (FilterType.isLeafFilter(newChild.getType()) || newChild.getType().equals(FilterType.And)) {
-                newChildren.add(newChild);
-            } else {
-                newChildren.addAll(((OrFilter) newChild).getChildren());
-            }
-        });
+        children.forEach(
+                child -> {
+                    Filter newChild = toDNF(child);
+                    if (FilterType.isLeafFilter(newChild.getType())
+                            || newChild.getType().equals(FilterType.And)) {
+                        newChildren.add(newChild);
+                    } else {
+                        newChildren.addAll(((OrFilter) newChild).getChildren());
+                    }
+                });
         return new OrFilter(newChildren);
     }
 
@@ -87,7 +89,10 @@ public class ExprUtils {
         List<Filter> ret = new ArrayList<>();
         for (Filter firstFilter : first) {
             for (Filter secondFilter : second) {
-                ret.add(mergeToConjunction(new ArrayList<>(Arrays.asList(firstFilter.copy(), secondFilter.copy()))));
+                ret.add(
+                        mergeToConjunction(
+                                new ArrayList<>(
+                                        Arrays.asList(firstFilter.copy(), secondFilter.copy()))));
             }
         }
         return ret;
@@ -95,13 +100,14 @@ public class ExprUtils {
 
     private static Filter mergeToConjunction(List<Filter> filters) {
         List<Filter> children = new ArrayList<>();
-        filters.forEach(child -> {
-            if (FilterType.isLeafFilter(child.getType())) {
-                children.add(child);
-            } else {
-                children.addAll(((AndFilter) child).getChildren());
-            }
-        });
+        filters.forEach(
+                child -> {
+                    if (FilterType.isLeafFilter(child.getType())) {
+                        children.add(child);
+                    } else {
+                        children.addAll(((AndFilter) child).getChildren());
+                    }
+                });
         return new AndFilter(children);
     }
 
@@ -136,14 +142,16 @@ public class ExprUtils {
     private static Filter toCNF(AndFilter andFilter) {
         List<Filter> children = andFilter.getChildren();
         List<Filter> newChildren = new ArrayList<>();
-        children.forEach(child -> {
-            Filter newChild = toDNF(child);
-            if (FilterType.isLeafFilter(newChild.getType()) || newChild.getType().equals(FilterType.Or)) {
-                newChildren.add(newChild);
-            } else {
-                newChildren.addAll(((AndFilter) newChild).getChildren());
-            }
-        });
+        children.forEach(
+                child -> {
+                    Filter newChild = toDNF(child);
+                    if (FilterType.isLeafFilter(newChild.getType())
+                            || newChild.getType().equals(FilterType.Or)) {
+                        newChildren.add(newChild);
+                    } else {
+                        newChildren.addAll(((AndFilter) newChild).getChildren());
+                    }
+                });
         return new AndFilter(newChildren);
     }
 
@@ -162,13 +170,14 @@ public class ExprUtils {
 
         List<Filter> newChildren = new ArrayList<>();
         if (childrenWithoutAnd) {
-            cnfChildren.forEach(child -> {
-                if (FilterType.isLeafFilter(child.getType())) {
-                    newChildren.add(child);
-                } else {
-                    newChildren.addAll(((AndFilter) child).getChildren());
-                }
-            });
+            cnfChildren.forEach(
+                    child -> {
+                        if (FilterType.isLeafFilter(child.getType())) {
+                            newChildren.add(child);
+                        } else {
+                            newChildren.addAll(((AndFilter) child).getChildren());
+                        }
+                    });
             return new OrFilter(newChildren);
         } else {
             newChildren.addAll(getDisjunctions(cnfChildren));
@@ -188,7 +197,10 @@ public class ExprUtils {
         List<Filter> ret = new ArrayList<>();
         for (Filter firstFilter : first) {
             for (Filter secondFilter : second) {
-                ret.add(mergeToDisjunction(new ArrayList<>(Arrays.asList(firstFilter.copy(), secondFilter.copy()))));
+                ret.add(
+                        mergeToDisjunction(
+                                new ArrayList<>(
+                                        Arrays.asList(firstFilter.copy(), secondFilter.copy()))));
             }
         }
         return ret;
@@ -196,13 +208,14 @@ public class ExprUtils {
 
     private static Filter mergeToDisjunction(List<Filter> filters) {
         List<Filter> children = new ArrayList<>();
-        filters.forEach(child -> {
-            if (FilterType.isLeafFilter(child.getType())) {
-                children.add(child);
-            } else {
-                children.addAll(((OrFilter) child).getChildren());
-            }
-        });
+        filters.forEach(
+                child -> {
+                    if (FilterType.isLeafFilter(child.getType())) {
+                        children.add(child);
+                    } else {
+                        children.addAll(((OrFilter) child).getChildren());
+                    }
+                });
         return new OrFilter(children);
     }
 
@@ -251,7 +264,8 @@ public class ExprUtils {
             case Not:
                 return removeNot((NotFilter) filter);
             default:
-                throw new SQLParserException(String.format("Unknown token [%s] in reverse filter.", type));
+                throw new SQLParserException(
+                        String.format("Unknown token [%s] in reverse filter.", type));
         }
     }
 
@@ -278,8 +292,7 @@ public class ExprUtils {
     }
 
     private static Filter reverseFilter(Filter filter) {
-        if (filter == null)
-            return null;
+        if (filter == null) return null;
 
         FilterType type = filter.getType();
         switch (filter.getType()) {
@@ -309,7 +322,8 @@ public class ExprUtils {
             case Not:
                 return removeNot(((NotFilter) filter).getChild());
             default:
-                throw new SQLParserException(String.format("Unknown token [%s] in reverse filter.", type));
+                throw new SQLParserException(
+                        String.format("Unknown token [%s] in reverse filter.", type));
         }
     }
 
@@ -331,8 +345,7 @@ public class ExprUtils {
                 break;
             case And:
                 TimeRange range = getTimeRangeFromAndFilter((AndFilter) f);
-                if (range != null)
-                    timeRanges.add(range);
+                if (range != null) timeRanges.add(range);
                 break;
             case Or:
                 List<TimeRange> ranges = getTimeRangeFromOrFilter((OrFilter) f);
@@ -341,7 +354,8 @@ public class ExprUtils {
                 }
                 break;
             default:
-                throw new SQLParserException(String.format("Illegal token [%s] in getTimeRangeFromAndFilter.", type));
+                throw new SQLParserException(
+                        String.format("Illegal token [%s] in getTimeRangeFromAndFilter.", type));
         }
     }
 
@@ -372,17 +386,19 @@ public class ExprUtils {
             case NE:
                 throw new SQLParserException("Not support [!=] in delete clause.");
             default:
-                throw new SQLParserException(String.format("Unknown op [%s] in getTimeRangeFromTimeFilter.", filter.getOp()));
+                throw new SQLParserException(
+                        String.format(
+                                "Unknown op [%s] in getTimeRangeFromTimeFilter.", filter.getOp()));
         }
     }
 
     private static List<TimeRange> unionTimeRanges(List<TimeRange> timeRanges) {
-        if (timeRanges == null || timeRanges.isEmpty())
-            return new ArrayList<>();
-        timeRanges.sort((tr1, tr2) -> {
-            long diff = tr1.getBeginTime() - tr2.getBeginTime();
-            return diff == 0 ? 0 : diff > 0 ? 1 : -1;
-        });
+        if (timeRanges == null || timeRanges.isEmpty()) return new ArrayList<>();
+        timeRanges.sort(
+                (tr1, tr2) -> {
+                    long diff = tr1.getBeginTime() - tr2.getBeginTime();
+                    return diff == 0 ? 0 : diff > 0 ? 1 : -1;
+                });
 
         List<TimeRange> res = new ArrayList<>();
 
@@ -401,7 +417,8 @@ public class ExprUtils {
     }
 
     private static TimeRange unionTwoTimeRanges(TimeRange first, TimeRange second) {
-        if (first.getEndTime() < second.getBeginTime() || first.getBeginTime() > second.getEndTime()) {
+        if (first.getEndTime() < second.getBeginTime()
+                || first.getBeginTime() > second.getEndTime()) {
             return null;
         }
         long begin = Math.min(first.getBeginTime(), second.getBeginTime());
@@ -410,8 +427,7 @@ public class ExprUtils {
     }
 
     private static TimeRange intersectTimeRanges(List<TimeRange> timeRanges) {
-        if (timeRanges == null || timeRanges.isEmpty())
-            return null;
+        if (timeRanges == null || timeRanges.isEmpty()) return null;
         TimeRange ret = timeRanges.get(0);
         for (int i = 1; i < timeRanges.size(); i++) {
             ret = intersectTwoTimeRanges(ret, timeRanges.get(i));
@@ -420,10 +436,9 @@ public class ExprUtils {
     }
 
     private static TimeRange intersectTwoTimeRanges(TimeRange first, TimeRange second) {
-        if (first == null || second == null)
-            return null;
-        if (first.getEndTime() < second.getBeginTime() || first.getBeginTime() > second.getEndTime())
-            return null;
+        if (first == null || second == null) return null;
+        if (first.getEndTime() < second.getBeginTime()
+                || first.getBeginTime() > second.getEndTime()) return null;
 
         long begin = Math.max(first.getBeginTime(), second.getBeginTime());
         long end = Math.min(first.getEndTime(), second.getEndTime());
@@ -454,10 +469,12 @@ public class ExprUtils {
                 return new AndFilter(andChildren);
             case Value:
                 String path = ((ValueFilter) filter).getPath();
-                if (interval.getStartTimeSeries() != null && interval.getStartTimeSeries().compareTo(path) > 0) {
+                if (interval.getStartTimeSeries() != null
+                        && interval.getStartTimeSeries().compareTo(path) > 0) {
                     return new BoolFilter(true);
                 }
-                if (interval.getEndTimeSeries() != null && interval.getEndTimeSeries().compareTo(path) <= 0) {
+                if (interval.getEndTimeSeries() != null
+                        && interval.getEndTimeSeries().compareTo(path) <= 0) {
                     return new BoolFilter(true);
                 }
                 return filter;
@@ -475,7 +492,8 @@ public class ExprUtils {
                     orChildren.set(i, childFilter);
                 }
                 for (Filter childFilter : orChildren) {
-                    if (childFilter.getType() == FilterType.Bool && ((BoolFilter) childFilter).isTrue()) {
+                    if (childFilter.getType() == FilterType.Bool
+                            && ((BoolFilter) childFilter).isTrue()) {
                         return new BoolFilter(true);
                     }
                 }
@@ -488,7 +506,8 @@ public class ExprUtils {
                 }
                 List<Filter> removedList = new ArrayList<>();
                 for (Filter childFilter : andChildren) {
-                    if (childFilter.getType() == FilterType.Bool && ((BoolFilter) childFilter).isTrue()) {
+                    if (childFilter.getType() == FilterType.Bool
+                            && ((BoolFilter) childFilter).isTrue()) {
                         removedList.add(childFilter);
                     }
                 }

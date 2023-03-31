@@ -24,7 +24,12 @@ public class RowDataView extends DataView {
 
     private final int[] biases;
 
-    public RowDataView(RawData data, int startPathIndex, int endPathIndex, int startTimeIndex, int endTimeIndex) {
+    public RowDataView(
+            RawData data,
+            int startPathIndex,
+            int endPathIndex,
+            int startTimeIndex,
+            int endTimeIndex) {
         super(data, startPathIndex, endPathIndex, startTimeIndex, endTimeIndex);
         this.biases = new int[this.endKeyIndex - this.startKeyIndex];
         for (int i = this.startKeyIndex; i < this.endKeyIndex; i++) {
@@ -47,6 +52,7 @@ public class RowDataView extends DataView {
     @Override
     public BitmapView getBitmapView(int index) {
         checkTimeIndexRange(index);
-        return new BitmapView(data.getBitmaps().get(startKeyIndex + index), startPathIndex, endPathIndex);
+        return new BitmapView(
+                data.getBitmaps().get(startKeyIndex + index), startPathIndex, endPathIndex);
     }
 }
