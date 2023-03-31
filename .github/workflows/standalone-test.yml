@@ -60,3 +60,9 @@ jobs:
         run: |
           chmod +x "${GITHUB_WORKSPACE}/.github/test_union.sh"
           mvn test -q -Dtest=Controller -DfailIfNoTests=false
+
+      - name: show the test result
+        if: always()
+        shell: bash
+        run: |
+          cat ${GITHUB_WORKSPACE}/test/src/test/resources/testResult.txt
