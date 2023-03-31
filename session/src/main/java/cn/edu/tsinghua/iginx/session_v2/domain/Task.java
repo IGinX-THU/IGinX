@@ -3,7 +3,6 @@ package cn.edu.tsinghua.iginx.session_v2.domain;
 import cn.edu.tsinghua.iginx.session_v2.Arguments;
 import cn.edu.tsinghua.iginx.thrift.DataFlowType;
 import cn.edu.tsinghua.iginx.thrift.TaskType;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,7 +18,12 @@ public class Task {
 
     private final String pyTaskName;
 
-    public Task(TaskType taskType, DataFlowType dataFlowType, long timeout, List<String> sqlList, String pyTaskName) {
+    public Task(
+            TaskType taskType,
+            DataFlowType dataFlowType,
+            long timeout,
+            List<String> sqlList,
+            String pyTaskName) {
         this.taskType = taskType;
         this.dataFlowType = dataFlowType;
         this.timeout = timeout;
@@ -28,7 +32,12 @@ public class Task {
     }
 
     public Task(Task.Builder builder) {
-        this(builder.taskType, builder.dataFlowType, builder.timeout, builder.sqlList, builder.pyTaskName);
+        this(
+                builder.taskType,
+                builder.dataFlowType,
+                builder.timeout,
+                builder.sqlList,
+                builder.pyTaskName);
     }
 
     public static Task.Builder builder() {

@@ -18,6 +18,9 @@
  */
 package cn.edu.tsinghua.iginx.iotdb;
 
+import static cn.edu.tsinghua.iginx.iotdb.tools.DataTypeTransformer.toIoTDB;
+import static cn.edu.tsinghua.iginx.thrift.DataType.BINARY;
+
 import cn.edu.tsinghua.iginx.engine.physical.exception.NonExecutablePhysicalTaskException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
@@ -36,14 +39,14 @@ import cn.edu.tsinghua.iginx.engine.shared.data.write.RowDataView;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
-import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.iotdb.query.entity.IoTDBQueryRowStream;
 import cn.edu.tsinghua.iginx.iotdb.tools.DataViewWrapper;
 import cn.edu.tsinghua.iginx.iotdb.tools.FilterTransformer;
@@ -52,6 +55,14 @@ import cn.edu.tsinghua.iginx.metadata.entity.*;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import org.apache.iotdb.rpc.IoTDBConnectionException;
 import org.apache.iotdb.rpc.StatementExecutionException;
 import org.apache.iotdb.session.Session;
@@ -63,18 +74,6 @@ import org.apache.iotdb.tsfile.write.record.Tablet;
 import org.apache.iotdb.tsfile.write.schema.MeasurementSchema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-
-import static cn.edu.tsinghua.iginx.iotdb.tools.DataTypeTransformer.toIoTDB;
-import static cn.edu.tsinghua.iginx.thrift.DataType.BINARY;
 
 public class IoTDBStorage implements IStorage {
 
@@ -100,7 +99,8 @@ public class IoTDBStorage implements IStorage {
 
     private static final String QUERY_HISTORY_DATA = "SELECT %s FROM root WHERE %s";
 
-    private static final String DELETE_STORAGE_GROUP_CLAUSE = "DELETE STORAGE GROUP " + PREFIX + "%s";
+    private static final String DELETE_STORAGE_GROUP_CLAUSE =
+            "DELETE STORAGE GROUP " + PREFIX + "%s";
 
     private static final String DELETE_TIMESERIES_CLAUSE = "DELETE TIMESERIES %s";
 
@@ -119,7 +119,8 @@ public class IoTDBStorage implements IStorage {
     public IoTDBStorage(StorageEngineMeta meta) throws StorageInitializationException {
         this.meta = meta;
         if (!meta.getStorageEngine().equals(STORAGE_ENGINE)) {
-            throw new StorageInitializationException("unexpected database: " + meta.getStorageEngine());
+            throw new StorageInitializationException(
+                    "unexpected database: " + meta.getStorageEngine());
         }
         if (!testConnection()) {
             throw new StorageInitializationException("cannot connect to " + meta.toString());
@@ -147,7 +148,9 @@ public class IoTDBStorage implements IStorage {
         Map<String, String> extraParams = meta.getExtraParams();
         String username = extraParams.getOrDefault(USERNAME, DEFAULT_USERNAME);
         String password = extraParams.getOrDefault(PASSWORD, DEFAULT_PASSWORD);
-        int sessionPoolSize = Integer.parseInt(extraParams.getOrDefault(SESSION_POOL_SIZE, DEFAULT_SESSION_POOL_SIZE));
+        int sessionPoolSize =
+                Integer.parseInt(
+                        extraParams.getOrDefault(SESSION_POOL_SIZE, DEFAULT_SESSION_POOL_SIZE));
         return new SessionPool(meta.getIp(), meta.getPort(), username, password, sessionPoolSize);
     }
 
@@ -155,7 +158,9 @@ public class IoTDBStorage implements IStorage {
     public TaskExecuteResult execute(StoragePhysicalTask task) {
         List<Operator> operators = task.getOperators();
         if (operators.size() < 1) {
-            return new TaskExecuteResult(new NonExecutablePhysicalTaskException("storage physical task should have one more operators"));
+            return new TaskExecuteResult(
+                    new NonExecutablePhysicalTaskException(
+                            "storage physical task should have one more operators"));
         }
         Operator op = operators.get(0);
         String storageUnit = task.getStorageUnit();
@@ -167,9 +172,18 @@ public class IoTDBStorage implements IStorage {
                 filter = ((Select) operators.get(1)).getFilter();
             } else {
                 FragmentMeta fragment = task.getTargetFragment();
-                filter = new AndFilter(Arrays.asList(new KeyFilter(Op.GE, fragment.getTimeInterval().getStartTime()), new KeyFilter(Op.L, fragment.getTimeInterval().getEndTime())));
+                filter =
+                        new AndFilter(
+                                Arrays.asList(
+                                        new KeyFilter(
+                                                Op.GE, fragment.getTimeInterval().getStartTime()),
+                                        new KeyFilter(
+                                                Op.L, fragment.getTimeInterval().getEndTime())));
             }
-            return isDummyStorageUnit ? executeQueryHistoryTask(task.getTargetFragment().getTsInterval(), project, filter) : executeQueryTask(storageUnit, project, filter);
+            return isDummyStorageUnit
+                    ? executeQueryHistoryTask(
+                            task.getTargetFragment().getTsInterval(), project, filter)
+                    : executeQueryTask(storageUnit, project, filter);
         } else if (op.getType() == OperatorType.Insert) {
             Insert insert = (Insert) op;
             return executeInsertTask(storageUnit, insert);
@@ -177,11 +191,13 @@ public class IoTDBStorage implements IStorage {
             Delete delete = (Delete) op;
             return executeDeleteTask(storageUnit, delete);
         }
-        return new TaskExecuteResult(new NonExecutablePhysicalTaskException("unsupported physical task"));
+        return new TaskExecuteResult(
+                new NonExecutablePhysicalTaskException("unsupported physical task"));
     }
 
     @Override
-    public Pair<TimeSeriesRange, TimeInterval> getBoundaryOfStorage(String dataPrefix) throws PhysicalException {
+    public Pair<TimeSeriesRange, TimeInterval> getBoundaryOfStorage(String dataPrefix)
+            throws PhysicalException {
         List<String> paths = new ArrayList<>();
         try {
             if (dataPrefix == null) {
@@ -207,17 +223,17 @@ public class IoTDBStorage implements IStorage {
         }
         TimeSeriesRange tsInterval;
         if (dataPrefix == null)
-            tsInterval = new TimeSeriesInterval(paths.get(0), StringUtils.nextString(paths.get(paths.size() - 1)));
-        else
-            tsInterval = new TimeSeriesInterval(dataPrefix, StringUtils.nextString(dataPrefix));
+            tsInterval =
+                    new TimeSeriesInterval(
+                            paths.get(0), StringUtils.nextString(paths.get(paths.size() - 1)));
+        else tsInterval = new TimeSeriesInterval(dataPrefix, StringUtils.nextString(dataPrefix));
 
         long minTime = 0, maxTime = Long.MAX_VALUE;
         try {
             SessionDataSetWrapper dataSet;
             if (dataPrefix == null || dataPrefix.isEmpty())
                 dataSet = sessionPool.executeQueryStatement("select * from root");
-            else
-                dataSet = sessionPool.executeQueryStatement("select " + dataPrefix + " from root");
+            else dataSet = sessionPool.executeQueryStatement("select " + dataPrefix + " from root");
             if (dataSet.hasNext()) {
                 RowRecord record = dataSet.next();
                 minTime = record.getTimestamp();
@@ -246,7 +262,7 @@ public class IoTDBStorage implements IStorage {
         List<Timeseries> timeseries = new ArrayList<>();
         try {
             SessionDataSetWrapper dataSet = sessionPool.executeQueryStatement(SHOW_TIMESERIES);
-            while(dataSet.hasNext()) {
+            while (dataSet.hasNext()) {
                 RowRecord record = dataSet.next();
                 if (record == null || record.getFields().size() < 4) {
                     continue;
@@ -289,20 +305,31 @@ public class IoTDBStorage implements IStorage {
         return timeseries;
     }
 
-    private TaskExecuteResult executeQueryTask(String storageUnit, Project project, Filter filter) { // 未来可能要用 tsInterval 对查询出来的数据进行过滤
+    private TaskExecuteResult executeQueryTask(
+            String storageUnit, Project project, Filter filter) { // 未来可能要用 tsInterval 对查询出来的数据进行过滤
         try {
             StringBuilder builder = new StringBuilder();
             for (String path : project.getPatterns()) {
                 builder.append(path);
                 builder.append(',');
             }
-            String statement = String.format(QUERY_DATA, builder.deleteCharAt(builder.length() - 1).toString(), storageUnit, FilterTransformer.toString(filter));
+            String statement =
+                    String.format(
+                            QUERY_DATA,
+                            builder.deleteCharAt(builder.length() - 1).toString(),
+                            storageUnit,
+                            FilterTransformer.toString(filter));
             logger.info("[Query] execute query: " + statement);
-            RowStream rowStream = new ClearEmptyRowStreamWrapper(new IoTDBQueryRowStream(sessionPool.executeQueryStatement(statement), true, project));
+            RowStream rowStream =
+                    new ClearEmptyRowStreamWrapper(
+                            new IoTDBQueryRowStream(
+                                    sessionPool.executeQueryStatement(statement), true, project));
             return new TaskExecuteResult(rowStream);
         } catch (IoTDBConnectionException | StatementExecutionException e) {
             logger.error(e.getMessage());
-            return new TaskExecuteResult(new PhysicalTaskExecuteFailureException("execute project task in iotdb12 failure", e));
+            return new TaskExecuteResult(
+                    new PhysicalTaskExecuteFailureException(
+                            "execute project task in iotdb12 failure", e));
         }
     }
 
@@ -313,20 +340,32 @@ public class IoTDBStorage implements IStorage {
         return oriPath;
     }
 
-    private TaskExecuteResult executeQueryHistoryTask(TimeSeriesRange timeSeriesInterval, Project project, Filter filter) { // 未来可能要用 tsInterval 对查询出来的数据进行过滤
+    private TaskExecuteResult executeQueryHistoryTask(
+            TimeSeriesRange timeSeriesInterval,
+            Project project,
+            Filter filter) { // 未来可能要用 tsInterval 对查询出来的数据进行过滤
         try {
             StringBuilder builder = new StringBuilder();
             for (String path : project.getPatterns()) {
                 builder.append(path);
                 builder.append(',');
             }
-            String statement = String.format(QUERY_HISTORY_DATA, builder.deleteCharAt(builder.length() - 1).toString(), FilterTransformer.toString(filter));
+            String statement =
+                    String.format(
+                            QUERY_HISTORY_DATA,
+                            builder.deleteCharAt(builder.length() - 1).toString(),
+                            FilterTransformer.toString(filter));
             logger.info("[Query] execute query: " + statement);
-            RowStream rowStream = new ClearEmptyRowStreamWrapper(new IoTDBQueryRowStream(sessionPool.executeQueryStatement(statement), false, project));
+            RowStream rowStream =
+                    new ClearEmptyRowStreamWrapper(
+                            new IoTDBQueryRowStream(
+                                    sessionPool.executeQueryStatement(statement), false, project));
             return new TaskExecuteResult(rowStream);
         } catch (IoTDBConnectionException | StatementExecutionException e) {
             logger.error(e.getMessage());
-            return new TaskExecuteResult(new PhysicalTaskExecuteFailureException("execute project task in iotdb12 failure", e));
+            return new TaskExecuteResult(
+                    new PhysicalTaskExecuteFailureException(
+                            "execute project task in iotdb12 failure", e));
         }
     }
 
@@ -348,7 +387,8 @@ public class IoTDBStorage implements IStorage {
                 break;
         }
         if (e != null) {
-            return new TaskExecuteResult(null, new PhysicalException("execute insert task in iotdb12 failure", e));
+            return new TaskExecuteResult(
+                    null, new PhysicalException("execute insert task in iotdb12 failure", e));
         }
         return new TaskExecuteResult(null, null);
     }
@@ -398,7 +438,11 @@ public class IoTDBStorage implements IStorage {
                 for (int j = 0; j < data.getPathNum(); j++) {
                     if (bitmapView.get(j)) {
                         String path = data.getPath(j);
-                        String deviceId = PREFIX + storageUnit + "." + path.substring(0, path.lastIndexOf('.'));
+                        String deviceId =
+                                PREFIX
+                                        + storageUnit
+                                        + "."
+                                        + path.substring(0, path.lastIndexOf('.'));
                         String measurement = path.substring(path.lastIndexOf('.') + 1);
                         Tablet tablet = tablets.get(deviceId);
                         if (!deviceIdToRow.containsKey(deviceId)) {
@@ -407,9 +451,15 @@ public class IoTDBStorage implements IStorage {
                             deviceIdToRow.put(deviceId, row);
                         }
                         if (data.getDataType(j) == BINARY) {
-                            tablet.addValue(measurement, deviceIdToRow.get(deviceId), new Binary((byte[]) data.getValue(i, index)));
+                            tablet.addValue(
+                                    measurement,
+                                    deviceIdToRow.get(deviceId),
+                                    new Binary((byte[]) data.getValue(i, index)));
                         } else {
-                            tablet.addValue(measurement, deviceIdToRow.get(deviceId), data.getValue(i, index));
+                            tablet.addValue(
+                                    measurement,
+                                    deviceIdToRow.get(deviceId),
+                                    data.getValue(i, index));
                         }
                         index++;
                     }
@@ -427,7 +477,7 @@ public class IoTDBStorage implements IStorage {
                 tablet.reset();
             }
             cnt += size;
-        } while(cnt < data.getTimeSize());
+        } while (cnt < data.getTimeSize());
 
         return null;
     }
@@ -451,7 +501,14 @@ public class IoTDBStorage implements IStorage {
             deviceIdToCnt.put(deviceId, measurementNum + 1);
             pathIndexToTabletIndex.put(i, measurementNum + 1);
             tablets = tabletsMap.computeIfAbsent(measurementNum + 1, x -> new HashMap<>());
-            tablets.put(deviceId, new Tablet(deviceId, Collections.singletonList(new MeasurementSchema(measurement, toIoTDB(data.getDataType(i)))), batchSize));
+            tablets.put(
+                    deviceId,
+                    new Tablet(
+                            deviceId,
+                            Collections.singletonList(
+                                    new MeasurementSchema(
+                                            measurement, toIoTDB(data.getDataType(i)))),
+                            batchSize));
             tabletsMap.put(measurementNum + 1, tablets);
         }
 
@@ -468,13 +525,18 @@ public class IoTDBStorage implements IStorage {
                 for (int j = 0; j < data.getPathNum(); j++) {
                     if (bitmapView.get(j)) {
                         String path = data.getPath(j);
-                        String deviceId = PREFIX + storageUnit + "." + path.substring(0, path.lastIndexOf('.'));
+                        String deviceId =
+                                PREFIX
+                                        + storageUnit
+                                        + "."
+                                        + path.substring(0, path.lastIndexOf('.'));
                         String measurement = path.substring(path.lastIndexOf('.') + 1);
                         Tablet tablet = tabletsMap.get(pathIndexToTabletIndex.get(j)).get(deviceId);
                         int row = tablet.rowSize++;
                         tablet.addTimestamp(row, data.getTimestamp(i));
                         if (data.getDataType(j) == BINARY) {
-                            tablet.addValue(measurement, row, new Binary((byte[]) data.getValue(i, index)));
+                            tablet.addValue(
+                                    measurement, row, new Binary((byte[]) data.getValue(i, index)));
                         } else {
                             tablet.addValue(measurement, row, data.getValue(i, index));
                         }
@@ -506,7 +568,7 @@ public class IoTDBStorage implements IStorage {
                 }
             }
             cnt += size;
-        } while(cnt < data.getTimeSize());
+        } while (cnt < data.getTimeSize());
 
         return null;
     }
@@ -560,7 +622,10 @@ public class IoTDBStorage implements IStorage {
                             String path = data.getPath(j);
                             String measurement = path.substring(path.lastIndexOf('.') + 1);
                             if (data.getDataType(j) == BINARY) {
-                                tablet.addValue(measurement, row, new Binary((byte[]) data.getValue(j, indexes[j])));
+                                tablet.addValue(
+                                        measurement,
+                                        row,
+                                        new Binary((byte[]) data.getValue(j, indexes[j])));
                             } else {
                                 tablet.addValue(measurement, row, data.getValue(j, indexes[j]));
                             }
@@ -581,7 +646,7 @@ public class IoTDBStorage implements IStorage {
                 tablet.reset();
             }
             cnt += size;
-        } while(cnt < data.getTimeSize());
+        } while (cnt < data.getTimeSize());
 
         return null;
     }
@@ -604,11 +669,20 @@ public class IoTDBStorage implements IStorage {
 
             measurementNum = deviceIdToCnt.computeIfAbsent(deviceId, x -> -1);
             deviceIdToCnt.put(deviceId, measurementNum + 1);
-            pathIndexes = tabletIndexToPathIndexes.computeIfAbsent(measurementNum + 1, x -> new ArrayList<>());
+            pathIndexes =
+                    tabletIndexToPathIndexes.computeIfAbsent(
+                            measurementNum + 1, x -> new ArrayList<>());
             pathIndexes.add(i);
             tabletIndexToPathIndexes.put(measurementNum + 1, pathIndexes);
             tablets = tabletsMap.computeIfAbsent(measurementNum + 1, x -> new HashMap<>());
-            tablets.put(deviceId, new Tablet(deviceId, Collections.singletonList(new MeasurementSchema(measurement, toIoTDB(data.getDataType(i)))), batchSize));
+            tablets.put(
+                    deviceId,
+                    new Tablet(
+                            deviceId,
+                            Collections.singletonList(
+                                    new MeasurementSchema(
+                                            measurement, toIoTDB(data.getDataType(i)))),
+                            batchSize));
             tabletsMap.put(measurementNum + 1, tablets);
         }
 
@@ -622,7 +696,8 @@ public class IoTDBStorage implements IStorage {
                 for (int i = 0; i < entry.getValue().size(); i++) {
                     int index = entry.getValue().get(i);
                     String path = data.getPath(index);
-                    String deviceId = PREFIX + storageUnit + "." + path.substring(0, path.lastIndexOf('.'));
+                    String deviceId =
+                            PREFIX + storageUnit + "." + path.substring(0, path.lastIndexOf('.'));
                     String measurement = path.substring(path.lastIndexOf('.') + 1);
                     Tablet tablet = tabletsMap.get(entry.getKey()).get(deviceId);
                     BitmapView bitmapView = data.getBitmapView(index);
@@ -631,9 +706,14 @@ public class IoTDBStorage implements IStorage {
                             int row = tablet.rowSize++;
                             tablet.addTimestamp(row, data.getTimestamp(j));
                             if (data.getDataType(index) == BINARY) {
-                                tablet.addValue(measurement, row, new Binary((byte[]) data.getValue(index, indexesOfBitmap[i])));
+                                tablet.addValue(
+                                        measurement,
+                                        row,
+                                        new Binary(
+                                                (byte[]) data.getValue(index, indexesOfBitmap[i])));
                             } else {
-                                tablet.addValue(measurement, row, data.getValue(index, indexesOfBitmap[i]));
+                                tablet.addValue(
+                                        measurement, row, data.getValue(index, indexesOfBitmap[i]));
                             }
                             indexesOfBitmap[i]++;
                         }
@@ -651,21 +731,25 @@ public class IoTDBStorage implements IStorage {
                     tablet.reset();
                 }
                 cnt += size;
-            } while(cnt < data.getTimeSize());
+            } while (cnt < data.getTimeSize());
         }
         return null;
     }
 
     private TaskExecuteResult executeDeleteTask(String storageUnit, Delete delete) {
-        if (delete.getTimeRanges() == null || delete.getTimeRanges().size() == 0) { // 没有传任何 time range
+        if (delete.getTimeRanges() == null
+                || delete.getTimeRanges().size() == 0) { // 没有传任何 time range
             List<String> paths = delete.getPatterns();
             if (paths.size() == 1 && paths.get(0).equals("*") && delete.getTagFilter() == null) {
                 try {
-                    sessionPool.executeNonQueryStatement(String.format(DELETE_STORAGE_GROUP_CLAUSE, storageUnit));
+                    sessionPool.executeNonQueryStatement(
+                            String.format(DELETE_STORAGE_GROUP_CLAUSE, storageUnit));
                 } catch (IoTDBConnectionException | StatementExecutionException e) {
                     logger.warn("encounter error when clear data: " + e.getMessage());
                     if (!e.getMessage().contains(DOES_NOT_EXISTED)) {
-                        return new TaskExecuteResult(new PhysicalTaskExecuteFailureException("execute clear data in iotdb12 failure", e));
+                        return new TaskExecuteResult(
+                                new PhysicalTaskExecuteFailureException(
+                                        "execute clear data in iotdb12 failure", e));
                     }
                 }
             } else {
@@ -674,15 +758,20 @@ public class IoTDBStorage implements IStorage {
                     deletedPaths = determineDeletePathList(storageUnit, delete);
                 } catch (PhysicalException e) {
                     logger.warn("encounter error when delete path: " + e.getMessage());
-                    return new TaskExecuteResult(new PhysicalTaskExecuteFailureException("execute delete path task in iotdb11 failure", e));
+                    return new TaskExecuteResult(
+                            new PhysicalTaskExecuteFailureException(
+                                    "execute delete path task in iotdb11 failure", e));
                 }
-                for (String path: deletedPaths) {
+                for (String path : deletedPaths) {
                     try {
-                        sessionPool.executeNonQueryStatement(String.format(DELETE_TIMESERIES_CLAUSE, path));
+                        sessionPool.executeNonQueryStatement(
+                                String.format(DELETE_TIMESERIES_CLAUSE, path));
                     } catch (IoTDBConnectionException | StatementExecutionException e) {
                         logger.warn("encounter error when delete path: " + e.getMessage());
                         if (!e.getMessage().contains(DOES_NOT_EXISTED)) {
-                            return new TaskExecuteResult(new PhysicalTaskExecuteFailureException("execute delete path task in iotdb12 failure", e));
+                            return new TaskExecuteResult(
+                                    new PhysicalTaskExecuteFailureException(
+                                            "execute delete path task in iotdb12 failure", e));
                         }
                     }
                 }
@@ -691,33 +780,42 @@ public class IoTDBStorage implements IStorage {
             try {
                 List<String> paths = determineDeletePathList(storageUnit, delete);
                 if (paths.size() != 0) {
-                    for (TimeRange timeRange: delete.getTimeRanges()) {
-                        sessionPool.deleteData(paths, timeRange.getActualBeginTime(), timeRange.getActualEndTime());
+                    for (TimeRange timeRange : delete.getTimeRanges()) {
+                        sessionPool.deleteData(
+                                paths,
+                                timeRange.getActualBeginTime(),
+                                timeRange.getActualEndTime());
                     }
                 }
             } catch (IoTDBConnectionException | StatementExecutionException | PhysicalException e) {
                 logger.warn("encounter error when delete data: " + e.getMessage());
                 if (!e.getMessage().contains(DOES_NOT_EXISTED)) {
-                    return new TaskExecuteResult(new PhysicalTaskExecuteFailureException("execute delete data task in iotdb12 failure", e));
+                    return new TaskExecuteResult(
+                            new PhysicalTaskExecuteFailureException(
+                                    "execute delete data task in iotdb12 failure", e));
                 }
             }
         }
         return new TaskExecuteResult(null, null);
     }
 
-    private List<String> determineDeletePathList(String storageUnit, Delete delete) throws PhysicalException {
+    private List<String> determineDeletePathList(String storageUnit, Delete delete)
+            throws PhysicalException {
         if (delete.getTagFilter() == null) {
-            return delete.getPatterns().stream().map(x -> PREFIX + storageUnit + "." + x).collect(Collectors.toList());
+            return delete.getPatterns()
+                    .stream()
+                    .map(x -> PREFIX + storageUnit + "." + x)
+                    .collect(Collectors.toList());
         } else {
             List<String> patterns = delete.getPatterns();
             TagFilter tagFilter = delete.getTagFilter();
             List<Timeseries> timeSeries = getTimeSeries();
 
             List<String> pathList = new ArrayList<>();
-            for (Timeseries ts: timeSeries) {
+            for (Timeseries ts : timeSeries) {
                 for (String pattern : patterns) {
-                    if (Pattern.matches(StringUtils.reformatPath(pattern), ts.getPath()) &&
-                        TagKVUtils.match(ts.getTags(), tagFilter)) {
+                    if (Pattern.matches(StringUtils.reformatPath(pattern), ts.getPath())
+                            && TagKVUtils.match(ts.getTags(), tagFilter)) {
                         pathList.add(PREFIX + storageUnit + "." + ts.getPhysicalPath());
                         break;
                     }

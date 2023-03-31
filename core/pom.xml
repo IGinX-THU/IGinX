@@ -1,8 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xmlns="http://maven.apache.org/POM/4.0.0"
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>cn.edu.tsinghua</groupId>
+        <artifactId>iginx</artifactId>
+        <version>${revision}</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+    <artifactId>iginx-core</artifactId>
+    <name>IGinX Core</name>
+
+    <properties>
+        <jersey.version>2.27</jersey.version>
+    </properties>
 
     <dependencyManagement>
         <dependencies>
@@ -15,33 +27,6 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
-
-    <properties>
-        <jersey.version>2.27</jersey.version>
-    </properties>
-
-    <parent>
-        <groupId>cn.edu.tsinghua</groupId>
-        <artifactId>iginx</artifactId>
-        <version>${revision}</version>
-        <relativePath>../pom.xml</relativePath>
-    </parent>
-    <artifactId>iginx-core</artifactId>
-    <name>IGinX Core</name>
-
-    <repositories>
-        <!--   repository for moquette    -->
-        <repository>
-            <id>bintray</id>
-            <url>https://jcenter.bintray.com</url>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </repository>
-    </repositories>
     <dependencies>
         <dependency>
             <groupId>cn.edu.tsinghua</groupId>
@@ -212,6 +197,20 @@
             <version>2.2.3</version>
         </dependency>
     </dependencies>
+
+    <repositories>
+        <!--   repository for moquette    -->
+        <repository>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+            <id>bintray</id>
+            <url>https://jcenter.bintray.com</url>
+        </repository>
+    </repositories>
     <build>
         <plugins>
             <plugin>
@@ -275,10 +274,10 @@
                 <executions>
                     <execution>
                         <id>server-assembly</id>
-                        <phase>package</phase>
                         <goals>
                             <goal>single</goal>
                         </goals>
+                        <phase>package</phase>
                     </execution>
                 </executions>
             </plugin>

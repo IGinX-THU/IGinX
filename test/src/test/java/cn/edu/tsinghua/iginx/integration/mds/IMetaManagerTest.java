@@ -18,18 +18,17 @@
  */
 package cn.edu.tsinghua.iginx.integration.mds;
 
+import static org.junit.Assert.assertEquals;
+
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
-import org.junit.*;
-
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import static org.junit.Assert.assertEquals;
+import org.junit.*;
 
 public class IMetaManagerTest {
 
@@ -41,12 +40,17 @@ public class IMetaManagerTest {
             switch (System.getenv("STORAGE")) {
                 case "zookeeper":
                     ConfigDescriptor.getInstance().getConfig().setMetaStorage("zookeeper");
-                    ConfigDescriptor.getInstance().getConfig().setZookeeperConnectionString(System.getenv("ZOOKEEPER_CONNECTION_STRING"));
+                    ConfigDescriptor.getInstance()
+                            .getConfig()
+                            .setZookeeperConnectionString(
+                                    System.getenv("ZOOKEEPER_CONNECTION_STRING"));
                     System.out.println("use zookeeper as meta storage engine");
                     break;
                 case "etcd":
                     ConfigDescriptor.getInstance().getConfig().setMetaStorage("etcd");
-                    ConfigDescriptor.getInstance().getConfig().setEtcdEndpoints(System.getenv("ETCD_ENDPOINTS"));
+                    ConfigDescriptor.getInstance()
+                            .getConfig()
+                            .setEtcdEndpoints(System.getenv("ETCD_ENDPOINTS"));
                     System.out.println("use etcd as meta storage engine");
                     break;
             }
@@ -61,12 +65,10 @@ public class IMetaManagerTest {
     }
 
     @Before
-    public void setUp() {
-    }
+    public void setUp() {}
 
     @After
-    public void tearDown() {
-    }
+    public void tearDown() {}
 
     @Test
     public void schemaMappingTest() {
@@ -108,7 +110,9 @@ public class IMetaManagerTest {
         extraParams.put("username", "root");
         extraParams.put("password", "root");
         extraParams.put("sessionPoolSize", "20");
-        StorageEngineMeta engine1 = new StorageEngineMeta(0, "127.0.0.1", 1001, extraParams, "iotdb", iMetaManager.getIginxId());
+        StorageEngineMeta engine1 =
+                new StorageEngineMeta(
+                        0, "127.0.0.1", 1001, extraParams, "iotdb", iMetaManager.getIginxId());
         iMetaManager.addStorageEngines(Collections.singletonList(engine1));
         // 查询数据后端
         storageEngines = iMetaManager.getStorageEngineList();
@@ -121,5 +125,4 @@ public class IMetaManagerTest {
     public void storageUnitAndFragmentTest() {
         // TODO: 测试优先级
     }
-
 }

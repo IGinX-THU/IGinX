@@ -1,24 +1,22 @@
 package cn.edu.tsinghua.iginx.utils;
 
+import java.io.*;
+import java.nio.charset.StandardCharsets;
+import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
-import org.apache.commons.io.IOUtils;
-
-
-import java.io.*;
-import java.nio.charset.StandardCharsets;
 
 public class YAMLReader {
 
     private final String path;
-    
+
     private final Yaml yaml;
 
     private final File file;
 
-    private final static Logger logger = LoggerFactory.getLogger(YAMLReader.class);
+    private static final Logger logger = LoggerFactory.getLogger(YAMLReader.class);
 
     public YAMLReader(String path) throws FileNotFoundException {
         this.path = path;
@@ -74,5 +72,4 @@ public class YAMLReader {
         InputStream result = new ByteArrayInputStream(yamlFile.getBytes(StandardCharsets.UTF_8));
         return yaml.load(result);
     }
-
 }

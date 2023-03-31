@@ -18,7 +18,6 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream;
 
-
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
@@ -53,7 +52,7 @@ public class SelectLazyStream extends UnaryLazyStream {
 
     private Row calculateNext() throws PhysicalException {
         Filter filter = select.getFilter();
-        while(stream.hasNext()) {
+        while (stream.hasNext()) {
             Row row = stream.next();
             if (FilterUtils.validate(filter, row)) {
                 return row;

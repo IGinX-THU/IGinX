@@ -3,15 +3,14 @@ package cn.edu.tsinghua.iginx.transform.data;
 import cn.edu.tsinghua.iginx.constant.GlobalConstant;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
-import java.util.ArrayList;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class FileAppendWriter extends ExportWriter {
 
@@ -19,7 +18,7 @@ public class FileAppendWriter extends ExportWriter {
 
     private boolean hasWriteHeader;
 
-    private final static Logger logger = LoggerFactory.getLogger(FileAppendWriter.class);
+    private static final Logger logger = LoggerFactory.getLogger(FileAppendWriter.class);
 
     public FileAppendWriter(String fileName) {
         this.fileName = fileName;
@@ -68,8 +67,7 @@ public class FileAppendWriter extends ExportWriter {
             File file = new File(fileName);
 
             try (FileWriter writer = new FileWriter(file, true);
-                 BufferedWriter out = new BufferedWriter(writer)
-            ) {
+                    BufferedWriter out = new BufferedWriter(writer)) {
                 out.write(content);
                 out.flush();
             }

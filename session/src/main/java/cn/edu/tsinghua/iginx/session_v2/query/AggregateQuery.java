@@ -20,7 +20,6 @@ package cn.edu.tsinghua.iginx.session_v2.query;
 
 import cn.edu.tsinghua.iginx.session_v2.Arguments;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
-
 import java.util.*;
 
 public class AggregateQuery extends Query {
@@ -33,7 +32,12 @@ public class AggregateQuery extends Query {
 
     private final String timePrecision;
 
-    public AggregateQuery(Set<String> measurements, Map<String, List<String>> tagsList, long startTime, long endTime, AggregateType aggregateType) {
+    public AggregateQuery(
+            Set<String> measurements,
+            Map<String, List<String>> tagsList,
+            long startTime,
+            long endTime,
+            AggregateType aggregateType) {
         super(measurements, tagsList);
         this.startTime = startTime;
         this.endTime = endTime;
@@ -41,7 +45,13 @@ public class AggregateQuery extends Query {
         this.timePrecision = null;
     }
 
-    public AggregateQuery(Set<String> measurements, Map<String, List<String>> tagsList, long startTime, long endTime, AggregateType aggregateType, String timePrecision) {
+    public AggregateQuery(
+            Set<String> measurements,
+            Map<String, List<String>> tagsList,
+            long startTime,
+            long endTime,
+            AggregateType aggregateType,
+            String timePrecision) {
         super(measurements, tagsList);
         this.startTime = startTime;
         this.endTime = endTime;
@@ -98,7 +108,8 @@ public class AggregateQuery extends Query {
         }
 
         public AggregateQuery.Builder addMeasurements(Set<String> measurements) {
-            measurements.forEach(measurement -> Arguments.checkNonEmpty(measurement, "measurement"));
+            measurements.forEach(
+                    measurement -> Arguments.checkNonEmpty(measurement, "measurement"));
             this.measurements.addAll(measurements);
             return this;
         }
@@ -110,7 +121,8 @@ public class AggregateQuery extends Query {
         }
 
         public AggregateQuery.Builder addTagsList(Map<String, List<String>> tagsList) {
-            tagsList.forEach((key, valueList) -> Arguments.checkListNonEmpty(valueList, "valueList"));
+            tagsList.forEach(
+                    (key, valueList) -> Arguments.checkListNonEmpty(valueList, "valueList"));
             this.tagsList.putAll(tagsList);
             return this;
         }
@@ -156,9 +168,8 @@ public class AggregateQuery extends Query {
             if (this.aggregateType == null) {
                 throw new IllegalStateException("aggregate type should not be null.");
             }
-            return new AggregateQuery(measurements, tagsList, startTime, endTime, aggregateType, timePrecision);
+            return new AggregateQuery(
+                    measurements, tagsList, startTime, endTime, aggregateType, timePrecision);
         }
-
     }
-
 }

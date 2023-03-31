@@ -21,5 +21,4 @@ package cn.edu.tsinghua.iginx.metadata.hook;
 public interface MaxActiveEndTimeStatisticsChangeHook {
 
     void onChange(long endTime);
-
 }

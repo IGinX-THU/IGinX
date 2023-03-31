@@ -27,7 +27,7 @@ public class BatchStageRunner implements Runner {
 
     private final PemjaDriver driver = PemjaDriver.getInstance();
 
-    private final static Logger logger = LoggerFactory.getLogger(BatchStageRunner.class);
+    private static final Logger logger = LoggerFactory.getLogger(BatchStageRunner.class);
 
     public BatchStageRunner(BatchStage batchStage) {
         this.batchStage = batchStage;
@@ -49,7 +49,8 @@ public class BatchStageRunner implements Runner {
 
     @Override
     public void run() throws WriteBatchException {
-        CollectionWriter collectionWriter = (CollectionWriter) batchStage.getBeforeStage().getExportWriter();
+        CollectionWriter collectionWriter =
+                (CollectionWriter) batchStage.getBeforeStage().getExportWriter();
         BatchData batchData = collectionWriter.getCollectedData();
 
         mutex.lock();
@@ -60,7 +61,5 @@ public class BatchStageRunner implements Runner {
     }
 
     @Override
-    public void close() {
-
-    }
+    public void close() {}
 }

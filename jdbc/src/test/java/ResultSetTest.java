@@ -1,11 +1,10 @@
 import cn.edu.tsinghua.iginx.constant.GlobalConstant;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.sql.ResultSet;
-import java.sql.SQLException;
 
 public class ResultSetTest {
 
@@ -64,26 +63,24 @@ public class ResultSetTest {
 
     @Test
     public void testGetNull() throws SQLException {
-        if (resultSet.first())
-            resultSet.next(); // test null value which start from second line.
+        if (resultSet.first()) resultSet.next(); // test null value which start from second line.
 
         // null boolean value will return false.
         Assert.assertFalse(resultSet.getBoolean("test.result.set.boolean"));
 
         if (resultSet.next()) // null integer value will return 0.
-            Assert.assertEquals(0, resultSet.getInt("test.result.set.int"));
+        Assert.assertEquals(0, resultSet.getInt("test.result.set.int"));
 
         if (resultSet.next()) // null long value will return 0.
-            Assert.assertEquals(0, resultSet.getLong("test.result.set.long"));
+        Assert.assertEquals(0, resultSet.getLong("test.result.set.long"));
 
         if (resultSet.next()) // null float value will return 0.
-            Assert.assertEquals(0, resultSet.getFloat("test.result.set.float"), 0.0001);
+        Assert.assertEquals(0, resultSet.getFloat("test.result.set.float"), 0.0001);
 
         if (resultSet.next()) // null double value will return 0.
-            Assert.assertEquals(0, resultSet.getDouble("test.result.set.double"), 0.000000001);
+        Assert.assertEquals(0, resultSet.getDouble("test.result.set.double"), 0.000000001);
 
         if (resultSet.next()) // null string value will return null.
-            Assert.assertEquals(null, resultSet.getString("test.result.set.string"));
-
+        Assert.assertEquals(null, resultSet.getString("test.result.set.string"));
     }
 }

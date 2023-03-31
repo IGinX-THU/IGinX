@@ -8,11 +8,11 @@ Currently, IGinX directly supports big data service over relational database Pos
 
 ## Download and Installation
 
-IGinX provides you with two installation methods. 
+IGinX provides you with two installation methods.
 You can refer to the following suggestions and choose either of them:
 
 1. Download the installation package from the official website. This is our recommended installation method, through which you will get a packaged executable binary file that can be used immediately.
-2. Compile with source code. If you need to modify code yourself, you can use this installation method. 
+2. Compile with source code. If you need to modify code yourself, you can use this installation method.
 
 ### Environmental Preparation
 
@@ -20,7 +20,7 @@ You can refer to the following suggestions and choose either of them:
 
 Since ZooKeeper, IGinX and IoTDB are all developed using Java, Java needs to be installed first. If a running environment of JDK >= 1.8 has been installed locally, **skip this step entirely**.
 
-1. First, visit the [official Java website] (https://www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html) to download the JDK package for your current system.
+1. First, visit the [official Java website](https://www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html) to download the JDK package for your current system.
 2. Installation
 
 ```shell
@@ -126,7 +126,7 @@ Modify to
 
 ```shell
 dataDir=data
-````
+```
 
 #### IoTDB Installation
 
@@ -165,7 +165,7 @@ $ mvn clean install -Dmaven.test.skip=true
 
 ### Single node
 
-Single node configuration refers to a single instance of IGinX, and the backend serves as the launch of a single IoTDB instance. 
+Single node configuration refers to a single instance of IGinX, and the backend serves as the launch of a single IoTDB instance.
 
 #### Launch IoTDB
 
@@ -229,7 +229,7 @@ $ ./startIginX.sh
 
 ### Cluster
 
-IGinX now has two method options: to use ZooKeeper storage or write local files. 
+IGinX now has two method options: to use ZooKeeper storage or write local files.
 
 When the deployment scenario is multiple IGinX instances, you must use ZooKeeper storage, deploy a single IGinX instance and use the source code compilation and installation method. Both can be selected, just change the corresponding configuration file.
 
@@ -305,29 +305,29 @@ In order to facilitate installation and management of IGinX, IGinX provides user
 
 #### IGinX Configuration
 
-| Configuration Item           | Description               | Configuration         					|
-| ---------------------------- | ------------------------- | -------------------------------------- |
-| ip                           | iginx ip bounds           | 0.0.0.0                                |
-| port                         | iginx back-end port       | 6888                       	        |
-| username                     | iginx username            | root                        		    |
-| password                     | iginx password            | root                                   |
-| storageEngineList            | Time series database list, use ',' to separate different instances |127.0.0.1#6667#iotdb#username=root#password=root#sessionPoolSize=100#dataDir=/path/to/your/data/    |
-| maxAsyncRetryTimes           | The maximum number of repetitions of asynchronous requests         | 3 |
-| asyncExecuteThreadPool       | Asynchronous execution concurrent number| 20                       |
-| syncExecuteThreadPool        | The number of concurrent executions| 60                            |
-| replicaNum                   | number of copies written  | 1                                      |
-| databaseClassNames           | The underlying database class name, use ',' to separate different databases |iotdb=cn.edu.tsinghua.iginx.iotdb.IoTDBPlanExecutor,influxdb=cn.edu.tsinghua.iginx.influxdb.InfluxDBPlanExecutor |
-| policyClassName              | Policy class name         | cn.edu.tsinghua.iginx.policy.NativePolicy|
-| statisticsCollectorClassName | Statistics collection class| cn.edu.tsinghua.iginx.statistics.StatisticsCollector |
-| statisticsLogInterval        | Statistics print interval, in milliseconds| 1000                   |
+|      Configuration Item      |                                 Description                                 |                                                  Configuration                                                   |
+|------------------------------|-----------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------|
+| ip                           | iginx ip bounds                                                             | 0.0.0.0                                                                                                          |
+| port                         | iginx back-end port                                                         | 6888                                                                                                             |
+| username                     | iginx username                                                              | root                                                                                                             |
+| password                     | iginx password                                                              | root                                                                                                             |
+| storageEngineList            | Time series database list, use ',' to separate different instances          | 127.0.0.1#6667#iotdb#username=root#password=root#sessionPoolSize=100#dataDir=/path/to/your/data/                 |
+| maxAsyncRetryTimes           | The maximum number of repetitions of asynchronous requests                  | 3                                                                                                                |
+| asyncExecuteThreadPool       | Asynchronous execution concurrent number                                    | 20                                                                                                               |
+| syncExecuteThreadPool        | The number of concurrent executions                                         | 60                                                                                                               |
+| replicaNum                   | number of copies written                                                    | 1                                                                                                                |
+| databaseClassNames           | The underlying database class name, use ',' to separate different databases | iotdb=cn.edu.tsinghua.iginx.iotdb.IoTDBPlanExecutor,influxdb=cn.edu.tsinghua.iginx.influxdb.InfluxDBPlanExecutor |
+| policyClassName              | Policy class name                                                           | cn.edu.tsinghua.iginx.policy.NativePolicy                                                                        |
+| statisticsCollectorClassName | Statistics collection class                                                 | cn.edu.tsinghua.iginx.statistics.StatisticsCollector                                                             |
+| statisticsLogInterval        | Statistics print interval, in milliseconds                                  | 1000                                                                                                             |
 
 #### Rest Configuration
 
-| Configuration item | Description | Default value |
-| ----------------- | ------------------ | ------- |
-| restIp | rest-bound ip | 0.0.0.0 |
-| restPort | rest bound port | 6666 |
-| enableRestService | Whether to enable rest service | true |
+| Configuration item |          Description           | Default value |
+|--------------------|--------------------------------|---------------|
+| restIp             | rest-bound ip                  | 0.0.0.0       |
+| restPort           | rest bound port                | 6666          |
+| enableRestService  | Whether to enable rest service | true          |
 
 #### Metadata Configuration
 
@@ -628,17 +628,18 @@ For the full version of the code, please refer to: https://github.com/IGinX-THU/
 
 ### Using POM
 
-    <repositories>
-            <repository>
-                <id>github-release-repo</id>
-                <name>The Maven Repository on Github</name>
-                <url>https://github.com/IGinX-THU/IGinX/maven-repo/</url>
-            </repository>
-    </repositories>
-    <dependencies>
-        <dependency>
-            <groupId>cn.edu.tsinghua</groupId>
-            <artifactId>iginx-session</artifactId>
-            <version>0.5.1</version>
-        </dependency>
-    </dependencies>
+        <repositories>
+                <repository>
+                    <id>github-release-repo</id>
+                    <name>The Maven Repository on Github</name>
+                    <url>https://github.com/IGinX-THU/IGinX/maven-repo/</url>
+                </repository>
+        </repositories>
+        <dependencies>
+            <dependency>
+                <groupId>cn.edu.tsinghua</groupId>
+                <artifactId>iginx-session</artifactId>
+                <version>0.5.1</version>
+            </dependency>
+        </dependencies>
+

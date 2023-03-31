@@ -7,10 +7,9 @@ import cn.edu.tsinghua.iginx.session_v2.domain.Transform;
 import cn.edu.tsinghua.iginx.session_v2.exception.IginXException;
 import cn.edu.tsinghua.iginx.thrift.*;
 import cn.edu.tsinghua.iginx.utils.RpcUtils;
-import org.apache.thrift.TException;
-
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.thrift.TException;
 
 public class TransformClientImpl extends AbstractFunctionClient implements TransformClient {
 
@@ -21,7 +20,7 @@ public class TransformClientImpl extends AbstractFunctionClient implements Trans
     @Override
     public long commitTransformJob(Transform transform) {
         List<TaskInfo> taskInfoList = new ArrayList<>();
-        for (Task task: transform.getTaskList()) {
+        for (Task task : transform.getTaskList()) {
             TaskType taskType = task.getTaskType();
             TaskInfo taskInfo = new TaskInfo(taskType, task.getDataFlowType());
             taskInfo.setTimeout(task.getTimeout());
@@ -33,7 +32,8 @@ public class TransformClientImpl extends AbstractFunctionClient implements Trans
             taskInfoList.add(taskInfo);
         }
 
-        CommitTransformJobReq req = new CommitTransformJobReq(sessionId, taskInfoList, transform.getExportType());
+        CommitTransformJobReq req =
+                new CommitTransformJobReq(sessionId, taskInfoList, transform.getExportType());
         if (transform.getExportType().equals(ExportType.File)) {
             req.setFileName(transform.getFileName());
         }

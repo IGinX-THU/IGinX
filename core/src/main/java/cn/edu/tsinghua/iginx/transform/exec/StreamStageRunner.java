@@ -20,11 +20,10 @@ import cn.edu.tsinghua.iginx.transform.pojo.PythonTask;
 import cn.edu.tsinghua.iginx.transform.pojo.StreamStage;
 import cn.edu.tsinghua.iginx.transform.pojo.Task;
 import cn.edu.tsinghua.iginx.transform.utils.Mutex;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class StreamStageRunner implements Runner {
 
@@ -46,9 +45,10 @@ public class StreamStageRunner implements Runner {
 
     private final ContextBuilder contextBuilder = ContextBuilder.getInstance();
 
-    private final static Config config = ConfigDescriptor.getInstance().getConfig();
+    private static final Config config = ConfigDescriptor.getInstance().getConfig();
+
     @SuppressWarnings("unused")
-    private final static Logger logger = LoggerFactory.getLogger(StreamStageRunner.class);
+    private static final Logger logger = LoggerFactory.getLogger(StreamStageRunner.class);
 
     public StreamStageRunner(StreamStage stage) {
         this.streamStage = stage;
@@ -65,7 +65,8 @@ public class StreamStageRunner implements Runner {
             RowStream rowStream = getRowStream(streamStage.getSessionId(), firstTask.getSqlList());
             reader = new RowStreamReader(rowStream, batchSize);
         } else {
-            CollectionWriter collectionWriter = (CollectionWriter) streamStage.getBeforeStage().getExportWriter();
+            CollectionWriter collectionWriter =
+                    (CollectionWriter) streamStage.getBeforeStage().getExportWriter();
             reader = new SplitReader(collectionWriter.getCollectedData(), batchSize);
         }
 
@@ -87,7 +88,8 @@ public class StreamStageRunner implements Runner {
             executor.execute(context);
         }
 
-        ExecuteStatementReq req = new ExecuteStatementReq(sessionId, sqlList.get(sqlList.size() - 1));
+        ExecuteStatementReq req =
+                new ExecuteStatementReq(sessionId, sqlList.get(sqlList.size() - 1));
         RequestContext context = contextBuilder.build(req);
         executor.execute(context);
         return context.getResult().getResultStream();

@@ -18,13 +18,12 @@
  */
 package cn.edu.tsinghua.iginx.session;
 
+import static cn.edu.tsinghua.iginx.utils.ByteUtils.*;
+
 import cn.edu.tsinghua.iginx.constant.GlobalConstant;
 import cn.edu.tsinghua.iginx.thrift.*;
 import cn.edu.tsinghua.iginx.utils.FormatUtils;
-
 import java.util.*;
-
-import static cn.edu.tsinghua.iginx.utils.ByteUtils.*;
 
 public class SessionExecuteSqlResult {
 
@@ -46,12 +45,15 @@ public class SessionExecuteSqlResult {
     private List<Long> jobIdList;
 
     // Only for mock test
-    public SessionExecuteSqlResult() {
-    }
+    public SessionExecuteSqlResult() {}
 
     // Only for mock test
-    public SessionExecuteSqlResult(SqlType sqlType, long[] keys, List<String> paths,
-        List<List<Object>> values, List<DataType> dataTypeList) {
+    public SessionExecuteSqlResult(
+            SqlType sqlType,
+            long[] keys,
+            List<String> paths,
+            List<List<Object>> values,
+            List<DataType> dataTypeList) {
         this.sqlType = sqlType;
         this.keys = keys;
         this.paths = paths;
@@ -109,14 +111,18 @@ public class SessionExecuteSqlResult {
 
         // parse values
         if (resp.getQueryDataSet() != null) {
-            this.values = getValuesFromBufferAndBitmaps(resp.dataTypeList, resp.queryDataSet.valuesList, resp.queryDataSet.bitmapList);
+            this.values =
+                    getValuesFromBufferAndBitmaps(
+                            resp.dataTypeList,
+                            resp.queryDataSet.valuesList,
+                            resp.queryDataSet.bitmapList);
         } else {
             this.values = new ArrayList<>();
         }
     }
 
-    public List<List<String>> getResultInList(boolean needFormatTime, String timeFormat,
-                                              String timePrecision) {
+    public List<List<String>> getResultInList(
+            boolean needFormatTime, String timeFormat, String timePrecision) {
         List<List<String>> result = new ArrayList<>();
         if (isQuery()) {
             result = cacheResult(needFormatTime, timeFormat, timePrecision);
@@ -167,15 +173,16 @@ public class SessionExecuteSqlResult {
         StringBuilder builder = new StringBuilder();
         builder.append("ResultSets:").append("\n");
 
-        List<List<String>> cache = cacheResult(needFormatTime, FormatUtils.DEFAULT_TIME_FORMAT, timePrecision);
+        List<List<String>> cache =
+                cacheResult(needFormatTime, FormatUtils.DEFAULT_TIME_FORMAT, timePrecision);
         builder.append(FormatUtils.formatResult(cache));
 
         builder.append(FormatUtils.formatCount(cache.size() - 1));
         return builder.toString();
     }
 
-    private List<List<String>> cacheResult(boolean needFormatTime, String timeFormat,
-                                           String timePrecision) {
+    private List<List<String>> cacheResult(
+            boolean needFormatTime, String timeFormat, String timePrecision) {
         List<List<String>> cache = new ArrayList<>();
         List<String> label = new ArrayList<>();
         int annotationPathIndex = -1;
@@ -237,7 +244,9 @@ public class SessionExecuteSqlResult {
             cache.add(new ArrayList<>(Arrays.asList("Path", "DataType")));
             for (int i = 0; i < paths.size(); i++) {
                 if (!paths.get(i).equals("TITLE.DESCRIPTION")) { // TODO 不展示系统级时间序列
-                    cache.add(new ArrayList<>(Arrays.asList(paths.get(i), dataTypeList.get(i).toString())));
+                    cache.add(
+                            new ArrayList<>(
+                                    Arrays.asList(paths.get(i), dataTypeList.get(i).toString())));
                     num++;
                 }
             }
@@ -255,11 +264,12 @@ public class SessionExecuteSqlResult {
             List<List<String>> cache = new ArrayList<>();
             cache.add(new ArrayList<>(Arrays.asList("ID", "IP", "PORT")));
             for (IginxInfo info : iginxInfos) {
-                cache.add(new ArrayList<>(Arrays.asList(
-                    String.valueOf(info.getId()),
-                    info.getIp(),
-                    String.valueOf(info.getPort())
-                )));
+                cache.add(
+                        new ArrayList<>(
+                                Arrays.asList(
+                                        String.valueOf(info.getId()),
+                                        info.getIp(),
+                                        String.valueOf(info.getPort()))));
             }
             builder.append(FormatUtils.formatResult(cache));
         }
@@ -267,16 +277,20 @@ public class SessionExecuteSqlResult {
         if (storageEngineInfos != null && !storageEngineInfos.isEmpty()) {
             builder.append("Storage engine infos:").append("\n");
             List<List<String>> cache = new ArrayList<>();
-            cache.add(new ArrayList<>(Arrays.asList("ID", "IP", "PORT", "TYPE", "SCHEMA_PREFIX", "DATAPREFIX")));
+            cache.add(
+                    new ArrayList<>(
+                            Arrays.asList(
+                                    "ID", "IP", "PORT", "TYPE", "SCHEMA_PREFIX", "DATAPREFIX")));
             for (StorageEngineInfo info : storageEngineInfos) {
-                cache.add(new ArrayList<>(Arrays.asList(
-                    String.valueOf(info.getId()),
-                    info.getIp(),
-                    String.valueOf(info.getPort()),
-                    info.getType(),
-                    info.getSchemaPrefix(),
-                    info.getDataPrefix()
-                )));
+                cache.add(
+                        new ArrayList<>(
+                                Arrays.asList(
+                                        String.valueOf(info.getId()),
+                                        info.getIp(),
+                                        String.valueOf(info.getPort()),
+                                        info.getType(),
+                                        info.getSchemaPrefix(),
+                                        info.getDataPrefix())));
             }
             builder.append(FormatUtils.formatResult(cache));
         }
@@ -286,11 +300,12 @@ public class SessionExecuteSqlResult {
             List<List<String>> cache = new ArrayList<>();
             cache.add(new ArrayList<>(Arrays.asList("IP", "PORT", "TYPE")));
             for (MetaStorageInfo info : metaStorageInfos) {
-                cache.add(new ArrayList<>(Arrays.asList(
-                    info.getIp(),
-                    String.valueOf(info.getPort()),
-                    info.getType()
-                )));
+                cache.add(
+                        new ArrayList<>(
+                                Arrays.asList(
+                                        info.getIp(),
+                                        String.valueOf(info.getPort()),
+                                        info.getType())));
             }
             builder.append(FormatUtils.formatResult(cache));
         }
@@ -312,15 +327,18 @@ public class SessionExecuteSqlResult {
         if (registerTaskInfos != null && !registerTaskInfos.isEmpty()) {
             builder.append("Register task infos:").append("\n");
             List<List<String>> cache = new ArrayList<>();
-            cache.add(new ArrayList<>(Arrays.asList("NAME", "CLASS_NAME", "FILE_NAME", "IP", "UDF_TYPE")));
+            cache.add(
+                    new ArrayList<>(
+                            Arrays.asList("NAME", "CLASS_NAME", "FILE_NAME", "IP", "UDF_TYPE")));
             for (RegisterTaskInfo info : registerTaskInfos) {
-                cache.add(new ArrayList<>(Arrays.asList(
-                    info.getName(),
-                    info.getClassName(),
-                    info.getFileName(),
-                    info.getIp(),
-                    info.getType().toString()
-                )));
+                cache.add(
+                        new ArrayList<>(
+                                Arrays.asList(
+                                        info.getName(),
+                                        info.getClassName(),
+                                        info.getFileName(),
+                                        info.getIp(),
+                                        info.getType().toString())));
             }
             builder.append(FormatUtils.formatResult(cache));
         }

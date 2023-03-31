@@ -10,7 +10,6 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
-
 import org.junit.Test;
 
 public class ParquetHistoryDataGeneratorTest {
@@ -37,15 +36,23 @@ public class ParquetHistoryDataGeneratorTest {
         }
 
         String tableName = "tmp";
-        stmt.execute(String.format("CREATE TABLE %s (time BIGINT, cpu_usage DOUBLE, engine INTEGER, status VARCHAR);", tableName));
-        stmt.execute(String.format(
-            "INSERT INTO %s VALUES "
-                + "(1, 12.3, 1, 'normal'), "
-                + "(2, 23.1, 2, 'normal'), "
-                + "(3, 65.2, 1, 'high');", tableName));
+        stmt.execute(
+                String.format(
+                        "CREATE TABLE %s (time BIGINT, cpu_usage DOUBLE, engine INTEGER, status VARCHAR);",
+                        tableName));
+        stmt.execute(
+                String.format(
+                        "INSERT INTO %s VALUES "
+                                + "(1, 12.3, 1, 'normal'), "
+                                + "(2, 23.1, 2, 'normal'), "
+                                + "(3, 65.2, 1, 'high');",
+                        tableName));
 
         Path parquetPath = Paths.get(DATA_DIR, FILENAME);
-        stmt.execute(String.format("COPY (SELECT * FROM %s) TO '%s' (FORMAT 'parquet');", tableName, parquetPath.toString()));
+        stmt.execute(
+                String.format(
+                        "COPY (SELECT * FROM %s) TO '%s' (FORMAT 'parquet');",
+                        tableName, parquetPath.toString()));
     }
 
     private static Connection getConnection() {

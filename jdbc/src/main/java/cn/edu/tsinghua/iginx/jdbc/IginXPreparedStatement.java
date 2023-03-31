@@ -1,13 +1,12 @@
 package cn.edu.tsinghua.iginx.jdbc;
 
 import cn.edu.tsinghua.iginx.session.Session;
-
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
 import java.net.URL;
-import java.sql.Date;
 import java.sql.*;
+import java.sql.Date;
 import java.util.*;
 
 public class IginXPreparedStatement extends IginXStatement implements PreparedStatement {
@@ -46,7 +45,7 @@ public class IginXPreparedStatement extends IginXStatement implements PreparedSt
     }
 
     private String createCompleteSql(final String sql, Map<Integer, String> parameters)
-        throws SQLException {
+            throws SQLException {
         List<String> parts = splitSqlStatement(sql);
 
         StringBuilder newSql = new StringBuilder(parts.get(0));
@@ -234,10 +233,10 @@ public class IginXPreparedStatement extends IginXStatement implements PreparedSt
             setBoolean(parameterIndex, (Boolean) x);
         } else {
             throw new SQLException(
-                String.format(
-                    "Can''t infer the SQL type to use for an instance of %s. Use setObject() with"
-                        + " an explicit Types value to specify the type to use.",
-                    x.getClass().getName()));
+                    String.format(
+                            "Can''t infer the SQL type to use for an instance of %s. Use setObject() with"
+                                    + " an explicit Types value to specify the type to use.",
+                            x.getClass().getName()));
         }
     }
 
@@ -287,7 +286,8 @@ public class IginXPreparedStatement extends IginXStatement implements PreparedSt
     }
 
     @Override
-    public void setUnicodeStream(int parameterIndex, InputStream x, int length) throws SQLException {
+    public void setUnicodeStream(int parameterIndex, InputStream x, int length)
+            throws SQLException {
         throw new SQLException(Constant.METHOD_NOT_SUPPORTED);
     }
 
@@ -307,7 +307,8 @@ public class IginXPreparedStatement extends IginXStatement implements PreparedSt
     }
 
     @Override
-    public void setCharacterStream(int parameterIndex, Reader reader, int length) throws SQLException {
+    public void setCharacterStream(int parameterIndex, Reader reader, int length)
+            throws SQLException {
         throw new SQLException(Constant.METHOD_NOT_SUPPORTED);
     }
 
@@ -367,7 +368,8 @@ public class IginXPreparedStatement extends IginXStatement implements PreparedSt
     }
 
     @Override
-    public void setNCharacterStream(int parameterIndex, Reader value, long length) throws SQLException {
+    public void setNCharacterStream(int parameterIndex, Reader value, long length)
+            throws SQLException {
         throw new SQLException(Constant.METHOD_NOT_SUPPORTED);
     }
 
@@ -382,7 +384,8 @@ public class IginXPreparedStatement extends IginXStatement implements PreparedSt
     }
 
     @Override
-    public void setBlob(int parameterIndex, InputStream inputStream, long length) throws SQLException {
+    public void setBlob(int parameterIndex, InputStream inputStream, long length)
+            throws SQLException {
         throw new SQLException(Constant.METHOD_NOT_SUPPORTED);
     }
 
@@ -397,7 +400,8 @@ public class IginXPreparedStatement extends IginXStatement implements PreparedSt
     }
 
     @Override
-    public void setObject(int parameterIndex, Object x, int targetSqlType, int scaleOrLength) throws SQLException {
+    public void setObject(int parameterIndex, Object x, int targetSqlType, int scaleOrLength)
+            throws SQLException {
         throw new SQLException(Constant.METHOD_NOT_SUPPORTED);
     }
 
@@ -407,12 +411,14 @@ public class IginXPreparedStatement extends IginXStatement implements PreparedSt
     }
 
     @Override
-    public void setBinaryStream(int parameterIndex, InputStream x, long length) throws SQLException {
+    public void setBinaryStream(int parameterIndex, InputStream x, long length)
+            throws SQLException {
         throw new SQLException(Constant.METHOD_NOT_SUPPORTED);
     }
 
     @Override
-    public void setCharacterStream(int parameterIndex, Reader reader, long length) throws SQLException {
+    public void setCharacterStream(int parameterIndex, Reader reader, long length)
+            throws SQLException {
         throw new SQLException(Constant.METHOD_NOT_SUPPORTED);
     }
 
@@ -452,7 +458,8 @@ public class IginXPreparedStatement extends IginXStatement implements PreparedSt
     }
 
     @Override
-    public void setObject(int parameterIndex, Object x, SQLType targetSqlType, int scaleOrLength) throws SQLException {
+    public void setObject(int parameterIndex, Object x, SQLType targetSqlType, int scaleOrLength)
+            throws SQLException {
         throw new SQLException(Constant.METHOD_NOT_SUPPORTED);
     }
 

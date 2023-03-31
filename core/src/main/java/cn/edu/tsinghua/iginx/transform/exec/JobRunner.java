@@ -9,11 +9,10 @@ import cn.edu.tsinghua.iginx.transform.exception.UnknownDataFlowException;
 import cn.edu.tsinghua.iginx.transform.pojo.BatchStage;
 import cn.edu.tsinghua.iginx.transform.pojo.Job;
 import cn.edu.tsinghua.iginx.transform.pojo.StreamStage;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class JobRunner implements Runner {
 
@@ -21,7 +20,7 @@ public class JobRunner implements Runner {
 
     private final List<Runner> runnerList;
 
-    private final static Logger logger = LoggerFactory.getLogger(JobRunner.class);
+    private static final Logger logger = LoggerFactory.getLogger(JobRunner.class);
 
     public JobRunner(Job job) {
         this.job = job;
@@ -50,7 +49,7 @@ public class JobRunner implements Runner {
     public void run() {
         job.setState(JobState.JOB_RUNNING);
         try {
-            for (Runner runner: runnerList) {
+            for (Runner runner : runnerList) {
                 runner.start();
                 runner.run();
                 runner.close();
@@ -60,7 +59,8 @@ public class JobRunner implements Runner {
                 job.setState(JobState.JOB_FINISHED);
             }
         } catch (TransformException e) {
-            logger.error(String.format("Fail to run transform job id=%d, because", job.getJobId()), e);
+            logger.error(
+                    String.format("Fail to run transform job id=%d, because", job.getJobId()), e);
             if (job.getActive().compareAndSet(true, false)) {
                 job.setState(JobState.JOB_FAILING);
                 close();
@@ -72,11 +72,14 @@ public class JobRunner implements Runner {
     @Override
     public void close() {
         try {
-            for (Runner runner: runnerList) {
+            for (Runner runner : runnerList) {
                 runner.close();
             }
         } catch (TransformException e) {
-            logger.error(String.format("Fail to close Transform job runner id=%d, because", job.getJobId()), e);
+            logger.error(
+                    String.format(
+                            "Fail to close Transform job runner id=%d, because", job.getJobId()),
+                    e);
         }
     }
 }

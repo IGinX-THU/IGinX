@@ -8,7 +8,6 @@ import cn.edu.tsinghua.iginx.thrift.GetRegisterTaskInfoReq;
 import cn.edu.tsinghua.iginx.thrift.GetRegisterTaskInfoResp;
 import cn.edu.tsinghua.iginx.thrift.RegisterTaskInfo;
 import cn.edu.tsinghua.iginx.utils.RpcUtils;
-
 import java.util.List;
 
 public class ShowRegisterTaskStatement extends SystemStatement {

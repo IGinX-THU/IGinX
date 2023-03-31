@@ -21,7 +21,6 @@ package cn.edu.tsinghua.iginx.opentsdb.tools;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.BitmapView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
@@ -54,9 +53,10 @@ public class DataViewWrapper {
         if (tags != null && !tags.isEmpty()) {
             TreeMap<String, String> sortedTags = new TreeMap<>(tags);
             StringBuilder pathBuilder = new StringBuilder();
-            sortedTags.forEach((tagKey, tagValue) -> {
-                pathBuilder.append('.').append(tagKey).append('.').append(tagValue);
-            });
+            sortedTags.forEach(
+                    (tagKey, tagValue) -> {
+                        pathBuilder.append('.').append(tagKey).append('.').append(tagValue);
+                    });
             path += pathBuilder.toString();
         }
         pathCache.put(index, path);
@@ -78,5 +78,4 @@ public class DataViewWrapper {
     public BitmapView getBitmapView(int index) {
         return dataView.getBitmapView(index);
     }
-
 }

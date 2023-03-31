@@ -1,8 +1,7 @@
 package cn.edu.tsinghua.iginx.integration.func.sql;
 
-import org.junit.*;
-
 import java.io.IOException;
+import org.junit.*;
 
 public class SQLSessionPoolIT extends SQLSessionIT {
     public SQLSessionPoolIT() throws IOException {

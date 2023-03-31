@@ -18,6 +18,8 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils;
 
+import static cn.edu.tsinghua.iginx.thrift.DataType.BOOLEAN;
+
 import cn.edu.tsinghua.iginx.constant.GlobalConstant;
 import cn.edu.tsinghua.iginx.engine.physical.exception.InvalidOperatorParameterException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
@@ -35,7 +37,6 @@ import cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils;
 import cn.edu.tsinghua.iginx.engine.shared.operator.GroupBy;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -44,9 +45,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.stream.Collectors;
-
-import static cn.edu.tsinghua.iginx.thrift.DataType.BOOLEAN;
 
 public class RowUtils {
 
@@ -79,23 +77,25 @@ public class RowUtils {
             fields.addAll(cols.getHeader().getFields());
             valuesCombine.addAll(Arrays.asList(cols.getValues()));
         }
-        Header newHeader = columnList.get(0).getHeader().hasKey()? new Header(Field.KEY, fields) : new Header(fields);
+        Header newHeader =
+                columnList.get(0).getHeader().hasKey()
+                        ? new Header(Field.KEY, fields)
+                        : new Header(fields);
         return new Row(newHeader, columnList.get(0).getKey(), valuesCombine.toArray());
     }
 
     /**
-     * @return <tt>-1</tt>: not sorted
-     * <tt>0</tt>: all rows equal
-     * <tt>1</tt>: ascending sorted
-     * <tt>2</tt>: descending sorted
+     * @return <tt>-1</tt>: not sorted <tt>0</tt>: all rows equal <tt>1</tt>: ascending sorted
+     *     <tt>2</tt>: descending sorted
      */
-    public static int checkRowsSortedByColumns(List<Row> rows, String prefix,
-        List<String> columns) throws PhysicalException {
+    public static int checkRowsSortedByColumns(List<Row> rows, String prefix, List<String> columns)
+            throws PhysicalException {
         int res = 0;
         int index = 0;
         while (index < rows.size() - 1) {
-            int mark = compareRowsSortedByColumns(rows.get(index), rows.get(index + 1), prefix,
-                prefix, columns, columns);
+            int mark =
+                    compareRowsSortedByColumns(
+                            rows.get(index), rows.get(index + 1), prefix, prefix, columns, columns);
             if (mark == -1) {
                 if (res == 0) {
                     res = 1;
@@ -114,13 +114,15 @@ public class RowUtils {
         return res;
     }
 
-    /**
-     * @return <tt>-1</tt>: row1 < row2
-     * <tt>0</tt>: row1 = row2
-     * <tt>1</tt>: row1 > row2
-     */
-    public static int compareRowsSortedByColumns(Row row1, Row row2, String prefix1, String prefix2,
-        List<String> columns1, List<String> columns2) throws PhysicalException {
+    /** @return <tt>-1</tt>: row1 < row2 <tt>0</tt>: row1 = row2 <tt>1</tt>: row1 > row2 */
+    public static int compareRowsSortedByColumns(
+            Row row1,
+            Row row2,
+            String prefix1,
+            String prefix2,
+            List<String> columns1,
+            List<String> columns2)
+            throws PhysicalException {
         assert columns1.size() == columns2.size();
         int size = columns1.size();
         for (int index = 0; index < size; index++) {
@@ -133,12 +135,12 @@ public class RowUtils {
             } else if (value2 == null) {
                 return 1;
             }
-            DataType dataType1 = row1
-                .getField(row1.getHeader().indexOf(prefix1 + '.' + columns1.get(index)))
-                .getType();
-            DataType dataType2 = row2
-                .getField(row2.getHeader().indexOf(prefix2 + '.' + columns2.get(index)))
-                .getType();
+            DataType dataType1 =
+                    row1.getField(row1.getHeader().indexOf(prefix1 + '.' + columns1.get(index)))
+                            .getType();
+            DataType dataType2 =
+                    row2.getField(row2.getHeader().indexOf(prefix2 + '.' + columns2.get(index)))
+                            .getType();
             int cmp = ValueUtils.compare(value1, value2, dataType1, dataType2);
             if (cmp != 0) {
                 return cmp;
@@ -150,18 +152,18 @@ public class RowUtils {
     public static Header constructNewHead(Header header, String markColumn) {
         List<Field> fields = new ArrayList<>(header.getFields());
         fields.add(new Field(markColumn, BOOLEAN));
-        return header.hasKey()? new Header(Field.KEY, fields) : new Header(fields);
+        return header.hasKey() ? new Header(Field.KEY, fields) : new Header(fields);
     }
 
     public static Header constructNewHead(Header headerA, Header headerB, boolean remainKeyA) {
         List<Field> fields = new ArrayList<>();
         fields.addAll(headerA.getFields());
         fields.addAll(headerB.getFields());
-        return remainKeyA && headerA.hasKey()? new Header(Field.KEY, fields) : new Header(fields);
+        return remainKeyA && headerA.hasKey() ? new Header(Field.KEY, fields) : new Header(fields);
     }
 
-    public static Header constructNewHead(Header headerA, Header headerB, String prefixA,
-        String prefixB) {
+    public static Header constructNewHead(
+            Header headerA, Header headerB, String prefixA, String prefixB) {
         List<Field> fields = new ArrayList<>();
         if (headerA.hasKey()) {
             fields.add(new Field(prefixA + "." + GlobalConstant.KEY_NAME, DataType.LONG));
@@ -174,8 +176,13 @@ public class RowUtils {
         return new Header(fields);
     }
 
-    public static Pair<int[], Header> constructNewHead(Header headerA, Header headerB,
-        String prefixA, String prefixB, List<String> joinColumns, boolean cutRight) {
+    public static Pair<int[], Header> constructNewHead(
+            Header headerA,
+            Header headerB,
+            String prefixA,
+            String prefixB,
+            List<String> joinColumns,
+            boolean cutRight) {
         List<Field> fieldsA = headerA.getFields();
         List<Field> fieldsB = headerB.getFields();
         int[] indexOfJoinColumnsInTable = new int[joinColumns.size()];
@@ -220,8 +227,8 @@ public class RowUtils {
         return new Pair<>(indexOfJoinColumnsInTable, new Header(fields));
     }
 
-    public static Row constructUnmatchedRow(Header header, Row halfRow, int anotherRowSize,
-        boolean putLeft) {
+    public static Row constructUnmatchedRow(
+            Header header, Row halfRow, int anotherRowSize, boolean putLeft) {
 
         int size = halfRow.getValues().length + anotherRowSize;
         if (halfRow.getHeader().hasKey()) {
@@ -239,11 +246,19 @@ public class RowUtils {
         } else {
             if (halfRow.getHeader().hasKey()) {
                 valuesJoin[anotherRowSize] = halfRow.getKey();
-                System.arraycopy(halfRow.getValues(), 0, valuesJoin, anotherRowSize + 1,
-                    halfRow.getValues().length);
+                System.arraycopy(
+                        halfRow.getValues(),
+                        0,
+                        valuesJoin,
+                        anotherRowSize + 1,
+                        halfRow.getValues().length);
             } else {
-                System.arraycopy(halfRow.getValues(), 0, valuesJoin, anotherRowSize,
-                    halfRow.getValues().length);
+                System.arraycopy(
+                        halfRow.getValues(),
+                        0,
+                        valuesJoin,
+                        anotherRowSize,
+                        halfRow.getValues().length);
             }
         }
         return new Row(header, valuesJoin);
@@ -260,7 +275,9 @@ public class RowUtils {
 
         System.arraycopy(valuesA, 0, valuesJoin, rowAStartIndex, valuesA.length);
         System.arraycopy(valuesB, 0, valuesJoin, rowBStartIndex, valuesB.length);
-        return remainKeyA && rowA.getHeader().hasKey()? new Row(header, rowA.getKey(), valuesJoin) : new Row(header, valuesJoin);
+        return remainKeyA && rowA.getHeader().hasKey()
+                ? new Row(header, rowA.getKey(), valuesJoin)
+                : new Row(header, valuesJoin);
     }
 
     public static Row constructNewRow(Header header, Row rowA, Row rowB) {
@@ -292,8 +309,8 @@ public class RowUtils {
         return new Row(header, valuesJoin);
     }
 
-    public static Row constructNewRow(Header header, Row rowA, Row rowB,
-        int[] indexOfJoinColumnsInTable, boolean cutRight) {
+    public static Row constructNewRow(
+            Header header, Row rowA, Row rowB, int[] indexOfJoinColumnsInTable, boolean cutRight) {
         Object[] valuesA = rowA.getValues();
         Object[] valuesB = rowB.getValues();
 
@@ -357,14 +374,21 @@ public class RowUtils {
         Object[] newValues = new Object[values.length + 1];
         System.arraycopy(values, 0, newValues, 0, values.length);
         newValues[values.length] = markValue;
-        return row.getHeader().hasKey()? new Row(header, row.getKey(), newValues) : new Row(header, newValues);
+        return row.getHeader().hasKey()
+                ? new Row(header, row.getKey(), newValues)
+                : new Row(header, newValues);
     }
 
-    public static void fillNaturalJoinColumns(List<String> joinColumns, Header headerA,
-        Header headerB, String prefixA, String prefixB) throws PhysicalException {
+    public static void fillNaturalJoinColumns(
+            List<String> joinColumns,
+            Header headerA,
+            Header headerB,
+            String prefixA,
+            String prefixB)
+            throws PhysicalException {
         if (!joinColumns.isEmpty()) {
             throw new InvalidOperatorParameterException(
-                "natural inner join operator should not have using operator");
+                    "natural inner join operator should not have using operator");
         }
         for (Field fieldA : headerA.getFields()) {
             for (Field fieldB : headerB.getFields()) {
@@ -381,7 +405,7 @@ public class RowUtils {
     }
 
     public static LinkedList<Row> cacheGroupByResult(GroupBy groupBy, RowStream stream)
-        throws PhysicalException {
+            throws PhysicalException {
         List<String> cols = groupBy.getGroupByCols();
         int[] colIndex = new int[cols.size()];
         List<Field> fields = new LinkedList<>();
@@ -392,7 +416,7 @@ public class RowUtils {
             int index = header.indexOf(col);
             if (index == -1) {
                 throw new PhysicalTaskExecuteFailureException(
-                    String.format("Group by col [%s] not exist.", col));
+                        String.format("Group by col [%s] not exist.", col));
             }
             colIndex[cur++] = index;
             fields.add(header.getField(index));
@@ -442,8 +466,10 @@ public class RowUtils {
                     }
                 } catch (Exception e) {
                     throw new PhysicalTaskExecuteFailureException(
-                        "encounter error when execute set mapping function " +
-                            function.getIdentifier() + ".", e);
+                            "encounter error when execute set mapping function "
+                                    + function.getIdentifier()
+                                    + ".",
+                            e);
                 }
             }
         }
@@ -468,7 +494,7 @@ public class RowUtils {
     }
 
     public static void sortRows(List<Row> rows, boolean asc, List<String> sortByCols)
-        throws PhysicalTaskExecuteFailureException {
+            throws PhysicalTaskExecuteFailureException {
         if (rows == null || rows.isEmpty()) {
             return;
         }
@@ -488,32 +514,40 @@ public class RowUtils {
             int index = header.indexOf(col);
             if (index == -1) {
                 throw new PhysicalTaskExecuteFailureException(
-                    String.format("SortBy key [%s] doesn't exist in table.", col));
+                        String.format("SortBy key [%s] doesn't exist in table.", col));
             }
             indexList.add(index);
             typeList.add(header.getField(index).getType());
         }
 
         boolean finalHasKey = hasKey;
-        rows.sort((a, b) -> {
-            if (finalHasKey) {
-                int cmp = asc ? Long.compare(a.getKey(), b.getKey()) :
-                    Long.compare(b.getKey(), a.getKey());
-                if (cmp != 0) {
-                    return cmp;
-                }
-            }
-            for (int i = 0; i < indexList.size(); i++) {
-                int cmp = asc ? ValueUtils
-                    .compare(a.getValue(indexList.get(i)), b.getValue(indexList.get(i)),
-                        typeList.get(i)) : ValueUtils
-                    .compare(b.getValue(indexList.get(i)), a.getValue(indexList.get(i)),
-                        typeList.get(i));
-                if (cmp != 0) {
-                    return cmp;
-                }
-            }
-            return 0;
-        });
+        rows.sort(
+                (a, b) -> {
+                    if (finalHasKey) {
+                        int cmp =
+                                asc
+                                        ? Long.compare(a.getKey(), b.getKey())
+                                        : Long.compare(b.getKey(), a.getKey());
+                        if (cmp != 0) {
+                            return cmp;
+                        }
+                    }
+                    for (int i = 0; i < indexList.size(); i++) {
+                        int cmp =
+                                asc
+                                        ? ValueUtils.compare(
+                                                a.getValue(indexList.get(i)),
+                                                b.getValue(indexList.get(i)),
+                                                typeList.get(i))
+                                        : ValueUtils.compare(
+                                                b.getValue(indexList.get(i)),
+                                                a.getValue(indexList.get(i)),
+                                                typeList.get(i));
+                        if (cmp != 0) {
+                            return cmp;
+                        }
+                    }
+                    return 0;
+                });
     }
 }

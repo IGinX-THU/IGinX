@@ -98,7 +98,8 @@ public class DUManager {
 
     private final ExecutorService flushPool = Executors.newSingleThreadExecutor();
 
-    public DUManager(String id, String dataDir, Connection connection, boolean isDummyStorageUnit) throws IOException {
+    public DUManager(String id, String dataDir, Connection connection, boolean isDummyStorageUnit)
+            throws IOException {
         this.id = id;
         this.dataDir = dataDir;
         this.connection = connection;
@@ -134,7 +135,7 @@ public class DUManager {
                 Map<String, List<TimeRange>> deleteRanges = new HashMap<>();
 
                 String str = null;
-                while((str = br.readLine()) != null) {
+                while ((str = br.readLine()) != null) {
                     String details = str.substring(str.indexOf(" ") + 1);
                     if (str.startsWith(CMD_PATHS)) {
                         String[] paths = details.split(",");
@@ -178,13 +179,16 @@ public class DUManager {
                 is.close();
                 br.close();
 
-                FileMeta meta = new FileMeta(extraPath, dataPath, startTime, endTime, pathMap, deleteRanges);
+                FileMeta meta =
+                        new FileMeta(
+                                extraPath, dataPath, startTime, endTime, pathMap, deleteRanges);
                 fileMetaMap.put(fileId, meta);
             }
         }
     }
 
-    public List<Column> project(List<String> paths, TagFilter tagFilter, String filter) throws SQLException {
+    public List<Column> project(List<String> paths, TagFilter tagFilter, String filter)
+            throws SQLException {
         if (isDummyStorageUnit) {
             return projectDummy(paths, tagFilter, filter);
         }
@@ -192,9 +196,16 @@ public class DUManager {
         Map<String, Column> dataMap = new HashMap<>();
         for (Map.Entry<String, FileMeta> entry : fileMetaMap.entrySet()) {
             FileMeta fileMeta = entry.getValue();
-            List<String> filePaths = determinePathList(fileMeta.getPathMap().keySet(), paths, tagFilter);
+            List<String> filePaths =
+                    determinePathList(fileMeta.getPathMap().keySet(), paths, tagFilter);
             if (!filePaths.isEmpty()) {
-                List<Column> columns = projectInParquet(filePaths, filter, fileMeta.getDataPath(), fileMeta.getDeleteRanges(), fileMeta.getEndTime());
+                List<Column> columns =
+                        projectInParquet(
+                                filePaths,
+                                filter,
+                                fileMeta.getDataPath(),
+                                fileMeta.getDeleteRanges(),
+                                fileMeta.getEndTime());
                 mergeData(dataMap, columns);
             }
         }
@@ -207,7 +218,8 @@ public class DUManager {
         return new ArrayList<>(dataMap.values());
     }
 
-    private List<Column> projectDummy(List<String> paths, TagFilter tagFilter, String filter) throws SQLException {
+    private List<Column> projectDummy(List<String> paths, TagFilter tagFilter, String filter)
+            throws SQLException {
         Map<String, Column> dataMap = new HashMap<>();
         File file = new File(dataDir);
         File[] dataFiles = file.listFiles();
@@ -220,7 +232,9 @@ public class DUManager {
                 Set<String> pathsInFile = getPathsFromFile(dataFile.getPath());
                 List<String> filePaths = determinePathList(pathsInFile, paths, tagFilter);
                 if (!filePaths.isEmpty()) {
-                    List<Column> columns = projectInParquet(filePaths, filter, dataFile.getPath(), null, Long.MAX_VALUE);
+                    List<Column> columns =
+                            projectInParquet(
+                                    filePaths, filter, dataFile.getPath(), null, Long.MAX_VALUE);
                     mergeData(dataMap, columns);
                 }
             }
@@ -236,12 +250,14 @@ public class DUManager {
             Statement stmt = conn.createStatement();
 
             StringBuilder builder = new StringBuilder();
-            paths.forEach(path -> builder.append(path.replaceAll(IGINX_SEPARATOR, PARQUET_SEPARATOR)).append(", "));
-            ResultSet rs = stmt.executeQuery(
-                String.format(SELECT_MEM_STMT,
-                    builder.toString(),
-                    curMemTable,
-                    filter));
+            paths.forEach(
+                    path ->
+                            builder.append(path.replaceAll(IGINX_SEPARATOR, PARQUET_SEPARATOR))
+                                    .append(", "));
+            ResultSet rs =
+                    stmt.executeQuery(
+                            String.format(
+                                    SELECT_MEM_STMT, builder.toString(), curMemTable, filter));
             stmt.close();
             conn.close();
 
@@ -253,18 +269,23 @@ public class DUManager {
         }
     }
 
-    private List<Column> projectInParquet(List<String> paths, String filter, String dataPath,
-        Map<String, List<TimeRange>> deleteRanges, long endTime) throws SQLException {
+    private List<Column> projectInParquet(
+            List<String> paths,
+            String filter,
+            String dataPath,
+            Map<String, List<TimeRange>> deleteRanges,
+            long endTime)
+            throws SQLException {
         Connection conn = ((DuckDBConnection) connection).duplicate();
         Statement stmt = conn.createStatement();
 
         StringBuilder builder = new StringBuilder();
-        paths.forEach(path -> builder.append(path.replaceAll(IGINX_SEPARATOR, PARQUET_SEPARATOR)).append(", "));
-        ResultSet rs = stmt.executeQuery(
-            String.format(SELECT_STMT,
-                builder.toString(),
-                dataPath,
-                filter));
+        paths.forEach(
+                path ->
+                        builder.append(path.replaceAll(IGINX_SEPARATOR, PARQUET_SEPARATOR))
+                                .append(", "));
+        ResultSet rs =
+                stmt.executeQuery(String.format(SELECT_STMT, builder.toString(), dataPath, filter));
         stmt.close();
         conn.close();
 
@@ -280,13 +301,17 @@ public class DUManager {
 
                 List<TimeRange> ranges = deleteRanges.get(column.getPathName());
                 if (ranges != null) {
-                    ranges.forEach(timeRange -> {
-                        long start = timeRange.getActualBeginTime();
-                        long end = Math.min(timeRange.getActualEndTime(), endTime);  // optimize time > xxx case
-                        for (long i = start; i <= end; i++) {
-                            column.removeData(i);
-                        }
-                    });
+                    ranges.forEach(
+                            timeRange -> {
+                                long start = timeRange.getActualBeginTime();
+                                long end =
+                                        Math.min(
+                                                timeRange.getActualEndTime(),
+                                                endTime); // optimize time > xxx case
+                                for (long i = start; i <= end; i++) {
+                                    column.removeData(i);
+                                }
+                            });
                 }
             }
         }
@@ -296,7 +321,7 @@ public class DUManager {
     private List<Column> initColumns(ResultSet rs) throws SQLException {
         ResultSetMetaData rsMetaData = rs.getMetaData();
         List<Column> columns = new ArrayList<>();
-        for (int i = 1; i <= rsMetaData.getColumnCount(); i++) {  // start from index 1
+        for (int i = 1; i <= rsMetaData.getColumnCount(); i++) { // start from index 1
             String physicalPath = rsMetaData.getColumnName(i);
             String pathName = physicalPath.replaceAll(PARQUET_SEPARATOR, IGINX_SEPARATOR);
             if (i == 1 && pathName.equals(COLUMN_TIME)) {
@@ -341,7 +366,7 @@ public class DUManager {
             Connection conn = ((DuckDBConnection) connection).duplicate();
             Statement stmt = conn.createStatement();
 
-            if (curMemTable.equals("")) {  // init mem table
+            if (curMemTable.equals("")) { // init mem table
                 curMemTable = id + "_" + System.currentTimeMillis();
 
                 StringBuilder builder = new StringBuilder();
@@ -349,9 +374,9 @@ public class DUManager {
                 for (int i = 0; i < data.getPathNum(); i++) {
                     String path = data.getPath(i);
                     builder.append(path.replaceAll(IGINX_SEPARATOR, PARQUET_SEPARATOR))
-                        .append(" ")
-                        .append(toParquetDataType(data.getDataType(i)))
-                        .append(", ");
+                            .append(" ")
+                            .append(toParquetDataType(data.getDataType(i)))
+                            .append(", ");
                     curMemTablePathMap.put(path, data.getDataType(i));
                 }
                 builder.deleteCharAt(builder.length() - 2);
@@ -359,13 +384,17 @@ public class DUManager {
 
                 String createTableStmt = String.format(CREATE_TABLE_STMT, curMemTable, columns);
                 stmt.execute(createTableStmt);
-            } else {                      // add columns if needed
+            } else { // add columns if needed
                 for (int i = 0; i < data.getPathNum(); i++) {
                     String path = data.getPath(i);
                     if (!curMemTablePathMap.containsKey(path)) {
                         String type = toParquetDataType(data.getDataType(i));
-                        stmt.execute(String.format(ADD_COLUMNS_STMT, curMemTable,
-                            path.replaceAll(IGINX_SEPARATOR, PARQUET_SEPARATOR), type));
+                        stmt.execute(
+                                String.format(
+                                        ADD_COLUMNS_STMT,
+                                        curMemTable,
+                                        path.replaceAll(IGINX_SEPARATOR, PARQUET_SEPARATOR),
+                                        type));
                         curMemTablePathMap.put(path, data.getDataType(i));
                         logger.info("add columns: ({}, {})", path, type);
                     }
@@ -476,7 +505,7 @@ public class DUManager {
             }
         }
         for (int i = 0; i < data.getTimeSize(); i++) {
-            rowValueArray[i] +=  "), ";
+            rowValueArray[i] += "), ";
         }
 
         StringBuilder builder = new StringBuilder();
@@ -489,13 +518,15 @@ public class DUManager {
     private void flush() {
         FileMeta meta = new FileMeta(curStartTime, curEndTime, curMemTablePathMap);
 
-        flushPool.submit(() -> {
-            try {
-                flushToDisk(curMemTable, curMemTablePathMap, curStartTime, curEndTime, meta);
-            } catch (Exception e) {
-                logger.info("flush error, details: {}", e.getMessage());
-            }
-        });
+        flushPool.submit(
+                () -> {
+                    try {
+                        flushToDisk(
+                                curMemTable, curMemTablePathMap, curStartTime, curEndTime, meta);
+                    } catch (Exception e) {
+                        logger.info("flush error, details: {}", e.getMessage());
+                    }
+                });
 
         curMemTablePathMap = new HashMap<>();
         curMemTable = "";
@@ -511,8 +542,13 @@ public class DUManager {
         }
     }
 
-    private void flushToDisk(String table, Map<String, DataType> paths, long startTime,
-        long endTime, FileMeta fileMeta) throws SQLException, IOException {
+    private void flushToDisk(
+            String table,
+            Map<String, DataType> paths,
+            long startTime,
+            long endTime,
+            FileMeta fileMeta)
+            throws SQLException, IOException {
         isFlushing = true;
 
         Connection conn = ((DuckDBConnection) connection).duplicate();
@@ -530,7 +566,12 @@ public class DUManager {
         builder.append(CMD_PATHS).append(" ");
         paths.forEach((k, v) -> builder.append(k).append(",").append(v.toString()).append(","));
         builder.deleteCharAt(builder.length() - 1).append("\n");
-        builder.append(CMD_TIME).append(" ").append(startTime).append(",").append(endTime).append("\n");
+        builder.append(CMD_TIME)
+                .append(" ")
+                .append(startTime)
+                .append(",")
+                .append(endTime)
+                .append("\n");
 
         FileWriter fw = new FileWriter(extraPath.toString());
         BufferedWriter bw = new BufferedWriter(fw);
@@ -549,9 +590,11 @@ public class DUManager {
     }
 
     public void delete(List<String> paths, List<TimeRange> timeRanges, TagFilter tagFilter)
-        throws SQLException, IOException {
-        if (paths.size() == 1 && paths.get(0).equals("*") && tagFilter == null &&
-            (timeRanges == null || timeRanges.size() == 0)) {
+            throws SQLException, IOException {
+        if (paths.size() == 1
+                && paths.get(0).equals("*")
+                && tagFilter == null
+                && (timeRanges == null || timeRanges.size() == 0)) {
             clearData();
         }
 
@@ -561,7 +604,8 @@ public class DUManager {
         }
 
         for (Map.Entry<String, FileMeta> entry : fileMetaMap.entrySet()) {
-            List<String> filePaths = determinePathList(entry.getValue().getPathMap().keySet(), paths, tagFilter);
+            List<String> filePaths =
+                    determinePathList(entry.getValue().getPathMap().keySet(), paths, tagFilter);
             if (!filePaths.isEmpty()) {
                 deleteDataInFile(entry.getKey(), filePaths, timeRanges);
             }
@@ -569,7 +613,7 @@ public class DUManager {
     }
 
     private void deleteDataInMemTable(List<String> paths, List<TimeRange> timeRanges)
-        throws SQLException {
+            throws SQLException {
         try {
             memTableLock.writeLock().lock();
             Connection conn = ((DuckDBConnection) connection).duplicate();
@@ -577,16 +621,23 @@ public class DUManager {
 
             if (timeRanges == null || timeRanges.size() == 0) {
                 for (String path : paths) {
-                    stmt.execute(String.format(DROP_COLUMN_STMT, curMemTable,
-                        path.replaceAll(IGINX_SEPARATOR, PARQUET_SEPARATOR)));
+                    stmt.execute(
+                            String.format(
+                                    DROP_COLUMN_STMT,
+                                    curMemTable,
+                                    path.replaceAll(IGINX_SEPARATOR, PARQUET_SEPARATOR)));
                     curMemTablePathMap.remove(path);
                 }
             } else {
                 for (String path : paths) {
                     for (TimeRange timeRange : timeRanges) {
-                        stmt.execute(String.format(DELETE_DATA_STMT, curMemTable,
-                            path.replaceAll(IGINX_SEPARATOR, PARQUET_SEPARATOR),
-                            timeRange.getActualBeginTime(), timeRange.getActualEndTime()));
+                        stmt.execute(
+                                String.format(
+                                        DELETE_DATA_STMT,
+                                        curMemTable,
+                                        path.replaceAll(IGINX_SEPARATOR, PARQUET_SEPARATOR),
+                                        timeRange.getActualBeginTime(),
+                                        timeRange.getActualEndTime()));
                     }
                 }
             }
@@ -599,7 +650,7 @@ public class DUManager {
     }
 
     private void deleteDataInFile(String fileName, List<String> paths, List<TimeRange> timeRanges)
-        throws IOException {
+            throws IOException {
         FileMeta meta = fileMetaMap.get(fileName);
         meta.deleteData(paths, timeRanges);
     }
@@ -634,7 +685,8 @@ public class DUManager {
         fileMetaMap.clear();
     }
 
-    private List<String> determinePathList(Set<String> paths, List<String> patterns, TagFilter tagFilter) {
+    private List<String> determinePathList(
+            Set<String> paths, List<String> patterns, TagFilter tagFilter) {
         List<String> ret = new ArrayList<>();
         for (String path : paths) {
             for (String pattern : patterns) {
@@ -645,8 +697,8 @@ public class DUManager {
                         break;
                     }
                 } else {
-                    if (Pattern.matches(StringUtils.reformatPath(pattern), pair.getK()) &&
-                        TagKVUtils.match(pair.getV(), tagFilter)) {
+                    if (Pattern.matches(StringUtils.reformatPath(pattern), pair.getK())
+                            && TagKVUtils.match(pair.getV(), tagFilter)) {
                         ret.add(path);
                         break;
                     }
@@ -663,7 +715,9 @@ public class DUManager {
             Statement stmt = conn.createStatement();
             ResultSet rs = stmt.executeQuery(String.format(SELECT_PARQUET_SCHEMA, path));
             while (rs.next()) {
-                String pathName = ((String) rs.getObject(NAME)).replaceAll(PARQUET_SEPARATOR, IGINX_SEPARATOR);
+                String pathName =
+                        ((String) rs.getObject(NAME))
+                                .replaceAll(PARQUET_SEPARATOR, IGINX_SEPARATOR);
                 if (!pathName.equals(DUCKDB_SCHEMA) && !pathName.equals(COLUMN_TIME)) {
                     ret.add(pathName);
                 }

@@ -5,7 +5,6 @@ import cn.edu.tsinghua.iginx.engine.shared.data.write.RawDataType;
 import cn.edu.tsinghua.iginx.sql.SQLConstant;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Bitmap;
-
 import java.util.*;
 
 public class InsertStatement extends DataStatement {
@@ -30,8 +29,14 @@ public class InsertStatement extends DataStatement {
         this.tagsList = new ArrayList<>();
     }
 
-    public InsertStatement(RawDataType rawDataType, List<String> paths, List<Long> times,
-                           Object[] values, List<DataType> types, List<Bitmap> bitmaps, List<Map<String, String>> tagsList) {
+    public InsertStatement(
+            RawDataType rawDataType,
+            List<String> paths,
+            List<Long> times,
+            Object[] values,
+            List<DataType> types,
+            List<Bitmap> bitmaps,
+            List<Map<String, String>> tagsList) {
         this.statementType = StatementType.INSERT;
         this.rawDataType = rawDataType;
         this.paths = paths;

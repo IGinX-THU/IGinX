@@ -91,11 +91,13 @@ public final class Header {
             return patternIndexCache.get(pattern);
         } else {
             List<Integer> indexList = new ArrayList<>();
-            fields.forEach(field -> {
-                if (Pattern.matches(StringUtils.reformatPath(pattern), field.getFullName())) {
-                    indexList.add(indexOf(field.getFullName()));
-                }
-            });
+            fields.forEach(
+                    field -> {
+                        if (Pattern.matches(
+                                StringUtils.reformatPath(pattern), field.getFullName())) {
+                            indexList.add(indexOf(field.getFullName()));
+                        }
+                    });
             patternIndexCache.put(pattern, indexList);
             return indexList;
         }
@@ -103,10 +105,7 @@ public final class Header {
 
     @Override
     public String toString() {
-        return "Header{" +
-            "time=" + key +
-            ", fields=" + fields +
-            '}';
+        return "Header{" + "time=" + key + ", fields=" + fields + '}';
     }
 
     @Override
@@ -114,7 +113,9 @@ public final class Header {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Header header = (Header) o;
-        return Objects.equals(key, header.key) && Objects.equals(fields, header.fields) && Objects.equals(indexMap, header.indexMap);
+        return Objects.equals(key, header.key)
+                && Objects.equals(fields, header.fields)
+                && Objects.equals(indexMap, header.indexMap);
     }
 
     @Override

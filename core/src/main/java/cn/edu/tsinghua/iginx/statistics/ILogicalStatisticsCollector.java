@@ -8,5 +8,4 @@ public interface ILogicalStatisticsCollector {
     PreLogicalProcessor getPreLogicalProcessor();
 
     PostLogicalProcessor getPostLogicalProcessor();
-
 }

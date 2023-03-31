@@ -1,5 +1,8 @@
 package cn.edu.tsinghua.iginx.integration.func.rest;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
@@ -7,17 +10,12 @@ import cn.edu.tsinghua.iginx.rest.MetricsResource;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.alibaba.fastjson.JSONObject;
-import org.junit.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-//import static java.lang.reflect.Method.getMethod;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import org.junit.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /*
 一、anntation测试逻辑：
@@ -48,16 +46,21 @@ public class RestAnnotationIT {
     private static Session session;
 
     private enum TYPE {
-        APPEND, UPDATE, INSERT, QUERYANNO, QUERYALL, DELETE
+        APPEND,
+        UPDATE,
+        INSERT,
+        QUERYANNO,
+        QUERYALL,
+        DELETE
     }
 
     private String API[] = {
-            " http://127.0.0.1:6666/api/v1/datapoints/annotations/add",
-            " http://127.0.0.1:6666/api/v1/datapoints/annotations/update",
-            " http://127.0.0.1:6666/api/v1/datapoints/annotations",
-            " http://127.0.0.1:6666/api/v1/datapoints/query/annotations",
-            " http://127.0.0.1:6666/api/v1/datapoints/query/annotations/data",
-            " http://127.0.0.1:6666/api/v1/datapoints/annotations/delete",
+        " http://127.0.0.1:6666/api/v1/datapoints/annotations/add",
+        " http://127.0.0.1:6666/api/v1/datapoints/annotations/update",
+        " http://127.0.0.1:6666/api/v1/datapoints/annotations",
+        " http://127.0.0.1:6666/api/v1/datapoints/query/annotations",
+        " http://127.0.0.1:6666/api/v1/datapoints/query/annotations/data",
+        " http://127.0.0.1:6666/api/v1/datapoints/annotations/delete",
     };
 
     public String orderGen(String fileName, TYPE type) {
@@ -74,17 +77,20 @@ public class RestAnnotationIT {
         Process process = null;
         try {
             ProcessBuilder processBuilder = new ProcessBuilder(curlArray.split(" "));
-            if(dataType.equals(DataType.DOUBLE))
-                processBuilder.directory(new File("./src/test/resources/restAnnotation/doubleType"));
-            if(dataType.equals(DataType.LONG))
+            if (dataType.equals(DataType.DOUBLE))
+                processBuilder.directory(
+                        new File("./src/test/resources/restAnnotation/doubleType"));
+            if (dataType.equals(DataType.LONG))
                 processBuilder.directory(new File("./src/test/resources/restAnnotation/longType"));
-            if(dataType.equals(DataType.BINARY))
-                processBuilder.directory(new File("./src/test/resources/restAnnotation/binaryType"));
+            if (dataType.equals(DataType.BINARY))
+                processBuilder.directory(
+                        new File("./src/test/resources/restAnnotation/binaryType"));
             // 执行 url 命令
             process = processBuilder.start();
 
             // 输出子进程信息
-            InputStreamReader inputStreamReaderINFO = new InputStreamReader(process.getInputStream());
+            InputStreamReader inputStreamReaderINFO =
+                    new InputStreamReader(process.getInputStream());
             BufferedReader bufferedReaderINFO = new BufferedReader(inputStreamReaderINFO);
             String lineStr;
             while ((lineStr = bufferedReaderINFO.readLine()) != null) {
@@ -100,7 +106,6 @@ public class RestAnnotationIT {
             return null;
         }
     }
-
 
     @BeforeClass
     public static void setUp() throws SessionException {
@@ -132,19 +137,19 @@ public class RestAnnotationIT {
         try {
             ByteArrayOutputStream baoStream = new ByteArrayOutputStream(10240);
             PrintStream cacheStream = new PrintStream(baoStream);
-            System.setOut(cacheStream);//不打印到控制台
+            System.setOut(cacheStream); // 不打印到控制台
 
             System.out.print(JSONObject.parse(output));
             String outputAns = baoStream.toString();
 
             ByteArrayOutputStream baoStream2 = new ByteArrayOutputStream(10240);
             PrintStream cacheStream2 = new PrintStream(baoStream2);
-            System.setOut(cacheStream2);//不打印到控制台
+            System.setOut(cacheStream2); // 不打印到控制台
 
             System.out.print(JSONObject.parse(execute(json, type, dataType)));
             String result = baoStream.toString();
 
-//            String result = (String) JSONObject.parse(execute(json, type, dataType));
+            //            String result = (String) JSONObject.parse(execute(json, type, dataType));
             assertEquals(outputAns, removeSpecialChar(result));
         } catch (Exception e) {
             LOGGER.error("Error occurred during execution ", e);
@@ -174,7 +179,7 @@ public class RestAnnotationIT {
             FileReader fr = new FileReader(file);
             try (BufferedReader br = new BufferedReader(fr)) {
                 String line;
-                while((line = br.readLine()) != null){
+                while ((line = br.readLine()) != null) {
                     ret += line;
                 }
             }
@@ -187,12 +192,13 @@ public class RestAnnotationIT {
 
     /**
      * 去除字符串中的空格、回车、换行符、制表符等
+     *
      * @param str
      * @return
      */
-    public String removeSpecialChar(String str){
+    public String removeSpecialChar(String str) {
         String s = "";
-        if(str != null){
+        if (str != null) {
             // 定义含特殊字符的正则表达式
             Pattern p = Pattern.compile("\\s*|\t|\r|\n");
             Matcher m = p.matcher(str);
@@ -211,13 +217,13 @@ public class RestAnnotationIT {
         String ans = null;
         switch (dataType) {
             case DOUBLE:
-                ans = ansFromFile(fileName,DataType.DOUBLE);
+                ans = ansFromFile(fileName, DataType.DOUBLE);
                 break;
             case LONG:
-                ans = ansFromFile(fileName,DataType.LONG);
+                ans = ansFromFile(fileName, DataType.LONG);
                 break;
             case BINARY:
-                ans = ansFromFile(fileName,DataType.BINARY);
+                ans = ansFromFile(fileName, DataType.BINARY);
                 break;
             default:
                 throw new IllegalStateException("Unexpected DataType: " + dataType.toString());
@@ -242,12 +248,14 @@ public class RestAnnotationIT {
         /*
         1、查询anntation信息
         */
-        testQueryAnno(dataType); clearDataMen();
+        testQueryAnno(dataType);
+        clearDataMen();
 
         /*
         2、查询数据以及annotation信息
         */
-        testQueryAll(dataType); clearDataMen();
+        testQueryAll(dataType);
+        clearDataMen();
 
         /*
         3、对每个修改操作单独测试，并通过两种查询分别验证正确性：
@@ -255,33 +263,46 @@ public class RestAnnotationIT {
         3.2、测试 update（更新标签操作），通过queryAnno以及queryAll两种方法测试
         3.3、测试 delete（删除标签操作），通过queryAnno以及queryAll两种方法测试
         */
-        testAppendViaQueryAnno(dataType); clearDataMen();
-        testAppendViaQueryAll(dataType); clearDataMen();
-        testUpdateViaQueryAll(dataType); clearDataMen();
-        testUpdateViaQueryAnno(dataType); clearDataMen();
-        testDeleteViaQueryAll(dataType); clearDataMen();
-        testDeleteViaQueryAnno(dataType); clearDataMen();
+        testAppendViaQueryAnno(dataType);
+        clearDataMen();
+        testAppendViaQueryAll(dataType);
+        clearDataMen();
+        testUpdateViaQueryAll(dataType);
+        clearDataMen();
+        testUpdateViaQueryAnno(dataType);
+        clearDataMen();
+        testDeleteViaQueryAll(dataType);
+        clearDataMen();
+        testDeleteViaQueryAnno(dataType);
+        clearDataMen();
 
         /*
         4、测试重复性操作操作，查看结果正确性
         4.1、测试添加相同category，通过queryAnno以及queryAll两种方法测试
         4.2、测试不断更新相同结果的category，通过queryAnno以及queryAll两种方法测试
         */
-        testDuplicateAppendViaQueryAnno(dataType); clearDataMen();
-        testDuplicateAppendViaQueryAll(dataType); clearDataMen();
-        testDuplicateUpdateViaQueryAnno(dataType); clearDataMen();
-        testDuplicateDeleteViaQueryAll(dataType); clearDataMen();
+        testDuplicateAppendViaQueryAnno(dataType);
+        clearDataMen();
+        testDuplicateAppendViaQueryAll(dataType);
+        clearDataMen();
+        testDuplicateUpdateViaQueryAnno(dataType);
+        clearDataMen();
+        testDuplicateDeleteViaQueryAll(dataType);
+        clearDataMen();
 
         /*
         5、逻辑上重复的操作，如更新结果与原category相同，查看结果正确性
         */
-        testSameUpdateViaQueryAll(dataType); clearDataMen();
-        testSameAppendViaQueryAll(dataType); clearDataMen();
+        testSameUpdateViaQueryAll(dataType);
+        clearDataMen();
+        testSameAppendViaQueryAll(dataType);
+        clearDataMen();
 
         /*
         6、复杂操作，插入，添加，更新，删除，每步操作查看结果正确性
         */
-        testAppend2ViaQueryAll(dataType); clearDataMen();
+        testAppend2ViaQueryAll(dataType);
+        clearDataMen();
     }
 
     @Test
@@ -291,12 +312,14 @@ public class RestAnnotationIT {
         /*
         1、查询anntation信息
         */
-        testQueryAnno(dataType); clearDataMen();
+        testQueryAnno(dataType);
+        clearDataMen();
 
         /*
         2、查询数据以及annotation信息
         */
-        testQueryAll(dataType); clearDataMen();
+        testQueryAll(dataType);
+        clearDataMen();
 
         /*
         3、对每个修改操作单独测试，并通过两种查询分别验证正确性：
@@ -304,33 +327,46 @@ public class RestAnnotationIT {
         3.2、测试 update（更新标签操作），通过queryAnno以及queryAll两种方法测试
         3.3、测试 delete（删除标签操作），通过queryAnno以及queryAll两种方法测试
         */
-        testAppendViaQueryAnno(dataType); clearDataMen();
-        testAppendViaQueryAll(dataType); clearDataMen();
-        testUpdateViaQueryAll(dataType); clearDataMen();
-        testUpdateViaQueryAnno(dataType); clearDataMen();
-        testDeleteViaQueryAll(dataType); clearDataMen();
-        testDeleteViaQueryAnno(dataType); clearDataMen();
+        testAppendViaQueryAnno(dataType);
+        clearDataMen();
+        testAppendViaQueryAll(dataType);
+        clearDataMen();
+        testUpdateViaQueryAll(dataType);
+        clearDataMen();
+        testUpdateViaQueryAnno(dataType);
+        clearDataMen();
+        testDeleteViaQueryAll(dataType);
+        clearDataMen();
+        testDeleteViaQueryAnno(dataType);
+        clearDataMen();
 
         /*
         4、测试重复性操作操作，查看结果正确性
         4.1、测试添加相同category，通过queryAnno以及queryAll两种方法测试
         4.2、测试不断更新相同结果的category，通过queryAnno以及queryAll两种方法测试
         */
-        testDuplicateAppendViaQueryAnno(dataType); clearDataMen();
-        testDuplicateAppendViaQueryAll(dataType); clearDataMen();
-        testDuplicateUpdateViaQueryAnno(dataType); clearDataMen();
-        testDuplicateDeleteViaQueryAll(dataType); clearDataMen();
+        testDuplicateAppendViaQueryAnno(dataType);
+        clearDataMen();
+        testDuplicateAppendViaQueryAll(dataType);
+        clearDataMen();
+        testDuplicateUpdateViaQueryAnno(dataType);
+        clearDataMen();
+        testDuplicateDeleteViaQueryAll(dataType);
+        clearDataMen();
 
         /*
         5、逻辑上重复的操作，如更新结果与原category相同，查看结果正确性
         */
-        testSameUpdateViaQueryAll(dataType); clearDataMen();
-        testSameAppendViaQueryAll(dataType); clearDataMen();
+        testSameUpdateViaQueryAll(dataType);
+        clearDataMen();
+        testSameAppendViaQueryAll(dataType);
+        clearDataMen();
 
         /*
         6、复杂操作，插入，添加，更新，删除，每步操作查看结果正确性
         */
-        testAppend2ViaQueryAll(dataType); clearDataMen();
+        testAppend2ViaQueryAll(dataType);
+        clearDataMen();
     }
 
     @Test
@@ -340,12 +376,14 @@ public class RestAnnotationIT {
         /*
         1、查询anntation信息
         */
-        testQueryAnno(dataType); clearDataMen();
+        testQueryAnno(dataType);
+        clearDataMen();
 
         /*
         2、查询数据以及annotation信息
         */
-        testQueryAll(dataType); clearDataMen();
+        testQueryAll(dataType);
+        clearDataMen();
 
         /*
         3、对每个修改操作单独测试，并通过两种查询分别验证正确性：
@@ -353,95 +391,120 @@ public class RestAnnotationIT {
         3.2、测试 update（更新标签操作），通过queryAnno以及queryAll两种方法测试
         3.3、测试 delete（删除标签操作），通过queryAnno以及queryAll两种方法测试
         */
-        testAppendViaQueryAnno(dataType); clearDataMen();
-        testAppendViaQueryAll(dataType); clearDataMen();
-        testUpdateViaQueryAll(dataType); clearDataMen();
-        testUpdateViaQueryAnno(dataType); clearDataMen();
-        testDeleteViaQueryAll(dataType); clearDataMen();
-        testDeleteViaQueryAnno(dataType); clearDataMen();
+        testAppendViaQueryAnno(dataType);
+        clearDataMen();
+        testAppendViaQueryAll(dataType);
+        clearDataMen();
+        testUpdateViaQueryAll(dataType);
+        clearDataMen();
+        testUpdateViaQueryAnno(dataType);
+        clearDataMen();
+        testDeleteViaQueryAll(dataType);
+        clearDataMen();
+        testDeleteViaQueryAnno(dataType);
+        clearDataMen();
 
         /*
         4、测试重复性操作操作，查看结果正确性
         4.1、测试添加相同category，通过queryAnno以及queryAll两种方法测试
         4.2、测试不断更新相同结果的category，通过queryAnno以及queryAll两种方法测试
         */
-        testDuplicateAppendViaQueryAnno(dataType); clearDataMen();
-        testDuplicateAppendViaQueryAll(dataType); clearDataMen();
-        testDuplicateUpdateViaQueryAnno(dataType); clearDataMen();
-        testDuplicateDeleteViaQueryAll(dataType); clearDataMen();
+        testDuplicateAppendViaQueryAnno(dataType);
+        clearDataMen();
+        testDuplicateAppendViaQueryAll(dataType);
+        clearDataMen();
+        testDuplicateUpdateViaQueryAnno(dataType);
+        clearDataMen();
+        testDuplicateDeleteViaQueryAll(dataType);
+        clearDataMen();
 
         /*
         5、逻辑上重复的操作，如更新结果与原category相同，查看结果正确性
         */
-        testSameUpdateViaQueryAll(dataType); clearDataMen();
-        testSameAppendViaQueryAll(dataType); clearDataMen();
+        testSameUpdateViaQueryAll(dataType);
+        clearDataMen();
+        testSameAppendViaQueryAll(dataType);
+        clearDataMen();
 
         /*
         6、复杂操作，插入，添加，更新，删除，每步操作查看结果正确性
         */
-        testAppend2ViaQueryAll(dataType); clearDataMen();
+        testAppend2ViaQueryAll(dataType);
+        clearDataMen();
     }
 
     @Test
     public void testAllAppend() {
-        for(int i=0;i<3;i++) {
+        for (int i = 0; i < 3; i++) {
             DataType dataType = null;
-            if(i==0) dataType = DataType.DOUBLE;
-            if(i==1) dataType = DataType.LONG;
-            if(i==2) dataType = DataType.BINARY;
+            if (i == 0) dataType = DataType.DOUBLE;
+            if (i == 1) dataType = DataType.LONG;
+            if (i == 2) dataType = DataType.BINARY;
 
-            testAppendViaQueryAnno(dataType); clearDataMen();
-            testAppendViaQueryAll(dataType); clearDataMen();
+            testAppendViaQueryAnno(dataType);
+            clearDataMen();
+            testAppendViaQueryAll(dataType);
+            clearDataMen();
 
-            testDuplicateAppendViaQueryAnno(dataType); clearDataMen();
-            testDuplicateAppendViaQueryAll(dataType); clearDataMen();
+            testDuplicateAppendViaQueryAnno(dataType);
+            clearDataMen();
+            testDuplicateAppendViaQueryAll(dataType);
+            clearDataMen();
 
-            testAppend2ViaQueryAll(dataType); clearDataMen();
+            testAppend2ViaQueryAll(dataType);
+            clearDataMen();
         }
     }
 
     @Test
     public void testAllDelete() {
-        for(int i=0;i<3;i++) {
+        for (int i = 0; i < 3; i++) {
             DataType dataType = null;
-            if(i==0) dataType = DataType.DOUBLE;
-            if(i==1) dataType = DataType.LONG;
-            if(i==2) dataType = DataType.BINARY;
+            if (i == 0) dataType = DataType.DOUBLE;
+            if (i == 1) dataType = DataType.LONG;
+            if (i == 2) dataType = DataType.BINARY;
 
-            testDeleteViaQueryAll(dataType); clearDataMen();
-            testDeleteViaQueryAnno(dataType); clearDataMen();
+            testDeleteViaQueryAll(dataType);
+            clearDataMen();
+            testDeleteViaQueryAnno(dataType);
+            clearDataMen();
 
-            testDuplicateDeleteViaQueryAll(dataType); clearDataMen();
+            testDuplicateDeleteViaQueryAll(dataType);
+            clearDataMen();
         }
     }
 
     @Test
     public void testAllUpdate() {
-        for(int i=0;i<3;i++) {
+        for (int i = 0; i < 3; i++) {
             DataType dataType = null;
-            if(i==0) dataType = DataType.DOUBLE;
-            if(i==1) dataType = DataType.LONG;
-            if(i==2) dataType = DataType.BINARY;
+            if (i == 0) dataType = DataType.DOUBLE;
+            if (i == 1) dataType = DataType.LONG;
+            if (i == 2) dataType = DataType.BINARY;
 
-            testUpdateViaQueryAll(dataType); clearDataMen();
-            testUpdateViaQueryAnno(dataType); clearDataMen();
+            testUpdateViaQueryAll(dataType);
+            clearDataMen();
+            testUpdateViaQueryAnno(dataType);
+            clearDataMen();
 
-            testDuplicateUpdateViaQueryAnno(dataType); clearDataMen();
+            testDuplicateUpdateViaQueryAnno(dataType);
+            clearDataMen();
 
-            testSameUpdateViaQueryAll(dataType); clearDataMen();
+            testSameUpdateViaQueryAll(dataType);
+            clearDataMen();
         }
     }
 
     public void testQueryAnno(DataType dataType) {
         insertData(dataType);
-        String ans = getAns(getMethodName(),dataType);
+        String ans = getAns(getMethodName(), dataType);
         executeAndCompare("queryAnno.json", ans, TYPE.QUERYANNO, dataType);
         clearDataMen();
     }
 
     public void testQueryAll(DataType dataType) {
         insertData(dataType);
-        String ans = getAns(getMethodName(),dataType);
+        String ans = getAns(getMethodName(), dataType);
         executeAndCompare("queryData.json", ans, TYPE.QUERYALL, DataType.DOUBLE);
     }
 
@@ -449,7 +512,7 @@ public class RestAnnotationIT {
         insertData(dataType);
         try {
             execute("add.json", TYPE.APPEND, DataType.DOUBLE);
-            String ans = getAns(getMethodName(),dataType);
+            String ans = getAns(getMethodName(), dataType);
             executeAndCompare("queryAppendViaQueryAnno.json", ans, TYPE.QUERYANNO, DataType.DOUBLE);
         } catch (Exception e) {
             LOGGER.error("Error occurred during execution ", e);
@@ -461,7 +524,7 @@ public class RestAnnotationIT {
         insertData(dataType);
         try {
             execute("add.json", TYPE.APPEND, dataType);
-            String ans = getAns(getMethodName(),dataType);
+            String ans = getAns(getMethodName(), dataType);
             executeAndCompare("queryAppendViaQueryAll.json", ans, TYPE.QUERYALL, dataType);
         } catch (Exception e) {
             LOGGER.error("Error occurred during execution ", e);
@@ -473,7 +536,7 @@ public class RestAnnotationIT {
         insertData(dataType);
         try {
             execute("update.json", TYPE.UPDATE, dataType);
-            String ans = getAns(getMethodName(),dataType);
+            String ans = getAns(getMethodName(), dataType);
             executeAndCompare("queryUpdateViaQueryAll.json", ans, TYPE.QUERYALL, dataType);
         } catch (Exception e) {
             LOGGER.error("Error occurred during execution ", e);
@@ -485,7 +548,7 @@ public class RestAnnotationIT {
         insertData(dataType);
         try {
             execute("update.json", TYPE.UPDATE, dataType);
-            String ans = getAns(getMethodName(),dataType);
+            String ans = getAns(getMethodName(), dataType);
             executeAndCompare("queryUpdateViaQueryAnno.json", ans, TYPE.QUERYANNO, dataType);
         } catch (Exception e) {
             LOGGER.error("Error occurred during execution ", e);
@@ -497,7 +560,7 @@ public class RestAnnotationIT {
         insertData(dataType);
         try {
             execute("delete.json", TYPE.DELETE, dataType);
-            String ans = getAns(getMethodName(),dataType);
+            String ans = getAns(getMethodName(), dataType);
             executeAndCompare("deleteViaQueryAll.json", ans, TYPE.QUERYALL, dataType);
         } catch (Exception e) {
             LOGGER.error("Error occurred during execution ", e);
@@ -509,7 +572,7 @@ public class RestAnnotationIT {
         insertData(dataType);
         try {
             execute("delete.json", TYPE.DELETE, dataType);
-            String ans = getAns(getMethodName(),dataType);
+            String ans = getAns(getMethodName(), dataType);
             executeAndCompare("deleteViaQueryAnno.json", ans, TYPE.QUERYANNO, dataType);
         } catch (Exception e) {
             LOGGER.error("Error occurred during execution ", e);
@@ -529,7 +592,7 @@ public class RestAnnotationIT {
             execute("add2.json", TYPE.APPEND, dataType);
             execute("add2.json", TYPE.APPEND, dataType);
 
-            String ans = getAns(getMethodName(),dataType);
+            String ans = getAns(getMethodName(), dataType);
             executeAndCompare("testAppend2ViaQueryAll.json", ans, TYPE.QUERYALL, dataType);
         } catch (Exception e) {
             LOGGER.error("Error occurred during execution ", e);
@@ -543,7 +606,7 @@ public class RestAnnotationIT {
             execute("add.json", TYPE.APPEND, dataType);
             execute("add.json", TYPE.APPEND, dataType);
 
-            String ans = getAns(getMethodName(),dataType);
+            String ans = getAns(getMethodName(), dataType);
             executeAndCompare("queryAppendViaQueryAll.json", ans, TYPE.QUERYALL, dataType);
         } catch (Exception e) {
             LOGGER.error("Error occurred during execution ", e);
@@ -557,7 +620,7 @@ public class RestAnnotationIT {
             execute("update.json", TYPE.UPDATE, dataType);
             execute("update.json", TYPE.UPDATE, dataType);
 
-            String ans = getAns(getMethodName(),dataType);
+            String ans = getAns(getMethodName(), dataType);
             executeAndCompare("queryUpdateViaQueryAll.json", ans, TYPE.QUERYALL, dataType);
         } catch (Exception e) {
             LOGGER.error("Error occurred during execution ", e);
@@ -571,7 +634,7 @@ public class RestAnnotationIT {
             execute("update.json", TYPE.UPDATE, dataType);
             execute("update.json", TYPE.UPDATE, dataType);
 
-            String ans = getAns(getMethodName(),dataType);
+            String ans = getAns(getMethodName(), dataType);
             executeAndCompare("queryUpdateViaQueryAnno.json", ans, TYPE.QUERYANNO, dataType);
         } catch (Exception e) {
             LOGGER.error("Error occurred during execution ", e);
@@ -585,7 +648,7 @@ public class RestAnnotationIT {
             execute("delete.json", TYPE.DELETE, dataType);
             execute("delete.json", TYPE.DELETE, dataType);
 
-            String ans = getAns(getMethodName(),dataType);
+            String ans = getAns(getMethodName(), dataType);
             executeAndCompare("deleteViaQueryAll.json", ans, TYPE.QUERYALL, dataType);
         } catch (Exception e) {
             LOGGER.error("Error occurred during execution ", e);
@@ -601,7 +664,7 @@ public class RestAnnotationIT {
         insertData(dataType);
         try {
             execute("updateSame.json", TYPE.UPDATE, dataType);
-            String ans = getAns(getMethodName(),dataType);
+            String ans = getAns(getMethodName(), dataType);
             executeAndCompare("queryData.json", ans, TYPE.QUERYALL, dataType);
         } catch (Exception e) {
             LOGGER.error("Error occurred during execution ", e);
@@ -613,7 +676,7 @@ public class RestAnnotationIT {
         insertData(dataType);
         try {
             execute("addSame.json", TYPE.APPEND, dataType);
-            String ans = getAns(getMethodName(),dataType);
+            String ans = getAns(getMethodName(), dataType);
             executeAndCompare("queryAppendViaQueryAll.json", ans, TYPE.QUERYALL, dataType);
         } catch (Exception e) {
             LOGGER.error("Error occurred during execution ", e);
@@ -631,12 +694,11 @@ public class RestAnnotationIT {
             execute("add2.json", TYPE.APPEND, dataType);
 
             execute("delete.json", TYPE.DELETE, dataType);
-            String ans = getAns(getMethodName(),dataType);
+            String ans = getAns(getMethodName(), dataType);
             executeAndCompare("testAppend2ViaQueryAll.json", ans, TYPE.QUERYALL, dataType);
         } catch (Exception e) {
             LOGGER.error("Error occurred during execution ", e);
             fail();
         }
     }
-
 }

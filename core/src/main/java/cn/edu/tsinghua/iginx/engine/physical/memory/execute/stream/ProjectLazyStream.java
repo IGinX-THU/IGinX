@@ -18,7 +18,6 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream;
 
-
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
@@ -26,7 +25,6 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -58,7 +56,8 @@ public class ProjectLazyStream extends UnaryLazyStream {
                             targetFields.add(field);
                         }
                     } else {
-                        if (Pattern.matches(StringUtils.reformatPath(pattern), field.getFullName())) {
+                        if (Pattern.matches(
+                                StringUtils.reformatPath(pattern), field.getFullName())) {
                             targetFields.add(field);
                         }
                     }
@@ -80,7 +79,7 @@ public class ProjectLazyStream extends UnaryLazyStream {
     private Row calculateNext() throws PhysicalException {
         Header header = getHeader();
         List<Field> fields = header.getFields();
-        while(stream.hasNext()) {
+        while (stream.hasNext()) {
             Row row = stream.next();
             Object[] objects = new Object[fields.size()];
             boolean allNull = true;

@@ -9,21 +9,26 @@ public interface SyncProtocol {
 
     /**
      * start a sync proposal
+     *
      * @param key proposal key
      * @param syncProposal proposal content
      * @param listener vote listener
      * @return success or failure
      */
-    boolean startProposal(String key, SyncProposal syncProposal, VoteListener listener) throws NetworkException;
+    boolean startProposal(String key, SyncProposal syncProposal, VoteListener listener)
+            throws NetworkException;
 
     /**
-     * register proposal listener, when proposal create/update/delete, listener will receive notification
+     * register proposal listener, when proposal create/update/delete, listener will receive
+     * notification
+     *
      * @param listener proposal listener
      */
-    void registerProposalListener(ProposalListener listener) ;
+    void registerProposalListener(ProposalListener listener);
 
     /**
      * vote for proposal
+     *
      * @param key proposal key
      * @param vote proposal vote
      */
@@ -31,11 +36,12 @@ public interface SyncProtocol {
 
     /**
      * end proposal
+     *
      * @param key proposal key
      * @param syncProposal proposal content
      */
-    void endProposal(String key, SyncProposal syncProposal) throws NetworkException, ExecutionException;
+    void endProposal(String key, SyncProposal syncProposal)
+            throws NetworkException, ExecutionException;
 
     void close();
-
 }

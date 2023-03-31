@@ -27,5 +27,4 @@ public class NotSupportedOperatorException extends PhysicalException {
     public NotSupportedOperatorException(Operator operator, String detail) {
         super("non supported operator " + operator.getType() + ", because " + detail);
     }
-
 }

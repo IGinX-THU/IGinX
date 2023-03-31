@@ -34,9 +34,9 @@ public class HashOuterJoinLazyStream extends BinaryLazyStream {
 
     private final List<Integer> streamBHashPutOrder;
 
-    private final List<Row> unmatchedStreamARows;  // 未被匹配过的StreamA的行
+    private final List<Row> unmatchedStreamARows; // 未被匹配过的StreamA的行
 
-    private final Set<Integer> matchedStreamBRowHashSet;  // 已被匹配过的StreamB的行
+    private final Set<Integer> matchedStreamBRowHashSet; // 已被匹配过的StreamB的行
 
     private final Deque<Row> cache;
 
@@ -46,12 +46,12 @@ public class HashOuterJoinLazyStream extends BinaryLazyStream {
 
     private boolean hasInitialized = false;
 
-    private boolean lastPartHasInitialized = false;  // 外连接未匹配部分是否被初始化
+    private boolean lastPartHasInitialized = false; // 外连接未匹配部分是否被初始化
 
     private String joinColumnA;
 
     private String joinColumnB;
-    
+
     private boolean needTypeCast = false;
 
     public HashOuterJoinLazyStream(OuterJoin outerJoin, RowStream streamA, RowStream streamB) {
@@ -73,20 +73,24 @@ public class HashOuterJoinLazyStream extends BinaryLazyStream {
 
         List<String> joinColumns = new ArrayList<>(outerJoin.getJoinColumns());
         if (outerJoin.isNaturalJoin()) {
-            RowUtils.fillNaturalJoinColumns(joinColumns, headerA, headerB,
-                outerJoin.getPrefixA(), outerJoin.getPrefixB());
+            RowUtils.fillNaturalJoinColumns(
+                    joinColumns, headerA, headerB, outerJoin.getPrefixA(), outerJoin.getPrefixB());
         }
-        if ((filter == null && joinColumns.isEmpty()) || (filter != null && !joinColumns.isEmpty())) {
-            throw new InvalidOperatorParameterException("using(or natural) and on operator cannot be used at the same time");
+        if ((filter == null && joinColumns.isEmpty())
+                || (filter != null && !joinColumns.isEmpty())) {
+            throw new InvalidOperatorParameterException(
+                    "using(or natural) and on operator cannot be used at the same time");
         }
 
         if (filter != null) {
             if (!filter.getType().equals(FilterType.Path)) {
-                throw new InvalidOperatorParameterException("hash join only support one path filter yet.");
+                throw new InvalidOperatorParameterException(
+                        "hash join only support one path filter yet.");
             }
             Pair<String, String> p = FilterUtils.getJoinColumnFromPathFilter((PathFilter) filter);
             if (p == null) {
-                throw new InvalidOperatorParameterException("hash join only support equal path filter yet.");
+                throw new InvalidOperatorParameterException(
+                        "hash join only support equal path filter yet.");
             }
             if (headerA.indexOf(p.k) != -1 && headerB.indexOf(p.v) != -1) {
                 this.joinColumnA = p.k.replaceFirst(outerJoin.getPrefixA() + '.', "");
@@ -99,9 +103,11 @@ public class HashOuterJoinLazyStream extends BinaryLazyStream {
             }
         } else {
             if (joinColumns.size() != 1) {
-                throw new InvalidOperatorParameterException("hash join only support the number of join column is one yet.");
+                throw new InvalidOperatorParameterException(
+                        "hash join only support the number of join column is one yet.");
             }
-            if (headerA.indexOf(outerJoin.getPrefixA() + '.' + joinColumns.get(0)) != -1 && headerB.indexOf(outerJoin.getPrefixB() + '.' + joinColumns.get(0)) != -1) {
+            if (headerA.indexOf(outerJoin.getPrefixA() + '.' + joinColumns.get(0)) != -1
+                    && headerB.indexOf(outerJoin.getPrefixB() + '.' + joinColumns.get(0)) != -1) {
                 this.joinColumnA = this.joinColumnB = joinColumns.get(0);
             } else {
                 throw new InvalidOperatorParameterException("invalid hash join column input.");
@@ -146,15 +152,31 @@ public class HashOuterJoinLazyStream extends BinaryLazyStream {
             }
         }
 
-        if (filter != null) {  // Join condition: on
-            this.header = RowUtils.constructNewHead(headerA, headerB, outerJoin.getPrefixA(), outerJoin.getPrefixB());
-        } else {               // Join condition: natural or using
+        if (filter != null) { // Join condition: on
+            this.header =
+                    RowUtils.constructNewHead(
+                            headerA, headerB, outerJoin.getPrefixA(), outerJoin.getPrefixB());
+        } else { // Join condition: natural or using
             if (outerJoinType == OuterJoinType.RIGHT) {
-                this.header = RowUtils.constructNewHead(headerA, headerB, outerJoin.getPrefixA(),
-                    outerJoin.getPrefixB(), Collections.singletonList(joinColumnA), false).getV();
+                this.header =
+                        RowUtils.constructNewHead(
+                                        headerA,
+                                        headerB,
+                                        outerJoin.getPrefixA(),
+                                        outerJoin.getPrefixB(),
+                                        Collections.singletonList(joinColumnA),
+                                        false)
+                                .getV();
             } else {
-                this.header = RowUtils.constructNewHead(headerA, headerB, outerJoin.getPrefixA(),
-                    outerJoin.getPrefixB(), Collections.singletonList(joinColumnB), true).getV();
+                this.header =
+                        RowUtils.constructNewHead(
+                                        headerA,
+                                        headerB,
+                                        outerJoin.getPrefixA(),
+                                        outerJoin.getPrefixB(),
+                                        Collections.singletonList(joinColumnB),
+                                        true)
+                                .getV();
             }
         }
 
@@ -167,17 +189,24 @@ public class HashOuterJoinLazyStream extends BinaryLazyStream {
         }
         OuterJoinType outerType = outerJoin.getOuterJoinType();
         if (outerType == OuterJoinType.FULL || outerType == OuterJoinType.LEFT) {
-            int anotherRowSize = streamB.getHeader().hasKey() ? streamB.getHeader().getFieldSize() + 1 : streamB.getHeader().getFieldSize();
+            int anotherRowSize =
+                    streamB.getHeader().hasKey()
+                            ? streamB.getHeader().getFieldSize() + 1
+                            : streamB.getHeader().getFieldSize();
             if (outerJoin.getFilter() == null) {
                 anotherRowSize -= 1;
             }
             for (Row halfRow : unmatchedStreamARows) {
-                Row unmatchedRow = RowUtils.constructUnmatchedRow(header, halfRow, anotherRowSize, true);
+                Row unmatchedRow =
+                        RowUtils.constructUnmatchedRow(header, halfRow, anotherRowSize, true);
                 cache.add(unmatchedRow);
             }
         }
         if (outerType == OuterJoinType.FULL || outerType == OuterJoinType.RIGHT) {
-            int anotherRowSize = streamA.getHeader().hasKey() ? streamA.getHeader().getFieldSize() + 1 : streamA.getHeader().getFieldSize();
+            int anotherRowSize =
+                    streamA.getHeader().hasKey()
+                            ? streamA.getHeader().getFieldSize() + 1
+                            : streamA.getHeader().getFieldSize();
             if (outerJoin.getFilter() == null) {
                 anotherRowSize -= 1;
             }
@@ -185,7 +214,9 @@ public class HashOuterJoinLazyStream extends BinaryLazyStream {
                 if (!matchedStreamBRowHashSet.contains(hash)) {
                     List<Row> unmatchedRows = streamBHashMap.get(hash);
                     for (Row halfRow : unmatchedRows) {
-                        Row unmatchedRow = RowUtils.constructUnmatchedRow(header, halfRow, anotherRowSize, false);
+                        Row unmatchedRow =
+                                RowUtils.constructUnmatchedRow(
+                                        header, halfRow, anotherRowSize, false);
                         cache.add(unmatchedRow);
                     }
                 }
@@ -244,9 +275,11 @@ public class HashOuterJoinLazyStream extends BinaryLazyStream {
                 } else {
                     Row row;
                     if (outerJoin.getOuterJoinType() == OuterJoinType.RIGHT) {
-                        row = RowUtils.constructNewRow(header, rowA, rowB, new int[]{index}, false);
+                        row =
+                                RowUtils.constructNewRow(
+                                        header, rowA, rowB, new int[] {index}, false);
                     } else {
-                        row = RowUtils.constructNewRow(header, rowA, rowB, new int[]{index}, true);
+                        row = RowUtils.constructNewRow(header, rowA, rowB, new int[] {index}, true);
                     }
                     cache.addLast(row);
                 }

@@ -6,7 +6,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class Sampler {
 
-    private final static Sampler instance = new Sampler();
+    private static final Sampler instance = new Sampler();
 
     private final Set<String> prefixSet = new HashSet<>();
 
@@ -18,8 +18,7 @@ public class Sampler {
 
     private final Random random = new Random();
 
-    private Sampler() {
-    }
+    private Sampler() {}
 
     public static Sampler getInstance() {
         return instance;

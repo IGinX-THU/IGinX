@@ -20,7 +20,6 @@ package cn.edu.tsinghua.iginx.conf;
 
 import cn.edu.tsinghua.iginx.thrift.TimePrecision;
 import cn.edu.tsinghua.iginx.utils.TagKVUtils;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -38,7 +37,8 @@ public class Config {
 
     private String zookeeperConnectionString = "127.0.0.1:2181";
 
-    private String storageEngineList = "127.0.0.1#6667#iotdb12#username=root#password=root#sessionPoolSize=20#dataDir=/path/to/your/data/";
+    private String storageEngineList =
+            "127.0.0.1#6667#iotdb12#username=root#password=root#sessionPoolSize=20#dataDir=/path/to/your/data/";
 
     private int maxAsyncRetryTimes = 2;
 
@@ -50,8 +50,9 @@ public class Config {
 
     private TimePrecision timePrecision = TimePrecision.NS;
 
-    private String databaseClassNames = "iotdb=cn.edu.tsinghua.iginx.iotdb.IoTDBPlanExecutor,influxdb=cn.edu.tsinghua.iginx.influxdb.InfluxDBPlanExecutor,parquet=cn.edu.tsinghua.iginx.parquet.parquetStorage";
-    //,opentsdb=cn.edu.tsinghua.iginx.opentsdb.OpenTSDBStorage,timescaledb=cn.edu.tsinghua.iginx.timescaledb.TimescaleDBStorage,postgresql=cn.edu.tsinghua.iginx.postgresql.PostgreSQLStorage
+    private String databaseClassNames =
+            "iotdb=cn.edu.tsinghua.iginx.iotdb.IoTDBPlanExecutor,influxdb=cn.edu.tsinghua.iginx.influxdb.InfluxDBPlanExecutor,parquet=cn.edu.tsinghua.iginx.parquet.parquetStorage";
+    // ,opentsdb=cn.edu.tsinghua.iginx.opentsdb.OpenTSDBStorage,timescaledb=cn.edu.tsinghua.iginx.timescaledb.TimescaleDBStorage,postgresql=cn.edu.tsinghua.iginx.postgresql.PostgreSQLStorage
 
     private String policyClassName = "cn.edu.tsinghua.iginx.policy.naive.NativePolicy";
 
@@ -71,7 +72,8 @@ public class Config {
 
     private long reshardFragmentTimeMargin = 60;
 
-    private String migrationPolicyClassName = "cn.edu.tsinghua.iginx.migration.GreedyMigrationPolicy";
+    private String migrationPolicyClassName =
+            "cn.edu.tsinghua.iginx.migration.GreedyMigrationPolicy";
 
     private long migrationBatchSize = 100;
 
@@ -367,7 +369,8 @@ public class Config {
         return fragmentCompactionReadRatioThreshold;
     }
 
-    public void setFragmentCompactionReadRatioThreshold(double fragmentCompactionReadRatioThreshold) {
+    public void setFragmentCompactionReadRatioThreshold(
+            double fragmentCompactionReadRatioThreshold) {
         this.fragmentCompactionReadRatioThreshold = fragmentCompactionReadRatioThreshold;
     }
 

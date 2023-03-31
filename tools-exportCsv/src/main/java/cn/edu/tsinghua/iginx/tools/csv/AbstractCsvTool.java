@@ -45,7 +45,8 @@ public abstract class AbstractCsvTool {
 
     protected static final String HELP_ARGS = "help";
 
-    protected static final String HINT_STRING = "For more information, please check the following hint.";
+    protected static final String HINT_STRING =
+            "For more information, please check the following hint.";
 
     protected static final int MAX_HELP_CONSOLE_WIDTH = 88;
 
@@ -70,9 +71,15 @@ public abstract class AbstractCsvTool {
         options.addOption(HELP_ARGS, false, "Display help information (optional)");
         options.addOption(HOST_ARGS, HOST_NAME, true, "Host Name (optional, default 127.0.0.1)");
         options.addOption(PORT_ARGS, PORT_NAME, true, "Port (optional, default 6888)");
-        options.addOption(USERNAME_ARGS, USERNAME_NAME, true, "User name (optional, default \"root\")");
-        options.addOption(PASSWORD_ARGS, PASSWORD_NAME, true, "Password (optional, default \"root\")");
-        options.addOption(TIME_FORMAT_ARGS, TIME_FORMAT_NAME, true, "Time format (optional, default \"timestamp\")");
+        options.addOption(
+                USERNAME_ARGS, USERNAME_NAME, true, "User name (optional, default \"root\")");
+        options.addOption(
+                PASSWORD_ARGS, PASSWORD_NAME, true, "Password (optional, default \"root\")");
+        options.addOption(
+                TIME_FORMAT_ARGS,
+                TIME_FORMAT_NAME,
+                true,
+                "Time format (optional, default \"timestamp\")");
 
         return options;
     }
@@ -87,7 +94,8 @@ public abstract class AbstractCsvTool {
         needToParseTime = !timeFormat.equals("");
     }
 
-    protected static String parseArg(String arg, String name, boolean isRequired, String defaultValue) {
+    protected static String parseArg(
+            String arg, String name, boolean isRequired, String defaultValue) {
         String str = commandLine.getOptionValue(arg);
         if (str == null) {
             if (isRequired && defaultValue == null) {

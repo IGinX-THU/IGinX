@@ -37,5 +37,4 @@ public abstract class AbstractSource implements Source {
     public SourceType getType() {
         return type;
     }
-
 }

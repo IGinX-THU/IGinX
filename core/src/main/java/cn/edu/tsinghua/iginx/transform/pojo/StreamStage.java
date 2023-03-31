@@ -4,7 +4,6 @@ import cn.edu.tsinghua.iginx.thrift.DataFlowType;
 import cn.edu.tsinghua.iginx.thrift.TaskType;
 import cn.edu.tsinghua.iginx.transform.api.Stage;
 import cn.edu.tsinghua.iginx.transform.data.ExportWriter;
-
 import java.util.List;
 
 public class StreamStage implements Stage {
@@ -21,7 +20,8 @@ public class StreamStage implements Stage {
 
     private final boolean startWithIginX;
 
-    public StreamStage(long sessionId, Stage beforeStage, List<Task> taskList, ExportWriter writer) {
+    public StreamStage(
+            long sessionId, Stage beforeStage, List<Task> taskList, ExportWriter writer) {
         this.dataFlowType = DataFlowType.Stream;
         this.sessionId = sessionId;
         this.beforeStage = beforeStage;

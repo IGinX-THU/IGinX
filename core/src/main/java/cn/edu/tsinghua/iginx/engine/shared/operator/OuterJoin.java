@@ -24,15 +24,36 @@ public class OuterJoin extends AbstractBinaryOperator {
 
     private final boolean isNaturalJoin;
 
-    public OuterJoin(Source sourceA, Source sourceB, String prefixA, String prefixB,
-        OuterJoinType outerJoinType, Filter filter, List<String> joinColumns) {
-        this(sourceA, sourceB, prefixA, prefixB, outerJoinType, filter, joinColumns, false,
-            JoinAlgType.HashJoin);
+    public OuterJoin(
+            Source sourceA,
+            Source sourceB,
+            String prefixA,
+            String prefixB,
+            OuterJoinType outerJoinType,
+            Filter filter,
+            List<String> joinColumns) {
+        this(
+                sourceA,
+                sourceB,
+                prefixA,
+                prefixB,
+                outerJoinType,
+                filter,
+                joinColumns,
+                false,
+                JoinAlgType.HashJoin);
     }
 
-    public OuterJoin(Source sourceA, Source sourceB, String prefixA, String prefixB,
-        OuterJoinType outerJoinType, Filter filter, List<String> joinColumns,
-        boolean isNaturalJoin, JoinAlgType joinAlgType) {
+    public OuterJoin(
+            Source sourceA,
+            Source sourceB,
+            String prefixA,
+            String prefixB,
+            OuterJoinType outerJoinType,
+            Filter filter,
+            List<String> joinColumns,
+            boolean isNaturalJoin,
+            JoinAlgType joinAlgType) {
         super(OperatorType.OuterJoin, sourceA, sourceB);
         this.prefixA = prefixA;
         this.prefixB = prefixB;
@@ -77,8 +98,16 @@ public class OuterJoin extends AbstractBinaryOperator {
 
     @Override
     public Operator copy() {
-        return new OuterJoin(getSourceA().copy(), getSourceB().copy(), prefixA, prefixB,
-            outerJoinType, filter.copy(), new ArrayList<>(joinColumns), isNaturalJoin, joinAlgType);
+        return new OuterJoin(
+                getSourceA().copy(),
+                getSourceB().copy(),
+                prefixA,
+                prefixB,
+                outerJoinType,
+                filter.copy(),
+                new ArrayList<>(joinColumns),
+                isNaturalJoin,
+                joinAlgType);
     }
 
     @Override

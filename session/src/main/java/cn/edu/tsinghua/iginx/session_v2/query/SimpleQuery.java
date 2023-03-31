@@ -19,7 +19,6 @@
 package cn.edu.tsinghua.iginx.session_v2.query;
 
 import cn.edu.tsinghua.iginx.session_v2.Arguments;
-
 import java.util.*;
 
 public class SimpleQuery extends Query {
@@ -30,14 +29,23 @@ public class SimpleQuery extends Query {
 
     private final String timePrecision;
 
-    private SimpleQuery(Set<String> measurements, Map<String, List<String>> tagsList, long startTime, long endTime) {
+    private SimpleQuery(
+            Set<String> measurements,
+            Map<String, List<String>> tagsList,
+            long startTime,
+            long endTime) {
         super(Collections.unmodifiableSet(measurements), tagsList);
         this.startTime = startTime;
         this.endTime = endTime;
         this.timePrecision = null;
     }
 
-    private SimpleQuery(Set<String> measurements, Map<String, List<String>> tagsList, long startTime, long endTime, String timePrecision) {
+    private SimpleQuery(
+            Set<String> measurements,
+            Map<String, List<String>> tagsList,
+            long startTime,
+            long endTime,
+            String timePrecision) {
         super(Collections.unmodifiableSet(measurements), tagsList);
         this.startTime = startTime;
         this.endTime = endTime;
@@ -87,7 +95,8 @@ public class SimpleQuery extends Query {
         }
 
         public SimpleQuery.Builder addMeasurements(Set<String> measurements) {
-            measurements.forEach(measurement -> Arguments.checkNonEmpty(measurement, "measurement"));
+            measurements.forEach(
+                    measurement -> Arguments.checkNonEmpty(measurement, "measurement"));
             this.measurements.addAll(measurements);
             return this;
         }
@@ -99,7 +108,8 @@ public class SimpleQuery extends Query {
         }
 
         public SimpleQuery.Builder addTagsList(Map<String, List<String>> tagsList) {
-            tagsList.forEach((key, valueList) -> Arguments.checkListNonEmpty(valueList, "valueList"));
+            tagsList.forEach(
+                    (key, valueList) -> Arguments.checkListNonEmpty(valueList, "valueList"));
             this.tagsList.putAll(tagsList);
             return this;
         }
@@ -138,7 +148,5 @@ public class SimpleQuery extends Query {
             }
             return new SimpleQuery(measurements, tagsList, startTime, endTime, timePrecision);
         }
-
     }
-
 }

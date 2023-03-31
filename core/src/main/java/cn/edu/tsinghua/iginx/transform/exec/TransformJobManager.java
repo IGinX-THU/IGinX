@@ -10,15 +10,14 @@ import cn.edu.tsinghua.iginx.transform.pojo.Job;
 import cn.edu.tsinghua.iginx.transform.pojo.PythonTask;
 import cn.edu.tsinghua.iginx.transform.pojo.Task;
 import cn.edu.tsinghua.iginx.utils.SnowFlakeUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TransformJobManager {
 
@@ -34,7 +33,7 @@ public class TransformJobManager {
 
     private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
-    private final static Logger logger = LoggerFactory.getLogger(TransformJobManager.class);
+    private static final Logger logger = LoggerFactory.getLogger(TransformJobManager.class);
 
     private TransformJobManager() {
         this.jobMap = new ConcurrentHashMap<>();
@@ -75,7 +74,7 @@ public class TransformJobManager {
         for (int processCnt = 0; processCnt <= retryTimes; processCnt++) {
             try {
                 process(job);
-                processCnt = retryTimes;  // don't retry
+                processCnt = retryTimes; // don't retry
             } catch (Exception e) {
                 logger.error("retry process, executed times: " + (processCnt + 1));
             }
@@ -91,7 +90,9 @@ public class TransformJobManager {
             runner.run();
             jobRunnerMap.remove(job.getJobId()); // since we will retry, we can't do this in finally
         } catch (Exception e) {
-            logger.error(String.format("Fail to process transform job id=%d, because", job.getJobId()), e);
+            logger.error(
+                    String.format("Fail to process transform job id=%d, because", job.getJobId()),
+                    e);
             throw e;
         } finally {
             // TODO: is it legal to retry after runner.close()???
@@ -102,7 +103,10 @@ public class TransformJobManager {
         }
         // TODO: should we set end time and log time cost for failed jobs?
         job.setEndTime(System.currentTimeMillis());
-        logger.info(String.format("Job id=%s cost %s ms.", job.getJobId(), job.getEndTime() - job.getStartTime()));
+        logger.info(
+                String.format(
+                        "Job id=%s cost %s ms.",
+                        job.getJobId(), job.getEndTime() - job.getStartTime()));
     }
 
     public boolean cancel(long jobId) {
@@ -114,7 +118,8 @@ public class TransformJobManager {
         if (runner == null) {
             return false;
         }
-        // Since job state is set to FINISHED/FAILING/FAILED before runner removed from jobRunnerMap,
+        // Since job state is set to FINISHED/FAILING/FAILED before runner removed from
+        // jobRunnerMap,
         // if runner == null, we can confirm that job state is not RUNNING or CREATED.
         //
         // Since job state is set before runner removed from jobRunnerMap,
@@ -142,7 +147,10 @@ public class TransformJobManager {
         job.setState(JobState.JOB_CLOSED);
         jobRunnerMap.remove(jobId);
         job.setEndTime(System.currentTimeMillis());
-        logger.info(String.format("Job id=%s cost %s ms.", job.getJobId(), job.getEndTime() - job.getStartTime()));
+        logger.info(
+                String.format(
+                        "Job id=%s cost %s ms.",
+                        job.getJobId(), job.getEndTime() - job.getStartTime()));
         return true;
     }
 

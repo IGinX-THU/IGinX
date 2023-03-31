@@ -7,7 +7,7 @@ public class Mutex {
 
     private boolean isLocked = false;
 
-    private final static Logger logger = LoggerFactory.getLogger(Mutex.class);
+    private static final Logger logger = LoggerFactory.getLogger(Mutex.class);
 
     public synchronized void lock() {
         while (this.isLocked) {

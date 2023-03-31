@@ -5,11 +5,10 @@ import cn.edu.tsinghua.iginx.transform.api.Stage;
 import cn.edu.tsinghua.iginx.transform.data.*;
 import cn.edu.tsinghua.iginx.utils.JobFromYAML;
 import cn.edu.tsinghua.iginx.utils.TaskFromYAML;
-import lombok.Data;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import lombok.Data;
 
 @Data
 public class Job {
@@ -59,7 +58,12 @@ public class Job {
 
             if (task.getDataFlowType().equals(DataFlowType.Batch)) {
                 if (!stageTasks.isEmpty()) {
-                    stage = new StreamStage(sessionId, stage, new ArrayList<>(stageTasks), new CollectionWriter());
+                    stage =
+                            new StreamStage(
+                                    sessionId,
+                                    stage,
+                                    new ArrayList<>(stageTasks),
+                                    new CollectionWriter());
                     stageList.add(stage);
                     stageTasks.clear();
                 }
@@ -111,7 +115,12 @@ public class Job {
 
             if (task.getDataFlowType().equals(DataFlowType.Batch)) {
                 if (!stageTasks.isEmpty()) {
-                    stage = new StreamStage(sessionId, stage, new ArrayList<>(stageTasks), new CollectionWriter());
+                    stage =
+                            new StreamStage(
+                                    sessionId,
+                                    stage,
+                                    new ArrayList<>(stageTasks),
+                                    new CollectionWriter());
                     stageList.add(stage);
                     stageTasks.clear();
                 }
@@ -133,17 +142,27 @@ public class Job {
 
     @Override
     public String toString() {
-        return "Job{" +
-            "jobId=" + jobId +
-            ", sessionId=" + sessionId +
-            ", state=" + state +
-            ", startTime=" + startTime +
-            ", endTime=" + endTime +
-            ", needExport=" + needExport +
-            ", exportType=" + exportType +
-            ", writer=" + writer +
-            ", taskList=" + taskList +
-            ", stageList=" + stageList +
-            '}';
+        return "Job{"
+                + "jobId="
+                + jobId
+                + ", sessionId="
+                + sessionId
+                + ", state="
+                + state
+                + ", startTime="
+                + startTime
+                + ", endTime="
+                + endTime
+                + ", needExport="
+                + needExport
+                + ", exportType="
+                + exportType
+                + ", writer="
+                + writer
+                + ", taskList="
+                + taskList
+                + ", stageList="
+                + stageList
+                + '}';
     }
 }

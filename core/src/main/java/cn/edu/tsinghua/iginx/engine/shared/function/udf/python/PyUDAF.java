@@ -1,5 +1,7 @@
 package cn.edu.tsinghua.iginx.engine.shared.function.udf.python;
 
+import static cn.edu.tsinghua.iginx.engine.shared.Constants.*;
+
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
@@ -10,15 +12,11 @@ import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.UDAF;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.CheckUtils;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.RowUtils;
-import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.TypeUtils;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-import java.util.concurrent.BlockingQueue;
-import pemja.core.PythonInterpreter;
-
 import java.util.*;
+import java.util.concurrent.BlockingQueue;
 import java.util.regex.Pattern;
-
-import static cn.edu.tsinghua.iginx.engine.shared.Constants.*;
+import pemja.core.PythonInterpreter;
 
 public class PyUDAF implements UDAF {
 
@@ -81,7 +79,7 @@ public class PyUDAF implements UDAF {
             while (rows.hasNext()) {
                 Row row = rows.next();
                 List<Object> rowData = new ArrayList<>();
-                for (Integer idx: indices) {
+                for (Integer idx : indices) {
                     rowData.add(row.getValues()[idx]);
                 }
                 data.add(rowData);
@@ -96,7 +94,9 @@ public class PyUDAF implements UDAF {
 
             List<List<Object>> data = new ArrayList<>();
             data.add(Collections.singletonList(target));
-            data.add(Collections.singletonList(rows.getHeader().getField(index).getType().toString()));
+            data.add(
+                    Collections.singletonList(
+                            rows.getHeader().getField(index).getType().toString()));
             while (rows.hasNext()) {
                 Row row = rows.next();
                 data.add(Collections.singletonList(row.getValues()[index]));

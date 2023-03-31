@@ -58,13 +58,18 @@ public class NewExecutor implements Executor {
             logger.error("parquet executor init error, details: {}", e.getMessage());
         }
 
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            try {
-                close();
-            } catch (PhysicalException e) {
-                logger.error("Fail to close parquet executor, details: {}", e.getMessage());
-            }
-        }));
+        Runtime.getRuntime()
+                .addShutdownHook(
+                        new Thread(
+                                () -> {
+                                    try {
+                                        close();
+                                    } catch (PhysicalException e) {
+                                        logger.error(
+                                                "Fail to close parquet executor, details: {}",
+                                                e.getMessage());
+                                    }
+                                }));
     }
 
     private void recoverFromDisk() throws IOException {
@@ -78,7 +83,8 @@ public class NewExecutor implements Executor {
         }
     }
 
-    private DUManager getDUManager(String storageUnit, boolean isDummyStorageUnit) throws IOException {
+    private DUManager getDUManager(String storageUnit, boolean isDummyStorageUnit)
+            throws IOException {
         DUManager duManager = duManagerMap.get(storageUnit);
         if (duManager == null) {
             duManager = new DUManager(storageUnit, dataDir, connection, isDummyStorageUnit);
@@ -89,8 +95,12 @@ public class NewExecutor implements Executor {
     }
 
     @Override
-    public TaskExecuteResult executeProjectTask(List<String> paths, TagFilter tagFilter,
-        String filter, String storageUnit, boolean isDummyStorageUnit) {
+    public TaskExecuteResult executeProjectTask(
+            List<String> paths,
+            TagFilter tagFilter,
+            String filter,
+            String storageUnit,
+            boolean isDummyStorageUnit) {
         DUManager duManager;
         try {
             duManager = getDUManager(storageUnit, isDummyStorageUnit);
@@ -126,8 +136,11 @@ public class NewExecutor implements Executor {
     }
 
     @Override
-    public TaskExecuteResult executeDeleteTask(List<String> paths, List<TimeRange> timeRanges,
-        TagFilter tagFilter, String storageUnit) {
+    public TaskExecuteResult executeDeleteTask(
+            List<String> paths,
+            List<TimeRange> timeRanges,
+            TagFilter tagFilter,
+            String storageUnit) {
         DUManager duManager;
         try {
             duManager = getDUManager(storageUnit, false);
@@ -146,15 +159,20 @@ public class NewExecutor implements Executor {
 
     @Override
     public List<Timeseries> getTimeSeriesOfStorageUnit(String storageUnit)
-        throws PhysicalException {
+            throws PhysicalException {
         List<Timeseries> ret = new ArrayList<>();
         if (storageUnit.equals("*")) {
-            duManagerMap.forEach((id, duManager) -> {
-                duManager.getPaths().forEach((path, type) -> {
-                    Pair<String, Map<String, String>> pair = TagKVUtils.splitFullName(path);
-                    ret.add(new Timeseries(pair.k, type, pair.v));
-                });
-            });
+            duManagerMap.forEach(
+                    (id, duManager) -> {
+                        duManager
+                                .getPaths()
+                                .forEach(
+                                        (path, type) -> {
+                                            Pair<String, Map<String, String>> pair =
+                                                    TagKVUtils.splitFullName(path);
+                                            ret.add(new Timeseries(pair.k, type, pair.v));
+                                        });
+                    });
         } else {
             DUManager duManager;
             try {
@@ -163,10 +181,14 @@ public class NewExecutor implements Executor {
                 throw new PhysicalException("Fail to get du manager ", e);
             }
 
-            duManager.getPaths().forEach((path, type) -> {
-                Pair<String, Map<String, String>> pair = TagKVUtils.splitFullName(path);
-                ret.add(new Timeseries(pair.k, type, pair.v));
-            });
+            duManager
+                    .getPaths()
+                    .forEach(
+                            (path, type) -> {
+                                Pair<String, Map<String, String>> pair =
+                                        TagKVUtils.splitFullName(path);
+                                ret.add(new Timeseries(pair.k, type, pair.v));
+                            });
         }
         return ret;
     }
@@ -176,10 +198,14 @@ public class NewExecutor implements Executor {
         List<String> paths = new ArrayList<>();
         long start = Long.MAX_VALUE, end = Long.MIN_VALUE;
         for (DUManager duManager : duManagerMap.values()) {
-            duManager.getPaths().forEach((path, type) -> {
-                Pair<String, Map<String, String>> pair = TagKVUtils.splitFullName(path);
-                paths.add(pair.k);
-            });
+            duManager
+                    .getPaths()
+                    .forEach(
+                            (path, type) -> {
+                                Pair<String, Map<String, String>> pair =
+                                        TagKVUtils.splitFullName(path);
+                                paths.add(pair.k);
+                            });
             TimeInterval interval = duManager.getTimeInterval();
             if (interval.getStartTime() < start) {
                 start = interval.getStartTime();
@@ -195,7 +221,9 @@ public class NewExecutor implements Executor {
         if (start == Long.MAX_VALUE || end == Long.MIN_VALUE) {
             throw new PhysicalTaskExecuteFailureException("time range error");
         }
-        TimeSeriesRange tsRange = new TimeSeriesInterval(paths.get(0), StringUtils.nextString(paths.get(paths.size() - 1)));
+        TimeSeriesRange tsRange =
+                new TimeSeriesInterval(
+                        paths.get(0), StringUtils.nextString(paths.get(paths.size() - 1)));
         TimeInterval timeInterval = new TimeInterval(start, end);
         return new Pair<>(tsRange, timeInterval);
     }

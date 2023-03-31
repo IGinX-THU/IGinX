@@ -9,7 +9,6 @@ import cn.edu.tsinghua.iginx.policy.simple.TimeSeriesCalDO;
 import cn.edu.tsinghua.iginx.sql.statement.InsertStatement;
 import cn.edu.tsinghua.iginx.thrift.AuthType;
 import cn.edu.tsinghua.iginx.utils.Pair;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -89,12 +88,14 @@ public class MetaManagerMock implements IMetaManager {
     }
 
     @Override
-    public Map<TimeSeriesRange, List<FragmentMeta>> getFragmentMapByTimeSeriesInterval(TimeSeriesRange tsInterval) {
+    public Map<TimeSeriesRange, List<FragmentMeta>> getFragmentMapByTimeSeriesInterval(
+            TimeSeriesRange tsInterval) {
         return null;
     }
 
     @Override
-    public Map<TimeSeriesRange, List<FragmentMeta>> getFragmentMapByTimeSeriesInterval(TimeSeriesRange tsInterval, boolean withDummyFragment) {
+    public Map<TimeSeriesRange, List<FragmentMeta>> getFragmentMapByTimeSeriesInterval(
+            TimeSeriesRange tsInterval, boolean withDummyFragment) {
         return null;
     }
 
@@ -104,7 +105,8 @@ public class MetaManagerMock implements IMetaManager {
     }
 
     @Override
-    public Map<TimeSeriesRange, FragmentMeta> getLatestFragmentMapByTimeSeriesInterval(TimeSeriesRange tsInterval) {
+    public Map<TimeSeriesRange, FragmentMeta> getLatestFragmentMapByTimeSeriesInterval(
+            TimeSeriesRange tsInterval) {
         return null;
     }
 
@@ -114,12 +116,18 @@ public class MetaManagerMock implements IMetaManager {
     }
 
     @Override
-    public Map<TimeSeriesRange, List<FragmentMeta>> getFragmentMapByTimeSeriesIntervalAndTimeInterval(TimeSeriesRange tsInterval, TimeInterval timeInterval) {
+    public Map<TimeSeriesRange, List<FragmentMeta>>
+            getFragmentMapByTimeSeriesIntervalAndTimeInterval(
+                    TimeSeriesRange tsInterval, TimeInterval timeInterval) {
         return null;
     }
 
     @Override
-    public Map<TimeSeriesRange, List<FragmentMeta>> getFragmentMapByTimeSeriesIntervalAndTimeInterval(TimeSeriesRange tsInterval, TimeInterval timeInterval, boolean withDummyFragment) {
+    public Map<TimeSeriesRange, List<FragmentMeta>>
+            getFragmentMapByTimeSeriesIntervalAndTimeInterval(
+                    TimeSeriesRange tsInterval,
+                    TimeInterval timeInterval,
+                    boolean withDummyFragment) {
         return null;
     }
 
@@ -134,17 +142,20 @@ public class MetaManagerMock implements IMetaManager {
     }
 
     @Override
-    public List<FragmentMeta> getFragmentListByTimeSeriesNameAndTimeInterval(String tsName, TimeInterval timeInterval) {
+    public List<FragmentMeta> getFragmentListByTimeSeriesNameAndTimeInterval(
+            String tsName, TimeInterval timeInterval) {
         return null;
     }
 
     @Override
-    public boolean createFragmentsAndStorageUnits(List<StorageUnitMeta> storageUnits, List<FragmentMeta> fragments) {
+    public boolean createFragmentsAndStorageUnits(
+            List<StorageUnitMeta> storageUnits, List<FragmentMeta> fragments) {
         return false;
     }
 
     @Override
-    public FragmentMeta splitFragmentAndStorageUnit(StorageUnitMeta toAddStorageUnit, FragmentMeta toAddFragment, FragmentMeta fragment) {
+    public FragmentMeta splitFragmentAndStorageUnit(
+            StorageUnitMeta toAddStorageUnit, FragmentMeta toAddFragment, FragmentMeta fragment) {
         return null;
     }
 
@@ -154,12 +165,14 @@ public class MetaManagerMock implements IMetaManager {
     }
 
     @Override
-    public boolean createInitialFragmentsAndStorageUnits(List<StorageUnitMeta> storageUnits, List<FragmentMeta> initialFragments) {
+    public boolean createInitialFragmentsAndStorageUnits(
+            List<StorageUnitMeta> storageUnits, List<FragmentMeta> initialFragments) {
         return false;
     }
 
     @Override
-    public StorageUnitMeta generateNewStorageUnitMetaByFragment(FragmentMeta fragmentMeta, long targetStorageId) throws MetaStorageException {
+    public StorageUnitMeta generateNewStorageUnitMetaByFragment(
+            FragmentMeta fragmentMeta, long targetStorageId) throws MetaStorageException {
         return null;
     }
 
@@ -169,19 +182,13 @@ public class MetaManagerMock implements IMetaManager {
     }
 
     @Override
-    public void registerStorageEngineChangeHook(StorageEngineChangeHook hook) {
-
-    }
+    public void registerStorageEngineChangeHook(StorageEngineChangeHook hook) {}
 
     @Override
-    public void addOrUpdateSchemaMapping(String schema, Map<String, Integer> schemaMapping) {
-
-    }
+    public void addOrUpdateSchemaMapping(String schema, Map<String, Integer> schemaMapping) {}
 
     @Override
-    public void addOrUpdateSchemaMappingItem(String schema, String key, int value) {
-
-    }
+    public void addOrUpdateSchemaMappingItem(String schema, String key, int value) {}
 
     @Override
     public Map<String, Integer> getSchemaMapping(String schema) {
@@ -224,9 +231,7 @@ public class MetaManagerMock implements IMetaManager {
     }
 
     @Override
-    public void registerStorageUnitHook(StorageUnitHook hook) {
-
-    }
+    public void registerStorageUnitHook(StorageUnitHook hook) {}
 
     @Override
     public boolean election() {
@@ -234,9 +239,7 @@ public class MetaManagerMock implements IMetaManager {
     }
 
     @Override
-    public void saveTimeSeriesData(InsertStatement statement) {
-
-    }
+    public void saveTimeSeriesData(InsertStatement statement) {}
 
     @Override
     public List<TimeSeriesCalDO> getMaxValueFromTimeSeries() {
@@ -284,24 +287,23 @@ public class MetaManagerMock implements IMetaManager {
     }
 
     @Override
-    public void updateFragmentRequests(Map<FragmentMeta, Long> writeRequestsMap, Map<FragmentMeta, Long> readRequestsMap) throws Exception {
-
-    }
-
-    @Override
-    public void updateFragmentHeat(Map<FragmentMeta, Long> writeHotspotMap, Map<FragmentMeta, Long> readHotspotMap) throws Exception {
-
-    }
+    public void updateFragmentRequests(
+            Map<FragmentMeta, Long> writeRequestsMap, Map<FragmentMeta, Long> readRequestsMap)
+            throws Exception {}
 
     @Override
-    public Pair<Map<FragmentMeta, Long>, Map<FragmentMeta, Long>> loadFragmentHeat() throws Exception {
+    public void updateFragmentHeat(
+            Map<FragmentMeta, Long> writeHotspotMap, Map<FragmentMeta, Long> readHotspotMap)
+            throws Exception {}
+
+    @Override
+    public Pair<Map<FragmentMeta, Long>, Map<FragmentMeta, Long>> loadFragmentHeat()
+            throws Exception {
         return null;
     }
 
     @Override
-    public void updateFragmentPoints(FragmentMeta fragmentMeta, long points) {
-
-    }
+    public void updateFragmentPoints(FragmentMeta fragmentMeta, long points) {}
 
     @Override
     public Map<FragmentMeta, Long> loadFragmentPoints() throws Exception {
@@ -309,14 +311,10 @@ public class MetaManagerMock implements IMetaManager {
     }
 
     @Override
-    public void clearMonitors() {
-
-    }
+    public void clearMonitors() {}
 
     @Override
-    public void removeFragment(FragmentMeta fragmentMeta) {
-
-    }
+    public void removeFragment(FragmentMeta fragmentMeta) {}
 
     @Override
     public void addFragment(FragmentMeta fragmentMeta) {
@@ -324,19 +322,13 @@ public class MetaManagerMock implements IMetaManager {
     }
 
     @Override
-    public void endFragmentByTimeSeriesInterval(FragmentMeta fragmentMeta, String endTimeSeries) {
-
-    }
+    public void endFragmentByTimeSeriesInterval(FragmentMeta fragmentMeta, String endTimeSeries) {}
 
     @Override
-    public void updateFragmentByTsInterval(TimeSeriesRange tsInterval, FragmentMeta fragmentMeta) {
-
-    }
+    public void updateFragmentByTsInterval(TimeSeriesRange tsInterval, FragmentMeta fragmentMeta) {}
 
     @Override
-    public void updateMaxActiveEndTime(long endTime) {
-
-    }
+    public void updateMaxActiveEndTime(long endTime) {}
 
     @Override
     public long getMaxActiveEndTime() {
@@ -344,7 +336,5 @@ public class MetaManagerMock implements IMetaManager {
     }
 
     @Override
-    public void submitMaxActiveEndTime() {
-
-    }
+    public void submitMaxActiveEndTime() {}
 }

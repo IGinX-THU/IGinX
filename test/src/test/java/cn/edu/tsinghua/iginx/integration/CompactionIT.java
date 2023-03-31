@@ -1,5 +1,7 @@
 package cn.edu.tsinghua.iginx.integration;
 
+import static org.junit.Assert.assertEquals;
+
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
@@ -12,11 +14,9 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.junit.Assert.assertEquals;
-
 public class CompactionIT {
     protected static final Logger logger = LoggerFactory.getLogger(CompactionIT.class);
-    //host info
+    // host info
     protected static String defaultTestHost = "127.0.0.1";
     protected static int defaultTestPort = 6888;
     protected static String defaultTestUser = "root";
@@ -26,8 +26,13 @@ public class CompactionIT {
     @Before
     public void setUp() {
         ConfigDescriptor.getInstance().getConfig().setEnableInstantCompaction(true);
-        session = new MultiConnection(
-                new Session(defaultTestHost, defaultTestPort, defaultTestUser, defaultTestPass));
+        session =
+                new MultiConnection(
+                        new Session(
+                                defaultTestHost,
+                                defaultTestPort,
+                                defaultTestUser,
+                                defaultTestPass));
         try {
             session.openSession();
         } catch (SessionException e) {
@@ -69,40 +74,42 @@ public class CompactionIT {
         String selectSql1 = "SELECT s1 from us.d1;";
         String selectSql2 = "SELECT s4 from us.d1;";
         String selectSql1Output = session.executeSql(selectSql1).getResultInString(false, "");
-        String sql1Output = "ResultSets:\n" +
-                "+---+--------+\n" +
-                "|key|us.d1.s1|\n" +
-                "+---+--------+\n" +
-                "|  0|       0|\n" +
-                "|  1|       1|\n" +
-                "|  2|       2|\n" +
-                "|  3|       3|\n" +
-                "|  4|       4|\n" +
-                "|  5|       5|\n" +
-                "|  6|       6|\n" +
-                "|  7|       7|\n" +
-                "|  8|       8|\n" +
-                "|  9|       9|\n" +
-                "+---+--------+\n" +
-                "Total line number = 10\n";
+        String sql1Output =
+                "ResultSets:\n"
+                        + "+---+--------+\n"
+                        + "|key|us.d1.s1|\n"
+                        + "+---+--------+\n"
+                        + "|  0|       0|\n"
+                        + "|  1|       1|\n"
+                        + "|  2|       2|\n"
+                        + "|  3|       3|\n"
+                        + "|  4|       4|\n"
+                        + "|  5|       5|\n"
+                        + "|  6|       6|\n"
+                        + "|  7|       7|\n"
+                        + "|  8|       8|\n"
+                        + "|  9|       9|\n"
+                        + "+---+--------+\n"
+                        + "Total line number = 10\n";
         assertEquals(sql1Output, selectSql1Output);
         String selectSql2Output = session.executeSql(selectSql2).getResultInString(false, "");
-        String sql2Output = "ResultSets:\n" +
-                "+---+--------+\n" +
-                "|key|us.d1.s4|\n" +
-                "+---+--------+\n" +
-                "|  0|     0.1|\n" +
-                "|  1|     1.1|\n" +
-                "|  2|     2.1|\n" +
-                "|  3|     3.1|\n" +
-                "|  4|     4.1|\n" +
-                "|  5|     5.1|\n" +
-                "|  6|     6.1|\n" +
-                "|  7|     7.1|\n" +
-                "|  8|     8.1|\n" +
-                "|  9|     9.1|\n" +
-                "+---+--------+\n" +
-                "Total line number = 10\n";
+        String sql2Output =
+                "ResultSets:\n"
+                        + "+---+--------+\n"
+                        + "|key|us.d1.s4|\n"
+                        + "+---+--------+\n"
+                        + "|  0|     0.1|\n"
+                        + "|  1|     1.1|\n"
+                        + "|  2|     2.1|\n"
+                        + "|  3|     3.1|\n"
+                        + "|  4|     4.1|\n"
+                        + "|  5|     5.1|\n"
+                        + "|  6|     6.1|\n"
+                        + "|  7|     7.1|\n"
+                        + "|  8|     8.1|\n"
+                        + "|  9|     9.1|\n"
+                        + "+---+--------+\n"
+                        + "Total line number = 10\n";
         assertEquals(sql2Output, selectSql2Output);
 
         session.executeSql("COMPACT");

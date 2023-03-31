@@ -3,9 +3,8 @@ package cn.edu.tsinghua.iginx.session;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-import org.apache.commons.lang3.RandomStringUtils;
-
 import java.util.*;
+import org.apache.commons.lang3.RandomStringUtils;
 
 public class TagKVSessionExample {
 
@@ -41,7 +40,6 @@ public class TagKVSessionExample {
         paths.add(S3);
         paths.add(S4);
 
-
         int size = (int) (COLUMN_END_TIMESTAMP - COLUMN_START_TIMESTAMP + 1);
         long[] timestamps = new long[size];
         for (long i = 0; i < size; i++) {
@@ -72,7 +70,7 @@ public class TagKVSessionExample {
         List<Map<String, String>> tagsList = new ArrayList<>();
         for (int i = 0; i < paths.size(); i++) {
             Map<String, String> tags = new HashMap<>();
-            tags.put("k", "v"+i);
+            tags.put("k", "v" + i);
             tagsList.add(tags);
         }
 

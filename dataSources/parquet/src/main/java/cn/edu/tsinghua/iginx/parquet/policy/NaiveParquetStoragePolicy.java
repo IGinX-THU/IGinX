@@ -40,9 +40,10 @@ public class NaiveParquetStoragePolicy implements ParquetStoragePolicy {
 
     private final Connection connection;
 
-    private static final long FILE_SIZE_LIMIT_10MB = 10 * 1024 * 1024;  // byte
+    private static final long FILE_SIZE_LIMIT_10MB = 10 * 1024 * 1024; // byte
 
-    private static final String SELECT_LAST_TIME_STMT = "SELECT time FROM '%s' order by time desc limit 1";
+    private static final String SELECT_LAST_TIME_STMT =
+            "SELECT time FROM '%s' order by time desc limit 1";
 
     public NaiveParquetStoragePolicy(String dataDir, Connection connection) {
         this.dataDir = dataDir;
@@ -82,8 +83,10 @@ public class NaiveParquetStoragePolicy implements ParquetStoragePolicy {
         long startTime = Long.parseLong(maxTimeDir.getName());
         File[] pathPartition = maxTimeDir.listFiles();
         if (pathPartition == null || pathPartition.length == 0) {
-            Pair<TimeSeriesRange, TimeInterval> duBoundary = metaManager.getBoundaryOfStorageUnit(storageUnit);
-            return new Pair<>(startTime, Collections.singletonList(duBoundary.getK().getStartTimeSeries()));
+            Pair<TimeSeriesRange, TimeInterval> duBoundary =
+                    metaManager.getBoundaryOfStorageUnit(storageUnit);
+            return new Pair<>(
+                    startTime, Collections.singletonList(duBoundary.getK().getStartTimeSeries()));
         } else {
             List<String> startPaths = new ArrayList<>();
             for (File pathPartitionFile : pathPartition) {
@@ -98,25 +101,27 @@ public class NaiveParquetStoragePolicy implements ParquetStoragePolicy {
     private boolean needCreateNewDataPartition(File file) {
         long fileSize = FileUtils.sizeOf(file);
         boolean needCreateNewDataPartition = fileSize > FILE_SIZE_LIMIT_10MB;
-//        logger.info("current data file '{}' size: {} mb", file.getAbsolutePath(), fileSize / 1024 / 1024);
+        //        logger.info("current data file '{}' size: {} mb", file.getAbsolutePath(), fileSize
+        // / 1024 / 1024);
         if (needCreateNewDataPartition) {
-            logger.info("current data file '{}', size: {} mb, create a new data partition",
-                file.getAbsolutePath(), fileSize / 1024 / 1024);
+            logger.info(
+                    "current data file '{}', size: {} mb, create a new data partition",
+                    file.getAbsolutePath(),
+                    fileSize / 1024 / 1024);
         }
         return needCreateNewDataPartition;
     }
 
     private Pair<Long, List<String>> initDataPartition(String storageUnit) {
         lock.writeLock().lock();
-        Pair<TimeSeriesRange, TimeInterval> duBoundary = metaManager.getBoundaryOfStorageUnit(storageUnit);
+        Pair<TimeSeriesRange, TimeInterval> duBoundary =
+                metaManager.getBoundaryOfStorageUnit(storageUnit);
         long latestStartTime = duBoundary.getV().getStartTime();
         createDir(Paths.get(dataDir, storageUnit, String.valueOf(latestStartTime)));
         lock.writeLock().unlock();
 
         return new Pair<>(
-            latestStartTime,
-            Collections.singletonList(duBoundary.getK().getStartTimeSeries())
-        );
+                latestStartTime, Collections.singletonList(duBoundary.getK().getStartTimeSeries()));
     }
 
     private Pair<Long, List<String>> createNewDataPartition(String storageUnit) {
@@ -124,7 +129,8 @@ public class NaiveParquetStoragePolicy implements ParquetStoragePolicy {
         lock.writeLock().lock();
         long latestStartTime = getLatestTime(storageUnit) + 1;
         createDir(Paths.get(dataDir, storageUnit, String.valueOf(latestStartTime)));
-        Pair<TimeSeriesRange, TimeInterval> duBoundary = metaManager.getBoundaryOfStorageUnit(storageUnit);
+        Pair<TimeSeriesRange, TimeInterval> duBoundary =
+                metaManager.getBoundaryOfStorageUnit(storageUnit);
         String startPath = duBoundary.getK().getStartTimeSeries();
         lock.writeLock().unlock();
 
@@ -169,13 +175,16 @@ public class NaiveParquetStoragePolicy implements ParquetStoragePolicy {
                         collectInMap(res, startTime, startPath);
                     }
                 } else {
-                    Pair<TimeSeriesRange, TimeInterval> duBoundary = metaManager.getBoundaryOfStorageUnit(storageUnit);
+                    Pair<TimeSeriesRange, TimeInterval> duBoundary =
+                            metaManager.getBoundaryOfStorageUnit(storageUnit);
                     collectInMap(res, startTime, duBoundary.getK().getStartTimeSeries());
                 }
             }
         } else {
-            Pair<TimeSeriesRange, TimeInterval> duBoundary = metaManager.getBoundaryOfStorageUnit(storageUnit);
-            collectInMap(res, duBoundary.getV().getStartTime(), duBoundary.getK().getStartTimeSeries());
+            Pair<TimeSeriesRange, TimeInterval> duBoundary =
+                    metaManager.getBoundaryOfStorageUnit(storageUnit);
+            collectInMap(
+                    res, duBoundary.getV().getStartTime(), duBoundary.getK().getStartTimeSeries());
         }
         lock.readLock().unlock();
         return res;

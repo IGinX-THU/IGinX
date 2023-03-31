@@ -7,5 +7,4 @@ public abstract class Statement {
     public StatementType getType() {
         return statementType;
     }
-
 }

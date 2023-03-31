@@ -14,8 +14,7 @@ public class ETCDSyncProtocolTest extends SyncProtocolTest {
 
     @Override
     protected SyncProtocol newSyncProtocol(String category) {
-        return new ETCDSyncProtocolImpl(category, Client.builder()
-                .endpoints(END_POINTS.split(","))
-                .build());
+        return new ETCDSyncProtocolImpl(
+                category, Client.builder().endpoints(END_POINTS.split(",")).build());
     }
 }

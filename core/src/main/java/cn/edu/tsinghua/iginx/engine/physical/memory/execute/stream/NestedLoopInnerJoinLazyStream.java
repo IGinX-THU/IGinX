@@ -36,7 +36,8 @@ public class NestedLoopInnerJoinLazyStream extends BinaryLazyStream {
 
     private Row nextRow;
 
-    public NestedLoopInnerJoinLazyStream(InnerJoin innerJoin, RowStream streamA, RowStream streamB) {
+    public NestedLoopInnerJoinLazyStream(
+            InnerJoin innerJoin, RowStream streamA, RowStream streamB) {
         super(streamA, streamB);
         this.innerJoin = innerJoin;
         this.streamBCache = new ArrayList<>();
@@ -50,18 +51,28 @@ public class NestedLoopInnerJoinLazyStream extends BinaryLazyStream {
 
         joinColumns = new ArrayList<>(innerJoin.getJoinColumns());
         if (innerJoin.isNaturalJoin()) {
-            RowUtils.fillNaturalJoinColumns(joinColumns, headerA, headerB,
-                innerJoin.getPrefixA(), innerJoin.getPrefixB());
+            RowUtils.fillNaturalJoinColumns(
+                    joinColumns, headerA, headerB, innerJoin.getPrefixA(), innerJoin.getPrefixB());
         }
-        if ((filter == null && joinColumns.isEmpty()) || (filter != null && !joinColumns.isEmpty())) {
-            throw new InvalidOperatorParameterException("using(or natural) and on operator cannot be used at the same time");
+        if ((filter == null && joinColumns.isEmpty())
+                || (filter != null && !joinColumns.isEmpty())) {
+            throw new InvalidOperatorParameterException(
+                    "using(or natural) and on operator cannot be used at the same time");
         }
 
-        if (filter != null) {  // Join condition: on
-            this.header = RowUtils.constructNewHead(headerA, headerB, innerJoin.getPrefixA(), innerJoin.getPrefixB());
-        } else {               // Join condition: natural or using
-            Pair<int[], Header> pair = RowUtils.constructNewHead(headerA, headerB,
-                innerJoin.getPrefixA(), innerJoin.getPrefixB(), joinColumns, true);
+        if (filter != null) { // Join condition: on
+            this.header =
+                    RowUtils.constructNewHead(
+                            headerA, headerB, innerJoin.getPrefixA(), innerJoin.getPrefixB());
+        } else { // Join condition: natural or using
+            Pair<int[], Header> pair =
+                    RowUtils.constructNewHead(
+                            headerA,
+                            headerB,
+                            innerJoin.getPrefixA(),
+                            innerJoin.getPrefixB(),
+                            joinColumns,
+                            true);
             this.indexOfJoinColumnInTableB = pair.getK();
             this.header = pair.getV();
         }
@@ -112,7 +123,7 @@ public class NestedLoopInnerJoinLazyStream extends BinaryLazyStream {
                 streamBCache.add(nextB);
             } else if (curStreamBIndex < streamBCache.size()) {
                 nextB = streamBCache.get(curStreamBIndex);
-            } else {  // streamB和streamA中的一行全部匹配过了一遍
+            } else { // streamB和streamA中的一行全部匹配过了一遍
                 nextA = streamA.next();
                 curStreamBIndex = 0;
                 nextB = streamBCache.get(curStreamBIndex);
@@ -120,7 +131,7 @@ public class NestedLoopInnerJoinLazyStream extends BinaryLazyStream {
             curStreamBIndex++;
         }
 
-        if (innerJoin.getFilter() != null) {  // Join condition: on
+        if (innerJoin.getFilter() != null) { // Join condition: on
             Row row = RowUtils.constructNewRow(header, nextA, nextB);
             nextB = null;
             if (FilterUtils.validate(innerJoin.getFilter(), row)) {
@@ -128,15 +139,18 @@ public class NestedLoopInnerJoinLazyStream extends BinaryLazyStream {
             } else {
                 return null;
             }
-        } else {                              // Join condition: natural or using
+        } else { // Join condition: natural or using
             for (String joinColumn : joinColumns) {
-                if (ValueUtils.compare(nextA.getAsValue(innerJoin.getPrefixA() + '.' + joinColumn),
-                        nextB.getAsValue(innerJoin.getPrefixB() + '.' + joinColumn)) != 0) {
+                if (ValueUtils.compare(
+                                nextA.getAsValue(innerJoin.getPrefixA() + '.' + joinColumn),
+                                nextB.getAsValue(innerJoin.getPrefixB() + '.' + joinColumn))
+                        != 0) {
                     nextB = null;
                     return null;
                 }
             }
-            Row row = RowUtils.constructNewRow(header, nextA, nextB, indexOfJoinColumnInTableB, true);
+            Row row =
+                    RowUtils.constructNewRow(header, nextA, nextB, indexOfJoinColumnInTableB, true);
             nextB = null;
             return row;
         }

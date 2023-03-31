@@ -13,7 +13,12 @@ class MeasurementUtils {
             tempPaths.add("*");
             return tempPaths;
         }
-        List<String> prefixes = measurements.stream().filter(x -> x.contains("*")).map(x -> x.substring(0, x.indexOf("*"))).collect(Collectors.toList());
+        List<String> prefixes =
+                measurements
+                        .stream()
+                        .filter(x -> x.contains("*"))
+                        .map(x -> x.substring(0, x.indexOf("*")))
+                        .collect(Collectors.toList());
         if (prefixes.isEmpty()) {
             Collections.sort(measurements);
             return measurements;
@@ -37,5 +42,4 @@ class MeasurementUtils {
         mergedMeasurements.sort(String::compareTo);
         return mergedMeasurements;
     }
-
 }

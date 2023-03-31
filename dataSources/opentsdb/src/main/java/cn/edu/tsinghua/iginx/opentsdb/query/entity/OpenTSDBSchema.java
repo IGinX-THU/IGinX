@@ -26,9 +26,6 @@ public class OpenTSDBSchema {
 
     @Override
     public String toString() {
-        return "OpenTSDBSchema{" +
-                "measurement='" + metric + '\'' +
-                ", tags=" + tags +
-                '}';
+        return "OpenTSDBSchema{" + "measurement='" + metric + '\'' + ", tags=" + tags + '}';
     }
 }

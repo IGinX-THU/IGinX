@@ -62,8 +62,6 @@ public class IginXRecord {
 
     @Override
     public String toString() {
-        return "IginXRecord{" +
-                "values=" + values +
-                '}';
+        return "IginXRecord{" + "values=" + values + '}';
     }
 }

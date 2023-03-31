@@ -1,7 +1,6 @@
 package cn.edu.tsinghua.iginx.sql.expression;
 
 public enum Operator {
-
     PLUS,
     MINUS,
     STAR,

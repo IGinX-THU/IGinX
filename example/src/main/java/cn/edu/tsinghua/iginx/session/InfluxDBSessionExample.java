@@ -22,10 +22,9 @@ import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-import org.apache.commons.lang3.RandomStringUtils;
-
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.commons.lang3.RandomStringUtils;
 
 public class InfluxDBSessionExample {
 
@@ -67,9 +66,9 @@ public class InfluxDBSessionExample {
         downsampleQuery();
         // 删除数据
         // TODO 不能做，InfluxDB 删除语句中不能指定 _field
-//		deleteDataInColumns();
+        //		deleteDataInColumns();
         // 再次查询数据
-//		queryData();
+        //		queryData();
 
         // 关闭 Session
         session.closeSession();
@@ -112,14 +111,16 @@ public class InfluxDBSessionExample {
         session.insertColumnRecords(paths, timestamps, valuesList, dataTypeList, null);
     }
 
-    private static void insertNonAlignedColumnRecords() throws SessionException, ExecutionException {
+    private static void insertNonAlignedColumnRecords()
+            throws SessionException, ExecutionException {
         List<String> paths = new ArrayList<>();
         paths.add(S1);
         paths.add(S2);
         paths.add(S3);
         paths.add(S4);
 
-        int size = (int) (NON_ALIGNED_COLUMN_END_TIMESTAMP - NON_ALIGNED_COLUMN_START_TIMESTAMP + 1);
+        int size =
+                (int) (NON_ALIGNED_COLUMN_END_TIMESTAMP - NON_ALIGNED_COLUMN_START_TIMESTAMP + 1);
         long[] timestamps = new long[size];
         for (long i = 0; i < size; i++) {
             timestamps[(int) i] = i + NON_ALIGNED_COLUMN_START_TIMESTAMP;
@@ -239,19 +240,20 @@ public class InfluxDBSessionExample {
         dataSet.print();
     }
 
-//    private static void valueFilterQuery() throws SessionException, ExecutionException {
-//        List<String> paths = new ArrayList<>();
-//        paths.add(S1);
-//        paths.add(S2);
-//        paths.add(S3);
-//        paths.add(S4);
-//
-//        long startTime = NON_ALIGNED_COLUMN_END_TIMESTAMP - 100L;
-//        long endTime = ROW_START_TIMESTAMP + 100L;
-//        String booleanExpression = S2 + " < " + 9930 + " && " + S1 + " > " + 9910;
-//        SessionQueryDataSet dataSet = session.valueFilterQuery(paths, startTime, endTime, booleanExpression);
-//        dataSet.print();
-//    }
+    //    private static void valueFilterQuery() throws SessionException, ExecutionException {
+    //        List<String> paths = new ArrayList<>();
+    //        paths.add(S1);
+    //        paths.add(S2);
+    //        paths.add(S3);
+    //        paths.add(S4);
+    //
+    //        long startTime = NON_ALIGNED_COLUMN_END_TIMESTAMP - 100L;
+    //        long endTime = ROW_START_TIMESTAMP + 100L;
+    //        String booleanExpression = S2 + " < " + 9930 + " && " + S1 + " > " + 9910;
+    //        SessionQueryDataSet dataSet = session.valueFilterQuery(paths, startTime, endTime,
+    // booleanExpression);
+    //        dataSet.print();
+    //    }
 
     private static void aggregateQuery() throws SessionException, ExecutionException {
         List<String> paths = new ArrayList<>();
@@ -265,7 +267,8 @@ public class InfluxDBSessionExample {
         System.out.println("Aggregate Query: ");
 
         // MAX
-        SessionAggregateQueryDataSet dataSet = session.aggregateQuery(paths, startTime, endTime, AggregateType.MAX);
+        SessionAggregateQueryDataSet dataSet =
+                session.aggregateQuery(paths, startTime, endTime, AggregateType.MAX);
         dataSet.print();
 
         // MIN
@@ -319,31 +322,45 @@ public class InfluxDBSessionExample {
         System.out.println("Downsample Query: ");
 
         // MAX
-        SessionQueryDataSet dataSet = session.downsampleQuery(paths, startTime, endTime, AggregateType.MAX, INTERVAL * 100L);
+        SessionQueryDataSet dataSet =
+                session.downsampleQuery(
+                        paths, startTime, endTime, AggregateType.MAX, INTERVAL * 100L);
         dataSet.print();
 
         // MIN
-        dataSet = session.downsampleQuery(paths, startTime, endTime, AggregateType.MIN, INTERVAL * 100L);
+        dataSet =
+                session.downsampleQuery(
+                        paths, startTime, endTime, AggregateType.MIN, INTERVAL * 100L);
         dataSet.print();
 
         // FIRST_VALUE
-        dataSet = session.downsampleQuery(paths, startTime, endTime, AggregateType.FIRST_VALUE, INTERVAL * 100L);
+        dataSet =
+                session.downsampleQuery(
+                        paths, startTime, endTime, AggregateType.FIRST_VALUE, INTERVAL * 100L);
         dataSet.print();
 
         // LAST_VALUE
-        dataSet = session.downsampleQuery(paths, startTime, endTime, AggregateType.LAST_VALUE, INTERVAL * 100L);
+        dataSet =
+                session.downsampleQuery(
+                        paths, startTime, endTime, AggregateType.LAST_VALUE, INTERVAL * 100L);
         dataSet.print();
 
         // COUNT
-        dataSet = session.downsampleQuery(paths, startTime, endTime, AggregateType.COUNT, INTERVAL * 100L);
+        dataSet =
+                session.downsampleQuery(
+                        paths, startTime, endTime, AggregateType.COUNT, INTERVAL * 100L);
         dataSet.print();
 
         // SUM
-        dataSet = session.downsampleQuery(paths, startTime, endTime, AggregateType.SUM, INTERVAL * 100L);
+        dataSet =
+                session.downsampleQuery(
+                        paths, startTime, endTime, AggregateType.SUM, INTERVAL * 100L);
         dataSet.print();
 
         // AVG
-        dataSet = session.downsampleQuery(paths, startTime, endTime, AggregateType.AVG, INTERVAL * 100L);
+        dataSet =
+                session.downsampleQuery(
+                        paths, startTime, endTime, AggregateType.AVG, INTERVAL * 100L);
         dataSet.print();
 
         // 降采样查询结束

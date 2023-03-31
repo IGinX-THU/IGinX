@@ -5,12 +5,11 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.transform.utils.Constants;
 import cn.edu.tsinghua.iginx.transform.utils.TypeUtils;
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.arrow.memory.RootAllocator;
 import org.apache.arrow.vector.*;
 import org.apache.arrow.vector.types.pojo.Field;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class BatchData {
 
@@ -37,9 +36,13 @@ public class BatchData {
         if (header.hasKey()) {
             vectors.add(new BigIntVector(Constants.KEY, allocator));
         }
-        header.getFields().forEach(field -> {
-            vectors.add(TypeUtils.getFieldVectorByType(field.getFullName(), field.getType(), allocator));
-        });
+        header.getFields()
+                .forEach(
+                        field -> {
+                            vectors.add(
+                                    TypeUtils.getFieldVectorByType(
+                                            field.getFullName(), field.getType(), allocator));
+                        });
 
         List<Field> fields = new ArrayList<>();
         for (int i = 0; i < rowList.size(); i++) {
@@ -53,14 +56,19 @@ public class BatchData {
 
             Object[] rowData = row.getValues();
             for (int j = 0; j < rowData.length; j++) {
-                TypeUtils.setValue(vectors.get(colOffset + j), i, header.getFields().get(j).getType(), rowData[j]);
+                TypeUtils.setValue(
+                        vectors.get(colOffset + j),
+                        i,
+                        header.getFields().get(j).getType(),
+                        rowData[j]);
             }
         }
 
-        vectors.forEach(valueVectors -> {
-            valueVectors.setValueCount(rowList.size());
-            fields.add(valueVectors.getField());
-        });
+        vectors.forEach(
+                valueVectors -> {
+                    valueVectors.setValueCount(rowList.size());
+                    fields.add(valueVectors.getField());
+                });
 
         return new VectorSchemaRoot(fields, vectors);
     }

@@ -23,10 +23,9 @@ import cn.edu.tsinghua.iginx.session_v2.annotations.Field;
 import cn.edu.tsinghua.iginx.session_v2.annotations.Measurement;
 import cn.edu.tsinghua.iginx.session_v2.exception.IginXException;
 import cn.edu.tsinghua.iginx.session_v2.query.IginXRecord;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Map;
 
 public class ResultMapper {
     @SuppressWarnings("unused")
@@ -50,7 +49,7 @@ public class ResultMapper {
             while (currentClazz != null) {
 
                 java.lang.reflect.Field[] fields = currentClazz.getDeclaredFields();
-                for (java.lang.reflect.Field field: fields) {
+                for (java.lang.reflect.Field field : fields) {
                     Field anno = field.getAnnotation(Field.class);
                     String fieldName = field.getName();
 
@@ -83,9 +82,8 @@ public class ResultMapper {
         }
     }
 
-    private void setFieldValue(final Object object,
-                               final java.lang.reflect.Field field,
-                               final Object value) {
+    private void setFieldValue(
+            final Object object, final java.lang.reflect.Field field, final Object value) {
         if (field == null || value == null) {
             return;
         }
@@ -132,11 +130,13 @@ public class ResultMapper {
             }
             field.set(object, value);
         } catch (ClassCastException | IllegalAccessException e) {
-            throw new IginXException(String.format(msg, object.getClass().getName(), field.getName(),
-                    value.getClass().getName(), value));
+            throw new IginXException(
+                    String.format(
+                            msg,
+                            object.getClass().getName(),
+                            field.getName(),
+                            value.getClass().getName(),
+                            value));
         }
-
     }
-
-
 }

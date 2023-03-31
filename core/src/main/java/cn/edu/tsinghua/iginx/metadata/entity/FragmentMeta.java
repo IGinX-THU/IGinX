@@ -65,33 +65,56 @@ public final class FragmentMeta {
         this.tsInterval = new TimeSeriesInterval(startPrefix, endPrefix);
     }
 
-    public FragmentMeta(String startPrefix, String endPrefix, long startTime, long endTime, String fakeStorageUnitId) {
+    public FragmentMeta(
+            String startPrefix,
+            String endPrefix,
+            long startTime,
+            long endTime,
+            String fakeStorageUnitId) {
         this.timeInterval = new TimeInterval(startTime, endTime);
         this.tsInterval = new TimeSeriesInterval(startPrefix, endPrefix);
         this.fakeStorageUnitId = fakeStorageUnitId;
     }
 
-    public FragmentMeta(TimeSeriesRange tsInterval, TimeInterval timeInterval, String fakeStorageUnitId) {
+    public FragmentMeta(
+            TimeSeriesRange tsInterval, TimeInterval timeInterval, String fakeStorageUnitId) {
         this.timeInterval = timeInterval;
         this.tsInterval = tsInterval;
         this.fakeStorageUnitId = fakeStorageUnitId;
     }
 
-    public FragmentMeta(String startPrefix, String endPrefix, long startTime, long endTime, StorageUnitMeta masterStorageUnit) {
+    public FragmentMeta(
+            String startPrefix,
+            String endPrefix,
+            long startTime,
+            long endTime,
+            StorageUnitMeta masterStorageUnit) {
         this.timeInterval = new TimeInterval(startTime, endTime);
         this.tsInterval = new TimeSeriesInterval(startPrefix, endPrefix);
         this.masterStorageUnit = masterStorageUnit;
         this.masterStorageUnitId = masterStorageUnit.getMasterId();
     }
 
-    public FragmentMeta(TimeSeriesRange tsInterval, TimeInterval timeInterval, StorageUnitMeta masterStorageUnit) {
+    public FragmentMeta(
+            TimeSeriesRange tsInterval,
+            TimeInterval timeInterval,
+            StorageUnitMeta masterStorageUnit) {
         this.timeInterval = timeInterval;
         this.tsInterval = tsInterval;
         this.masterStorageUnit = masterStorageUnit;
         this.masterStorageUnitId = masterStorageUnit.getMasterId();
     }
 
-    public FragmentMeta(TimeInterval timeInterval, TimeSeriesRange tsInterval, long createdBy, long updatedBy, String masterStorageUnitId, StorageUnitMeta masterStorageUnit, String fakeStorageUnitId, boolean initialFragment, boolean dummyFragment) {
+    public FragmentMeta(
+            TimeInterval timeInterval,
+            TimeSeriesRange tsInterval,
+            long createdBy,
+            long updatedBy,
+            String masterStorageUnitId,
+            StorageUnitMeta masterStorageUnit,
+            String fakeStorageUnitId,
+            boolean initialFragment,
+            boolean dummyFragment) {
         this.timeInterval = timeInterval;
         this.tsInterval = tsInterval;
         this.createdBy = createdBy;
@@ -112,7 +135,12 @@ public final class FragmentMeta {
     }
 
     public FragmentMeta endFragmentMeta(long endTime) {
-        FragmentMeta fragment = new FragmentMeta(tsInterval.getStartTimeSeries(), tsInterval.getEndTimeSeries(), timeInterval.getStartTime(), endTime);
+        FragmentMeta fragment =
+                new FragmentMeta(
+                        tsInterval.getStartTimeSeries(),
+                        tsInterval.getEndTimeSeries(),
+                        timeInterval.getStartTime(),
+                        endTime);
         fragment.setMasterStorageUnit(masterStorageUnit);
         fragment.setMasterStorageUnitId(masterStorageUnitId);
         fragment.setCreatedBy(createdBy);
@@ -171,11 +199,14 @@ public final class FragmentMeta {
 
     @Override
     public String toString() {
-        return "FragmentMeta{" +
-            "timeInterval=" + timeInterval +
-            ", tsInterval=" + tsInterval +
-            ", masterStorageUnitId=" + masterStorageUnitId +
-            '}';
+        return "FragmentMeta{"
+                + "timeInterval="
+                + timeInterval
+                + ", tsInterval="
+                + tsInterval
+                + ", masterStorageUnitId="
+                + masterStorageUnitId
+                + '}';
     }
 
     @Override
@@ -183,7 +214,8 @@ public final class FragmentMeta {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         FragmentMeta that = (FragmentMeta) o;
-        return Objects.equals(timeInterval, that.timeInterval) && Objects.equals(tsInterval, that.tsInterval);
+        return Objects.equals(timeInterval, that.timeInterval)
+                && Objects.equals(tsInterval, that.tsInterval);
     }
 
     @Override

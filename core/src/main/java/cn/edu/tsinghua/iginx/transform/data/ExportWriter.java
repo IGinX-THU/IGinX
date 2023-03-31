@@ -7,9 +7,7 @@ public abstract class ExportWriter implements Writer, Exporter {
 
     private final Mutex mutex = new Mutex();
 
-    public ExportWriter() {
-
-    }
+    public ExportWriter() {}
 
     @Override
     public void writeBatch(BatchData batchData) {

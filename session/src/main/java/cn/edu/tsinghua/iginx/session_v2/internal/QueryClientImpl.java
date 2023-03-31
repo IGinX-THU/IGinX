@@ -18,6 +18,9 @@
  */
 package cn.edu.tsinghua.iginx.session_v2.internal;
 
+import static cn.edu.tsinghua.iginx.utils.ByteUtils.getLongArrayFromByteBuffer;
+import static cn.edu.tsinghua.iginx.utils.ByteUtils.getValueFromByteBufferByDataType;
+
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.session_v2.QueryClient;
 import cn.edu.tsinghua.iginx.session_v2.exception.IginXException;
@@ -43,10 +46,6 @@ import cn.edu.tsinghua.iginx.thrift.QueryDataSet;
 import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.ByteUtils;
 import cn.edu.tsinghua.iginx.utils.RpcUtils;
-import org.apache.thrift.TException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -56,9 +55,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-
-import static cn.edu.tsinghua.iginx.utils.ByteUtils.getLongArrayFromByteBuffer;
-import static cn.edu.tsinghua.iginx.utils.ByteUtils.getValueFromByteBufferByDataType;
+import org.apache.thrift.TException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class QueryClientImpl extends AbstractFunctionClient implements QueryClient {
     @SuppressWarnings("unused")
@@ -73,7 +72,12 @@ public class QueryClientImpl extends AbstractFunctionClient implements QueryClie
 
     private IginXTable simpleQuery(SimpleQuery query) {
         List<String> measurements = new ArrayList<>(query.getMeasurements());
-        QueryDataReq req = new QueryDataReq(sessionId, MeasurementUtils.mergeAndSortMeasurements(measurements), query.getStartTime(), query.getEndTime());
+        QueryDataReq req =
+                new QueryDataReq(
+                        sessionId,
+                        MeasurementUtils.mergeAndSortMeasurements(measurements),
+                        query.getStartTime(),
+                        query.getEndTime());
 
         if (query.getTagsList() != null) {
             req.setTagsList(query.getTagsList());
@@ -91,12 +95,22 @@ public class QueryClientImpl extends AbstractFunctionClient implements QueryClie
                 throw new IginXException("simple query failure: ", e);
             }
         }
-        return buildIginXTable(resp.getQueryDataSet(), resp.getPaths(), resp.getTagsList(), resp.getDataTypeList());
+        return buildIginXTable(
+                resp.getQueryDataSet(),
+                resp.getPaths(),
+                resp.getTagsList(),
+                resp.getDataTypeList());
     }
 
     private IginXTable aggregateQuery(AggregateQuery query) throws IginXException {
         List<String> measurements = new ArrayList<>(query.getMeasurements());
-        AggregateQueryReq req = new AggregateQueryReq(sessionId, MeasurementUtils.mergeAndSortMeasurements(measurements), query.getStartTime(), query.getEndTime(), query.getAggregateType());
+        AggregateQueryReq req =
+                new AggregateQueryReq(
+                        sessionId,
+                        MeasurementUtils.mergeAndSortMeasurements(measurements),
+                        query.getStartTime(),
+                        query.getEndTime(),
+                        query.getAggregateType());
 
         if (query.getTagsList() != null) {
             req.setTagsList(query.getTagsList());
@@ -123,7 +137,8 @@ public class QueryClientImpl extends AbstractFunctionClient implements QueryClie
         List<IginXColumn> columns = new ArrayList<>();
         Map<String, Object> recordValues = new HashMap<>();
         for (int i = 0; i < measurements.size(); i++) {
-            IginXColumn column = new IginXColumn(measurements.get(i), tagsList.get(i), dataTypes.get(i));
+            IginXColumn column =
+                    new IginXColumn(measurements.get(i), tagsList.get(i), dataTypes.get(i));
             columns.add(column);
             recordValues.put(measurements.get(i), values[i]);
         }
@@ -134,7 +149,14 @@ public class QueryClientImpl extends AbstractFunctionClient implements QueryClie
 
     private IginXTable downsampleQuery(DownsampleQuery query) throws IginXException {
         List<String> measurements = new ArrayList<>(query.getMeasurements());
-        DownsampleQueryReq req = new DownsampleQueryReq(sessionId, MeasurementUtils.mergeAndSortMeasurements(measurements), query.getStartTime(), query.getEndTime(), query.getAggregateType(), query.getPrecision());
+        DownsampleQueryReq req =
+                new DownsampleQueryReq(
+                        sessionId,
+                        MeasurementUtils.mergeAndSortMeasurements(measurements),
+                        query.getStartTime(),
+                        query.getEndTime(),
+                        query.getAggregateType(),
+                        query.getPrecision());
 
         if (query.getTagsList() != null) {
             req.setTagsList(query.getTagsList());
@@ -151,12 +173,20 @@ public class QueryClientImpl extends AbstractFunctionClient implements QueryClie
                 throw new IginXException("downsample query failure: ", e);
             }
         }
-        return buildIginXTable(resp.getQueryDataSet(), resp.getPaths(), resp.getTagsList(), resp.getDataTypeList());
+        return buildIginXTable(
+                resp.getQueryDataSet(),
+                resp.getPaths(),
+                resp.getTagsList(),
+                resp.getDataTypeList());
     }
 
     private IginXTable lastQuery(LastQuery query) throws IginXException {
         List<String> measurements = new ArrayList<>(query.getMeasurements());
-        LastQueryReq req = new LastQueryReq(sessionId, MeasurementUtils.mergeAndSortMeasurements(measurements), query.getStartTime());
+        LastQueryReq req =
+                new LastQueryReq(
+                        sessionId,
+                        MeasurementUtils.mergeAndSortMeasurements(measurements),
+                        query.getStartTime());
 
         if (query.getTagsList() != null) {
             req.setTagsList(query.getTagsList());
@@ -174,13 +204,21 @@ public class QueryClientImpl extends AbstractFunctionClient implements QueryClie
             }
         }
 
-        return buildIginXTable(resp.getQueryDataSet(), resp.getPaths(), resp.getTagsList(), resp.getDataTypeList());
+        return buildIginXTable(
+                resp.getQueryDataSet(),
+                resp.getPaths(),
+                resp.getTagsList(),
+                resp.getDataTypeList());
     }
 
     @Override
     public <M> List<M> query(Query query, Class<M> measurementType) throws IginXException {
         IginXTable table = query(query);
-        return table.getRecords().stream().map(e -> resultMapper.toPOJO(e, measurementType)).filter(Objects::nonNull).collect(Collectors.toList());
+        return table.getRecords()
+                .stream()
+                .map(e -> resultMapper.toPOJO(e, measurementType))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -207,11 +245,11 @@ public class QueryClientImpl extends AbstractFunctionClient implements QueryClie
     }
 
     @Override
-    public <M> void query(Query query, Class<M> measurementType, Consumer<M> onNext) throws IginXException {
+    public <M> void query(Query query, Class<M> measurementType, Consumer<M> onNext)
+            throws IginXException {
         IginXTable table = query(query);
         new ConsumerMapperControlThread<M>(table, onNext, measurementType, resultMapper).start();
     }
-
 
     @Override
     public IginXTable query(String query) throws IginXException {
@@ -220,7 +258,8 @@ public class QueryClientImpl extends AbstractFunctionClient implements QueryClie
     }
 
     @Override
-    public <M> void query(String query, Class<M> measurementType, Consumer<M> onNext) throws IginXException {
+    public <M> void query(String query, Class<M> measurementType, Consumer<M> onNext)
+            throws IginXException {
         IginXTable table = query(query);
         new ConsumerMapperControlThread<M>(table, onNext, measurementType, resultMapper).start();
     }
@@ -234,10 +273,18 @@ public class QueryClientImpl extends AbstractFunctionClient implements QueryClie
     @Override
     public <M> List<M> query(String query, Class<M> measurementType) throws IginXException {
         IginXTable table = query(query);
-        return table.getRecords().stream().map(e -> resultMapper.toPOJO(e, measurementType)).filter(Objects::nonNull).collect(Collectors.toList());
+        return table.getRecords()
+                .stream()
+                .map(e -> resultMapper.toPOJO(e, measurementType))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
     }
 
-    private IginXTable buildIginXTable(QueryDataSet dataSet, List<String> measurements, List<Map<String, String>> tagsList, List<DataType> dataTypes) {
+    private IginXTable buildIginXTable(
+            QueryDataSet dataSet,
+            List<String> measurements,
+            List<Map<String, String>> tagsList,
+            List<DataType> dataTypes) {
         boolean hasTimestamp = dataSet.getTimestamps() != null;
         long[] timestamps = new long[0];
         if (hasTimestamp) {
@@ -262,7 +309,9 @@ public class QueryClientImpl extends AbstractFunctionClient implements QueryClie
             Map<String, Object> values = new HashMap<>();
             for (int j = 0; j < dataTypes.size(); j++) {
                 if (bitmap.get(j)) {
-                    values.put(columnIndexMap.get(j), getValueFromByteBufferByDataType(valuesBuffer, dataTypes.get(j)));
+                    values.put(
+                            columnIndexMap.get(j),
+                            getValueFromByteBufferByDataType(valuesBuffer, dataTypes.get(j)));
                 }
             }
             records.add(new IginXRecord(hasTimestamp ? timestamps[i] : 0L, header, values));
@@ -292,7 +341,6 @@ public class QueryClientImpl extends AbstractFunctionClient implements QueryClie
 
     private static class ConsumerMapperControlThread<M> extends Thread {
 
-
         private final IginXTable table;
 
         private final Consumer<M> onNext;
@@ -301,7 +349,11 @@ public class QueryClientImpl extends AbstractFunctionClient implements QueryClie
 
         private final ResultMapper resultMapper;
 
-        public ConsumerMapperControlThread(IginXTable table, Consumer<M> onNext, Class<M> measurementType, ResultMapper resultMapper) {
+        public ConsumerMapperControlThread(
+                IginXTable table,
+                Consumer<M> onNext,
+                Class<M> measurementType,
+                ResultMapper resultMapper) {
             this.table = table;
             this.onNext = onNext;
             this.measurementType = measurementType;
@@ -315,7 +367,5 @@ public class QueryClientImpl extends AbstractFunctionClient implements QueryClie
                 onNext.accept(resultMapper.toPOJO(record, measurementType));
             }
         }
-
     }
-
 }

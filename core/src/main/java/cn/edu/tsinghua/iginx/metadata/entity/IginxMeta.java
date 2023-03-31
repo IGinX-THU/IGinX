@@ -19,29 +19,20 @@
 package cn.edu.tsinghua.iginx.metadata.entity;
 
 import cn.edu.tsinghua.iginx.pool.IginxInfo;
-
 import java.util.Map;
 
 public final class IginxMeta {
 
-    /**
-     * iginx 的 id
-     */
+    /** iginx 的 id */
     private final long id;
 
-    /**
-     * iginx 所在 ip
-     */
+    /** iginx 所在 ip */
     private final String ip;
 
-    /**
-     * iginx 对外暴露的端口
-     */
+    /** iginx 对外暴露的端口 */
     private final int port;
 
-    /**
-     * iginx 其他控制参数
-     */
+    /** iginx 其他控制参数 */
     private final Map<String, String> extraParams;
 
     public IginxMeta(long id, String ip, int port, Map<String, String> extraParams) {
@@ -69,10 +60,10 @@ public final class IginxMeta {
 
     public IginxInfo iginxMetaInfo() {
         return new IginxInfo.Builder()
-        .host(ip)
-        .port(port)
-        .user(extraParams.getOrDefault("user", ""))
-        .password(extraParams.getOrDefault("password", ""))
-        .build();
+                .host(ip)
+                .port(port)
+                .user(extraParams.getOrDefault("user", ""))
+                .password(extraParams.getOrDefault("password", ""))
+                .build();
     }
 }
