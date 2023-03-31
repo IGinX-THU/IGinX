@@ -59,4 +59,4 @@ jobs:
               shell: bash
               run: |
                   chmod +x "${GITHUB_WORKSPACE}/.github/test_union.sh"
-                  mvn test -q -Dtest=Controller -DfailIfNoTests=false
+                  mvn test -q -Dtest=Controller -DfailIfNoTests=false -P passFormat
