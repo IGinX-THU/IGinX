@@ -16,7 +16,7 @@ runs:
       name: Write history Data
       shell: bash
       run: |
-        mvn test -q -Dtest=IoTDBHistoryDataGenerator#${{inputs.Test-Way}} -DfailIfNoTests=false
+        mvn test -q -Dtest=IoTDB12HistoryDataGenerator#${{inputs.Test-Way}} -DfailIfNoTests=false
 
     - if: inputs.version=='InfluxDB'
       name: Write history Data

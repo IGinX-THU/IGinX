@@ -6,8 +6,8 @@ on:
       - main
 env:
   VERSION: 0.6.0-SNAPSHOT
-  FUNCTEST: TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,BaseSessionIT,BaseSessionPoolIT
-  IoTDB12FUNCTEST: TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,BaseSessionIT,BaseSessionPoolIT
+  FUNCTEST: TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,BaseSessionIT,BaseSessionPoolIT,CompactionIT
+  IoTDB12FUNCTEST: TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,BaseSessionIT,BaseSessionPoolIT,CompactionIT
   InfluxDBFUNCTEST: RestAnnotationIT
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

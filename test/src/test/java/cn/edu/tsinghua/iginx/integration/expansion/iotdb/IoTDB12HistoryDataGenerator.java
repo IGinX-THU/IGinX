@@ -13,9 +13,9 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.Map;
 
-public class IoTDBHistoryDataGenerator extends BaseHistoryDataGenerator {
+public class IoTDB12HistoryDataGenerator extends BaseHistoryDataGenerator {
 
-    private static final Logger logger = LoggerFactory.getLogger(IoTDBHistoryDataGenerator.class);
+    private static final Logger logger = LoggerFactory.getLogger(IoTDB12HistoryDataGenerator.class);
     private String INSERT = "INSERT INTO root.%s (timestamp,%s) values(%s,%s)";
 
     @Test
