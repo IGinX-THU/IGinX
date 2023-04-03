@@ -110,11 +110,10 @@
                                 <includes>
                                     <include>**/*.g4</include>
                                 </includes>
-                                <antlr4Formatter/>
+                                <antlr4Formatter>
+                                    <version>1.2.1</version>
+                                </antlr4Formatter>
                             </antlr4>
-                            <antlr4Formatter>
-                                <version>1.2.1</version>
-                            </antlr4Formatter>
                             <sql>
                                 <includes>
                                     <include>**/*.sql</include>
@@ -130,18 +129,17 @@
                                 <excludes>
                                     <exclude>.github/**/*.yml</exclude>
                                 </excludes>
-                                <jackson/>
+                                <jackson>
+                                    <version>2.14.1</version>
+                                    <features>
+                                        <ANY_OTHER_FEATURE>true|false</ANY_OTHER_FEATURE>
+                                    </features>
+                                    <yamlFeatures>
+                                        <ANY_OTHER_FEATURE>true|false</ANY_OTHER_FEATURE>
+                                    </yamlFeatures>
+                                    <spaceBeforeSeparator>false</spaceBeforeSeparator>
+                                </jackson>
                             </yaml>
-                            <jackson>
-                                <version>2.14.1</version>
-                                <features>
-                                    <ANY_OTHER_FEATURE>true|false</ANY_OTHER_FEATURE>
-                                </features>
-                                <yamlFeatures>
-                                    <ANY_OTHER_FEATURE>true|false</ANY_OTHER_FEATURE>
-                                </yamlFeatures>
-                                <spaceBeforeSeparator>false</spaceBeforeSeparator>
-                            </jackson>
                             <formats>
                                 <format>
                                     <includes>
