@@ -1,0 +1,6 @@
+*	text=auto   eol=lf
+*.jpg   -text
+*.png   -text
+*.ttf   -text
+*.class -text
+*.jar   -text

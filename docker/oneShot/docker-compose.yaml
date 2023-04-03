@@ -1,29 +1,31 @@
+---
 version: "3.9"
 services:
   zookeeper:
-    container_name: zookeeper
-    image: zookeeper:latest
+    container_name: "zookeeper"
+    image: "zookeeper:latest"
     networks:
-      - net
+    - "net"
   iotdb:
-    container_name: iotdb
-    image: apache/iotdb:0.12.6-node
+    container_name: "iotdb"
+    image: "apache/iotdb:0.12.6-node"
     networks:
-      - net
+    - "net"
   iginx:
-    container_name: iginx1
+    container_name: "iginx1"
     depends_on:
-      - zookeeper
-      - iotdb
+    - "zookeeper"
+    - "iotdb"
     build:
-      context: ../../
-      dockerfile: ./docker/oneShot/Dockerfile
-    command: ["/bin/bash", "/root/IGinX/sbin/start_iginx.sh"]
+      context: "../../"
+      dockerfile: "./docker/oneShot/Dockerfile"
+    command:
+    - "/bin/bash"
+    - "/root/IGinX/sbin/start_iginx.sh"
     networks:
-      - net
+    - "net"
     ports:
-      - "10001:6888"
-
+    - "10001:6888"
 networks:
   net:
-    driver: bridge
+    driver: "bridge"
