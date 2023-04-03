@@ -2,3 +2,5 @@
 *.jpg   -text
 *.png   -text
 *.ttf   -text
+*.class -text
+*.jar   -text
