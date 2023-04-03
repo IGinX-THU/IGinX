@@ -1,5 +1,7 @@
 package cn.edu.tsinghua.iginx.mongodb.query.entity;
 
+import static cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilterType.WithoutTag;
+
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
 import cn.edu.tsinghua.iginx.engine.physical.storage.utils.TagKVUtils;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
@@ -13,18 +15,16 @@ import cn.edu.tsinghua.iginx.mongodb.MongoDBStorage;
 import cn.edu.tsinghua.iginx.mongodb.tools.DataUtils;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.mongodb.client.MongoCursor;
+import java.util.*;
 import org.bson.Document;
 import org.bson.types.Binary;
-
-import java.util.*;
-
-import static cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilterType.WithoutTag;
 
 public class MongoDBQueryRowStream implements RowStream {
 
     private final Table table;
 
-    public MongoDBQueryRowStream(MongoCursor<Document> cursor, TimeInterval timeInterval, TagFilter tagFilter) {
+    public MongoDBQueryRowStream(
+            MongoCursor<Document> cursor, TimeInterval timeInterval, TagFilter tagFilter) {
         Map<String, PriorityQueue<MongoDBPoint>> queueMap = new LinkedHashMap<>();
         Set<Field> fieldList = new LinkedHashSet<>();
         while (cursor.hasNext()) {
@@ -34,7 +34,8 @@ public class MongoDBQueryRowStream implements RowStream {
             DataType dataType = DataUtils.fromString(document.getString(MongoDBStorage.TYPE));
             Document timeAndValueDocument = document.get(MongoDBStorage.VALUES, Document.class);
             long timestamp = Long.MIN_VALUE;
-            if (timeAndValueDocument != null && timeAndValueDocument.containsKey(MongoDBStorage.INNER_TIMESTAMP)) {
+            if (timeAndValueDocument != null
+                    && timeAndValueDocument.containsKey(MongoDBStorage.INNER_TIMESTAMP)) {
                 timestamp = timeAndValueDocument.getLong(MongoDBStorage.INNER_TIMESTAMP);
             }
 
@@ -72,11 +73,13 @@ public class MongoDBQueryRowStream implements RowStream {
                         value = timeAndValueDocument.getDouble(MongoDBStorage.INNER_VALUE);
                         break;
                     case FLOAT:
-                        double doubleValue = timeAndValueDocument.getDouble(MongoDBStorage.INNER_VALUE);
+                        double doubleValue =
+                                timeAndValueDocument.getDouble(MongoDBStorage.INNER_VALUE);
                         value = (float) doubleValue;
                         break;
                     case BINARY:
-                        Binary binary = (Binary) timeAndValueDocument.get(MongoDBStorage.INNER_VALUE);
+                        Binary binary =
+                                (Binary) timeAndValueDocument.get(MongoDBStorage.INNER_VALUE);
                         value = binary.getData();
                         break;
                 }
