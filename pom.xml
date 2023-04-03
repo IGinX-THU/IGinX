@@ -118,8 +118,8 @@
                                 <includes>
                                     <include>**/*.sql</include>
                                 </includes>
-                                <prettier/>
-                                <dbeaver/>
+                                <!--prettier/>
+                                <dbeaver/-->
                             </sql>
                             <yaml>
                                 <includes>
@@ -129,16 +129,6 @@
                                 <excludes>
                                     <exclude>.github/**/*.yml</exclude>
                                 </excludes>
-                                <jackson>
-                                    <version>2.14.1</version>
-                                    <features>
-                                        <ANY_OTHER_FEATURE>true|false</ANY_OTHER_FEATURE>
-                                    </features>
-                                    <yamlFeatures>
-                                        <ANY_OTHER_FEATURE>true|false</ANY_OTHER_FEATURE>
-                                    </yamlFeatures>
-                                    <spaceBeforeSeparator>false</spaceBeforeSeparator>
-                                </jackson>
                             </yaml>
                             <formats>
                                 <format>
