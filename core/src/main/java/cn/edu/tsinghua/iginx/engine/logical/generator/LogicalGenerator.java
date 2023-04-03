@@ -8,5 +8,4 @@ public interface LogicalGenerator {
     GeneratorType getType();
 
     Operator generate(RequestContext ctx);
-
 }

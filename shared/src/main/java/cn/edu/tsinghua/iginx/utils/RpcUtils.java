@@ -28,7 +28,8 @@ public class RpcUtils {
     @SuppressWarnings("unused")
     private static final Logger logger = LoggerFactory.getLogger(RpcUtils.class);
 
-    public static Status WRONG_USERNAME_OR_PASSWORD = new Status(StatusCode.WRONG_USERNAME_OR_PASSWORD.getStatusCode());
+    public static Status WRONG_USERNAME_OR_PASSWORD =
+            new Status(StatusCode.WRONG_USERNAME_OR_PASSWORD.getStatusCode());
 
     public static Status ACCESS_DENY = new Status(StatusCode.ACCESS_DENY.getStatusCode());
 
@@ -38,7 +39,8 @@ public class RpcUtils {
 
     public static Status FAILURE = new Status(StatusCode.STATEMENT_EXECUTION_ERROR.getStatusCode());
 
-    public static Status SERVICE_UNAVAILABLE = new Status(StatusCode.SERVICE_UNAVAILABLE.getStatusCode());
+    public static Status SERVICE_UNAVAILABLE =
+            new Status(StatusCode.SERVICE_UNAVAILABLE.getStatusCode());
 
     public static Status JOB_FINISHED = new Status(StatusCode.JOB_FINISHED.getStatusCode());
     public static Status JOB_CREATED = new Status(StatusCode.JOB_CREATED.getStatusCode());

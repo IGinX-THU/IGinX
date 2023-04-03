@@ -2,15 +2,14 @@ package cn.edu.tsinghua.iginx.integration.tool;
 
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.utils.FileReader;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ConfLoder {
     private final void logInfo(String info, Object... args) {
@@ -27,7 +26,8 @@ public class ConfLoder {
     private String TESTTASK = "test-list";
     private static String DBCONF = "%s-config";
     private String RUNNINGSTORAGE = "./src/test/java/cn/edu/tsinghua/iginx/integration/DBConf.txt";
-    private String IFSCALEOUTIN = "./src/test/java/cn/edu/tsinghua/iginx/integration/ifScaleOutIn.txt";
+    private String IFSCALEOUTIN =
+            "./src/test/java/cn/edu/tsinghua/iginx/integration/ifScaleOutIn.txt";
 
     public String getStorageType() {
         String storageType = FileReader.convertToString(RUNNINGSTORAGE);
@@ -79,7 +79,8 @@ public class ConfLoder {
                     extraParams.put(KAndV[0], KAndV[1]);
                 }
             }
-            storageEngineMetas.add(new StorageEngineMeta(-1, ip, port, extraParams, storageEngine, -1));
+            storageEngineMetas.add(
+                    new StorageEngineMeta(-1, ip, port, extraParams, storageEngine, -1));
         }
 
         // load the task list
@@ -87,10 +88,10 @@ public class ConfLoder {
             String tasks = null;
             String storage = storageEngine.toLowerCase();
             tasks = properties.getProperty(storage + "-" + TESTTASK);
-            if (tasks == null)
-                tasks = properties.getProperty(TESTTASK);
+            if (tasks == null) tasks = properties.getProperty(TESTTASK);
             logInfo("the task of {} is :", storageEngine);
-            List<String> oriTaskList = Arrays.asList(tasks.split(",")), taskList = new ArrayList<>();
+            List<String> oriTaskList = Arrays.asList(tasks.split(",")),
+                    taskList = new ArrayList<>();
             for (String taskName : oriTaskList) {
                 if (taskName.contains("{}")) {
                     taskName = taskName.replace("{}", storageEngine);
@@ -122,7 +123,6 @@ public class ConfLoder {
         }
         return dbConf;
     }
-
 
     public Map<DBConf.DBType, List<String>> getTaskMap() {
         return taskMap;

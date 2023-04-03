@@ -3,11 +3,10 @@ package cn.edu.tsinghua.iginx.compaction;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngineImpl;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class CompactionManager {
 
@@ -16,9 +15,15 @@ public class CompactionManager {
     private static final List<Compaction> compactionList = new ArrayList<>();
 
     static {
-        compactionList.add(new FragmentDeletionCompaction(PhysicalEngineImpl.getInstance(), DefaultMetaManager.getInstance()));
-        compactionList.add(new LowWriteFragmentCompaction(PhysicalEngineImpl.getInstance(), DefaultMetaManager.getInstance()));
-        compactionList.add(new LowAccessFragmentCompaction(PhysicalEngineImpl.getInstance(), DefaultMetaManager.getInstance()));
+        compactionList.add(
+                new FragmentDeletionCompaction(
+                        PhysicalEngineImpl.getInstance(), DefaultMetaManager.getInstance()));
+        compactionList.add(
+                new LowWriteFragmentCompaction(
+                        PhysicalEngineImpl.getInstance(), DefaultMetaManager.getInstance()));
+        compactionList.add(
+                new LowAccessFragmentCompaction(
+                        PhysicalEngineImpl.getInstance(), DefaultMetaManager.getInstance()));
     }
 
     private static final CompactionManager instance = new CompactionManager();
@@ -29,7 +34,9 @@ public class CompactionManager {
 
     public void clearFragment() throws Exception {
         if (ConfigDescriptor.getInstance().getConfig().isEnableInstantCompaction()) {
-            new InstantCompaction(PhysicalEngineImpl.getInstance(), DefaultMetaManager.getInstance()).compact();
+            new InstantCompaction(
+                            PhysicalEngineImpl.getInstance(), DefaultMetaManager.getInstance())
+                    .compact();
         } else if (ConfigDescriptor.getInstance().getConfig().isEnableFragmentCompaction()) {
             for (Compaction compaction : compactionList) {
                 if (compaction.needCompaction()) {

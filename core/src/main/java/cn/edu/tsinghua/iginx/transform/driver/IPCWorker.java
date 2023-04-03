@@ -7,18 +7,17 @@ import cn.edu.tsinghua.iginx.transform.api.Writer;
 import cn.edu.tsinghua.iginx.transform.data.ArrowReader;
 import cn.edu.tsinghua.iginx.transform.data.BatchData;
 import cn.edu.tsinghua.iginx.transform.exception.WriteBatchException;
-import org.apache.arrow.memory.RootAllocator;
-import org.apache.arrow.vector.VectorSchemaRoot;
-import org.apache.arrow.vector.ipc.ArrowStreamReader;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import org.apache.arrow.memory.RootAllocator;
+import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.ipc.ArrowStreamReader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class IPCWorker extends Thread {
 
@@ -36,13 +35,19 @@ public class IPCWorker extends Thread {
 
     private final Writer writer;
 
-    private final static Logger logger = LoggerFactory.getLogger(IPCWorker.class);
+    private static final Logger logger = LoggerFactory.getLogger(IPCWorker.class);
 
-    private final static Config config = ConfigDescriptor.getInstance().getConfig();
+    private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
     private final ExecutorService threadPool = Executors.newFixedThreadPool(5);
 
-    public IPCWorker(long pid, int javaPort, int pyPort, Process process, ServerSocket serverSocket, Writer writer) {
+    public IPCWorker(
+            long pid,
+            int javaPort,
+            int pyPort,
+            Process process,
+            ServerSocket serverSocket,
+            Writer writer) {
         this.pid = pid;
         this.ip = config.getIp();
         this.javaPort = javaPort;
@@ -114,15 +119,24 @@ public class IPCWorker extends Thread {
 
     @Override
     public String toString() {
-        return "Worker{" +
-            "pid=" + pid +
-            ", ip='" + ip + '\'' +
-            ", javaPort=" + javaPort +
-            ", pyPort=" + pyPort +
-            ", process=" + process +
-            ", serverSocket=" + serverSocket +
-            ", writer=" + writer +
-            ", threadPool=" + threadPool +
-            '}';
+        return "Worker{"
+                + "pid="
+                + pid
+                + ", ip='"
+                + ip
+                + '\''
+                + ", javaPort="
+                + javaPort
+                + ", pyPort="
+                + pyPort
+                + ", process="
+                + process
+                + ", serverSocket="
+                + serverSocket
+                + ", writer="
+                + writer
+                + ", threadPool="
+                + threadPool
+                + '}';
     }
 }

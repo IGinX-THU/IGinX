@@ -20,12 +20,11 @@ package cn.edu.tsinghua.iginx.iotdb.tools;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.NotFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.OrFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.ValueFilter;
-
 import java.util.stream.Collectors;
 
 public class FilterTransformer {
@@ -51,7 +50,10 @@ public class FilterTransformer {
     }
 
     private static String toString(AndFilter filter) {
-        return filter.getChildren().stream().map(FilterTransformer::toString).collect(Collectors.joining(" and ", "(", ")"));
+        return filter.getChildren()
+                .stream()
+                .map(FilterTransformer::toString)
+                .collect(Collectors.joining(" and ", "(", ")"));
     }
 
     private static String toString(NotFilter filter) {
@@ -66,13 +68,17 @@ public class FilterTransformer {
         if (filter.getOp().equals(Op.LIKE)) {
             return filter.getPath() + " regexp '" + filter.getValue().getBinaryVAsString() + "'";
         }
-        return filter.getPath() + " " + Op.op2Str(filter.getOp()) + " " + filter.getValue().getValue();
+        return filter.getPath()
+                + " "
+                + Op.op2Str(filter.getOp())
+                + " "
+                + filter.getValue().getValue();
     }
 
     private static String toString(OrFilter filter) {
-        return filter.getChildren().stream().map(FilterTransformer::toString).collect(Collectors.joining(" or ", "(", ")"));
+        return filter.getChildren()
+                .stream()
+                .map(FilterTransformer::toString)
+                .collect(Collectors.joining(" or ", "(", ")"));
     }
-
-
-
 }

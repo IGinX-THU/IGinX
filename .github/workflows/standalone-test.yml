@@ -1,68 +1,68 @@
 name: "Union Database Test"
 on:
-  pull_request:
-    types: [ opened, reopened ]
-    branches:
-      - main
+    pull_request:
+        types: [opened, reopened]
+        branches:
+            - main
 env:
-  VERSION: 0.6.0-SNAPSHOT
+    VERSION: 0.6.0-SNAPSHOT
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
 
 jobs:
-  Union-DB-Test:
-    timeout-minutes: 30
-    strategy:
-      fail-fast: false
-      matrix:
-        java: [ 8 ]
-        python-version: [ "3.7" ]
-        os: [ ubuntu-latest, macos-latest ]
-        DB-name: [ "IoTDB12", "InfluxDB", "Parquet", "MongoDB" ]
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v2
-      - name: Environment Dependence
-        uses: ./.github/actions/dependence
-        with:
-          python-version: ${{ matrix.python-version }}
-          java: ${{ matrix.java }}
-      - name: Run ZooKeeper
-        uses: ./.github/actions/zookeeperRunner
-      - name: Run DB
-        uses: ./.github/actions/dbRunner
-        with:
-          version: ${{matrix.DB-name}}
+    Union-DB-Test:
+        timeout-minutes: 30
+        strategy:
+            fail-fast: false
+            matrix:
+                java: [8]
+                python-version: ["3.7"]
+                os: [ubuntu-latest, macos-latest]
+                DB-name: ["IoTDB12", "InfluxDB", "Parquet", "MongoDB"]
+        runs-on: ${{ matrix.os }}
+        steps:
+            - uses: actions/checkout@v2
+            - name: Environment Dependence
+              uses: ./.github/actions/dependence
+              with:
+                  python-version: ${{ matrix.python-version }}
+                  java: ${{ matrix.java }}
+            - name: Run ZooKeeper
+              uses: ./.github/actions/zookeeperRunner
+            - name: Run DB
+              uses: ./.github/actions/dbRunner
+              with:
+                  version: ${{matrix.DB-name}}
 
-      - name: Install IginX with Maven
-        shell: bash
-        run: |
-          mvn clean package -DskipTests
+            - name: Install IginX with Maven
+              shell: bash
+              run: |
+                  mvn clean package -DskipTests
 
-      - name: Set The DB Name
-        uses: ./.github/actions/confWriter
-        with:
-          confFile: DBName
-          DB-name: ${{matrix.DB-name}}
+            - name: Set The DB Name
+              uses: ./.github/actions/confWriter
+              with:
+                  confFile: DBName
+                  DB-name: ${{matrix.DB-name}}
 
-      - name: Set The UDF Conf
-        uses: ./.github/actions/confWriter
-        with:
-          confFile: UDFConf
+            - name: Set The UDF Conf
+              uses: ./.github/actions/confWriter
+              with:
+                  confFile: UDFConf
 
-      - name: Start IginX
-        uses: ./.github/actions/iginxRunner
+            - name: Start IginX
+              uses: ./.github/actions/iginxRunner
 
-      - name: TestController IT
-        if: always()
-        shell: bash
-        run: |
-          chmod +x "${GITHUB_WORKSPACE}/.github/test_union.sh"
-          mvn test -q -Dtest=Controller -DfailIfNoTests=false
+            - name: TestController IT
+              if: always()
+              shell: bash
+              run: |
+                  chmod +x "${GITHUB_WORKSPACE}/.github/test_union.sh"
+                  mvn test -q -Dtest=Controller -DfailIfNoTests=false
 
-      - name: show the test result
-        if: always()
-        shell: bash
-        run: |
-          cat ${GITHUB_WORKSPACE}/test/src/test/resources/testResult.txt
+            - name: show the test result
+              if: always()
+              shell: bash
+              run: |
+                  cat ${GITHUB_WORKSPACE}/test/src/test/resources/testResult.txt

@@ -8,7 +8,6 @@ import cn.edu.tsinghua.iginx.session_v2.TransformClient;
 import cn.edu.tsinghua.iginx.session_v2.domain.Task;
 import cn.edu.tsinghua.iginx.session_v2.domain.Transform;
 import cn.edu.tsinghua.iginx.thrift.*;
-
 import java.io.File;
 import java.util.*;
 
@@ -25,11 +24,20 @@ public class TransformExample {
     private static final String QUERY_SQL = "select value1, value2, value3, value4 from transform;";
     private static final String SHOW_TIME_SERIES_SQL = "show time series;";
     private static final String SHOW_REGISTER_TASK_SQL = "SHOW REGISTER PYTHON TASK;";
-    private static final String REGISTER_SQL_FORMATTER = "REGISTER TRANSFORM PYTHON TASK %s IN %s AS %s";
+    private static final String REGISTER_SQL_FORMATTER =
+            "REGISTER TRANSFORM PYTHON TASK %s IN %s AS %s";
     private static final String DROP_SQL_FORMATTER = "DROP PYTHON TASK %s";
 
-    private static final String OUTPUT_DIR_PREFIX = System.getProperty("user.dir") + File.separator +
-        "example" + File.separator + "src" + File.separator + "main" + File.separator + "resources";
+    private static final String OUTPUT_DIR_PREFIX =
+            System.getProperty("user.dir")
+                    + File.separator
+                    + "example"
+                    + File.separator
+                    + "src"
+                    + File.separator
+                    + "main"
+                    + File.separator
+                    + "resources";
 
     private static final long START_TIMESTAMP = 0L;
     private static final long END_TIMESTAMP = 1000L;
@@ -37,13 +45,21 @@ public class TransformExample {
     private static final long TIMEOUT = 10000L;
 
     private static final Map<String, String> TASK_MAP = new HashMap<>();
+
     static {
-        TASK_MAP.put("\"RowSumTransformer\"", "\"" + OUTPUT_DIR_PREFIX + File.separator + "transformer_row_sum.py\"");
-        TASK_MAP.put("\"AddOneTransformer\"", "\"" + OUTPUT_DIR_PREFIX + File.separator + "transformer_add_one.py\"");
-        TASK_MAP.put("\"SumTransformer\"", "\"" + OUTPUT_DIR_PREFIX + File.separator + "transformer_sum.py\"");
+        TASK_MAP.put(
+                "\"RowSumTransformer\"",
+                "\"" + OUTPUT_DIR_PREFIX + File.separator + "transformer_row_sum.py\"");
+        TASK_MAP.put(
+                "\"AddOneTransformer\"",
+                "\"" + OUTPUT_DIR_PREFIX + File.separator + "transformer_add_one.py\"");
+        TASK_MAP.put(
+                "\"SumTransformer\"",
+                "\"" + OUTPUT_DIR_PREFIX + File.separator + "transformer_sum.py\"");
     }
 
-    public static void main(String[] args) throws SessionException, ExecutionException, InterruptedException {
+    public static void main(String[] args)
+            throws SessionException, ExecutionException, InterruptedException {
         before();
 
         // session
@@ -91,7 +107,8 @@ public class TransformExample {
         session.closeSession();
     }
 
-    private static void runWithSession() throws SessionException, ExecutionException, InterruptedException {
+    private static void runWithSession()
+            throws SessionException, ExecutionException, InterruptedException {
         // 直接输出到文件
         commitWithoutPyTask();
 
@@ -115,28 +132,31 @@ public class TransformExample {
     }
 
     private static void registerTask() {
-        TASK_MAP.forEach((k, v) -> {
-            String registerSQL = String.format(REGISTER_SQL_FORMATTER, k, v, k);
-            try {
-                session.executeSql(registerSQL);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        });
+        TASK_MAP.forEach(
+                (k, v) -> {
+                    String registerSQL = String.format(REGISTER_SQL_FORMATTER, k, v, k);
+                    try {
+                        session.executeSql(registerSQL);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                });
     }
 
     private static void dropTask() {
-        TASK_MAP.forEach((k, v) -> {
-            String registerSQL = String.format(DROP_SQL_FORMATTER, k);
-            try {
-                session.executeSql(registerSQL);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        });
+        TASK_MAP.forEach(
+                (k, v) -> {
+                    String registerSQL = String.format(DROP_SQL_FORMATTER, k);
+                    try {
+                        session.executeSql(registerSQL);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                });
     }
 
-    private static void commitWithoutPyTask() throws ExecutionException, SessionException, InterruptedException {
+    private static void commitWithoutPyTask()
+            throws ExecutionException, SessionException, InterruptedException {
         // 构造任务
         List<TaskInfo> taskInfoList = new ArrayList<>();
 
@@ -145,19 +165,26 @@ public class TransformExample {
         taskInfoList.add(iginxTask);
 
         // 提交任务
-        long jobId = session.commitTransformJob(taskInfoList, ExportType.File, OUTPUT_DIR_PREFIX + File.separator + "export_file_show_ts.txt");
+        long jobId =
+                session.commitTransformJob(
+                        taskInfoList,
+                        ExportType.File,
+                        OUTPUT_DIR_PREFIX + File.separator + "export_file_show_ts.txt");
         System.out.println("job id is " + jobId);
 
         // 轮询查看任务情况
         JobState jobState = JobState.JOB_CREATED;
-        while (!jobState.equals(JobState.JOB_CLOSED) && !jobState.equals(JobState.JOB_FAILED) && !jobState.equals(JobState.JOB_FINISHED)) {
+        while (!jobState.equals(JobState.JOB_CLOSED)
+                && !jobState.equals(JobState.JOB_FAILED)
+                && !jobState.equals(JobState.JOB_FINISHED)) {
             Thread.sleep(500);
             jobState = session.queryTransformJobStatus(jobId);
         }
         System.out.println("job state is " + jobState.toString());
     }
 
-    private static void commitStdJob() throws ExecutionException, SessionException, InterruptedException {
+    private static void commitStdJob()
+            throws ExecutionException, SessionException, InterruptedException {
         // 构造任务
         List<TaskInfo> taskInfoList = new ArrayList<>();
 
@@ -175,14 +202,17 @@ public class TransformExample {
 
         // 轮询查看任务情况
         JobState jobState = JobState.JOB_CREATED;
-        while (!jobState.equals(JobState.JOB_CLOSED) && !jobState.equals(JobState.JOB_FAILED) && !jobState.equals(JobState.JOB_FINISHED)) {
+        while (!jobState.equals(JobState.JOB_CLOSED)
+                && !jobState.equals(JobState.JOB_FAILED)
+                && !jobState.equals(JobState.JOB_FINISHED)) {
             Thread.sleep(500);
             jobState = session.queryTransformJobStatus(jobId);
         }
         System.out.println("job state is " + jobState.toString());
     }
 
-    private static void commitFileJob() throws ExecutionException, SessionException, InterruptedException {
+    private static void commitFileJob()
+            throws ExecutionException, SessionException, InterruptedException {
         // 构造任务
         List<TaskInfo> taskInfoList = new ArrayList<>();
 
@@ -195,19 +225,26 @@ public class TransformExample {
         taskInfoList.add(pyTask);
 
         // 提交任务
-        long jobId = session.commitTransformJob(taskInfoList, ExportType.File, OUTPUT_DIR_PREFIX + File.separator + "export_file.txt");
+        long jobId =
+                session.commitTransformJob(
+                        taskInfoList,
+                        ExportType.File,
+                        OUTPUT_DIR_PREFIX + File.separator + "export_file.txt");
         System.out.println("job id is " + jobId);
 
         // 轮询查看任务情况
         JobState jobState = JobState.JOB_CREATED;
-        while (!jobState.equals(JobState.JOB_CLOSED) && !jobState.equals(JobState.JOB_FAILED) && !jobState.equals(JobState.JOB_FINISHED)) {
+        while (!jobState.equals(JobState.JOB_CLOSED)
+                && !jobState.equals(JobState.JOB_FAILED)
+                && !jobState.equals(JobState.JOB_FINISHED)) {
             Thread.sleep(500);
             jobState = session.queryTransformJobStatus(jobId);
         }
         System.out.println("job state is " + jobState.toString());
     }
 
-    private static void commitCombineJob() throws ExecutionException, SessionException, InterruptedException {
+    private static void commitCombineJob()
+            throws ExecutionException, SessionException, InterruptedException {
         // 构造任务
         List<TaskInfo> taskInfoList = new ArrayList<>();
 
@@ -224,19 +261,26 @@ public class TransformExample {
         taskInfoList.add(pyTask);
 
         // 提交任务
-        long jobId = session.commitTransformJob(taskInfoList, ExportType.File, OUTPUT_DIR_PREFIX + File.separator + "export_file_combine.txt");
+        long jobId =
+                session.commitTransformJob(
+                        taskInfoList,
+                        ExportType.File,
+                        OUTPUT_DIR_PREFIX + File.separator + "export_file_combine.txt");
         System.out.println("job id is " + jobId);
 
         // 轮询查看任务情况
         JobState jobState = JobState.JOB_CREATED;
-        while (!jobState.equals(JobState.JOB_CLOSED) && !jobState.equals(JobState.JOB_FAILED) && !jobState.equals(JobState.JOB_FINISHED)) {
+        while (!jobState.equals(JobState.JOB_CLOSED)
+                && !jobState.equals(JobState.JOB_FAILED)
+                && !jobState.equals(JobState.JOB_FINISHED)) {
             Thread.sleep(500);
             jobState = session.queryTransformJobStatus(jobId);
         }
         System.out.println("job state is " + jobState.toString());
     }
 
-    private static void commitMixedJob() throws ExecutionException, SessionException, InterruptedException {
+    private static void commitMixedJob()
+            throws ExecutionException, SessionException, InterruptedException {
         // 构造任务
         List<TaskInfo> taskInfoList = new ArrayList<>();
 
@@ -257,19 +301,26 @@ public class TransformExample {
         taskInfoList.add(pyTask);
 
         // 提交任务
-        long jobId = session.commitTransformJob(taskInfoList, ExportType.File, OUTPUT_DIR_PREFIX + File.separator + "export_file_sum.txt");
+        long jobId =
+                session.commitTransformJob(
+                        taskInfoList,
+                        ExportType.File,
+                        OUTPUT_DIR_PREFIX + File.separator + "export_file_sum.txt");
         System.out.println("job id is " + jobId);
 
         // 轮询查看任务情况
         JobState jobState = JobState.JOB_CREATED;
-        while (!jobState.equals(JobState.JOB_CLOSED) && !jobState.equals(JobState.JOB_FAILED) && !jobState.equals(JobState.JOB_FINISHED)) {
+        while (!jobState.equals(JobState.JOB_CLOSED)
+                && !jobState.equals(JobState.JOB_FAILED)
+                && !jobState.equals(JobState.JOB_FINISHED)) {
             Thread.sleep(500);
             jobState = session.queryTransformJobStatus(jobId);
         }
         System.out.println("job state is " + jobState.toString());
     }
 
-    private static void commitIginXJob() throws ExecutionException, SessionException, InterruptedException {
+    private static void commitIginXJob()
+            throws ExecutionException, SessionException, InterruptedException {
         // 构造任务
         List<TaskInfo> taskInfoList = new ArrayList<>();
 
@@ -287,7 +338,9 @@ public class TransformExample {
 
         // 轮询查看任务情况
         JobState jobState = JobState.JOB_CREATED;
-        while (!jobState.equals(JobState.JOB_CLOSED) && !jobState.equals(JobState.JOB_FAILED) && !jobState.equals(JobState.JOB_FINISHED)) {
+        while (!jobState.equals(JobState.JOB_CLOSED)
+                && !jobState.equals(JobState.JOB_FAILED)
+                && !jobState.equals(JobState.JOB_FINISHED)) {
             Thread.sleep(500);
             jobState = session.queryTransformJobStatus(jobId);
         }
@@ -298,14 +351,17 @@ public class TransformExample {
         result.print(false, "ms");
     }
 
-    private static void commitBySQL() throws ExecutionException, SessionException, InterruptedException {
+    private static void commitBySQL()
+            throws ExecutionException, SessionException, InterruptedException {
         String yamlPath = "\"" + OUTPUT_DIR_PREFIX + File.separator + "TransformJobExample.yaml\"";
         SessionExecuteSqlResult result = session.executeSql("commit transform job " + yamlPath);
 
         long jobId = result.getJobId();
         // 轮询查看任务情况
         JobState jobState = JobState.JOB_CREATED;
-        while (!jobState.equals(JobState.JOB_CLOSED) && !jobState.equals(JobState.JOB_FAILED) && !jobState.equals(JobState.JOB_FINISHED)) {
+        while (!jobState.equals(JobState.JOB_CLOSED)
+                && !jobState.equals(JobState.JOB_FAILED)
+                && !jobState.equals(JobState.JOB_FINISHED)) {
             Thread.sleep(500);
             jobState = session.queryTransformJobStatus(jobId);
         }
@@ -343,28 +399,30 @@ public class TransformExample {
     private static void runWithSessionV2() throws InterruptedException {
 
         TransformClient transformClient = client.getTransformClient();
-        long jobId = transformClient.commitTransformJob(
-            Transform
-                .builder()
-                .addTask(
-                    Task.builder()
-                        .dataFlowType(DataFlowType.Stream)
-                        .timeout(TIMEOUT)
-                        .sql(QUERY_SQL)
-                        .build())
-                .addTask(
-                    Task.builder()
-                        .dataFlowType(DataFlowType.Stream)
-                        .timeout(TIMEOUT)
-                        .pyTaskName("RowSumTransformer")
-                        .build())
-                .exportToFile(OUTPUT_DIR_PREFIX + File.separator + "export_file_v2.txt")
-                .build()
-        );
+        long jobId =
+                transformClient.commitTransformJob(
+                        Transform.builder()
+                                .addTask(
+                                        Task.builder()
+                                                .dataFlowType(DataFlowType.Stream)
+                                                .timeout(TIMEOUT)
+                                                .sql(QUERY_SQL)
+                                                .build())
+                                .addTask(
+                                        Task.builder()
+                                                .dataFlowType(DataFlowType.Stream)
+                                                .timeout(TIMEOUT)
+                                                .pyTaskName("RowSumTransformer")
+                                                .build())
+                                .exportToFile(
+                                        OUTPUT_DIR_PREFIX + File.separator + "export_file_v2.txt")
+                                .build());
 
         // 轮询查看任务情况
         JobState jobState = JobState.JOB_CREATED;
-        while (!jobState.equals(JobState.JOB_CLOSED) && !jobState.equals(JobState.JOB_FAILED) && !jobState.equals(JobState.JOB_FINISHED)) {
+        while (!jobState.equals(JobState.JOB_CLOSED)
+                && !jobState.equals(JobState.JOB_FAILED)
+                && !jobState.equals(JobState.JOB_FINISHED)) {
             Thread.sleep(500);
             jobState = transformClient.queryTransformJobStatus(jobId);
         }

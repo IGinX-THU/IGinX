@@ -12,7 +12,7 @@ Currently, IGinX directly supports big data service over relational database Pos
 
 Since ZooKeeper, IGinX and IoTDB are all developed using Java, Java needs to be installed first. If a running environment of JDK >= 1.8 has been installed locally, **skip this step entirely**.
 
-1. First, visit the [official Java website] (https://www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html) to download the JDK package for your current system.
+1. First, visit the [official Java website](https://www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html) to download the JDK package for your current system.
 
 2. Installation
 
@@ -57,7 +57,7 @@ IGinX is the main part of the system, and the installation package can be downlo
 $ cd ~
 $ wget https://github.com/IGinX-THU/IGinX/releases/download/release%2Fv0.5.1/IGinX-FastDeploy-v0.5.1-bin.tar.gz
 $ tar -xzvf IGinX-FastDeploy-v0.5.1-bin.tar.gz
-````
+```
 
 ## Launch
 
@@ -66,7 +66,7 @@ $ cd ~
 $ cd IGinX-FastDeploy-v0.5.0-bin
 $ chmod +x ./runIginxOn1Host.sh
 $ ./runIginxOn1Host.sh
-````
+```
 
 The following display of words means the IGinX installation was successful：
 
@@ -77,7 +77,7 @@ IGinX is started!
 =========================================
 You can now test IGinX. Have fun!~
 =========================================
-````
+```
 
 ## Using IGinX
 
@@ -116,7 +116,7 @@ Use the following command to insert data into the database:
 
 ```shell
 $ curl -XPOST -H'Content-Type: application/json' -d @insert.json http://127.0.0.1:6666/api/v1/datapoints
-````
+```
 
 After inserting data, you can also query the data just written using the RESTful interface.
 
@@ -145,7 +145,7 @@ Use the following command to query the data:
 
 ```shell
 $ curl -XPOST -H'Content-Type: application/json' -d @query.json http://127.0.0.1:6666/api/v1/datapoints/query
-````
+```
 
 The command will return information about the data point just inserted:
 
@@ -231,7 +231,7 @@ Below is a short tutorial on how to use it.
 
 ### RPC Interface
 
-Since the IGinX 0.5.1 version has not been released to the Maven central repository, if you want to use it, you need to manually install it to the local Maven repository. 
+Since the IGinX 0.5.1 version has not been released to the Maven central repository, if you want to use it, you need to manually install it to the local Maven repository.
 
 The specific installation method is as follows:
 
@@ -263,10 +263,9 @@ Session session = new Session("127.0.0.1", 6888, "root", "root");
 session.openSession();
 ```
 
-You can then try to insert data into IGinX. Since IGinX supports the creation of time-series when data is written for the first time, there is no need to call the relevant series creation interface in advance. IGinX provides row-style and column-style data writing interfaces. 
+You can then try to insert data into IGinX. Since IGinX supports the creation of time-series when data is written for the first time, there is no need to call the relevant series creation interface in advance. IGinX provides row-style and column-style data writing interfaces.
 
 The following is an example of using the column-style data writing interface:
-
 
 ```java
 private static void insertColumnRecords(Session session) throws SessionException, ExecutionException {

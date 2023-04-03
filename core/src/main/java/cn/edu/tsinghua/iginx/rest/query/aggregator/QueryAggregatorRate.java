@@ -23,7 +23,6 @@ import cn.edu.tsinghua.iginx.rest.RestUtils;
 import cn.edu.tsinghua.iginx.rest.bean.QueryResultDataset;
 import cn.edu.tsinghua.iginx.session.SessionQueryDataSet;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-
 import java.util.List;
 import java.util.Map;
 
@@ -33,17 +32,22 @@ public class QueryAggregatorRate extends QueryAggregator {
     }
 
     @Override
-    public QueryResultDataset doAggregate(RestSession session, List<String> paths, Map<String, List<String>> tagList, long startTimestamp, long endTimestamp) {
+    public QueryResultDataset doAggregate(
+            RestSession session,
+            List<String> paths,
+            Map<String, List<String>> tagList,
+            long startTimestamp,
+            long endTimestamp) {
         QueryResultDataset queryResultDataset = new QueryResultDataset();
         try {
-            SessionQueryDataSet sessionQueryDataSet = session.queryData(paths, startTimestamp, endTimestamp, tagList);
+            SessionQueryDataSet sessionQueryDataSet =
+                    session.queryData(paths, startTimestamp, endTimestamp, tagList);
             queryResultDataset.setPaths(getPathsFromSessionQueryDataSet(sessionQueryDataSet));
             DataType type = RestUtils.checkType(sessionQueryDataSet);
             int n = sessionQueryDataSet.getKeys().length;
             int m = sessionQueryDataSet.getPaths().size();
             int datapoints = 0;
             switch (type) {
-
                 case LONG:
                 case DOUBLE:
                     Double lastd = null;
@@ -58,8 +62,12 @@ public class QueryAggregatorRate extends QueryAggregator {
                             }
                         }
                         if (i != 0) {
-                            queryResultDataset.add(sessionQueryDataSet.getKeys()[i], (nowd - lastd) * getUnit() /
-                                (sessionQueryDataSet.getKeys()[i] - sessionQueryDataSet.getKeys()[i - 1]));
+                            queryResultDataset.add(
+                                    sessionQueryDataSet.getKeys()[i],
+                                    (nowd - lastd)
+                                            * getUnit()
+                                            / (sessionQueryDataSet.getKeys()[i]
+                                                    - sessionQueryDataSet.getKeys()[i - 1]));
                         }
                         lastd = nowd;
                         nowd = null;

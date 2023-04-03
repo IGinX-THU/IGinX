@@ -23,7 +23,10 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 public class DataTypeUtils {
 
     public static boolean isNumber(DataType dataType) {
-        return dataType == DataType.INTEGER || dataType == DataType.LONG || dataType == DataType.FLOAT || dataType == DataType.DOUBLE;
+        return dataType == DataType.INTEGER
+                || dataType == DataType.LONG
+                || dataType == DataType.FLOAT
+                || dataType == DataType.DOUBLE;
     }
 
     public static boolean isFloatingNumber(DataType dataType) {

@@ -29,7 +29,8 @@ public class ParquetQueryRowStream implements RowStream {
 
     public static final Logger logger = LoggerFactory.getLogger(ParquetQueryRowStream.class);
 
-    public static final ParquetQueryRowStream EMPTY_PARQUET_ROW_STREAM = new ParquetQueryRowStream(null, null);
+    public static final ParquetQueryRowStream EMPTY_PARQUET_ROW_STREAM =
+            new ParquetQueryRowStream(null, null);
 
     private final Header header;
 
@@ -55,8 +56,9 @@ public class ParquetQueryRowStream implements RowStream {
         List<Field> fields = new ArrayList<>();
         try {
             ResultSetMetaData rsMetaData = rs.getMetaData();
-            for (int i = 1; i <= rsMetaData.getColumnCount(); i++) {  // start from index 1
-                String pathName = rsMetaData.getColumnName(i).replaceAll(PARQUET_SEPARATOR, IGINX_SEPARATOR);
+            for (int i = 1; i <= rsMetaData.getColumnCount(); i++) { // start from index 1
+                String pathName =
+                        rsMetaData.getColumnName(i).replaceAll(PARQUET_SEPARATOR, IGINX_SEPARATOR);
                 if (i == 1 && pathName.equals(COLUMN_TIME)) {
                     time = Field.KEY;
                     continue;
@@ -65,7 +67,7 @@ public class ParquetQueryRowStream implements RowStream {
                 Pair<String, Map<String, String>> pair = TagKVUtils.splitFullName(pathName);
                 DataType type = fromParquetDataType(rsMetaData.getColumnTypeName(i));
 
-                Field field  = new Field(pair.getK(), type, pair.getV());
+                Field field = new Field(pair.getK(), type, pair.getV());
 
                 if (filterByTags && !TagKVUtils.match(pair.v, tagFilter)) {
                     continue;

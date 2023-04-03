@@ -8,5 +8,4 @@ public interface IParseStatisticsCollector {
     PreParseProcessor getPreParseProcessor();
 
     PostParseProcessor getPostParseProcessor();
-
 }

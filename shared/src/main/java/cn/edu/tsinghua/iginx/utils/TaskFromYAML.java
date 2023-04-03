@@ -10,9 +10,7 @@ public class TaskFromYAML {
     private String pyTaskName;
     private List<String> sqlList;
 
-    public TaskFromYAML() {
-        
-    }
+    public TaskFromYAML() {}
 
     public String getTaskType() {
         return taskType;

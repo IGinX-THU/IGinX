@@ -57,7 +57,7 @@ public class RemoteExecutor implements Executor {
 
     private static final Logger logger = LoggerFactory.getLogger(RemoteExecutor.class);
 
-    private final static int SUCCESS_CODE = 200;
+    private static final int SUCCESS_CODE = 200;
 
     private final TTransport transport;
 
@@ -73,8 +73,12 @@ public class RemoteExecutor implements Executor {
     }
 
     @Override
-    public TaskExecuteResult executeProjectTask(List<String> paths, TagFilter tagFilter,
-        String filter, String storageUnit, boolean isDummyStorageUnit) {
+    public TaskExecuteResult executeProjectTask(
+            List<String> paths,
+            TagFilter tagFilter,
+            String filter,
+            String storageUnit,
+            boolean isDummyStorageUnit) {
         ProjectReq req = new ProjectReq(storageUnit, isDummyStorageUnit, paths);
         if (tagFilter != null) {
             req.setTagFilter(constructRawTagFilter(tagFilter));
@@ -90,40 +94,49 @@ public class RemoteExecutor implements Executor {
                 List<DataType> dataTypes = new ArrayList<>();
                 List<Field> fields = new ArrayList<>();
                 for (int i = 0; i < parquetHeader.getNamesSize(); i++) {
-                    DataType dataType = DataTypeUtils.strToDataType(parquetHeader.getTypes().get(i));
+                    DataType dataType =
+                            DataTypeUtils.strToDataType(parquetHeader.getTypes().get(i));
                     dataTypes.add(dataType);
                     fields.add(
-                        new Field(
-                            parquetHeader.getNames().get(i),
-                            dataType,
-                            parquetHeader.getTagsList().get(i))
-                    );
+                            new Field(
+                                    parquetHeader.getNames().get(i),
+                                    dataType,
+                                    parquetHeader.getTagsList().get(i)));
                 }
-                Header header = parquetHeader.hasTime ? new Header(Field.KEY, fields) : new Header(fields);
+                Header header =
+                        parquetHeader.hasTime ? new Header(Field.KEY, fields) : new Header(fields);
 
                 List<Row> rowList = new ArrayList<>();
-                resp.getRows().forEach(parquetRow -> {
-                    Object[] values = new Object[dataTypes.size()];
-                    Bitmap bitmap = new Bitmap(dataTypes.size(), parquetRow.getBitmap());
-                    ByteBuffer valuesBuffer = ByteBuffer.wrap(parquetRow.getRowValues());
-                    for (int i = 0; i < dataTypes.size(); i++) {
-                        if (bitmap.get(i)) {
-                            values[i] = ByteUtils.getValueFromByteBufferByDataType(valuesBuffer, dataTypes.get(i));
-                        } else {
-                            values[i] = null;
-                        }
-                    }
+                resp.getRows()
+                        .forEach(
+                                parquetRow -> {
+                                    Object[] values = new Object[dataTypes.size()];
+                                    Bitmap bitmap =
+                                            new Bitmap(dataTypes.size(), parquetRow.getBitmap());
+                                    ByteBuffer valuesBuffer =
+                                            ByteBuffer.wrap(parquetRow.getRowValues());
+                                    for (int i = 0; i < dataTypes.size(); i++) {
+                                        if (bitmap.get(i)) {
+                                            values[i] =
+                                                    ByteUtils.getValueFromByteBufferByDataType(
+                                                            valuesBuffer, dataTypes.get(i));
+                                        } else {
+                                            values[i] = null;
+                                        }
+                                    }
 
-                    if (parquetRow.isSetTimestamp()) {
-                        rowList.add(new Row(header, parquetRow.getTimestamp(), values));
-                    } else {
-                        rowList.add(new Row(header, values));
-                    }
-                });
+                                    if (parquetRow.isSetTimestamp()) {
+                                        rowList.add(
+                                                new Row(header, parquetRow.getTimestamp(), values));
+                                    } else {
+                                        rowList.add(new Row(header, values));
+                                    }
+                                });
                 RowStream rowStream = new Table(header, rowList);
                 return new TaskExecuteResult(rowStream, null);
             } else {
-                return new TaskExecuteResult(null, new PhysicalException("execute remote project task error"));
+                return new TaskExecuteResult(
+                        null, new PhysicalException("execute remote project task error"));
             }
         } catch (TException e) {
             return new TaskExecuteResult(null, new PhysicalException(e));
@@ -147,20 +160,22 @@ public class RemoteExecutor implements Executor {
         }
 
         Pair<List<ByteBuffer>, List<ByteBuffer>> pair;
-        if (dataView.getRawDataType() == RawDataType.Row || dataView.getRawDataType() == RawDataType.NonAlignedRow) {
+        if (dataView.getRawDataType() == RawDataType.Row
+                || dataView.getRawDataType() == RawDataType.NonAlignedRow) {
             pair = compressRowData(dataView);
         } else {
             pair = compressColData(dataView);
         }
 
-        ParquetRawData parquetRawData = new ParquetRawData(
-            paths,
-            tagsList,
-            ByteBuffer.wrap(ByteUtils.getByteArrayFromLongArray(times)),
-            pair.getK(),
-            pair.getV(),
-            types,
-            dataView.getRawDataType().toString());
+        ParquetRawData parquetRawData =
+                new ParquetRawData(
+                        paths,
+                        tagsList,
+                        ByteBuffer.wrap(ByteUtils.getByteArrayFromLongArray(times)),
+                        pair.getK(),
+                        pair.getV(),
+                        types,
+                        dataView.getRawDataType().toString());
 
         InsertReq req = new InsertReq(storageUnit, parquetRawData);
         try {
@@ -168,7 +183,8 @@ public class RemoteExecutor implements Executor {
             if (status.code == SUCCESS_CODE) {
                 return new TaskExecuteResult(null, null);
             } else {
-                return new TaskExecuteResult(null, new PhysicalException("execute remote insert task error"));
+                return new TaskExecuteResult(
+                        null, new PhysicalException("execute remote insert task error"));
             }
         } catch (TException e) {
             return new TaskExecuteResult(null, new PhysicalException(e));
@@ -228,21 +244,25 @@ public class RemoteExecutor implements Executor {
     }
 
     @Override
-    public TaskExecuteResult executeDeleteTask(List<String> paths, List<TimeRange> timeRanges,
-        TagFilter tagFilter, String storageUnit) {
+    public TaskExecuteResult executeDeleteTask(
+            List<String> paths,
+            List<TimeRange> timeRanges,
+            TagFilter tagFilter,
+            String storageUnit) {
         DeleteReq req = new DeleteReq(storageUnit, paths);
         if (tagFilter != null) {
             req.setTagFilter(constructRawTagFilter(tagFilter));
         }
         if (timeRanges != null) {
             List<ParquetTimeRange> parquetTimeRanges = new ArrayList<>();
-            timeRanges.forEach(timeRange -> parquetTimeRanges.add(
-                new ParquetTimeRange(
-                    timeRange.getBeginTime(),
-                    timeRange.isIncludeBeginTime(),
-                    timeRange.getEndTime(),
-                    timeRange.isIncludeEndTime()))
-            );
+            timeRanges.forEach(
+                    timeRange ->
+                            parquetTimeRanges.add(
+                                    new ParquetTimeRange(
+                                            timeRange.getBeginTime(),
+                                            timeRange.isIncludeBeginTime(),
+                                            timeRange.getEndTime(),
+                                            timeRange.isIncludeEndTime())));
             req.setTimeRanges(parquetTimeRanges);
         }
 
@@ -251,7 +271,8 @@ public class RemoteExecutor implements Executor {
             if (status.code == SUCCESS_CODE) {
                 return new TaskExecuteResult(null, null);
             } else {
-                return new TaskExecuteResult(null, new PhysicalException("execute remote delete task error"));
+                return new TaskExecuteResult(
+                        null, new PhysicalException("execute remote delete task error"));
             }
         } catch (TException e) {
             return new TaskExecuteResult(null, new PhysicalException(e));
@@ -260,64 +281,80 @@ public class RemoteExecutor implements Executor {
 
     private RawTagFilter constructRawTagFilter(TagFilter tagFilter) {
         switch (tagFilter.getType()) {
-            case Base: {
-                BaseTagFilter baseTagFilter = (BaseTagFilter) tagFilter;
-                RawTagFilter filter = new RawTagFilter(TagFilterType.Base);
-                filter.setKey(baseTagFilter.getTagKey());
-                filter.setValue(baseTagFilter.getTagValue());
-                return filter;
-            }
-            case WithoutTag: {
-                return new RawTagFilter(TagFilterType.WithoutTag);
-            }
-            case BasePrecise: {
-                BasePreciseTagFilter basePreciseTagFilter = (BasePreciseTagFilter) tagFilter;
-                RawTagFilter filter = new RawTagFilter(TagFilterType.BasePrecise);
-                filter.setTags(basePreciseTagFilter.getTags());
-                return filter;
-            }
-            case Precise: {
-                PreciseTagFilter preciseTagFilter = (PreciseTagFilter) tagFilter;
-                RawTagFilter filter = new RawTagFilter(TagFilterType.Precise);
-                List<RawTagFilter> children = new ArrayList<>();
-                preciseTagFilter.getChildren().forEach(child -> children.add(constructRawTagFilter(child)));
-                filter.setChildren(children);
-                return filter;
-            }
-            case And: {
-                AndTagFilter andTagFilter = (AndTagFilter) tagFilter;
-                RawTagFilter filter = new RawTagFilter(TagFilterType.And);
-                List<RawTagFilter> children = new ArrayList<>();
-                andTagFilter.getChildren().forEach(child -> children.add(constructRawTagFilter(child)));
-                filter.setChildren(children);
-                return filter;
-            }
-            case Or: {
-                OrTagFilter orTagFilter = (OrTagFilter) tagFilter;
-                RawTagFilter filter = new RawTagFilter(TagFilterType.Or);
-                List<RawTagFilter> children = new ArrayList<>();
-                orTagFilter.getChildren().forEach(child -> children.add(constructRawTagFilter(child)));
-                filter.setChildren(children);
-                return filter;
-            }
-            default: {
-                logger.error("unknown tag filter type: {}", tagFilter.getType());
-                return null;
-            }
+            case Base:
+                {
+                    BaseTagFilter baseTagFilter = (BaseTagFilter) tagFilter;
+                    RawTagFilter filter = new RawTagFilter(TagFilterType.Base);
+                    filter.setKey(baseTagFilter.getTagKey());
+                    filter.setValue(baseTagFilter.getTagValue());
+                    return filter;
+                }
+            case WithoutTag:
+                {
+                    return new RawTagFilter(TagFilterType.WithoutTag);
+                }
+            case BasePrecise:
+                {
+                    BasePreciseTagFilter basePreciseTagFilter = (BasePreciseTagFilter) tagFilter;
+                    RawTagFilter filter = new RawTagFilter(TagFilterType.BasePrecise);
+                    filter.setTags(basePreciseTagFilter.getTags());
+                    return filter;
+                }
+            case Precise:
+                {
+                    PreciseTagFilter preciseTagFilter = (PreciseTagFilter) tagFilter;
+                    RawTagFilter filter = new RawTagFilter(TagFilterType.Precise);
+                    List<RawTagFilter> children = new ArrayList<>();
+                    preciseTagFilter
+                            .getChildren()
+                            .forEach(child -> children.add(constructRawTagFilter(child)));
+                    filter.setChildren(children);
+                    return filter;
+                }
+            case And:
+                {
+                    AndTagFilter andTagFilter = (AndTagFilter) tagFilter;
+                    RawTagFilter filter = new RawTagFilter(TagFilterType.And);
+                    List<RawTagFilter> children = new ArrayList<>();
+                    andTagFilter
+                            .getChildren()
+                            .forEach(child -> children.add(constructRawTagFilter(child)));
+                    filter.setChildren(children);
+                    return filter;
+                }
+            case Or:
+                {
+                    OrTagFilter orTagFilter = (OrTagFilter) tagFilter;
+                    RawTagFilter filter = new RawTagFilter(TagFilterType.Or);
+                    List<RawTagFilter> children = new ArrayList<>();
+                    orTagFilter
+                            .getChildren()
+                            .forEach(child -> children.add(constructRawTagFilter(child)));
+                    filter.setChildren(children);
+                    return filter;
+                }
+            default:
+                {
+                    logger.error("unknown tag filter type: {}", tagFilter.getType());
+                    return null;
+                }
         }
     }
 
     @Override
     public List<Timeseries> getTimeSeriesOfStorageUnit(String storageUnit)
-        throws PhysicalException {
+            throws PhysicalException {
         try {
             GetTimeSeriesOfStorageUnitResp resp = client.getTimeSeriesOfStorageUnit(storageUnit);
             List<Timeseries> timeSeriesList = new ArrayList<>();
-            resp.getTsList().forEach(ts -> timeSeriesList.add(new Timeseries(
-                ts.getPath(),
-                DataTypeUtils.strToDataType(ts.getDataType()),
-                ts.getTags()
-            )));
+            resp.getTsList()
+                    .forEach(
+                            ts ->
+                                    timeSeriesList.add(
+                                            new Timeseries(
+                                                    ts.getPath(),
+                                                    DataTypeUtils.strToDataType(ts.getDataType()),
+                                                    ts.getTags())));
             return timeSeriesList;
         } catch (TException e) {
             throw new PhysicalException("encounter error when getTimeSeriesOfStorageUnit ", e);
@@ -329,9 +366,8 @@ public class RemoteExecutor implements Executor {
         try {
             GetStorageBoundryResp resp = client.getBoundaryOfStorage();
             return new Pair<>(
-                new TimeSeriesInterval(resp.getStartTimeSeries(), resp.getEndTimeSeries()),
-                new TimeInterval(resp.getStartTime(), resp.getEndTime())
-            );
+                    new TimeSeriesInterval(resp.getStartTimeSeries(), resp.getEndTimeSeries()),
+                    new TimeInterval(resp.getStartTime(), resp.getEndTime()));
         } catch (TException e) {
             throw new PhysicalException("encounter error when getBoundaryOfStorage ", e);
         }

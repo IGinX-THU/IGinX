@@ -55,12 +55,14 @@ public class ResourceManager {
     }
 
     public boolean reject(RequestContext ctx) {
-        return heapMemoryOverwhelmed() || systemMetrics.getRecentCpuUsage() > systemCpuThreshold ||
-                systemMetrics.getRecentMemoryUsage() > systemMemoryThreshold;
+        return heapMemoryOverwhelmed()
+                || systemMetrics.getRecentCpuUsage() > systemCpuThreshold
+                || systemMetrics.getRecentMemoryUsage() > systemMemoryThreshold;
     }
 
     private boolean heapMemoryOverwhelmed() {
-        return Runtime.getRuntime().totalMemory() * heapMemoryThreshold > Runtime.getRuntime().maxMemory();
+        return Runtime.getRuntime().totalMemory() * heapMemoryThreshold
+                > Runtime.getRuntime().maxMemory();
     }
 
     public static ResourceManager getInstance() {
@@ -70,7 +72,5 @@ public class ResourceManager {
     private static class ResourceManagerHolder {
 
         private static final ResourceManager INSTANCE = new ResourceManager();
-
     }
-
 }

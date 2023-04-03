@@ -29,13 +29,14 @@ public class ParquetServer implements Runnable {
     }
 
     private void startServer() throws TTransportException {
-        TProcessor processor = new ParquetService.Processor<ParquetService.Iface>(new ParquetWorker(executor));
+        TProcessor processor =
+                new ParquetService.Processor<ParquetService.Iface>(new ParquetWorker(executor));
         TServerSocket serverTransport = new TServerSocket(port);
-        TThreadPoolServer.Args args = new TThreadPoolServer
-            .Args(serverTransport)
-            .processor(processor)
-            .minWorkerThreads(config.getMinThriftWorkerThreadNum())
-            .maxWorkerThreads(config.getMaxThriftWrokerThreadNum());
+        TThreadPoolServer.Args args =
+                new TThreadPoolServer.Args(serverTransport)
+                        .processor(processor)
+                        .minWorkerThreads(config.getMinThriftWorkerThreadNum())
+                        .maxWorkerThreads(config.getMaxThriftWrokerThreadNum());
         args.protocolFactory(new TBinaryProtocol.Factory());
         TServer server = new TThreadPoolServer(args);
         logger.info("parquet service starts successfully!");

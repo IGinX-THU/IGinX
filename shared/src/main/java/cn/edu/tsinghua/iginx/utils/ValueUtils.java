@@ -10,7 +10,7 @@ public class ValueUtils {
         if (value instanceof byte[]) {
             return Double.parseDouble(new String((byte[]) value));
         } else if (value instanceof Byte) {
-            return Double.parseDouble(new String(new byte[]{(byte) value}));
+            return Double.parseDouble(new String(new byte[] {(byte) value}));
         } else if (value instanceof String) {
             return Double.parseDouble((String) value);
         } else if (value instanceof Long) {

@@ -25,5 +25,4 @@ public interface Function {
     MappingType getMappingType();
 
     String getIdentifier();
-
 }

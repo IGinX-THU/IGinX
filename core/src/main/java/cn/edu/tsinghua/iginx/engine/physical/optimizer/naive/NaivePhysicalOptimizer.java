@@ -29,7 +29,6 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import cn.edu.tsinghua.iginx.engine.shared.source.SourceType;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -59,9 +58,7 @@ public class NaivePhysicalOptimizer implements PhysicalOptimizer {
     }
 
     @Override
-    public void setRules(Collection<Rule> rules) {
-
-    }
+    public void setRules(Collection<Rule> rules) {}
 
     private PhysicalTask constructTask(Operator operator) {
         if (OperatorType.isUnaryOperator(operator.getType())) {
@@ -79,11 +76,14 @@ public class NaivePhysicalOptimizer implements PhysicalOptimizer {
                 OperatorSource operatorSource = (OperatorSource) source;
                 Operator sourceOperator = operatorSource.getOperator();
                 PhysicalTask sourceTask = constructTask(operatorSource.getOperator());
-                if (ConfigDescriptor.getInstance().getConfig().isEnablePushDown() && sourceTask instanceof StoragePhysicalTask
+                if (ConfigDescriptor.getInstance().getConfig().isEnablePushDown()
+                        && sourceTask instanceof StoragePhysicalTask
                         && sourceOperator.getType() == OperatorType.Project
                         && ((Project) sourceOperator).getTagFilter() == null
-                        && ((UnaryOperator) sourceOperator).getSource().getType() == SourceType.Fragment
-                    && operator.getType() == OperatorType.Select && ((Select) operator).getTagFilter() == null) {
+                        && ((UnaryOperator) sourceOperator).getSource().getType()
+                                == SourceType.Fragment
+                        && operator.getType() == OperatorType.Select
+                        && ((Select) operator).getTagFilter() == null) {
                     sourceTask.getOperators().add(operator);
                     return sourceTask;
                 }
@@ -128,9 +128,6 @@ public class NaivePhysicalOptimizer implements PhysicalOptimizer {
 
         private static final NaivePhysicalOptimizer INSTANCE = new NaivePhysicalOptimizer();
 
-        private NaivePhysicalOptimizerHolder() {
-        }
-
+        private NaivePhysicalOptimizerHolder() {}
     }
-
 }

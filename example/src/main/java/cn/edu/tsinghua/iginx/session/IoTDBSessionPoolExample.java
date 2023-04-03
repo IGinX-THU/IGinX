@@ -6,10 +6,9 @@ import cn.edu.tsinghua.iginx.pool.IginxInfo;
 import cn.edu.tsinghua.iginx.pool.SessionPool;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-import org.apache.commons.lang3.RandomStringUtils;
-
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.commons.lang3.RandomStringUtils;
 
 public class IoTDBSessionPoolExample {
     private static final String S1 = "sg.d1.s1";
@@ -31,24 +30,28 @@ public class IoTDBSessionPoolExample {
 
     // construct sessionpool with all iginx
     private static void constructCustomSessionPool() {
-        //{"id":3,"ip":"0.0.0.0","port":6888} and {"id":2,"ip":"0.0.0.0","port":7888}
+        // {"id":3,"ip":"0.0.0.0","port":6888} and {"id":2,"ip":"0.0.0.0","port":7888}
         if (needMultiIginx) {
-            List<IginxInfo> iginxList = new ArrayList<IginxInfo>() {{
-                add(new IginxInfo.Builder()
-                        .host("0.0.0.0")
-                        .port(6888)
-                        .user("root")
-                        .password("root")
-                        .build());
+            List<IginxInfo> iginxList =
+                    new ArrayList<IginxInfo>() {
+                        {
+                            add(
+                                    new IginxInfo.Builder()
+                                            .host("0.0.0.0")
+                                            .port(6888)
+                                            .user("root")
+                                            .password("root")
+                                            .build());
 
-                add(new IginxInfo.Builder()
-                        .host("0.0.0.0")
-                        .port(7888)
-                        .user("root")
-                        .password("root")
-                        .build());
-
-            }};
+                            add(
+                                    new IginxInfo.Builder()
+                                            .host("0.0.0.0")
+                                            .port(7888)
+                                            .user("root")
+                                            .password("root")
+                                            .build());
+                        }
+                    };
 
             sessionPool = new SessionPool(iginxList, 3);
         } else {
@@ -136,14 +139,16 @@ public class IoTDBSessionPoolExample {
         sessionPool.insertColumnRecords(paths, timestamps, valuesList, dataTypeList, null);
     }
 
-    private static void insertNonAlignedColumnRecords() throws SessionException, ExecutionException {
+    private static void insertNonAlignedColumnRecords()
+            throws SessionException, ExecutionException {
         List<String> paths = new ArrayList<>();
         paths.add(S1);
         paths.add(S2);
         paths.add(S3);
         paths.add(S4);
 
-        int size = (int) (NON_ALIGNED_COLUMN_END_TIMESTAMP - NON_ALIGNED_COLUMN_START_TIMESTAMP + 1);
+        int size =
+                (int) (NON_ALIGNED_COLUMN_END_TIMESTAMP - NON_ALIGNED_COLUMN_START_TIMESTAMP + 1);
         long[] timestamps = new long[size];
         for (long i = 0; i < size; i++) {
             timestamps[(int) i] = i + NON_ALIGNED_COLUMN_START_TIMESTAMP;
@@ -175,7 +180,8 @@ public class IoTDBSessionPoolExample {
         }
 
         System.out.println("insertNonAlignedColumnRecords...");
-        sessionPool.insertNonAlignedColumnRecords(paths, timestamps, valuesList, dataTypeList, null);
+        sessionPool.insertNonAlignedColumnRecords(
+                paths, timestamps, valuesList, dataTypeList, null);
     }
 
     private static void insertRowRecords() throws SessionException, ExecutionException {
@@ -283,7 +289,8 @@ public class IoTDBSessionPoolExample {
         System.out.println("Aggregate Query: ");
 
         // MAX
-        SessionAggregateQueryDataSet dataSet = sessionPool.aggregateQuery(paths, startTime, endTime, AggregateType.MAX);
+        SessionAggregateQueryDataSet dataSet =
+                sessionPool.aggregateQuery(paths, startTime, endTime, AggregateType.MAX);
         dataSet.print();
 
         // MIN
@@ -337,31 +344,45 @@ public class IoTDBSessionPoolExample {
         System.out.println("Downsample Query: ");
 
         // MAX
-        SessionQueryDataSet dataSet = sessionPool.downsampleQuery(paths, startTime, endTime, AggregateType.MAX, INTERVAL * 100L);
+        SessionQueryDataSet dataSet =
+                sessionPool.downsampleQuery(
+                        paths, startTime, endTime, AggregateType.MAX, INTERVAL * 100L);
         dataSet.print();
 
         // MIN
-        dataSet = sessionPool.downsampleQuery(paths, startTime, endTime, AggregateType.MIN, INTERVAL * 100L);
+        dataSet =
+                sessionPool.downsampleQuery(
+                        paths, startTime, endTime, AggregateType.MIN, INTERVAL * 100L);
         dataSet.print();
 
         // FIRST_VALUE
-        dataSet = sessionPool.downsampleQuery(paths, startTime, endTime, AggregateType.FIRST_VALUE, INTERVAL * 100L);
+        dataSet =
+                sessionPool.downsampleQuery(
+                        paths, startTime, endTime, AggregateType.FIRST_VALUE, INTERVAL * 100L);
         dataSet.print();
 
         // LAST_VALUE
-        dataSet = sessionPool.downsampleQuery(paths, startTime, endTime, AggregateType.LAST_VALUE, INTERVAL * 100L);
+        dataSet =
+                sessionPool.downsampleQuery(
+                        paths, startTime, endTime, AggregateType.LAST_VALUE, INTERVAL * 100L);
         dataSet.print();
 
         // COUNT
-        dataSet = sessionPool.downsampleQuery(paths, startTime, endTime, AggregateType.COUNT, INTERVAL * 100L);
+        dataSet =
+                sessionPool.downsampleQuery(
+                        paths, startTime, endTime, AggregateType.COUNT, INTERVAL * 100L);
         dataSet.print();
 
         // SUM
-        dataSet = sessionPool.downsampleQuery(paths, startTime, endTime, AggregateType.SUM, INTERVAL * 100L);
+        dataSet =
+                sessionPool.downsampleQuery(
+                        paths, startTime, endTime, AggregateType.SUM, INTERVAL * 100L);
         dataSet.print();
 
         // AVG
-        dataSet = sessionPool.downsampleQuery(paths, startTime, endTime, AggregateType.AVG, INTERVAL * 100L);
+        dataSet =
+                sessionPool.downsampleQuery(
+                        paths, startTime, endTime, AggregateType.AVG, INTERVAL * 100L);
         dataSet.print();
 
         // 降采样查询结束
@@ -384,7 +405,8 @@ public class IoTDBSessionPoolExample {
         }
         long curveUnit = 1L;
 
-        CurveMatchResult result = sessionPool.curveMatch(paths, startTime, endTime, queryList, curveUnit);
+        CurveMatchResult result =
+                sessionPool.curveMatch(paths, startTime, endTime, queryList, curveUnit);
         System.out.println(result.toString());
     }
 

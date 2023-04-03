@@ -1,188 +1,188 @@
 name: "Capacity-Expansion-Test"
 on:
-  pull_request:
-    types: [ opened, reopened ]
-    branches:
-      - main
+    pull_request:
+        types: [opened, reopened]
+        branches:
+            - main
 env:
-  VERSION: 0.6.0-SNAPSHOT
-  FUNCTEST: TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,BaseSessionIT,BaseSessionPoolIT,CompactionIT
-  IoTDB12FUNCTEST: TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,BaseSessionIT,BaseSessionPoolIT,CompactionIT
-  InfluxDBFUNCTEST: RestAnnotationIT
+    VERSION: 0.6.0-SNAPSHOT
+    FUNCTEST: TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,BaseSessionIT,BaseSessionPoolIT,CompactionIT
+    IoTDB12FUNCTEST: TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,BaseSessionIT,BaseSessionPoolIT,CompactionIT
+    InfluxDBFUNCTEST: RestAnnotationIT
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
 
 jobs:
-  DB-CE:
-    timeout-minutes: 30
-    strategy:
-      fail-fast: false
-      matrix:
-        java: [ 8 ]
-        python-version: [ "3.7" ]
-        os: [ ubuntu-latest, macos-latest ]
-        DB-name: [ "IoTDB12", "InfluxDB" ]
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v2
-      - name: Environmet Dependence
-        uses: ./.github/actions/dependence
-        with:
-          python-version: ${{ matrix.python-version }}
-          java: ${{ matrix.java }}
-      - name: Run ZooKeeper
-        uses: ./.github/actions/zookeeperRunner
+    DB-CE:
+        timeout-minutes: 30
+        strategy:
+            fail-fast: false
+            matrix:
+                java: [8]
+                python-version: ["3.7"]
+                os: [ubuntu-latest, macos-latest]
+                DB-name: ["IoTDB12", "InfluxDB"]
+        runs-on: ${{ matrix.os }}
+        steps:
+            - uses: actions/checkout@v2
+            - name: Environmet Dependence
+              uses: ./.github/actions/dependence
+              with:
+                  python-version: ${{ matrix.python-version }}
+                  java: ${{ matrix.java }}
+            - name: Run ZooKeeper
+              uses: ./.github/actions/zookeeperRunner
 
-      - name: Run DB
-        uses: ./.github/actions/dbRunner
-        with:
-          version: ${{matrix.DB-name}}
+            - name: Run DB
+              uses: ./.github/actions/dbRunner
+              with:
+                  version: ${{matrix.DB-name}}
 
-      - name: Set The DB Name
-        uses: ./.github/actions/confWriter
-        with:
-          confFile: DBName
-          DB-name: ${{matrix.DB-name}}
+            - name: Set The DB Name
+              uses: ./.github/actions/confWriter
+              with:
+                  confFile: DBName
+                  DB-name: ${{matrix.DB-name}}
 
-      - name: Install IginX with Maven
-        shell: bash
-        run: |
-          mvn clean package -DskipTests
+            - name: Install IginX with Maven
+              shell: bash
+              run: |
+                  mvn clean package -DskipTests
 
-      - name: Set The UDF Conf
-        uses: ./.github/actions/confWriter
-        with:
-          confFile: UDFConf
+            - name: Set The UDF Conf
+              uses: ./.github/actions/confWriter
+              with:
+                  confFile: UDFConf
 
-      #第 1 阶段测试开始==========================================
-      - name: Prepare CapExp environment oriHasDataExpHasData
-        #        if: always()
-        uses: ./.github/actions/capacityExpansionUnionTest
-        with:
-          version: ${VERSION}
-          DB-name: ${{matrix.DB-name}}
-          Test-Way: oriHasDataExpHasData
-      - name: oriHasDataExpHasData IT
-        #        if: always()
-        run: |
-          mvn test -q -Dtest=${{matrix.DB-name}}HistoryDataCapacityExpansionIT#oriHasDataExpHasData -DfailIfNoTests=false
-          mvn test -q -Dtest=${${{matrix.DB-name}}FUNCTEST} -DfailIfNoTests=false
-      #第 2 阶段测试开始==========================================
-      - name: Prepare CapExp environment oriNoDataExpNoData
-        #        if: always()
-        uses: ./.github/actions/capacityExpansionUnionTest
-        with:
-          version: ${VERSION}
-          DB-name: ${{matrix.DB-name}}
-          Test-Way: oriNoDataExpNoData
-      - name: oriNoDataExpNoData IT
-        #        if: always()
-        run: |
-          mvn test -q -Dtest=${{matrix.DB-name}}HistoryDataCapacityExpansionIT#oriNoDataExpNoData -DfailIfNoTests=false
-          mvn test -q -Dtest=${${{matrix.DB-name}}FUNCTEST} -DfailIfNoTests=false
-      #第 3 阶段测试开始==========================================
-      - name: Prepare CapExp environment oriHasDataExpNoData
-        #        if: always()
-        uses: ./.github/actions/capacityExpansionUnionTest
-        with:
-          version: ${VERSION}
-          DB-name: ${{matrix.DB-name}}
-          Test-Way: oriHasDataExpNoData
-      - name: oriHasDataExpNoData IT
-        #        if: always()
-        run: |
-          mvn test -q -Dtest=${{matrix.DB-name}}HistoryDataCapacityExpansionIT#oriHasDataExpNoData -DfailIfNoTests=false
-          mvn test -q -Dtest=${${{matrix.DB-name}}FUNCTEST} -DfailIfNoTests=false
-      #第 4 阶段测试开始==========================================
-      - name: Prepare CapExp environment oriNoDataExpHasData
-        uses: ./.github/actions/capacityExpansionUnionTest
-        with:
-          version: ${VERSION}
-          DB-name: ${{matrix.DB-name}}
-          Test-Way: oriNoDataExpHasData
-      - name: oriNoDataExpHasData IT
-        run: |
-          if [ "${{matrix.DB-name}}" == "IoTDB12" ]; then
-            mvn test -q -Dtest=IoTDB12HistoryDataCapacityExpansionIT#oriNoDataExpHasData -DfailIfNoTests=false
-            mvn test -q -Dtest=${${{matrix.DB-name}}FUNCTEST} -DfailIfNoTests=false
-            mvn test -q -Dtest=IoTDB12HistoryDataCapacityExpansionIT#testPrefixAndRemoveHistoryDataSource -DfailIfNoTests=false
-          elif [ "${{matrix.DB-name}}" == "InfluxDB" ]; then
-            mvn test -q -Dtest=InfluxDBHistoryDataCapacityExpansionIT#oriNoDataExpHasData -DfailIfNoTests=false
-            mvn test -q -Dtest=${${{matrix.DB-name}}FUNCTEST} -DfailIfNoTests=false
-          else
-            echo "${{matrix.DB-name}} is not supported"
-          fi
-      - uses: codecov/codecov-action@v1
-        with:
-          file: ./**/target/site/jacoco/jacoco.xml
-          name: codecov
+            #第 1 阶段测试开始==========================================
+            - name: Prepare CapExp environment oriHasDataExpHasData
+              #        if: always()
+              uses: ./.github/actions/capacityExpansionUnionTest
+              with:
+                  version: ${VERSION}
+                  DB-name: ${{matrix.DB-name}}
+                  Test-Way: oriHasDataExpHasData
+            - name: oriHasDataExpHasData IT
+              #        if: always()
+              run: |
+                  mvn test -q -Dtest=${{matrix.DB-name}}HistoryDataCapacityExpansionIT#oriHasDataExpHasData -DfailIfNoTests=false
+                  mvn test -q -Dtest=${${{matrix.DB-name}}FUNCTEST} -DfailIfNoTests=false
+            #第 2 阶段测试开始==========================================
+            - name: Prepare CapExp environment oriNoDataExpNoData
+              #        if: always()
+              uses: ./.github/actions/capacityExpansionUnionTest
+              with:
+                  version: ${VERSION}
+                  DB-name: ${{matrix.DB-name}}
+                  Test-Way: oriNoDataExpNoData
+            - name: oriNoDataExpNoData IT
+              #        if: always()
+              run: |
+                  mvn test -q -Dtest=${{matrix.DB-name}}HistoryDataCapacityExpansionIT#oriNoDataExpNoData -DfailIfNoTests=false
+                  mvn test -q -Dtest=${${{matrix.DB-name}}FUNCTEST} -DfailIfNoTests=false
+            #第 3 阶段测试开始==========================================
+            - name: Prepare CapExp environment oriHasDataExpNoData
+              #        if: always()
+              uses: ./.github/actions/capacityExpansionUnionTest
+              with:
+                  version: ${VERSION}
+                  DB-name: ${{matrix.DB-name}}
+                  Test-Way: oriHasDataExpNoData
+            - name: oriHasDataExpNoData IT
+              #        if: always()
+              run: |
+                  mvn test -q -Dtest=${{matrix.DB-name}}HistoryDataCapacityExpansionIT#oriHasDataExpNoData -DfailIfNoTests=false
+                  mvn test -q -Dtest=${${{matrix.DB-name}}FUNCTEST} -DfailIfNoTests=false
+            #第 4 阶段测试开始==========================================
+            - name: Prepare CapExp environment oriNoDataExpHasData
+              uses: ./.github/actions/capacityExpansionUnionTest
+              with:
+                  version: ${VERSION}
+                  DB-name: ${{matrix.DB-name}}
+                  Test-Way: oriNoDataExpHasData
+            - name: oriNoDataExpHasData IT
+              run: |
+                  if [ "${{matrix.DB-name}}" == "IoTDB12" ]; then
+                    mvn test -q -Dtest=IoTDB12HistoryDataCapacityExpansionIT#oriNoDataExpHasData -DfailIfNoTests=false
+                    mvn test -q -Dtest=${${{matrix.DB-name}}FUNCTEST} -DfailIfNoTests=false
+                    mvn test -q -Dtest=IoTDB12HistoryDataCapacityExpansionIT#testPrefixAndRemoveHistoryDataSource -DfailIfNoTests=false
+                  elif [ "${{matrix.DB-name}}" == "InfluxDB" ]; then
+                    mvn test -q -Dtest=InfluxDBHistoryDataCapacityExpansionIT#oriNoDataExpHasData -DfailIfNoTests=false
+                    mvn test -q -Dtest=${${{matrix.DB-name}}FUNCTEST} -DfailIfNoTests=false
+                  else
+                    echo "${{matrix.DB-name}} is not supported"
+                  fi
+            - uses: codecov/codecov-action@v1
+              with:
+                  file: ./**/target/site/jacoco/jacoco.xml
+                  name: codecov
 
-  Parquet-Capacity-Expansion-ds:
-    strategy:
-      fail-fast: false
-      #max-parallel: 20
-      matrix:
-        java: [ 8 ]
-        python-version: [ "3.7" ]
-        os: [ ubuntu-latest, macos-latest ]
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v2
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v3
-        with:
-          python-version: ${{ matrix.python-version }}
-      - name: Install Python dependencies
-        run: |
-          python -m pip install --upgrade pip
-      - name: Set up JDK ${{ matrix.java }}
-        uses: actions/setup-java@v1
-        with:
-          java-version: ${{ matrix.java }}
-      - name: Cache Maven packages
-        uses: actions/cache@v2.1.5
-        with:
-          path: ~/.m2
-          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-m2
-      - name: Run ZooKeeper
-        run: |
-          if [ "$RUNNER_OS" == "Linux" ]; then
-            chmod +x "${GITHUB_WORKSPACE}/.github/zk.sh"
-            "${GITHUB_WORKSPACE}/.github/zk.sh"
-          elif [ "$RUNNER_OS" == "macOS" ]; then
-            chmod +x "${GITHUB_WORKSPACE}/.github/zk_macos.sh"
-            "${GITHUB_WORKSPACE}/.github/zk_macos.sh"
-          else
-            echo "$RUNNER_OS is not supported"
-            exit 1
-          fi
-      - name: Set Parquet
-        run: |
-          if [ "$RUNNER_OS" == "Linux" ]; then
-            chmod +x "${GITHUB_WORKSPACE}/.github/parquet.sh"
-            "${GITHUB_WORKSPACE}/.github/parquet.sh"
-          elif [ "$RUNNER_OS" == "macOS" ]; then
-            chmod +x "${GITHUB_WORKSPACE}/.github/parquet_macos.sh"
-            "${GITHUB_WORKSPACE}/.github/parquet_macos.sh"
-          else
-            echo "$RUNNER_OS is not supported"
-            exit 1
-          fi
-      - name: Install with Maven
-        run: mvn clean package -DskipTests
-      - name: Write history Data
-        run: |
-          mvn test -q -Dtest=ParquetHistoryDataGeneratorTest -DfailIfNoTests=false
-          sleep 10
-      - name: Start IginX
-        run: |
-          chmod +x "${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/sbin/start_iginx.sh"
-          nohup "${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/sbin/start_iginx.sh" &
-      - name: A Lame Integration Test with Maven for parquet
-        run: mvn test -q -Dtest=ParquetHistoryDataCapacityExpansionIT -DfailIfNoTests=false
-      - uses: codecov/codecov-action@v1
-        with:
-          file: ./**/target/site/jacoco/jacoco.xml
-          name: codecov
+    Parquet-Capacity-Expansion-ds:
+        strategy:
+            fail-fast: false
+            #max-parallel: 20
+            matrix:
+                java: [8]
+                python-version: ["3.7"]
+                os: [ubuntu-latest, macos-latest]
+        runs-on: ${{ matrix.os }}
+        steps:
+            - uses: actions/checkout@v2
+            - name: Set up Python ${{ matrix.python-version }}
+              uses: actions/setup-python@v3
+              with:
+                  python-version: ${{ matrix.python-version }}
+            - name: Install Python dependencies
+              run: |
+                  python -m pip install --upgrade pip
+            - name: Set up JDK ${{ matrix.java }}
+              uses: actions/setup-java@v1
+              with:
+                  java-version: ${{ matrix.java }}
+            - name: Cache Maven packages
+              uses: actions/cache@v2.1.5
+              with:
+                  path: ~/.m2
+                  key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+                  restore-keys: ${{ runner.os }}-m2
+            - name: Run ZooKeeper
+              run: |
+                  if [ "$RUNNER_OS" == "Linux" ]; then
+                    chmod +x "${GITHUB_WORKSPACE}/.github/zk.sh"
+                    "${GITHUB_WORKSPACE}/.github/zk.sh"
+                  elif [ "$RUNNER_OS" == "macOS" ]; then
+                    chmod +x "${GITHUB_WORKSPACE}/.github/zk_macos.sh"
+                    "${GITHUB_WORKSPACE}/.github/zk_macos.sh"
+                  else
+                    echo "$RUNNER_OS is not supported"
+                    exit 1
+                  fi
+            - name: Set Parquet
+              run: |
+                  if [ "$RUNNER_OS" == "Linux" ]; then
+                    chmod +x "${GITHUB_WORKSPACE}/.github/parquet.sh"
+                    "${GITHUB_WORKSPACE}/.github/parquet.sh"
+                  elif [ "$RUNNER_OS" == "macOS" ]; then
+                    chmod +x "${GITHUB_WORKSPACE}/.github/parquet_macos.sh"
+                    "${GITHUB_WORKSPACE}/.github/parquet_macos.sh"
+                  else
+                    echo "$RUNNER_OS is not supported"
+                    exit 1
+                  fi
+            - name: Install with Maven
+              run: mvn clean package -DskipTests
+            - name: Write history Data
+              run: |
+                  mvn test -q -Dtest=ParquetHistoryDataGeneratorTest -DfailIfNoTests=false
+                  sleep 10
+            - name: Start IginX
+              run: |
+                  chmod +x "${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/sbin/start_iginx.sh"
+                  nohup "${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/sbin/start_iginx.sh" &
+            - name: A Lame Integration Test with Maven for parquet
+              run: mvn test -q -Dtest=ParquetHistoryDataCapacityExpansionIT -DfailIfNoTests=false
+            - uses: codecov/codecov-action@v1
+              with:
+                  file: ./**/target/site/jacoco/jacoco.xml
+                  name: codecov

@@ -29,7 +29,6 @@ import cn.edu.tsinghua.iginx.influxdb.tools.SchemaTransformer;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.influxdb.query.FluxRecord;
 import com.influxdb.query.FluxTable;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -46,7 +45,8 @@ public class InfluxDBHistoryQueryRowStream implements RowStream {
 
     private int size;
 
-    public InfluxDBHistoryQueryRowStream(Map<String, List<FluxTable>> bucketQueryResults, List<String> patterns) {
+    public InfluxDBHistoryQueryRowStream(
+            Map<String, List<FluxTable>> bucketQueryResults, List<String> patterns) {
         this.bucketQueryResults = new ArrayList<>(bucketQueryResults.entrySet());
         this.indexList = new ArrayList<>();
         List<Field> fields = new ArrayList<>();
@@ -54,7 +54,7 @@ public class InfluxDBHistoryQueryRowStream implements RowStream {
             String bucket = this.bucketQueryResults.get(i).getKey();
             List<FluxTable> tables = this.bucketQueryResults.get(i).getValue();
             this.indexList.add(new int[tables.size()]);
-            for (FluxTable table: tables) {
+            for (FluxTable table : tables) {
                 fields.add(SchemaTransformer.toField(bucket, table));
                 this.hasMoreRecords++;
                 this.size++;

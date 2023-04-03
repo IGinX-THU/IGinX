@@ -20,11 +20,10 @@ package cn.edu.tsinghua.iginx.engine.physical.optimizer;
 
 import cn.edu.tsinghua.iginx.engine.physical.optimizer.naive.NaivePhysicalOptimizer;
 import cn.edu.tsinghua.iginx.engine.physical.optimizer.rule.Rule;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.Collection;
 import java.util.Collections;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PhysicalOptimizerManager {
 
@@ -34,8 +33,7 @@ public class PhysicalOptimizerManager {
 
     private static final PhysicalOptimizerManager INSTANCE = new PhysicalOptimizerManager();
 
-    private PhysicalOptimizerManager() {
-    }
+    private PhysicalOptimizerManager() {}
 
     public static PhysicalOptimizerManager getInstance() {
         return INSTANCE;

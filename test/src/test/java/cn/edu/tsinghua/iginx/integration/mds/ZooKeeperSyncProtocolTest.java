@@ -17,11 +17,12 @@ public class ZooKeeperSyncProtocolTest extends SyncProtocolTest {
 
     @Override
     protected SyncProtocol newSyncProtocol(String category) {
-        CuratorFramework client = CuratorFrameworkFactory.builder()
-                .connectString(CONNECT_STRING)
-                .connectionTimeoutMs(15000)
-                .retryPolicy(new RetryForever(1000))
-                .build();
+        CuratorFramework client =
+                CuratorFrameworkFactory.builder()
+                        .connectString(CONNECT_STRING)
+                        .connectionTimeoutMs(15000)
+                        .retryPolicy(new RetryForever(1000))
+                        .build();
         client.start();
         try {
             return new ZooKeeperSyncProtocolImpl(category, client, null);

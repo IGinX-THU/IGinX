@@ -29,8 +29,7 @@ import cn.edu.tsinghua.iginx.session_v2.write.Table;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 
 /**
- * Created on 10/12/2021.
- * Description: 暂时只是样例，并不能实际运行
+ * Created on 10/12/2021. Description: 暂时只是样例，并不能实际运行
  *
  * @author ziyuan
  */
@@ -42,13 +41,7 @@ public class NewSessionNotSupportedWriteExample {
         WriteClient writeClient = client.getWriteClient();
 
         // 写入单个数据点
-        writeClient.writePoint(
-                Point.builder()
-                        .now()
-                        .measurement("a.a.a")
-                        .intValue(2333)
-                        .build()
-        );
+        writeClient.writePoint(Point.builder().now().measurement("a.a.a").intValue(2333).build());
 
         System.out.println("写入数据点成功");
 
@@ -62,8 +55,7 @@ public class NewSessionNotSupportedWriteExample {
                         .addFloatField("c", 23.33F)
                         .addDoubleField("d", 233.3)
                         .addBinaryField("e", "hello, world".getBytes())
-                        .build()
-        );
+                        .build());
 
         System.out.println("写入行成功");
 
@@ -79,8 +71,7 @@ public class NewSessionNotSupportedWriteExample {
                         .next() // 开启新的一行
                         .key(System.currentTimeMillis() + 1000) // 设置第二行时间戳
                         .value("b", 200000L) // 为第二行追加数据
-                        .build()
-        );
+                        .build());
 
         System.out.println("写入二维表成功");
 
@@ -93,18 +84,15 @@ public class NewSessionNotSupportedWriteExample {
         client.close();
     }
 
-
     @Measurement(name = "demo.pojo")
     static class POJO {
 
         @Field(timestamp = true)
         long timestamp;
 
-        @Field
-        int a;
+        @Field int a;
 
-        @Field
-        int b;
+        @Field int b;
 
         POJO(long timestamp, int a, int b) {
             this.timestamp = timestamp;
@@ -112,7 +100,4 @@ public class NewSessionNotSupportedWriteExample {
             this.b = b;
         }
     }
-
-
 }
-

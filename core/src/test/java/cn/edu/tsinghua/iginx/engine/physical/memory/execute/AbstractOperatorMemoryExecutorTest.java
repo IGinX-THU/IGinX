@@ -18,6 +18,12 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute;
 
+import static cn.edu.tsinghua.iginx.engine.shared.Constants.PARAM_PATHS;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import cn.edu.tsinghua.iginx.engine.physical.exception.InvalidOperatorParameterException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.shared.Constants;
@@ -56,20 +62,13 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.type.OuterJoinType;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import cn.edu.tsinghua.iginx.engine.shared.source.SourceType;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-import org.junit.Test;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import static cn.edu.tsinghua.iginx.engine.shared.Constants.PARAM_PATHS;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import org.junit.Test;
 
 public abstract class AbstractOperatorMemoryExecutorTest {
 
@@ -92,10 +91,11 @@ public abstract class AbstractOperatorMemoryExecutorTest {
 
     private Table generateTableForUnaryOperator(boolean hasTimestamp) {
         Header header;
-        List<Field> fields = Arrays.asList(
-                new Field("a.a.b", DataType.INTEGER),
-                new Field("a.b.c", DataType.INTEGER),
-                new Field("a.a.c", DataType.INTEGER));
+        List<Field> fields =
+                Arrays.asList(
+                        new Field("a.a.b", DataType.INTEGER),
+                        new Field("a.b.c", DataType.INTEGER),
+                        new Field("a.a.c", DataType.INTEGER));
         if (hasTimestamp) {
             header = new Header(Field.KEY, fields);
         } else {
@@ -112,7 +112,8 @@ public abstract class AbstractOperatorMemoryExecutorTest {
         return new Table(header, rows);
     }
 
-    private Table generateTableFromValues(boolean hasTimestamp, List<Field> fields, List<List<Object>> values) {
+    private Table generateTableFromValues(
+            boolean hasTimestamp, List<Field> fields, List<List<Object>> values) {
         Header header;
         if (hasTimestamp) {
             header = new Header(Field.KEY, fields);
@@ -155,59 +156,48 @@ public abstract class AbstractOperatorMemoryExecutorTest {
 
     @Test
     public void testCrossJoin() throws PhysicalException {
-        Table tableA = generateTableFromValues(
-            true,
-            Arrays.asList(
-                new Field("a.a", DataType.INTEGER),
-                new Field("a.b", DataType.DOUBLE),
-                new Field("a.c", DataType.BOOLEAN)
-            ),
-            Arrays.asList(
-                Arrays.asList(2, 2.1, true),
-                Arrays.asList(3, 3.1, false)
-            ));
+        Table tableA =
+                generateTableFromValues(
+                        true,
+                        Arrays.asList(
+                                new Field("a.a", DataType.INTEGER),
+                                new Field("a.b", DataType.DOUBLE),
+                                new Field("a.c", DataType.BOOLEAN)),
+                        Arrays.asList(Arrays.asList(2, 2.1, true), Arrays.asList(3, 3.1, false)));
 
-        Table tableB = generateTableFromValues(
-            true,
-            Arrays.asList(
-                new Field("b.a", DataType.INTEGER),
-                new Field("b.b", DataType.DOUBLE),
-                new Field("b.c", DataType.BOOLEAN)
-            ),
-            Arrays.asList(
-                Arrays.asList(1, 1.1, true),
-                Arrays.asList(3, 3.1, false)
-            ));
+        Table tableB =
+                generateTableFromValues(
+                        true,
+                        Arrays.asList(
+                                new Field("b.a", DataType.INTEGER),
+                                new Field("b.b", DataType.DOUBLE),
+                                new Field("b.c", DataType.BOOLEAN)),
+                        Arrays.asList(Arrays.asList(1, 1.1, true), Arrays.asList(3, 3.1, false)));
 
         {
             tableA.reset();
             tableB.reset();
 
-            CrossJoin crossJoin = new CrossJoin(
-                EmptySource.EMPTY_SOURCE,
-                EmptySource.EMPTY_SOURCE,
-                "a",
-                "b"
-            );
+            CrossJoin crossJoin =
+                    new CrossJoin(EmptySource.EMPTY_SOURCE, EmptySource.EMPTY_SOURCE, "a", "b");
 
-            Table target = generateTableFromValues(
-                false,
-                Arrays.asList(
-                    new Field("a.key", DataType.LONG),
-                    new Field("a.a", DataType.INTEGER),
-                    new Field("a.b", DataType.DOUBLE),
-                    new Field("a.c", DataType.BOOLEAN),
-                    new Field("b.key", DataType.LONG),
-                    new Field("b.a", DataType.INTEGER),
-                    new Field("b.b", DataType.DOUBLE),
-                    new Field("b.c", DataType.BOOLEAN)
-                ),
-                Arrays.asList(
-                    Arrays.asList(1L, 2, 2.1, true, 1L, 1, 1.1, true),
-                    Arrays.asList(1L, 2, 2.1, true, 2L, 3, 3.1, false),
-                    Arrays.asList(2L, 3, 3.1, false, 1L, 1, 1.1, true),
-                    Arrays.asList(2L, 3, 3.1, false, 2L, 3, 3.1, false)
-                ));
+            Table target =
+                    generateTableFromValues(
+                            false,
+                            Arrays.asList(
+                                    new Field("a.key", DataType.LONG),
+                                    new Field("a.a", DataType.INTEGER),
+                                    new Field("a.b", DataType.DOUBLE),
+                                    new Field("a.c", DataType.BOOLEAN),
+                                    new Field("b.key", DataType.LONG),
+                                    new Field("b.a", DataType.INTEGER),
+                                    new Field("b.b", DataType.DOUBLE),
+                                    new Field("b.c", DataType.BOOLEAN)),
+                            Arrays.asList(
+                                    Arrays.asList(1L, 2, 2.1, true, 1L, 1, 1.1, true),
+                                    Arrays.asList(1L, 2, 2.1, true, 2L, 3, 3.1, false),
+                                    Arrays.asList(2L, 3, 3.1, false, 1L, 1, 1.1, true),
+                                    Arrays.asList(2L, 3, 3.1, false, 2L, 3, 3.1, false)));
 
             RowStream stream = getExecutor().executeBinaryOperator(crossJoin, tableA, tableB);
             assertStreamEqual(stream, target);
@@ -216,74 +206,70 @@ public abstract class AbstractOperatorMemoryExecutorTest {
 
     @Test
     public void testInnerJoin() throws PhysicalException {
-        Table tableA = generateTableFromValues(
-            true,
-            Arrays.asList(
-                new Field("a.a", DataType.INTEGER),
-                new Field("a.b", DataType.DOUBLE),
-                new Field("a.c", DataType.BOOLEAN)
-            ),
-            Arrays.asList(
-                Arrays.asList(2, 2.1, true),
-                Arrays.asList(3, 3.1, false),
-                Arrays.asList(3, 3.2, false),
-                Arrays.asList(4, 4.1, true),
-                Arrays.asList(5, 5.1, false),
-                Arrays.asList(6, 6.1, true)
-            ));
+        Table tableA =
+                generateTableFromValues(
+                        true,
+                        Arrays.asList(
+                                new Field("a.a", DataType.INTEGER),
+                                new Field("a.b", DataType.DOUBLE),
+                                new Field("a.c", DataType.BOOLEAN)),
+                        Arrays.asList(
+                                Arrays.asList(2, 2.1, true),
+                                Arrays.asList(3, 3.1, false),
+                                Arrays.asList(3, 3.2, false),
+                                Arrays.asList(4, 4.1, true),
+                                Arrays.asList(5, 5.1, false),
+                                Arrays.asList(6, 6.1, true)));
 
-        Table tableB = generateTableFromValues(
-            true,
-            Arrays.asList(
-                new Field("b.k", DataType.INTEGER),
-                new Field("b.b", DataType.DOUBLE),
-                new Field("b.c", DataType.BOOLEAN)
-            ),
-            Arrays.asList(
-                Arrays.asList(1, 1.1, true),
-                Arrays.asList(3, 3.1, false),
-                Arrays.asList(3, 3.2, false),
-                Arrays.asList(5, 5.1, true),
-                Arrays.asList(7, 7.1, false),
-                Arrays.asList(9, 9.1, true)
-            ));
+        Table tableB =
+                generateTableFromValues(
+                        true,
+                        Arrays.asList(
+                                new Field("b.k", DataType.INTEGER),
+                                new Field("b.b", DataType.DOUBLE),
+                                new Field("b.c", DataType.BOOLEAN)),
+                        Arrays.asList(
+                                Arrays.asList(1, 1.1, true),
+                                Arrays.asList(3, 3.1, false),
+                                Arrays.asList(3, 3.2, false),
+                                Arrays.asList(5, 5.1, true),
+                                Arrays.asList(7, 7.1, false),
+                                Arrays.asList(9, 9.1, true)));
 
-        Table target = generateTableFromValues(
-            false,
-            Arrays.asList(
-                new Field("a.key", DataType.LONG),
-                new Field("a.a", DataType.INTEGER),
-                new Field("a.b", DataType.DOUBLE),
-                new Field("a.c", DataType.BOOLEAN),
-                new Field("b.key", DataType.LONG),
-                new Field("b.k", DataType.INTEGER),
-                new Field("b.b", DataType.DOUBLE),
-                new Field("b.c", DataType.BOOLEAN)
-            ),
-            Arrays.asList(
-                Arrays.asList(2L, 3, 3.1, false, 2L, 3, 3.1, false),
-                Arrays.asList(2L, 3, 3.1, false, 3L, 3, 3.2, false),
-                Arrays.asList(3L, 3, 3.2, false, 2L, 3, 3.1, false),
-                Arrays.asList(3L, 3, 3.2, false, 3L, 3, 3.2, false),
-                Arrays.asList(5L, 5, 5.1, false, 4L, 5, 5.1, true)
-            ));
+        Table target =
+                generateTableFromValues(
+                        false,
+                        Arrays.asList(
+                                new Field("a.key", DataType.LONG),
+                                new Field("a.a", DataType.INTEGER),
+                                new Field("a.b", DataType.DOUBLE),
+                                new Field("a.c", DataType.BOOLEAN),
+                                new Field("b.key", DataType.LONG),
+                                new Field("b.k", DataType.INTEGER),
+                                new Field("b.b", DataType.DOUBLE),
+                                new Field("b.c", DataType.BOOLEAN)),
+                        Arrays.asList(
+                                Arrays.asList(2L, 3, 3.1, false, 2L, 3, 3.1, false),
+                                Arrays.asList(2L, 3, 3.1, false, 3L, 3, 3.2, false),
+                                Arrays.asList(3L, 3, 3.2, false, 2L, 3, 3.1, false),
+                                Arrays.asList(3L, 3, 3.2, false, 3L, 3, 3.2, false),
+                                Arrays.asList(5L, 5, 5.1, false, 4L, 5, 5.1, true)));
 
-        Table usingTarget = generateTableFromValues(
-            false,
-            Arrays.asList(
-                new Field("a.key", DataType.LONG),
-                new Field("a.a", DataType.INTEGER),
-                new Field("a.b", DataType.DOUBLE),
-                new Field("a.c", DataType.BOOLEAN),
-                new Field("b.key", DataType.LONG),
-                new Field("b.k", DataType.INTEGER),
-                new Field("b.c", DataType.BOOLEAN)
-            ),
-            Arrays.asList(
-                Arrays.asList(2L, 3, 3.1, false, 2L, 3, false),
-                Arrays.asList(3L, 3, 3.2, false, 3L, 3, false),
-                Arrays.asList(5L, 5, 5.1, false, 4L, 5, true)
-            ));
+        Table usingTarget =
+                generateTableFromValues(
+                        false,
+                        Arrays.asList(
+                                new Field("a.key", DataType.LONG),
+                                new Field("a.a", DataType.INTEGER),
+                                new Field("a.b", DataType.DOUBLE),
+                                new Field("a.c", DataType.BOOLEAN),
+                                new Field("b.key", DataType.LONG),
+                                new Field("b.k", DataType.INTEGER),
+                                new Field("b.c", DataType.BOOLEAN)),
+                        Arrays.asList(
+                                Arrays.asList(2L, 3, 3.1, false, 2L, 3, false),
+                                Arrays.asList(3L, 3, 3.2, false, 3L, 3, false),
+                                Arrays.asList(5L, 5, 5.1, false, 4L, 5, true)));
 
         {
             // NestedLoopJoin
@@ -291,14 +277,16 @@ public abstract class AbstractOperatorMemoryExecutorTest {
             tableB.reset();
             target.reset();
 
-            InnerJoin innerJoin = new InnerJoin(
-                EmptySource.EMPTY_SOURCE,
-                EmptySource.EMPTY_SOURCE,
-                "a", "b",
-                new PathFilter("a.a", Op.E, "b.k"),
-                Collections.emptyList(),
-                false,
-                JoinAlgType.NestedLoopJoin);
+            InnerJoin innerJoin =
+                    new InnerJoin(
+                            EmptySource.EMPTY_SOURCE,
+                            EmptySource.EMPTY_SOURCE,
+                            "a",
+                            "b",
+                            new PathFilter("a.a", Op.E, "b.k"),
+                            Collections.emptyList(),
+                            false,
+                            JoinAlgType.NestedLoopJoin);
 
             RowStream stream = getExecutor().executeBinaryOperator(innerJoin, tableA, tableB);
             assertStreamEqual(stream, target);
@@ -310,14 +298,16 @@ public abstract class AbstractOperatorMemoryExecutorTest {
             tableB.reset();
             target.reset();
 
-            InnerJoin innerJoin = new InnerJoin(
-                EmptySource.EMPTY_SOURCE,
-                EmptySource.EMPTY_SOURCE,
-                "a", "b",
-                new PathFilter("a.a", Op.E, "b.k"),
-                Collections.emptyList(),
-                false,
-                JoinAlgType.HashJoin);
+            InnerJoin innerJoin =
+                    new InnerJoin(
+                            EmptySource.EMPTY_SOURCE,
+                            EmptySource.EMPTY_SOURCE,
+                            "a",
+                            "b",
+                            new PathFilter("a.a", Op.E, "b.k"),
+                            Collections.emptyList(),
+                            false,
+                            JoinAlgType.HashJoin);
 
             RowStream stream = getExecutor().executeBinaryOperator(innerJoin, tableA, tableB);
             assertStreamEqual(stream, target);
@@ -329,14 +319,16 @@ public abstract class AbstractOperatorMemoryExecutorTest {
             tableB.reset();
             target.reset();
 
-            InnerJoin innerJoin = new InnerJoin(
-                EmptySource.EMPTY_SOURCE,
-                EmptySource.EMPTY_SOURCE,
-                "a", "b",
-                new PathFilter("a.a", Op.E, "b.k"),
-                Collections.emptyList(),
-                false,
-                JoinAlgType.SortedMergeJoin);
+            InnerJoin innerJoin =
+                    new InnerJoin(
+                            EmptySource.EMPTY_SOURCE,
+                            EmptySource.EMPTY_SOURCE,
+                            "a",
+                            "b",
+                            new PathFilter("a.a", Op.E, "b.k"),
+                            Collections.emptyList(),
+                            false,
+                            JoinAlgType.SortedMergeJoin);
 
             RowStream stream = getExecutor().executeBinaryOperator(innerJoin, tableA, tableB);
             assertStreamEqual(stream, target);
@@ -348,14 +340,16 @@ public abstract class AbstractOperatorMemoryExecutorTest {
             tableB.reset();
             usingTarget.reset();
 
-            InnerJoin innerJoin = new InnerJoin(
-                EmptySource.EMPTY_SOURCE,
-                EmptySource.EMPTY_SOURCE,
-                "a", "b",
-                null,
-                Collections.singletonList("b"),
-                false,
-                JoinAlgType.NestedLoopJoin);
+            InnerJoin innerJoin =
+                    new InnerJoin(
+                            EmptySource.EMPTY_SOURCE,
+                            EmptySource.EMPTY_SOURCE,
+                            "a",
+                            "b",
+                            null,
+                            Collections.singletonList("b"),
+                            false,
+                            JoinAlgType.NestedLoopJoin);
 
             RowStream stream = getExecutor().executeBinaryOperator(innerJoin, tableA, tableB);
             assertStreamEqual(stream, usingTarget);
@@ -367,14 +361,16 @@ public abstract class AbstractOperatorMemoryExecutorTest {
             tableB.reset();
             usingTarget.reset();
 
-            InnerJoin innerJoin = new InnerJoin(
-                EmptySource.EMPTY_SOURCE,
-                EmptySource.EMPTY_SOURCE,
-                "a", "b",
-                null,
-                Collections.singletonList("b"),
-                false,
-                JoinAlgType.HashJoin);
+            InnerJoin innerJoin =
+                    new InnerJoin(
+                            EmptySource.EMPTY_SOURCE,
+                            EmptySource.EMPTY_SOURCE,
+                            "a",
+                            "b",
+                            null,
+                            Collections.singletonList("b"),
+                            false,
+                            JoinAlgType.HashJoin);
 
             RowStream stream = getExecutor().executeBinaryOperator(innerJoin, tableA, tableB);
             assertStreamEqual(stream, usingTarget);
@@ -386,134 +382,129 @@ public abstract class AbstractOperatorMemoryExecutorTest {
             tableB.reset();
             usingTarget.reset();
 
-            InnerJoin innerJoin = new InnerJoin(
-                EmptySource.EMPTY_SOURCE,
-                EmptySource.EMPTY_SOURCE,
-                "a", "b",
-                null,
-                Collections.singletonList("b"),
-                false,
-                JoinAlgType.SortedMergeJoin);
+            InnerJoin innerJoin =
+                    new InnerJoin(
+                            EmptySource.EMPTY_SOURCE,
+                            EmptySource.EMPTY_SOURCE,
+                            "a",
+                            "b",
+                            null,
+                            Collections.singletonList("b"),
+                            false,
+                            JoinAlgType.SortedMergeJoin);
 
             RowStream stream = getExecutor().executeBinaryOperator(innerJoin, tableA, tableB);
             assertStreamEqual(stream, usingTarget);
         }
-        
-        
     }
 
     @Test
     public void testOuterJoin() throws PhysicalException {
-        Table tableA = generateTableFromValues(
-            true,
-            Arrays.asList(
-                new Field("a.a", DataType.INTEGER),
-                new Field("a.b", DataType.DOUBLE),
-                new Field("a.c", DataType.BOOLEAN)
-            ),
-            Arrays.asList(
-                Arrays.asList(2, 2.1, true),
-                Arrays.asList(3, 3.1, false),
-                Arrays.asList(4, 4.1, true),
-                Arrays.asList(5, 5.1, false),
-                Arrays.asList(6, 6.1, true),
-                Arrays.asList(11, 11.1, false),
-                Arrays.asList(12, 12.1, true),
-                Arrays.asList(13, 13.1, false)
-            ));
+        Table tableA =
+                generateTableFromValues(
+                        true,
+                        Arrays.asList(
+                                new Field("a.a", DataType.INTEGER),
+                                new Field("a.b", DataType.DOUBLE),
+                                new Field("a.c", DataType.BOOLEAN)),
+                        Arrays.asList(
+                                Arrays.asList(2, 2.1, true),
+                                Arrays.asList(3, 3.1, false),
+                                Arrays.asList(4, 4.1, true),
+                                Arrays.asList(5, 5.1, false),
+                                Arrays.asList(6, 6.1, true),
+                                Arrays.asList(11, 11.1, false),
+                                Arrays.asList(12, 12.1, true),
+                                Arrays.asList(13, 13.1, false)));
 
-        Table tableB = generateTableFromValues(
-            true,
-            Arrays.asList(
-                new Field("b.a", DataType.INTEGER),
-                new Field("b.b", DataType.DOUBLE),
-                new Field("b.c", DataType.BOOLEAN)
-            ),
-            Arrays.asList(
-                Arrays.asList(1, 1.1, true),
-                Arrays.asList(3, 3.1, false),
-                Arrays.asList(5, 5.1, true),
-                Arrays.asList(7, 7.1, false),
-                Arrays.asList(9, 9.1, true),
-                Arrays.asList(16, 16.1, false),
-                Arrays.asList(17, 17.1, true),
-                Arrays.asList(18, 18.1, false)
-            ));
+        Table tableB =
+                generateTableFromValues(
+                        true,
+                        Arrays.asList(
+                                new Field("b.a", DataType.INTEGER),
+                                new Field("b.b", DataType.DOUBLE),
+                                new Field("b.c", DataType.BOOLEAN)),
+                        Arrays.asList(
+                                Arrays.asList(1, 1.1, true),
+                                Arrays.asList(3, 3.1, false),
+                                Arrays.asList(5, 5.1, true),
+                                Arrays.asList(7, 7.1, false),
+                                Arrays.asList(9, 9.1, true),
+                                Arrays.asList(16, 16.1, false),
+                                Arrays.asList(17, 17.1, true),
+                                Arrays.asList(18, 18.1, false)));
 
-        Table leftTarget = generateTableFromValues(
-            false,
-            Arrays.asList(
-                new Field("a.key", DataType.LONG),
-                new Field("a.a", DataType.INTEGER),
-                new Field("a.b", DataType.DOUBLE),
-                new Field("a.c", DataType.BOOLEAN),
-                new Field("b.key", DataType.LONG),
-                new Field("b.a", DataType.INTEGER),
-                new Field("b.b", DataType.DOUBLE),
-                new Field("b.c", DataType.BOOLEAN)
-            ),
-            Arrays.asList(
-                Arrays.asList(2L, 3, 3.1, false, 2L, 3, 3.1, false),
-                Arrays.asList(4L, 5, 5.1, false, 3L, 5, 5.1, true),
-                Arrays.asList(1L, 2, 2.1, true, null, null, null, null),
-                Arrays.asList(3L, 4, 4.1, true, null, null, null, null),
-                Arrays.asList(5L, 6, 6.1, true, null, null, null, null),
-                Arrays.asList(6L, 11, 11.1, false, null, null, null, null),
-                Arrays.asList(7L, 12, 12.1, true, null, null, null, null),
-                Arrays.asList(8L, 13, 13.1, false, null, null, null, null)
-            ));
+        Table leftTarget =
+                generateTableFromValues(
+                        false,
+                        Arrays.asList(
+                                new Field("a.key", DataType.LONG),
+                                new Field("a.a", DataType.INTEGER),
+                                new Field("a.b", DataType.DOUBLE),
+                                new Field("a.c", DataType.BOOLEAN),
+                                new Field("b.key", DataType.LONG),
+                                new Field("b.a", DataType.INTEGER),
+                                new Field("b.b", DataType.DOUBLE),
+                                new Field("b.c", DataType.BOOLEAN)),
+                        Arrays.asList(
+                                Arrays.asList(2L, 3, 3.1, false, 2L, 3, 3.1, false),
+                                Arrays.asList(4L, 5, 5.1, false, 3L, 5, 5.1, true),
+                                Arrays.asList(1L, 2, 2.1, true, null, null, null, null),
+                                Arrays.asList(3L, 4, 4.1, true, null, null, null, null),
+                                Arrays.asList(5L, 6, 6.1, true, null, null, null, null),
+                                Arrays.asList(6L, 11, 11.1, false, null, null, null, null),
+                                Arrays.asList(7L, 12, 12.1, true, null, null, null, null),
+                                Arrays.asList(8L, 13, 13.1, false, null, null, null, null)));
 
-        Table rightTarget = generateTableFromValues(
-            false,
-            Arrays.asList(
-                new Field("a.key", DataType.LONG),
-                new Field("a.a", DataType.INTEGER),
-                new Field("a.b", DataType.DOUBLE),
-                new Field("a.c", DataType.BOOLEAN),
-                new Field("b.key", DataType.LONG),
-                new Field("b.a", DataType.INTEGER),
-                new Field("b.b", DataType.DOUBLE),
-                new Field("b.c", DataType.BOOLEAN)
-            ),
-            Arrays.asList(
-                Arrays.asList(2L, 3, 3.1, false, 2L, 3, 3.1, false),
-                Arrays.asList(4L, 5, 5.1, false, 3L, 5, 5.1, true),
-                Arrays.asList(null, null, null, null, 1L, 1, 1.1, true),
-                Arrays.asList(null, null, null, null, 4L, 7, 7.1, false),
-                Arrays.asList(null, null, null, null, 5L, 9, 9.1, true),
-                Arrays.asList(null, null, null, null, 6L, 16, 16.1, false),
-                Arrays.asList(null, null, null, null, 7L, 17, 17.1, true),
-                Arrays.asList(null, null, null, null, 8L, 18, 18.1, false)
-            ));
+        Table rightTarget =
+                generateTableFromValues(
+                        false,
+                        Arrays.asList(
+                                new Field("a.key", DataType.LONG),
+                                new Field("a.a", DataType.INTEGER),
+                                new Field("a.b", DataType.DOUBLE),
+                                new Field("a.c", DataType.BOOLEAN),
+                                new Field("b.key", DataType.LONG),
+                                new Field("b.a", DataType.INTEGER),
+                                new Field("b.b", DataType.DOUBLE),
+                                new Field("b.c", DataType.BOOLEAN)),
+                        Arrays.asList(
+                                Arrays.asList(2L, 3, 3.1, false, 2L, 3, 3.1, false),
+                                Arrays.asList(4L, 5, 5.1, false, 3L, 5, 5.1, true),
+                                Arrays.asList(null, null, null, null, 1L, 1, 1.1, true),
+                                Arrays.asList(null, null, null, null, 4L, 7, 7.1, false),
+                                Arrays.asList(null, null, null, null, 5L, 9, 9.1, true),
+                                Arrays.asList(null, null, null, null, 6L, 16, 16.1, false),
+                                Arrays.asList(null, null, null, null, 7L, 17, 17.1, true),
+                                Arrays.asList(null, null, null, null, 8L, 18, 18.1, false)));
 
-        Table fullTarget = generateTableFromValues(
-            false,
-            Arrays.asList(
-                new Field("a.key", DataType.LONG),
-                new Field("a.a", DataType.INTEGER),
-                new Field("a.b", DataType.DOUBLE),
-                new Field("a.c", DataType.BOOLEAN),
-                new Field("b.key", DataType.LONG),
-                new Field("b.a", DataType.INTEGER),
-                new Field("b.b", DataType.DOUBLE),
-                new Field("b.c", DataType.BOOLEAN)
-            ),
-            Arrays.asList(
-                Arrays.asList(2L, 3, 3.1, false, 2L, 3, 3.1, false),
-                Arrays.asList(4L, 5, 5.1, false, 3L, 5, 5.1, true),
-                Arrays.asList(1L, 2, 2.1, true, null, null, null, null),
-                Arrays.asList(3L, 4, 4.1, true, null, null, null, null),
-                Arrays.asList(5L, 6, 6.1, true, null, null, null, null),
-                Arrays.asList(6L, 11, 11.1, false, null, null, null, null),
-                Arrays.asList(7L, 12, 12.1, true, null, null, null, null),
-                Arrays.asList(8L, 13, 13.1, false, null, null, null, null),
-                Arrays.asList(null, null, null, null, 1L, 1, 1.1, true),
-                Arrays.asList(null, null, null, null, 4L, 7, 7.1, false),
-                Arrays.asList(null, null, null, null, 5L, 9, 9.1, true),
-                Arrays.asList(null, null, null, null, 6L, 16, 16.1, false),
-                Arrays.asList(null, null, null, null, 7L, 17, 17.1, true),
-                Arrays.asList(null, null, null, null, 8L, 18, 18.1, false)
-            ));
+        Table fullTarget =
+                generateTableFromValues(
+                        false,
+                        Arrays.asList(
+                                new Field("a.key", DataType.LONG),
+                                new Field("a.a", DataType.INTEGER),
+                                new Field("a.b", DataType.DOUBLE),
+                                new Field("a.c", DataType.BOOLEAN),
+                                new Field("b.key", DataType.LONG),
+                                new Field("b.a", DataType.INTEGER),
+                                new Field("b.b", DataType.DOUBLE),
+                                new Field("b.c", DataType.BOOLEAN)),
+                        Arrays.asList(
+                                Arrays.asList(2L, 3, 3.1, false, 2L, 3, 3.1, false),
+                                Arrays.asList(4L, 5, 5.1, false, 3L, 5, 5.1, true),
+                                Arrays.asList(1L, 2, 2.1, true, null, null, null, null),
+                                Arrays.asList(3L, 4, 4.1, true, null, null, null, null),
+                                Arrays.asList(5L, 6, 6.1, true, null, null, null, null),
+                                Arrays.asList(6L, 11, 11.1, false, null, null, null, null),
+                                Arrays.asList(7L, 12, 12.1, true, null, null, null, null),
+                                Arrays.asList(8L, 13, 13.1, false, null, null, null, null),
+                                Arrays.asList(null, null, null, null, 1L, 1, 1.1, true),
+                                Arrays.asList(null, null, null, null, 4L, 7, 7.1, false),
+                                Arrays.asList(null, null, null, null, 5L, 9, 9.1, true),
+                                Arrays.asList(null, null, null, null, 6L, 16, 16.1, false),
+                                Arrays.asList(null, null, null, null, 7L, 17, 17.1, true),
+                                Arrays.asList(null, null, null, null, 8L, 18, 18.1, false)));
 
         {
             // left & NestedLoopJoin
@@ -521,15 +512,17 @@ public abstract class AbstractOperatorMemoryExecutorTest {
             tableB.reset();
             leftTarget.reset();
 
-            OuterJoin outerJoin = new OuterJoin(
-                EmptySource.EMPTY_SOURCE,
-                EmptySource.EMPTY_SOURCE,
-                "a", "b",
-                OuterJoinType.LEFT,
-                new PathFilter("a.a", Op.E, "b.a"),
-                Collections.emptyList(),
-                false,
-                JoinAlgType.NestedLoopJoin);
+            OuterJoin outerJoin =
+                    new OuterJoin(
+                            EmptySource.EMPTY_SOURCE,
+                            EmptySource.EMPTY_SOURCE,
+                            "a",
+                            "b",
+                            OuterJoinType.LEFT,
+                            new PathFilter("a.a", Op.E, "b.a"),
+                            Collections.emptyList(),
+                            false,
+                            JoinAlgType.NestedLoopJoin);
 
             RowStream stream = getExecutor().executeBinaryOperator(outerJoin, tableA, tableB);
             assertStreamEqual(stream, leftTarget);
@@ -541,15 +534,17 @@ public abstract class AbstractOperatorMemoryExecutorTest {
             tableB.reset();
             leftTarget.reset();
 
-            OuterJoin outerJoin = new OuterJoin(
-                EmptySource.EMPTY_SOURCE,
-                EmptySource.EMPTY_SOURCE,
-                "a", "b",
-                OuterJoinType.LEFT,
-                new PathFilter("a.a", Op.E, "b.a"),
-                Collections.emptyList(),
-                false,
-                JoinAlgType.HashJoin);
+            OuterJoin outerJoin =
+                    new OuterJoin(
+                            EmptySource.EMPTY_SOURCE,
+                            EmptySource.EMPTY_SOURCE,
+                            "a",
+                            "b",
+                            OuterJoinType.LEFT,
+                            new PathFilter("a.a", Op.E, "b.a"),
+                            Collections.emptyList(),
+                            false,
+                            JoinAlgType.HashJoin);
 
             RowStream stream = getExecutor().executeBinaryOperator(outerJoin, tableA, tableB);
             assertStreamEqual(stream, leftTarget);
@@ -561,15 +556,17 @@ public abstract class AbstractOperatorMemoryExecutorTest {
             tableB.reset();
             leftTarget.reset();
 
-            OuterJoin outerJoin = new OuterJoin(
-                EmptySource.EMPTY_SOURCE,
-                EmptySource.EMPTY_SOURCE,
-                "a", "b",
-                OuterJoinType.LEFT,
-                new PathFilter("a.a", Op.E, "b.a"),
-                Collections.emptyList(),
-                false,
-                JoinAlgType.SortedMergeJoin);
+            OuterJoin outerJoin =
+                    new OuterJoin(
+                            EmptySource.EMPTY_SOURCE,
+                            EmptySource.EMPTY_SOURCE,
+                            "a",
+                            "b",
+                            OuterJoinType.LEFT,
+                            new PathFilter("a.a", Op.E, "b.a"),
+                            Collections.emptyList(),
+                            false,
+                            JoinAlgType.SortedMergeJoin);
 
             RowStream stream = getExecutor().executeBinaryOperator(outerJoin, tableA, tableB);
             assertStreamEqual(stream, leftTarget);
@@ -581,15 +578,17 @@ public abstract class AbstractOperatorMemoryExecutorTest {
             tableB.reset();
             rightTarget.reset();
 
-            OuterJoin outerJoin = new OuterJoin(
-                EmptySource.EMPTY_SOURCE,
-                EmptySource.EMPTY_SOURCE,
-                "a", "b",
-                OuterJoinType.RIGHT,
-                new PathFilter("a.a", Op.E, "b.a"),
-                Collections.emptyList(),
-                false,
-                JoinAlgType.NestedLoopJoin);
+            OuterJoin outerJoin =
+                    new OuterJoin(
+                            EmptySource.EMPTY_SOURCE,
+                            EmptySource.EMPTY_SOURCE,
+                            "a",
+                            "b",
+                            OuterJoinType.RIGHT,
+                            new PathFilter("a.a", Op.E, "b.a"),
+                            Collections.emptyList(),
+                            false,
+                            JoinAlgType.NestedLoopJoin);
 
             RowStream stream = getExecutor().executeBinaryOperator(outerJoin, tableA, tableB);
             assertStreamEqual(stream, rightTarget);
@@ -601,15 +600,17 @@ public abstract class AbstractOperatorMemoryExecutorTest {
             tableB.reset();
             rightTarget.reset();
 
-            OuterJoin outerJoin = new OuterJoin(
-                EmptySource.EMPTY_SOURCE,
-                EmptySource.EMPTY_SOURCE,
-                "a", "b",
-                OuterJoinType.RIGHT,
-                new PathFilter("a.a", Op.E, "b.a"),
-                Collections.emptyList(),
-                false,
-                JoinAlgType.HashJoin);
+            OuterJoin outerJoin =
+                    new OuterJoin(
+                            EmptySource.EMPTY_SOURCE,
+                            EmptySource.EMPTY_SOURCE,
+                            "a",
+                            "b",
+                            OuterJoinType.RIGHT,
+                            new PathFilter("a.a", Op.E, "b.a"),
+                            Collections.emptyList(),
+                            false,
+                            JoinAlgType.HashJoin);
 
             RowStream stream = getExecutor().executeBinaryOperator(outerJoin, tableA, tableB);
             assertStreamEqual(stream, rightTarget);
@@ -621,15 +622,17 @@ public abstract class AbstractOperatorMemoryExecutorTest {
             tableB.reset();
             rightTarget.reset();
 
-            OuterJoin outerJoin = new OuterJoin(
-                EmptySource.EMPTY_SOURCE,
-                EmptySource.EMPTY_SOURCE,
-                "a", "b",
-                OuterJoinType.RIGHT,
-                new PathFilter("a.a", Op.E, "b.a"),
-                Collections.emptyList(),
-                false,
-                JoinAlgType.SortedMergeJoin);
+            OuterJoin outerJoin =
+                    new OuterJoin(
+                            EmptySource.EMPTY_SOURCE,
+                            EmptySource.EMPTY_SOURCE,
+                            "a",
+                            "b",
+                            OuterJoinType.RIGHT,
+                            new PathFilter("a.a", Op.E, "b.a"),
+                            Collections.emptyList(),
+                            false,
+                            JoinAlgType.SortedMergeJoin);
 
             RowStream stream = getExecutor().executeBinaryOperator(outerJoin, tableA, tableB);
             assertStreamEqual(stream, rightTarget);
@@ -641,15 +644,17 @@ public abstract class AbstractOperatorMemoryExecutorTest {
             tableB.reset();
             fullTarget.reset();
 
-            OuterJoin outerJoin = new OuterJoin(
-                EmptySource.EMPTY_SOURCE,
-                EmptySource.EMPTY_SOURCE,
-                "a", "b",
-                OuterJoinType.FULL,
-                new PathFilter("a.a", Op.E, "b.a"),
-                Collections.emptyList(),
-                false,
-                JoinAlgType.NestedLoopJoin);
+            OuterJoin outerJoin =
+                    new OuterJoin(
+                            EmptySource.EMPTY_SOURCE,
+                            EmptySource.EMPTY_SOURCE,
+                            "a",
+                            "b",
+                            OuterJoinType.FULL,
+                            new PathFilter("a.a", Op.E, "b.a"),
+                            Collections.emptyList(),
+                            false,
+                            JoinAlgType.NestedLoopJoin);
 
             RowStream stream = getExecutor().executeBinaryOperator(outerJoin, tableA, tableB);
             assertStreamEqual(stream, fullTarget);
@@ -661,15 +666,17 @@ public abstract class AbstractOperatorMemoryExecutorTest {
             tableB.reset();
             fullTarget.reset();
 
-            OuterJoin outerJoin = new OuterJoin(
-                EmptySource.EMPTY_SOURCE,
-                EmptySource.EMPTY_SOURCE,
-                "a", "b",
-                OuterJoinType.FULL,
-                new PathFilter("a.a", Op.E, "b.a"),
-                Collections.emptyList(),
-                false,
-                JoinAlgType.HashJoin);
+            OuterJoin outerJoin =
+                    new OuterJoin(
+                            EmptySource.EMPTY_SOURCE,
+                            EmptySource.EMPTY_SOURCE,
+                            "a",
+                            "b",
+                            OuterJoinType.FULL,
+                            new PathFilter("a.a", Op.E, "b.a"),
+                            Collections.emptyList(),
+                            false,
+                            JoinAlgType.HashJoin);
 
             RowStream stream = getExecutor().executeBinaryOperator(outerJoin, tableA, tableB);
             assertStreamEqual(stream, fullTarget);
@@ -681,15 +688,17 @@ public abstract class AbstractOperatorMemoryExecutorTest {
             tableB.reset();
             fullTarget.reset();
 
-            OuterJoin outerJoin = new OuterJoin(
-                EmptySource.EMPTY_SOURCE,
-                EmptySource.EMPTY_SOURCE,
-                "a", "b",
-                OuterJoinType.FULL,
-                new PathFilter("a.a", Op.E, "b.a"),
-                Collections.emptyList(),
-                false,
-                JoinAlgType.SortedMergeJoin);
+            OuterJoin outerJoin =
+                    new OuterJoin(
+                            EmptySource.EMPTY_SOURCE,
+                            EmptySource.EMPTY_SOURCE,
+                            "a",
+                            "b",
+                            OuterJoinType.FULL,
+                            new PathFilter("a.a", Op.E, "b.a"),
+                            Collections.emptyList(),
+                            false,
+                            JoinAlgType.SortedMergeJoin);
 
             RowStream stream = getExecutor().executeBinaryOperator(outerJoin, tableA, tableB);
             assertStreamEqual(stream, fullTarget);
@@ -698,89 +707,84 @@ public abstract class AbstractOperatorMemoryExecutorTest {
 
     @Test
     public void testNaturalJoin() throws PhysicalException {
-        Table tableA = generateTableFromValues(
-            true,
-            Arrays.asList(
-                new Field("a.a", DataType.INTEGER),
-                new Field("a.b", DataType.DOUBLE),
-                new Field("a.c", DataType.BOOLEAN)
-            ),
-            Arrays.asList(
-                Arrays.asList(2, 2.1, true),
-                Arrays.asList(3, 3.1, false),
-                Arrays.asList(4, 4.1, true),
-                Arrays.asList(5, 5.1, false),
-                Arrays.asList(6, 6.1, true)
-            ));
+        Table tableA =
+                generateTableFromValues(
+                        true,
+                        Arrays.asList(
+                                new Field("a.a", DataType.INTEGER),
+                                new Field("a.b", DataType.DOUBLE),
+                                new Field("a.c", DataType.BOOLEAN)),
+                        Arrays.asList(
+                                Arrays.asList(2, 2.1, true),
+                                Arrays.asList(3, 3.1, false),
+                                Arrays.asList(4, 4.1, true),
+                                Arrays.asList(5, 5.1, false),
+                                Arrays.asList(6, 6.1, true)));
 
-        Table tableB = generateTableFromValues(
-            true,
-            Arrays.asList(
-                new Field("b.a", DataType.INTEGER),
-                new Field("b.d", DataType.DOUBLE),
-                new Field("b.e", DataType.BOOLEAN)
-            ),
-            Arrays.asList(
-                Arrays.asList(1, 1.1, true),
-                Arrays.asList(3, 3.1, false),
-                Arrays.asList(5, 5.1, true),
-                Arrays.asList(7, 7.1, false),
-                Arrays.asList(9, 9.1, true)
-            ));
+        Table tableB =
+                generateTableFromValues(
+                        true,
+                        Arrays.asList(
+                                new Field("b.a", DataType.INTEGER),
+                                new Field("b.d", DataType.DOUBLE),
+                                new Field("b.e", DataType.BOOLEAN)),
+                        Arrays.asList(
+                                Arrays.asList(1, 1.1, true),
+                                Arrays.asList(3, 3.1, false),
+                                Arrays.asList(5, 5.1, true),
+                                Arrays.asList(7, 7.1, false),
+                                Arrays.asList(9, 9.1, true)));
 
-        Table target = generateTableFromValues(
-            false,
-            Arrays.asList(
-                new Field("a.key", DataType.LONG),
-                new Field("a.a", DataType.INTEGER),
-                new Field("a.b", DataType.DOUBLE),
-                new Field("a.c", DataType.BOOLEAN),
-                new Field("b.key", DataType.LONG),
-                new Field("b.d", DataType.DOUBLE),
-                new Field("b.e", DataType.BOOLEAN)
-            ),
-            Arrays.asList(
-                Arrays.asList(2L, 3, 3.1, false, 2L, 3.1, false),
-                Arrays.asList(4L, 5, 5.1, false, 3L, 5.1, true)
-            ));
+        Table target =
+                generateTableFromValues(
+                        false,
+                        Arrays.asList(
+                                new Field("a.key", DataType.LONG),
+                                new Field("a.a", DataType.INTEGER),
+                                new Field("a.b", DataType.DOUBLE),
+                                new Field("a.c", DataType.BOOLEAN),
+                                new Field("b.key", DataType.LONG),
+                                new Field("b.d", DataType.DOUBLE),
+                                new Field("b.e", DataType.BOOLEAN)),
+                        Arrays.asList(
+                                Arrays.asList(2L, 3, 3.1, false, 2L, 3.1, false),
+                                Arrays.asList(4L, 5, 5.1, false, 3L, 5.1, true)));
 
-        Table leftTarget = generateTableFromValues(
-            false,
-            Arrays.asList(
-                new Field("a.key", DataType.LONG),
-                new Field("a.a", DataType.INTEGER),
-                new Field("a.b", DataType.DOUBLE),
-                new Field("a.c", DataType.BOOLEAN),
-                new Field("b.key", DataType.LONG),
-                new Field("b.d", DataType.DOUBLE),
-                new Field("b.e", DataType.BOOLEAN)
-            ),
-            Arrays.asList(
-                Arrays.asList(2L, 3, 3.1, false, 2L, 3.1, false),
-                Arrays.asList(4L, 5, 5.1, false, 3L, 5.1, true),
-                Arrays.asList(1L, 2, 2.1, true, null, null, null),
-                Arrays.asList(3L, 4, 4.1, true, null, null, null),
-                Arrays.asList(5L, 6, 6.1, true, null, null, null)
-            ));
+        Table leftTarget =
+                generateTableFromValues(
+                        false,
+                        Arrays.asList(
+                                new Field("a.key", DataType.LONG),
+                                new Field("a.a", DataType.INTEGER),
+                                new Field("a.b", DataType.DOUBLE),
+                                new Field("a.c", DataType.BOOLEAN),
+                                new Field("b.key", DataType.LONG),
+                                new Field("b.d", DataType.DOUBLE),
+                                new Field("b.e", DataType.BOOLEAN)),
+                        Arrays.asList(
+                                Arrays.asList(2L, 3, 3.1, false, 2L, 3.1, false),
+                                Arrays.asList(4L, 5, 5.1, false, 3L, 5.1, true),
+                                Arrays.asList(1L, 2, 2.1, true, null, null, null),
+                                Arrays.asList(3L, 4, 4.1, true, null, null, null),
+                                Arrays.asList(5L, 6, 6.1, true, null, null, null)));
 
-        Table rightTarget = generateTableFromValues(
-            false,
-            Arrays.asList(
-                new Field("a.key", DataType.LONG),
-                new Field("a.b", DataType.DOUBLE),
-                new Field("a.c", DataType.BOOLEAN),
-                new Field("b.key", DataType.LONG),
-                new Field("b.a", DataType.INTEGER),
-                new Field("b.d", DataType.DOUBLE),
-                new Field("b.e", DataType.BOOLEAN)
-            ),
-            Arrays.asList(
-                Arrays.asList(2L, 3.1, false, 2L, 3, 3.1, false),
-                Arrays.asList(4L, 5.1, false, 3L, 5, 5.1, true),
-                Arrays.asList(null, null, null, 1L, 1, 1.1, true),
-                Arrays.asList(null, null, null, 4L, 7, 7.1, false),
-                Arrays.asList(null, null, null, 5L, 9, 9.1, true)
-            ));
+        Table rightTarget =
+                generateTableFromValues(
+                        false,
+                        Arrays.asList(
+                                new Field("a.key", DataType.LONG),
+                                new Field("a.b", DataType.DOUBLE),
+                                new Field("a.c", DataType.BOOLEAN),
+                                new Field("b.key", DataType.LONG),
+                                new Field("b.a", DataType.INTEGER),
+                                new Field("b.d", DataType.DOUBLE),
+                                new Field("b.e", DataType.BOOLEAN)),
+                        Arrays.asList(
+                                Arrays.asList(2L, 3.1, false, 2L, 3, 3.1, false),
+                                Arrays.asList(4L, 5.1, false, 3L, 5, 5.1, true),
+                                Arrays.asList(null, null, null, 1L, 1, 1.1, true),
+                                Arrays.asList(null, null, null, 4L, 7, 7.1, false),
+                                Arrays.asList(null, null, null, 5L, 9, 9.1, true)));
 
         {
             // inner & NestedLoopJoin
@@ -788,14 +792,16 @@ public abstract class AbstractOperatorMemoryExecutorTest {
             tableB.reset();
             target.reset();
 
-            InnerJoin innerJoin = new InnerJoin(
-                EmptySource.EMPTY_SOURCE,
-                EmptySource.EMPTY_SOURCE,
-                "a", "b",
-                null,
-                Collections.emptyList(),
-                true,
-                JoinAlgType.NestedLoopJoin);
+            InnerJoin innerJoin =
+                    new InnerJoin(
+                            EmptySource.EMPTY_SOURCE,
+                            EmptySource.EMPTY_SOURCE,
+                            "a",
+                            "b",
+                            null,
+                            Collections.emptyList(),
+                            true,
+                            JoinAlgType.NestedLoopJoin);
 
             RowStream stream = getExecutor().executeBinaryOperator(innerJoin, tableA, tableB);
             assertStreamEqual(stream, target);
@@ -807,14 +813,16 @@ public abstract class AbstractOperatorMemoryExecutorTest {
             tableB.reset();
             target.reset();
 
-            InnerJoin innerJoin = new InnerJoin(
-                EmptySource.EMPTY_SOURCE,
-                EmptySource.EMPTY_SOURCE,
-                "a", "b",
-                null,
-                Collections.emptyList(),
-                true,
-                JoinAlgType.HashJoin);
+            InnerJoin innerJoin =
+                    new InnerJoin(
+                            EmptySource.EMPTY_SOURCE,
+                            EmptySource.EMPTY_SOURCE,
+                            "a",
+                            "b",
+                            null,
+                            Collections.emptyList(),
+                            true,
+                            JoinAlgType.HashJoin);
 
             RowStream stream = getExecutor().executeBinaryOperator(innerJoin, tableA, tableB);
             assertStreamEqual(stream, target);
@@ -826,14 +834,16 @@ public abstract class AbstractOperatorMemoryExecutorTest {
             tableB.reset();
             target.reset();
 
-            InnerJoin innerJoin = new InnerJoin(
-                EmptySource.EMPTY_SOURCE,
-                EmptySource.EMPTY_SOURCE,
-                "a", "b",
-                null,
-                Collections.emptyList(),
-                true,
-                JoinAlgType.SortedMergeJoin);
+            InnerJoin innerJoin =
+                    new InnerJoin(
+                            EmptySource.EMPTY_SOURCE,
+                            EmptySource.EMPTY_SOURCE,
+                            "a",
+                            "b",
+                            null,
+                            Collections.emptyList(),
+                            true,
+                            JoinAlgType.SortedMergeJoin);
 
             RowStream stream = getExecutor().executeBinaryOperator(innerJoin, tableA, tableB);
             assertStreamEqual(stream, target);
@@ -845,15 +855,17 @@ public abstract class AbstractOperatorMemoryExecutorTest {
             tableB.reset();
             leftTarget.reset();
 
-            OuterJoin outerJoin = new OuterJoin(
-                EmptySource.EMPTY_SOURCE,
-                EmptySource.EMPTY_SOURCE,
-                "a", "b",
-                OuterJoinType.LEFT,
-                null,
-                Collections.emptyList(),
-                true,
-                JoinAlgType.NestedLoopJoin);
+            OuterJoin outerJoin =
+                    new OuterJoin(
+                            EmptySource.EMPTY_SOURCE,
+                            EmptySource.EMPTY_SOURCE,
+                            "a",
+                            "b",
+                            OuterJoinType.LEFT,
+                            null,
+                            Collections.emptyList(),
+                            true,
+                            JoinAlgType.NestedLoopJoin);
 
             RowStream stream = getExecutor().executeBinaryOperator(outerJoin, tableA, tableB);
             assertStreamEqual(stream, leftTarget);
@@ -865,15 +877,17 @@ public abstract class AbstractOperatorMemoryExecutorTest {
             tableB.reset();
             leftTarget.reset();
 
-            OuterJoin outerJoin = new OuterJoin(
-                EmptySource.EMPTY_SOURCE,
-                EmptySource.EMPTY_SOURCE,
-                "a", "b",
-                OuterJoinType.LEFT,
-                null,
-                Collections.emptyList(),
-                true,
-                JoinAlgType.HashJoin);
+            OuterJoin outerJoin =
+                    new OuterJoin(
+                            EmptySource.EMPTY_SOURCE,
+                            EmptySource.EMPTY_SOURCE,
+                            "a",
+                            "b",
+                            OuterJoinType.LEFT,
+                            null,
+                            Collections.emptyList(),
+                            true,
+                            JoinAlgType.HashJoin);
 
             RowStream stream = getExecutor().executeBinaryOperator(outerJoin, tableA, tableB);
             assertStreamEqual(stream, leftTarget);
@@ -885,15 +899,17 @@ public abstract class AbstractOperatorMemoryExecutorTest {
             tableB.reset();
             leftTarget.reset();
 
-            OuterJoin outerJoin = new OuterJoin(
-                EmptySource.EMPTY_SOURCE,
-                EmptySource.EMPTY_SOURCE,
-                "a", "b",
-                OuterJoinType.LEFT,
-                null,
-                Collections.emptyList(),
-                true,
-                JoinAlgType.SortedMergeJoin);
+            OuterJoin outerJoin =
+                    new OuterJoin(
+                            EmptySource.EMPTY_SOURCE,
+                            EmptySource.EMPTY_SOURCE,
+                            "a",
+                            "b",
+                            OuterJoinType.LEFT,
+                            null,
+                            Collections.emptyList(),
+                            true,
+                            JoinAlgType.SortedMergeJoin);
 
             RowStream stream = getExecutor().executeBinaryOperator(outerJoin, tableA, tableB);
             assertStreamEqual(stream, leftTarget);
@@ -905,15 +921,17 @@ public abstract class AbstractOperatorMemoryExecutorTest {
             tableB.reset();
             rightTarget.reset();
 
-            OuterJoin outerJoin = new OuterJoin(
-                EmptySource.EMPTY_SOURCE,
-                EmptySource.EMPTY_SOURCE,
-                "a", "b",
-                OuterJoinType.RIGHT,
-                null,
-                Collections.emptyList(),
-                true,
-                JoinAlgType.NestedLoopJoin);
+            OuterJoin outerJoin =
+                    new OuterJoin(
+                            EmptySource.EMPTY_SOURCE,
+                            EmptySource.EMPTY_SOURCE,
+                            "a",
+                            "b",
+                            OuterJoinType.RIGHT,
+                            null,
+                            Collections.emptyList(),
+                            true,
+                            JoinAlgType.NestedLoopJoin);
 
             RowStream stream = getExecutor().executeBinaryOperator(outerJoin, tableA, tableB);
             assertStreamEqual(stream, rightTarget);
@@ -925,15 +943,17 @@ public abstract class AbstractOperatorMemoryExecutorTest {
             tableB.reset();
             rightTarget.reset();
 
-            OuterJoin outerJoin = new OuterJoin(
-                EmptySource.EMPTY_SOURCE,
-                EmptySource.EMPTY_SOURCE,
-                "a", "b",
-                OuterJoinType.RIGHT,
-                null,
-                Collections.emptyList(),
-                true,
-                JoinAlgType.HashJoin);
+            OuterJoin outerJoin =
+                    new OuterJoin(
+                            EmptySource.EMPTY_SOURCE,
+                            EmptySource.EMPTY_SOURCE,
+                            "a",
+                            "b",
+                            OuterJoinType.RIGHT,
+                            null,
+                            Collections.emptyList(),
+                            true,
+                            JoinAlgType.HashJoin);
 
             RowStream stream = getExecutor().executeBinaryOperator(outerJoin, tableA, tableB);
             assertStreamEqual(stream, rightTarget);
@@ -945,270 +965,275 @@ public abstract class AbstractOperatorMemoryExecutorTest {
             tableB.reset();
             rightTarget.reset();
 
-            OuterJoin outerJoin = new OuterJoin(
-                EmptySource.EMPTY_SOURCE,
-                EmptySource.EMPTY_SOURCE,
-                "a", "b",
-                OuterJoinType.RIGHT,
-                null,
-                Collections.emptyList(),
-                true,
-                JoinAlgType.SortedMergeJoin);
+            OuterJoin outerJoin =
+                    new OuterJoin(
+                            EmptySource.EMPTY_SOURCE,
+                            EmptySource.EMPTY_SOURCE,
+                            "a",
+                            "b",
+                            OuterJoinType.RIGHT,
+                            null,
+                            Collections.emptyList(),
+                            true,
+                            JoinAlgType.SortedMergeJoin);
 
             RowStream stream = getExecutor().executeBinaryOperator(outerJoin, tableA, tableB);
             assertStreamEqual(stream, rightTarget);
         }
     }
-    
+
     @Test
     public void testJoinWithTypeCast() throws PhysicalException {
-        Table tableA = generateTableFromValues(
-                true,
-                Arrays.asList(
-                        new Field("a.a", DataType.INTEGER),
-                        new Field("a.b", DataType.DOUBLE),
-                        new Field("a.c", DataType.BOOLEAN)
-                ),
-                Arrays.asList(
-                        Arrays.asList(2, 2.0, true),
-                        Arrays.asList(3, 3.0, false),
-                        Arrays.asList(4, 4.0, true),
-                        Arrays.asList(5, 5.0, false),
-                        Arrays.asList(6, 6.0, true)
-                ));
-    
-        Table tableB = generateTableFromValues(
-                true,
-                Arrays.asList(
-                        new Field("b.b", DataType.INTEGER),
-                        new Field("b.d", DataType.DOUBLE),
-                        new Field("b.e", DataType.BOOLEAN)
-                ),
-                Arrays.asList(
-                        Arrays.asList(1, 1.0, true),
-                        Arrays.asList(3, 3.0, false),
-                        Arrays.asList(5, 5.0, true),
-                        Arrays.asList(7, 7.0, false),
-                        Arrays.asList(9, 9.0, true)
-                ));
-    
-        Table targetInner = generateTableFromValues(
-                false,
-                Arrays.asList(
-                        new Field("a.key", DataType.LONG),
-                        new Field("a.a", DataType.INTEGER),
-                        new Field("a.b", DataType.DOUBLE),
-                        new Field("a.c", DataType.BOOLEAN),
-                        new Field("b.key", DataType.LONG),
-                        new Field("b.b", DataType.INTEGER),
-                        new Field("b.d", DataType.DOUBLE),
-                        new Field("b.e", DataType.BOOLEAN)
-                ),
-                Arrays.asList(
-                        Arrays.asList(2L, 3, 3.0, false, 2L, 3, 3.0, false),
-                        Arrays.asList(4L, 5, 5.0, false, 3L, 5, 5.0, true)
-                ));
-    
-        Table usingTargetInner = generateTableFromValues(
-                false,
-                Arrays.asList(
-                        new Field("a.key", DataType.LONG),
-                        new Field("a.a", DataType.INTEGER),
-                        new Field("a.b", DataType.DOUBLE),
-                        new Field("a.c", DataType.BOOLEAN),
-                        new Field("b.key", DataType.LONG),
-                        new Field("b.d", DataType.DOUBLE),
-                        new Field("b.e", DataType.BOOLEAN)
-                ),
-                Arrays.asList(
-                        Arrays.asList(2L, 3, 3.0, false, 2L, 3.0, false),
-                        Arrays.asList(4L, 5, 5.0, false, 3L, 5.0, true)
-                ));
-    
+        Table tableA =
+                generateTableFromValues(
+                        true,
+                        Arrays.asList(
+                                new Field("a.a", DataType.INTEGER),
+                                new Field("a.b", DataType.DOUBLE),
+                                new Field("a.c", DataType.BOOLEAN)),
+                        Arrays.asList(
+                                Arrays.asList(2, 2.0, true),
+                                Arrays.asList(3, 3.0, false),
+                                Arrays.asList(4, 4.0, true),
+                                Arrays.asList(5, 5.0, false),
+                                Arrays.asList(6, 6.0, true)));
+
+        Table tableB =
+                generateTableFromValues(
+                        true,
+                        Arrays.asList(
+                                new Field("b.b", DataType.INTEGER),
+                                new Field("b.d", DataType.DOUBLE),
+                                new Field("b.e", DataType.BOOLEAN)),
+                        Arrays.asList(
+                                Arrays.asList(1, 1.0, true),
+                                Arrays.asList(3, 3.0, false),
+                                Arrays.asList(5, 5.0, true),
+                                Arrays.asList(7, 7.0, false),
+                                Arrays.asList(9, 9.0, true)));
+
+        Table targetInner =
+                generateTableFromValues(
+                        false,
+                        Arrays.asList(
+                                new Field("a.key", DataType.LONG),
+                                new Field("a.a", DataType.INTEGER),
+                                new Field("a.b", DataType.DOUBLE),
+                                new Field("a.c", DataType.BOOLEAN),
+                                new Field("b.key", DataType.LONG),
+                                new Field("b.b", DataType.INTEGER),
+                                new Field("b.d", DataType.DOUBLE),
+                                new Field("b.e", DataType.BOOLEAN)),
+                        Arrays.asList(
+                                Arrays.asList(2L, 3, 3.0, false, 2L, 3, 3.0, false),
+                                Arrays.asList(4L, 5, 5.0, false, 3L, 5, 5.0, true)));
+
+        Table usingTargetInner =
+                generateTableFromValues(
+                        false,
+                        Arrays.asList(
+                                new Field("a.key", DataType.LONG),
+                                new Field("a.a", DataType.INTEGER),
+                                new Field("a.b", DataType.DOUBLE),
+                                new Field("a.c", DataType.BOOLEAN),
+                                new Field("b.key", DataType.LONG),
+                                new Field("b.d", DataType.DOUBLE),
+                                new Field("b.e", DataType.BOOLEAN)),
+                        Arrays.asList(
+                                Arrays.asList(2L, 3, 3.0, false, 2L, 3.0, false),
+                                Arrays.asList(4L, 5, 5.0, false, 3L, 5.0, true)));
+
         {
             // NestedLoopJoin
             tableA.reset();
             tableB.reset();
             targetInner.reset();
-        
-            InnerJoin innerJoin = new InnerJoin(
-                    EmptySource.EMPTY_SOURCE,
-                    EmptySource.EMPTY_SOURCE,
-                    "a", "b",
-                    new PathFilter("a.b", Op.E, "b.b"),
-                    Collections.emptyList(),
-                    false,
-                    JoinAlgType.NestedLoopJoin);
-        
+
+            InnerJoin innerJoin =
+                    new InnerJoin(
+                            EmptySource.EMPTY_SOURCE,
+                            EmptySource.EMPTY_SOURCE,
+                            "a",
+                            "b",
+                            new PathFilter("a.b", Op.E, "b.b"),
+                            Collections.emptyList(),
+                            false,
+                            JoinAlgType.NestedLoopJoin);
+
             RowStream stream = getExecutor().executeBinaryOperator(innerJoin, tableA, tableB);
             assertStreamEqual(stream, targetInner);
         }
-    
+
         {
             // HashJoin
             tableA.reset();
             tableB.reset();
             targetInner.reset();
-        
-            InnerJoin innerJoin = new InnerJoin(
-                    EmptySource.EMPTY_SOURCE,
-                    EmptySource.EMPTY_SOURCE,
-                    "a", "b",
-                    new PathFilter("a.b", Op.E, "b.b"),
-                    Collections.emptyList(),
-                    false,
-                    JoinAlgType.HashJoin);
-        
+
+            InnerJoin innerJoin =
+                    new InnerJoin(
+                            EmptySource.EMPTY_SOURCE,
+                            EmptySource.EMPTY_SOURCE,
+                            "a",
+                            "b",
+                            new PathFilter("a.b", Op.E, "b.b"),
+                            Collections.emptyList(),
+                            false,
+                            JoinAlgType.HashJoin);
+
             RowStream stream = getExecutor().executeBinaryOperator(innerJoin, tableA, tableB);
             assertStreamEqual(stream, targetInner);
         }
-    
+
         {
             // SortedMergeJoin
             tableA.reset();
             tableB.reset();
             targetInner.reset();
-        
-            InnerJoin innerJoin = new InnerJoin(
-                    EmptySource.EMPTY_SOURCE,
-                    EmptySource.EMPTY_SOURCE,
-                    "a", "b",
-                    new PathFilter("a.b", Op.E, "b.b"),
-                    Collections.emptyList(),
-                    false,
-                    JoinAlgType.SortedMergeJoin);
-        
+
+            InnerJoin innerJoin =
+                    new InnerJoin(
+                            EmptySource.EMPTY_SOURCE,
+                            EmptySource.EMPTY_SOURCE,
+                            "a",
+                            "b",
+                            new PathFilter("a.b", Op.E, "b.b"),
+                            Collections.emptyList(),
+                            false,
+                            JoinAlgType.SortedMergeJoin);
+
             RowStream stream = getExecutor().executeBinaryOperator(innerJoin, tableA, tableB);
             assertStreamEqual(stream, targetInner);
         }
-    
+
         {
             // NestedLoopJoin
             tableA.reset();
             tableB.reset();
             usingTargetInner.reset();
-    
-            InnerJoin innerJoin = new InnerJoin(
-                    EmptySource.EMPTY_SOURCE,
-                    EmptySource.EMPTY_SOURCE,
-                    "a", "b",
-                    null,
-                    Collections.singletonList("b"),
-                    false,
-                    JoinAlgType.NestedLoopJoin);
-        
+
+            InnerJoin innerJoin =
+                    new InnerJoin(
+                            EmptySource.EMPTY_SOURCE,
+                            EmptySource.EMPTY_SOURCE,
+                            "a",
+                            "b",
+                            null,
+                            Collections.singletonList("b"),
+                            false,
+                            JoinAlgType.NestedLoopJoin);
+
             RowStream stream = getExecutor().executeBinaryOperator(innerJoin, tableA, tableB);
             assertStreamEqual(stream, usingTargetInner);
         }
-    
+
         {
             // HashJoin
             tableA.reset();
             tableB.reset();
             usingTargetInner.reset();
-        
-            InnerJoin innerJoin = new InnerJoin(
-                    EmptySource.EMPTY_SOURCE,
-                    EmptySource.EMPTY_SOURCE,
-                    "a", "b",
-                    null,
-                    Collections.singletonList("b"),
-                    false,
-                    JoinAlgType.HashJoin);
-        
+
+            InnerJoin innerJoin =
+                    new InnerJoin(
+                            EmptySource.EMPTY_SOURCE,
+                            EmptySource.EMPTY_SOURCE,
+                            "a",
+                            "b",
+                            null,
+                            Collections.singletonList("b"),
+                            false,
+                            JoinAlgType.HashJoin);
+
             RowStream stream = getExecutor().executeBinaryOperator(innerJoin, tableA, tableB);
             assertStreamEqual(stream, usingTargetInner);
         }
-    
+
         {
             // SortedMergeJoin
             tableA.reset();
             tableB.reset();
             usingTargetInner.reset();
-        
-            InnerJoin innerJoin = new InnerJoin(
-                    EmptySource.EMPTY_SOURCE,
-                    EmptySource.EMPTY_SOURCE,
-                    "a", "b",
-                    null,
-                    Collections.singletonList("b"),
-                    false,
-                    JoinAlgType.SortedMergeJoin);
-        
+
+            InnerJoin innerJoin =
+                    new InnerJoin(
+                            EmptySource.EMPTY_SOURCE,
+                            EmptySource.EMPTY_SOURCE,
+                            "a",
+                            "b",
+                            null,
+                            Collections.singletonList("b"),
+                            false,
+                            JoinAlgType.SortedMergeJoin);
+
             RowStream stream = getExecutor().executeBinaryOperator(innerJoin, tableA, tableB);
             assertStreamEqual(stream, usingTargetInner);
         }
-        
     }
 
     @Test
     public void testSingleJoin() throws PhysicalException {
-        Table tableA = generateTableFromValues(
-                true,
-                Arrays.asList(
-                        new Field("a.a", DataType.INTEGER),
-                        new Field("a.b", DataType.DOUBLE),
-                        new Field("a.c", DataType.BOOLEAN)
-                ),
-                Arrays.asList(
-                        Arrays.asList(2, 2.0, true),
-                        Arrays.asList(3, 3.0, false),
-                        Arrays.asList(4, 4.0, true),
-                        Arrays.asList(5, 5.0, false),
-                        Arrays.asList(6, 6.0, true)
-                ));
+        Table tableA =
+                generateTableFromValues(
+                        true,
+                        Arrays.asList(
+                                new Field("a.a", DataType.INTEGER),
+                                new Field("a.b", DataType.DOUBLE),
+                                new Field("a.c", DataType.BOOLEAN)),
+                        Arrays.asList(
+                                Arrays.asList(2, 2.0, true),
+                                Arrays.asList(3, 3.0, false),
+                                Arrays.asList(4, 4.0, true),
+                                Arrays.asList(5, 5.0, false),
+                                Arrays.asList(6, 6.0, true)));
 
-        Table tableB = generateTableFromValues(
-                true,
-                Arrays.asList(
-                        new Field("b.b", DataType.INTEGER),
-                        new Field("b.e", DataType.BOOLEAN)
-                ),
-                Collections.singletonList(
-                        Arrays.asList(1, true)
-                ));
+        Table tableB =
+                generateTableFromValues(
+                        true,
+                        Arrays.asList(
+                                new Field("b.b", DataType.INTEGER),
+                                new Field("b.e", DataType.BOOLEAN)),
+                        Collections.singletonList(Arrays.asList(1, true)));
 
-        Table tableC = generateTableFromValues(
-                true,
-                Arrays.asList(
-                        new Field("c.a", DataType.INTEGER),
-                        new Field("c.b", DataType.DOUBLE),
-                        new Field("c.c", DataType.BOOLEAN)
-                ),
-                Arrays.asList(
-                        Arrays.asList(2, 2.0, false),
-                        Arrays.asList(3, 3.0, true),
-                        Arrays.asList(4, 4.0, false),
-                        Arrays.asList(5, 5.0, true),
-                        Arrays.asList(6, 6.0, false)
-                ));
+        Table tableC =
+                generateTableFromValues(
+                        true,
+                        Arrays.asList(
+                                new Field("c.a", DataType.INTEGER),
+                                new Field("c.b", DataType.DOUBLE),
+                                new Field("c.c", DataType.BOOLEAN)),
+                        Arrays.asList(
+                                Arrays.asList(2, 2.0, false),
+                                Arrays.asList(3, 3.0, true),
+                                Arrays.asList(4, 4.0, false),
+                                Arrays.asList(5, 5.0, true),
+                                Arrays.asList(6, 6.0, false)));
 
         {
             tableA.reset();
             tableB.reset();
 
-            SingleJoin singleJoin = new SingleJoin(
-                    EmptySource.EMPTY_SOURCE,
-                    EmptySource.EMPTY_SOURCE,
-                    new BoolFilter(true),
-                    JoinAlgType.NestedLoopJoin);
+            SingleJoin singleJoin =
+                    new SingleJoin(
+                            EmptySource.EMPTY_SOURCE,
+                            EmptySource.EMPTY_SOURCE,
+                            new BoolFilter(true),
+                            JoinAlgType.NestedLoopJoin);
 
-            Table target = generateTableFromValues(
-                    true,
-                    Arrays.asList(
-                            new Field("a.a", DataType.INTEGER),
-                            new Field("a.b", DataType.DOUBLE),
-                            new Field("a.c", DataType.BOOLEAN),
-                            new Field("b.b", DataType.INTEGER),
-                            new Field("b.e", DataType.BOOLEAN)
-                    ),
-                    Arrays.asList(
-                            Arrays.asList(2, 2.0, true, 1, true),
-                            Arrays.asList(3, 3.0, false, 1, true),
-                            Arrays.asList(4, 4.0, true, 1, true),
-                            Arrays.asList(5, 5.0, false, 1, true),
-                            Arrays.asList(6, 6.0, true, 1, true)
-                    ));
+            Table target =
+                    generateTableFromValues(
+                            true,
+                            Arrays.asList(
+                                    new Field("a.a", DataType.INTEGER),
+                                    new Field("a.b", DataType.DOUBLE),
+                                    new Field("a.c", DataType.BOOLEAN),
+                                    new Field("b.b", DataType.INTEGER),
+                                    new Field("b.e", DataType.BOOLEAN)),
+                            Arrays.asList(
+                                    Arrays.asList(2, 2.0, true, 1, true),
+                                    Arrays.asList(3, 3.0, false, 1, true),
+                                    Arrays.asList(4, 4.0, true, 1, true),
+                                    Arrays.asList(5, 5.0, false, 1, true),
+                                    Arrays.asList(6, 6.0, true, 1, true)));
 
             RowStream stream = getExecutor().executeBinaryOperator(singleJoin, tableA, tableB);
             assertStreamEqual(stream, target);
@@ -1218,29 +1243,29 @@ public abstract class AbstractOperatorMemoryExecutorTest {
             tableA.reset();
             tableC.reset();
 
-            SingleJoin singleJoin = new SingleJoin(
-                    EmptySource.EMPTY_SOURCE,
-                    EmptySource.EMPTY_SOURCE,
-                    new PathFilter("a.b", Op.E, "c.b"),
-                    JoinAlgType.HashJoin);
+            SingleJoin singleJoin =
+                    new SingleJoin(
+                            EmptySource.EMPTY_SOURCE,
+                            EmptySource.EMPTY_SOURCE,
+                            new PathFilter("a.b", Op.E, "c.b"),
+                            JoinAlgType.HashJoin);
 
-            Table target = generateTableFromValues(
-                    true,
-                    Arrays.asList(
-                            new Field("a.a", DataType.INTEGER),
-                            new Field("a.b", DataType.DOUBLE),
-                            new Field("a.c", DataType.BOOLEAN),
-                            new Field("c.a", DataType.INTEGER),
-                            new Field("c.b", DataType.DOUBLE),
-                            new Field("c.c", DataType.BOOLEAN)
-                    ),
-                    Arrays.asList(
-                            Arrays.asList(2, 2.0, true, 2, 2.0, false),
-                            Arrays.asList(3, 3.0, false, 3, 3.0, true),
-                            Arrays.asList(4, 4.0, true, 4, 4.0, false),
-                            Arrays.asList(5, 5.0, false, 5, 5.0, true),
-                            Arrays.asList(6, 6.0, true, 6, 6.0, false)
-                    ));
+            Table target =
+                    generateTableFromValues(
+                            true,
+                            Arrays.asList(
+                                    new Field("a.a", DataType.INTEGER),
+                                    new Field("a.b", DataType.DOUBLE),
+                                    new Field("a.c", DataType.BOOLEAN),
+                                    new Field("c.a", DataType.INTEGER),
+                                    new Field("c.b", DataType.DOUBLE),
+                                    new Field("c.c", DataType.BOOLEAN)),
+                            Arrays.asList(
+                                    Arrays.asList(2, 2.0, true, 2, 2.0, false),
+                                    Arrays.asList(3, 3.0, false, 3, 3.0, true),
+                                    Arrays.asList(4, 4.0, true, 4, 4.0, false),
+                                    Arrays.asList(5, 5.0, false, 5, 5.0, true),
+                                    Arrays.asList(6, 6.0, true, 6, 6.0, false)));
 
             RowStream stream = getExecutor().executeBinaryOperator(singleJoin, tableA, tableC);
             assertStreamEqual(stream, target);
@@ -1249,62 +1274,61 @@ public abstract class AbstractOperatorMemoryExecutorTest {
 
     @Test
     public void testMarkJoin() throws PhysicalException {
-        Table tableA = generateTableFromValues(
-                true,
-                Arrays.asList(
-                        new Field("a.a", DataType.INTEGER),
-                        new Field("a.b", DataType.DOUBLE),
-                        new Field("a.c", DataType.BOOLEAN)
-                ),
-                Arrays.asList(
-                        Arrays.asList(3, 3.0, true),
-                        Arrays.asList(4, 4.0, false),
-                        Arrays.asList(5, 5.0, true),
-                        Arrays.asList(6, 6.0, false),
-                        Arrays.asList(7, 7.0, true)
-                ));
+        Table tableA =
+                generateTableFromValues(
+                        true,
+                        Arrays.asList(
+                                new Field("a.a", DataType.INTEGER),
+                                new Field("a.b", DataType.DOUBLE),
+                                new Field("a.c", DataType.BOOLEAN)),
+                        Arrays.asList(
+                                Arrays.asList(3, 3.0, true),
+                                Arrays.asList(4, 4.0, false),
+                                Arrays.asList(5, 5.0, true),
+                                Arrays.asList(6, 6.0, false),
+                                Arrays.asList(7, 7.0, true)));
 
-        Table tableB = generateTableFromValues(
-                true,
-                Arrays.asList(
-                        new Field("b.a", DataType.INTEGER),
-                        new Field("b.b", DataType.DOUBLE),
-                        new Field("b.c", DataType.BOOLEAN)
-                ),
-                Arrays.asList(
-                        Arrays.asList(1, 1.0, false),
-                        Arrays.asList(2, 2.0, true),
-                        Arrays.asList(3, 3.0, false),
-                        Arrays.asList(4, 4.0, true),
-                        Arrays.asList(5, 5.0, false)
-                ));
+        Table tableB =
+                generateTableFromValues(
+                        true,
+                        Arrays.asList(
+                                new Field("b.a", DataType.INTEGER),
+                                new Field("b.b", DataType.DOUBLE),
+                                new Field("b.c", DataType.BOOLEAN)),
+                        Arrays.asList(
+                                Arrays.asList(1, 1.0, false),
+                                Arrays.asList(2, 2.0, true),
+                                Arrays.asList(3, 3.0, false),
+                                Arrays.asList(4, 4.0, true),
+                                Arrays.asList(5, 5.0, false)));
 
         {
             tableA.reset();
             tableB.reset();
 
-            MarkJoin markJoin = new MarkJoin(
-                    EmptySource.EMPTY_SOURCE,
-                    EmptySource.EMPTY_SOURCE,
-                    new PathFilter("a.b", Op.L, "b.b"),
-                    "&mark0",
-                    false,
-                    JoinAlgType.NestedLoopJoin);
+            MarkJoin markJoin =
+                    new MarkJoin(
+                            EmptySource.EMPTY_SOURCE,
+                            EmptySource.EMPTY_SOURCE,
+                            new PathFilter("a.b", Op.L, "b.b"),
+                            "&mark0",
+                            false,
+                            JoinAlgType.NestedLoopJoin);
 
-            Table target = generateTableFromValues(true,
-                    Arrays.asList(
-                            new Field("a.a", DataType.INTEGER),
-                            new Field("a.b", DataType.DOUBLE),
-                            new Field("a.c", DataType.BOOLEAN),
-                            new Field("&mark0", DataType.BOOLEAN)
-                    ),
-                    Arrays.asList(
-                            Arrays.asList(3, 3.0, true, true),
-                            Arrays.asList(4, 4.0, false, true),
-                            Arrays.asList(5, 5.0, true, false),
-                            Arrays.asList(6, 6.0, false, false),
-                            Arrays.asList(7, 7.0, true, false)
-                    ));
+            Table target =
+                    generateTableFromValues(
+                            true,
+                            Arrays.asList(
+                                    new Field("a.a", DataType.INTEGER),
+                                    new Field("a.b", DataType.DOUBLE),
+                                    new Field("a.c", DataType.BOOLEAN),
+                                    new Field("&mark0", DataType.BOOLEAN)),
+                            Arrays.asList(
+                                    Arrays.asList(3, 3.0, true, true),
+                                    Arrays.asList(4, 4.0, false, true),
+                                    Arrays.asList(5, 5.0, true, false),
+                                    Arrays.asList(6, 6.0, false, false),
+                                    Arrays.asList(7, 7.0, true, false)));
 
             RowStream stream = getExecutor().executeBinaryOperator(markJoin, tableA, tableB);
             assertStreamEqual(stream, target);
@@ -1314,28 +1338,29 @@ public abstract class AbstractOperatorMemoryExecutorTest {
             tableA.reset();
             tableB.reset();
 
-            MarkJoin markJoin = new MarkJoin(
-                    EmptySource.EMPTY_SOURCE,
-                    EmptySource.EMPTY_SOURCE,
-                    new PathFilter("a.b", Op.E, "b.b"),
-                    "&mark0",
-                    false,
-                    JoinAlgType.HashJoin);
+            MarkJoin markJoin =
+                    new MarkJoin(
+                            EmptySource.EMPTY_SOURCE,
+                            EmptySource.EMPTY_SOURCE,
+                            new PathFilter("a.b", Op.E, "b.b"),
+                            "&mark0",
+                            false,
+                            JoinAlgType.HashJoin);
 
-            Table target = generateTableFromValues(true,
-                    Arrays.asList(
-                            new Field("a.a", DataType.INTEGER),
-                            new Field("a.b", DataType.DOUBLE),
-                            new Field("a.c", DataType.BOOLEAN),
-                            new Field("&mark0", DataType.BOOLEAN)
-                    ),
-                    Arrays.asList(
-                            Arrays.asList(3, 3.0, true, true),
-                            Arrays.asList(4, 4.0, false, true),
-                            Arrays.asList(5, 5.0, true, true),
-                            Arrays.asList(6, 6.0, false, false),
-                            Arrays.asList(7, 7.0, true, false)
-                    ));
+            Table target =
+                    generateTableFromValues(
+                            true,
+                            Arrays.asList(
+                                    new Field("a.a", DataType.INTEGER),
+                                    new Field("a.b", DataType.DOUBLE),
+                                    new Field("a.c", DataType.BOOLEAN),
+                                    new Field("&mark0", DataType.BOOLEAN)),
+                            Arrays.asList(
+                                    Arrays.asList(3, 3.0, true, true),
+                                    Arrays.asList(4, 4.0, false, true),
+                                    Arrays.asList(5, 5.0, true, true),
+                                    Arrays.asList(6, 6.0, false, false),
+                                    Arrays.asList(7, 7.0, true, false)));
 
             RowStream stream = getExecutor().executeBinaryOperator(markJoin, tableA, tableB);
             assertStreamEqual(stream, target);
@@ -1345,33 +1370,33 @@ public abstract class AbstractOperatorMemoryExecutorTest {
             tableA.reset();
             tableB.reset();
 
-            MarkJoin markJoin = new MarkJoin(
-                    EmptySource.EMPTY_SOURCE,
-                    EmptySource.EMPTY_SOURCE,
-                    new PathFilter("a.b", Op.E, "b.b"),
-                    "&mark0",
-                    true,
-                    JoinAlgType.HashJoin);
+            MarkJoin markJoin =
+                    new MarkJoin(
+                            EmptySource.EMPTY_SOURCE,
+                            EmptySource.EMPTY_SOURCE,
+                            new PathFilter("a.b", Op.E, "b.b"),
+                            "&mark0",
+                            true,
+                            JoinAlgType.HashJoin);
 
-            Table target = generateTableFromValues(true,
-                    Arrays.asList(
-                            new Field("a.a", DataType.INTEGER),
-                            new Field("a.b", DataType.DOUBLE),
-                            new Field("a.c", DataType.BOOLEAN),
-                            new Field("&mark0", DataType.BOOLEAN)
-                    ),
-                    Arrays.asList(
-                            Arrays.asList(3, 3.0, true, false),
-                            Arrays.asList(4, 4.0, false, false),
-                            Arrays.asList(5, 5.0, true, false),
-                            Arrays.asList(6, 6.0, false, true),
-                            Arrays.asList(7, 7.0, true, true)
-                    ));
+            Table target =
+                    generateTableFromValues(
+                            true,
+                            Arrays.asList(
+                                    new Field("a.a", DataType.INTEGER),
+                                    new Field("a.b", DataType.DOUBLE),
+                                    new Field("a.c", DataType.BOOLEAN),
+                                    new Field("&mark0", DataType.BOOLEAN)),
+                            Arrays.asList(
+                                    Arrays.asList(3, 3.0, true, false),
+                                    Arrays.asList(4, 4.0, false, false),
+                                    Arrays.asList(5, 5.0, true, false),
+                                    Arrays.asList(6, 6.0, false, true),
+                                    Arrays.asList(7, 7.0, true, true)));
 
             RowStream stream = getExecutor().executeBinaryOperator(markJoin, tableA, tableB);
             assertStreamEqual(stream, target);
         }
-
     }
 
     // for debug
@@ -1391,7 +1416,8 @@ public abstract class AbstractOperatorMemoryExecutorTest {
     @Test
     public void testProjectWithPattern() throws PhysicalException {
         Table table = generateTableForUnaryOperator(true);
-        Project project = new Project(EmptySource.EMPTY_SOURCE, Collections.singletonList("a.a.*"), null);
+        Project project =
+                new Project(EmptySource.EMPTY_SOURCE, Collections.singletonList("a.a.*"), null);
         RowStream stream = getExecutor().executeUnaryOperator(project, table);
 
         Header targetHeader = stream.getHeader();
@@ -1421,7 +1447,8 @@ public abstract class AbstractOperatorMemoryExecutorTest {
         // without wildcast
         {
             table.reset();
-            Reorder reorder = new Reorder(EmptySource.EMPTY_SOURCE, Arrays.asList("a.a.b", "a.a.c", "a.b.c"));
+            Reorder reorder =
+                    new Reorder(EmptySource.EMPTY_SOURCE, Arrays.asList("a.a.b", "a.a.c", "a.b.c"));
             RowStream stream = getExecutor().executeUnaryOperator(reorder, table);
             Header targetHeader = stream.getHeader();
             assertTrue(targetHeader.hasKey());
@@ -1448,7 +1475,8 @@ public abstract class AbstractOperatorMemoryExecutorTest {
         // with wildcast 1
         {
             table.reset();
-            Reorder reorder = new Reorder(EmptySource.EMPTY_SOURCE, Arrays.asList("a.a.*", "a.b.c"));
+            Reorder reorder =
+                    new Reorder(EmptySource.EMPTY_SOURCE, Arrays.asList("a.a.*", "a.b.c"));
             RowStream stream = getExecutor().executeUnaryOperator(reorder, table);
             Header targetHeader = stream.getHeader();
             assertTrue(targetHeader.hasKey());
@@ -1506,7 +1534,8 @@ public abstract class AbstractOperatorMemoryExecutorTest {
     @Test
     public void testProjectWithoutPattern() throws PhysicalException {
         Table table = generateTableForUnaryOperator(true);
-        Project project = new Project(EmptySource.EMPTY_SOURCE, Collections.singletonList("a.a.b"), null);
+        Project project =
+                new Project(EmptySource.EMPTY_SOURCE, Collections.singletonList("a.a.b"), null);
         RowStream stream = getExecutor().executeUnaryOperator(project, table);
 
         Header targetHeader = stream.getHeader();
@@ -1529,13 +1558,14 @@ public abstract class AbstractOperatorMemoryExecutorTest {
     @Test
     public void testProjectWithMixedPattern() throws PhysicalException {
         Table table = generateTableForUnaryOperator(true);
-        Project project = new Project(EmptySource.EMPTY_SOURCE, Arrays.asList("a.*.c", "a.a.b"), null);
+        Project project =
+                new Project(EmptySource.EMPTY_SOURCE, Arrays.asList("a.*.c", "a.a.b"), null);
         RowStream stream = getExecutor().executeUnaryOperator(project, table);
 
         Header targetHeader = stream.getHeader();
         assertTrue(targetHeader.hasKey());
         assertEquals(3, targetHeader.getFields().size());
-        for (Field field: table.getHeader().getFields()) {
+        for (Field field : table.getHeader().getFields()) {
             assertTrue(targetHeader.getFields().contains(field));
         }
 
@@ -1592,7 +1622,11 @@ public abstract class AbstractOperatorMemoryExecutorTest {
     @Test
     public void testSelectWithCompoundFilter() throws PhysicalException {
         Table table = generateTableForUnaryOperator(true);
-        Filter filter = new AndFilter(Arrays.asList(new KeyFilter(Op.LE, 5), new ValueFilter("a.a.b", Op.NE, new Value(3))));
+        Filter filter =
+                new AndFilter(
+                        Arrays.asList(
+                                new KeyFilter(Op.LE, 5),
+                                new ValueFilter("a.a.b", Op.NE, new Value(3))));
         Select select = new Select(EmptySource.EMPTY_SOURCE, filter, null);
         RowStream stream = getExecutor().executeUnaryOperator(select, table);
 
@@ -1612,7 +1646,11 @@ public abstract class AbstractOperatorMemoryExecutorTest {
     @Test
     public void testSortByTimeAsc() throws PhysicalException {
         Table table = generateTableForUnaryOperator(true);
-        Sort sort = new Sort(EmptySource.EMPTY_SOURCE, Collections.singletonList(Constants.KEY), Sort.SortType.ASC);
+        Sort sort =
+                new Sort(
+                        EmptySource.EMPTY_SOURCE,
+                        Collections.singletonList(Constants.KEY),
+                        Sort.SortType.ASC);
         RowStream stream = getExecutor().executeUnaryOperator(sort, table);
         assertEquals(table.getHeader(), stream.getHeader());
         int index = 0;
@@ -1629,7 +1667,11 @@ public abstract class AbstractOperatorMemoryExecutorTest {
     public void testSortByTimeDesc() throws PhysicalException {
         Table table = generateTableForUnaryOperator(true);
         Table copyTable = generateTableForUnaryOperator(true);
-        Sort sort = new Sort(EmptySource.EMPTY_SOURCE, Collections.singletonList(Constants.KEY), Sort.SortType.DESC);
+        Sort sort =
+                new Sort(
+                        EmptySource.EMPTY_SOURCE,
+                        Collections.singletonList(Constants.KEY),
+                        Sort.SortType.DESC);
         RowStream stream = getExecutor().executeUnaryOperator(sort, copyTable);
         assertEquals(table.getHeader(), stream.getHeader());
         int index = table.getRowSize();
@@ -1690,9 +1732,13 @@ public abstract class AbstractOperatorMemoryExecutorTest {
         Map<String, Value> params = new HashMap<>();
         params.put(PARAM_PATHS, new Value("a.a.b"));
 
-        Downsample downsample = new Downsample(EmptySource.EMPTY_SOURCE, 3, 3,
-                new FunctionCall(Avg.getInstance(), params),
-                new TimeRange(0, 11));
+        Downsample downsample =
+                new Downsample(
+                        EmptySource.EMPTY_SOURCE,
+                        3,
+                        3,
+                        new FunctionCall(Avg.getInstance(), params),
+                        new TimeRange(0, 11));
         RowStream stream = getExecutor().executeUnaryOperator(downsample, table);
 
         Header targetHeader = stream.getHeader();
@@ -1723,9 +1769,13 @@ public abstract class AbstractOperatorMemoryExecutorTest {
         Map<String, Value> params = new HashMap<>();
         params.put(PARAM_PATHS, new Value("a.a.b"));
 
-        Downsample downsample = new Downsample(EmptySource.EMPTY_SOURCE, 3, 3,
-                new FunctionCall(Max.getInstance(), params),
-                new TimeRange(0, 11));
+        Downsample downsample =
+                new Downsample(
+                        EmptySource.EMPTY_SOURCE,
+                        3,
+                        3,
+                        new FunctionCall(Max.getInstance(), params),
+                        new TimeRange(0, 11));
         getExecutor().executeUnaryOperator(downsample, table);
         fail();
     }
@@ -1737,10 +1787,9 @@ public abstract class AbstractOperatorMemoryExecutorTest {
         Map<String, Value> params = new HashMap<>();
         params.put(PARAM_PATHS, new Value("a.a.b"));
 
-        MappingTransform mappingTransform = new MappingTransform(
-            EmptySource.EMPTY_SOURCE,
-            new FunctionCall(Last.getInstance(), params)
-        );
+        MappingTransform mappingTransform =
+                new MappingTransform(
+                        EmptySource.EMPTY_SOURCE, new FunctionCall(Last.getInstance(), params));
 
         RowStream stream = getExecutor().executeUnaryOperator(mappingTransform, table);
 
@@ -1769,10 +1818,9 @@ public abstract class AbstractOperatorMemoryExecutorTest {
         Map<String, Value> params = new HashMap<>();
         params.put(PARAM_PATHS, new Value("a.a.b"));
 
-        SetTransform setTransform = new SetTransform(
-            EmptySource.EMPTY_SOURCE,
-            new FunctionCall(Avg.getInstance(), params)
-        );
+        SetTransform setTransform =
+                new SetTransform(
+                        EmptySource.EMPTY_SOURCE, new FunctionCall(Avg.getInstance(), params));
 
         RowStream stream = getExecutor().executeUnaryOperator(setTransform, table);
 
@@ -1796,5 +1844,4 @@ public abstract class AbstractOperatorMemoryExecutorTest {
 
         assertFalse(stream.hasNext());
     }
-
 }

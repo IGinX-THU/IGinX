@@ -18,12 +18,16 @@
  */
 package cn.edu.tsinghua.iginx.session_v2.internal;
 
-
 import cn.edu.tsinghua.iginx.session_v2.*;
 import cn.edu.tsinghua.iginx.session_v2.exception.IginXException;
 import cn.edu.tsinghua.iginx.thrift.CloseSessionReq;
 import cn.edu.tsinghua.iginx.thrift.IService;
 import cn.edu.tsinghua.iginx.thrift.OpenSessionReq;
+import java.util.Collection;
+import java.util.Objects;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.transport.TSocket;
@@ -31,12 +35,6 @@ import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Collection;
-import java.util.Objects;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 public class IginXClientImpl implements IginXClient {
 
@@ -82,7 +80,6 @@ public class IginXClientImpl implements IginXClient {
         } catch (TException e) {
             throw new IginXException("Open session error: ", e);
         }
-
     }
 
     @Override
@@ -156,13 +153,20 @@ public class IginXClientImpl implements IginXClient {
             return;
         }
 
-        autoCloseables.stream().filter(Objects::nonNull).forEach(resource -> {
-            try {
-                resource.close();
-            } catch (Exception e) {
-                logger.warn(String.format("Exception was thrown while closing: %s", resource), e);
-            }
-        });
+        autoCloseables
+                .stream()
+                .filter(Objects::nonNull)
+                .forEach(
+                        resource -> {
+                            try {
+                                resource.close();
+                            } catch (Exception e) {
+                                logger.warn(
+                                        String.format(
+                                                "Exception was thrown while closing: %s", resource),
+                                        e);
+                            }
+                        });
 
         CloseSessionReq req = new CloseSessionReq(sessionId);
         try {
@@ -176,5 +180,4 @@ public class IginXClientImpl implements IginXClient {
             isClosed = true;
         }
     }
-
 }

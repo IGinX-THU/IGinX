@@ -3,11 +3,6 @@ package cn.edu.tsinghua.iginx.jdbc;
 import cn.edu.tsinghua.iginx.constant.GlobalConstant;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-//import com.google.common.primitives.Ints;
-//import com.google.common.primitives.Longs;
-//import com.google.common.primitives.Shorts;
-import lombok.extern.slf4j.Slf4j;
-
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
@@ -19,6 +14,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class IginXResultSet implements ResultSet {
@@ -139,8 +135,7 @@ public class IginXResultSet implements ResultSet {
             return null;
         }
         wasNull = false;
-        if (value instanceof byte[])
-            return new String((byte[]) value);
+        if (value instanceof byte[]) return new String((byte[]) value);
         return value.toString();
     }
 
@@ -154,8 +149,7 @@ public class IginXResultSet implements ResultSet {
             return false;
         }
         wasNull = false;
-        if (value instanceof Boolean)
-            return (boolean) value;
+        if (value instanceof Boolean) return (boolean) value;
         return Boolean.parseBoolean(value.toString());
     }
 
@@ -170,8 +164,7 @@ public class IginXResultSet implements ResultSet {
         }
         wasNull = false;
         long valueAsLong = Long.parseLong(value.toString());
-        if (valueAsLong == Byte.MIN_VALUE)
-            return 0;
+        if (valueAsLong == Byte.MIN_VALUE) return 0;
         if (valueAsLong < Byte.MIN_VALUE || valueAsLong > Byte.MAX_VALUE)
             throwRangeException(value.toString(), columnIndex, Types.TINYINT);
 
@@ -189,8 +182,7 @@ public class IginXResultSet implements ResultSet {
         }
         wasNull = false;
         long valueAsLong = Long.parseLong(value.toString());
-        if (valueAsLong == Short.MIN_VALUE)
-            return 0;
+        if (valueAsLong == Short.MIN_VALUE) return 0;
         if (valueAsLong < Short.MIN_VALUE || valueAsLong > Short.MAX_VALUE)
             throwRangeException(value.toString(), columnIndex, Types.SMALLINT);
         return (short) valueAsLong;
@@ -207,8 +199,7 @@ public class IginXResultSet implements ResultSet {
         }
         wasNull = false;
         long valueAsLong = Long.parseLong(value.toString());
-        if (valueAsLong == Integer.MIN_VALUE)
-            return 0;
+        if (valueAsLong == Integer.MIN_VALUE) return 0;
         if (valueAsLong < Integer.MIN_VALUE || valueAsLong > Integer.MAX_VALUE)
             throwRangeException(value.toString(), columnIndex, Types.INTEGER);
         return (int) valueAsLong;
@@ -227,18 +218,23 @@ public class IginXResultSet implements ResultSet {
         long valueAsLong = 0;
         try {
             valueAsLong = Long.parseLong(value.toString());
-            if (valueAsLong == Long.MIN_VALUE)
-                return 0;
+            if (valueAsLong == Long.MIN_VALUE) return 0;
         } catch (NumberFormatException e) {
             throwRangeException(value.toString(), columnIndex, Types.BIGINT);
         }
         return valueAsLong;
     }
 
-    private void throwRangeException(String valueAsString, int columnIndex, int jdbcType) throws SQLException {
-        throw new SQLException("Numeric value out of range" +
-            "'" + valueAsString + "' in column '" + columnIndex +
-            "' is outside valid range for the jdbcType " + jdbcType);
+    private void throwRangeException(String valueAsString, int columnIndex, int jdbcType)
+            throws SQLException {
+        throw new SQLException(
+                "Numeric value out of range"
+                        + "'"
+                        + valueAsString
+                        + "' in column '"
+                        + columnIndex
+                        + "' is outside valid range for the jdbcType "
+                        + jdbcType);
     }
 
     @Override
@@ -251,10 +247,8 @@ public class IginXResultSet implements ResultSet {
             return 0;
         }
         wasNull = false;
-        if (value instanceof Float)
-            return (float) value;
-        if (value instanceof Double)
-            return new Float((Double) value);
+        if (value instanceof Float) return (float) value;
+        if (value instanceof Double) return new Float((Double) value);
         return Float.parseFloat(value.toString());
     }
 
@@ -268,8 +262,7 @@ public class IginXResultSet implements ResultSet {
             return 0;
         }
         wasNull = false;
-        if (value instanceof Double || value instanceof Float)
-            return (double) value;
+        if (value instanceof Double || value instanceof Float) return (double) value;
         return Double.parseDouble(value.toString());
     }
 
@@ -278,20 +271,13 @@ public class IginXResultSet implements ResultSet {
         checkAvailability(columnIndex, values.get(pos).size());
 
         Object value = values.get(pos).get(columnIndex - 1);
-        if (value == null)
-            return null;
-        if (value instanceof byte[])
-            return (byte[]) value;
-        if (value instanceof String)
-            return ((String) value).getBytes();
-        if (value instanceof Long)
-            return Utils.LongToByteArray((long) value);
-        if (value instanceof Integer)
-            return Utils.IntToByteArray((int) value);
-        if (value instanceof Short)
-            return Utils.ShortToByteArray((short) value);
-        if (value instanceof Byte)
-            return new byte[]{(byte) value};
+        if (value == null) return null;
+        if (value instanceof byte[]) return (byte[]) value;
+        if (value instanceof String) return ((String) value).getBytes();
+        if (value instanceof Long) return Utils.LongToByteArray((long) value);
+        if (value instanceof Integer) return Utils.IntToByteArray((int) value);
+        if (value instanceof Short) return Utils.ShortToByteArray((short) value);
+        if (value instanceof Byte) return new byte[] {(byte) value};
         if (value instanceof Timestamp) {
             return Utils.formatTimestamp((Timestamp) value).getBytes();
         }
@@ -304,10 +290,8 @@ public class IginXResultSet implements ResultSet {
         checkAvailability(columnIndex, values.get(pos).size());
 
         Object value = values.get(pos).get(columnIndex - 1);
-        if (value == null)
-            return null;
-        if (value instanceof Timestamp)
-            return new Date(((Timestamp) value).getTime());
+        if (value == null) return null;
+        if (value instanceof Timestamp) return new Date(((Timestamp) value).getTime());
         return Utils.parseDate(value.toString());
     }
 
@@ -316,10 +300,8 @@ public class IginXResultSet implements ResultSet {
         checkAvailability(columnIndex, values.get(pos).size());
 
         Object value = values.get(pos).get(columnIndex - 1);
-        if (value == null)
-            return null;
-        if (value instanceof Timestamp)
-            return new Time(((Timestamp) value).getTime());
+        if (value == null) return null;
+        if (value instanceof Timestamp) return new Time(((Timestamp) value).getTime());
         Time time = null;
         try {
             time = Utils.parseTime(value.toString());
@@ -333,10 +315,8 @@ public class IginXResultSet implements ResultSet {
         checkAvailability(columnIndex, values.get(pos).size());
 
         Object value = values.get(pos).get(columnIndex - 1);
-        if (value == null)
-            return null;
-        if (value instanceof Timestamp)
-            return (Timestamp) value;
+        if (value == null) return null;
+        if (value instanceof Timestamp) return (Timestamp) value;
         if (value instanceof Long) {
             if (1_0000_0000_0000_0L > (long) value)
                 return Timestamp.from(Instant.ofEpochMilli((long) value));
@@ -363,15 +343,15 @@ public class IginXResultSet implements ResultSet {
         checkAvailability(columnIndex, values.get(pos).size());
 
         Object value = values.get(pos).get(columnIndex - 1);
-        if (value == null)
-            return null;
+        if (value == null) return null;
 
-        if (value instanceof Long || value instanceof Integer || value instanceof Short || value instanceof Byte)
-            return new BigDecimal(Long.parseLong(value.toString()));
+        if (value instanceof Long
+                || value instanceof Integer
+                || value instanceof Short
+                || value instanceof Byte) return new BigDecimal(Long.parseLong(value.toString()));
         if (value instanceof Double || value instanceof Float)
             return BigDecimal.valueOf(Double.parseDouble(value.toString()));
-        if (value instanceof Timestamp)
-            return new BigDecimal(((Timestamp) value).getTime());
+        if (value instanceof Timestamp) return new BigDecimal(((Timestamp) value).getTime());
 
         BigDecimal ret;
         try {
@@ -538,8 +518,7 @@ public class IginXResultSet implements ResultSet {
     public int findColumn(String columnLabel) throws SQLException {
         checkClosed();
         int columnIndex = columnNames.indexOf(columnLabel);
-        if (columnIndex == -1)
-            throw new SQLException("cannot find Column in resultSet");
+        if (columnIndex == -1) throw new SQLException("cannot find Column in resultSet");
         return columnIndex + 1;
     }
 
@@ -569,8 +548,7 @@ public class IginXResultSet implements ResultSet {
     @Override
     public boolean isLast() throws SQLException {
         checkClosed();
-        if (values.size() == 0)
-            return false;
+        if (values.size() == 0) return false;
         return pos == values.size() - 1;
     }
 
@@ -597,8 +575,7 @@ public class IginXResultSet implements ResultSet {
     @Override
     public boolean first() throws SQLException {
         checkClosed();
-        if (values.size() == 0)
-            return false;
+        if (values.size() == 0) return false;
         synchronized (this) {
             pos = 0;
         }
@@ -608,8 +585,7 @@ public class IginXResultSet implements ResultSet {
     @Override
     public boolean last() throws SQLException {
         checkClosed();
-        if (values.size() == 0)
-            return false;
+        if (values.size() == 0) return false;
         synchronized (this) {
             pos = values.size() - 1;
         }
@@ -621,8 +597,7 @@ public class IginXResultSet implements ResultSet {
         checkClosed();
         int row;
         synchronized (this) {
-            if (pos < 0 || pos >= values.size())
-                return 0;
+            if (pos < 0 || pos >= values.size()) return 0;
             row = pos + 1;
         }
         return row;
@@ -663,8 +638,7 @@ public class IginXResultSet implements ResultSet {
     @Override
     public void setFetchSize(int rows) throws SQLException {
         checkClosed();
-        if (rows < 0)
-            throw new SQLException("fetch size should >= 0");
+        if (rows < 0) throw new SQLException("fetch size should >= 0");
         this.fetchSize = rows;
     }
 
@@ -861,17 +835,20 @@ public class IginXResultSet implements ResultSet {
     }
 
     @Override
-    public void updateAsciiStream(String columnLabel, InputStream x, int length) throws SQLException {
+    public void updateAsciiStream(String columnLabel, InputStream x, int length)
+            throws SQLException {
         throw new SQLException(Constant.METHOD_NOT_SUPPORTED);
     }
 
     @Override
-    public void updateBinaryStream(String columnLabel, InputStream x, int length) throws SQLException {
+    public void updateBinaryStream(String columnLabel, InputStream x, int length)
+            throws SQLException {
         throw new SQLException(Constant.METHOD_NOT_SUPPORTED);
     }
 
     @Override
-    public void updateCharacterStream(String columnLabel, Reader reader, int length) throws SQLException {
+    public void updateCharacterStream(String columnLabel, Reader reader, int length)
+            throws SQLException {
         throw new SQLException(Constant.METHOD_NOT_SUPPORTED);
     }
 
@@ -1147,7 +1124,8 @@ public class IginXResultSet implements ResultSet {
     }
 
     @Override
-    public void updateNCharacterStream(String columnLabel, Reader reader, long length) throws SQLException {
+    public void updateNCharacterStream(String columnLabel, Reader reader, long length)
+            throws SQLException {
         throw new SQLException(Constant.METHOD_NOT_SUPPORTED);
     }
 
@@ -1157,7 +1135,8 @@ public class IginXResultSet implements ResultSet {
     }
 
     @Override
-    public void updateBinaryStream(int columnIndex, InputStream x, long length) throws SQLException {
+    public void updateBinaryStream(int columnIndex, InputStream x, long length)
+            throws SQLException {
         throw new SQLException(Constant.METHOD_NOT_SUPPORTED);
     }
 
@@ -1167,27 +1146,32 @@ public class IginXResultSet implements ResultSet {
     }
 
     @Override
-    public void updateAsciiStream(String columnLabel, InputStream x, long length) throws SQLException {
+    public void updateAsciiStream(String columnLabel, InputStream x, long length)
+            throws SQLException {
         throw new SQLException(Constant.METHOD_NOT_SUPPORTED);
     }
 
     @Override
-    public void updateBinaryStream(String columnLabel, InputStream x, long length) throws SQLException {
+    public void updateBinaryStream(String columnLabel, InputStream x, long length)
+            throws SQLException {
         throw new SQLException(Constant.METHOD_NOT_SUPPORTED);
     }
 
     @Override
-    public void updateCharacterStream(String columnLabel, Reader reader, long length) throws SQLException {
+    public void updateCharacterStream(String columnLabel, Reader reader, long length)
+            throws SQLException {
         throw new SQLException(Constant.METHOD_NOT_SUPPORTED);
     }
 
     @Override
-    public void updateBlob(int columnIndex, InputStream inputStream, long length) throws SQLException {
+    public void updateBlob(int columnIndex, InputStream inputStream, long length)
+            throws SQLException {
         throw new SQLException(Constant.METHOD_NOT_SUPPORTED);
     }
 
     @Override
-    public void updateBlob(String columnLabel, InputStream inputStream, long length) throws SQLException {
+    public void updateBlob(String columnLabel, InputStream inputStream, long length)
+            throws SQLException {
         throw new SQLException(Constant.METHOD_NOT_SUPPORTED);
     }
 

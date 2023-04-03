@@ -9,10 +9,9 @@ import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
 import cn.edu.tsinghua.iginx.utils.Pair;
+import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.*;
 
 public class FragmentDeletionCompaction extends Compaction {
 
@@ -25,9 +24,9 @@ public class FragmentDeletionCompaction extends Compaction {
 
     @Override
     public boolean needCompaction() throws Exception {
-        //集中信息（初版主要是统计分区热度）
-        Pair<Map<FragmentMeta, Long>, Map<FragmentMeta, Long>> fragmentHeatPair = metaManager
-            .loadFragmentHeat();
+        // 集中信息（初版主要是统计分区热度）
+        Pair<Map<FragmentMeta, Long>, Map<FragmentMeta, Long>> fragmentHeatPair =
+                metaManager.loadFragmentHeat();
         Map<FragmentMeta, Long> fragmentHeatWriteMap = fragmentHeatPair.getK();
         Map<FragmentMeta, Long> fragmentHeatReadMap = fragmentHeatPair.getV();
         if (fragmentHeatWriteMap == null) {
@@ -59,8 +58,12 @@ public class FragmentDeletionCompaction extends Compaction {
             List<String> paths = new ArrayList<>();
             paths.add(fragmentMeta.getMasterStorageUnitId() + "*");
             List<TimeRange> timeRanges = new ArrayList<>();
-            timeRanges.add(new TimeRange(fragmentMeta.getTimeInterval().getStartTime(), true,
-                fragmentMeta.getTimeInterval().getEndTime(), false));
+            timeRanges.add(
+                    new TimeRange(
+                            fragmentMeta.getTimeInterval().getStartTime(),
+                            true,
+                            fragmentMeta.getTimeInterval().getEndTime(),
+                            false));
             Delete delete = new Delete(new FragmentSource(fragmentMeta), timeRanges, paths, null);
             physicalEngine.execute(new RequestContext(), delete);
         }

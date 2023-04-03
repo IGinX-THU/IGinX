@@ -4,15 +4,15 @@ import cn.edu.tsinghua.iginx.engine.shared.processor.PostPhysicalProcessor;
 import cn.edu.tsinghua.iginx.engine.shared.processor.PrePhysicalProcessor;
 import cn.edu.tsinghua.iginx.sql.statement.StatementType;
 import cn.edu.tsinghua.iginx.utils.Pair;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class PhysicalStatisticsCollector extends AbstractStageStatisticsCollector implements IPhysicalStatisticsCollector {
+public class PhysicalStatisticsCollector extends AbstractStageStatisticsCollector
+        implements IPhysicalStatisticsCollector {
 
     private static final Logger logger = LoggerFactory.getLogger(PhysicalStatisticsCollector.class);
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
@@ -30,7 +30,9 @@ public class PhysicalStatisticsCollector extends AbstractStageStatisticsCollecto
         lock.writeLock().lock();
         count += 1;
         span += statistics.getEndTime() - statistics.getStartTime();
-        Pair<Long, Long> detailInfo = detailInfos.computeIfAbsent(statistics.getContext().getStatement().getType(), e -> new Pair<>(0L, 0L));
+        Pair<Long, Long> detailInfo =
+                detailInfos.computeIfAbsent(
+                        statistics.getContext().getStatement().getType(), e -> new Pair<>(0L, 0L));
         detailInfo.k += 1;
         detailInfo.v += statistics.getEndTime() - statistics.getStartTime();
         lock.writeLock().unlock();
@@ -45,7 +47,14 @@ public class PhysicalStatisticsCollector extends AbstractStageStatisticsCollecto
             logger.info("\taverage-span: " + (1.0 * span) / count + "μs");
         }
         for (Map.Entry<StatementType, Pair<Long, Long>> entry : detailInfos.entrySet()) {
-            logger.info("\t\tFor Request: " + entry.getKey() + ", count: " + entry.getValue().k + ", span: " + entry.getValue().v + "μs");
+            logger.info(
+                    "\t\tFor Request: "
+                            + entry.getKey()
+                            + ", count: "
+                            + entry.getValue().k
+                            + ", span: "
+                            + entry.getValue().v
+                            + "μs");
         }
         lock.readLock().unlock();
     }

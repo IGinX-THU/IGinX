@@ -4,7 +4,6 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.*;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-
 import java.util.*;
 import java.util.regex.Pattern;
 
@@ -43,7 +42,7 @@ public class MongoDBSchema {
         TreeMap<String, String> tags = new TreeMap<>(this.tags);
         StringBuilder builder = new StringBuilder();
         int cnt = 0;
-        for (String key: tags.keySet()) {
+        for (String key : tags.keySet()) {
             if (cnt != 0) {
                 builder.append(',');
             }
@@ -62,7 +61,7 @@ public class MongoDBSchema {
         }
         String[] partitions = tagString.split(",");
         Map<String, String> tags = new TreeMap<>();
-        for (String partition: partitions) {
+        for (String partition : partitions) {
             String[] kAndV = partition.split("=");
             tags.put(kAndV[0], kAndV[1]);
         }
@@ -81,7 +80,6 @@ public class MongoDBSchema {
     public int hashCode() {
         return Objects.hash(name, tags);
     }
-
 
     public static boolean match(MongoDBSchema schema, TagFilter tagFilter) {
         return match(schema.getTags(), tagFilter);
@@ -110,7 +108,7 @@ public class MongoDBSchema {
             return false;
         }
         List<TagFilter> children = tagFilter.getChildren();
-        for (TagFilter child: children) {
+        for (TagFilter child : children) {
             if (!match(tags, child)) {
                 return false;
             }
@@ -123,7 +121,7 @@ public class MongoDBSchema {
             return false;
         }
         List<TagFilter> children = tagFilter.getChildren();
-        for (TagFilter child: children) {
+        for (TagFilter child : children) {
             if (match(tags, child)) {
                 return true;
             }
@@ -153,7 +151,7 @@ public class MongoDBSchema {
             return false;
         }
         List<BasePreciseTagFilter> children = tagFilter.getChildren();
-        for (TagFilter child: children) {
+        for (TagFilter child : children) {
             if (match(tags, child)) {
                 return true;
             }
@@ -183,5 +181,4 @@ public class MongoDBSchema {
     public Field toField() {
         return new Field(name, type, tags);
     }
-
 }

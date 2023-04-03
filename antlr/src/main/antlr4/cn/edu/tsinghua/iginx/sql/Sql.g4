@@ -1,1049 +1,1131 @@
 grammar Sql;
 
 sqlStatement
-    : statement (';')? EOF
-    ;
+   : statement (';')? EOF
+   ;
 
 statement
-    : INSERT INTO path tagList? insertColumnsSpec VALUES insertValuesSpec #insertStatement
-    | DELETE FROM path (COMMA path)* whereClause? withClause? #deleteStatement
-    | EXPLAIN? (LOGICAL|PHYSICAL)? queryClause #selectStatement
-    | COUNT POINTS #countPointsStatement
-    | DELETE TIME SERIES path (COMMA path)* withClause? #deleteTimeSeriesStatement
-    | CLEAR DATA #clearDataStatement
-    | SHOW TIME SERIES (path (COMMA path)*)? withClause? limitClause? #showTimeSeriesStatement
-    | SHOW REPLICA NUMBER #showReplicationStatement
-    | ADD STORAGEENGINE storageEngineSpec #addStorageEngineStatement
-    | SHOW CLUSTER INFO #showClusterInfoStatement
-    | SHOW REGISTER PYTHON TASK #showRegisterTaskStatement
-    | REGISTER udfType PYTHON TASK className=stringLiteral IN filePath=stringLiteral AS name=stringLiteral#registerTaskStatement
-    | DROP PYTHON TASK name=stringLiteral #dropTaskStatement
-    | COMMIT TRANSFORM JOB filePath=stringLiteral #commitTransformJobStatement
-    | SHOW TRANSFORM JOB STATUS jobId=INT #showJobStatusStatement
-    | CANCEL TRANSFORM JOB jobId=INT #cancelJobStatement
-    | SHOW jobStatus TRANSFORM JOB #showEligibleJobStatement
-    | REMOVE HISTORYDATARESOURCE removedStorageEngine (COMMA removedStorageEngine)* #removeHistoryDataResourceStatement
-    | COMPACT #compactStatement
-    ;
+   : INSERT INTO path tagList? insertColumnsSpec VALUES insertValuesSpec # insertStatement
+   | DELETE FROM path (COMMA path)* whereClause? withClause? # deleteStatement
+   | EXPLAIN? (LOGICAL | PHYSICAL)? queryClause # selectStatement
+   | COUNT POINTS # countPointsStatement
+   | DELETE TIME SERIES path (COMMA path)* withClause? # deleteTimeSeriesStatement
+   | CLEAR DATA # clearDataStatement
+   | SHOW TIME SERIES (path (COMMA path)*)? withClause? limitClause? # showTimeSeriesStatement
+   | SHOW REPLICA NUMBER # showReplicationStatement
+   | ADD STORAGEENGINE storageEngineSpec # addStorageEngineStatement
+   | SHOW CLUSTER INFO # showClusterInfoStatement
+   | SHOW REGISTER PYTHON TASK # showRegisterTaskStatement
+   | REGISTER udfType PYTHON TASK className = stringLiteral IN filePath = stringLiteral AS name = stringLiteral # registerTaskStatement
+   | DROP PYTHON TASK name = stringLiteral # dropTaskStatement
+   | COMMIT TRANSFORM JOB filePath = stringLiteral # commitTransformJobStatement
+   | SHOW TRANSFORM JOB STATUS jobId = INT # showJobStatusStatement
+   | CANCEL TRANSFORM JOB jobId = INT # cancelJobStatement
+   | SHOW jobStatus TRANSFORM JOB # showEligibleJobStatement
+   | REMOVE HISTORYDATARESOURCE removedStorageEngine (COMMA removedStorageEngine)* # removeHistoryDataResourceStatement
+   | COMPACT # compactStatement
+   ;
 
 queryClause
-    : selectClause fromClause whereClause? withClause? specialClause? asClause?
-    ;
+   : selectClause fromClause whereClause? withClause? specialClause? asClause?
+   ;
 
 selectClause
    : SELECT expression (COMMA expression)*
    ;
 
 expression
-    : LR_BRACKET inBracketExpr=expression RR_BRACKET
-    | constant
-    | functionName LR_BRACKET path RR_BRACKET asClause?
-    | path asClause?
-    | (PLUS | MINUS) expr=expression
-    | leftExpr=expression (STAR | DIV | MOD) rightExpr=expression
-    | leftExpr=expression (PLUS | MINUS) rightExpr=expression
-    | subquery
-    ;
+   : LR_BRACKET inBracketExpr = expression RR_BRACKET
+   | constant
+   | functionName LR_BRACKET path RR_BRACKET asClause?
+   | path asClause?
+   | (PLUS | MINUS) expr = expression
+   | leftExpr = expression (STAR | DIV | MOD) rightExpr = expression
+   | leftExpr = expression (PLUS | MINUS) rightExpr = expression
+   | subquery
+   ;
 
 functionName
-    : ID
-    | LAST
-    | FIRST_VALUE
-    | LAST_VALUE
-    | MIN
-    | MAX
-    | AVG
-    | COUNT
-    | SUM
-    ;
+   : ID
+   | LAST
+   | FIRST_VALUE
+   | LAST_VALUE
+   | MIN
+   | MAX
+   | AVG
+   | COUNT
+   | SUM
+   ;
 
 whereClause
-    : WHERE orExpression
-    ;
+   : WHERE orExpression
+   ;
 
 orExpression
-    : andExpression (OPERATOR_OR andExpression)*
-    ;
+   : andExpression (OPERATOR_OR andExpression)*
+   ;
 
 andExpression
-    : predicate (OPERATOR_AND predicate)*
-    ;
+   : predicate (OPERATOR_AND predicate)*
+   ;
 
 predicate
-    : (KEY | path | functionName LR_BRACKET path RR_BRACKET) comparisonOperator constant
-    | constant comparisonOperator (KEY | path | functionName LR_BRACKET path RR_BRACKET)
-    | path comparisonOperator path
-    | path OPERATOR_LIKE regex=stringLiteral
-    | OPERATOR_NOT? LR_BRACKET orExpression RR_BRACKET
-    | predicateWithSubquery
-    ;
+   : (KEY | path | functionName LR_BRACKET path RR_BRACKET) comparisonOperator constant
+   | constant comparisonOperator (KEY | path | functionName LR_BRACKET path RR_BRACKET)
+   | path comparisonOperator path
+   | path OPERATOR_LIKE regex = stringLiteral
+   | OPERATOR_NOT? LR_BRACKET orExpression RR_BRACKET
+   | predicateWithSubquery
+   ;
 
 predicateWithSubquery
-    : OPERATOR_NOT? EXISTS subquery
-    | (path | constant | functionName LR_BRACKET path RR_BRACKET) OPERATOR_NOT? IN subquery
-    | (path | constant | functionName LR_BRACKET path RR_BRACKET) comparisonOperator quantifier subquery
-    | (path | constant | functionName LR_BRACKET path RR_BRACKET) comparisonOperator subquery
-    | subquery comparisonOperator (path | constant | functionName LR_BRACKET path RR_BRACKET)
-    | subquery comparisonOperator subquery
-    ;
+   : OPERATOR_NOT? EXISTS subquery
+   | (path | constant | functionName LR_BRACKET path RR_BRACKET) OPERATOR_NOT? IN subquery
+   | (path | constant | functionName LR_BRACKET path RR_BRACKET) comparisonOperator quantifier subquery
+   | (path | constant | functionName LR_BRACKET path RR_BRACKET) comparisonOperator subquery
+   | subquery comparisonOperator (path | constant | functionName LR_BRACKET path RR_BRACKET)
+   | subquery comparisonOperator subquery
+   ;
 
 quantifier
-    : all | some
-    ;
+   : all
+   | some
+   ;
 
 all
-    : ALL
-    ;
+   : ALL
+   ;
 
 some
-    : SOME | ANY
-    ;
+   : SOME
+   | ANY
+   ;
 
 withClause
-    : WITH orTagExpression
-    | WITH_PRECISE orPreciseExpression
-    | WITHOUT TAG
-    ;
+   : WITH orTagExpression
+   | WITH_PRECISE orPreciseExpression
+   | WITHOUT TAG
+   ;
 
 orTagExpression
-    : andTagExpression (OPERATOR_OR andTagExpression)*
-    ;
+   : andTagExpression (OPERATOR_OR andTagExpression)*
+   ;
 
 andTagExpression
-    : tagExpression (OPERATOR_AND tagExpression)*
-    ;
+   : tagExpression (OPERATOR_AND tagExpression)*
+   ;
 
 tagExpression
-    : tagKey OPERATOR_EQ tagValue
-    | LR_BRACKET orTagExpression RR_BRACKET
-    ;
+   : tagKey OPERATOR_EQ tagValue
+   | LR_BRACKET orTagExpression RR_BRACKET
+   ;
 
 orPreciseExpression
-    : andPreciseExpression (OPERATOR_OR andPreciseExpression)*
-    ;
+   : andPreciseExpression (OPERATOR_OR andPreciseExpression)*
+   ;
 
 andPreciseExpression
-    : preciseTagExpression (OPERATOR_AND preciseTagExpression)*
-    ;
+   : preciseTagExpression (OPERATOR_AND preciseTagExpression)*
+   ;
 
 preciseTagExpression
-    : tagKey OPERATOR_EQ tagValue
-    ;
+   : tagKey OPERATOR_EQ tagValue
+   ;
 
 tagList
-    : LS_BRACKET tagEquation (COMMA tagEquation)*  RS_BRACKET
-    ;
+   : LS_BRACKET tagEquation (COMMA tagEquation)* RS_BRACKET
+   ;
 
 tagEquation
-    : tagKey OPERATOR_EQ tagValue
-    ;
+   : tagKey OPERATOR_EQ tagValue
+   ;
 
 tagKey
-    : ID
-    ;
+   : ID
+   ;
 
 tagValue
-    : ID
-    | STAR
-    ;
+   : ID
+   | STAR
+   ;
 
 fromClause
-    : FROM tableReference joinPart*
-    ;
+   : FROM tableReference joinPart*
+   ;
 
 joinPart
-    : COMMA tableReference
-    | CROSS JOIN tableReference
-    | join tableReference (
-        ON orExpression
-        | USING colList
-      )?
-    ;
+   : COMMA tableReference
+   | CROSS JOIN tableReference
+   | join tableReference (ON orExpression | USING colList)?
+   ;
 
 tableReference
-    : path | subquery
-    ;
+   : path
+   | subquery
+   ;
 
 subquery
-    : LR_BRACKET queryClause RR_BRACKET
-    ;
+   : LR_BRACKET queryClause RR_BRACKET
+   ;
 
 colList
-    : path (COMMA path)*
-    ;
+   : path (COMMA path)*
+   ;
 
 join
-    : INNER? JOIN
-    | (LEFT | RIGHT | FULL) OUTER? JOIN
-    | NATURAL ((LEFT | RIGHT) OUTER?)? JOIN
-    ;
-
+   : INNER? JOIN
+   | (LEFT | RIGHT | FULL) OUTER? JOIN
+   | NATURAL ((LEFT | RIGHT) OUTER?)? JOIN
+   ;
 
 specialClause
-    : limitClause
-    | aggregateWithLevelClause
-    | groupByClause havingClause? orderByClause? limitClause?
-    | downsampleWithLevelClause limitClause?
-    | downsampleClause limitClause?
-    | orderByClause limitClause?
-    ;
+   : limitClause
+   | aggregateWithLevelClause
+   | groupByClause havingClause? orderByClause? limitClause?
+   | downsampleWithLevelClause limitClause?
+   | downsampleClause limitClause?
+   | orderByClause limitClause?
+   ;
 
 groupByClause
-    : GROUP BY path (COMMA path)*
-    ;
+   : GROUP BY path (COMMA path)*
+   ;
 
 havingClause
-    : HAVING orExpression
-    ;
+   : HAVING orExpression
+   ;
 
 orderByClause
-    : ORDER BY (KEY | path) (COMMA path)* (DESC | ASC)?
-    ;
+   : ORDER BY (KEY | path) (COMMA path)* (DESC | ASC)?
+   ;
 
 downsampleWithLevelClause
-    : downsampleClause aggregateWithLevelClause
-    ;
+   : downsampleClause aggregateWithLevelClause
+   ;
 
 downsampleClause
-    : OVER LR_BRACKET RANGE aggLen IN timeInterval (STEP aggLen)? RR_BRACKET
-    ;
+   : OVER LR_BRACKET RANGE aggLen IN timeInterval (STEP aggLen)? RR_BRACKET
+   ;
 
 aggLen
-    : (TIME_WITH_UNIT | INT)
-    ;
+   : (TIME_WITH_UNIT | INT)
+   ;
 
 aggregateWithLevelClause
-    : AGG LEVEL OPERATOR_EQ INT (COMMA INT)*
-    ;
+   : AGG LEVEL OPERATOR_EQ INT (COMMA INT)*
+   ;
 
 asClause
-    : AS ID
-    ;
+   : AS ID
+   ;
 
 timeInterval
-    : LS_BRACKET startTime=timeValue COMMA endTime=timeValue RR_BRACKET
-    | LR_BRACKET startTime=timeValue COMMA endTime=timeValue RR_BRACKET
-    | LS_BRACKET startTime=timeValue COMMA endTime=timeValue RS_BRACKET
-    | LR_BRACKET startTime=timeValue COMMA endTime=timeValue RS_BRACKET
-    ;
+   : LS_BRACKET startTime = timeValue COMMA endTime = timeValue RR_BRACKET
+   | LR_BRACKET startTime = timeValue COMMA endTime = timeValue RR_BRACKET
+   | LS_BRACKET startTime = timeValue COMMA endTime = timeValue RS_BRACKET
+   | LR_BRACKET startTime = timeValue COMMA endTime = timeValue RS_BRACKET
+   ;
 
 limitClause
-    : LIMIT INT COMMA INT
-    | LIMIT INT offsetClause?
-    | offsetClause? LIMIT INT
-    ;
+   : LIMIT INT COMMA INT
+   | LIMIT INT offsetClause?
+   | offsetClause? LIMIT INT
+   ;
 
 offsetClause
-    : OFFSET INT
-    ;
+   : OFFSET INT
+   ;
 
 comparisonOperator
-    : type = OPERATOR_GT
-    | type = OPERATOR_GTE
-    | type = OPERATOR_LT
-    | type = OPERATOR_LTE
-    | type = OPERATOR_EQ
-    | type = OPERATOR_NEQ
-    ;
+   : type = OPERATOR_GT
+   | type = OPERATOR_GTE
+   | type = OPERATOR_LT
+   | type = OPERATOR_LTE
+   | type = OPERATOR_EQ
+   | type = OPERATOR_NEQ
+   ;
 
 insertColumnsSpec
-    : LR_BRACKET KEY (COMMA insertPath)+ RR_BRACKET
-    ;
+   : LR_BRACKET KEY (COMMA insertPath)+ RR_BRACKET
+   ;
 
 insertPath
-    : path tagList?
-    ;
+   : path tagList?
+   ;
 
 insertValuesSpec
-    : (COMMA? insertMultiValue)*
-    | LR_BRACKET queryClause RR_BRACKET (TIME_OFFSET OPERATOR_EQ INT)?
-    ;
+   : (COMMA? insertMultiValue)*
+   | LR_BRACKET queryClause RR_BRACKET (TIME_OFFSET OPERATOR_EQ INT)?
+   ;
 
 insertMultiValue
-    : LR_BRACKET timeValue (COMMA constant)+ RR_BRACKET
-    ;
+   : LR_BRACKET timeValue (COMMA constant)+ RR_BRACKET
+   ;
 
 storageEngineSpec
-    : (COMMA? storageEngine)+
-    ;
+   : (COMMA? storageEngine)+
+   ;
 
 storageEngine
-    : LR_BRACKET ip=stringLiteral COMMA port=INT COMMA engineType=stringLiteral COMMA extra=stringLiteral RR_BRACKET
-    ;
+   : LR_BRACKET ip = stringLiteral COMMA port = INT COMMA engineType = stringLiteral COMMA extra = stringLiteral RR_BRACKET
+   ;
 
 timeValue
-    : dateFormat
-    | dateExpression
-    | INT
-    | MINUS? INF
-    ;
+   : dateFormat
+   | dateExpression
+   | INT
+   | MINUS? INF
+   ;
 
 path
-    : nodeName (DOT nodeName)*
-    ;
+   : nodeName (DOT nodeName)*
+   ;
 
 udfType
-    : UDAF
-    | UDTF
-    | UDSF
-    | TRANSFORM
-    ;
+   : UDAF
+   | UDTF
+   | UDSF
+   | TRANSFORM
+   ;
 
 jobStatus
-    : UNKNOWN
-    | FINISHED
-    | CREATED
-    | RUNNING
-    | FAILING
-    | FAILED
-    | CLOSING
-    | CLOSED
-    ;
+   : UNKNOWN
+   | FINISHED
+   | CREATED
+   | RUNNING
+   | FAILING
+   | FAILED
+   | CLOSING
+   | CLOSED
+   ;
 
 nodeName
-    : ID
-    | STAR
-    | valueNode
-    | keyWords
-    ;
+   : ID
+   | STAR
+   | valueNode
+   | keyWords
+   ;
 
 valueNode
-    : stringLiteral
-    | TIME_WITH_UNIT
-    | dateExpression
-    | dateFormat
-    | MINUS? (EXPONENT | INT)
-    | booleanClause
-    ;
+   : stringLiteral
+   | TIME_WITH_UNIT
+   | dateExpression
+   | dateFormat
+   | MINUS? (EXPONENT | INT)
+   | booleanClause
+   ;
 
 keyWords
-    : INSERT
-    | DELETE
-    | SELECT
-    | SHOW
-    | INTO
-    | WHERE
-    | FROM
-    | BY
-    | LIMIT
-    | OFFSET
-    | TIME
-    | KEY
-    | SERIES
-    | TIMESTAMP
-    | GROUP
-    | ORDER
-    | HAVING
-    | AGG
-    | LEVEL
-    | ADD
-    | VALUE
-    | VALUES
-    | NOW
-    | COUNT
-    | LAST
-    | CLEAR
-    | MIN
-    | MAX
-    | AVG
-    | COUNT
-    | SUM
-    | DESC
-    | ASC
-    | STORAGEENGINE
-    | POINTS
-    | DATA
-    | NULL
-    | LAST_VALUE
-    | FIRST_VALUE
-    | REPLICA
-    | IOTDB
-    | INFLUXDB
-    | DROP
-    | REGISTER
-    | PYTHON
-    | TASK
-    | COMMIT
-    | JOB
-    | STATUS
-    | AS
-    | udfType
-    | jobStatus
-    | WITH
-    | WITHOUT
-    | TAG
-    | WITH_PRECISE
-    | TIME_OFFSET
-    | CANCEL
-    | INNER
-    | OUTER
-    | CROSS
-    | NATURAL
-    | LEFT
-    | RIGHT
-    | FULL
-    | JOIN
-    | ON
-    | USING
-    | OVER
-    | RANGE
-    | STEP
-    | REMOVE
-    | HISTORYDATARESOURCE
-    | COMPACT
-    | EXPLAIN
-    | LOGICAL
-    | PHYSICAL
-    ;
+   : INSERT
+   | DELETE
+   | SELECT
+   | SHOW
+   | INTO
+   | WHERE
+   | FROM
+   | BY
+   | LIMIT
+   | OFFSET
+   | TIME
+   | KEY
+   | SERIES
+   | TIMESTAMP
+   | GROUP
+   | ORDER
+   | HAVING
+   | AGG
+   | LEVEL
+   | ADD
+   | VALUE
+   | VALUES
+   | NOW
+   | COUNT
+   | LAST
+   | CLEAR
+   | MIN
+   | MAX
+   | AVG
+   | COUNT
+   | SUM
+   | DESC
+   | ASC
+   | STORAGEENGINE
+   | POINTS
+   | DATA
+   | NULL
+   | LAST_VALUE
+   | FIRST_VALUE
+   | REPLICA
+   | IOTDB
+   | INFLUXDB
+   | DROP
+   | REGISTER
+   | PYTHON
+   | TASK
+   | COMMIT
+   | JOB
+   | STATUS
+   | AS
+   | udfType
+   | jobStatus
+   | WITH
+   | WITHOUT
+   | TAG
+   | WITH_PRECISE
+   | TIME_OFFSET
+   | CANCEL
+   | INNER
+   | OUTER
+   | CROSS
+   | NATURAL
+   | LEFT
+   | RIGHT
+   | FULL
+   | JOIN
+   | ON
+   | USING
+   | OVER
+   | RANGE
+   | STEP
+   | REMOVE
+   | HISTORYDATARESOURCE
+   | COMPACT
+   | EXPLAIN
+   | LOGICAL
+   | PHYSICAL
+   ;
 
 dateFormat
-    : DATETIME
-    | TIME_WITH_UNIT
-    | NOW LR_BRACKET RR_BRACKET
-    ;
+   : DATETIME
+   | TIME_WITH_UNIT
+   | NOW LR_BRACKET RR_BRACKET
+   ;
 
 constant
-    : dateExpression
-    | MINUS? realLiteral // double
-    | MINUS? INT         // long
-    | stringLiteral
-    | booleanClause
-    | NaN
-    | NULL
-    ;
+   : dateExpression
+   | MINUS? realLiteral // double
+   | MINUS? INT // long
+   | stringLiteral
+   | booleanClause
+   | NaN
+   | NULL
+   ;
 
 booleanClause
-    : TRUE
-    | FALSE
-    ;
+   : TRUE
+   | FALSE
+   ;
 
 dateExpression
-    : dateFormat ((PLUS | MINUS) TIME_WITH_UNIT)*
-    ;
+   : dateFormat ((PLUS | MINUS) TIME_WITH_UNIT)*
+   ;
 
 realLiteral
-    : INT DOT (INT | EXPONENT)?
-    | DOT  (INT|EXPONENT)
-    | EXPONENT
-    ;
+   : INT DOT (INT | EXPONENT)?
+   | DOT (INT | EXPONENT)
+   | EXPONENT
+   ;
 
 removedStorageEngine
-    : LR_BRACKET ip=stringLiteral COMMA port=INT COMMA schemaPrefix=stringLiteral COMMA dataPrefix=stringLiteral RR_BRACKET
-    ;
-
-//============================
-// Start of the keywords list
-//============================
+   : LR_BRACKET ip = stringLiteral COMMA port = INT COMMA schemaPrefix = stringLiteral COMMA dataPrefix = stringLiteral RR_BRACKET
+   ;
+   //============================
+   
+   // Start of the keywords list
+   
+   //============================
+   
 INSERT
-    : I N S E R T
-    ;
+   : I N S E R T
+   ;
 
 DELETE
-    : D E L E T E
-    ;
+   : D E L E T E
+   ;
 
 SELECT
-    : S E L E C T
-    ;
+   : S E L E C T
+   ;
 
 SHOW
-    : S H O W
-    ;
+   : S H O W
+   ;
 
 REPLICA
-    : R E P L I C A
-    ;
+   : R E P L I C A
+   ;
 
 NUMBER
-    : N U M B E R
-    ;
+   : N U M B E R
+   ;
 
 CLUSTER
-    : C L U S T E R
-    ;
+   : C L U S T E R
+   ;
 
 INFO
-    : I N F O
-    ;
+   : I N F O
+   ;
 
 WHERE
-    : W H E R E
-    ;
+   : W H E R E
+   ;
 
 IN
-    : I N
-    ;
+   : I N
+   ;
 
 INTO
-    : I N T O
-    ;
+   : I N T O
+   ;
 
 FROM
-    : F R O M
-    ;
+   : F R O M
+   ;
 
 TIMESTAMP
-    : T I M E S T A M P
-    ;
+   : T I M E S T A M P
+   ;
 
 GROUP
-    : G R O U P
-    ;
+   : G R O U P
+   ;
 
 ORDER
-    : O R D E R
-    ;
+   : O R D E R
+   ;
 
 HAVING
-    : H A V I N G
-    ;
+   : H A V I N G
+   ;
 
 AGG
-    : A G G
-    ;
+   : A G G
+   ;
 
 LEVEL
-    : L E V E L
-    ;
+   : L E V E L
+   ;
 
 BY
-    : B Y
-    ;
+   : B Y
+   ;
 
 VALUE
-    : V A L U E
-    ;
+   : V A L U E
+   ;
 
 VALUES
-    : V A L U E S
-    ;
+   : V A L U E S
+   ;
 
 IOTDB
-    : I O T D B
-    ;
+   : I O T D B
+   ;
 
 INFLUXDB
-    : I N F L U X D B
-    ;
+   : I N F L U X D B
+   ;
 
 NOW
-    : N O W
-    ;
+   : N O W
+   ;
 
 TIME
-    : T I M E
-    ;
+   : T I M E
+   ;
 
 KEY
-    : K E Y
-    ;
+   : K E Y
+   ;
 
 TRUE
-    : T R U E
-    ;
+   : T R U E
+   ;
 
 FALSE
-    : F A L S E
-    ;
+   : F A L S E
+   ;
 
 NULL
-    : N U L L
-    ;
+   : N U L L
+   ;
 
 LAST
-    : L A S T
-    ;
+   : L A S T
+   ;
 
 FIRST_VALUE
-    : F I R S T '_' V A L U E
-    ;
+   : F I R S T '_' V A L U E
+   ;
 
 LAST_VALUE
-    : L A S T '_' V A L U E
-    ;
+   : L A S T '_' V A L U E
+   ;
 
 MIN
-    : M I N
-    ;
+   : M I N
+   ;
 
 MAX
-    : M A X
-    ;
+   : M A X
+   ;
 
 AVG
-    : A V G
-    ;
+   : A V G
+   ;
 
 COUNT
-    : C O U N T
-    ;
+   : C O U N T
+   ;
 
 SUM
-    : S U M
-    ;
+   : S U M
+   ;
 
 LIMIT
-    : L I M I T
-    ;
+   : L I M I T
+   ;
 
 OFFSET
-    : O F F S E T
-    ;
+   : O F F S E T
+   ;
 
 DATA
-    : D A T A
-    ;
+   : D A T A
+   ;
 
 ADD
-    : A D D
-    ;
+   : A D D
+   ;
 
 STORAGEENGINE
-    : S T O R A G E E N G I N E
-    ;
+   : S T O R A G E E N G I N E
+   ;
 
 POINTS
-    : P O I N T S
-    ;
+   : P O I N T S
+   ;
 
 CLEAR
-    : C L E A R
-    ;
+   : C L E A R
+   ;
 
 SERIES
-    : S E R I E S
-    ;
+   : S E R I E S
+   ;
 
 DESC
-    : D E S C
-    ;
+   : D E S C
+   ;
 
 ASC
-    : A S C
-    ;
+   : A S C
+   ;
 
 DROP
-    : D R O P
-    ;
+   : D R O P
+   ;
 
 REGISTER
-    : R E G I S T E R
-    ;
+   : R E G I S T E R
+   ;
 
 PYTHON
-    : P Y T H O N
-    ;
+   : P Y T H O N
+   ;
 
 TASK
-    : T A S K
-    ;
+   : T A S K
+   ;
 
 COMMIT
-    : C O M M I T
-    ;
+   : C O M M I T
+   ;
 
 TRANSFORM
-    : T R A N S F O R M
-    ;
+   : T R A N S F O R M
+   ;
 
 JOB
-    : J O B
-    ;
+   : J O B
+   ;
 
 STATUS
-    : S T A T U S
-    ;
+   : S T A T U S
+   ;
 
 AS
-    : A S
-    ;
+   : A S
+   ;
 
 UDAF
-    : U D A F
-    ;
+   : U D A F
+   ;
 
 UDTF
-    : U D T F
-    ;
+   : U D T F
+   ;
 
 UDSF
-    : U D S F
-    ;
+   : U D S F
+   ;
 
 WITH
-    : W I T H
-    ;
+   : W I T H
+   ;
 
 WITHOUT
-    : W I T H O U T
-    ;
+   : W I T H O U T
+   ;
 
 TAG
-    : T A G
-    ;
+   : T A G
+   ;
 
 WITH_PRECISE
-    : W I T H '_' P R E C I S E
-    ;
+   : W I T H '_' P R E C I S E
+   ;
 
 TIME_OFFSET
-    : T I M E '_' O F F S E T
-    ;
+   : T I M E '_' O F F S E T
+   ;
 
 CANCEL
-    : C A N C E L
-    ;
+   : C A N C E L
+   ;
 
 UNKNOWN
-    : U N K N O W N
-    ;
+   : U N K N O W N
+   ;
 
 FINISHED
-    : F I N I S H E D
-    ;
+   : F I N I S H E D
+   ;
 
 CREATED
-    : C R E A T E D
-    ;
+   : C R E A T E D
+   ;
 
 RUNNING
-    : R U N N I N G
-    ;
+   : R U N N I N G
+   ;
 
 FAILING
-    : F A I L I N G
-    ;
+   : F A I L I N G
+   ;
 
 FAILED
-    : F A I L E D
-    ;
+   : F A I L E D
+   ;
 
 CLOSING
-    : C L O S I N G
-    ;
+   : C L O S I N G
+   ;
 
 CLOSED
-    : C L O S E D
-    ;
+   : C L O S E D
+   ;
 
 INNER
-    : I N N E R
-    ;
+   : I N N E R
+   ;
 
 OUTER
-    : O U T E R
-    ;
+   : O U T E R
+   ;
 
 CROSS
-    : C R O S S
-    ;
+   : C R O S S
+   ;
 
 NATURAL
-    : N A T U R A L
-    ;
+   : N A T U R A L
+   ;
 
 LEFT
-    : L E F T
-    ;
+   : L E F T
+   ;
 
 RIGHT
-    : R I G H T
-    ;
+   : R I G H T
+   ;
 
 FULL
-    : F U L L
-    ;
+   : F U L L
+   ;
 
 JOIN
-    : J O I N
-    ;
+   : J O I N
+   ;
 
 ON
-    : O N
-    ;
+   : O N
+   ;
 
 USING
-    : U S I N G
-    ;
+   : U S I N G
+   ;
 
 OVER
-    : O V E R
-    ;
+   : O V E R
+   ;
 
 RANGE
-    : R A N G E
-    ;
+   : R A N G E
+   ;
 
 STEP
-    : S T E P
-    ;
+   : S T E P
+   ;
 
 REMOVE
-    : R E M O V E
-    ;
+   : R E M O V E
+   ;
 
 HISTORYDATARESOURCE
-    : H I S T O R Y D A T A R E S O U R C E
-    ;
+   : H I S T O R Y D A T A R E S O U R C E
+   ;
 
 COMPACT
-    : C O M P A C T
-    ;
+   : C O M P A C T
+   ;
 
 EXPLAIN
-    : E X P L A I N
-    ;
+   : E X P L A I N
+   ;
 
 LOGICAL
-    : L O G I C A L
-    ;
+   : L O G I C A L
+   ;
 
 PHYSICAL
-    : P H Y S I C A L
-    ;
+   : P H Y S I C A L
+   ;
 
 EXISTS
-    : E X I S T S
-    ;
+   : E X I S T S
+   ;
 
 SOME
-    : S O M E
-    ;
+   : S O M E
+   ;
 
 ANY
-    : A N Y
-    ;
+   : A N Y
+   ;
 
 ALL
-    : A L L
-    ;
-//============================
-// End of the keywords list
-//============================
-COMMA : ',';
+   : A L L
+   ;
+   //============================
+   
+   // End of the keywords list
+   
+   //============================
+   
+COMMA
+   : ','
+   ;
 
-STAR : '*';
+STAR
+   : '*'
+   ;
 
-OPERATOR_EQ : '=' | '==';
+OPERATOR_EQ
+   : '='
+   | '=='
+   ;
 
-OPERATOR_GT : '>';
+OPERATOR_GT
+   : '>'
+   ;
 
-OPERATOR_GTE : '>=';
+OPERATOR_GTE
+   : '>='
+   ;
 
-OPERATOR_LT : '<';
+OPERATOR_LT
+   : '<'
+   ;
 
-OPERATOR_LTE : '<=';
+OPERATOR_LTE
+   : '<='
+   ;
 
-OPERATOR_NEQ : '!=' | '<>';
+OPERATOR_NEQ
+   : '!='
+   | '<>'
+   ;
 
-OPERATOR_IN : I N;
+OPERATOR_IN
+   : I N
+   ;
 
-OPERATOR_LIKE: L I K E;
+OPERATOR_LIKE
+   : L I K E
+   ;
 
 OPERATOR_AND
-    : A N D
-    | '&'
-    | '&&'
-    ;
+   : A N D
+   | '&'
+   | '&&'
+   ;
 
 OPERATOR_OR
-    : O R
-    | '|'
-    | '||'
-    ;
+   : O R
+   | '|'
+   | '||'
+   ;
 
 OPERATOR_NOT
-    : N O T | '!'
-    ;
+   : N O T
+   | '!'
+   ;
 
 OPERATOR_CONTAINS
-    : C O N T A I N S
-    ;
+   : C O N T A I N S
+   ;
 
-MINUS : '-';
+MINUS
+   : '-'
+   ;
 
-PLUS : '+';
+PLUS
+   : '+'
+   ;
 
-DIV : '/';
+DIV
+   : '/'
+   ;
 
-MOD : '%';
+MOD
+   : '%'
+   ;
 
-DOT : '.';
+DOT
+   : '.'
+   ;
 
-LR_BRACKET : '(';
+LR_BRACKET
+   : '('
+   ;
 
-RR_BRACKET : ')';
+RR_BRACKET
+   : ')'
+   ;
 
-LS_BRACKET : '[';
+LS_BRACKET
+   : '['
+   ;
 
-RS_BRACKET : ']';
+RS_BRACKET
+   : ']'
+   ;
 
-L_BRACKET : '{';
+L_BRACKET
+   : '{'
+   ;
 
-R_BRACKET : '}';
+R_BRACKET
+   : '}'
+   ;
 
-UNDERLINE : '_';
+UNDERLINE
+   : '_'
+   ;
 
-NaN : 'NaN';
+NaN
+   : 'NaN'
+   ;
 
-INF : I N F;
+INF
+   : I N F
+   ;
 
 stringLiteral
-    : SINGLE_QUOTE_STRING_LITERAL
-    | DOUBLE_QUOTE_STRING_LITERAL
-    ;
+   : SINGLE_QUOTE_STRING_LITERAL
+   | DOUBLE_QUOTE_STRING_LITERAL
+   ;
 
-INT : [0-9]+;
+INT
+   : [0-9]+
+   ;
 
-EXPONENT : INT ('e'|'E') ('+'|'-')? INT ;
+EXPONENT
+   : INT ('e' | 'E') ('+' | '-')? INT
+   ;
 
 TIME_WITH_UNIT
-    :
-    (INT+ (Y|M O|W|D|H|M|S|M S|U S|N S))+
-    ;
+   : (INT+ (Y | M O | W | D | H | M | S | M S | U S | N S))+
+   ;
 
 DATETIME
-    : INT ('-'|'/'|'.') INT ('-'|'/'|'.') INT
-      ((T | WS)
-      INT ':' INT ':' INT (DOT INT)?
-      (('+' | '-') INT ':' INT)?)?
-    ;
+   : INT ('-' | '/' | '.') INT ('-' | '/' | '.') INT ((T | WS) INT ':' INT ':' INT (DOT INT)? (('+' | '-') INT ':' INT)?)?
+   ;
 
-/** Allow unicode rule/token names */
-ID : NAME_CHAR+;
+/** Allow unicode rule/token names */ ID
+   : NAME_CHAR+
+   ;
 
-fragment
-NAME_CHAR
-    :   'A'..'Z'
-    |   'a'..'z'
-    |   '0'..'9'
-    |   '_'
-    |   '@'
-    |   '#'
-    |   ':'
-    |   '$'
-    |   '{'
-    |   '}'
-    |   CN_CHAR
-    ;
+fragment NAME_CHAR
+   : 'A' .. 'Z'
+   | 'a' .. 'z'
+   | '0' .. '9'
+   | '_'
+   | '@'
+   | '#'
+   | ':'
+   | '$'
+   | '{'
+   | '}'
+   | CN_CHAR
+   ;
 
 fragment CN_CHAR
-  : '\u2E85'..'\u9FFF'
-  ;
+   : '\u2E85' .. '\u9FFF'
+   ;
 
 DOUBLE_QUOTE_STRING_LITERAL
-    : '"' ('\\' . | ~'"' )*? '"'
-    ;
+   : '"' ('\\' . | ~ '"')*? '"'
+   ;
 
 SINGLE_QUOTE_STRING_LITERAL
-    : '\'' ('\\' . | ~'\'' )*? '\''
-    ;
-
-//Characters and write it this way for case sensitivity
+   : '\'' ('\\' . | ~ '\'')*? '\''
+   ;
+   //Characters and write it this way for case sensitivity
+   
 fragment A
-    : 'a' | 'A'
-    ;
+   : 'a'
+   | 'A'
+   ;
 
 fragment B
-    : 'b' | 'B'
-    ;
+   : 'b'
+   | 'B'
+   ;
 
 fragment C
-    : 'c' | 'C'
-    ;
+   : 'c'
+   | 'C'
+   ;
 
 fragment D
-    : 'd' | 'D'
-    ;
+   : 'd'
+   | 'D'
+   ;
 
 fragment E
-    : 'e' | 'E'
-    ;
+   : 'e'
+   | 'E'
+   ;
 
 fragment F
-    : 'f' | 'F'
-    ;
+   : 'f'
+   | 'F'
+   ;
 
 fragment G
-    : 'g' | 'G'
-    ;
+   : 'g'
+   | 'G'
+   ;
 
 fragment H
-    : 'h' | 'H'
-    ;
+   : 'h'
+   | 'H'
+   ;
 
 fragment I
-    : 'i' | 'I'
-    ;
+   : 'i'
+   | 'I'
+   ;
 
 fragment J
-    : 'j' | 'J'
-    ;
+   : 'j'
+   | 'J'
+   ;
 
 fragment K
-    : 'k' | 'K'
-    ;
+   : 'k'
+   | 'K'
+   ;
 
 fragment L
-    : 'l' | 'L'
-    ;
+   : 'l'
+   | 'L'
+   ;
 
 fragment M
-    : 'm' | 'M'
-    ;
+   : 'm'
+   | 'M'
+   ;
 
 fragment N
-    : 'n' | 'N'
-    ;
+   : 'n'
+   | 'N'
+   ;
 
 fragment O
-    : 'o' | 'O'
-    ;
+   : 'o'
+   | 'O'
+   ;
 
 fragment P
-    : 'p' | 'P'
-    ;
+   : 'p'
+   | 'P'
+   ;
 
 fragment Q
-    : 'q' | 'Q'
-    ;
+   : 'q'
+   | 'Q'
+   ;
 
 fragment R
-    : 'r' | 'R'
-    ;
+   : 'r'
+   | 'R'
+   ;
 
 fragment S
-    : 's' | 'S'
-    ;
+   : 's'
+   | 'S'
+   ;
 
 fragment T
-    : 't' | 'T'
-    ;
+   : 't'
+   | 'T'
+   ;
 
 fragment U
-    : 'u' | 'U'
-    ;
+   : 'u'
+   | 'U'
+   ;
 
 fragment V
-    : 'v' | 'V'
-    ;
+   : 'v'
+   | 'V'
+   ;
 
 fragment W
-    : 'w' | 'W'
-    ;
+   : 'w'
+   | 'W'
+   ;
 
 fragment X
-    : 'x' | 'X'
-    ;
+   : 'x'
+   | 'X'
+   ;
 
 fragment Y
-    : 'y' | 'Y'
-    ;
+   : 'y'
+   | 'Y'
+   ;
 
 fragment Z
-    : 'z' | 'Z'
-    ;
+   : 'z'
+   | 'Z'
+   ;
 
 WS
-    : [ \r\n\t]+ -> channel(HIDDEN)
-    ;
+   : [ \r\n\t]+ -> channel (HIDDEN)
+   ;
+

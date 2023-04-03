@@ -49,9 +49,6 @@ public class IginXHeader {
 
     @Override
     public String toString() {
-        return "IginXHeader{" +
-                "time=" + time +
-                ", columns=" + columns +
-                '}';
+        return "IginXHeader{" + "time=" + time + ", columns=" + columns + '}';
     }
 }

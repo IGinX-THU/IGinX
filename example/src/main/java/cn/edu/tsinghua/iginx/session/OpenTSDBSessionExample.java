@@ -3,7 +3,6 @@ package cn.edu.tsinghua.iginx.session;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,7 +23,8 @@ public class OpenTSDBSessionExample {
     private static final int INTERVAL = 10;
     private static Session session;
 
-    public static void main(String[] args) throws SessionException, ExecutionException, InterruptedException {
+    public static void main(String[] args)
+            throws SessionException, ExecutionException, InterruptedException {
         session = new Session("127.0.0.1", 6888, "root", "root");
         // 打开 Session
         session.openSession();
@@ -33,9 +33,9 @@ public class OpenTSDBSessionExample {
 
         showTimeSeries();
 
-//        queryData();
+        //        queryData();
 
-//        deleteDataInColumns();
+        //        deleteDataInColumns();
 
         session.closeSession();
     }
@@ -67,8 +67,9 @@ public class OpenTSDBSessionExample {
 
     private static void showTimeSeries() throws SessionException, ExecutionException {
         List<Column> columns = session.showColumns();
-        for(Column column: columns){
-            System.out.println(String.format("Path: %s, Type: %s", column.getPath(), column.getDataType()));
+        for (Column column : columns) {
+            System.out.println(
+                    String.format("Path: %s, Type: %s", column.getPath(), column.getDataType()));
         }
     }
 

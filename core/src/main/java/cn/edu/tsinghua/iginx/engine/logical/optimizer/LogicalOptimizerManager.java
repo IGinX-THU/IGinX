@@ -5,18 +5,17 @@ import org.slf4j.LoggerFactory;
 
 public class LogicalOptimizerManager {
 
-    private final static Logger logger = LoggerFactory.getLogger(LogicalOptimizerManager.class);
+    private static final Logger logger = LoggerFactory.getLogger(LogicalOptimizerManager.class);
 
-    private final static LogicalOptimizerManager instance = new LogicalOptimizerManager();
+    private static final LogicalOptimizerManager instance = new LogicalOptimizerManager();
 
-    private final static String REMOVE_NOT = "remove_not";
+    private static final String REMOVE_NOT = "remove_not";
 
-    private final static String FILTER_PUSH_DOWN = "filter_push_down";
+    private static final String FILTER_PUSH_DOWN = "filter_push_down";
 
-    private final static String FILTER_FRAGMENT = "filter_fragment";
+    private static final String FILTER_FRAGMENT = "filter_fragment";
 
-    private LogicalOptimizerManager() {
-    }
+    private LogicalOptimizerManager() {}
 
     public static LogicalOptimizerManager getInstance() {
         return instance;
@@ -36,7 +35,8 @@ public class LogicalOptimizerManager {
             case FILTER_FRAGMENT:
                 return FilterFragmentOptimizer.getInstance();
             default:
-                throw new IllegalArgumentException(String.format("unknown logical optimizer: %s", name));
+                throw new IllegalArgumentException(
+                        String.format("unknown logical optimizer: %s", name));
         }
     }
 }

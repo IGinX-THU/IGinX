@@ -1,10 +1,10 @@
 package cn.edu.tsinghua.iginx.engine.logical.utils;
 
+import static org.junit.Assert.assertEquals;
+
 import cn.edu.tsinghua.iginx.metadata.entity.TimeSeriesInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.TimeSeriesRange;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
 
 public class PathUtilsTest {
 

@@ -61,8 +61,10 @@ public class PathFilter implements Filter {
             return false;
         }
         PathFilter that = (PathFilter) o;
-        return type == that.type && Objects.equals(pathA, that.pathA) && Objects
-            .equals(pathB, that.pathB) && op == that.op;
+        return type == that.type
+                && Objects.equals(pathA, that.pathA)
+                && Objects.equals(pathB, that.pathB)
+                && op == that.op;
     }
 
     @Override

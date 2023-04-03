@@ -1,5 +1,8 @@
 package cn.edu.tsinghua.iginx.transform.driver;
 
+import static cn.edu.tsinghua.iginx.transform.utils.Constants.UDF_CLASS;
+import static cn.edu.tsinghua.iginx.transform.utils.Constants.UDF_FUNC;
+
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.constant.GlobalConstant;
@@ -8,14 +11,10 @@ import cn.edu.tsinghua.iginx.transform.api.Writer;
 import cn.edu.tsinghua.iginx.transform.data.BatchData;
 import cn.edu.tsinghua.iginx.transform.data.PemjaReader;
 import cn.edu.tsinghua.iginx.transform.exception.WriteBatchException;
+import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pemja.core.PythonInterpreter;
-
-import java.util.*;
-
-import static cn.edu.tsinghua.iginx.transform.utils.Constants.UDF_FUNC;
-import static cn.edu.tsinghua.iginx.transform.utils.Constants.UDF_CLASS;
 
 public class PemjaWorker {
 
@@ -25,9 +24,9 @@ public class PemjaWorker {
 
     private final Writer writer;
 
-    private final static Logger logger = LoggerFactory.getLogger(PemjaWorker.class);
+    private static final Logger logger = LoggerFactory.getLogger(PemjaWorker.class);
 
-    private final static Config config = ConfigDescriptor.getInstance().getConfig();
+    private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
     public PemjaWorker(String identifier, PythonInterpreter interpreter, Writer writer) {
         this.identifier = identifier;
@@ -46,16 +45,19 @@ public class PemjaWorker {
         header.getFields().forEach(field -> headerRow.add(field.getFullName()));
         data.add(headerRow);
 
-        batchData.getRowList().forEach(row -> {
-            if (row.getHeader().hasKey()) {
-                List<Object> rowData = new ArrayList<>();
-                rowData.add(row.getKey());
-                rowData.addAll(Arrays.asList(row.getValues()));
-                data.add(rowData);
-            } else {
-                data.add(Arrays.asList(row.getValues()));
-            }
-        });
+        batchData
+                .getRowList()
+                .forEach(
+                        row -> {
+                            if (row.getHeader().hasKey()) {
+                                List<Object> rowData = new ArrayList<>();
+                                rowData.add(row.getKey());
+                                rowData.addAll(Arrays.asList(row.getValues()));
+                                data.add(rowData);
+                            } else {
+                                data.add(Arrays.asList(row.getValues()));
+                            }
+                        });
 
         List<Object> res = (List<Object>) interpreter.invokeMethod(UDF_CLASS, UDF_FUNC, data);
         PemjaReader reader = new PemjaReader(res, config.getBatchSize());
@@ -66,7 +68,8 @@ public class PemjaWorker {
                 writer.writeBatch(nextBatchData);
             }
         } catch (WriteBatchException e) {
-            logger.error(String.format("PemjaWorker identifier=%s fail to writer data.", identifier));
+            logger.error(
+                    String.format("PemjaWorker identifier=%s fail to writer data.", identifier));
         }
     }
 

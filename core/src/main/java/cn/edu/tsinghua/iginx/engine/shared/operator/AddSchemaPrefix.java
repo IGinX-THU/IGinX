@@ -5,7 +5,7 @@ import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 
 public class AddSchemaPrefix extends AbstractUnaryOperator {
 
-    private final String schemaPrefix;// 可以为 null
+    private final String schemaPrefix; // 可以为 null
 
     public AddSchemaPrefix(Source source, String schemaPrefix) {
         super(OperatorType.AddSchemaPrefix, source);

@@ -2,12 +2,11 @@ package cn.edu.tsinghua.iginx.rest.bean;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.Data;
-import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
+import lombok.Data;
+import org.slf4j.LoggerFactory;
 
 @Data
 public class Annotation {
@@ -43,7 +42,6 @@ public class Annotation {
             e.printStackTrace();
             LOGGER.error("Wrong annotation form in database");
         }
-
     }
 
     public boolean isEqual(Annotation p) {
@@ -71,12 +69,12 @@ public class Annotation {
         if (!Pattern.matches(annotationLimit.getTitle(), title)) {
             return false;
         }
-        //LHZ之后再改，目前没什么用
-//        for (String tag : tags) {
-//            if (Pattern.matches(annotationLimit.getTag(), tag)) {
-//                return true;
-//            }
-//        }
+        // LHZ之后再改，目前没什么用
+        //        for (String tag : tags) {
+        //            if (Pattern.matches(annotationLimit.getTag(), tag)) {
+        //                return true;
+        //            }
+        //        }
         return false;
     }
 }

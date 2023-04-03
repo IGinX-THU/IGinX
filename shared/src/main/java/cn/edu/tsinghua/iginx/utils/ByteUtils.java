@@ -20,7 +20,6 @@ package cn.edu.tsinghua.iginx.utils;
 
 import cn.edu.tsinghua.iginx.exceptions.UnsupportedDataTypeException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
@@ -35,7 +34,8 @@ public class ByteUtils {
         }
     }
 
-    public static List<List<Object>> getValuesFromBufferAndBitmaps(List<DataType> dataTypeList, List<ByteBuffer> valuesList, List<ByteBuffer> bitmapList) {
+    public static List<List<Object>> getValuesFromBufferAndBitmaps(
+            List<DataType> dataTypeList, List<ByteBuffer> valuesList, List<ByteBuffer> bitmapList) {
         List<List<Object>> values = new ArrayList<>();
         for (int i = 0; i < valuesList.size(); i++) {
             List<Object> tempValues = new ArrayList<>();
@@ -44,7 +44,8 @@ public class ByteUtils {
             Bitmap bitmap = new Bitmap(dataTypeList.size(), bitmapBuffer.array());
             for (int j = 0; j < dataTypeList.size(); j++) {
                 if (bitmap.get(j)) {
-                    tempValues.add(getValueFromByteBufferByDataType(valuesBuffer, dataTypeList.get(j)));
+                    tempValues.add(
+                            getValueFromByteBufferByDataType(valuesBuffer, dataTypeList.get(j)));
                 } else {
                     tempValues.add(null);
                 }
@@ -86,7 +87,11 @@ public class ByteUtils {
         return values;
     }
 
-    public static Object[] getColumnValuesByDataType(List<ByteBuffer> valuesList, List<DataType> dataTypeList, List<ByteBuffer> bitmapList, int timestampsSize) {
+    public static Object[] getColumnValuesByDataType(
+            List<ByteBuffer> valuesList,
+            List<DataType> dataTypeList,
+            List<ByteBuffer> bitmapList,
+            int timestampsSize) {
         Object[] tempValues = new Object[valuesList.size()];
         for (int i = 0; i < valuesList.size(); i++) {
             Bitmap bitmap = new Bitmap(timestampsSize, bitmapList.get(i).array());
@@ -140,7 +145,8 @@ public class ByteUtils {
         return tempValues;
     }
 
-    public static Object[] getRowValuesByDataType(List<ByteBuffer> valuesList, List<DataType> dataTypeList, List<ByteBuffer> bitmapList) {
+    public static Object[] getRowValuesByDataType(
+            List<ByteBuffer> valuesList, List<DataType> dataTypeList, List<ByteBuffer> bitmapList) {
         Object[] tempValues = new Object[valuesList.size()];
         for (int i = 0; i < valuesList.size(); i++) {
             Bitmap bitmap = new Bitmap(dataTypeList.size(), bitmapList.get(i).array());
@@ -416,7 +422,6 @@ public class ByteUtils {
         }
         return value;
     }
-
 
     public static ByteBuffer getByteBufferFromObjectByDataType(Object value, DataType dataType) {
         ByteBuffer buffer;

@@ -1,32 +1,32 @@
-name: 'iginx-runner'
-description: 'iginx runner'
+name: "iginx-runner"
+description: "iginx runner"
 inputs:
-  version:
-    description: 'iginx runner version'
-    required: false
-    default: 0.6.0-SNAPSHOT
-  if-stop:
-    description: 'to stop the iginx'
-    required: false
-    default: "false"
+    version:
+        description: "iginx runner version"
+        required: false
+        default: 0.6.0-SNAPSHOT
+    if-stop:
+        description: "to stop the iginx"
+        required: false
+        default: "false"
 runs:
-  using: "composite" # Mandatory parameter
-  steps:
-    - if: inputs.if-stop=='false'
-      name: Start IginX
-      shell: bash
-      run: |
-        if [ "$RUNNER_OS" == "Linux" ]; then
-          chmod +x "${GITHUB_WORKSPACE}/.github/iginx_runner_linux.sh"
-          "${GITHUB_WORKSPACE}/.github/iginx_runner_linux.sh"
-        elif [ "$RUNNER_OS" == "macOS" ]; then
-          chmod +x "${GITHUB_WORKSPACE}/.github/iginx_runner_macOS.sh"
-          "${GITHUB_WORKSPACE}/.github/iginx_runner_macOS.sh"
-        fi
+    using: "composite" # Mandatory parameter
+    steps:
+        - if: inputs.if-stop=='false'
+          name: Start IginX
+          shell: bash
+          run: |
+              if [ "$RUNNER_OS" == "Linux" ]; then
+                chmod +x "${GITHUB_WORKSPACE}/.github/iginx_runner_linux.sh"
+                "${GITHUB_WORKSPACE}/.github/iginx_runner_linux.sh"
+              elif [ "$RUNNER_OS" == "macOS" ]; then
+                chmod +x "${GITHUB_WORKSPACE}/.github/iginx_runner_macOS.sh"
+                "${GITHUB_WORKSPACE}/.github/iginx_runner_macOS.sh"
+              fi
 
-    - if: inputs.if-stop=='true'
-      name: Stop Iginx
-      shell: bash
-      run: |
-        chmod +x "${GITHUB_WORKSPACE}/.github/iginx_kill.sh"
-        "${GITHUB_WORKSPACE}/.github/iginx_kill.sh"
+        - if: inputs.if-stop=='true'
+          name: Stop Iginx
+          shell: bash
+          run: |
+              chmod +x "${GITHUB_WORKSPACE}/.github/iginx_kill.sh"
+              "${GITHUB_WORKSPACE}/.github/iginx_kill.sh"

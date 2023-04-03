@@ -8,5 +8,4 @@ public interface IPhysicalStatisticsCollector {
     PrePhysicalProcessor getPrePhysicalProcessor();
 
     PostPhysicalProcessor getPostPhysicalProcessor();
-
 }

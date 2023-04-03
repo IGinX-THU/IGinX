@@ -27,11 +27,10 @@ import io.moquette.broker.config.IConfig;
 import io.moquette.broker.config.MemoryConfig;
 import io.moquette.broker.security.IAuthenticator;
 import io.moquette.interception.InterceptHandler;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.List;
 import java.util.Properties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MQTTService implements Runnable {
 
@@ -41,9 +40,7 @@ public class MQTTService implements Runnable {
 
     private final Server server = new Server();
 
-    protected MQTTService() {
-
-    }
+    protected MQTTService() {}
 
     public static MQTTService getInstance() {
         if (INSTANCE == null) {
@@ -64,25 +61,35 @@ public class MQTTService implements Runnable {
 
         server.startServer(config, handlers, null, authenticator, null);
 
-        logger.info("Start MQTT service successfully, listening on ip {} port {}",
-            iginxConfig.getMqttHost(), iginxConfig.getMqttPort());
+        logger.info(
+                "Start MQTT service successfully, listening on ip {} port {}",
+                iginxConfig.getMqttHost(),
+                iginxConfig.getMqttPort());
 
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            logger.info("Stopping IoTDB MQTT service...");
-            shutdown();
-            logger.info("IoTDB MQTT service stopped.");
-        }));
+        Runtime.getRuntime()
+                .addShutdownHook(
+                        new Thread(
+                                () -> {
+                                    logger.info("Stopping IoTDB MQTT service...");
+                                    shutdown();
+                                    logger.info("IoTDB MQTT service stopped.");
+                                }));
     }
 
     private IConfig createBrokerConfig(Config iginxConfig) {
         Properties properties = new Properties();
         properties.setProperty(BrokerConstants.HOST_PROPERTY_NAME, iginxConfig.getMqttHost());
-        properties.setProperty(BrokerConstants.PORT_PROPERTY_NAME, String.valueOf(iginxConfig.getMqttPort()));
-        properties.setProperty(BrokerConstants.BROKER_INTERCEPTOR_THREAD_POOL_SIZE, String.valueOf(iginxConfig.getMqttHandlerPoolSize()));
+        properties.setProperty(
+                BrokerConstants.PORT_PROPERTY_NAME, String.valueOf(iginxConfig.getMqttPort()));
+        properties.setProperty(
+                BrokerConstants.BROKER_INTERCEPTOR_THREAD_POOL_SIZE,
+                String.valueOf(iginxConfig.getMqttHandlerPoolSize()));
         properties.setProperty(BrokerConstants.IMMEDIATE_BUFFER_FLUSH_PROPERTY_NAME, "true");
         properties.setProperty(BrokerConstants.ALLOW_ANONYMOUS_PROPERTY_NAME, "false");
         properties.setProperty(BrokerConstants.ALLOW_ZERO_BYTE_CLIENT_ID_PROPERTY_NAME, "true");
-        properties.setProperty(BrokerConstants.NETTY_MAX_BYTES_PROPERTY_NAME, String.valueOf(iginxConfig.getMqttMaxMessageSize()));
+        properties.setProperty(
+                BrokerConstants.NETTY_MAX_BYTES_PROPERTY_NAME,
+                String.valueOf(iginxConfig.getMqttMaxMessageSize()));
         return new MemoryConfig(properties);
     }
 
@@ -94,5 +101,4 @@ public class MQTTService implements Runnable {
     public void shutdown() {
         server.stopServer();
     }
-
 }

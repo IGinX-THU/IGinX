@@ -58,9 +58,6 @@ public class Pair<K, V> {
 
     @Override
     public String toString() {
-        return "Pair{" +
-                "k=" + k +
-                ", v=" + v +
-                '}';
+        return "Pair{" + "k=" + k + ", v=" + v + '}';
     }
 }

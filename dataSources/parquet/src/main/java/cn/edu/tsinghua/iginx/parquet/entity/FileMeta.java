@@ -35,9 +35,13 @@ public class FileMeta {
         this.deleteRanges = new HashMap<>();
     }
 
-    public FileMeta(String extraPath, String dataPath, long startTime, long endTime,
-        Map<String, DataType> pathMap,
-        Map<String, List<TimeRange>> deleteRanges) {
+    public FileMeta(
+            String extraPath,
+            String dataPath,
+            long startTime,
+            long endTime,
+            Map<String, DataType> pathMap,
+            Map<String, List<TimeRange>> deleteRanges) {
         this.extraPath = extraPath;
         this.dataPath = dataPath;
         this.startTime = startTime;
@@ -71,14 +75,17 @@ public class FileMeta {
         builder.append("#");
         if (timeRanges != null) {
             for (TimeRange timeRange : timeRanges) {
-                builder.append(timeRange.getBeginTime()).append(",").append(timeRange.getEndTime()).append(",");
+                builder.append(timeRange.getBeginTime())
+                        .append(",")
+                        .append(timeRange.getEndTime())
+                        .append(",");
             }
             builder.deleteCharAt(builder.length() - 1);
         }
         builder.append("\n");
 
         File file = new File(extraPath);
-        FileOutputStream fos = new FileOutputStream(file,true);
+        FileOutputStream fos = new FileOutputStream(file, true);
         OutputStreamWriter osw = new OutputStreamWriter(fos, StandardCharsets.UTF_8);
         osw.write(builder.toString());
 

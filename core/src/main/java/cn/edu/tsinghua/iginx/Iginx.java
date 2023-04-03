@@ -55,16 +55,17 @@ public class Iginx {
 
     private void startServer() throws TTransportException {
         TProcessor processor = new IService.Processor<IService.Iface>(IginxWorker.getInstance());
-        TServerSocket serverTransport = new TServerSocket(ConfigDescriptor.getInstance().getConfig().getPort());
-        TThreadPoolServer.Args args = new TThreadPoolServer.Args(serverTransport).processor(processor)
-            .minWorkerThreads(config.getMinThriftWorkerThreadNum())
-            .maxWorkerThreads(config.getMaxThriftWrokerThreadNum());
+        TServerSocket serverTransport =
+                new TServerSocket(ConfigDescriptor.getInstance().getConfig().getPort());
+        TThreadPoolServer.Args args =
+                new TThreadPoolServer.Args(serverTransport)
+                        .processor(processor)
+                        .minWorkerThreads(config.getMinThriftWorkerThreadNum())
+                        .maxWorkerThreads(config.getMaxThriftWrokerThreadNum());
         args.protocolFactory(new TBinaryProtocol.Factory());
         TServer server = new TThreadPoolServer(args);
         logger.info("iginx starts successfully!");
         System.out.print("\n\nIGinX is now in service......\n\n");
         server.serve();
     }
-
-
 }

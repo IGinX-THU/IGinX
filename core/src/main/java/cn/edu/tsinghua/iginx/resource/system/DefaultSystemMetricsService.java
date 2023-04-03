@@ -20,10 +20,9 @@ package cn.edu.tsinghua.iginx.resource.system;
 
 import cn.hutool.system.oshi.OshiUtil;
 import com.google.common.util.concurrent.AtomicDouble;
-import oshi.hardware.GlobalMemory;
-
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import oshi.hardware.GlobalMemory;
 
 public class DefaultSystemMetricsService implements SystemMetricsService {
 
@@ -55,17 +54,20 @@ public class DefaultSystemMetricsService implements SystemMetricsService {
 
     @Override
     public void start() {
-        exec.execute(() -> {
-            cpuUsages[index] = (100.0 - OshiUtil.getCpuInfo(STATISTICS_INTERVAL).getFree()) / 100.0;
-            GlobalMemory memory = OshiUtil.getMemory();
-            memoryUsage[index] = (memory.getTotal() - memory.getAvailable()) * 1.0 / memory.getTotal();
-            index++;
-            if (index % UPDATE_PER_SAMPLE == 0) {
-                recentCpuUsage.set(avg(cpuUsages));
-                recentMemoryUsage.set(avg(memoryUsage));
-            }
-            index %= SAMPLE_SIZE;
-        });
+        exec.execute(
+                () -> {
+                    cpuUsages[index] =
+                            (100.0 - OshiUtil.getCpuInfo(STATISTICS_INTERVAL).getFree()) / 100.0;
+                    GlobalMemory memory = OshiUtil.getMemory();
+                    memoryUsage[index] =
+                            (memory.getTotal() - memory.getAvailable()) * 1.0 / memory.getTotal();
+                    index++;
+                    if (index % UPDATE_PER_SAMPLE == 0) {
+                        recentCpuUsage.set(avg(cpuUsages));
+                        recentMemoryUsage.set(avg(memoryUsage));
+                    }
+                    index %= SAMPLE_SIZE;
+                });
     }
 
     @Override
@@ -88,10 +90,9 @@ public class DefaultSystemMetricsService implements SystemMetricsService {
             return 0.0;
         }
         double sum = 0.0;
-        for (double value: arr) {
+        for (double value : arr) {
             sum += value;
         }
         return sum / arr.length;
     }
-
 }

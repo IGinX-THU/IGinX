@@ -14,16 +14,14 @@ public class ExecuteDetail {
 
     public boolean isFullSuccess() {
         for (Boolean success : resultList) {
-            if (!success)
-                return false;
+            if (!success) return false;
         }
         return true;
     }
 
     public boolean isFullFailure() {
         for (Boolean success : resultList) {
-            if (success)
-                return false;
+            if (success) return false;
         }
         return true;
     }

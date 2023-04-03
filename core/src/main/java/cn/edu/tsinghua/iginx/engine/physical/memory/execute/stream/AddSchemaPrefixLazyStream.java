@@ -6,7 +6,6 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.AddSchemaPrefix;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -28,12 +27,22 @@ public class AddSchemaPrefixLazyStream extends UnaryLazyStream {
             String schemaPrefix = addSchemaPrefix.getSchemaPrefix();
 
             List<Field> fields = new ArrayList<>();
-            header.getFields().forEach(field -> {
-                if (schemaPrefix != null)
-                    fields.add(new Field(schemaPrefix + "." + field.getName(), field.getType(), field.getTags()));
-                else
-                    fields.add(new Field(field.getName(), field.getType(), field.getTags()));
-            });
+            header.getFields()
+                    .forEach(
+                            field -> {
+                                if (schemaPrefix != null)
+                                    fields.add(
+                                            new Field(
+                                                    schemaPrefix + "." + field.getName(),
+                                                    field.getType(),
+                                                    field.getTags()));
+                                else
+                                    fields.add(
+                                            new Field(
+                                                    field.getName(),
+                                                    field.getType(),
+                                                    field.getTags()));
+                            });
 
             this.header = new Header(header.getKey(), fields);
         }

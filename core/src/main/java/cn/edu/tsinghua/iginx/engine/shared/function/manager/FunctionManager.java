@@ -29,6 +29,8 @@ import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.TransformTaskMeta;
 import cn.edu.tsinghua.iginx.thrift.UDFType;
+import java.io.File;
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import org.slf4j.Logger;
@@ -36,24 +38,22 @@ import org.slf4j.LoggerFactory;
 import pemja.core.PythonInterpreter;
 import pemja.core.PythonInterpreterConfig;
 
-import java.io.File;
-import java.util.*;
-
 public class FunctionManager {
 
-    private final static int INTERPRETER_NUM = 5;
+    private static final int INTERPRETER_NUM = 5;
 
     private final Map<String, Function> functions;
 
-    private final static IMetaManager metaManager = DefaultMetaManager.getInstance();
+    private static final IMetaManager metaManager = DefaultMetaManager.getInstance();
 
-    private final static Config config = ConfigDescriptor.getInstance().getConfig();
+    private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
     private static final Logger logger = LoggerFactory.getLogger(FunctionManager.class);
 
     private static final String PY_SUFFIX = ".py";
 
-    private static final String PATH = String.join(File.separator, System.getProperty("user.dir"), "python_scripts");
+    private static final String PATH =
+            String.join(File.separator, System.getProperty("user.dir"), "python_scripts");
 
     private FunctionManager() {
         this.functions = new HashMap<>();
@@ -83,7 +83,7 @@ public class FunctionManager {
     private void initBasicUDFFunctions() {
         List<TransformTaskMeta> metaList = new ArrayList<>();
         List<String> udfList = config.getUdfList();
-        for (String udf: udfList) {
+        for (String udf : udfList) {
             String[] udfInfo = udf.split(",");
             if (udfInfo.length != 4) {
                 logger.error("udf info len must be 4.");
@@ -107,8 +107,13 @@ public class FunctionManager {
                     logger.error("unknown udf type: " + udfInfo[0]);
                     continue;
             }
-            metaList.add(new TransformTaskMeta(udfInfo[1], udfInfo[2], udfInfo[3],
-                new HashSet<>(Collections.singletonList(config.getIp())), udfType));
+            metaList.add(
+                    new TransformTaskMeta(
+                            udfInfo[1],
+                            udfInfo[2],
+                            udfInfo[3],
+                            new HashSet<>(Collections.singletonList(config.getIp())),
+                            udfType));
         }
 
         for (TransformTaskMeta meta : metaList) {
@@ -151,15 +156,17 @@ public class FunctionManager {
             throw new IllegalArgumentException(String.format("UDF %s not registered", identifier));
         }
         if (!taskMeta.getIpSet().contains(config.getIp())) {
-            throw new IllegalArgumentException(String.format("UDF %s not registered in node ip=%s", identifier, config.getIp()));
+            throw new IllegalArgumentException(
+                    String.format(
+                            "UDF %s not registered in node ip=%s", identifier, config.getIp()));
         }
 
         String pythonCMD = config.getPythonCMD();
-        PythonInterpreterConfig config = PythonInterpreterConfig
-            .newBuilder()
-            .setPythonExec(pythonCMD)
-            .addPythonPaths(PATH)
-            .build();
+        PythonInterpreterConfig config =
+                PythonInterpreterConfig.newBuilder()
+                        .setPythonExec(pythonCMD)
+                        .addPythonPaths(PATH)
+                        .build();
 
         String fileName = taskMeta.getFileName();
         String moduleName = fileName.substring(0, fileName.indexOf(PY_SUFFIX));
@@ -190,7 +197,8 @@ public class FunctionManager {
             while (!queue.isEmpty()) {
                 queue.poll().close();
             }
-            throw new IllegalArgumentException(String.format("UDF %s registered in type %s", identifier, taskMeta.getType()));
+            throw new IllegalArgumentException(
+                    String.format("UDF %s registered in type %s", identifier, taskMeta.getType()));
         }
     }
 
@@ -202,9 +210,6 @@ public class FunctionManager {
 
         private static final FunctionManager INSTANCE = new FunctionManager();
 
-        private FunctionManagerHolder() {
-        }
-
+        private FunctionManagerHolder() {}
     }
-
 }

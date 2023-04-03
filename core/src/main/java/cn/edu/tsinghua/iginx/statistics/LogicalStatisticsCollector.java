@@ -2,13 +2,13 @@ package cn.edu.tsinghua.iginx.statistics;
 
 import cn.edu.tsinghua.iginx.engine.shared.processor.PostLogicalProcessor;
 import cn.edu.tsinghua.iginx.engine.shared.processor.PreLogicalProcessor;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-
-public class LogicalStatisticsCollector extends AbstractStageStatisticsCollector implements ILogicalStatisticsCollector {
+public class LogicalStatisticsCollector extends AbstractStageStatisticsCollector
+        implements ILogicalStatisticsCollector {
 
     private static final Logger logger = LoggerFactory.getLogger(LogicalStatisticsCollector.class);
     private final ReadWriteLock lock = new ReentrantReadWriteLock();

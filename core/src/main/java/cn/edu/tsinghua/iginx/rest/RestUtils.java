@@ -5,7 +5,7 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 
 public class RestUtils {
 
-    public static final String CATEGORY = ""+'\u2E84';//"category";
+    public static final String CATEGORY = "" + '\u2E84'; // "category";
     public static final Long TOPTIEM = 9223372036854775804L;
     public static final Long DESCRIPTIONTIEM = 9223372036854775805L;
     public static final Long TITLETIEM = 9223372036854775806L;
@@ -20,11 +20,11 @@ public class RestUtils {
         for (int i = 0; i < n; i++) {
             for (int j = 0; j < m; j++) {
                 if (sessionQueryDataSet.getValues().get(i).get(j) != null) {
-                    if (sessionQueryDataSet.getValues().get(i).get(j) instanceof Integer ||
-                        sessionQueryDataSet.getValues().get(i).get(j) instanceof Long) {
+                    if (sessionQueryDataSet.getValues().get(i).get(j) instanceof Integer
+                            || sessionQueryDataSet.getValues().get(i).get(j) instanceof Long) {
                         ret = Math.max(ret, 1);
-                    } else if (sessionQueryDataSet.getValues().get(i).get(j) instanceof Float ||
-                        sessionQueryDataSet.getValues().get(i).get(j) instanceof Double) {
+                    } else if (sessionQueryDataSet.getValues().get(i).get(j) instanceof Float
+                            || sessionQueryDataSet.getValues().get(i).get(j) instanceof Double) {
                         ret = Math.max(ret, 2);
                     } else if (sessionQueryDataSet.getValues().get(i).get(j) instanceof byte[]) {
                         ret = 3;

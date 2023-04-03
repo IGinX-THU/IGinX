@@ -18,6 +18,8 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.function.system;
 
+import static cn.edu.tsinghua.iginx.engine.shared.Constants.PARAM_PATHS;
+
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
@@ -28,13 +30,10 @@ import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
 import cn.edu.tsinghua.iginx.engine.shared.function.SetMappingFunction;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
-
-import static cn.edu.tsinghua.iginx.engine.shared.Constants.PARAM_PATHS;
 
 public class LastValue implements SetMappingFunction {
 
@@ -42,8 +41,7 @@ public class LastValue implements SetMappingFunction {
 
     private static final LastValue INSTANCE = new LastValue();
 
-    private LastValue() {
-    }
+    private LastValue() {}
 
     public static LastValue getInstance() {
         return INSTANCE;
@@ -100,5 +98,4 @@ public class LastValue implements SetMappingFunction {
         }
         return new Row(new Header(targetFields), targetValues);
     }
-
 }

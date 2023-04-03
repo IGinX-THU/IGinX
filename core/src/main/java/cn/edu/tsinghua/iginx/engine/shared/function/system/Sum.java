@@ -18,6 +18,9 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.function.system;
 
+import static cn.edu.tsinghua.iginx.engine.shared.Constants.PARAM_LEVELS;
+import static cn.edu.tsinghua.iginx.engine.shared.Constants.PARAM_PATHS;
+
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
@@ -30,12 +33,8 @@ import cn.edu.tsinghua.iginx.engine.shared.function.system.utils.GroupByUtils;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.DataTypeUtils;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-
 import java.util.*;
 import java.util.regex.Pattern;
-
-import static cn.edu.tsinghua.iginx.engine.shared.Constants.PARAM_LEVELS;
-import static cn.edu.tsinghua.iginx.engine.shared.Constants.PARAM_PATHS;
 
 public class Sum implements SetMappingFunction {
 
@@ -43,8 +42,7 @@ public class Sum implements SetMappingFunction {
 
     private static final Sum INSTANCE = new Sum();
 
-    private Sum() {
-    }
+    private Sum() {}
 
     public static Sum getInstance() {
         return INSTANCE;
@@ -98,7 +96,11 @@ public class Sum implements SetMappingFunction {
                         targetFields.add(new Field(name, fullName, DataType.DOUBLE));
                     }
                 } else {
-                    String targetFieldName = getIdentifier() + "(" + GroupByUtils.transformPath(field.getFullName(), groupByLevels) + ")";
+                    String targetFieldName =
+                            getIdentifier()
+                                    + "("
+                                    + GroupByUtils.transformPath(field.getFullName(), groupByLevels)
+                                    + ")";
                     int index = groupNameIndexMap.getOrDefault(targetFieldName, -1);
                     if (index != -1) {
                         groupOrderIndexMap.put(i, index);
@@ -145,19 +147,24 @@ public class Sum implements SetMappingFunction {
                 }
                 switch (fields.get(index).getType()) {
                     case INTEGER:
-                        targetValues[targetIndex] = ((long) targetValues[targetIndex]) + (int) value;
+                        targetValues[targetIndex] =
+                                ((long) targetValues[targetIndex]) + (int) value;
                         break;
                     case LONG:
-                        targetValues[targetIndex] = ((long) targetValues[targetIndex]) + (long) value;
+                        targetValues[targetIndex] =
+                                ((long) targetValues[targetIndex]) + (long) value;
                         break;
                     case FLOAT:
-                        targetValues[targetIndex] = ((double) targetValues[targetIndex]) + (float) value;
+                        targetValues[targetIndex] =
+                                ((double) targetValues[targetIndex]) + (float) value;
                         break;
                     case DOUBLE:
-                        targetValues[targetIndex] = ((double) targetValues[targetIndex]) + (double) value;
+                        targetValues[targetIndex] =
+                                ((double) targetValues[targetIndex]) + (double) value;
                         break;
                     default:
-                        throw new IllegalStateException("Unexpected field type: " + fields.get(index).getType().toString());
+                        throw new IllegalStateException(
+                                "Unexpected field type: " + fields.get(index).getType().toString());
                 }
             }
         }

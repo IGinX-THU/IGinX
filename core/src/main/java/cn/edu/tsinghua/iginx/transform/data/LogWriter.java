@@ -4,16 +4,15 @@ import cn.edu.tsinghua.iginx.constant.GlobalConstant;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import java.util.ArrayList;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.List;
 
 public class LogWriter extends ExportWriter {
 
     private boolean hasWriteHeader;
 
-    private final static Logger logger = LoggerFactory.getLogger(LogWriter.class);
+    private static final Logger logger = LoggerFactory.getLogger(LogWriter.class);
 
     @Override
     public void write(BatchData batchData) {
@@ -29,8 +28,9 @@ public class LogWriter extends ExportWriter {
         }
 
         List<Row> rowList = batchData.getRowList();
-        rowList.forEach(row -> {
-            logger.info(row.toCSVTypeString());
-        });
+        rowList.forEach(
+                row -> {
+                    logger.info(row.toCSVTypeString());
+                });
     }
 }

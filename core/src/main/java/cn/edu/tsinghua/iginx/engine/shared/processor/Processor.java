@@ -6,5 +6,4 @@ import cn.edu.tsinghua.iginx.thrift.Status;
 public interface Processor {
 
     Status process(RequestContext requestContext);
-
 }

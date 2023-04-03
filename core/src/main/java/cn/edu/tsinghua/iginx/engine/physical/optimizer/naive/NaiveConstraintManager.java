@@ -24,15 +24,13 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import cn.edu.tsinghua.iginx.engine.shared.source.SourceType;
-
 import java.util.List;
 
 class NaiveConstraintManager implements ConstraintManager {
 
     private static final NaiveConstraintManager INSTANCE = new NaiveConstraintManager();
 
-    private NaiveConstraintManager() {
-    }
+    private NaiveConstraintManager() {}
 
     public static NaiveConstraintManager getInstance() {
         return INSTANCE;
@@ -65,7 +63,8 @@ class NaiveConstraintManager implements ConstraintManager {
         if (sourceA == null || sourceB == null) {
             return false;
         }
-        if (sourceA.getType() == SourceType.Fragment || sourceB.getType() == SourceType.Fragment) { // binary 的操作符的来源应该均为别的操作符的输出
+        if (sourceA.getType() == SourceType.Fragment
+                || sourceB.getType() == SourceType.Fragment) { // binary 的操作符的来源应该均为别的操作符的输出
             return false;
         }
         Operator sourceOperatorA = ((OperatorSource) sourceA).getOperator();
@@ -79,9 +78,9 @@ class NaiveConstraintManager implements ConstraintManager {
             return false;
         }
         if (source.getType() == SourceType.Fragment) {
-            return unaryOperator.getType() == OperatorType.Project ||
-                unaryOperator.getType() == OperatorType.Delete ||
-                unaryOperator.getType() == OperatorType.Insert;
+            return unaryOperator.getType() == OperatorType.Project
+                    || unaryOperator.getType() == OperatorType.Delete
+                    || unaryOperator.getType() == OperatorType.Insert;
         }
         Operator sourceOperator = ((OperatorSource) source).getOperator();
         return checkOperator(sourceOperator);

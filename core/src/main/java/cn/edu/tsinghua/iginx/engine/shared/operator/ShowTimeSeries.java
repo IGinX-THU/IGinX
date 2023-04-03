@@ -14,8 +14,12 @@ public class ShowTimeSeries extends AbstractUnaryOperator {
     private final int limit;
     private final int offset;
 
-    public ShowTimeSeries(GlobalSource source, Set<String> pathRegexSet, TagFilter tagFilter,
-        int limit, int offset) {
+    public ShowTimeSeries(
+            GlobalSource source,
+            Set<String> pathRegexSet,
+            TagFilter tagFilter,
+            int limit,
+            int offset) {
         super(OperatorType.ShowTimeSeries, source);
         this.pathRegexSet = pathRegexSet;
         this.tagFilter = tagFilter;
@@ -41,8 +45,12 @@ public class ShowTimeSeries extends AbstractUnaryOperator {
 
     @Override
     public Operator copy() {
-        return new ShowTimeSeries((GlobalSource) getSource().copy(), new HashSet<>(pathRegexSet),
-            tagFilter.copy(), limit, offset);
+        return new ShowTimeSeries(
+                (GlobalSource) getSource().copy(),
+                new HashSet<>(pathRegexSet),
+                tagFilter.copy(),
+                limit,
+                offset);
     }
 
     @Override

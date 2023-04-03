@@ -26,7 +26,6 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.function.MappingFunction;
 import cn.edu.tsinghua.iginx.engine.shared.operator.MappingTransform;
-
 import java.util.Map;
 
 public class MappingTransformLazyStream extends UnaryLazyStream {
@@ -74,7 +73,11 @@ public class MappingTransformLazyStream extends UnaryLazyStream {
         try {
             return function.transform(stream, params);
         } catch (Exception e) {
-            throw new PhysicalTaskExecuteFailureException("encounter error when execute mapping function " + function.getIdentifier() + ".", e);
+            throw new PhysicalTaskExecuteFailureException(
+                    "encounter error when execute mapping function "
+                            + function.getIdentifier()
+                            + ".",
+                    e);
         }
     }
 }

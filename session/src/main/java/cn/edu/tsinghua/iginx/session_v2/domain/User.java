@@ -20,7 +20,6 @@ package cn.edu.tsinghua.iginx.session_v2.domain;
 
 import cn.edu.tsinghua.iginx.thrift.AuthType;
 import cn.edu.tsinghua.iginx.thrift.UserType;
-
 import java.util.Set;
 
 public final class User {

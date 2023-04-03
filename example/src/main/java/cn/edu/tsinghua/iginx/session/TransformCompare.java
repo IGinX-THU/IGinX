@@ -3,10 +3,9 @@ package cn.edu.tsinghua.iginx.session;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.thrift.*;
-import org.apache.commons.lang3.RandomStringUtils;
-
 import java.io.File;
 import java.util.*;
+import org.apache.commons.lang3.RandomStringUtils;
 
 public class TransformCompare {
 
@@ -18,48 +17,69 @@ public class TransformCompare {
 
     private static final int RETRY_TIMES = 5;
 
-    private static final List<String> FUNC_LIST = Arrays.asList("min", "max", "sum", "avg", "count");
+    private static final List<String> FUNC_LIST =
+            Arrays.asList("min", "max", "sum", "avg", "count");
 
     private static final String SHOW_REGISTER_TASK_SQL = "SHOW REGISTER PYTHON TASK;";
-    private static final String REGISTER_SQL_FORMATTER = "REGISTER TRANSFORM PYTHON TASK %s IN %s AS %s";
+    private static final String REGISTER_SQL_FORMATTER =
+            "REGISTER TRANSFORM PYTHON TASK %s IN %s AS %s";
     private static final String DROP_SQL_FORMATTER = "DROP PYTHON TASK %s";
 
-    private static final String OUTPUT_DIR_PREFIX = System.getProperty("user.dir") + File.separator +
-        "example" + File.separator + "src" + File.separator + "main" + File.separator + "resources";
+    private static final String OUTPUT_DIR_PREFIX =
+            System.getProperty("user.dir")
+                    + File.separator
+                    + "example"
+                    + File.separator
+                    + "src"
+                    + File.separator
+                    + "main"
+                    + File.separator
+                    + "resources";
 
     private static final Map<String, String> TASK_MAP = new HashMap<>();
 
     static {
-        TASK_MAP.put("\"MaxTransformer\"", "\"" + OUTPUT_DIR_PREFIX + File.separator + "transformer_max.py\"");
-        TASK_MAP.put("\"MinTransformer\"", "\"" + OUTPUT_DIR_PREFIX + File.separator + "transformer_min.py\"");
-        TASK_MAP.put("\"SumTransformer\"", "\"" + OUTPUT_DIR_PREFIX + File.separator + "transformer_sum.py\"");
-        TASK_MAP.put("\"AvgTransformer\"", "\"" + OUTPUT_DIR_PREFIX + File.separator + "transformer_avg.py\"");
-        TASK_MAP.put("\"CountTransformer\"", "\"" + OUTPUT_DIR_PREFIX + File.separator + "transformer_count.py\"");
+        TASK_MAP.put(
+                "\"MaxTransformer\"",
+                "\"" + OUTPUT_DIR_PREFIX + File.separator + "transformer_max.py\"");
+        TASK_MAP.put(
+                "\"MinTransformer\"",
+                "\"" + OUTPUT_DIR_PREFIX + File.separator + "transformer_min.py\"");
+        TASK_MAP.put(
+                "\"SumTransformer\"",
+                "\"" + OUTPUT_DIR_PREFIX + File.separator + "transformer_sum.py\"");
+        TASK_MAP.put(
+                "\"AvgTransformer\"",
+                "\"" + OUTPUT_DIR_PREFIX + File.separator + "transformer_avg.py\"");
+        TASK_MAP.put(
+                "\"CountTransformer\"",
+                "\"" + OUTPUT_DIR_PREFIX + File.separator + "transformer_count.py\"");
     }
 
-    public static void main(String[] args) throws ExecutionException, SessionException, InterruptedException {
+    public static void main(String[] args)
+            throws ExecutionException, SessionException, InterruptedException {
         before();
 
         String multiPathWholeRange = "SELECT s1, s2 FROM test.compare;";
-//        commitStdJob(multiPathWholeRange, "MaxTransformer");
-//        commitStdJob(multiPathWholeRange, "MinTransformer");
-//        commitStdJob(multiPathWholeRange, "SumTransformer");
-//        commitStdJob(multiPathWholeRange, "AvgTransformer");
-//        commitStdJob(multiPathWholeRange, "CountTransformer");
+        //        commitStdJob(multiPathWholeRange, "MaxTransformer");
+        //        commitStdJob(multiPathWholeRange, "MinTransformer");
+        //        commitStdJob(multiPathWholeRange, "SumTransformer");
+        //        commitStdJob(multiPathWholeRange, "AvgTransformer");
+        //        commitStdJob(multiPathWholeRange, "CountTransformer");
 
         String singlePathWholeRange = "SELECT s1 FROM test.compare;";
-//        commitStdJob(singlePathWholeRange, "MaxTransformer");
-//        commitStdJob(singlePathWholeRange, "MinTransformer");
-//        commitStdJob(singlePathWholeRange, "SumTransformer");
-//        commitStdJob(singlePathWholeRange, "AvgTransformer");
-//        commitStdJob(singlePathWholeRange, "CountTransformer");
+        //        commitStdJob(singlePathWholeRange, "MaxTransformer");
+        //        commitStdJob(singlePathWholeRange, "MinTransformer");
+        //        commitStdJob(singlePathWholeRange, "SumTransformer");
+        //        commitStdJob(singlePathWholeRange, "AvgTransformer");
+        //        commitStdJob(singlePathWholeRange, "CountTransformer");
 
         String multiPathPartialRange = "SELECT s1, s2 FROM test.compare WHERE time < 200;";
-//        commitStdJob(multiPathPartialRange, "MaxTransformer");
-//        commitStdJob(multiPathPartialRange, "MinTransformer");
-//        commitStdJob(multiPathPartialRange, "SumTransformer");
-//        commitStdJob(multiPathPartialRange, "AvgTransformer");
-//        commitStdJob(multiPathPartialRange, "CountTransformer");
+        //        commitStdJob(multiPathPartialRange, "MaxTransformer");
+        //        commitStdJob(multiPathPartialRange, "MinTransformer");
+        //        commitStdJob(multiPathPartialRange, "SumTransformer");
+        //        commitStdJob(multiPathPartialRange, "AvgTransformer");
+        //        commitStdJob(multiPathPartialRange, "CountTransformer");
 
         String singlePathPartialRange = "SELECT s1 FROM test.compare WHERE time < 200;";
         commitStdJob(singlePathPartialRange, "MaxTransformer");
@@ -71,7 +91,8 @@ public class TransformCompare {
         after();
     }
 
-    private static void commitStdJob(String sql, String pyTaskName) throws ExecutionException, SessionException, InterruptedException {
+    private static void commitStdJob(String sql, String pyTaskName)
+            throws ExecutionException, SessionException, InterruptedException {
         List<TaskInfo> taskInfoList = new ArrayList<>();
 
         TaskInfo iginxTask = new TaskInfo(TaskType.IginX, DataFlowType.Stream);
@@ -86,7 +107,9 @@ public class TransformCompare {
         long jobId = session.commitTransformJob(taskInfoList, ExportType.Log, "");
         // 轮询查看任务情况
         JobState jobState = JobState.JOB_CREATED;
-        while (!jobState.equals(JobState.JOB_CLOSED) && !jobState.equals(JobState.JOB_FAILED) && !jobState.equals(JobState.JOB_FINISHED)) {
+        while (!jobState.equals(JobState.JOB_CLOSED)
+                && !jobState.equals(JobState.JOB_FAILED)
+                && !jobState.equals(JobState.JOB_FINISHED)) {
             Thread.sleep(50);
             jobState = session.queryTransformJobStatus(jobId);
         }
@@ -131,25 +154,27 @@ public class TransformCompare {
     }
 
     private static void registerTask() {
-        TASK_MAP.forEach((k, v) -> {
-            String registerSQL = String.format(REGISTER_SQL_FORMATTER, k, v, k);
-            try {
-                session.executeSql(registerSQL);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        });
+        TASK_MAP.forEach(
+                (k, v) -> {
+                    String registerSQL = String.format(REGISTER_SQL_FORMATTER, k, v, k);
+                    try {
+                        session.executeSql(registerSQL);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                });
     }
 
     private static void dropTask() {
-        TASK_MAP.forEach((k, v) -> {
-            String registerSQL = String.format(DROP_SQL_FORMATTER, k);
-            try {
-                session.executeSql(registerSQL);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        });
+        TASK_MAP.forEach(
+                (k, v) -> {
+                    String registerSQL = String.format(DROP_SQL_FORMATTER, k);
+                    try {
+                        session.executeSql(registerSQL);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                });
     }
 
     private static void insertData() throws ExecutionException, SessionException {
@@ -164,7 +189,9 @@ public class TransformCompare {
             builder.append(START_TIMESTAMP + i).append(", ");
             builder.append(i).append(", ");
             builder.append(i + 1).append(", ");
-            builder.append("\"").append(new String(RandomStringUtils.randomAlphanumeric(10).getBytes())).append("\", ");
+            builder.append("\"")
+                    .append(new String(RandomStringUtils.randomAlphanumeric(10).getBytes()))
+                    .append("\", ");
             builder.append((i + 0.1));
             builder.append(")");
         }

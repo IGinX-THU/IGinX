@@ -6,10 +6,9 @@ import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.thrift.ExecuteStatementReq;
+import java.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.time.Instant;
 
 public class IginXWriter extends ExportWriter {
 
@@ -19,7 +18,7 @@ public class IginXWriter extends ExportWriter {
 
     private final ContextBuilder contextBuilder = ContextBuilder.getInstance();
 
-    private final static Logger logger = LoggerFactory.getLogger(IginXWriter.class);
+    private static final Logger logger = LoggerFactory.getLogger(IginXWriter.class);
 
     public IginXWriter(long sessionId) {
         this.sessionId = sessionId;
@@ -45,9 +44,8 @@ public class IginXWriter extends ExportWriter {
         // construct paths
         builder.append("INSERT INTO transform(key, ");
         Header header = batchData.getHeader();
-        header.getFields().forEach(field ->
-            builder.append(reformatPath(field.getFullName())).append(",")
-        );
+        header.getFields()
+                .forEach(field -> builder.append(reformatPath(field.getFullName())).append(","));
         builder.deleteCharAt(builder.length() - 1);
 
         // construct values
@@ -73,8 +71,7 @@ public class IginXWriter extends ExportWriter {
     }
 
     private String reformatPath(String path) {
-        if (!path.contains("(") && !path.contains(")"))
-            return path;
+        if (!path.contains("(") && !path.contains(")")) return path;
         path = path.replaceAll("[{]", "[");
         path = path.replaceAll("[}]", "]");
         return path;

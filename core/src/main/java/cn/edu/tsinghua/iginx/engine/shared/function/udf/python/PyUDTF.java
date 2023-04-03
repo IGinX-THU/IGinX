@@ -1,5 +1,7 @@
 package cn.edu.tsinghua.iginx.engine.shared.function.udf.python;
 
+import static cn.edu.tsinghua.iginx.engine.shared.Constants.*;
+
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
@@ -9,15 +11,11 @@ import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.UDTF;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.CheckUtils;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.RowUtils;
-import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.TypeUtils;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-import java.util.concurrent.BlockingQueue;
-import pemja.core.PythonInterpreter;
-
 import java.util.*;
+import java.util.concurrent.BlockingQueue;
 import java.util.regex.Pattern;
-
-import static cn.edu.tsinghua.iginx.engine.shared.Constants.*;
+import pemja.core.PythonInterpreter;
 
 public class PyUDTF implements UDTF {
 
@@ -84,11 +82,11 @@ public class PyUDTF implements UDTF {
             if (index == -1) {
                 return Row.EMPTY_ROW;
             }
-            List<List<Object>> data = Arrays.asList(
-                Collections.singletonList(target),
-                Collections.singletonList(row.getField(index).getType().toString()),
-                Collections.singletonList(row.getValues()[index])
-            );
+            List<List<Object>> data =
+                    Arrays.asList(
+                            Collections.singletonList(target),
+                            Collections.singletonList(row.getField(index).getType().toString()),
+                            Collections.singletonList(row.getValues()[index]));
 
             res = (List<List<Object>>) interpreter.invokeMethod(UDF_CLASS, UDF_FUNC, data);
         }

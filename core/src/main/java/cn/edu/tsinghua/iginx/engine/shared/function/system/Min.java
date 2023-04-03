@@ -18,6 +18,8 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.function.system;
 
+import static cn.edu.tsinghua.iginx.engine.shared.Constants.PARAM_PATHS;
+
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
@@ -29,13 +31,10 @@ import cn.edu.tsinghua.iginx.engine.shared.function.SetMappingFunction;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
-
-import static cn.edu.tsinghua.iginx.engine.shared.Constants.PARAM_PATHS;
 
 public class Min implements SetMappingFunction {
 
@@ -43,8 +42,7 @@ public class Min implements SetMappingFunction {
 
     private static final Min INSTANCE = new Min();
 
-    private Min() {
-    }
+    private Min() {}
 
     public static Min getInstance() {
         return INSTANCE;
@@ -96,7 +94,10 @@ public class Min implements SetMappingFunction {
                 if (targetValues[i] == null) {
                     targetValues[i] = value;
                 } else {
-                    if (value != null && ValueUtils.compare(targetValues[i], value, targetFields.get(i).getType()) > 0) {
+                    if (value != null
+                            && ValueUtils.compare(
+                                            targetValues[i], value, targetFields.get(i).getType())
+                                    > 0) {
                         targetValues[i] = value;
                     }
                 }
@@ -104,5 +105,4 @@ public class Min implements SetMappingFunction {
         }
         return new Row(new Header(targetFields), targetValues);
     }
-
 }

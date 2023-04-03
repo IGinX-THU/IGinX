@@ -1,23 +1,20 @@
 package cn.edu.tsinghua.iginx.engine.logical.utils;
 
+import static cn.edu.tsinghua.iginx.engine.shared.Constants.KEY;
+
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import cn.edu.tsinghua.iginx.engine.shared.source.SourceType;
-
 import java.util.ArrayList;
 import java.util.List;
-
-import static cn.edu.tsinghua.iginx.engine.shared.Constants.KEY;
 
 public class OperatorUtils {
 
     public static Operator unionOperators(List<Operator> operators) {
-        if (operators == null || operators.isEmpty())
-            return null;
-        if (operators.size() == 1)
-            return operators.get(0);
+        if (operators == null || operators.isEmpty()) return null;
+        if (operators.size() == 1) return operators.get(0);
         Operator union = operators.get(0);
         for (int i = 1; i < operators.size(); i++) {
             union = new Union(new OperatorSource(union), new OperatorSource(operators.get(i)));
@@ -30,10 +27,8 @@ public class OperatorUtils {
     }
 
     public static Operator joinOperators(List<Operator> operators, String joinBy) {
-        if (operators == null || operators.isEmpty())
-            return null;
-        if (operators.size() == 1)
-            return operators.get(0);
+        if (operators == null || operators.isEmpty()) return null;
+        if (operators.size() == 1) return operators.get(0);
         Operator join = operators.get(0);
         for (int i = 1; i < operators.size(); i++) {
             join = new Join(new OperatorSource(join), new OperatorSource(operators.get(i)), joinBy);
@@ -67,8 +62,12 @@ public class OperatorUtils {
             }
         } else if (OperatorType.isBinaryOperator(operator.getType())) {
             BinaryOperator binaryOperator = (BinaryOperator) operator;
-            findProjectOperators(projectOperatorList, ((OperatorSource) binaryOperator.getSourceA()).getOperator());
-            findProjectOperators(projectOperatorList, ((OperatorSource) binaryOperator.getSourceB()).getOperator());
+            findProjectOperators(
+                    projectOperatorList,
+                    ((OperatorSource) binaryOperator.getSourceA()).getOperator());
+            findProjectOperators(
+                    projectOperatorList,
+                    ((OperatorSource) binaryOperator.getSourceB()).getOperator());
         } else {
             MultipleOperator multipleOperator = (MultipleOperator) operator;
             List<Source> sources = multipleOperator.getSources();
@@ -93,8 +92,12 @@ public class OperatorUtils {
             }
         } else if (OperatorType.isBinaryOperator(operator.getType())) {
             BinaryOperator binaryOperator = (BinaryOperator) operator;
-            findSelectOperators(selectOperatorList, ((OperatorSource) binaryOperator.getSourceA()).getOperator());
-            findSelectOperators(selectOperatorList, ((OperatorSource) binaryOperator.getSourceB()).getOperator());
+            findSelectOperators(
+                    selectOperatorList,
+                    ((OperatorSource) binaryOperator.getSourceA()).getOperator());
+            findSelectOperators(
+                    selectOperatorList,
+                    ((OperatorSource) binaryOperator.getSourceB()).getOperator());
         } else {
             MultipleOperator multipleOperator = (MultipleOperator) operator;
             List<Source> sources = multipleOperator.getSources();

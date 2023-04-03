@@ -20,10 +20,10 @@ package cn.edu.tsinghua.iginx.postgresql.tools;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.NotFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.OrFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.ValueFilter;
 import java.util.stream.Collectors;
 
@@ -52,7 +52,10 @@ public class FilterTransformer {
     }
 
     private static String toString(AndFilter filter) {
-        return filter.getChildren().stream().map(FilterTransformer::toString).collect(Collectors.joining(" and ", "(", ")"));
+        return filter.getChildren()
+                .stream()
+                .map(FilterTransformer::toString)
+                .collect(Collectors.joining(" and ", "(", ")"));
     }
 
     private static String toString(NotFilter filter) {
@@ -60,17 +63,25 @@ public class FilterTransformer {
     }
 
     private static String toString(KeyFilter filter) {
-        return "time " + Op.op2Str(filter.getOp()) + " to_timestamp(" + Math.min(filter.getValue(), MAX_TIMESTAMP) + ")";
+        return "time "
+                + Op.op2Str(filter.getOp())
+                + " to_timestamp("
+                + Math.min(filter.getValue(), MAX_TIMESTAMP)
+                + ")";
     }
 
     private static String toString(ValueFilter filter) {
-        return filter.getPath() + " " + Op.op2Str(filter.getOp()) + " " + filter.getValue().getValue();
+        return filter.getPath()
+                + " "
+                + Op.op2Str(filter.getOp())
+                + " "
+                + filter.getValue().getValue();
     }
 
     private static String toString(OrFilter filter) {
-        return filter.getChildren().stream().map(FilterTransformer::toString).collect(Collectors.joining(" or ", "(", ")"));
+        return filter.getChildren()
+                .stream()
+                .map(FilterTransformer::toString)
+                .collect(Collectors.joining(" or ", "(", ")"));
     }
-
-
-
 }

@@ -34,7 +34,8 @@ public final class TimeRange {
         this(beginTime, true, endTime, false);
     }
 
-    public TimeRange(long beginTime, boolean includeBeginTime, long endTime, boolean includeEndTime) {
+    public TimeRange(
+            long beginTime, boolean includeBeginTime, long endTime, boolean includeEndTime) {
         this.beginTime = beginTime;
         this.includeBeginTime = includeBeginTime;
         this.endTime = endTime;
@@ -66,7 +67,10 @@ public final class TimeRange {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         TimeRange range = (TimeRange) o;
-        return beginTime == range.beginTime && includeBeginTime == range.includeBeginTime && endTime == range.endTime && includeEndTime == range.includeEndTime;
+        return beginTime == range.beginTime
+                && includeBeginTime == range.includeBeginTime
+                && endTime == range.endTime
+                && includeEndTime == range.includeEndTime;
     }
 
     @Override
@@ -76,9 +80,11 @@ public final class TimeRange {
 
     @Override
     public String toString() {
-        return (isIncludeBeginTime() ? "[" : "(") +
-            beginTime + ", " + endTime +
-            (isIncludeEndTime() ? "]":")");
+        return (isIncludeBeginTime() ? "[" : "(")
+                + beginTime
+                + ", "
+                + endTime
+                + (isIncludeEndTime() ? "]" : ")");
     }
 
     public long getActualBeginTime() {
@@ -94,5 +100,4 @@ public final class TimeRange {
         }
         return endTime - 1;
     }
-
 }

@@ -1,11 +1,11 @@
 package cn.edu.tsinghua.iginx.rest.bean;
 
-import lombok.Data;
 import java.util.*;
+import lombok.Data;
 
 @Data
 public class AnnotationLimit {
-    private List<String> tag = new ArrayList<>();//LHZ应当改为set集合
+    private List<String> tag = new ArrayList<>(); // LHZ应当改为set集合
     private String text = ".*";
     private String title = ".*";
 

@@ -20,7 +20,6 @@ package cn.edu.tsinghua.iginx.engine.physical.storage;
 
 import cn.edu.tsinghua.iginx.conf.Constants;
 import cn.edu.tsinghua.iginx.utils.EnvUtils;
-
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -52,10 +51,11 @@ public class StorageEngineClassLoader extends ClassLoader {
         }
         for (File jar : Jars) {
             try (JarFile jarFile = new JarFile(jar)) {
-                jarFile.stream().map(JarEntry::getName)
-                                .filter(name -> name.endsWith(".class"))
-                                .map(classFileName -> classFileName.replace(".class", "").replace('/', '.'))
-                                .forEach(className -> nameToJar.put(className, jar));
+                jarFile.stream()
+                        .map(JarEntry::getName)
+                        .filter(name -> name.endsWith(".class"))
+                        .map(classFileName -> classFileName.replace(".class", "").replace('/', '.'))
+                        .forEach(className -> nameToJar.put(className, jar));
             }
         }
         System.out.println(nameToJar.toString());
@@ -90,7 +90,9 @@ public class StorageEngineClassLoader extends ClassLoader {
             try (InputStream is = jarFile.getInputStream(jarFile.getEntry(classFileName))) {
                 // Since Java 9, there are readAllBytes and transferTo
                 // However, we need to be compatible with Java 8
-                ByteArrayOutputStream os = new ByteArrayOutputStream(); // Note: Closing a ByteArrayOutputStream has no effect
+                ByteArrayOutputStream os =
+                        new ByteArrayOutputStream(); // Note: Closing a ByteArrayOutputStream has no
+                // effect
                 byte[] buffer = new byte[8192];
                 int read;
                 while ((read = is.read(buffer)) >= 0) {

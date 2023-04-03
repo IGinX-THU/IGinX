@@ -35,19 +35,24 @@ public class TimeSeriesPrefixRange implements TimeSeriesRange {
 
     @Override
     public boolean isContain(String tsName) {
-        //judge if is the dummy node && it will have specific prefix
+        // judge if is the dummy node && it will have specific prefix
         String timeSeries = realTimeSeries(this.timeSeries);
 
-        return (timeSeries == null || (tsName != null && StringUtils.compare(tsName, timeSeries) == 0));
+        return (timeSeries == null
+                || (tsName != null && StringUtils.compare(tsName, timeSeries) == 0));
     }
 
     @Override
     public boolean isIntersect(TimeSeriesRange tsInterval) {
-        //judge if is the dummy node && it will have specific prefix
+        // judge if is the dummy node && it will have specific prefix
         String timeSeries = realTimeSeries(this.timeSeries);
 
-        return (tsInterval.getStartTimeSeries() == null || timeSeries == null || StringUtils.compare(tsInterval.getStartTimeSeries(), timeSeries) <= 0)
-                && (tsInterval.getEndTimeSeries() == null || timeSeries == null || StringUtils.compare(tsInterval.getEndTimeSeries(), timeSeries) >= 0);
+        return (tsInterval.getStartTimeSeries() == null
+                        || timeSeries == null
+                        || StringUtils.compare(tsInterval.getStartTimeSeries(), timeSeries) <= 0)
+                && (tsInterval.getEndTimeSeries() == null
+                        || timeSeries == null
+                        || StringUtils.compare(tsInterval.getEndTimeSeries(), timeSeries) >= 0);
     }
 
     @Override

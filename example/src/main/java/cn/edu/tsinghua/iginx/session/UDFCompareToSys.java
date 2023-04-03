@@ -2,10 +2,9 @@ package cn.edu.tsinghua.iginx.session;
 
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
-import org.apache.commons.lang3.RandomStringUtils;
-
 import java.util.Arrays;
 import java.util.List;
+import org.apache.commons.lang3.RandomStringUtils;
 
 public class UDFCompareToSys {
 
@@ -17,7 +16,8 @@ public class UDFCompareToSys {
 
     private static final int RETRY_TIMES = 5;
 
-    private static final List<String> FUNC_LIST = Arrays.asList("min", "max", "sum", "avg", "count");
+    private static final List<String> FUNC_LIST =
+            Arrays.asList("min", "max", "sum", "avg", "count");
 
     public static void main(String[] args) throws ExecutionException, SessionException {
         setUp();
@@ -63,7 +63,8 @@ public class UDFCompareToSys {
         }
     }
 
-    private static void multiPathWholeRangeAggregationQuery() throws ExecutionException, SessionException {
+    private static void multiPathWholeRangeAggregationQuery()
+            throws ExecutionException, SessionException {
         String SQLFormatter = "SELECT %s(s1), %s(s2) FROM test.compare;";
         for (String func : FUNC_LIST) {
             String sysSql = String.format(SQLFormatter, func, func);
@@ -73,7 +74,8 @@ public class UDFCompareToSys {
         }
     }
 
-    private static void multiPathPartialRangeAggregationQuery() throws ExecutionException, SessionException {
+    private static void multiPathPartialRangeAggregationQuery()
+            throws ExecutionException, SessionException {
         String SQLFormatter = "SELECT %s(s1), %s(s2) FROM test.compare WHERE key < 50;";
         for (String func : FUNC_LIST) {
             String sysSql = String.format(SQLFormatter, func, func);
@@ -87,7 +89,8 @@ public class UDFCompareToSys {
         String SQLFormatter = "SELECT %s(s1) FROM test.compare GROUP [%s, %s] BY 50s;";
         for (String func : FUNC_LIST) {
             String sysSql = String.format(SQLFormatter, func, START_TIMESTAMP, END_TIMESTAMP);
-            String udfSql = String.format(SQLFormatter, "udf_" + func, START_TIMESTAMP, END_TIMESTAMP);
+            String udfSql =
+                    String.format(SQLFormatter, "udf_" + func, START_TIMESTAMP, END_TIMESTAMP);
 
             runAndCompare(sysSql, udfSql);
         }
@@ -103,17 +106,25 @@ public class UDFCompareToSys {
         }
     }
 
-    private static void multiPathWholeRangeGroupByQuery() throws ExecutionException, SessionException {
+    private static void multiPathWholeRangeGroupByQuery()
+            throws ExecutionException, SessionException {
         String SQLFormatter = "SELECT %s(s1), %s(s2) FROM test.compare GROUP [%s, %s] BY 50s;";
         for (String func : FUNC_LIST) {
             String sysSql = String.format(SQLFormatter, func, func, START_TIMESTAMP, END_TIMESTAMP);
-            String udfSql = String.format(SQLFormatter, "udf_" + func, "udf_" + func, START_TIMESTAMP, END_TIMESTAMP);
+            String udfSql =
+                    String.format(
+                            SQLFormatter,
+                            "udf_" + func,
+                            "udf_" + func,
+                            START_TIMESTAMP,
+                            END_TIMESTAMP);
 
             runAndCompare(sysSql, udfSql);
         }
     }
 
-    private static void multiPathPartialRangeGroupByQuery() throws ExecutionException, SessionException {
+    private static void multiPathPartialRangeGroupByQuery()
+            throws ExecutionException, SessionException {
         String SQLFormatter = "SELECT %s(s1), %s(s2) FROM test.compare GROUP [0, 200] BY 50s;";
         for (String func : FUNC_LIST) {
             String sysSql = String.format(SQLFormatter, func, func);
@@ -123,15 +134,20 @@ public class UDFCompareToSys {
         }
     }
 
-    private static void runAndCompare(String sysSql, String udfSql) throws ExecutionException, SessionException {
+    private static void runAndCompare(String sysSql, String udfSql)
+            throws ExecutionException, SessionException {
         double sysCostTime = runAndRecordTime(sysSql, RETRY_TIMES);
         double udfCostTime = runAndRecordTime(udfSql, RETRY_TIMES);
 
         System.out.println(sysSql);
-        System.out.println(String.format("sys cost: %s ms, udf cost: %s ms, rate: %.4f", sysCostTime, udfCostTime, sysCostTime / udfCostTime));
+        System.out.println(
+                String.format(
+                        "sys cost: %s ms, udf cost: %s ms, rate: %.4f",
+                        sysCostTime, udfCostTime, sysCostTime / udfCostTime));
     }
 
-    private static double runAndRecordTime(String sql, int retryTimes) throws ExecutionException, SessionException {
+    private static double runAndRecordTime(String sql, int retryTimes)
+            throws ExecutionException, SessionException {
         long startTime, endTime;
 
         double totalTime = 0.0;
@@ -174,7 +190,9 @@ public class UDFCompareToSys {
             builder.append(START_TIMESTAMP + i).append(", ");
             builder.append(i).append(", ");
             builder.append(i + 1).append(", ");
-            builder.append("\"").append(new String(RandomStringUtils.randomAlphanumeric(10).getBytes())).append("\", ");
+            builder.append("\"")
+                    .append(new String(RandomStringUtils.randomAlphanumeric(10).getBytes()))
+                    .append("\", ");
             builder.append((i + 0.1));
             builder.append(")");
         }

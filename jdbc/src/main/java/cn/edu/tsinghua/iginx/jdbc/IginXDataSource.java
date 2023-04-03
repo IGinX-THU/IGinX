@@ -1,13 +1,12 @@
 package cn.edu.tsinghua.iginx.jdbc;
 
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
-
-import javax.sql.DataSource;
 import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Properties;
 import java.util.logging.Logger;
+import javax.sql.DataSource;
 
 public class IginXDataSource implements DataSource {
     private String url;

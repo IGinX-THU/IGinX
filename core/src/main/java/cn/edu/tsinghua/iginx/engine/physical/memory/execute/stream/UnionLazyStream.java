@@ -26,7 +26,6 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Union;
-
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -56,7 +55,8 @@ public class UnionLazyStream extends BinaryLazyStream {
         Header headerA = streamA.getHeader();
         Header headerB = streamB.getHeader();
         if (headerA.hasKey() ^ headerB.hasKey()) {
-            throw new InvalidOperatorParameterException("row stream to be union must have same fields");
+            throw new InvalidOperatorParameterException(
+                    "row stream to be union must have same fields");
         }
         boolean hasTimestamp = headerA.hasKey();
         Set<Field> targetFieldSet = new HashSet<>();

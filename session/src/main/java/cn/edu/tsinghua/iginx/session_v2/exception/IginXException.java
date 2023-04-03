@@ -40,5 +40,4 @@ public class IginXException extends RuntimeException {
     public String getMessage() {
         return message;
     }
-
 }

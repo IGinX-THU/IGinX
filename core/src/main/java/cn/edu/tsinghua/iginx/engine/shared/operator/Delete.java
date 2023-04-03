@@ -14,8 +14,11 @@ public class Delete extends AbstractUnaryOperator {
 
     private final TagFilter tagFilter;
 
-    public Delete(FragmentSource source, List<TimeRange> timeRanges, List<String> patterns,
-        TagFilter tagFilter) {
+    public Delete(
+            FragmentSource source,
+            List<TimeRange> timeRanges,
+            List<String> patterns,
+            TagFilter tagFilter) {
         super(OperatorType.Delete, source);
         this.timeRanges = timeRanges;
         this.patterns = patterns;
@@ -36,8 +39,11 @@ public class Delete extends AbstractUnaryOperator {
 
     @Override
     public Operator copy() {
-        return new Delete((FragmentSource) getSource().copy(), new ArrayList<>(timeRanges),
-            new ArrayList<>(patterns), tagFilter == null ? null : tagFilter.copy());
+        return new Delete(
+                (FragmentSource) getSource().copy(),
+                new ArrayList<>(timeRanges),
+                new ArrayList<>(patterns),
+                tagFilter == null ? null : tagFilter.copy());
     }
 
     @Override

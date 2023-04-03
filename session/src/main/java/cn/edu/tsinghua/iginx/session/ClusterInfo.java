@@ -23,7 +23,6 @@ import cn.edu.tsinghua.iginx.thrift.IginxInfo;
 import cn.edu.tsinghua.iginx.thrift.LocalMetaStorageInfo;
 import cn.edu.tsinghua.iginx.thrift.MetaStorageInfo;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineInfo;
-
 import java.util.List;
 
 public class ClusterInfo {
@@ -53,5 +52,4 @@ public class ClusterInfo {
     public List<MetaStorageInfo> getMetaStorageInfos() {
         return resp.getMetaStorageInfos();
     }
-
 }

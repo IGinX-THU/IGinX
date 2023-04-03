@@ -18,6 +18,9 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.function.system;
 
+import static cn.edu.tsinghua.iginx.engine.shared.Constants.PARAM_LEVELS;
+import static cn.edu.tsinghua.iginx.engine.shared.Constants.PARAM_PATHS;
+
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
@@ -29,24 +32,21 @@ import cn.edu.tsinghua.iginx.engine.shared.function.SetMappingFunction;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.utils.GroupByUtils;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.*;
 import java.util.regex.Pattern;
-
-import static cn.edu.tsinghua.iginx.engine.shared.Constants.PARAM_LEVELS;
-import static cn.edu.tsinghua.iginx.engine.shared.Constants.PARAM_PATHS;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Count implements SetMappingFunction {
 
     public static final String COUNT = "count";
+
     @SuppressWarnings("unused")
     private static final Logger logger = LoggerFactory.getLogger(Count.class);
+
     private static final Count INSTANCE = new Count();
 
-    private Count() {
-    }
+    private Count() {}
 
     public static Count getInstance() {
         return INSTANCE;
@@ -94,15 +94,24 @@ public class Count implements SetMappingFunction {
                     String fullName = getIdentifier() + "(" + field.getFullName() + ")";
                     targetFields.add(new Field(name, fullName, DataType.LONG));
                 } else {
-                    String targetFieldName = getIdentifier() + "(" + GroupByUtils.transformPath(field.getName(), groupByLevels) + ")";
-                    String targetFieldFullName = getIdentifier() + "(" + GroupByUtils.transformPath(field.getFullName(), groupByLevels) + ")";
+                    String targetFieldName =
+                            getIdentifier()
+                                    + "("
+                                    + GroupByUtils.transformPath(field.getName(), groupByLevels)
+                                    + ")";
+                    String targetFieldFullName =
+                            getIdentifier()
+                                    + "("
+                                    + GroupByUtils.transformPath(field.getFullName(), groupByLevels)
+                                    + ")";
                     int index = groupNameIndexMap.getOrDefault(targetFieldFullName, -1);
                     if (index != -1) {
                         groupOrderIndexMap.put(i, index);
                     } else {
                         groupNameIndexMap.put(targetFieldFullName, targetFields.size());
                         groupOrderIndexMap.put(i, targetFields.size());
-                        targetFields.add(new Field(targetFieldName, targetFieldFullName, DataType.LONG));
+                        targetFields.add(
+                                new Field(targetFieldName, targetFieldFullName, DataType.LONG));
                     }
                 }
                 indices.add(i);
@@ -129,5 +138,4 @@ public class Count implements SetMappingFunction {
         }
         return new Row(new Header(targetFields), targetValues);
     }
-
 }

@@ -32,5 +32,4 @@ public interface PhysicalEngine {
     ConstraintManager getConstraintManager();
 
     StorageManager getStorageManager();
-
 }

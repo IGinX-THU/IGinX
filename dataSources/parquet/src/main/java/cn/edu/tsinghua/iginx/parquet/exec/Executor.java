@@ -13,18 +13,24 @@ import java.util.List;
 
 public interface Executor {
 
-    TaskExecuteResult executeProjectTask(List<String> paths, TagFilter tagFilter, String filter,
-        String storageUnit, boolean isDummyStorageUnit);
+    TaskExecuteResult executeProjectTask(
+            List<String> paths,
+            TagFilter tagFilter,
+            String filter,
+            String storageUnit,
+            boolean isDummyStorageUnit);
 
     TaskExecuteResult executeInsertTask(DataView dataView, String storageUnit);
 
-    TaskExecuteResult executeDeleteTask(List<String> paths, List<TimeRange> timeRanges,
-        TagFilter tagFilter, String storageUnit);
+    TaskExecuteResult executeDeleteTask(
+            List<String> paths,
+            List<TimeRange> timeRanges,
+            TagFilter tagFilter,
+            String storageUnit);
 
     List<Timeseries> getTimeSeriesOfStorageUnit(String storageUnit) throws PhysicalException;
 
     Pair<TimeSeriesRange, TimeInterval> getBoundaryOfStorage() throws PhysicalException;
 
     void close() throws PhysicalException;
-
 }

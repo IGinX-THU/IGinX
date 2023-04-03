@@ -18,30 +18,27 @@
  */
 package cn.edu.tsinghua.iginx.rest.query;
 
+import static cn.edu.tsinghua.iginx.utils.TagKVUtils.*;
+
+import cn.edu.tsinghua.iginx.rest.RestUtils;
 import cn.edu.tsinghua.iginx.rest.bean.*;
 import cn.edu.tsinghua.iginx.rest.query.aggregator.*;
-import cn.edu.tsinghua.iginx.rest.RestUtils;
 import cn.edu.tsinghua.iginx.utils.TimeUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
-
-import static cn.edu.tsinghua.iginx.utils.TagKVUtils.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class QueryParser {
     private static final Logger LOGGER = LoggerFactory.getLogger(QueryParser.class);
     private final ObjectMapper mapper = new ObjectMapper();
 
-    public QueryParser() {
-
-    }
+    public QueryParser() {}
 
     public static Long dealDateFormat(String oldDateStr) {
         DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
@@ -56,10 +53,10 @@ public class QueryParser {
 
     public static Long transTimeFromString(String str) {
         switch (str) {
-//            case "nanos":
-//                return 1L;
-//            case "micros":
-//                return 1000L;
+                //            case "nanos":
+                //                return 1L;
+                //            case "micros":
+                //                return 1000L;
             case "millis":
                 return 1L;
             case "seconds":
@@ -249,7 +246,8 @@ public class QueryParser {
         return false;
     }
 
-    private Query getAnnotationQuery(JsonNode node, boolean isGrafana) throws JsonProcessingException {
+    private Query getAnnotationQuery(JsonNode node, boolean isGrafana)
+            throws JsonProcessingException {
         Query ret = new Query();
         if (isGrafana) {
             JsonNode range = node.get("range");
@@ -305,7 +303,7 @@ public class QueryParser {
                 ret.setEndAbsolute(end_absolute.asLong());
             } else if (start_absolute != null) {
                 if (setEndAbsolute(node, ret, start_absolute, now)) {
-//                   return null;
+                    //                   return null;
                 }
             } else {
                 ret.setEndAbsolute(end_absolute.asLong());
@@ -315,12 +313,12 @@ public class QueryParser {
                 } else {
                     JsonNode value = start_relative.get("value");
                     if (value == null) {
-//                       return null;
+                        //                       return null;
                     }
                     long v = value.asLong();
                     JsonNode unit = start_relative.get("unit");
                     if (unit == null) {
-//                       return null;
+                        //                       return null;
                     }
                     Long time = transTimeFromString(unit.asText());
                     ret.setEndAbsolute(now - v * time);
@@ -342,10 +340,9 @@ public class QueryParser {
         AnnotationLimit annotationLimit = new AnnotationLimit();
         List<String> category = new ArrayList<>();
         JsonNode categoryNode = anno.get("category");
-        if(categoryNode != null) {
+        if (categoryNode != null) {
             if (categoryNode.isArray())
-                for (JsonNode objNode : categoryNode)
-                    category.add(objNode.asText());
+                for (JsonNode objNode : categoryNode) category.add(objNode.asText());
 
             annotationLimit.setTag(category);
         }
@@ -365,21 +362,20 @@ public class QueryParser {
     private void setAnnotationLimit(Query ret, QueryMetric ins, JsonNode query) {
         AnnotationLimit annotationLimit = null;
         JsonNode anno = query.get("annotation");
-        if(anno != null){
+        if (anno != null) {
             annotationLimit = parserAnno(anno);
             ins.setAnnotationLimit(annotationLimit);
             ins.setAnnotation(true);
         }
-        //设置annotation-new属性
+        // 设置annotation-new属性
         anno = query.get("annotation-new");
-        if(anno != null){
+        if (anno != null) {
             annotationLimit = parserAnno(anno);
             ins.setNewAnnotationLimit(annotationLimit);
             ins.setAnnotation(true);
         }
         ret.addQueryMetrics(ins);
     }
-
 
     public void addAggregators(QueryMetric q, JsonNode node) {
         JsonNode aggregators = node.get("aggregators");
@@ -514,7 +510,6 @@ public class QueryParser {
                 case "diff":
                 default:
                     break;
-
             }
             if ("percentile".equals(name.asText())) {
                 JsonNode percentile = aggregator.get("percentile");
@@ -533,15 +528,15 @@ public class QueryParser {
         for (int i = 0; i < anno.getQueryResultDatasets().size(); i++) {
             QueryResultDataset dataSet = anno.getQueryResultDatasets().get(i);
             QueryMetric metric = anno.getQueryMetrics().get(i);
-            for(int j=0; j<dataSet.getPaths().size(); j++) {
-                //只解析特定的路径信息
-                if(!dataSet.getPaths().get(j).equals(metric.getQueryOriPath())) continue;
-                String tmpPath = metric.getQueryOriPath()+dataSet.getTitles().get(j);
-                if(!paths.contains(tmpPath)) {
+            for (int j = 0; j < dataSet.getPaths().size(); j++) {
+                // 只解析特定的路径信息
+                if (!dataSet.getPaths().get(j).equals(metric.getQueryOriPath())) continue;
+                String tmpPath = metric.getQueryOriPath() + dataSet.getTitles().get(j);
+                if (!paths.contains(tmpPath)) {
                     paths.add(tmpPath);
                 } else continue;
 
-                ret.append(anno.toResultStringAnno(j,i));
+                ret.append(anno.toResultStringAnno(j, i));
                 ret.append(",");
             }
         }
@@ -558,15 +553,15 @@ public class QueryParser {
         for (int i = 0; i < data.getQueryResultDatasets().size(); i++) {
             QueryResultDataset dataSet = data.getQueryResultDatasets().get(i);
             QueryMetric metric = data.getQueryMetrics().get(i);
-            for(int j=0; j<dataSet.getPaths().size(); j++) {
-                //只解析特定的路径信息
-                if(!dataSet.getPaths().get(j).equals(metric.getQueryOriPath())) continue;
-                String tmpPath = metric.getQueryOriPath()+dataSet.getTitles().get(j);
-                if(!paths.contains(tmpPath)) {
+            for (int j = 0; j < dataSet.getPaths().size(); j++) {
+                // 只解析特定的路径信息
+                if (!dataSet.getPaths().get(j).equals(metric.getQueryOriPath())) continue;
+                String tmpPath = metric.getQueryOriPath() + dataSet.getTitles().get(j);
+                if (!paths.contains(tmpPath)) {
                     paths.add(tmpPath);
                 } else continue;
 
-                ret.append(data.toResultString(j,i));
+                ret.append(data.toResultString(j, i));
                 ret.append(",");
             }
         }
@@ -593,16 +588,17 @@ public class QueryParser {
         return ret.toString();
     }
 
-    public String parseResultToAnnotationJson(QueryResult path, QueryResult anno, boolean isGrafana) {
-        return "[" + path.toAnnotationResultString(anno, isGrafana) +
-            "]";
+    public String parseResultToAnnotationJson(
+            QueryResult path, QueryResult anno, boolean isGrafana) {
+        return "[" + path.toAnnotationResultString(anno, isGrafana) + "]";
     }
 
     public String parseResultToGrafanaJson(QueryResult result) {
         StringBuilder ret = new StringBuilder("[");
         for (int i = 0; i < result.getSiz(); i++) {
             ret.append("{");
-            ret.append(String.format("\"target\":\"%s\",", result.getQueryMetrics().get(i).getName()));
+            ret.append(
+                    String.format("\"target\":\"%s\",", result.getQueryMetrics().get(i).getName()));
             ret.append("\"datapoints\":[");
             int n = result.getQueryResultDatasets().get(i).getSize();
             for (int j = 0; j < n; j++) {
@@ -612,10 +608,14 @@ public class QueryParser {
                     ret.append(result.getQueryResultDatasets().get(i).getValues().get(j));
                     ret.append("\"");
                 } else {
-                    ret.append(result.getQueryResultDatasets().get(i).getValues().get(j).toString());
+                    ret.append(
+                            result.getQueryResultDatasets().get(i).getValues().get(j).toString());
                 }
 
-                long timeInPrecision = TimeUtils.getTimeFromNsToSpecPrecision(result.getQueryResultDatasets().get(i).getTimestamps().get(j), TimeUtils.DEFAULT_TIMESTAMP_PRECISION);
+                long timeInPrecision =
+                        TimeUtils.getTimeFromNsToSpecPrecision(
+                                result.getQueryResultDatasets().get(i).getTimestamps().get(j),
+                                TimeUtils.DEFAULT_TIMESTAMP_PRECISION);
                 ret.append(String.format(",%d", timeInPrecision));
                 ret.append("],");
             }
@@ -635,24 +635,24 @@ public class QueryParser {
         Map<String, String> ret = new LinkedHashMap<>();
         int firstBrace = path.indexOf("{");
         int lastBrace = path.indexOf("}");
-        if(firstBrace==-1 || lastBrace==-1) {
+        if (firstBrace == -1 || lastBrace == -1) {
             name.append(path);
             return ret;
         }
         name.append(path.substring(0, firstBrace));
-        String tagLists = path.substring(firstBrace+1, lastBrace);
+        String tagLists = path.substring(firstBrace + 1, lastBrace);
         String[] splitpaths = tagLists.split(",");
-        for(String tag : splitpaths){
+        for (String tag : splitpaths) {
             int equalPos = tag.indexOf("=");
             String tagKey = tag.substring(0, equalPos);
-            String tagVal = tag.substring(equalPos+1);
-            ret.put(tagKey,tagVal);
+            String tagVal = tag.substring(equalPos + 1);
+            ret.put(tagKey, tagVal);
         }
         return ret;
     }
 
-    //将传入的path（格式为name{tagkey=tagval}）转换为正常的QueryMetric
-    public QueryMetric parseQueryResultAnnoDataPaths(String path){
+    // 将传入的path（格式为name{tagkey=tagval}）转换为正常的QueryMetric
+    public QueryMetric parseQueryResultAnnoDataPaths(String path) {
         StringBuilder name = new StringBuilder();
         QueryMetric queryMetric = new QueryMetric();
         Map<String, List<String>> tags = new TreeMap<>();
@@ -661,50 +661,53 @@ public class QueryParser {
         for (Map.Entry<String, String> entry : result.entrySet()) {
             List<String> val = new ArrayList<>();
             val.add(entry.getValue());
-            tags.put(entry.getKey(),val);
+            tags.put(entry.getKey(), val);
         }
         queryMetric.setTags(tags);
         queryMetric.setName(name.toString());
         return queryMetric;
     }
 
-    //筛选出全部包含prefix集合信息的路径集合
-    public List<String> getPrefixPaths(List<String> Prefix, List<String> paths){
+    // 筛选出全部包含prefix集合信息的路径集合
+    public List<String> getPrefixPaths(List<String> Prefix, List<String> paths) {
         List<String> ret = new ArrayList<>();
         boolean ifok = true;
-        for(String path : paths){
+        for (String path : paths) {
             ifok = true;
-            for(String prefix : Prefix){
-                if(!path.contains(prefix)) {
+            for (String prefix : Prefix) {
+                if (!path.contains(prefix)) {
                     ifok = false;
                     break;
                 }
             }
-            if(ifok) ret.add(path);
+            if (ifok) ret.add(path);
         }
         return ret;
     }
 
-    //（title应用）筛选出全部包含prefix集合信息的路径集合
-    public List<String> getPathsFromAnnoTitle(String prefix, List<String> paths, List<Object> titles){
+    // （title应用）筛选出全部包含prefix集合信息的路径集合
+    public List<String> getPathsFromAnnoTitle(
+            String prefix, List<String> paths, List<Object> titles) {
         List<String> ret = new ArrayList<>();
-        for(int i=0;i<titles.size();i++){
+        for (int i = 0; i < titles.size(); i++) {
             String path = paths.get(i);
-            if(String.valueOf(titles.get(i)).contains(prefix) || prefix.equals(".*") || prefix.isEmpty()) {//LHZ这里要支持正则！！！！！一定要改
+            if (String.valueOf(titles.get(i)).contains(prefix)
+                    || prefix.equals(".*")
+                    || prefix.isEmpty()) { // LHZ这里要支持正则！！！！！一定要改
                 ret.add(path);
             }
         }
         return ret;
     }
 
-    //获取到确切的路径信息，如何设置这个查询还是一个问题
+    // 获取到确切的路径信息，如何设置这个查询还是一个问题
     public Query splitPath(QueryResult result, Query queryBase) {
         Query ret = new Query();
         int pos = 0;
-        for(QueryResultDataset queryResultDataset : result.getQueryResultDatasets()){
-            for(String path : queryResultDataset.getPaths()) {
+        for (QueryResultDataset queryResultDataset : result.getQueryResultDatasets()) {
+            for (String path : queryResultDataset.getPaths()) {
                 QueryMetric metric = parseResultAnnoDataPaths(path);
-                //设置anno信息
+                // 设置anno信息
                 metric.setAnnotationLimit(result.getQueryMetrics().get(pos).getAnnotationLimit());
                 ret.addQueryMetrics(metric);
             }
@@ -716,20 +719,20 @@ public class QueryParser {
     private boolean specificAnnoCategoryPath(Map<String, String> tags, AnnotationLimit annoLimit) {
         int num = 0;
 
-        //数量相同就欧克克
-        for(Map.Entry<String,String> entry : tags.entrySet()) {
-            if(entry.getValue().equals(RestUtils.CATEGORY)) num++;
+        // 数量相同就欧克克
+        for (Map.Entry<String, String> entry : tags.entrySet()) {
+            if (entry.getValue().equals(RestUtils.CATEGORY)) num++;
         }
-        if(num==annoLimit.getTag().size()) return true;
+        if (num == annoLimit.getTag().size()) return true;
         return false;
     }
 
-    //获取完全匹配路径信息的query，包含@路径
+    // 获取完全匹配路径信息的query，包含@路径
     public Query getSpecificQuery(QueryResult result, Query queryBase) {
         Query ret = new Query();
         int pos = 0;
-        for(QueryResultDataset queryResultDataset : result.getQueryResultDatasets()){
-            for(String path : queryResultDataset.getPaths()) {
+        for (QueryResultDataset queryResultDataset : result.getQueryResultDatasets()) {
+            for (String path : queryResultDataset.getPaths()) {
                 /*如果要获取完全匹配的路径，在这里对每个path路径修改*/
                 QueryMetric metric = parseResultAnnoDataPaths(path);
                 metric.setAnnotationLimit(result.getQueryMetrics().get(pos).getAnnotationLimit());
@@ -740,26 +743,26 @@ public class QueryParser {
         return ret;
     }
 
-    //将传入的path（格式为name{tagkey=tagval}）转换为正常的QueryMetric，这里加入了@@@@@@
-    private QueryMetric parseResultAnnoDataPaths(String path){
-        StringBuilder name =  new StringBuilder();
+    // 将传入的path（格式为name{tagkey=tagval}）转换为正常的QueryMetric，这里加入了@@@@@@
+    private QueryMetric parseResultAnnoDataPaths(String path) {
+        StringBuilder name = new StringBuilder();
         QueryMetric metric = new QueryMetric();
         Map<String, String> tags = getTagsFromPaths(path, name);
-        Map<String,List<String>> taglist = new TreeMap<>();
+        Map<String, List<String>> taglist = new TreeMap<>();
 
         for (Map.Entry<String, String> entry : tags.entrySet()) {
             List<String> val = new ArrayList<>();
             val.add(entry.getValue());
-            taglist.put(entry.getKey(),val);
+            taglist.put(entry.getKey(), val);
         }
 
         metric.setName(name.toString());
 
-        name.append("."+tagPrefix);
+        name.append("." + tagPrefix);
         for (Map.Entry<String, String> entry : tags.entrySet()) {
             name.append("." + tagNameAnnotation + entry.getKey() + "." + entry.getValue());
         }
-        name.append("."+tagSuffix);
+        name.append("." + tagSuffix);
 
         metric.setTags(taglist);
         metric.setPathName(name.toString());
@@ -769,39 +772,39 @@ public class QueryParser {
     public Query addAnnoTags(Query query) {
         Query ret = new Query();
         ret.setQueryMetrics(query.getQueryMetrics());
-        for(int i=0;i<ret.getQueryMetrics().size();i++){
+        for (int i = 0; i < ret.getQueryMetrics().size(); i++) {
             List<String> tags = ret.getQueryMetrics().get(i).getAnnotationLimit().getTag();
             int annoCatLen = tags.size();
-            for(int j=0;j<annoCatLen;j++){
-                ret.getQueryMetrics().get(i).addTag(tags.get(j),RestUtils.CATEGORY);
+            for (int j = 0; j < annoCatLen; j++) {
+                ret.getQueryMetrics().get(i).addTag(tags.get(j), RestUtils.CATEGORY);
             }
         }
         return ret;
     }
 
     public void getAnnoCategory(QueryResult path) {
-        for(int i=0; i<path.getQueryResultDatasets().size(); i++) {
-            StringBuilder name =  new StringBuilder();
-            for(int j=0; j<path.getQueryResultDatasets().get(i).getPaths().size(); j++) {
-                Map<String,String> tags = getTagsFromPaths(path.getQueryResultDatasets().get(i).getPaths().get(j),name);
+        for (int i = 0; i < path.getQueryResultDatasets().size(); i++) {
+            StringBuilder name = new StringBuilder();
+            for (int j = 0; j < path.getQueryResultDatasets().get(i).getPaths().size(); j++) {
+                Map<String, String> tags =
+                        getTagsFromPaths(
+                                path.getQueryResultDatasets().get(i).getPaths().get(j), name);
                 List<String> categorys = new ArrayList<>();
                 for (Map.Entry<String, String> entry : tags.entrySet()) {
-                    if(entry.getValue().equals(RestUtils.CATEGORY))
-                        categorys.add(entry.getKey());
+                    if (entry.getValue().equals(RestUtils.CATEGORY)) categorys.add(entry.getKey());
                 }
                 path.getQueryResultDatasets().get(i).addCategory(categorys);
             }
-
         }
     }
 
     public void removeAggPath(QueryResult result) {
-        for(QueryResultDataset data : result.getQueryResultDatasets()) {
+        for (QueryResultDataset data : result.getQueryResultDatasets()) {
             List<String> paths = new ArrayList<>();
-            for(String path : data.getPaths()) {
-                if(path.contains("(") && path.contains(")")) {
+            for (String path : data.getPaths()) {
+                if (path.contains("(") && path.contains(")")) {
                     int first = path.indexOf("("), last = path.indexOf(")");
-                    path = path.substring(first+1,last);
+                    path = path.substring(first + 1, last);
                 }
                 paths.add(path);
             }
@@ -811,19 +814,19 @@ public class QueryParser {
 
     public Query splitAnnoPathToQuery(QueryResult result) {
         Query ret = new Query();
-        for(QueryResultDataset data : result.getQueryResultDatasets()) {
-            for(String path : data.getPaths()) {
+        for (QueryResultDataset data : result.getQueryResultDatasets()) {
+            for (String path : data.getPaths()) {
                 boolean ifhasAnno = false;
                 QueryMetric metric;
                 metric = parseQueryResultAnnoDataPaths(path);
                 metric.setQueryOriPath(path);
-                for(Map.Entry<String,List<String>> entry : metric.getTags().entrySet()) {
-                    if(entry.getValue().get(0).equals("category")) {
+                for (Map.Entry<String, List<String>> entry : metric.getTags().entrySet()) {
+                    if (entry.getValue().get(0).equals("category")) {
                         ifhasAnno = true;
                         break;
                     }
                 }
-                if(ifhasAnno) ret.addQueryMetrics(metric);
+                if (ifhasAnno) ret.addQueryMetrics(metric);
             }
         }
         return ret;

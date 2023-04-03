@@ -23,10 +23,9 @@ import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.TimePrecision;
-import org.apache.commons.lang3.RandomStringUtils;
-
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.commons.lang3.RandomStringUtils;
 
 public class IoTDBSessionExample {
 
@@ -116,17 +115,20 @@ public class IoTDBSessionExample {
         }
 
         System.out.println("insertColumnRecords...");
-        session.insertColumnRecords(paths, timestamps, valuesList, dataTypeList, null, TimePrecision.NS);
+        session.insertColumnRecords(
+                paths, timestamps, valuesList, dataTypeList, null, TimePrecision.NS);
     }
 
-    private static void insertNonAlignedColumnRecords() throws SessionException, ExecutionException {
+    private static void insertNonAlignedColumnRecords()
+            throws SessionException, ExecutionException {
         List<String> paths = new ArrayList<>();
         paths.add(S1);
         paths.add(S2);
         paths.add(S3);
         paths.add(S4);
 
-        int size = (int) (NON_ALIGNED_COLUMN_END_TIMESTAMP - NON_ALIGNED_COLUMN_START_TIMESTAMP + 1);
+        int size =
+                (int) (NON_ALIGNED_COLUMN_END_TIMESTAMP - NON_ALIGNED_COLUMN_START_TIMESTAMP + 1);
         long[] timestamps = new long[size];
         for (long i = 0; i < size; i++) {
             timestamps[(int) i] = i + NON_ALIGNED_COLUMN_START_TIMESTAMP;
@@ -158,7 +160,8 @@ public class IoTDBSessionExample {
         }
 
         System.out.println("insertNonAlignedColumnRecords...");
-        session.insertNonAlignedColumnRecords(paths, timestamps, valuesList, dataTypeList, null, TimePrecision.NS);
+        session.insertNonAlignedColumnRecords(
+                paths, timestamps, valuesList, dataTypeList, null, TimePrecision.NS);
     }
 
     private static void insertRowRecords() throws SessionException, ExecutionException {
@@ -193,7 +196,8 @@ public class IoTDBSessionExample {
         }
 
         System.out.println("insertRowRecords...");
-        session.insertRowRecords(paths, timestamps, valuesList, dataTypeList, null, TimePrecision.NS);
+        session.insertRowRecords(
+                paths, timestamps, valuesList, dataTypeList, null, TimePrecision.NS);
     }
 
     private static void insertNonAlignedRowRecords() throws SessionException, ExecutionException {
@@ -232,7 +236,8 @@ public class IoTDBSessionExample {
         }
 
         System.out.println("insertNonAlignedRowRecords...");
-        session.insertNonAlignedRowRecords(paths, timestamps, valuesList, dataTypeList, null, TimePrecision.NS);
+        session.insertNonAlignedRowRecords(
+                paths, timestamps, valuesList, dataTypeList, null, TimePrecision.NS);
     }
 
     private static void showTimeSeries() throws ExecutionException, SessionException {
@@ -266,7 +271,8 @@ public class IoTDBSessionExample {
         System.out.println("Aggregate Query: ");
 
         // MAX
-        SessionAggregateQueryDataSet dataSet = session.aggregateQuery(paths, startTime, endTime, AggregateType.MAX);
+        SessionAggregateQueryDataSet dataSet =
+                session.aggregateQuery(paths, startTime, endTime, AggregateType.MAX);
         dataSet.print();
 
         // MIN
@@ -320,31 +326,45 @@ public class IoTDBSessionExample {
         System.out.println("Downsample Query: ");
 
         // MAX
-        SessionQueryDataSet dataSet = session.downsampleQuery(paths, startTime, endTime, AggregateType.MAX, INTERVAL * 100L);
+        SessionQueryDataSet dataSet =
+                session.downsampleQuery(
+                        paths, startTime, endTime, AggregateType.MAX, INTERVAL * 100L);
         dataSet.print();
 
         // MIN
-        dataSet = session.downsampleQuery(paths, startTime, endTime, AggregateType.MIN, INTERVAL * 100L);
+        dataSet =
+                session.downsampleQuery(
+                        paths, startTime, endTime, AggregateType.MIN, INTERVAL * 100L);
         dataSet.print();
 
         // FIRST_VALUE
-        dataSet = session.downsampleQuery(paths, startTime, endTime, AggregateType.FIRST_VALUE, INTERVAL * 100L);
+        dataSet =
+                session.downsampleQuery(
+                        paths, startTime, endTime, AggregateType.FIRST_VALUE, INTERVAL * 100L);
         dataSet.print();
 
         // LAST_VALUE
-        dataSet = session.downsampleQuery(paths, startTime, endTime, AggregateType.LAST_VALUE, INTERVAL * 100L);
+        dataSet =
+                session.downsampleQuery(
+                        paths, startTime, endTime, AggregateType.LAST_VALUE, INTERVAL * 100L);
         dataSet.print();
 
         // COUNT
-        dataSet = session.downsampleQuery(paths, startTime, endTime, AggregateType.COUNT, INTERVAL * 100L);
+        dataSet =
+                session.downsampleQuery(
+                        paths, startTime, endTime, AggregateType.COUNT, INTERVAL * 100L);
         dataSet.print();
 
         // SUM
-        dataSet = session.downsampleQuery(paths, startTime, endTime, AggregateType.SUM, INTERVAL * 100L);
+        dataSet =
+                session.downsampleQuery(
+                        paths, startTime, endTime, AggregateType.SUM, INTERVAL * 100L);
         dataSet.print();
 
         // AVG
-        dataSet = session.downsampleQuery(paths, startTime, endTime, AggregateType.AVG, INTERVAL * 100L);
+        dataSet =
+                session.downsampleQuery(
+                        paths, startTime, endTime, AggregateType.AVG, INTERVAL * 100L);
         dataSet.print();
 
         // 降采样查询结束
@@ -367,7 +387,8 @@ public class IoTDBSessionExample {
         }
         long curveUnit = 1L;
 
-        CurveMatchResult result = session.curveMatch(paths, startTime, endTime, queryList, curveUnit);
+        CurveMatchResult result =
+                session.curveMatch(paths, startTime, endTime, queryList, curveUnit);
         System.out.println(result.toString());
     }
 

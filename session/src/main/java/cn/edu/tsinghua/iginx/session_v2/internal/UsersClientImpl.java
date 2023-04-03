@@ -32,12 +32,11 @@ import cn.edu.tsinghua.iginx.thrift.Status;
 import cn.edu.tsinghua.iginx.thrift.UpdateUserReq;
 import cn.edu.tsinghua.iginx.thrift.UserType;
 import cn.edu.tsinghua.iginx.utils.RpcUtils;
-import org.apache.thrift.TException;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import org.apache.thrift.TException;
 
 public class UsersClientImpl extends AbstractFunctionClient implements UsersClient {
 
@@ -52,7 +51,8 @@ public class UsersClientImpl extends AbstractFunctionClient implements UsersClie
         Arguments.checkNotNull(user.getPassword(), "password");
         Arguments.checkNotNull(user.getAuths(), "auths");
 
-        AddUserReq req = new AddUserReq(sessionId, user.getUsername(), user.getPassword(), user.getAuths());
+        AddUserReq req =
+                new AddUserReq(sessionId, user.getUsername(), user.getPassword(), user.getAuths());
 
         synchronized (iginXClient) {
             iginXClient.checkIsClosed();

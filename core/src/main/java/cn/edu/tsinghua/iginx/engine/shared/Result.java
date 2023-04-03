@@ -9,15 +9,14 @@ import cn.edu.tsinghua.iginx.thrift.*;
 import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.ByteUtils;
 import cn.edu.tsinghua.iginx.utils.RpcUtils;
-import lombok.Data;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import lombok.Data;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Data
 public class Result {
@@ -62,7 +61,8 @@ public class Result {
         resp.setTagsList(tagsList);
         resp.setDataTypeList(dataTypes);
         if (timestamps == null || timestamps.length == 0) {
-            resp.setQueryDataSet(new QueryDataSet(ByteBuffer.allocate(0), new ArrayList<>(), new ArrayList<>()));
+            resp.setQueryDataSet(
+                    new QueryDataSet(ByteBuffer.allocate(0), new ArrayList<>(), new ArrayList<>()));
             return resp;
         }
         ByteBuffer timeBuffer = ByteUtils.getByteBufferFromLongArray(timestamps);
@@ -89,7 +89,8 @@ public class Result {
         resp.setTagsList(tagsList);
         resp.setDataTypeList(dataTypes);
         if (timestamps == null || timestamps.length == 0) {
-            resp.setQueryDataSet(new QueryDataSet(ByteBuffer.allocate(0), new ArrayList<>(), new ArrayList<>()));
+            resp.setQueryDataSet(
+                    new QueryDataSet(ByteBuffer.allocate(0), new ArrayList<>(), new ArrayList<>()));
             return resp;
         }
         ByteBuffer timeBuffer = ByteUtils.getByteBufferFromLongArray(timestamps);
@@ -103,7 +104,8 @@ public class Result {
         resp.setTagsList(tagsList);
         resp.setDataTypeList(dataTypes);
         if (timestamps == null || timestamps.length == 0) {
-            resp.setQueryDataSet(new QueryDataSet(ByteBuffer.allocate(0), new ArrayList<>(), new ArrayList<>()));
+            resp.setQueryDataSet(
+                    new QueryDataSet(ByteBuffer.allocate(0), new ArrayList<>(), new ArrayList<>()));
             return resp;
         }
         ByteBuffer timeBuffer = ByteUtils.getByteBufferFromLongArray(timestamps);
@@ -138,7 +140,8 @@ public class Result {
                 resp.setTimestamps(timeBuffer);
                 resp.setQueryDataSet(new QueryDataSet(timeBuffer, valuesList, bitmapList));
             } else {
-                resp.setQueryDataSet(new QueryDataSet(ByteBuffer.allocate(0), valuesList, bitmapList));
+                resp.setQueryDataSet(
+                        new QueryDataSet(ByteBuffer.allocate(0), valuesList, bitmapList));
             }
         }
 
@@ -172,15 +175,19 @@ public class Result {
                 tagsList.add(new HashMap<>());
             }
 
-            resultStream.getHeader().getFields().forEach(field -> {
-                paths.add(field.getFullName());
-                types.add(field.getType());
-                if (field.getTags() == null) {
-                    tagsList.add(new HashMap<>());
-                } else {
-                    tagsList.add(field.getTags());
-                }
-            });
+            resultStream
+                    .getHeader()
+                    .getFields()
+                    .forEach(
+                            field -> {
+                                paths.add(field.getFullName());
+                                types.add(field.getType());
+                                if (field.getTags() == null) {
+                                    tagsList.add(new HashMap<>());
+                                } else {
+                                    tagsList.add(field.getTags());
+                                }
+                            });
 
             List<ByteBuffer> valuesList = new ArrayList<>();
             List<ByteBuffer> bitmapList = new ArrayList<>();
@@ -270,7 +277,4 @@ public class Result {
         }
         return resp;
     }
-
-
-
 }

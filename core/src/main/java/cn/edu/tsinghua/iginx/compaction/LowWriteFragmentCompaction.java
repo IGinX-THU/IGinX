@@ -7,10 +7,9 @@ import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageUnitMeta;
 import cn.edu.tsinghua.iginx.utils.Pair;
+import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.*;
 
 public class LowWriteFragmentCompaction extends Compaction {
 
@@ -24,9 +23,9 @@ public class LowWriteFragmentCompaction extends Compaction {
 
     @Override
     public boolean needCompaction() throws Exception {
-        //集中信息（初版主要是统计分区热度）
-        Pair<Map<FragmentMeta, Long>, Map<FragmentMeta, Long>> fragmentHeatPair = metaManager
-            .loadFragmentHeat();
+        // 集中信息（初版主要是统计分区热度）
+        Pair<Map<FragmentMeta, Long>, Map<FragmentMeta, Long>> fragmentHeatPair =
+                metaManager.loadFragmentHeat();
         Map<FragmentMeta, Long> fragmentHeatWriteMap = fragmentHeatPair.getK();
         Map<FragmentMeta, Long> fragmentHeatReadMap = fragmentHeatPair.getV();
         if (fragmentHeatWriteMap == null) {
@@ -38,12 +37,16 @@ public class LowWriteFragmentCompaction extends Compaction {
 
         List<FragmentMeta> fragmentMetaSet = metaManager.getFragments();
 
-        toCompactFragmentGroups = judgeCompaction(fragmentMetaSet, fragmentHeatWriteMap, fragmentHeatReadMap);
+        toCompactFragmentGroups =
+                judgeCompaction(fragmentMetaSet, fragmentHeatWriteMap, fragmentHeatReadMap);
 
         return !toCompactFragmentGroups.isEmpty();
     }
 
-    public List<List<FragmentMeta>> judgeCompaction(List<FragmentMeta> fragmentMetaSet, Map<FragmentMeta, Long> fragmentHeatWriteMap, Map<FragmentMeta, Long> fragmentHeatReadMap) {
+    public List<List<FragmentMeta>> judgeCompaction(
+            List<FragmentMeta> fragmentMetaSet,
+            Map<FragmentMeta, Long> fragmentHeatWriteMap,
+            Map<FragmentMeta, Long> fragmentHeatReadMap) {
         long totalHeats = 0;
         for (Map.Entry<FragmentMeta, Long> fragmentHeatReadEntry : fragmentHeatReadMap.entrySet()) {
             totalHeats += fragmentHeatReadEntry.getValue();
@@ -55,7 +58,26 @@ public class LowWriteFragmentCompaction extends Compaction {
         for (FragmentMeta fragmentMeta : fragmentMetaSet) {
             long writeLoad = fragmentHeatWriteMap.getOrDefault(fragmentMeta, 0L);
             long readLoad = fragmentHeatReadMap.getOrDefault(fragmentMeta, 0L);
-            if (fragmentMeta.getTimeInterval().getEndTime() != Long.MAX_VALUE && writeLoad < ConfigDescriptor.getInstance().getConfig().getFragmentCompactionWriteThreshold() * ConfigDescriptor.getInstance().getConfig().getLoadBalanceCheckInterval() && readLoad < averageReadHeats * ConfigDescriptor.getInstance().getConfig().getFragmentCompactionReadRatioThreshold() && readLoad > ConfigDescriptor.getInstance().getConfig().getFragmentCompactionReadThreshold() * ConfigDescriptor.getInstance().getConfig().getLoadBalanceCheckInterval()) {
+            if (fragmentMeta.getTimeInterval().getEndTime() != Long.MAX_VALUE
+                    && writeLoad
+                            < ConfigDescriptor.getInstance()
+                                            .getConfig()
+                                            .getFragmentCompactionWriteThreshold()
+                                    * ConfigDescriptor.getInstance()
+                                            .getConfig()
+                                            .getLoadBalanceCheckInterval()
+                    && readLoad
+                            < averageReadHeats
+                                    * ConfigDescriptor.getInstance()
+                                            .getConfig()
+                                            .getFragmentCompactionReadRatioThreshold()
+                    && readLoad
+                            > ConfigDescriptor.getInstance()
+                                            .getConfig()
+                                            .getFragmentCompactionReadThreshold()
+                                    * ConfigDescriptor.getInstance()
+                                            .getConfig()
+                                            .getLoadBalanceCheckInterval()) {
                 candidateFragments.add(fragmentMeta);
             }
         }
@@ -70,7 +92,10 @@ public class LowWriteFragmentCompaction extends Compaction {
         executeCompaction(toCompactFragmentGroups, fragmentMetaPointsMap);
     }
 
-    public void executeCompaction(List<List<FragmentMeta>> toCompactFragmentGroups, Map<FragmentMeta, Long> fragmentMetaPointsMap) throws PhysicalException {
+    public void executeCompaction(
+            List<List<FragmentMeta>> toCompactFragmentGroups,
+            Map<FragmentMeta, Long> fragmentMetaPointsMap)
+            throws PhysicalException {
         for (List<FragmentMeta> fragmentGroup : toCompactFragmentGroups) {
             if (fragmentGroup.size() > 1) {
                 // 分别计算每个du的数据量，取其中数据量最多的du作为目标合并du
@@ -79,7 +104,9 @@ public class LowWriteFragmentCompaction extends Compaction {
                 Map<String, Long> storageUnitPointsMap = new HashMap<>();
                 long totalPoints = 0;
                 for (FragmentMeta fragmentMeta : fragmentGroup) {
-                    long pointsNum = storageUnitPointsMap.getOrDefault(fragmentMeta.getMasterStorageUnitId(), 0L);
+                    long pointsNum =
+                            storageUnitPointsMap.getOrDefault(
+                                    fragmentMeta.getMasterStorageUnitId(), 0L);
                     pointsNum += fragmentMetaPointsMap.getOrDefault(fragmentMeta, 0L);
                     if (pointsNum > maxStorageUnitPoint) {
                         maxStorageUnitMeta = fragmentMeta.getMasterStorageUnit();
@@ -88,7 +115,8 @@ public class LowWriteFragmentCompaction extends Compaction {
                     totalPoints += fragmentMetaPointsMap.getOrDefault(fragmentMeta, 0L);
                 }
 
-                compactFragmentGroupToTargetStorageUnit(fragmentGroup, maxStorageUnitMeta, totalPoints);
+                compactFragmentGroupToTargetStorageUnit(
+                        fragmentGroup, maxStorageUnitMeta, totalPoints);
             } else {
                 logger.info("fragmentGroup size = {}", fragmentGroup.size());
             }

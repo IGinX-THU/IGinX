@@ -3,7 +3,6 @@ package cn.edu.tsinghua.iginx.session;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -22,8 +21,14 @@ public class UDFExample {
     private static final String DROP_SQL_FORMATTER = "DROP PYTHON TASK %s";
     private static final String SHOW_REGISTER_TASK_SQL = "SHOW REGISTER PYTHON TASK;";
 
-    private static final String FILE_DIR = String.join(File.separator, System.getProperty("user.dir"),
-        "example", "src", "main", "resources");
+    private static final String FILE_DIR =
+            String.join(
+                    File.separator,
+                    System.getProperty("user.dir"),
+                    "example",
+                    "src",
+                    "main",
+                    "resources");
 
     private static final long START_TIMESTAMP = 0L;
     private static final long END_TIMESTAMP = 1000L;
@@ -42,9 +47,21 @@ public class UDFExample {
         result.print(false, "ms");
 
         // 注册UDTF
-        String registerSQL = String.format(REGISTER_SQL_FORMATTER, "UDTF", "\"UDFSin\"", "\"" + FILE_DIR + File.separator + "udtf_sin.py" + "\"", "\"sin\"");
+        String registerSQL =
+                String.format(
+                        REGISTER_SQL_FORMATTER,
+                        "UDTF",
+                        "\"UDFSin\"",
+                        "\"" + FILE_DIR + File.separator + "udtf_sin.py" + "\"",
+                        "\"sin\"");
         session.executeSql(registerSQL);
-        registerSQL = String.format(REGISTER_SQL_FORMATTER, "UDAF", "\"UDFCount\"", "\"" + FILE_DIR + File.separator + "udaf_count.py" + "\"", "\"py_count\"");
+        registerSQL =
+                String.format(
+                        REGISTER_SQL_FORMATTER,
+                        "UDAF",
+                        "\"UDFCount\"",
+                        "\"" + FILE_DIR + File.separator + "udaf_count.py" + "\"",
+                        "\"py_count\"");
         session.executeSql(registerSQL);
 
         // 查询已注册的UDF

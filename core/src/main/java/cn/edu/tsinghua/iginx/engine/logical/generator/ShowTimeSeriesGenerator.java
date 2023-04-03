@@ -12,7 +12,7 @@ public class ShowTimeSeriesGenerator extends AbstractGenerator {
     @SuppressWarnings("unused")
     private static final Logger logger = LoggerFactory.getLogger(ShowTimeSeriesGenerator.class);
 
-    private final static ShowTimeSeriesGenerator instance = new ShowTimeSeriesGenerator();
+    private static final ShowTimeSeriesGenerator instance = new ShowTimeSeriesGenerator();
 
     private ShowTimeSeriesGenerator() {
         this.type = GeneratorType.ShowTimeSeries;
@@ -26,10 +26,10 @@ public class ShowTimeSeriesGenerator extends AbstractGenerator {
     protected Operator generateRoot(Statement statement) {
         ShowTimeSeriesStatement showTimeSeriesStatement = (ShowTimeSeriesStatement) statement;
         return new ShowTimeSeries(
-            new GlobalSource(),
-            showTimeSeriesStatement.getPathRegexSet(),
-            showTimeSeriesStatement.getTagFilter(),
-            showTimeSeriesStatement.getLimit(),
-            showTimeSeriesStatement.getOffset());
+                new GlobalSource(),
+                showTimeSeriesStatement.getPathRegexSet(),
+                showTimeSeriesStatement.getTagFilter(),
+                showTimeSeriesStatement.getLimit(),
+                showTimeSeriesStatement.getOffset());
     }
 }

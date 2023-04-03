@@ -38,8 +38,8 @@ public class Select extends AbstractUnaryOperator {
 
     @Override
     public Operator copy() {
-        return new Select(getSource().copy(), filter.copy(),
-            tagFilter == null ? null : tagFilter.copy());
+        return new Select(
+                getSource().copy(), filter.copy(), tagFilter == null ? null : tagFilter.copy());
     }
 
     @Override
