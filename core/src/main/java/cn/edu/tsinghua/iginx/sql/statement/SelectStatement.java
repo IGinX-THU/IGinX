@@ -1,5 +1,8 @@
 package cn.edu.tsinghua.iginx.sql.statement;
 
+import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils.getAllPathsFromFilter;
+import static cn.edu.tsinghua.iginx.engine.shared.operator.MarkJoin.markPrefix;
+
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
@@ -48,6 +51,7 @@ public class SelectStatement extends DataStatement {
     private final List<String> groupByPaths;
     private final List<SubQueryFromPart> havingSubQueryParts;
     private final List<String> orderByPaths;
+    private List<String> freeVariables;
     private Filter filter;
     private Filter havingFilter;
     private TagFilter tagFilter;
@@ -546,6 +550,51 @@ public class SelectStatement extends DataStatement {
     public boolean needRowTransform() {
         for (Expression expression : expressions) {
             if (!expression.getType().equals(Expression.ExpressionType.Base)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public List<String> getFreeVariables() {
+        return freeVariables;
+    }
+
+    public void calculateFreeVariables() {
+        Set<String> set = new HashSet<>();
+        List<String> allVariables = getAllPathsFromFilter(filter);
+        allVariables.addAll(getAllPathsFromFilter(havingFilter));
+        for (SubQueryFromPart whereSubQueryPart : whereSubQueryParts) {
+            allVariables.addAll(whereSubQueryPart.getSubQuery().getFreeVariables());
+        }
+        for (SubQueryFromPart havingSubQueryPart : havingSubQueryParts) {
+            allVariables.addAll(havingSubQueryPart.getSubQuery().getFreeVariables());
+        }
+        for (SubQueryFromPart selectSubQueryPart : selectSubQueryParts) {
+            allVariables.addAll(selectSubQueryPart.getSubQuery().getFreeVariables());
+        }
+        allVariables.forEach(
+                variable -> {
+                    if (isFreeVariable(variable)) {
+                        set.add(variable);
+                    }
+                });
+        freeVariables = new ArrayList<>(set);
+    }
+
+    public boolean isFreeVariable(String path) {
+        return !hasAttribute(path, fromParts.size());
+    }
+
+    public boolean hasAttribute(String path, int indexOfFromPart) {
+        if (indexOfFromPart > fromParts.size()) {
+            throw new RuntimeException("index " + indexOfFromPart + " overflow");
+        }
+        if (path.startsWith(markPrefix)) {
+            return false;
+        }
+        for (int i = 0; i < indexOfFromPart; i++) {
+            if (path.startsWith(fromParts.get(i).getPath())) {
                 return true;
             }
         }

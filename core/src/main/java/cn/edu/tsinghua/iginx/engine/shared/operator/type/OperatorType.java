@@ -86,6 +86,14 @@ public enum OperatorType {
         return op.value >= 40;
     }
 
+    public static boolean isJoinOperator(OperatorType op) {
+        return op == InnerJoin
+                || op == OuterJoin
+                || op == CrossJoin
+                || op == SingleJoin
+                || op == MarkJoin;
+    }
+
     public static boolean isMultipleOperator(OperatorType op) {
         return op == CombineNonQuery;
     }

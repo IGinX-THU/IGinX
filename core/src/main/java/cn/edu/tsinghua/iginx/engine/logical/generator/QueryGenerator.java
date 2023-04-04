@@ -1,11 +1,13 @@
 package cn.edu.tsinghua.iginx.engine.logical.generator;
 
+import static cn.edu.tsinghua.iginx.engine.logical.utils.OperatorUtils.pushDownApply;
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.ALL_PATH_SUFFIX;
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.ORDINAL;
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.PARAM_EXPR;
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.PARAM_LEVELS;
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.PARAM_PATHS;
 import static cn.edu.tsinghua.iginx.engine.shared.function.system.ArithmeticExpr.ARITHMETIC_EXPR;
+import static cn.edu.tsinghua.iginx.engine.shared.function.system.PathProject.PATH_PROJECT;
 import static cn.edu.tsinghua.iginx.metadata.utils.FragmentUtils.keyFromTSIntervalToTimeInterval;
 
 import cn.edu.tsinghua.iginx.conf.Config;
@@ -56,6 +58,7 @@ import cn.edu.tsinghua.iginx.metadata.entity.TimeSeriesRange;
 import cn.edu.tsinghua.iginx.policy.IPolicy;
 import cn.edu.tsinghua.iginx.policy.PolicyManager;
 import cn.edu.tsinghua.iginx.sql.SQLConstant;
+import cn.edu.tsinghua.iginx.sql.expression.BaseExpression;
 import cn.edu.tsinghua.iginx.sql.expression.Expression;
 import cn.edu.tsinghua.iginx.sql.statement.SelectStatement;
 import cn.edu.tsinghua.iginx.sql.statement.SelectStatement.QueryType;
@@ -202,7 +205,7 @@ public class QueryGenerator extends AbstractGenerator {
 
         List<Operator> queryList = new ArrayList<>();
         if (selectStatement.getQueryType() == QueryType.GroupByQuery) {
-            // Downsample Query
+            // GroupBy Query
             List<FunctionCall> functionCallList = new ArrayList<>();
             selectStatement
                     .getBaseExpressionMap()
@@ -447,9 +450,16 @@ public class QueryGenerator extends AbstractGenerator {
             List<FunctionCall> functionCallList = new ArrayList<>();
             for (Expression expression : selectStatement.getExpressions()) {
                 Map<String, Value> params = new HashMap<>();
-                params.put(PARAM_EXPR, new Value(expression));
-                functionCallList.add(
-                        new FunctionCall(functionManager.getFunction(ARITHMETIC_EXPR), params));
+                if (expression.getType().equals(Expression.ExpressionType.Base)) {
+                    BaseExpression baseExpression = (BaseExpression) expression;
+                    params.put(PARAM_PATHS, new Value(baseExpression.getPathName()));
+                    functionCallList.add(
+                            new FunctionCall(functionManager.getFunction(PATH_PROJECT), params));
+                } else {
+                    params.put(PARAM_EXPR, new Value(expression));
+                    functionCallList.add(
+                            new FunctionCall(functionManager.getFunction(ARITHMETIC_EXPR), params));
+                }
             }
             root = new RowTransform(new OperatorSource(root), functionCallList);
         }
@@ -470,9 +480,23 @@ public class QueryGenerator extends AbstractGenerator {
                             (int) selectStatement.getOffset());
         }
 
-        if (selectStatement.getLayers().isEmpty()) {
-            if (selectStatement.getQueryType().equals(SelectStatement.QueryType.LastFirstQuery)) {
-                root = new Reorder(new OperatorSource(root), Arrays.asList("path", "value"));
+        if (!selectStatement.isSubQuery()) {
+            if (selectStatement.getLayers().isEmpty()) {
+                if (selectStatement
+                        .getQueryType()
+                        .equals(SelectStatement.QueryType.LastFirstQuery)) {
+                    root = new Reorder(new OperatorSource(root), Arrays.asList("path", "value"));
+                } else {
+                    List<String> order = new ArrayList<>();
+                    selectStatement
+                            .getExpressions()
+                            .forEach(
+                                    expression -> {
+                                        String colName = expression.getColumnName();
+                                        order.add(colName);
+                                    });
+                    root = new Reorder(new OperatorSource(root), order);
+                }
             } else {
                 List<String> order = new ArrayList<>();
                 selectStatement
@@ -480,25 +504,15 @@ public class QueryGenerator extends AbstractGenerator {
                         .forEach(
                                 expression -> {
                                     String colName = expression.getColumnName();
+                                    colName =
+                                            colName.replaceFirst(
+                                                    selectStatement.getFromParts().get(0).getPath()
+                                                            + SQLConstant.DOT,
+                                                    "");
                                     order.add(colName);
                                 });
                 root = new Reorder(new OperatorSource(root), order);
             }
-        } else {
-            List<String> order = new ArrayList<>();
-            selectStatement
-                    .getExpressions()
-                    .forEach(
-                            expression -> {
-                                String colName = expression.getColumnName();
-                                colName =
-                                        colName.replaceFirst(
-                                                selectStatement.getFromParts().get(0).getPath()
-                                                        + SQLConstant.DOT,
-                                                "");
-                                order.add(colName);
-                            });
-            root = new Reorder(new OperatorSource(root), order);
         }
 
         Map<String, String> aliasMap = selectStatement.getAliasMap();
@@ -556,7 +570,7 @@ public class QueryGenerator extends AbstractGenerator {
                         });
         // 2. merge by declare
         Operator left = joinList.get(0);
-        String prefixA = selectStatement.getGlobalAlias();
+        String prefixA = selectStatement.getFromParts().get(0).getPath();
         for (int i = 1; i < joinList.size(); i++) {
             JoinCondition joinCondition = selectStatement.getFromParts().get(i).getJoinCondition();
             Operator right = joinList.get(i);
@@ -676,6 +690,23 @@ public class QueryGenerator extends AbstractGenerator {
                     break;
                 default:
                     break;
+            }
+
+            // 将apply下推
+            List<String> freeVariables = selectStatement.getFromParts().get(i).getFreeVariables();
+            List<String> correlatedVariables = new ArrayList<>();
+            for (String freeVariable : freeVariables) {
+                if (selectStatement.hasAttribute(freeVariable, i)) {
+                    correlatedVariables.add(freeVariable);
+                }
+            }
+            if (correlatedVariables.size() > 0) {
+                List<String> patternsLeft = new ArrayList<>();
+                for (int j = 0; j < i; j++) {
+                    patternsLeft.add(
+                            selectStatement.getFromParts().get(j).getPath() + ALL_PATH_SUFFIX);
+                }
+                left = pushDownApply(left, patternsLeft, correlatedVariables);
             }
 
             prefixA = prefixB;

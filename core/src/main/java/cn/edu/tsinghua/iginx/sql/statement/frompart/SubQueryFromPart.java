@@ -2,6 +2,8 @@ package cn.edu.tsinghua.iginx.sql.statement.frompart;
 
 import cn.edu.tsinghua.iginx.sql.statement.SelectStatement;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.join.JoinCondition;
+import java.util.ArrayList;
+import java.util.List;
 
 public class SubQueryFromPart implements FromPart {
 
@@ -10,11 +12,13 @@ public class SubQueryFromPart implements FromPart {
     private final String alias;
     private final boolean isJoinPart;
     private JoinCondition joinCondition;
+    private List<String> freeVariables;
 
     public SubQueryFromPart(SelectStatement subQuery) {
         this.subQuery = subQuery;
         this.alias = subQuery.getGlobalAlias();
         this.isJoinPart = false;
+        this.freeVariables = new ArrayList<>();
     }
 
     public SubQueryFromPart(SelectStatement subQuery, JoinCondition joinCondition) {
@@ -22,6 +26,7 @@ public class SubQueryFromPart implements FromPart {
         this.alias = subQuery.getGlobalAlias();
         this.isJoinPart = true;
         this.joinCondition = joinCondition;
+        this.freeVariables = new ArrayList<>();
     }
 
     @Override
@@ -46,5 +51,14 @@ public class SubQueryFromPart implements FromPart {
 
     public SelectStatement getSubQuery() {
         return subQuery;
+    }
+
+    @Override
+    public List<String> getFreeVariables() {
+        return freeVariables;
+    }
+
+    public void setFreeVariables(List<String> freeVariables) {
+        this.freeVariables = freeVariables;
     }
 }

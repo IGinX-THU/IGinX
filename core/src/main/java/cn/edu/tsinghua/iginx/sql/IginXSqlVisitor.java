@@ -1,26 +1,82 @@
 package cn.edu.tsinghua.iginx.sql;
 
+import static cn.edu.tsinghua.iginx.engine.shared.operator.MarkJoin.markPrefix;
 import static cn.edu.tsinghua.iginx.sql.statement.SelectStatement.markJoinCount;
 
 import cn.edu.tsinghua.iginx.engine.logical.utils.ExprUtils;
 import cn.edu.tsinghua.iginx.engine.shared.TimeRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.RawDataType;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
-import cn.edu.tsinghua.iginx.engine.shared.operator.tag.*;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.BoolFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.NotFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.OrFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.ValueFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.tag.AndTagFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.tag.BasePreciseTagFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.tag.BaseTagFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.tag.OrTagFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.tag.PreciseTagFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.tag.WithoutTagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.FuncType;
 import cn.edu.tsinghua.iginx.exceptions.SQLParserException;
 import cn.edu.tsinghua.iginx.sql.SqlParser.*;
-import cn.edu.tsinghua.iginx.sql.expression.*;
+import cn.edu.tsinghua.iginx.sql.expression.BaseExpression;
+import cn.edu.tsinghua.iginx.sql.expression.BinaryExpression;
+import cn.edu.tsinghua.iginx.sql.expression.BracketExpression;
+import cn.edu.tsinghua.iginx.sql.expression.ConstantExpression;
+import cn.edu.tsinghua.iginx.sql.expression.Expression;
 import cn.edu.tsinghua.iginx.sql.expression.Expression.ExpressionType;
-import cn.edu.tsinghua.iginx.sql.statement.*;
-import cn.edu.tsinghua.iginx.sql.statement.frompart.*;
+import cn.edu.tsinghua.iginx.sql.expression.Operator;
+import cn.edu.tsinghua.iginx.sql.expression.UnaryExpression;
+import cn.edu.tsinghua.iginx.sql.statement.AddStorageEngineStatement;
+import cn.edu.tsinghua.iginx.sql.statement.CancelJobStatement;
+import cn.edu.tsinghua.iginx.sql.statement.ClearDataStatement;
+import cn.edu.tsinghua.iginx.sql.statement.CommitTransformJobStatement;
+import cn.edu.tsinghua.iginx.sql.statement.CompactStatement;
+import cn.edu.tsinghua.iginx.sql.statement.CountPointsStatement;
+import cn.edu.tsinghua.iginx.sql.statement.DeleteStatement;
+import cn.edu.tsinghua.iginx.sql.statement.DeleteTimeSeriesStatement;
+import cn.edu.tsinghua.iginx.sql.statement.DropTaskStatement;
+import cn.edu.tsinghua.iginx.sql.statement.InsertFromSelectStatement;
+import cn.edu.tsinghua.iginx.sql.statement.InsertStatement;
+import cn.edu.tsinghua.iginx.sql.statement.RegisterTaskStatement;
+import cn.edu.tsinghua.iginx.sql.statement.RemoveHsitoryDataSourceStatement;
+import cn.edu.tsinghua.iginx.sql.statement.SelectStatement;
+import cn.edu.tsinghua.iginx.sql.statement.ShowClusterInfoStatement;
+import cn.edu.tsinghua.iginx.sql.statement.ShowEligibleJobStatement;
+import cn.edu.tsinghua.iginx.sql.statement.ShowJobStatusStatement;
+import cn.edu.tsinghua.iginx.sql.statement.ShowRegisterTaskStatement;
+import cn.edu.tsinghua.iginx.sql.statement.ShowReplicationStatement;
+import cn.edu.tsinghua.iginx.sql.statement.ShowTimeSeriesStatement;
+import cn.edu.tsinghua.iginx.sql.statement.Statement;
+import cn.edu.tsinghua.iginx.sql.statement.StatementType;
+import cn.edu.tsinghua.iginx.sql.statement.frompart.FromPart;
+import cn.edu.tsinghua.iginx.sql.statement.frompart.FromPartType;
+import cn.edu.tsinghua.iginx.sql.statement.frompart.PathFromPart;
+import cn.edu.tsinghua.iginx.sql.statement.frompart.SubQueryFromPart;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.join.JoinCondition;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.join.JoinType;
-import cn.edu.tsinghua.iginx.thrift.*;
+import cn.edu.tsinghua.iginx.thrift.DataType;
+import cn.edu.tsinghua.iginx.thrift.JobState;
+import cn.edu.tsinghua.iginx.thrift.RemovedStorageEngineInfo;
+import cn.edu.tsinghua.iginx.thrift.StorageEngine;
+import cn.edu.tsinghua.iginx.thrift.UDFType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.TimeUtils;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
 public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
@@ -282,6 +338,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
             SelectStatement subStatement = new SelectStatement();
             subStatement.setIsSubQuery(true);
             parseQueryClause(ctx.tableReference().subquery().queryClause(), subStatement);
+            subStatement.calculateFreeVariables();
             selectStatement.setGlobalAlias(subStatement.getGlobalAlias());
             fromParts.add(new SubQueryFromPart(subStatement));
         }
@@ -289,9 +346,9 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         if (ctx.joinPart() != null && !ctx.joinPart().isEmpty()) {
             selectStatement.setHasJoinParts(true);
 
-            // 当FROM子句有多个部分时，如果某一部分是子查询，该子查询必须使用AS子句
             if (fromParts.get(0).getType() == FromPartType.SubQueryFromPart) {
                 SubQueryFromPart subQueryFromPart = (SubQueryFromPart) fromParts.get(0);
+                // 当FROM子句有多个部分时，如果某一部分是子查询，且该子查询的FROM子句有多个部分，该子查询必须使用AS子句
                 if (subQueryFromPart.getSubQuery().hasJoinParts()
                         && ctx.tableReference().subquery().queryClause().asClause() == null) {
                     throw new SQLParserException("AS clause is required in this sub query");
@@ -309,12 +366,13 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
                     parseQueryClause(
                             joinPartContext.tableReference().subquery().queryClause(),
                             subStatement);
-                    // 当FROM子句有多个部分时，如果某一部分是子查询，该子查询必须使用AS子句
+                    // 当FROM子句有多个部分时，如果某一部分是子查询，且该子查询的FROM子句有多个部分，该子查询必须使用AS子句
                     if (subStatement.hasJoinParts()
                             && joinPartContext.tableReference().subquery().queryClause().asClause()
                                     == null) {
                         throw new SQLParserException("AS clause is required in this sub query");
                     }
+                    subStatement.calculateFreeVariables();
                     pathPrefix = subStatement.getGlobalAlias();
                 }
                 if (joinPartContext.join() == null) { // cross join
@@ -322,7 +380,28 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
                         fromParts.add(new PathFromPart(pathPrefix, new JoinCondition()));
                     } else {
                         // TODO: check correlated
-                        fromParts.add(new SubQueryFromPart(subStatement, new JoinCondition()));
+                        //                        List<String> freeVariables =
+                        // subStatement.getFreeVariables();
+                        //                        if (freeVariables.size() > 0) {  // cross join
+                        // cast to inner join
+                        //                            Pair<Filter, Filter> filterPair =
+                        // splitFilter(subStatement.getFilter(), freeVariables);
+                        //                            fromParts.add(new
+                        // SubQueryFromPart(subStatement, new JoinCondition(JoinType.InnerJoin,
+                        // filterPair.k)));
+                        //                            if (filterPair.v == null) {
+                        //                                subStatement.setHasValueFilter(false);
+                        //                            } else {
+                        //                                subStatement.setFilter(filterPair.v);
+                        //                            }
+                        //                        } else {
+                        //                            fromParts.add(new
+                        // SubQueryFromPart(subStatement, new JoinCondition()));
+                        //                        }
+                        SubQueryFromPart subQueryFromPart =
+                                new SubQueryFromPart(subStatement, new JoinCondition());
+                        subQueryFromPart.setFreeVariables(subStatement.getFreeVariables());
+                        fromParts.add(subQueryFromPart);
                     }
                     continue;
                 }
@@ -347,6 +426,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
                             new PathFromPart(
                                     pathPrefix, new JoinCondition(joinType, filter, columns)));
                 } else {
+
+                    // TODO
                     fromParts.add(
                             new SubQueryFromPart(
                                     subStatement, new JoinCondition(joinType, filter, columns)));
@@ -964,7 +1045,9 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
                 && statement.getFromParts().get(0).getType() == FromPartType.PathFromPart) {
             path = statement.getFromParts().get(0).getPath() + SQLConstant.DOT + path;
         }
-        statement.setPathSet(path);
+        if (!statement.isFreeVariable(path)) {
+            statement.setPathSet(path);
+        }
 
         // deal with having filter with functions like having avg(a) > 3.
         // we need a instead of avg(a) to combine fragments' raw data.
@@ -1007,8 +1090,12 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
             pathA = statement.getFromParts().get(0).getPath() + SQLConstant.DOT + pathA;
             pathB = statement.getFromParts().get(0).getPath() + SQLConstant.DOT + pathB;
         }
-        statement.setPathSet(pathA);
-        statement.setPathSet(pathB);
+        if (!statement.isFreeVariable(pathA)) {
+            statement.setPathSet(pathA);
+        }
+        if (!statement.isFreeVariable(pathB)) {
+            statement.setPathSet(pathB);
+        }
         return new PathFilter(pathA, op, pathB);
     }
 
@@ -1034,7 +1121,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         SelectStatement subStatement = new SelectStatement();
         subStatement.setIsSubQuery(true);
         parseQueryClause(ctx.subquery().get(0).queryClause(), subStatement);
-        String markColumn = "&mark" + markJoinCount;
+        String markColumn = markPrefix + markJoinCount;
         markJoinCount += 1;
 
         Filter filter;
@@ -1063,7 +1150,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
             throw new SQLParserException(
                     "The number of columns in sub-query doesn't equal to outer row.");
         }
-        String markColumn = "&mark" + markJoinCount;
+        String markColumn = markPrefix + markJoinCount;
         markJoinCount += 1;
 
         Filter filter;
@@ -1110,7 +1197,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
             throw new SQLParserException(
                     "The number of columns in sub-query doesn't equal to outer row.");
         }
-        String markColumn = "&mark" + markJoinCount;
+        String markColumn = markPrefix + markJoinCount;
         markJoinCount += 1;
 
         Filter filter;

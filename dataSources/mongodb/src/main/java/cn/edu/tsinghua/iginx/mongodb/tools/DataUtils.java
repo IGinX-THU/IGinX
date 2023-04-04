@@ -1,16 +1,14 @@
 package cn.edu.tsinghua.iginx.mongodb.tools;
 
+import static cn.edu.tsinghua.iginx.thrift.DataType.*;
+
 import cn.edu.tsinghua.iginx.exceptions.UnsupportedDataTypeException;
 import cn.edu.tsinghua.iginx.mongodb.MongoDBStorage;
 import cn.edu.tsinghua.iginx.mongodb.query.entity.MongoDBSchema;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import org.bson.Document;
-
 import java.util.*;
-
-import static cn.edu.tsinghua.iginx.thrift.DataType.*;
+import org.bson.Document;
 
 public class DataUtils {
 
@@ -61,7 +59,7 @@ public class DataUtils {
         basePreciseMap = new TreeMap<>(basePreciseMap);
         StringBuilder builder = new StringBuilder();
         int cnt = 0;
-        for (String key: basePreciseMap.keySet()) {
+        for (String key : basePreciseMap.keySet()) {
             if (cnt != 0) {
                 builder.append(',');
             }
@@ -73,7 +71,8 @@ public class DataUtils {
         return builder.toString();
     }
 
-    public static Document constructDocument(MongoDBSchema schema, DataType type, List<JSONObject> jsonObjects) {
+    public static Document constructDocument(
+            MongoDBSchema schema, DataType type, List<JSONObject> jsonObjects) {
         Document document = new Document();
         document.append(MongoDBStorage.NAME, schema.getName());
         document.append(MongoDBStorage.TYPE, toString(type));
@@ -81,12 +80,13 @@ public class DataUtils {
             for (Map.Entry<String, String> entry : schema.getTags().entrySet()) {
                 document.append(MongoDBStorage.TAG_PREFIX + entry.getKey(), entry.getValue());
             }
-            document.append(MongoDBStorage.FULLNAME, schema.getName() + "{" + schema.getTagsAsString() + "}");
+            document.append(
+                    MongoDBStorage.FULLNAME,
+                    schema.getName() + "{" + schema.getTagsAsString() + "}");
         } else {
             document.append(MongoDBStorage.FULLNAME, schema.getName());
         }
         document.append(MongoDBStorage.VALUES, jsonObjects);
         return document;
     }
-
 }

@@ -2271,7 +2271,7 @@ public abstract class SQLSessionIT {
                         + "Total line number = 6\n";
         executeAndCompare(statement, expected);
 
-        statement = "SELECT s1+1, s2-1, s3*2 FROM us.d3;";
+        statement = "SELECT *, s2-1, s3*2 FROM us.d3;";
         expected =
                 "ResultSets:\n"
                         + "+---+------------+------------+------------+\n"
@@ -2866,6 +2866,66 @@ public abstract class SQLSessionIT {
                         + "|       7|     7.1|         3|       4|         3|   false|         4|\n"
                         + "+--------+--------+----------+--------+----------+--------+----------+\n"
                         + "Total line number = 12\n";
+        executeAndCompare(statement, expected);
+
+        statement =
+                "SELECT * FROM test.a, (SELECT * FROM (SELECT a FROM test.b WHERE test.b.a < 6), (SELECT b FROM test.c WHERE test.c.b = false) AS sub);";
+        expected =
+                "ResultSets:\n"
+                        + "+------------+--------------+------------+--------------+--------+--------+----------+\n"
+                        + "|sub.test.b.a|sub.test.b.key|sub.test.c.b|sub.test.c.key|test.a.a|test.a.b|test.a.key|\n"
+                        + "+------------+--------------+------------+--------------+--------+--------+----------+\n"
+                        + "|           2|             1|       false|             2|       1|     1.1|         1|\n"
+                        + "|           2|             1|       false|             4|       1|     1.1|         1|\n"
+                        + "|           4|             3|       false|             2|       1|     1.1|         1|\n"
+                        + "|           4|             3|       false|             4|       1|     1.1|         1|\n"
+                        + "|           2|             1|       false|             2|       3|     3.1|         2|\n"
+                        + "|           2|             1|       false|             4|       3|     3.1|         2|\n"
+                        + "|           4|             3|       false|             2|       3|     3.1|         2|\n"
+                        + "|           4|             3|       false|             4|       3|     3.1|         2|\n"
+                        + "|           2|             1|       false|             2|       7|     7.1|         3|\n"
+                        + "|           2|             1|       false|             4|       7|     7.1|         3|\n"
+                        + "|           4|             3|       false|             2|       7|     7.1|         3|\n"
+                        + "|           4|             3|       false|             4|       7|     7.1|         3|\n"
+                        + "+------------+--------------+------------+--------------+--------+--------+----------+\n"
+                        + "Total line number = 12\n";
+        executeAndCompare(statement, expected);
+
+        statement =
+                "explain SELECT * FROM test.a, (SELECT * FROM (SELECT a FROM test.b WHERE test.b.a < 6 AND test.b.a < test.a.a), (SELECT b FROM test.c WHERE test.c.b = false) AS sub);";
+        expected =
+                "ResultSets:\n"
+                        + "+------------+--------------+------------+--------------+--------+--------+----------+\n"
+                        + "|sub.test.b.a|sub.test.b.key|sub.test.c.b|sub.test.c.key|test.a.a|test.a.b|test.a.key|\n"
+                        + "+------------+--------------+------------+--------------+--------+--------+----------+\n"
+                        + "|           2|             1|       false|             2|       1|     1.1|         1|\n"
+                        + "|           2|             1|       false|             4|       1|     1.1|         1|\n"
+                        + "|           4|             3|       false|             2|       1|     1.1|         1|\n"
+                        + "|           4|             3|       false|             4|       1|     1.1|         1|\n"
+                        + "|           2|             1|       false|             2|       3|     3.1|         2|\n"
+                        + "|           2|             1|       false|             4|       3|     3.1|         2|\n"
+                        + "|           4|             3|       false|             2|       3|     3.1|         2|\n"
+                        + "|           4|             3|       false|             4|       3|     3.1|         2|\n"
+                        + "|           2|             1|       false|             2|       7|     7.1|         3|\n"
+                        + "|           2|             1|       false|             4|       7|     7.1|         3|\n"
+                        + "|           4|             3|       false|             2|       7|     7.1|         3|\n"
+                        + "|           4|             3|       false|             4|       7|     7.1|         3|\n"
+                        + "+------------+--------------+------------+--------------+--------+--------+----------+\n"
+                        + "Total line number = 12\n";
+        executeAndCompare(statement, expected);
+
+        statement =
+                "SELECT * FROM test.a, (SELECT * FROM test.b WHERE test.b.a < test.a.a AND test.b.a < 6) WHERE test.a.a > 1;";
+        expected =
+                "ResultSets:\n"
+                        + "+--------+--------+----------+--------+--------+----------+\n"
+                        + "|test.a.a|test.a.b|test.a.key|test.b.a|test.b.b|test.b.key|\n"
+                        + "+--------+--------+----------+--------+--------+----------+\n"
+                        + "|       3|     3.1|         2|       2|     aaa|         1|\n"
+                        + "|       7|     7.1|         3|       2|     aaa|         1|\n"
+                        + "|       7|     7.1|         3|       4|     ccc|         3|\n"
+                        + "+--------+--------+----------+--------+--------+----------+\n"
+                        + "Total line number = 3\n";
         executeAndCompare(statement, expected);
     }
 

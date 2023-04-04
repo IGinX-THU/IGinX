@@ -1,6 +1,8 @@
 package cn.edu.tsinghua.iginx.sql.statement.frompart;
 
 import cn.edu.tsinghua.iginx.sql.statement.frompart.join.JoinCondition;
+import java.util.ArrayList;
+import java.util.List;
 
 public class PathFromPart implements FromPart {
 
@@ -38,5 +40,10 @@ public class PathFromPart implements FromPart {
     @Override
     public JoinCondition getJoinCondition() {
         return joinCondition;
+    }
+
+    @Override
+    public List<String> getFreeVariables() {
+        return new ArrayList<>();
     }
 }

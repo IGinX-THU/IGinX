@@ -7,6 +7,7 @@ import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 
 public class MarkJoin extends AbstractBinaryOperator {
 
+    public static String markPrefix = "&mark";
     private final Filter filter;
     private final String markColumn;
     private final boolean isAntiJoin;

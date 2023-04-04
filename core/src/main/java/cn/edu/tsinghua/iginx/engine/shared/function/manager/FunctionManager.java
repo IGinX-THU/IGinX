@@ -21,7 +21,17 @@ package cn.edu.tsinghua.iginx.engine.shared.function.manager;
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.shared.function.Function;
-import cn.edu.tsinghua.iginx.engine.shared.function.system.*;
+import cn.edu.tsinghua.iginx.engine.shared.function.system.ArithmeticExpr;
+import cn.edu.tsinghua.iginx.engine.shared.function.system.Avg;
+import cn.edu.tsinghua.iginx.engine.shared.function.system.Count;
+import cn.edu.tsinghua.iginx.engine.shared.function.system.First;
+import cn.edu.tsinghua.iginx.engine.shared.function.system.FirstValue;
+import cn.edu.tsinghua.iginx.engine.shared.function.system.Last;
+import cn.edu.tsinghua.iginx.engine.shared.function.system.LastValue;
+import cn.edu.tsinghua.iginx.engine.shared.function.system.Max;
+import cn.edu.tsinghua.iginx.engine.shared.function.system.Min;
+import cn.edu.tsinghua.iginx.engine.shared.function.system.PathProject;
+import cn.edu.tsinghua.iginx.engine.shared.function.system.Sum;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.python.PyUDAF;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.python.PyUDSF;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.python.PyUDTF;
@@ -30,7 +40,13 @@ import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.TransformTaskMeta;
 import cn.edu.tsinghua.iginx.thrift.UDFType;
 import java.io.File;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import org.slf4j.Logger;
@@ -78,6 +94,7 @@ public class FunctionManager {
         registerFunction(Min.getInstance());
         registerFunction(Sum.getInstance());
         registerFunction(ArithmeticExpr.getInstance());
+        registerFunction(PathProject.getInstance());
     }
 
     private void initBasicUDFFunctions() {
