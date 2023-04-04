@@ -1,5 +1,8 @@
 package cn.edu.tsinghua.iginx.engine.shared.function.system;
 
+import static cn.edu.tsinghua.iginx.engine.shared.Constants.ALL_PATH_SUFFIX;
+import static cn.edu.tsinghua.iginx.engine.shared.Constants.PARAM_PATHS;
+
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
@@ -7,13 +10,9 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionType;
 import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
 import cn.edu.tsinghua.iginx.engine.shared.function.RowMappingFunction;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
-import static cn.edu.tsinghua.iginx.engine.shared.Constants.ALL_PATH_SUFFIX;
-import static cn.edu.tsinghua.iginx.engine.shared.Constants.PARAM_PATHS;
 
 public class PathProject implements RowMappingFunction {
 
