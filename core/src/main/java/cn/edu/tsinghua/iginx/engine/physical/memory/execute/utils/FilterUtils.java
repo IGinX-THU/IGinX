@@ -18,8 +18,6 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils;
 
-import static cn.edu.tsinghua.iginx.engine.logical.utils.ExprUtils.removeNot;
-
 import cn.edu.tsinghua.iginx.engine.physical.exception.InvalidOperatorParameterException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
@@ -37,10 +35,13 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.OrFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.ValueFilter;
 import cn.edu.tsinghua.iginx.utils.Pair;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
+import static cn.edu.tsinghua.iginx.engine.logical.utils.ExprUtils.removeNot;
 
 public class FilterUtils {
 

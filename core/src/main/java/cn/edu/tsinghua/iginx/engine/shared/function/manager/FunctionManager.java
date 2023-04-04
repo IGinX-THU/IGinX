@@ -39,6 +39,11 @@ import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.TransformTaskMeta;
 import cn.edu.tsinghua.iginx.thrift.UDFType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import pemja.core.PythonInterpreter;
+import pemja.core.PythonInterpreterConfig;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -49,10 +54,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import pemja.core.PythonInterpreter;
-import pemja.core.PythonInterpreterConfig;
 
 public class FunctionManager {
 
