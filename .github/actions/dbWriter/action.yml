@@ -22,4 +22,4 @@ runs:
       name: Write history Data
       shell: bash
       run: |
-        mvn test -q -Dtest=InfluxDBHistoryDataGenerator#${{inputs.Test-Way}} -DfailIfNoTests=false
+        mvn test -q -Dtest=InfluxDBHistoryDataGenerator#${{inputs.Test-Way}} -DfailIfNoTests=false -P passFormat
