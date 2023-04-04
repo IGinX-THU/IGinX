@@ -46,21 +46,21 @@ public class SQLSessionIT {
 
     protected boolean isAbleToShowTimeSeries;
 
-    protected boolean ifScaleOutIn = false;
+    protected boolean isScaling = false;
 
     private final long startKey = 0L;
 
     private final long endKey = 15000L;
 
-    protected boolean ifClearData = true;
+    protected boolean isAbleToClearData = true;
 
     protected String storageEngineType;
 
     public SQLSessionIT() throws IOException {
         ConfLoder conf = new ConfLoder(Controller.CONFIG_FILE);
         DBConf dbConf = conf.loadDBConf(conf.getStorageType());
-        this.ifScaleOutIn = conf.ifScaleOutIn();
-        this.ifClearData = dbConf.getEnumValue(DBConf.DBConfType.isAbleToClearData);
+        this.isScaling = conf.ifScaleOutIn();
+        this.isAbleToClearData = dbConf.getEnumValue(DBConf.DBConfType.isAbleToClearData);
         this.isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
         this.isAbleToShowTimeSeries = dbConf.getEnumValue(DBConf.DBConfType.isAbleToShowTimeSeries);
         this.isSupportSpecialPath = dbConf.getEnumValue(DBConf.DBConfType.isSupportSpecialPath);
@@ -220,7 +220,7 @@ public class SQLSessionIT {
 
     @Test
     public void testCountPoints() {
-        if (ifScaleOutIn) return;
+        if (isScaling) return;
         String statement = "COUNT POINTS;";
         String expected = "Points num: 60000\n";
         executeAndCompare(statement, expected);
@@ -228,7 +228,7 @@ public class SQLSessionIT {
 
     @Test
     public void testShowTimeSeries() {
-        if (!isAbleToShowTimeSeries || ifScaleOutIn) {
+        if (!isAbleToShowTimeSeries || isScaling) {
             return;
         }
         String statement = "SHOW TIME SERIES us.*;";
@@ -3875,7 +3875,7 @@ public class SQLSessionIT {
 
     @Test
     public void testExplain() {
-        if (ifScaleOutIn) return;
+        if (isScaling) return;
         String explain = "explain select max(s2), min(s1) from us.d1;";
         String expected =
                 "ResultSets:\n"
@@ -3915,7 +3915,7 @@ public class SQLSessionIT {
 
     @Test
     public void testDeleteTimeSeries() {
-        if (!isAbleToDelete || ifScaleOutIn) {
+        if (!isAbleToDelete || isScaling) {
             return;
         }
         String showTimeSeries = "SHOW TIME SERIES us.*;";
@@ -3976,7 +3976,7 @@ public class SQLSessionIT {
 
     @Test
     public void testClearData() throws SessionException, ExecutionException {
-        if (!ifClearData || ifScaleOutIn) return;
+        if (!isAbleToClearData || isScaling) return;
         clearData();
 
         String countPoints = "COUNT POINTS;";

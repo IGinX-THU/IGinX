@@ -23,8 +23,6 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
     protected static Session session;
     protected static SessionPool sessionPool;
     protected String ENGINE_TYPE;
-    protected String dataPrefix = "ln";
-    protected String schemaPrefix = "p1";
 
     public CapacityExpansionIT(String engineType) {
         this.ENGINE_TYPE = engineType;
@@ -398,38 +396,6 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
         SQLTestTools.executeAndCompare(session, statement, expect);
     }
 
-    public void fusionTestOriHasDataExpHasData() throws Exception {
-        session.executeSql("INSERT INTO new.ln (key,status) values(233,3399);");
-        String statement = "select * from *";
-        String expect =
-                "ResultSets:\n"
-                        + "+---+-------------------+------------------------+-------------------+------------------------+-------------+\n"
-                        + "|key|ln.wf01.wt01.status|ln.wf01.wt01.temperature|ln.wf03.wt01.status|ln.wf03.wt01.temperature|new.ln.status|\n"
-                        + "+---+-------------------+------------------------+-------------------+------------------------+-------------+\n"
-                        + "| 77|               null|                    null|               true|                    null|         null|\n"
-                        + "|100|               true|                    null|               null|                    null|         null|\n"
-                        + "|200|              false|                   20.71|              false|                   77.71|         null|\n"
-                        + "|233|               null|                    null|               null|                    null|         3399|\n"
-                        + "+---+-------------------+------------------------+-------------------+------------------------+-------------+\n"
-                        + "Total line number = 4";
-        SQLTestTools.executeAndCompare(session, statement, expect);
-
-        statement = "show time series";
-        expect =
-                "ResultSets:\n"
-                        + "+------------------------+-------+\n"
-                        + "|                    path|   type|\n"
-                        + "+------------------------+-------+\n"
-                        + "|     ln.wf01.wt01.status|BOOLEAN|\n"
-                        + "|ln.wf01.wt01.temperature|  FLOAT|\n"
-                        + "|     ln.wf03.wt01.status|BOOLEAN|\n"
-                        + "|ln.wf03.wt01.temperature| DOUBLE|\n"
-                        + "|           new.ln.status|   LONG|\n"
-                        + "+------------------------+-------+\n"
-                        + "Total line number = 5";
-        SQLTestTools.executeAndCompare(session, statement, expect);
-    }
-
     public void testWriteAndQueryAfterCEOriNoDataExpHasData() throws Exception {
         session.executeSql("insert into ln.wf02 (key, version) values (1600, \"v48\");");
 
@@ -458,35 +424,6 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
                         + "|                    2|                     4|\n"
                         + "+---------------------+----------------------+\n"
                         + "Total line number = 1\n";
-        SQLTestTools.executeAndCompare(session, statement, expect);
-    }
-
-    public void fusionTestOriNoDataExpHasData() throws Exception {
-        session.executeSql("INSERT INTO new.ln (key,status) values(233,3399);");
-        String statement = "select * from *";
-        String expect =
-                "ResultSets:\n"
-                        + "+---+-------------------+------------------------+-------------+\n"
-                        + "|key|ln.wf03.wt01.status|ln.wf03.wt01.temperature|new.ln.status|\n"
-                        + "+---+-------------------+------------------------+-------------+\n"
-                        + "| 77|               true|                    null|         null|\n"
-                        + "|200|              false|                   77.71|         null|\n"
-                        + "|233|               null|                    null|         3399|\n"
-                        + "+---+-------------------+------------------------+-------------+\n"
-                        + "Total line number = 3";
-        SQLTestTools.executeAndCompare(session, statement, expect);
-
-        statement = "show time series";
-        expect =
-                "ResultSets:\n"
-                        + "+------------------------+-------+\n"
-                        + "|                    path|   type|\n"
-                        + "+------------------------+-------+\n"
-                        + "|     ln.wf03.wt01.status|BOOLEAN|\n"
-                        + "|ln.wf03.wt01.temperature| DOUBLE|\n"
-                        + "|           new.ln.status|   LONG|\n"
-                        + "+------------------------+-------+\n"
-                        + "Total line number = 3";
         SQLTestTools.executeAndCompare(session, statement, expect);
     }
 
@@ -520,35 +457,6 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
         SQLTestTools.executeAndCompare(session, statement, expect);
     }
 
-    public void fusionTestOriHasDataExpNoData() throws Exception {
-        session.executeSql("INSERT INTO new.ln (key,status) values(233,3399);");
-        String statement = "select * from *";
-        String expect =
-                "ResultSets:\n"
-                        + "+---+-------------------+------------------------+-------------+\n"
-                        + "|key|ln.wf01.wt01.status|ln.wf01.wt01.temperature|new.ln.status|\n"
-                        + "+---+-------------------+------------------------+-------------+\n"
-                        + "|100|               true|                    null|         null|\n"
-                        + "|200|              false|                   20.71|         null|\n"
-                        + "|233|               null|                    null|         3399|\n"
-                        + "+---+-------------------+------------------------+-------------+\n"
-                        + "Total line number = 3";
-        SQLTestTools.executeAndCompare(session, statement, expect);
-
-        statement = "show time series";
-        expect =
-                "ResultSets:\n"
-                        + "+------------------------+-------+\n"
-                        + "|                    path|   type|\n"
-                        + "+------------------------+-------+\n"
-                        + "|     ln.wf01.wt01.status|BOOLEAN|\n"
-                        + "|ln.wf01.wt01.temperature|  FLOAT|\n"
-                        + "|           new.ln.status|   LONG|\n"
-                        + "+------------------------+-------+\n"
-                        + "Total line number = 3";
-        SQLTestTools.executeAndCompare(session, statement, expect);
-    }
-
     public void testWriteAndQueryAfterCEOriNoDataExpNoData() throws Exception {
         session.executeSql("insert into ln.wf02 (key, version) values (1600, \"v48\");");
 
@@ -575,31 +483,6 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
                         + "|                    2|                     4|\n"
                         + "+---------------------+----------------------+\n"
                         + "Total line number = 1\n";
-        SQLTestTools.executeAndCompare(session, statement, expect);
-    }
-
-    public void fusionTestOriNoDataExpNoData() throws Exception {
-        session.executeSql("INSERT INTO new.ln (key,status) values(233,3399);");
-        String statement = "select * from *";
-        String expect =
-                "ResultSets:\n"
-                        + "+---+-------------+\n"
-                        + "|key|new.ln.status|\n"
-                        + "+---+-------------+\n"
-                        + "|233|         3399|\n"
-                        + "+---+-------------+\n"
-                        + "Total line number = 1";
-        SQLTestTools.executeAndCompare(session, statement, expect);
-
-        statement = "show time series";
-        expect =
-                "ResultSets:\n"
-                        + "+-------------+----+\n"
-                        + "|         path|type|\n"
-                        + "+-------------+----+\n"
-                        + "|new.ln.status|LONG|\n"
-                        + "+-------------+----+\n"
-                        + "Total line number = 1";
         SQLTestTools.executeAndCompare(session, statement, expect);
     }
 }

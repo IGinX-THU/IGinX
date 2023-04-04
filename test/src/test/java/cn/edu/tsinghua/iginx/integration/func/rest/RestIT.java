@@ -16,7 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class RestIT {
-    protected Boolean ifClearData = true;
+    protected Boolean isAbleToClearData = true;
 
     protected static Logger logger = LoggerFactory.getLogger(MetricsResource.class);
 
@@ -26,7 +26,7 @@ public class RestIT {
     public RestIT() throws IOException {
         ConfLoder conf = new ConfLoder(Controller.CONFIG_FILE);
         DBConf dbConf = conf.loadDBConf(conf.getStorageType());
-        this.ifClearData = dbConf.getEnumValue(DBConf.DBConfType.isAbleToClearData);
+        this.isAbleToClearData = dbConf.getEnumValue(DBConf.DBConfType.isAbleToClearData);
         this.isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
     }
 
