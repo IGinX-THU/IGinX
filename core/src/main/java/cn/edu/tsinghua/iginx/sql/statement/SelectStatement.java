@@ -239,6 +239,8 @@ public class SelectStatement extends DataStatement {
                 return FuncType.Count;
             case "sum":
                 return FuncType.Sum;
+            case "ratio":
+                return FuncType.Ratio;
             case "": // no func
                 return null;
             default:
