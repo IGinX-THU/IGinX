@@ -25,9 +25,9 @@ public class ConfLoder {
     private static String STORAGEENGINELIST = "storageEngineList";
     private String TESTTASK = "test-list";
     private static String DBCONF = "%s-config";
-    private String RUNNINGSTORAGE = "./src/test/java/cn/edu/tsinghua/iginx/integration/DBConf.txt";
+    private String RUNNINGSTORAGE = "./src/test/resources/DBConf.txt";
     private String IFSCALEOUTIN =
-            "./src/test/java/cn/edu/tsinghua/iginx/integration/ifScaleOutIn.txt";
+            "./src/test/resources/ifScaleOutIn.txt";
 
     public String getStorageType() {
         String storageType = FileReader.convertToString(RUNNINGSTORAGE);
