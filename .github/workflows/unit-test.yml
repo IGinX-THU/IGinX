@@ -30,4 +30,4 @@ jobs:
                   java: ${{ matrix.java }}
 
             - name: Test with Maven
-              run: mvn clean package -pl core -am
+              run: mvn clean package -pl core -am -P passFormat

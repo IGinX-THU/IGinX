@@ -39,7 +39,7 @@ jobs:
       - name: Install IginX with Maven
         shell: bash
         run: |
-          mvn clean package -DskipTests
+          mvn clean package -DskipTests -P passFormat
 
       - name: Start IginX
         uses: ./.github/actions/iginxRunner
@@ -48,4 +48,4 @@ jobs:
         if: always()
         shell: bash
         run: |
-          mvn test -q -Dtest=MixClusterShowTimeseriesRegressionTest -DfailIfNoTests=false
+          mvn test -q -Dtest=MixClusterShowTimeseriesRegressionTest -DfailIfNoTests=false -P passFormat

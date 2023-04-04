@@ -38,7 +38,7 @@ jobs:
             - name: Install IginX with Maven
               shell: bash
               run: |
-                  mvn clean package -DskipTests
+                  mvn clean package -DskipTests -P passFormat
 
             - name: Set The DB Name
               uses: ./.github/actions/confWriter
@@ -59,7 +59,7 @@ jobs:
               shell: bash
               run: |
                   chmod +x "${GITHUB_WORKSPACE}/.github/test_union.sh"
-                  mvn test -q -Dtest=Controller -DfailIfNoTests=false
+                  mvn test -q -Dtest=Controller -DfailIfNoTests=false -P passFormat
 
             - name: show the test result
               if: always()
