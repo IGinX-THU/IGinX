@@ -1,13 +1,8 @@
 package cn.edu.tsinghua.iginx.engine.shared.function.udf.utils;
 
-import static cn.edu.tsinghua.iginx.engine.shared.Constants.PARAM_PATHS;
-
-import cn.edu.tsinghua.iginx.engine.shared.data.Value;
-import cn.edu.tsinghua.iginx.thrift.DataType;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 public class CheckUtils {
 
@@ -22,15 +17,8 @@ public class CheckUtils {
         return null;
     }
 
-    public static boolean isLegal(Map<String, Value> params) {
-        List<String> neededParams = Collections.singletonList(PARAM_PATHS);
-        for (String param : neededParams) {
-            if (!params.containsKey(param)) {
-                return false;
-            }
-        }
-
-        Value paths = params.get(PARAM_PATHS);
-        return paths != null && paths.getDataType() == DataType.BINARY;
+    public static boolean isLegal(FunctionParams params) {
+        List<String> paths = params.getPaths();
+        return paths != null && !paths.isEmpty();
     }
 }

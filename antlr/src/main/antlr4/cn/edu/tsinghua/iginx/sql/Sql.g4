@@ -37,7 +37,7 @@ selectClause
 expression
    : LR_BRACKET inBracketExpr = expression RR_BRACKET
    | constant
-   | functionName LR_BRACKET path RR_BRACKET asClause?
+   | functionName LR_BRACKET path (COMMA path)* RR_BRACKET asClause?
    | path asClause?
    | (PLUS | MINUS) expr = expression
    | leftExpr = expression (STAR | DIV | MOD) rightExpr = expression

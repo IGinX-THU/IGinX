@@ -10,11 +10,14 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.type.FuncType;
 import cn.edu.tsinghua.iginx.exceptions.SQLParserException;
 import cn.edu.tsinghua.iginx.sql.expression.BaseExpression;
 import cn.edu.tsinghua.iginx.sql.expression.Expression;
+import cn.edu.tsinghua.iginx.sql.expression.Expression.ExpressionType;
+import cn.edu.tsinghua.iginx.sql.expression.FuncExpression;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.FromPart;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.SubQueryFromPart;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -39,7 +42,8 @@ public class SelectStatement extends DataStatement {
     private boolean isSubQuery = false;
 
     private final List<Expression> expressions;
-    private final Map<String, List<BaseExpression>> baseExpressionMap;
+    private final Map<String, List<FuncExpression>> funcExpressionMap;
+    private final List<BaseExpression> baseExpressionList;
     private final Set<FuncType> funcTypeSet;
     private final Set<String> pathSet;
     private final List<SubQueryFromPart> selectSubQueryParts;
@@ -65,7 +69,8 @@ public class SelectStatement extends DataStatement {
         this.queryType = QueryType.Unknown;
         this.ascending = true;
         this.expressions = new ArrayList<>();
-        this.baseExpressionMap = new HashMap<>();
+        this.funcExpressionMap = new HashMap<>();
+        this.baseExpressionList = new ArrayList<>();
         this.funcTypeSet = new HashSet<>();
         this.pathSet = new HashSet<>();
         this.selectSubQueryParts = new ArrayList<>();
@@ -85,7 +90,8 @@ public class SelectStatement extends DataStatement {
 
         this.pathSet = new HashSet<>();
         this.expressions = new ArrayList<>();
-        this.baseExpressionMap = new HashMap<>();
+        this.funcExpressionMap = new HashMap<>();
+        this.baseExpressionList = new ArrayList<>();
         this.selectSubQueryParts = new ArrayList<>();
         this.fromParts = new ArrayList<>();
         this.whereSubQueryParts = new ArrayList<>();
@@ -98,7 +104,7 @@ public class SelectStatement extends DataStatement {
                 path -> {
                     BaseExpression baseExpression = new BaseExpression(path);
                     expressions.add(baseExpression);
-                    setSelectedFuncsAndPaths("", baseExpression);
+                    setSelectedPaths(baseExpression);
                 });
         this.hasFunc = false;
         this.hasGroupBy = false;
@@ -117,7 +123,8 @@ public class SelectStatement extends DataStatement {
 
         this.pathSet = new HashSet<>();
         this.expressions = new ArrayList<>();
-        this.baseExpressionMap = new HashMap<>();
+        this.funcExpressionMap = new HashMap<>();
+        this.baseExpressionList = new ArrayList<>();
         this.selectSubQueryParts = new ArrayList<>();
         this.fromParts = new ArrayList<>();
         this.whereSubQueryParts = new ArrayList<>();
@@ -129,10 +136,12 @@ public class SelectStatement extends DataStatement {
         String func = aggregateType.toString().toLowerCase();
         paths.forEach(
                 path -> {
-                    BaseExpression baseExpression = new BaseExpression(path, func);
-                    expressions.add(baseExpression);
-                    setSelectedFuncsAndPaths(func, baseExpression);
+                    FuncExpression funcExpression =
+                            new FuncExpression(func, Collections.singletonList(path));
+                    expressions.add(funcExpression);
+                    setSelectedFuncsAndPaths(func, funcExpression);
                 });
+
         this.hasFunc = true;
         this.hasGroupBy = false;
 
@@ -161,7 +170,8 @@ public class SelectStatement extends DataStatement {
 
         this.pathSet = new HashSet<>();
         this.expressions = new ArrayList<>();
-        this.baseExpressionMap = new HashMap<>();
+        this.funcExpressionMap = new HashMap<>();
+        this.baseExpressionList = new ArrayList<>();
         this.selectSubQueryParts = new ArrayList<>();
         this.fromParts = new ArrayList<>();
         this.whereSubQueryParts = new ArrayList<>();
@@ -173,10 +183,12 @@ public class SelectStatement extends DataStatement {
         String func = aggregateType.toString().toLowerCase();
         paths.forEach(
                 path -> {
-                    BaseExpression baseExpression = new BaseExpression(path, func);
-                    expressions.add(baseExpression);
-                    setSelectedFuncsAndPaths(func, baseExpression);
+                    FuncExpression funcExpression =
+                            new FuncExpression(func, Collections.singletonList(path));
+                    expressions.add(funcExpression);
+                    setSelectedFuncsAndPaths(func, funcExpression);
                 });
+
         this.hasFunc = true;
         this.hasGroupBy = false;
 
@@ -298,38 +310,45 @@ public class SelectStatement extends DataStatement {
         this.isSubQuery = isSubQuery;
     }
 
-    public List<String> getSelectedPaths() {
-        List<String> paths = new ArrayList<>();
-        baseExpressionMap.forEach(
-                (k, v) -> {
-                    v.forEach(expression -> paths.add(expression.getPathName()));
-                });
-        return paths;
+    public Map<String, List<FuncExpression>> getFuncExpressionMap() {
+        return funcExpressionMap;
     }
 
-    public Map<String, List<BaseExpression>> getBaseExpressionMap() {
-        return baseExpressionMap;
+    public List<BaseExpression> getBaseExpressionList() {
+        return baseExpressionList;
     }
 
-    public void setSelectedFuncsAndPaths(String func, BaseExpression expression) {
+    public void setSelectedPaths(BaseExpression baseExpression) {
+        this.setSelectedPaths(baseExpression, true);
+    }
+
+    public void setSelectedPaths(BaseExpression baseExpression, boolean addToPathSet) {
+        this.baseExpressionList.add(baseExpression);
+
+        if (addToPathSet) {
+            this.pathSet.add(baseExpression.getPathName());
+        }
+    }
+
+    public void setSelectedFuncsAndPaths(String func, FuncExpression expression) {
         setSelectedFuncsAndPaths(func, expression, true);
     }
 
     public void setSelectedFuncsAndPaths(
-            String func, BaseExpression expression, boolean addToPathSet) {
+            String func, FuncExpression expression, boolean addToPathSet) {
         func = func.trim().toLowerCase();
 
-        List<BaseExpression> expressions = this.baseExpressionMap.get(func);
+        List<FuncExpression> expressions = this.funcExpressionMap.get(func);
         if (expressions == null) {
             expressions = new ArrayList<>();
             expressions.add(expression);
-            this.baseExpressionMap.put(func, expressions);
+            this.funcExpressionMap.put(func, expressions);
         } else {
             expressions.add(expression);
         }
 
         if (addToPathSet) {
-            this.pathSet.add(expression.getPathName());
+            this.pathSet.addAll(expression.getParams());
         }
 
         FuncType type = str2FuncType(func);
@@ -524,28 +543,29 @@ public class SelectStatement extends DataStatement {
 
     public Map<String, String> getAliasMap() {
         Map<String, String> aliasMap = new HashMap<>();
-        this.baseExpressionMap.forEach(
-                (k, v) -> {
-                    v.forEach(
-                            expression -> {
-                                if (expression.hasAlias()) {
-                                    String oldName =
-                                            expression.hasFunc()
-                                                    ? expression.getFuncName().toLowerCase()
-                                                            + "("
-                                                            + expression.getPathName()
-                                                            + ")"
-                                                    : expression.getPathName();
-                                    aliasMap.put(oldName, expression.getAlias());
-                                }
-                            });
+        this.funcExpressionMap.forEach(
+                (k, v) ->
+                        v.forEach(
+                                expression -> {
+                                    if (expression.hasAlias()) {
+                                        String oldName = expression.getColumnName();
+                                        aliasMap.put(oldName, expression.getAlias());
+                                    }
+                                }));
+        this.baseExpressionList.forEach(
+                expr -> {
+                    if (expr.hasAlias()) {
+                        String oldName = expr.getColumnName();
+                        aliasMap.put(oldName, expr.getAlias());
+                    }
                 });
         return aliasMap;
     }
 
     public boolean needRowTransform() {
         for (Expression expression : expressions) {
-            if (!expression.getType().equals(Expression.ExpressionType.Base)) {
+            if (!expression.getType().equals(ExpressionType.Base)
+                    && !expression.getType().equals(ExpressionType.Function)) {
                 return true;
             }
         }
@@ -597,7 +617,7 @@ public class SelectStatement extends DataStatement {
                     "SetToSet/SetToRow/RowToRow functions can not be mixed in aggregate query.");
         }
         // SetToSet SetToRow functions and non-function modified path can not be mixed.
-        if (typeCnt == 1 && !hasGroupBy && cntArr[0] == 0 && baseExpressionMap.containsKey("")) {
+        if (typeCnt == 1 && !hasGroupBy && cntArr[0] == 0 && !baseExpressionList.isEmpty()) {
             throw new SQLParserException(
                     "SetToSet/SetToRow functions and non-function modified path can not be mixed.");
         }

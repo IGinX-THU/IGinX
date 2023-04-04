@@ -22,22 +22,21 @@ import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtil
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
-import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
 import cn.edu.tsinghua.iginx.engine.shared.function.RowMappingFunction;
 import cn.edu.tsinghua.iginx.engine.shared.operator.RowTransform;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 public class RowTransformLazyStream extends UnaryLazyStream {
 
     private final RowTransform rowTransform;
 
-    private final List<Pair<RowMappingFunction, Map<String, Value>>> functionAndParamslist;
+    private final List<Pair<RowMappingFunction, FunctionParams>> functionAndParamslist;
 
     private Row nextRow;
 
@@ -75,7 +74,7 @@ public class RowTransformLazyStream extends UnaryLazyStream {
             functionAndParamslist.forEach(
                     pair -> {
                         RowMappingFunction function = pair.k;
-                        Map<String, Value> params = pair.v;
+                        FunctionParams params = pair.v;
                         Row column = null;
                         try {
                             // 分别计算每个表达式得到相应的结果
