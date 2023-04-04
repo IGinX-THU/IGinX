@@ -57,38 +57,32 @@ public class PyUDSF implements UDSF {
 
         PythonInterpreter interpreter = interpreters.take();
 
-        List<Pattern> patterns = new ArrayList<>();
-        List<String> targets = new ArrayList<>();
-        List<String> paths = params.getPaths();
-        for (String path : paths) {
-            if (StringUtils.isPattern(path)) {
-                Pattern pattern = Pattern.compile(StringUtils.reformatPath(path));
-                patterns.add(pattern);
-            } else {
-                targets.add(path);
-            }
-        }
-
         List<Object> colNames = new ArrayList<>();
         List<Object> colTypes = new ArrayList<>();
         List<Integer> indices = new ArrayList<>();
+
+        List<String> paths = params.getPaths();
         flag:
-        for (int i = 0; i < rows.getHeader().getFieldSize(); i++) {
-            Field field = rows.getHeader().getField(i);
-            for (String target : targets) {
-                if (target.equals(field.getName())) {
-                    colNames.add(field.getName());
-                    colTypes.add(field.getType().toString());
-                    indices.add(i);
-                    continue flag;
+        for (String target : paths) {
+            if (StringUtils.isPattern(target)) {
+                Pattern pattern = Pattern.compile(StringUtils.reformatPath(target));
+                for (int i = 0; i < rows.getHeader().getFieldSize(); i++) {
+                    Field field = rows.getHeader().getField(i);
+                    if (pattern.matcher(field.getName()).matches()) {
+                        colNames.add(field.getName());
+                        colTypes.add(field.getType().toString());
+                        indices.add(i);
+                    }
                 }
-            }
-            for (Pattern pattern : patterns) {
-                if (pattern.matcher(field.getName()).matches()) {
-                    colNames.add(field.getName());
-                    colTypes.add(field.getType().toString());
-                    indices.add(i);
-                    continue flag;
+            } else {
+                for (int i = 0; i < rows.getHeader().getFieldSize(); i++) {
+                    Field field = rows.getHeader().getField(i);
+                    if (target.equals(field.getName())) {
+                        colNames.add(field.getName());
+                        colTypes.add(field.getType().toString());
+                        indices.add(i);
+                        continue flag;
+                    }
                 }
             }
         }
