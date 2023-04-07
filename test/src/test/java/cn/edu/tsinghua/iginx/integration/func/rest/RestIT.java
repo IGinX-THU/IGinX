@@ -155,7 +155,7 @@ public class RestIT {
     public void testQueryWrongName() {
         String json = "testQueryWrongName.json";
         String result =
-                "{\"queries\":[{\"sample_size\": 0,\"results\": [{ \"name\": \"archive_\",\"group_by\": [{\"name\": \"type\",\"type\": \"number\"}], \"tags\": {}, \"values\": []}]}]}";
+                "{\"queries\":[{\"sample_size\": 0,\"results\": [{ \"name\": \"archive_.a.b.c\",\"group_by\": [{\"name\": \"type\",\"type\": \"number\"}], \"tags\": {}, \"values\": []}]}]}";
         executeAndCompare(json, result);
     }
 
