@@ -7,8 +7,8 @@ on:
 env:
     VERSION: 0.6.0-SNAPSHOT
     FUNCTEST: TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,BaseSessionIT,BaseSessionPoolIT,CompactionIT
-    IoTDB12FUNCTEST: TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,BaseSessionIT,BaseSessionPoolIT,CompactionIT
-    InfluxDBFUNCTEST: TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,BaseSessionIT,BaseSessionPoolIT,CompactionIT
+    IoTDB12FUNCTEST: TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,BaseSessionIT,BaseSessionPoolIT,CompactionIT
+    InfluxDBFUNCTEST: TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,BaseSessionPoolIT,CompactionIT
 concurrency:
     group: ${{ github.workflow }}-${{ github.ref }}
     cancel-in-progress: true
