@@ -114,6 +114,10 @@ public class ConfLoder {
 
         DBConf dbConf = new DBConf();
 
+        if (storageEngine == null || storageEngine.isEmpty()) {
+            return dbConf;
+        }
+
         String confs = properties.getProperty(String.format(DBCONF, storageEngine));
         logInfo("the conf of {} is : {}", storageEngine, confs);
         List<String> confList = Arrays.asList(confs.split(","));

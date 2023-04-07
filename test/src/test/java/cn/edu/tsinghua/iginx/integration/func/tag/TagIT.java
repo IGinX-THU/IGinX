@@ -1058,8 +1058,8 @@ public class TagIT {
                         + "+----+------------------+-----+\n"
                         + "| key|              path|value|\n"
                         + "+----+------------------+-----+\n"
-                        + "|3200|ah.hr03.v{t1=vv11}|   32|\n"
                         + "|3200|  ah.hr03.v{t1=v1}|   16|\n"
+                        + "|3200|ah.hr03.v{t1=vv11}|   32|\n"
                         + "+----+------------------+-----+\n"
                         + "Total line number = 2\n";
         executeAndCompare(statement, expected);
