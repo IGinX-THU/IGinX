@@ -8,7 +8,7 @@ env:
     VERSION: 0.6.0-SNAPSHOT
     FUNCTEST: TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,BaseSessionIT,BaseSessionPoolIT,CompactionIT
     IoTDB12FUNCTEST: TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,BaseSessionIT,BaseSessionPoolIT,CompactionIT
-    InfluxDBFUNCTEST: RestAnnotationIT
+    InfluxDBFUNCTEST: TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,BaseSessionIT,BaseSessionPoolIT,CompactionIT
 concurrency:
     group: ${{ github.workflow }}-${{ github.ref }}
     cancel-in-progress: true
@@ -57,40 +57,34 @@ jobs:
 
             #第 1 阶段测试开始==========================================
             - name: Prepare CapExp environment oriHasDataExpHasData
-              #        if: always()
               uses: ./.github/actions/capacityExpansionUnionTest
               with:
                   version: ${VERSION}
                   DB-name: ${{matrix.DB-name}}
                   Test-Way: oriHasDataExpHasData
             - name: oriHasDataExpHasData IT
-              #        if: always()
               run: |
                   mvn test -q -Dtest=${{matrix.DB-name}}HistoryDataCapacityExpansionIT#oriHasDataExpHasData -DfailIfNoTests=false -P passFormat
                   mvn test -q -Dtest=${${{matrix.DB-name}}FUNCTEST} -DfailIfNoTests=false -P passFormat
             #第 2 阶段测试开始==========================================
             - name: Prepare CapExp environment oriNoDataExpNoData
-              #        if: always()
               uses: ./.github/actions/capacityExpansionUnionTest
               with:
                   version: ${VERSION}
                   DB-name: ${{matrix.DB-name}}
                   Test-Way: oriNoDataExpNoData
             - name: oriNoDataExpNoData IT
-              #        if: always()
               run: |
                   mvn test -q -Dtest=${{matrix.DB-name}}HistoryDataCapacityExpansionIT#oriNoDataExpNoData -DfailIfNoTests=false -P passFormat
                   mvn test -q -Dtest=${${{matrix.DB-name}}FUNCTEST} -DfailIfNoTests=false -P passFormat
             #第 3 阶段测试开始==========================================
             - name: Prepare CapExp environment oriHasDataExpNoData
-              #        if: always()
               uses: ./.github/actions/capacityExpansionUnionTest
               with:
                   version: ${VERSION}
                   DB-name: ${{matrix.DB-name}}
                   Test-Way: oriHasDataExpNoData
             - name: oriHasDataExpNoData IT
-              #        if: always()
               run: |
                   mvn test -q -Dtest=${{matrix.DB-name}}HistoryDataCapacityExpansionIT#oriHasDataExpNoData -DfailIfNoTests=false -P passFormat
                   mvn test -q -Dtest=${${{matrix.DB-name}}FUNCTEST} -DfailIfNoTests=false -P passFormat
@@ -103,16 +97,9 @@ jobs:
                   Test-Way: oriNoDataExpHasData
             - name: oriNoDataExpHasData IT
               run: |
-                  if [ "${{matrix.DB-name}}" == "IoTDB12" ]; then
-                    mvn test -q -Dtest=IoTDB12HistoryDataCapacityExpansionIT#oriNoDataExpHasData -DfailIfNoTests=false -P passFormat
-                    mvn test -q -Dtest=${${{matrix.DB-name}}FUNCTEST} -DfailIfNoTests=false -P passFormat
-                    mvn test -q -Dtest=IoTDB12HistoryDataCapacityExpansionIT#testPrefixAndRemoveHistoryDataSource -DfailIfNoTests=false -P passFormat
-                  elif [ "${{matrix.DB-name}}" == "InfluxDB" ]; then
-                    mvn test -q -Dtest=InfluxDBHistoryDataCapacityExpansionIT#oriNoDataExpHasData -DfailIfNoTests=false -P passFormat
-                    mvn test -q -Dtest=${${{matrix.DB-name}}FUNCTEST} -DfailIfNoTests=false -P passFormat
-                  else
-                    echo "${{matrix.DB-name}} is not supported"
-                  fi
+                  mvn test -q -Dtest=${{matrix.DB-name}}HistoryDataCapacityExpansionIT#oriNoDataExpHasData -DfailIfNoTests=false -P passFormat
+                  mvn test -q -Dtest=${${{matrix.DB-name}}FUNCTEST} -DfailIfNoTests=false -P passFormat
+                  mvn test -q -Dtest=${{matrix.DB-name}}HistoryDataCapacityExpansionIT#testPrefixAndRemoveHistoryDataSource -DfailIfNoTests=false -P passFormat
             - uses: codecov/codecov-action@v1
               with:
                   file: ./**/target/site/jacoco/jacoco.xml
@@ -121,7 +108,6 @@ jobs:
     Parquet-Capacity-Expansion-ds:
         strategy:
             fail-fast: false
-            #max-parallel: 20
             matrix:
                 java: [8]
                 python-version: ["3.7"]
