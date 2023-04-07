@@ -18,14 +18,11 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.function.system;
 
-import static cn.edu.tsinghua.iginx.engine.shared.Constants.PARAM_LEVELS;
-import static cn.edu.tsinghua.iginx.engine.shared.Constants.PARAM_PATHS;
-
-import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionType;
 import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
 import cn.edu.tsinghua.iginx.engine.shared.function.SetMappingFunction;
@@ -33,7 +30,10 @@ import cn.edu.tsinghua.iginx.engine.shared.function.system.utils.GroupByUtils;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.DataTypeUtils;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 public class Avg implements SetMappingFunction {
@@ -64,19 +64,14 @@ public class Avg implements SetMappingFunction {
     }
 
     @Override
-    public Row transform(RowStream rows, Map<String, Value> params) throws Exception {
-        if (params.size() == 0 || params.size() > 2) {
-            throw new IllegalArgumentException("unexpected params for avg.");
-        }
-        Value param = params.get(PARAM_PATHS);
-        if (param == null || param.getDataType() != DataType.BINARY) {
+    public Row transform(RowStream rows, FunctionParams params) throws Exception {
+        List<String> pathParams = params.getPaths();
+        if (pathParams == null || pathParams.size() != 1) {
             throw new IllegalArgumentException("unexpected param type for avg.");
         }
-        List<Integer> groupByLevels = null;
-        if (params.containsKey(PARAM_LEVELS)) {
-            groupByLevels = GroupByUtils.parseLevelsFromValue(params.get(PARAM_LEVELS));
-        }
-        String target = param.getBinaryVAsString();
+        List<Integer> groupByLevels = params.getLevels();
+
+        String target = pathParams.get(0);
         List<Field> fields = rows.getHeader().getFields();
 
         Pattern pattern = Pattern.compile(StringUtils.reformatPath(target) + ".*");

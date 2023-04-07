@@ -37,7 +37,7 @@ selectClause
 expression
    : LR_BRACKET inBracketExpr = expression RR_BRACKET
    | constant
-   | functionName LR_BRACKET path RR_BRACKET asClause?
+   | functionName LR_BRACKET path (COMMA path)* RR_BRACKET asClause?
    | path asClause?
    | (PLUS | MINUS) expr = expression
    | leftExpr = expression (STAR | DIV | MOD) rightExpr = expression
@@ -47,14 +47,7 @@ expression
 
 functionName
    : ID
-   | LAST
-   | FIRST_VALUE
-   | LAST_VALUE
-   | MIN
-   | MAX
-   | AVG
    | COUNT
-   | SUM
    ;
 
 whereClause
@@ -340,21 +333,13 @@ keyWords
    | VALUES
    | NOW
    | COUNT
-   | LAST
    | CLEAR
-   | MIN
-   | MAX
-   | AVG
-   | COUNT
-   | SUM
    | DESC
    | ASC
    | STORAGEENGINE
    | POINTS
    | DATA
    | NULL
-   | LAST_VALUE
-   | FIRST_VALUE
    | REPLICA
    | IOTDB
    | INFLUXDB
@@ -551,36 +536,8 @@ NULL
    : N U L L
    ;
 
-LAST
-   : L A S T
-   ;
-
-FIRST_VALUE
-   : F I R S T '_' V A L U E
-   ;
-
-LAST_VALUE
-   : L A S T '_' V A L U E
-   ;
-
-MIN
-   : M I N
-   ;
-
-MAX
-   : M A X
-   ;
-
-AVG
-   : A V G
-   ;
-
 COUNT
    : C O U N T
-   ;
-
-SUM
-   : S U M
    ;
 
 LIMIT

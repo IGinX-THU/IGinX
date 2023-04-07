@@ -2,10 +2,14 @@ package cn.edu.tsinghua.iginx.engine.shared.function;
 
 import cn.edu.tsinghua.iginx.engine.shared.function.manager.FunctionManager;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
 public class FunctionUtils {
+
+    private static final Set<String> sysRowToRowFunctionSet =
+            new HashSet<>(Collections.singletonList("ratio"));
 
     private static final Set<String> sysSetToRowFunctionSet =
             new HashSet<>(
@@ -18,6 +22,9 @@ public class FunctionUtils {
     private static final FunctionManager functionManager = FunctionManager.getInstance();
 
     public static boolean isRowToRowFunction(String identifier) {
+        if (sysRowToRowFunctionSet.contains(identifier)) {
+            return true;
+        }
         Function function = functionManager.getFunction(identifier);
         return function.getIdentifier().equals("py_udtf");
     }

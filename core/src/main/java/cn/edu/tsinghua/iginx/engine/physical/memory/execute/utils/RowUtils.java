@@ -26,12 +26,12 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
 import cn.edu.tsinghua.iginx.engine.shared.Constants;
-import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
 import cn.edu.tsinghua.iginx.engine.shared.function.SetMappingFunction;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils;
 import cn.edu.tsinghua.iginx.engine.shared.operator.GroupBy;
@@ -450,7 +450,7 @@ public class RowUtils {
         List<FunctionCall> functionCallList = groupBy.getFunctionCallList();
         for (FunctionCall functionCall : functionCallList) {
             SetMappingFunction function = (SetMappingFunction) functionCall.getFunction();
-            Map<String, Value> params = functionCall.getParams();
+            FunctionParams params = functionCall.getParams();
 
             boolean hasAddedFields = false;
             for (Map.Entry<Integer, List<Row>> entry : groups.entrySet()) {

@@ -6,10 +6,15 @@ public interface Expression {
 
     ExpressionType getType();
 
+    boolean hasAlias();
+
+    String getAlias();
+
     enum ExpressionType {
         Bracket,
         Binary,
         Unary,
+        Function,
         Base,
         Constant
     }
