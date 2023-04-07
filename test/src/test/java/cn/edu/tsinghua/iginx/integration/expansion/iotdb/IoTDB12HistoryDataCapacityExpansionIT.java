@@ -1,6 +1,7 @@
 package cn.edu.tsinghua.iginx.integration.expansion.iotdb;
 
 import cn.edu.tsinghua.iginx.integration.expansion.CapacityExpansionIT;
+
 public class IoTDB12HistoryDataCapacityExpansionIT extends CapacityExpansionIT {
     public IoTDB12HistoryDataCapacityExpansionIT() {
         super("iotdb12");
