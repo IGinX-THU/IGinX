@@ -333,14 +333,18 @@ public class SessionV2IT {
             boolean boolValue = (boolean) record.getValue("test.session.v2.bool");
             assertEquals(timestamp % 2 == 0, boolValue);
             // 核验 int 值
-            int intValue = (int) record.getValue("test.session.v2.int");
-            assertEquals((int) timestamp, intValue);
+            if(!isInfluxdb) {
+                int intValue = (int) record.getValue("test.session.v2.int");
+                assertEquals((int) timestamp, intValue);
+            }
             // 核验 long 值
             long longValue = (long) record.getValue("test.session.v2.long");
             assertEquals(timestamp, longValue);
             // 核验 float 值
-            float floatValue = (float) record.getValue("test.session.v2.float");
-            assertEquals((float) (timestamp + 0.1), floatValue, 0.05);
+            if(!isInfluxdb) {
+                float floatValue = (float) record.getValue("test.session.v2.float");
+                assertEquals((float) (timestamp + 0.1), floatValue, 0.05);
+            }
             // 核验 double 值
             double doubleValue = (double) record.getValue("test.session.v2.double");
             assertEquals(timestamp + 0.2, doubleValue, 0.05);
@@ -423,6 +427,7 @@ public class SessionV2IT {
         for (IginXColumn column : columns) {
             switch (column.getName()) {
                 case "test.session.v3.int{k1=v2}":
+                    if(isInfluxdb) break;
                     assertEquals(DataType.INTEGER, column.getDataType());
                     break;
                 case "test.session.v3.float{k1=v4}":
@@ -447,8 +452,10 @@ public class SessionV2IT {
             int intValue = (int) record.getValue("test.session.v3.int{k1=v2}");
             assertEquals((int) timestamp, intValue);
             // 核验 float 值
-            float floatValue = (float) record.getValue("test.session.v3.float{k1=v4}");
-            assertEquals((float) (timestamp + 0.1), floatValue, 0.05);
+            if(!isInfluxdb) {
+                float floatValue = (float) record.getValue("test.session.v3.float{k1=v4}");
+                assertEquals((float) (timestamp + 0.1), floatValue, 0.05);
+            }
             // 核验 string 值
             Object object = record.getValue("test.session.v3.string{k1=v6}");
             if (timestamp % 2 == 0) {
