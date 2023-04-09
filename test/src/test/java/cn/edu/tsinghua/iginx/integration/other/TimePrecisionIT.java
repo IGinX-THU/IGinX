@@ -1,4 +1,4 @@
-package cn.edu.tsinghua.iginx.integration.tool;
+package cn.edu.tsinghua.iginx.integration.other;
 
 import static org.junit.Assert.fail;
 
