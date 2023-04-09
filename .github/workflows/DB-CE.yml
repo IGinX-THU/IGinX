@@ -8,7 +8,7 @@ env:
     VERSION: 0.6.0-SNAPSHOT
     FUNCTEST: TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,BaseSessionIT,BaseSessionPoolIT,CompactionIT,TimePrecisionIT
     IoTDB12FUNCTEST: TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,BaseSessionIT,BaseSessionPoolIT,CompactionIT,TimePrecisionIT
-    InfluxDBFUNCTEST: TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,BaseSessionPoolIT,CompactionIT,TimePrecisionIT
+    InfluxDBFUNCTEST: TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,BaseSessionIT,BaseSessionPoolIT,CompactionIT,TimePrecisionIT
 concurrency:
     group: ${{ github.workflow }}-${{ github.ref }}
     cancel-in-progress: true
