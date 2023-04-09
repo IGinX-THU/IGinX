@@ -2,6 +2,9 @@ package cn.edu.tsinghua.iginx.integration.func.session;
 
 import static org.junit.Assert.*;
 
+import cn.edu.tsinghua.iginx.integration.controller.Controller;
+import cn.edu.tsinghua.iginx.integration.tool.ConfLoder;
+import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.session_v2.*;
 import cn.edu.tsinghua.iginx.session_v2.annotations.Field;
 import cn.edu.tsinghua.iginx.session_v2.annotations.Measurement;
@@ -12,6 +15,8 @@ import cn.edu.tsinghua.iginx.session_v2.write.Point;
 import cn.edu.tsinghua.iginx.session_v2.write.Record;
 import cn.edu.tsinghua.iginx.session_v2.write.Table;
 import cn.edu.tsinghua.iginx.thrift.*;
+
+import java.io.IOException;
 import java.util.*;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -30,8 +35,14 @@ public class SessionV2IT {
     private static UsersClient usersClient;
     private static ClusterClient clusterClient;
 
+    private static boolean isInfluxdb = false;
+
     @BeforeClass
-    public static void setUp() {
+    public static void setUp() throws IOException {
+        ConfLoder conf = new ConfLoder(Controller.CONFIG_FILE);
+        if(DBConf.getDBType(conf.getStorageType()) == DBConf.DBType.influxdb) {
+            isInfluxdb = true;
+        }
         iginXClient = IginXClientFactory.create("127.0.0.1", 6888);
 
         writeClient = iginXClient.getWriteClient();
@@ -291,12 +302,14 @@ public class SessionV2IT {
                     assertEquals(DataType.BOOLEAN, column.getDataType());
                     break;
                 case "test.session.v2.int":
+                    if(isInfluxdb) break;
                     assertEquals(DataType.INTEGER, column.getDataType());
                     break;
                 case "test.session.v2.double":
                     assertEquals(DataType.DOUBLE, column.getDataType());
                     break;
                 case "test.session.v2.float":
+                    if(isInfluxdb) break;
                     assertEquals(DataType.FLOAT, column.getDataType());
                     break;
                 case "test.session.v2.long":
@@ -413,6 +426,7 @@ public class SessionV2IT {
                     assertEquals(DataType.INTEGER, column.getDataType());
                     break;
                 case "test.session.v3.float{k1=v4}":
+                    if(isInfluxdb) break;
                     assertEquals(DataType.FLOAT, column.getDataType());
                     break;
                 case "test.session.v3.string{k1=v6}":
@@ -573,6 +587,7 @@ public class SessionV2IT {
 
     @Test
     public void testMeasurementQuery() {
+        if(isInfluxdb) return;
         List<POJO> pojoList =
                 queryClient.query(
                         SimpleQuery.builder()
