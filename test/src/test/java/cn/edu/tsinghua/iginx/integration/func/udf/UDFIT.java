@@ -218,4 +218,45 @@ public class UDFIT {
             assertEquals(expected, actual, delta);
         }
     }
+
+    @Test
+    public void testMultiParams() {
+        String insert =
+                "INSERT INTO test(key, s1, s2, s3) VALUES (1, 2, 3, 2), (2, 3, 1, 3), (3, 4, 3, 1), (4, 9, 7, 5), (5, 3, 6, 2), (6, 6, 4, 2);";
+        execute(insert);
+
+        String query = "SELECT multiply(s1, s2) FROM test;";
+        SessionExecuteSqlResult ret = execute(query);
+        String expected =
+                "ResultSets:\n"
+                        + "+---+--------------------------+\n"
+                        + "|key|multiply(test.s1, test.s2)|\n"
+                        + "+---+--------------------------+\n"
+                        + "|  1|                       6.0|\n"
+                        + "|  2|                       3.0|\n"
+                        + "|  3|                      12.0|\n"
+                        + "|  4|                      63.0|\n"
+                        + "|  5|                      18.0|\n"
+                        + "|  6|                      24.0|\n"
+                        + "+---+--------------------------+\n"
+                        + "Total line number = 6\n";
+        assertEquals(expected, ret.getResultInString(false, ""));
+
+        query = "SELECT multiply(s1, s2, s3) FROM test;";
+        ret = execute(query);
+        expected =
+                "ResultSets:\n"
+                        + "+---+-----------------------------------+\n"
+                        + "|key|multiply(test.s1, test.s2, test.s3)|\n"
+                        + "+---+-----------------------------------+\n"
+                        + "|  1|                               12.0|\n"
+                        + "|  2|                                9.0|\n"
+                        + "|  3|                               12.0|\n"
+                        + "|  4|                              315.0|\n"
+                        + "|  5|                               36.0|\n"
+                        + "|  6|                               48.0|\n"
+                        + "+---+-----------------------------------+\n"
+                        + "Total line number = 6\n";
+        assertEquals(expected, ret.getResultInString(false, ""));
+    }
 }

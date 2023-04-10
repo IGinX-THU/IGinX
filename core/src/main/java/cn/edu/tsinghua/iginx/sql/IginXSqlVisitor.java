@@ -25,13 +25,69 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.WithoutTagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.FuncType;
 import cn.edu.tsinghua.iginx.exceptions.SQLParserException;
-import cn.edu.tsinghua.iginx.sql.SqlParser.*;
+import cn.edu.tsinghua.iginx.sql.SqlParser.AddStorageEngineStatementContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.AggLenContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.AndExpressionContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.AndPreciseExpressionContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.AndTagExpressionContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.AsClauseContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.CancelJobStatementContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.ClearDataStatementContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.CommitTransformJobStatementContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.CompactStatementContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.ConstantContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.CountPointsStatementContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.DateExpressionContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.DateFormatContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.DeleteStatementContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.DeleteTimeSeriesStatementContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.DownsampleClauseContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.DropTaskStatementContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.ExpressionContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.FromClauseContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.GroupByClauseContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.InsertMultiValueContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.InsertStatementContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.InsertValuesSpecContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.JoinContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.JoinPartContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.LimitClauseContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.OrExpressionContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.OrPreciseExpressionContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.OrTagExpressionContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.OrderByClauseContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.PathContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.PreciseTagExpressionContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.PredicateContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.PredicateWithSubqueryContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.QueryClauseContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.RegisterTaskStatementContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.RemoveHistoryDataResourceStatementContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.SelectClauseContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.SelectStatementContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.ShowClusterInfoStatementContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.ShowEligibleJobStatementContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.ShowJobStatusStatementContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.ShowRegisterTaskStatementContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.ShowReplicationStatementContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.ShowTimeSeriesStatementContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.SpecialClauseContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.SqlStatementContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.StorageEngineContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.StringLiteralContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.TagEquationContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.TagExpressionContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.TagListContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.TimeIntervalContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.TimeValueContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.WithClauseContext;
 import cn.edu.tsinghua.iginx.sql.expression.BaseExpression;
 import cn.edu.tsinghua.iginx.sql.expression.BinaryExpression;
 import cn.edu.tsinghua.iginx.sql.expression.BracketExpression;
 import cn.edu.tsinghua.iginx.sql.expression.ConstantExpression;
 import cn.edu.tsinghua.iginx.sql.expression.Expression;
 import cn.edu.tsinghua.iginx.sql.expression.Expression.ExpressionType;
+import cn.edu.tsinghua.iginx.sql.expression.FuncExpression;
 import cn.edu.tsinghua.iginx.sql.expression.Operator;
 import cn.edu.tsinghua.iginx.sql.expression.UnaryExpression;
 import cn.edu.tsinghua.iginx.sql.statement.AddStorageEngineStatement;
@@ -548,7 +604,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
                             String selectedPath =
                                     ((ConstantExpression) expression).getValue().toString();
                             selectStatement.setExpression(
-                                    parseBaseExpression(selectedPath, selectStatement));
+                                    parseBaseExpression(selectedPath, "", selectStatement));
                         } else {
                             selectStatement.setExpression(expression);
                         }
@@ -562,7 +618,10 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
     private List<Expression> parseExpression(
             ExpressionContext ctx, SelectStatement selectStatement) {
-        if (ctx.path() != null) {
+        if (ctx.functionName() != null) {
+            return Collections.singletonList(parseFuncExpression(ctx, selectStatement));
+        }
+        if (ctx.path() != null && !ctx.path().isEmpty()) {
             return Collections.singletonList(parseBaseExpression(ctx, selectStatement));
         }
         if (ctx.constant() != null) {
@@ -603,69 +662,76 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
                     new SubQueryFromPart(
                             subStatement, new JoinCondition(JoinType.SingleJoin, filter)));
             subStatement
-                    .getBaseExpressionMap()
+                    .getExpressions()
                     .forEach(
-                            (k, v) ->
-                                    v.forEach(
-                                            expression -> {
-                                                String selectedPath;
-                                                if (expression.hasAlias()) {
-                                                    selectedPath = expression.getAlias();
-                                                } else {
-                                                    selectedPath = expression.getColumnName();
-                                                }
-                                                BaseExpression baseExpression =
-                                                        new BaseExpression(selectedPath);
-                                                selectStatement.setSelectedFuncsAndPaths(
-                                                        "", baseExpression, false);
-                                                ret.add(baseExpression);
-                                            }));
+                            expression -> {
+                                String selectedPath;
+                                if (expression.hasAlias()) {
+                                    selectedPath = expression.getAlias();
+                                } else {
+                                    selectedPath = expression.getColumnName();
+                                }
+                                BaseExpression baseExpression = new BaseExpression(selectedPath);
+                                selectStatement.setSelectedPaths(baseExpression, false);
+                                ret.add(baseExpression);
+                            });
         } else {
             throw new SQLParserException("Illegal selected expression");
         }
         return ret;
     }
 
-    private Expression parseBaseExpression(ExpressionContext ctx, SelectStatement selectStatement) {
-        String funcName = "";
-        if (ctx.functionName() != null) {
-            funcName = ctx.functionName().getText();
-        }
+    private Expression parseFuncExpression(ExpressionContext ctx, SelectStatement selectStatement) {
+        String funcName = ctx.functionName().getText();
 
         String alias = "";
         if (ctx.asClause() != null) {
             alias = ctx.asClause().ID().getText();
         }
 
-        String selectedPath = ctx.path().getText();
+        List<String> params = new ArrayList<>();
+        for (PathContext pathContext : ctx.path()) {
+            params.add(pathContext.getText());
+        }
 
         // 如果查询语句中FROM子句只有一个部分且FROM一个前缀，则SELECT子句中的path只用写出后缀
         if (!selectStatement.hasJoinParts()
                 && selectStatement.getFromParts().get(0).getType() == FromPartType.PathFromPart) {
             String fromPath = selectStatement.getFromParts().get(0).getPath();
-            String fullPath = fromPath + SQLConstant.DOT + selectedPath;
-            BaseExpression expression = new BaseExpression(fullPath, funcName, alias);
-            selectStatement.setSelectedFuncsAndPaths(funcName, expression);
-            return expression;
-        } else {
-            BaseExpression expression = new BaseExpression(selectedPath, funcName, alias);
-            selectStatement.setSelectedFuncsAndPaths(funcName, expression);
-            return expression;
+
+            List<String> newParams = new ArrayList<>();
+            for (String param : params) {
+                newParams.add(fromPath + SQLConstant.DOT + param);
+            }
+            params = newParams;
         }
+        FuncExpression expression = new FuncExpression(funcName, params, alias);
+        selectStatement.setSelectedFuncsAndPaths(funcName, expression);
+        return expression;
     }
 
-    private Expression parseBaseExpression(String selectedPath, SelectStatement selectStatement) {
-        // 如果查询语句不是一个子查询，FROM子句只有一个部分且FROM一个前缀，则WHERE条件中的path只用写出后缀
+    private Expression parseBaseExpression(ExpressionContext ctx, SelectStatement selectStatement) {
+        String alias = "";
+        if (ctx.asClause() != null) {
+            alias = ctx.asClause().ID().getText();
+        }
+        String selectedPath = ctx.path(0).getText();
+        return parseBaseExpression(selectedPath, alias, selectStatement);
+    }
+
+    private Expression parseBaseExpression(
+            String selectedPath, String alias, SelectStatement selectStatement) {
+        // 如果查询语句中FROM子句只有一个部分且FROM一个前缀，则SELECT子句中的path只用写出后缀
         if (!selectStatement.hasJoinParts()
                 && selectStatement.getFromParts().get(0).getType() == FromPartType.PathFromPart) {
             String fromPath = selectStatement.getFromParts().get(0).getPath();
             String fullPath = fromPath + SQLConstant.DOT + selectedPath;
-            BaseExpression expression = new BaseExpression(fullPath);
-            selectStatement.setSelectedFuncsAndPaths("", expression);
+            BaseExpression expression = new BaseExpression(fullPath, alias);
+            selectStatement.setSelectedPaths(expression);
             return expression;
         } else {
-            BaseExpression expression = new BaseExpression(selectedPath);
-            selectStatement.setSelectedFuncsAndPaths("", expression);
+            BaseExpression expression = new BaseExpression(selectedPath, alias);
+            selectStatement.setSelectedPaths(expression);
             return expression;
         }
     }
@@ -789,19 +855,12 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
                         });
 
         selectStatement
-                .getBaseExpressionMap()
+                .getBaseExpressionList()
                 .forEach(
-                        (k, v) -> {
-                            if (k.equals("")) {
-                                v.forEach(
-                                        expr -> {
-                                            if (!selectStatement
-                                                    .getGroupByPaths()
-                                                    .contains(expr.getPathName())) {
-                                                throw new SQLParserException(
-                                                        "Selected path must exist in group by clause.");
-                                            }
-                                        });
+                        expr -> {
+                            if (!selectStatement.getGroupByPaths().contains(expr.getPathName())) {
+                                throw new SQLParserException(
+                                        "Selected path must exist in group by clause.");
                             }
                         });
     }
@@ -864,7 +923,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         String aliasPrefix = ctx.ID().getText();
         selectStatement.setGlobalAlias(aliasPrefix);
         selectStatement
-                .getBaseExpressionMap()
+                .getFuncExpressionMap()
                 .forEach(
                         (k, v) ->
                                 v.forEach(
@@ -880,6 +939,18 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
                                             }
                                             expression.setAlias(alias);
                                         }));
+        selectStatement
+                .getBaseExpressionList()
+                .forEach(
+                        expression -> {
+                            String alias = expression.getAlias();
+                            if (alias.equals("")) {
+                                alias = aliasPrefix + SQLConstant.DOT + expression.getColumnName();
+                            } else {
+                                alias = aliasPrefix + SQLConstant.DOT + alias;
+                            }
+                            expression.setAlias(alias);
+                        });
     }
 
     private long parseAggLen(AggLenContext ctx) {

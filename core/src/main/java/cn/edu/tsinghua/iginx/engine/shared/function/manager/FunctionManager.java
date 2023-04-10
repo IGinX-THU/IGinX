@@ -95,6 +95,7 @@ public class FunctionManager {
         registerFunction(Sum.getInstance());
         registerFunction(ArithmeticExpr.getInstance());
         registerFunction(PathProject.getInstance());
+        registerFunction(Ratio.getInstance());
     }
 
     private void initBasicUDFFunctions() {

@@ -1,11 +1,10 @@
 package cn.edu.tsinghua.iginx.engine.shared.function.system;
 
-import static cn.edu.tsinghua.iginx.engine.shared.Constants.PARAM_EXPR;
-
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionType;
 import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
 import cn.edu.tsinghua.iginx.engine.shared.function.RowMappingFunction;
@@ -15,11 +14,11 @@ import cn.edu.tsinghua.iginx.sql.expression.BinaryExpression;
 import cn.edu.tsinghua.iginx.sql.expression.BracketExpression;
 import cn.edu.tsinghua.iginx.sql.expression.ConstantExpression;
 import cn.edu.tsinghua.iginx.sql.expression.Expression;
+import cn.edu.tsinghua.iginx.sql.expression.FuncExpression;
 import cn.edu.tsinghua.iginx.sql.expression.Operator;
 import cn.edu.tsinghua.iginx.sql.expression.UnaryExpression;
 import cn.edu.tsinghua.iginx.utils.DataTypeUtils;
 import java.util.Collections;
-import java.util.Map;
 
 public class ArithmeticExpr implements RowMappingFunction {
 
@@ -49,11 +48,11 @@ public class ArithmeticExpr implements RowMappingFunction {
     }
 
     @Override
-    public Row transform(Row row, Map<String, Value> params) throws Exception {
-        if (params.size() == 0 || params.size() > 2) {
+    public Row transform(Row row, FunctionParams params) throws Exception {
+        if (params.getExpr() == null) {
             throw new IllegalArgumentException("unexpected params for arithmetic_expr.");
         }
-        Expression expr = (Expression) params.get(PARAM_EXPR).getValue();
+        Expression expr = params.getExpr();
 
         Value ret = calculateExpr(row, expr);
         if (ret == null) {
@@ -76,6 +75,8 @@ public class ArithmeticExpr implements RowMappingFunction {
                 return calculateConstantExpr((ConstantExpression) expr);
             case Base:
                 return calculateBaseExpr(row, (BaseExpression) expr);
+            case Function:
+                return calculateFuncExpr(row, (FuncExpression) expr);
             case Bracket:
                 return calculateBracketExpr(row, (BracketExpression) expr);
             case Unary:
@@ -94,6 +95,15 @@ public class ArithmeticExpr implements RowMappingFunction {
 
     private Value calculateBaseExpr(Row row, BaseExpression baseExpr) {
         String colName = baseExpr.getColumnName();
+        int index = row.getHeader().indexOf(colName);
+        if (index == -1) {
+            return null;
+        }
+        return new Value(row.getValues()[index]);
+    }
+
+    private Value calculateFuncExpr(Row row, FuncExpression funcExpr) {
+        String colName = funcExpr.getColumnName();
         int index = row.getHeader().indexOf(colName);
         if (index == -1) {
             return null;

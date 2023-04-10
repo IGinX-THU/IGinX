@@ -36,6 +36,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
 import cn.edu.tsinghua.iginx.engine.shared.function.MappingFunction;
 import cn.edu.tsinghua.iginx.engine.shared.function.RowMappingFunction;
 import cn.edu.tsinghua.iginx.engine.shared.function.SetMappingFunction;
@@ -257,7 +258,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         TreeMap<Long, List<Row>> groups = new TreeMap<>();
         SetMappingFunction function =
                 (SetMappingFunction) downsample.getFunctionCall().getFunction();
-        Map<String, Value> params = downsample.getFunctionCall().getParams();
+        FunctionParams params = downsample.getFunctionCall().getParams();
         if (precision == slideDistance) {
             for (Row row : rows) {
                 long timestamp = row.getKey() - (row.getKey() - bias) % precision;
@@ -310,7 +311,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
 
     private RowStream executeRowTransform(RowTransform rowTransform, Table table)
             throws PhysicalException {
-        List<Pair<RowMappingFunction, Map<String, Value>>> list = new ArrayList<>();
+        List<Pair<RowMappingFunction, FunctionParams>> list = new ArrayList<>();
         rowTransform
                 .getFunctionCallList()
                 .forEach(
@@ -328,7 +329,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
             list.forEach(
                     pair -> {
                         RowMappingFunction function = pair.k;
-                        Map<String, Value> params = pair.v;
+                        FunctionParams params = pair.v;
                         try {
                             // 分别计算每个表达式得到相应的结果
                             Row column = function.transform(current, params);
@@ -363,7 +364,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
             throws PhysicalException {
         SetMappingFunction function =
                 (SetMappingFunction) setTransform.getFunctionCall().getFunction();
-        Map<String, Value> params = setTransform.getFunctionCall().getParams();
+        FunctionParams params = setTransform.getFunctionCall().getParams();
         try {
             Row row = function.transform(table, params);
             if (row == null) {
@@ -384,7 +385,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
             throws PhysicalException {
         MappingFunction function =
                 (MappingFunction) mappingTransform.getFunctionCall().getFunction();
-        Map<String, Value> params = mappingTransform.getFunctionCall().getParams();
+        FunctionParams params = mappingTransform.getFunctionCall().getParams();
         try {
             return function.transform(table, params);
         } catch (Exception e) {

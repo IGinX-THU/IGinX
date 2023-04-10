@@ -715,6 +715,51 @@ public abstract class SQLSessionIT {
     }
 
     @Test
+    public void testRowTransformFunction() {
+        String insert =
+                "INSERT INTO us.d2 (key, s1, s2, s3) values "
+                        + "(1, \"apple\", 871, 232.1), (2, \"peach\", 123, 132.5), (3, \"banana\", 356, 317.8),"
+                        + "(4, \"cherry\", 621, 456.1), (5, \"grape\", 336, 132.5), (6, \"dates\", 119, 232.1),"
+                        + "(7, \"melon\", 516, 113.6), (8, \"mango\", 458, 232.1), (9, \"pear\", 336, 613.1);";
+        execute(insert);
+
+        String statement = "SELECT RATIO(s2, s3) FROM us.d2;";
+        String expected =
+                "ResultSets:\n"
+                        + "+---+-------------------------+\n"
+                        + "|key|ratio(us.d2.s2, us.d2.s3)|\n"
+                        + "+---+-------------------------+\n"
+                        + "|  1|       3.7526928048255064|\n"
+                        + "|  2|       0.9283018867924528|\n"
+                        + "|  3|        1.120201384518565|\n"
+                        + "|  4|       1.3615435211576408|\n"
+                        + "|  5|       2.5358490566037735|\n"
+                        + "|  6|       0.5127100387763895|\n"
+                        + "|  7|        4.542253521126761|\n"
+                        + "|  8|       1.9732873761309782|\n"
+                        + "|  9|       0.5480345783722068|\n"
+                        + "+---+-------------------------+\n"
+                        + "Total line number = 9\n";
+        executeAndCompare(statement, expected);
+
+        statement = "SELECT RATIO(s2, s3) FROM us.d2 WHERE key <= 6;";
+        expected =
+                "ResultSets:\n"
+                        + "+---+-------------------------+\n"
+                        + "|key|ratio(us.d2.s2, us.d2.s3)|\n"
+                        + "+---+-------------------------+\n"
+                        + "|  1|       3.7526928048255064|\n"
+                        + "|  2|       0.9283018867924528|\n"
+                        + "|  3|        1.120201384518565|\n"
+                        + "|  4|       1.3615435211576408|\n"
+                        + "|  5|       2.5358490566037735|\n"
+                        + "|  6|       0.5127100387763895|\n"
+                        + "+---+-------------------------+\n"
+                        + "Total line number = 6\n";
+        executeAndCompare(statement, expected);
+    }
+
+    @Test
     public void testFirstLastQuery() {
         String statement = "SELECT FIRST(s2) FROM us.d1 WHERE key > 0;";
         String expected =

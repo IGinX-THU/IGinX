@@ -6,6 +6,7 @@ public enum FuncType {
 
     // Row2Row function [10, 20)
     Udtf(10),
+    Ratio,
 
     // Set2Set function [20, 30)
     Udsf(20),

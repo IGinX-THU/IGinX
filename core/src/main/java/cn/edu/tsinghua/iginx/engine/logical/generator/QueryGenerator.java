@@ -3,9 +3,6 @@ package cn.edu.tsinghua.iginx.engine.logical.generator;
 import static cn.edu.tsinghua.iginx.engine.logical.utils.OperatorUtils.pushDownApply;
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.ALL_PATH_SUFFIX;
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.ORDINAL;
-import static cn.edu.tsinghua.iginx.engine.shared.Constants.PARAM_EXPR;
-import static cn.edu.tsinghua.iginx.engine.shared.Constants.PARAM_LEVELS;
-import static cn.edu.tsinghua.iginx.engine.shared.Constants.PARAM_PATHS;
 import static cn.edu.tsinghua.iginx.engine.shared.function.system.ArithmeticExpr.ARITHMETIC_EXPR;
 import static cn.edu.tsinghua.iginx.engine.shared.function.system.PathProject.PATH_PROJECT;
 import static cn.edu.tsinghua.iginx.metadata.utils.FragmentUtils.keyFromTSIntervalToTimeInterval;
@@ -16,8 +13,8 @@ import cn.edu.tsinghua.iginx.engine.logical.optimizer.LogicalOptimizerManager;
 import cn.edu.tsinghua.iginx.engine.logical.utils.OperatorUtils;
 import cn.edu.tsinghua.iginx.engine.logical.utils.PathUtils;
 import cn.edu.tsinghua.iginx.engine.shared.TimeRange;
-import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils;
 import cn.edu.tsinghua.iginx.engine.shared.function.manager.FunctionManager;
 import cn.edu.tsinghua.iginx.engine.shared.operator.AddSchemaPrefix;
@@ -72,12 +69,10 @@ import cn.edu.tsinghua.iginx.utils.SortUtils;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -208,22 +203,14 @@ public class QueryGenerator extends AbstractGenerator {
             // GroupBy Query
             List<FunctionCall> functionCallList = new ArrayList<>();
             selectStatement
-                    .getBaseExpressionMap()
+                    .getFuncExpressionMap()
                     .forEach(
                             (k, v) -> {
                                 if (!k.equals("")) {
                                     v.forEach(
                                             expression -> {
-                                                Map<String, Value> params =
-                                                        new HashMap<String, Value>() {
-                                                            {
-                                                                put(
-                                                                        PARAM_PATHS,
-                                                                        new Value(
-                                                                                expression
-                                                                                        .getPathName()));
-                                                            }
-                                                        };
+                                                FunctionParams params =
+                                                        new FunctionParams(expression.getParams());
                                                 functionCallList.add(
                                                         new FunctionCall(
                                                                 functionManager.getFunction(k),
@@ -240,28 +227,19 @@ public class QueryGenerator extends AbstractGenerator {
             // DownSample Query
             Operator finalRoot = root;
             selectStatement
-                    .getBaseExpressionMap()
+                    .getFuncExpressionMap()
                     .forEach(
                             (k, v) ->
                                     v.forEach(
                                             expression -> {
-                                                Map<String, Value> params = new HashMap<>();
-                                                params.put(
-                                                        PARAM_PATHS,
-                                                        new Value(expression.getPathName()));
-                                                if (!selectStatement.getLayers().isEmpty()) {
-                                                    params.put(
-                                                            PARAM_LEVELS,
-                                                            new Value(
-                                                                    selectStatement
-                                                                            .getLayers()
-                                                                            .stream()
-                                                                            .map(String::valueOf)
-                                                                            .collect(
-                                                                                    Collectors
-                                                                                            .joining(
-                                                                                                    ","))));
-                                                }
+                                                List<Integer> levels =
+                                                        selectStatement.getLayers().isEmpty()
+                                                                ? null
+                                                                : selectStatement.getLayers();
+                                                FunctionParams params =
+                                                        new FunctionParams(
+                                                                expression.getParams(), levels);
+
                                                 Operator copySelect = finalRoot.copy();
                                                 queryList.add(
                                                         new Downsample(
@@ -282,89 +260,69 @@ public class QueryGenerator extends AbstractGenerator {
             // Aggregate Query
             Operator finalRoot = root;
             selectStatement
-                    .getBaseExpressionMap()
+                    .getFuncExpressionMap()
                     .forEach(
                             (k, v) ->
                                     v.forEach(
                                             expression -> {
-                                                Map<String, Value> params = new HashMap<>();
-                                                params.put(
-                                                        PARAM_PATHS,
-                                                        new Value(expression.getPathName()));
-                                                if (!selectStatement.getLayers().isEmpty()) {
-                                                    params.put(
-                                                            PARAM_LEVELS,
-                                                            new Value(
-                                                                    selectStatement
-                                                                            .getLayers()
-                                                                            .stream()
-                                                                            .map(String::valueOf)
-                                                                            .collect(
-                                                                                    Collectors
-                                                                                            .joining(
-                                                                                                    ","))));
-                                                }
+                                                List<Integer> levels =
+                                                        selectStatement.getLayers().isEmpty()
+                                                                ? null
+                                                                : selectStatement.getLayers();
+                                                FunctionParams params =
+                                                        new FunctionParams(
+                                                                expression.getParams(), levels);
+
                                                 Operator copySelect = finalRoot.copy();
-                                                if (k.equals("")) {
+                                                logger.info(
+                                                        "function: " + expression.getColumnName());
+                                                if (FunctionUtils.isRowToRowFunction(k)) {
                                                     queryList.add(
-                                                            new Project(
+                                                            new RowTransform(
                                                                     new OperatorSource(copySelect),
-                                                                    Collections.singletonList(
-                                                                            expression
-                                                                                    .getPathName()),
-                                                                    tagFilter));
+                                                                    new FunctionCall(
+                                                                            functionManager
+                                                                                    .getFunction(k),
+                                                                            params)));
+                                                } else if (FunctionUtils.isSetToSetFunction(k)) {
+                                                    queryList.add(
+                                                            new MappingTransform(
+                                                                    new OperatorSource(copySelect),
+                                                                    new FunctionCall(
+                                                                            functionManager
+                                                                                    .getFunction(k),
+                                                                            params)));
                                                 } else {
-                                                    logger.info(
-                                                            "function: "
-                                                                    + k
-                                                                    + ", wrapped path: "
-                                                                    + expression.getPathName());
-                                                    if (FunctionUtils.isRowToRowFunction(k)) {
-                                                        queryList.add(
-                                                                new RowTransform(
-                                                                        new OperatorSource(
-                                                                                copySelect),
-                                                                        new FunctionCall(
-                                                                                functionManager
-                                                                                        .getFunction(
-                                                                                                k),
-                                                                                params)));
-                                                    } else if (FunctionUtils.isSetToSetFunction(
-                                                            k)) {
-                                                        queryList.add(
-                                                                new MappingTransform(
-                                                                        new OperatorSource(
-                                                                                copySelect),
-                                                                        new FunctionCall(
-                                                                                functionManager
-                                                                                        .getFunction(
-                                                                                                k),
-                                                                                params)));
-                                                    } else {
-                                                        queryList.add(
-                                                                new SetTransform(
-                                                                        new OperatorSource(
-                                                                                copySelect),
-                                                                        new FunctionCall(
-                                                                                functionManager
-                                                                                        .getFunction(
-                                                                                                k),
-                                                                                params)));
-                                                    }
+                                                    queryList.add(
+                                                            new SetTransform(
+                                                                    new OperatorSource(copySelect),
+                                                                    new FunctionCall(
+                                                                            functionManager
+                                                                                    .getFunction(k),
+                                                                            params)));
                                                 }
                                             }));
+            selectStatement
+                    .getBaseExpressionList()
+                    .forEach(
+                            expression -> {
+                                Operator copySelect = finalRoot.copy();
+                                queryList.add(
+                                        new Project(
+                                                new OperatorSource(copySelect),
+                                                Collections.singletonList(expression.getPathName()),
+                                                tagFilter));
+                            });
         } else if (selectStatement.getQueryType() == SelectStatement.QueryType.LastFirstQuery) {
             Operator finalRoot = root;
             selectStatement
-                    .getBaseExpressionMap()
+                    .getFuncExpressionMap()
                     .forEach(
                             (k, v) ->
                                     v.forEach(
                                             expression -> {
-                                                Map<String, Value> params = new HashMap<>();
-                                                params.put(
-                                                        PARAM_PATHS,
-                                                        new Value(expression.getPathName()));
+                                                FunctionParams params =
+                                                        new FunctionParams(expression.getParams());
                                                 Operator copySelect = finalRoot.copy();
                                                 logger.info(
                                                         "function: " + k + ", wrapped path: " + v);
@@ -379,12 +337,8 @@ public class QueryGenerator extends AbstractGenerator {
         } else {
             Set<String> selectedPath = new HashSet<>();
             selectStatement
-                    .getBaseExpressionMap()
-                    .forEach(
-                            (k, v) ->
-                                    v.forEach(
-                                            expression ->
-                                                    selectedPath.add(expression.getPathName())));
+                    .getBaseExpressionList()
+                    .forEach(expression -> selectedPath.add(expression.getPathName()));
             queryList.add(
                     new Project(
                             new OperatorSource(root), new ArrayList<>(selectedPath), tagFilter));
@@ -449,17 +403,20 @@ public class QueryGenerator extends AbstractGenerator {
         if (selectStatement.needRowTransform()) {
             List<FunctionCall> functionCallList = new ArrayList<>();
             for (Expression expression : selectStatement.getExpressions()) {
-                Map<String, Value> params = new HashMap<>();
-                if (expression.getType().equals(Expression.ExpressionType.Base)) {
-                    BaseExpression baseExpression = (BaseExpression) expression;
-                    params.put(PARAM_PATHS, new Value(baseExpression.getPathName()));
-                    functionCallList.add(
-                            new FunctionCall(functionManager.getFunction(PATH_PROJECT), params));
-                } else {
-                    params.put(PARAM_EXPR, new Value(expression));
-                    functionCallList.add(
-                            new FunctionCall(functionManager.getFunction(ARITHMETIC_EXPR), params));
-                }
+                // Map<String, Value> params = new HashMap<>();
+                // if (expression.getType().equals(Expression.ExpressionType.Base)) {
+                //     BaseExpression baseExpression = (BaseExpression) expression;
+                //     params.put(PARAM_PATHS, new Value(baseExpression.getPathName()));
+                //     functionCallList.add(
+                //             new FunctionCall(functionManager.getFunction(PATH_PROJECT), params));
+                // } else {
+                //     params.put(PARAM_EXPR, new Value(expression));
+                //     functionCallList.add(
+                //             new FunctionCall(functionManager.getFunction(ARITHMETIC_EXPR), params));
+                // }
+                FunctionParams params = new FunctionParams(expression);
+                functionCallList.add(
+                        new FunctionCall(functionManager.getFunction(ARITHMETIC_EXPR), params));
             }
             root = new RowTransform(new OperatorSource(root), functionCallList);
         }
