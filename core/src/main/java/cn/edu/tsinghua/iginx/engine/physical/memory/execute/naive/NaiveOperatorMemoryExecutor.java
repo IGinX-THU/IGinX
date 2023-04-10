@@ -120,7 +120,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
             case AddSchemaPrefix:
                 return executeAddSchemaPrefix((AddSchemaPrefix) operator, transformToTable(stream));
             case GroupBy:
-                return executeGroupBy((GroupBy) operator, stream);
+                return executeGroupBy((GroupBy) operator, transformToTable(stream));
             default:
                 throw new UnexpectedOperatorException(
                         "unknown unary operator: " + operator.getType());
@@ -492,8 +492,8 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         return new Table(newHeader, rows);
     }
 
-    private RowStream executeGroupBy(GroupBy groupBy, RowStream stream) throws PhysicalException {
-        List<Row> rows = RowUtils.cacheGroupByResult(groupBy, stream);
+    private RowStream executeGroupBy(GroupBy groupBy, Table table) throws PhysicalException {
+        List<Row> rows = RowUtils.cacheGroupByResult(groupBy, table);
         if (rows.isEmpty()) {
             return Table.EMPTY_TABLE;
         }

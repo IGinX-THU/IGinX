@@ -222,6 +222,9 @@ public class ConfigDescriptor {
             config.setMaxThriftWrokerThreadNum(
                     Integer.parseInt(
                             properties.getProperty("maxThriftWorkerThreadNum", "2147483647")));
+            config.setParallelGroupByRowsThreshold(
+                    Integer.parseInt(
+                            properties.getProperty("parallelGroupByRowsThreshold", "1000")));
         } catch (IOException e) {
             logger.error("Fail to load properties: ", e);
         }
@@ -333,6 +336,9 @@ public class ConfigDescriptor {
                 EnvUtils.loadEnv("expectedStorageUnitNum", config.getExpectedStorageUnitNum()));
         config.setLocalParquetStorage(
                 EnvUtils.loadEnv("isLocalParquetStorage", config.isLocalParquetStorage()));
+        config.setParallelGroupByRowsThreshold(
+                EnvUtils.loadEnv(
+                        "parallelGroupByRowsThreshold", config.getParallelGroupByRowsThreshold()));
     }
 
     private void loadUDFListFromFile() {

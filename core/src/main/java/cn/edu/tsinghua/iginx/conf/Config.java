@@ -193,6 +193,8 @@ public class Config {
 
     private boolean isLocalParquetStorage = true;
 
+    private int parallelGroupByRowsThreshold = 1000;
+
     public int getMaxTimeseriesLength() {
         return maxTimeseriesLength;
     }
@@ -804,5 +806,13 @@ public class Config {
 
     public void setLocalParquetStorage(boolean localParquetStorage) {
         isLocalParquetStorage = localParquetStorage;
+    }
+
+    public int getParallelGroupByRowsThreshold() {
+        return parallelGroupByRowsThreshold;
+    }
+
+    public void setParallelGroupByRowsThreshold(int parallelGroupByRowsThreshold) {
+        this.parallelGroupByRowsThreshold = parallelGroupByRowsThreshold;
     }
 }
