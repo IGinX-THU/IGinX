@@ -39,10 +39,6 @@ public class SQLCompareIT {
     protected static String defaultTestUser = "root";
     protected static String defaultTestPass = "root";
 
-    private static final long START_KEY = 0L;
-
-    private static final long END_KEY = 15000L;
-
     private final List<String> insertSQLGroup = new ArrayList<>();
 
     private final List<String> testSQLGroupA = new ArrayList<>();
@@ -50,12 +46,15 @@ public class SQLCompareIT {
     private final List<String> testSQLGroupB = new ArrayList<>();
 
     public SQLCompareIT() {
-        readFile(insertSQLGroup,
-            Paths.get("src", "test", "resources", "compare", "insertGroup.txt").toString());
-        readFile(testSQLGroupA,
-            Paths.get("src", "test", "resources", "compare", "testGroupA.txt").toString());
-        readFile(testSQLGroupB,
-            Paths.get("src", "test", "resources", "compare", "testGroupB.txt").toString());
+        readFile(
+                insertSQLGroup,
+                Paths.get("src", "test", "resources", "compare", "insertGroup.txt").toString());
+        readFile(
+                testSQLGroupA,
+                Paths.get("src", "test", "resources", "compare", "testGroupA.txt").toString());
+        readFile(
+                testSQLGroupB,
+                Paths.get("src", "test", "resources", "compare", "testGroupB.txt").toString());
     }
 
     private void readFile(List<String> testSQLGroup, String filename) {
@@ -88,35 +87,35 @@ public class SQLCompareIT {
     public static void setUp() throws SessionException {
         if (isForSession) {
             conn =
-                new MultiConnection(
-                    new Session(
-                        defaultTestHost,
-                        defaultTestPort,
-                        defaultTestUser,
-                        defaultTestPass));
+                    new MultiConnection(
+                            new Session(
+                                    defaultTestHost,
+                                    defaultTestPort,
+                                    defaultTestUser,
+                                    defaultTestPass));
         } else if (isForSessionPool) {
             conn =
-                new MultiConnection(
-                    new SessionPool(
-                        new ArrayList<IginxInfo>() {
-                            {
-                                add(
-                                    new IginxInfo.Builder()
-                                        .host("0.0.0.0")
-                                        .port(6888)
-                                        .user("root")
-                                        .password("root")
-                                        .build());
+                    new MultiConnection(
+                            new SessionPool(
+                                    new ArrayList<IginxInfo>() {
+                                        {
+                                            add(
+                                                    new IginxInfo.Builder()
+                                                            .host("0.0.0.0")
+                                                            .port(6888)
+                                                            .user("root")
+                                                            .password("root")
+                                                            .build());
 
-                                add(
-                                    new IginxInfo.Builder()
-                                        .host("0.0.0.0")
-                                        .port(7888)
-                                        .user("root")
-                                        .password("root")
-                                        .build());
-                            }
-                        }));
+                                            add(
+                                                    new IginxInfo.Builder()
+                                                            .host("0.0.0.0")
+                                                            .port(7888)
+                                                            .user("root")
+                                                            .password("root")
+                                                            .build());
+                                        }
+                                    }));
         }
         conn.openSession();
     }
@@ -155,9 +154,9 @@ public class SQLCompareIT {
 
         if (res != null && res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
             logger.error(
-                "Statement: \"{}\" execute fail. Caused by: {}.",
-                clearData,
-                res.getParseErrorMsg());
+                    "Statement: \"{}\" execute fail. Caused by: {}.",
+                    clearData,
+                    res.getParseErrorMsg());
             fail();
         }
     }
@@ -183,9 +182,9 @@ public class SQLCompareIT {
 
         if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
             logger.error(
-                "Statement: \"{}\" execute fail. Caused by: {}.",
-                statement,
-                res.getParseErrorMsg());
+                    "Statement: \"{}\" execute fail. Caused by: {}.",
+                    statement,
+                    res.getParseErrorMsg());
             fail();
             return "";
         }

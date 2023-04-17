@@ -108,11 +108,11 @@ public class TestDataSection {
         }
 
         return new TestDataSection(
-            new ArrayList<>(keys),
-            newTypes,
-            newPaths,
-            newValues,
-            tagsList == null ? null : new ArrayList<>(tagsList));
+                new ArrayList<>(keys),
+                newTypes,
+                newPaths,
+                newValues,
+                tagsList == null ? null : new ArrayList<>(tagsList));
     }
 
     public TestDataSection mergeOther(TestDataSection other) {
