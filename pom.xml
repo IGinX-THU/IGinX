@@ -28,7 +28,7 @@
     <module>dataSources/opentsdb</module>
     <!--module>dataSources/timescaledb</module-->
     <module>dataSources/postgresql</module>
-    <module>dataSources/relationdb</module>
+    <!--<module>dataSources/relationdb</module>-->
     <module>dataSources/parquet</module>
     <module>example</module>
     <module>test</module>
