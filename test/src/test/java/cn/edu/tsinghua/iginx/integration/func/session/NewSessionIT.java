@@ -30,9 +30,9 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SessionIT {
+public class NewSessionIT {
 
-    protected static final Logger logger = LoggerFactory.getLogger(SessionIT.class);
+    protected static final Logger logger = LoggerFactory.getLogger(NewSessionIT.class);
 
     protected static MultiConnection conn;
     protected static boolean isForSession = true;
@@ -52,7 +52,7 @@ public class SessionIT {
 
     private static final TestDataSection baseDataSection = buildBaseDataSection();
 
-    public SessionIT() {
+    public NewSessionIT() {
 
     }
 

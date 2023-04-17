@@ -17,7 +17,6 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -26,9 +25,9 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class CompareIT {
+public class SQLCompareIT {
 
-    private static final Logger logger = LoggerFactory.getLogger(CompareIT.class);
+    private static final Logger logger = LoggerFactory.getLogger(SQLCompareIT.class);
 
     protected static MultiConnection conn;
     protected static boolean isForSession = true;
@@ -44,11 +43,15 @@ public class CompareIT {
 
     private static final long END_KEY = 15000L;
 
+    private final List<String> insertSQLGroup = new ArrayList<>();
+
     private final List<String> testSQLGroupA = new ArrayList<>();
 
     private final List<String> testSQLGroupB = new ArrayList<>();
 
-    public CompareIT() {
+    public SQLCompareIT() {
+        readFile(insertSQLGroup,
+            Paths.get("src", "test", "resources", "compare", "insertGroup.txt").toString());
         readFile(testSQLGroupA,
             Paths.get("src", "test", "resources", "compare", "testGroupA.txt").toString());
         readFile(testSQLGroupB,
@@ -58,12 +61,23 @@ public class CompareIT {
     private void readFile(List<String> testSQLGroup, String filename) {
         try {
             BufferedReader reader = new BufferedReader(new FileReader(filename));
+            StringBuilder builder = new StringBuilder();
+
             String line = reader.readLine();
             while (line != null) {
-                testSQLGroup.add(line);
+                builder.append(line);
                 line = reader.readLine();
             }
             reader.close();
+
+            String fileContent = builder.toString();
+            String[] sqls = fileContent.replaceAll("\\R", "").split(";");
+            for (String sql : sqls) {
+                sql = sql.trim() + ";";
+                if (!sql.trim().equals("")) {
+                    testSQLGroup.add(sql);
+                }
+            }
         } catch (IOException e) {
             logger.error("read file failed, filename: {}, cause: {}", filename, e.getMessage());
             fail();
@@ -114,31 +128,12 @@ public class CompareIT {
 
     @Before
     public void insertData() throws ExecutionException, SessionException {
-        String insertStrPrefix = "INSERT INTO us.d1 (key, s1, s2, s3, s4) values ";
-
-        StringBuilder builder = new StringBuilder(insertStrPrefix);
-
-        int size = (int) (END_KEY - START_KEY);
-        for (int i = 0; i < size; i++) {
-            builder.append(", ");
-            builder.append("(");
-            builder.append(START_KEY + i).append(", ");
-            builder.append(i).append(", ");
-            builder.append(i + 1).append(", ");
-            builder.append("\"")
-                .append(new String(RandomStringUtils.randomAlphanumeric(10).getBytes()))
-                .append("\", ");
-            builder.append((i + 0.1));
-            builder.append(")");
-        }
-        builder.append(";");
-
-        String insertStatement = builder.toString();
-
-        SessionExecuteSqlResult res = conn.executeSql(insertStatement);
-        if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-            logger.error("Insert date execute fail. Caused by: {}.", res.getParseErrorMsg());
-            fail();
+        for (String insertSQL : insertSQLGroup) {
+            SessionExecuteSqlResult res = conn.executeSql(insertSQL);
+            if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
+                logger.error("Insert date execute fail. Caused by: {}.", res.getParseErrorMsg());
+                fail();
+            }
         }
     }
 

@@ -1,2 +1,2 @@
-SELECT s1 FROM us.d1 WHERE key >= 0 && key < 100;
-SELECT s2 FROM us.d1 WHERE key >= 0 && key < 100;
+SELECT * FROM TableA WHERE key >= 0 && key < 100;
+SELECT * FROM TableB WHERE key >= 0 && key < 100;
