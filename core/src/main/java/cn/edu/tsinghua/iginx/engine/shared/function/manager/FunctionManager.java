@@ -30,7 +30,7 @@ import cn.edu.tsinghua.iginx.engine.shared.function.system.Last;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.LastValue;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Max;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Min;
-import cn.edu.tsinghua.iginx.engine.shared.function.system.PathProject;
+import cn.edu.tsinghua.iginx.engine.shared.function.system.Ratio;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Sum;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.python.PyUDAF;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.python.PyUDSF;
@@ -94,7 +94,6 @@ public class FunctionManager {
         registerFunction(Min.getInstance());
         registerFunction(Sum.getInstance());
         registerFunction(ArithmeticExpr.getInstance());
-        registerFunction(PathProject.getInstance());
         registerFunction(Ratio.getInstance());
     }
 

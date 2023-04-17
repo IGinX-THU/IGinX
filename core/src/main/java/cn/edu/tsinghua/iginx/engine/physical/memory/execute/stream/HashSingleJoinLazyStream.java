@@ -1,6 +1,7 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream;
 
 import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils.getJoinPathFromFilter;
+import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.HeaderUtils.constructNewHead;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils;
@@ -37,7 +38,7 @@ public class HashSingleJoinLazyStream extends BinaryLazyStream {
     }
 
     private void initialize() throws PhysicalException {
-        this.header = RowUtils.constructNewHead(streamA.getHeader(), streamB.getHeader(), true);
+        this.header = constructNewHead(streamA.getHeader(), streamB.getHeader(), true);
         Pair<String, String> joinPath =
                 getJoinPathFromFilter(
                         singleJoin.getFilter(), streamA.getHeader(), streamB.getHeader());
@@ -121,7 +122,9 @@ public class HashSingleJoinLazyStream extends BinaryLazyStream {
             }
         } else {
             int anotherRowSize = streamB.getHeader().getFieldSize();
-            Row unmatchedRow = RowUtils.constructUnmatchedRow(header, rowA, anotherRowSize, true);
+            Row unmatchedRow =
+                    RowUtils.constructUnmatchedRow(
+                            header, rowA, singleJoin.getPrefixA(), anotherRowSize, true);
             cache.add(unmatchedRow);
         }
     }

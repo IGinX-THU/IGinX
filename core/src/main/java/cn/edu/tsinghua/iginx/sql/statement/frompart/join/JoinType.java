@@ -10,5 +10,9 @@ public enum JoinType {
     RightOuterJoin,
     FullOuterJoin,
     SingleJoin,
-    MarkJoin,
+    MarkJoin;
+
+    public static boolean isNaturalJoin(JoinType type) {
+        return type == InnerNaturalJoin || type == LeftNaturalJoin || type == RightNaturalJoin;
+    }
 }

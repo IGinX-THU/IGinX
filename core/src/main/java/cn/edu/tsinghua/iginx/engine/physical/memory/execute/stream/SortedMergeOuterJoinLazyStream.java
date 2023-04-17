@@ -1,5 +1,7 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream;
 
+import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.HeaderUtils.constructNewHead;
+
 import cn.edu.tsinghua.iginx.engine.physical.exception.InvalidOperatorParameterException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils;
@@ -122,12 +124,12 @@ public class SortedMergeOuterJoinLazyStream extends BinaryLazyStream {
 
         if (filter != null) { // Join condition: on
             this.header =
-                    RowUtils.constructNewHead(
+                    constructNewHead(
                             headerA, headerB, outerJoin.getPrefixA(), outerJoin.getPrefixB());
         } else { // Join condition: natural or using
             if (outerJoin.getOuterJoinType() == OuterJoinType.RIGHT) {
                 this.header =
-                        RowUtils.constructNewHead(
+                        constructNewHead(
                                         headerA,
                                         headerB,
                                         outerJoin.getPrefixA(),
@@ -137,7 +139,7 @@ public class SortedMergeOuterJoinLazyStream extends BinaryLazyStream {
                                 .getV();
             } else {
                 this.header =
-                        RowUtils.constructNewHead(
+                        constructNewHead(
                                         headerA,
                                         headerB,
                                         outerJoin.getPrefixA(),
@@ -180,7 +182,7 @@ public class SortedMergeOuterJoinLazyStream extends BinaryLazyStream {
         OuterJoinType outerType = outerJoin.getOuterJoinType();
         if (outerType == OuterJoinType.FULL || outerType == OuterJoinType.LEFT) {
             int anotherRowSize =
-                    streamB.getHeader().hasKey()
+                    streamB.getHeader().hasKey() && outerJoin.getPrefixB() != null
                             ? streamB.getHeader().getFieldSize() + 1
                             : streamB.getHeader().getFieldSize();
             if (outerJoin.getFilter() == null) {
@@ -188,13 +190,14 @@ public class SortedMergeOuterJoinLazyStream extends BinaryLazyStream {
             }
             for (Row halfRow : unmatchedStreamARows) {
                 Row unmatchedRow =
-                        RowUtils.constructUnmatchedRow(header, halfRow, anotherRowSize, true);
+                        RowUtils.constructUnmatchedRow(
+                                header, halfRow, outerJoin.getPrefixA(), anotherRowSize, true);
                 cache.add(unmatchedRow);
             }
         }
         if (outerType == OuterJoinType.FULL || outerType == OuterJoinType.RIGHT) {
             int anotherRowSize =
-                    streamA.getHeader().hasKey()
+                    streamA.getHeader().hasKey() && outerJoin.getPrefixA() != null
                             ? streamA.getHeader().getFieldSize() + 1
                             : streamA.getHeader().getFieldSize();
             if (outerJoin.getFilter() == null) {
@@ -202,7 +205,8 @@ public class SortedMergeOuterJoinLazyStream extends BinaryLazyStream {
             }
             for (Row halfRow : unmatchedStreamBRows) {
                 Row unmatchedRow =
-                        RowUtils.constructUnmatchedRow(header, halfRow, anotherRowSize, false);
+                        RowUtils.constructUnmatchedRow(
+                                header, halfRow, outerJoin.getPrefixB(), anotherRowSize, false);
                 cache.add(unmatchedRow);
             }
         }
@@ -244,7 +248,13 @@ public class SortedMergeOuterJoinLazyStream extends BinaryLazyStream {
         } else {
             for (Row rowB : sameValueStreamBRows) {
                 if (outerJoin.getFilter() != null) {
-                    Row row = RowUtils.constructNewRow(header, nextA, rowB);
+                    Row row =
+                            RowUtils.constructNewRow(
+                                    header,
+                                    nextA,
+                                    rowB,
+                                    outerJoin.getPrefixA(),
+                                    outerJoin.getPrefixB());
                     if (FilterUtils.validate(outerJoin.getFilter(), row)) {
                         cache.addLast(row);
                     }

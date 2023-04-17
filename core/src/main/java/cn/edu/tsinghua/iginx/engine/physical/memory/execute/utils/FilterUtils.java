@@ -38,6 +38,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.ValueFilter;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -227,10 +228,10 @@ public class FilterUtils {
     }
 
     public static List<String> getAllPathsFromFilter(Filter filter) {
-        Set<String> paths = new HashSet<>();
         if (filter == null) {
-            return new ArrayList<>(paths);
+            return new ArrayList<>();
         }
+        Set<String> paths = new HashSet<>();
         switch (filter.getType()) {
             case And:
                 AndFilter andFilter = (AndFilter) filter;
@@ -313,6 +314,63 @@ public class FilterUtils {
                 }
             default:
                 return new Pair<>(null, filter);
+        }
+    }
+
+    public static boolean canUseHashJoin(Filter filter) {
+        if (filter == null) {
+            return false;
+        }
+        switch (filter.getType()) {
+            case Or:
+                OrFilter orFilter = (OrFilter) filter;
+                if (orFilter.getChildren().size() == 1) {
+                    return canUseHashJoin(orFilter.getChildren().get(0));
+                } else {
+                    return false;
+                }
+            case And:
+                AndFilter andFilter = (AndFilter) filter;
+                for (Filter child : andFilter.getChildren()) {
+                    if (canUseHashJoin(child)) {
+                        return true;
+                    }
+                }
+                return false;
+            case Not:
+                NotFilter notFilter = (NotFilter) filter;
+                return canUseHashJoin(notFilter.getChild());
+            case Path:
+                PathFilter pathFilter = (PathFilter) filter;
+                return pathFilter.getOp().equals(Op.E);
+            case Key:
+            case Value:
+            case Bool:
+                return false;
+            default:
+                throw new RuntimeException("Unexpected filter type: " + filter.getType());
+        }
+    }
+
+    public static Filter combineTwoFilter(Filter baseFilter, Filter additionFilter) {
+        if (baseFilter == null) {
+            return additionFilter;
+        } else if (baseFilter.getType().equals(FilterType.Bool)) {
+            BoolFilter boolFilter = (BoolFilter) baseFilter;
+            if (boolFilter.isTrue()) {
+                return additionFilter;
+            } else {
+                return baseFilter;
+            }
+        } else if (baseFilter.getType().equals(FilterType.And)) {
+            AndFilter andFilter = (AndFilter) baseFilter;
+            List<Filter> filterList = new ArrayList<>(andFilter.getChildren());
+            filterList.add(additionFilter);
+            return new AndFilter(filterList);
+        } else {
+            List<Filter> filterList = new ArrayList<>(Collections.singletonList(baseFilter));
+            filterList.add(additionFilter);
+            return new AndFilter(filterList);
         }
     }
 }

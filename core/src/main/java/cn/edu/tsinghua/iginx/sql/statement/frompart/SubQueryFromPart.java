@@ -1,32 +1,30 @@
 package cn.edu.tsinghua.iginx.sql.statement.frompart;
 
+import static cn.edu.tsinghua.iginx.engine.shared.Constants.ALL_PATH_SUFFIX;
+
 import cn.edu.tsinghua.iginx.sql.statement.SelectStatement;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.join.JoinCondition;
-import java.util.ArrayList;
 import java.util.List;
 
 public class SubQueryFromPart implements FromPart {
 
     private final FromPartType type = FromPartType.SubQueryFromPart;
     private final SelectStatement subQuery;
-    private final String alias;
+    private final List<String> patterns;
     private final boolean isJoinPart;
     private JoinCondition joinCondition;
-    private List<String> freeVariables;
 
     public SubQueryFromPart(SelectStatement subQuery) {
         this.subQuery = subQuery;
-        this.alias = subQuery.getGlobalAlias();
+        this.patterns = subQuery.calculatePrefixSet();
         this.isJoinPart = false;
-        this.freeVariables = new ArrayList<>();
     }
 
     public SubQueryFromPart(SelectStatement subQuery, JoinCondition joinCondition) {
         this.subQuery = subQuery;
-        this.alias = subQuery.getGlobalAlias();
+        this.patterns = subQuery.calculatePrefixSet();
         this.isJoinPart = true;
         this.joinCondition = joinCondition;
-        this.freeVariables = new ArrayList<>();
     }
 
     @Override
@@ -35,8 +33,26 @@ public class SubQueryFromPart implements FromPart {
     }
 
     @Override
-    public String getPath() {
-        return alias;
+    public boolean hasSinglePrefix() {
+        return patterns.size() == 1;
+    }
+
+    @Override
+    public List<String> getPatterns() {
+        return patterns;
+    }
+
+    @Override
+    public String getPrefix() {
+        if (hasSinglePrefix()) {
+            if (patterns.get(0).endsWith(ALL_PATH_SUFFIX)) {
+                return patterns.get(0).substring(0, patterns.get(0).length() - 2);
+            } else {
+                return patterns.get(0);
+            }
+        } else {
+            return null;
+        }
     }
 
     @Override
@@ -55,10 +71,6 @@ public class SubQueryFromPart implements FromPart {
 
     @Override
     public List<String> getFreeVariables() {
-        return freeVariables;
-    }
-
-    public void setFreeVariables(List<String> freeVariables) {
-        this.freeVariables = freeVariables;
+        return subQuery.getFreeVariables();
     }
 }

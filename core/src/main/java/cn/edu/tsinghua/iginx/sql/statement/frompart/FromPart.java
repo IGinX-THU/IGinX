@@ -7,7 +7,11 @@ public interface FromPart {
 
     FromPartType getType();
 
-    String getPath();
+    boolean hasSinglePrefix();
+
+    List<String> getPatterns();
+
+    String getPrefix();
 
     boolean isJoinPart();
 

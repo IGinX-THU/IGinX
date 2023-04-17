@@ -1,16 +1,17 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream;
 
-import cn.edu.tsinghua.iginx.engine.physical.exception.InvalidOperatorParameterException;
+import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.HeaderUtils.constructNewHead;
+import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.checkJoinColumns;
+import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.equalOnSpecificPaths;
+import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.getSamePathWithSpecificPrefix;
+
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
-import cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils;
 import cn.edu.tsinghua.iginx.engine.shared.operator.InnerJoin;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,6 +24,8 @@ public class NestedLoopInnerJoinLazyStream extends BinaryLazyStream {
     private int[] indexOfJoinColumnInTableB;
 
     private List<String> joinColumns;
+
+    private List<String> extraJoinPaths;
 
     private Header header;
 
@@ -44,38 +47,38 @@ public class NestedLoopInnerJoinLazyStream extends BinaryLazyStream {
     }
 
     private void initialize() throws PhysicalException {
-        Filter filter = innerJoin.getFilter();
-
         Header headerA = streamA.getHeader();
         Header headerB = streamB.getHeader();
+        this.joinColumns = new ArrayList<>(innerJoin.getJoinColumns());
 
-        joinColumns = new ArrayList<>(innerJoin.getJoinColumns());
+        // 计算自然连接的连接列名
         if (innerJoin.isNaturalJoin()) {
             RowUtils.fillNaturalJoinColumns(
                     joinColumns, headerA, headerB, innerJoin.getPrefixA(), innerJoin.getPrefixB());
         }
-        if ((filter == null && joinColumns.isEmpty())
-                || (filter != null && !joinColumns.isEmpty())) {
-            throw new InvalidOperatorParameterException(
-                    "using(or natural) and on operator cannot be used at the same time");
+
+        // 检查连接列名是否合法
+        checkJoinColumns(
+                joinColumns, headerA, headerB, innerJoin.getPrefixA(), innerJoin.getPrefixB());
+
+        // 检查左右两表需要进行额外连接的path
+        extraJoinPaths = new ArrayList<>();
+        if (!innerJoin.getExtraJoinPrefix().isEmpty()) {
+            extraJoinPaths =
+                    getSamePathWithSpecificPrefix(headerA, headerB, innerJoin.getExtraJoinPrefix());
         }
 
-        if (filter != null) { // Join condition: on
-            this.header =
-                    RowUtils.constructNewHead(
-                            headerA, headerB, innerJoin.getPrefixA(), innerJoin.getPrefixB());
-        } else { // Join condition: natural or using
-            Pair<int[], Header> pair =
-                    RowUtils.constructNewHead(
-                            headerA,
-                            headerB,
-                            innerJoin.getPrefixA(),
-                            innerJoin.getPrefixB(),
-                            joinColumns,
-                            true);
-            this.indexOfJoinColumnInTableB = pair.getK();
-            this.header = pair.getV();
-        }
+        // 计算连接之后的header
+        this.header =
+                constructNewHead(
+                        headerA,
+                        headerB,
+                        innerJoin.getPrefixA(),
+                        innerJoin.getPrefixB(),
+                        true,
+                        joinColumns,
+                        extraJoinPaths);
+
         this.hasInitialized = true;
     }
 
@@ -131,29 +134,32 @@ public class NestedLoopInnerJoinLazyStream extends BinaryLazyStream {
             curStreamBIndex++;
         }
 
-        if (innerJoin.getFilter() != null) { // Join condition: on
-            Row row = RowUtils.constructNewRow(header, nextA, nextB);
+        if (!equalOnSpecificPaths(nextA, nextB, extraJoinPaths)) {
             nextB = null;
-            if (FilterUtils.validate(innerJoin.getFilter(), row)) {
-                return row;
-            } else {
+            return null;
+        } else if (!equalOnSpecificPaths(
+                nextA, nextB, innerJoin.getPrefixA(), innerJoin.getPrefixB(), joinColumns)) {
+            nextB = null;
+            return null;
+        }
+        Row joinedRow =
+                RowUtils.constructNewRow(
+                        header,
+                        nextA,
+                        nextB,
+                        innerJoin.getPrefixA(),
+                        innerJoin.getPrefixB(),
+                        true,
+                        joinColumns,
+                        extraJoinPaths);
+        if (innerJoin.getFilter() != null) {
+            if (!FilterUtils.validate(innerJoin.getFilter(), joinedRow)) {
+                nextB = null;
                 return null;
             }
-        } else { // Join condition: natural or using
-            for (String joinColumn : joinColumns) {
-                if (ValueUtils.compare(
-                                nextA.getAsValue(innerJoin.getPrefixA() + '.' + joinColumn),
-                                nextB.getAsValue(innerJoin.getPrefixB() + '.' + joinColumn))
-                        != 0) {
-                    nextB = null;
-                    return null;
-                }
-            }
-            Row row =
-                    RowUtils.constructNewRow(header, nextA, nextB, indexOfJoinColumnInTableB, true);
-            nextB = null;
-            return row;
         }
+        nextB = null;
+        return joinedRow;
     }
 
     @Override

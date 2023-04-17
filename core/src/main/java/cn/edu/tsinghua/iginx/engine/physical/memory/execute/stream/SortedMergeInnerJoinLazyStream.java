@@ -1,5 +1,7 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream;
 
+import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.HeaderUtils.constructNewHead;
+
 import cn.edu.tsinghua.iginx.engine.physical.exception.InvalidOperatorParameterException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils;
@@ -107,11 +109,11 @@ public class SortedMergeInnerJoinLazyStream extends BinaryLazyStream {
 
         if (filter != null) { // Join condition: on
             this.header =
-                    RowUtils.constructNewHead(
+                    constructNewHead(
                             headerA, headerB, innerJoin.getPrefixA(), innerJoin.getPrefixB());
         } else { // Join condition: natural or using
             this.header =
-                    RowUtils.constructNewHead(
+                    constructNewHead(
                                     headerA,
                                     headerB,
                                     innerJoin.getPrefixA(),
@@ -150,7 +152,13 @@ public class SortedMergeInnerJoinLazyStream extends BinaryLazyStream {
         } else {
             for (Row rowB : sameValueStreamBRows) {
                 if (innerJoin.getFilter() != null) {
-                    Row row = RowUtils.constructNewRow(header, nextA, rowB);
+                    Row row =
+                            RowUtils.constructNewRow(
+                                    header,
+                                    nextA,
+                                    rowB,
+                                    innerJoin.getPrefixA(),
+                                    innerJoin.getPrefixB());
                     if (FilterUtils.validate(innerJoin.getFilter(), row)) {
                         cache.addLast(row);
                     }

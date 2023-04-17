@@ -1,7 +1,8 @@
 package cn.edu.tsinghua.iginx.sql.statement;
 
 import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils.getAllPathsFromFilter;
-import static cn.edu.tsinghua.iginx.engine.shared.operator.MarkJoin.markPrefix;
+import static cn.edu.tsinghua.iginx.engine.shared.Constants.ALL_PATH_SUFFIX;
+import static cn.edu.tsinghua.iginx.engine.shared.operator.MarkJoin.MARK_PREFIX;
 
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
@@ -582,10 +583,31 @@ public class SelectStatement extends DataStatement {
         return freeVariables;
     }
 
+    public List<String> calculatePrefixSet() {
+        if (globalAlias != null) {
+            return new ArrayList<>(Collections.singleton(globalAlias + ALL_PATH_SUFFIX));
+        }
+        Set<String> prefixSet = new HashSet<>();
+        fromParts.forEach(
+                fromPart -> {
+                    prefixSet.addAll(fromPart.getPatterns());
+                });
+        expressions.forEach(
+                expression -> {
+                    if (expression.hasAlias()) {
+                        prefixSet.add(expression.getAlias());
+                    }
+                });
+        return new ArrayList<>(prefixSet);
+    }
+
     public void calculateFreeVariables() {
         Set<String> set = new HashSet<>();
         List<String> allVariables = getAllPathsFromFilter(filter);
         allVariables.addAll(getAllPathsFromFilter(havingFilter));
+        for (FromPart fromPart : fromParts) {
+            allVariables.addAll(fromPart.getFreeVariables());
+        }
         for (SubQueryFromPart whereSubQueryPart : whereSubQueryParts) {
             allVariables.addAll(whereSubQueryPart.getSubQuery().getFreeVariables());
         }
@@ -608,16 +630,21 @@ public class SelectStatement extends DataStatement {
         return !hasAttribute(path, fromParts.size());
     }
 
-    public boolean hasAttribute(String path, int indexOfFromPart) {
-        if (indexOfFromPart > fromParts.size()) {
-            throw new RuntimeException("index " + indexOfFromPart + " overflow");
+    public boolean hasAttribute(String path, int endIndexOfFromPart) {
+        if (endIndexOfFromPart > fromParts.size()) {
+            throw new RuntimeException("index: " + endIndexOfFromPart + " overflow");
         }
-        if (path.startsWith(markPrefix)) {
+        if (path.startsWith(MARK_PREFIX)) {
             return false;
         }
-        for (int i = 0; i < indexOfFromPart; i++) {
-            if (path.startsWith(fromParts.get(i).getPath())) {
-                return true;
+        for (int i = 0; i < endIndexOfFromPart; i++) {
+            for (String pattern : fromParts.get(i).getPatterns()) {
+                if (pattern.endsWith(ALL_PATH_SUFFIX)) {
+                    pattern = pattern.substring(0, pattern.length() - 2);
+                }
+                if (path.startsWith(pattern)) {
+                    return true;
+                }
             }
         }
         return false;

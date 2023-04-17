@@ -1,6 +1,6 @@
 package cn.edu.tsinghua.iginx.sql;
 
-import static cn.edu.tsinghua.iginx.engine.shared.operator.MarkJoin.markPrefix;
+import static cn.edu.tsinghua.iginx.engine.shared.operator.MarkJoin.MARK_PREFIX;
 import static cn.edu.tsinghua.iginx.sql.statement.SelectStatement.markJoinCount;
 
 import cn.edu.tsinghua.iginx.engine.logical.utils.ExprUtils;
@@ -394,6 +394,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
             SelectStatement subStatement = new SelectStatement();
             subStatement.setIsSubQuery(true);
             parseQueryClause(ctx.tableReference().subquery().queryClause(), subStatement);
+            // 计算子查询的自由变量
             subStatement.calculateFreeVariables();
             selectStatement.setGlobalAlias(subStatement.getGlobalAlias());
             fromParts.add(new SubQueryFromPart(subStatement));
@@ -423,11 +424,13 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
                             joinPartContext.tableReference().subquery().queryClause(),
                             subStatement);
                     // 当FROM子句有多个部分时，如果某一部分是子查询，且该子查询的FROM子句有多个部分，该子查询必须使用AS子句
+                    // TODO：修改
                     if (subStatement.hasJoinParts()
                             && joinPartContext.tableReference().subquery().queryClause().asClause()
                                     == null) {
                         throw new SQLParserException("AS clause is required in this sub query");
                     }
+                    // 计算子查询的自由变量
                     subStatement.calculateFreeVariables();
                     pathPrefix = subStatement.getGlobalAlias();
                 }
@@ -435,28 +438,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
                     if (subStatement == null) {
                         fromParts.add(new PathFromPart(pathPrefix, new JoinCondition()));
                     } else {
-                        // TODO: check correlated
-                        //                        List<String> freeVariables =
-                        // subStatement.getFreeVariables();
-                        //                        if (freeVariables.size() > 0) {  // cross join
-                        // cast to inner join
-                        //                            Pair<Filter, Filter> filterPair =
-                        // splitFilter(subStatement.getFilter(), freeVariables);
-                        //                            fromParts.add(new
-                        // SubQueryFromPart(subStatement, new JoinCondition(JoinType.InnerJoin,
-                        // filterPair.k)));
-                        //                            if (filterPair.v == null) {
-                        //                                subStatement.setHasValueFilter(false);
-                        //                            } else {
-                        //                                subStatement.setFilter(filterPair.v);
-                        //                            }
-                        //                        } else {
-                        //                            fromParts.add(new
-                        // SubQueryFromPart(subStatement, new JoinCondition()));
-                        //                        }
                         SubQueryFromPart subQueryFromPart =
                                 new SubQueryFromPart(subStatement, new JoinCondition());
-                        subQueryFromPart.setFreeVariables(subStatement.getFreeVariables());
                         fromParts.add(subQueryFromPart);
                     }
                     continue;
@@ -482,8 +465,6 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
                             new PathFromPart(
                                     pathPrefix, new JoinCondition(joinType, filter, columns)));
                 } else {
-
-                    // TODO
                     fromParts.add(
                             new SubQueryFromPart(
                                     subStatement, new JoinCondition(joinType, filter, columns)));
@@ -653,6 +634,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
             SelectStatement subStatement = new SelectStatement();
             subStatement.setIsSubQuery(true);
             parseQueryClause(ctx.subquery().queryClause(), subStatement);
+            // 计算子查询的自由变量
+            subStatement.calculateFreeVariables();
 
             Filter filter;
             // TODO: check correlated
@@ -697,7 +680,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         // 如果查询语句中FROM子句只有一个部分且FROM一个前缀，则SELECT子句中的path只用写出后缀
         if (!selectStatement.hasJoinParts()
                 && selectStatement.getFromParts().get(0).getType() == FromPartType.PathFromPart) {
-            String fromPath = selectStatement.getFromParts().get(0).getPath();
+            String fromPath = selectStatement.getFromParts().get(0).getPrefix();
 
             List<String> newParams = new ArrayList<>();
             for (String param : params) {
@@ -724,7 +707,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         // 如果查询语句中FROM子句只有一个部分且FROM一个前缀，则SELECT子句中的path只用写出后缀
         if (!selectStatement.hasJoinParts()
                 && selectStatement.getFromParts().get(0).getType() == FromPartType.PathFromPart) {
-            String fromPath = selectStatement.getFromParts().get(0).getPath();
+            String fromPath = selectStatement.getFromParts().get(0).getPrefix();
             String fullPath = fromPath + SQLConstant.DOT + selectedPath;
             BaseExpression expression = new BaseExpression(fullPath, alias);
             selectStatement.setSelectedPaths(expression);
@@ -838,7 +821,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
                                     && selectStatement.getFromParts().get(0).getType()
                                             == FromPartType.PathFromPart) {
                                 path =
-                                        selectStatement.getFromParts().get(0).getPath()
+                                        selectStatement.getFromParts().get(0).getPrefix()
                                                 + SQLConstant.DOT
                                                 + pathContext.getText();
                             } else {
@@ -895,7 +878,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         if (ctx.path() != null) {
             for (PathContext pathContext : ctx.path()) {
                 String suffix = pathContext.getText(),
-                        prefix = selectStatement.getFromParts().get(0).getPath();
+                        prefix = selectStatement.getFromParts().get(0).getPrefix();
                 String orderByPath;
                 // 如果查询语句的FROM子句只有一个部分且FROM一个前缀，则ORDER BY后的path只用写出后缀
                 if (!selectStatement.hasJoinParts()
@@ -1114,7 +1097,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         if (!statement.hasJoinParts()
                 && !statement.isSubQuery()
                 && statement.getFromParts().get(0).getType() == FromPartType.PathFromPart) {
-            path = statement.getFromParts().get(0).getPath() + SQLConstant.DOT + path;
+            path = statement.getFromParts().get(0).getPrefix() + SQLConstant.DOT + path;
         }
         if (!statement.isFreeVariable(path)) {
             statement.setPathSet(path);
@@ -1158,8 +1141,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         if (!statement.hasJoinParts()
                 && !statement.isSubQuery()
                 && statement.getFromParts().get(0).getType() == FromPartType.PathFromPart) {
-            pathA = statement.getFromParts().get(0).getPath() + SQLConstant.DOT + pathA;
-            pathB = statement.getFromParts().get(0).getPath() + SQLConstant.DOT + pathB;
+            pathA = statement.getFromParts().get(0).getPrefix() + SQLConstant.DOT + pathA;
+            pathB = statement.getFromParts().get(0).getPrefix() + SQLConstant.DOT + pathB;
         }
         if (!statement.isFreeVariable(pathA)) {
             statement.setPathSet(pathA);
@@ -1192,7 +1175,9 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         SelectStatement subStatement = new SelectStatement();
         subStatement.setIsSubQuery(true);
         parseQueryClause(ctx.subquery().get(0).queryClause(), subStatement);
-        String markColumn = markPrefix + markJoinCount;
+        // 计算子查询的自由变量
+        subStatement.calculateFreeVariables();
+        String markColumn = MARK_PREFIX + markJoinCount;
         markJoinCount += 1;
 
         Filter filter;
@@ -1221,7 +1206,9 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
             throw new SQLParserException(
                     "The number of columns in sub-query doesn't equal to outer row.");
         }
-        String markColumn = markPrefix + markJoinCount;
+        // 计算子查询的自由变量
+        subStatement.calculateFreeVariables();
+        String markColumn = MARK_PREFIX + markJoinCount;
         markJoinCount += 1;
 
         Filter filter;
@@ -1234,7 +1221,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
             if (!statement.hasJoinParts()
                     && !statement.isSubQuery()
                     && statement.getFromParts().get(0).getType() == FromPartType.PathFromPart) {
-                pathA = statement.getFromParts().get(0).getPath() + SQLConstant.DOT + pathA;
+                pathA = statement.getFromParts().get(0).getPrefix() + SQLConstant.DOT + pathA;
             }
             // deal with having filter with functions
             if (ctx.functionName() != null) {
@@ -1268,7 +1255,9 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
             throw new SQLParserException(
                     "The number of columns in sub-query doesn't equal to outer row.");
         }
-        String markColumn = markPrefix + markJoinCount;
+        // 计算子查询的自由变量
+        subStatement.calculateFreeVariables();
+        String markColumn = MARK_PREFIX + markJoinCount;
         markJoinCount += 1;
 
         Filter filter;
@@ -1286,7 +1275,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
             if (!statement.hasJoinParts()
                     && !statement.isSubQuery()
                     && statement.getFromParts().get(0).getType() == FromPartType.PathFromPart) {
-                pathA = statement.getFromParts().get(0).getPath() + SQLConstant.DOT + pathA;
+                pathA = statement.getFromParts().get(0).getPrefix() + SQLConstant.DOT + pathA;
             }
             // deal with having filter with functions
             if (ctx.functionName() != null) {
@@ -1320,6 +1309,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
             throw new SQLParserException(
                     "The number of columns in sub-query doesn't equal to outer row.");
         }
+        // 计算子查询的自由变量
+        subStatement.calculateFreeVariables();
 
         Filter filter;
         // TODO: check correlated
@@ -1343,7 +1334,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
             if (!statement.hasJoinParts()
                     && !statement.isSubQuery()
                     && statement.getFromParts().get(0).getType() == FromPartType.PathFromPart) {
-                pathA = statement.getFromParts().get(0).getPath() + SQLConstant.DOT + pathA;
+                pathA = statement.getFromParts().get(0).getPrefix() + SQLConstant.DOT + pathA;
             }
             // deal with having filter with functions
             if (ctx.functionName() != null) {
@@ -1367,6 +1358,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
                 throw new SQLParserException(
                         "The number of columns in sub-query doesn't equal to outer row.");
             }
+            // 计算子查询的自由变量
+            subStatement.calculateFreeVariables();
             paths.add(subStatement.getExpressions().get(0).getColumnName());
 
             Filter filter;

@@ -56,7 +56,8 @@ public enum OperatorType {
     Rename,
     Reorder,
     AddSchemaPrefix,
-    GroupBy;
+    GroupBy,
+    Distinct;
 
     private int value;
 
