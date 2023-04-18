@@ -2872,21 +2872,55 @@ public abstract class SQLSessionIT {
                         + "Total line number = 3\n";
         executeAndCompare(statement, expected);
 
-        //                statement =
-        //                        "SELECT * FROM (SELECT test.a.a, test.b.a FROM test.a, test.b
-        // WHERE test.b.a < 6 AND test.a.a > 1 AS sub);";
-        //                expected =
-        //                        "ResultSets:\n"
-        //                                + "+------------+------------+\n"
-        //                                + "|sub.test.a.a|sub.test.b.a|\n"
-        //                                + "+------------+------------+\n"
-        //                                + "|           3|           2|\n"
-        //                                + "|           3|           4|\n"
-        //                                + "|           7|           2|\n"
-        //                                + "|           7|           4|\n"
-        //                                + "+------------+------------+\n"
-        //                                + "Total line number = 4\n";
-        //                executeAndCompare(statement, expected);
+        statement =
+                "SELECT * FROM test.a, (SELECT a FROM test.b WHERE test.b.a < 6), (SELECT b FROM test.c WHERE test.c.b = 2);";
+        expected =
+                "ResultSets:\n"
+                        + "+--------+--------+----------+--------+----------+--------+----------+\n"
+                        + "|test.a.a|test.a.b|test.a.key|test.b.a|test.b.key|test.c.b|test.c.key|\n"
+                        + "+--------+--------+----------+--------+----------+--------+----------+\n"
+                        + "|       1|     1.1|         1|       2|         1|       2|         3|\n"
+                        + "|       1|     1.1|         1|       4|         3|       2|         3|\n"
+                        + "|       3|     3.1|         2|       2|         1|       2|         3|\n"
+                        + "|       3|     3.1|         2|       4|         3|       2|         3|\n"
+                        + "|       7|     7.1|         3|       2|         1|       2|         3|\n"
+                        + "|       7|     7.1|         3|       4|         3|       2|         3|\n"
+                        + "+--------+--------+----------+--------+----------+--------+----------+\n"
+                        + "Total line number = 6\n";
+        executeAndCompare(statement, expected);
+
+        statement =
+                "SELECT * FROM test.a, (SELECT * FROM (SELECT a FROM test.b WHERE test.b.a < 6 AND test.b.a < test.a.a), (SELECT b FROM test.c WHERE test.c.b = 1) AS sub);";
+        expected =
+                "ResultSets:\n"
+                        + "+------------+--------------+------------+--------------+--------+--------+----------+\n"
+                        + "|sub.test.b.a|sub.test.b.key|sub.test.c.b|sub.test.c.key|test.a.a|test.a.b|test.a.key|\n"
+                        + "+------------+--------------+------------+--------------+--------+--------+----------+\n"
+                        + "|           2|             1|           1|             2|       3|     3.1|         2|\n"
+                        + "|           2|             1|           1|             2|       7|     7.1|         3|\n"
+                        + "|           4|             3|           1|             2|       7|     7.1|         3|\n"
+                        + "+------------+--------------+------------+--------------+--------+--------+----------+\n"
+                        + "Total line number = 3\n";
+        executeAndCompare(statement, expected);
+
+        statement =
+                "SELECT * FROM test.a, (SELECT * FROM (SELECT a FROM test.b WHERE test.b.a < 6 AND test.b.a < test.a.a), (SELECT b FROM test.c WHERE test.c.b < test.a.a));";
+        expected =
+                "ResultSets:\n"
+                        + "+--------+--------+----------+--------+----------+--------+----------+\n"
+                        + "|test.a.a|test.a.b|test.a.key|test.b.a|test.b.key|test.c.b|test.c.key|\n"
+                        + "+--------+--------+----------+--------+----------+--------+----------+\n"
+                        + "|       3|     3.1|         2|       2|         1|       1|         2|\n"
+                        + "|       3|     3.1|         2|       2|         1|       2|         3|\n"
+                        + "|       7|     7.1|         3|       2|         1|       1|         2|\n"
+                        + "|       7|     7.1|         3|       2|         1|       2|         3|\n"
+                        + "|       7|     7.1|         3|       2|         1|       3|         4|\n"
+                        + "|       7|     7.1|         3|       4|         3|       1|         2|\n"
+                        + "|       7|     7.1|         3|       4|         3|       2|         3|\n"
+                        + "|       7|     7.1|         3|       4|         3|       3|         4|\n"
+                        + "+--------+--------+----------+--------+----------+--------+----------+\n"
+                        + "Total line number = 8\n";
+        executeAndCompare(statement, expected);
 
         statement = "SELECT * FROM test.a INNER JOIN (SELECT a FROM test.b) ON test.a.a < test.b.a";
         expected =
@@ -2921,23 +2955,6 @@ public abstract class SQLSessionIT {
         executeAndCompare(statement, expected);
 
         statement =
-                "SELECT * FROM test.a, (SELECT a FROM test.b WHERE test.b.a < 6), (SELECT b FROM test.c WHERE test.c.b = 2);";
-        expected =
-                "ResultSets:\n"
-                        + "+--------+--------+----------+--------+----------+--------+----------+\n"
-                        + "|test.a.a|test.a.b|test.a.key|test.b.a|test.b.key|test.c.b|test.c.key|\n"
-                        + "+--------+--------+----------+--------+----------+--------+----------+\n"
-                        + "|       1|     1.1|         1|       2|         1|       2|         3|\n"
-                        + "|       1|     1.1|         1|       4|         3|       2|         3|\n"
-                        + "|       3|     3.1|         2|       2|         1|       2|         3|\n"
-                        + "|       3|     3.1|         2|       4|         3|       2|         3|\n"
-                        + "|       7|     7.1|         3|       2|         1|       2|         3|\n"
-                        + "|       7|     7.1|         3|       4|         3|       2|         3|\n"
-                        + "+--------+--------+----------+--------+----------+--------+----------+\n"
-                        + "Total line number = 6\n";
-        executeAndCompare(statement, expected);
-
-        statement =
                 "SELECT * FROM test.a, (SELECT * FROM (SELECT a FROM test.b WHERE test.b.a < 6), (SELECT b FROM test.c WHERE test.c.b = 1) AS sub);";
         expected =
                 "ResultSets:\n"
@@ -2952,39 +2969,6 @@ public abstract class SQLSessionIT {
                         + "|           4|             3|           1|             2|       7|     7.1|         3|\n"
                         + "+------------+--------------+------------+--------------+--------+--------+----------+\n"
                         + "Total line number = 6\n";
-        executeAndCompare(statement, expected);
-
-        statement =
-                "SELECT * FROM test.a, (SELECT * FROM (SELECT a FROM test.b WHERE test.b.a < 6 AND test.b.a < test.a.a), (SELECT b FROM test.c WHERE test.c.b = 1) AS sub);";
-        expected =
-                "ResultSets:\n"
-                        + "+------------+--------------+------------+--------------+--------+--------+----------+\n"
-                        + "|sub.test.b.a|sub.test.b.key|sub.test.c.b|sub.test.c.key|test.a.a|test.a.b|test.a.key|\n"
-                        + "+------------+--------------+------------+--------------+--------+--------+----------+\n"
-                        + "|           2|             1|           1|             2|       3|     3.1|         2|\n"
-                        + "|           2|             1|           1|             2|       7|     7.1|         3|\n"
-                        + "|           4|             3|           1|             2|       7|     7.1|         3|\n"
-                        + "+------------+--------------+------------+--------------+--------+--------+----------+\n"
-                        + "Total line number = 3\n";
-        executeAndCompare(statement, expected);
-
-        statement =
-                "SELECT * FROM test.a, (SELECT * FROM (SELECT a FROM test.b WHERE test.b.a < 6 AND test.b.a < test.a.a), (SELECT b FROM test.c WHERE test.c.b < test.a.a) AS sub);";
-        expected =
-                "ResultSets:\n"
-                        + "+------------+--------------+------------+--------------+--------+--------+----------+\n"
-                        + "|sub.test.b.a|sub.test.b.key|sub.test.c.b|sub.test.c.key|test.a.a|test.a.b|test.a.key|\n"
-                        + "+------------+--------------+------------+--------------+--------+--------+----------+\n"
-                        + "|           2|             1|           1|             2|       3|     3.1|         2|\n"
-                        + "|           2|             1|           2|             3|       3|     3.1|         2|\n"
-                        + "|           2|             1|           1|             2|       7|     7.1|         3|\n"
-                        + "|           2|             1|           2|             3|       7|     7.1|         3|\n"
-                        + "|           2|             1|           3|             4|       7|     7.1|         3|\n"
-                        + "|           4|             3|           1|             2|       7|     7.1|         3|\n"
-                        + "|           4|             3|           2|             3|       7|     7.1|         3|\n"
-                        + "|           4|             3|           3|             4|       7|     7.1|         3|\n"
-                        + "+------------+--------------+------------+--------------+--------+--------+----------+\n"
-                        + "Total line number = 8\n";
         executeAndCompare(statement, expected);
     }
 
@@ -3035,22 +3019,6 @@ public abstract class SQLSessionIT {
                         + "Total line number = 6\n";
         executeAndCompare(statement, expected);
 
-        statement = "SELECT a, (SELECT AVG(a) FROM test.b) FROM test.a;";
-        expected =
-                "ResultSets:\n"
-                        + "+---+--------+-------------+\n"
-                        + "|key|test.a.a|avg(test.b.a)|\n"
-                        + "+---+--------+-------------+\n"
-                        + "|  1|       3|          2.0|\n"
-                        + "|  2|       1|          2.0|\n"
-                        + "|  3|       2|          2.0|\n"
-                        + "|  4|       3|          2.0|\n"
-                        + "|  5|       1|          2.0|\n"
-                        + "|  6|       2|          2.0|\n"
-                        + "+---+--------+-------------+\n"
-                        + "Total line number = 6\n";
-        executeAndCompare(statement, expected);
-
         statement = "SELECT a, (SELECT SUM(a) FROM test.b WHERE test.a.a < test.b.a) FROM test.a;";
         expected =
                 "ResultSets:\n"
@@ -3081,6 +3049,38 @@ public abstract class SQLSessionIT {
                         + "|  5|       1|                      10|\n"
                         + "|  6|       2|                      12|\n"
                         + "+---+--------+------------------------+\n"
+                        + "Total line number = 6\n";
+        executeAndCompare(statement, expected);
+
+        statement = "SELECT a, (SELECT AVG(a) FROM test.b) FROM test.a;";
+        expected =
+                "ResultSets:\n"
+                        + "+---+--------+-------------+\n"
+                        + "|key|test.a.a|avg(test.b.a)|\n"
+                        + "+---+--------+-------------+\n"
+                        + "|  1|       3|          2.0|\n"
+                        + "|  2|       1|          2.0|\n"
+                        + "|  3|       2|          2.0|\n"
+                        + "|  4|       3|          2.0|\n"
+                        + "|  5|       1|          2.0|\n"
+                        + "|  6|       2|          2.0|\n"
+                        + "+---+--------+-------------+\n"
+                        + "Total line number = 6\n";
+        executeAndCompare(statement, expected);
+
+        statement = "SELECT a, (SELECT AVG(a) FROM test.b WHERE test.a.a < test.b.a) FROM test.a;";
+        expected =
+                "ResultSets:\n"
+                        + "+---+--------+-------------+\n"
+                        + "|key|test.a.a|avg(test.b.a)|\n"
+                        + "+---+--------+-------------+\n"
+                        + "|  1|       3|          NaN|\n"
+                        + "|  2|       1|          2.5|\n"
+                        + "|  3|       2|          3.0|\n"
+                        + "|  4|       3|          NaN|\n"
+                        + "|  5|       1|          2.5|\n"
+                        + "|  6|       2|          3.0|\n"
+                        + "+---+--------+-------------+\n"
                         + "Total line number = 6\n";
         executeAndCompare(statement, expected);
 
@@ -3142,6 +3142,23 @@ public abstract class SQLSessionIT {
                         + "Total line number = 6\n";
         executeAndCompare(statement, expected);
 
+        statement =
+                "SELECT a, 1 + (SELECT AVG(a) FROM test.b WHERE test.a.a < test.b.a) FROM test.a;";
+        expected =
+                "ResultSets:\n"
+                        + "+---+--------+-----------------+\n"
+                        + "|key|test.a.a|1 + avg(test.b.a)|\n"
+                        + "+---+--------+-----------------+\n"
+                        + "|  1|       3|              NaN|\n"
+                        + "|  2|       1|              3.5|\n"
+                        + "|  3|       2|              4.0|\n"
+                        + "|  4|       3|              NaN|\n"
+                        + "|  5|       1|              3.5|\n"
+                        + "|  6|       2|              4.0|\n"
+                        + "+---+--------+-----------------+\n"
+                        + "Total line number = 6\n";
+        executeAndCompare(statement, expected);
+
         statement = "SELECT a / (SELECT AVG(a) FROM test.b) FROM test.a;";
         expected =
                 "ResultSets:\n"
@@ -3158,6 +3175,22 @@ public abstract class SQLSessionIT {
                         + "Total line number = 6\n";
         executeAndCompare(statement, expected);
 
+        statement = "SELECT a / (SELECT AVG(a) FROM test.b WHERE test.a.a < test.b.a) FROM test.a;";
+        expected =
+                "ResultSets:\n"
+                        + "+---+------------------------+\n"
+                        + "|key|test.a.a ÷ avg(test.b.a)|\n"
+                        + "+---+------------------------+\n"
+                        + "|  1|                     NaN|\n"
+                        + "|  2|                     0.4|\n"
+                        + "|  3|      0.6666666666666666|\n"
+                        + "|  4|                     NaN|\n"
+                        + "|  5|                     0.4|\n"
+                        + "|  6|      0.6666666666666666|\n"
+                        + "+---+------------------------+\n"
+                        + "Total line number = 6\n";
+        executeAndCompare(statement, expected);
+
         statement = "SELECT a / (1 + (SELECT AVG(a) FROM test.b)) FROM test.a;";
         expected =
                 "ResultSets:\n"
@@ -3170,6 +3203,23 @@ public abstract class SQLSessionIT {
                         + "|  4|                           1.0|\n"
                         + "|  5|            0.3333333333333333|\n"
                         + "|  6|            0.6666666666666666|\n"
+                        + "+---+------------------------------+\n"
+                        + "Total line number = 6\n";
+        executeAndCompare(statement, expected);
+
+        statement =
+                "SELECT a / (1 + (SELECT AVG(a) FROM test.b WHERE test.a.a < test.b.a)) FROM test.a;";
+        expected =
+                "ResultSets:\n"
+                        + "+---+------------------------------+\n"
+                        + "|key|test.a.a ÷ (1 + avg(test.b.a))|\n"
+                        + "+---+------------------------------+\n"
+                        + "|  1|                           NaN|\n"
+                        + "|  2|            0.2857142857142857|\n"
+                        + "|  3|                           0.5|\n"
+                        + "|  4|                           NaN|\n"
+                        + "|  5|            0.2857142857142857|\n"
+                        + "|  6|                           0.5|\n"
                         + "+---+------------------------------+\n"
                         + "Total line number = 6\n";
         executeAndCompare(statement, expected);
@@ -3374,6 +3424,20 @@ public abstract class SQLSessionIT {
                         + "Total line number = 4\n";
         executeAndCompare(statement, expected);
 
+        statement =
+                "SELECT * FROM test.a WHERE d IN (SELECT d FROM test.b WHERE test.b.a = test.a.a);";
+        expected =
+                "ResultSets:\n"
+                        + "+---+--------+--------+--------+--------+\n"
+                        + "|key|test.a.a|test.a.b|test.a.c|test.a.d|\n"
+                        + "+---+--------+--------+--------+--------+\n"
+                        + "|  1|       3|       2|     3.1|    val1|\n"
+                        + "|  2|       1|       3|     2.1|    val2|\n"
+                        + "|  6|       2|       2|     5.1|    val3|\n"
+                        + "+---+--------+--------+--------+--------+\n"
+                        + "Total line number = 3\n";
+        executeAndCompare(statement, expected);
+
         statement = "SELECT * FROM test.a WHERE d NOT IN (SELECT d FROM test.b);";
         expected =
                 "ResultSets:\n"
@@ -3384,6 +3448,20 @@ public abstract class SQLSessionIT {
                         + "|  4|       3|       2|     2.1|    val8|\n"
                         + "+---+--------+--------+--------+--------+\n"
                         + "Total line number = 2\n";
+        executeAndCompare(statement, expected);
+
+        statement =
+                "SELECT * FROM test.a WHERE d NOT IN (SELECT d FROM test.b WHERE test.b.a = test.a.a);";
+        expected =
+                "ResultSets:\n"
+                        + "+---+--------+--------+--------+--------+\n"
+                        + "|key|test.a.a|test.a.b|test.a.c|test.a.d|\n"
+                        + "+---+--------+--------+--------+--------+\n"
+                        + "|  3|       2|       2|     1.1|    val7|\n"
+                        + "|  4|       3|       2|     2.1|    val8|\n"
+                        + "|  5|       1|       2|     3.1|    val1|\n"
+                        + "+---+--------+--------+--------+--------+\n"
+                        + "Total line number = 3\n";
         executeAndCompare(statement, expected);
 
         statement = "SELECT * FROM test.a WHERE d = SOME (SELECT d FROM test.b);";

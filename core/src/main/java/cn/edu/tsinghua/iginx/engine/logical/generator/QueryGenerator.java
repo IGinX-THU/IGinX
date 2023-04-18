@@ -1,7 +1,6 @@
 package cn.edu.tsinghua.iginx.engine.logical.generator;
 
 import static cn.edu.tsinghua.iginx.engine.logical.utils.OperatorUtils.translateApply;
-import static cn.edu.tsinghua.iginx.engine.shared.Constants.ALL_PATH;
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.ALL_PATH_SUFFIX;
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.ORDINAL;
 import static cn.edu.tsinghua.iginx.engine.shared.function.system.ArithmeticExpr.ARITHMETIC_EXPR;
@@ -353,13 +352,9 @@ public class QueryGenerator extends AbstractGenerator {
             selectStatement
                     .getBaseExpressionList()
                     .forEach(expression -> selectedPath.add(expression.getPathName()));
-            if (!selectedPath.contains(ALL_PATH)) {
-                queryList.add(
-                        new Project(
-                                new OperatorSource(root),
-                                new ArrayList<>(selectedPath),
-                                tagFilter));
-            }
+            queryList.add(
+                    new Project(
+                            new OperatorSource(root), new ArrayList<>(selectedPath), tagFilter));
         }
 
         if (selectStatement.getQueryType() == SelectStatement.QueryType.LastFirstQuery) {
@@ -369,7 +364,7 @@ public class QueryGenerator extends AbstractGenerator {
         } else {
             if (selectStatement.getFuncTypeSet().contains(FuncType.Udtf)) {
                 root = OperatorUtils.joinOperatorsByTime(queryList);
-            } else if (!queryList.isEmpty()) {
+            } else {
                 root = OperatorUtils.joinOperators(queryList, ORDINAL);
             }
         }
@@ -527,7 +522,7 @@ public class QueryGenerator extends AbstractGenerator {
                                 SubQueryFromPart subQueryFromPart = (SubQueryFromPart) fromPart;
                                 joinList.add(generateRoot(subQueryFromPart.getSubQuery()));
                             } else {
-                                String prefix = fromPart.getPatterns().get(0) + ALL_PATH_SUFFIX;
+                                String prefix = fromPart.getPrefix() + ALL_PATH_SUFFIX;
                                 Pair<Map<TimeInterval, List<FragmentMeta>>, List<FragmentMeta>>
                                         pair =
                                                 getFragmentsByTSInterval(
@@ -545,24 +540,25 @@ public class QueryGenerator extends AbstractGenerator {
                         });
         // 2. merge by declare
         Operator left = joinList.get(0);
-        String prefixA =
-                selectStatement.getFromParts().get(0).hasSinglePrefix()
-                        ? selectStatement.getFromParts().get(0).getPrefix()
-                        : null;
+        String prefixA = selectStatement.getFromParts().get(0).getPrefix();
         for (int i = 1; i < joinList.size(); i++) {
             JoinCondition joinCondition = selectStatement.getFromParts().get(i).getJoinCondition();
             Operator right = joinList.get(i);
 
-            String prefixB =
-                    selectStatement.getFromParts().get(i).hasSinglePrefix()
-                            ? selectStatement.getFromParts().get(i).getPrefix()
-                            : null;
+            String prefixB = selectStatement.getFromParts().get(i).getPrefix();
 
             Filter filter = joinCondition.getFilter();
             List<String> joinColumns = joinCondition.getJoinColumns();
             boolean isNaturalJoin = isNaturalJoin(joinCondition.getJoinType());
             if (joinColumns == null) {
                 joinColumns = new ArrayList<>();
+            }
+
+            if (!joinColumns.isEmpty() || isNaturalJoin) {
+                if (prefixA == null || prefixB == null) {
+                    throw new RuntimeException(
+                            "A natural join or a join with USING should have two public prefix");
+                }
             }
 
             JoinAlgType joinAlgType = chooseJoinAlg(filter, isNaturalJoin, joinColumns);

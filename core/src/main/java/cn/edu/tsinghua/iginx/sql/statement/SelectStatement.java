@@ -583,6 +583,13 @@ public class SelectStatement extends DataStatement {
         return freeVariables;
     }
 
+    public void addFreeVariable(String freeVariable) {
+        if (freeVariables == null) {
+            this.freeVariables = new ArrayList<>();
+        }
+        this.freeVariables.add(freeVariable);
+    }
+
     public List<String> calculatePrefixSet() {
         if (globalAlias != null) {
             return new ArrayList<>(Collections.singleton(globalAlias + ALL_PATH_SUFFIX));

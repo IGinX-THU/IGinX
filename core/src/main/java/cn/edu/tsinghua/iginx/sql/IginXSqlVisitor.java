@@ -403,15 +403,6 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         if (ctx.joinPart() != null && !ctx.joinPart().isEmpty()) {
             selectStatement.setHasJoinParts(true);
 
-            if (fromParts.get(0).getType() == FromPartType.SubQueryFromPart) {
-                SubQueryFromPart subQueryFromPart = (SubQueryFromPart) fromParts.get(0);
-                // 当FROM子句有多个部分时，如果某一部分是子查询，且该子查询的FROM子句有多个部分，该子查询必须使用AS子句
-                if (subQueryFromPart.getSubQuery().hasJoinParts()
-                        && ctx.tableReference().subquery().queryClause().asClause() == null) {
-                    throw new SQLParserException("AS clause is required in this sub query");
-                }
-            }
-
             for (JoinPartContext joinPartContext : ctx.joinPart()) {
                 String pathPrefix;
                 SelectStatement subStatement = new SelectStatement();
@@ -423,13 +414,6 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
                     parseQueryClause(
                             joinPartContext.tableReference().subquery().queryClause(),
                             subStatement);
-                    // 当FROM子句有多个部分时，如果某一部分是子查询，且该子查询的FROM子句有多个部分，该子查询必须使用AS子句
-                    // TODO：修改
-                    if (subStatement.hasJoinParts()
-                            && joinPartContext.tableReference().subquery().queryClause().asClause()
-                                    == null) {
-                        throw new SQLParserException("AS clause is required in this sub query");
-                    }
                     // 计算子查询的自由变量
                     subStatement.calculateFreeVariables();
                     pathPrefix = subStatement.getGlobalAlias();
@@ -637,9 +621,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
             // 计算子查询的自由变量
             subStatement.calculateFreeVariables();
 
-            Filter filter;
-            // TODO: check correlated
-            filter = new BoolFilter(true);
+            Filter filter = new BoolFilter(true);
 
             selectStatement.addSelectSubQueryPart(
                     new SubQueryFromPart(
@@ -1180,9 +1162,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         String markColumn = MARK_PREFIX + markJoinCount;
         markJoinCount += 1;
 
-        Filter filter;
-        // TODO: check correlated
-        filter = new BoolFilter(true);
+        Filter filter = new BoolFilter(true);
 
         boolean isAntiJoin = ctx.OPERATOR_NOT() != null;
         SubQueryFromPart subQueryPart =
@@ -1230,8 +1210,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
             String pathB = subStatement.getExpressions().get(0).getColumnName();
             filter = new PathFilter(pathA, Op.E, pathB);
+            subStatement.addFreeVariable(pathA);
         }
-        // TODO: check correlated
 
         boolean isAntiJoin = ctx.OPERATOR_NOT() != null;
         SubQueryFromPart subQueryPart =
@@ -1284,8 +1264,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
             String pathB = subStatement.getExpressions().get(0).getColumnName();
             filter = new PathFilter(pathA, op, pathB);
+            subStatement.addFreeVariable(pathA);
         }
-        // TODO: check correlated
 
         boolean isAntiJoin = ctx.quantifier().all() != null;
         SubQueryFromPart subQueryPart =
@@ -1312,9 +1292,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         // 计算子查询的自由变量
         subStatement.calculateFreeVariables();
 
-        Filter filter;
-        // TODO: check correlated
-        filter = new BoolFilter(true);
+        Filter filter = new BoolFilter(true);
 
         SubQueryFromPart subQueryPart =
                 new SubQueryFromPart(subStatement, new JoinCondition(JoinType.SingleJoin, filter));
@@ -1362,9 +1340,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
             subStatement.calculateFreeVariables();
             paths.add(subStatement.getExpressions().get(0).getColumnName());
 
-            Filter filter;
-            // TODO: check correlated
-            filter = new BoolFilter(true);
+            Filter filter = new BoolFilter(true);
 
             SubQueryFromPart subQueryPart =
                     new SubQueryFromPart(

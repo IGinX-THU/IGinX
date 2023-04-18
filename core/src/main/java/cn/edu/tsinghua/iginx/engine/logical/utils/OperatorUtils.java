@@ -170,6 +170,7 @@ public class OperatorUtils {
                                 applyCopy.getPrefixB(),
                                 markJoin.getFilter(),
                                 new ArrayList<>());
+                ((InnerJoin) applyCopy).reChooseJoinAlg();
             }
         }
         Operator right = pushDownApply(applyCopy, correlatedVariables);
