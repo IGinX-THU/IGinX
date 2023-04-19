@@ -5,7 +5,7 @@ import java.util.Objects;
 
 public class GroupByKey {
 
-    private final List<Object> groupByValues;  // the values of group by cols.
+    private final List<Object> groupByValues; // the values of group by cols.
 
     private final int hash;
 

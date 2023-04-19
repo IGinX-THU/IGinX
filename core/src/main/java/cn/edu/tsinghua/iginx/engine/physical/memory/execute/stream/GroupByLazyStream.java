@@ -36,15 +36,11 @@ public class GroupByLazyStream extends UnaryLazyStream {
 
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
 
-    private static final int WORKER_NUM = 5;
+    private static final int WORKER_NUM = config.getStreamParallelGroupByWorkerNum();
 
     private final GroupBy groupBy;
 
-    private List<Row> cache;
-
-    private Header header;
-
-    private int index = 0;
+    private Table resultTable;
 
     public GroupByLazyStream(GroupBy groupBy, RowStream stream) {
         super(stream);
@@ -53,26 +49,23 @@ public class GroupByLazyStream extends UnaryLazyStream {
 
     @Override
     public Header getHeader() throws PhysicalException {
-        if (header == null) {
+        if (resultTable == null) {
             cacheResult();
         }
-        return header;
+        return resultTable.getHeader();
     }
 
     @Override
     public boolean hasNext() throws PhysicalException {
-        if (header == null) {
+        if (resultTable == null) {
             cacheResult();
         }
-        return cache != null && !cache.isEmpty() && index < cache.size();
+        return resultTable.hasNext();
     }
 
     @Override
     public Row next() throws PhysicalException {
-        if (!hasNext()) {
-            throw new IllegalStateException("row stream doesn't have more data!");
-        }
-        return cache.get(index++);
+        return resultTable.next();
     }
 
     private void cacheResult() throws PhysicalException {
@@ -81,23 +74,26 @@ public class GroupByLazyStream extends UnaryLazyStream {
             rows.add(stream.next());
         }
 
+        List<Row> cache;
         if (stream.hasNext()) {
             // more than threshold, use parallel cache.
-            parallelCache(rows);
+            cache = parallelCache(rows);
         } else {
-            this.cache = RowUtils.cacheGroupByResult(groupBy, new Table(stream.getHeader(), rows));
+            cache = RowUtils.cacheGroupByResult(groupBy, new Table(stream.getHeader(), rows));
         }
 
+        Header newHeader;
         if (cache.isEmpty()) {
-            header = Header.EMPTY_HEADER;
+            newHeader = Header.EMPTY_HEADER;
         } else {
-            header = cache.get(0).getHeader();
+            newHeader = cache.get(0).getHeader();
         }
+        this.resultTable = new Table(newHeader, cache);
     }
 
-    private void parallelCache(List<Row> firstPartialRows)
-            throws PhysicalTaskExecuteFailureException {
+    private List<Row> parallelCache(List<Row> firstPartialRows) throws PhysicalException {
         // search the required fields
+        Header header = stream.getHeader();
         List<String> cols = groupBy.getGroupByCols();
         int[] colIndex = new int[cols.size()];
         List<Field> fields = new ArrayList<>();
@@ -190,7 +186,7 @@ public class GroupByLazyStream extends UnaryLazyStream {
         }
 
         try {
-            this.cache = RowUtils.applyFunc(groupBy, fields, header, groups);
+            return RowUtils.applyFunc(groupBy, fields, header, groups);
         } catch (PhysicalTaskExecuteFailureException e) {
             throw new PhysicalTaskExecuteFailureException("encounter error when apply func: ", e);
         }

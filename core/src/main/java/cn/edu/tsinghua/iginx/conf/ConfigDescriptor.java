@@ -224,7 +224,14 @@ public class ConfigDescriptor {
                             properties.getProperty("maxThriftWorkerThreadNum", "2147483647")));
             config.setParallelGroupByRowsThreshold(
                     Integer.parseInt(
-                            properties.getProperty("parallelGroupByRowsThreshold", "1000")));
+                            properties.getProperty("parallelGroupByRowsThreshold", "10000")));
+            config.setParallelGroupByPoolSize(
+                    Integer.parseInt(properties.getProperty("parallelGroupByPoolSize", "5")));
+            config.setParallelGroupByPoolNum(
+                    Integer.parseInt(properties.getProperty("parallelGroupByPoolNum", "5")));
+            config.setStreamParallelGroupByWorkerNum(
+                    Integer.parseInt(
+                            properties.getProperty("streamParallelGroupByWorkerNum", "5")));
         } catch (IOException e) {
             logger.error("Fail to load properties: ", e);
         }
@@ -339,6 +346,14 @@ public class ConfigDescriptor {
         config.setParallelGroupByRowsThreshold(
                 EnvUtils.loadEnv(
                         "parallelGroupByRowsThreshold", config.getParallelGroupByRowsThreshold()));
+        config.setParallelGroupByPoolSize(
+                EnvUtils.loadEnv("parallelGroupByPoolSize", config.getParallelGroupByPoolSize()));
+        config.setParallelGroupByPoolNum(
+                EnvUtils.loadEnv("parallelGroupByPoolNum", config.getParallelGroupByPoolNum()));
+        config.setStreamParallelGroupByWorkerNum(
+                EnvUtils.loadEnv(
+                        "streamParallelGroupByWorkerNum",
+                        config.getStreamParallelGroupByWorkerNum()));
     }
 
     private void loadUDFListFromFile() {

@@ -193,7 +193,13 @@ public class Config {
 
     private boolean isLocalParquetStorage = true;
 
-    private int parallelGroupByRowsThreshold = 1000;
+    private int parallelGroupByRowsThreshold = 10000;
+
+    private int parallelGroupByPoolSize = 5;
+
+    private int parallelGroupByPoolNum = 5;
+
+    private int streamParallelGroupByWorkerNum = 5;
 
     public int getMaxTimeseriesLength() {
         return maxTimeseriesLength;
@@ -814,5 +820,29 @@ public class Config {
 
     public void setParallelGroupByRowsThreshold(int parallelGroupByRowsThreshold) {
         this.parallelGroupByRowsThreshold = parallelGroupByRowsThreshold;
+    }
+
+    public int getParallelGroupByPoolSize() {
+        return parallelGroupByPoolSize;
+    }
+
+    public void setParallelGroupByPoolSize(int parallelGroupByPoolSize) {
+        this.parallelGroupByPoolSize = parallelGroupByPoolSize;
+    }
+
+    public int getParallelGroupByPoolNum() {
+        return parallelGroupByPoolNum;
+    }
+
+    public void setParallelGroupByPoolNum(int parallelGroupByPoolNum) {
+        this.parallelGroupByPoolNum = parallelGroupByPoolNum;
+    }
+
+    public int getStreamParallelGroupByWorkerNum() {
+        return streamParallelGroupByWorkerNum;
+    }
+
+    public void setStreamParallelGroupByWorkerNum(int streamParallelGroupByWorkerNum) {
+        this.streamParallelGroupByWorkerNum = streamParallelGroupByWorkerNum;
     }
 }

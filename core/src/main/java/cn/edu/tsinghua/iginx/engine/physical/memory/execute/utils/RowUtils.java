@@ -44,14 +44,30 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RowUtils {
 
     private static final Config config = ConfigDescriptor.getInstance().getConfig();
+
+    private static final Logger logger = LoggerFactory.getLogger(RowUtils.class);
+
+    private static final BlockingQueue<ForkJoinPool> poolQueue = new LinkedBlockingQueue<>();
+
+    static {
+        for (int i = 0; i < config.getParallelGroupByPoolNum(); i++) {
+            poolQueue.add(new ForkJoinPool(config.getParallelGroupByPoolSize()));
+        }
+    }
 
     public static Row transform(Row row, Header targetHeader) {
         Object[] values = new Object[targetHeader.getFieldSize()];
@@ -83,24 +99,24 @@ public class RowUtils {
             valuesCombine.addAll(Arrays.asList(cols.getValues()));
         }
         Header newHeader =
-                columnList.get(0).getHeader().hasKey()
-                        ? new Header(Field.KEY, fields)
-                        : new Header(fields);
+            columnList.get(0).getHeader().hasKey()
+                ? new Header(Field.KEY, fields)
+                : new Header(fields);
         return new Row(newHeader, columnList.get(0).getKey(), valuesCombine.toArray());
     }
 
     /**
      * @return <tt>-1</tt>: not sorted <tt>0</tt>: all rows equal <tt>1</tt>: ascending sorted
-     *     <tt>2</tt>: descending sorted
+     * <tt>2</tt>: descending sorted
      */
     public static int checkRowsSortedByColumns(List<Row> rows, String prefix, List<String> columns)
-            throws PhysicalException {
+        throws PhysicalException {
         int res = 0;
         int index = 0;
         while (index < rows.size() - 1) {
             int mark =
-                    compareRowsSortedByColumns(
-                            rows.get(index), rows.get(index + 1), prefix, prefix, columns, columns);
+                compareRowsSortedByColumns(
+                    rows.get(index), rows.get(index + 1), prefix, prefix, columns, columns);
             if (mark == -1) {
                 if (res == 0) {
                     res = 1;
@@ -119,15 +135,17 @@ public class RowUtils {
         return res;
     }
 
-    /** @return <tt>-1</tt>: row1 < row2 <tt>0</tt>: row1 = row2 <tt>1</tt>: row1 > row2 */
+    /**
+     * @return <tt>-1</tt>: row1 < row2 <tt>0</tt>: row1 = row2 <tt>1</tt>: row1 > row2
+     */
     public static int compareRowsSortedByColumns(
-            Row row1,
-            Row row2,
-            String prefix1,
-            String prefix2,
-            List<String> columns1,
-            List<String> columns2)
-            throws PhysicalException {
+        Row row1,
+        Row row2,
+        String prefix1,
+        String prefix2,
+        List<String> columns1,
+        List<String> columns2)
+        throws PhysicalException {
         assert columns1.size() == columns2.size();
         int size = columns1.size();
         for (int index = 0; index < size; index++) {
@@ -141,11 +159,11 @@ public class RowUtils {
                 return 1;
             }
             DataType dataType1 =
-                    row1.getField(row1.getHeader().indexOf(prefix1 + '.' + columns1.get(index)))
-                            .getType();
+                row1.getField(row1.getHeader().indexOf(prefix1 + '.' + columns1.get(index)))
+                    .getType();
             DataType dataType2 =
-                    row2.getField(row2.getHeader().indexOf(prefix2 + '.' + columns2.get(index)))
-                            .getType();
+                row2.getField(row2.getHeader().indexOf(prefix2 + '.' + columns2.get(index)))
+                    .getType();
             int cmp = ValueUtils.compare(value1, value2, dataType1, dataType2);
             if (cmp != 0) {
                 return cmp;
@@ -168,7 +186,7 @@ public class RowUtils {
     }
 
     public static Header constructNewHead(
-            Header headerA, Header headerB, String prefixA, String prefixB) {
+        Header headerA, Header headerB, String prefixA, String prefixB) {
         List<Field> fields = new ArrayList<>();
         if (headerA.hasKey()) {
             fields.add(new Field(prefixA + "." + GlobalConstant.KEY_NAME, DataType.LONG));
@@ -182,12 +200,12 @@ public class RowUtils {
     }
 
     public static Pair<int[], Header> constructNewHead(
-            Header headerA,
-            Header headerB,
-            String prefixA,
-            String prefixB,
-            List<String> joinColumns,
-            boolean cutRight) {
+        Header headerA,
+        Header headerB,
+        String prefixA,
+        String prefixB,
+        List<String> joinColumns,
+        boolean cutRight) {
         List<Field> fieldsA = headerA.getFields();
         List<Field> fieldsB = headerB.getFields();
         int[] indexOfJoinColumnsInTable = new int[joinColumns.size()];
@@ -233,7 +251,7 @@ public class RowUtils {
     }
 
     public static Row constructUnmatchedRow(
-            Header header, Row halfRow, int anotherRowSize, boolean putLeft) {
+        Header header, Row halfRow, int anotherRowSize, boolean putLeft) {
 
         int size = halfRow.getValues().length + anotherRowSize;
         if (halfRow.getHeader().hasKey()) {
@@ -252,18 +270,18 @@ public class RowUtils {
             if (halfRow.getHeader().hasKey()) {
                 valuesJoin[anotherRowSize] = halfRow.getKey();
                 System.arraycopy(
-                        halfRow.getValues(),
-                        0,
-                        valuesJoin,
-                        anotherRowSize + 1,
-                        halfRow.getValues().length);
+                    halfRow.getValues(),
+                    0,
+                    valuesJoin,
+                    anotherRowSize + 1,
+                    halfRow.getValues().length);
             } else {
                 System.arraycopy(
-                        halfRow.getValues(),
-                        0,
-                        valuesJoin,
-                        anotherRowSize,
-                        halfRow.getValues().length);
+                    halfRow.getValues(),
+                    0,
+                    valuesJoin,
+                    anotherRowSize,
+                    halfRow.getValues().length);
             }
         }
         return new Row(header, valuesJoin);
@@ -281,8 +299,8 @@ public class RowUtils {
         System.arraycopy(valuesA, 0, valuesJoin, rowAStartIndex, valuesA.length);
         System.arraycopy(valuesB, 0, valuesJoin, rowBStartIndex, valuesB.length);
         return remainKeyA && rowA.getHeader().hasKey()
-                ? new Row(header, rowA.getKey(), valuesJoin)
-                : new Row(header, valuesJoin);
+            ? new Row(header, rowA.getKey(), valuesJoin)
+            : new Row(header, valuesJoin);
     }
 
     public static Row constructNewRow(Header header, Row rowA, Row rowB) {
@@ -315,7 +333,7 @@ public class RowUtils {
     }
 
     public static Row constructNewRow(
-            Header header, Row rowA, Row rowB, int[] indexOfJoinColumnsInTable, boolean cutRight) {
+        Header header, Row rowA, Row rowB, int[] indexOfJoinColumnsInTable, boolean cutRight) {
         Object[] valuesA = rowA.getValues();
         Object[] valuesB = rowB.getValues();
 
@@ -380,20 +398,20 @@ public class RowUtils {
         System.arraycopy(values, 0, newValues, 0, values.length);
         newValues[values.length] = markValue;
         return row.getHeader().hasKey()
-                ? new Row(header, row.getKey(), newValues)
-                : new Row(header, newValues);
+            ? new Row(header, row.getKey(), newValues)
+            : new Row(header, newValues);
     }
 
     public static void fillNaturalJoinColumns(
-            List<String> joinColumns,
-            Header headerA,
-            Header headerB,
-            String prefixA,
-            String prefixB)
-            throws PhysicalException {
+        List<String> joinColumns,
+        Header headerA,
+        Header headerB,
+        String prefixA,
+        String prefixB)
+        throws PhysicalException {
         if (!joinColumns.isEmpty()) {
             throw new InvalidOperatorParameterException(
-                    "natural inner join operator should not have using operator");
+                "natural inner join operator should not have using operator");
         }
         for (Field fieldA : headerA.getFields()) {
             for (Field fieldB : headerB.getFields()) {
@@ -410,7 +428,7 @@ public class RowUtils {
     }
 
     public static List<Row> cacheGroupByResult(GroupBy groupBy, Table table)
-            throws PhysicalException {
+        throws PhysicalException {
         List<String> cols = groupBy.getGroupByCols();
         int[] colIndex = new int[cols.size()];
         List<Field> fields = new ArrayList<>();
@@ -421,7 +439,7 @@ public class RowUtils {
             int index = header.indexOf(col);
             if (index == -1) {
                 throw new PhysicalTaskExecuteFailureException(
-                        String.format("Group by col [%s] not exist.", col));
+                    String.format("Group by col [%s] not exist.", col));
             }
             colIndex[cur++] = index;
             fields.add(header.getField(index));
@@ -438,36 +456,13 @@ public class RowUtils {
     }
 
     public static List<Row> applyFunc(
-            GroupBy groupBy,
-            List<Field> fields,
-            Header header,
-            Map<GroupByKey, List<Row>> groups)
-            throws PhysicalTaskExecuteFailureException {
-        List<FunctionCall> functionCallList = groupBy.getFunctionCallList();
-        for (FunctionCall functionCall : functionCallList) {
-            SetMappingFunction function = (SetMappingFunction) functionCall.getFunction();
-            FunctionParams params = functionCall.getParams();
+        GroupBy groupBy, List<Field> fields, Header header, Map<GroupByKey, List<Row>> groups)
+        throws PhysicalException {
 
-            boolean hasAddedFields = false;
-            for (Map.Entry<GroupByKey, List<Row>> entry : groups.entrySet()) {
-                List<Row> group = entry.getValue();
-                try {
-                    Row row = function.transform(new Table(header, group), params);
-                    if (row != null) {
-                        entry.getKey().getGroupByValues().addAll(Arrays.asList(row.getValues()));
-                        if (!hasAddedFields) {
-                            fields.addAll(row.getHeader().getFields());
-                            hasAddedFields = true;
-                        }
-                    }
-                } catch (Exception e) {
-                    throw new PhysicalTaskExecuteFailureException(
-                            "encounter error when execute set mapping function "
-                                    + function.getIdentifier()
-                                    + ".",
-                            e);
-                }
-            }
+        if (groups.size() > config.getParallelGroupByRowsThreshold()) {
+            parallelApplyFunc(groupBy, fields, header, groups);
+        } else {
+            seqApplyFunc(groupBy, fields, header, groups);
         }
 
         Header newHeader = new Header(fields);
@@ -487,6 +482,91 @@ public class RowUtils {
             cache.add(new Row(newHeader, values));
         }
         return cache;
+    }
+
+    public static void seqApplyFunc(
+        GroupBy groupBy, List<Field> fields, Header header, Map<GroupByKey, List<Row>> groups)
+        throws PhysicalTaskExecuteFailureException {
+        List<FunctionCall> functionCallList = groupBy.getFunctionCallList();
+        for (FunctionCall functionCall : functionCallList) {
+            SetMappingFunction function = (SetMappingFunction) functionCall.getFunction();
+            FunctionParams params = functionCall.getParams();
+
+            boolean hasAddedFields = false;
+            for (Map.Entry<GroupByKey, List<Row>> entry : groups.entrySet()) {
+                List<Row> group = entry.getValue();
+                try {
+                    Row row = function.transform(new Table(header, group), params);
+                    if (row != null) {
+                        entry.getKey().getGroupByValues().addAll(Arrays.asList(row.getValues()));
+                        if (!hasAddedFields) {
+                            fields.addAll(row.getHeader().getFields());
+                            hasAddedFields = true;
+                        }
+                    }
+                } catch (Exception e) {
+                    throw new PhysicalTaskExecuteFailureException(
+                        "encounter error when execute set mapping function "
+                            + function.getIdentifier()
+                            + ".",
+                        e);
+                }
+            }
+        }
+    }
+
+    private static void parallelApplyFunc(
+        GroupBy groupBy, List<Field> fields, Header header, Map<GroupByKey, List<Row>> groups)
+        throws PhysicalException {
+        List<FunctionCall> functionCallList = groupBy.getFunctionCallList();
+        CountDownLatch latch = new CountDownLatch(functionCallList.size());
+
+        for (FunctionCall functionCall : functionCallList) {
+            SetMappingFunction function = (SetMappingFunction) functionCall.getFunction();
+            FunctionParams params = functionCall.getParams();
+
+            AtomicBoolean hasAddedFields = new AtomicBoolean(false);
+            ForkJoinPool pool = null;
+            try {
+                pool = poolQueue.take();
+                pool.submit(() -> {
+                    groups.entrySet()
+                        .parallelStream()
+                        .forEach(
+                            entry -> {
+                                List<Row> group = entry.getValue();
+                                try {
+                                    Row row = function.transform(new Table(header, group), params);
+                                    if (row != null) {
+                                        entry.getKey()
+                                            .getGroupByValues()
+                                            .addAll(Arrays.asList(row.getValues()));
+                                        if (hasAddedFields.compareAndSet(
+                                            false, true)) {
+                                            fields.addAll(row.getHeader().getFields());
+                                        }
+                                    }
+                                } catch (Exception e) {
+                                    logger.error(
+                                        "encounter error when execute set mapping function ");
+                                }
+                            });
+                    latch.countDown();
+                });
+            } catch (InterruptedException e) {
+                throw new PhysicalException("Interrupt when parallel apply func", e);
+            } finally {
+                if (pool != null) {
+                    poolQueue.add(pool);
+                }
+            }
+        }
+
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            throw new PhysicalException("Interrupt when latch await ", e);
+        }
     }
 
     private static Map<GroupByKey, List<Row>> seqBuild(Table table, int[] colIndex) {
@@ -515,31 +595,43 @@ public class RowUtils {
         return groups;
     }
 
-    private static Map<GroupByKey, List<Row>> parallelBuild(Table table, int[] colIndex) {
+    private static Map<GroupByKey, List<Row>> parallelBuild(Table table, int[] colIndex)
+        throws PhysicalException {
         List<Row> rows = table.getRows();
-        Map<GroupByKey, List<Row>> groups =
-                Collections.synchronizedList(rows)
-                        .parallelStream()
-                        .collect(
-                                Collectors.groupingBy(
-                                        row -> {
-                                            Object[] values = row.getValues();
-                                            List<Object> hashValues = new ArrayList<>();
-                                            for (int index : colIndex) {
-                                                if (values[index] instanceof byte[]) {
-                                                    hashValues.add(
-                                                            new String((byte[]) values[index]));
-                                                } else {
-                                                    hashValues.add(values[index]);
-                                                }
+        ForkJoinPool pool = null;
+        try {
+            pool = poolQueue.take();
+            Map<GroupByKey, List<Row>> groups =
+                pool.submit(
+                        () ->
+                            Collections.synchronizedList(rows)
+                                .parallelStream()
+                                .collect(
+                                    Collectors.groupingBy(row -> {
+                                        Object[] values = row.getValues();
+                                        List<Object> hashValues = new ArrayList<>();
+                                        for (int index : colIndex) {
+                                            if (values[index] instanceof byte[]) {
+                                                hashValues.add(new String((byte[]) values[index]));
+                                            } else {
+                                                hashValues.add(values[index]);
                                             }
-                                            return new GroupByKey(hashValues);
-                                        }));
-        return groups;
+                                        }
+                                        return new GroupByKey(hashValues);
+                                    })))
+                    .get();
+            return groups;
+        } catch (InterruptedException | ExecutionException e) {
+            throw new PhysicalException("parallel build failed");
+        } finally {
+            if (pool != null) {
+                poolQueue.add(pool);
+            }
+        }
     }
 
     public static void sortRows(List<Row> rows, boolean asc, List<String> sortByCols)
-            throws PhysicalTaskExecuteFailureException {
+        throws PhysicalTaskExecuteFailureException {
         if (rows == null || rows.isEmpty()) {
             return;
         }
@@ -559,7 +651,7 @@ public class RowUtils {
             int index = header.indexOf(col);
             if (index == -1) {
                 throw new PhysicalTaskExecuteFailureException(
-                        String.format("SortBy key [%s] doesn't exist in table.", col));
+                    String.format("SortBy key [%s] doesn't exist in table.", col));
             }
             indexList.add(index);
             typeList.add(header.getField(index).getType());
@@ -567,32 +659,32 @@ public class RowUtils {
 
         boolean finalHasKey = hasKey;
         rows.sort(
-                (a, b) -> {
-                    if (finalHasKey) {
-                        int cmp =
-                                asc
-                                        ? Long.compare(a.getKey(), b.getKey())
-                                        : Long.compare(b.getKey(), a.getKey());
-                        if (cmp != 0) {
-                            return cmp;
-                        }
+            (a, b) -> {
+                if (finalHasKey) {
+                    int cmp =
+                        asc
+                            ? Long.compare(a.getKey(), b.getKey())
+                            : Long.compare(b.getKey(), a.getKey());
+                    if (cmp != 0) {
+                        return cmp;
                     }
-                    for (int i = 0; i < indexList.size(); i++) {
-                        int cmp =
-                                asc
-                                        ? ValueUtils.compare(
-                                                a.getValue(indexList.get(i)),
-                                                b.getValue(indexList.get(i)),
-                                                typeList.get(i))
-                                        : ValueUtils.compare(
-                                                b.getValue(indexList.get(i)),
-                                                a.getValue(indexList.get(i)),
-                                                typeList.get(i));
-                        if (cmp != 0) {
-                            return cmp;
-                        }
+                }
+                for (int i = 0; i < indexList.size(); i++) {
+                    int cmp =
+                        asc
+                            ? ValueUtils.compare(
+                            a.getValue(indexList.get(i)),
+                            b.getValue(indexList.get(i)),
+                            typeList.get(i))
+                            : ValueUtils.compare(
+                                b.getValue(indexList.get(i)),
+                                a.getValue(indexList.get(i)),
+                                typeList.get(i));
+                    if (cmp != 0) {
+                        return cmp;
                     }
-                    return 0;
-                });
+                }
+                return 0;
+            });
     }
 }
