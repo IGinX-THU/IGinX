@@ -427,25 +427,21 @@ public class RowUtils {
             fields.add(header.getField(index));
         }
 
-        Pair<Map<Integer, List<Row>>, Map<Integer, List<Object>>> pair;
+        Map<GroupByKey, List<Row>> groups;
         if (table.getRowSize() > config.getParallelGroupByRowsThreshold()) {
-            pair = parallelBuild(table, colIndex);
+            groups = parallelBuild(table, colIndex);
         } else {
-            pair = seqBuild(table, colIndex);
+            groups = seqBuild(table, colIndex);
         }
 
-        Map<Integer, List<Row>> groups = pair.getK();
-        Map<Integer, List<Object>> hashValuesMap = pair.getV();
-
-        return applyFunc(groupBy, fields, header, groups, hashValuesMap);
+        return applyFunc(groupBy, fields, header, groups);
     }
 
     public static List<Row> applyFunc(
             GroupBy groupBy,
             List<Field> fields,
             Header header,
-            Map<Integer, List<Row>> groups,
-            Map<Integer, List<Object>> hashValuesMap)
+            Map<GroupByKey, List<Row>> groups)
             throws PhysicalTaskExecuteFailureException {
         List<FunctionCall> functionCallList = groupBy.getFunctionCallList();
         for (FunctionCall functionCall : functionCallList) {
@@ -453,12 +449,12 @@ public class RowUtils {
             FunctionParams params = functionCall.getParams();
 
             boolean hasAddedFields = false;
-            for (Map.Entry<Integer, List<Row>> entry : groups.entrySet()) {
+            for (Map.Entry<GroupByKey, List<Row>> entry : groups.entrySet()) {
                 List<Row> group = entry.getValue();
                 try {
                     Row row = function.transform(new Table(header, group), params);
                     if (row != null) {
-                        hashValuesMap.get(entry.getKey()).addAll(Arrays.asList(row.getValues()));
+                        entry.getKey().getGroupByValues().addAll(Arrays.asList(row.getValues()));
                         if (!hasAddedFields) {
                             fields.addAll(row.getHeader().getFields());
                             hasAddedFields = true;
@@ -478,10 +474,10 @@ public class RowUtils {
         int fieldSize = newHeader.getFieldSize();
 
         List<Row> cache = new ArrayList<>();
-        for (Entry<Integer, List<Object>> entry : hashValuesMap.entrySet()) {
+        for (GroupByKey key : groups.keySet()) {
             Object[] values = new Object[fieldSize];
-            for (int i = 0; i < entry.getValue().size(); i++) {
-                Object val = entry.getValue().get(i);
+            for (int i = 0; i < key.getGroupByValues().size(); i++) {
+                Object val = key.getGroupByValues().get(i);
                 if (val instanceof String) {
                     values[i] = ((String) val).getBytes();
                 } else {
@@ -493,10 +489,8 @@ public class RowUtils {
         return cache;
     }
 
-    private static Pair<Map<Integer, List<Row>>, Map<Integer, List<Object>>> seqBuild(
-            Table table, int[] colIndex) {
-        Map<Integer, List<Row>> groups = new HashMap<>();
-        Map<Integer, List<Object>> hashValuesMap = new HashMap<>();
+    private static Map<GroupByKey, List<Row>> seqBuild(Table table, int[] colIndex) {
+        Map<GroupByKey, List<Row>> groups = new HashMap<>();
         while (table.hasNext()) {
             Row row = table.next();
             Object[] values = row.getValues();
@@ -509,24 +503,21 @@ public class RowUtils {
                 }
             }
 
-            int hash = hashValues.hashCode();
-            if (groups.containsKey(hash)) {
-                groups.get(hash).add(row);
+            GroupByKey key = new GroupByKey(hashValues);
+            if (groups.containsKey(key)) {
+                groups.get(key).add(row);
             } else {
                 List<Row> sameHashRows = new ArrayList<>();
                 sameHashRows.add(row);
-                groups.put(hash, sameHashRows);
-                hashValuesMap.put(hash, hashValues);
+                groups.put(key, sameHashRows);
             }
         }
-        return new Pair<>(groups, hashValuesMap);
+        return groups;
     }
 
-    private static Pair<Map<Integer, List<Row>>, Map<Integer, List<Object>>> parallelBuild(
-            Table table, int[] colIndex) {
+    private static Map<GroupByKey, List<Row>> parallelBuild(Table table, int[] colIndex) {
         List<Row> rows = table.getRows();
-        Map<Integer, List<Object>> hashValuesMap = new ConcurrentHashMap<>();
-        Map<Integer, List<Row>> groups =
+        Map<GroupByKey, List<Row>> groups =
                 Collections.synchronizedList(rows)
                         .parallelStream()
                         .collect(
@@ -542,12 +533,9 @@ public class RowUtils {
                                                     hashValues.add(values[index]);
                                                 }
                                             }
-
-                                            int hash = hashValues.hashCode();
-                                            hashValuesMap.putIfAbsent(hash, hashValues);
-                                            return hash;
+                                            return new GroupByKey(hashValues);
                                         }));
-        return new Pair<>(groups, hashValuesMap);
+        return groups;
     }
 
     public static void sortRows(List<Row> rows, boolean asc, List<String> sortByCols)

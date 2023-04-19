@@ -5,6 +5,7 @@ import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.GroupByKey;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
@@ -122,8 +123,7 @@ public class GroupByLazyStream extends UnaryLazyStream {
             partition.add(queue);
         }
 
-        Map<Integer, List<Row>> groups = new ConcurrentHashMap<>();
-        Map<Integer, List<Object>> hashValuesMap = new ConcurrentHashMap<>();
+        Map<GroupByKey, List<Row>> groups = new ConcurrentHashMap<>();
         CountDownLatch latch = new CountDownLatch(WORKER_NUM);
 
         for (int i = 0; i < WORKER_NUM; i++) {
@@ -160,16 +160,16 @@ public class GroupByLazyStream extends UnaryLazyStream {
                                             hashValues.add(values[index]);
                                         }
                                     }
-                                    int hash = hashValues.hashCode();
+
+                                    GroupByKey key = new GroupByKey(hashValues);
                                     // make sure concurrent safe.
                                     List<Row> rows =
                                             groups.putIfAbsent(
-                                                    hash,
+                                                    key,
                                                     Collections.synchronizedList(
                                                             new ArrayList<>()));
                                     if (rows == null) {
-                                        rows = groups.get(hash);
-                                        hashValuesMap.put(hash, hashValues);
+                                        rows = groups.get(key);
                                     }
                                     rows.add(row);
                                 }
@@ -190,7 +190,7 @@ public class GroupByLazyStream extends UnaryLazyStream {
         }
 
         try {
-            this.cache = RowUtils.applyFunc(groupBy, fields, header, groups, hashValuesMap);
+            this.cache = RowUtils.applyFunc(groupBy, fields, header, groups);
         } catch (PhysicalTaskExecuteFailureException e) {
             throw new PhysicalTaskExecuteFailureException("encounter error when apply func: ", e);
         }
