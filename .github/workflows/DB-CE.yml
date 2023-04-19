@@ -6,7 +6,7 @@ on:
             - main
 env:
     VERSION: 0.6.0-SNAPSHOT
-    FUNCTEST: NewSessionIT,CompareIT,TagIT,RestIT,UDFIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT
+    FUNCTEST: NewSessionIT,SQLCompareIT,TagIT,RestIT,UDFIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT
     INFLUXDB-FUNCTEST: SQLSessionIT,SQLSessionPoolIT
 concurrency:
     group: ${{ github.workflow }}-${{ github.ref }}
