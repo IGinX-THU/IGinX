@@ -19,10 +19,11 @@
 package cn.edu.tsinghua.iginx.engine.shared.operator.filter;
 
 public enum FilterType {
+
     Key,
     Value,
     Path,
-    Bool, // holder
+    Bool,  // holder
 
     And,
     Or,
@@ -61,7 +62,7 @@ public enum FilterType {
                     }
                 }
                 break;
-                // TODO: case label. should we return true?
+            // TODO: case label. should we return true?
             case Bool:
                 break;
             case Path:
@@ -118,4 +119,5 @@ public enum FilterType {
         }
         return null;
     }
+
 }

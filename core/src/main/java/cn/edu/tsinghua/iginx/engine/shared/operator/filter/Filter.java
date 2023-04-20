@@ -18,6 +18,12 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.operator.filter;
 
+import cn.edu.tsinghua.iginx.metadata.entity.TimeSeriesInterval;
+import cn.edu.tsinghua.iginx.metadata.entity.TimeSeriesPrefixRange;
+import cn.edu.tsinghua.iginx.utils.JsonUtils;
+import com.alibaba.fastjson2.annotation.JSONType;
+
+@JSONType(seeAlso = {AndFilter.class, BoolFilter.class, KeyFilter.class, NotFilter.class, OrFilter.class, PathFilter.class, ValueFilter.class}, typeKey = JsonUtils.TYPENAME)
 public interface Filter {
 
     void accept(FilterVisitor visitor);
@@ -25,4 +31,5 @@ public interface Filter {
     FilterType getType();
 
     Filter copy();
+
 }

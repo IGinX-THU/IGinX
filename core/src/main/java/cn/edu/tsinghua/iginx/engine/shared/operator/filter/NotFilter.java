@@ -18,8 +18,11 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.operator.filter;
 
+import com.alibaba.fastjson2.annotation.JSONType;
+
 import java.util.Objects;
 
+@JSONType(typeName = "NotFilter")
 public class NotFilter implements Filter {
 
     private final FilterType type = FilterType.Not;
@@ -56,7 +59,7 @@ public class NotFilter implements Filter {
 
     @Override
     public String toString() {
-        return "!(" + child.toString() + ")";
+        return "!" + child.toString();
     }
 
     @Override

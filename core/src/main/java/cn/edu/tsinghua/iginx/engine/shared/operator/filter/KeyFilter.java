@@ -18,8 +18,11 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.operator.filter;
 
+import com.alibaba.fastjson2.annotation.JSONType;
+
 import java.util.Objects;
 
+@JSONType(typeName = "KeyFilter")
 public class KeyFilter implements Filter {
 
     private final FilterType type = FilterType.Key;
