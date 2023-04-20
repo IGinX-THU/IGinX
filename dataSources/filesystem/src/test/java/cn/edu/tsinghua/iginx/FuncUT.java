@@ -15,6 +15,7 @@ import cn.edu.tsinghua.iginx.filesystem.exec.LocalExecutor;
 import cn.edu.tsinghua.iginx.filesystem.file.property.FilePath;
 import cn.edu.tsinghua.iginx.filesystem.filesystem.FileSystemImpl;
 import cn.edu.tsinghua.iginx.filesystem.query.FSResultTable;
+import cn.edu.tsinghua.iginx.filesystem.tools.ConfLoader;
 import cn.edu.tsinghua.iginx.filesystem.tools.FilterTransformer;
 import cn.edu.tsinghua.iginx.filesystem.wrapper.Record;
 import cn.edu.tsinghua.iginx.metadata.entity.TimeInterval;
@@ -186,29 +187,6 @@ public class FuncUT {
     }
 
     @Test
-    public void testInsertRowRecords() throws IOException {
-        String path = "src/test/java/cn.edu.tsinghua.iginx/lhz2.txt";
-        FileSystemImpl fileSystem = new FileSystemImpl();
-        List<List<Record>> valList = new ArrayList<>();
-        List<File> fileList = new ArrayList<>();
-        List<Boolean> ifAppend = new ArrayList<>();
-
-        fileList.add(new File(path));
-
-        valList.add(
-                new ArrayList<Record>() {
-                    {
-                        long key = TimeUtils.MIN_AVAILABLE_TIME;
-                        add(new Record(key++, "lhz never give up!\n".getBytes()));
-                        add(new Record(key++, "happy every day!\n".getBytes()));
-                    }
-                });
-
-        ifAppend.add(false);
-        fileSystem.writeFiles(fileList, valList, ifAppend);
-    }
-
-    @Test
     public void testGetTimeSeriesOfStorageUnit() throws IOException, PhysicalException {
         LocalExecutor localExecutor = new LocalExecutor();
         List<Timeseries> pathList = localExecutor.getTimeSeriesOfStorageUnit("unit0000");
@@ -226,30 +204,6 @@ public class FuncUT {
         System.out.println(res.k.getEndTimeSeries());
         System.out.println(res.v.getStartTime());
         System.out.println(res.v.getEndTime());
-    }
-
-    @Test
-    public void testReadAndWriteIginxFileByKey() throws IOException {
-        String path = "src/test/java/cn.edu.tsinghua.iginx/lhz.iginx.csv";
-        FileSystemImpl fileSystem = new FileSystemImpl();
-        List<Record> valList =
-                new ArrayList<Record>() {
-                    {
-                        long key = TimeUtils.MIN_AVAILABLE_TIME;
-                        add(new Record(key++, "Do not go gentle into that good night.".getBytes()));
-                        add(
-                                new Record(
-                                        key++,
-                                        "Rage, rage against the dying of the light.".getBytes()));
-                    }
-                };
-
-        fileSystem.writeFile(new File(path), valList, false);
-
-        List<Record> res = fileSystem.readFile(new File(path), 0, 11);
-        for (Record record : res) {
-            System.out.println(record.getRawData());
-        }
     }
 
     @Test
@@ -292,5 +246,10 @@ public class FuncUT {
     public void testPathConvert() {
         System.out.println(FilePath.toIginxPath("unit000000", "lhz.tt.rrr##lhz.iginx"));
         System.out.println(FilePath.toIginxPath("unit000000", "lhz.tt.rrr#lhz.iginx"));
+    }
+
+    @Test
+    public void  testGetRoot(){
+        System.out.println(ConfLoader.getRootPath());
     }
 }
