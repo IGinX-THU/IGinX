@@ -53,14 +53,12 @@ public class SingleJoin extends AbstractJoinOperator {
     public String getInfo() {
         StringBuilder builder = new StringBuilder();
         builder.append("Filter: ").append(filter.toString());
-        if (getExtraJoinPrefix() != null) {
-            if (!getExtraJoinPrefix().isEmpty()) {
-                builder.append(", ExtraJoinPrefix: ");
-                for (String col : getExtraJoinPrefix()) {
-                    builder.append(col).append(",");
-                }
-                builder.deleteCharAt(builder.length() - 1);
+        if (getExtraJoinPrefix() != null && !getExtraJoinPrefix().isEmpty()) {
+            builder.append(", ExtraJoinPrefix: ");
+            for (String col : getExtraJoinPrefix()) {
+                builder.append(col).append(",");
             }
+            builder.deleteCharAt(builder.length() - 1);
         }
         return builder.toString();
     }

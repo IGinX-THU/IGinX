@@ -148,9 +148,9 @@ public class RowUtils {
             }
             int hash = getHash(value, needTypeCast);
 
-            List<Row> l = hashMap.containsKey(hash) ? hashMap.get(hash) : new ArrayList<>();
+            List<Row> l = hashMap.getOrDefault(hash, new ArrayList<>());
             l.add(row);
-            hashMap.put(hash, l);
+            hashMap.putIfAbsent(hash, l);
         }
         return hashMap;
     }

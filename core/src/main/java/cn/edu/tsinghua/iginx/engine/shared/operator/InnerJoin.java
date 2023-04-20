@@ -138,23 +138,19 @@ public class InnerJoin extends AbstractJoinOperator {
         if (filter != null) {
             builder.append(", Filter: ").append(filter);
         }
-        if (joinColumns != null) {
-            if (!joinColumns.isEmpty()) {
-                builder.append(", JoinColumns: ");
-                for (String col : joinColumns) {
-                    builder.append(col).append(",");
-                }
-                builder.deleteCharAt(builder.length() - 1);
+        if (joinColumns != null && !joinColumns.isEmpty()) {
+            builder.append(", JoinColumns: ");
+            for (String col : joinColumns) {
+                builder.append(col).append(",");
             }
+            builder.deleteCharAt(builder.length() - 1);
         }
-        if (getExtraJoinPrefix() != null) {
-            if (!getExtraJoinPrefix().isEmpty()) {
-                builder.append(", ExtraJoinPrefix: ");
-                for (String col : getExtraJoinPrefix()) {
-                    builder.append(col).append(",");
-                }
-                builder.deleteCharAt(builder.length() - 1);
+        if (getExtraJoinPrefix() != null && !getExtraJoinPrefix().isEmpty()) {
+            builder.append(", ExtraJoinPrefix: ");
+            for (String col : getExtraJoinPrefix()) {
+                builder.append(col).append(",");
             }
+            builder.deleteCharAt(builder.length() - 1);
         }
         return builder.toString();
     }

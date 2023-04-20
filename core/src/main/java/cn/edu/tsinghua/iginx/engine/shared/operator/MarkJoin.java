@@ -81,14 +81,12 @@ public class MarkJoin extends AbstractJoinOperator {
         builder.append("Filter: ").append(filter.toString());
         builder.append(", MarkColumn: ").append(markColumn);
         builder.append(", IsAntiJoin: ").append(isAntiJoin);
-        if (getExtraJoinPrefix() != null) {
-            if (!getExtraJoinPrefix().isEmpty()) {
-                builder.append(", ExtraJoinPrefix: ");
-                for (String col : getExtraJoinPrefix()) {
-                    builder.append(col).append(",");
-                }
-                builder.deleteCharAt(builder.length() - 1);
+        if (getExtraJoinPrefix() != null && !getExtraJoinPrefix().isEmpty()) {
+            builder.append(", ExtraJoinPrefix: ");
+            for (String col : getExtraJoinPrefix()) {
+                builder.append(col).append(",");
             }
+            builder.deleteCharAt(builder.length() - 1);
         }
         return builder.toString();
     }

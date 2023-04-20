@@ -603,6 +603,8 @@ public class SelectStatement extends DataStatement {
                 expression -> {
                     if (expression.hasAlias()) {
                         prefixSet.add(expression.getAlias());
+                    } else if (!expression.getType().equals(ExpressionType.Base)) {
+                        prefixSet.add(expression.getColumnName());
                     }
                 });
         return new ArrayList<>(prefixSet);
@@ -647,7 +649,7 @@ public class SelectStatement extends DataStatement {
         for (int i = 0; i < endIndexOfFromPart; i++) {
             for (String pattern : fromParts.get(i).getPatterns()) {
                 if (pattern.endsWith(ALL_PATH_SUFFIX)) {
-                    pattern = pattern.substring(0, pattern.length() - 2);
+                    pattern = pattern.substring(0, pattern.length() - 1);
                 }
                 if (path.startsWith(pattern)) {
                     return true;

@@ -447,6 +447,7 @@ public class QueryGenerator extends AbstractGenerator {
                             (int) selectStatement.getOffset());
         }
 
+        // 子查询不生成Reorder算子
         if (!selectStatement.isSubQuery()) {
             if (selectStatement.getLayers().isEmpty()) {
                 if (selectStatement

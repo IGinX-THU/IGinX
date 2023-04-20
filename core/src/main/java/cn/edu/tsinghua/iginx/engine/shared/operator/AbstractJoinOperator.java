@@ -13,7 +13,7 @@ public abstract class AbstractJoinOperator extends AbstractBinaryOperator {
 
     private JoinAlgType joinAlgType;
 
-    private List<String> extraJoinPrefix;
+    private List<String> extraJoinPrefix; // 连接时需要额外进行比较的列名
 
     public AbstractJoinOperator(
             OperatorType type,

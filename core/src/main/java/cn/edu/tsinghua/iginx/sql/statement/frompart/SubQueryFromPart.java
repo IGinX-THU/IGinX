@@ -44,6 +44,7 @@ public class SubQueryFromPart implements FromPart {
 
     @Override
     public String getPrefix() {
+        // 如果子查询没有一个公共的前缀，返回null
         if (hasSinglePrefix()) {
             if (patterns.get(0).endsWith(ALL_PATH_SUFFIX)) {
                 return patterns.get(0).substring(0, patterns.get(0).length() - 2);

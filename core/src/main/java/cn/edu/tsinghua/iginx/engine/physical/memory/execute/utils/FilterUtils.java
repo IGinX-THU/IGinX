@@ -18,8 +18,6 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils;
 
-import static cn.edu.tsinghua.iginx.engine.logical.utils.ExprUtils.removeNot;
-
 import cn.edu.tsinghua.iginx.engine.physical.exception.InvalidOperatorParameterException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
@@ -255,66 +253,6 @@ public class FilterUtils {
                 break;
         }
         return new ArrayList<>(paths);
-    }
-
-    public static Pair<Filter, Filter> splitFilter(Filter filter, List<String> freeVariables) {
-        removeNot(filter);
-        switch (filter.getType()) {
-            case Or:
-                for (Filter child : ((OrFilter) filter).getChildren()) {
-                    Pair<Filter, Filter> pair = splitFilter(child, freeVariables);
-                    if (pair.k != null) {
-                        return new Pair<>(filter, null);
-                    }
-                }
-                return new Pair<>(null, filter);
-            case And:
-                List<Filter> filtersHasFreeVariables = new ArrayList<>();
-                List<Filter> filtersHasNoFreeVariables = new ArrayList<>();
-                for (Filter child : ((AndFilter) filter).getChildren()) {
-                    Pair<Filter, Filter> pair = splitFilter(child, freeVariables);
-                    if (pair.k != null) {
-                        filtersHasFreeVariables.add(pair.k);
-                    }
-                    if (pair.v != null) {
-                        filtersHasNoFreeVariables.add(pair.v);
-                    }
-                }
-                Filter filterHasFreeVariables;
-                Filter filterHasNoFreeVariables;
-                if (filtersHasFreeVariables.size() == 0) {
-                    filterHasFreeVariables = null;
-                } else if (filtersHasFreeVariables.size() == 1) {
-                    filterHasFreeVariables = filtersHasFreeVariables.get(0);
-                } else {
-                    filterHasFreeVariables = new AndFilter(filtersHasFreeVariables);
-                }
-                if (filtersHasNoFreeVariables.size() == 0) {
-                    filterHasNoFreeVariables = null;
-                } else if (filtersHasNoFreeVariables.size() == 1) {
-                    filterHasNoFreeVariables = filtersHasNoFreeVariables.get(0);
-                } else {
-                    filterHasNoFreeVariables = new AndFilter(filtersHasNoFreeVariables);
-                }
-                return new Pair<>(filterHasFreeVariables, filterHasNoFreeVariables);
-            case Value:
-                ValueFilter valueFilter = (ValueFilter) filter;
-                if (freeVariables.contains(valueFilter.getPath())) {
-                    return new Pair<>(filter, null);
-                } else {
-                    return new Pair<>(null, filter);
-                }
-            case Path:
-                PathFilter pathFilter = (PathFilter) filter;
-                if (freeVariables.contains(pathFilter.getPathA())
-                        || freeVariables.contains(pathFilter.getPathB())) {
-                    return new Pair<>(filter, null);
-                } else {
-                    return new Pair<>(null, filter);
-                }
-            default:
-                return new Pair<>(null, filter);
-        }
     }
 
     public static boolean canUseHashJoin(Filter filter) {

@@ -419,12 +419,13 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         header.getFields()
                 .forEach(
                         field -> {
+                            // 如果列名在ignorePatterns中，对该列不执行rename
                             for (String ignorePattern : ignorePatterns) {
                                 if (ignorePattern.endsWith(ALL_PATH_SUFFIX)) {
                                     if (field.getName()
                                             .startsWith(
                                                     ignorePattern.substring(
-                                                            0, ignorePattern.length() - 2))) {
+                                                            0, ignorePattern.length() - 1))) {
                                         fields.add(field);
                                         return;
                                     }
@@ -617,7 +618,6 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
                         }
                     }
                     rowsExist.add(row);
-                    rowsHashMap.put(hash, rowsExist);
                 } else {
                     rowsHashMap.put(hash, new ArrayList<>(Collections.singletonList(row)));
                 }
@@ -1423,16 +1423,12 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
                 continue;
             }
             int hash = getHash(value, needTypeCast);
-            List<Row> l =
-                    rowsBHashMap.containsKey(hash) ? rowsBHashMap.get(hash) : new ArrayList<>();
-            List<Integer> il =
-                    rowsBHashMap.containsKey(hash)
-                            ? indexOfRowBHashMap.get(hash)
-                            : new ArrayList<>();
+            List<Row> l = rowsBHashMap.getOrDefault(hash, new ArrayList<>());
+            List<Integer> il = indexOfRowBHashMap.getOrDefault(hash, new ArrayList<>());
             l.add(rowsB.get(indexB));
             il.add(indexB);
-            rowsBHashMap.put(hash, l);
-            indexOfRowBHashMap.put(hash, il);
+            rowsBHashMap.putIfAbsent(hash, l);
+            indexOfRowBHashMap.putIfAbsent(hash, il);
         }
 
         boolean cutRight = !outerJoin.getOuterJoinType().equals(OuterJoinType.RIGHT);
