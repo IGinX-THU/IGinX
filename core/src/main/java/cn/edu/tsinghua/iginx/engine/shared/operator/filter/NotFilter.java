@@ -19,7 +19,6 @@
 package cn.edu.tsinghua.iginx.engine.shared.operator.filter;
 
 import com.alibaba.fastjson2.annotation.JSONType;
-
 import java.util.Objects;
 
 @JSONType(typeName = "NotFilter")

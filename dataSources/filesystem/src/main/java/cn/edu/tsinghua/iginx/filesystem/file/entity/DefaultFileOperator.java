@@ -9,7 +9,6 @@ import cn.edu.tsinghua.iginx.filesystem.wrapper.Record;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.DataTypeUtils;
 import cn.edu.tsinghua.iginx.utils.JsonUtils;
-import cn.edu.tsinghua.iginx.utils.TimeUtils;
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
@@ -42,34 +41,34 @@ public class DefaultFileOperator implements IFileOperator {
         return res;
     }
 
-//    public List<byte[]> textFileReaderByLine(File file, long begin, long end, Charset charset)
-//            throws IOException {
-//        List<byte[]> res = new ArrayList<>();
-//        long key = TimeUtils.MIN_AVAILABLE_TIME;
-//        if (begin == -1 && end == -1) {
-//            begin = 0;
-//            end = Long.MAX_VALUE;
-//        }
-//        if (begin < 0 || end < 0) {
-//            throw new IOException(
-//                    "Read information outside the boundary with BEGIN "
-//                            + begin
-//                            + " and END "
-//                            + end);
-//        }
-//
-//        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
-//            long currentLine = 0;
-//            String line;
-//            while ((line = reader.readLine()) != null && currentLine <= end) {
-//                if (currentLine >= begin) {
-//                    res.add(line.getBytes(charset));
-//                }
-//                currentLine++;
-//            }
-//        }
-//        return res;
-//    }
+    //    public List<byte[]> textFileReaderByLine(File file, long begin, long end, Charset charset)
+    //            throws IOException {
+    //        List<byte[]> res = new ArrayList<>();
+    //        long key = TimeUtils.MIN_AVAILABLE_TIME;
+    //        if (begin == -1 && end == -1) {
+    //            begin = 0;
+    //            end = Long.MAX_VALUE;
+    //        }
+    //        if (begin < 0 || end < 0) {
+    //            throw new IOException(
+    //                    "Read information outside the boundary with BEGIN "
+    //                            + begin
+    //                            + " and END "
+    //                            + end);
+    //        }
+    //
+    //        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+    //            long currentLine = 0;
+    //            String line;
+    //            while ((line = reader.readLine()) != null && currentLine <= end) {
+    //                if (currentLine >= begin) {
+    //                    res.add(line.getBytes(charset));
+    //                }
+    //                currentLine++;
+    //            }
+    //        }
+    //        return res;
+    //    }
 
     /**
      * Reads a range of bytes from a large file efficiently.

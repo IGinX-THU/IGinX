@@ -56,7 +56,7 @@ public class DataTypeUtils {
         }
     }
 
-    public static Object getValWithDataType(String val, DataType type){
+    public static Object getValWithDataType(String val, DataType type) {
         switch (type) {
             case BOOLEAN:
                 return Boolean.parseBoolean(val);

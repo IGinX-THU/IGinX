@@ -22,7 +22,7 @@ public class FileSystemHistoryQueryRowStream implements RowStream {
 
     // may fix it ，可能可以不用传pathMap
     public FileSystemHistoryQueryRowStream(
-            List<FSResultTable> result, List<Pair<FilePath, Integer>> pathMap) {
+            List<FSResultTable> result) {
         Field time = Field.KEY;
         List<Field> fields = new ArrayList<>();
 

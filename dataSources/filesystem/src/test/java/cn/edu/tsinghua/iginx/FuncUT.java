@@ -22,7 +22,6 @@ import cn.edu.tsinghua.iginx.metadata.entity.TimeInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.TimeSeriesRange;
 import cn.edu.tsinghua.iginx.utils.JsonUtils;
 import cn.edu.tsinghua.iginx.utils.Pair;
-import cn.edu.tsinghua.iginx.utils.TimeUtils;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
@@ -249,7 +248,7 @@ public class FuncUT {
     }
 
     @Test
-    public void  testGetRoot(){
+    public void testGetRoot() {
         System.out.println(ConfLoader.getRootPath());
     }
 }

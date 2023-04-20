@@ -21,7 +21,6 @@ package cn.edu.tsinghua.iginx.engine.shared.operator.filter;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.alibaba.fastjson2.annotation.JSONType;
-
 import java.util.Objects;
 
 @JSONType(typeName = "ValueFilter")
@@ -72,9 +71,10 @@ public class ValueFilter implements Filter {
 
     @Override
     public String toString() {
-        Object valueObj = value.getDataType() == DataType.BINARY ?
-            "\"" + value.getBinaryVAsString() + "\"" :
-            value.getValue();
+        Object valueObj =
+                value.getDataType() == DataType.BINARY
+                        ? "\"" + value.getBinaryVAsString() + "\""
+                        : value.getValue();
         return path + " " + Op.op2Str(op) + " " + valueObj;
     }
 
@@ -87,8 +87,10 @@ public class ValueFilter implements Filter {
             return false;
         }
         ValueFilter that = (ValueFilter) o;
-        return type == that.type && Objects.equals(path, that.path) && Objects
-            .equals(value, that.value) && op == that.op;
+        return type == that.type
+                && Objects.equals(path, that.path)
+                && Objects.equals(value, that.value)
+                && op == that.op;
     }
 
     @Override

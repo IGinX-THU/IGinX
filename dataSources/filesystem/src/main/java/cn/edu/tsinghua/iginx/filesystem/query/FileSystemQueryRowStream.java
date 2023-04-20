@@ -21,7 +21,7 @@ public class FileSystemQueryRowStream implements RowStream {
 
     // may fix it ，可能可以不用传pathMap
     public FileSystemQueryRowStream(
-            List<FSResultTable> result, List<Pair<FilePath, Integer>> pathMap, String storageUnit) {
+            List<FSResultTable> result, String storageUnit) {
         Field time = Field.KEY;
         List<Field> fields = new ArrayList<>();
 

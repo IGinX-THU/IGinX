@@ -1,7 +1,6 @@
 package cn.edu.tsinghua.iginx.engine.shared.operator.filter;
 
 import com.alibaba.fastjson2.annotation.JSONType;
-
 import java.util.Objects;
 
 @JSONType(typeName = "PathFilter")
@@ -64,8 +63,10 @@ public class PathFilter implements Filter {
             return false;
         }
         PathFilter that = (PathFilter) o;
-        return type == that.type && Objects.equals(pathA, that.pathA) && Objects
-            .equals(pathB, that.pathB) && op == that.op;
+        return type == that.type
+                && Objects.equals(pathA, that.pathA)
+                && Objects.equals(pathB, that.pathB)
+                && op == that.op;
     }
 
     @Override

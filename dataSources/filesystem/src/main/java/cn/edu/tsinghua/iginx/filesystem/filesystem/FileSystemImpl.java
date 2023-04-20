@@ -18,8 +18,6 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.io.*;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
 import javafx.util.Pair;
 import org.slf4j.Logger;
@@ -173,12 +171,15 @@ public class FileSystemImpl {
                 return new IOException("Failed to delete file: " + file.getAbsolutePath());
             }
             File parent = file.getParentFile();
-            while (parent != null && parent.isDirectory() && fileOperator.listFiles(parent) == null) {
+            while (parent != null
+                    && parent.isDirectory()
+                    && fileOperator.listFiles(parent) == null) {
                 if (!fileOperator.delete(parent)) {
                     return new IOException("Failed to delete file: " + file.getAbsolutePath());
                 }
                 parent = parent.getParentFile();
-                if(fileOperator.ifFilesEqual(parent.getParentFile(),ConfLoader.getRootFile())) break;
+                if (fileOperator.ifFilesEqual(parent.getParentFile(), ConfLoader.getRootFile()))
+                    break;
             }
         }
         return null;
@@ -232,7 +233,7 @@ public class FileSystemImpl {
         if (files == null) return -1;
         for (File f : files) {
             String name = f.getName();
-            if(fileOperator.isDirectory(f)) continue;
+            if (fileOperator.isDirectory(f)) continue;
             int idx = name.lastIndexOf(".iginx");
             String numStr = name.substring(idx + 6);
             if (numStr.isEmpty()) continue;

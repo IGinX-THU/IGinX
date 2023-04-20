@@ -25,7 +25,9 @@ import com.alibaba.fastjson2.annotation.JSONType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@JSONType(seeAlso = {TimeSeriesInterval.class, TimeSeriesPrefixRange.class}, typeKey = JsonUtils.TYPENAME)
+@JSONType(
+        seeAlso = {TimeSeriesInterval.class, TimeSeriesPrefixRange.class},
+        typeKey = JsonUtils.TYPENAME)
 public interface TimeSeriesRange extends Comparable<TimeSeriesRange> {
 
     public static Logger logger = LoggerFactory.getLogger(TimeSeriesRange.class);

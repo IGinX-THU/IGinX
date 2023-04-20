@@ -57,7 +57,6 @@ public class LocalExecutor implements Executor {
     public TaskExecuteResult executeQueryTask(
             String storageUnit, List<String> series, TagFilter tagFilter, Filter filter) {
         try {
-            List<javafx.util.Pair<FilePath, Integer>> pathMap = new ArrayList<>();
             List<FSResultTable> result = new ArrayList<>();
             // fix it 如果有远程文件系统则需要server
             FileSystemImpl fileSystem = new FileSystemImpl();
@@ -69,9 +68,8 @@ public class LocalExecutor implements Executor {
                                 tagFilter,
                                 filter));
                 FilePath filePath = new FilePath(storageUnit, path);
-                pathMap.add(new javafx.util.Pair<>(filePath, result.size()));
             }
-            RowStream rowStream = new FileSystemQueryRowStream(result, pathMap, storageUnit);
+            RowStream rowStream = new FileSystemQueryRowStream(result, storageUnit);
             return new TaskExecuteResult(rowStream);
         } catch (Exception e) {
             e.printStackTrace();
@@ -84,7 +82,6 @@ public class LocalExecutor implements Executor {
 
     private TaskExecuteResult executeDummyProjectTask(List<String> series, Filter filter) {
         try {
-            List<javafx.util.Pair<FilePath, Integer>> pathMap = new ArrayList<>();
             List<FSResultTable> result = new ArrayList<>();
             // fix it 如果有远程文件系统则需要server
             FileSystemImpl fileSystem = new FileSystemImpl();
@@ -93,9 +90,8 @@ public class LocalExecutor implements Executor {
                 result.addAll(
                         fileSystem.readFile(new File(FilePath.toNormalFilePath(path)), filter));
                 FilePath filePath = new FilePath(null, path);
-                pathMap.add(new javafx.util.Pair<>(filePath, result.size()));
             }
-            RowStream rowStream = new FileSystemHistoryQueryRowStream(result, pathMap);
+            RowStream rowStream = new FileSystemHistoryQueryRowStream(result);
             return new TaskExecuteResult(rowStream);
         } catch (Exception e) {
             logger.error(e.getMessage());
