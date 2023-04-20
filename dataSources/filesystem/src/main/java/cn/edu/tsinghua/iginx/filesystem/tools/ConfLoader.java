@@ -1,5 +1,6 @@
 package cn.edu.tsinghua.iginx.filesystem.tools;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -25,5 +26,10 @@ public class ConfLoader {
             logger.error("get conf {} fail!", confPath);
         }
         return path;
+    }
+
+    public static File getRootFile() {
+        String root = getRootPath();
+        return new File(root);
     }
 }

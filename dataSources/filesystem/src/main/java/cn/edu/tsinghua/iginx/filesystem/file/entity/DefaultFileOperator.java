@@ -633,7 +633,7 @@ public class DefaultFileOperator implements IFileOperator {
     public boolean ifFilesEqual(File... file) {
         boolean flag = true;
         for (int i = 1; i < file.length; i++) {
-            if (file[i].getAbsolutePath().equals(file[i - 1].getAbsolutePath())) flag = false;
+            if (!file[i].getAbsolutePath().equals(file[i - 1].getAbsolutePath())) flag = false;
         }
         return flag;
     }

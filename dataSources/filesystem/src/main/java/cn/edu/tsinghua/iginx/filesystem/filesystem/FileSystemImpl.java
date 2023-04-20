@@ -11,6 +11,7 @@ import cn.edu.tsinghua.iginx.filesystem.file.property.FileMeta;
 import cn.edu.tsinghua.iginx.filesystem.file.property.FilePath;
 import cn.edu.tsinghua.iginx.filesystem.file.property.FileType;
 import cn.edu.tsinghua.iginx.filesystem.query.FSResultTable;
+import cn.edu.tsinghua.iginx.filesystem.tools.ConfLoader;
 import cn.edu.tsinghua.iginx.filesystem.tools.TagKVUtils;
 import cn.edu.tsinghua.iginx.filesystem.wrapper.Record;
 import cn.edu.tsinghua.iginx.thrift.DataType;
@@ -171,6 +172,14 @@ public class FileSystemImpl {
             if (!fileOperator.delete(file)) {
                 return new IOException("Failed to delete file: " + file.getAbsolutePath());
             }
+            File parent = file.getParentFile();
+            while (parent != null && parent.isDirectory() && fileOperator.listFiles(parent) == null) {
+                if (!fileOperator.delete(parent)) {
+                    return new IOException("Failed to delete file: " + file.getAbsolutePath());
+                }
+                parent = parent.getParentFile();
+                if(fileOperator.ifFilesEqual(parent.getParentFile(),ConfLoader.getRootFile())) break;
+            }
         }
         return null;
     }
@@ -216,7 +225,6 @@ public class FileSystemImpl {
     }
 
     private int getFileID(File file, Map<String, String> tag) throws IOException {
-        Path path = Paths.get(file.getPath());
         List<File> files = getAssociatedFiles(file);
 
         List<Integer> nums = new ArrayList<>();
@@ -224,6 +232,7 @@ public class FileSystemImpl {
         if (files == null) return -1;
         for (File f : files) {
             String name = f.getName();
+            if(fileOperator.isDirectory(f)) continue;
             int idx = name.lastIndexOf(".iginx");
             String numStr = name.substring(idx + 6);
             if (numStr.isEmpty()) continue;
@@ -291,7 +300,7 @@ public class FileSystemImpl {
         this.charset = charset;
     }
 
-    //
+    // 返回和file文件相关的所有文件（包括目录）
     public List<File> getAssociatedFiles(File file) {
         List<File> fileList, filess = null;
         Stack<File> S = new Stack<>();
