@@ -3,7 +3,6 @@ package cn.edu.tsinghua.iginx.transform.data;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.transform.api.Reader;
-
 import java.util.List;
 
 public class SplitReader implements Reader {

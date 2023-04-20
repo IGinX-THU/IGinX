@@ -18,6 +18,9 @@
  */
 package cn.edu.tsinghua.iginx;
 
+import static cn.edu.tsinghua.iginx.conf.Constants.SCHEMA_PREFIX;
+import static cn.edu.tsinghua.iginx.utils.ByteUtils.getLongArrayFromByteBuffer;
+
 import cn.edu.tsinghua.iginx.auth.SessionManager;
 import cn.edu.tsinghua.iginx.auth.UserManager;
 import cn.edu.tsinghua.iginx.conf.Config;
@@ -32,25 +35,20 @@ import cn.edu.tsinghua.iginx.exceptions.StatusCode;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
-import cn.edu.tsinghua.iginx.utils.JsonUtils;
 import cn.edu.tsinghua.iginx.resource.QueryResourceManager;
 import cn.edu.tsinghua.iginx.thrift.*;
 import cn.edu.tsinghua.iginx.transform.exec.TransformJobManager;
 import cn.edu.tsinghua.iginx.utils.*;
-
-import org.apache.thrift.TException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import cn.edu.tsinghua.iginx.utils.JsonUtils;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
-
-import static cn.edu.tsinghua.iginx.conf.Constants.SCHEMA_PREFIX;
-import static cn.edu.tsinghua.iginx.utils.ByteUtils.getLongArrayFromByteBuffer;
+import org.apache.thrift.TException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class IginxWorker implements IService.Iface {
 
@@ -195,16 +193,26 @@ public class IginxWorker implements IService.Iface {
             StorageEngineMeta meta = null;
             Long dummyStorageId = null;
             for (StorageEngineMeta metaa : metaList) {
-                String infoIp = storageEngineInfo.getIp(), infoSchemaPrefix = storageEngineInfo.getSchemaPrefix(), infoDataPrefix = storageEngineInfo.getDataPrefix();
-                String metaIp = metaa.getIp(), metaSchemaPrefix = metaa.getSchemaPrefix(), metaDataPrefix = metaa.getDataPrefix();
-                if (infoIp.equals(metaIp) && storageEngineInfo.getPort() == metaa.getPort()
-                        && (infoSchemaPrefix.length() == 0 && metaSchemaPrefix == null || Objects.equals(infoSchemaPrefix, metaSchemaPrefix)
-                        && (infoDataPrefix.length() == 0 && metaDataPrefix == null || Objects.equals(infoDataPrefix, metaDataPrefix)))) {
+                String infoIp = storageEngineInfo.getIp(),
+                        infoSchemaPrefix = storageEngineInfo.getSchemaPrefix(),
+                        infoDataPrefix = storageEngineInfo.getDataPrefix();
+                String metaIp = metaa.getIp(),
+                        metaSchemaPrefix = metaa.getSchemaPrefix(),
+                        metaDataPrefix = metaa.getDataPrefix();
+                if (infoIp.equals(metaIp)
+                        && storageEngineInfo.getPort() == metaa.getPort()
+                        && (infoSchemaPrefix.length() == 0 && metaSchemaPrefix == null
+                                || Objects.equals(infoSchemaPrefix, metaSchemaPrefix)
+                                        && (infoDataPrefix.length() == 0 && metaDataPrefix == null
+                                                || Objects.equals(
+                                                        infoDataPrefix, metaDataPrefix)))) {
                     meta = metaa;
                     dummyStorageId = metaa.getId();
                 }
             }
-            if (meta == null || meta.getDummyFragment() == null || meta.getDummyStorageUnit() == null) {
+            if (meta == null
+                    || meta.getDummyFragment() == null
+                    || meta.getDummyStorageUnit() == null) {
                 status = RpcUtils.FAILURE;
                 status.setMessage("dummy storage engine is not exists.");
                 return status;
@@ -215,22 +223,22 @@ public class IginxWorker implements IService.Iface {
                 meta.getDummyStorageUnit().setIfValid(false);
 
                 // 修改需要更新的元数据信息 extraParams中的 has_data属性需要修改
-                StorageEngineMeta newMeta = new StorageEngineMeta(
-                        meta.getId(),
-                        meta.getIp(),
-                        meta.getPort(),
-                        false,
-                        null,
-                        null,
-                        meta.isReadOnly(),
-                        null,
-                        null,
-                        meta.getExtraParams(),
-                        meta.getStorageEngine(),
-                        meta.getStorageUnitList(),
-                        meta.getCreatedBy(),
-                        meta.isNeedReAllocate()
-                );
+                StorageEngineMeta newMeta =
+                        new StorageEngineMeta(
+                                meta.getId(),
+                                meta.getIp(),
+                                meta.getPort(),
+                                false,
+                                null,
+                                null,
+                                meta.isReadOnly(),
+                                null,
+                                null,
+                                meta.getExtraParams(),
+                                meta.getStorageEngine(),
+                                meta.getStorageUnitList(),
+                                meta.getCreatedBy(),
+                                meta.isNeedReAllocate());
 
                 // 更新 zk 上元数据信息，以及 iginx 上元数据信息
                 if (!metaManager.updateStorageEngine(dummyStorageId, newMeta)) {
@@ -242,7 +250,8 @@ public class IginxWorker implements IService.Iface {
             } catch (Exception e) {
                 logger.error("unexpected error during storage migration: ", e);
                 status = new Status(StatusCode.STATEMENT_EXECUTION_ERROR.getStatusCode());
-                status.setMessage("unexpected error during removing history data source: " + e.getMessage());
+                status.setMessage(
+                        "unexpected error during removing history data source: " + e.getMessage());
                 return status;
             }
         }
@@ -261,7 +270,8 @@ public class IginxWorker implements IService.Iface {
         for (StorageEngine storageEngine : storageEngines) {
             String type = storageEngine.getType();
             Map<String, String> extraParams = storageEngine.getExtraParams();
-            boolean hasData = Boolean.parseBoolean(extraParams.getOrDefault(Constants.HAS_DATA, "false"));
+            boolean hasData =
+                    Boolean.parseBoolean(extraParams.getOrDefault(Constants.HAS_DATA, "false"));
             if (type.equals("parquet")) {
                 String dir = extraParams.get("dir");
                 if (dir == null || dir.equals("")) {
@@ -277,9 +287,20 @@ public class IginxWorker implements IService.Iface {
             if (hasData && extraParams.containsKey(Constants.DATA_PREFIX)) {
                 dataPrefix = extraParams.get(Constants.DATA_PREFIX);
             }
-            boolean readOnly = Boolean.parseBoolean(extraParams.getOrDefault(Constants.IS_READ_ONLY, "false"));
-            StorageEngineMeta meta = new StorageEngineMeta(-1, storageEngine.getIp(), storageEngine.getPort(), hasData, dataPrefix, extraParams.get(SCHEMA_PREFIX), readOnly,
-                storageEngine.getExtraParams(), type, metaManager.getIginxId());
+            boolean readOnly =
+                    Boolean.parseBoolean(extraParams.getOrDefault(Constants.IS_READ_ONLY, "false"));
+            StorageEngineMeta meta =
+                    new StorageEngineMeta(
+                            -1,
+                            storageEngine.getIp(),
+                            storageEngine.getPort(),
+                            hasData,
+                            dataPrefix,
+                            extraParams.get(SCHEMA_PREFIX),
+                            readOnly,
+                            storageEngine.getExtraParams(),
+                            type,
+                            metaManager.getIginxId());
             storageEngineMetas.add(meta);
             schemaPrefix.add(extraParams.get(SCHEMA_PREFIX)); // get the user defined schema prefix
         }
@@ -304,24 +325,34 @@ public class IginxWorker implements IService.Iface {
             }
             status.setMessage("unexpected repeated add");
         }
-        if (!storageEngineMetas.isEmpty() && storageEngineMetas.stream().anyMatch(e -> !e.isReadOnly())) {
-            storageEngineMetas.get(storageEngineMetas.size() - 1).setNeedReAllocate(true); // 如果这批节点不是只读的话，每一批最后一个是 true，表示需要进行扩容
+        if (!storageEngineMetas.isEmpty()
+                && storageEngineMetas.stream().anyMatch(e -> !e.isReadOnly())) {
+            storageEngineMetas
+                    .get(storageEngineMetas.size() - 1)
+                    .setNeedReAllocate(true); // 如果这批节点不是只读的话，每一批最后一个是 true，表示需要进行扩容
         }
-        for (StorageEngineMeta meta: storageEngineMetas) {
+        for (StorageEngineMeta meta : storageEngineMetas) {
             int index = 0;
             if (meta.isHasData()) {
                 String dataPrefix = meta.getDataPrefix();
-                StorageUnitMeta dummyStorageUnit = new StorageUnitMeta(StorageUnitMeta.generateDummyStorageUnitID(0), -1);
-                Pair<TimeSeriesRange, TimeInterval> boundary = StorageManager.getBoundaryOfStorage(meta, dataPrefix);
+                StorageUnitMeta dummyStorageUnit =
+                        new StorageUnitMeta(StorageUnitMeta.generateDummyStorageUnitID(0), -1);
+                Pair<TimeSeriesRange, TimeInterval> boundary =
+                        StorageManager.getBoundaryOfStorage(meta, dataPrefix);
                 FragmentMeta dummyFragment;
                 String schemaPrefixTmp = null;
-                if (index < schemaPrefix.size() && schemaPrefix.get(index) != null) //set the virtual schema prefix
-                    schemaPrefixTmp = schemaPrefix.get(index);
+                if (index < schemaPrefix.size()
+                        && schemaPrefix.get(index) != null) // set the virtual schema prefix
+                schemaPrefixTmp = schemaPrefix.get(index);
                 if (dataPrefix == null) {
                     boundary.k.setSchemaPrefix(schemaPrefixTmp);
                     dummyFragment = new FragmentMeta(boundary.k, boundary.v, dummyStorageUnit);
                 } else {
-                    dummyFragment = new FragmentMeta(new TimeSeriesPrefixRange(dataPrefix, schemaPrefixTmp), boundary.v, dummyStorageUnit);
+                    dummyFragment =
+                            new FragmentMeta(
+                                    new TimeSeriesPrefixRange(dataPrefix, schemaPrefixTmp),
+                                    boundary.v,
+                                    dummyStorageUnit);
                 }
                 dummyFragment.setDummyFragment(true);
                 meta.setDummyStorageUnit(dummyStorageUnit);
@@ -342,7 +373,8 @@ public class IginxWorker implements IService.Iface {
         if (!engine1.getStorageEngine().equals(engine2.getStorageEngine())) {
             return false;
         }
-        return engine1.getIp().equals(engine2.getIp()) && engine1.getPort() == engine2.getPort()
+        return engine1.getIp().equals(engine2.getIp())
+                && engine1.getPort() == engine2.getPort()
                 && Objects.equals(engine1.getDataPrefix(), engine2.getDataPrefix())
                 && Objects.equals(engine1.getSchemaPrefix(), engine2.getSchemaPrefix());
     }
@@ -451,9 +483,12 @@ public class IginxWorker implements IService.Iface {
         } else {
             users = userManager.getUsers(req.getUsernames());
         }
-        List<String> usernames = users.stream().map(UserMeta::getUsername).collect(Collectors.toList());
-        List<UserType> userTypes = users.stream().map(UserMeta::getUserType).collect(Collectors.toList());
-        List<Set<AuthType>> auths = users.stream().map(UserMeta::getAuths).collect(Collectors.toList());
+        List<String> usernames =
+                users.stream().map(UserMeta::getUsername).collect(Collectors.toList());
+        List<UserType> userTypes =
+                users.stream().map(UserMeta::getUserType).collect(Collectors.toList());
+        List<Set<AuthType>> auths =
+                users.stream().map(UserMeta::getAuths).collect(Collectors.toList());
         resp.setUsernames(usernames);
         resp.setUserTypes(userTypes);
         resp.setAuths(auths);
@@ -471,7 +506,8 @@ public class IginxWorker implements IService.Iface {
         // IginX 信息
         List<IginxInfo> iginxInfos = new ArrayList<>();
         for (IginxMeta iginxMeta : metaManager.getIginxList()) {
-            iginxInfos.add(new IginxInfo(iginxMeta.getId(), iginxMeta.getIp(), iginxMeta.getPort()));
+            iginxInfos.add(
+                    new IginxInfo(iginxMeta.getId(), iginxMeta.getIp(), iginxMeta.getPort()));
         }
         iginxInfos.sort(Comparator.comparingLong(IginxInfo::getId));
         resp.setIginxInfos(iginxInfos);
@@ -479,10 +515,20 @@ public class IginxWorker implements IService.Iface {
         // 数据库信息
         List<StorageEngineInfo> storageEngineInfos = new ArrayList<>();
         for (StorageEngineMeta storageEngineMeta : metaManager.getStorageEngineList()) {
-            StorageEngineInfo info = new StorageEngineInfo(storageEngineMeta.getId(), storageEngineMeta.getIp(),
-                    storageEngineMeta.getPort(), storageEngineMeta.getStorageEngine());
-            info.setSchemaPrefix(storageEngineMeta.getSchemaPrefix() == null ? "null" : storageEngineMeta.getSchemaPrefix());
-            info.setDataPrefix(storageEngineMeta.getDataPrefix() == null ? "null" : storageEngineMeta.getDataPrefix());
+            StorageEngineInfo info =
+                    new StorageEngineInfo(
+                            storageEngineMeta.getId(),
+                            storageEngineMeta.getIp(),
+                            storageEngineMeta.getPort(),
+                            storageEngineMeta.getStorageEngine());
+            info.setSchemaPrefix(
+                    storageEngineMeta.getSchemaPrefix() == null
+                            ? "null"
+                            : storageEngineMeta.getSchemaPrefix());
+            info.setDataPrefix(
+                    storageEngineMeta.getDataPrefix() == null
+                            ? "null"
+                            : storageEngineMeta.getDataPrefix());
             storageEngineInfos.add(info);
         }
         storageEngineInfos.sort(Comparator.comparingLong(StorageEngineInfo::getId));
@@ -503,8 +549,11 @@ public class IginxWorker implements IService.Iface {
                         endPoint = endPoint.substring(8);
                     }
                     String[] ipAndPort = endPoint.split(":", 2);
-                    MetaStorageInfo metaStorageInfo = new MetaStorageInfo(ipAndPort[0], Integer.parseInt(ipAndPort[1]),
-                        Constants.ETCD_META);
+                    MetaStorageInfo metaStorageInfo =
+                            new MetaStorageInfo(
+                                    ipAndPort[0],
+                                    Integer.parseInt(ipAndPort[1]),
+                                    Constants.ETCD_META);
                     metaStorageInfos.add(metaStorageInfo);
                 }
                 break;
@@ -513,8 +562,11 @@ public class IginxWorker implements IService.Iface {
                 String[] zookeepers = config.getZookeeperConnectionString().split(",");
                 for (String zookeeper : zookeepers) {
                     String[] ipAndPort = zookeeper.split(":", 2);
-                    MetaStorageInfo metaStorageInfo = new MetaStorageInfo(ipAndPort[0], Integer.parseInt(ipAndPort[1]),
-                        Constants.ZOOKEEPER_META);
+                    MetaStorageInfo metaStorageInfo =
+                            new MetaStorageInfo(
+                                    ipAndPort[0],
+                                    Integer.parseInt(ipAndPort[1]),
+                                    Constants.ZOOKEEPER_META);
                     metaStorageInfos.add(metaStorageInfo);
                 }
                 break;
@@ -602,13 +654,15 @@ public class IginxWorker implements IService.Iface {
 
         TransformTaskMeta transformTaskMeta = metaManager.getTransformTask(name);
         if (transformTaskMeta != null && transformTaskMeta.getIpSet().contains(config.getIp())) {
-            logger.error(String.format("Register task %s already exist", transformTaskMeta.toString()));
+            logger.error(
+                    String.format("Register task %s already exist", transformTaskMeta.toString()));
             return RpcUtils.FAILURE;
         }
 
         File sourceFile = new File(filePath);
         if (!sourceFile.exists()) {
-            logger.error(String.format("Register file not exist in declared path, path=%s", filePath));
+            logger.error(
+                    String.format("Register file not exist in declared path, path=%s", filePath));
             return RpcUtils.FAILURE;
         }
         if (!sourceFile.isFile()) {
@@ -621,7 +675,9 @@ public class IginxWorker implements IService.Iface {
         }
 
         String fileName = sourceFile.getName();
-        String destPath = String.join(File.separator, System.getProperty("user.dir"), "python_scripts", fileName);
+        String destPath =
+                String.join(
+                        File.separator, System.getProperty("user.dir"), "python_scripts", fileName);
         File destFile = new File(destPath);
 
         if (destFile.exists()) {
@@ -640,8 +696,13 @@ public class IginxWorker implements IService.Iface {
             transformTaskMeta.addIp(config.getIp());
             metaManager.updateTransformTask(transformTaskMeta);
         } else {
-            metaManager.addTransformTask(new TransformTaskMeta(name, className, fileName,
-                new HashSet<>(Collections.singletonList(config.getIp())), req.getType()));
+            metaManager.addTransformTask(
+                    new TransformTaskMeta(
+                            name,
+                            className,
+                            fileName,
+                            new HashSet<>(Collections.singletonList(config.getIp())),
+                            req.getType()));
         }
         return RpcUtils.SUCCESS;
     }
@@ -666,8 +727,12 @@ public class IginxWorker implements IService.Iface {
             return RpcUtils.FAILURE;
         }
 
-        String filePath = System.getProperty("user.dir") + File.separator +
-            "python_scripts" + File.separator + transformTaskMeta.getFileName();
+        String filePath =
+                System.getProperty("user.dir")
+                        + File.separator
+                        + "python_scripts"
+                        + File.separator
+                        + transformTaskMeta.getFileName();
         File file = new File(filePath);
 
         if (!file.exists()) {
@@ -693,8 +758,13 @@ public class IginxWorker implements IService.Iface {
         for (TransformTaskMeta taskMeta : taskMetaList) {
             StringJoiner joiner = new StringJoiner(",");
             taskMeta.getIpSet().forEach(joiner::add);
-            RegisterTaskInfo taskInfo = new RegisterTaskInfo(taskMeta.getName(), taskMeta.getClassName(),
-                taskMeta.getFileName(), joiner.toString(), taskMeta.getType());
+            RegisterTaskInfo taskInfo =
+                    new RegisterTaskInfo(
+                            taskMeta.getName(),
+                            taskMeta.getClassName(),
+                            taskMeta.getFileName(),
+                            joiner.toString(),
+                            taskMeta.getType());
             taskInfoList.add(taskInfo);
         }
         GetRegisterTaskInfoResp resp = new GetRegisterTaskInfoResp(RpcUtils.SUCCESS);
@@ -704,11 +774,9 @@ public class IginxWorker implements IService.Iface {
 
     @Override
     public CurveMatchResp curveMatch(CurveMatchReq req) throws TException {
-        QueryDataReq queryDataReq = new QueryDataReq(
-            req.getSessionId(),
-            req.getPaths(),
-            req.getStartTime(),
-            req.getEndTime());
+        QueryDataReq queryDataReq =
+                new QueryDataReq(
+                        req.getSessionId(), req.getPaths(), req.getStartTime(), req.getEndTime());
         RequestContext ctx = contextBuilder.build(queryDataReq);
         executor.execute(ctx);
         QueryDataResp queryDataResp = ctx.getResult().getQueryDataResp();
@@ -720,25 +788,22 @@ public class IginxWorker implements IService.Iface {
             }
         }
 
-        List<Double> queryList = CurveMatchUtils.norm(
-            CurveMatchUtils.calcShapePattern(
-                req.getCurveQuery(),
-                true,
-                true,
-                true,
-                0.1,
-                0.05)
-        );
+        List<Double> queryList =
+                CurveMatchUtils.norm(
+                        CurveMatchUtils.calcShapePattern(
+                                req.getCurveQuery(), true, true, true, 0.1, 0.05));
         int maxWarpingWindow = (int) Math.ceil(queryList.size() / 4.0);
         List<Double> upper = CurveMatchUtils.getWindow(queryList, maxWarpingWindow, true);
         List<Double> lower = CurveMatchUtils.getWindow(queryList, maxWarpingWindow, false);
 
         List<String> paths = queryDataResp.getPaths();
-        long[] queryTimestamps = getLongArrayFromByteBuffer(queryDataResp.getQueryDataSet().timestamps);
-        List<List<Object>> values = ByteUtils.getValuesFromBufferAndBitmaps(
-            queryDataResp.getDataTypeList(),
-            queryDataResp.getQueryDataSet().getValuesList(),
-            queryDataResp.getQueryDataSet().getBitmapList());
+        long[] queryTimestamps =
+                getLongArrayFromByteBuffer(queryDataResp.getQueryDataSet().timestamps);
+        List<List<Object>> values =
+                ByteUtils.getValuesFromBufferAndBitmaps(
+                        queryDataResp.getDataTypeList(),
+                        queryDataResp.getQueryDataSet().getValuesList(),
+                        queryDataResp.getQueryDataSet().getBitmapList());
 
         double globalBestResult = Double.MAX_VALUE;
         long globalMatchedTimestamp = 0L;
@@ -759,21 +824,34 @@ public class IginxWorker implements IService.Iface {
             }
             List<Double> bestResultList = new CopyOnWriteArrayList<>();
             List<Long> matchedTimestampList = new CopyOnWriteArrayList<>();
-            Collections.synchronizedList(timestampsIndex).stream().parallel().forEach(item -> {
-                List<Double> fetchedValueList = CurveMatchUtils.fetch(timestamps, value, item, req.getCurveUnit(), req.getCurveQuerySize());
-                if (fetchedValueList.size() == req.getCurveQuerySize()) {
-                    List<Double> valueList = CurveMatchUtils.calcShapePattern(
-                            fetchedValueList,
-                            true,
-                            true,
-                            true,
-                            0.1,
-                            0.05);
-                    double result = CurveMatchUtils.calcDTW(queryList, valueList, maxWarpingWindow, Double.MAX_VALUE, upper, lower);
-                    bestResultList.add(result);
-                    matchedTimestampList.add(timestamps.get(item));
-                }
-            });
+            Collections.synchronizedList(timestampsIndex)
+                    .stream()
+                    .parallel()
+                    .forEach(
+                            item -> {
+                                List<Double> fetchedValueList =
+                                        CurveMatchUtils.fetch(
+                                                timestamps,
+                                                value,
+                                                item,
+                                                req.getCurveUnit(),
+                                                req.getCurveQuerySize());
+                                if (fetchedValueList.size() == req.getCurveQuerySize()) {
+                                    List<Double> valueList =
+                                            CurveMatchUtils.calcShapePattern(
+                                                    fetchedValueList, true, true, true, 0.1, 0.05);
+                                    double result =
+                                            CurveMatchUtils.calcDTW(
+                                                    queryList,
+                                                    valueList,
+                                                    maxWarpingWindow,
+                                                    Double.MAX_VALUE,
+                                                    upper,
+                                                    lower);
+                                    bestResultList.add(result);
+                                    matchedTimestampList.add(timestamps.get(item));
+                                }
+                            });
             for (int j = 0; j < bestResultList.size(); j++) {
                 if (bestResultList.get(j) < globalBestResult) {
                     globalBestResult = bestResultList.get(j);
@@ -821,16 +899,40 @@ public class IginxWorker implements IService.Iface {
     }
 
     public GetMetaResp getMeta(GetMetaReq req) {
-        List<Storage> storages = metaManager.getStorageEngineList().stream().map(
-                e -> new Storage(e.getId(), e.getIp(), e.getPort(), e.getStorageEngine())
-        ).collect(Collectors.toList());
-        List<StorageUnit> units = metaManager.getStorageUnits().stream().map(
-                u -> new StorageUnit(u.getId(), u.getMasterId(), u.getStorageEngineId())
-        ).collect(Collectors.toList());
-        List<Fragment> fragments = metaManager.getFragments().stream().map(
-                f -> new Fragment(f.getMasterStorageUnitId(), f.getTimeInterval().getStartTime(), f.getTimeInterval().getEndTime(),
-                        f.getTsInterval().getStartTimeSeries(), f.getTsInterval().getEndTimeSeries())
-        ).collect(Collectors.toList());
+        List<Storage> storages =
+                metaManager
+                        .getStorageEngineList()
+                        .stream()
+                        .map(
+                                e ->
+                                        new Storage(
+                                                e.getId(),
+                                                e.getIp(),
+                                                e.getPort(),
+                                                e.getStorageEngine()))
+                        .collect(Collectors.toList());
+        List<StorageUnit> units =
+                metaManager
+                        .getStorageUnits()
+                        .stream()
+                        .map(
+                                u ->
+                                        new StorageUnit(
+                                                u.getId(), u.getMasterId(), u.getStorageEngineId()))
+                        .collect(Collectors.toList());
+        List<Fragment> fragments =
+                metaManager
+                        .getFragments()
+                        .stream()
+                        .map(
+                                f ->
+                                        new Fragment(
+                                                f.getMasterStorageUnitId(),
+                                                f.getTimeInterval().getStartTime(),
+                                                f.getTimeInterval().getEndTime(),
+                                                f.getTsInterval().getStartTimeSeries(),
+                                                f.getTsInterval().getEndTimeSeries()))
+                        .collect(Collectors.toList());
         return new GetMetaResp(fragments, storages, units);
     }
 }

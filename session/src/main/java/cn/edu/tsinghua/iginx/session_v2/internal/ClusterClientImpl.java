@@ -32,11 +32,10 @@ import cn.edu.tsinghua.iginx.thrift.GetReplicaNumResp;
 import cn.edu.tsinghua.iginx.thrift.Status;
 import cn.edu.tsinghua.iginx.thrift.StorageEngine;
 import cn.edu.tsinghua.iginx.utils.RpcUtils;
-import org.apache.thrift.TException;
-
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.apache.thrift.TException;
 
 public class ClusterClientImpl extends AbstractFunctionClient implements ClusterClient {
 
@@ -60,7 +59,11 @@ public class ClusterClientImpl extends AbstractFunctionClient implements Cluster
             }
         }
 
-        return new ClusterInfo(resp.getIginxInfos(), resp.getStorageEngineInfos(), resp.getLocalMetaStorageInfo(), resp.getMetaStorageInfos());
+        return new ClusterInfo(
+                resp.getIginxInfos(),
+                resp.getStorageEngineInfos(),
+                resp.getLocalMetaStorageInfo(),
+                resp.getMetaStorageInfos());
     }
 
     @Override
@@ -74,7 +77,10 @@ public class ClusterClientImpl extends AbstractFunctionClient implements Cluster
         Arguments.checkNotNull(storages, "storages");
         storages.forEach(storage -> Arguments.checkNotNull(storage, "storage"));
 
-        List<StorageEngine> storageEngines = storages.stream().map(ClusterClientImpl::toStorageEngine).collect(Collectors.toList());
+        List<StorageEngine> storageEngines =
+                storages.stream()
+                        .map(ClusterClientImpl::toStorageEngine)
+                        .collect(Collectors.toList());
 
         AddStorageEnginesReq req = new AddStorageEnginesReq(sessionId, storageEngines);
 
@@ -87,7 +93,6 @@ public class ClusterClientImpl extends AbstractFunctionClient implements Cluster
                 throw new IginXException("scale out storage failure: ", e);
             }
         }
-
     }
 
     @Override
@@ -108,7 +113,7 @@ public class ClusterClientImpl extends AbstractFunctionClient implements Cluster
     }
 
     private static StorageEngine toStorageEngine(Storage storage) {
-        return new StorageEngine(storage.getIp(), storage.getPort(), storage.getType(), storage.getExtraParams());
+        return new StorageEngine(
+                storage.getIp(), storage.getPort(), storage.getType(), storage.getExtraParams());
     }
-
 }

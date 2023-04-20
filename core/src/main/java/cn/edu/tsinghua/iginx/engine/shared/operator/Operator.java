@@ -27,5 +27,4 @@ public interface Operator {
     Operator copy();
 
     String getInfo();
-
 }

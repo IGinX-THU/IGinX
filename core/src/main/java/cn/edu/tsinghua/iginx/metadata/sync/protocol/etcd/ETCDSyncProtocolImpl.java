@@ -17,13 +17,12 @@ import io.etcd.jetcd.options.GetOption;
 import io.etcd.jetcd.options.WatchOption;
 import io.etcd.jetcd.watch.WatchEvent;
 import io.etcd.jetcd.watch.WatchResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ETCDSyncProtocolImpl implements SyncProtocol {
 
@@ -41,9 +40,10 @@ public class ETCDSyncProtocolImpl implements SyncProtocol {
 
     private static final String PROTOCOL_PROPOSAL_CONTAINER_TEMPLATE = PROTOCOL_PREFIX + "/%s";
 
-    private static final String PROTOCOL_PROPOSAL_TEMPLATE = PROTOCOL_PROPOSAL_CONTAINER_TEMPLATE + "/%s";
+    private static final String PROTOCOL_PROPOSAL_TEMPLATE =
+            PROTOCOL_PROPOSAL_CONTAINER_TEMPLATE + "/%s";
 
-    private static final String PROTOCOL_PROPOSAL_LOCK_TEMPLATE = PROTOCOL_LOCK  + "/%s/%s";
+    private static final String PROTOCOL_PROPOSAL_LOCK_TEMPLATE = PROTOCOL_LOCK + "/%s/%s";
 
     private static final String VOTE_PREFIX = "/vote";
 
@@ -85,102 +85,168 @@ public class ETCDSyncProtocolImpl implements SyncProtocol {
     }
 
     private void registerProposalListener() {
-        this.proposalWatcher = client.getWatchClient().watch(ByteSequence.from(String.format(PROTOCOL_PROPOSAL_CONTAINER_TEMPLATE, category).getBytes()),
-                WatchOption.newBuilder().withPrefix(ByteSequence.from(String.format(PROTOCOL_PROPOSAL_CONTAINER_TEMPLATE, category).getBytes())).withPrevKV(true).build(),
-                new Watch.Listener() {
+        this.proposalWatcher =
+                client.getWatchClient()
+                        .watch(
+                                ByteSequence.from(
+                                        String.format(
+                                                        PROTOCOL_PROPOSAL_CONTAINER_TEMPLATE,
+                                                        category)
+                                                .getBytes()),
+                                WatchOption.newBuilder()
+                                        .withPrefix(
+                                                ByteSequence.from(
+                                                        String.format(
+                                                                        PROTOCOL_PROPOSAL_CONTAINER_TEMPLATE,
+                                                                        category)
+                                                                .getBytes()))
+                                        .withPrevKV(true)
+                                        .build(),
+                                new Watch.Listener() {
 
-                    @Override
-                    public void onNext(WatchResponse watchResponse) {
-                        if (ETCDSyncProtocolImpl.this.listener == null) {
-                            return;
-                        }
-                        for (WatchEvent event: watchResponse.getEvents()) {
-                            String[] parts = new String(event.getKeyValue().getKey().getBytes()).split(PATH_SEPARATOR);
-                            String key = parts[3];
-                            long createTime = Long.parseLong(parts[4].split("_")[1]);
-                            switch (event.getEventType()) {
-                                case PUT:
-                                    boolean isCreate = event.getPrevKV().getVersion() == 0;
-                                    proposalLock.writeLock().lock();
-                                    if (isCreate) {
-                                        ETCDSyncProtocolImpl.this.latestProposalTimes.put(key, createTime);
-                                    } else {
-                                        ETCDSyncProtocolImpl.this.latestProposalTimes.remove(key);
+                                    @Override
+                                    public void onNext(WatchResponse watchResponse) {
+                                        if (ETCDSyncProtocolImpl.this.listener == null) {
+                                            return;
+                                        }
+                                        for (WatchEvent event : watchResponse.getEvents()) {
+                                            String[] parts =
+                                                    new String(
+                                                                    event.getKeyValue()
+                                                                            .getKey()
+                                                                            .getBytes())
+                                                            .split(PATH_SEPARATOR);
+                                            String key = parts[3];
+                                            long createTime =
+                                                    Long.parseLong(parts[4].split("_")[1]);
+                                            switch (event.getEventType()) {
+                                                case PUT:
+                                                    boolean isCreate =
+                                                            event.getPrevKV().getVersion() == 0;
+                                                    proposalLock.writeLock().lock();
+                                                    if (isCreate) {
+                                                        ETCDSyncProtocolImpl.this
+                                                                .latestProposalTimes.put(
+                                                                key, createTime);
+                                                    } else {
+                                                        ETCDSyncProtocolImpl.this
+                                                                .latestProposalTimes.remove(key);
+                                                    }
+                                                    proposalLock.writeLock().unlock();
+                                                    if (isCreate) {
+                                                        SyncProposal newSyncProposal =
+                                                                JsonUtils.fromJson(
+                                                                        event.getKeyValue()
+                                                                                .getValue()
+                                                                                .getBytes(),
+                                                                        SyncProposal.class);
+                                                        ETCDSyncProtocolImpl.this.listener.onCreate(
+                                                                key, newSyncProposal);
+                                                    } else {
+                                                        SyncProposal afterSyncProposal =
+                                                                JsonUtils.fromJson(
+                                                                        event.getKeyValue()
+                                                                                .getValue()
+                                                                                .getBytes(),
+                                                                        SyncProposal.class);
+                                                        SyncProposal beforeSyncProposal =
+                                                                JsonUtils.fromJson(
+                                                                        event.getPrevKV()
+                                                                                .getValue()
+                                                                                .getBytes(),
+                                                                        SyncProposal.class);
+                                                        ETCDSyncProtocolImpl.this.listener.onUpdate(
+                                                                key,
+                                                                beforeSyncProposal,
+                                                                afterSyncProposal);
+                                                    }
+                                                    break;
+                                                case DELETE:
+                                                    break;
+                                                default:
+                                                    logger.error(
+                                                            "unexpected watchEvent: "
+                                                                    + event.getEventType());
+                                                    break;
+                                            }
+                                        }
                                     }
-                                    proposalLock.writeLock().unlock();
-                                    if (isCreate) {
-                                        SyncProposal newSyncProposal = JsonUtils.fromJson(event.getKeyValue().getValue().getBytes(), SyncProposal.class);
-                                        ETCDSyncProtocolImpl.this.listener.onCreate(key, newSyncProposal);
-                                    } else {
-                                        SyncProposal afterSyncProposal = JsonUtils.fromJson(event.getKeyValue().getValue().getBytes(), SyncProposal.class);
-                                        SyncProposal beforeSyncProposal = JsonUtils.fromJson(event.getPrevKV().getValue().getBytes(), SyncProposal.class);
-                                        ETCDSyncProtocolImpl.this.listener.onUpdate(key, beforeSyncProposal, afterSyncProposal);
-                                    }
-                                    break;
-                                case DELETE:
-                                    break;
-                                default:
-                                    logger.error("unexpected watchEvent: " + event.getEventType());
-                                    break;
-                            }
-                        }
-                    }
 
-                    @Override
-                    public void onError(Throwable throwable) {
+                                    @Override
+                                    public void onError(Throwable throwable) {}
 
-                    }
-
-                    @Override
-                    public void onCompleted() {
-
-                    }
-                });
+                                    @Override
+                                    public void onCompleted() {}
+                                });
     }
 
     private void registerGlobalVoteListener() {
-        this.voteWatcher = client.getWatchClient().watch(ByteSequence.from(String.format(VOTE_PROPOSAL_CONTAINER_TEMPLATE, category).getBytes()),
-                WatchOption.newBuilder().withPrefix(ByteSequence.from(String.format(VOTE_PROPOSAL_CONTAINER_TEMPLATE, category).getBytes())).withPrevKV(true).build(),
-                new Watch.Listener() {
-                    @Override
-                    public void onNext(WatchResponse watchResponse) {
-                        for (WatchEvent event: watchResponse.getEvents()) {
-                            String key = new String(event.getKeyValue().getKey().getBytes()).split(PATH_SEPARATOR)[3];
-                            switch (event.getEventType()) {
-                                case PUT:
-                                    if (event.getPrevKV().getVersion() != 0) { // update, unexpected
-                                        logger.error("unexpected update for vote");
-                                        break;
+        this.voteWatcher =
+                client.getWatchClient()
+                        .watch(
+                                ByteSequence.from(
+                                        String.format(VOTE_PROPOSAL_CONTAINER_TEMPLATE, category)
+                                                .getBytes()),
+                                WatchOption.newBuilder()
+                                        .withPrefix(
+                                                ByteSequence.from(
+                                                        String.format(
+                                                                        VOTE_PROPOSAL_CONTAINER_TEMPLATE,
+                                                                        category)
+                                                                .getBytes()))
+                                        .withPrevKV(true)
+                                        .build(),
+                                new Watch.Listener() {
+                                    @Override
+                                    public void onNext(WatchResponse watchResponse) {
+                                        for (WatchEvent event : watchResponse.getEvents()) {
+                                            String key =
+                                                    new String(
+                                                                    event.getKeyValue()
+                                                                            .getKey()
+                                                                            .getBytes())
+                                                            .split(PATH_SEPARATOR)[3];
+                                            switch (event.getEventType()) {
+                                                case PUT:
+                                                    if (event.getPrevKV().getVersion()
+                                                            != 0) { // update, unexpected
+                                                        logger.error("unexpected update for vote");
+                                                        break;
+                                                    }
+                                                    SyncVote vote =
+                                                            JsonUtils.fromJson(
+                                                                    event.getKeyValue()
+                                                                            .getValue()
+                                                                            .getBytes(),
+                                                                    SyncVote.class);
+                                                    proposalLock.readLock().lock();
+                                                    VoteListener voteLister =
+                                                            voteListeners.get(key);
+                                                    proposalLock.readLock().unlock();
+                                                    if (voteLister != null) {
+                                                        voteLister.receive(key, vote);
+                                                    }
+                                                    break;
+                                                default:
+                                                    logger.error(
+                                                            "unexpected watchEvent: "
+                                                                    + event.getEventType());
+                                                    break;
+                                            }
+                                        }
                                     }
-                                    SyncVote vote = JsonUtils.fromJson(event.getKeyValue().getValue().getBytes(), SyncVote.class);
-                                    proposalLock.readLock().lock();
-                                    VoteListener voteLister = voteListeners.get(key);
-                                    proposalLock.readLock().unlock();
-                                    if (voteLister != null) {
-                                        voteLister.receive(key, vote);
-                                    }
-                                    break;
-                                default:
-                                    logger.error("unexpected watchEvent: " + event.getEventType());
-                                    break;
-                            }
-                        }
-                    }
 
-                    @Override
-                    public void onError(Throwable throwable) {
+                                    @Override
+                                    public void onError(Throwable throwable) {}
 
-                    }
-
-                    @Override
-                    public void onCompleted() {
-
-                    }
-                });
+                                    @Override
+                                    public void onCompleted() {}
+                                });
     }
 
     @Override
-    public boolean startProposal(String key, SyncProposal syncProposal, VoteListener listener) throws NetworkException {
+    public boolean startProposal(String key, SyncProposal syncProposal, VoteListener listener)
+            throws NetworkException {
         long createTime = System.currentTimeMillis();
         String lockPath = String.format(PROTOCOL_PROPOSAL_LOCK_TEMPLATE, this.category, key);
         long leaseId = -1;
@@ -189,12 +255,29 @@ public class ETCDSyncProtocolImpl implements SyncProtocol {
             leaseId = client.getLeaseClient().grant(MAX_LOCK_TIME).get().getID();
             client.getLockClient().lock(ByteSequence.from(lockPath.getBytes()), leaseId).get();
             String proposalPrefix = String.format(PROTOCOL_PROPOSAL_TEMPLATE, this.category, key);
-            GetResponse response = client.getKVClient().get(ByteSequence.from(proposalPrefix.getBytes()),
-                    GetOption.newBuilder().withSortOrder(GetOption.SortOrder.DESCEND).withPrefix(ByteSequence.from(proposalPrefix.getBytes())).withLimit(1L).build()).get();
+            GetResponse response =
+                    client.getKVClient()
+                            .get(
+                                    ByteSequence.from(proposalPrefix.getBytes()),
+                                    GetOption.newBuilder()
+                                            .withSortOrder(GetOption.SortOrder.DESCEND)
+                                            .withPrefix(
+                                                    ByteSequence.from(proposalPrefix.getBytes()))
+                                            .withLimit(1L)
+                                            .build())
+                            .get();
             if (response.getCount() >= 1L) {
-                long lastCreateTime = Long.parseLong(new String(response.getKvs().get(0).getKey().getBytes()).split("_")[1]);
+                long lastCreateTime =
+                        Long.parseLong(
+                                new String(response.getKvs().get(0).getKey().getBytes())
+                                        .split("_")[1]);
                 if (lastCreateTime + MAX_NETWORK_LATENCY > createTime) {
-                    logger.warn("start protocol for " + category + "-" + key + " failure, due to repeated request");
+                    logger.warn(
+                            "start protocol for "
+                                    + category
+                                    + "-"
+                                    + key
+                                    + " failure, due to repeated request");
                     return false;
                 }
             }
@@ -204,8 +287,16 @@ public class ETCDSyncProtocolImpl implements SyncProtocol {
             proposalLock.writeLock().unlock();
 
             syncProposal.setCreateTime(createTime);
-            String proposalPath = String.format(PROTOCOL_PROPOSAL_TEMPLATE, this.category, key) + PATH_SEPARATOR + "proposal_" + createTime;
-            client.getKVClient().put(ByteSequence.from(proposalPath.getBytes()), ByteSequence.from(JsonUtils.toJson(syncProposal))).get();
+            String proposalPath =
+                    String.format(PROTOCOL_PROPOSAL_TEMPLATE, this.category, key)
+                            + PATH_SEPARATOR
+                            + "proposal_"
+                            + createTime;
+            client.getKVClient()
+                    .put(
+                            ByteSequence.from(proposalPath.getBytes()),
+                            ByteSequence.from(JsonUtils.toJson(syncProposal)))
+                    .get();
             return true;
         } catch (Exception e) {
             logger.error("start proposal failure: ", e);
@@ -220,7 +311,6 @@ public class ETCDSyncProtocolImpl implements SyncProtocol {
                     logger.error("release lock failure: ", e);
                 }
             }
-
         }
     }
 
@@ -241,8 +331,19 @@ public class ETCDSyncProtocolImpl implements SyncProtocol {
             if (createTime == 0) {
                 throw new VoteExpiredException("vote for expired proposal: " + key);
             }
-            client.getKVClient().put(ByteSequence.from((String.format(VOTE_PROPOSAL_TEMPLATE, this.category, key) +
-                    PATH_SEPARATOR + "proposal_" + createTime + PATH_SEPARATOR + "voter_" + voter).getBytes()), ByteSequence.from(JsonUtils.toJson(vote))).get();
+            client.getKVClient()
+                    .put(
+                            ByteSequence.from(
+                                    (String.format(VOTE_PROPOSAL_TEMPLATE, this.category, key)
+                                                    + PATH_SEPARATOR
+                                                    + "proposal_"
+                                                    + createTime
+                                                    + PATH_SEPARATOR
+                                                    + "voter_"
+                                                    + voter)
+                                            .getBytes()),
+                            ByteSequence.from(JsonUtils.toJson(vote)))
+                    .get();
         } catch (VoteExpiredException e) {
             logger.error("encounter execute error in vote: ", e);
             throw e;
@@ -253,7 +354,8 @@ public class ETCDSyncProtocolImpl implements SyncProtocol {
     }
 
     @Override
-    public void endProposal(String key, SyncProposal syncProposal) throws NetworkException, ExecutionException {
+    public void endProposal(String key, SyncProposal syncProposal)
+            throws NetworkException, ExecutionException {
         long updateTime = System.currentTimeMillis();
         String lockPath = String.format(PROTOCOL_PROPOSAL_LOCK_TEMPLATE, this.category, key);
         long leaseId = -1;
@@ -263,16 +365,35 @@ public class ETCDSyncProtocolImpl implements SyncProtocol {
             client.getLockClient().lock(ByteSequence.from(lockPath.getBytes()), leaseId).get();
 
             String proposalPrefix = String.format(PROTOCOL_PROPOSAL_TEMPLATE, this.category, key);
-            GetResponse response = client.getKVClient().get(ByteSequence.from(proposalPrefix.getBytes()),
-                    GetOption.newBuilder().withSortOrder(GetOption.SortOrder.DESCEND).withPrefix(ByteSequence.from(proposalPrefix.getBytes())).withLimit(1L).build()).get();
+            GetResponse response =
+                    client.getKVClient()
+                            .get(
+                                    ByteSequence.from(proposalPrefix.getBytes()),
+                                    GetOption.newBuilder()
+                                            .withSortOrder(GetOption.SortOrder.DESCEND)
+                                            .withPrefix(
+                                                    ByteSequence.from(proposalPrefix.getBytes()))
+                                            .withLimit(1L)
+                                            .build())
+                            .get();
             if (response.getCount() == 0) {
                 throw new ExecutionException("can't find proposal for " + key);
             }
-            long createTime = Long.parseLong(new String(response.getKvs().get(0).getKey().getBytes()).split("_")[1]);
+            long createTime =
+                    Long.parseLong(
+                            new String(response.getKvs().get(0).getKey().getBytes()).split("_")[1]);
             syncProposal.setCreateTime(createTime);
             syncProposal.setUpdateTime(updateTime);
-            client.getKVClient().put(ByteSequence.from((String.format(PROTOCOL_PROPOSAL_TEMPLATE, this.category, key) + PATH_SEPARATOR + "proposal_" + createTime).getBytes()),
-                    ByteSequence.from(JsonUtils.toJson(syncProposal))).get();
+            client.getKVClient()
+                    .put(
+                            ByteSequence.from(
+                                    (String.format(PROTOCOL_PROPOSAL_TEMPLATE, this.category, key)
+                                                    + PATH_SEPARATOR
+                                                    + "proposal_"
+                                                    + createTime)
+                                            .getBytes()),
+                            ByteSequence.from(JsonUtils.toJson(syncProposal)))
+                    .get();
             proposalLock.writeLock().lock();
             latestProposalTimes.remove(key);
             voteListeners.remove(key).end(key);
@@ -290,12 +411,11 @@ public class ETCDSyncProtocolImpl implements SyncProtocol {
                     logger.error("release lock failure: ", e);
                 }
             }
-
         }
     }
 
     @Override
-    public void close(){
+    public void close() {
         this.proposalWatcher.close();
         this.voteWatcher.close();
     }

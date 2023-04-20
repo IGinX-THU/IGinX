@@ -12,13 +12,13 @@ import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
-import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
+import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
 import cn.edu.tsinghua.iginx.parquet.exec.Executor;
 import cn.edu.tsinghua.iginx.parquet.exec.NewExecutor;
@@ -26,7 +26,6 @@ import cn.edu.tsinghua.iginx.parquet.exec.RemoteExecutor;
 import cn.edu.tsinghua.iginx.parquet.server.ParquetServer;
 import cn.edu.tsinghua.iginx.parquet.tools.FilterTransformer;
 import cn.edu.tsinghua.iginx.utils.Pair;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -92,7 +91,8 @@ public class ParquetStorage implements IStorage {
         try {
             this.executor = new RemoteExecutor(meta.getIp(), meta.getPort());
         } catch (TTransportException e) {
-            throw new StorageInitializationException("encounter error when init RemoteStorage " + e.getMessage());
+            throw new StorageInitializationException(
+                    "encounter error when init RemoteStorage " + e.getMessage());
         }
     }
 
@@ -112,7 +112,7 @@ public class ParquetStorage implements IStorage {
         List<Operator> operators = task.getOperators();
         if (operators.size() != 1) {
             return new TaskExecuteResult(
-                new NonExecutablePhysicalTaskException("unsupported physical task"));
+                    new NonExecutablePhysicalTaskException("unsupported physical task"));
         }
         FragmentMeta fragment = task.getTargetFragment();
         String storageUnit = task.getStorageUnit();
@@ -125,30 +125,33 @@ public class ParquetStorage implements IStorage {
             if (operators.size() == 2) {
                 filter = ((Select) operators.get(1)).getFilter();
             } else {
-                filter = new AndFilter(Arrays.asList(
-                    new KeyFilter(Op.GE, fragment.getTimeInterval().getStartTime()),
-                    new KeyFilter(Op.L, fragment.getTimeInterval().getEndTime())));
+                filter =
+                        new AndFilter(
+                                Arrays.asList(
+                                        new KeyFilter(
+                                                Op.GE, fragment.getTimeInterval().getStartTime()),
+                                        new KeyFilter(
+                                                Op.L, fragment.getTimeInterval().getEndTime())));
             }
             return executor.executeProjectTask(
-                project.getPatterns(),
-                project.getTagFilter(),
-                FilterTransformer.toString(filter),
-                storageUnit,
-                isDummyStorageUnit);
+                    project.getPatterns(),
+                    project.getTagFilter(),
+                    FilterTransformer.toString(filter),
+                    storageUnit,
+                    isDummyStorageUnit);
         } else if (op.getType() == OperatorType.Insert) {
             Insert insert = (Insert) op;
-            return executor.executeInsertTask(
-                insert.getData(),
-                storageUnit);
+            return executor.executeInsertTask(insert.getData(), storageUnit);
         } else if (op.getType() == OperatorType.Delete) {
             Delete delete = (Delete) op;
             return executor.executeDeleteTask(
-                delete.getPatterns(),
-                delete.getTimeRanges(),
-                delete.getTagFilter(),
-                storageUnit);
+                    delete.getPatterns(),
+                    delete.getTimeRanges(),
+                    delete.getTagFilter(),
+                    storageUnit);
         }
-        return new TaskExecuteResult(new NonExecutablePhysicalTaskException("unsupported physical task"));
+        return new TaskExecuteResult(
+                new NonExecutablePhysicalTaskException("unsupported physical task"));
     }
 
     @Override
@@ -157,7 +160,8 @@ public class ParquetStorage implements IStorage {
     }
 
     @Override
-    public Pair<TimeSeriesRange, TimeInterval> getBoundaryOfStorage(String prefix) throws PhysicalException {
+    public Pair<TimeSeriesRange, TimeInterval> getBoundaryOfStorage(String prefix)
+            throws PhysicalException {
         return executor.getBoundaryOfStorage();
     }
 

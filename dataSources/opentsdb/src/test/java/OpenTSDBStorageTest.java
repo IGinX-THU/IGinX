@@ -20,24 +20,23 @@ import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.opentsdb.OpenTSDBStorage;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Bitmap;
+import java.util.*;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.util.*;
 
 public class OpenTSDBStorageTest {
 
     private IStorage storage;
 
-    private final static String DU = "unit001";
+    private static final String DU = "unit001";
 
-    private final static long START_TIME = 1567675709879L;
+    private static final long START_TIME = 1567675709879L;
 
-    private final static long END_TIME = 1567675710079L;
+    private static final long END_TIME = 1567675710079L;
 
-    private final static String PATH01 = "point_1";
+    private static final String PATH01 = "point_1";
 
-    private final static String PATH02 = "point_2";
+    private static final String PATH02 = "point_2";
 
     @Before
     public void init() throws PhysicalException {
@@ -77,11 +76,20 @@ public class OpenTSDBStorageTest {
             }
             bitmapList.add(bitmap);
         }
-        RawData rawData = new RawData(paths, Collections.emptyList(), timestamps, valuesList, types, bitmapList, RawDataType.Row);
+        RawData rawData =
+                new RawData(
+                        paths,
+                        Collections.emptyList(),
+                        timestamps,
+                        valuesList,
+                        types,
+                        bitmapList,
+                        RawDataType.Row);
         DataView dataView = new RowDataView(rawData, 0, paths.size(), 0, size);
         FragmentMeta fragment = new FragmentMeta(null, null, START_TIME, END_TIME);
         FragmentSource source = new FragmentSource(fragment);
-        StoragePhysicalTask task = new StoragePhysicalTask(Collections.singletonList(new Insert(source, dataView)));
+        StoragePhysicalTask task =
+                new StoragePhysicalTask(Collections.singletonList(new Insert(source, dataView)));
         task.setStorageUnit(DU);
         this.storage.execute(task);
     }
@@ -95,7 +103,9 @@ public class OpenTSDBStorageTest {
     }
 
     private void project(Source source, List<String> paths) throws PhysicalException {
-        StoragePhysicalTask task = new StoragePhysicalTask(Collections.singletonList(new Project(source, paths, null)));
+        StoragePhysicalTask task =
+                new StoragePhysicalTask(
+                        Collections.singletonList(new Project(source, paths, null)));
         task.setStorageUnit(DU);
         RowStream rowStream = this.storage.execute(task).getRowStream();
         Header header = rowStream.getHeader();
@@ -111,10 +121,14 @@ public class OpenTSDBStorageTest {
     @Test
     public void testDelete() throws PhysicalException, InterruptedException {
         List<String> patterns = new ArrayList<>(Arrays.asList(PATH01, PATH02));
-        List<TimeRange> timeRanges = new ArrayList<>(Collections.singletonList(new TimeRange(START_TIME + 20, END_TIME - 20)));
+        List<TimeRange> timeRanges =
+                new ArrayList<>(
+                        Collections.singletonList(new TimeRange(START_TIME + 20, END_TIME - 20)));
         FragmentMeta fragment = new FragmentMeta(null, null, START_TIME, END_TIME);
         FragmentSource source = new FragmentSource(fragment);
-        StoragePhysicalTask task = new StoragePhysicalTask(Collections.singletonList(new Delete(source, timeRanges, patterns, null)));
+        StoragePhysicalTask task =
+                new StoragePhysicalTask(
+                        Collections.singletonList(new Delete(source, timeRanges, patterns, null)));
         task.setStorageUnit(DU);
         this.storage.execute(task);
 

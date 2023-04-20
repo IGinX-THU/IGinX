@@ -63,5 +63,4 @@ public class RowStreamWrapper implements RowStream {
         }
         return nextRow.getKey();
     }
-
 }

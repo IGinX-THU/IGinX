@@ -1,16 +1,16 @@
 name: "Capacity-Expansion-Test"
 on:
-  pull_request:
-    types: [opened, reopened]
-    branches:
-      - main
+    pull_request:
+        types: [opened, reopened]
+        branches:
+            - main
 env:
-  VERSION: 0.6.0-SNAPSHOT
-  FUNCTEST: TagIT,RestIT,UDFIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT
-  INFLUXDB-FUNCTEST: SQLSessionIT,SQLSessionPoolIT
+    VERSION: 0.6.0-SNAPSHOT
+    FUNCTEST: TagIT,RestIT,UDFIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT
+    INFLUXDB-FUNCTEST: SQLSessionIT,SQLSessionPoolIT
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
 
 jobs:
   DB-CE:
@@ -33,26 +33,26 @@ jobs:
       - name: Run ZooKeeper
         uses: ./.github/actions/zookeeperRunner
 
-      - name: Run DB
-        uses: ./.github/actions/dbRunner
-        with:
-          version: ${{matrix.DB-name}}
+            - name: Run DB
+              uses: ./.github/actions/dbRunner
+              with:
+                  version: ${{matrix.DB-name}}
 
-      - name: Set The DB Name
-        uses: ./.github/actions/confWriter
-        with:
-          confFile: DBName
-          DB-name: ${{matrix.DB-name}}
+            - name: Set The DB Name
+              uses: ./.github/actions/confWriter
+              with:
+                  confFile: DBName
+                  DB-name: ${{matrix.DB-name}}
 
-      - name: Install IginX with Maven
-        shell: bash
-        run: |
-          mvn clean package -DskipTests
+            - name: Install IginX with Maven
+              shell: bash
+              run: |
+                  mvn clean package -DskipTests -P passFormat
 
-      - name: Set The UDF Conf
-        uses: ./.github/actions/confWriter
-        with:
-          confFile: UDFConf
+            - name: Set The UDF Conf
+              uses: ./.github/actions/confWriter
+              with:
+                  confFile: UDFConf
 
       #第 1 阶段测试开始==========================================
       - name: Prepare CapExp environment oriHasDataExpHasData

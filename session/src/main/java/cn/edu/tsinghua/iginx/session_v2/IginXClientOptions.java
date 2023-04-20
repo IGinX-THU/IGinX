@@ -18,7 +18,6 @@
  */
 package cn.edu.tsinghua.iginx.session_v2;
 
-
 public final class IginXClientOptions {
 
     private static final String DEFAULT_USERNAME = "root";
@@ -70,8 +69,7 @@ public final class IginXClientOptions {
 
         private String password;
 
-        private Builder() {
-        }
+        private Builder() {}
 
         public IginXClientOptions.Builder url(String url) {
             Arguments.checkUrl(url, "url");
@@ -112,7 +110,8 @@ public final class IginXClientOptions {
 
         public IginXClientOptions build() {
             if (this.host == null || this.port == 0) {
-                throw new IllegalStateException("the host and port to connect to Iginx has to be defined.");
+                throw new IllegalStateException(
+                        "the host and port to connect to Iginx has to be defined.");
             }
             if (this.username == null) {
                 this.username = DEFAULT_USERNAME;
@@ -122,7 +121,5 @@ public final class IginXClientOptions {
             }
             return new IginXClientOptions(this);
         }
-
     }
-
 }

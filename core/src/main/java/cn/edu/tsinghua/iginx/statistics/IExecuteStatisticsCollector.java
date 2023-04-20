@@ -8,5 +8,4 @@ public interface IExecuteStatisticsCollector {
     PreExecuteProcessor getPreExecuteProcessor();
 
     PostExecuteProcessor getPostExecuteProcessor();
-
 }

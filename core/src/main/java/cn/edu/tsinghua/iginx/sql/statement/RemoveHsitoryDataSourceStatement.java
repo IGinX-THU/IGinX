@@ -6,7 +6,6 @@ import cn.edu.tsinghua.iginx.engine.shared.Result;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.thrift.RemoveHistoryDataSourceReq;
 import cn.edu.tsinghua.iginx.thrift.RemovedStorageEngineInfo;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -34,7 +33,8 @@ public class RemoveHsitoryDataSourceStatement extends SystemStatement {
     @Override
     public void execute(RequestContext ctx) throws ExecutionException {
         IginxWorker worker = IginxWorker.getInstance();
-        RemoveHistoryDataSourceReq req = new RemoveHistoryDataSourceReq(ctx.getSessionId(), storageEngineList);
+        RemoveHistoryDataSourceReq req =
+                new RemoveHistoryDataSourceReq(ctx.getSessionId(), storageEngineList);
         ctx.setResult(new Result(worker.removeHistoryDataSource(req)));
     }
 }

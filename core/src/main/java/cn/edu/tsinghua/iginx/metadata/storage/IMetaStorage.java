@@ -24,7 +24,6 @@ import cn.edu.tsinghua.iginx.metadata.entity.*;
 import cn.edu.tsinghua.iginx.metadata.hook.*;
 import cn.edu.tsinghua.iginx.metadata.utils.ReshardStatus;
 import cn.edu.tsinghua.iginx.utils.Pair;
-
 import java.util.List;
 import java.util.Map;
 
@@ -34,7 +33,8 @@ public interface IMetaStorage {
 
     void registerSchemaMappingChangeHook(SchemaMappingChangeHook hook);
 
-    void updateSchemaMapping(String schema, Map<String, Integer> schemaMapping) throws MetaStorageException;
+    void updateSchemaMapping(String schema, Map<String, Integer> schemaMapping)
+            throws MetaStorageException;
 
     Map<Long, IginxMeta> loadIginx() throws MetaStorageException;
 
@@ -42,11 +42,13 @@ public interface IMetaStorage {
 
     void registerIginxChangeHook(IginxChangeHook hook);
 
-    Map<Long, StorageEngineMeta> loadStorageEngine(List<StorageEngineMeta> storageEngines) throws MetaStorageException;
+    Map<Long, StorageEngineMeta> loadStorageEngine(List<StorageEngineMeta> storageEngines)
+            throws MetaStorageException;
 
     long addStorageEngine(StorageEngineMeta storageEngine) throws MetaStorageException;
 
-    boolean updateStorageEngine(long storageID, StorageEngineMeta storageEngine) throws MetaStorageException;
+    boolean updateStorageEngine(long storageID, StorageEngineMeta storageEngine)
+            throws MetaStorageException;
 
     void registerStorageChangeHook(StorageChangeHook hook);
 
@@ -66,13 +68,16 @@ public interface IMetaStorage {
 
     void lockFragment() throws MetaStorageException;
 
-    List<FragmentMeta> getFragmentListByTimeSeriesNameAndTimeInterval(String tsName, TimeInterval timeInterval);
+    List<FragmentMeta> getFragmentListByTimeSeriesNameAndTimeInterval(
+            String tsName, TimeInterval timeInterval);
 
-    Map<TimeSeriesRange, List<FragmentMeta>> getFragmentMapByTimeSeriesIntervalAndTimeInterval(TimeSeriesRange tsInterval, TimeInterval timeInterval);
+    Map<TimeSeriesRange, List<FragmentMeta>> getFragmentMapByTimeSeriesIntervalAndTimeInterval(
+            TimeSeriesRange tsInterval, TimeInterval timeInterval);
 
     void updateFragment(FragmentMeta fragmentMeta) throws MetaStorageException;
 
-    void updateFragmentByTsInterval(TimeSeriesRange tsInterval, FragmentMeta fragmentMeta) throws MetaStorageException;
+    void updateFragmentByTsInterval(TimeSeriesRange tsInterval, FragmentMeta fragmentMeta)
+            throws MetaStorageException;
 
     void removeFragment(FragmentMeta fragmentMeta) throws MetaStorageException;
 
@@ -98,7 +103,8 @@ public interface IMetaStorage {
 
     boolean election();
 
-    void updateTimeseriesData(Map<String, Double> timeseriesData, long iginxid, long version) throws Exception;
+    void updateTimeseriesData(Map<String, Double> timeseriesData, long iginxid, long version)
+            throws Exception;
 
     Map<String, Double> getTimeseriesData();
 
@@ -132,8 +138,9 @@ public interface IMetaStorage {
 
     int getTimeseriesHeatCounter() throws MetaStorageException;
 
-    void updateFragmentRequests(Map<FragmentMeta, Long> writeRequestsMap,
-                                Map<FragmentMeta, Long> readRequestsMap) throws Exception;
+    void updateFragmentRequests(
+            Map<FragmentMeta, Long> writeRequestsMap, Map<FragmentMeta, Long> readRequestsMap)
+            throws Exception;
 
     void removeFragmentRequests() throws MetaStorageException;
 
@@ -149,14 +156,17 @@ public interface IMetaStorage {
 
     Map<FragmentMeta, Long> loadFragmentPoints(IMetaCache cache) throws Exception;
 
-    void deleteFragmentPoints(TimeSeriesInterval tsInterval, TimeInterval timeInterval) throws Exception;
+    void deleteFragmentPoints(TimeSeriesInterval tsInterval, TimeInterval timeInterval)
+            throws Exception;
 
     void updateFragmentPoints(FragmentMeta fragmentMeta, long points) throws Exception;
 
-    void updateFragmentHeat(Map<FragmentMeta, Long> writeHotspotMap,
-                            Map<FragmentMeta, Long> readHotspotMap) throws Exception;
+    void updateFragmentHeat(
+            Map<FragmentMeta, Long> writeHotspotMap, Map<FragmentMeta, Long> readHotspotMap)
+            throws Exception;
 
-    Pair<Map<FragmentMeta, Long>, Map<FragmentMeta, Long>> loadFragmentHeat(IMetaCache cache) throws Exception;
+    Pair<Map<FragmentMeta, Long>, Map<FragmentMeta, Long>> loadFragmentHeat(IMetaCache cache)
+            throws Exception;
 
     void removeFragmentHeat() throws MetaStorageException;
 
@@ -202,5 +212,6 @@ public interface IMetaStorage {
 
     void releaseMaxActiveEndTimeStatistics() throws MetaStorageException;
 
-    void registerMaxActiveEndTimeStatisticsChangeHook(MaxActiveEndTimeStatisticsChangeHook hook) throws MetaStorageException;
+    void registerMaxActiveEndTimeStatisticsChangeHook(MaxActiveEndTimeStatisticsChangeHook hook)
+            throws MetaStorageException;
 }

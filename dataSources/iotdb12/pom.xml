@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <artifactId>iginx</artifactId>
         <groupId>cn.edu.tsinghua</groupId>
+        <artifactId>iginx</artifactId>
         <version>${revision}</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
@@ -75,13 +74,12 @@
                 <executions>
                     <execution>
                         <id>copy-dependencies</id>
-                        <phase>package</phase>
                         <goals>
                             <goal>copy-dependencies</goal>
                         </goals>
+                        <phase>package</phase>
                         <configuration>
-                            <outputDirectory>../../core/target/iginx-core-${project.version}/driver/iotdb12/
-                            </outputDirectory>
+                            <outputDirectory>../../core/target/iginx-core-${project.version}/driver/iotdb12/</outputDirectory>
                             <excludeScope>provided</excludeScope>
                         </configuration>
                     </execution>
@@ -94,10 +92,10 @@
                 <executions>
                     <execution>
                         <id>copy-native-libraries</id>
-                        <phase>package</phase>
                         <goals>
                             <goal>run</goal>
                         </goals>
+                        <phase>package</phase>
                         <configuration>
                             <target>
                                 <copy todir="../../core/target/iginx-core-${project.version}/driver/iotdb12/">

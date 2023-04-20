@@ -19,7 +19,6 @@
 package cn.edu.tsinghua.iginx.engine.shared.data;
 
 import cn.edu.tsinghua.iginx.thrift.DataType;
-
 import java.nio.charset.StandardCharsets;
 
 public class Value {
@@ -201,5 +200,4 @@ public class Value {
     public Value copy() {
         return new Value(this.getValue());
     }
-
 }

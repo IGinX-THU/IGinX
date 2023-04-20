@@ -2,12 +2,11 @@ package cn.edu.tsinghua.iginx.statistics;
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.shared.processor.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class StatisticsCollector implements IStatisticsCollector {
 
@@ -17,10 +16,14 @@ public class StatisticsCollector implements IStatisticsCollector {
 
     private final ExecutorService broadcastThreadPool = Executors.newSingleThreadExecutor();
 
-    private final ParseStatisticsCollector parseStatisticsCollector = new ParseStatisticsCollector();
-    private final LogicalStatisticsCollector logicalStatisticsCollector = new LogicalStatisticsCollector();
-    private final PhysicalStatisticsCollector physicalStatisticsCollector = new PhysicalStatisticsCollector();
-    private final ExecuteStatisticsCollector executeStatisticsCollector = new ExecuteStatisticsCollector();
+    private final ParseStatisticsCollector parseStatisticsCollector =
+            new ParseStatisticsCollector();
+    private final LogicalStatisticsCollector logicalStatisticsCollector =
+            new LogicalStatisticsCollector();
+    private final PhysicalStatisticsCollector physicalStatisticsCollector =
+            new PhysicalStatisticsCollector();
+    private final ExecuteStatisticsCollector executeStatisticsCollector =
+            new ExecuteStatisticsCollector();
 
     @Override
     public PreLogicalProcessor getPreLogicalProcessor() {
@@ -66,19 +69,23 @@ public class StatisticsCollector implements IStatisticsCollector {
     public void startBroadcasting() {
         broadcast.set(true);
         // 启动一个新线程，定期播报统计信息
-        broadcastThreadPool.execute(() -> {
-            try {
-                while (broadcast.get()) {
-                    parseStatisticsCollector.broadcastStatistics();
-                    logicalStatisticsCollector.broadcastStatistics();
-                    physicalStatisticsCollector.broadcastStatistics();
-                    executeStatisticsCollector.broadcastStatistics();
-                    Thread.sleep(ConfigDescriptor.getInstance().getConfig().getStatisticsLogInterval()); // 每隔 10 秒播报一次统计信息
-                }
-            } catch (InterruptedException e) {
-                logger.error("encounter error when broadcasting statistics: ", e);
-            }
-        });
+        broadcastThreadPool.execute(
+                () -> {
+                    try {
+                        while (broadcast.get()) {
+                            parseStatisticsCollector.broadcastStatistics();
+                            logicalStatisticsCollector.broadcastStatistics();
+                            physicalStatisticsCollector.broadcastStatistics();
+                            executeStatisticsCollector.broadcastStatistics();
+                            Thread.sleep(
+                                    ConfigDescriptor.getInstance()
+                                            .getConfig()
+                                            .getStatisticsLogInterval()); // 每隔 10 秒播报一次统计信息
+                        }
+                    } catch (InterruptedException e) {
+                        logger.error("encounter error when broadcasting statistics: ", e);
+                    }
+                });
     }
 
     @Override

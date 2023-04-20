@@ -18,17 +18,16 @@
  */
 package cn.edu.tsinghua.iginx.session;
 
+import static cn.edu.tsinghua.iginx.utils.ByteUtils.getValueFromByteBufferByDataType;
+
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.QueryDataSetV2;
 import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.Pair;
-
 import java.nio.ByteBuffer;
 import java.util.List;
-
-import static cn.edu.tsinghua.iginx.utils.ByteUtils.getValueFromByteBufferByDataType;
 
 public class QueryDataSet {
 
@@ -56,7 +55,14 @@ public class QueryDataSet {
 
     private int index;
 
-    public QueryDataSet(Session session, long queryId, List<String> columnList, List<DataType> dataTypeList, int fetchSize, List<ByteBuffer> valuesList, List<ByteBuffer> bitmapList) {
+    public QueryDataSet(
+            Session session,
+            long queryId,
+            List<String> columnList,
+            List<DataType> dataTypeList,
+            int fetchSize,
+            List<ByteBuffer> valuesList,
+            List<ByteBuffer> bitmapList) {
         this.session = session;
         this.queryId = queryId;
         this.columnList = columnList;

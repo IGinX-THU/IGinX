@@ -19,7 +19,7 @@ echo "test IT name list : "${LISTS[*]}
 for line in ${LISTS[@]}
 do
    echo "test IT name : "$line
-   mvn test -q -Dtest=$line -DfailIfNoTests=false
+   mvn test -q -Dtest=$line -DfailIfNoTests=false -P passFormat
 
    if [ $? -ne 0 ];then
      echo " test  -- Faile  : "$?

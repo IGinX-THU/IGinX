@@ -16,11 +16,11 @@ public class RandomUtils {
             }
             rand -= 10;
             if (rand < 26) {
-                builder.append((char)('A' + rand));
+                builder.append((char) ('A' + rand));
                 continue;
             }
             rand -= 26;
-            builder.append((char)('a' + rand));
+            builder.append((char) ('a' + rand));
         }
         return builder.toString();
     }
@@ -32,5 +32,4 @@ public class RandomUtils {
     public static boolean randomTest(double chance) {
         return random.nextDouble() < chance;
     }
-
 }

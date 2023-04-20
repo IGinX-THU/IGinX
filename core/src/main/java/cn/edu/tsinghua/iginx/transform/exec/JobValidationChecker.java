@@ -6,20 +6,17 @@ import cn.edu.tsinghua.iginx.transform.api.Checker;
 import cn.edu.tsinghua.iginx.transform.pojo.IginXTask;
 import cn.edu.tsinghua.iginx.transform.pojo.Job;
 import cn.edu.tsinghua.iginx.transform.pojo.Task;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.List;
 
 public class JobValidationChecker implements Checker {
 
     private static JobValidationChecker instance;
 
-    private final static Logger logger = LoggerFactory.getLogger(JobValidationChecker.class);
+    private static final Logger logger = LoggerFactory.getLogger(JobValidationChecker.class);
 
-    private JobValidationChecker() {
-
-    }
+    private JobValidationChecker() {}
 
     public static JobValidationChecker getInstance() {
         if (instance == null) {
@@ -59,8 +56,8 @@ public class JobValidationChecker implements Checker {
         }
 
         String querySQL = sqlList.get(sqlList.size() - 1);
-        if (!querySQL.toLowerCase().trim().startsWith("select") &&
-            !querySQL.toLowerCase().trim().startsWith("show")) {
+        if (!querySQL.toLowerCase().trim().startsWith("select")
+                && !querySQL.toLowerCase().trim().startsWith("show")) {
             logger.error("The first task's last statement must be select or showTS statement.");
             return false;
         }

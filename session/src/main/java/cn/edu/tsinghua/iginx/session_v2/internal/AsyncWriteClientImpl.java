@@ -24,9 +24,6 @@ import cn.edu.tsinghua.iginx.session_v2.write.Point;
 import cn.edu.tsinghua.iginx.session_v2.write.Record;
 import cn.edu.tsinghua.iginx.session_v2.write.Table;
 import cn.edu.tsinghua.iginx.thrift.TimePrecision;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -34,6 +31,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class AsyncWriteClientImpl extends AbstractFunctionClient implements AsyncWriteClient {
     @SuppressWarnings("unused")
@@ -47,7 +46,10 @@ public class AsyncWriteClientImpl extends AbstractFunctionClient implements Asyn
 
     private final MeasurementMapper measurementMapper;
 
-    public AsyncWriteClientImpl(IginXClientImpl iginXClient, MeasurementMapper measurementMapper, Collection<AutoCloseable> autoCloseables) {
+    public AsyncWriteClientImpl(
+            IginXClientImpl iginXClient,
+            MeasurementMapper measurementMapper,
+            Collection<AutoCloseable> autoCloseables) {
         super(iginXClient);
 
         this.autoCloseables = autoCloseables;
@@ -111,12 +113,23 @@ public class AsyncWriteClientImpl extends AbstractFunctionClient implements Asyn
 
     @Override
     public <M> void writeMeasurements(List<M> measurements) {
-        asyncWriteService.execute(newAsyncWriteRecordsTask(measurements.stream().map(measurementMapper::toRecord).collect(Collectors.toList())));
+        asyncWriteService.execute(
+                newAsyncWriteRecordsTask(
+                        measurements
+                                .stream()
+                                .map(measurementMapper::toRecord)
+                                .collect(Collectors.toList())));
     }
 
     @Override
     public <M> void writeMeasurements(List<M> measurements, TimePrecision timePrecision) {
-        asyncWriteService.execute(newAsyncWriteRecordsTask(measurements.stream().map(measurementMapper::toRecord).collect(Collectors.toList()), timePrecision));
+        asyncWriteService.execute(
+                newAsyncWriteRecordsTask(
+                        measurements
+                                .stream()
+                                .map(measurementMapper::toRecord)
+                                .collect(Collectors.toList()),
+                        timePrecision));
     }
 
     @Override
@@ -150,7 +163,8 @@ public class AsyncWriteClientImpl extends AbstractFunctionClient implements Asyn
         return new AsyncWriteTask(null, records, null);
     }
 
-    private AsyncWriteTask newAsyncWriteRecordsTask(List<Record> records, TimePrecision timePrecison) {
+    private AsyncWriteTask newAsyncWriteRecordsTask(
+            List<Record> records, TimePrecision timePrecison) {
         return new AsyncWriteTask(null, records, null, timePrecison);
     }
 
@@ -179,7 +193,11 @@ public class AsyncWriteClientImpl extends AbstractFunctionClient implements Asyn
             this.timePrecision = null;
         }
 
-        AsyncWriteTask(List<Point> points, List<Record> records, Table table, TimePrecision timePrecision) {
+        AsyncWriteTask(
+                List<Point> points,
+                List<Record> records,
+                Table table,
+                TimePrecision timePrecision) {
             this.points = points;
             this.records = records;
             this.table = table;
@@ -197,5 +215,4 @@ public class AsyncWriteClientImpl extends AbstractFunctionClient implements Asyn
             }
         }
     }
-
 }

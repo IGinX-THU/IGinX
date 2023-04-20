@@ -18,13 +18,12 @@
  */
 package cn.edu.tsinghua.iginx.rest.bean;
 
-import lombok.Data;
-
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.HashMap;
+import lombok.Data;
 
 @Data
 public class Metric {

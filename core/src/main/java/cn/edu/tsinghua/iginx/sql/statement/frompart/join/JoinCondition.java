@@ -1,7 +1,6 @@
 package cn.edu.tsinghua.iginx.sql.statement.frompart.join;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -68,8 +67,9 @@ public class JoinCondition {
             return false;
         }
         JoinCondition joinCondition = (JoinCondition) o;
-        return joinType == joinCondition.joinType && Objects.equals(filter, joinCondition.filter)
-            && Objects.equals(joinColumns, joinCondition.joinColumns);
+        return joinType == joinCondition.joinType
+                && Objects.equals(filter, joinCondition.filter)
+                && Objects.equals(joinColumns, joinCondition.joinColumns);
     }
 
     @Override

@@ -20,14 +20,12 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
-import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
 import cn.edu.tsinghua.iginx.engine.shared.function.SetMappingFunction;
 import cn.edu.tsinghua.iginx.engine.shared.operator.SetTransform;
-
-import java.util.Map;
 
 public class SetTransformLazyStream extends UnaryLazyStream {
 
@@ -35,7 +33,7 @@ public class SetTransformLazyStream extends UnaryLazyStream {
 
     private final SetMappingFunction function;
 
-    private final Map<String, Value> params;
+    private final FunctionParams params;
 
     private Row nextRow;
 
@@ -70,7 +68,11 @@ public class SetTransformLazyStream extends UnaryLazyStream {
         try {
             return function.transform(stream, params);
         } catch (Exception e) {
-            throw new PhysicalTaskExecuteFailureException("encounter error when execute set mapping function " + function.getIdentifier() + ".", e);
+            throw new PhysicalTaskExecuteFailureException(
+                    "encounter error when execute set mapping function "
+                            + function.getIdentifier()
+                            + ".",
+                    e);
         }
     }
 

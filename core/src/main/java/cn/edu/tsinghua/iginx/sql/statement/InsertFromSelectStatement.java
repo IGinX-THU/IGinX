@@ -8,7 +8,10 @@ public class InsertFromSelectStatement extends DataStatement {
 
     private final InsertStatement subInsertStatement;
 
-    public InsertFromSelectStatement(long timeOffset, SelectStatement subSelectStatement, InsertStatement subInsertStatement) {
+    public InsertFromSelectStatement(
+            long timeOffset,
+            SelectStatement subSelectStatement,
+            InsertStatement subInsertStatement) {
         this.statementType = StatementType.INSERT_FROM_SELECT;
         this.timeOffset = timeOffset;
         this.subSelectStatement = subSelectStatement;

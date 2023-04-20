@@ -2,13 +2,13 @@ package cn.edu.tsinghua.iginx.statistics;
 
 import cn.edu.tsinghua.iginx.engine.shared.processor.PostParseProcessor;
 import cn.edu.tsinghua.iginx.engine.shared.processor.PreParseProcessor;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-
-public class ParseStatisticsCollector extends AbstractStageStatisticsCollector implements IParseStatisticsCollector {
+public class ParseStatisticsCollector extends AbstractStageStatisticsCollector
+        implements IParseStatisticsCollector {
 
     private static final Logger logger = LoggerFactory.getLogger(ParseStatisticsCollector.class);
     private final ReadWriteLock lock = new ReentrantReadWriteLock();

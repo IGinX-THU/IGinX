@@ -5,5 +5,4 @@ public interface VoteListener {
     void receive(String key, SyncVote vote);
 
     void end(String key);
-
 }

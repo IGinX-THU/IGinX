@@ -25,5 +25,4 @@ public interface Filter {
     FilterType getType();
 
     Filter copy();
-
 }

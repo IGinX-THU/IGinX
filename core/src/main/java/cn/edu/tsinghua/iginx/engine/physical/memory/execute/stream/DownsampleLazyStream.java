@@ -21,18 +21,16 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
-import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStreamWrapper;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
 import cn.edu.tsinghua.iginx.engine.shared.function.SetMappingFunction;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Downsample;
-
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 public class DownsampleLazyStream extends UnaryLazyStream {
 
@@ -42,7 +40,7 @@ public class DownsampleLazyStream extends UnaryLazyStream {
 
     private final SetMappingFunction function;
 
-    private final Map<String, Value> params;
+    private final FunctionParams params;
 
     private Row nextTarget;
 
@@ -91,21 +89,30 @@ public class DownsampleLazyStream extends UnaryLazyStream {
         long precision = downsample.getPrecision();
         long slideDistance = downsample.getSlideDistance();
         // startTime + (n - 1) * slideDistance + precision - 1 >= endTime
-        int n = (int) (Math.ceil((double)(endTime - bias - precision + 1) / slideDistance) + 1);
-        while(row == null && wrapper.hasNext()) {
+        int n = (int) (Math.ceil((double) (endTime - bias - precision + 1) / slideDistance) + 1);
+        while (row == null && wrapper.hasNext()) {
             timestamp = wrapper.nextTimestamp() - (wrapper.nextTimestamp() - bias) % precision;
             List<Row> rows = new ArrayList<>();
-            while(wrapper.hasNext() && wrapper.nextTimestamp() < timestamp + precision) {
+            while (wrapper.hasNext() && wrapper.nextTimestamp() < timestamp + precision) {
                 rows.add(wrapper.next());
             }
             Table table = new Table(rows.get(0).getHeader(), rows);
             try {
                 row = function.transform(table, params);
             } catch (Exception e) {
-                throw new PhysicalTaskExecuteFailureException("encounter error when execute set mapping function " + function.getIdentifier() + ".", e);
+                throw new PhysicalTaskExecuteFailureException(
+                        "encounter error when execute set mapping function "
+                                + function.getIdentifier()
+                                + ".",
+                        e);
             }
         }
-        return row == null ? null : new Row(new Header(Field.KEY, row.getHeader().getFields()), timestamp, row.getValues());
+        return row == null
+                ? null
+                : new Row(
+                        new Header(Field.KEY, row.getHeader().getFields()),
+                        timestamp,
+                        row.getValues());
     }
 
     @Override

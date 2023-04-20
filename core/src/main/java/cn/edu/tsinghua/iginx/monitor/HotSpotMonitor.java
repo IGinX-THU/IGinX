@@ -3,19 +3,21 @@ package cn.edu.tsinghua.iginx.monitor;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class HotSpotMonitor implements IMonitor {
 
     private static final Logger logger = LoggerFactory.getLogger(HotSpotMonitor.class);
 
-    private final boolean isEnableMonitor = ConfigDescriptor.getInstance().getConfig().isEnableMonitor();
-    private final Map<FragmentMeta, Long> writeHotspotMap = new ConcurrentHashMap<>(); // 数据分区->写入总请求时间
-    private final Map<FragmentMeta, Long> readHotspotMap = new ConcurrentHashMap<>(); // 数据分区->查询总请求时间
+    private final boolean isEnableMonitor =
+            ConfigDescriptor.getInstance().getConfig().isEnableMonitor();
+    private final Map<FragmentMeta, Long> writeHotspotMap =
+            new ConcurrentHashMap<>(); // 数据分区->写入总请求时间
+    private final Map<FragmentMeta, Long> readHotspotMap =
+            new ConcurrentHashMap<>(); // 数据分区->查询总请求时间
     private static final HotSpotMonitor instance = new HotSpotMonitor();
 
     public static HotSpotMonitor getInstance() {

@@ -2,7 +2,6 @@ import cn.edu.tsinghua.iginx.jdbc.IginXResultSet;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.SqlType;
-
 import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -15,17 +14,18 @@ public class TestUtils {
 
         result.setSqlType(SqlType.Query);
 
-        long[] timestamps = new long[]{1L, 2L, 3L, 4L, 5L, 6L, 7L};
+        long[] timestamps = new long[] {1L, 2L, 3L, 4L, 5L, 6L, 7L};
         result.setKeys(timestamps);
 
-        List<String> paths = new ArrayList<>(Arrays.asList(
-            "test.result.set.boolean",
-            "test.result.set.int",
-            "test.result.set.long",
-            "test.result.set.float",
-            "test.result.set.double",
-            "test.result.set.string"
-        ));
+        List<String> paths =
+                new ArrayList<>(
+                        Arrays.asList(
+                                "test.result.set.boolean",
+                                "test.result.set.int",
+                                "test.result.set.long",
+                                "test.result.set.float",
+                                "test.result.set.double",
+                                "test.result.set.string"));
         result.setPaths(paths);
 
         List<List<Object>> values = new ArrayList<>();
@@ -43,14 +43,15 @@ public class TestUtils {
         }
         result.setValues(values);
 
-        List<DataType> types = new ArrayList<>(Arrays.asList(
-            DataType.BOOLEAN,
-            DataType.INTEGER,
-            DataType.LONG,
-            DataType.FLOAT,
-            DataType.DOUBLE,
-            DataType.BINARY
-        ));
+        List<DataType> types =
+                new ArrayList<>(
+                        Arrays.asList(
+                                DataType.BOOLEAN,
+                                DataType.INTEGER,
+                                DataType.LONG,
+                                DataType.FLOAT,
+                                DataType.DOUBLE,
+                                DataType.BINARY));
         result.setDataTypeList(types);
 
         return new IginXResultSet(null, result);

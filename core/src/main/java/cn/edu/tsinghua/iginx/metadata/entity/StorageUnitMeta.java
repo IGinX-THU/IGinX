@@ -19,7 +19,6 @@
 package cn.edu.tsinghua.iginx.metadata.entity;
 
 import cn.edu.tsinghua.iginx.conf.Constants;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -61,7 +60,12 @@ public final class StorageUnitMeta {
         this.replicas = Collections.emptyList();
     }
 
-    public StorageUnitMeta(String id, long storageEngineId, String masterId, boolean isMaster, boolean initialStorageUnit) {
+    public StorageUnitMeta(
+            String id,
+            long storageEngineId,
+            String masterId,
+            boolean isMaster,
+            boolean initialStorageUnit) {
         this.id = id;
         this.storageEngineId = storageEngineId;
         this.masterId = masterId;
@@ -69,7 +73,15 @@ public final class StorageUnitMeta {
         this.initialStorageUnit = initialStorageUnit;
     }
 
-    public StorageUnitMeta(String id, long storageEngineId, String masterId, boolean isMaster, long createdBy, boolean initialStorageUnit, boolean dummy, List<StorageUnitMeta> replicas) {
+    public StorageUnitMeta(
+            String id,
+            long storageEngineId,
+            String masterId,
+            boolean isMaster,
+            long createdBy,
+            boolean initialStorageUnit,
+            boolean dummy,
+            List<StorageUnitMeta> replicas) {
         this.id = id;
         this.storageEngineId = storageEngineId;
         this.masterId = masterId;
@@ -81,14 +93,12 @@ public final class StorageUnitMeta {
     }
 
     public void addReplica(StorageUnitMeta storageUnit) {
-        if (replicas == null)
-            replicas = new ArrayList<>();
+        if (replicas == null) replicas = new ArrayList<>();
         replicas.add(storageUnit);
     }
 
     public void removeReplica(StorageUnitMeta storageUnit) {
-        if (replicas == null)
-            replicas = new ArrayList<>();
+        if (replicas == null) replicas = new ArrayList<>();
         replicas.remove(storageUnit);
     }
 
@@ -117,8 +127,7 @@ public final class StorageUnitMeta {
     }
 
     public List<StorageUnitMeta> getReplicas() {
-        if (replicas == null)
-            replicas = new ArrayList<>();
+        if (replicas == null) replicas = new ArrayList<>();
         return replicas;
     }
 
@@ -127,7 +136,8 @@ public final class StorageUnitMeta {
     }
 
     public StorageUnitMeta renameStorageUnitMeta(String id, String masterId) {
-        StorageUnitMeta storageUnitMeta = new StorageUnitMeta(id, storageEngineId, masterId, isMaster);
+        StorageUnitMeta storageUnitMeta =
+                new StorageUnitMeta(id, storageEngineId, masterId, isMaster);
         storageUnitMeta.setCreatedBy(createdBy);
         storageUnitMeta.setInitialStorageUnit(initialStorageUnit);
         return storageUnitMeta;
@@ -207,6 +217,6 @@ public final class StorageUnitMeta {
     }
 
     public static String generateDummyStorageUnitID(long id) {
-        return String.format(Constants.DUMMY + "%010d", (int)id);
+        return String.format(Constants.DUMMY + "%010d", (int) id);
     }
 }

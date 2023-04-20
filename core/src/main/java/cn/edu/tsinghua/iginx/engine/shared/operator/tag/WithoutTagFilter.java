@@ -2,8 +2,7 @@ package cn.edu.tsinghua.iginx.engine.shared.operator.tag;
 
 public class WithoutTagFilter implements TagFilter {
 
-    public WithoutTagFilter() {
-    }
+    public WithoutTagFilter() {}
 
     @Override
     public TagFilterType getType() {

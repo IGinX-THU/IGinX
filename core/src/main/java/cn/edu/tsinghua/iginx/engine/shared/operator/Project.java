@@ -1,10 +1,9 @@
 package cn.edu.tsinghua.iginx.engine.shared.operator;
 
-import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
-
 import cn.edu.tsinghua.iginx.engine.shared.source.SourceType;
 import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
 import java.util.ArrayList;
@@ -35,7 +34,10 @@ public class Project extends AbstractUnaryOperator {
 
     @Override
     public Operator copy() {
-        return new Project(getSource().copy(), new ArrayList<>(patterns), tagFilter == null ? null : tagFilter.copy());
+        return new Project(
+                getSource().copy(),
+                new ArrayList<>(patterns),
+                tagFilter == null ? null : tagFilter.copy());
     }
 
     @Override
@@ -48,9 +50,9 @@ public class Project extends AbstractUnaryOperator {
         builder.deleteCharAt(builder.length() - 1);
         Source source = getSource();
         if (source.getType() == SourceType.Fragment) {
-           FragmentMeta meta = ((FragmentSource)source).getFragment();
-           String du = meta.getMasterStorageUnitId();
-           builder.append(", Target DU: ").append(du);
+            FragmentMeta meta = ((FragmentSource) source).getFragment();
+            String du = meta.getMasterStorageUnitId();
+            builder.append(", Target DU: ").append(du);
         }
         if (tagFilter != null) {
             builder.append(", TagFilter: ").append(tagFilter.toString());

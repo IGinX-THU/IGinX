@@ -31,5 +31,4 @@ public class PathUtils {
 
         return new TimeSeriesInterval(startPath, endPath);
     }
-
 }

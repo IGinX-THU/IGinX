@@ -33,7 +33,11 @@ public class SortUtils {
             tempPaths.add("*");
             return tempPaths;
         }
-        List<String> prefixes = paths.stream().filter(x -> x.contains("*")).map(x -> x.substring(0, x.indexOf("*"))).collect(Collectors.toList());
+        List<String> prefixes =
+                paths.stream()
+                        .filter(x -> x.contains("*"))
+                        .map(x -> x.substring(0, x.indexOf("*")))
+                        .collect(Collectors.toList());
         if (prefixes.isEmpty()) {
             Collections.sort(paths);
             return paths;
@@ -56,7 +60,8 @@ public class SortUtils {
                 mergedPaths.add(path);
             }
         }
-        mergedPaths.sort(Comparator.comparing(o -> o.contains("*") ? o.substring(0, o.indexOf("*")) : o));
+        mergedPaths.sort(
+                Comparator.comparing(o -> o.contains("*") ? o.substring(0, o.indexOf("*")) : o));
         return mergedPaths;
     }
 }

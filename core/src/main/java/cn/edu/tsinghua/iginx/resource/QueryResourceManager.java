@@ -19,7 +19,6 @@
 package cn.edu.tsinghua.iginx.resource;
 
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
-
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -50,7 +49,5 @@ public class QueryResourceManager {
     private static class QueryManagerHolder {
 
         private static final QueryResourceManager INSTANCE = new QueryResourceManager();
-
     }
-
 }

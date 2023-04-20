@@ -21,7 +21,6 @@ package cn.edu.tsinghua.iginx.engine.shared.operator.filter;
 import cn.edu.tsinghua.iginx.exceptions.SQLParserException;
 
 public enum Op {
-
     GE,
     G,
     LE,
@@ -29,7 +28,6 @@ public enum Op {
     E,
     NE,
     LIKE;
-
 
     public static Op getOpposite(Op op) {
         switch (op) {
@@ -84,7 +82,8 @@ public enum Op {
             case "like":
                 return LIKE;
             default:
-                throw new SQLParserException(String.format("Not support comparison operator %s", op));
+                throw new SQLParserException(
+                        String.format("Not support comparison operator %s", op));
         }
     }
 
@@ -108,5 +107,4 @@ public enum Op {
                 return "";
         }
     }
-
 }

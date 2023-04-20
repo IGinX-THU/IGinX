@@ -70,6 +70,5 @@ public class ClearEmptyRowStreamWrapper implements RowStream {
             }
             nextRow = stream.next();
         } while (nextRow.isEmpty());
-
     }
 }

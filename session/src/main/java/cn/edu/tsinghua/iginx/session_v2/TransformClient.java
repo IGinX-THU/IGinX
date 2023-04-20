@@ -10,5 +10,4 @@ public interface TransformClient {
     JobState queryTransformJobStatus(long jobId);
 
     void cancelTransformJob(long jobId);
-
 }

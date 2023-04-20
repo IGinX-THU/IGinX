@@ -18,24 +18,19 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.function.system;
 
-import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionType;
 import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
 import cn.edu.tsinghua.iginx.engine.shared.function.SetMappingFunction;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils;
-import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.regex.Pattern;
-
-import static cn.edu.tsinghua.iginx.engine.shared.Constants.PARAM_PATHS;
 
 public class Min implements SetMappingFunction {
 
@@ -43,8 +38,7 @@ public class Min implements SetMappingFunction {
 
     private static final Min INSTANCE = new Min();
 
-    private Min() {
-    }
+    private Min() {}
 
     public static Min getInstance() {
         return INSTANCE;
@@ -66,15 +60,13 @@ public class Min implements SetMappingFunction {
     }
 
     @Override
-    public Row transform(RowStream rows, Map<String, Value> params) throws Exception {
-        if (params.size() != 1) {
-            throw new IllegalArgumentException("unexpected params for max.");
+    public Row transform(RowStream rows, FunctionParams params) throws Exception {
+        List<String> pathParams = params.getPaths();
+        if (pathParams == null || pathParams.size() != 1) {
+            throw new IllegalArgumentException("unexpected param type for avg.");
         }
-        Value param = params.get(PARAM_PATHS);
-        if (param == null || param.getDataType() != DataType.BINARY) {
-            throw new IllegalArgumentException("unexpected param type for max.");
-        }
-        String target = param.getBinaryVAsString();
+
+        String target = pathParams.get(0);
         Pattern pattern = Pattern.compile(StringUtils.reformatPath(target) + ".*");
         List<Field> targetFields = new ArrayList<>();
         List<Integer> indices = new ArrayList<>();
@@ -96,7 +88,10 @@ public class Min implements SetMappingFunction {
                 if (targetValues[i] == null) {
                     targetValues[i] = value;
                 } else {
-                    if (value != null && ValueUtils.compare(targetValues[i], value, targetFields.get(i).getType()) > 0) {
+                    if (value != null
+                            && ValueUtils.compare(
+                                            targetValues[i], value, targetFields.get(i).getType())
+                                    > 0) {
                         targetValues[i] = value;
                     }
                 }
@@ -104,5 +99,4 @@ public class Min implements SetMappingFunction {
         }
         return new Row(new Header(targetFields), targetValues);
     }
-
 }

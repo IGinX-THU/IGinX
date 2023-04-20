@@ -14,13 +14,21 @@ import java.util.regex.Pattern;
 public class Utils {
 
     private static final Pattern URL_PATTERN = Pattern.compile("([^:]+):([0-9]{1,5})/?");
-    private static final DateTimeFormatter milliSecFormatter = new DateTimeFormatterBuilder().appendPattern("yyyy-MM-dd HH:mm:ss.SSS").toFormatter();
-    private static final DateTimeFormatter microSecFormatter = new DateTimeFormatterBuilder().appendPattern("yyyy-MM-dd HH:mm:ss.SSSSSS").toFormatter();
-    private static final DateTimeFormatter nanoSecFormatter = new DateTimeFormatterBuilder().appendPattern("yyyy-MM-dd HH:mm:ss.SSSSSSSSS").toFormatter();
+    private static final DateTimeFormatter milliSecFormatter =
+            new DateTimeFormatterBuilder().appendPattern("yyyy-MM-dd HH:mm:ss.SSS").toFormatter();
+    private static final DateTimeFormatter microSecFormatter =
+            new DateTimeFormatterBuilder()
+                    .appendPattern("yyyy-MM-dd HH:mm:ss.SSSSSS")
+                    .toFormatter();
+    private static final DateTimeFormatter nanoSecFormatter =
+            new DateTimeFormatterBuilder()
+                    .appendPattern("yyyy-MM-dd HH:mm:ss.SSSSSSSSS")
+                    .toFormatter();
 
     // The only support format of the URL is:
     // jdbc:iginx://localhost:6667/
-    public static IginXConnectionParams parseUrl(String url, Properties info) throws IginxUrlException {
+    public static IginXConnectionParams parseUrl(String url, Properties info)
+            throws IginxUrlException {
         IginXConnectionParams params = new IginXConnectionParams();
 
         url = url.trim();
@@ -39,8 +47,9 @@ public class Utils {
         }
 
         if (!isUrlLegal) {
-            throw new IginxUrlException("Error url format, " +
-                "url should be jdbc:iginx://ip:port/ or jdbc:iginx://ip:port");
+            throw new IginxUrlException(
+                    "Error url format, "
+                            + "url should be jdbc:iginx://ip:port/ or jdbc:iginx://ip:port");
         }
 
         params.setHost(matcher.group(1));
@@ -88,38 +97,42 @@ public class Utils {
         return null;
     }
 
-    private static LocalDateTime parseMilliSecTimestamp(String timeStampStr) throws DateTimeParseException {
+    private static LocalDateTime parseMilliSecTimestamp(String timeStampStr)
+            throws DateTimeParseException {
         return LocalDateTime.parse(timeStampStr, milliSecFormatter);
     }
 
-    private static LocalDateTime parseMicroSecTimestamp(String timeStampStr) throws DateTimeParseException {
+    private static LocalDateTime parseMicroSecTimestamp(String timeStampStr)
+            throws DateTimeParseException {
         return LocalDateTime.parse(timeStampStr, microSecFormatter);
     }
 
-    private static LocalDateTime parseNanoSecTimestamp(String timeStampStr) throws DateTimeParseException {
+    private static LocalDateTime parseNanoSecTimestamp(String timeStampStr)
+            throws DateTimeParseException {
         return LocalDateTime.parse(timeStampStr, nanoSecFormatter);
     }
 
     public static String formatTimestamp(Timestamp timestamp) {
         int nanos = timestamp.getNanos();
-        if (nanos % 1000000L != 0)
-            return timestamp.toLocalDateTime().format(microSecFormatter);
+        if (nanos % 1000000L != 0) return timestamp.toLocalDateTime().format(microSecFormatter);
         return timestamp.toLocalDateTime().format(milliSecFormatter);
     }
 
     public static byte[] IntToByteArray(int value) {
-        return new byte[]{(byte)(value >> 24), (byte)(value >> 16), (byte)(value >> 8), (byte)value};
+        return new byte[] {
+            (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value
+        };
     }
 
     public static byte[] ShortToByteArray(short value) {
-        return new byte[]{(byte)(value >> 8), (byte)value};
+        return new byte[] {(byte) (value >> 8), (byte) value};
     }
 
     public static byte[] LongToByteArray(long value) {
         byte[] result = new byte[8];
 
-        for(int i = 7; i >= 0; --i) {
-            result[i] = (byte)((int)(value & 255L));
+        for (int i = 7; i >= 0; --i) {
+            result[i] = (byte) ((int) (value & 255L));
             value >>= 8;
         }
 

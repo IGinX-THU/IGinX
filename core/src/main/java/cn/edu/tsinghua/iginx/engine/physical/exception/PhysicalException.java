@@ -22,8 +22,7 @@ public class PhysicalException extends Exception {
 
     private static final long serialVersionUID = -1547005178512213280L;
 
-    public PhysicalException() {
-    }
+    public PhysicalException() {}
 
     public PhysicalException(String message) {
         super(message);
@@ -37,7 +36,11 @@ public class PhysicalException extends Exception {
         super(cause);
     }
 
-    public PhysicalException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
+    public PhysicalException(
+            String message,
+            Throwable cause,
+            boolean enableSuppression,
+            boolean writableStackTrace) {
         super(message, cause, enableSuppression, writableStackTrace);
     }
 }

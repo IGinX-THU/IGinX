@@ -22,7 +22,6 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.UnaryOperator;
 import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
 import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
-
 import java.util.List;
 
 public class StoragePhysicalTask extends AbstractPhysicalTask {
@@ -35,14 +34,26 @@ public class StoragePhysicalTask extends AbstractPhysicalTask {
     private boolean dummyStorageUnit;
 
     public StoragePhysicalTask(List<Operator> operators) {
-        this(operators, ((FragmentSource) ((UnaryOperator) operators.get(0)).getSource()).getFragment(), true, false);
+        this(
+                operators,
+                ((FragmentSource) ((UnaryOperator) operators.get(0)).getSource()).getFragment(),
+                true,
+                false);
     }
 
     public StoragePhysicalTask(List<Operator> operators, boolean sync, boolean needBroadcasting) {
-        this(operators, ((FragmentSource) ((UnaryOperator) operators.get(0)).getSource()).getFragment(), sync, needBroadcasting);
+        this(
+                operators,
+                ((FragmentSource) ((UnaryOperator) operators.get(0)).getSource()).getFragment(),
+                sync,
+                needBroadcasting);
     }
 
-    public StoragePhysicalTask(List<Operator> operators, FragmentMeta targetFragment, boolean sync, boolean needBroadcasting) {
+    public StoragePhysicalTask(
+            List<Operator> operators,
+            FragmentMeta targetFragment,
+            boolean sync,
+            boolean needBroadcasting) {
         super(TaskType.Storage, operators);
         this.targetFragment = targetFragment;
         this.sync = sync;
@@ -87,10 +98,14 @@ public class StoragePhysicalTask extends AbstractPhysicalTask {
 
     @Override
     public String toString() {
-        return "StoragePhysicalTask{" +
-            "targetFragment=" + targetFragment +
-            ", storageUnit='" + storageUnit + '\'' +
-            ", storage=" + storage +
-            '}';
+        return "StoragePhysicalTask{"
+                + "targetFragment="
+                + targetFragment
+                + ", storageUnit='"
+                + storageUnit
+                + '\''
+                + ", storage="
+                + storage
+                + '}';
     }
 }

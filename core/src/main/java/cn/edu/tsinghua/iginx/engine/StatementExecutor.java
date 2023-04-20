@@ -16,7 +16,6 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
 import cn.edu.tsinghua.iginx.engine.physical.task.BinaryMemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.MultipleMemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
-import cn.edu.tsinghua.iginx.engine.physical.task.StoragePhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskType;
 import cn.edu.tsinghua.iginx.engine.physical.task.UnaryMemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
@@ -78,26 +77,26 @@ import org.slf4j.LoggerFactory;
 
 public class StatementExecutor {
 
-    private final static Logger logger = LoggerFactory.getLogger(StatementExecutor.class);
+    private static final Logger logger = LoggerFactory.getLogger(StatementExecutor.class);
 
-    private final static Config config = ConfigDescriptor.getInstance().getConfig();
+    private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
-    private final static StatementBuilder builder = StatementBuilder.getInstance();
+    private static final StatementBuilder builder = StatementBuilder.getInstance();
 
-    private final static PhysicalEngine engine = PhysicalEngineImpl.getInstance();
+    private static final PhysicalEngine engine = PhysicalEngineImpl.getInstance();
 
-    private final static ConstraintChecker checker = ConstraintCheckerManager.getInstance()
-        .getChecker(config.getConstraintChecker());
-    private final static ConstraintManager constraintManager = engine.getConstraintManager();
+    private static final ConstraintChecker checker =
+            ConstraintCheckerManager.getInstance().getChecker(config.getConstraintChecker());
+    private static final ConstraintManager constraintManager = engine.getConstraintManager();
 
-    private final static ResourceManager resourceManager = ResourceManager.getInstance();
+    private static final ResourceManager resourceManager = ResourceManager.getInstance();
 
-    private final static Map<StatementType, List<LogicalGenerator>> generatorMap = new HashMap<>();
+    private static final Map<StatementType, List<LogicalGenerator>> generatorMap = new HashMap<>();
 
-    private final static List<LogicalGenerator> queryGeneratorList = new ArrayList<>();
-    private final static List<LogicalGenerator> deleteGeneratorList = new ArrayList<>();
-    private final static List<LogicalGenerator> insertGeneratorList = new ArrayList<>();
-    private final static List<LogicalGenerator> showTSGeneratorList = new ArrayList<>();
+    private static final List<LogicalGenerator> queryGeneratorList = new ArrayList<>();
+    private static final List<LogicalGenerator> deleteGeneratorList = new ArrayList<>();
+    private static final List<LogicalGenerator> insertGeneratorList = new ArrayList<>();
+    private static final List<LogicalGenerator> showTSGeneratorList = new ArrayList<>();
 
     private final List<PreParseProcessor> preParseProcessors = new ArrayList<>();
     private final List<PostParseProcessor> postParseProcessors = new ArrayList<>();
@@ -110,7 +109,7 @@ public class StatementExecutor {
 
     private static class StatementExecutorHolder {
 
-        private final static StatementExecutor instance = new StatementExecutor();
+        private static final StatementExecutor instance = new StatementExecutor();
     }
 
     static {
@@ -127,12 +126,16 @@ public class StatementExecutor {
         registerGenerator(ShowTimeSeriesGenerator.getInstance());
 
         try {
-            String statisticsCollectorClassName = ConfigDescriptor.getInstance().getConfig()
-                .getStatisticsCollectorClassName();
+            String statisticsCollectorClassName =
+                    ConfigDescriptor.getInstance().getConfig().getStatisticsCollectorClassName();
             if (statisticsCollectorClassName != null && !statisticsCollectorClassName.equals("")) {
-                Class<? extends IStatisticsCollector> statisticsCollectorClass = StatementExecutor.class.getClassLoader().
-                    loadClass(statisticsCollectorClassName).asSubclass(IStatisticsCollector.class);
-                IStatisticsCollector statisticsCollector = statisticsCollectorClass.getConstructor().newInstance();
+                Class<? extends IStatisticsCollector> statisticsCollectorClass =
+                        StatementExecutor.class
+                                .getClassLoader()
+                                .loadClass(statisticsCollectorClassName)
+                                .asSubclass(IStatisticsCollector.class);
+                IStatisticsCollector statisticsCollector =
+                        statisticsCollectorClass.getConstructor().newInstance();
                 registerPreParseProcessor(statisticsCollector.getPreParseProcessor());
                 registerPostParseProcessor(statisticsCollector.getPostParseProcessor());
                 registerPreLogicalProcessor(statisticsCollector.getPreLogicalProcessor());
@@ -143,7 +146,11 @@ public class StatementExecutor {
                 registerPostExecuteProcessor(statisticsCollector.getPostExecuteProcessor());
                 statisticsCollector.startBroadcasting();
             }
-        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
+        } catch (ClassNotFoundException
+                | InstantiationException
+                | IllegalAccessException
+                | NoSuchMethodException
+                | InvocationTargetException e) {
             logger.error("initial statistics collector error: ", e);
         }
     }
@@ -247,8 +254,9 @@ public class StatementExecutor {
         } catch (Exception e) {
             e.printStackTrace();
             StatusCode statusCode = StatusCode.STATEMENT_EXECUTION_ERROR;
-            String errMsg = "Execute Error: encounter error(s) when executing sql statement, " +
-                "see server log for more details.";
+            String errMsg =
+                    "Execute Error: encounter error(s) when executing sql statement, "
+                            + "see server log for more details.";
             ctx.setResult(new Result(RpcUtils.status(statusCode, errMsg)));
         } finally {
             ctx.getResult().setSqlType(ctx.getSqlType());
@@ -281,7 +289,7 @@ public class StatementExecutor {
                         return;
                     default:
                         throw new ExecutionException(
-                            String.format("Execute Error: unknown statement type [%s].", type));
+                                String.format("Execute Error: unknown statement type [%s].", type));
                 }
             } else {
                 ((SystemStatement) statement).execute(ctx);
@@ -291,8 +299,8 @@ public class StatementExecutor {
             ctx.setResult(new Result(RpcUtils.status(statusCode, e.getMessage())));
         } catch (Exception e) {
             logger.error(
-                "unexpected exception during dispatcher memory task, please contact developer to check: ",
-                e);
+                    "unexpected exception during dispatcher memory task, please contact developer to check: ",
+                    e);
             StatusCode statusCode = StatusCode.SYSTEM_ERROR;
             ctx.setResult(new Result(RpcUtils.status(statusCode, e.getMessage())));
         }
@@ -334,16 +342,17 @@ public class StatementExecutor {
     }
 
     private void processExplainLogicalStatement(RequestContext ctx, Operator root)
-        throws PhysicalException, ExecutionException {
-        List<Field> fields = new ArrayList<>(Arrays.asList(
-            new Field("Logical Tree", DataType.BINARY),
-            new Field("Operator Type", DataType.BINARY),
-            new Field("Operator Info", DataType.BINARY)
-        ));
+            throws PhysicalException, ExecutionException {
+        List<Field> fields =
+                new ArrayList<>(
+                        Arrays.asList(
+                                new Field("Logical Tree", DataType.BINARY),
+                                new Field("Operator Type", DataType.BINARY),
+                                new Field("Operator Info", DataType.BINARY)));
         Header header = new Header(fields);
 
         List<Object[]> cache = new ArrayList<>();
-        int[] maxLen = new int[]{0};
+        int[] maxLen = new int[] {0};
         dfsLogicalTree(cache, root, 0, maxLen);
         formatTree(ctx, header, cache, maxLen[0]);
     }
@@ -386,27 +395,28 @@ public class StatementExecutor {
             MultipleOperator multipleOp = (MultipleOperator) op;
             for (Source source : multipleOp.getSources()) {
                 if (source.getType() == SourceType.Operator) {
-                    dfsLogicalTree(cache, ((OperatorSource) source).getOperator(), depth + 1,
-                        maxLen);
+                    dfsLogicalTree(
+                            cache, ((OperatorSource) source).getOperator(), depth + 1, maxLen);
                 }
             }
         }
     }
 
     private void processExplainPhysicalStatement(RequestContext ctx)
-        throws PhysicalException, ExecutionException {
+            throws PhysicalException, ExecutionException {
         PhysicalTask root = ctx.getPhysicalTree();
-        List<Field> fields = new ArrayList<>(Arrays.asList(
-            new Field("Physical Tree", DataType.BINARY),
-            new Field("Execute Time", DataType.BINARY),
-            new Field("Task Type", DataType.BINARY),
-            new Field("Task Info", DataType.BINARY),
-            new Field("Affect Rows", DataType.INTEGER)
-        ));
+        List<Field> fields =
+                new ArrayList<>(
+                        Arrays.asList(
+                                new Field("Physical Tree", DataType.BINARY),
+                                new Field("Execute Time", DataType.BINARY),
+                                new Field("Task Type", DataType.BINARY),
+                                new Field("Task Info", DataType.BINARY),
+                                new Field("Affect Rows", DataType.INTEGER)));
         Header header = new Header(fields);
 
         List<Object[]> cache = new ArrayList<>();
-        int[] maxLen = new int[]{0};
+        int[] maxLen = new int[] {0};
         dfsPhysicalTree(cache, root, 0, maxLen);
         formatTree(ctx, header, cache, maxLen[0]);
     }
@@ -448,7 +458,7 @@ public class StatementExecutor {
     }
 
     private void formatTree(RequestContext ctx, Header header, List<Object[]> cache, int maxLen)
-        throws PhysicalException, ExecutionException {
+            throws PhysicalException, ExecutionException {
         List<Row> rows = new ArrayList<>();
         for (Object[] rowValues : cache) {
             StringBuilder str = new StringBuilder(((String) rowValues[0]));
@@ -464,13 +474,13 @@ public class StatementExecutor {
     }
 
     private void processInsertFromSelect(RequestContext ctx)
-        throws ExecutionException, PhysicalException {
+            throws ExecutionException, PhysicalException {
         InsertFromSelectStatement statement = (InsertFromSelectStatement) ctx.getStatement();
 
         // step 1: select stage
         SelectStatement selectStatement = statement.getSubSelectStatement();
-        RequestContext subSelectContext = new RequestContext(ctx.getSessionId(), selectStatement,
-            true);
+        RequestContext subSelectContext =
+                new RequestContext(ctx.getSessionId(), selectStatement, true);
         process(subSelectContext);
 
         RowStream rowStream = subSelectContext.getResult().getResultStream();
@@ -479,28 +489,27 @@ public class StatementExecutor {
         InsertStatement insertStatement = statement.getSubInsertStatement();
         parseOldTagsFromHeader(rowStream.getHeader(), insertStatement);
         parseInsertValuesSpecFromRowStream(statement.getTimeOffset(), rowStream, insertStatement);
-        RequestContext subInsertContext = new RequestContext(ctx.getSessionId(), insertStatement,
-            ctx.isUseStream());
+        RequestContext subInsertContext =
+                new RequestContext(ctx.getSessionId(), insertStatement, ctx.isUseStream());
         process(subInsertContext);
 
         ctx.setResult(subInsertContext.getResult());
     }
 
     private void processCountPoints(RequestContext ctx)
-        throws ExecutionException, PhysicalException {
-        SelectStatement statement = new SelectStatement(
-            Collections.singletonList("*"),
-            0,
-            Long.MAX_VALUE,
-            AggregateType.COUNT);
+            throws ExecutionException, PhysicalException {
+        SelectStatement statement =
+                new SelectStatement(
+                        Collections.singletonList("*"), 0, Long.MAX_VALUE, AggregateType.COUNT);
         ctx.setStatement(statement);
         process(ctx);
 
         Result result = ctx.getResult();
         long pointsNum = 0;
         if (ctx.getResult().getValuesList() != null) {
-            Object[] row = ByteUtils
-                .getValuesByDataType(result.getValuesList().get(0), result.getDataTypes());
+            Object[] row =
+                    ByteUtils.getValuesByDataType(
+                            result.getValuesList().get(0), result.getDataTypes());
             pointsNum = Arrays.stream(row).mapToLong(e -> (Long) e).sum();
         }
 
@@ -508,13 +517,13 @@ public class StatementExecutor {
     }
 
     private void processDeleteTimeSeries(RequestContext ctx)
-        throws ExecutionException, PhysicalException {
-        DeleteTimeSeriesStatement deleteTimeSeriesStatement = (DeleteTimeSeriesStatement) ctx
-            .getStatement();
-        DeleteStatement deleteStatement = new DeleteStatement(
-            deleteTimeSeriesStatement.getPaths(),
-            deleteTimeSeriesStatement.getTagFilter()
-        );
+            throws ExecutionException, PhysicalException {
+        DeleteTimeSeriesStatement deleteTimeSeriesStatement =
+                (DeleteTimeSeriesStatement) ctx.getStatement();
+        DeleteStatement deleteStatement =
+                new DeleteStatement(
+                        deleteTimeSeriesStatement.getPaths(),
+                        deleteTimeSeriesStatement.getTagFilter());
         ctx.setStatement(deleteStatement);
         process(ctx);
     }
@@ -535,7 +544,7 @@ public class StatementExecutor {
     }
 
     private void setResult(RequestContext ctx, RowStream stream)
-        throws PhysicalException, ExecutionException {
+            throws PhysicalException, ExecutionException {
         Statement statement = ctx.getStatement();
         switch (statement.getType()) {
             case INSERT:
@@ -545,7 +554,7 @@ public class StatementExecutor {
                 DeleteStatement deleteStatement = (DeleteStatement) statement;
                 if (deleteStatement.isInvolveDummyData()) {
                     throw new ExecutionException(
-                        "Caution: can not clear the data of read-only node.");
+                            "Caution: can not clear the data of read-only node.");
                 } else {
                     ctx.setResult(new Result(RpcUtils.SUCCESS));
                 }
@@ -557,13 +566,15 @@ public class StatementExecutor {
                 setShowTSRowStreamResult(ctx, stream);
                 break;
             default:
-                throw new ExecutionException(String
-                    .format("Execute Error: unknown statement type [%s].", statement.getType()));
+                throw new ExecutionException(
+                        String.format(
+                                "Execute Error: unknown statement type [%s].",
+                                statement.getType()));
         }
     }
 
     private void setResultFromRowStream(RequestContext ctx, RowStream stream)
-        throws PhysicalException {
+            throws PhysicalException {
         if (ctx.isUseStream()) {
             Result result = new Result(RpcUtils.SUCCESS);
             result.setResultStream(stream);
@@ -573,15 +584,18 @@ public class StatementExecutor {
         List<String> paths = new ArrayList<>();
         List<Map<String, String>> tagsList = new ArrayList<>();
         List<DataType> types = new ArrayList<>();
-        stream.getHeader().getFields().forEach(field -> {
-            paths.add(field.getFullName());
-            types.add(field.getType());
-            if (field.getTags() == null) {
-                tagsList.add(new HashMap<>());
-            } else {
-                tagsList.add(field.getTags());
-            }
-        });
+        stream.getHeader()
+                .getFields()
+                .forEach(
+                        field -> {
+                            paths.add(field.getFullName());
+                            types.add(field.getType());
+                            if (field.getTags() == null) {
+                                tagsList.add(new HashMap<>());
+                            } else {
+                                tagsList.add(field.getTags());
+                            }
+                        });
 
         List<Long> timestampList = new ArrayList<>();
         List<ByteBuffer> valuesList = new ArrayList<>();
@@ -628,7 +642,7 @@ public class StatementExecutor {
     }
 
     private void setShowTSRowStreamResult(RequestContext ctx, RowStream stream)
-        throws PhysicalException {
+            throws PhysicalException {
         if (ctx.isUseStream()) {
             Result result = new Result(RpcUtils.SUCCESS);
             result.setResultStream(stream);
@@ -664,10 +678,10 @@ public class StatementExecutor {
     }
 
     private void parseOldTagsFromHeader(Header header, InsertStatement insertStatement)
-        throws PhysicalException, ExecutionException {
+            throws PhysicalException, ExecutionException {
         if (insertStatement.getPaths().size() != header.getFieldSize()) {
             throw new ExecutionException(
-                "Execute Error: Insert path size and value size must be equal.");
+                    "Execute Error: Insert path size and value size must be equal.");
         }
         List<Field> fields = header.getFields();
         List<Map<String, String>> tagsList = insertStatement.getTagsList();
@@ -685,12 +699,13 @@ public class StatementExecutor {
         }
     }
 
-    private void parseInsertValuesSpecFromRowStream(long offset, RowStream rowStream,
-        InsertStatement insertStatement) throws PhysicalException, ExecutionException {
+    private void parseInsertValuesSpecFromRowStream(
+            long offset, RowStream rowStream, InsertStatement insertStatement)
+            throws PhysicalException, ExecutionException {
         Header header = rowStream.getHeader();
         if (insertStatement.getPaths().size() != header.getFieldSize()) {
             throw new ExecutionException(
-                "Execute Error: Insert path size and value size must be equal.");
+                    "Execute Error: Insert path size and value size must be equal.");
         }
 
         List<DataType> types = new ArrayList<>();

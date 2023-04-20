@@ -8,8 +8,7 @@ public class IginXConnectionParams {
     private String username = Config.DEFAULT_USER;
     private String password = Config.DEFAULT_PASSWORD;
 
-    public IginXConnectionParams() {
-    }
+    public IginXConnectionParams() {}
 
     public String getHost() {
         return host;

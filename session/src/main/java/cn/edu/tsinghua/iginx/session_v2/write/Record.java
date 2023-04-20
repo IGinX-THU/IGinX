@@ -21,7 +21,6 @@ package cn.edu.tsinghua.iginx.session_v2.write;
 import cn.edu.tsinghua.iginx.session_v2.Arguments;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.TagKVUtils;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -41,7 +40,12 @@ public class Record {
 
     private final List<Object> values;
 
-    private Record(long key, List<String> measurements, List<Map<String, String>> tagsList, List<DataType> dataTypes, List<Object> values) {
+    private Record(
+            long key,
+            List<String> measurements,
+            List<Map<String, String>> tagsList,
+            List<DataType> dataTypes,
+            List<Object> values) {
         this.key = key;
         this.measurements = Collections.unmodifiableList(measurements);
         this.tagsList = tagsList;
@@ -216,7 +220,8 @@ public class Record {
             return addBooleanField(field, value, null);
         }
 
-        public Record.Builder addBooleanField(String field, Boolean value, Map<String, String> tags) {
+        public Record.Builder addBooleanField(
+                String field, Boolean value, Map<String, String> tags) {
             Arguments.checkNotNull(field, "field");
             int index = fieldIndexMap.getOrDefault(field, -1);
             if (index == -1) {
@@ -260,11 +265,12 @@ public class Record {
             }
             List<String> measurements = fields;
             if (measurement != null) {
-                measurements = fields.stream().map(e -> measurement + "." + e).collect(Collectors.toList());
+                measurements =
+                        fields.stream()
+                                .map(e -> measurement + "." + e)
+                                .collect(Collectors.toList());
             }
             return new Record(key, measurements, tagsList, dataTypes, values);
         }
-
     }
-
 }

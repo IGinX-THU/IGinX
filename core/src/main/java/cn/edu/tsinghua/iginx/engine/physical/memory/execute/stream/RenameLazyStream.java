@@ -7,7 +7,6 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Rename;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -31,21 +30,25 @@ public class RenameLazyStream extends UnaryLazyStream {
             Map<String, String> aliasMap = rename.getAliasMap();
 
             List<Field> fields = new ArrayList<>();
-            header.getFields().forEach(field -> {
-                String alias = "";
-                for (String oldName : aliasMap.keySet()) {
-                    Pattern pattern = Pattern.compile(StringUtils.reformatColumnName(oldName) + ".*");
-                    if (pattern.matcher(field.getFullName()).matches()) {
-                        alias = aliasMap.get(oldName);
-                        break;
-                    }
-                }
-                if (alias.equals("")) {
-                    fields.add(field);
-                } else {
-                    fields.add(new Field(alias, field.getType(), field.getTags()));
-                }
-            });
+            header.getFields()
+                    .forEach(
+                            field -> {
+                                String alias = "";
+                                for (String oldName : aliasMap.keySet()) {
+                                    Pattern pattern =
+                                            Pattern.compile(
+                                                    StringUtils.reformatColumnName(oldName) + ".*");
+                                    if (pattern.matcher(field.getFullName()).matches()) {
+                                        alias = aliasMap.get(oldName);
+                                        break;
+                                    }
+                                }
+                                if (alias.equals("")) {
+                                    fields.add(field);
+                                } else {
+                                    fields.add(new Field(alias, field.getType(), field.getTags()));
+                                }
+                            });
 
             this.header = new Header(header.getKey(), fields);
         }

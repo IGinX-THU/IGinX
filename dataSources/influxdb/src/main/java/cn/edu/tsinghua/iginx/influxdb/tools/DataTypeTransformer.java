@@ -1,12 +1,12 @@
 package cn.edu.tsinghua.iginx.influxdb.tools;
 
-import cn.edu.tsinghua.iginx.exceptions.UnsupportedDataTypeException;
-import cn.edu.tsinghua.iginx.thrift.DataType;
-
 import static cn.edu.tsinghua.iginx.thrift.DataType.BINARY;
 import static cn.edu.tsinghua.iginx.thrift.DataType.BOOLEAN;
 import static cn.edu.tsinghua.iginx.thrift.DataType.DOUBLE;
 import static cn.edu.tsinghua.iginx.thrift.DataType.LONG;
+
+import cn.edu.tsinghua.iginx.exceptions.UnsupportedDataTypeException;
+import cn.edu.tsinghua.iginx.thrift.DataType;
 
 public class DataTypeTransformer {
 

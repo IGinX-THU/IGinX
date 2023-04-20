@@ -304,36 +304,36 @@ IGinX、Rest、元数据管理三方面配置。
 
 #### IGinX 配置
 
-| 配置项                       | 描述                                  | 默认值                                                       |
-| ---------------------------- | ------------------------------------- | ------------------------------------------------------------ |
-| ip                           | iginx 绑定的 ip                       | 0.0.0.0                                                      |
-| port                         | iginx 绑定的端口                      | 6888                                                         |
-| username                     | iginx 本身的用户名                    | root                                                         |
-| password                     | iginx 本身的密码                      | root                                                         |
-| storageEngineList            | 时序数据库列表，使用','分隔不同实例   | 127.0.0.1#6667#iotdb#username=root#password=root#sessionPoolSize=100#dataDir=/path/to/your/data/ |
-| maxAsyncRetryTimes           | 异步请求最大重复次数                  | 3                                                            |
-| asyncExecuteThreadPool       | 异步执行并发数                        | 20                                                           |
-| syncExecuteThreadPool        | 同步执行并发数                        | 60                                                           |
-| replicaNum                   | 写入的副本个数                        | 1                                                            |
+|             配置项              |          描述          |                                                       默认值                                                        |
+|------------------------------|----------------------|------------------------------------------------------------------------------------------------------------------|
+| ip                           | iginx 绑定的 ip         | 0.0.0.0                                                                                                          |
+| port                         | iginx 绑定的端口          | 6888                                                                                                             |
+| username                     | iginx 本身的用户名         | root                                                                                                             |
+| password                     | iginx 本身的密码          | root                                                                                                             |
+| storageEngineList            | 时序数据库列表，使用','分隔不同实例  | 127.0.0.1#6667#iotdb#username=root#password=root#sessionPoolSize=100#dataDir=/path/to/your/data/                 |
+| maxAsyncRetryTimes           | 异步请求最大重复次数           | 3                                                                                                                |
+| asyncExecuteThreadPool       | 异步执行并发数              | 20                                                                                                               |
+| syncExecuteThreadPool        | 同步执行并发数              | 60                                                                                                               |
+| replicaNum                   | 写入的副本个数              | 1                                                                                                                |
 | databaseClassNames           | 底层数据库类名，使用','分隔不同数据库 | iotdb=cn.edu.tsinghua.iginx.iotdb.IoTDBPlanExecutor,influxdb=cn.edu.tsinghua.iginx.influxdb.InfluxDBPlanExecutor |
-| policyClassName              | 策略类名                              | cn.edu.tsinghua.iginx.policy.NativePolicy                    |
-| statisticsCollectorClassName | 统计信息收集类                        | cn.edu.tsinghua.iginx.statistics.StatisticsCollector         |
-| statisticsLogInterval        | 统计信息打印间隔，单位毫秒            | 1000                                                         |
+| policyClassName              | 策略类名                 | cn.edu.tsinghua.iginx.policy.NativePolicy                                                                        |
+| statisticsCollectorClassName | 统计信息收集类              | cn.edu.tsinghua.iginx.statistics.StatisticsCollector                                                             |
+| statisticsLogInterval        | 统计信息打印间隔，单位毫秒        | 1000                                                                                                             |
 
 #### Rest 配置
 
-| 配置项            | 描述               | 默认值  |
-| ----------------- | ------------------ | ------- |
-| restIp            | rest 绑定的 ip     | 0.0.0.0 |
-| restPort          | rest 绑定的端口    | 6666    |
+|        配置项        |      描述      |   默认值   |
+|-------------------|--------------|---------|
+| restIp            | rest 绑定的 ip  | 0.0.0.0 |
+| restPort          | rest 绑定的端口   | 6666    |
 | enableRestService | 是否启用 rest 服务 | true    |
 
 #### 元数据配置
 
-| 配置项                    | 描述                                                         | 默认值                |
-| ------------------------- | ------------------------------------------------------------ | --------------------- |
-| metaStorage               | 元数据存储类型，可选zookeeper, etcd 两种                   | zookeeper                  |
-| zookeeperConnectionString | 如果使用 zookeeper 作为元数据存储后端，需要提供              | 127.0.0.1:2181        |
+|            配置项            |                      描述                      |          默认值          |
+|---------------------------|----------------------------------------------|-----------------------|
+| metaStorage               | 元数据存储类型，可选zookeeper, etcd 两种                 | zookeeper             |
+| zookeeperConnectionString | 如果使用 zookeeper 作为元数据存储后端，需要提供                | 127.0.0.1:2181        |
 | etcdEndpoints             | 如果使用 etcd 作为元数据存储后端，需要提供，如果有多个 etcd 实例，以逗号分隔 | http://localhost:2379 |
 
 ## 访问
@@ -630,17 +630,18 @@ session.closeSession();
 
 ### 使用POM
 
-    <repositories>
-            <repository>
-                <id>github-release-repo</id>
-                <name>The Maven Repository on Github</name>
-                <url>https://github.com/IGinX-THU/IGinX/maven-repo/</url>
-            </repository>
-    </repositories>
-    <dependencies>
-        <dependency>
-            <groupId>cn.edu.tsinghua</groupId>
-            <artifactId>iginx-session</artifactId>
-            <version>0.5.1</version>
-        </dependency>
-    </dependencies>
+        <repositories>
+                <repository>
+                    <id>github-release-repo</id>
+                    <name>The Maven Repository on Github</name>
+                    <url>https://github.com/IGinX-THU/IGinX/maven-repo/</url>
+                </repository>
+        </repositories>
+        <dependencies>
+            <dependency>
+                <groupId>cn.edu.tsinghua</groupId>
+                <artifactId>iginx-session</artifactId>
+                <version>0.5.1</version>
+            </dependency>
+        </dependencies>
+

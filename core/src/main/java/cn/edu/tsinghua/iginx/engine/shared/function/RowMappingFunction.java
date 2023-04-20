@@ -18,13 +18,9 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.function;
 
-import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
-
-import java.util.Map;
 
 public interface RowMappingFunction extends Function {
 
-    Row transform(Row row, Map<String, Value> params) throws Exception;
-
+    Row transform(Row row, FunctionParams params) throws Exception;
 }

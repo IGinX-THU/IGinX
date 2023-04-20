@@ -18,16 +18,15 @@
  */
 package cn.edu.tsinghua.iginx.session;
 
+import static cn.edu.tsinghua.iginx.utils.ByteUtils.*;
+
 import cn.edu.tsinghua.iginx.thrift.DownsampleQueryResp;
 import cn.edu.tsinghua.iginx.thrift.LastQueryResp;
 import cn.edu.tsinghua.iginx.thrift.QueryDataResp;
 import cn.edu.tsinghua.iginx.thrift.ShowColumnsResp;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
-import static cn.edu.tsinghua.iginx.utils.ByteUtils.*;
 
 public class SessionQueryDataSet {
 
@@ -40,7 +39,11 @@ public class SessionQueryDataSet {
         this.paths = resp.getPaths();
         this.tagsList = resp.getTagsList();
         this.keys = getLongArrayFromByteBuffer(resp.queryDataSet.timestamps);
-        this.values = getValuesFromBufferAndBitmaps(resp.dataTypeList, resp.queryDataSet.valuesList, resp.queryDataSet.bitmapList);
+        this.values =
+                getValuesFromBufferAndBitmaps(
+                        resp.dataTypeList,
+                        resp.queryDataSet.valuesList,
+                        resp.queryDataSet.bitmapList);
     }
 
     public SessionQueryDataSet(ShowColumnsResp resp) {
@@ -52,7 +55,11 @@ public class SessionQueryDataSet {
         this.paths = resp.getPaths();
         this.tagsList = resp.getTagsList();
         this.keys = getLongArrayFromByteBuffer(resp.queryDataSet.timestamps);
-        this.values = getValuesFromBufferAndBitmaps(resp.dataTypeList, resp.queryDataSet.valuesList, resp.queryDataSet.bitmapList);
+        this.values =
+                getValuesFromBufferAndBitmaps(
+                        resp.dataTypeList,
+                        resp.queryDataSet.valuesList,
+                        resp.queryDataSet.bitmapList);
     }
 
     public SessionQueryDataSet(DownsampleQueryResp resp) {
@@ -60,7 +67,11 @@ public class SessionQueryDataSet {
         this.tagsList = resp.getTagsList();
         if (resp.queryDataSet != null) {
             this.keys = getLongArrayFromByteBuffer(resp.queryDataSet.timestamps);
-            this.values = getValuesFromBufferAndBitmaps(resp.dataTypeList, resp.queryDataSet.valuesList, resp.queryDataSet.bitmapList);
+            this.values =
+                    getValuesFromBufferAndBitmaps(
+                            resp.dataTypeList,
+                            resp.queryDataSet.valuesList,
+                            resp.queryDataSet.bitmapList);
         } else {
             this.keys = new long[0];
             values = new ArrayList<>();

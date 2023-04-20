@@ -18,23 +18,18 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.function.system;
 
-import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionType;
 import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
 import cn.edu.tsinghua.iginx.engine.shared.function.SetMappingFunction;
-import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.regex.Pattern;
-
-import static cn.edu.tsinghua.iginx.engine.shared.Constants.PARAM_PATHS;
 
 public class FirstValue implements SetMappingFunction {
 
@@ -42,8 +37,7 @@ public class FirstValue implements SetMappingFunction {
 
     private static final FirstValue INSTANCE = new FirstValue();
 
-    private FirstValue() {
-    }
+    private FirstValue() {}
 
     public static FirstValue getInstance() {
         return INSTANCE;
@@ -65,15 +59,13 @@ public class FirstValue implements SetMappingFunction {
     }
 
     @Override
-    public Row transform(RowStream rows, Map<String, Value> params) throws Exception {
-        if (params.size() != 1) {
-            throw new IllegalArgumentException("unexpected params for first value.");
+    public Row transform(RowStream rows, FunctionParams params) throws Exception {
+        List<String> pathParams = params.getPaths();
+        if (pathParams == null || pathParams.size() != 1) {
+            throw new IllegalArgumentException("unexpected param type for avg.");
         }
-        Value param = params.get(PARAM_PATHS);
-        if (param == null || param.getDataType() != DataType.BINARY) {
-            throw new IllegalArgumentException("unexpected param type for first value.");
-        }
-        String target = param.getBinaryVAsString();
+
+        String target = pathParams.get(0);
         List<Field> fields = rows.getHeader().getFields();
         Pattern pattern = Pattern.compile(StringUtils.reformatPath(target) + ".*");
         List<Field> targetFields = new ArrayList<>();
@@ -100,5 +92,4 @@ public class FirstValue implements SetMappingFunction {
         }
         return new Row(new Header(targetFields), targetValues);
     }
-
 }

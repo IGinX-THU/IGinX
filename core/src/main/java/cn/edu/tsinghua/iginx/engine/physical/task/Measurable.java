@@ -7,5 +7,4 @@ public interface Measurable {
     long getSpan();
 
     int getAffectedRows();
-
 }

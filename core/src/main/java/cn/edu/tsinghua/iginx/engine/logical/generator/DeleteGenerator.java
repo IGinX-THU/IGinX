@@ -18,20 +18,21 @@ import cn.edu.tsinghua.iginx.sql.statement.DeleteStatement;
 import cn.edu.tsinghua.iginx.sql.statement.Statement;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.SortUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DeleteGenerator extends AbstractGenerator {
     @SuppressWarnings("unused")
     private static final Logger logger = LoggerFactory.getLogger(InsertGenerator.class);
-    private final static DeleteGenerator instance = new DeleteGenerator();
-    private final static IMetaManager metaManager = DefaultMetaManager.getInstance();
-    private final IPolicy policy = PolicyManager.getInstance()
-        .getPolicy(ConfigDescriptor.getInstance().getConfig().getPolicyClassName());
+
+    private static final DeleteGenerator instance = new DeleteGenerator();
+    private static final IMetaManager metaManager = DefaultMetaManager.getInstance();
+    private final IPolicy policy =
+            PolicyManager.getInstance()
+                    .getPolicy(ConfigDescriptor.getInstance().getConfig().getPolicyClassName());
 
     private DeleteGenerator() {
         this.type = GeneratorType.Delete;
@@ -47,15 +48,20 @@ public class DeleteGenerator extends AbstractGenerator {
 
         policy.notify(deleteStatement);
 
-        List<String> pathList = SortUtils.mergeAndSortPaths(new ArrayList<>(deleteStatement.getPaths()));
+        List<String> pathList =
+                SortUtils.mergeAndSortPaths(new ArrayList<>(deleteStatement.getPaths()));
 
-        TimeSeriesRange interval = new TimeSeriesInterval(pathList.get(0), pathList.get(pathList.size() - 1));
+        TimeSeriesRange interval =
+                new TimeSeriesInterval(pathList.get(0), pathList.get(pathList.size() - 1));
 
-        Map<TimeSeriesRange, List<FragmentMeta>> fragments = metaManager.getFragmentMapByTimeSeriesInterval(interval);
+        Map<TimeSeriesRange, List<FragmentMeta>> fragments =
+                metaManager.getFragmentMapByTimeSeriesInterval(interval);
         if (fragments.isEmpty()) {
-            //on startup
-            Pair<List<FragmentMeta>, List<StorageUnitMeta>> fragmentsAndStorageUnits = policy.generateInitialFragmentsAndStorageUnits(deleteStatement);
-            metaManager.createInitialFragmentsAndStorageUnits(fragmentsAndStorageUnits.v, fragmentsAndStorageUnits.k);
+            // on startup
+            Pair<List<FragmentMeta>, List<StorageUnitMeta>> fragmentsAndStorageUnits =
+                    policy.generateInitialFragmentsAndStorageUnits(deleteStatement);
+            metaManager.createInitialFragmentsAndStorageUnits(
+                    fragmentsAndStorageUnits.v, fragmentsAndStorageUnits.k);
             fragments = metaManager.getFragmentMapByTimeSeriesInterval(interval);
         }
 
@@ -66,17 +72,33 @@ public class DeleteGenerator extends AbstractGenerator {
         TagFilter tagFilter = deleteStatement.getTagFilter();
 
         List<Delete> deleteList = new ArrayList<>();
-        fragments.forEach((k, v) -> v.forEach(fragmentMeta -> {
-            TimeInterval timeInterval = fragmentMeta.getTimeInterval();
-            if (deleteStatement.isDeleteAll()) {
-                deleteList.add(new Delete(new FragmentSource(fragmentMeta), null, pathList, tagFilter));
-            } else {
-                List<TimeRange> overlapTimeRange = getOverlapTimeRange(timeInterval, deleteStatement.getTimeRanges());
-                if (!overlapTimeRange.isEmpty()) {
-                    deleteList.add(new Delete(new FragmentSource(fragmentMeta), overlapTimeRange, pathList, tagFilter));
-                }
-            }
-        }));
+        fragments.forEach(
+                (k, v) ->
+                        v.forEach(
+                                fragmentMeta -> {
+                                    TimeInterval timeInterval = fragmentMeta.getTimeInterval();
+                                    if (deleteStatement.isDeleteAll()) {
+                                        deleteList.add(
+                                                new Delete(
+                                                        new FragmentSource(fragmentMeta),
+                                                        null,
+                                                        pathList,
+                                                        tagFilter));
+                                    } else {
+                                        List<TimeRange> overlapTimeRange =
+                                                getOverlapTimeRange(
+                                                        timeInterval,
+                                                        deleteStatement.getTimeRanges());
+                                        if (!overlapTimeRange.isEmpty()) {
+                                            deleteList.add(
+                                                    new Delete(
+                                                            new FragmentSource(fragmentMeta),
+                                                            overlapTimeRange,
+                                                            pathList,
+                                                            tagFilter));
+                                        }
+                                    }
+                                }));
 
         List<Source> sources = new ArrayList<>();
         deleteList.forEach(operator -> sources.add(new OperatorSource(operator)));
@@ -86,9 +108,8 @@ public class DeleteGenerator extends AbstractGenerator {
     private List<TimeRange> getOverlapTimeRange(TimeInterval interval, List<TimeRange> timeRanges) {
         List<TimeRange> res = new ArrayList<>();
         for (TimeRange range : timeRanges) {
-            if (interval.getStartTime() > range.getEndTime() ||
-                interval.getEndTime() < range.getBeginTime())
-                continue;
+            if (interval.getStartTime() > range.getEndTime()
+                    || interval.getEndTime() < range.getBeginTime()) continue;
             res.add(range);
         }
         return res;

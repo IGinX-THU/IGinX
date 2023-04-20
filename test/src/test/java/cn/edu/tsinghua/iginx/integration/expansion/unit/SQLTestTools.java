@@ -1,14 +1,14 @@
 package cn.edu.tsinghua.iginx.integration.expansion.unit;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 
 public class SQLTestTools {
 
@@ -31,12 +31,14 @@ public class SQLTestTools {
         }
 
         if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-            logger.error("Statement: \"{}\" execute fail. Caused by: {}.", statement, res.getParseErrorMsg());
+            logger.error(
+                    "Statement: \"{}\" execute fail. Caused by: {}.",
+                    statement,
+                    res.getParseErrorMsg());
             fail();
             return "";
         }
 
         return res.getResultInString(false, "");
     }
-
 }

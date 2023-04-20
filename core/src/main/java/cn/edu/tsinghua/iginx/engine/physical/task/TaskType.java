@@ -19,7 +19,6 @@
 package cn.edu.tsinghua.iginx.engine.physical.task;
 
 public enum TaskType {
-
     Storage,
     Global,
     Memory,
@@ -31,5 +30,4 @@ public enum TaskType {
     public static boolean isMemoryTask(TaskType type) {
         return type == MultipleMemory || type == BinaryMemory || type == UnaryMemory;
     }
-
 }

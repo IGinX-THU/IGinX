@@ -33,5 +33,4 @@ public abstract class AbstractFunctionClient {
         this.client = iginXClient.getClient();
         this.sessionId = iginXClient.getSessionId();
     }
-
 }

@@ -29,8 +29,11 @@ import cn.edu.tsinghua.iginx.utils.FormatUtils;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import org.apache.commons.cli.*;
 import org.jline.reader.Completer;
@@ -44,13 +47,7 @@ import org.jline.reader.impl.completer.StringsCompleter;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
-/**
- * args[]: -h 127.0.0.1 -p 6888 -u root -pw root
- */
+/** args[]: -h 127.0.0.1 -p 6888 -u root -pw root */
 public class IginxClient {
 
     private static final String IGINX_CLI_PREFIX = "IGinX> ";
@@ -90,8 +87,8 @@ public class IginxClient {
 
     private static int MAX_GETDATA_NUM = 100;
     private static String timestampPrecision = "";
-    private static final Set<String> legalTimeUnitSet = new HashSet<>(
-        Arrays.asList("week", "day", "hour", "min", "s", "ns", "us", "ns"));
+    private static final Set<String> legalTimeUnitSet =
+            new HashSet<>(Arrays.asList("week", "day", "hour", "min", "s", "ns", "us", "ns"));
 
     private static CommandLine commandLine;
     private static Session session;
@@ -102,8 +99,10 @@ public class IginxClient {
         options.addOption(HELP_ARGS, false, "Display help information(optional)");
         options.addOption(HOST_ARGS, HOST_NAME, true, "Host Name (optional, default 127.0.0.1)");
         options.addOption(PORT_ARGS, PORT_NAME, true, "Port (optional, default 6888)");
-        options.addOption(USERNAME_ARGS, USERNAME_NAME, true, "User name (optional, default \"root\")");
-        options.addOption(PASSWORD_ARGS, PASSWORD_NAME, true, "Password (optional, default \"root\")");
+        options.addOption(
+                USERNAME_ARGS, USERNAME_NAME, true, "User name (optional, default \"root\")");
+        options.addOption(
+                PASSWORD_ARGS, PASSWORD_NAME, true, "Password (optional, default \"root\")");
         options.addOption(EXECUTE_ARGS, EXECUTE_NAME, true, "Execute (optional)");
 
         return options;
@@ -119,8 +118,8 @@ public class IginxClient {
             }
         } catch (ParseException e) {
             System.out.println(
-                "Require more params input, eg. ./start-cli.sh(start-cli.bat if Windows) "
-                    + "-h xxx.xxx.xxx.xxx -p xxxx -u xxx -pw xxx.");
+                    "Require more params input, eg. ./start-cli.sh(start-cli.bat if Windows) "
+                            + "-h xxx.xxx.xxx.xxx -p xxxx -u xxx -pw xxx.");
             System.out.println("For more information, please check the following hint.");
             hf.printHelp(SCRIPT_HINT, options, true);
             return false;
@@ -136,8 +135,8 @@ public class IginxClient {
 
         if (args == null || args.length == 0) {
             System.out.println(
-                "Require more params input, eg. ./start-cli.sh(start-cli.bat if Windows) "
-                    + "-h xxx.xxx.xxx.xxx -p xxxx -u xxx -p xxx.");
+                    "Require more params input, eg. ./start-cli.sh(start-cli.bat if Windows) "
+                            + "-h xxx.xxx.xxx.xxx -p xxxx -u xxx -p xxx.");
             System.out.println("For more information, please check the following hint.");
             hf.printHelp(SCRIPT_HINT, options, true);
             return;
@@ -149,13 +148,15 @@ public class IginxClient {
         serve(args);
     }
 
-    private static String parseArg(String arg, String name, boolean isRequired, String defaultValue) {
+    private static String parseArg(
+            String arg, String name, boolean isRequired, String defaultValue) {
         String str = commandLine.getOptionValue(arg);
         if (str == null) {
             if (isRequired && defaultValue == null) {
                 String msg =
-                    String.format(
-                        "%s Required values for option '%s' not provided", IGINX_CLI_PREFIX, name);
+                        String.format(
+                                "%s Required values for option '%s' not provided",
+                                IGINX_CLI_PREFIX, name);
                 System.out.println(msg);
                 System.out.println("Use -help for more information");
                 throw new RuntimeException();
@@ -167,14 +168,13 @@ public class IginxClient {
 
     private static void serve(String[] args) {
         try {
-            Terminal terminal = TerminalBuilder.builder()
-                .system(true)
-                .build();
+            Terminal terminal = TerminalBuilder.builder().system(true).build();
 
-            LineReader reader = LineReaderBuilder.builder()
-                .terminal(terminal)
-                .completer(buildIginxCompleter())
-                .build();
+            LineReader reader =
+                    LineReaderBuilder.builder()
+                            .terminal(terminal)
+                            .completer(buildIginxCompleter())
+                            .build();
 
             host = parseArg(HOST_ARGS, HOST_NAME, false, "127.0.0.1");
             port = parseArg(PORT_ARGS, PORT_NAME, false, "6888");
@@ -264,8 +264,9 @@ public class IginxClient {
     private static void processSetTimeUnit(String sql) {
         String[] args = sql.split(" ");
         if (args.length != 5 || !legalTimeUnitSet.contains(args[4])) {
-            System.out.println("Legal clause: set time unit in xx, "
-                + "xx can be week, day, hour, min, s, ns, us, ns");
+            System.out.println(
+                    "Legal clause: set time unit in xx, "
+                            + "xx can be week, day, hour, min, s, ns, us, ns");
             return;
         }
         timestampPrecision = args[4];
@@ -312,8 +313,9 @@ public class IginxClient {
         } catch (SessionException | ExecutionException e) {
             System.out.println(e.getMessage());
         } catch (Exception e) {
-            System.out.println("Execute Error: encounter error(s) when executing sql statement, " +
-                "see server log for more details.");
+            System.out.println(
+                    "Execute Error: encounter error(s) when executing sql statement, "
+                            + "see server log for more details.");
         }
     }
 
@@ -331,8 +333,8 @@ public class IginxClient {
 
             while (res.hasMore()) {
                 System.out.printf(
-                    "Reach the max_display_num = %s. Press ENTER to show more, input 'q' to quit.",
-                    MAX_FETCH_SIZE);
+                        "Reach the max_display_num = %s. Press ENTER to show more, input 'q' to quit.",
+                        MAX_FETCH_SIZE);
                 BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
                 try {
                     if ("".equals(br.readLine())) {
@@ -355,12 +357,14 @@ public class IginxClient {
         } catch (SessionException | ExecutionException e) {
             System.out.println(e.getMessage());
         } catch (Exception e) {
-            System.out.println("Execute Error: encounter error(s) when executing sql statement, " +
-                "see server log for more details.");
+            System.out.println(
+                    "Execute Error: encounter error(s) when executing sql statement, "
+                            + "see server log for more details.");
         }
     }
 
-    private static List<List<String>> cacheResult(QueryDataSet queryDataSet) throws ExecutionException, SessionException {
+    private static List<List<String>> cacheResult(QueryDataSet queryDataSet)
+            throws ExecutionException, SessionException {
         boolean hasKey = queryDataSet.getColumnList().get(0).equals(GlobalConstant.KEY_NAME);
         List<List<String>> cache = new ArrayList<>();
         cache.add(new ArrayList<>(queryDataSet.getColumnList()));
@@ -371,12 +375,17 @@ public class IginxClient {
             Object[] nextRow = queryDataSet.nextRow();
             if (nextRow != null) {
                 if (hasKey && isSetTimeUnit()) {
-                    strRow.add(FormatUtils.formatTime((Long) nextRow[0], FormatUtils.DEFAULT_TIME_FORMAT, timestampPrecision));
+                    strRow.add(
+                            FormatUtils.formatTime(
+                                    (Long) nextRow[0],
+                                    FormatUtils.DEFAULT_TIME_FORMAT,
+                                    timestampPrecision));
                     for (int i = 1; i < nextRow.length; i++) {
                         strRow.add(FormatUtils.valueToString(nextRow[i]));
                     }
                 } else {
-                    Arrays.stream(nextRow).forEach(val -> strRow.add(FormatUtils.valueToString(val)));
+                    Arrays.stream(nextRow)
+                            .forEach(val -> strRow.add(FormatUtils.valueToString(val)));
                 }
                 cache.add(strRow);
                 rowIndex++;
@@ -407,32 +416,31 @@ public class IginxClient {
     private static Completer buildIginxCompleter() {
         List<Completer> iginxCompleters = new ArrayList<>();
 
-        List<List<String>> withNullCompleters = Arrays.asList(
-            Arrays.asList("insert", "into"),
-            Arrays.asList("delete", "from"),
-            Arrays.asList("delete", "time", "series"),
-            Arrays.asList("explain", "select"),
-            Arrays.asList("add", "storageengine"),
-            Arrays.asList("register", "python", "task"),
-            Arrays.asList("drop", "python", "task"),
-            Arrays.asList("commit", "transform", "job"),
-            Arrays.asList("show", "transform", "job", "status"),
-            Arrays.asList("cancel", "transform", "job"),
-            Arrays.asList("set", "time", "unit", "in"),
-
-            Collections.singletonList("select")
-        );
+        List<List<String>> withNullCompleters =
+                Arrays.asList(
+                        Arrays.asList("insert", "into"),
+                        Arrays.asList("delete", "from"),
+                        Arrays.asList("delete", "time", "series"),
+                        Arrays.asList("explain", "select"),
+                        Arrays.asList("add", "storageengine"),
+                        Arrays.asList("register", "python", "task"),
+                        Arrays.asList("drop", "python", "task"),
+                        Arrays.asList("commit", "transform", "job"),
+                        Arrays.asList("show", "transform", "job", "status"),
+                        Arrays.asList("cancel", "transform", "job"),
+                        Arrays.asList("set", "time", "unit", "in"),
+                        Collections.singletonList("select"));
         addArgumentCompleters(iginxCompleters, withNullCompleters, true);
 
-        List<List<String>> withoutNullCompleters = Arrays.asList(
-            Arrays.asList("show", "replica", "number"),
-            Arrays.asList("count", "points"),
-            Arrays.asList("clear", "data"),
-            Arrays.asList("show", "time", "series"),
-            Arrays.asList("show", "cluster", "info"),
-            Arrays.asList("show", "register", "python", "task"),
-            Arrays.asList("remove", "historyDataResource")
-        );
+        List<List<String>> withoutNullCompleters =
+                Arrays.asList(
+                        Arrays.asList("show", "replica", "number"),
+                        Arrays.asList("count", "points"),
+                        Arrays.asList("clear", "data"),
+                        Arrays.asList("show", "time", "series"),
+                        Arrays.asList("show", "cluster", "info"),
+                        Arrays.asList("show", "register", "python", "task"),
+                        Arrays.asList("remove", "historyDataResource"));
         addArgumentCompleters(iginxCompleters, withoutNullCompleters, false);
 
         List<String> singleCompleters = Arrays.asList("quit", "exit");
@@ -442,14 +450,18 @@ public class IginxClient {
         return iginxCompleter;
     }
 
-    private static void addSingleCompleters(List<Completer> iginxCompleters, List<String> completers) {
+    private static void addSingleCompleters(
+            List<Completer> iginxCompleters, List<String> completers) {
         for (String keyWord : completers) {
             iginxCompleters.add(new StringsCompleter(keyWord.toLowerCase()));
             iginxCompleters.add(new StringsCompleter(keyWord.toUpperCase()));
         }
     }
 
-    private static void addArgumentCompleters(List<Completer> iginxCompleters, List<List<String>> completers, boolean needNullCompleter) {
+    private static void addArgumentCompleters(
+            List<Completer> iginxCompleters,
+            List<List<String>> completers,
+            boolean needNullCompleter) {
         for (List<String> keyWords : completers) {
             List<Completer> upperCompleters = new ArrayList<>();
             List<Completer> lowerCompleters = new ArrayList<>();
@@ -476,17 +488,16 @@ public class IginxClient {
 
     public static void displayLogo(String version) {
         System.out.println(
-            "  _____        _        __   __\n" +
-                " |_   _|      (_)       \\ \\ / /\n" +
-                "   | |   __ _  _  _ __   \\ V / \n" +
-                "   | |  / _` || || '_ \\   > <  \n" +
-                "  _| |_| (_| || || | | | / . \\ \n" +
-                " |_____|\\__, ||_||_| |_|/_/ \\_\\\n" +
-                "         __/ |                 \n" +
-                "        |___/                       version " +
-                version +
-                "\n"
-        );
+                "  _____        _        __   __\n"
+                        + " |_   _|      (_)       \\ \\ / /\n"
+                        + "   | |   __ _  _  _ __   \\ V / \n"
+                        + "   | |  / _` || || '_ \\   > <  \n"
+                        + "  _| |_| (_| || || | | | / . \\ \n"
+                        + " |_____|\\__, ||_||_| |_|/_/ \\_\\\n"
+                        + "         __/ |                 \n"
+                        + "        |___/                       version "
+                        + version
+                        + "\n");
     }
 
     enum OperationResult {

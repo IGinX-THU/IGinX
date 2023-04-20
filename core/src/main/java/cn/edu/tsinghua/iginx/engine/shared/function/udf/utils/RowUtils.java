@@ -13,9 +13,10 @@ public class RowUtils {
     public static Header constructHeaderWithFirstTwoRows(List<List<Object>> res, boolean hasKey) {
         List<Field> targetFields = new ArrayList<>();
         for (int i = 0; i < res.get(0).size(); i++) {
-            targetFields.add(new Field(
-                (String) res.get(0).get(i),
-                TypeUtils.getDataTypeFromString((String) res.get(1).get(i))));
+            targetFields.add(
+                    new Field(
+                            (String) res.get(0).get(i),
+                            TypeUtils.getDataTypeFromString((String) res.get(1).get(i))));
         }
         return hasKey ? new Header(Field.KEY, targetFields) : new Header(targetFields);
     }
@@ -37,11 +38,13 @@ public class RowUtils {
         return constructNewRowWithKey(header, Row.NON_EXISTED_KEY, values);
     }
 
-    public static Table constructNewTable(Header header, List<List<Object>> values, int startIndex) {
-        List<Row> rowList = values.stream()
-            .skip(startIndex)
-            .map(row -> constructNewRow(header, row))
-            .collect(Collectors.toList());
+    public static Table constructNewTable(
+            Header header, List<List<Object>> values, int startIndex) {
+        List<Row> rowList =
+                values.stream()
+                        .skip(startIndex)
+                        .map(row -> constructNewRow(header, row))
+                        .collect(Collectors.toList());
         return new Table(header, rowList);
     }
 }

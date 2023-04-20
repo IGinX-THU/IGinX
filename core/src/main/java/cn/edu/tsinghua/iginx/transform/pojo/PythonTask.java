@@ -28,8 +28,8 @@ public class PythonTask extends Task {
     }
 
     // for test
-    public PythonTask(TaskType taskType, DataFlowType dataFlowType, long timeLimit,
-                      String pyTaskName) {
+    public PythonTask(
+            TaskType taskType, DataFlowType dataFlowType, long timeLimit, String pyTaskName) {
         super(taskType, dataFlowType, timeLimit);
         this.pyTaskName = pyTaskName.trim().toLowerCase();
     }

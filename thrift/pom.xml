@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xmlns="http://maven.apache.org/POM/4.0.0"
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
@@ -13,6 +12,24 @@
 
     <artifactId>iginx-thrift</artifactId>
     <name>IGinX Thrift</name>
+
+    <distributionManagement>
+        <repository>
+            <id>local-repo-release</id>
+            <name>GitHub Release</name>
+            <url>file://${project.basedir}/../maven-repo</url>
+        </repository>
+        <snapshotRepository>
+            <id>local-snapshot-repo-release</id>
+            <name>GitHub Release</name>
+            <url>file://${project.basedir}/../maven-snapshot-repo</url>
+        </snapshotRepository>
+    </distributionManagement>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <thrift.version>0.16.0</thrift.version>
+    </properties>
 
     <dependencies>
         <dependency>
@@ -34,25 +51,37 @@
         </dependency>
     </dependencies>
 
-    <properties>
-        <thrift.version>0.16.0</thrift.version>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
-
-    <distributionManagement>
-        <repository>
-            <id>local-repo-release</id>
-            <name>GitHub Release</name>
-            <url>file://${project.basedir}/../maven-repo</url>
-        </repository>
-        <snapshotRepository>
-            <id>local-snapshot-repo-release</id>
-            <name>GitHub Release</name>
-            <url>file://${project.basedir}/../maven-snapshot-repo</url>
-        </snapshotRepository>
-    </distributionManagement>
-
     <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.eclipse.m2e</groupId>
+                    <artifactId>lifecycle-mapping</artifactId>
+                    <version>1.0.0</version>
+                    <configuration>
+                        <lifecycleMappingMetadata>
+                            <pluginExecutions>
+                                <pluginExecution>
+                                    <pluginExecutionFilter>
+                                        <groupId>org.apache.thrift.tools</groupId>
+                                        <artifactId>maven-thrift-plugin</artifactId>
+                                        <versionRange>[0.1.10,)</versionRange>
+                                        <goals>
+                                            <goal>compile</goal>
+                                        </goals>
+                                    </pluginExecutionFilter>
+                                    <action>
+                                        <execute>
+                                            <runOnIncremental>false</runOnIncremental>
+                                        </execute>
+                                    </action>
+                                </pluginExecution>
+                            </pluginExecutions>
+                        </lifecycleMappingMetadata>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -70,36 +99,36 @@
                 <executions>
                     <execution>
                         <id>generate-thrift-sources-java</id>
-                        <phase>generate-sources</phase>
                         <goals>
                             <goal>compile</goal>
                         </goals>
+                        <phase>generate-sources</phase>
                         <configuration>
                             <generator>java</generator>
                             <outputDirectory>${project.build.directory}/generated-sources/thrift</outputDirectory>
                         </configuration>
                     </execution>
-<!--                    <execution>-->
-<!--                        <id>generate-thrift-sources-python</id>-->
-<!--                        <phase>generate-sources</phase>-->
-<!--                        <goals>-->
-<!--                            <goal>compile</goal>-->
-<!--                        </goals>-->
-<!--                        <configuration>-->
-<!--                            <generator>py</generator>-->
-<!--                        </configuration>-->
-<!--                    </execution>-->
-<!--                    <execution>-->
-<!--                        <id>generate-thrift-sources-go</id>-->
-<!--                        <phase>generate-sources</phase>-->
-<!--                        <goals>-->
-<!--                            <goal>compile</goal>-->
-<!--                        </goals>-->
-<!--                        <configuration>-->
-<!--                            <generator>go</generator>-->
-<!--                            <outputDirectory>${project.build.directory}/generated-sources/thrift</outputDirectory>-->
-<!--                        </configuration>-->
-<!--                    </execution>-->
+                    <!--                    <execution>-->
+                    <!--                        <id>generate-thrift-sources-python</id>-->
+                    <!--                        <phase>generate-sources</phase>-->
+                    <!--                        <goals>-->
+                    <!--                            <goal>compile</goal>-->
+                    <!--                        </goals>-->
+                    <!--                        <configuration>-->
+                    <!--                            <generator>py</generator>-->
+                    <!--                        </configuration>-->
+                    <!--                    </execution>-->
+                    <!--                    <execution>-->
+                    <!--                        <id>generate-thrift-sources-go</id>-->
+                    <!--                        <phase>generate-sources</phase>-->
+                    <!--                        <goals>-->
+                    <!--                            <goal>compile</goal>-->
+                    <!--                        </goals>-->
+                    <!--                        <configuration>-->
+                    <!--                            <generator>go</generator>-->
+                    <!--                            <outputDirectory>${project.build.directory}/generated-sources/thrift</outputDirectory>-->
+                    <!--                        </configuration>-->
+                    <!--                    </execution>-->
                 </executions>
             </plugin>
             <plugin>
@@ -109,10 +138,10 @@
                 <executions>
                     <execution>
                         <id>add-source</id>
-                        <phase>generate-sources</phase>
                         <goals>
                             <goal>add-source</goal>
                         </goals>
+                        <phase>generate-sources</phase>
                         <configuration>
                             <sources>
                                 <source>${project.build.directory}/generated-sources/thrift</source>
@@ -122,42 +151,6 @@
                 </executions>
             </plugin>
         </plugins>
-        <pluginManagement>
-            <plugins>
-                <plugin>
-                    <groupId>org.eclipse.m2e</groupId>
-                    <artifactId>lifecycle-mapping</artifactId>
-                    <version>1.0.0</version>
-                    <configuration>
-                        <lifecycleMappingMetadata>
-                            <pluginExecutions>
-                                <pluginExecution>
-                                    <pluginExecutionFilter>
-                                        <groupId>
-                                            org.apache.thrift.tools
-                                        </groupId>
-                                        <artifactId>
-                                            maven-thrift-plugin
-                                        </artifactId>
-                                        <versionRange>
-                                            [0.1.10,)
-                                        </versionRange>
-                                        <goals>
-                                            <goal>compile</goal>
-                                        </goals>
-                                    </pluginExecutionFilter>
-                                    <action>
-                                        <execute>
-                                            <runOnIncremental>false</runOnIncremental>
-                                        </execute>
-                                    </action>
-                                </pluginExecution>
-                            </pluginExecutions>
-                        </lifecycleMappingMetadata>
-                    </configuration>
-                </plugin>
-            </plugins>
-        </pluginManagement>
     </build>
 
     <profiles>
@@ -178,8 +171,7 @@
                 </file>
             </activation>
             <properties>
-                <thrift.exec.absolute.path>${project.build.directory}/tools/${thrift.executable}
-                </thrift.exec.absolute.path>
+                <thrift.exec.absolute.path>${project.build.directory}/tools/${thrift.executable}</thrift.exec.absolute.path>
             </properties>
             <build>
                 <plugins>
@@ -190,10 +182,10 @@
                         <executions>
                             <execution>
                                 <id>get-thrift-executable</id>
-                                <phase>generate-sources</phase>
                                 <goals>
                                     <goal>wget</goal>
                                 </goals>
+                                <phase>generate-sources</phase>
                                 <configuration>
                                     <url>${thrift.download-url}</url>
                                     <outputDirectory>${project.build.directory}/tools</outputDirectory>
@@ -209,10 +201,10 @@
                         <executions>
                             <execution>
                                 <id>make-thrift-executable-executable</id>
-                                <phase>generate-sources</phase>
                                 <goals>
                                     <goal>exec</goal>
                                 </goals>
+                                <phase>generate-sources</phase>
                                 <configuration>
                                     <skip>${thrift.skip-making-executable}</skip>
                                     <executable>${thrift.exec-cmd.executable}</executable>
@@ -228,14 +220,14 @@
                         <executions>
                             <execution>
                                 <id>generate-thrift-sources-java</id>
-                                <phase>generate-sources</phase>
                                 <goals>
                                     <goal>compile</goal>
                                 </goals>
+                                <phase>generate-sources</phase>
                                 <configuration>
                                     <generator>java</generator>
-<!--                                    <generator>py</generator>-->
-<!--                                    <generator>go</generator>-->
+                                    <!--                                    <generator>py</generator>-->
+                                    <!--                                    <generator>go</generator>-->
                                     <thriftExecutable>${thrift.exec.absolute.path}</thriftExecutable>
                                     <thriftSourceRoot>src/main/proto</thriftSourceRoot>
                                 </configuration>
@@ -253,13 +245,11 @@
                 </os>
             </activation>
             <properties>
-                <thrift.download-url>
-                    http://archive.apache.org/dist/thrift/${thrift.version}/thrift-${thrift.version}.exe
-                </thrift.download-url>
+                <thrift.download-url>http://archive.apache.org/dist/thrift/${thrift.version}/thrift-${thrift.version}.exe</thrift.download-url>
+                <thrift.exec-cmd.args>"Do nothing"</thrift.exec-cmd.args>
+                <thrift.exec-cmd.executable>echo</thrift.exec-cmd.executable>
                 <thrift.executable>thrift-${thrift.version}-win-x86_64.exe</thrift.executable>
                 <thrift.skip-making-executable>true</thrift.skip-making-executable>
-                <thrift.exec-cmd.executable>echo</thrift.exec-cmd.executable>
-                <thrift.exec-cmd.args>"Do nothing"</thrift.exec-cmd.args>
             </properties>
         </profile>
         <!-- Has to be listed before "mac" as it seems a mac is both "mac" and "unix" -->
@@ -271,14 +261,11 @@
                 </os>
             </activation>
             <properties>
-                <thrift.download-url>
-                    https://github.com/thulab/IginX-benchmarks/raw/main/resources/thrift_0.16.0_linux.exe
-                </thrift.download-url>
+                <thrift.download-url>https://github.com/thulab/IginX-benchmarks/raw/main/resources/thrift_0.16.0_linux.exe</thrift.download-url>
+                <thrift.exec-cmd.args>+x ${project.build.directory}/tools/${thrift.executable}</thrift.exec-cmd.args>
+                <thrift.exec-cmd.executable>chmod</thrift.exec-cmd.executable>
                 <thrift.executable>thrift_0.16.0_linux.exe</thrift.executable>
                 <thrift.skip-making-executable>false</thrift.skip-making-executable>
-                <thrift.exec-cmd.executable>chmod</thrift.exec-cmd.executable>
-                <thrift.exec-cmd.args>+x ${project.build.directory}/tools/${thrift.executable}
-                </thrift.exec-cmd.args>
             </properties>
         </profile>
         <profile>
@@ -289,14 +276,11 @@
                 </os>
             </activation>
             <properties>
-                <thrift.download-url>
-                    https://github.com/thulab/IginX-benchmarks/raw/main/resources/thrift_0.16.0_mac.exe
-                </thrift.download-url>
+                <thrift.download-url>https://github.com/thulab/IginX-benchmarks/raw/main/resources/thrift_0.16.0_mac.exe</thrift.download-url>
+                <thrift.exec-cmd.args>+x ${project.build.directory}/tools/${thrift.executable}</thrift.exec-cmd.args>
+                <thrift.exec-cmd.executable>chmod</thrift.exec-cmd.executable>
                 <thrift.executable>thrift_0.16.0_mac.exe</thrift.executable>
                 <thrift.skip-making-executable>false</thrift.skip-making-executable>
-                <thrift.exec-cmd.executable>chmod</thrift.exec-cmd.executable>
-                <thrift.exec-cmd.args>+x ${project.build.directory}/tools/${thrift.executable}
-                </thrift.exec-cmd.args>
             </properties>
         </profile>
     </profiles>

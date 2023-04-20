@@ -20,9 +20,12 @@ public class CurveMatchResult {
 
     @Override
     public String toString() {
-        return "CurveMatchResult{" +
-            "matchedTimestamp=" + matchedTimestamp +
-            ", matchedPath='" + matchedPath + '\'' +
-            '}';
+        return "CurveMatchResult{"
+                + "matchedTimestamp="
+                + matchedTimestamp
+                + ", matchedPath='"
+                + matchedPath
+                + '\''
+                + '}';
     }
 }

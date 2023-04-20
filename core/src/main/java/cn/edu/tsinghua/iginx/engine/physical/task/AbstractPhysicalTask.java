@@ -99,10 +99,11 @@ public abstract class AbstractPhysicalTask implements PhysicalTask {
 
     @Override
     public String getInfo() {
-        List<String> info = operators
-            .stream()
-            .map(op -> op.getType() + ":{" + op.getInfo() + "}")
-            .collect(Collectors.toList());
+        List<String> info =
+                operators
+                        .stream()
+                        .map(op -> op.getType() + ":{" + op.getInfo() + "}")
+                        .collect(Collectors.toList());
         return String.join(",", info);
     }
 }

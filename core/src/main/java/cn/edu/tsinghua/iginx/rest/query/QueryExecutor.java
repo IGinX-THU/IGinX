@@ -18,6 +18,8 @@
  */
 package cn.edu.tsinghua.iginx.rest.query;
 
+import static cn.edu.tsinghua.iginx.rest.RestUtils.*;
+
 import cn.edu.tsinghua.iginx.rest.RestSession;
 import cn.edu.tsinghua.iginx.rest.bean.Query;
 import cn.edu.tsinghua.iginx.rest.bean.QueryMetric;
@@ -26,15 +28,11 @@ import cn.edu.tsinghua.iginx.rest.bean.QueryResultDataset;
 import cn.edu.tsinghua.iginx.rest.query.aggregator.QueryAggregator;
 import cn.edu.tsinghua.iginx.rest.query.aggregator.QueryAggregatorNone;
 import cn.edu.tsinghua.iginx.rest.query.aggregator.QueryShowTimeSeries;
-
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.TimePrecision;
+import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.*;
-
-import static cn.edu.tsinghua.iginx.rest.RestUtils.*;
 
 public class QueryExecutor {
     public static final Logger LOGGER = LoggerFactory.getLogger(QueryExecutor.class);
@@ -71,13 +69,37 @@ public class QueryExecutor {
                 if (isDelete) {
                     RestSession session = new RestSession();
                     session.openSession();
-                    session.deleteDataInColumns(paths, queryMetric.getTags(), query.getStartAbsolute(), query.getEndAbsolute(), query.getTimePrecision());
+                    session.deleteDataInColumns(
+                            paths,
+                            queryMetric.getTags(),
+                            query.getStartAbsolute(),
+                            query.getEndAbsolute(),
+                            query.getTimePrecision());
                     session.closeSession();
                 } else if (queryMetric.getAggregators().size() == 0) {
-                    ret.addResultSet(new QueryAggregatorNone().doAggregate(session, paths, queryMetric.getTags(), query.getStartAbsolute(), query.getEndAbsolute(), query.getTimePrecision()), queryMetric, new QueryAggregatorNone());
+                    ret.addResultSet(
+                            new QueryAggregatorNone()
+                                    .doAggregate(
+                                            session,
+                                            paths,
+                                            queryMetric.getTags(),
+                                            query.getStartAbsolute(),
+                                            query.getEndAbsolute(),
+                                            query.getTimePrecision()),
+                            queryMetric,
+                            new QueryAggregatorNone());
                 } else {
                     for (QueryAggregator queryAggregator : queryMetric.getAggregators()) {
-                        ret.addResultSet(queryAggregator.doAggregate(session, paths, queryMetric.getTags(), query.getStartAbsolute(), query.getEndAbsolute(), query.getTimePrecision()), queryMetric, queryAggregator);
+                        ret.addResultSet(
+                                queryAggregator.doAggregate(
+                                        session,
+                                        paths,
+                                        queryMetric.getTags(),
+                                        query.getStartAbsolute(),
+                                        query.getEndAbsolute(),
+                                        query.getTimePrecision()),
+                                queryMetric,
+                                queryAggregator);
                     }
                 }
             }
@@ -100,25 +122,24 @@ public class QueryExecutor {
         return valStr;
     }
 
-
-    //结果通过引用传出
+    // 结果通过引用传出
     public void queryAnno(QueryResult anno) throws Exception {
         QueryResult title = new QueryResult(), description = new QueryResult();
         Query titleQuery = new Query();
         Query descriptionQuery = new Query();
-        boolean hasTitle = false,hasDescription = false;
+        boolean hasTitle = false, hasDescription = false;
         try {
-            for(int i=0; i<anno.getQueryResultDatasets().size(); i++) {
+            for (int i = 0; i < anno.getQueryResultDatasets().size(); i++) {
                 QueryResultDataset data = anno.getQueryResultDatasets().get(i);
-                if(data.getTimeLists().isEmpty()) continue;
+                if (data.getTimeLists().isEmpty()) continue;
                 int subLen = data.getTimeLists().size();
-                for(int j=0; j<subLen; j++) {
+                for (int j = 0; j < subLen; j++) {
                     List<Long> timeList = data.getTimeLists().get(j);
-                    for(int z=timeList.size()-1; z>=0;z--) {
-                        //这里减小了对时间查询的范围
-                        if(timeList.get(z) < DESCRIPTIONTIEM) break;
+                    for (int z = timeList.size() - 1; z >= 0; z--) {
+                        // 这里减小了对时间查询的范围
+                        if (timeList.get(z) < DESCRIPTIONTIEM) break;
 
-                        //将多种类型转换为Long
+                        // 将多种类型转换为Long
                         Long annoTime = getLongVal(data.getValueLists().get(j).get(z));
 
                         if (timeList.get(z).equals(TITLETIEM)) {
@@ -136,21 +157,36 @@ public class QueryExecutor {
                     metric.setName(ANNOTAIONSEQUENCE);
                     List<QueryMetric> metrics = new ArrayList<>();
                     metrics.add(metric);
-                    if(hasTitle) {
+                    if (hasTitle) {
                         titleQuery.setQueryMetrics(metrics);
                         titleQuery.setTimePrecision(TimePrecision.NS);
                         this.query = titleQuery;
                         title = execute(false);
-                        anno.getQueryResultDatasets().get(i).addTitle(getStringFromObject(title.getQueryResultDatasets().get(0).getValues().get(0)));
+                        anno.getQueryResultDatasets()
+                                .get(i)
+                                .addTitle(
+                                        getStringFromObject(
+                                                title.getQueryResultDatasets()
+                                                        .get(0)
+                                                        .getValues()
+                                                        .get(0)));
                     } else {
                         anno.getQueryResultDatasets().get(i).addTitle(new String());
                     }
-                    if(hasDescription) {
+                    if (hasDescription) {
                         descriptionQuery.setQueryMetrics(metrics);
                         descriptionQuery.setTimePrecision(TimePrecision.NS);
                         this.query = descriptionQuery;
                         description = execute(false);
-                        anno.getQueryResultDatasets().get(i).addDescription(getStringFromObject(description.getQueryResultDatasets().get(0).getValues().get(0)));
+                        anno.getQueryResultDatasets()
+                                .get(i)
+                                .addDescription(
+                                        getStringFromObject(
+                                                description
+                                                        .getQueryResultDatasets()
+                                                        .get(0)
+                                                        .getValues()
+                                                        .get(0)));
                     } else {
                         anno.getQueryResultDatasets().get(i).addDescription(new String());
                     }
@@ -166,39 +202,38 @@ public class QueryExecutor {
         RestSession restSession = new RestSession();
         restSession.openSession();
         List<String> ins = new ArrayList<>();
-        for(QueryMetric metric : query.getQueryMetrics()) {
+        for (QueryMetric metric : query.getQueryMetrics()) {
             ins.add(metric.getPathName());
         }
-        if(!ins.isEmpty())
-            restSession.deleteColumns(ins);
+        if (!ins.isEmpty()) restSession.deleteColumns(ins);
         restSession.closeSession();
     }
 
-    public DataType judgeObjectType(Object obj){
-        if (obj instanceof Boolean){
+    public DataType judgeObjectType(Object obj) {
+        if (obj instanceof Boolean) {
             return DataType.BOOLEAN;
-        }else if (obj instanceof Byte || obj instanceof String || obj instanceof Character){
+        } else if (obj instanceof Byte || obj instanceof String || obj instanceof Character) {
             return DataType.BINARY;
-        }else if (obj instanceof Long || obj instanceof Integer){
+        } else if (obj instanceof Long || obj instanceof Integer) {
             return DataType.LONG;
-        }else if (obj instanceof Double || obj instanceof Float){
+        } else if (obj instanceof Double || obj instanceof Float) {
             return DataType.DOUBLE;
         }
-        //否则默认字符串类型
+        // 否则默认字符串类型
         return DataType.BINARY;
     }
 
-    //错误返回-1
+    // 错误返回-1
     public Long getLongVal(Object val) {
         switch (judgeObjectType(val)) {
             case BINARY:
                 return Long.valueOf(new String((byte[]) val));
             case DOUBLE:
-                return Math.round((Double)(val));
+                return Math.round((Double) (val));
             case LONG:
-                return (Long)val;
+                return (Long) val;
             default:
-                return new Long(-1);//尽量不要传null
+                return new Long(-1); // 尽量不要传null
         }
     }
 }

@@ -2,7 +2,6 @@ package cn.edu.tsinghua.iginx.transform.pojo;
 
 import cn.edu.tsinghua.iginx.thrift.TaskInfo;
 import cn.edu.tsinghua.iginx.utils.TaskFromYAML;
-
 import java.util.ArrayList;
 import java.util.List;
 

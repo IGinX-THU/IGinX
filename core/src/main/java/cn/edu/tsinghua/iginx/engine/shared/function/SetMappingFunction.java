@@ -18,14 +18,10 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.function;
 
-import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 
-import java.util.Map;
-
 public interface SetMappingFunction extends Function {
 
-    Row transform(RowStream rows, Map<String, Value> params) throws Exception;
-
+    Row transform(RowStream rows, FunctionParams params) throws Exception;
 }

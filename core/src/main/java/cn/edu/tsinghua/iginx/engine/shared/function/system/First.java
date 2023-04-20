@@ -19,11 +19,11 @@
 package cn.edu.tsinghua.iginx.engine.shared.function.system;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
-import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionType;
 import cn.edu.tsinghua.iginx.engine.shared.function.MappingFunction;
 import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
@@ -31,12 +31,16 @@ import cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
-
-import static cn.edu.tsinghua.iginx.engine.shared.Constants.PARAM_PATHS;
 
 public class First implements MappingFunction {
 
@@ -48,8 +52,7 @@ public class First implements MappingFunction {
 
     private static final String VALUE = "value";
 
-    private First() {
-    }
+    private First() {}
 
     public static First getInstance() {
         return INSTANCE;
@@ -71,16 +74,19 @@ public class First implements MappingFunction {
     }
 
     @Override
-    public RowStream transform(RowStream rows, Map<String, Value> params) throws Exception {
-        if (params.size() != 1) {
-            throw new IllegalArgumentException("unexpected params for first.");
+    public RowStream transform(RowStream rows, FunctionParams params) throws Exception {
+        List<String> pathParams = params.getPaths();
+        if (pathParams == null || pathParams.size() != 1) {
+            throw new IllegalArgumentException("unexpected param type for avg.");
         }
-        Value param = params.get(PARAM_PATHS);
-        if (param == null || param.getDataType() != DataType.BINARY) {
-            throw new IllegalArgumentException("unexpected param type for first.");
-        }
-        String target = param.getBinaryVAsString();
-        Header header = new Header(Field.KEY, Arrays.asList(new Field(PATH, DataType.BINARY), new Field(VALUE, DataType.BINARY)));
+
+        String target = pathParams.get(0);
+        Header header =
+                new Header(
+                        Field.KEY,
+                        Arrays.asList(
+                                new Field(PATH, DataType.BINARY),
+                                new Field(VALUE, DataType.BINARY)));
         List<Row> resultRows = new ArrayList<>();
         Map<Integer, Pair<Long, Object>> valueMap = new HashMap<>();
         Pattern pattern = Pattern.compile(StringUtils.reformatPath(target) + ".*");
@@ -105,11 +111,22 @@ public class First implements MappingFunction {
             }
         }
         for (Map.Entry<Integer, Pair<Long, Object>> entry : valueMap.entrySet()) {
-            resultRows.add(new Row(header, entry.getValue().k, new Object[]{rows.getHeader().getField(entry.getKey()).getFullName().getBytes(StandardCharsets.UTF_8),
-                    ValueUtils.toString(entry.getValue().v, rows.getHeader().getField(entry.getKey()).getType()).getBytes(StandardCharsets.UTF_8)}));
+            resultRows.add(
+                    new Row(
+                            header,
+                            entry.getValue().k,
+                            new Object[] {
+                                rows.getHeader()
+                                        .getField(entry.getKey())
+                                        .getFullName()
+                                        .getBytes(StandardCharsets.UTF_8),
+                                ValueUtils.toString(
+                                                entry.getValue().v,
+                                                rows.getHeader().getField(entry.getKey()).getType())
+                                        .getBytes(StandardCharsets.UTF_8)
+                            }));
         }
         resultRows.sort(Comparator.comparingLong(Row::getKey));
         return new Table(header, resultRows);
     }
-
 }

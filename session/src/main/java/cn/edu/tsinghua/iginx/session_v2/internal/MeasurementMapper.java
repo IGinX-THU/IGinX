@@ -23,22 +23,21 @@ import cn.edu.tsinghua.iginx.session_v2.annotations.Field;
 import cn.edu.tsinghua.iginx.session_v2.annotations.Measurement;
 import cn.edu.tsinghua.iginx.session_v2.exception.IginXException;
 import cn.edu.tsinghua.iginx.session_v2.write.Record;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MeasurementMapper {
 
     private static final Logger logger = LoggerFactory.getLogger(MeasurementMapper.class);
 
-    private static final ConcurrentMap<String, ConcurrentMap<String, java.lang.reflect.Field>> CLASS_FIELD_CACHE
-            = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<String, ConcurrentMap<String, java.lang.reflect.Field>>
+            CLASS_FIELD_CACHE = new ConcurrentHashMap<>();
 
     <M> Record toRecord(final M measurement) throws IginXException {
         Arguments.checkNotNull(measurement, "measurement");
@@ -47,52 +46,66 @@ public class MeasurementMapper {
         cacheMeasurementClass(measurementType);
 
         if (measurementType.getAnnotation(Measurement.class) == null) {
-            String message = String
-                    .format("Measurement type '%s' does not have a @Measurement annotation.", measurementType);
+            String message =
+                    String.format(
+                            "Measurement type '%s' does not have a @Measurement annotation.",
+                            measurementType);
             throw new IginXException(message);
         }
 
         Record.Builder recordBuilder = Record.builder();
 
         recordBuilder.measurement(getMeasurementName(measurementType));
-        CLASS_FIELD_CACHE.get(measurementType.getName()).forEach((name, field) -> {
-            Field fieldAnnotation = field.getAnnotation(Field.class);
+        CLASS_FIELD_CACHE
+                .get(measurementType.getName())
+                .forEach(
+                        (name, field) -> {
+                            Field fieldAnnotation = field.getAnnotation(Field.class);
 
-            Object value;
-            try {
-                field.setAccessible(true);
-                value = field.get(measurement);
-            } catch (IllegalAccessException e) {
-                throw new IginXException(e);
-            }
+                            Object value;
+                            try {
+                                field.setAccessible(true);
+                                value = field.get(measurement);
+                            } catch (IllegalAccessException e) {
+                                throw new IginXException(e);
+                            }
 
-            if (value == null) {
-                logger.debug("Field {} of {} has null value", field.getName(), measurement);
-                return;
-            }
+                            if (value == null) {
+                                logger.debug(
+                                        "Field {} of {} has null value",
+                                        field.getName(),
+                                        measurement);
+                                return;
+                            }
 
-            Class<?> fieldType = field.getType();
-            if (fieldAnnotation.timestamp()) {
-                recordBuilder.key((Long) value);
-            } else if (Boolean.class.isAssignableFrom(fieldType) || boolean.class.isAssignableFrom(fieldType)) {
-                recordBuilder.addBooleanField(name, (Boolean) value);
-            } else if (Integer.class.isAssignableFrom(fieldType) || int.class.isAssignableFrom(fieldType)) {
-                recordBuilder.addIntField(name, (Integer) value);
-            } else if (Long.class.isAssignableFrom(fieldType) || long.class.isAssignableFrom(fieldType)) {
-                recordBuilder.addLongField(name, (Long) value);
-            } else if (Float.class.isAssignableFrom(fieldType) || float.class.isAssignableFrom(fieldType)) {
-                recordBuilder.addFloatField(name, (Float) value);
-            } else if (Double.class.isAssignableFrom(fieldType) || double.class.isAssignableFrom(fieldType)) {
-                recordBuilder.addDoubleField(name, (Double) value);
-            } else if (String.class.isAssignableFrom(fieldType)) {
-                recordBuilder.addBinaryField(name, ((String) value).getBytes(StandardCharsets.UTF_8));
-            } else if (byte[].class.isAssignableFrom(fieldType)) {
-                recordBuilder.addBinaryField(name, (byte[]) value);
-            } else {
-                recordBuilder.addBinaryField(name, value.toString().getBytes(StandardCharsets.UTF_8));
-            }
-
-        });
+                            Class<?> fieldType = field.getType();
+                            if (fieldAnnotation.timestamp()) {
+                                recordBuilder.key((Long) value);
+                            } else if (Boolean.class.isAssignableFrom(fieldType)
+                                    || boolean.class.isAssignableFrom(fieldType)) {
+                                recordBuilder.addBooleanField(name, (Boolean) value);
+                            } else if (Integer.class.isAssignableFrom(fieldType)
+                                    || int.class.isAssignableFrom(fieldType)) {
+                                recordBuilder.addIntField(name, (Integer) value);
+                            } else if (Long.class.isAssignableFrom(fieldType)
+                                    || long.class.isAssignableFrom(fieldType)) {
+                                recordBuilder.addLongField(name, (Long) value);
+                            } else if (Float.class.isAssignableFrom(fieldType)
+                                    || float.class.isAssignableFrom(fieldType)) {
+                                recordBuilder.addFloatField(name, (Float) value);
+                            } else if (Double.class.isAssignableFrom(fieldType)
+                                    || double.class.isAssignableFrom(fieldType)) {
+                                recordBuilder.addDoubleField(name, (Double) value);
+                            } else if (String.class.isAssignableFrom(fieldType)) {
+                                recordBuilder.addBinaryField(
+                                        name, ((String) value).getBytes(StandardCharsets.UTF_8));
+                            } else if (byte[].class.isAssignableFrom(fieldType)) {
+                                recordBuilder.addBinaryField(name, (byte[]) value);
+                            } else {
+                                recordBuilder.addBinaryField(
+                                        name, value.toString().getBytes(StandardCharsets.UTF_8));
+                            }
+                        });
 
         Record record = recordBuilder.build();
 
@@ -105,21 +118,25 @@ public class MeasurementMapper {
         cacheMeasurementClass(measurementType);
 
         if (measurementType.getAnnotation(Measurement.class) == null) {
-            String message = String
-                    .format("Measurement type '%s' does not have a @Measurement annotation.", measurementType);
+            String message =
+                    String.format(
+                            "Measurement type '%s' does not have a @Measurement annotation.",
+                            measurementType);
             throw new IginXException(message);
         }
 
         Set<String> measurements = new HashSet<>();
         String measurement = getMeasurementName(measurementType);
-        CLASS_FIELD_CACHE.get(measurementType.getName()).forEach((name, field) -> {
-            Field fieldAnnotation = field.getAnnotation(Field.class);
+        CLASS_FIELD_CACHE
+                .get(measurementType.getName())
+                .forEach(
+                        (name, field) -> {
+                            Field fieldAnnotation = field.getAnnotation(Field.class);
 
-            if (!fieldAnnotation.timestamp()) {
-                measurements.add(measurement + "." + name);
-            }
-
-        });
+                            if (!fieldAnnotation.timestamp()) {
+                                measurements.add(measurement + "." + name);
+                            }
+                        });
         return measurements;
     }
 
@@ -129,10 +146,9 @@ public class MeasurementMapper {
         }
         ConcurrentMap<String, java.lang.reflect.Field> map = new ConcurrentHashMap<>();
         Class<?> currentMeasurementType = measurementType;
-        while(currentMeasurementType != null) {
+        while (currentMeasurementType != null) {
             for (java.lang.reflect.Field field : currentMeasurementType.getDeclaredFields()) {
-                Field fieldAnnotation =
-                        field.getAnnotation(Field.class);
+                Field fieldAnnotation = field.getAnnotation(Field.class);
                 if (fieldAnnotation != null) {
                     String name = fieldAnnotation.name();
                     if (name.isEmpty()) {
@@ -151,5 +167,4 @@ public class MeasurementMapper {
     private String getMeasurementName(final Class<?> measurementType) {
         return measurementType.getAnnotation(Measurement.class).name();
     }
-
 }

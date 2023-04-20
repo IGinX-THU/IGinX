@@ -1,5 +1,7 @@
 package cn.edu.tsinghua.iginx.opentsdb.query.entity;
 
+import static cn.edu.tsinghua.iginx.opentsdb.tools.DataTypeTransformer.*;
+
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
@@ -8,14 +10,11 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.opentsdb.tools.TagKVUtils;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
-import org.opentsdb.client.bean.response.QueryResult;
-
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-
-import static cn.edu.tsinghua.iginx.opentsdb.tools.DataTypeTransformer.*;
+import org.opentsdb.client.bean.response.QueryResult;
 
 public class OpenTSDBRowStream implements RowStream {
 
@@ -82,7 +81,7 @@ public class OpenTSDBRowStream implements RowStream {
         long timestamp = Long.MAX_VALUE;
         for (int i = 0; i < this.resultList.size(); i++) {
             Iterator<Map.Entry<Long, Number>> iterator = this.iterators[i];
-            if (!iterator.hasNext() && curData[i] == null) {  // 数据已经消费完毕了
+            if (!iterator.hasNext() && curData[i] == null) { // 数据已经消费完毕了
                 continue;
             }
             if (curData[i] == null) {
@@ -97,14 +96,15 @@ public class OpenTSDBRowStream implements RowStream {
         Object[] values = new Object[this.resultList.size()];
         for (int i = 0; i < this.resultList.size(); i++) {
             Iterator<Map.Entry<Long, Number>> iterator = this.iterators[i];
-            if (!iterator.hasNext() && curData[i] == null) {  // 数据已经消费完毕了
+            if (!iterator.hasNext() && curData[i] == null) { // 数据已经消费完毕了
                 continue;
             }
             if (curData[i].getKey() == timestamp) {
-                values[i] = getValue(resultList.get(i).getTags().get(DATA_TYPE), curData[i].getValue());
+                values[i] =
+                        getValue(resultList.get(i).getTags().get(DATA_TYPE), curData[i].getValue());
                 curData[i] = null;
             }
-            if (!iterator.hasNext() && curData[i] == null) {  // 数据已经消费完毕了
+            if (!iterator.hasNext() && curData[i] == null) { // 数据已经消费完毕了
                 if (!finished[i]) {
                     finished[i] = true;
                     hasMoreRecords--;

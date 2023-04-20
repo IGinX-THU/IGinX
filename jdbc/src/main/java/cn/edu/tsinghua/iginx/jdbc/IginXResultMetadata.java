@@ -1,7 +1,6 @@
 package cn.edu.tsinghua.iginx.jdbc;
 
 import cn.edu.tsinghua.iginx.thrift.DataType;
-
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Types;
@@ -13,7 +12,8 @@ public class IginXResultMetadata implements ResultSetMetaData {
     private final List<DataType> columnTypes;
     private final boolean hasTime;
 
-    public IginXResultMetadata(List<String> columnNames, List<DataType> columnTypes, boolean hasTime) {
+    public IginXResultMetadata(
+            List<String> columnNames, List<DataType> columnTypes, boolean hasTime) {
         this.columnNames = columnNames;
         this.columnTypes = columnTypes;
         this.hasTime = hasTime;
@@ -88,10 +88,10 @@ public class IginXResultMetadata implements ResultSetMetaData {
     private void checkColumnIndex(int column) throws SQLException {
         if (columnNames == null || columnNames.isEmpty())
             throw new SQLException("No column exists");
-        if (column < 1)
-            throw new SQLException("Column Index out of range, " + column + " < 1");
+        if (column < 1) throw new SQLException("Column Index out of range, " + column + " < 1");
         if (column > columnNames.size())
-            throw new SQLException("Column Index out of range, " + column + " > " + columnNames.size());
+            throw new SQLException(
+                    "Column Index out of range, " + column + " > " + columnNames.size());
     }
 
     @Override
@@ -116,16 +116,14 @@ public class IginXResultMetadata implements ResultSetMetaData {
 
     @Override
     public int isNullable(int column) {
-        if (column == 1 && hasTime)
-            return ResultSetMetaData.columnNoNulls;
+        if (column == 1 && hasTime) return ResultSetMetaData.columnNoNulls;
         return ResultSetMetaData.columnNullable;
     }
 
     @Override
     public boolean isSigned(int column) throws SQLException {
         checkColumnIndex(column);
-        if (column == 1 && hasTime)
-            return false;
+        if (column == 1 && hasTime) return false;
         DataType columnType = columnTypes.get(column - 1);
         switch (columnType) {
             case INTEGER:

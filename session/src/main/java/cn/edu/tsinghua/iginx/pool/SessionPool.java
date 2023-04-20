@@ -1,21 +1,20 @@
 package cn.edu.tsinghua.iginx.pool;
 
+import static java.lang.Math.max;
+
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.session.*;
 import cn.edu.tsinghua.iginx.session.QueryDataSet;
 import cn.edu.tsinghua.iginx.thrift.*;
 import cn.edu.tsinghua.iginx.utils.Pair;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReentrantLock;
-
-import static java.lang.Math.max;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SessionPool {
     private static final Logger logger = LoggerFactory.getLogger(SessionPool.class);
@@ -26,7 +25,8 @@ public class SessionPool {
     private static final int FINAL_RETRY = RETRY - 1;
 
     final ReentrantLock rLock = new ReentrantLock(false);
-    private ConcurrentHashMap<Pair<String, Integer>, Integer> queueMapIndex = new ConcurrentHashMap<>();
+    private ConcurrentHashMap<Pair<String, Integer>, Integer> queueMapIndex =
+            new ConcurrentHashMap<>();
     private List<ConcurrentLinkedDeque<Session>> queueList = new ArrayList<>();
     // for session whose resultSet is not released.
     private final ConcurrentMap<Session, Session> occupied = new ConcurrentHashMap<>();
@@ -65,22 +65,29 @@ public class SessionPool {
         this(host, Integer.parseInt(portString), username, password, MAXSIZE);
     }
 
-    public SessionPool(String host, String portString, String username, String password, int maxsize) {
+    public SessionPool(
+            String host, String portString, String username, String password, int maxsize) {
         this(host, Integer.parseInt(portString), username, password, maxsize);
     }
 
-    public SessionPool(String host, String portString, String username, String password, int maxsize, long waitToGetSessionTimeoutInMs) {
-        this(host, Integer.parseInt(portString), username, password, maxsize, waitToGetSessionTimeoutInMs);
+    public SessionPool(
+            String host,
+            String portString,
+            String username,
+            String password,
+            int maxsize,
+            long waitToGetSessionTimeoutInMs) {
+        this(
+                host,
+                Integer.parseInt(portString),
+                username,
+                password,
+                maxsize,
+                waitToGetSessionTimeoutInMs);
     }
 
     public SessionPool(String host, int port, String user, String password, int maxSize) {
-        this(
-            host,
-            port,
-            user,
-            password,
-            maxSize,
-            WAITTOGETSESSIONTIMEOUTINMS);
+        this(host, port, user, password, maxSize, WAITTOGETSESSIONTIMEOUTINMS);
     }
 
     public SessionPool(
@@ -90,43 +97,46 @@ public class SessionPool {
             String password,
             int maxSize,
             long waitToGetSessionTimeoutInMs) {
-        this.maxSize = max(maxSize,THREAD_NUMBER_MINSIZE);
+        this.maxSize = max(maxSize, THREAD_NUMBER_MINSIZE);
         iginxList = new ArrayList<>();
         sessionNum = new ArrayList<>();
-        iginxList.add(new IginxInfo.Builder()
-                .host(host)
-                .port(port)
-                .user(user)
-                .password(password)
-                .build()
-        );
+        iginxList.add(
+                new IginxInfo.Builder()
+                        .host(host)
+                        .port(port)
+                        .user(user)
+                        .password(password)
+                        .build());
         sessionNum.add(this.maxSize);
         validSessionSize = sessionNum.size();
         this.waitToGetSessionTimeoutInMs = waitToGetSessionTimeoutInMs;
     }
 
-    public SessionPool(
-            List<IginxInfo> IginxList
-    ) {
-        this(IginxList,
-                new ArrayList<Integer>(){{for (int i=0; i<IginxList.size(); i++) add(1);}},
-                DEFAULTMAXSIZE, WAITTOGETSESSIONTIMEOUTINMS);
+    public SessionPool(List<IginxInfo> IginxList) {
+        this(
+                IginxList,
+                new ArrayList<Integer>() {
+                    {
+                        for (int i = 0; i < IginxList.size(); i++) add(1);
+                    }
+                },
+                DEFAULTMAXSIZE,
+                WAITTOGETSESSIONTIMEOUTINMS);
     }
 
-    public SessionPool(
-            List<IginxInfo> IginxList,
-            int maxSize
-    ) {
-        this(IginxList,
-                new ArrayList<Integer>(){{for (int i=0; i<IginxList.size(); i++) add(1);}},
-                maxSize, WAITTOGETSESSIONTIMEOUTINMS);
+    public SessionPool(List<IginxInfo> IginxList, int maxSize) {
+        this(
+                IginxList,
+                new ArrayList<Integer>() {
+                    {
+                        for (int i = 0; i < IginxList.size(); i++) add(1);
+                    }
+                },
+                maxSize,
+                WAITTOGETSESSIONTIMEOUTINMS);
     }
 
-    public SessionPool(
-            List<IginxInfo> IginxList,
-            List<Integer> sessionNum,
-            int maxSize
-    ) {
+    public SessionPool(List<IginxInfo> IginxList, List<Integer> sessionNum, int maxSize) {
         this(IginxList, sessionNum, maxSize, WAITTOGETSESSIONTIMEOUTINMS);
     }
 
@@ -134,21 +144,20 @@ public class SessionPool {
             List<IginxInfo> iginxList,
             List<Integer> sessionNum,
             int maxSize,
-            long waitToGetSessionTimeoutInMs
-    ) {
+            long waitToGetSessionTimeoutInMs) {
         validSessionSize = sessionNum.size();
         if (sessionNum.size() < iginxList.size()) {
             logger.warn(
                     "IGinX list size {}, distributive session size {}, the remaining IGinX will not get session connection",
                     iginxList.size(),
                     sessionNum.size());
-            for (int i=sessionNum.size(); i<iginxList.size(); i++) {
+            for (int i = sessionNum.size(); i < iginxList.size(); i++) {
                 sessionNum.add(0);
             }
         }
         this.iginxList = iginxList;
         this.sessionNum = sessionNum;
-        this.maxSize = max(maxSize,THREAD_NUMBER_MINSIZE);
+        this.maxSize = max(maxSize, THREAD_NUMBER_MINSIZE);
         this.waitToGetSessionTimeoutInMs = waitToGetSessionTimeoutInMs;
     }
 
@@ -163,7 +172,7 @@ public class SessionPool {
 
     private int getIndexOfIginx(int currentSize) {
         int index = currentSize % validSessionSize, times = currentSize / validSessionSize;
-        for (int i=0; i<validSessionSize; i++) {
+        for (int i = 0; i < validSessionSize; i++) {
             if (sessionNum.get(index) >= times) {
                 return index;
             } else {
@@ -222,7 +231,8 @@ public class SessionPool {
                     // we can create more session
                     size++;
                     shouldCreate = true;
-                    // but we do it after skip synchronized block because connection a session is time
+                    // but we do it after skip synchronized block because connection a session is
+                    // time
                     // consuming.
                     break;
                 }
@@ -230,7 +240,9 @@ public class SessionPool {
                 // we have to wait for someone returns a session.
                 try {
                     if (logger.isDebugEnabled()) {
-                        logger.debug("no more sessions can be created, wait... queue.size={}", currentAvailableSize());
+                        logger.debug(
+                                "no more sessions can be created, wait... queue.size={}",
+                                currentAvailableSize());
                     }
                     this.wait(1000);
                     long timeOut = Math.min(waitToGetSessionTimeoutInMs, 60_000);
@@ -250,9 +262,9 @@ public class SessionPool {
                                 size);
                         if (System.currentTimeMillis() - start > waitToGetSessionTimeoutInMs) {
                             throw new SessionException(
-                                    String.format("timeout to get a connection from %s:%s",
-                                            iginxInfo.getHost(),
-                                            iginxInfo.getPort()));
+                                    String.format(
+                                            "timeout to get a connection from %s:%s",
+                                            iginxInfo.getHost(), iginxInfo.getPort()));
                         }
                     }
                 } catch (InterruptedException e) {
@@ -271,7 +283,10 @@ public class SessionPool {
             IginxInfo iginxInfo = iginxList.get(getIndexOfIginx(size));
             // create a new one.
             if (logger.isDebugEnabled()) {
-                logger.debug("Create a new redirect Session {}, {}", iginxInfo.getUser(), iginxInfo.getPassword());
+                logger.debug(
+                        "Create a new redirect Session {}, {}",
+                        iginxInfo.getUser(),
+                        iginxInfo.getPassword());
             }
 
             session = constructNewSession(size);
@@ -291,7 +306,8 @@ public class SessionPool {
                 // Meanwhile, we have to set size--
                 synchronized (this) {
                     size--;
-                    // we do not need to notifyAll as any waited thread can continue to work after waked up.
+                    // we do not need to notifyAll as any waited thread can continue to work after
+                    // waked up.
                     this.notify();
                     if (logger.isDebugEnabled()) {
                         logger.debug("open session failed, reduce the count and notify others...");
@@ -319,10 +335,14 @@ public class SessionPool {
     private void putBack(Session session) {
         rLock.lock();
         try {
-            queueList.add(new ConcurrentLinkedDeque<Session>(){{
-                push(session);
-            }});
-            queueMapIndex.putIfAbsent(new Pair<>(session.getHost(), session.getPort()), queueList.size());
+            queueList.add(
+                    new ConcurrentLinkedDeque<Session>() {
+                        {
+                            push(session);
+                        }
+                    });
+            queueMapIndex.putIfAbsent(
+                    new Pair<>(session.getHost(), session.getPort()), queueList.size());
         } finally {
             rLock.unlock();
         }
@@ -359,7 +379,8 @@ public class SessionPool {
         } catch (SessionException e) {
             synchronized (this) {
                 size--;
-                // we do not need to notifyAll as any waited thread can continue to work after waked up.
+                // we do not need to notifyAll as any waited thread can continue to work after waked
+                // up.
                 this.notify();
                 if (logger.isDebugEnabled()) {
                     logger.debug("open session failed, reduce the count and notify others...");
@@ -371,8 +392,7 @@ public class SessionPool {
     public synchronized void close() throws SessionException {
         for (ConcurrentLinkedDeque<Session> sessionsQueue : queueList) {
             try {
-                for (Session session : sessionsQueue)
-                    session.closeSession();
+                for (Session session : sessionsQueue) session.closeSession();
             } catch (SessionException e) {
                 // do nothing
                 logger.warn(CLOSE_THE_SESSION_FAILED, e);
@@ -405,7 +425,8 @@ public class SessionPool {
         }
     }
 
-    public void addStorageEngine(String ip, int port, String type, Map<String, String> extraParams) throws SessionException, ExecutionException {
+    public void addStorageEngine(String ip, int port, String type, Map<String, String> extraParams)
+            throws SessionException, ExecutionException {
         for (int i = 0; i < RETRY; i++) {
             Session session = getSession();
             try {
@@ -423,7 +444,8 @@ public class SessionPool {
         }
     }
 
-    public void addStorageEngines(List<StorageEngine> storageEngines) throws SessionException, ExecutionException {
+    public void addStorageEngines(List<StorageEngine> storageEngines)
+            throws SessionException, ExecutionException {
         for (int i = 0; i < RETRY; i++) {
             Session session = getSession();
             try {
@@ -441,7 +463,8 @@ public class SessionPool {
         }
     }
 
-    public void removeHistoryDataSource(List<RemovedStorageEngineInfo> removedStorageEngineList) throws SessionException, ExecutionException {
+    public void removeHistoryDataSource(List<RemovedStorageEngineInfo> removedStorageEngineList)
+            throws SessionException, ExecutionException {
         for (int i = 0; i < RETRY; i++) {
             Session session = getSession();
             try {
@@ -492,8 +515,7 @@ public class SessionPool {
         return ret;
     }
 
-    public void deleteColumn(String path) throws SessionException,
-            ExecutionException {
+    public void deleteColumn(String path) throws SessionException, ExecutionException {
         for (int i = 0; i < RETRY; i++) {
             Session session = getSession();
             try {
@@ -529,8 +551,9 @@ public class SessionPool {
         }
     }
 
-    public void insertColumnRecords(List<String> paths, long[] timestamps, Object[] valuesList,
-                                    List<DataType> dataTypeList) throws SessionException, ExecutionException {
+    public void insertColumnRecords(
+            List<String> paths, long[] timestamps, Object[] valuesList, List<DataType> dataTypeList)
+            throws SessionException, ExecutionException {
         for (int i = 0; i < RETRY; i++) {
             Session session = getSession();
             try {
@@ -548,8 +571,13 @@ public class SessionPool {
         }
     }
 
-    public void insertColumnRecords(List<String> paths, long[] timestamps, Object[] valuesList,
-                                    List<DataType> dataTypeList, List<Map<String, String>> tagsList) throws SessionException, ExecutionException {
+    public void insertColumnRecords(
+            List<String> paths,
+            long[] timestamps,
+            Object[] valuesList,
+            List<DataType> dataTypeList,
+            List<Map<String, String>> tagsList)
+            throws SessionException, ExecutionException {
         for (int i = 0; i < RETRY; i++) {
             Session session = getSession();
             try {
@@ -567,12 +595,19 @@ public class SessionPool {
         }
     }
 
-    public void insertColumnRecords(List<String> paths, long[] timestamps, Object[] valuesList,
-                                    List<DataType> dataTypeList, List<Map<String, String>> tagsList, TimePrecision precision) throws SessionException, ExecutionException {
+    public void insertColumnRecords(
+            List<String> paths,
+            long[] timestamps,
+            Object[] valuesList,
+            List<DataType> dataTypeList,
+            List<Map<String, String>> tagsList,
+            TimePrecision precision)
+            throws SessionException, ExecutionException {
         for (int i = 0; i < RETRY; i++) {
             Session session = getSession();
             try {
-                session.insertColumnRecords(paths, timestamps, valuesList, dataTypeList, tagsList, precision);
+                session.insertColumnRecords(
+                        paths, timestamps, valuesList, dataTypeList, tagsList, precision);
                 putBack(session);
                 return;
             } catch (SessionException e) {
@@ -586,8 +621,9 @@ public class SessionPool {
         }
     }
 
-    public void insertNonAlignedColumnRecords(List<String> paths, long[] timestamps, Object[] valuesList,
-                                              List<DataType> dataTypeList) throws SessionException, ExecutionException {
+    public void insertNonAlignedColumnRecords(
+            List<String> paths, long[] timestamps, Object[] valuesList, List<DataType> dataTypeList)
+            throws SessionException, ExecutionException {
         for (int i = 0; i < RETRY; i++) {
             Session session = getSession();
             try {
@@ -605,32 +641,18 @@ public class SessionPool {
         }
     }
 
-    public void insertNonAlignedColumnRecords(List<String> paths, long[] timestamps, Object[] valuesList,
-                                              List<DataType> dataTypeList, List<Map<String, String>> tagsList) throws SessionException, ExecutionException {
-        for (int i = 0; i < RETRY; i++) {
-            Session session = getSession();
-            try {
-                session.insertNonAlignedColumnRecords(paths, timestamps, valuesList, dataTypeList, tagsList);
-                putBack(session);
-                return;
-            } catch (SessionException e) {
-                // TException means the connection is broken, remove it and get a new one.
-                logger.warn("insertNonAlignedColumnRecords failed", e);
-                cleanSessionAndMayThrowConnectionException(session, i, e);
-            } catch (ExecutionException | RuntimeException e) {
-                putBack(session);
-                throw e;
-            }
-        }
-    }
-
-    public void insertNonAlignedColumnRecords(List<String> paths, long[] timestamps, Object[] valuesList,
-                                              List<DataType> dataTypeList, List<Map<String, String>> tagsList, TimePrecision precision)
+    public void insertNonAlignedColumnRecords(
+            List<String> paths,
+            long[] timestamps,
+            Object[] valuesList,
+            List<DataType> dataTypeList,
+            List<Map<String, String>> tagsList)
             throws SessionException, ExecutionException {
         for (int i = 0; i < RETRY; i++) {
             Session session = getSession();
             try {
-                session.insertNonAlignedColumnRecords(paths, timestamps, valuesList, dataTypeList, tagsList, precision);
+                session.insertNonAlignedColumnRecords(
+                        paths, timestamps, valuesList, dataTypeList, tagsList);
                 putBack(session);
                 return;
             } catch (SessionException e) {
@@ -644,8 +666,39 @@ public class SessionPool {
         }
     }
 
-    public void insertRowRecords(List<String> paths, long[] timestamps, Object[] valuesList,
-                                 List<DataType> dataTypeList, List<Map<String, String>> tagsList) throws SessionException, ExecutionException {
+    public void insertNonAlignedColumnRecords(
+            List<String> paths,
+            long[] timestamps,
+            Object[] valuesList,
+            List<DataType> dataTypeList,
+            List<Map<String, String>> tagsList,
+            TimePrecision precision)
+            throws SessionException, ExecutionException {
+        for (int i = 0; i < RETRY; i++) {
+            Session session = getSession();
+            try {
+                session.insertNonAlignedColumnRecords(
+                        paths, timestamps, valuesList, dataTypeList, tagsList, precision);
+                putBack(session);
+                return;
+            } catch (SessionException e) {
+                // TException means the connection is broken, remove it and get a new one.
+                logger.warn("insertNonAlignedColumnRecords failed", e);
+                cleanSessionAndMayThrowConnectionException(session, i, e);
+            } catch (ExecutionException | RuntimeException e) {
+                putBack(session);
+                throw e;
+            }
+        }
+    }
+
+    public void insertRowRecords(
+            List<String> paths,
+            long[] timestamps,
+            Object[] valuesList,
+            List<DataType> dataTypeList,
+            List<Map<String, String>> tagsList)
+            throws SessionException, ExecutionException {
         for (int i = 0; i < RETRY; i++) {
             Session session = getSession();
             try {
@@ -663,12 +716,19 @@ public class SessionPool {
         }
     }
 
-    public void insertRowRecords(List<String> paths, long[] timestamps, Object[] valuesList,
-                                 List<DataType> dataTypeList, List<Map<String, String>> tagsList, TimePrecision precison) throws SessionException, ExecutionException {
+    public void insertRowRecords(
+            List<String> paths,
+            long[] timestamps,
+            Object[] valuesList,
+            List<DataType> dataTypeList,
+            List<Map<String, String>> tagsList,
+            TimePrecision precison)
+            throws SessionException, ExecutionException {
         for (int i = 0; i < RETRY; i++) {
             Session session = getSession();
             try {
-                session.insertRowRecords(paths, timestamps, valuesList, dataTypeList, tagsList, precison);
+                session.insertRowRecords(
+                        paths, timestamps, valuesList, dataTypeList, tagsList, precison);
                 putBack(session);
                 return;
             } catch (SessionException e) {
@@ -682,8 +742,9 @@ public class SessionPool {
         }
     }
 
-    public void insertNonAlignedRowRecords(List<String> paths, long[] timestamps, Object[] valuesList,
-                                           List<DataType> dataTypeList) throws SessionException, ExecutionException {
+    public void insertNonAlignedRowRecords(
+            List<String> paths, long[] timestamps, Object[] valuesList, List<DataType> dataTypeList)
+            throws SessionException, ExecutionException {
         for (int i = 0; i < RETRY; i++) {
             Session session = getSession();
             try {
@@ -701,32 +762,18 @@ public class SessionPool {
         }
     }
 
-    public void insertNonAlignedRowRecords(List<String> paths, long[] timestamps, Object[] valuesList,
-                                           List<DataType> dataTypeList, List<Map<String, String>> tagsList) throws SessionException, ExecutionException {
-        for (int i = 0; i < RETRY; i++) {
-            Session session = getSession();
-            try {
-                session.insertNonAlignedRowRecords(paths, timestamps, valuesList, dataTypeList, tagsList);
-                putBack(session);
-                return;
-            } catch (SessionException e) {
-                // TException means the connection is broken, remove it and get a new one.
-                logger.warn("insertNonAlignedRowRecords failed", e);
-                cleanSessionAndMayThrowConnectionException(session, i, e);
-            } catch (ExecutionException | RuntimeException e) {
-                putBack(session);
-                throw e;
-            }
-        }
-    }
-
-    public void insertNonAlignedRowRecords(List<String> paths, long[] timestamps, Object[] valuesList,
-                                           List<DataType> dataTypeList, List<Map<String, String>> tagsList, TimePrecision precision)
+    public void insertNonAlignedRowRecords(
+            List<String> paths,
+            long[] timestamps,
+            Object[] valuesList,
+            List<DataType> dataTypeList,
+            List<Map<String, String>> tagsList)
             throws SessionException, ExecutionException {
         for (int i = 0; i < RETRY; i++) {
             Session session = getSession();
             try {
-                session.insertNonAlignedRowRecords(paths, timestamps, valuesList, dataTypeList, tagsList, precision);
+                session.insertNonAlignedRowRecords(
+                        paths, timestamps, valuesList, dataTypeList, tagsList);
                 putBack(session);
                 return;
             } catch (SessionException e) {
@@ -740,7 +787,34 @@ public class SessionPool {
         }
     }
 
-    public void deleteDataInColumn(String path, long startTime, long endTime) throws SessionException, ExecutionException {
+    public void insertNonAlignedRowRecords(
+            List<String> paths,
+            long[] timestamps,
+            Object[] valuesList,
+            List<DataType> dataTypeList,
+            List<Map<String, String>> tagsList,
+            TimePrecision precision)
+            throws SessionException, ExecutionException {
+        for (int i = 0; i < RETRY; i++) {
+            Session session = getSession();
+            try {
+                session.insertNonAlignedRowRecords(
+                        paths, timestamps, valuesList, dataTypeList, tagsList, precision);
+                putBack(session);
+                return;
+            } catch (SessionException e) {
+                // TException means the connection is broken, remove it and get a new one.
+                logger.warn("insertNonAlignedRowRecords failed", e);
+                cleanSessionAndMayThrowConnectionException(session, i, e);
+            } catch (ExecutionException | RuntimeException e) {
+                putBack(session);
+                throw e;
+            }
+        }
+    }
+
+    public void deleteDataInColumn(String path, long startTime, long endTime)
+            throws SessionException, ExecutionException {
         for (int i = 0; i < RETRY; i++) {
             Session session = getSession();
             try {
@@ -758,7 +832,8 @@ public class SessionPool {
         }
     }
 
-    public void deleteDataInColumns(List<String> paths, long startTime, long endTime) throws SessionException, ExecutionException {
+    public void deleteDataInColumns(List<String> paths, long startTime, long endTime)
+            throws SessionException, ExecutionException {
         for (int i = 0; i < RETRY; i++) {
             Session session = getSession();
             try {
@@ -776,7 +851,9 @@ public class SessionPool {
         }
     }
 
-    public void deleteDataInColumns(List<String> paths, long startTime, long endTime, Map<String, List<String>> tagsList) throws SessionException, ExecutionException {
+    public void deleteDataInColumns(
+            List<String> paths, long startTime, long endTime, Map<String, List<String>> tagsList)
+            throws SessionException, ExecutionException {
         for (int i = 0; i < RETRY; i++) {
             Session session = getSession();
             try {
@@ -796,7 +873,7 @@ public class SessionPool {
 
     public SessionQueryDataSet queryData(List<String> paths, long startTime, long endTime)
             throws SessionException, ExecutionException {
-        SessionQueryDataSet sessionQueryDataSet= null;
+        SessionQueryDataSet sessionQueryDataSet = null;
         for (int i = 0; i < RETRY; i++) {
             Session session = getSession();
             try {
@@ -815,9 +892,10 @@ public class SessionPool {
         return sessionQueryDataSet;
     }
 
-    public SessionQueryDataSet queryData(List<String> paths, long startTime, long endTime, Map<String, List<String>> tagsList)
+    public SessionQueryDataSet queryData(
+            List<String> paths, long startTime, long endTime, Map<String, List<String>> tagsList)
             throws SessionException, ExecutionException {
-        SessionQueryDataSet sessionQueryDataSet= null;
+        SessionQueryDataSet sessionQueryDataSet = null;
         for (int i = 0; i < RETRY; i++) {
             Session session = getSession();
             try {
@@ -836,13 +914,15 @@ public class SessionPool {
         return sessionQueryDataSet;
     }
 
-    public SessionAggregateQueryDataSet aggregateQuery(List<String> paths, long startTime, long endTime, AggregateType aggregateType)
+    public SessionAggregateQueryDataSet aggregateQuery(
+            List<String> paths, long startTime, long endTime, AggregateType aggregateType)
             throws SessionException, ExecutionException {
-        SessionAggregateQueryDataSet sessionAggregateQueryDataSet= null;
+        SessionAggregateQueryDataSet sessionAggregateQueryDataSet = null;
         for (int i = 0; i < RETRY; i++) {
             Session session = getSession();
             try {
-                sessionAggregateQueryDataSet = session.aggregateQuery(paths, startTime, endTime, aggregateType);
+                sessionAggregateQueryDataSet =
+                        session.aggregateQuery(paths, startTime, endTime, aggregateType);
                 putBack(session);
                 return sessionAggregateQueryDataSet;
             } catch (SessionException e) {
@@ -857,13 +937,19 @@ public class SessionPool {
         return sessionAggregateQueryDataSet;
     }
 
-    public SessionAggregateQueryDataSet aggregateQuery(List<String> paths, long startTime, long endTime, AggregateType aggregateType, Map<String, List<String>> tagsList)
+    public SessionAggregateQueryDataSet aggregateQuery(
+            List<String> paths,
+            long startTime,
+            long endTime,
+            AggregateType aggregateType,
+            Map<String, List<String>> tagsList)
             throws SessionException, ExecutionException {
-        SessionAggregateQueryDataSet sessionAggregateQueryDataSet= null;
+        SessionAggregateQueryDataSet sessionAggregateQueryDataSet = null;
         for (int i = 0; i < RETRY; i++) {
             Session session = getSession();
             try {
-                sessionAggregateQueryDataSet = session.aggregateQuery(paths, startTime, endTime, aggregateType);
+                sessionAggregateQueryDataSet =
+                        session.aggregateQuery(paths, startTime, endTime, aggregateType);
                 putBack(session);
                 return sessionAggregateQueryDataSet;
             } catch (SessionException e) {
@@ -878,13 +964,20 @@ public class SessionPool {
         return sessionAggregateQueryDataSet;
     }
 
-    public SessionQueryDataSet downsampleQuery(List<String> paths, long startTime, long endTime, AggregateType aggregateType, long precision)
+    public SessionQueryDataSet downsampleQuery(
+            List<String> paths,
+            long startTime,
+            long endTime,
+            AggregateType aggregateType,
+            long precision)
             throws SessionException, ExecutionException {
-        SessionQueryDataSet sessionQueryDataSet= null;
+        SessionQueryDataSet sessionQueryDataSet = null;
         for (int i = 0; i < RETRY; i++) {
             Session session = getSession();
             try {
-                sessionQueryDataSet = session.downsampleQuery(paths, startTime, endTime, aggregateType, precision);
+                sessionQueryDataSet =
+                        session.downsampleQuery(
+                                paths, startTime, endTime, aggregateType, precision);
                 putBack(session);
                 return sessionQueryDataSet;
             } catch (SessionException e) {
@@ -899,13 +992,21 @@ public class SessionPool {
         return sessionQueryDataSet;
     }
 
-    public SessionQueryDataSet downsampleQuery(List<String> paths, long startTime, long endTime, AggregateType aggregateType, long precision, Map<String, List<String>> tagsList)
+    public SessionQueryDataSet downsampleQuery(
+            List<String> paths,
+            long startTime,
+            long endTime,
+            AggregateType aggregateType,
+            long precision,
+            Map<String, List<String>> tagsList)
             throws SessionException, ExecutionException {
-        SessionQueryDataSet sessionQueryDataSet= null;
+        SessionQueryDataSet sessionQueryDataSet = null;
         for (int i = 0; i < RETRY; i++) {
             Session session = getSession();
             try {
-                sessionQueryDataSet = session.downsampleQuery(paths, startTime, endTime, aggregateType, precision, tagsList);
+                sessionQueryDataSet =
+                        session.downsampleQuery(
+                                paths, startTime, endTime, aggregateType, precision, tagsList);
                 putBack(session);
                 return sessionQueryDataSet;
             } catch (SessionException e) {
@@ -940,8 +1041,9 @@ public class SessionPool {
         return ret;
     }
 
-    public SessionExecuteSqlResult executeSql(String statement) throws SessionException, ExecutionException {
-        SessionExecuteSqlResult sessionExecuteSqlResult= null;
+    public SessionExecuteSqlResult executeSql(String statement)
+            throws SessionException, ExecutionException {
+        SessionExecuteSqlResult sessionExecuteSqlResult = null;
         for (int i = 0; i < RETRY; i++) {
             Session session = getSession();
             try {
@@ -962,7 +1064,7 @@ public class SessionPool {
 
     public SessionQueryDataSet queryLast(List<String> paths, long startTime)
             throws SessionException, ExecutionException {
-        SessionQueryDataSet sessionQueryDataSet= null;
+        SessionQueryDataSet sessionQueryDataSet = null;
         for (int i = 0; i < RETRY; i++) {
             Session session = getSession();
             try {
@@ -981,9 +1083,10 @@ public class SessionPool {
         return sessionQueryDataSet;
     }
 
-    public SessionQueryDataSet queryLast(List<String> paths, long startTime, Map<String, List<String>> tagsList)
+    public SessionQueryDataSet queryLast(
+            List<String> paths, long startTime, Map<String, List<String>> tagsList)
             throws SessionException, ExecutionException {
-        SessionQueryDataSet sessionQueryDataSet= null;
+        SessionQueryDataSet sessionQueryDataSet = null;
         for (int i = 0; i < RETRY; i++) {
             Session session = getSession();
             try {
@@ -1002,7 +1105,8 @@ public class SessionPool {
         return sessionQueryDataSet;
     }
 
-    public void addUser(String username, String password, Set<AuthType> auths) throws SessionException, ExecutionException  {
+    public void addUser(String username, String password, Set<AuthType> auths)
+            throws SessionException, ExecutionException {
         for (int i = 0; i < RETRY; i++) {
             Session session = getSession();
             try {
@@ -1020,7 +1124,8 @@ public class SessionPool {
         }
     }
 
-    public void updateUser(String username, String password, Set<AuthType> auths) throws SessionException, ExecutionException {
+    public void updateUser(String username, String password, Set<AuthType> auths)
+            throws SessionException, ExecutionException {
         for (int i = 0; i < RETRY; i++) {
             Session session = getSession();
             try {
@@ -1096,8 +1201,9 @@ public class SessionPool {
         return queryDataSet;
     }
 
-    public long commitTransformJob(List<TaskInfo> taskInfoList, ExportType exportType,
-                                   String fileName) throws SessionException, ExecutionException {
+    public long commitTransformJob(
+            List<TaskInfo> taskInfoList, ExportType exportType, String fileName)
+            throws SessionException, ExecutionException {
         long ret = 0;
         for (int i = 0; i < RETRY; i++) {
             Session session = getSession();
@@ -1117,7 +1223,8 @@ public class SessionPool {
         return ret;
     }
 
-    public JobState queryTransformJobStatus(long jobId) throws SessionException, ExecutionException {
+    public JobState queryTransformJobStatus(long jobId)
+            throws SessionException, ExecutionException {
         JobState ret = null;
         for (int i = 0; i < RETRY; i++) {
             Session session = getSession();
@@ -1137,7 +1244,8 @@ public class SessionPool {
         return ret;
     }
 
-    public List<Long> showEligibleJob(JobState jobState) throws SessionException, ExecutionException {
+    public List<Long> showEligibleJob(JobState jobState)
+            throws SessionException, ExecutionException {
         List<Long> ret = null;
         for (int i = 0; i < RETRY; i++) {
             Session session = getSession();
@@ -1175,7 +1283,12 @@ public class SessionPool {
         }
     }
 
-    public CurveMatchResult curveMatch(List<String> paths, long startTime, long endTime, List<Double> curveQuery, long curveUnit)
+    public CurveMatchResult curveMatch(
+            List<String> paths,
+            long startTime,
+            long endTime,
+            List<Double> curveQuery,
+            long curveUnit)
             throws SessionException, ExecutionException {
         CurveMatchResult ret = null;
         for (int i = 0; i < RETRY; i++) {
@@ -1195,7 +1308,6 @@ public class SessionPool {
         }
         return ret;
     }
-
 
     public static class Builder {
         private String host;
@@ -1242,15 +1354,7 @@ public class SessionPool {
         }
 
         public SessionPool build() {
-            return new SessionPool(
-                    host,
-                    port,
-                    user,
-                    password,
-                    maxSize,
-                    fetchSize
-            );
+            return new SessionPool(host, port, user, password, maxSize, fetchSize);
         }
     }
-
 }

@@ -12,7 +12,7 @@ Currently, IGinX directly supports big data service over relational database Pos
 
 Since ZooKeeper, IGinX and IoTDB are all developed using Java, Java needs to be installed first. If a running environment of JDK >= 1.8 has been installed locally, **skip this step entirely**.
 
-1. First, visit the [official Java website] (https://www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html) to download the JDK package for your current system.
+1. First, visit the [official Java website](https://www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html) to download the JDK package for your current system.
 
 2. Installation
 
@@ -51,7 +51,7 @@ If the words above are displayed, it means the installation was successful.
 
 #### ZooKeeper Installation
 
- ZooKeeper is an open-source server for highly reliable distributed coordination of cloud applications, launched by Apache. If you need to deploy more than one instance of IGinX, you will need to install ZooKeeper. Otherwise, **skip this step entirely**
+ZooKeeper is an open-source server for highly reliable distributed coordination of cloud applications, launched by Apache. If you need to deploy more than one instance of IGinX, you will need to install ZooKeeper. Otherwise, **skip this step entirely**
 
 The specific installation method is as follows,
 
@@ -174,7 +174,7 @@ $ cd ~
 $ cd Iginx
 $ chmod +x sbin/start_iginx.sh # Add startup permissions to the startup script
 $ ./sbin/start_iginx.sh
-````
+```
 
 Modify conf/config.Properties
 
@@ -348,7 +348,7 @@ $ tar -zxvf v0.5.1.tar.gz
 $ cd IGinX-release-v0.5.1
 # Install to local maven repository
 $ mvn clean install -DskipTests
-````
+```
 
 Only when you are using it, you need to introduce the following dependencies in the pom file of the corresponding project:
 

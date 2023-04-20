@@ -7,7 +7,8 @@ import java.time.format.DateTimeFormatter;
 
 public class TimeUtils {
 
-    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS");
+    private static final DateTimeFormatter FORMATTER =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS");
 
     public static long instantToNs(Instant time) {
         return time.getEpochSecond() * 1_000_000_000L + time.getNano();
@@ -16,7 +17,9 @@ public class TimeUtils {
     public static String nanoTimeToStr(long nanoTime) {
         long remainder = nanoTime % 1_000_000;
         long timeInMs = nanoTime / 1_000_000;
-        return ZonedDateTime.ofInstant(Instant.ofEpochMilli(timeInMs), ZoneId.of("UTC")).format(FORMATTER) +
-            String.format("%06d", remainder) + 'Z';
+        return ZonedDateTime.ofInstant(Instant.ofEpochMilli(timeInMs), ZoneId.of("UTC"))
+                        .format(FORMATTER)
+                + String.format("%06d", remainder)
+                + 'Z';
     }
 }

@@ -18,6 +18,9 @@
  */
 package cn.edu.tsinghua.iginx.influxdb.query.entity;
 
+import static cn.edu.tsinghua.iginx.influxdb.tools.DataTypeTransformer.fromInfluxDB;
+import static cn.edu.tsinghua.iginx.influxdb.tools.TimeUtils.instantToNs;
+
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
@@ -26,13 +29,9 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.influxdb.query.FluxRecord;
 import com.influxdb.query.FluxTable;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
-
-import static cn.edu.tsinghua.iginx.influxdb.tools.DataTypeTransformer.fromInfluxDB;
-import static cn.edu.tsinghua.iginx.influxdb.tools.TimeUtils.instantToNs;
 
 public class InfluxDBQueryRowStream implements RowStream {
 
@@ -45,17 +44,35 @@ public class InfluxDBQueryRowStream implements RowStream {
     private int hasMoreRecords;
 
     public InfluxDBQueryRowStream(List<FluxTable> tables) {
-        this.tables = tables.stream().filter(e -> e.getRecords().size() > 0).collect(Collectors.toList()); // 只保留还有数据的二维表
+        this.tables =
+                tables.stream()
+                        .filter(e -> e.getRecords().size() > 0)
+                        .collect(Collectors.toList()); // 只保留还有数据的二维表
 
         List<Field> fields = new ArrayList<>();
-        for (FluxTable table: this.tables) {
+        for (FluxTable table : this.tables) {
             String path;
             if (table.getRecords().get(0).getValueByKey("t") == null) {
-                path = table.getRecords().get(0).getMeasurement() + "." + table.getRecords().get(0).getField();
+                path =
+                        table.getRecords().get(0).getMeasurement()
+                                + "."
+                                + table.getRecords().get(0).getField();
             } else {
-                path = table.getRecords().get(0).getMeasurement() + "." + table.getRecords().get(0).getValueByKey(InfluxDBSchema.TAG) + "." + table.getRecords().get(0).getField();
+                path =
+                        table.getRecords().get(0).getMeasurement()
+                                + "."
+                                + table.getRecords().get(0).getValueByKey(InfluxDBSchema.TAG)
+                                + "."
+                                + table.getRecords().get(0).getField();
             }
-            DataType dataType = fromInfluxDB(table.getColumns().stream().filter(x -> x.getLabel().equals("_value")).collect(Collectors.toList()).get(0).getDataType());
+            DataType dataType =
+                    fromInfluxDB(
+                            table.getColumns()
+                                    .stream()
+                                    .filter(x -> x.getLabel().equals("_value"))
+                                    .collect(Collectors.toList())
+                                    .get(0)
+                                    .getDataType());
             fields.add(new Field(path, dataType));
         }
         this.header = new Header(Field.KEY, fields);

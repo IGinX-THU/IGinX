@@ -4,15 +4,14 @@ import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.utils.FormatUtils;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Properties;
 import org.apache.zeppelin.interpreter.AbstractInterpreter;
 import org.apache.zeppelin.interpreter.InterpreterContext;
 import org.apache.zeppelin.interpreter.InterpreterException;
 import org.apache.zeppelin.interpreter.InterpreterResult;
 import org.apache.zeppelin.interpreter.ZeppelinContext;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.Properties;
 
 public class IginxInterpreter extends AbstractInterpreter {
 
@@ -82,7 +81,8 @@ public class IginxInterpreter extends AbstractInterpreter {
     }
 
     @Override
-    public InterpreterResult internalInterpret(String st, InterpreterContext context) throws InterpreterException {
+    public InterpreterResult internalInterpret(String st, InterpreterContext context)
+            throws InterpreterException {
         if (exception != null) {
             return new InterpreterResult(InterpreterResult.Code.ERROR, exception.getMessage());
         }
@@ -103,16 +103,21 @@ public class IginxInterpreter extends AbstractInterpreter {
 
             String parseErrorMsg = sqlResult.getParseErrorMsg();
             if (parseErrorMsg != null && !parseErrorMsg.equals("")) {
-                return new InterpreterResult(InterpreterResult.Code.ERROR, sqlResult.getParseErrorMsg());
+                return new InterpreterResult(
+                        InterpreterResult.Code.ERROR, sqlResult.getParseErrorMsg());
             }
 
-            String msg = buildResult(sqlResult.getResultInList(
-                    true, FormatUtils.DEFAULT_TIME_FORMAT, timePrecision));
-            InterpreterResult interpreterResult = new InterpreterResult(InterpreterResult.Code.SUCCESS);
+            String msg =
+                    buildResult(
+                            sqlResult.getResultInList(
+                                    true, FormatUtils.DEFAULT_TIME_FORMAT, timePrecision));
+            InterpreterResult interpreterResult =
+                    new InterpreterResult(InterpreterResult.Code.SUCCESS);
             interpreterResult.add(InterpreterResult.Type.TABLE, msg);
             return interpreterResult;
         } catch (Exception e) {
-            return new InterpreterResult(InterpreterResult.Code.ERROR, "encounter error when executing sql statement.");
+            return new InterpreterResult(
+                    InterpreterResult.Code.ERROR, "encounter error when executing sql statement.");
         }
     }
 
@@ -129,12 +134,13 @@ public class IginxInterpreter extends AbstractInterpreter {
     }
 
     private String[] parseMultiLinesSQL(String sql) {
-        String[] tmp = sql
-                .replace(TAB, WHITESPACE)
-                .replace(NEWLINE, WHITESPACE)
-                .replaceAll(MULTISPACE, WHITESPACE)
-                .toLowerCase().trim()
-                .split(SEMICOLON);
+        String[] tmp =
+                sql.replace(TAB, WHITESPACE)
+                        .replace(NEWLINE, WHITESPACE)
+                        .replaceAll(MULTISPACE, WHITESPACE)
+                        .toLowerCase()
+                        .trim()
+                        .split(SEMICOLON);
         return Arrays.stream(tmp).map(String::trim).toArray(String[]::new);
     }
 

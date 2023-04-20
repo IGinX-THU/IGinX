@@ -19,13 +19,13 @@
 package cn.edu.tsinghua.iginx.session_v2.query;
 
 import cn.edu.tsinghua.iginx.thrift.DataType;
-
 import java.util.Collections;
 import java.util.Map;
 
 public class IginXColumn {
 
-    public static final IginXColumn TIME = new IginXColumn("timestamp", Collections.emptyMap(), DataType.LONG);
+    public static final IginXColumn TIME =
+            new IginXColumn("timestamp", Collections.emptyMap(), DataType.LONG);
 
     private final String name;
 
@@ -53,9 +53,6 @@ public class IginXColumn {
 
     @Override
     public String toString() {
-        return "IginXColumn{" +
-                "name='" + name + '\'' +
-                ", dataType=" + dataType +
-                '}';
+        return "IginXColumn{" + "name='" + name + '\'' + ", dataType=" + dataType + '}';
     }
 }

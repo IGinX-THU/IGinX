@@ -18,16 +18,15 @@
  */
 package cn.edu.tsinghua.iginx.rest.bean;
 
+import static cn.edu.tsinghua.iginx.rest.RestUtils.TOPTIEM;
+
 import cn.edu.tsinghua.iginx.rest.query.aggregator.QueryAggregator;
 import cn.edu.tsinghua.iginx.rest.query.aggregator.QueryAggregatorFirst;
-import lombok.Data;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-
-import static cn.edu.tsinghua.iginx.rest.RestUtils.TOPTIEM;
+import lombok.Data;
 
 @Data
 public class QueryMetric {
@@ -63,7 +62,7 @@ public class QueryMetric {
     }
 
     public void addCetagory(String key) {
-        if(annotationLimit == null) annotationLimit = new AnnotationLimit();
+        if (annotationLimit == null) annotationLimit = new AnnotationLimit();
         annotationLimit.addTag(key);
     }
 }

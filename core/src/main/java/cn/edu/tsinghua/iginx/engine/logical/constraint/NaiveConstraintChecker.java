@@ -4,10 +4,9 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 
 public class NaiveConstraintChecker implements ConstraintChecker {
 
-    private final static NaiveConstraintChecker instance = new NaiveConstraintChecker();
+    private static final NaiveConstraintChecker instance = new NaiveConstraintChecker();
 
-    private NaiveConstraintChecker() {
-    }
+    private NaiveConstraintChecker() {}
 
     public static NaiveConstraintChecker getInstance() {
         return instance;

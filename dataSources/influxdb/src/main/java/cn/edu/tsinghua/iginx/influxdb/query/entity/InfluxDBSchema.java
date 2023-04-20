@@ -77,10 +77,15 @@ public class InfluxDBSchema {
 
     @Override
     public String toString() {
-        return "InfluxDBSchema{" +
-                "measurement='" + measurement + '\'' +
-                ", field='" + field + '\'' +
-                ", tags=" + tags +
-                '}';
+        return "InfluxDBSchema{"
+                + "measurement='"
+                + measurement
+                + '\''
+                + ", field='"
+                + field
+                + '\''
+                + ", tags="
+                + tags
+                + '}';
     }
 }

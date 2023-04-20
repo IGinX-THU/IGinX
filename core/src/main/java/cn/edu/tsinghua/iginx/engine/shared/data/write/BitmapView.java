@@ -19,7 +19,6 @@
 package cn.edu.tsinghua.iginx.engine.shared.data.write;
 
 import cn.edu.tsinghua.iginx.utils.Bitmap;
-
 import java.util.Objects;
 
 public class BitmapView {
@@ -37,7 +36,8 @@ public class BitmapView {
             throw new IllegalArgumentException("end index should greater than start index");
         }
         if (end > bitmap.getSize()) {
-            throw new IllegalArgumentException("end index shouldn't greater than the size of bitmap");
+            throw new IllegalArgumentException(
+                    "end index shouldn't greater than the size of bitmap");
         }
         this.start = start;
         this.end = end;

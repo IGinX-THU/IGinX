@@ -47,7 +47,10 @@ public class FilterTransformer {
     }
 
     private static String toString(AndFilter filter) {
-        return filter.getChildren().stream().map(FilterTransformer::toString).collect(Collectors.joining(" and ", "(", ")"));
+        return filter.getChildren()
+                .stream()
+                .map(FilterTransformer::toString)
+                .collect(Collectors.joining(" and ", "(", ")"));
     }
 
     private static String toString(NotFilter filter) {
@@ -59,11 +62,17 @@ public class FilterTransformer {
     }
 
     private static String toString(ValueFilter filter) {
-        return filter.getPath() + " " + Op.op2Str(filter.getOp()) + " " + filter.getValue().getValue();
+        return filter.getPath()
+                + " "
+                + Op.op2Str(filter.getOp())
+                + " "
+                + filter.getValue().getValue();
     }
 
     private static String toString(OrFilter filter) {
-        return filter.getChildren().stream().map(FilterTransformer::toString).collect(Collectors.joining(" or ", "(", ")"));
+        return filter.getChildren()
+                .stream()
+                .map(FilterTransformer::toString)
+                .collect(Collectors.joining(" or ", "(", ")"));
     }
-
 }

@@ -1,11 +1,10 @@
 package cn.edu.tsinghua.iginx.engine.shared.function.system;
 
-import static cn.edu.tsinghua.iginx.engine.shared.Constants.PARAM_EXPR;
-
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionType;
 import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
 import cn.edu.tsinghua.iginx.engine.shared.function.RowMappingFunction;
@@ -15,11 +14,11 @@ import cn.edu.tsinghua.iginx.sql.expression.BinaryExpression;
 import cn.edu.tsinghua.iginx.sql.expression.BracketExpression;
 import cn.edu.tsinghua.iginx.sql.expression.ConstantExpression;
 import cn.edu.tsinghua.iginx.sql.expression.Expression;
+import cn.edu.tsinghua.iginx.sql.expression.FuncExpression;
 import cn.edu.tsinghua.iginx.sql.expression.Operator;
 import cn.edu.tsinghua.iginx.sql.expression.UnaryExpression;
 import cn.edu.tsinghua.iginx.utils.DataTypeUtils;
 import java.util.Collections;
-import java.util.Map;
 
 public class ArithmeticExpr implements RowMappingFunction {
 
@@ -27,8 +26,7 @@ public class ArithmeticExpr implements RowMappingFunction {
 
     private static final ArithmeticExpr INSTANCE = new ArithmeticExpr();
 
-    private ArithmeticExpr() {
-    }
+    private ArithmeticExpr() {}
 
     public static ArithmeticExpr getInstance() {
         return INSTANCE;
@@ -50,11 +48,11 @@ public class ArithmeticExpr implements RowMappingFunction {
     }
 
     @Override
-    public Row transform(Row row, Map<String, Value> params) throws Exception {
-        if (params.size() == 0 || params.size() > 2) {
+    public Row transform(Row row, FunctionParams params) throws Exception {
+        if (params.getExpr() == null) {
             throw new IllegalArgumentException("unexpected params for arithmetic_expr.");
         }
-        Expression expr = (Expression) params.get(PARAM_EXPR).getValue();
+        Expression expr = params.getExpr();
 
         Value ret = calculateExpr(row, expr);
         if (ret == null) {
@@ -63,11 +61,12 @@ public class ArithmeticExpr implements RowMappingFunction {
 
         Field targetField = new Field(expr.getColumnName(), ret.getDataType());
 
-        Header header = row.getHeader().hasKey() ?
-            new Header(Field.KEY, Collections.singletonList(targetField)) :
-            new Header(Collections.singletonList(targetField));
+        Header header =
+                row.getHeader().hasKey()
+                        ? new Header(Field.KEY, Collections.singletonList(targetField))
+                        : new Header(Collections.singletonList(targetField));
 
-        return new Row(header, row.getKey(), new Object[]{ret.getValue()});
+        return new Row(header, row.getKey(), new Object[] {ret.getValue()});
     }
 
     private Value calculateExpr(Row row, Expression expr) {
@@ -76,6 +75,8 @@ public class ArithmeticExpr implements RowMappingFunction {
                 return calculateConstantExpr((ConstantExpression) expr);
             case Base:
                 return calculateBaseExpr(row, (BaseExpression) expr);
+            case Function:
+                return calculateFuncExpr(row, (FuncExpression) expr);
             case Bracket:
                 return calculateBracketExpr(row, (BracketExpression) expr);
             case Unary:
@@ -83,7 +84,8 @@ public class ArithmeticExpr implements RowMappingFunction {
             case Binary:
                 return calculateBinaryExpr(row, (BinaryExpression) expr);
             default:
-                throw new IllegalArgumentException(String.format("Unknown expr type: %s", expr.getType()));
+                throw new IllegalArgumentException(
+                        String.format("Unknown expr type: %s", expr.getType()));
         }
     }
 
@@ -93,6 +95,15 @@ public class ArithmeticExpr implements RowMappingFunction {
 
     private Value calculateBaseExpr(Row row, BaseExpression baseExpr) {
         String colName = baseExpr.getColumnName();
+        int index = row.getHeader().indexOf(colName);
+        if (index == -1) {
+            return null;
+        }
+        return new Value(row.getValues()[index]);
+    }
+
+    private Value calculateFuncExpr(Row row, FuncExpression funcExpr) {
+        String colName = funcExpr.getColumnName();
         int index = row.getHeader().indexOf(colName);
         if (index == -1) {
             return null;
@@ -110,11 +121,11 @@ public class ArithmeticExpr implements RowMappingFunction {
         Operator operator = unaryExpr.getOperator();
 
         Value value = calculateExpr(row, expr);
-        if (operator.equals(Operator.PLUS)) {  // positive
+        if (operator.equals(Operator.PLUS)) { // positive
             return value;
         }
 
-        switch (value.getDataType()) {  // negative
+        switch (value.getDataType()) { // negative
             case INTEGER:
                 return new Value(-value.getIntV());
             case LONG:
@@ -136,8 +147,9 @@ public class ArithmeticExpr implements RowMappingFunction {
         Value leftVal = calculateExpr(row, leftExpr);
         Value rightVal = calculateExpr(row, rightExpr);
 
-        if (!leftVal.getDataType().equals(rightVal.getDataType())) {  // 两值类型不同，但均为数值类型，转为double再运算
-            if (DataTypeUtils.isNumber(leftVal.getDataType()) && DataTypeUtils.isNumber(rightVal.getDataType())) {
+        if (!leftVal.getDataType().equals(rightVal.getDataType())) { // 两值类型不同，但均为数值类型，转为double再运算
+            if (DataTypeUtils.isNumber(leftVal.getDataType())
+                    && DataTypeUtils.isNumber(rightVal.getDataType())) {
                 leftVal = ValueUtils.transformToDouble(leftVal);
                 rightVal = ValueUtils.transformToDouble(rightVal);
             } else {
@@ -157,7 +169,8 @@ public class ArithmeticExpr implements RowMappingFunction {
             case MOD:
                 return calculateMod(leftVal, rightVal);
             default:
-                throw new IllegalArgumentException(String.format("Unknown operator type: %s", operator));
+                throw new IllegalArgumentException(
+                        String.format("Unknown operator type: %s", operator));
         }
     }
 
