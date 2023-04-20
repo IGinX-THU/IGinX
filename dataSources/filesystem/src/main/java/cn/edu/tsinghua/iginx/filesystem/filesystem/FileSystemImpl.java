@@ -14,16 +14,15 @@ import cn.edu.tsinghua.iginx.filesystem.query.FSResultTable;
 import cn.edu.tsinghua.iginx.filesystem.tools.TagKVUtils;
 import cn.edu.tsinghua.iginx.filesystem.wrapper.Record;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-import javafx.util.Pair;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.*;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import javafx.util.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /*
  *缓存，索引以及优化策略都在这里执行
@@ -35,54 +34,53 @@ public class FileSystemImpl {
     String MYWILDCARD = FilePath.MYWILDCARD;
 
     // set the fileSystem type with constructor
-    public FileSystemImpl(/*FileSystemType type*/) {
+    public FileSystemImpl(/*FileSystemType type*/ ) {
         fileOperator = new DefaultFileOperator();
         FilePath.setSeparator(System.getProperty("file.separator"));
     }
 
-    //delete it after the UT
+    // delete it after the UT
     public List<Record> readFile(File file) throws IOException {
         return readFile(file, -1, -1);
     }
 
     public List<FSResultTable> readFile(File file, Filter filter) throws IOException {
-        return readFile(file,null,filter);
+        return readFile(file, null, filter);
     }
 
-    public List<FSResultTable> readFile(File file, TagFilter tagFilter, Filter filter) throws IOException {
+    public List<FSResultTable> readFile(File file, TagFilter tagFilter, Filter filter)
+            throws IOException {
         List<FSResultTable> res = new ArrayList<>();
 
-        List<File> files = getFilesWithTagFilter(file,tagFilter);
-        if(files == null) {
+        List<File> files = getFilesWithTagFilter(file, tagFilter);
+        if (files == null) {
             return new ArrayList<>();
         }
 
         long startTime = -1, endTime = -1;
-        if(filter!=null) {
+        if (filter != null) {
             // may fix it 先不支持下推，所以filter中是时间的过滤条件
             AndFilter andFilter = (AndFilter) filter;
-            for(Filter f : andFilter.getChildren()) {
+            for (Filter f : andFilter.getChildren()) {
                 KeyFilter keyFilter = (KeyFilter) f;
-                if(keyFilter.getOp().equals(Op.GE)){
+                if (keyFilter.getOp().equals(Op.GE)) {
                     startTime = keyFilter.getValue();
                 } else if (keyFilter.getOp().equals(Op.L)) {
-                    endTime = keyFilter.getValue()-1;
+                    endTime = keyFilter.getValue() - 1;
                 }
             }
         }
 
-
-        for(File f : files) {
+        for (File f : files) {
             List<Record> val = new ArrayList<>();
             val = doReadFile(f, startTime, endTime);
             FileMeta fileMeta = null;
-            if(FileType.getFileType(f)== FileType.Type.IGINX_FILE) {
-                fileMeta= fileOperator.getFileMeta(f);
-                res.add(new FSResultTable(f,val,fileMeta.getDataType(),fileMeta.getTag()));
-            }else {
-                res.add(new FSResultTable(f,val,DataType.BINARY,null));
+            if (FileType.getFileType(f) == FileType.Type.IGINX_FILE) {
+                fileMeta = fileOperator.getFileMeta(f);
+                res.add(new FSResultTable(f, val, fileMeta.getDataType(), fileMeta.getTag()));
+            } else {
+                res.add(new FSResultTable(f, val, DataType.BINARY, null));
             }
-
         }
 
         return res;
@@ -119,25 +117,33 @@ public class FileSystemImpl {
         return doWriteFile(file, value, append);
     }
 
-    public Exception writeFile(File file, List<Record> value, Map<String, String> tag, boolean append) throws IOException {
+    public Exception writeFile(
+            File file, List<Record> value, Map<String, String> tag, boolean append)
+            throws IOException {
         File tmpFile;
         tmpFile = getFileWithTag(file, tag);
-        if(tmpFile==null) {
-            file = determineFileId(file,tag);
+        if (tmpFile == null) {
+            file = determineFileId(file, tag);
             file = createIginxFile(file, value.get(0).getDataType(), tag);
-        }else {
+        } else {
             file = tmpFile;
         }
 
         return doWriteFile(file, value, append);
     }
 
-    public Exception writeFiles(List<File> files, List<List<Record>> values, List<Boolean> appends) throws IOException {
-        return writeFiles(files, values,null,appends);
+    public Exception writeFiles(List<File> files, List<List<Record>> values, List<Boolean> appends)
+            throws IOException {
+        return writeFiles(files, values, null, appends);
     }
 
     // write multi file
-    public Exception writeFiles(List<File> files, List<List<Record>> values, List<Map<String, String>> tagList, List<Boolean> appends) throws IOException {
+    public Exception writeFiles(
+            List<File> files,
+            List<List<Record>> values,
+            List<Map<String, String>> tagList,
+            List<Boolean> appends)
+            throws IOException {
         for (int i = 0; i < files.size(); i++) {
             writeFile(files.get(i), values.get(i), tagList.get(i), appends.get(i));
         }
@@ -145,7 +151,7 @@ public class FileSystemImpl {
     }
 
     public Exception deleteFile(File file) throws IOException {
-        return deleteFiles(Collections.singletonList(file),null);
+        return deleteFiles(Collections.singletonList(file), null);
     }
 
     /**
@@ -157,47 +163,49 @@ public class FileSystemImpl {
     public Exception deleteFiles(List<File> files, TagFilter filter) throws IOException {
         List<File> fileList = new ArrayList<>();
         for (File file : files) {
-            List<File> tmp = getFilesWithTagFilter(file,filter);
-            if(tmp==null) continue;
+            List<File> tmp = getFilesWithTagFilter(file, filter);
+            if (tmp == null) continue;
             fileList.addAll(tmp);
         }
         for (File file : fileList) {
-             if (!fileOperator.delete(file)) {
-                    return new IOException("Failed to delete file: "+file.getAbsolutePath());
-                }
+            if (!fileOperator.delete(file)) {
+                return new IOException("Failed to delete file: " + file.getAbsolutePath());
+            }
         }
         return null;
     }
 
     public Exception trimFileContent(File file, long begin, long end) throws IOException {
-        return trimFilesContent(Collections.singletonList(file), null,begin, end);
+        return trimFilesContent(Collections.singletonList(file), null, begin, end);
     }
 
-    public Exception trimFileContent(File file,  TagFilter tagFilter,long begin, long end) throws IOException {
-        return trimFilesContent(Collections.singletonList(file), tagFilter,begin, end);
+    public Exception trimFileContent(File file, TagFilter tagFilter, long begin, long end)
+            throws IOException {
+        return trimFilesContent(Collections.singletonList(file), tagFilter, begin, end);
     }
 
-    public Exception trimFilesContent(List<File> files, TagFilter tagFilter,long begin, long end) throws IOException {
-        for(File file : files) {
-            List<File> fileList = getFilesWithTagFilter(file,tagFilter);
-            if(fileList==null) {
+    public Exception trimFilesContent(List<File> files, TagFilter tagFilter, long begin, long end)
+            throws IOException {
+        for (File file : files) {
+            List<File> fileList = getFilesWithTagFilter(file, tagFilter);
+            if (fileList == null) {
                 logger.warn("cant trim the file that not exist!");
                 continue;
             }
-            for(File f : fileList) {
+            for (File f : fileList) {
                 fileOperator.fileTrimmer(f, begin, end);
             }
         }
         return null;
     }
 
-
-    private File createIginxFile(File file, DataType dataType, Map<String, String> tag) throws IOException {
-        return fileOperator.create(file, new FileMeta(dataType,tag));
+    private File createIginxFile(File file, DataType dataType, Map<String, String> tag)
+            throws IOException {
+        return fileOperator.create(file, new FileMeta(dataType, tag));
     }
 
     private boolean ifFileExists(File file, TagFilter tagFilter) throws IOException {
-        if(getFilesWithTagFilter(file,tagFilter) != null) {
+        if (getFilesWithTagFilter(file, tagFilter) != null) {
             return true;
         }
         return false;
@@ -213,12 +221,12 @@ public class FileSystemImpl {
 
         List<Integer> nums = new ArrayList<>();
         nums.add(0);
-        if(files==null) return -1;
+        if (files == null) return -1;
         for (File f : files) {
             String name = f.getName();
             int idx = name.lastIndexOf(".iginx");
             String numStr = name.substring(idx + 6);
-            if(numStr.isEmpty()) continue;
+            if (numStr.isEmpty()) continue;
             nums.add(Integer.parseInt(numStr));
         }
 
@@ -227,19 +235,20 @@ public class FileSystemImpl {
 
     private File determineFileId(File file, Map<String, String> tag) throws IOException {
         int id = getFileID(file, tag);
-        if(id==-1) id=0;
-        else id+=1;
-        String path = file.getAbsolutePath()+id;
+        if (id == -1) id = 0;
+        else id += 1;
+        String path = file.getAbsolutePath() + id;
         return new File(path);
     }
 
-    private Exception doWriteFile(File file, List<Record> value, boolean append) throws IOException {
-        Exception res =null;
+    private Exception doWriteFile(File file, List<Record> value, boolean append)
+            throws IOException {
+        Exception res = null;
         byte[] bytes;
 
         switch (FileType.getFileType(file)) {
             case DIR:
-                if(!mkDir(file)) {
+                if (!mkDir(file)) {
                     logger.error("create dir fail!");
                     throw new IOException("create dir fail!");
                 }
@@ -247,9 +256,9 @@ public class FileSystemImpl {
             case IGINX_FILE:
                 res = fileOperator.iginxFileWriter(file, value);
                 break;
-            case NORMAL_FILE://may fix it ,因为写入只能对于iginx文件
-//                bytes = makeValueToBytes(value);
-//                res = fileOperator.TextFileWriter(file, bytes, append);
+            case NORMAL_FILE: // may fix it ,因为写入只能对于iginx文件
+                //                bytes = makeValueToBytes(value);
+                //                res = fileOperator.TextFileWriter(file, bytes, append);
                 break;
             default:
                 res = fileOperator.iginxFileWriter(file, value);
@@ -282,128 +291,128 @@ public class FileSystemImpl {
         this.charset = charset;
     }
 
-
-
     //
     public List<File> getAssociatedFiles(File file) {
-        List<File> fileList,filess= null;
-        Stack<File> S =new Stack<>();
+        List<File> fileList, filess = null;
+        Stack<File> S = new Stack<>();
         Set<File> res = new HashSet<>();
         File root = null;
         String prefix = null;
         // select * from *
-        if(file.getParentFile().getName().equals(MYWILDCARD) && file.getName().contains(MYWILDCARD)) {
-            root = file.getParentFile().getParentFile();// storage unit file
-        } else if (file.getParentFile().getName().equals(MYWILDCARD) && !file.getName().contains(MYWILDCARD)) {
+        if (file.getParentFile().getName().equals(MYWILDCARD)
+                && file.getName().contains(MYWILDCARD)) {
+            root = file.getParentFile().getParentFile(); // storage unit file
+        } else if (file.getParentFile().getName().equals(MYWILDCARD)
+                && !file.getName().contains(MYWILDCARD)) {
             File tmp = file.getParentFile();
-            while(tmp.getName().equals(MYWILDCARD)) {
-                tmp=tmp.getParentFile();
+            while (tmp.getName().equals(MYWILDCARD)) {
+                tmp = tmp.getParentFile();
             }
-            root=tmp;
-            prefix=file.getName();
-        } else if(file.getName().contains(MYWILDCARD)) {
+            root = tmp;
+            prefix = file.getName();
+        } else if (file.getName().contains(MYWILDCARD)) {
 
             root = file.getParentFile();
-        }else if(file.isDirectory()) {
+        } else if (file.isDirectory()) {
             root = file;
-        } else{
+        } else {
             root = file.getParentFile();
-            prefix= file.getName();
+            prefix = file.getName();
         }
         boolean flag = false;
         S.push(root);
-        while(!S.empty()){
+        while (!S.empty()) {
             File tmp = S.pop();
-            if(tmp.isDirectory()) {
-                List<File> files = fileOperator.listFiles(tmp,prefix),dirlist=fileOperator.listFiles(tmp);
-                if(files!=null) {
-                    for(File f : files) S.push(f);
+            if (tmp.isDirectory()) {
+                List<File> files = fileOperator.listFiles(tmp, prefix),
+                        dirlist = fileOperator.listFiles(tmp);
+                if (files != null) {
+                    for (File f : files) S.push(f);
                 }
-                if(dirlist!=null) {
-                    for(File f : dirlist) {
-                        if(f.isDirectory()) S.push(f);
+                if (dirlist != null) {
+                    for (File f : dirlist) {
+                        if (f.isDirectory()) S.push(f);
                     }
                 }
             }
-            if(flag) res.add(tmp);
-            flag=true;
+            if (flag) res.add(tmp);
+            flag = true;
         }
         fileList = new ArrayList<>(res);
-        return fileList.size()==0?null:fileList;
+        return fileList.size() == 0 ? null : fileList;
     }
 
     /**
-     根据提供的 tags 集合查找同名 / 近名的 .iginx 文件,其元数据 tags 与提供的集合相等。
-     若找到,返回该文件,否则返回 null。
-     @param tags 用于匹配的 tags 集合
-     @param file 用于查找相同名或近名的父级目录
-     @return 元数据与 tags 相等的 .iginx 文件,否则返回 null
-     @throws IOException 任何查找或读写操作导致的 IOException 将被传播
+     * 根据提供的 tags 集合查找同名 / 近名的 .iginx 文件,其元数据 tags 与提供的集合相等。 若找到,返回该文件,否则返回 null。
+     *
+     * @param tags 用于匹配的 tags 集合
+     * @param file 用于查找相同名或近名的父级目录
+     * @return 元数据与 tags 相等的 .iginx 文件,否则返回 null
+     * @throws IOException 任何查找或读写操作导致的 IOException 将被传播
      */
-    private File getFileWithTag( File file,Map<String, String> tags) throws IOException {
+    private File getFileWithTag(File file, Map<String, String> tags) throws IOException {
         List<File> res = getAssociatedFiles(file);
-        if(res==null) return null;
-        for(File fi : res) {
-            if(fi.isDirectory()) continue;
+        if (res == null) return null;
+        for (File fi : res) {
+            if (fi.isDirectory()) continue;
             FileMeta fileMeta = fileOperator.getFileMeta(fi);
-            if(Objects.equals(tags,fileMeta.getTag())){
+            if (Objects.equals(tags, fileMeta.getTag())) {
                 return fi;
             }
         }
         return null;
     }
 
-    private List<File> getFilesWithTagFilter(File file,TagFilter tagFilter) throws IOException {
+    private List<File> getFilesWithTagFilter(File file, TagFilter tagFilter) throws IOException {
         List<File> files = getAssociatedFiles(file), res = new ArrayList<>();
-        if(files==null) return files;
-        for(File fi : files) {
-            if(fi.isDirectory() || !fileOperator.ifFileExists(fi)) continue;
+        if (files == null) return files;
+        for (File fi : files) {
+            if (fi.isDirectory() || !fileOperator.ifFileExists(fi)) continue;
             FileMeta fileMeta = null;
-            if(FileType.getFileType(fi)== FileType.Type.IGINX_FILE)
+            if (FileType.getFileType(fi) == FileType.Type.IGINX_FILE)
                 fileMeta = fileOperator.getFileMeta(fi);
-            if(tagFilter ==null || TagKVUtils.match(fileMeta.getTag(), tagFilter)) {
+            if (tagFilter == null || TagKVUtils.match(fileMeta.getTag(), tagFilter)) {
                 res.add(fi);
             }
         }
-        return res.size()==0?null:res;
+        return res.size() == 0 ? null : res;
     }
 
     /**
-     根据提供的 tags 集合查找同名 / 近名的 .iginx 文件,其元数据包含 tags 中的所有 key-value 对。
-     若找到,返回包含这些文件的集合,否则返回 null。
-     @param tags 用于匹配的 tags 集合
-     @param file 用于查找相同名或近名的父级目录
-     @return 包含 tags 中所有 key-value 对的 .iginx 文件集合,否则返回 null
-     @throws IOException 任何查找或读写操作导致的 IOException 将被传播
+     * 根据提供的 tags 集合查找同名 / 近名的 .iginx 文件,其元数据包含 tags 中的所有 key-value 对。 若找到,返回包含这些文件的集合,否则返回 null。
+     *
+     * @param tags 用于匹配的 tags 集合
+     * @param file 用于查找相同名或近名的父级目录
+     * @return 包含 tags 中所有 key-value 对的 .iginx 文件集合,否则返回 null
+     * @throws IOException 任何查找或读写操作导致的 IOException 将被传播
      */
-    private List<File> getFilesContainTag(File file,Map<String, String> tags) throws IOException {
+    private List<File> getFilesContainTag(File file, Map<String, String> tags) throws IOException {
         List<File> res = new ArrayList<>();
         List<File> files = getAssociatedFiles(file);
 
-        if(files==null) return null;
-        for(File f : files) {
-            if(f.isDirectory()) continue;
+        if (files == null) return null;
+        for (File f : files) {
+            if (f.isDirectory()) continue;
             FileMeta fileMeta = fileOperator.getFileMeta(f);
-            if(fileMeta.ifContainTag(tags)){
+            if (fileMeta.ifContainTag(tags)) {
                 res.add(f);
             }
         }
-        return res.size()==0?null:res;
+        return res.size() == 0 ? null : res;
     }
 
-    public List<Pair<File,FileMeta>> getAllIginXFiles(File dir) {
-        List<Pair<File,FileMeta>> res = new ArrayList<>();
+    public List<Pair<File, FileMeta>> getAllIginXFiles(File dir) {
+        List<Pair<File, FileMeta>> res = new ArrayList<>();
         Stack<File> stack = new Stack<>();
         stack.push(dir);
         while (!stack.isEmpty()) {
             File current = stack.pop();
             List<File> fileList = null;
-            if (current.isDirectory())
-                fileList = fileOperator.listFiles(current);
-            else if(FileType.getFileType(current)== FileType.Type.IGINX_FILE){
+            if (current.isDirectory()) fileList = fileOperator.listFiles(current);
+            else if (FileType.getFileType(current) == FileType.Type.IGINX_FILE) {
                 try {
-                    res.add(new Pair<>(current,fileOperator.getFileMeta(current)));
-                }catch (IOException e){
+                    res.add(new Pair<>(current, fileOperator.getFileMeta(current)));
+                } catch (IOException e) {
                     logger.error(e.getMessage());
                 }
             }
@@ -425,11 +434,10 @@ public class FileSystemImpl {
         res.add(minFile);
 
         File lastFile = null;
-        while(maxFile.isDirectory()) {
+        while (maxFile.isDirectory()) {
             File[] files = maxFile.listFiles();
-            if(files!=null)
-                maxFile = files[files.length - 1];
-            if(lastFile!=null && fileOperator.ifFilesEqual(lastFile,maxFile)) {
+            if (files != null) maxFile = files[files.length - 1];
+            if (lastFile != null && fileOperator.ifFilesEqual(lastFile, maxFile)) {
                 break;
             }
             lastFile = maxFile;
@@ -447,7 +455,7 @@ public class FileSystemImpl {
 
     File getMaxFile(File dir) {
         File[] files = dir.listFiles();
-        if(files.length==0){
+        if (files.length == 0) {
             return dir;
         }
         Arrays.sort(files);
@@ -456,7 +464,7 @@ public class FileSystemImpl {
     }
 
     public List<Long> getBoundaryTime(File dir) {
-        List<Long> res =new ArrayList<>();
+        List<Long> res = new ArrayList<>();
         List<File> files = getAssociatedFiles(dir);
         long min = Long.MAX_VALUE;
         long max = Long.MIN_VALUE;
@@ -472,20 +480,20 @@ public class FileSystemImpl {
         return res;
     }
 
-    public Date getCreationTime(File file){
+    public Date getCreationTime(File file) {
         return fileOperator.getCreationTime(file);
     }
 
     private long getFileSize(File file) {
         try {
-            if(file.exists()) {
-                if(file.isFile()) {
+            if (file.exists()) {
+                if (file.isFile()) {
                     return fileOperator.length(file);
                 } else {
                     return 0;
                 }
             }
-        }catch (IOException e){
+        } catch (IOException e) {
             logger.error(e.getMessage());
         }
 

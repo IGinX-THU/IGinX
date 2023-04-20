@@ -1,12 +1,6 @@
 package cn.edu.tsinghua.iginx.filesystem.file.property;
 
-import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
-import cn.edu.tsinghua.iginx.filesystem.tools.TagKVUtils;
-import cn.edu.tsinghua.iginx.filesystem.wrapper.Record;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-
-import java.io.File;
-import java.io.IOException;
 import java.util.Date;
 import java.util.Map;
 
@@ -14,14 +8,14 @@ public class FileMeta {
     // the number of the max meta info
     public static long IGINXFILEVALINDEX = 10L;
     // is Dir line number
-    final public static int ISDIRINDEX = 1;
+    public static final int ISDIRINDEX = 1;
     // data type line number
-    final public static int DATATYPEINDEX = 2;
+    public static final int DATATYPEINDEX = 2;
     // tagkv line number
-    final public static int TAGKVINDEX = 3;
+    public static final int TAGKVINDEX = 3;
     private DataType dataType;
     private Map<String, String> tag;
-    private boolean isDir =false;
+    private boolean isDir = false;
     private Date createTime;
 
     public FileMeta() {
@@ -53,7 +47,7 @@ public class FileMeta {
 
     public boolean ifContainTag(Map<String, String> map) {
         for (String key : map.keySet()) {
-            if (this.tag==null || !this.tag.containsKey(key)) return false;
+            if (this.tag == null || !this.tag.containsKey(key)) return false;
             String value = map.get(key);
             if (!this.tag.get(key).equals(value)) return false;
         }

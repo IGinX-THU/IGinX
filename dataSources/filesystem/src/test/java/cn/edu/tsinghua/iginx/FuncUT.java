@@ -22,13 +22,11 @@ import cn.edu.tsinghua.iginx.metadata.entity.TimeSeriesRange;
 import cn.edu.tsinghua.iginx.utils.JsonUtils;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.TimeUtils;
-import org.junit.Test;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
-
 import org.apache.commons.jexl3.*;
+import org.junit.Test;
 
 public class FuncUT {
 
@@ -38,36 +36,46 @@ public class FuncUT {
         List<Record> valList = new ArrayList<>();
         FileSystemImpl fileSystem = new FileSystemImpl();
         Map<String, String> tags = new HashMap<>();
-        tags.put("tt","v1");
-        tags.put("tv","v2");
+        tags.put("tt", "v1");
+        tags.put("tv", "v2");
         valList.add(new Record(0, "no !".getBytes()));
         valList.add(new Record(10, "lhz never give up!".getBytes()));
         valList.add(new Record(100, "happy every day!".getBytes()));
         valList.add(new Record(400, "no !".getBytes()));
 
-        fileSystem.writeFile(new File(FilePath.toIginxPath("unit0000",path)), valList,tags,false);
+        fileSystem.writeFile(
+                new File(FilePath.toIginxPath("unit0000", path)), valList, tags, false);
     }
 
     @Test
     public void testReadFile() throws IOException, PhysicalException {
         String path = "a.b.lhz";
         FileSystemImpl fileSystem = new FileSystemImpl();
-        AndFilter andFilter = new AndFilter(new ArrayList<Filter>(){{
-            add(new KeyFilter(Op.L, 600));
-            add(new KeyFilter(Op.GE, 4));
-        }});
+        AndFilter andFilter =
+                new AndFilter(
+                        new ArrayList<Filter>() {
+                            {
+                                add(new KeyFilter(Op.L, 600));
+                                add(new KeyFilter(Op.GE, 4));
+                            }
+                        });
 
-        Map<String ,String >tags = new HashMap<>();
-        tags.put("tt","v1");
-        tags.put("tv","v2");
-        TagFilter filter = new AndTagFilter(new ArrayList<TagFilter>(){{
-            add(new BasePreciseTagFilter(tags));
-        }});
+        Map<String, String> tags = new HashMap<>();
+        tags.put("tt", "v1");
+        tags.put("tv", "v2");
+        TagFilter filter =
+                new AndTagFilter(
+                        new ArrayList<TagFilter>() {
+                            {
+                                add(new BasePreciseTagFilter(tags));
+                            }
+                        });
 
-
-        List<FSResultTable> res =fileSystem.readFile(new File(FilePath.toIginxPath("unit0000",path)), filter, andFilter);
+        List<FSResultTable> res =
+                fileSystem.readFile(
+                        new File(FilePath.toIginxPath("unit0000", path)), filter, andFilter);
         for (FSResultTable record : res) {
-            for(Record tmp  : record.getVal()){
+            for (Record tmp : record.getVal()) {
                 System.out.println(tmp.getRawData());
             }
         }
@@ -79,22 +87,29 @@ public class FuncUT {
         List<Record> valList = new ArrayList<>();
         FileSystemImpl fileSystem = new FileSystemImpl();
         Map<String, String> tags = new HashMap<>();
-        tags.put("tt","v1");
-        tags.put("tv","v2");
+        tags.put("tt", "v1");
+        tags.put("tv", "v2");
         valList.add(new Record(50, "middle!".getBytes()));
         valList.add(new Record(500, "end!".getBytes()));
         valList.add(new Record(600, "end2!".getBytes()));
 
-        fileSystem.writeFile(new File(FilePath.toIginxPath("unit0000",path)), valList,tags,false);
+        fileSystem.writeFile(
+                new File(FilePath.toIginxPath("unit0000", path)), valList, tags, false);
 
-        AndFilter andFilter = new AndFilter(new ArrayList<Filter>(){{
-            add(new KeyFilter(Op.L, 600));
-            add(new KeyFilter(Op.GE, 4));
-        }});
+        AndFilter andFilter =
+                new AndFilter(
+                        new ArrayList<Filter>() {
+                            {
+                                add(new KeyFilter(Op.L, 600));
+                                add(new KeyFilter(Op.GE, 4));
+                            }
+                        });
 
-        List<FSResultTable> res =fileSystem.readFile(new File(FilePath.toIginxPath("unit0000",path)), null, andFilter);
+        List<FSResultTable> res =
+                fileSystem.readFile(
+                        new File(FilePath.toIginxPath("unit0000", path)), null, andFilter);
         for (FSResultTable record : res) {
-            for(Record tmp  : record.getVal()){
+            for (Record tmp : record.getVal()) {
                 System.out.println(tmp.getRawData());
             }
         }
@@ -104,28 +119,39 @@ public class FuncUT {
     public void testExecuteQueryTask() throws PhysicalException {
         TaskExecuteResult res = null;
         LocalExecutor local = new LocalExecutor();
-        AndFilter andFilter = new AndFilter(new ArrayList<Filter>(){{
-            add(new KeyFilter(Op.L, 600));
-            add(new KeyFilter(Op.GE, 4));
-        }});
+        AndFilter andFilter =
+                new AndFilter(
+                        new ArrayList<Filter>() {
+                            {
+                                add(new KeyFilter(Op.L, 600));
+                                add(new KeyFilter(Op.GE, 4));
+                            }
+                        });
 
-        Map<String ,String >tags = new HashMap<>();
-        tags.put("tt","v1");
-        tags.put("tv","v2");
-        TagFilter filter = new AndTagFilter(new ArrayList<TagFilter>(){{
-            add(new BasePreciseTagFilter(tags));
-        }});
+        Map<String, String> tags = new HashMap<>();
+        tags.put("tt", "v1");
+        tags.put("tv", "v2");
+        TagFilter filter =
+                new AndTagFilter(
+                        new ArrayList<TagFilter>() {
+                            {
+                                add(new BasePreciseTagFilter(tags));
+                            }
+                        });
 
-        List<String> series = new ArrayList<String >(){{
-            add("a.b.lhz");
-            add("a.b.lhh");
-        }};
+        List<String> series =
+                new ArrayList<String>() {
+                    {
+                        add("a.b.lhz");
+                        add("a.b.lhh");
+                    }
+                };
 
         //        String storageUnit, List<String> series, TagFilter tagFilter, Filter filter
-        res=local.executeQueryTask("unit0000", series, filter,andFilter);
+        res = local.executeQueryTask("unit0000", series, filter, andFilter);
 
         RowStream rowStream = res.getRowStream();
-        while(rowStream.hasNext()) {
+        while (rowStream.hasNext()) {
             System.out.println(new String(JsonUtils.toJson(rowStream.next())));
         }
         System.out.println(new String(JsonUtils.toJson(res)));
@@ -136,25 +162,27 @@ public class FuncUT {
         String path = "a.b.lhz";
         FileSystemImpl fileSystem = new FileSystemImpl();
 
-        Map<String ,String >tags = new HashMap<>();
-        tags.put("tt","v1");
-        tags.put("tv","v2");
-        TagFilter filter = new AndTagFilter(new ArrayList<TagFilter>(){{
-            add(new BasePreciseTagFilter(tags));
-        }});
+        Map<String, String> tags = new HashMap<>();
+        tags.put("tt", "v1");
+        tags.put("tv", "v2");
+        TagFilter filter =
+                new AndTagFilter(
+                        new ArrayList<TagFilter>() {
+                            {
+                                add(new BasePreciseTagFilter(tags));
+                            }
+                        });
 
-        fileSystem.trimFileContent(new File(FilePath.toIginxPath("unit0000",path)),
-            filter,
-            20,
-            100);
+        fileSystem.trimFileContent(
+                new File(FilePath.toIginxPath("unit0000", path)), filter, 20, 100);
     }
 
     @Test
     public void testDeleteFiles() throws IOException { // 清空文件夹
         String path = "a.b.asd";
-        File file = new File(FilePath.toIginxPath("unit0001",null));
+        File file = new File(FilePath.toIginxPath("unit0001", null));
         FileSystemImpl fileSystem = new FileSystemImpl();
-//        fileSystem.deleteFiles(Collections.singletonList(file));
+        //        fileSystem.deleteFiles(Collections.singletonList(file));
     }
 
     @Test
@@ -167,11 +195,14 @@ public class FuncUT {
 
         fileList.add(new File(path));
 
-        valList.add(new ArrayList<Record>() {{
-            long key = TimeUtils.MIN_AVAILABLE_TIME;
-            add(new Record(key++, "lhz never give up!\n".getBytes()));
-            add(new Record(key++, "happy every day!\n".getBytes()));
-        }});
+        valList.add(
+                new ArrayList<Record>() {
+                    {
+                        long key = TimeUtils.MIN_AVAILABLE_TIME;
+                        add(new Record(key++, "lhz never give up!\n".getBytes()));
+                        add(new Record(key++, "happy every day!\n".getBytes()));
+                    }
+                });
 
         ifAppend.add(false);
         fileSystem.writeFiles(fileList, valList, ifAppend);
@@ -201,11 +232,17 @@ public class FuncUT {
     public void testReadAndWriteIginxFileByKey() throws IOException {
         String path = "src/test/java/cn.edu.tsinghua.iginx/lhz.iginx.csv";
         FileSystemImpl fileSystem = new FileSystemImpl();
-        List<Record> valList = new ArrayList<Record>() {{
-            long key = TimeUtils.MIN_AVAILABLE_TIME;
-            add(new Record(key++, "Do not go gentle into that good night.".getBytes()));
-            add(new Record(key++, "Rage, rage against the dying of the light.".getBytes()));
-        }};
+        List<Record> valList =
+                new ArrayList<Record>() {
+                    {
+                        long key = TimeUtils.MIN_AVAILABLE_TIME;
+                        add(new Record(key++, "Do not go gentle into that good night.".getBytes()));
+                        add(
+                                new Record(
+                                        key++,
+                                        "Rage, rage against the dying of the light.".getBytes()));
+                    }
+                };
 
         fileSystem.writeFile(new File(path), valList, false);
 
@@ -252,11 +289,8 @@ public class FuncUT {
     }
 
     @Test
-    public void testPathConvert(){
-        System.out.println(
-            FilePath.toIginxPath("unit000000","lhz.tt.rrr##lhz.iginx"));
-        System.out.println(
-            FilePath.toIginxPath("unit000000","lhz.tt.rrr#lhz.iginx"));
+    public void testPathConvert() {
+        System.out.println(FilePath.toIginxPath("unit000000", "lhz.tt.rrr##lhz.iginx"));
+        System.out.println(FilePath.toIginxPath("unit000000", "lhz.tt.rrr#lhz.iginx"));
     }
-
 }

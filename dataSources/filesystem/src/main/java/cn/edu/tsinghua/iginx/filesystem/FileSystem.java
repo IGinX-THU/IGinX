@@ -39,11 +39,10 @@ import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.metadata.entity.TimeInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.TimeSeriesRange;
 import cn.edu.tsinghua.iginx.utils.Pair;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.Arrays;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class FileSystem implements IStorage {
     private static final String STORAGE_ENGINE = "filesystem";
@@ -54,9 +53,10 @@ public class FileSystem implements IStorage {
 
     public FileSystem(StorageEngineMeta meta) throws StorageInitializationException {
         this.meta = meta;
-        executor= new LocalExecutor();
+        executor = new LocalExecutor();
         if (!meta.getStorageEngine().equals(STORAGE_ENGINE)) {
-            throw new StorageInitializationException("unexpected database: " + meta.getStorageEngine());
+            throw new StorageInitializationException(
+                    "unexpected database: " + meta.getStorageEngine());
         }
         if (!testConnection()) {
             throw new StorageInitializationException("cannot connect to " + meta.toString());
@@ -68,12 +68,13 @@ public class FileSystem implements IStorage {
         return true;
     }
 
-
     @Override
     public TaskExecuteResult execute(StoragePhysicalTask task) {
         List<Operator> operators = task.getOperators();
         if (operators.size() < 1) {
-            return new TaskExecuteResult(new NonExecutablePhysicalTaskException("storage physical task should have one more operators"));
+            return new TaskExecuteResult(
+                    new NonExecutablePhysicalTaskException(
+                            "storage physical task should have one more operators"));
         }
         Operator op = operators.get(0);
         String storageUnit = task.getStorageUnit();
@@ -85,27 +86,25 @@ public class FileSystem implements IStorage {
                 filter = ((Select) operators.get(1)).getFilter();
             } else {
                 FragmentMeta fragment = task.getTargetFragment();
-                filter = new AndFilter(Arrays.asList(
-                        new KeyFilter(Op.GE, fragment.getTimeInterval().getStartTime()),
-                        new KeyFilter(Op.L, fragment.getTimeInterval().getEndTime())));
+                filter =
+                        new AndFilter(
+                                Arrays.asList(
+                                        new KeyFilter(
+                                                Op.GE, fragment.getTimeInterval().getStartTime()),
+                                        new KeyFilter(
+                                                Op.L, fragment.getTimeInterval().getEndTime())));
             }
             return executor.executeProjectTask(
-                    project,
-                    FilterTransformer.toBinary(filter),
-                    storageUnit,
-                    isDummyStorageUnit);
+                    project, FilterTransformer.toBinary(filter), storageUnit, isDummyStorageUnit);
         } else if (op.getType() == OperatorType.Insert) {
             Insert insert = (Insert) op;
-            return executor.executeInsertTask(
-                    insert,
-                    storageUnit);
+            return executor.executeInsertTask(insert, storageUnit);
         } else if (op.getType() == OperatorType.Delete) {
             Delete delete = (Delete) op;
-            return executor.executeDeleteTask(
-                    delete,
-                    storageUnit);
+            return executor.executeDeleteTask(delete, storageUnit);
         }
-        return new TaskExecuteResult(new NonExecutablePhysicalTaskException("unsupported physical task"));
+        return new TaskExecuteResult(
+                new NonExecutablePhysicalTaskException("unsupported physical task"));
     }
 
     @Override
@@ -114,7 +113,8 @@ public class FileSystem implements IStorage {
     }
 
     @Override
-    public Pair<TimeSeriesRange, TimeInterval> getBoundaryOfStorage(String prefix) throws PhysicalException {
+    public Pair<TimeSeriesRange, TimeInterval> getBoundaryOfStorage(String prefix)
+            throws PhysicalException {
         return executor.getBoundaryOfStorage(prefix);
     }
 
@@ -122,32 +122,4 @@ public class FileSystem implements IStorage {
     public void release() throws PhysicalException {
         executor.close();
     }
-
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

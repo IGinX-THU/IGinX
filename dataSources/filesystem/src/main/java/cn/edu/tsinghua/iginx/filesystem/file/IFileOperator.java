@@ -2,7 +2,6 @@ package cn.edu.tsinghua.iginx.filesystem.file;
 
 import cn.edu.tsinghua.iginx.filesystem.file.property.FileMeta;
 import cn.edu.tsinghua.iginx.filesystem.wrapper.Record;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -12,20 +11,23 @@ import java.util.List;
 public interface IFileOperator {
     List<Record> dirReader(File file) throws IOException;
     // read the all the file
-    List<Record> normalFileReader(File file, long begin, long end, Charset charset) throws IOException;
+    List<Record> normalFileReader(File file, long begin, long end, Charset charset)
+            throws IOException;
 
     // read the file by lines [begin, end]
-//    List<byte[]> TextFileReaderByLine(File file, long begin, long end, Charset charset) throws IOException;
+    //    List<byte[]> TextFileReaderByLine(File file, long begin, long end, Charset charset) throws
+    // IOException;
 
     // read the file by key [begin, end]
-    List<Record> iginxFileReaderByKey(File file, long begin, long end, Charset charset) throws IOException;
+    List<Record> iginxFileReaderByKey(File file, long begin, long end, Charset charset)
+            throws IOException;
 
     // read the byte range [begin, end] of the file
-//    List<Record> TextFileReaderByByteSeek(File file, long begin, long end) throws IOException;
+    //    List<Record> TextFileReaderByByteSeek(File file, long begin, long end) throws IOException;
 
-//    Exception ByteFileWriter(File file, byte[] bytes, boolean append);
+    //    Exception ByteFileWriter(File file, byte[] bytes, boolean append);
 
-//    Exception TextFileWriter(File file, byte[] bytes, boolean append) throws IOException;
+    //    Exception TextFileWriter(File file, byte[] bytes, boolean append) throws IOException;
 
     Exception iginxFileWriter(File file, List<Record> valList) throws IOException;
 

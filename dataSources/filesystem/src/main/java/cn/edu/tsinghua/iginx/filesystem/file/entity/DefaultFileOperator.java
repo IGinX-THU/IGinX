@@ -1,5 +1,7 @@
 package cn.edu.tsinghua.iginx.filesystem.file.entity;
 
+import static cn.edu.tsinghua.iginx.thrift.DataType.BINARY;
+
 import cn.edu.tsinghua.iginx.filesystem.file.IFileOperator;
 import cn.edu.tsinghua.iginx.filesystem.file.property.FileMeta;
 import cn.edu.tsinghua.iginx.filesystem.file.property.FileType;
@@ -8,9 +10,6 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.DataTypeUtils;
 import cn.edu.tsinghua.iginx.utils.JsonUtils;
 import cn.edu.tsinghua.iginx.utils.TimeUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
@@ -19,59 +18,65 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.*;
-
-import static cn.edu.tsinghua.iginx.thrift.DataType.BINARY;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DefaultFileOperator implements IFileOperator {
     private static final Logger logger = LoggerFactory.getLogger(DefaultFileOperator.class);
-    private int BUFFERSIZE = 1024*1024;
+    private int BUFFERSIZE = 1024 * 1024;
 
-//    @Override
-//    public List<Record> ByteFileReader(File file, Charset charset) {
-//        return null;
-//    }
+    //    @Override
+    //    public List<Record> ByteFileReader(File file, Charset charset) {
+    //        return null;
+    //    }
 
     @Override
-    public List<Record> normalFileReader(File file, long begin, long end, Charset charset) throws IOException {
+    public List<Record> normalFileReader(File file, long begin, long end, Charset charset)
+            throws IOException {
         List<Record> res = new ArrayList<>();
         List<byte[]> valList = normalFileReadByByte(file, begin, end);
         int key = 0;
-        for(byte[] val : valList) {
-            res.add(new Record(key++,val));
+        for (byte[] val : valList) {
+            res.add(new Record(key++, val));
         }
         return res;
     }
 
-    public List<byte[]> textFileReaderByLine(File file, long begin, long end, Charset charset) throws IOException {
-        List<byte[]> res = new ArrayList<>();
-        long key = TimeUtils.MIN_AVAILABLE_TIME;
-        if (begin == -1 && end == -1) {
-            begin = 0;
-            end = Long.MAX_VALUE;
-        }
-        if (begin < 0 || end < 0) {
-            throw new IOException("Read information outside the boundary with BEGIN " + begin + " and END " + end);
-        }
-
-        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
-            long currentLine = 0;
-            String line;
-            while ((line = reader.readLine()) != null && currentLine <= end) {
-                if (currentLine >= begin) {
-                    res.add(line.getBytes(charset));
-                }
-                currentLine++;
-            }
-        }
-        return res;
-    }
+//    public List<byte[]> textFileReaderByLine(File file, long begin, long end, Charset charset)
+//            throws IOException {
+//        List<byte[]> res = new ArrayList<>();
+//        long key = TimeUtils.MIN_AVAILABLE_TIME;
+//        if (begin == -1 && end == -1) {
+//            begin = 0;
+//            end = Long.MAX_VALUE;
+//        }
+//        if (begin < 0 || end < 0) {
+//            throw new IOException(
+//                    "Read information outside the boundary with BEGIN "
+//                            + begin
+//                            + " and END "
+//                            + end);
+//        }
+//
+//        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+//            long currentLine = 0;
+//            String line;
+//            while ((line = reader.readLine()) != null && currentLine <= end) {
+//                if (currentLine >= begin) {
+//                    res.add(line.getBytes(charset));
+//                }
+//                currentLine++;
+//            }
+//        }
+//        return res;
+//    }
 
     /**
      * Reads a range of bytes from a large file efficiently.
      *
-     * @param file  The file to read from.
+     * @param file The file to read from.
      * @param begin The starting byte position.
-     * @param end   The ending byte position.
+     * @param end The ending byte position.
      * @return An array of bytes containing the read data.
      * @throws IOException If there is an error reading the file.
      */
@@ -83,20 +88,20 @@ public class DefaultFileOperator implements IFileOperator {
         if (begin < 0 || end < begin) {
             throw new IllegalArgumentException("Invalid byte range.");
         }
-        if(end> file.length()) {
-            end=file.length();
+        if (end > file.length()) {
+            end = file.length();
         }
 
         try (RandomAccessFile raf = new RandomAccessFile(file, "r")) {
             long readPos = begin;
             while (readPos < end) {
-                int batchSize=BUFFERSIZE;
-                byte[] buffer = new byte[batchSize];  // 一次读取1MB
+                int batchSize = BUFFERSIZE;
+                byte[] buffer = new byte[batchSize]; // 一次读取1MB
                 // Move the file pointer to the starting position
                 raf.seek(begin);
                 // Read the specified range of bytes from the file
                 int len = raf.read(buffer);
-                if(len!=batchSize) {
+                if (len != batchSize) {
                     byte[] subBuffer = new byte[len];
                     subBuffer = Arrays.copyOf(buffer, len);
                     res.add(subBuffer);
@@ -106,7 +111,6 @@ public class DefaultFileOperator implements IFileOperator {
         }
         return res;
     }
-
 
     private Map<String, String> readIginxMetaInfo(File file) throws IOException {
         Map<String, String> result = new HashMap<>();
@@ -125,16 +129,21 @@ public class DefaultFileOperator implements IFileOperator {
         return result;
     }
 
-    public List<Record> readIginxFileByKey(File file, long begin, long end, Charset charset) throws IOException {
+    public List<Record> readIginxFileByKey(File file, long begin, long end, Charset charset)
+            throws IOException {
         Map<String, String> fileInfo = readIginxMetaInfo(file);
         List<Record> res = new ArrayList<>();
-        long key = TimeUtils.MIN_AVAILABLE_TIME;
+        long key;
         if (begin == -1 && end == -1) {
             begin = 0;
             end = Long.MAX_VALUE;
         }
         if (begin < 0 || end < 0 || (begin > end)) {
-            throw new IOException("Read information outside the boundary with BEGIN " + begin + " and END " + end);
+            throw new IOException(
+                    "Read information outside the boundary with BEGIN "
+                            + begin
+                            + " and END "
+                            + end);
         }
 
         long currentLine = 0;
@@ -146,8 +155,13 @@ public class DefaultFileOperator implements IFileOperator {
                 String[] kv = line.split(",", 2);
                 key = Long.parseLong(kv[0]);
                 if (key >= begin && key <= end) {
-                    DataType dataType = DataType.findByValue(Integer.parseInt(fileInfo.get("type")));
-                    res.add(new Record(Long.parseLong(kv[0]), dataType, DataTypeUtils.getValWithDataType(kv[1],dataType)));
+                    DataType dataType =
+                            DataType.findByValue(Integer.parseInt(fileInfo.get("type")));
+                    res.add(
+                            new Record(
+                                    Long.parseLong(kv[0]),
+                                    dataType,
+                                    DataTypeUtils.getValWithDataType(kv[1], dataType)));
                 }
             }
         }
@@ -159,7 +173,8 @@ public class DefaultFileOperator implements IFileOperator {
     }
 
     @Override
-    public List<Record> iginxFileReaderByKey(File file, long begin, long end, Charset charset) throws IOException {
+    public List<Record> iginxFileReaderByKey(File file, long begin, long end, Charset charset)
+            throws IOException {
         return readIginxFileByKey(file, begin, end, charset);
     }
 
@@ -205,14 +220,17 @@ public class DefaultFileOperator implements IFileOperator {
     }
 
     private final String recordToString(Record record) {
-        return record.getKey() + "," + convertObjectToString(record.getRawData(), record.getDataType());
+        return record.getKey()
+                + ","
+                + convertObjectToString(record.getRawData(), record.getDataType());
     }
 
-    private Exception appendValToIginxFile(File file, List<Record> valList, int beg, int end) throws IOException {
-        if(beg==-1) beg = 0;
-        if(end==-1) end = valList.size();
+    private Exception appendValToIginxFile(File file, List<Record> valList, int beg, int end)
+            throws IOException {
+        if (beg == -1) beg = 0;
+        if (end == -1) end = valList.size();
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(file, true))) {
-            for(int i=beg;i<end;i++){
+            for (int i = beg; i < end; i++) {
                 writer.write(recordToString(valList.get(i)));
                 writer.write("\n");
             }
@@ -221,13 +239,13 @@ public class DefaultFileOperator implements IFileOperator {
     }
 
     private Exception appendValToIginxFile(File file, List<Record> valList) throws IOException {
-        return appendValToIginxFile(file,valList,-1,-1);
+        return appendValToIginxFile(file, valList, -1, -1);
     }
 
     private String getLastValOfIginxFile(File file) throws IOException {
         String res = new String();
         int BUFFER_SIZE = 8192; // 8 KB
-        if(ifIginxFileEmpty(file)) {
+        if (ifIginxFileEmpty(file)) {
             return res;
         }
         // 一定包含数值
@@ -241,7 +259,9 @@ public class DefaultFileOperator implements IFileOperator {
                     String data = new String(buffer, 0, n);
                     String[] lines, fields;
                     lastLine += data;
-                    if (!lastLine.contains("\n") || lastLine.indexOf("\n") == lastLine.lastIndexOf("\n")) {//是否确切包含了最后一行
+                    if (!lastLine.contains("\n")
+                            || lastLine.indexOf("\n")
+                                    == lastLine.lastIndexOf("\n")) { // 是否确切包含了最后一行
                         raf.seek(Math.max(raf.getFilePointer() - BUFFER_SIZE, 0));
                         n = raf.read(buffer);
                         continue;
@@ -261,7 +281,7 @@ public class DefaultFileOperator implements IFileOperator {
     }
 
     boolean ifIginxFileEmpty(File file) throws IOException {
-        if(FileType.getFileType(file)!= FileType.Type.IGINX_FILE)   {
+        if (FileType.getFileType(file) != FileType.Type.IGINX_FILE) {
             logger.error("not a iginx file!");
             return true;
         }
@@ -271,7 +291,7 @@ public class DefaultFileOperator implements IFileOperator {
             int lines = 0;
             while (reader.readLine() != null) {
                 lines++;
-                if(lines>FileMeta.IGINXFILEVALINDEX) {
+                if (lines > FileMeta.IGINXFILEVALINDEX) {
                     flag = false;
                     break;
                 }
@@ -289,7 +309,10 @@ public class DefaultFileOperator implements IFileOperator {
         if (!file.exists()) {
             throw new IOException("Original file does not exist.");
         }
-        Files.move(tempFile.toPath(), file.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        Files.move(
+                tempFile.toPath(),
+                file.toPath(),
+                java.nio.file.StandardCopyOption.REPLACE_EXISTING);
     }
 
     @Override
@@ -309,7 +332,7 @@ public class DefaultFileOperator implements IFileOperator {
 
         // Check if valList can be directly appended to the end of the file
         if (file.exists() && file.length() > 0) {
-            long lastKey= getIginxFileMaxKey(file);
+            long lastKey = getIginxFileMaxKey(file);
             if (lastKey < valList.get(0).getKey()) {
                 return appendValToIginxFile(file, valList);
             }
@@ -337,14 +360,14 @@ public class DefaultFileOperator implements IFileOperator {
                     String[] kv = line.split(",", 2);
                     long key = Long.parseLong(kv[0]);
                     boolean isCovered = false;
-                    while (key >= minKey && valIndex<maxLen) {
+                    while (key >= minKey && valIndex < maxLen) {
                         if (key == minKey) isCovered = true;
                         Record record = valList.get(valIndex++);
                         writer.write(recordToString(record));
                         writer.write("\n");
                         if (valIndex < maxLen) {
                             minKey = valList.get(valIndex).getKey();
-                        }else if(valIndex>=maxLen){
+                        } else if (valIndex >= maxLen) {
                             break;
                         }
                     }
@@ -354,7 +377,7 @@ public class DefaultFileOperator implements IFileOperator {
                     }
                 }
                 writer.close();
-                if(valIndex < maxLen) {
+                if (valIndex < maxLen) {
                     appendValToIginxFile(tempFile, valList, valIndex, -1);
                 }
 
@@ -388,9 +411,19 @@ public class DefaultFileOperator implements IFileOperator {
         // 创建OpenOption选项数组
         StandardOpenOption[] options;
         if (append) {
-            options = new StandardOpenOption[]{StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.APPEND};
+            options =
+                    new StandardOpenOption[] {
+                        StandardOpenOption.CREATE,
+                        StandardOpenOption.WRITE,
+                        StandardOpenOption.APPEND
+                    };
         } else {
-            options = new StandardOpenOption[]{StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING};
+            options =
+                    new StandardOpenOption[] {
+                        StandardOpenOption.CREATE,
+                        StandardOpenOption.WRITE,
+                        StandardOpenOption.TRUNCATE_EXISTING
+                    };
         }
 
         // 使用OpenOption选项数组写入文件
@@ -400,7 +433,7 @@ public class DefaultFileOperator implements IFileOperator {
 
     public byte[] readFileToByteArrayUsingStream(Path path) throws IOException {
         try (InputStream inputStream = Files.newInputStream(path);
-             ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+                ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
             byte[] buffer = new byte[BUFFERSIZE];
             int numRead = 0;
             byte[] byteArray;
@@ -434,7 +467,7 @@ public class DefaultFileOperator implements IFileOperator {
                     }
                     String[] kv = line.split(",", 2);
                     long key = Long.parseLong(kv[0]);
-                    if (key >= begin && key <=end) {
+                    if (key >= begin && key <= end) {
                         continue;
                     }
                     writer.write(line);
@@ -464,11 +497,11 @@ public class DefaultFileOperator implements IFileOperator {
 
     public boolean delete(File file) {
         if (!Files.exists(Paths.get(file.getPath()))) {
-            logger.error("No file to delete: {}",file.getAbsolutePath());
+            logger.error("No file to delete: {}", file.getAbsolutePath());
             return false;
         }
         if (!file.delete()) {
-            logger.error("Failed to delete file: {}",file.getAbsolutePath());
+            logger.error("Failed to delete file: {}", file.getAbsolutePath());
             return false;
         }
         return true;
@@ -487,9 +520,13 @@ public class DefaultFileOperator implements IFileOperator {
             }
 
             try (BufferedWriter writer = new BufferedWriter(new FileWriter(csvPath.toFile()))) {
-                writer.write(String.valueOf(fileMeta.isDir()));writer.write("\n");
-                writer.write(String.valueOf(fileMeta.getDataType().getValue()));writer.write("\n");
-                writer.write(fileMeta.getTag() ==null?"{}":JsonUtils.mapToJson(fileMeta.getTag()));writer.write("\n");
+                writer.write(String.valueOf(fileMeta.isDir()));
+                writer.write("\n");
+                writer.write(String.valueOf(fileMeta.getDataType().getValue()));
+                writer.write("\n");
+                writer.write(
+                        fileMeta.getTag() == null ? "{}" : JsonUtils.mapToJson(fileMeta.getTag()));
+                writer.write("\n");
                 for (int i = 0; i < FileMeta.IGINXFILEVALINDEX - 3; i++) {
                     writer.write("\n");
                 }
@@ -513,12 +550,13 @@ public class DefaultFileOperator implements IFileOperator {
     public FileMeta getFileMeta(File file) throws IOException {
         Path csvPath = Paths.get(file.getPath());
         FileMeta fileMeta = new FileMeta();
-        if(file.isDirectory()) return fileMeta;
+        if (file.isDirectory()) return fileMeta;
 
         try {
             if (!Files.exists(csvPath)) {
                 logger.error("Cannot get file meta because not exist");
-                throw new IOException("Cannot get file meta because not exist: " + file.getAbsolutePath());
+                throw new IOException(
+                        "Cannot get file meta because not exist: " + file.getAbsolutePath());
             }
 
             try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
@@ -555,38 +593,39 @@ public class DefaultFileOperator implements IFileOperator {
 
     @Override
     public List<File> listFiles(File file) {
-       return listFiles(file,null);
+        return listFiles(file, null);
     }
 
     @Override
     public List<File> listFiles(File file, String prefix) {
-        FileFilter readFileFilter=null;
-        if(prefix!=null) {
-            readFileFilter = new FileFilter() {
-                @Override
-                public boolean accept(File file) {
-                    return file.getName().startsWith(prefix);
-                }
-            };
+        FileFilter readFileFilter = null;
+        if (prefix != null) {
+            readFileFilter =
+                    new FileFilter() {
+                        @Override
+                        public boolean accept(File file) {
+                            return file.getName().startsWith(prefix);
+                        }
+                    };
         }
 
         File[] files = null;
-        if (file.isDirectory()){
+        if (file.isDirectory()) {
             files = file.listFiles(readFileFilter);
         } else {
             files = file.getParentFile().listFiles(readFileFilter);
         }
-        return files==null || files.length==0?null: Arrays.asList(files);
+        return files == null || files.length == 0 ? null : Arrays.asList(files);
     }
 
-    public Date getCreationTime(File file){
+    public Date getCreationTime(File file) {
         return getCreationTime(file);
     }
 
     public long length(File file) throws IOException {
-        if(FileType.getFileType(file)== FileType.Type.IGINX_FILE) {
+        if (FileType.getFileType(file) == FileType.Type.IGINX_FILE) {
             return getIginxFileMaxKey(file);
-        }else {
+        } else {
             return file.length();
         }
     }
@@ -594,8 +633,7 @@ public class DefaultFileOperator implements IFileOperator {
     public boolean ifFilesEqual(File... file) {
         boolean flag = true;
         for (int i = 1; i < file.length; i++) {
-            if(file[i].getAbsolutePath().equals(file[i-1].getAbsolutePath()))
-                flag = false;
+            if (file[i].getAbsolutePath().equals(file[i - 1].getAbsolutePath())) flag = false;
         }
         return flag;
     }

@@ -2,14 +2,10 @@ package cn.edu.tsinghua.iginx.filesystem.tools;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.*;
-import cn.edu.tsinghua.iginx.filesystem.file.IFileOperator;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-
-import java.io.File;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 public class TagKVUtils {
     public static boolean match(Map<String, String> tags, TagFilter tagFilter) {
@@ -35,7 +31,7 @@ public class TagKVUtils {
             return false;
         }
         List<TagFilter> children = tagFilter.getChildren();
-        for (TagFilter child: children) {
+        for (TagFilter child : children) {
             if (!match(tags, child)) {
                 return false;
             }
@@ -48,7 +44,7 @@ public class TagKVUtils {
             return false;
         }
         List<TagFilter> children = tagFilter.getChildren();
-        for (TagFilter child: children) {
+        for (TagFilter child : children) {
             if (match(tags, child)) {
                 return true;
             }
@@ -78,7 +74,7 @@ public class TagKVUtils {
             return false;
         }
         List<BasePreciseTagFilter> children = tagFilter.getChildren();
-        for (TagFilter child: children) {
+        for (TagFilter child : children) {
             if (match(tags, child)) {
                 return true;
             }

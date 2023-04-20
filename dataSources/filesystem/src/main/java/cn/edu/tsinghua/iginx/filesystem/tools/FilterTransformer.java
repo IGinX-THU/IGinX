@@ -2,8 +2,6 @@ package cn.edu.tsinghua.iginx.filesystem.tools;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.utils.JsonUtils;
-import com.alibaba.fastjson2.JSON;
-
 import java.util.Collections;
 import java.util.List;
 import java.util.Stack;
@@ -22,7 +20,7 @@ public class FilterTransformer {
         AndFilter andFilter = null;
         OrFilter orFilter = null;
         List<Filter> childs = null;
-        while(!S.empty()) {
+        while (!S.empty()) {
             boolean isLeafFilter = true;
             Filter tmpFilter = S.pop();
             if (!FilterType.isLeafFilter(tmpFilter.getType())) {
@@ -84,10 +82,16 @@ public class FilterTransformer {
     }
 
     private static String toString(AndFilter filter) {
-        return filter.getChildren().stream().map(FilterTransformer::toString).collect(Collectors.joining(" and ", "(", ")"));
+        return filter.getChildren()
+                .stream()
+                .map(FilterTransformer::toString)
+                .collect(Collectors.joining(" and ", "(", ")"));
     }
 
     private static String toString(OrFilter filter) {
-        return filter.getChildren().stream().map(FilterTransformer::toString).collect(Collectors.joining(" or ", "(", ")"));
+        return filter.getChildren()
+                .stream()
+                .map(FilterTransformer::toString)
+                .collect(Collectors.joining(" or ", "(", ")"));
     }
 }

@@ -1,7 +1,6 @@
 package cn.edu.tsinghua.iginx.filesystem.wrapper;
 
 import cn.edu.tsinghua.iginx.filesystem.file.property.FilePath;
-
 import java.util.Map;
 
 /*

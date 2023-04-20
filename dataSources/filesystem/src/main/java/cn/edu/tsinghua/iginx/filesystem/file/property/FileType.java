@@ -12,7 +12,7 @@ public class FileType {
 
     public static Type getFileType(File file) {
         String fileName = file.getName();
-        if(file.isDirectory()) {
+        if (file.isDirectory()) {
             return Type.DIR;
         }
         if (fileName.contains(".iginx")) {

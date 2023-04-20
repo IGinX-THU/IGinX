@@ -24,13 +24,12 @@ import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.ByteUtils;
 import cn.edu.tsinghua.iginx.utils.DataTypeUtils;
 import cn.edu.tsinghua.iginx.utils.Pair;
-import org.apache.thrift.TException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.stream.Collectors;
+import org.apache.thrift.TException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class FileSystemWorker implements FileSystemService.Iface {
 
@@ -54,7 +53,7 @@ public class FileSystemWorker implements FileSystemService.Iface {
         this.executor = executor;
     }
 
-    private final static class EmptySource implements Source {
+    private static final class EmptySource implements Source {
 
         public static final EmptySource EMPTY_SOURCE = new EmptySource();
 
@@ -69,7 +68,7 @@ public class FileSystemWorker implements FileSystemService.Iface {
         }
     }
 
-    private final static class EmptyFragmentSource extends FragmentSource {
+    private static final class EmptyFragmentSource extends FragmentSource {
 
         public static final EmptyFragmentSource EMPTY_SOURCE = new EmptyFragmentSource();
 
@@ -82,11 +81,9 @@ public class FileSystemWorker implements FileSystemService.Iface {
     public ProjectResp executeProject(ProjectReq req) throws TException {
         TagFilter tagFilter = resolveRawTagFilter(req.getTagFilter());
         Project project = new Project(EmptySource.EMPTY_SOURCE, req.getPaths(), tagFilter);
-        TaskExecuteResult result = executor.executeProjectTask(
-                project,
-                req.getFilter(),
-                req.getStorageUnit(),
-                req.isDummyStorageUnit);
+        TaskExecuteResult result =
+                executor.executeProjectTask(
+                        project, req.getFilter(), req.getStorageUnit(), req.isDummyStorageUnit);
 
         RowStream rowStream = result.getRowStream();
 
@@ -101,13 +98,18 @@ public class FileSystemWorker implements FileSystemService.Iface {
         boolean hasTime;
         try {
             hasTime = rowStream.getHeader().hasKey();
-            rowStream.getHeader().getFields().forEach(field -> {
-                names.add(field.getName());
-                types.add(field.getType().toString());
-                dataTypes.add(field.getType());
-                Map<String, String> tags = field.getTags() == null ? new HashMap<>() : field.getTags();
-                tagsList.add(tags);
-            });
+            rowStream
+                    .getHeader()
+                    .getFields()
+                    .forEach(
+                            field -> {
+                                names.add(field.getName());
+                                types.add(field.getType().toString());
+                                dataTypes.add(field.getType());
+                                Map<String, String> tags =
+                                        field.getTags() == null ? new HashMap<>() : field.getTags();
+                                tagsList.add(tags);
+                            });
         } catch (PhysicalException e) {
             logger.error("encounter error when get header from RowStream ", e);
             return new ProjectResp(EXEC_PROJECT_FAIL);
@@ -125,9 +127,10 @@ public class FileSystemWorker implements FileSystemService.Iface {
                         bitmap.mark(j);
                     }
                 }
-                FileDataRow fileDataRow = new FileDataRow(
-                        ByteUtils.getRowByteBuffer(rowValues, dataTypes),
-                        ByteBuffer.wrap(bitmap.getBytes()));
+                FileDataRow fileDataRow =
+                        new FileDataRow(
+                                ByteUtils.getRowByteBuffer(rowValues, dataTypes),
+                                ByteBuffer.wrap(bitmap.getBytes()));
                 if (hasTime) {
                     fileDataRow.setTimestamp(row.getKey());
                 }
@@ -166,30 +169,42 @@ public class FileSystemWorker implements FileSystemService.Iface {
         List<Bitmap> bitmaps;
         Object[] values;
         if (rawDataType == RawDataType.Row || rawDataType == RawDataType.NonAlignedRow) {
-            bitmaps = fileDataRawData.getBitmapList().stream().map(x -> new Bitmap(paths.size(), x.array())).collect(Collectors.toList());
+            bitmaps =
+                    fileDataRawData
+                            .getBitmapList()
+                            .stream()
+                            .map(x -> new Bitmap(paths.size(), x.array()))
+                            .collect(Collectors.toList());
             values = ByteUtils.getRowValuesByDataType(valueList, types, bitmapList);
         } else {
-            bitmaps = bitmapList.stream().map(x -> new Bitmap(times.size(), x.array())).collect(Collectors.toList());
-            values = ByteUtils.getColumnValuesByDataType(valueList, types, bitmapList, times.size());
+            bitmaps =
+                    bitmapList
+                            .stream()
+                            .map(x -> new Bitmap(times.size(), x.array()))
+                            .collect(Collectors.toList());
+            values =
+                    ByteUtils.getColumnValuesByDataType(valueList, types, bitmapList, times.size());
         }
 
-        RawData rawData = new RawData(paths, fileDataRawData.getTagsList(), times, values, types, bitmaps, rawDataType);
+        RawData rawData =
+                new RawData(
+                        paths,
+                        fileDataRawData.getTagsList(),
+                        times,
+                        values,
+                        types,
+                        bitmaps,
+                        rawDataType);
 
         DataView dataView;
         if (rawDataType == RawDataType.Row || rawDataType == RawDataType.NonAlignedRow) {
-            dataView = new RowDataView(
-                    rawData,
-                    0,
-                    rawData.getPaths().size(),
-                    0,
-                    rawData.getKeys().size());
+            dataView =
+                    new RowDataView(
+                            rawData, 0, rawData.getPaths().size(), 0, rawData.getKeys().size());
         } else {
-            dataView = new ColumnDataView(
-                    rawData,
-                    0,
-                    rawData.getPaths().size(),
-                    0,
-                    rawData.getKeys().size());
+            dataView =
+                    new ColumnDataView(
+                            rawData, 0, rawData.getPaths().size(), 0, rawData.getKeys().size());
         }
 
         Insert insert = new Insert(EmptyFragmentSource.EMPTY_SOURCE, dataView);
@@ -214,10 +229,9 @@ public class FileSystemWorker implements FileSystemService.Iface {
             }
         }
 
-        Delete delete = new Delete(EmptyFragmentSource.EMPTY_SOURCE, timeRanges, req.getPaths(), tagFilter);
-        TaskExecuteResult result = executor.executeDeleteTask(
-                delete,
-                req.getStorageUnit());
+        Delete delete =
+                new Delete(EmptyFragmentSource.EMPTY_SOURCE, timeRanges, req.getPaths(), tagFilter);
+        TaskExecuteResult result = executor.executeDeleteTask(delete, req.getStorageUnit());
         if (result.getException() == null) {
             return SUCCESS;
         } else {
@@ -226,17 +240,21 @@ public class FileSystemWorker implements FileSystemService.Iface {
     }
 
     @Override
-    public GetTimeSeriesOfStorageUnitResp getTimeSeriesOfStorageUnit(String storageUnit) throws TException {
+    public GetTimeSeriesOfStorageUnitResp getTimeSeriesOfStorageUnit(String storageUnit)
+            throws TException {
         List<PathSet> ret = new ArrayList<>();
         try {
             List<Timeseries> tsList = executor.getTimeSeriesOfStorageUnit(storageUnit);
-            tsList.forEach(timeseries -> {
-                PathSet pathSet = new PathSet(timeseries.getPath(), timeseries.getDataType().toString());
-                if (timeseries.getTags() != null) {
-                    pathSet.setTags(timeseries.getTags());
-                }
-                ret.add(pathSet);
-            });
+            tsList.forEach(
+                    timeseries -> {
+                        PathSet pathSet =
+                                new PathSet(
+                                        timeseries.getPath(), timeseries.getDataType().toString());
+                        if (timeseries.getTags() != null) {
+                            pathSet.setTags(timeseries.getTags());
+                        }
+                        ret.add(pathSet);
+                    });
             GetTimeSeriesOfStorageUnitResp resp = new GetTimeSeriesOfStorageUnitResp(SUCCESS);
             resp.setPathList(ret);
             return resp;
@@ -273,25 +291,39 @@ public class FileSystemWorker implements FileSystemService.Iface {
                 return new WithoutTagFilter();
             case BasePrecise:
                 return new BasePreciseTagFilter(rawTagFilter.getTags());
-            case Precise: {
-                List<BasePreciseTagFilter> children = new ArrayList<>();
-                rawTagFilter.getChildren().forEach(child -> children.add((BasePreciseTagFilter) resolveRawTagFilter(child)));
-                return new PreciseTagFilter(children);
-            }
-            case And: {
-                List<TagFilter> children = new ArrayList<>();
-                rawTagFilter.getChildren().forEach(child -> children.add(resolveRawTagFilter(child)));
-                return new AndTagFilter(children);
-            }
-            case Or: {
-                List<TagFilter> children = new ArrayList<>();
-                rawTagFilter.getChildren().forEach(child -> children.add(resolveRawTagFilter(child)));
-                return new OrTagFilter(children);
-            }
-            default: {
-                logger.error("unknown tag filter type: {}", rawTagFilter.getType());
-                return null;
-            }
+            case Precise:
+                {
+                    List<BasePreciseTagFilter> children = new ArrayList<>();
+                    rawTagFilter
+                            .getChildren()
+                            .forEach(
+                                    child ->
+                                            children.add(
+                                                    (BasePreciseTagFilter)
+                                                            resolveRawTagFilter(child)));
+                    return new PreciseTagFilter(children);
+                }
+            case And:
+                {
+                    List<TagFilter> children = new ArrayList<>();
+                    rawTagFilter
+                            .getChildren()
+                            .forEach(child -> children.add(resolveRawTagFilter(child)));
+                    return new AndTagFilter(children);
+                }
+            case Or:
+                {
+                    List<TagFilter> children = new ArrayList<>();
+                    rawTagFilter
+                            .getChildren()
+                            .forEach(child -> children.add(resolveRawTagFilter(child)));
+                    return new OrTagFilter(children);
+                }
+            default:
+                {
+                    logger.error("unknown tag filter type: {}", rawTagFilter.getType());
+                    return null;
+                }
         }
     }
 

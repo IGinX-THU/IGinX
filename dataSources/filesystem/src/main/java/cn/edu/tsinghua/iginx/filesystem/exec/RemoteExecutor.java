@@ -15,7 +15,6 @@ import cn.edu.tsinghua.iginx.engine.shared.data.write.RawDataType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.*;
 import cn.edu.tsinghua.iginx.filesystem.thrift.*;
 import cn.edu.tsinghua.iginx.filesystem.thrift.TagFilterType;
@@ -27,6 +26,11 @@ import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.ByteUtils;
 import cn.edu.tsinghua.iginx.utils.DataTypeUtils;
 import cn.edu.tsinghua.iginx.utils.Pair;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.transport.TSocket;
@@ -35,16 +39,10 @@ import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 public class RemoteExecutor implements Executor {
     private static final Logger logger = LoggerFactory.getLogger(RemoteExecutor.class);
 
-    private final static int SUCCESS_CODE = 200;
+    private static final int SUCCESS_CODE = 200;
 
     private final TTransport transport;
 
@@ -60,7 +58,8 @@ public class RemoteExecutor implements Executor {
     }
 
     @Override
-    public TaskExecuteResult executeProjectTask(Project project, byte[] filter, String storageUnit, boolean isDummyStorageUnit) {
+    public TaskExecuteResult executeProjectTask(
+            Project project, byte[] filter, String storageUnit, boolean isDummyStorageUnit) {
         ProjectReq req = new ProjectReq(storageUnit, isDummyStorageUnit, project.getPatterns());
         if (project.getTagFilter() != null) {
             req.setTagFilter(constructRawTagFilter(project.getTagFilter()));
@@ -75,40 +74,52 @@ public class RemoteExecutor implements Executor {
                 List<DataType> dataTypes = new ArrayList<>();
                 List<Field> fields = new ArrayList<>();
                 for (int i = 0; i < fileDataHeader.getNamesSize(); i++) {
-                    DataType dataType = DataTypeUtils.strToDataType(fileDataHeader.getTypes().get(i));
+                    DataType dataType =
+                            DataTypeUtils.strToDataType(fileDataHeader.getTypes().get(i));
                     dataTypes.add(dataType);
                     fields.add(
                             new Field(
                                     fileDataHeader.getNames().get(i),
                                     dataType,
-                                    fileDataHeader.getTagsList().get(i))
-                    );
+                                    fileDataHeader.getTagsList().get(i)));
                 }
-                Header header = fileDataHeader.hasTime ? new Header(Field.KEY, fields) : new Header(fields);
+                Header header =
+                        fileDataHeader.hasTime ? new Header(Field.KEY, fields) : new Header(fields);
 
                 List<Row> rowList = new ArrayList<>();
-                resp.getRows().forEach(fileDataRow -> {
-                    Object[] values = new Object[dataTypes.size()];
-                    Bitmap bitmap = new Bitmap(dataTypes.size(), fileDataRow.getBitmap());
-                    ByteBuffer valuesBuffer = ByteBuffer.wrap(fileDataRow.getRowValues());
-                    for (int i = 0; i < dataTypes.size(); i++) {
-                        if (bitmap.get(i)) {
-                            values[i] = ByteUtils.getValueFromByteBufferByDataType(valuesBuffer, dataTypes.get(i));
-                        } else {
-                            values[i] = null;
-                        }
-                    }
+                resp.getRows()
+                        .forEach(
+                                fileDataRow -> {
+                                    Object[] values = new Object[dataTypes.size()];
+                                    Bitmap bitmap =
+                                            new Bitmap(dataTypes.size(), fileDataRow.getBitmap());
+                                    ByteBuffer valuesBuffer =
+                                            ByteBuffer.wrap(fileDataRow.getRowValues());
+                                    for (int i = 0; i < dataTypes.size(); i++) {
+                                        if (bitmap.get(i)) {
+                                            values[i] =
+                                                    ByteUtils.getValueFromByteBufferByDataType(
+                                                            valuesBuffer, dataTypes.get(i));
+                                        } else {
+                                            values[i] = null;
+                                        }
+                                    }
 
-                    if (fileDataRow.isSetTimestamp()) {
-                        rowList.add(new Row(header, fileDataRow.getTimestamp(), values));
-                    } else {
-                        rowList.add(new Row(header, values));
-                    }
-                });
+                                    if (fileDataRow.isSetTimestamp()) {
+                                        rowList.add(
+                                                new Row(
+                                                        header,
+                                                        fileDataRow.getTimestamp(),
+                                                        values));
+                                    } else {
+                                        rowList.add(new Row(header, values));
+                                    }
+                                });
                 RowStream rowStream = new Table(header, rowList);
                 return new TaskExecuteResult(rowStream, null);
             } else {
-                return new TaskExecuteResult(null, new PhysicalException("execute remote project task error"));
+                return new TaskExecuteResult(
+                        null, new PhysicalException("execute remote project task error"));
             }
         } catch (TException e) {
             return new TaskExecuteResult(null, new PhysicalException(e));
@@ -133,20 +144,22 @@ public class RemoteExecutor implements Executor {
         }
 
         Pair<List<ByteBuffer>, List<ByteBuffer>> pair;
-        if (dataView.getRawDataType() == RawDataType.Row || dataView.getRawDataType() == RawDataType.NonAlignedRow) {
+        if (dataView.getRawDataType() == RawDataType.Row
+                || dataView.getRawDataType() == RawDataType.NonAlignedRow) {
             pair = compressRowData(dataView);
         } else {
             pair = compressColData(dataView);
         }
 
-        FileDataRawData fileDataRawData = new FileDataRawData(
-                paths,
-                tagsList,
-                ByteBuffer.wrap(ByteUtils.getByteArrayFromLongArray(times)),
-                pair.getK(),
-                pair.getV(),
-                types,
-                dataView.getRawDataType().toString());
+        FileDataRawData fileDataRawData =
+                new FileDataRawData(
+                        paths,
+                        tagsList,
+                        ByteBuffer.wrap(ByteUtils.getByteArrayFromLongArray(times)),
+                        pair.getK(),
+                        pair.getV(),
+                        types,
+                        dataView.getRawDataType().toString());
 
         InsertReq req = new InsertReq(storageUnit, fileDataRawData);
         try {
@@ -154,7 +167,8 @@ public class RemoteExecutor implements Executor {
             if (status.code == SUCCESS_CODE) {
                 return new TaskExecuteResult(null, null);
             } else {
-                return new TaskExecuteResult(null, new PhysicalException("execute remote insert task error"));
+                return new TaskExecuteResult(
+                        null, new PhysicalException("execute remote insert task error"));
             }
         } catch (TException e) {
             return new TaskExecuteResult(null, new PhysicalException(e));
@@ -172,13 +186,14 @@ public class RemoteExecutor implements Executor {
         }
         if (timeRanges != null) {
             List<FileSystemTimeRange> fileSystemTimeRange = new ArrayList<>();
-            timeRanges.forEach(timeRange -> fileSystemTimeRange.add(
-                    new FileSystemTimeRange(
-                            timeRange.getBeginTime(),
-                            timeRange.isIncludeBeginTime(),
-                            timeRange.getEndTime(),
-                            timeRange.isIncludeEndTime()))
-            );
+            timeRanges.forEach(
+                    timeRange ->
+                            fileSystemTimeRange.add(
+                                    new FileSystemTimeRange(
+                                            timeRange.getBeginTime(),
+                                            timeRange.isIncludeBeginTime(),
+                                            timeRange.getEndTime(),
+                                            timeRange.isIncludeEndTime())));
             req.setTimeRanges(fileSystemTimeRange);
         }
 
@@ -187,7 +202,8 @@ public class RemoteExecutor implements Executor {
             if (status.code == SUCCESS_CODE) {
                 return new TaskExecuteResult(null, null);
             } else {
-                return new TaskExecuteResult(null, new PhysicalException("execute remote delete task error"));
+                return new TaskExecuteResult(
+                        null, new PhysicalException("execute remote delete task error"));
             }
         } catch (TException e) {
             return new TaskExecuteResult(null, new PhysicalException(e));
@@ -195,15 +211,19 @@ public class RemoteExecutor implements Executor {
     }
 
     @Override
-    public List<Timeseries> getTimeSeriesOfStorageUnit(String storageUnit) throws PhysicalException {
+    public List<Timeseries> getTimeSeriesOfStorageUnit(String storageUnit)
+            throws PhysicalException {
         try {
             GetTimeSeriesOfStorageUnitResp resp = client.getTimeSeriesOfStorageUnit(storageUnit);
             List<Timeseries> timeSeriesList = new ArrayList<>();
-            resp.getPathList().forEach(ts -> timeSeriesList.add(new Timeseries(
-                    ts.getPath(),
-                    DataTypeUtils.strToDataType(ts.getDataType()),
-                    ts.getTags()
-            )));
+            resp.getPathList()
+                    .forEach(
+                            ts ->
+                                    timeSeriesList.add(
+                                            new Timeseries(
+                                                    ts.getPath(),
+                                                    DataTypeUtils.strToDataType(ts.getDataType()),
+                                                    ts.getTags())));
             return timeSeriesList;
         } catch (TException e) {
             throw new PhysicalException("encounter error when getTimeSeriesOfStorageUnit ", e);
@@ -211,13 +231,13 @@ public class RemoteExecutor implements Executor {
     }
 
     @Override
-    public Pair<TimeSeriesRange, TimeInterval> getBoundaryOfStorage(String prefix) throws PhysicalException {
+    public Pair<TimeSeriesRange, TimeInterval> getBoundaryOfStorage(String prefix)
+            throws PhysicalException {
         try {
             GetStorageBoundryResp resp = client.getBoundaryOfStorage(prefix);
             return new Pair<>(
                     new TimeSeriesInterval(resp.getStartTimeSeries(), resp.getEndTimeSeries()),
-                    new TimeInterval(resp.getStartTime(), resp.getEndTime())
-            );
+                    new TimeInterval(resp.getStartTime(), resp.getEndTime()));
         } catch (TException e) {
             throw new PhysicalException("encounter error when getBoundaryOfStorage ", e);
         }
@@ -232,50 +252,63 @@ public class RemoteExecutor implements Executor {
 
     private RawTagFilter constructRawTagFilter(TagFilter tagFilter) {
         switch (tagFilter.getType()) {
-            case Base: {
-                BaseTagFilter baseTagFilter = (BaseTagFilter) tagFilter;
-                RawTagFilter filter = new RawTagFilter(TagFilterType.Base);
-                filter.setKey(baseTagFilter.getTagKey());
-                filter.setValue(baseTagFilter.getTagValue());
-                return filter;
-            }
-            case WithoutTag: {
-                return new RawTagFilter(TagFilterType.WithoutTag);
-            }
-            case BasePrecise: {
-                BasePreciseTagFilter basePreciseTagFilter = (BasePreciseTagFilter) tagFilter;
-                RawTagFilter filter = new RawTagFilter(TagFilterType.BasePrecise);
-                filter.setTags(basePreciseTagFilter.getTags());
-                return filter;
-            }
-            case Precise: {
-                PreciseTagFilter preciseTagFilter = (PreciseTagFilter) tagFilter;
-                RawTagFilter filter = new RawTagFilter(TagFilterType.Precise);
-                List<RawTagFilter> children = new ArrayList<>();
-                preciseTagFilter.getChildren().forEach(child -> children.add(constructRawTagFilter(child)));
-                filter.setChildren(children);
-                return filter;
-            }
-            case And: {
-                AndTagFilter andTagFilter = (AndTagFilter) tagFilter;
-                RawTagFilter filter = new RawTagFilter(TagFilterType.And);
-                List<RawTagFilter> children = new ArrayList<>();
-                andTagFilter.getChildren().forEach(child -> children.add(constructRawTagFilter(child)));
-                filter.setChildren(children);
-                return filter;
-            }
-            case Or: {
-                OrTagFilter orTagFilter = (OrTagFilter) tagFilter;
-                RawTagFilter filter = new RawTagFilter(TagFilterType.Or);
-                List<RawTagFilter> children = new ArrayList<>();
-                orTagFilter.getChildren().forEach(child -> children.add(constructRawTagFilter(child)));
-                filter.setChildren(children);
-                return filter;
-            }
-            default: {
-                logger.error("unknown tag filter type: {}", tagFilter.getType());
-                return null;
-            }
+            case Base:
+                {
+                    BaseTagFilter baseTagFilter = (BaseTagFilter) tagFilter;
+                    RawTagFilter filter = new RawTagFilter(TagFilterType.Base);
+                    filter.setKey(baseTagFilter.getTagKey());
+                    filter.setValue(baseTagFilter.getTagValue());
+                    return filter;
+                }
+            case WithoutTag:
+                {
+                    return new RawTagFilter(TagFilterType.WithoutTag);
+                }
+            case BasePrecise:
+                {
+                    BasePreciseTagFilter basePreciseTagFilter = (BasePreciseTagFilter) tagFilter;
+                    RawTagFilter filter = new RawTagFilter(TagFilterType.BasePrecise);
+                    filter.setTags(basePreciseTagFilter.getTags());
+                    return filter;
+                }
+            case Precise:
+                {
+                    PreciseTagFilter preciseTagFilter = (PreciseTagFilter) tagFilter;
+                    RawTagFilter filter = new RawTagFilter(TagFilterType.Precise);
+                    List<RawTagFilter> children = new ArrayList<>();
+                    preciseTagFilter
+                            .getChildren()
+                            .forEach(child -> children.add(constructRawTagFilter(child)));
+                    filter.setChildren(children);
+                    return filter;
+                }
+            case And:
+                {
+                    AndTagFilter andTagFilter = (AndTagFilter) tagFilter;
+                    RawTagFilter filter = new RawTagFilter(TagFilterType.And);
+                    List<RawTagFilter> children = new ArrayList<>();
+                    andTagFilter
+                            .getChildren()
+                            .forEach(child -> children.add(constructRawTagFilter(child)));
+                    filter.setChildren(children);
+                    return filter;
+                }
+            case Or:
+                {
+                    OrTagFilter orTagFilter = (OrTagFilter) tagFilter;
+                    RawTagFilter filter = new RawTagFilter(TagFilterType.Or);
+                    List<RawTagFilter> children = new ArrayList<>();
+                    orTagFilter
+                            .getChildren()
+                            .forEach(child -> children.add(constructRawTagFilter(child)));
+                    filter.setChildren(children);
+                    return filter;
+                }
+            default:
+                {
+                    logger.error("unknown tag filter type: {}", tagFilter.getType());
+                    return null;
+                }
         }
     }
 

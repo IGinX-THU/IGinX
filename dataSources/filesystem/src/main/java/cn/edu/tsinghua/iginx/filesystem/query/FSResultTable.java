@@ -2,7 +2,6 @@ package cn.edu.tsinghua.iginx.filesystem.query;
 
 import cn.edu.tsinghua.iginx.filesystem.wrapper.Record;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-
 import java.io.File;
 import java.util.List;
 import java.util.Map;
@@ -14,14 +13,14 @@ public class FSResultTable {
     private Map<String, String> tags;
 
     public FSResultTable(File file, List<Record> val) {
-        this(file,val, val.isEmpty()?null:val.get(0).getDataType(), null);
+        this(file, val, val.isEmpty() ? null : val.get(0).getDataType(), null);
     }
 
-    public FSResultTable(File file,List<Record> val, Map<String, String> tags) {
-        this(file,val, val.isEmpty()?null:val.get(0).getDataType(), tags);
+    public FSResultTable(File file, List<Record> val, Map<String, String> tags) {
+        this(file, val, val.isEmpty() ? null : val.get(0).getDataType(), tags);
     }
 
-    public FSResultTable(File file,List<Record> val, DataType dataType, Map<String, String> tags) {
+    public FSResultTable(File file, List<Record> val, DataType dataType, Map<String, String> tags) {
         this.file = file;
         this.val = val;
         this.dataType = dataType;

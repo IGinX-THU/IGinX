@@ -4,7 +4,6 @@ import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.filesystem.exec.Executor;
 import cn.edu.tsinghua.iginx.filesystem.thrift.FileSystemService;
-import cn.edu.tsinghua.iginx.parquet.thrift.ParquetService;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.server.TServer;
@@ -29,13 +28,15 @@ public class FileSystemServer implements Runnable {
     }
 
     private void startServer() throws TTransportException {
-        TProcessor processor = new FileSystemService.Processor<FileSystemService.Iface>(new FileSystemWorker(executor));
+        TProcessor processor =
+                new FileSystemService.Processor<FileSystemService.Iface>(
+                        new FileSystemWorker(executor));
         TServerSocket serverTransport = new TServerSocket(port);
-        TThreadPoolServer.Args args = new TThreadPoolServer
-                .Args(serverTransport)
-                .processor(processor)
-                .minWorkerThreads(config.getMinThriftWorkerThreadNum())
-                .maxWorkerThreads(config.getMaxThriftWrokerThreadNum());
+        TThreadPoolServer.Args args =
+                new TThreadPoolServer.Args(serverTransport)
+                        .processor(processor)
+                        .minWorkerThreads(config.getMinThriftWorkerThreadNum())
+                        .maxWorkerThreads(config.getMaxThriftWrokerThreadNum());
         args.protocolFactory(new TBinaryProtocol.Factory());
         TServer server = new TThreadPoolServer(args);
         logger.info("parquet service starts successfully!");
