@@ -100,4 +100,22 @@ public enum FilterType {
         }
         return true;
     }
+
+    public static String getFilterClassName(FilterType filterType) {
+        switch (filterType) {
+            case Value:
+                return "ValueFilter";
+            case Key:
+                return "KeyFilter";
+            case Not:
+                return "NotFilter";
+            case And:
+                return "AndFilter";
+            case Or:
+                return "OrFilter";
+            default:
+                break;
+        }
+        return null;
+    }
 }
