@@ -16,13 +16,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.locks.ReentrantLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,9 +32,11 @@ public class GroupByLazyStream extends UnaryLazyStream {
 
     private static final ExecutorService pool = Executors.newCachedThreadPool();
 
-    private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
+    private final ReentrantLock lock = new ReentrantLock();
 
     private static final int WORKER_NUM = config.getStreamParallelGroupByWorkerNum();
+
+    private static final int BATCH_SIZE = 2000;
 
     private final GroupBy groupBy;
 
@@ -110,12 +110,11 @@ public class GroupByLazyStream extends UnaryLazyStream {
         }
 
         // split first partial rows into workers' cache
-        List<BlockingQueue<Row>> partition = new ArrayList<>();
+        List<List<Row>> partition = new ArrayList<>();
         int partialSize = (int) Math.ceil(1.0 * firstPartialRows.size() / WORKER_NUM);
         for (int i = 0; i < WORKER_NUM; i++) {
             int end = Math.min(firstPartialRows.size(), (i + 1) * partialSize);
-            BlockingQueue<Row> queue =
-                    new LinkedBlockingQueue<>(firstPartialRows.subList(i * partialSize, end));
+            List<Row> queue = new ArrayList<>(firstPartialRows.subList(i * partialSize, end));
             partition.add(queue);
         }
 
@@ -126,27 +125,23 @@ public class GroupByLazyStream extends UnaryLazyStream {
             int workerIndex = i;
             pool.submit(
                     () -> {
-                        BlockingQueue<Row> queue = partition.get(workerIndex);
+                        List<Row> list = partition.get(workerIndex);
                         try {
                             while (true) {
-                                // no more lines
-                                lock.readLock().lock();
-                                if (!stream.hasNext()) {
+                                // parallel get batch rows and then calculate hash value.
+                                lock.lock();
+                                int getRowCnt = 0;
+                                while (getRowCnt < BATCH_SIZE && stream.hasNext()) {
+                                    list.add(stream.next());
+                                    getRowCnt++;
+                                }
+                                lock.unlock();
+
+                                if (list.isEmpty()) { // no more lines
                                     break;
                                 }
-                                lock.readLock().unlock();
 
-                                // parallel get batch rows and then calculate hash value.
-                                lock.writeLock().lock();
-                                int getRowSize = 0;
-                                while (getRowSize < 100 && stream.hasNext()) {
-                                    queue.add(stream.next());
-                                    getRowSize++;
-                                }
-                                lock.writeLock().unlock();
-
-                                while (!queue.isEmpty()) {
-                                    Row row = queue.take();
+                                for (Row row : list) {
                                     Object[] values = row.getValues();
                                     List<Object> hashValues = new ArrayList<>();
                                     for (int index : colIndex) {
@@ -169,8 +164,9 @@ public class GroupByLazyStream extends UnaryLazyStream {
                                     }
                                     rows.add(row);
                                 }
+                                list.clear();
                             }
-                        } catch (PhysicalException | InterruptedException e) {
+                        } catch (PhysicalException e) {
                             logger.error("encounter error when parallel calculate hash: ", e);
                         } finally {
                             latch.countDown();

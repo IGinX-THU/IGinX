@@ -1,11 +1,14 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 public class GroupByKey {
 
     private final List<Object> groupByValues; // the values of group by cols.
+
+    private final List<Object> funcRet = new ArrayList<>(); // apply SetTransform Func result
 
     private final int hash;
 
@@ -20,6 +23,16 @@ public class GroupByKey {
 
     public int getHash() {
         return hash;
+    }
+
+    public List<Object> getFuncRet() {
+        return funcRet;
+    }
+
+    public List<Object> getRowValues() {
+        List<Object> ret = new ArrayList<>(groupByValues);
+        ret.addAll(funcRet);
+        return ret;
     }
 
     @Override

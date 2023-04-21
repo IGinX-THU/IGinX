@@ -195,6 +195,8 @@ public class Config {
 
     private int parallelGroupByRowsThreshold = 10000;
 
+    private int parallelApplyFuncGroupsThreshold = 1000;
+
     private int parallelGroupByPoolSize = 5;
 
     private int parallelGroupByPoolNum = 5;
@@ -820,6 +822,14 @@ public class Config {
 
     public void setParallelGroupByRowsThreshold(int parallelGroupByRowsThreshold) {
         this.parallelGroupByRowsThreshold = parallelGroupByRowsThreshold;
+    }
+
+    public int getParallelApplyFuncGroupsThreshold() {
+        return parallelApplyFuncGroupsThreshold;
+    }
+
+    public void setParallelApplyFuncGroupsThreshold(int parallelApplyFuncGroupsThreshold) {
+        this.parallelApplyFuncGroupsThreshold = parallelApplyFuncGroupsThreshold;
     }
 
     public int getParallelGroupByPoolSize() {
