@@ -304,11 +304,11 @@ public class LocalExecutor implements Executor {
                         FilePath.toIginxPath(
                                 storageUnit, null)); // fix it , 这里的 storageUnit 需要转化为一个目录
 
-        List<javafx.util.Pair<File, FileMeta>> res = fileSystem.getAllIginXFiles(directory);
+        List<Pair<File, FileMeta>> res = fileSystem.getAllIginXFiles(directory);
 
-        for (javafx.util.Pair<File, FileMeta> pair : res) {
-            File file = pair.getKey();
-            FileMeta meta = pair.getValue();
+        for (Pair<File, FileMeta> pair : res) {
+            File file = pair.getK();
+            FileMeta meta = pair.getV();
             files.add(
                     new Timeseries(
                             FilePath.convertAbsolutePathToSeries(

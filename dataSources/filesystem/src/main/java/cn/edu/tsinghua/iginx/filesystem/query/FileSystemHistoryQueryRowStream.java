@@ -11,7 +11,6 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-import javafx.util.Pair;
 
 public class FileSystemHistoryQueryRowStream implements RowStream {
     private final Header header;
