@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
 
 public class ConfLoader {
     private static final Logger logger = LoggerFactory.getLogger(ConfLoader.class);
-    private static final String confPath = "src/main/resources/conf/config.properties";
+    private static final String confPath = "dataSources/filesystem/src/main/resources/conf/config.properties";
     private static final String ROOT = "root";
 
     public static String getRootPath() {

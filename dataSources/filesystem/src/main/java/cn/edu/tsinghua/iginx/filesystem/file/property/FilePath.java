@@ -5,6 +5,7 @@ import cn.edu.tsinghua.iginx.filesystem.tools.ConfLoader;
 // 给出时序列，转换为文件系统的路径
 public final class FilePath {
     private static String SEPARATOR = System.getProperty("file.separator");
+    private static String MYSEPARATOR = "/";
     private String oriSeries;
     private String filePath;
     private String fileName;
@@ -12,8 +13,8 @@ public final class FilePath {
     private static String ROOT = ConfLoader.getRootPath();
     public static String MYWILDCARD = "#";
     public static String WILDCARD = "*";
-    private static String FILEPATHFORMAT = "%s%s" + SEPARATOR + "%s.iginx";
-    private static String DIRPATHFORMAT = "%s%s" + SEPARATOR + "%s" + SEPARATOR;
+    private static String FILEPATHFORMAT = "%s%s" + MYSEPARATOR + "%s.iginx";
+    private static String DIRPATHFORMAT = "%s%s" + MYSEPARATOR + "%s" + MYSEPARATOR;
 
     public FilePath(String storageUnit, String oriSeries) {
         this.storageUnit = storageUnit;
@@ -39,7 +40,7 @@ public final class FilePath {
                 FILEPATHFORMAT,
                 ROOT,
                 storageUnit,
-                middlePath.replace(".", SEPARATOR) + SEPARATOR + getFileNameFormSeries(series));
+                middlePath.replace(".", MYSEPARATOR) + MYSEPARATOR + getFileNameFormSeries(series));
         //        filePath = storageUnit == null ? "" : separator + storageUnit + separator +
         // series;
         //        filePath = storageUnit == null ? "" : storageUnit + separator +
@@ -48,7 +49,7 @@ public final class FilePath {
 
     public static String toNormalFilePath(String series) {
         if (series != null) series = series.replace(WILDCARD, MYWILDCARD);
-        return ROOT + series.replace(".", SEPARATOR);
+        return ROOT + series.replace(".", MYSEPARATOR);
     }
 
     public static String getFileNameFormSeries(String series) {
@@ -67,10 +68,13 @@ public final class FilePath {
             String filePath, String fileName, String storageUnit) {
         String tmp;
 
+        if(filePath.contains("\\")) {
+            filePath = filePath.replaceAll("\\\\", MYSEPARATOR);
+        }
         if (storageUnit != null) {
             if (storageUnit.equals(MYWILDCARD) || storageUnit.equals(WILDCARD)) {
                 tmp = filePath.substring(filePath.indexOf(ROOT) + ROOT.length() + 1);
-                tmp = tmp.substring(tmp.indexOf(SEPARATOR) + 1);
+                tmp = tmp.substring(tmp.indexOf(MYSEPARATOR) + 1);
             } else {
                 tmp =
                         filePath.substring(
@@ -81,7 +85,7 @@ public final class FilePath {
         if (tmp.contains(".iginx")) {
             tmp = tmp.substring(0, tmp.lastIndexOf(".iginx"));
         }
-        return tmp.replace(SEPARATOR, ".");
+        return tmp.replaceAll(MYSEPARATOR, ".");
     }
 
     public String getOriSeries() {
