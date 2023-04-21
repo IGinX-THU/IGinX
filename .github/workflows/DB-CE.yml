@@ -33,26 +33,26 @@ jobs:
       - name: Run ZooKeeper
         uses: ./.github/actions/zookeeperRunner
 
-            - name: Run DB
-              uses: ./.github/actions/dbRunner
-              with:
-                  version: ${{matrix.DB-name}}
+      - name: Run DB
+        uses: ./.github/actions/dbRunner
+        with:
+            version: ${{matrix.DB-name}}
 
-            - name: Set The DB Name
-              uses: ./.github/actions/confWriter
-              with:
-                  confFile: DBName
-                  DB-name: ${{matrix.DB-name}}
+      - name: Set The DB Name
+        uses: ./.github/actions/confWriter
+        with:
+            confFile: DBName
+            DB-name: ${{matrix.DB-name}}
 
-            - name: Install IginX with Maven
-              shell: bash
-              run: |
-                  mvn clean package -DskipTests -P passFormat
+      - name: Install IginX with Maven
+        shell: bash
+        run: |
+            mvn clean package -DskipTests -P passFormat
 
-            - name: Set The UDF Conf
-              uses: ./.github/actions/confWriter
-              with:
-                  confFile: UDFConf
+      - name: Set The UDF Conf
+        uses: ./.github/actions/confWriter
+        with:
+            confFile: UDFConf
 
       #第 1 阶段测试开始==========================================
       - name: Prepare CapExp environment oriHasDataExpHasData
