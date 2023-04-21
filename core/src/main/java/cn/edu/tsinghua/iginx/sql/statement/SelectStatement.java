@@ -644,7 +644,7 @@ public class SelectStatement extends DataStatement {
             throw new RuntimeException("index: " + endIndexOfFromPart + " overflow");
         }
         if (path.startsWith(MARK_PREFIX)) {
-            return false;
+            return true;
         }
         for (int i = 0; i < endIndexOfFromPart; i++) {
             for (String pattern : fromParts.get(i).getPatterns()) {
