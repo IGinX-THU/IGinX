@@ -130,7 +130,7 @@ public class Last implements MappingFunction {
                                         .getBytes(StandardCharsets.UTF_8)
                             }));
         }
-        resultRows.sort(Comparator.comparingLong(Row::getKey));
+        resultRows.sort(ValueUtils.firstLastRowComparator());
         return new Table(header, resultRows);
     }
 }

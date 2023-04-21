@@ -21,8 +21,10 @@ package cn.edu.tsinghua.iginx.engine.shared.function.system.utils;
 import cn.edu.tsinghua.iginx.engine.physical.exception.InvalidOperatorParameterException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -30,9 +32,9 @@ import java.util.regex.Pattern;
 public class ValueUtils {
 
     private static final Set<DataType> numericTypeSet =
-            new HashSet<>(
-                    Arrays.asList(
-                            DataType.INTEGER, DataType.LONG, DataType.FLOAT, DataType.DOUBLE));
+        new HashSet<>(
+            Arrays.asList(
+                DataType.INTEGER, DataType.LONG, DataType.FLOAT, DataType.DOUBLE));
 
     public static boolean isNumericType(Value value) {
         return numericTypeSet.contains(value.getDataType());
@@ -79,10 +81,10 @@ public class ValueUtils {
                 v2 = transformToDouble(v2);
             } else {
                 throw new InvalidOperatorParameterException(
-                        dataType1.toString()
-                                + " and "
-                                + dataType2.toString()
-                                + " can't be compared");
+                    dataType1.toString()
+                        + " and "
+                        + dataType2.toString()
+                        + " can't be compared");
             }
         }
         switch (dataType1) {
@@ -104,7 +106,7 @@ public class ValueUtils {
 
     public static boolean regexCompare(Value value, Value regex) {
         if (!value.getDataType().equals(DataType.BINARY)
-                || !regex.getDataType().equals(DataType.BINARY)) {
+            || !regex.getDataType().equals(DataType.BINARY)) {
             // regex can only be compared between strings.
             return false;
         }
@@ -134,7 +136,7 @@ public class ValueUtils {
     }
 
     public static int compare(Object o1, Object o2, DataType dataType1, DataType dataType2)
-            throws PhysicalException {
+        throws PhysicalException {
         if (dataType1 != dataType2) {
             if (numericTypeSet.contains(dataType1) && numericTypeSet.contains(dataType2)) {
                 Value v1 = ValueUtils.transformToDouble(new Value(dataType1, o1));
@@ -142,10 +144,10 @@ public class ValueUtils {
                 return compare(v1, v2);
             } else {
                 throw new InvalidOperatorParameterException(
-                        dataType1.toString()
-                                + " and "
-                                + dataType2.toString()
-                                + " can't be compared");
+                    dataType1.toString()
+                        + " and "
+                        + dataType2.toString()
+                        + " can't be compared");
             }
         } else {
             return compare(o1, o2, dataType1);
@@ -164,5 +166,18 @@ public class ValueUtils {
                 return new String((byte[]) value);
         }
         return "";
+    }
+
+    public static Comparator<Row> firstLastRowComparator() {
+        return (o1, o2) -> {
+            if (o1.getKey() < o2.getKey()) {
+                return -1;
+            } else if (o1.getKey() > o2.getKey()) {
+                return 1;
+            }
+            String s1 = new String((byte[]) o1.getValue(0));
+            String s2 = new String((byte[]) o2.getValue(0));
+            return s1.compareTo(s2);
+        };
     }
 }
