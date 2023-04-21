@@ -144,5 +144,4 @@ public abstract class DataView {
     public boolean hasTagsList() {
         return getTagsList() != null && getTagsList().size() != 0;
     }
-
 }
