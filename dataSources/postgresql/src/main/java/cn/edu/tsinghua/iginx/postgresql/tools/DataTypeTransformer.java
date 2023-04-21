@@ -1,16 +1,19 @@
 package cn.edu.tsinghua.iginx.postgresql.tools;
 
-import cn.edu.tsinghua.iginx.thrift.DataType;
-
 import static cn.edu.tsinghua.iginx.thrift.DataType.*;
+
+import cn.edu.tsinghua.iginx.thrift.DataType;
 
 public class DataTypeTransformer {
 
     public static DataType fromPostgreSQL(String dataType) {
         if (dataType.equalsIgnoreCase("bool")) {
             return BOOLEAN;
-        } else if (dataType.equalsIgnoreCase("int") || dataType.equalsIgnoreCase("int2") || dataType.equalsIgnoreCase("int4") ||
-            dataType.equalsIgnoreCase("serial2") || dataType.equalsIgnoreCase("serial4")) {
+        } else if (dataType.equalsIgnoreCase("int")
+                || dataType.equalsIgnoreCase("int2")
+                || dataType.equalsIgnoreCase("int4")
+                || dataType.equalsIgnoreCase("serial2")
+                || dataType.equalsIgnoreCase("serial4")) {
             return INTEGER;
         } else if (dataType.equalsIgnoreCase("int8") || dataType.equalsIgnoreCase("serial8")) {
             return LONG;

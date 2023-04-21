@@ -26,9 +26,11 @@ public class Constants {
 
     public static final String QUERY_STATEMENT = "SELECT time, %s FROM %s WHERE %s;";
 
-    public static final String QUERY_STATEMENT_WITHOUT_WHERE_CLAUSE = "SELECT concat(%s) AS time, %s FROM %s;";
+    public static final String QUERY_STATEMENT_WITHOUT_WHERE_CLAUSE =
+            "SELECT concat(%s) AS time, %s FROM %s;";
 
-    public static final String CREATE_TABLE_STATEMENT = "CREATE TABLE %s (time BIGINT NOT NULL, %s %s, PRIMARY KEY(time));";
+    public static final String CREATE_TABLE_STATEMENT =
+            "CREATE TABLE %s (time BIGINT NOT NULL, %s %s, PRIMARY KEY(time));";
 
     public static final String ADD_COLUMN_STATEMENT = "ALTER TABLE %s ADD COLUMN %s %s;";
 
@@ -36,5 +38,6 @@ public class Constants {
 
     public static final String DROP_COLUMN_STATEMENT = "ALTER TABLE %s DROP COLUMN IF EXISTS %s;";
 
-    public static final String UPDATE_STATEMENT = "UPDATE %s SET %s = null WHERE (time >= %d AND time < %d);";
+    public static final String UPDATE_STATEMENT =
+            "UPDATE %s SET %s = null WHERE (time >= %d AND time < %d);";
 }

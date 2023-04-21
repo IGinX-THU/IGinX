@@ -1,5 +1,11 @@
 package cn.edu.tsinghua.iginx.postgresql.query.entity;
 
+import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils.validate;
+import static cn.edu.tsinghua.iginx.postgresql.tools.Constants.IGINX_SEPARATOR;
+import static cn.edu.tsinghua.iginx.postgresql.tools.Constants.POSTGRESQL_SEPARATOR;
+import static cn.edu.tsinghua.iginx.postgresql.tools.HashUtils.toHash;
+import static cn.edu.tsinghua.iginx.postgresql.tools.TagKVUtils.splitFullName;
+
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.RowFetchException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.utils.TagKVUtils;
@@ -12,19 +18,12 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.postgresql.tools.DataTypeTransformer;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.*;
-
-import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils.validate;
-import static cn.edu.tsinghua.iginx.postgresql.tools.Constants.IGINX_SEPARATOR;
-import static cn.edu.tsinghua.iginx.postgresql.tools.Constants.POSTGRESQL_SEPARATOR;
-import static cn.edu.tsinghua.iginx.postgresql.tools.HashUtils.toHash;
-import static cn.edu.tsinghua.iginx.postgresql.tools.TagKVUtils.splitFullName;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PostgreSQLQueryRowStream implements RowStream {
 
@@ -52,7 +51,9 @@ public class PostgreSQLQueryRowStream implements RowStream {
 
     private boolean hasCachedRow;
 
-    public PostgreSQLQueryRowStream(List<ResultSet> resultSets, boolean isDummy, Filter filter, TagFilter tagFilter) throws SQLException {
+    public PostgreSQLQueryRowStream(
+            List<ResultSet> resultSets, boolean isDummy, Filter filter, TagFilter tagFilter)
+            throws SQLException {
         this.resultSets = resultSets;
         this.isDummy = isDummy;
         this.filter = filter;
@@ -82,12 +83,14 @@ public class PostgreSQLQueryRowStream implements RowStream {
                 }
 
                 Pair<String, Map<String, String>> namesAndTags = splitFullName(columnName);
-                Field field = new Field(
-                    tableName.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR) + IGINX_SEPARATOR
-                        + namesAndTags.k.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR),
-                    DataTypeTransformer.fromPostgreSQL(typeName),
-                    namesAndTags.v
-                );
+                Field field =
+                        new Field(
+                                tableName.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR)
+                                        + IGINX_SEPARATOR
+                                        + namesAndTags.k.replace(
+                                                POSTGRESQL_SEPARATOR, IGINX_SEPARATOR),
+                                DataTypeTransformer.fromPostgreSQL(typeName),
+                                namesAndTags.v);
 
                 if (filterByTags && !TagKVUtils.match(namesAndTags.v, tagFilter)) {
                     continue;
@@ -192,8 +195,11 @@ public class PostgreSQLQueryRowStream implements RowStream {
 
                     ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
                     for (int j = 0; j < resultSetSizes[i]; j++) {
-                        Object value = resultSet.getObject(fieldToColumnName.get(header.getField(startIndex + j)));
-                        if (header.getField(startIndex + j).getType() == DataType.BINARY && value != null) {
+                        Object value =
+                                resultSet.getObject(
+                                        fieldToColumnName.get(header.getField(startIndex + j)));
+                        if (header.getField(startIndex + j).getType() == DataType.BINARY
+                                && value != null) {
                             tempValue = value.toString().getBytes();
                         } else {
                             tempValue = value;

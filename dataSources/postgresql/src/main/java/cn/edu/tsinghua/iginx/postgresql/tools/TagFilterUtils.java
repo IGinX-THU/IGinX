@@ -12,7 +12,7 @@ public class TagFilterUtils {
         transformToFilterStr(filter, builder);
         return builder.toString();
     }
-    
+
     private static void transformToFilterStr(TagFilter filter, StringBuilder builder) {
         switch (filter.getType()) {
             case And:
@@ -43,7 +43,7 @@ public class TagFilterUtils {
                 builder.append("=");
                 builder.append(baseFilter.getTagValue());
                 break;
-            // TODO: case label
+                // TODO: case label
             case BasePrecise:
                 break;
             case Precise:

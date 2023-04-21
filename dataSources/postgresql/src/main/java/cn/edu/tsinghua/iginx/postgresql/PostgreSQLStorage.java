@@ -18,6 +18,11 @@
  */
 package cn.edu.tsinghua.iginx.postgresql;
 
+import static cn.edu.tsinghua.iginx.postgresql.tools.Constants.*;
+import static cn.edu.tsinghua.iginx.postgresql.tools.HashUtils.toHash;
+import static cn.edu.tsinghua.iginx.postgresql.tools.TagKVUtils.splitFullName;
+import static cn.edu.tsinghua.iginx.postgresql.tools.TagKVUtils.toFullName;
+
 import cn.edu.tsinghua.iginx.engine.physical.exception.NonExecutablePhysicalTaskException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
@@ -48,20 +53,14 @@ import cn.edu.tsinghua.iginx.postgresql.tools.FilterTransformer;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-import org.postgresql.ds.PGConnectionPoolDataSource;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
-
-import static cn.edu.tsinghua.iginx.postgresql.tools.Constants.*;
-import static cn.edu.tsinghua.iginx.postgresql.tools.HashUtils.toHash;
-import static cn.edu.tsinghua.iginx.postgresql.tools.TagKVUtils.splitFullName;
-import static cn.edu.tsinghua.iginx.postgresql.tools.TagKVUtils.toFullName;
+import org.postgresql.ds.PGConnectionPoolDataSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PostgreSQLStorage implements IStorage {
 
@@ -69,7 +68,8 @@ public class PostgreSQLStorage implements IStorage {
 
     private final StorageEngineMeta meta;
 
-    private final Map<String, PGConnectionPoolDataSource> connectionPoolMap = new ConcurrentHashMap<>();
+    private final Map<String, PGConnectionPoolDataSource> connectionPoolMap =
+            new ConcurrentHashMap<>();
 
     private final Connection connection;
 
@@ -81,9 +81,10 @@ public class PostgreSQLStorage implements IStorage {
         Map<String, String> extraParams = meta.getExtraParams();
         String username = extraParams.getOrDefault(USERNAME, DEFAULT_USERNAME);
         String password = extraParams.getOrDefault(PASSWORD, DEFAULT_PASSWORD);
-        String connUrl = String
-            .format("jdbc:postgresql://%s:%s/?user=%s&password=%s", meta.getIp(), meta.getPort(),
-                username, password);
+        String connUrl =
+                String.format(
+                        "jdbc:postgresql://%s:%s/?user=%s&password=%s",
+                        meta.getIp(), meta.getPort(), username, password);
         try {
             connection = DriverManager.getConnection(connUrl);
         } catch (SQLException e) {
@@ -95,9 +96,10 @@ public class PostgreSQLStorage implements IStorage {
         Map<String, String> extraParams = meta.getExtraParams();
         String username = extraParams.getOrDefault(USERNAME, DEFAULT_USERNAME);
         String password = extraParams.getOrDefault(PASSWORD, DEFAULT_PASSWORD);
-        String connUrl = String
-            .format("jdbc:postgresql://%s:%s/?user=%s&password=%s", meta.getIp(), meta.getPort(),
-                username, password);
+        String connUrl =
+                String.format(
+                        "jdbc:postgresql://%s:%s/?user=%s&password=%s",
+                        meta.getIp(), meta.getPort(), username, password);
         try {
             Class.forName("org.postgresql.Driver");
             DriverManager.getConnection(connUrl);
@@ -111,9 +113,10 @@ public class PostgreSQLStorage implements IStorage {
         Map<String, String> extraParams = meta.getExtraParams();
         String username = extraParams.getOrDefault(USERNAME, DEFAULT_USERNAME);
         String password = extraParams.getOrDefault(PASSWORD, DEFAULT_PASSWORD);
-        String connUrl = String
-            .format("jdbc:postgresql://%s:%s/%s?user=%s&password=%s", meta.getIp(), meta.getPort(), databaseName,
-                username, password);
+        String connUrl =
+                String.format(
+                        "jdbc:postgresql://%s:%s/%s?user=%s&password=%s",
+                        meta.getIp(), meta.getPort(), databaseName, username, password);
         return connUrl;
     }
 
@@ -121,7 +124,8 @@ public class PostgreSQLStorage implements IStorage {
         if (databaseName.startsWith("dummy")) {
             return null;
         }
-        if (databaseName.equalsIgnoreCase("template0") || databaseName.equalsIgnoreCase("template1")) {
+        if (databaseName.equalsIgnoreCase("template0")
+                || databaseName.equalsIgnoreCase("template1")) {
             return null;
         }
 
@@ -130,7 +134,7 @@ public class PostgreSQLStorage implements IStorage {
             stmt.execute(String.format(CREATE_DATABASE_STATEMENT, databaseName));
             stmt.close();
         } catch (SQLException e) {
-//            logger.info("database {} exists!", databaseName);
+            //            logger.info("database {} exists!", databaseName);
         }
 
         try {
@@ -152,7 +156,7 @@ public class PostgreSQLStorage implements IStorage {
         List<Operator> operators = task.getOperators();
         if (operators.size() != 1) {
             return new TaskExecuteResult(
-                new NonExecutablePhysicalTaskException("unsupported physical task"));
+                    new NonExecutablePhysicalTaskException("unsupported physical task"));
         }
         FragmentMeta fragment = task.getTargetFragment();
         Operator op = operators.get(0);
@@ -161,7 +165,8 @@ public class PostgreSQLStorage implements IStorage {
         Connection conn = getConnection(storageUnit);
         if (!isDummyStorageUnit && conn == null) {
             return new TaskExecuteResult(
-                new NonExecutablePhysicalTaskException(String.format("cannot connect to storage unit %s", storageUnit)));
+                    new NonExecutablePhysicalTaskException(
+                            String.format("cannot connect to storage unit %s", storageUnit)));
         }
 
         if (op.getType() == OperatorType.Project) {
@@ -170,11 +175,17 @@ public class PostgreSQLStorage implements IStorage {
             if (operators.size() == 2) {
                 filter = ((Select) operators.get(1)).getFilter();
             } else {
-                filter = new AndFilter(Arrays
-                    .asList(new KeyFilter(Op.GE, fragment.getTimeInterval().getStartTime()),
-                        new KeyFilter(Op.L, fragment.getTimeInterval().getEndTime())));
+                filter =
+                        new AndFilter(
+                                Arrays.asList(
+                                        new KeyFilter(
+                                                Op.GE, fragment.getTimeInterval().getStartTime()),
+                                        new KeyFilter(
+                                                Op.L, fragment.getTimeInterval().getEndTime())));
             }
-            return isDummyStorageUnit ? executeHistoryProjectTask(project, filter) : executeProjectTask(conn, storageUnit, project, filter);
+            return isDummyStorageUnit
+                    ? executeHistoryProjectTask(project, filter)
+                    : executeProjectTask(conn, storageUnit, project, filter);
         } else if (op.getType() == OperatorType.Insert) {
             Insert insert = (Insert) op;
             return executeInsertTask(conn, storageUnit, insert);
@@ -183,7 +194,7 @@ public class PostgreSQLStorage implements IStorage {
             return executeDeleteTask(conn, storageUnit, delete);
         }
         return new TaskExecuteResult(
-            new NonExecutablePhysicalTaskException("unsupported physical task in postgresql"));
+                new NonExecutablePhysicalTaskException("unsupported physical task in postgresql"));
     }
 
     @Override
@@ -196,7 +207,9 @@ public class PostgreSQLStorage implements IStorage {
             while (databaseSet.next()) {
                 try {
                     String databaseName = databaseSet.getString("DATNAME"); // 获取数据库名称
-                    if ((extraParams.get("has_data") == null || extraParams.get("has_data").equals("false")) && !databaseName.startsWith(DATABASE_PREFIX)) {
+                    if ((extraParams.get("has_data") == null
+                                    || extraParams.get("has_data").equals("false"))
+                            && !databaseName.startsWith(DATABASE_PREFIX)) {
                         continue;
                     }
                     Connection conn = getConnection(databaseName);
@@ -204,32 +217,45 @@ public class PostgreSQLStorage implements IStorage {
                         continue;
                     }
                     DatabaseMetaData databaseMetaData = conn.getMetaData();
-                    ResultSet tableSet = databaseMetaData.getTables(databaseName, "public", "%", new String[]{"TABLE"});
+                    ResultSet tableSet =
+                            databaseMetaData.getTables(
+                                    databaseName, "public", "%", new String[] {"TABLE"});
                     while (tableSet.next()) {
                         String tableName = tableSet.getString("TABLE_NAME"); // 获取表名称
-                        ResultSet columnSet = databaseMetaData.getColumns(databaseName, "public", tableName, "%");
+                        ResultSet columnSet =
+                                databaseMetaData.getColumns(databaseName, "public", tableName, "%");
                         while (columnSet.next()) {
                             String columnName = columnSet.getString("COLUMN_NAME"); // 获取列名称
                             String typeName = columnSet.getString("TYPE_NAME"); // 列字段类型
                             if (columnName.equals("time")) { // time 列不显示
                                 continue;
                             }
-                            Pair<String, Map<String, String>> nameAndTags = splitFullName(columnName);
+                            Pair<String, Map<String, String>> nameAndTags =
+                                    splitFullName(columnName);
                             if (databaseName.startsWith(DATABASE_PREFIX)) {
-                                timeseries.add(new Timeseries(
-                                    tableName.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR)
-                                    + IGINX_SEPARATOR + nameAndTags.k,
-                                    DataTypeTransformer.fromPostgreSQL(typeName),
-                                    nameAndTags.v)
-                                );
+                                timeseries.add(
+                                        new Timeseries(
+                                                tableName.replace(
+                                                                POSTGRESQL_SEPARATOR,
+                                                                IGINX_SEPARATOR)
+                                                        + IGINX_SEPARATOR
+                                                        + nameAndTags.k,
+                                                DataTypeTransformer.fromPostgreSQL(typeName),
+                                                nameAndTags.v));
                             } else {
-                                timeseries.add(new Timeseries(
-                                    databaseName.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR)
-                                    + IGINX_SEPARATOR + tableName.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR)
-                                    + IGINX_SEPARATOR + nameAndTags.k,
-                                    DataTypeTransformer.fromPostgreSQL(typeName),
-                                    nameAndTags.v)
-                                );
+                                timeseries.add(
+                                        new Timeseries(
+                                                databaseName.replace(
+                                                                POSTGRESQL_SEPARATOR,
+                                                                IGINX_SEPARATOR)
+                                                        + IGINX_SEPARATOR
+                                                        + tableName.replace(
+                                                                POSTGRESQL_SEPARATOR,
+                                                                IGINX_SEPARATOR)
+                                                        + IGINX_SEPARATOR
+                                                        + nameAndTags.k,
+                                                DataTypeTransformer.fromPostgreSQL(typeName),
+                                                nameAndTags.v));
                             }
                         }
                         columnSet.close();
@@ -249,7 +275,8 @@ public class PostgreSQLStorage implements IStorage {
     }
 
     @Override
-    public Pair<TimeSeriesRange, TimeInterval> getBoundaryOfStorage(String prefix) throws PhysicalException {
+    public Pair<TimeSeriesRange, TimeInterval> getBoundaryOfStorage(String prefix)
+            throws PhysicalException {
         long minTime = Long.MAX_VALUE, maxTime = 0;
         List<String> paths = new ArrayList<>();
         try {
@@ -262,21 +289,33 @@ public class PostgreSQLStorage implements IStorage {
                     continue;
                 }
                 DatabaseMetaData databaseMetaData = conn.getMetaData();
-                ResultSet tableSet = databaseMetaData.getTables(databaseName, "public", "%", new String[]{"TABLE"});
+                ResultSet tableSet =
+                        databaseMetaData.getTables(
+                                databaseName, "public", "%", new String[] {"TABLE"});
                 while (tableSet.next()) {
                     String tableName = tableSet.getString("TABLE_NAME"); // 获取表名称
-                    ResultSet columnSet = databaseMetaData.getColumns(databaseName, "public", tableName, "%");
+                    ResultSet columnSet =
+                            databaseMetaData.getColumns(databaseName, "public", tableName, "%");
                     StringBuilder columnNames = new StringBuilder();
                     while (columnSet.next()) {
                         String columnName = columnSet.getString("COLUMN_NAME"); // 获取列名称
-                        paths.add(databaseName + IGINX_SEPARATOR + tableName + IGINX_SEPARATOR + columnName);
+                        paths.add(
+                                databaseName
+                                        + IGINX_SEPARATOR
+                                        + tableName
+                                        + IGINX_SEPARATOR
+                                        + columnName);
                         columnNames.append(columnName);
                         columnNames.append(", "); // c1, c2, c3,
                     }
-                    columnNames = new StringBuilder(columnNames.substring(0, columnNames.length() - 2)); // c1, c2, c3
+                    columnNames =
+                            new StringBuilder(
+                                    columnNames.substring(
+                                            0, columnNames.length() - 2)); // c1, c2, c3
 
                     // 获取 key 的范围
-                    String statement = String.format(CONCAT_QUERY_STATEMENT, columnNames, tableName);
+                    String statement =
+                            String.format(CONCAT_QUERY_STATEMENT, columnNames, tableName);
                     Statement concatStmt = conn.createStatement();
                     ResultSet concatSet = concatStmt.executeQuery(statement);
                     while (concatSet.next()) {
@@ -292,11 +331,13 @@ public class PostgreSQLStorage implements IStorage {
             throw new RuntimeException(e);
         }
         paths.sort(String::compareTo);
-        return new Pair<>(new TimeSeriesInterval(paths.get(0), paths.get(paths.size() - 1)),
-            new TimeInterval(minTime, maxTime + 1));
+        return new Pair<>(
+                new TimeSeriesInterval(paths.get(0), paths.get(paths.size() - 1)),
+                new TimeInterval(minTime, maxTime + 1));
     }
 
-    private Map<String, String> splitAndMergeQueryPatterns(String databaseName, Connection conn, List<String> patterns) throws SQLException {
+    private Map<String, String> splitAndMergeQueryPatterns(
+            String databaseName, Connection conn, List<String> patterns) throws SQLException {
         // table name -> column names
         // 1 -> n
         Map<String, String> tableNameToColumnNames = new HashMap<>();
@@ -312,7 +353,9 @@ public class PostgreSQLStorage implements IStorage {
                     tableName = pattern;
                     columnNames = "%";
                 } else {
-                    tableName = pattern.substring(0, pattern.lastIndexOf(".")).replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
+                    tableName =
+                            pattern.substring(0, pattern.lastIndexOf("."))
+                                    .replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
                     columnNames = pattern.substring(pattern.lastIndexOf(".") + 1);
                     boolean columnEqualsStar = columnNames.equals("*");
                     boolean tableContainsStar = tableName.contains("*");
@@ -331,7 +374,8 @@ public class PostgreSQLStorage implements IStorage {
             if (!columnNames.endsWith("%")) {
                 columnNames += "%"; // 匹配 tagKV
             }
-            ResultSet rs = conn.getMetaData().getColumns(databaseName, "public", tableName, columnNames);
+            ResultSet rs =
+                    conn.getMetaData().getColumns(databaseName, "public", tableName, columnNames);
             while (rs.next()) {
                 tableName = rs.getString("TABLE_NAME");
                 columnNames = rs.getString("COLUMN_NAME");
@@ -349,40 +393,56 @@ public class PostgreSQLStorage implements IStorage {
         return tableNameToColumnNames;
     }
 
-    private TaskExecuteResult executeProjectTask(Connection conn, String databaseName, Project project, Filter filter) {
+    private TaskExecuteResult executeProjectTask(
+            Connection conn, String databaseName, Project project, Filter filter) {
         try {
             List<ResultSet> resultSets = new ArrayList<>();
             ResultSet rs;
             Statement stmt;
 
-            Map<String, String> tableNameToColumnNames = splitAndMergeQueryPatterns(databaseName, conn, project.getPatterns());
+            Map<String, String> tableNameToColumnNames =
+                    splitAndMergeQueryPatterns(databaseName, conn, project.getPatterns());
             for (Map.Entry<String, String> entry : tableNameToColumnNames.entrySet()) {
                 String tableName = entry.getKey();
-                String columnNames = Arrays.stream(entry.getValue().split(", ")).map(this::getCompleteName).reduce((a, b) -> a + ", " + b).orElse("%");
-                String statement = String.format(QUERY_STATEMENT, columnNames, getCompleteName(tableName), FilterTransformer.toString(filter));
+                String columnNames =
+                        Arrays.stream(entry.getValue().split(", "))
+                                .map(this::getCompleteName)
+                                .reduce((a, b) -> a + ", " + b)
+                                .orElse("%");
+                String statement =
+                        String.format(
+                                QUERY_STATEMENT,
+                                columnNames,
+                                getCompleteName(tableName),
+                                FilterTransformer.toString(filter));
                 try {
                     stmt = conn.createStatement();
                     rs = stmt.executeQuery(statement);
                     logger.info("[Query] execute query: {}", statement);
                 } catch (SQLException e) {
-                    logger.error("meet error when executing query {}: {}", statement, e.getMessage());
+                    logger.error(
+                            "meet error when executing query {}: {}", statement, e.getMessage());
                     continue;
                 }
                 resultSets.add(rs);
             }
 
-            RowStream rowStream = new ClearEmptyRowStreamWrapper(
-                new PostgreSQLQueryRowStream(resultSets, false, filter, project.getTagFilter()));
+            RowStream rowStream =
+                    new ClearEmptyRowStreamWrapper(
+                            new PostgreSQLQueryRowStream(
+                                    resultSets, false, filter, project.getTagFilter()));
             conn.close();
             return new TaskExecuteResult(rowStream);
         } catch (SQLException e) {
             logger.error(e.getMessage());
             return new TaskExecuteResult(
-                new PhysicalTaskExecuteFailureException("execute project task in postgresql failure", e));
+                    new PhysicalTaskExecuteFailureException(
+                            "execute project task in postgresql failure", e));
         }
     }
 
-    private Map<String, Map<String, String>> splitAndMergeHistoryQueryPatterns(List<String> patterns) throws SQLException {
+    private Map<String, Map<String, String>> splitAndMergeHistoryQueryPatterns(
+            List<String> patterns) throws SQLException {
         // <database name, <table name, column names>>
         Map<String, Map<String, String>> splitResults = new HashMap<>();
         String databaseName;
@@ -400,7 +460,8 @@ public class PostgreSQLStorage implements IStorage {
                     logger.error("wrong pattern: {}", pattern);
                     continue;
                 }
-                if (parts.length == 2 && !parts[1].equals("*")) { // 只有两级且第二级不为 *，则此 pattern 不合法，无法拆分出三级
+                if (parts.length == 2
+                        && !parts[1].equals("*")) { // 只有两级且第二级不为 *，则此 pattern 不合法，无法拆分出三级
                     continue;
                 }
 
@@ -422,16 +483,23 @@ public class PostgreSQLStorage implements IStorage {
                         continue;
                     }
                     DatabaseMetaData databaseMetaData = conn.getMetaData();
-                    ResultSet tableSet = databaseMetaData.getTables(tempDatabaseName, "public", tableName, new String[]{"TABLE"});
+                    ResultSet tableSet =
+                            databaseMetaData.getTables(
+                                    tempDatabaseName, "public", tableName, new String[] {"TABLE"});
                     while (tableSet.next()) {
                         String tempTableName = tableSet.getString("TABLE_NAME");
-                        ResultSet columnSet = databaseMetaData.getColumns(tempDatabaseName, "public", tempTableName, columnNames);
+                        ResultSet columnSet =
+                                databaseMetaData.getColumns(
+                                        tempDatabaseName, "public", tempTableName, columnNames);
                         while (columnSet.next()) {
                             String tempColumnNames = columnSet.getString("COLUMN_NAME");
                             Map<String, String> tableNameToColumnNames = new HashMap<>();
                             if (splitResults.containsKey(tempDatabaseName)) {
                                 tableNameToColumnNames = splitResults.get(tempDatabaseName);
-                                tempColumnNames = tableNameToColumnNames.get(tempTableName) + ", " + tempColumnNames;
+                                tempColumnNames =
+                                        tableNameToColumnNames.get(tempTableName)
+                                                + ", "
+                                                + tempColumnNames;
                             }
                             tableNameToColumnNames.put(tempTableName, tempColumnNames);
                             splitResults.put(tempDatabaseName, tableNameToColumnNames);
@@ -443,7 +511,9 @@ public class PostgreSQLStorage implements IStorage {
                 if (conn == null) {
                     continue;
                 }
-                ResultSet rs = conn.getMetaData().getColumns(databaseName, "public", tableName, columnNames);
+                ResultSet rs =
+                        conn.getMetaData()
+                                .getColumns(databaseName, "public", tableName, columnNames);
                 while (rs.next()) {
                     tableName = rs.getString("TABLE_NAME");
                     columnNames = rs.getString("COLUMN_NAME");
@@ -468,7 +538,8 @@ public class PostgreSQLStorage implements IStorage {
             Connection conn = null;
             Statement stmt;
 
-            Map<String, Map<String, String>> splitResults = splitAndMergeHistoryQueryPatterns(project.getPatterns());
+            Map<String, Map<String, String>> splitResults =
+                    splitAndMergeHistoryQueryPatterns(project.getPatterns());
             for (Map.Entry<String, Map<String, String>> splitEntry : splitResults.entrySet()) {
                 String databaseName = splitEntry.getKey();
                 conn = getConnection(databaseName);
@@ -477,22 +548,36 @@ public class PostgreSQLStorage implements IStorage {
                 }
                 for (Map.Entry<String, String> entry : splitEntry.getValue().entrySet()) {
                     String tableName = entry.getKey();
-                    String columnNames = Arrays.stream(entry.getValue().split(", ")).map(this::getCompleteName).reduce((a, b) -> a + ", " + b).orElse("%");
-                    String statement = String.format(QUERY_STATEMENT_WITHOUT_WHERE_CLAUSE, columnNames, columnNames, getCompleteName(tableName));
+                    String columnNames =
+                            Arrays.stream(entry.getValue().split(", "))
+                                    .map(this::getCompleteName)
+                                    .reduce((a, b) -> a + ", " + b)
+                                    .orElse("%");
+                    String statement =
+                            String.format(
+                                    QUERY_STATEMENT_WITHOUT_WHERE_CLAUSE,
+                                    columnNames,
+                                    columnNames,
+                                    getCompleteName(tableName));
                     try {
                         stmt = conn.createStatement();
                         rs = stmt.executeQuery(statement);
                         logger.info("[Query] execute query: {}", statement);
                     } catch (SQLException e) {
-                        logger.error("meet error when executing query {}: {}", statement, e.getMessage());
+                        logger.error(
+                                "meet error when executing query {}: {}",
+                                statement,
+                                e.getMessage());
                         continue;
                     }
                     resultSets.add(rs);
                 }
             }
 
-            RowStream rowStream = new ClearEmptyRowStreamWrapper(
-                new PostgreSQLQueryRowStream(resultSets, true, filter, project.getTagFilter()));
+            RowStream rowStream =
+                    new ClearEmptyRowStreamWrapper(
+                            new PostgreSQLQueryRowStream(
+                                    resultSets, true, filter, project.getTagFilter()));
             if (conn != null) {
                 conn.close();
             }
@@ -500,11 +585,13 @@ public class PostgreSQLStorage implements IStorage {
         } catch (SQLException e) {
             logger.error(e.getMessage());
             return new TaskExecuteResult(
-                new PhysicalTaskExecuteFailureException("execute project task in postgresql failure", e));
+                    new PhysicalTaskExecuteFailureException(
+                            "execute project task in postgresql failure", e));
         }
     }
 
-    private TaskExecuteResult executeInsertTask(Connection conn, String storageUnit, Insert insert) {
+    private TaskExecuteResult executeInsertTask(
+            Connection conn, String storageUnit, Insert insert) {
         DataView dataView = insert.getData();
         Exception e = null;
         switch (dataView.getRawDataType()) {
@@ -518,13 +605,18 @@ public class PostgreSQLStorage implements IStorage {
                 break;
         }
         if (e != null) {
-            return new TaskExecuteResult(null,
-                new PhysicalException("execute insert task in postgresql failure", e));
+            return new TaskExecuteResult(
+                    null, new PhysicalException("execute insert task in postgresql failure", e));
         }
         return new TaskExecuteResult(null, null);
     }
 
-    private void createOrAlterTables(Connection conn, String storageUnit, List<String> paths, List<Map<String, String>> tagsList, List<DataType> dataTypeList) {
+    private void createOrAlterTables(
+            Connection conn,
+            String storageUnit,
+            List<String> paths,
+            List<Map<String, String>> tagsList,
+            List<DataType> dataTypeList) {
         for (int i = 0; i < paths.size(); i++) {
             String path = paths.get(i);
             Map<String, String> tags = new HashMap<>();
@@ -532,22 +624,40 @@ public class PostgreSQLStorage implements IStorage {
                 tags = tagsList.get(i);
             }
             DataType dataType = dataTypeList.get(i);
-            String tableName = path.substring(0, path.lastIndexOf('.')).replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
-            String columnName = path.substring(path.lastIndexOf('.') + 1).replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
+            String tableName =
+                    path.substring(0, path.lastIndexOf('.'))
+                            .replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
+            String columnName =
+                    path.substring(path.lastIndexOf('.') + 1)
+                            .replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
 
             try {
                 Statement stmt = conn.createStatement();
                 DatabaseMetaData databaseMetaData = conn.getMetaData();
-                ResultSet tableSet = databaseMetaData.getTables(storageUnit, "public", tableName, new String[]{"TABLE"});
+                ResultSet tableSet =
+                        databaseMetaData.getTables(
+                                storageUnit, "public", tableName, new String[] {"TABLE"});
                 columnName = toFullName(columnName, tags);
                 if (!tableSet.next()) {
-                    String statement = String.format(CREATE_TABLE_STATEMENT, getCompleteName(tableName), getCompleteName(columnName), DataTypeTransformer.toPostgreSQL(dataType));
+                    String statement =
+                            String.format(
+                                    CREATE_TABLE_STATEMENT,
+                                    getCompleteName(tableName),
+                                    getCompleteName(columnName),
+                                    DataTypeTransformer.toPostgreSQL(dataType));
                     logger.info("[Create] execute create: {}", statement);
                     stmt.execute(statement);
                 } else {
-                    ResultSet columnSet = databaseMetaData.getColumns(storageUnit, "public", tableName, columnName);
+                    ResultSet columnSet =
+                            databaseMetaData.getColumns(
+                                    storageUnit, "public", tableName, columnName);
                     if (!columnSet.next()) {
-                        String statement = String.format(ADD_COLUMN_STATEMENT, getCompleteName(tableName), getCompleteName(columnName), DataTypeTransformer.toPostgreSQL(dataType));
+                        String statement =
+                                String.format(
+                                        ADD_COLUMN_STATEMENT,
+                                        getCompleteName(tableName),
+                                        getCompleteName(columnName),
+                                        DataTypeTransformer.toPostgreSQL(dataType));
                         logger.info("[Create] execute create: {}", statement);
                         stmt.execute(statement);
                     }
@@ -556,21 +666,28 @@ public class PostgreSQLStorage implements IStorage {
                 tableSet.close();
                 stmt.close();
             } catch (SQLException e) {
-                logger.error("create or alter table {} field {} error: {}", tableName, columnName, e.getMessage());
+                logger.error(
+                        "create or alter table {} field {} error: {}",
+                        tableName,
+                        columnName,
+                        e.getMessage());
             }
         }
     }
 
-    private Exception insertNonAlignedRowRecords(Connection conn, String storageUnit, RowDataView data) {
+    private Exception insertNonAlignedRowRecords(
+            Connection conn, String storageUnit, RowDataView data) {
         int batchSize = Math.min(data.getTimeSize(), BATCH_SIZE);
         try {
             Statement stmt = conn.createStatement();
 
             // 创建表
-            createOrAlterTables(conn, storageUnit, data.getPaths(), data.getTagsList(), data.getDataTypeList());
+            createOrAlterTables(
+                    conn, storageUnit, data.getPaths(), data.getTagsList(), data.getDataTypeList());
 
             // 插入数据
-            Map<String, Pair<String, List<String>>> tableToColumnEntries = new HashMap<>(); // <表名, <列名，值列表>>
+            Map<String, Pair<String, List<String>>> tableToColumnEntries =
+                    new HashMap<>(); // <表名, <列名，值列表>>
             int cnt = 0;
             boolean firstRound = true;
             while (cnt < data.getTimeSize()) {
@@ -582,7 +699,9 @@ public class PostgreSQLStorage implements IStorage {
                     for (int j = 0; j < data.getPathNum(); j++) {
                         String path = data.getPath(j);
                         DataType dataType = data.getDataType(j);
-                        String tableName = path.substring(0, path.lastIndexOf('.')).replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
+                        String tableName =
+                                path.substring(0, path.lastIndexOf('.'))
+                                        .replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
                         String columnName = path.substring(path.lastIndexOf('.') + 1);
                         Map<String, String> tags = new HashMap<>();
                         if (data.hasTagsList()) {
@@ -599,7 +718,12 @@ public class PostgreSQLStorage implements IStorage {
                         String value = "null";
                         if (bitmapView.get(j)) {
                             if (dataType == DataType.BINARY) {
-                                value = "'" + new String((byte[]) data.getValue(i, index), StandardCharsets.UTF_8) + "'";
+                                value =
+                                        "'"
+                                                + new String(
+                                                        (byte[]) data.getValue(i, index),
+                                                        StandardCharsets.UTF_8)
+                                                + "'";
                             } else {
                                 value = data.getValue(i, index).toString();
                             }
@@ -620,10 +744,12 @@ public class PostgreSQLStorage implements IStorage {
                         if (i - cnt < columnValues.size()) {
                             columnValues.set(i - cnt, columnValues.get(i - cnt) + value + ", ");
                         } else {
-                            columnValues.add(data.getKey(i) + ", " + value + ", ");  // 添加 key(time) 列
+                            columnValues.add(
+                                    data.getKey(i) + ", " + value + ", "); // 添加 key(time) 列
                         }
 
-                        tableToColumnEntries.put(tableName, new Pair<>(columnKeys.toString(), columnValues));
+                        tableToColumnEntries.put(
+                                tableName, new Pair<>(columnKeys.toString(), columnValues));
                     }
 
                     firstRound = false;
@@ -664,16 +790,19 @@ public class PostgreSQLStorage implements IStorage {
         return null;
     }
 
-    private Exception insertNonAlignedColumnRecords(Connection conn, String storageUnit, ColumnDataView data) {
+    private Exception insertNonAlignedColumnRecords(
+            Connection conn, String storageUnit, ColumnDataView data) {
         int batchSize = Math.min(data.getTimeSize(), BATCH_SIZE);
         try {
             Statement stmt = conn.createStatement();
 
             // 创建表
-            createOrAlterTables(conn, storageUnit, data.getPaths(), data.getTagsList(), data.getDataTypeList());
+            createOrAlterTables(
+                    conn, storageUnit, data.getPaths(), data.getTagsList(), data.getDataTypeList());
 
             // 插入数据
-            Map<String, Pair<String, List<String>>> tableToColumnEntries = new HashMap<>(); // <表名, <列名，值列表>>
+            Map<String, Pair<String, List<String>>> tableToColumnEntries =
+                    new HashMap<>(); // <表名, <列名，值列表>>
             Map<Integer, Integer> pathIndexToBitmapIndex = new HashMap<>();
             int cnt = 0;
             boolean firstRound = true;
@@ -683,7 +812,9 @@ public class PostgreSQLStorage implements IStorage {
                 for (int i = 0; i < data.getPathNum(); i++) {
                     String path = data.getPath(i);
                     DataType dataType = data.getDataType(i);
-                    String tableName = path.substring(0, path.lastIndexOf('.')).replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
+                    String tableName =
+                            path.substring(0, path.lastIndexOf('.'))
+                                    .replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
                     String columnName = path.substring(path.lastIndexOf('.') + 1);
                     Map<String, String> tags = new HashMap<>();
                     if (data.hasTagsList()) {
@@ -707,7 +838,12 @@ public class PostgreSQLStorage implements IStorage {
                         String value = "null";
                         if (bitmapView.get(j)) {
                             if (dataType == DataType.BINARY) {
-                                value = "'" + new String((byte[]) data.getValue(i, index), StandardCharsets.UTF_8) + "'";
+                                value =
+                                        "'"
+                                                + new String(
+                                                        (byte[]) data.getValue(i, index),
+                                                        StandardCharsets.UTF_8)
+                                                + "'";
                             } else {
                                 value = data.getValue(i, index).toString();
                             }
@@ -724,7 +860,8 @@ public class PostgreSQLStorage implements IStorage {
                         if (j - cnt < columnValues.size()) {
                             columnValues.set(j - cnt, columnValues.get(j - cnt) + value + ", ");
                         } else {
-                            columnValues.add(data.getKey(j) + ", " + value + ", ");  // 添加 key(time) 列
+                            columnValues.add(
+                                    data.getKey(j) + ", " + value + ", "); // 添加 key(time) 列
                         }
                     }
                     pathIndexToBitmapIndex.put(i, index);
@@ -733,7 +870,8 @@ public class PostgreSQLStorage implements IStorage {
                         columnKeys.append(toFullName(columnName, tags)).append(", ");
                     }
 
-                    tableToColumnEntries.put(tableName, new Pair<>(columnKeys.toString(), columnValues));
+                    tableToColumnEntries.put(
+                            tableName, new Pair<>(columnKeys.toString(), columnValues));
                 }
 
                 for (Map.Entry<String, boolean[]> entry : tableHasData.entrySet()) {
@@ -755,7 +893,8 @@ public class PostgreSQLStorage implements IStorage {
                 }
 
                 executeBatchInsert(stmt, tableToColumnEntries);
-                for (Map.Entry<String, Pair<String, List<String>>> entry : tableToColumnEntries.entrySet()) {
+                for (Map.Entry<String, Pair<String, List<String>>> entry :
+                        tableToColumnEntries.entrySet()) {
                     entry.getValue().v.clear();
                 }
 
@@ -772,8 +911,11 @@ public class PostgreSQLStorage implements IStorage {
         return null;
     }
 
-    private void executeBatchInsert(Statement stmt, Map<String, Pair<String, List<String>>> tableToColumnEntries) throws SQLException {
-        for (Map.Entry<String, Pair<String, List<String>>> entry : tableToColumnEntries.entrySet()) {
+    private void executeBatchInsert(
+            Statement stmt, Map<String, Pair<String, List<String>>> tableToColumnEntries)
+            throws SQLException {
+        for (Map.Entry<String, Pair<String, List<String>>> entry :
+                tableToColumnEntries.entrySet()) {
             String tableName = entry.getKey();
             String columnNames = entry.getValue().k.substring(0, entry.getValue().k.length() - 2);
             List<String> values = entry.getValue().v;
@@ -784,14 +926,26 @@ public class PostgreSQLStorage implements IStorage {
             statement.append("INSERT INTO ");
             statement.append(getCompleteName(tableName));
             statement.append(" (time, ");
-            statement.append(Arrays.stream(parts).map(this::getCompleteName).reduce((a, b) -> a + ", " + b).orElse(""));
+            statement.append(
+                    Arrays.stream(parts)
+                            .map(this::getCompleteName)
+                            .reduce((a, b) -> a + ", " + b)
+                            .orElse(""));
             statement.append(") VALUES");
-            statement.append(values.stream().map(x -> " (" + x.substring(0, x.length() - 2) + ")").reduce((a, b) -> a + ", " + b).orElse(""));
+            statement.append(
+                    values.stream()
+                            .map(x -> " (" + x.substring(0, x.length() - 2) + ")")
+                            .reduce((a, b) -> a + ", " + b)
+                            .orElse(""));
             statement.append(" ON CONFLICT (time) DO UPDATE SET ");
             if (hasMultipleRows) {
                 statement.append("("); // 只有一列不加括号
             }
-            statement.append(Arrays.stream(parts).map(this::getCompleteName).reduce((a, b) -> a + ", " + b).orElse(""));
+            statement.append(
+                    Arrays.stream(parts)
+                            .map(this::getCompleteName)
+                            .reduce((a, b) -> a + ", " + b)
+                            .orElse(""));
             if (hasMultipleRows) {
                 statement.append(")"); // 只有一列不加括号
             }
@@ -799,19 +953,24 @@ public class PostgreSQLStorage implements IStorage {
             if (hasMultipleRows) {
                 statement.append("("); // 只有一列不加括号
             }
-            statement.append(Arrays.stream(parts).map(x -> "excluded." + getCompleteName(x)).reduce((a, b) -> a + ", " + b).orElse(""));
+            statement.append(
+                    Arrays.stream(parts)
+                            .map(x -> "excluded." + getCompleteName(x))
+                            .reduce((a, b) -> a + ", " + b)
+                            .orElse(""));
             if (hasMultipleRows) {
                 statement.append(")"); // 只有一列不加括号
             }
             statement.append(";");
 
-//            logger.info("[Insert] execute insert: {}", statement);
+            //            logger.info("[Insert] execute insert: {}", statement);
             stmt.addBatch(statement.toString());
         }
         stmt.executeBatch();
     }
 
-    private TaskExecuteResult executeDeleteTask(Connection conn, String storageUnit, Delete delete) {
+    private TaskExecuteResult executeDeleteTask(
+            Connection conn, String storageUnit, Delete delete) {
         try {
             Statement stmt = conn.createStatement();
             String statement;
@@ -824,9 +983,12 @@ public class PostgreSQLStorage implements IStorage {
             ResultSet columnSet = null;
 
             if (delete.getTimeRanges() == null || delete.getTimeRanges().size() == 0) {
-                if (paths.size() == 1 && paths.get(0).equals("*") && delete.getTagFilter() == null) {
+                if (paths.size() == 1
+                        && paths.get(0).equals("*")
+                        && delete.getTagFilter() == null) {
                     conn.close();
-                    Connection postgresConn = getConnection("postgres"); // 正在使用的数据库无法被删除，因此需要切换到名为 postgres 的默认数据库
+                    Connection postgresConn =
+                            getConnection("postgres"); // 正在使用的数据库无法被删除，因此需要切换到名为 postgres 的默认数据库
                     if (postgresConn != null) {
                         stmt = postgresConn.createStatement();
                         statement = String.format(DROP_DATABASE_STATEMENT, storageUnit);
@@ -836,16 +998,25 @@ public class PostgreSQLStorage implements IStorage {
                         postgresConn.close();
                         return new TaskExecuteResult(null, null);
                     } else {
-                        return new TaskExecuteResult(new PhysicalTaskExecuteFailureException("cannot connect to database: postgres", new SQLException()));
+                        return new TaskExecuteResult(
+                                new PhysicalTaskExecuteFailureException(
+                                        "cannot connect to database: postgres",
+                                        new SQLException()));
                     }
                 } else {
                     deletedPaths = determineDeletedPaths(paths, delete.getTagFilter());
                     for (Pair<String, String> pair : deletedPaths) {
                         tableName = pair.k;
                         columnName = pair.v;
-                        tableSet = databaseMetaData.getTables(storageUnit, "public", tableName, new String[]{"TABLE"});
+                        tableSet =
+                                databaseMetaData.getTables(
+                                        storageUnit, "public", tableName, new String[] {"TABLE"});
                         if (tableSet.next()) {
-                            statement = String.format(DROP_COLUMN_STATEMENT, getCompleteName(tableName), getCompleteName(columnName));
+                            statement =
+                                    String.format(
+                                            DROP_COLUMN_STATEMENT,
+                                            getCompleteName(tableName),
+                                            getCompleteName(columnName));
                             logger.info("[Delete] execute delete: {}", statement);
                             stmt.execute(statement); // 删除列
                         }
@@ -856,11 +1027,18 @@ public class PostgreSQLStorage implements IStorage {
                 for (Pair<String, String> pair : deletedPaths) {
                     tableName = pair.k;
                     columnName = pair.v;
-                    columnSet = databaseMetaData.getColumns(storageUnit, "public", tableName, columnName);
+                    columnSet =
+                            databaseMetaData.getColumns(
+                                    storageUnit, "public", tableName, columnName);
                     if (columnSet.next()) {
                         for (TimeRange timeRange : delete.getTimeRanges()) {
-                            statement = String.format(UPDATE_STATEMENT, getCompleteName(tableName), getCompleteName(columnName),
-                                timeRange.getBeginTime(), timeRange.getEndTime());
+                            statement =
+                                    String.format(
+                                            UPDATE_STATEMENT,
+                                            getCompleteName(tableName),
+                                            getCompleteName(columnName),
+                                            timeRange.getBeginTime(),
+                                            timeRange.getEndTime());
                             logger.info("[Delete] execute delete: {}", statement);
                             stmt.execute(statement); // 将目标列的目标范围的值置为空
                         }
@@ -879,23 +1057,30 @@ public class PostgreSQLStorage implements IStorage {
         } catch (SQLException e) {
             logger.error(e.getMessage());
             return new TaskExecuteResult(
-                new PhysicalTaskExecuteFailureException("execute delete task in postgresql failure", e));
+                    new PhysicalTaskExecuteFailureException(
+                            "execute delete task in postgresql failure", e));
         }
     }
 
-    private List<Pair<String, String>> determineDeletedPaths(List<String> paths, TagFilter tagFilter) {
+    private List<Pair<String, String>> determineDeletedPaths(
+            List<String> paths, TagFilter tagFilter) {
         List<Timeseries> timeSeries = getTimeSeries();
         List<Pair<String, String>> deletedPaths = new ArrayList<>();
 
-        for (Timeseries ts: timeSeries) {
+        for (Timeseries ts : timeSeries) {
             for (String path : paths) {
                 if (Pattern.matches(StringUtils.reformatPath(path), ts.getPath())) {
                     if (tagFilter != null && !TagKVUtils.match(ts.getTags(), tagFilter)) {
                         continue;
                     }
                     String fullPath = ts.getPath();
-                    String tableName = fullPath.substring(0, fullPath.lastIndexOf('.')).replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
-                    String columnName = toFullName(fullPath.substring(fullPath.lastIndexOf('.') + 1), ts.getTags());
+                    String tableName =
+                            fullPath.substring(0, fullPath.lastIndexOf('.'))
+                                    .replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
+                    String columnName =
+                            toFullName(
+                                    fullPath.substring(fullPath.lastIndexOf('.') + 1),
+                                    ts.getTags());
                     deletedPaths.add(new Pair<>(tableName, columnName));
                     break;
                 }
@@ -907,7 +1092,7 @@ public class PostgreSQLStorage implements IStorage {
 
     private String getCompleteName(String name) {
         return "\"" + name + "\"";
-//        return Character.isDigit(name.charAt(0)) ? "\"" + name + "\"" : name;
+        //        return Character.isDigit(name.charAt(0)) ? "\"" + name + "\"" : name;
     }
 
     @Override

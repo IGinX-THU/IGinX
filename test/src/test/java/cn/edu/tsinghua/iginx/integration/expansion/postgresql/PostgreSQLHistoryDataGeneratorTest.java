@@ -1,22 +1,23 @@
 package cn.edu.tsinghua.iginx.integration.expansion.postgresql;
 
 import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
-import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
+import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PostgreSQLHistoryDataGeneratorTest extends BaseHistoryDataGenerator {
 
-    private static final Logger logger = LoggerFactory.getLogger(PostgreSQLHistoryDataGeneratorTest.class);
+    private static final Logger logger =
+            LoggerFactory.getLogger(PostgreSQLHistoryDataGeneratorTest.class);
 
     private static final String CREATE_DATABASE_STATEMENT = "CREATE DATABASE %s;";
 
-    private static final String CREATE_TABLE_STATEMENT = "CREATE TABLE %s (time BIGINT NOT NULL, %s, PRIMARY KEY(time));";
+    private static final String CREATE_TABLE_STATEMENT =
+            "CREATE TABLE %s (time BIGINT NOT NULL, %s, PRIMARY KEY(time));";
 
     private static final String INSERT_STATEMENT = "INSERT INTO %s VALUES %s;";
 
@@ -77,9 +78,12 @@ public class PostgreSQLHistoryDataGeneratorTest extends BaseHistoryDataGenerator
             logger.info("database ln exists!");
         }
 
-        stmt.execute(String.format(CREATE_TABLE_STATEMENT, "wf01", "status boolean, temperature float8"));
+        stmt.execute(
+                String.format(
+                        CREATE_TABLE_STATEMENT, "wf01", "status boolean, temperature float8"));
 
-        stmt.execute(String.format(INSERT_STATEMENT, "wf01", "(100, true, null), (200, false, 20.71)"));
+        stmt.execute(
+                String.format(INSERT_STATEMENT, "wf01", "(100, true, null), (200, false, 20.71)"));
 
         stmt.close();
         conn.close();
@@ -101,9 +105,12 @@ public class PostgreSQLHistoryDataGeneratorTest extends BaseHistoryDataGenerator
             logger.info("database ln exists!");
         }
 
-        stmt.execute(String.format(CREATE_TABLE_STATEMENT, "wf03", "status boolean, temperature float8"));
+        stmt.execute(
+                String.format(
+                        CREATE_TABLE_STATEMENT, "wf03", "status boolean, temperature float8"));
 
-        stmt.execute(String.format(INSERT_STATEMENT, "wf03", "(77, true, null), (200, false, 77.71)"));
+        stmt.execute(
+                String.format(INSERT_STATEMENT, "wf03", "(77, true, null), (200, false, 77.71)"));
 
         logger.info("write data to 127.0.0.1:5433 success!");
     }

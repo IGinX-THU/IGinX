@@ -22,10 +22,9 @@ import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.TimePrecision;
-import org.apache.commons.lang3.RandomStringUtils;
-
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.commons.lang3.RandomStringUtils;
 
 public class PostgreSQLSessionExample {
 
@@ -95,7 +94,8 @@ public class PostgreSQLSessionExample {
             dataTypeList.add(DataType.BINARY);
         }
 
-        session.insertColumnRecords(paths, timestamps, valuesList, dataTypeList, null, TimePrecision.NS);
+        session.insertColumnRecords(
+                paths, timestamps, valuesList, dataTypeList, null, TimePrecision.NS);
     }
 
     private static void insertRowRecords() throws SessionException, ExecutionException {

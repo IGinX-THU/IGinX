@@ -1,10 +1,9 @@
 package cn.edu.tsinghua.iginx.postgresql.tools;
 
-import cn.edu.tsinghua.iginx.utils.Pair;
-
-import java.util.*;
-
 import static cn.edu.tsinghua.iginx.postgresql.tools.Constants.POSTGRESQL_SEPARATOR;
+
+import cn.edu.tsinghua.iginx.utils.Pair;
+import java.util.*;
 
 public class TagKVUtils {
 
@@ -32,9 +31,14 @@ public class TagKVUtils {
         if (tags != null && !tags.isEmpty()) {
             TreeMap<String, String> sortedTags = new TreeMap<>(tags);
             StringBuilder pathBuilder = new StringBuilder();
-            sortedTags.forEach((tagKey, tagValue) -> {
-                pathBuilder.append(POSTGRESQL_SEPARATOR).append(tagKey).append(POSTGRESQL_SEPARATOR).append(tagValue);
-            });
+            sortedTags.forEach(
+                    (tagKey, tagValue) -> {
+                        pathBuilder
+                                .append(POSTGRESQL_SEPARATOR)
+                                .append(tagKey)
+                                .append(POSTGRESQL_SEPARATOR)
+                                .append(tagValue);
+                    });
             name += pathBuilder.toString();
         }
         return name;
