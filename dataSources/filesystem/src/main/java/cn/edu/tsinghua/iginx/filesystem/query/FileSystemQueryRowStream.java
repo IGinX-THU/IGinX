@@ -19,8 +19,7 @@ public class FileSystemQueryRowStream implements RowStream {
     private int hasMoreRecords = 0;
 
     // may fix it ，可能可以不用传pathMap
-    public FileSystemQueryRowStream(
-            List<FSResultTable> result, String storageUnit) {
+    public FileSystemQueryRowStream(List<FSResultTable> result, String storageUnit) {
         Field time = Field.KEY;
         List<Field> fields = new ArrayList<>();
 

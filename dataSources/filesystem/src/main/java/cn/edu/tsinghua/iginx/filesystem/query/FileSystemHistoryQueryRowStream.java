@@ -20,8 +20,7 @@ public class FileSystemHistoryQueryRowStream implements RowStream {
     private int hasMoreRecords = 0;
 
     // may fix it ，可能可以不用传pathMap
-    public FileSystemHistoryQueryRowStream(
-            List<FSResultTable> result) {
+    public FileSystemHistoryQueryRowStream(List<FSResultTable> result) {
         Field time = Field.KEY;
         List<Field> fields = new ArrayList<>();
 

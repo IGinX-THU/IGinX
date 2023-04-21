@@ -68,7 +68,7 @@ public final class FilePath {
             String filePath, String fileName, String storageUnit) {
         String tmp;
 
-        if(filePath.contains("\\")) {
+        if (filePath.contains("\\")) {
             filePath = filePath.replaceAll("\\\\", MYSEPARATOR);
         }
         if (storageUnit != null) {

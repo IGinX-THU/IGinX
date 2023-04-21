@@ -15,12 +15,11 @@ import cn.edu.tsinghua.iginx.filesystem.tools.ConfLoader;
 import cn.edu.tsinghua.iginx.filesystem.tools.TagKVUtils;
 import cn.edu.tsinghua.iginx.filesystem.wrapper.Record;
 import cn.edu.tsinghua.iginx.thrift.DataType;
+import cn.edu.tsinghua.iginx.utils.Pair;
 import java.io.*;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-
-import cn.edu.tsinghua.iginx.utils.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -367,7 +366,8 @@ public class FileSystemImpl {
         for (File fi : res) {
             if (fi.isDirectory()) continue;
             FileMeta fileMeta = fileOperator.getFileMeta(fi);
-            if (Objects.equals(tags, fileMeta.getTag())) {
+            if ((tags == null || tags.size() == 0) && fileMeta.getTag() == null
+                    || Objects.equals(tags, fileMeta.getTag())) {
                 return fi;
             }
         }
