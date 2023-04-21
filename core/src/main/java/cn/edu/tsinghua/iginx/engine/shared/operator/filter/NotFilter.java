@@ -58,7 +58,7 @@ public class NotFilter implements Filter {
 
     @Override
     public String toString() {
-        return "!" + child.toString();
+        return "!(" + child.toString() + ")";
     }
 
     @Override
