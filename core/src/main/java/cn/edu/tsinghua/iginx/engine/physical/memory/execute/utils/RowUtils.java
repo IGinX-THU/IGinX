@@ -527,6 +527,7 @@ public class RowUtils {
             AtomicBoolean hasAddedFields = new AtomicBoolean(false);
             ForkJoinPool pool = null;
             try {
+                // 我们可能需要一种退化情况：获取不到线程池的时候，直接串行执行
                 pool = poolQueue.take();
                 pool.submit(() -> {
                     groups.entrySet()

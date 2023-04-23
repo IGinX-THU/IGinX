@@ -128,6 +128,7 @@ public class GroupByLazyStream extends UnaryLazyStream {
                         List<Row> list = partition.get(workerIndex);
                         try {
                             while (true) {
+                                // 开启多个线程但是加速比率又比较低的情况。加锁部分执行时间可能会占大头。
                                 // parallel get batch rows and then calculate hash value.
                                 lock.lock();
                                 int getRowCnt = 0;
