@@ -109,25 +109,33 @@ public class SQLExecutor {
         logger.info("Concurrent execute statements, size={}", statementsAndExpectRes.size());
         List<Pair<String, Pair<String, String>>> failedList =
                 Collections.synchronizedList(new ArrayList<>());
-        CountDownLatch latch = new CountDownLatch(statementsAndExpectRes.size());
+        CountDownLatch start = new CountDownLatch(statementsAndExpectRes.size());
+        CountDownLatch end = new CountDownLatch(statementsAndExpectRes.size());
 
         for (Pair<String, String> pair : statementsAndExpectRes) {
             pool.submit(
                     () -> {
                         String statement = pair.getK();
                         String expected = pair.getV();
+                        start.countDown();
+
+                        try {
+                            start.await();
+                        } catch (InterruptedException e) {
+                            logger.error("Interrupt when latch await");
+                        }
 
                         String actualOutput = execute(statement);
                         if (!expected.equals(actualOutput)) {
                             failedList.add(
                                     new Pair<>(statement, new Pair<>(expected, actualOutput)));
                         }
-                        latch.countDown();
+                        end.countDown();
                     });
         }
 
         try {
-            latch.await();
+            end.await();
         } catch (InterruptedException e) {
             logger.error("Interrupt when latch await");
             fail();

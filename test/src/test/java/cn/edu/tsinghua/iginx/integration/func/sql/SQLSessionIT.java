@@ -4151,7 +4151,7 @@ public abstract class SQLSessionIT {
     }
 
     @Test
-    public void testConcurrentQuery() {
+    public void testBaseInfoConcurrentQuery() {
         if (ifScaleOutIn) {
             return;
         }
@@ -4179,6 +4179,87 @@ public abstract class SQLSessionIT {
                                         + "+---------------+---------------+---------------+---------------+\n"
                                         + "Total line number = 1\n"),
                         new Pair<>("COUNT POINTS;", "Points num: 60000\n"));
+        executor.concurrentExecuteAndCompare(statementsAndExpectRes);
+    }
+
+    @Test
+    public void testConcurrentQuery() {
+        String insert =
+                "insert into test1(key, a, b, c, d) values (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), (3, 2, 2, 1.1, \"val5\"), (4, 3, 2, 2.1, \"val2\"), (5, 1, 2, 3.1, \"val1\"), (6, 2, 2, 5.1, \"val3\")";
+        executor.execute(insert);
+        insert =
+                "insert into test2(key, a, b, c, d) values (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), (3, 2, 2, 1.1, \"val5\"), (4, 3, 2, 2.1, \"val2\"), (5, 1, 2, 3.1, \"val1\"), (6, 2, 2, 5.1, \"val3\")";
+        executor.execute(insert);
+
+        List<Pair<String, String>> statementsAndExpectRes =
+                Arrays.asList(
+                        new Pair<>(
+                                "SELECT s1 FROM us.d1 WHERE key > 0 AND key < 10000 limit 10;",
+                                "ResultSets:\n"
+                                        + "+---+--------+\n"
+                                        + "|key|us.d1.s1|\n"
+                                        + "+---+--------+\n"
+                                        + "|  1|       1|\n"
+                                        + "|  2|       2|\n"
+                                        + "|  3|       3|\n"
+                                        + "|  4|       4|\n"
+                                        + "|  5|       5|\n"
+                                        + "|  6|       6|\n"
+                                        + "|  7|       7|\n"
+                                        + "|  8|       8|\n"
+                                        + "|  9|       9|\n"
+                                        + "| 10|      10|\n"
+                                        + "+---+--------+\n"
+                                        + "Total line number = 10\n"),
+                        new Pair<>(
+                                "SELECT max(s1), max(s4) FROM us.d1 WHERE key > 300 AND s1 <= 600 OVER (RANGE 100 IN (0, 1000) STEP 50);",
+                                "ResultSets:\n"
+                                        + "+---+-------------+-------------+\n"
+                                        + "|key|max(us.d1.s1)|max(us.d1.s4)|\n"
+                                        + "+---+-------------+-------------+\n"
+                                        + "|251|          350|        350.1|\n"
+                                        + "|301|          400|        400.1|\n"
+                                        + "|351|          450|        450.1|\n"
+                                        + "|401|          500|        500.1|\n"
+                                        + "|451|          550|        550.1|\n"
+                                        + "|501|          600|        600.1|\n"
+                                        + "|551|          600|        600.1|\n"
+                                        + "+---+-------------+-------------+\n"
+                                        + "Total line number = 7\n"),
+                        new Pair<>(
+                                "select avg(test1.a), test2.d from test1 join test2 on test1.a = test2.a group by test2.d",
+                                "ResultSets:\n"
+                                        + "+------------+-------+\n"
+                                        + "|avg(test1.a)|test2.d|\n"
+                                        + "+------------+-------+\n"
+                                        + "|         2.0|   val5|\n"
+                                        + "|         2.0|   val3|\n"
+                                        + "|         2.0|   val2|\n"
+                                        + "|         2.0|   val1|\n"
+                                        + "+------------+-------+\n"
+                                        + "Total line number = 4\n"),
+                        new Pair<>(
+                                "select avg(test1.a), max(test1.c), test2.d from test1 join test2 on test1.a = test2.a group by test2.d",
+                                "ResultSets:\n"
+                                        + "+------------+------------+-------+\n"
+                                        + "|avg(test1.a)|max(test1.c)|test2.d|\n"
+                                        + "+------------+------------+-------+\n"
+                                        + "|         2.0|         5.1|   val5|\n"
+                                        + "|         2.0|         5.1|   val3|\n"
+                                        + "|         2.0|         3.1|   val2|\n"
+                                        + "|         2.0|         3.1|   val1|\n"
+                                        + "+------------+------------+-------+\n"
+                                        + "Total line number = 4\n"),
+                        new Pair<>(
+                                "select avg(test1.a), max(test1.c), test2.d from test1 join test2 on test1.a = test2.a group by test2.d having max(test1.c) > 3.5",
+                                "ResultSets:\n"
+                                        + "+------------+------------+-------+\n"
+                                        + "|avg(test1.a)|max(test1.c)|test2.d|\n"
+                                        + "+------------+------------+-------+\n"
+                                        + "|         2.0|         5.1|   val5|\n"
+                                        + "|         2.0|         5.1|   val3|\n"
+                                        + "+------------+------------+-------+\n"
+                                        + "Total line number = 2\n"));
         executor.concurrentExecuteAndCompare(statementsAndExpectRes);
     }
 }
