@@ -57,9 +57,9 @@ public class SQLExecutor {
 
         if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
             logger.error(
-                "Statement: \"{}\" execute fail. Caused by: {}.",
-                statement,
-                res.getParseErrorMsg());
+                    "Statement: \"{}\" execute fail. Caused by: {}.",
+                    statement,
+                    res.getParseErrorMsg());
             fail();
             return "";
         }
@@ -88,10 +88,11 @@ public class SQLExecutor {
         CountDownLatch latch = new CountDownLatch(statements.size());
 
         for (String statement : statements) {
-            pool.submit(() -> {
-                execute(statement);
-                latch.countDown();
-            });
+            pool.submit(
+                    () -> {
+                        execute(statement);
+                        latch.countDown();
+                    });
         }
 
         try {
@@ -107,10 +108,11 @@ public class SQLExecutor {
         CountDownLatch latch = new CountDownLatch(statementsAndExpectRes.size());
 
         for (Pair<String, String> pair : statementsAndExpectRes) {
-            pool.submit(() -> {
-                executeAndCompare(pair.getK(), pair.getV());
-                latch.countDown();
-            });
+            pool.submit(
+                    () -> {
+                        executeAndCompare(pair.getK(), pair.getV());
+                        latch.countDown();
+                    });
         }
 
         try {

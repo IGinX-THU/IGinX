@@ -32,9 +32,9 @@ import java.util.regex.Pattern;
 public class ValueUtils {
 
     private static final Set<DataType> numericTypeSet =
-        new HashSet<>(
-            Arrays.asList(
-                DataType.INTEGER, DataType.LONG, DataType.FLOAT, DataType.DOUBLE));
+            new HashSet<>(
+                    Arrays.asList(
+                            DataType.INTEGER, DataType.LONG, DataType.FLOAT, DataType.DOUBLE));
 
     public static boolean isNumericType(Value value) {
         return numericTypeSet.contains(value.getDataType());
@@ -81,10 +81,10 @@ public class ValueUtils {
                 v2 = transformToDouble(v2);
             } else {
                 throw new InvalidOperatorParameterException(
-                    dataType1.toString()
-                        + " and "
-                        + dataType2.toString()
-                        + " can't be compared");
+                        dataType1.toString()
+                                + " and "
+                                + dataType2.toString()
+                                + " can't be compared");
             }
         }
         switch (dataType1) {
@@ -106,7 +106,7 @@ public class ValueUtils {
 
     public static boolean regexCompare(Value value, Value regex) {
         if (!value.getDataType().equals(DataType.BINARY)
-            || !regex.getDataType().equals(DataType.BINARY)) {
+                || !regex.getDataType().equals(DataType.BINARY)) {
             // regex can only be compared between strings.
             return false;
         }
@@ -136,7 +136,7 @@ public class ValueUtils {
     }
 
     public static int compare(Object o1, Object o2, DataType dataType1, DataType dataType2)
-        throws PhysicalException {
+            throws PhysicalException {
         if (dataType1 != dataType2) {
             if (numericTypeSet.contains(dataType1) && numericTypeSet.contains(dataType2)) {
                 Value v1 = ValueUtils.transformToDouble(new Value(dataType1, o1));
@@ -144,10 +144,10 @@ public class ValueUtils {
                 return compare(v1, v2);
             } else {
                 throw new InvalidOperatorParameterException(
-                    dataType1.toString()
-                        + " and "
-                        + dataType2.toString()
-                        + " can't be compared");
+                        dataType1.toString()
+                                + " and "
+                                + dataType2.toString()
+                                + " can't be compared");
             }
         } else {
             return compare(o1, o2, dataType1);
