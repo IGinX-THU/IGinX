@@ -142,18 +142,22 @@ jobs:
         runs-on: ${{ matrix.os }}
         steps:
             - uses: actions/checkout@v2
-            - name: Environmet Dependence
+            - name: Environment Dependence
               uses: ./.github/actions/dependence
               with:
                   python-version: ${{ matrix.python-version }}
                   java: ${{ matrix.java }}
             - name: Run ZooKeeper
               uses: ./.github/actions/zookeeperRunner
-
             - name: Run DB
               uses: ./.github/actions/dbRunner
               with:
                   version: ${{matrix.DB-name}}
+
+            - name: Install IginX with Maven
+              shell: bash
+              run: |
+                  mvn clean package -DskipTests -P passFormat
 
             - name: Set The DB Name
               uses: ./.github/actions/confWriter
@@ -161,15 +165,13 @@ jobs:
                   confFile: DBName
                   DB-name: ${{matrix.DB-name}}
 
-            - name: Install IginX with Maven
-              shell: bash
-              run: |
-                  mvn clean package -DskipTests -P passFormat
-
             - name: Set The UDF Conf
               uses: ./.github/actions/confWriter
               with:
                   confFile: UDFConf
+
+            - name: Start IginX
+              uses: ./.github/actions/iginxRunner
 
             - name: oriNoDataExpHasData IT
               run: |

@@ -342,9 +342,7 @@ public class LocalExecutor implements Executor {
         // 对于pb级的文件系统，遍历是不可能的，直接接入
         List<Long> time = fileSystem.getBoundaryTime(directory);
         TimeInterval timeInterval =
-                new TimeInterval(
-                        0,
-                        time.get(1) == Long.MIN_VALUE ? Long.MAX_VALUE : time.get(1));
+                new TimeInterval(0, time.get(1) == Long.MIN_VALUE ? Long.MAX_VALUE : time.get(1));
 
         return new Pair<>(tsInterval, timeInterval);
     }

@@ -45,7 +45,7 @@ public class FileSystemHistoryDataGeneratorTest extends BaseHistoryDataGenerator
             writer.close();
         } catch (IOException e) {
             e.printStackTrace();
-            throw new Exception("系统找不到指定的路径: "+file.getAbsolutePath());
+            throw new Exception("系统找不到指定的路径: " + file.getAbsolutePath());
         }
     }
 

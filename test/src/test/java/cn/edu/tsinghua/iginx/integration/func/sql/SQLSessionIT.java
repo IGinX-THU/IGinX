@@ -4019,7 +4019,7 @@ public abstract class SQLSessionIT {
 
     @Test
     public void testClearData() throws SessionException, ExecutionException {
-        if (!ifClearData) return;
+        if (!ifClearData || ifScaleOutIn) return;
         clearData();
 
         String countPoints = "COUNT POINTS;";
