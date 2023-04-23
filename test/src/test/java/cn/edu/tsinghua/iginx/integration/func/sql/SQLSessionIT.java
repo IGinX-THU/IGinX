@@ -58,7 +58,7 @@ public abstract class SQLSessionIT {
 
     public SQLSessionIT() throws IOException {
         ConfLoder conf = new ConfLoder(Controller.CONFIG_FILE);
-        DBConf dbConf = conf.loadDBConf();
+        DBConf dbConf = conf.loadDBConf(conf.getStorageType());
         this.ifScaleOutIn = conf.getStorageType() != null;
         this.ifClearData = dbConf.getEnumValue(DBConf.DBConfType.isAbleToClearData);
         this.isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);

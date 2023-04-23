@@ -104,6 +104,13 @@ public class CapacityExpansionIT implements BaseCapacityExpansionIT {
                             + "\", \"username:root, password:root, sessionPoolSize:20, has_data:"
                             + hasData
                             + ", is_read_only:true\");");
+        else if (ENGINE_TYPE.toLowerCase().contains("filesystem"))
+            session.executeSql(
+                    "ADD STORAGEENGINE (\"127.0.0.1\", 6667, \""
+                            + ENGINE_TYPE
+                            + "\", \"has_data:"
+                            + hasData
+                            + ", is_read_only:true\");");
         else {
             logger.error("not support the DB: {}", ENGINE_TYPE);
             fail();

@@ -343,8 +343,8 @@ public class LocalExecutor implements Executor {
         List<Long> time = fileSystem.getBoundaryTime(directory);
         TimeInterval timeInterval =
                 new TimeInterval(
-                        time.get(0) == Long.MAX_VALUE ? 0 : time.get(0),
-                        time.get(1) == Long.MIN_VALUE ? Long.MAX_VALUE : time.get(0));
+                        0,
+                        time.get(1) == Long.MIN_VALUE ? Long.MAX_VALUE : time.get(1));
 
         return new Pair<>(tsInterval, timeInterval);
     }

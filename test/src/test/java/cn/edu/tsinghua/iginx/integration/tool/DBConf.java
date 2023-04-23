@@ -19,7 +19,7 @@ public final class DBConf {
                 return DBType.parquet;
             case "mongodb":
                 return DBType.mongodb;
-            case"filesystem":
+            case "filesystem":
                 return DBType.filesystem;
             default:
                 throw new IllegalArgumentException("Invalid DBName value provided");
