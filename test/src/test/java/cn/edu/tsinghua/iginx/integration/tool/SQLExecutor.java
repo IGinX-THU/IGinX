@@ -8,6 +8,8 @@ import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.utils.Pair;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -46,11 +48,11 @@ public class SQLExecutor {
         try {
             res = conn.executeSql(statement);
         } catch (SessionException | ExecutionException e) {
-            logger.error("Statement: \"{}\" execute fail. Caused by:", statement, e);
             if (e.toString().equals(Controller.CLEARDATAEXCP)) {
                 logger.error("clear data fail and go on....");
                 return "";
             } else {
+                logger.error("Statement: \"{}\" execute fail. Caused by:", statement, e);
                 fail();
             }
         }
@@ -105,12 +107,21 @@ public class SQLExecutor {
 
     public void concurrentExecuteAndCompare(List<Pair<String, String>> statementsAndExpectRes) {
         logger.info("Concurrent execute statements, size={}", statementsAndExpectRes.size());
+        List<Pair<String, Pair<String, String>>> failedList =
+                Collections.synchronizedList(new ArrayList<>());
         CountDownLatch latch = new CountDownLatch(statementsAndExpectRes.size());
 
         for (Pair<String, String> pair : statementsAndExpectRes) {
             pool.submit(
                     () -> {
-                        executeAndCompare(pair.getK(), pair.getV());
+                        String statement = pair.getK();
+                        String expected = pair.getV();
+
+                        String actualOutput = execute(statement);
+                        if (!expected.equals(actualOutput)) {
+                            failedList.add(
+                                    new Pair<>(statement, new Pair<>(expected, actualOutput)));
+                        }
                         latch.countDown();
                     });
         }
@@ -119,6 +130,18 @@ public class SQLExecutor {
             latch.await();
         } catch (InterruptedException e) {
             logger.error("Interrupt when latch await");
+            fail();
+        }
+
+        if (!failedList.isEmpty()) {
+            failedList.forEach(
+                    failed -> {
+                        logger.error(
+                                "Statement: \"{}\" execute result is inconsistent with the expectation.",
+                                failed.getK());
+                        logger.error("Expected: {}", failed.getV().getK());
+                        logger.error("Actual: {}", failed.getV().getV());
+                    });
             fail();
         }
     }

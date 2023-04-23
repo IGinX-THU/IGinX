@@ -4150,32 +4150,32 @@ public abstract class SQLSessionIT {
         executor.executeAndCompare(query, expected);
     }
 
-//    @Test
-//    public void testConcurrentQuery() {
-//        List<Pair<String, String>> statementsAndExpectRes =
-//                Arrays.asList(
-//                        new Pair<>(
-//                                "SHOW TIME SERIES",
-//                                "Time series:\n"
-//                                        + "+--------+--------+\n"
-//                                        + "|    Path|DataType|\n"
-//                                        + "+--------+--------+\n"
-//                                        + "|us.d1.s1|    LONG|\n"
-//                                        + "|us.d1.s2|    LONG|\n"
-//                                        + "|us.d1.s3|  BINARY|\n"
-//                                        + "|us.d1.s4|  DOUBLE|\n"
-//                                        + "+--------+--------+\n"
-//                                        + "Total line number = 4\n"),
-//                        new Pair<>(
-//                                "SELECT COUNT(*) FROM us.d1;",
-//                                "ResultSets:\n"
-//                                        + "+---------------+---------------+---------------+---------------+\n"
-//                                        + "|count(us.d1.s1)|count(us.d1.s2)|count(us.d1.s3)|count(us.d1.s4)|\n"
-//                                        + "+---------------+---------------+---------------+---------------+\n"
-//                                        + "|          15000|          15000|          15000|          15000|\n"
-//                                        + "+---------------+---------------+---------------+---------------+\n"
-//                                        + "Total line number = 1\n"),
-//                        new Pair<>("COUNT POINTS;", "Points num: 60000\n"));
-//        executor.concurrentExecuteAndCompare(statementsAndExpectRes);
-//    }
+    @Test
+    public void testConcurrentQuery() {
+        List<Pair<String, String>> statementsAndExpectRes =
+                Arrays.asList(
+                        new Pair<>(
+                                "SHOW TIME SERIES",
+                                "Time series:\n"
+                                        + "+--------+--------+\n"
+                                        + "|    Path|DataType|\n"
+                                        + "+--------+--------+\n"
+                                        + "|us.d1.s1|    LONG|\n"
+                                        + "|us.d1.s2|    LONG|\n"
+                                        + "|us.d1.s3|  BINARY|\n"
+                                        + "|us.d1.s4|  DOUBLE|\n"
+                                        + "+--------+--------+\n"
+                                        + "Total line number = 4\n"),
+                        new Pair<>(
+                                "SELECT COUNT(*) FROM us.d1;",
+                                "ResultSets:\n"
+                                        + "+---------------+---------------+---------------+---------------+\n"
+                                        + "|count(us.d1.s1)|count(us.d1.s2)|count(us.d1.s3)|count(us.d1.s4)|\n"
+                                        + "+---------------+---------------+---------------+---------------+\n"
+                                        + "|          15000|          15000|          15000|          15000|\n"
+                                        + "+---------------+---------------+---------------+---------------+\n"
+                                        + "Total line number = 1\n"),
+                        new Pair<>("COUNT POINTS;", "Points num: 60000\n"));
+        executor.concurrentExecuteAndCompare(statementsAndExpectRes);
+    }
 }
