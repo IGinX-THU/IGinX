@@ -516,13 +516,21 @@ public class DUManager {
     }
 
     private void flush() {
-        FileMeta meta = new FileMeta(curStartTime, curEndTime, curMemTablePathMap);
+        String flushMemTable = curMemTable;
+        Map<String, DataType> flushMemTablePathMap = new HashMap<>(curMemTablePathMap);
+        long flushStartTime = curStartTime;
+        long flushEndTime = curEndTime;
+        FileMeta meta = new FileMeta(flushStartTime, flushEndTime, flushMemTablePathMap);
 
         flushPool.submit(
                 () -> {
                     try {
                         flushToDisk(
-                                curMemTable, curMemTablePathMap, curStartTime, curEndTime, meta);
+                                flushMemTable,
+                                flushMemTablePathMap,
+                                flushStartTime,
+                                flushEndTime,
+                                meta);
                     } catch (Exception e) {
                         logger.info("flush error, details: {}", e.getMessage());
                     }
