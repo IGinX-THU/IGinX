@@ -19,6 +19,20 @@ public class FileSystemHistoryQueryRowStream implements RowStream {
     private final int[] round;
     private int hasMoreRecords = 0;
 
+    public FileSystemHistoryQueryRowStream() {
+        Field time = Field.KEY;
+        List<Field> fields = new ArrayList<>();
+
+        this.rowData = new ArrayList<>();
+        ;
+        this.indices = new int[0][1024 * 2];
+        this.round = new int[0];
+        this.header = new Header(time, fields);
+        for (int i = 0; i < this.rowData.size(); i++) {
+            if (this.rowData.get(i).getVal().size() != 0) hasMoreRecords++;
+        }
+    }
+
     // may fix it ，可能可以不用传pathMap
     public FileSystemHistoryQueryRowStream(List<FSResultTable> result) {
         Field time = Field.KEY;

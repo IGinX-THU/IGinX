@@ -48,6 +48,8 @@ public class LocalExecutor implements Executor {
         TagFilter tagFilter = project.getTagFilter();
         Filter filterEntity = FilterTransformer.toFilter(filter);
         if (isDummyStorageUnit) {
+            if (tagFilter != null)
+                return new TaskExecuteResult(new FileSystemHistoryQueryRowStream());
             return executeDummyProjectTask(series, filterEntity);
         }
 
