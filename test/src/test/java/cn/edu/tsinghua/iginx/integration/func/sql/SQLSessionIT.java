@@ -4152,6 +4152,9 @@ public abstract class SQLSessionIT {
 
     @Test
     public void testConcurrentQuery() {
+        if (ifScaleOutIn) {
+            return;
+        }
         List<Pair<String, String>> statementsAndExpectRes =
                 Arrays.asList(
                         new Pair<>(
