@@ -1,55 +1,45 @@
 package cn.edu.tsinghua.iginx.filesystem.file.property;
 
-import cn.edu.tsinghua.iginx.filesystem.tools.ConfLoader;
-
 // 给出时序列，转换为文件系统的路径
 public final class FilePath {
     private static String SEPARATOR = System.getProperty("file.separator");
     private static String MYSEPARATOR = "/";
     private String oriSeries;
-    private String filePath;
     private String fileName;
-    private String storageUnit;
-    private static String ROOT = ConfLoader.getRootPath();
     public static String MYWILDCARD = "#";
     public static String WILDCARD = "*";
     private static String FILEPATHFORMAT = "%s%s" + MYSEPARATOR + "%s.iginx";
     private static String DIRPATHFORMAT = "%s%s" + MYSEPARATOR + "%s" + MYSEPARATOR;
 
-    public FilePath(String storageUnit, String oriSeries) {
-        this.storageUnit = storageUnit;
+    public FilePath(String oriSeries) {
         this.oriSeries = oriSeries;
         this.fileName = getFileNameFormSeries(oriSeries);
     }
 
-    public static String toIginxPath(String storageUnit, String series) {
+    public static String toIginxPath(String root, String storageUnit, String series) {
         if (series != null) series = series.replace("*", MYWILDCARD);
         if (storageUnit != null) storageUnit = storageUnit.replace("*", MYWILDCARD);
         if (series == null && storageUnit == null || storageUnit.equals(MYWILDCARD)) {
-            return ROOT;
+            return root;
         }
         // 之后根据规则修改获取文件名的方法， may fix it
         if (series == null && storageUnit != null) {
-            return String.format(DIRPATHFORMAT, ROOT, storageUnit, "");
+            return String.format(DIRPATHFORMAT, root, storageUnit, "");
         }
         if (series.equals(MYWILDCARD)) {
-            return String.format(FILEPATHFORMAT, ROOT, storageUnit, MYWILDCARD);
+            return String.format(FILEPATHFORMAT, root, storageUnit, MYWILDCARD);
         }
         String middlePath = series.substring(0, series.lastIndexOf("."));
         return String.format(
                 FILEPATHFORMAT,
-                ROOT,
+                root,
                 storageUnit,
                 middlePath.replace(".", MYSEPARATOR) + MYSEPARATOR + getFileNameFormSeries(series));
-        //        filePath = storageUnit == null ? "" : separator + storageUnit + separator +
-        // series;
-        //        filePath = storageUnit == null ? "" : storageUnit + separator +
-        // series.replace(".", separator);
     }
 
-    public static String toNormalFilePath(String series) {
+    public static String toNormalFilePath(String root, String series) {
         if (series != null) series = series.replace(WILDCARD, MYWILDCARD);
-        return ROOT + series.replace(".", MYSEPARATOR);
+        return root + series.replace(".", MYSEPARATOR);
     }
 
     public static String getFileNameFormSeries(String series) {
@@ -65,22 +55,21 @@ public final class FilePath {
     }
 
     public static String convertAbsolutePathToSeries(
-            String filePath, String fileName, String storageUnit) {
+            String root, String filePath, String fileName, String storageUnit) {
         String tmp;
-
         if (filePath.contains("\\")) {
             filePath = filePath.replaceAll("\\\\", MYSEPARATOR);
         }
         if (storageUnit != null) {
             if (storageUnit.equals(MYWILDCARD) || storageUnit.equals(WILDCARD)) {
-                tmp = filePath.substring(filePath.indexOf(ROOT) + ROOT.length() + 1);
+                tmp = filePath.substring(filePath.indexOf(root) + root.length() + 1);
                 tmp = tmp.substring(tmp.indexOf(MYSEPARATOR) + 1);
             } else {
                 tmp =
                         filePath.substring(
-                                filePath.indexOf(ROOT) + ROOT.length() + storageUnit.length() + 1);
+                                filePath.indexOf(root) + root.length() + storageUnit.length() + 1);
             }
-        } else tmp = filePath.substring(filePath.indexOf(ROOT) + ROOT.length());
+        } else tmp = filePath.substring(filePath.indexOf(root) + root.length());
         if (tmp.isEmpty()) return SEPARATOR;
         if (tmp.contains(".iginx")) {
             tmp = tmp.substring(0, tmp.lastIndexOf(".iginx"));
@@ -90,10 +79,6 @@ public final class FilePath {
 
     public String getOriSeries() {
         return oriSeries;
-    }
-
-    public String getFilePath() {
-        return filePath;
     }
 
     public String getFileName() {

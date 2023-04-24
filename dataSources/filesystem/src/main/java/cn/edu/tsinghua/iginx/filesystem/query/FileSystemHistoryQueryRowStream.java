@@ -7,7 +7,6 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.filesystem.file.property.FilePath;
 import cn.edu.tsinghua.iginx.filesystem.wrapper.Record;
-import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -34,31 +33,19 @@ public class FileSystemHistoryQueryRowStream implements RowStream {
     }
 
     // may fix it ，可能可以不用传pathMap
-    public FileSystemHistoryQueryRowStream(List<FSResultTable> result) {
+    public FileSystemHistoryQueryRowStream(List<FSResultTable> result, String root) {
         Field time = Field.KEY;
         List<Field> fields = new ArrayList<>();
 
         this.rowData = result;
 
-        //        int index = 0,pathIndex = 0;
-        //        int boundary = pathMap.get(pathIndex).getValue();
         String series;
         for (FSResultTable resultTable : rowData) {
-            //            if(index==boundary){
-            //                pathIndex++;
-            //                boundary = pathMap.get(pathIndex).getValue();
-            //                series = pathMap.get(pathIndex).getKey().getOriSeries();
-            //            }
-            //            index++;
             File file = resultTable.getFile();
             series =
                     FilePath.convertAbsolutePathToSeries(
-                            file.getAbsolutePath(), file.getName(), null);
-            Field field =
-                    new Field(
-                            series,
-                            resultTable.getDataType(),
-                            resultTable.getTags()); // fix it 先假设查询的全是NormalFile类型
+                            root, file.getAbsolutePath(), file.getName(), null);
+            Field field = new Field(series, resultTable.getDataType(), resultTable.getTags());
             fields.add(field);
         }
 
@@ -107,14 +94,10 @@ public class FileSystemHistoryQueryRowStream implements RowStream {
                 continue;
             }
             byte[] val = (byte[]) records.get(index).getRawData();
-            if (indices[i][index] == timestamp) { // 考虑时间 ns may fix it
-                DataType dataType = header.getField(i).getType();
+            if (indices[i][index] == timestamp) {
                 byte[] newVal = new byte[1];
                 newVal[0] = val[indices[i][index]];
                 Object value = newVal;
-                //                if (dataType == DataType.BINARY) {
-                //                    value = (String) value;
-                //                }
                 values[i] = value;
                 indices[i][index]++;
                 if (indices[i][index] == val.length) {

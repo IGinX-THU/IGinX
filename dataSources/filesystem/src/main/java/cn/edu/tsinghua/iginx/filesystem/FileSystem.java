@@ -33,6 +33,9 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.filesystem.exec.Executor;
 import cn.edu.tsinghua.iginx.filesystem.exec.LocalExecutor;
+import cn.edu.tsinghua.iginx.filesystem.exec.RemoteExecutor;
+import cn.edu.tsinghua.iginx.filesystem.server.FileSystemServer;
+import cn.edu.tsinghua.iginx.filesystem.tools.ConfLoader;
 import cn.edu.tsinghua.iginx.filesystem.tools.FilterTransformer;
 import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
@@ -41,6 +44,8 @@ import cn.edu.tsinghua.iginx.metadata.entity.TimeSeriesRange;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,22 +55,31 @@ public class FileSystem implements IStorage {
     private static final Logger logger = LoggerFactory.getLogger(FileSystem.class);
     private final StorageEngineMeta meta;
     private Executor executor;
+    private String root;
 
-    public FileSystem(StorageEngineMeta meta) throws StorageInitializationException {
+    public FileSystem(StorageEngineMeta meta)
+            throws StorageInitializationException, TTransportException {
+        boolean isLocal = ConfLoader.ifLocalFileSystem();
+        if (isLocal) {
+            initLocalExecutor(meta);
+        } else {
+            executor = new RemoteExecutor(meta.getIp(), meta.getPort());
+        }
         this.meta = meta;
-        executor = new LocalExecutor();
         if (!meta.getStorageEngine().equals(STORAGE_ENGINE)) {
             throw new StorageInitializationException(
                     "unexpected database: " + meta.getStorageEngine());
         }
-        if (!testConnection()) {
-            throw new StorageInitializationException("cannot connect to " + meta.toString());
-        }
     }
 
-    private boolean testConnection() {
-        // may fix it when add the remote filesystem
-        return true;
+    private void initLocalExecutor(StorageEngineMeta meta) {
+        Map<String, String> extraParams = meta.getExtraParams();
+        String dataDir = extraParams.get("dir");
+        root = dataDir;
+
+        this.executor = new LocalExecutor(root);
+
+        new Thread(new FileSystemServer(meta.getPort(), executor)).start();
     }
 
     @Override

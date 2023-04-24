@@ -112,12 +112,11 @@ public class FileSystemImpl {
         return fileOperator.mkdir(file);
     }
 
-    public Exception writeFile(File file, List<Record> value, boolean append) throws IOException {
-        return doWriteFile(file, value, append);
+    public Exception writeFile(File file, List<Record> value) throws IOException {
+        return doWriteFile(file, value);
     }
 
-    public Exception writeFile(
-            File file, List<Record> value, Map<String, String> tag, boolean append)
+    public Exception writeFile(File file, List<Record> value, Map<String, String> tag)
             throws IOException {
         File tmpFile;
         tmpFile = getFileWithTag(file, tag);
@@ -128,23 +127,19 @@ public class FileSystemImpl {
             file = tmpFile;
         }
 
-        return doWriteFile(file, value, append);
+        return doWriteFile(file, value);
     }
 
-    public Exception writeFiles(List<File> files, List<List<Record>> values, List<Boolean> appends)
-            throws IOException {
-        return writeFiles(files, values, null, appends);
+    public Exception writeFiles(List<File> files, List<List<Record>> values) throws IOException {
+        return writeFiles(files, values, null);
     }
 
     // write multi file
     public Exception writeFiles(
-            List<File> files,
-            List<List<Record>> values,
-            List<Map<String, String>> tagList,
-            List<Boolean> appends)
+            List<File> files, List<List<Record>> values, List<Map<String, String>> tagList)
             throws IOException {
         for (int i = 0; i < files.size(); i++) {
-            writeFile(files.get(i), values.get(i), tagList.get(i), appends.get(i));
+            writeFile(files.get(i), values.get(i), tagList.get(i));
         }
         return null;
     }
@@ -251,10 +246,8 @@ public class FileSystemImpl {
         return new File(path);
     }
 
-    private Exception doWriteFile(File file, List<Record> value, boolean append)
-            throws IOException {
+    private Exception doWriteFile(File file, List<Record> value) throws IOException {
         Exception res = null;
-        byte[] bytes;
 
         switch (FileType.getFileType(file)) {
             case DIR:
@@ -266,9 +259,7 @@ public class FileSystemImpl {
             case IGINX_FILE:
                 res = fileOperator.iginxFileWriter(file, value);
                 break;
-            case NORMAL_FILE: // may fix it ,因为写入只能对于iginx文件
-                //                bytes = makeValueToBytes(value);
-                //                res = fileOperator.TextFileWriter(file, bytes, append);
+            case NORMAL_FILE:
                 break;
             default:
                 res = fileOperator.iginxFileWriter(file, value);

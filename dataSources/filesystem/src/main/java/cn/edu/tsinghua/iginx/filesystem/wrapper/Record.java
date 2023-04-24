@@ -25,27 +25,6 @@ public class Record {
         this.dataType = DataType.BINARY;
     }
 
-    //    public void addRawDataRecord(List<Byte> oriData, int beg, int end) {
-    //        for(int i = beg; i<end; i++) {
-    //            rawData[index++] = oriData.get(i);
-    //            if(index >= MAXDATASETLEN) {
-    //                logger.error("load the data size large than max size {}, had loaded at {} ",
-    // MAXDATASETLEN, i);
-    //                break;
-    //            }
-    //        }
-    //    }
-
-    public String toString() {
-        //        StringBuilder res = new StringBuilder();
-        //        for (int i = 0; i < index; i++) {
-        //            res.append(rawData[i] + ",");
-        //        }
-        //        res.deleteCharAt(res.length() - 1);
-        //        return res.toString();
-        return null;
-    }
-
     public Object getRawData() {
         return rawData;
     }

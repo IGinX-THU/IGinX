@@ -173,7 +173,7 @@ jobs:
             - name: Start IginX
               uses: ./.github/actions/iginxRunner
 
-            - name: oriNoDataExpHasData IT
+            - name: FileSystem IT
               run: |
                   mvn test -q -Dtest=FileSystemHistoryDataGeneratorTest#writeHistoryData -DfailIfNoTests=false -P passFormat
                   mvn test -q -Dtest=FileSystemHistoryDataCapacityExpansion -DfailIfNoTests=false -P passFormat

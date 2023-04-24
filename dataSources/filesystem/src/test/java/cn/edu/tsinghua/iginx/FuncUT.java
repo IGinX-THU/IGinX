@@ -29,6 +29,7 @@ import org.apache.commons.jexl3.*;
 import org.junit.Test;
 
 public class FuncUT {
+    private String root = ConfLoader.getRootPath();
 
     @Test
     public void testCreateFile() throws IOException, PhysicalException {
@@ -43,8 +44,7 @@ public class FuncUT {
         valList.add(new Record(100, "happy every day!".getBytes()));
         valList.add(new Record(400, "no !".getBytes()));
 
-        fileSystem.writeFile(
-                new File(FilePath.toIginxPath("unit0000", path)), valList, tags, false);
+        fileSystem.writeFile(new File(FilePath.toIginxPath(root, "unit0000", path)), valList, tags);
     }
 
     @Test
@@ -73,7 +73,7 @@ public class FuncUT {
 
         List<FSResultTable> res =
                 fileSystem.readFile(
-                        new File(FilePath.toIginxPath("unit0000", path)), filter, andFilter);
+                        new File(FilePath.toIginxPath(root, "unit0000", path)), filter, andFilter);
         for (FSResultTable record : res) {
             for (Record tmp : record.getVal()) {
                 System.out.println(tmp.getRawData());
@@ -93,8 +93,7 @@ public class FuncUT {
         valList.add(new Record(500, "end!".getBytes()));
         valList.add(new Record(600, "end2!".getBytes()));
 
-        fileSystem.writeFile(
-                new File(FilePath.toIginxPath("unit0000", path)), valList, tags, false);
+        fileSystem.writeFile(new File(FilePath.toIginxPath(root, "unit0000", path)), valList, tags);
 
         AndFilter andFilter =
                 new AndFilter(
@@ -107,7 +106,7 @@ public class FuncUT {
 
         List<FSResultTable> res =
                 fileSystem.readFile(
-                        new File(FilePath.toIginxPath("unit0000", path)), null, andFilter);
+                        new File(FilePath.toIginxPath(root, "unit0000", path)), null, andFilter);
         for (FSResultTable record : res) {
             for (Record tmp : record.getVal()) {
                 System.out.println(tmp.getRawData());
@@ -174,13 +173,13 @@ public class FuncUT {
                         });
 
         fileSystem.trimFileContent(
-                new File(FilePath.toIginxPath("unit0000", path)), filter, 20, 100);
+                new File(FilePath.toIginxPath(root, "unit0000", path)), filter, 20, 100);
     }
 
     @Test
     public void testDeleteFiles() throws IOException { // 清空文件夹
         String path = "a.b.asd";
-        File file = new File(FilePath.toIginxPath("unit0001", null));
+        File file = new File(FilePath.toIginxPath(root, "unit0001", null));
         FileSystemImpl fileSystem = new FileSystemImpl();
         //        fileSystem.deleteFiles(Collections.singletonList(file));
     }
@@ -243,8 +242,8 @@ public class FuncUT {
 
     @Test
     public void testPathConvert() {
-        System.out.println(FilePath.toIginxPath("unit000000", "lhz.tt.rrr##lhz.iginx"));
-        System.out.println(FilePath.toIginxPath("unit000000", "lhz.tt.rrr#lhz.iginx"));
+        System.out.println(FilePath.toIginxPath(root, "unit000000", "lhz.tt.rrr##lhz.iginx"));
+        System.out.println(FilePath.toIginxPath(root, "unit000000", "lhz.tt.rrr#lhz.iginx"));
     }
 
     @Test

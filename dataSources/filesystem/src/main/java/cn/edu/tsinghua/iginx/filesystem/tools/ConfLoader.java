@@ -13,6 +13,8 @@ public class ConfLoader {
     private static final String confPath =
             "dataSources/filesystem/src/main/resources/conf/config.properties";
     private static final String ROOT = "root";
+    private static final String isLocal = "isLocalFileSystemStorage";
+    public String ROOTPATH = null;
 
     public static String getRootPath() {
         String path = null;
@@ -31,5 +33,19 @@ public class ConfLoader {
     public static File getRootFile() {
         String root = getRootPath();
         return new File(root);
+    }
+
+    public static boolean ifLocalFileSystem() {
+        String path = null;
+        try {
+            InputStream in = new FileInputStream(confPath);
+            Properties properties = new Properties();
+            properties.load(in);
+            boolean flag = Boolean.parseBoolean(properties.getProperty(isLocal));
+            return flag;
+        } catch (IOException e) {
+            logger.error("get conf {} fail!", confPath);
+        }
+        return false;
     }
 }

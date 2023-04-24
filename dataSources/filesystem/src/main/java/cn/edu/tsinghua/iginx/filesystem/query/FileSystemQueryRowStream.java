@@ -7,7 +7,6 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.filesystem.file.property.FilePath;
 import cn.edu.tsinghua.iginx.filesystem.wrapper.Record;
-import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -18,32 +17,19 @@ public class FileSystemQueryRowStream implements RowStream {
     private final int[] indices;
     private int hasMoreRecords = 0;
 
-    // may fix it ，可能可以不用传pathMap
-    public FileSystemQueryRowStream(List<FSResultTable> result, String storageUnit) {
+    public FileSystemQueryRowStream(List<FSResultTable> result, String storageUnit, String root) {
         Field time = Field.KEY;
         List<Field> fields = new ArrayList<>();
 
         this.rowData = result;
 
-        //        int index = 0,pathIndex = 0;
-        //        int boundary = pathMap.get(pathIndex).getValue();
         String series;
         for (FSResultTable resultTable : rowData) {
-            //            if(index==boundary){
-            //                pathIndex++;
-            //                boundary = pathMap.get(pathIndex).getValue();
-            //                series = pathMap.get(pathIndex).getKey().getOriSeries();
-            //            }
-            //            index++;
             File file = resultTable.getFile();
             series =
                     FilePath.convertAbsolutePathToSeries(
-                            file.getAbsolutePath(), file.getName(), storageUnit);
-            Field field =
-                    new Field(
-                            series,
-                            resultTable.getDataType(),
-                            resultTable.getTags()); // fix it 先假设查询的全是NormalFile类型
+                            root, file.getAbsolutePath(), file.getName(), storageUnit);
+            Field field = new Field(series, resultTable.getDataType(), resultTable.getTags());
             fields.add(field);
         }
 
@@ -93,11 +79,7 @@ public class FileSystemQueryRowStream implements RowStream {
             }
             Record record = records.get(index);
             if (record.getKey() == timestamp) { // 考虑时间 ns may fix it
-                DataType dataType = header.getField(i).getType();
                 Object value = record.getRawData();
-                //                if (dataType == DataType.BINARY) {
-                //                    value = (String) value;
-                //                }
                 values[i] = value;
                 indices[i]++;
                 if (indices[i] == records.size()) {
