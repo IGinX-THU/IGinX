@@ -193,6 +193,16 @@ public class Config {
 
     private boolean isLocalParquetStorage = true;
 
+    private int parallelGroupByRowsThreshold = 10000;
+
+    private int parallelApplyFuncGroupsThreshold = 1000;
+
+    private int parallelGroupByPoolSize = 5;
+
+    private int parallelGroupByPoolNum = 5;
+
+    private int streamParallelGroupByWorkerNum = 5;
+
     public int getMaxTimeseriesLength() {
         return maxTimeseriesLength;
     }
@@ -804,5 +814,45 @@ public class Config {
 
     public void setLocalParquetStorage(boolean localParquetStorage) {
         isLocalParquetStorage = localParquetStorage;
+    }
+
+    public int getParallelGroupByRowsThreshold() {
+        return parallelGroupByRowsThreshold;
+    }
+
+    public void setParallelGroupByRowsThreshold(int parallelGroupByRowsThreshold) {
+        this.parallelGroupByRowsThreshold = parallelGroupByRowsThreshold;
+    }
+
+    public int getParallelApplyFuncGroupsThreshold() {
+        return parallelApplyFuncGroupsThreshold;
+    }
+
+    public void setParallelApplyFuncGroupsThreshold(int parallelApplyFuncGroupsThreshold) {
+        this.parallelApplyFuncGroupsThreshold = parallelApplyFuncGroupsThreshold;
+    }
+
+    public int getParallelGroupByPoolSize() {
+        return parallelGroupByPoolSize;
+    }
+
+    public void setParallelGroupByPoolSize(int parallelGroupByPoolSize) {
+        this.parallelGroupByPoolSize = parallelGroupByPoolSize;
+    }
+
+    public int getParallelGroupByPoolNum() {
+        return parallelGroupByPoolNum;
+    }
+
+    public void setParallelGroupByPoolNum(int parallelGroupByPoolNum) {
+        this.parallelGroupByPoolNum = parallelGroupByPoolNum;
+    }
+
+    public int getStreamParallelGroupByWorkerNum() {
+        return streamParallelGroupByWorkerNum;
+    }
+
+    public void setStreamParallelGroupByWorkerNum(int streamParallelGroupByWorkerNum) {
+        this.streamParallelGroupByWorkerNum = streamParallelGroupByWorkerNum;
     }
 }

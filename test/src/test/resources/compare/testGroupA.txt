@@ -1,0 +1,2 @@
+SELECT * FROM TableA WHERE key < 100;
+SELECT * FROM TableB WHERE key < 100;

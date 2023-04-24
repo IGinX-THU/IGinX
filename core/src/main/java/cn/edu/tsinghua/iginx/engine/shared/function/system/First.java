@@ -34,7 +34,6 @@ import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -126,7 +125,7 @@ public class First implements MappingFunction {
                                         .getBytes(StandardCharsets.UTF_8)
                             }));
         }
-        resultRows.sort(Comparator.comparingLong(Row::getKey));
+        resultRows.sort(ValueUtils.firstLastRowComparator());
         return new Table(header, resultRows);
     }
 }
