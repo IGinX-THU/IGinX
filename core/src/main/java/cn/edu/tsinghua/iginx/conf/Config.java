@@ -203,6 +203,8 @@ public class Config {
 
     private int streamParallelGroupByWorkerNum = 5;
 
+    private int migrationThreadPoolSize = 20;
+
     public int getMaxTimeseriesLength() {
         return maxTimeseriesLength;
     }
@@ -854,5 +856,13 @@ public class Config {
 
     public void setStreamParallelGroupByWorkerNum(int streamParallelGroupByWorkerNum) {
         this.streamParallelGroupByWorkerNum = streamParallelGroupByWorkerNum;
+    }
+
+    public int getMigrationThreadPoolSize() {
+        return migrationThreadPoolSize;
+    }
+
+    public void setMigrationThreadPoolSize(int migrationThreadPoolSize) {
+        this.migrationThreadPoolSize = migrationThreadPoolSize;
     }
 }

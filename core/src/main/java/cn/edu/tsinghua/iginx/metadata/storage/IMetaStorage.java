@@ -23,11 +23,22 @@ import cn.edu.tsinghua.iginx.metadata.cache.IMetaCache;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
 import cn.edu.tsinghua.iginx.metadata.hook.*;
 import cn.edu.tsinghua.iginx.metadata.utils.ReshardStatus;
+import cn.edu.tsinghua.iginx.migration.storage.StorageMigrationPlan;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.List;
 import java.util.Map;
 
 public interface IMetaStorage {
+
+    boolean storeMigrationPlan(StorageMigrationPlan plan);
+
+    List<StorageMigrationPlan> scanStorageMigrationPlan();
+
+    StorageMigrationPlan getStorageMigrationPlan(long storageId);
+
+    boolean transferMigrationPlan(long id, long from, long to);
+
+    boolean deleteMigrationPlan(long id);
 
     Map<String, Map<String, Integer>> loadSchemaMapping() throws MetaStorageException;
 

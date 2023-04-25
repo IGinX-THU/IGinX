@@ -6,6 +6,7 @@ import cn.edu.tsinghua.iginx.metadata.entity.*;
 import cn.edu.tsinghua.iginx.metadata.hook.StorageEngineChangeHook;
 import cn.edu.tsinghua.iginx.metadata.hook.StorageUnitHook;
 import cn.edu.tsinghua.iginx.policy.simple.ColumnCalDO;
+import cn.edu.tsinghua.iginx.migration.storage.StorageMigrationPlan;
 import cn.edu.tsinghua.iginx.sql.statement.InsertStatement;
 import cn.edu.tsinghua.iginx.thrift.AuthType;
 import cn.edu.tsinghua.iginx.utils.Pair;
@@ -19,6 +20,46 @@ public class MetaManagerMock implements IMetaManager {
 
     @Override
     public boolean addStorageEngines(List<StorageEngineMeta> storageEngineMetas) {
+        return false;
+    }
+
+    @Override
+    public boolean storeMigrationPlan(StorageMigrationPlan plan) {
+        return false;
+    }
+
+    @Override
+    public List<StorageMigrationPlan> scanStorageMigrationPlan() {
+        return null;
+    }
+
+    @Override
+    public StorageMigrationPlan getStorageMigrationPlan(long storageId) {
+        return null;
+    }
+
+    @Override
+    public boolean transferMigrationPlan(long id, long from, long to) {
+        return false;
+    }
+
+    @Override
+    public boolean deleteMigrationPlan(long id) {
+        return false;
+    }
+
+    @Override
+    public Map<String, String> startMigrationStorageUnits(Map<String, Long> migrationMap, boolean migrationData) {
+        return null;
+    }
+
+    @Override
+    public boolean finishMigrationStorageUnit(String storageUnitId, boolean migrationData) {
+        return false;
+    }
+
+    @Override
+    public boolean updateStorageUnit(StorageUnitMeta storageUnit) {
         return false;
     }
 

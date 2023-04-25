@@ -34,6 +34,7 @@ import cn.edu.tsinghua.iginx.metadata.storage.IMetaStorage;
 import cn.edu.tsinghua.iginx.metadata.storage.etcd.ETCDMetaStorage;
 import cn.edu.tsinghua.iginx.metadata.storage.zk.ZooKeeperMetaStorage;
 import cn.edu.tsinghua.iginx.metadata.utils.ReshardStatus;
+import cn.edu.tsinghua.iginx.migration.storage.StorageMigrationPlan;
 import cn.edu.tsinghua.iginx.monitor.HotSpotMonitor;
 import cn.edu.tsinghua.iginx.monitor.RequestsMonitor;
 import cn.edu.tsinghua.iginx.policy.simple.ColumnCalDO;
@@ -436,6 +437,269 @@ public class DefaultMetaManager implements IMetaManager {
         } catch (MetaStorageException e) {
             logger.error("add storage engines error:", e);
         }
+        return false;
+    }
+
+    @Override
+    public boolean storeMigrationPlan(StorageMigrationPlan plan) {
+        return storage.storeMigrationPlan(plan);
+    }
+
+    @Override
+    public List<StorageMigrationPlan> scanStorageMigrationPlan() {
+        return storage.scanStorageMigrationPlan();
+    }
+
+    @Override
+    public StorageMigrationPlan getStorageMigrationPlan(long storageId) {
+        return storage.getStorageMigrationPlan(storageId);
+    }
+
+    @Override
+    public boolean transferMigrationPlan(long id, long from, long to) {
+        return storage.transferMigrationPlan(id, from, to);
+    }
+
+    @Override
+    public boolean deleteMigrationPlan(long id) {
+        return storage.deleteMigrationPlan(id);
+    }
+
+    @Override
+    public Map<String, String> startMigrationStorageUnits(Map<String, Long> migrationMap, boolean migrationData) {
+        if (migrationData) {
+            return startMigrationStorageUnitsWithData(migrationMap);
+        }
+        return startMigrationStorageUnitsWithoutData(migrationMap);
+    }
+
+    private Map<String, String> startMigrationStorageUnitsWithData(Map<String, Long> migrationMap) {
+        try {
+            Map<String, String> migrationStorageUnitMap = new HashMap<>();
+            storage.lockStorageUnit();
+            for (String storageUnitId: migrationMap.keySet()) {
+                StorageUnitMeta storageUnit = getStorageUnit(storageUnitId);
+                if (storageUnit.getState() == StorageUnitState.DISCARD) { // 已经迁移完了
+                    continue;
+                }
+                if (storageUnit.getMigrationTo() != null) { // 正在迁移中
+                    migrationStorageUnitMap.put(storageUnitId, storageUnit.getMigrationTo());
+                    continue;
+                }
+                String newStorageUnitId = storage.addStorageUnit();
+                StorageUnitMeta clonedStorageUnit = storageUnit.clone();
+                StorageUnitMeta newStorageUnit = clonedStorageUnit.migrationStorageUnitMeta(newStorageUnitId, id, migrationMap.get(storageUnitId));
+                // 更新新的 storage unit
+                cache.updateStorageUnit(newStorageUnit);
+                for (StorageUnitHook hook : storageUnitHooks) {
+                    hook.onChange(null, newStorageUnit);
+                }
+                storage.updateStorageUnit(newStorageUnit);
+                // 更新旧的 storage unit
+                cache.updateStorageUnit(clonedStorageUnit);
+                for (StorageUnitHook hook : storageUnitHooks) {
+                    hook.onChange(storageUnit, clonedStorageUnit);
+                }
+                storage.updateStorageUnit(clonedStorageUnit);
+                migrationStorageUnitMap.put(storageUnitId, newStorageUnitId);
+            }
+            return migrationStorageUnitMap;
+        } catch (MetaStorageException e) {
+            logger.error("migration storage unit error: ", e);
+        } finally {
+            try {
+                storage.releaseStorageUnit();
+            } catch (MetaStorageException e) {
+                logger.error("release storage unit lock error: ", e);
+            }
+        }
+        return null;
+    }
+
+    private Map<String, String> startMigrationStorageUnitsWithoutData(Map<String, Long> migrationMap) { // 这里的 key 指的是实际进行迁移的分片，value 指的是实际的目的地
+        try {
+            Map<String, String> migrationStorageUnitMap = new HashMap<>();
+
+            List<StorageUnitMeta> beforeStorageUnits = new ArrayList<>();
+            List<StorageUnitMeta> afterStorageUnits = new ArrayList<>();
+
+            storage.lockStorageUnit();
+            for (String storageUnitId: migrationMap.keySet()) {
+                String newStorageUnitId = storage.addStorageUnit();
+
+                StorageUnitMeta storageUnit = getStorageUnit(storageUnitId); // 宕机的存储单元，直接标记成 Discard
+                if (storageUnit.getState() == StorageUnitState.DISCARD) { // 正处在迁移或者迁移的中间状态，表示当前的请求为一个重试的请求
+                    StorageUnitMeta targetUnit = getStorageUnit(storageUnit.getMigrationTo());
+                    if (targetUnit.getState() == StorageUnitState.CREATING) {
+                        // 这里需要选出来一个副本，作为数据迁移的源头
+                        if (storageUnit.isMaster()) {
+                            if (storageUnit.getReplicas() != null && storageUnit.getReplicas().size() > 0) {
+                                migrationStorageUnitMap.put(storageUnit.getReplicas().get(storageUnit.getReplicas().size() - 1).getId(), newStorageUnitId);
+                            }
+                        } else { // 失效的分片是副本的话，只需要找到主本，使用主本作为数据源即可
+                            migrationStorageUnitMap.put(storageUnit.getMasterId(), newStorageUnitId);
+                        }
+                    }
+                    continue;
+                }
+
+                StorageUnitMeta clonedStorageUnit = storageUnit.clone();
+                beforeStorageUnits.add(storageUnit);
+                afterStorageUnits.add(clonedStorageUnit);
+
+                StorageUnitMeta newStorageUnit = clonedStorageUnit.migrationStorageUnitMeta(newStorageUnitId, id, migrationMap.get(storageUnitId));
+                clonedStorageUnit.setState(StorageUnitState.DISCARD);
+
+                beforeStorageUnits.add(null);
+                afterStorageUnits.add(newStorageUnit);
+
+                // 为宕机的副本找到合适的主本
+                if (storageUnit.isMaster()) {
+                    if (storageUnit.getReplicas() != null && storageUnit.getReplicas().size() > 0) {
+                        migrationStorageUnitMap.put(storageUnit.getReplicas().get(0).getId(), newStorageUnitId);
+                    }
+                } else { // 失效的分片是副本的话，只需要找到主本，使用主本作为数据源即可
+                    migrationStorageUnitMap.put(storageUnit.getMasterId(), newStorageUnitId);
+                }
+
+                // 变更副本关系
+                if (storageUnit.isMaster()) {
+                    List<StorageUnitMeta> slaveUnits = storageUnit.getReplicas();
+                    for (StorageUnitMeta unit: slaveUnits) {
+                        StorageUnitMeta clone = unit.clone();
+                        clone.setMasterId(newStorageUnitId);
+                        beforeStorageUnits.add(unit);
+                        afterStorageUnits.add(clone);
+                        newStorageUnit.addReplica(clone);
+                    }
+                } else {
+                    StorageUnitMeta masterUnit = getStorageUnit(storageUnit.getMasterId());
+                    masterUnit.addReplica(newStorageUnit);
+                    masterUnit.removeReplica(storageUnit);
+                }
+            }
+
+            for (int i = 0; i < beforeStorageUnits.size(); i++) {
+                StorageUnitMeta before = beforeStorageUnits.get(i);
+                StorageUnitMeta after = afterStorageUnits.get(i);
+                cache.updateStorageUnit(after);
+                for (StorageUnitHook hook : storageUnitHooks) {
+                    hook.onChange(before, after);
+                }
+                storage.updateStorageUnit(after);
+            }
+
+            return migrationStorageUnitMap;
+        } catch (MetaStorageException e) {
+            logger.error("migration storage unit error: ", e);
+        } finally {
+            try {
+                storage.releaseStorageUnit();
+            } catch (MetaStorageException e) {
+                logger.error("release storage unit lock error: ", e);
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public boolean finishMigrationStorageUnit(String storageUnitId, boolean migrationData) {
+        if (migrationData) {
+            return finishMigrationStorageUnitWithData(storageUnitId);
+        }
+        return finishMigrationStorageUnitWithoutData(storageUnitId);
+    }
+
+    public boolean finishMigrationStorageUnitWithData(String storageUnitId) {
+        logger.info("start migration for {} {}", storageUnitId, true);
+        try {
+            List<StorageUnitMeta> beforeStorageUnits = new ArrayList<>();
+            List<StorageUnitMeta> afterStorageUnits = new ArrayList<>();
+            storage.lockStorageUnit();
+            StorageUnitMeta sourceStorageUnit = getStorageUnit(storageUnitId);
+            StorageUnitMeta clonedSourceStorageUnit = sourceStorageUnit.clone();
+            clonedSourceStorageUnit.setState(StorageUnitState.DISCARD);
+            beforeStorageUnits.add(sourceStorageUnit);
+            afterStorageUnits.add(clonedSourceStorageUnit);
+
+            StorageUnitMeta targetStorageUnit = getStorageUnit(sourceStorageUnit.getMigrationTo());
+            StorageUnitMeta clonedTargetStorageUnit = targetStorageUnit.clone();
+            clonedTargetStorageUnit.setState(StorageUnitState.NORMAL);
+            beforeStorageUnits.add(targetStorageUnit);
+            afterStorageUnits.add(clonedTargetStorageUnit);
+            if (sourceStorageUnit.isMaster()) {
+                List<StorageUnitMeta> slaveUnits = sourceStorageUnit.getReplicas();
+                for (StorageUnitMeta unit: slaveUnits) {
+                    StorageUnitMeta clone = unit.clone();
+                    clone.setMasterId(clonedTargetStorageUnit.getId());
+                    beforeStorageUnits.add(unit);
+                    afterStorageUnits.add(clone);
+                    clonedTargetStorageUnit.addReplica(clone);
+                }
+            } else {
+                StorageUnitMeta masterStorageUnit = getStorageUnit(clonedSourceStorageUnit.getMasterId());
+                masterStorageUnit.addReplica(clonedTargetStorageUnit);
+                masterStorageUnit.removeReplica(clonedSourceStorageUnit);
+            }
+
+            for (int i = 0; i < beforeStorageUnits.size(); i++) {
+                StorageUnitMeta before = beforeStorageUnits.get(i);
+                StorageUnitMeta after = afterStorageUnits.get(i);
+                cache.updateStorageUnit(after);
+                for (StorageUnitHook hook : storageUnitHooks) {
+                    hook.onChange(before, after);
+                }
+                storage.updateStorageUnit(after);
+            }
+
+            logger.info("finish migration for {} {}", storageUnitId, true);
+            return true;
+        } catch (MetaStorageException e) {
+            logger.error("migration storage unit error: ", e);
+        } finally {
+            try {
+                storage.releaseStorageUnit();
+            } catch (MetaStorageException e) {
+                logger.error("release storage unit lock error: ", e);
+            }
+        }
+        return false;
+    }
+
+    public boolean finishMigrationStorageUnitWithoutData(String storageUnitId) {
+        logger.info("call finish migration for {} {}", storageUnitId, false);
+        try {
+            storage.lockStorageUnit();
+            StorageUnitMeta sourceStorageUnit = getStorageUnit(storageUnitId);
+            String targetStorageUnitId = sourceStorageUnit.getMigrationTo();
+
+            StorageUnitMeta storageUnit = getStorageUnit(targetStorageUnitId);
+            StorageUnitMeta clonedStorageUnit = storageUnit.clone();
+            if (storageUnit.getState() == StorageUnitState.NORMAL) {
+                return true;
+            }
+            clonedStorageUnit.setState(StorageUnitState.NORMAL);
+            cache.updateStorageUnit(clonedStorageUnit);
+            for (StorageUnitHook hook : storageUnitHooks) {
+                hook.onChange(storageUnit, clonedStorageUnit);
+            }
+            storage.updateStorageUnit(clonedStorageUnit);
+            logger.info("finish migration for {} {}", storageUnitId, false);
+            return true;
+        } catch (MetaStorageException e) {
+            logger.error("migration storage unit error: ", e);
+        } finally {
+            try {
+                storage.releaseStorageUnit();
+            } catch (MetaStorageException e) {
+                logger.error("release storage unit lock error: ", e);
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public boolean updateStorageUnit(StorageUnitMeta storageUnit) {
         return false;
     }
 

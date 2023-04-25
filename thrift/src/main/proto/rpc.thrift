@@ -600,6 +600,12 @@ struct RemoveHistoryDataSourceReq {
     2: required list<RemovedStorageEngineInfo> dummyStorageInfoList
 }
 
+struct RemoveStorageEngineReq {
+    1: required i64 sessionId
+    2: required i64 storageId
+    3: required bool sync
+}
+
 service IService {
 
     OpenSessionResp openSession(1: OpenSessionReq req);
@@ -623,6 +629,8 @@ service IService {
     Status addStorageEngines(1: AddStorageEnginesReq req);
 
     Status removeHistoryDataSource(1: RemoveHistoryDataSourceReq req);
+
+    Status removeStorageEngine(1: RemoveStorageEngineReq req);
 
     AggregateQueryResp aggregateQuery(1: AggregateQueryReq req);
 

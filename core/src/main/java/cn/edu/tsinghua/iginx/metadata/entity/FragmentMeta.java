@@ -36,6 +36,8 @@
  */
 package cn.edu.tsinghua.iginx.metadata.entity;
 
+import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
+
 import java.util.Objects;
 
 public final class FragmentMeta {
@@ -163,7 +165,7 @@ public final class FragmentMeta {
     }
 
     public StorageUnitMeta getMasterStorageUnit() {
-        return masterStorageUnit;
+        return DefaultMetaManager.getInstance().getStorageUnit(masterStorageUnitId);
     }
 
     public void setMasterStorageUnit(StorageUnitMeta masterStorageUnit) {
