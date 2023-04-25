@@ -28,7 +28,7 @@ public class Constant {
 
     public static final String CMD_DELETE = "DELETE";
 
-    public static final int MAX_MEM_SIZE = 100 * 1024 * 1024 /* BYTE */;
+    public static final int MAX_MEM_SIZE = 1000 * 1024 * 1024 /* BYTE */;
 
     public static final String CREATE_TABLE_STMT = "CREATE TABLE %s (%s)";
 

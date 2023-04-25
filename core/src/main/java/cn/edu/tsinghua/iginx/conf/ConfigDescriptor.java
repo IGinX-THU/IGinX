@@ -222,6 +222,19 @@ public class ConfigDescriptor {
             config.setMaxThriftWrokerThreadNum(
                     Integer.parseInt(
                             properties.getProperty("maxThriftWorkerThreadNum", "2147483647")));
+            config.setParallelGroupByRowsThreshold(
+                    Integer.parseInt(
+                            properties.getProperty("parallelGroupByRowsThreshold", "10000")));
+            config.setParallelApplyFuncGroupsThreshold(
+                    Integer.parseInt(
+                            properties.getProperty("parallelApplyFuncGroupsThreshold", "1000")));
+            config.setParallelGroupByPoolSize(
+                    Integer.parseInt(properties.getProperty("parallelGroupByPoolSize", "5")));
+            config.setParallelGroupByPoolNum(
+                    Integer.parseInt(properties.getProperty("parallelGroupByPoolNum", "5")));
+            config.setStreamParallelGroupByWorkerNum(
+                    Integer.parseInt(
+                            properties.getProperty("streamParallelGroupByWorkerNum", "5")));
         } catch (IOException e) {
             logger.error("Fail to load properties: ", e);
         }
@@ -333,6 +346,21 @@ public class ConfigDescriptor {
                 EnvUtils.loadEnv("expectedStorageUnitNum", config.getExpectedStorageUnitNum()));
         config.setLocalParquetStorage(
                 EnvUtils.loadEnv("isLocalParquetStorage", config.isLocalParquetStorage()));
+        config.setParallelGroupByRowsThreshold(
+                EnvUtils.loadEnv(
+                        "parallelGroupByRowsThreshold", config.getParallelGroupByRowsThreshold()));
+        config.setParallelApplyFuncGroupsThreshold(
+                EnvUtils.loadEnv(
+                        "parallelApplyFuncGroupsThreshold",
+                        config.getStreamParallelGroupByWorkerNum()));
+        config.setParallelGroupByPoolSize(
+                EnvUtils.loadEnv("parallelGroupByPoolSize", config.getParallelGroupByPoolSize()));
+        config.setParallelGroupByPoolNum(
+                EnvUtils.loadEnv("parallelGroupByPoolNum", config.getParallelGroupByPoolNum()));
+        config.setStreamParallelGroupByWorkerNum(
+                EnvUtils.loadEnv(
+                        "streamParallelGroupByWorkerNum",
+                        config.getStreamParallelGroupByWorkerNum()));
     }
 
     private void loadUDFListFromFile() {
