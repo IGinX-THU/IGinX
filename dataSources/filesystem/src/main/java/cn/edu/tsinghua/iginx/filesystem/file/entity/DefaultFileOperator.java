@@ -116,7 +116,7 @@ public class DefaultFileOperator implements IFileOperator {
             String line;
             while ((line = reader.readLine()) != null) {
                 currentLine++;
-                if (currentLine <= FileMeta.IGINXFILEVALINDEX) continue;
+                if (currentLine <= FileMeta.iginxFileMetaIndex) continue;
                 String[] kv = line.split(",", 2);
                 key = Long.parseLong(kv[0]);
                 if (key >= begin && key <= end) {
@@ -126,7 +126,7 @@ public class DefaultFileOperator implements IFileOperator {
                             new Record(
                                     Long.parseLong(kv[0]),
                                     dataType,
-                                    DataTypeUtils.getValWithDataType(kv[1], dataType)));
+                                    DataTypeUtils.stringToDataType(kv[1], dataType)));
                 }
             }
         }
@@ -256,7 +256,7 @@ public class DefaultFileOperator implements IFileOperator {
             int lines = 0;
             while (reader.readLine() != null) {
                 lines++;
-                if (lines > FileMeta.IGINXFILEVALINDEX) {
+                if (lines > FileMeta.iginxFileMetaIndex) {
                     flag = false;
                     break;
                 }
@@ -317,7 +317,7 @@ public class DefaultFileOperator implements IFileOperator {
                 String line;
                 while ((line = reader.readLine()) != null) {
                     currentLine++;
-                    if (currentLine <= FileMeta.IGINXFILEVALINDEX) {
+                    if (currentLine <= FileMeta.iginxFileMetaIndex) {
                         writer.write(line);
                         writer.write("\n");
                         continue;
@@ -409,7 +409,7 @@ public class DefaultFileOperator implements IFileOperator {
                 String line;
                 while ((line = reader.readLine()) != null) {
                     currentLine++;
-                    if (currentLine <= FileMeta.IGINXFILEVALINDEX) {
+                    if (currentLine <= FileMeta.iginxFileMetaIndex) {
                         writer.write(line);
                         writer.write("\n");
                         continue;
@@ -476,7 +476,7 @@ public class DefaultFileOperator implements IFileOperator {
                 writer.write(
                         fileMeta.getTag() == null ? "{}" : JsonUtils.mapToJson(fileMeta.getTag()));
                 writer.write("\n");
-                for (int i = 0; i < FileMeta.IGINXFILEVALINDEX - 3; i++) {
+                for (int i = 0; i < FileMeta.iginxFileMetaIndex - 3; i++) {
                     writer.write("\n");
                 }
             }
@@ -511,15 +511,15 @@ public class DefaultFileOperator implements IFileOperator {
             try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
                 int index = 1;
                 String line;
-                while ((line = reader.readLine()) != null && index <= FileMeta.IGINXFILEVALINDEX) {
+                while ((line = reader.readLine()) != null && index <= FileMeta.iginxFileMetaIndex) {
                     switch (index) {
-                        case FileMeta.ISDIRINDEX:
+                        case FileMeta.isDirIndex:
                             fileMeta.setDir(Boolean.parseBoolean(line));
                             break;
-                        case FileMeta.TAGKVINDEX:
+                        case FileMeta.tagKVIndex:
                             fileMeta.setTag(JsonUtils.transformToSS(line));
                             break;
-                        case FileMeta.DATATYPEINDEX:
+                        case FileMeta.dataTypeIndex:
                             fileMeta.setDataType(DataType.findByValue(Integer.parseInt(line)));
                             break;
                         default:

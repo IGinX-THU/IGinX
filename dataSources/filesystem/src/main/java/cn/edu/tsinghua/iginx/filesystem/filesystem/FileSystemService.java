@@ -12,6 +12,7 @@ import cn.edu.tsinghua.iginx.filesystem.file.property.FilePath;
 import cn.edu.tsinghua.iginx.filesystem.file.property.FileType;
 import cn.edu.tsinghua.iginx.filesystem.query.FSResultTable;
 import cn.edu.tsinghua.iginx.filesystem.tools.ConfLoader;
+import cn.edu.tsinghua.iginx.filesystem.tools.FilterTransformer;
 import cn.edu.tsinghua.iginx.filesystem.tools.TagKVUtils;
 import cn.edu.tsinghua.iginx.filesystem.wrapper.Record;
 import cn.edu.tsinghua.iginx.thrift.DataType;
@@ -20,77 +21,204 @@ import java.io.*;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+
+import cn.edu.tsinghua.iginx.utils.StringUtils;
+import com.bpodgursky.jbool_expressions.Expression;
+import com.bpodgursky.jbool_expressions.parsers.ExprParser;
+import com.bpodgursky.jbool_expressions.rules.RuleSet;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import oshi.util.tuples.Triplet;
 
 /*
  *缓存，索引以及优化策略都在这里执行
  */
-public class FileSystemImpl {
-    private static final Logger logger = LoggerFactory.getLogger(FileSystemImpl.class);
-    IFileOperator fileOperator;
-    Charset charset = StandardCharsets.UTF_8;
-    String MYWILDCARD = FilePath.MYWILDCARD;
+public class FileSystemService {
+    private static final Logger logger = LoggerFactory.getLogger(FileSystemService.class);
+    static IFileOperator fileOperator = new DefaultFileOperator();
+    static Charset charset = StandardCharsets.UTF_8;
+    static String MYWILDCARD = FilePath.MYWILDCARD;
 
     // set the fileSystem type with constructor
-    public FileSystemImpl(/*FileSystemType type*/ ) {
+    public FileSystemService(/*FileSystemType type*/ ) {
         fileOperator = new DefaultFileOperator();
         FilePath.setSeparator(System.getProperty("file.separator"));
     }
 
-    // delete it after the UT
-    public List<Record> readFile(File file) throws IOException {
-        return readFile(file, -1, -1);
-    }
-
-    public List<FSResultTable> readFile(File file, Filter filter) throws IOException {
+    public static List<FSResultTable> readFile(File file, Filter filter) throws IOException {
         return readFile(file, null, filter);
     }
 
-    public List<FSResultTable> readFile(File file, TagFilter tagFilter, Filter filter)
-            throws IOException {
-        List<FSResultTable> res = new ArrayList<>();
+    public static List<List<String>> expressionToParts(String expr) {
+        List<List<String>> result = new ArrayList<>();
+        int start = 0,left = 0,right = 0;
+        for (int i = 0; i < expr.length(); i++) {
+            char c = expr.charAt(i);
+            if(c=='(') {
+                left++;
+                right=expr.indexOf(")",left);
+            }
 
+            if (c == '|') {
+                result.add( StringUtils.splitAround(expr,left+1,right,"&"));
+                start = i;
+            }
+        }
+        if (start < expr.length()) {
+            if(expr.contains("(")){
+            left=expr.indexOf("(",start);
+            right=expr.indexOf(")",left);
+           result.add( StringUtils.splitAround(expr,left+1,right,"&"));
+            } else {
+                List<String> part = new ArrayList<>(Collections.singleton(expr));
+            result.add(part);
+            }
+        }
+        return result;
+    }
+
+    private static Pair<Long,Long> parseKey(List<String> part, BiMap<String, String> vals) {
+        Long minTime = Long.MAX_VALUE, maxTime = 0L;
+        for(String p : part){
+            String val = vals.get(p);
+            if(val.contains("key")){
+                String[] parts = val.split(" ");
+                String op = parts[1];
+                switch (Op.str2Op(op)){
+                    case L:
+                    case LE:
+                        maxTime=Math.max(maxTime,Long.parseLong(parts[2]));
+                        break;
+                    case GE:
+                    case G:
+                        minTime=Math.min(minTime,Long.parseLong(parts[2]));
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
+        return new Pair<>(minTime==Long.MAX_VALUE?0:minTime,maxTime==0?Long.MAX_VALUE:maxTime);
+    }
+
+    private static List<Triplet<String,Op,Object>> parseVal(List<String> part, BiMap<String, String> vals) {
+        List<Triplet<String,Op,Object>> res = new ArrayList<>();
+        for(String p : part){
+            String val = vals.get(p);
+            if(!val.contains("key")){
+                String[] parts = val.split(" ");
+                res.add(new Triplet<>(parts[0], Op.str2Op(parts[1]),parts[2]));
+            }
+        }
+        return res;
+    }
+
+    private static List<Pair<Pair<Long,Long>, List<Triplet<String,Op,Object>>>> parseFilter(Filter filter){
+        List<Pair<Pair<Long,Long>, List<Triplet<String,Op,Object>>>> res = new ArrayList<>();
+
+        BiMap<String, String> vals = HashBiMap.create();
+        String filterExp = FilterTransformer.toString(filter, vals);
+        Expression<String> nonStandard = ExprParser.parse(filterExp);
+        Expression<String> sopForm = RuleSet.toDNF(nonStandard);
+
+        List<List<String>> parts =  expressionToParts(sopForm.toString());
+        for(List<String> l : parts){
+            Pair<Long,Long> keys = parseKey(l, vals);
+            List<Triplet<String,Op,Object>> valFilter = parseVal(l,vals);
+            res.add(new Pair<>(keys, valFilter));
+        }
+           return res;
+    }
+
+    public static int compareObjects(DataType dataType, Object a, Object b) {
+        switch (dataType){
+            case FLOAT:
+                return Float.compare((float)a,(float)b);
+            case DOUBLE:
+                return Double.compare((float)a,(float)b);
+            case BINARY:
+                return (new String((byte[])a)).compareTo(new String((byte[])b));
+            case INTEGER:
+                return Integer.compare((int)a,(int)b);
+            case LONG:
+                return Long.compare((long)a,(long)b);
+            default:
+                logger.error("cant compare the val!");
+                throw new IllegalArgumentException("cant compare the val with different type");
+        }
+    }
+
+    public static List<FSResultTable> getValWithFilter(List<File> files, List<Pair<Pair<Long,Long>, List<Triplet<String,Op,Object>>>> filters) throws IOException {
+        List<FSResultTable> res = new ArrayList<>();
+        for (File f : files) {
+            for (Pair<Pair<Long, Long>, List<Triplet<String, Op, Object>>> ft : filters) {
+                long startTime = ft.k.k, endTime = ft.k.v;
+                List<Record> val = new ArrayList<>(), valf = new ArrayList<>();
+                val = doReadFile(f, startTime, endTime);// do read file here
+
+                if (FileType.getFileType(f) == FileType.Type.IGINX_FILE) {
+                    List<Triplet<String, Op, Object>> valFilters = ft.v;
+                    if(valFilters.size()==0) valf=val;
+                    for (Triplet<String, Op, Object> valFilter : valFilters) {
+                        if (f.getAbsolutePath().contains(valFilter.getA().replaceAll(".", FilePath.getSEPARATOR()))) {
+                            for (Record record : val){
+                                Object data = record.getRawData();
+                                Object dataf = valFilter.getC();
+                                boolean flag = false;
+                                int comRes = compareObjects(record.getDataType(),data,dataf);
+                                switch (valFilter.getB()){
+                                    case L:
+                                       if(comRes<0) flag = true;
+                                       break;
+                                    case LE:
+                                        if(comRes<=0) flag = true;
+                                    case G:
+                                        if(comRes>0) flag = true;
+                                    case GE:
+                                        if(comRes>=0) flag = true;
+                                    case LIKE:
+                                        String s = new String((byte[])data),format=new String((byte[])dataf);
+                                        if(s.matches(format)) flag = true;
+                                    case NE:
+                                        if(comRes!=0) flag = true;
+                                }
+                                if(flag)
+                                    valf.add(new Record(record.getKey(),record.getDataType(),data));
+                            }
+                            val=valf;
+                        }
+                    }
+
+                    FileMeta fileMeta = fileOperator.getFileMeta(f);
+                    res.add(new FSResultTable(f, valf, fileMeta.getDataType(), fileMeta.getTag()));
+                } else {
+                    res.add(new FSResultTable(f, val, DataType.BINARY, null));
+                }
+            }
+        }
+        return res;
+    }
+
+    public static List<FSResultTable> readFile(File file, TagFilter tagFilter, Filter filter)
+            throws IOException {
         List<File> files = getFilesWithTagFilter(file, tagFilter);
         if (files == null) {
             return new ArrayList<>();
         }
 
-        long startTime = -1, endTime = -1;
-        if (filter != null) {
-            // may fix it 先不支持下推，所以filter中是时间的过滤条件
-            AndFilter andFilter = (AndFilter) filter;
-            for (Filter f : andFilter.getChildren()) {
-                KeyFilter keyFilter = (KeyFilter) f;
-                if (keyFilter.getOp().equals(Op.GE)) {
-                    startTime = keyFilter.getValue();
-                } else if (keyFilter.getOp().equals(Op.L)) {
-                    endTime = keyFilter.getValue() - 1;
-                }
-            }
-        }
+        List<Pair<Pair<Long,Long>, List<Triplet<String,Op,Object>>>> fts = parseFilter(filter);
 
-        for (File f : files) {
-            List<Record> val = new ArrayList<>();
-            val = doReadFile(f, startTime, endTime);
-            FileMeta fileMeta = null;
-            if (FileType.getFileType(f) == FileType.Type.IGINX_FILE) {
-                fileMeta = fileOperator.getFileMeta(f);
-                res.add(new FSResultTable(f, val, fileMeta.getDataType(), fileMeta.getTag()));
-            } else {
-                res.add(new FSResultTable(f, val, DataType.BINARY, null));
-            }
-        }
-
-        return res;
+        return getValWithFilter(files,fts);
     }
 
     // read the part of the file
-    public List<Record> readFile(File file, long begin, long end) throws IOException {
+    public static List<Record> readFile(File file, long begin, long end) throws IOException {
         return doReadFile(file, begin, end);
     }
 
-    private List<Record> doReadFile(File file, long begin, long end) throws IOException {
+    private static List<Record> doReadFile(File file, long begin, long end) throws IOException {
         List<Record> res = new ArrayList<>();
         switch (FileType.getFileType(file)) {
             case DIR:
@@ -108,15 +236,15 @@ public class FileSystemImpl {
         return res;
     }
 
-    public boolean mkDir(File file) {
+    public static boolean mkDir(File file) {
         return fileOperator.mkdir(file);
     }
 
-    public Exception writeFile(File file, List<Record> value) throws IOException {
+    public static Exception writeFile(File file, List<Record> value) throws IOException {
         return doWriteFile(file, value);
     }
 
-    public Exception writeFile(File file, List<Record> value, Map<String, String> tag)
+    public static Exception writeFile(File file, List<Record> value, Map<String, String> tag)
             throws IOException {
         File tmpFile;
         tmpFile = getFileWithTag(file, tag);
@@ -130,12 +258,12 @@ public class FileSystemImpl {
         return doWriteFile(file, value);
     }
 
-    public Exception writeFiles(List<File> files, List<List<Record>> values) throws IOException {
+    public static Exception writeFiles(List<File> files, List<List<Record>> values) throws IOException {
         return writeFiles(files, values, null);
     }
 
     // write multi file
-    public Exception writeFiles(
+    public static Exception writeFiles(
             List<File> files, List<List<Record>> values, List<Map<String, String>> tagList)
             throws IOException {
         for (int i = 0; i < files.size(); i++) {
@@ -144,7 +272,7 @@ public class FileSystemImpl {
         return null;
     }
 
-    public Exception deleteFile(File file) throws IOException {
+    public static Exception deleteFile(File file) throws IOException {
         return deleteFiles(Collections.singletonList(file), null);
     }
 
@@ -154,7 +282,7 @@ public class FileSystemImpl {
      * @param files 要删除的文件或目录列表
      * @throws Exception 如果删除操作失败则抛出异常
      */
-    public Exception deleteFiles(List<File> files, TagFilter filter) throws IOException {
+    public static Exception deleteFiles(List<File> files, TagFilter filter) throws IOException {
         List<File> fileList = new ArrayList<>();
         for (File file : files) {
             List<File> tmp = getFilesWithTagFilter(file, filter);
@@ -180,16 +308,16 @@ public class FileSystemImpl {
         return null;
     }
 
-    public Exception trimFileContent(File file, long begin, long end) throws IOException {
+    public static Exception trimFileContent(File file, long begin, long end) throws IOException {
         return trimFilesContent(Collections.singletonList(file), null, begin, end);
     }
 
-    public Exception trimFileContent(File file, TagFilter tagFilter, long begin, long end)
+    public static Exception trimFileContent(File file, TagFilter tagFilter, long begin, long end)
             throws IOException {
         return trimFilesContent(Collections.singletonList(file), tagFilter, begin, end);
     }
 
-    public Exception trimFilesContent(List<File> files, TagFilter tagFilter, long begin, long end)
+    public static Exception trimFilesContent(List<File> files, TagFilter tagFilter, long begin, long end)
             throws IOException {
         for (File file : files) {
             List<File> fileList = getFilesWithTagFilter(file, tagFilter);
@@ -204,23 +332,23 @@ public class FileSystemImpl {
         return null;
     }
 
-    private File createIginxFile(File file, DataType dataType, Map<String, String> tag)
+    private static File createIginxFile(File file, DataType dataType, Map<String, String> tag)
             throws IOException {
         return fileOperator.create(file, new FileMeta(dataType, tag));
     }
 
-    private boolean ifFileExists(File file, TagFilter tagFilter) throws IOException {
+    private static boolean ifFileExists(File file, TagFilter tagFilter) throws IOException {
         if (getFilesWithTagFilter(file, tagFilter) != null) {
             return true;
         }
         return false;
     }
 
-    private boolean ifFileExists(File file) {
+    private static boolean ifFileExists(File file) {
         return fileOperator.ifFileExists(file);
     }
 
-    private int getFileID(File file, Map<String, String> tag) throws IOException {
+    private static int getFileID(File file, Map<String, String> tag) throws IOException {
         List<File> files = getAssociatedFiles(file);
 
         List<Integer> nums = new ArrayList<>();
@@ -238,7 +366,7 @@ public class FileSystemImpl {
         return Collections.max(nums);
     }
 
-    private File determineFileId(File file, Map<String, String> tag) throws IOException {
+    private static File determineFileId(File file, Map<String, String> tag) throws IOException {
         int id = getFileID(file, tag);
         if (id == -1) id = 0;
         else id += 1;
@@ -246,7 +374,7 @@ public class FileSystemImpl {
         return new File(path);
     }
 
-    private Exception doWriteFile(File file, List<Record> value) throws IOException {
+    private static Exception doWriteFile(File file, List<Record> value) throws IOException {
         Exception res = null;
 
         switch (FileType.getFileType(file)) {
@@ -267,7 +395,7 @@ public class FileSystemImpl {
         return res;
     }
 
-    private byte[] makeValueToBytes(List<Record> value) throws IOException {
+    private static byte[] makeValueToBytes(List<Record> value) throws IOException {
         List<byte[]> byteList = new ArrayList<>();
         switch (value.get(0).getDataType()) {
             case BINARY:
@@ -280,7 +408,7 @@ public class FileSystemImpl {
         return mergeByteArrays(byteList);
     }
 
-    public byte[] mergeByteArrays(List<byte[]> arrays) throws IOException {
+    public static byte[] mergeByteArrays(List<byte[]> arrays) throws IOException {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         for (byte[] array : arrays) {
             outputStream.write(array);
@@ -288,12 +416,8 @@ public class FileSystemImpl {
         return outputStream.toByteArray();
     }
 
-    public void setCharset(Charset charset) {
-        this.charset = charset;
-    }
-
     // 返回和file文件相关的所有文件（包括目录）
-    public List<File> getAssociatedFiles(File file) {
+    public static List<File> getAssociatedFiles(File file) {
         List<File> fileList, filess = null;
         Stack<File> S = new Stack<>();
         Set<File> res = new HashSet<>();
@@ -351,7 +475,7 @@ public class FileSystemImpl {
      * @return 元数据与 tags 相等的 .iginx 文件,否则返回 null
      * @throws IOException 任何查找或读写操作导致的 IOException 将被传播
      */
-    private File getFileWithTag(File file, Map<String, String> tags) throws IOException {
+    private static File getFileWithTag(File file, Map<String, String> tags) throws IOException {
         List<File> res = getAssociatedFiles(file);
         if (res == null) return null;
         for (File fi : res) {
@@ -365,7 +489,7 @@ public class FileSystemImpl {
         return null;
     }
 
-    private List<File> getFilesWithTagFilter(File file, TagFilter tagFilter) throws IOException {
+    private static List<File> getFilesWithTagFilter(File file, TagFilter tagFilter) throws IOException {
         List<File> files = getAssociatedFiles(file), res = new ArrayList<>();
         if (files == null) return files;
         for (File fi : files) {
@@ -388,7 +512,7 @@ public class FileSystemImpl {
      * @return 包含 tags 中所有 key-value 对的 .iginx 文件集合,否则返回 null
      * @throws IOException 任何查找或读写操作导致的 IOException 将被传播
      */
-    private List<File> getFilesContainTag(File file, Map<String, String> tags) throws IOException {
+    private static List<File> getFilesContainTag(File file, Map<String, String> tags) throws IOException {
         List<File> res = new ArrayList<>();
         List<File> files = getAssociatedFiles(file);
 
@@ -403,7 +527,7 @@ public class FileSystemImpl {
         return res.size() == 0 ? null : res;
     }
 
-    public List<Pair<File, FileMeta>> getAllIginXFiles(File dir) {
+    public static List<Pair<File, FileMeta>> getAllIginXFiles(File dir) {
         List<Pair<File, FileMeta>> res = new ArrayList<>();
         Stack<File> stack = new Stack<>();
         stack.push(dir);
@@ -428,12 +552,9 @@ public class FileSystemImpl {
     }
 
     // 返回最大最小的文件，文件可能是目录
-    public List<File> getBoundaryFiles(File dir) {
+    public static Pair<File,File> getBoundaryFiles(File dir) {
         File minFile = getMinFile(dir);
         File maxFile = getMaxFile(dir);
-
-        List<File> res = new ArrayList<>();
-        res.add(minFile);
 
         File lastFile = null;
         while (maxFile.isDirectory()) {
@@ -445,17 +566,16 @@ public class FileSystemImpl {
             lastFile = maxFile;
         }
 
-        res.add(maxFile);
-        return res;
+        return new Pair<>(minFile,maxFile);
     }
 
-    File getMinFile(File dir) {
+    static File getMinFile(File dir) {
         File[] files = dir.listFiles();
         Arrays.sort(files);
         return files[0];
     }
 
-    File getMaxFile(File dir) {
+    static File getMaxFile(File dir) {
         File[] files = dir.listFiles();
         if (files.length == 0) {
             return dir;
@@ -465,24 +585,20 @@ public class FileSystemImpl {
         return maxFile;
     }
 
-    public List<Long> getBoundaryTime(File dir) {
+    public static Long getMaxTime(File dir) {
         List<Long> res = new ArrayList<>();
         List<File> files = getAssociatedFiles(dir);
-        long min = Long.MAX_VALUE;
         long max = Long.MIN_VALUE;
 
         for (File f : files) {
             long size = f.length();
-            min = Math.min(min, size);
             max = Math.max(max, size);
         }
 
-        res.add(min);
-        res.add(max);
-        return res;
+        return max;
     }
 
-    public Date getCreationTime(File file) {
+    public static Date getCreationTime(File file) {
         return fileOperator.getCreationTime(file);
     }
 

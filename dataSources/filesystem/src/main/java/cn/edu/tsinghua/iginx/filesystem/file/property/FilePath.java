@@ -88,4 +88,8 @@ public final class FilePath {
     public static void setSeparator(String SEPARATOR) {
         FilePath.SEPARATOR = SEPARATOR;
     }
+
+    public static String getSEPARATOR() {
+        return SEPARATOR;
+    }
 }

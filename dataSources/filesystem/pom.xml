@@ -20,6 +20,11 @@
 
     <dependencies>
         <dependency>
+            <groupId>com.bpodgursky</groupId>
+            <artifactId>jbool_expressions</artifactId>
+            <version>1.23</version>
+        </dependency>
+        <dependency>
             <groupId>cn.edu.tsinghua</groupId>
             <artifactId>iginx-core</artifactId>
             <version>${project.version}</version>

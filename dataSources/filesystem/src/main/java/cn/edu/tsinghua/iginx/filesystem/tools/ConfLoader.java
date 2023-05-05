@@ -5,6 +5,8 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
+
+import cn.edu.tsinghua.iginx.utils.ConfReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,17 +19,7 @@ public class ConfLoader {
     public String ROOTPATH = null;
 
     public static String getRootPath() {
-        String path = null;
-        try {
-            InputStream in = new FileInputStream(confPath);
-            Properties properties = new Properties();
-            properties.load(in);
-            path = properties.getProperty(ROOT);
-            if (path == null || path.length() == 0) return null;
-        } catch (IOException e) {
-            logger.error("get conf {} fail!", confPath);
-        }
-        return path;
+    return ConfReader.getPropertyVal(confPath,ROOT);
     }
 
     public static File getRootFile() {
@@ -36,16 +28,6 @@ public class ConfLoader {
     }
 
     public static boolean ifLocalFileSystem() {
-        String path = null;
-        try {
-            InputStream in = new FileInputStream(confPath);
-            Properties properties = new Properties();
-            properties.load(in);
-            boolean flag = Boolean.parseBoolean(properties.getProperty(isLocal));
-            return flag;
-        } catch (IOException e) {
-            logger.error("get conf {} fail!", confPath);
-        }
-        return false;
+       return Boolean.parseBoolean( ConfReader.getPropertyVal(confPath,isLocal));
     }
 }

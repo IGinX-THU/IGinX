@@ -6,12 +6,9 @@ import org.slf4j.LoggerFactory;
 
 public class Record {
     private static final Logger logger = LoggerFactory.getLogger(Record.class);
-    private int MAXDATASETLEN = 100;
-    public static int preperty = 100;
     private long key;
     private DataType dataType;
     private Object rawData;
-    private int index = 0;
 
     public Record(long key, DataType dataType, Object rawData) {
         this.key = key;
@@ -27,10 +24,6 @@ public class Record {
 
     public Object getRawData() {
         return rawData;
-    }
-
-    public void setMAXDATASETLEN(int length) {
-        MAXDATASETLEN = length;
     }
 
     public long getKey() {

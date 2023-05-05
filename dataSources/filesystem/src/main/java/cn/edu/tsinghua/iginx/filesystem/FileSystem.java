@@ -55,10 +55,15 @@ public class FileSystem implements IStorage {
     private static final Logger logger = LoggerFactory.getLogger(FileSystem.class);
     private final StorageEngineMeta meta;
     private Executor executor;
-    private String root;
+    private String root=ConfLoader.getRootPath();
 
     public FileSystem(StorageEngineMeta meta)
             throws StorageInitializationException, TTransportException {
+        if (!meta.getStorageEngine().equals(STORAGE_ENGINE)) {
+            throw new StorageInitializationException(
+                    "unexpected database: " + meta.getStorageEngine());
+        }
+
         boolean isLocal = ConfLoader.ifLocalFileSystem();
         if (isLocal) {
             initLocalExecutor(meta);
@@ -66,16 +71,11 @@ public class FileSystem implements IStorage {
             executor = new RemoteExecutor(meta.getIp(), meta.getPort());
         }
         this.meta = meta;
-        if (!meta.getStorageEngine().equals(STORAGE_ENGINE)) {
-            throw new StorageInitializationException(
-                    "unexpected database: " + meta.getStorageEngine());
-        }
     }
 
     private void initLocalExecutor(StorageEngineMeta meta) {
-        Map<String, String> extraParams = meta.getExtraParams();
-        String dataDir = extraParams.get("dir");
-        root = dataDir;
+        String argRoot = meta.getExtraParams().get("dir");
+        root = argRoot==null?root:argRoot;
 
         this.executor = new LocalExecutor(root);
 

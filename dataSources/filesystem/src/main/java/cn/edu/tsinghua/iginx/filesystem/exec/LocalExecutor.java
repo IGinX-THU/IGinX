@@ -19,11 +19,10 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.filesystem.file.property.FileMeta;
 import cn.edu.tsinghua.iginx.filesystem.file.property.FilePath;
-import cn.edu.tsinghua.iginx.filesystem.filesystem.FileSystemImpl;
+import cn.edu.tsinghua.iginx.filesystem.filesystem.FileSystemService;
 import cn.edu.tsinghua.iginx.filesystem.query.FSResultTable;
 import cn.edu.tsinghua.iginx.filesystem.query.FileSystemHistoryQueryRowStream;
 import cn.edu.tsinghua.iginx.filesystem.query.FileSystemQueryRowStream;
-import cn.edu.tsinghua.iginx.filesystem.tools.ConfLoader;
 import cn.edu.tsinghua.iginx.filesystem.tools.FilterTransformer;
 import cn.edu.tsinghua.iginx.filesystem.wrapper.Record;
 import cn.edu.tsinghua.iginx.metadata.entity.TimeInterval;
@@ -39,7 +38,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class LocalExecutor implements Executor {
-    FileSystemImpl fileSystem = new FileSystemImpl();
     private static final Logger logger = LoggerFactory.getLogger(LocalExecutor.class);
     private String root;
 
@@ -49,7 +47,7 @@ public class LocalExecutor implements Executor {
 
     public LocalExecutor(String root) {
         if (root == null) {
-            this.root = ConfLoader.getRootPath();
+            logger.error("root should not to be null!");
         } else this.root = root;
     }
 
@@ -60,8 +58,10 @@ public class LocalExecutor implements Executor {
         TagFilter tagFilter = project.getTagFilter();
         Filter filterEntity = FilterTransformer.toFilter(filter);
         if (isDummyStorageUnit) {
-            if (tagFilter != null)
+            if (tagFilter != null){
+                logger.warn("dummy storage query should contain no tag filter");
                 return new TaskExecuteResult(new FileSystemHistoryQueryRowStream());
+            }
             return executeDummyProjectTask(series, filterEntity);
         }
 
@@ -72,11 +72,10 @@ public class LocalExecutor implements Executor {
             String storageUnit, List<String> series, TagFilter tagFilter, Filter filter) {
         try {
             List<FSResultTable> result = new ArrayList<>();
-            FileSystemImpl fileSystem = new FileSystemImpl();
             logger.info("[Query] execute query file: " + series);
             for (String path : series) {
                 result.addAll(
-                        fileSystem.readFile(
+                        FileSystemService.readFile(
                                 new File(FilePath.toIginxPath(root, storageUnit, path)),
                                 tagFilter,
                                 filter));
@@ -95,11 +94,10 @@ public class LocalExecutor implements Executor {
     private TaskExecuteResult executeDummyProjectTask(List<String> series, Filter filter) {
         try {
             List<FSResultTable> result = new ArrayList<>();
-            FileSystemImpl fileSystem = new FileSystemImpl();
             logger.info("[Query] execute query file: " + series);
             for (String path : series) {
                 result.addAll(
-                        fileSystem.readFile(
+                        FileSystemService.readFile(
                                 new File(FilePath.toNormalFilePath(root, path)), filter));
             }
             RowStream rowStream = new FileSystemHistoryQueryRowStream(result, root);
@@ -138,10 +136,6 @@ public class LocalExecutor implements Executor {
         List<List<Record>> valList = new ArrayList<>();
         List<File> fileList = new ArrayList<>();
         List<Map<String, String>> tagList = new ArrayList<>();
-
-        if (fileSystem == null) {
-            return new PhysicalTaskExecuteFailureException("get fileSystem failure!");
-        }
 
         for (int j = 0; j < data.getPathNum(); j++) {
             fileList.add(new File(FilePath.toIginxPath(root, storageUnit, data.getPath(j))));
@@ -186,7 +180,7 @@ public class LocalExecutor implements Executor {
         }
         try {
             logger.info("开始数据写入");
-            fileSystem.writeFiles(fileList, valList, tagList);
+            FileSystemService.writeFiles(fileList, valList, tagList);
         } catch (Exception e) {
             logger.error("encounter error when write points to fileSystem: ", e);
         } finally {
@@ -199,10 +193,6 @@ public class LocalExecutor implements Executor {
         List<List<Record>> valList = new ArrayList<>();
         List<File> fileList = new ArrayList<>();
         List<Map<String, String>> tagList = new ArrayList<>();
-
-        if (fileSystem == null) {
-            return new PhysicalTaskExecuteFailureException("get fileSystem failure!");
-        }
 
         for (int j = 0; j < data.getPathNum(); j++) {
             fileList.add(new File(FilePath.toIginxPath(root, storageUnit, data.getPath(j))));
@@ -243,7 +233,7 @@ public class LocalExecutor implements Executor {
 
         try {
             logger.info("开始数据写入");
-            fileSystem.writeFiles(fileList, valList, tagList);
+            FileSystemService.writeFiles(fileList, valList, tagList);
         } catch (Exception e) {
             logger.error("encounter error when write points to fileSystem: ", e);
         } finally {
@@ -259,7 +249,7 @@ public class LocalExecutor implements Executor {
             List<File> fileList = new ArrayList<>();
             if (paths.size() == 1 && paths.get(0).equals("*") && delete.getTagFilter() == null) {
                 try {
-                    fileSystem.deleteFile(new File(FilePath.toIginxPath(root, storageUnit, null)));
+                    FileSystemService.deleteFile(new File(FilePath.toIginxPath(root, storageUnit, null)));
                 } catch (Exception e) {
                     e.printStackTrace();
                     logger.error("encounter error when clear data: " + e.getMessage());
@@ -269,7 +259,7 @@ public class LocalExecutor implements Executor {
                     fileList.add(new File(FilePath.toIginxPath(root, storageUnit, path)));
                 }
                 try {
-                    fileSystem.deleteFiles(fileList, delete.getTagFilter());
+                    FileSystemService.deleteFiles(fileList, delete.getTagFilter());
                 } catch (Exception e) {
                     e.printStackTrace();
                     logger.error("encounter error when clear data: " + e.getMessage());
@@ -283,7 +273,7 @@ public class LocalExecutor implements Executor {
                         fileList.add(new File(FilePath.toIginxPath(root, storageUnit, path)));
                     }
                     for (TimeRange timeRange : delete.getTimeRanges()) {
-                        fileSystem.trimFilesContent(
+                        FileSystemService.trimFilesContent(
                                 fileList,
                                 delete.getTagFilter(),
                                 timeRange.getActualBeginTime(),
@@ -306,7 +296,7 @@ public class LocalExecutor implements Executor {
 
         File directory = new File(FilePath.toIginxPath(root, storageUnit, null));
 
-        List<Pair<File, FileMeta>> res = fileSystem.getAllIginXFiles(directory);
+        List<Pair<File, FileMeta>> res = FileSystemService.getAllIginXFiles(directory);
 
         for (Pair<File, FileMeta> pair : res) {
             File file = pair.getK();
@@ -326,10 +316,10 @@ public class LocalExecutor implements Executor {
             throws PhysicalException {
         File directory = new File(FilePath.toNormalFilePath(root, prefix));
 
-        List<File> files = fileSystem.getBoundaryFiles(directory);
+       Pair<File,File> files = FileSystemService.getBoundaryFiles(directory);
 
-        File minPathFile = files.get(0);
-        File maxPathFile = files.get(1);
+        File minPathFile = files.getK();
+        File maxPathFile = files.getV();
 
         TimeSeriesRange tsInterval = null;
         if (prefix == null)
@@ -348,9 +338,9 @@ public class LocalExecutor implements Executor {
         else tsInterval = new TimeSeriesInterval(prefix, StringUtils.nextString(prefix));
 
         // 对于pb级的文件系统，遍历是不可能的，直接接入
-        List<Long> time = fileSystem.getBoundaryTime(directory);
+        Long time = FileSystemService.getMaxTime(directory);
         TimeInterval timeInterval =
-                new TimeInterval(0, time.get(1) == Long.MIN_VALUE ? Long.MAX_VALUE : time.get(1));
+                new TimeInterval(0, time== Long.MIN_VALUE ? Long.MAX_VALUE : time);
 
         return new Pair<>(tsInterval, timeInterval);
     }

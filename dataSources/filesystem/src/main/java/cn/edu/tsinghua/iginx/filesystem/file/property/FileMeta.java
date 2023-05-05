@@ -6,13 +6,13 @@ import java.util.Map;
 
 public class FileMeta {
     // the number of the max meta info
-    public static long IGINXFILEVALINDEX = 10L;
+    public static long iginxFileMetaIndex = 10L;
     // is Dir line number
-    public static final int ISDIRINDEX = 1;
+    public static final int isDirIndex = 1;
     // data type line number
-    public static final int DATATYPEINDEX = 2;
+    public static final int dataTypeIndex = 2;
     // tagkv line number
-    public static final int TAGKVINDEX = 3;
+    public static final int tagKVIndex = 3;
     private DataType dataType;
     private Map<String, String> tag;
     private boolean isDir = false;
