@@ -177,6 +177,7 @@ public class ValueUtils {
         } else {
             return (value.getValue().hashCode());
         }
+    }
 
     public static Comparator<Row> firstLastRowComparator() {
         return (o1, o2) -> {
