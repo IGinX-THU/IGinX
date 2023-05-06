@@ -153,8 +153,7 @@ joinPart
    ;
 
 tableReference
-   : path
-   | subquery
+   : (path | subquery) asClause?
    ;
 
 subquery

@@ -6,6 +6,7 @@ import static cn.edu.tsinghua.iginx.engine.shared.Constants.ORDINAL;
 import static cn.edu.tsinghua.iginx.engine.shared.function.system.ArithmeticExpr.ARITHMETIC_EXPR;
 import static cn.edu.tsinghua.iginx.engine.shared.operator.type.JoinAlgType.chooseJoinAlg;
 import static cn.edu.tsinghua.iginx.metadata.utils.FragmentUtils.keyFromTSIntervalToTimeInterval;
+import static cn.edu.tsinghua.iginx.sql.SQLConstant.DOT;
 import static cn.edu.tsinghua.iginx.sql.statement.frompart.join.JoinType.isNaturalJoin;
 
 import cn.edu.tsinghua.iginx.conf.Config;
@@ -52,12 +53,12 @@ import cn.edu.tsinghua.iginx.metadata.entity.TimeSeriesInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.TimeSeriesRange;
 import cn.edu.tsinghua.iginx.policy.IPolicy;
 import cn.edu.tsinghua.iginx.policy.PolicyManager;
-import cn.edu.tsinghua.iginx.sql.SQLConstant;
 import cn.edu.tsinghua.iginx.sql.expression.Expression;
 import cn.edu.tsinghua.iginx.sql.statement.SelectStatement;
 import cn.edu.tsinghua.iginx.sql.statement.SelectStatement.QueryType;
 import cn.edu.tsinghua.iginx.sql.statement.Statement;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.FromPartType;
+import cn.edu.tsinghua.iginx.sql.statement.frompart.PathFromPart;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.SubQueryFromPart;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.join.JoinCondition;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.join.JoinType;
@@ -66,6 +67,7 @@ import cn.edu.tsinghua.iginx.utils.SortUtils;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -117,6 +119,15 @@ public class QueryGenerator extends AbstractGenerator {
                 } else {
                     policy.notify(selectStatement);
                     root = filterAndMergeFragments(selectStatement);
+                    PathFromPart pathFromPart =
+                            (PathFromPart) selectStatement.getFromParts().get(0);
+                    if (pathFromPart.hasAlias()) {
+                        Map<String, String> map = new HashMap<>();
+                        map.put(
+                                pathFromPart.getOriginPath() + ALL_PATH_SUFFIX,
+                                pathFromPart.getAlias() + ALL_PATH_SUFFIX);
+                        root = new Rename(new OperatorSource(root), map);
+                    }
                 }
             }
         }
@@ -478,7 +489,7 @@ public class QueryGenerator extends AbstractGenerator {
                                                                     .getFromParts()
                                                                     .get(0)
                                                                     .getPrefix()
-                                                            + SQLConstant.DOT,
+                                                            + DOT,
                                                     "");
                                     order.add(colName);
                                 });
@@ -523,7 +534,8 @@ public class QueryGenerator extends AbstractGenerator {
                                 SubQueryFromPart subQueryFromPart = (SubQueryFromPart) fromPart;
                                 joinList.add(generateRoot(subQueryFromPart.getSubQuery()));
                             } else {
-                                String prefix = fromPart.getPrefix() + ALL_PATH_SUFFIX;
+                                PathFromPart pathFromPart = (PathFromPart) fromPart;
+                                String prefix = pathFromPart.getOriginPath() + ALL_PATH_SUFFIX;
                                 Pair<Map<TimeInterval, List<FragmentMeta>>, List<FragmentMeta>>
                                         pair =
                                                 getFragmentsByTSInterval(
@@ -531,12 +543,20 @@ public class QueryGenerator extends AbstractGenerator {
                                                         new TimeSeriesInterval(prefix, prefix));
                                 Map<TimeInterval, List<FragmentMeta>> fragments = pair.k;
                                 List<FragmentMeta> dummyFragments = pair.v;
-                                joinList.add(
+                                Operator root =
                                         mergeRawData(
                                                 fragments,
                                                 dummyFragments,
                                                 Collections.singletonList(prefix),
-                                                tagFilter));
+                                                tagFilter);
+                                if (pathFromPart.hasAlias()) {
+                                    Map<String, String> map = new HashMap<>();
+                                    map.put(
+                                            pathFromPart.getOriginPath() + ALL_PATH_SUFFIX,
+                                            pathFromPart.getAlias() + ALL_PATH_SUFFIX);
+                                    root = new Rename(new OperatorSource(root), map);
+                                }
+                                joinList.add(root);
                             }
                         });
         // 2. merge by declare

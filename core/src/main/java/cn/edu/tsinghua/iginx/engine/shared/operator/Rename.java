@@ -11,7 +11,7 @@ public class Rename extends AbstractUnaryOperator {
 
     private final Map<String, String> aliasMap;
 
-    private final List<String> ignorePatterns;
+    private final List<String> ignorePatterns; // 不进行重命名的列
 
     public Rename(Source source, Map<String, String> aliasMap) {
         this(source, aliasMap, new ArrayList<>());

@@ -2493,6 +2493,27 @@ public abstract class SQLSessionIT {
                         + "Total line number = 10\n";
         executeAndCompare(statement, expected);
 
+        // path alias
+        statement = "SELECT s1, s2 FROM us.d1 AS rename_path WHERE s1 >= 1000 AND s1 < 1010;";
+        expected =
+                "ResultSets:\n"
+                        + "+----+--------------+--------------+\n"
+                        + "| key|rename_path.s1|rename_path.s2|\n"
+                        + "+----+--------------+--------------+\n"
+                        + "|1000|          1000|          1001|\n"
+                        + "|1001|          1001|          1002|\n"
+                        + "|1002|          1002|          1003|\n"
+                        + "|1003|          1003|          1004|\n"
+                        + "|1004|          1004|          1005|\n"
+                        + "|1005|          1005|          1006|\n"
+                        + "|1006|          1006|          1007|\n"
+                        + "|1007|          1007|          1008|\n"
+                        + "|1008|          1008|          1009|\n"
+                        + "|1009|          1009|          1010|\n"
+                        + "+----+--------------+--------------+\n"
+                        + "Total line number = 10\n";
+        executeAndCompare(statement, expected);
+
         // result set alias
         statement = "SELECT s1, s2 FROM us.d1 WHERE s1 >= 1000 AND s1 < 1010 AS rename_result_set;";
         expected =
@@ -2809,6 +2830,44 @@ public abstract class SQLSessionIT {
                         + "Total line number = 9\n";
         executeAndCompare(statement, expected);
 
+        statement = "SELECT * FROM test.a AS sub1, test.a AS sub2;";
+        expected =
+                "ResultSets:\n"
+                        + "+------+------+--------+------+------+--------+\n"
+                        + "|sub1.a|sub1.b|sub1.key|sub2.a|sub2.b|sub2.key|\n"
+                        + "+------+------+--------+------+------+--------+\n"
+                        + "|     1|   1.1|       1|     1|   1.1|       1|\n"
+                        + "|     1|   1.1|       1|     3|   3.1|       2|\n"
+                        + "|     1|   1.1|       1|     7|   7.1|       3|\n"
+                        + "|     3|   3.1|       2|     1|   1.1|       1|\n"
+                        + "|     3|   3.1|       2|     3|   3.1|       2|\n"
+                        + "|     3|   3.1|       2|     7|   7.1|       3|\n"
+                        + "|     7|   7.1|       3|     1|   1.1|       1|\n"
+                        + "|     7|   7.1|       3|     3|   3.1|       2|\n"
+                        + "|     7|   7.1|       3|     7|   7.1|       3|\n"
+                        + "+------+------+--------+------+------+--------+\n"
+                        + "Total line number = 9\n";
+        executeAndCompare(statement, expected);
+
+        statement = "SELECT * FROM (SELECT * FROM test.a) AS sub1, (SELECT * FROM test.a) AS sub2;";
+        expected =
+                "ResultSets:\n"
+                        + "+--------+-------------+-------------+--------+-------------+-------------+\n"
+                        + "|sub1.key|sub1.test.a.a|sub1.test.a.b|sub2.key|sub2.test.a.a|sub2.test.a.b|\n"
+                        + "+--------+-------------+-------------+--------+-------------+-------------+\n"
+                        + "|       1|            1|          1.1|       1|            1|          1.1|\n"
+                        + "|       1|            1|          1.1|       2|            3|          3.1|\n"
+                        + "|       1|            1|          1.1|       3|            7|          7.1|\n"
+                        + "|       2|            3|          3.1|       1|            1|          1.1|\n"
+                        + "|       2|            3|          3.1|       2|            3|          3.1|\n"
+                        + "|       2|            3|          3.1|       3|            7|          7.1|\n"
+                        + "|       3|            7|          7.1|       1|            1|          1.1|\n"
+                        + "|       3|            7|          7.1|       2|            3|          3.1|\n"
+                        + "|       3|            7|          7.1|       3|            7|          7.1|\n"
+                        + "+--------+-------------+-------------+--------+-------------+-------------+\n"
+                        + "Total line number = 9\n";
+        executeAndCompare(statement, expected);
+
         statement = "SELECT * FROM (SELECT * FROM test.b), test.a;";
         expected =
                 "ResultSets:\n"
@@ -2890,7 +2949,7 @@ public abstract class SQLSessionIT {
         executeAndCompare(statement, expected);
 
         statement =
-                "SELECT * FROM test.a, (SELECT * FROM (SELECT a FROM test.b WHERE test.b.a < 6 AND test.b.a < test.a.a), (SELECT b FROM test.c WHERE test.c.b = 1) AS sub);";
+                "SELECT * FROM test.a, (SELECT * FROM (SELECT a FROM test.b WHERE test.b.a < 6 AND test.b.a < test.a.a), (SELECT b FROM test.c WHERE test.c.b = 1)) AS sub;";
         expected =
                 "ResultSets:\n"
                         + "+------------+--------------+------------+--------------+--------+--------+----------+\n"
@@ -2955,7 +3014,7 @@ public abstract class SQLSessionIT {
         executeAndCompare(statement, expected);
 
         statement =
-                "SELECT * FROM test.a, (SELECT * FROM (SELECT a FROM test.b WHERE test.b.a < 6), (SELECT b FROM test.c WHERE test.c.b = 1) AS sub);";
+                "SELECT * FROM test.a, (SELECT * FROM (SELECT a FROM test.b WHERE test.b.a < 6), (SELECT b FROM test.c WHERE test.c.b = 1)) AS sub;";
         expected =
                 "ResultSets:\n"
                         + "+------------+--------------+------------+--------------+--------+--------+----------+\n"

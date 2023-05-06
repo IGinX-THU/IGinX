@@ -325,6 +325,10 @@ public class SelectStatement extends DataStatement {
         return baseExpressionList;
     }
 
+    public void addBaseExpression(BaseExpression baseExpression) {
+        this.baseExpressionList.add(baseExpression);
+    }
+
     public void setSelectedPaths(BaseExpression baseExpression) {
         this.setSelectedPaths(baseExpression, true);
     }
@@ -610,7 +614,7 @@ public class SelectStatement extends DataStatement {
         return new ArrayList<>(prefixSet);
     }
 
-    public void calculateFreeVariables() {
+    public void initFreeVariables() {
         Set<String> set = new HashSet<>();
         List<String> allVariables = getAllPathsFromFilter(filter);
         allVariables.addAll(getAllPathsFromFilter(havingFilter));
