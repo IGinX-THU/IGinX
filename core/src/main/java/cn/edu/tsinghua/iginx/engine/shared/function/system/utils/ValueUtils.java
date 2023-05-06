@@ -21,8 +21,10 @@ package cn.edu.tsinghua.iginx.engine.shared.function.system.utils;
 import cn.edu.tsinghua.iginx.engine.physical.exception.InvalidOperatorParameterException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -175,5 +177,17 @@ public class ValueUtils {
         } else {
             return (value.getValue().hashCode());
         }
+
+    public static Comparator<Row> firstLastRowComparator() {
+        return (o1, o2) -> {
+            if (o1.getKey() < o2.getKey()) {
+                return -1;
+            } else if (o1.getKey() > o2.getKey()) {
+                return 1;
+            }
+            String s1 = new String((byte[]) o1.getValue(0));
+            String s2 = new String((byte[]) o2.getValue(0));
+            return s1.compareTo(s2);
+        };
     }
 }
