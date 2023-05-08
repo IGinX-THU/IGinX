@@ -65,11 +65,11 @@ jobs:
             - name: oriHasDataExpHasData IT
               #        if: always()
               run: |
-                  mvn test -q -Dtest=${{matrix.DB-name}}HistoryDataCapacityExpansionIT#oriHasDataExpHasData -DfailIfNoTests=false
+                  mvn test -q -Dtest=${{matrix.DB-name}}HistoryDataCapacityExpansionIT#oriHasDataExpHasData -DfailIfNoTests=false -P passFormat
                   if [ "${{matrix.DB-name}}" == "InfluxDB" ]; then
-                    mvn test -q -Dtest=${INFLUXDB-FUNCTEST} -DfailIfNoTests=false
+                    mvn test -q -Dtest=${INFLUXDB-FUNCTEST} -DfailIfNoTests=false -P passFormat
                   else
-                    mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false
+                    mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P passFormat
                   fi
             #第 2 阶段测试开始==========================================
             - name: Prepare CapExp environment oriNoDataExpNoData
@@ -82,11 +82,11 @@ jobs:
             - name: oriNoDataExpNoData IT
               #        if: always()
               run: |
-                  mvn test -q -Dtest=${{matrix.DB-name}}HistoryDataCapacityExpansionIT#oriNoDataExpNoData -DfailIfNoTests=false
+                  mvn test -q -Dtest=${{matrix.DB-name}}HistoryDataCapacityExpansionIT#oriNoDataExpNoData -DfailIfNoTests=false -P passFormat
                   if [ "${{matrix.DB-name}}" == "InfluxDB" ]; then
-                    mvn test -q -Dtest=${INFLUXDB-FUNCTEST} -DfailIfNoTests=false
+                    mvn test -q -Dtest=${INFLUXDB-FUNCTEST} -DfailIfNoTests=false -P passFormat
                   else
-                    mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false
+                    mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P passFormat
                   fi
             #第 3 阶段测试开始==========================================
             - name: Prepare CapExp environment oriHasDataExpNoData
@@ -99,11 +99,11 @@ jobs:
             - name: oriHasDataExpNoData IT
               #        if: always()
               run: |
-                  mvn test -q -Dtest=${{matrix.DB-name}}HistoryDataCapacityExpansionIT#oriHasDataExpNoData -DfailIfNoTests=false
+                  mvn test -q -Dtest=${{matrix.DB-name}}HistoryDataCapacityExpansionIT#oriHasDataExpNoData -DfailIfNoTests=false -P passFormat
                   if [ "${{matrix.DB-name}}" == "InfluxDB" ]; then
-                    mvn test -q -Dtest=${INFLUXDB-FUNCTEST} -DfailIfNoTests=false
+                    mvn test -q -Dtest=${INFLUXDB-FUNCTEST} -DfailIfNoTests=false -P passFormat
                   else
-                    mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false
+                    mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P passFormat
                   fi
             #第 4 阶段测试开始==========================================
             - name: Prepare CapExp environment oriNoDataExpHasData
@@ -117,15 +117,15 @@ jobs:
               #        if: always()
               run: |
                   if [ "${{matrix.DB-name}}" == "IoTDB12" ]; then
-                    mvn test -q -Dtest=IoTDB12HistoryDataCapacityExpansionIT#oriNoDataExpHasData -DfailIfNoTests=false
-                    mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false
-                    mvn test -q -Dtest=IoTDB12HistoryDataCapacityExpansionIT#schemaPrefix -DfailIfNoTests=false
+                    mvn test -q -Dtest=IoTDB12HistoryDataCapacityExpansionIT#oriNoDataExpHasData -DfailIfNoTests=false -P passFormat
+                    mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P passFormat
+                    mvn test -q -Dtest=IoTDB12HistoryDataCapacityExpansionIT#schemaPrefix -DfailIfNoTests=false -P passFormat
                   elif [ "${{matrix.DB-name}}" == "PostgreSQL" ]; then
-                    mvn test -q -Dtest=PostgreSQLHistoryDataCapacityExpansionIT#oriNoDataExpHasData -DfailIfNoTests=false
-                    mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false
-                    mvn test -q -Dtest=PostgreSQLHistoryDataCapacityExpansionIT#schemaPrefix -DfailIfNoTests=false
+                    mvn test -q -Dtest=PostgreSQLHistoryDataCapacityExpansionIT#oriNoDataExpHasData -DfailIfNoTests=false -P passFormat
+                    mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P passFormat
+                    mvn test -q -Dtest=PostgreSQLHistoryDataCapacityExpansionIT#schemaPrefix -DfailIfNoTests=false -P passFormat
                   elif [ "${{matrix.DB-name}}" == "InfluxDB" ]; then
-                    mvn test -q -Dtest=InfluxDBHistoryDataCapacityExpansionIT#oriNoDataExpHasData -DfailIfNoTests=false
+                    mvn test -q -Dtest=InfluxDBHistoryDataCapacityExpansionIT#oriNoDataExpHasData -DfailIfNoTests=false -P passFormat
                   else
                     echo "${{matrix.DB-name}} is not supported"
                   fi
