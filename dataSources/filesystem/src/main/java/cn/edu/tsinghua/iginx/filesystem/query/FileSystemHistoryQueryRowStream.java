@@ -6,6 +6,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.filesystem.file.property.FilePath;
+import cn.edu.tsinghua.iginx.filesystem.tools.MemoryPool;
 import cn.edu.tsinghua.iginx.filesystem.wrapper.Record;
 import java.io.File;
 import java.util.ArrayList;
@@ -16,6 +17,7 @@ public class FileSystemHistoryQueryRowStream implements RowStream {
     private final List<FSResultTable> rowData;
     private final int[][] indices;
     private final int[] round;
+    private int batch=1024*100;
     private int hasMoreRecords = 0;
 
     public FileSystemHistoryQueryRowStream() {
@@ -64,7 +66,13 @@ public class FileSystemHistoryQueryRowStream implements RowStream {
 
     @Override
     public void close() throws PhysicalException {
-        // need to do nothing
+        // release the memory
+        for(FSResultTable table : rowData){
+            List<Record> vals = table.getVal();
+            for(Record val:vals){
+                MemoryPool.release((byte[])val.getRawData());
+            }
+        }
     }
 
     @Override
@@ -81,7 +89,7 @@ public class FileSystemHistoryQueryRowStream implements RowStream {
             if (index == records.size()) { // 数据已经消费完毕了
                 continue;
             }
-            timestamp = Math.min(indices[i][index], timestamp);
+            timestamp = Math.min(indices[i][index]/batch, timestamp);
         }
         if (timestamp == Long.MAX_VALUE) {
             return null;
@@ -94,13 +102,15 @@ public class FileSystemHistoryQueryRowStream implements RowStream {
                 continue;
             }
             byte[] val = (byte[]) records.get(index).getRawData();
-            if (indices[i][index] == timestamp) {
-                byte[] newVal = new byte[1];
-                newVal[0] = val[indices[i][index]];
-                Object value = newVal;
+            if (indices[i][index]/batch == timestamp) {
+                int len = Math.min(batch,val.length-indices[i][index]);
+//                byte[] newVal = new byte[len];
+//                System.arraycopy(val,indices[i][index],newVal,0,len);
+//                newVal[] = val[indices[i][index]];
+                Object value = val;
                 values[i] = value;
-                indices[i][index]++;
-                if (indices[i][index] == val.length) {
+                indices[i][index]+=batch;
+                if (indices[i][index] >= val.length) {
                     round[i]++;
                     if (round[i] == records.size()) hasMoreRecords--;
                 }
