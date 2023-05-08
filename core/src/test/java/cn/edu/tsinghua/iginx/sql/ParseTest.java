@@ -5,7 +5,7 @@ import static org.junit.Assert.assertEquals;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
-import cn.edu.tsinghua.iginx.sql.expression.BaseExpression;
+import cn.edu.tsinghua.iginx.sql.expression.FuncExpression;
 import cn.edu.tsinghua.iginx.sql.statement.*;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.FromPartType;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.SubQueryFromPart;
@@ -51,8 +51,9 @@ public class ParseTest {
 
         SelectStatement selectStatement = statement.getSubSelectStatement();
 
-        paths = Arrays.asList("test.status", "test.hardware", "test.num");
-        assertEquals(paths, selectStatement.getSelectedPaths());
+        HashSet<String> pathSet =
+                new HashSet<>(Arrays.asList("test.status", "test.hardware", "test.num"));
+        assertEquals(pathSet, selectStatement.getPathSet());
 
         assertEquals(5, statement.getTimeOffset());
     }
@@ -68,15 +69,25 @@ public class ParseTest {
         assertTrue(statement.hasDownsample());
         assertEquals(SelectStatement.QueryType.DownSampleQuery, statement.getQueryType());
 
-        assertEquals(2, statement.getBaseExpressionMap().size());
-        assertTrue(statement.getBaseExpressionMap().containsKey("sum"));
-        assertTrue(statement.getBaseExpressionMap().containsKey("count"));
+        assertEquals(2, statement.getFuncExpressionMap().size());
+        assertTrue(statement.getFuncExpressionMap().containsKey("sum"));
+        assertTrue(statement.getFuncExpressionMap().containsKey("count"));
 
-        assertEquals("a.b.c", statement.getBaseExpressionMap().get("sum").get(0).getPathName());
-        assertEquals("a.b.d", statement.getBaseExpressionMap().get("sum").get(1).getPathName());
-        assertEquals("a.b.e", statement.getBaseExpressionMap().get("sum").get(2).getPathName());
-        assertEquals("a.b.f", statement.getBaseExpressionMap().get("count").get(0).getPathName());
-        assertEquals("a.b.g", statement.getBaseExpressionMap().get("count").get(1).getPathName());
+        assertEquals(
+                Collections.singletonList("a.b.c"),
+                statement.getFuncExpressionMap().get("sum").get(0).getParams());
+        assertEquals(
+                Collections.singletonList("a.b.d"),
+                statement.getFuncExpressionMap().get("sum").get(1).getParams());
+        assertEquals(
+                Collections.singletonList("a.b.e"),
+                statement.getFuncExpressionMap().get("sum").get(2).getParams());
+        assertEquals(
+                Collections.singletonList("a.b.f"),
+                statement.getFuncExpressionMap().get("count").get(0).getParams());
+        assertEquals(
+                Collections.singletonList("a.b.g"),
+                statement.getFuncExpressionMap().get("count").get(1).getParams());
 
         assertEquals(
                 "(((key > 100 && key < 1000) || a.b.d == \"abc\" || a.b.c >= \"666\" || (a.b.e < 10 && !(a.b.f < 10))) && key >= 200 && key < 300)",
@@ -112,7 +123,9 @@ public class ParseTest {
 
         selectStr = "SELECT SUM(c) FROM a.b AGG LEVEL = 1, 2;";
         statement = (SelectStatement) TestUtils.buildStatement(selectStr);
-        assertEquals("a.b.c", statement.getBaseExpressionMap().get("sum").get(0).getPathName());
+        assertEquals(
+                Collections.singletonList("a.b.c"),
+                statement.getFuncExpressionMap().get("sum").get(0).getParams());
         assertEquals(Arrays.asList(1, 2), statement.getLayers());
     }
 
@@ -199,14 +212,14 @@ public class ParseTest {
         String selectWithSubQuery =
                 "SELECT res.max_a FROM (SELECT max(a) AS max_a FROM root AS res);";
         SelectStatement statement = (SelectStatement) TestUtils.buildStatement(selectWithSubQuery);
-        assertEquals(Collections.singletonList("res.max_a"), statement.getSelectedPaths());
+        assertEquals(new HashSet<>(Collections.singletonList("res.max_a")), statement.getPathSet());
 
         assertEquals(FromPartType.SubQueryFromPart, statement.getFromParts().get(0).getType());
         SubQueryFromPart subQueryFromPart = (SubQueryFromPart) statement.getFromParts().get(0);
         SelectStatement subStatement = subQueryFromPart.getSubQuery();
 
-        BaseExpression expression = subStatement.getBaseExpressionMap().get("max").get(0);
-        assertEquals("root.a", expression.getPathName());
+        FuncExpression expression = subStatement.getFuncExpressionMap().get("max").get(0);
+        assertEquals(Collections.singletonList("root.a"), expression.getParams());
         assertEquals("max", expression.getFuncName());
         assertEquals("res.max_a", expression.getAlias());
     }

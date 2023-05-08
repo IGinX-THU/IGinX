@@ -1,6 +1,5 @@
 package cn.edu.tsinghua.iginx.integration.func.sql;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
@@ -9,10 +8,11 @@ import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoder;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.integration.tool.MultiConnection;
+import cn.edu.tsinghua.iginx.integration.tool.SQLExecutor;
 import cn.edu.tsinghua.iginx.pool.IginxInfo;
 import cn.edu.tsinghua.iginx.pool.SessionPool;
 import cn.edu.tsinghua.iginx.session.Session;
-import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
+import cn.edu.tsinghua.iginx.utils.Pair;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -28,7 +28,8 @@ import org.slf4j.LoggerFactory;
 
 public class SQLSessionIT {
 
-    protected static MultiConnection session;
+    protected static SQLExecutor executor;
+
     protected static boolean isForSession = true, isForSessionPool = false;
     protected static int MaxMultiThreadTaskNum = -1;
 
@@ -53,8 +54,7 @@ public class SQLSessionIT {
     private final long endKey = 15000L;
 
     protected boolean isAbleToClearData = true;
-
-    protected String storageEngineType;
+    private static final int CONCURRENT_NUM = 5;
 
     public SQLSessionIT() throws IOException {
         ConfLoder conf = new ConfLoder(Controller.CONFIG_FILE);
@@ -68,6 +68,7 @@ public class SQLSessionIT {
 
     @BeforeClass
     public static void setUp() throws SessionException {
+        MultiConnection session;
         if (isForSession) {
             session =
                     new MultiConnection(
@@ -89,7 +90,6 @@ public class SQLSessionIT {
                                                             .user("root")
                                                             .password("root")
                                                             .build());
-
                                             add(
                                                     new IginxInfo.Builder()
                                                             .host("0.0.0.0")
@@ -99,26 +99,36 @@ public class SQLSessionIT {
                                                             .build());
                                         }
                                     }));
+        } else {
+            logger.error("isForSession=false, isForSessionPool=false");
+            fail();
+            return;
         }
-        session.openSession();
+        executor = new SQLExecutor(session);
+        executor.open();
     }
 
     @AfterClass
     public static void tearDown() throws SessionException {
-        session.closeSession();
+        executor.close();
     }
 
     @Before
-    public void insertData() throws ExecutionException, SessionException {
+    public void insertData() {
+        String insertStatement = generateDefaultInsertStatementByTimeRange(startKey, endKey);
+        executor.execute(insertStatement);
+    }
+
+    private String generateDefaultInsertStatementByTimeRange(long start, long end) {
         String insertStrPrefix = "INSERT INTO us.d1 (key, s1, s2, s3, s4) values ";
 
         StringBuilder builder = new StringBuilder(insertStrPrefix);
 
-        int size = (int) (endKey - startKey);
+        int size = (int) (end - start);
         for (int i = 0; i < size; i++) {
             builder.append(", ");
             builder.append("(");
-            builder.append(startKey + i).append(", ");
+            builder.append(start + i).append(", ");
             builder.append(i).append(", ");
             builder.append(i + 1).append(", ");
             builder.append("\"")
@@ -129,79 +139,13 @@ public class SQLSessionIT {
         }
         builder.append(";");
 
-        String insertStatement = builder.toString();
-
-        SessionExecuteSqlResult res = session.executeSql(insertStatement);
-        if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-            logger.error("Insert date execute fail. Caused by: {}.", res.getParseErrorMsg());
-            fail();
-        }
+        return builder.toString();
     }
 
     @After
     public void clearData() throws ExecutionException, SessionException {
         String clearData = "CLEAR DATA;";
-
-        SessionExecuteSqlResult res = null;
-        try {
-            res = session.executeSql(clearData);
-        } catch (SessionException | ExecutionException e) {
-            logger.error("Statement: \"{}\" execute fail. Caused by: {}", clearData, e.toString());
-            if (e.toString().equals(Controller.CLEARDATAEXCP)) {
-                logger.error("clear data fail and go on....");
-            } else {
-                fail();
-            }
-        }
-
-        if (res != null && res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-            logger.error(
-                    "Statement: \"{}\" execute fail. Caused by: {}.",
-                    clearData,
-                    res.getParseErrorMsg());
-            fail();
-        }
-    }
-
-    private void executeAndCompare(String statement, String expectedOutput) {
-        String actualOutput = execute(statement);
-        assertEquals(expectedOutput, actualOutput);
-    }
-
-    private String execute(String statement) {
-        if (!statement.toLowerCase().startsWith("insert")) {
-            logger.info("Execute Statement: \"{}\"", statement);
-        }
-
-        SessionExecuteSqlResult res = null;
-        try {
-            res = session.executeSql(statement);
-        } catch (SessionException | ExecutionException e) {
-            logger.error("Statement: \"{}\" execute fail. Caused by:", statement, e);
-            fail();
-        }
-
-        if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-            logger.error(
-                    "Statement: \"{}\" execute fail. Caused by: {}.",
-                    statement,
-                    res.getParseErrorMsg());
-            fail();
-            return "";
-        }
-
-        return res.getResultInString(false, "");
-    }
-
-    private void executeAndCompareErrMsg(String statement, String expectedErrMsg) {
-        logger.info("Execute Statement: \"{}\"", statement);
-
-        try {
-            session.executeSql(statement);
-        } catch (SessionException | ExecutionException e) {
-            logger.info("Statement: \"{}\" execute fail. Because: {}", statement, e.getMessage());
-            assertEquals(expectedErrMsg, e.getMessage());
-        }
+        executor.execute(clearData);
     }
 
     @Test
@@ -215,7 +159,7 @@ public class SQLSessionIT {
                         + "|          15000|          15000|          15000|          15000|\n"
                         + "+---------------+---------------+---------------+---------------+\n"
                         + "Total line number = 1\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
     }
 
     @Test
@@ -223,7 +167,7 @@ public class SQLSessionIT {
         if (isScaling) return;
         String statement = "COUNT POINTS;";
         String expected = "Points num: 60000\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
     }
 
     @Test
@@ -243,7 +187,7 @@ public class SQLSessionIT {
                         + "|us.d1.s4|  DOUBLE|\n"
                         + "+--------+--------+\n"
                         + "Total line number = 4\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "SHOW TIME SERIES us.d1.*;";
         expected =
@@ -257,7 +201,7 @@ public class SQLSessionIT {
                         + "|us.d1.s4|  DOUBLE|\n"
                         + "+--------+--------+\n"
                         + "Total line number = 4\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "SHOW TIME SERIES limit 3;";
         expected =
@@ -270,7 +214,7 @@ public class SQLSessionIT {
                         + "|us.d1.s3|  BINARY|\n"
                         + "+--------+--------+\n"
                         + "Total line number = 3\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "SHOW TIME SERIES limit 2 offset 1;";
         expected =
@@ -282,7 +226,7 @@ public class SQLSessionIT {
                         + "|us.d1.s3|  BINARY|\n"
                         + "+--------+--------+\n"
                         + "Total line number = 2\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "SHOW TIME SERIES limit 1, 2;";
         expected =
@@ -294,7 +238,7 @@ public class SQLSessionIT {
                         + "|us.d1.s3|  BINARY|\n"
                         + "+--------+--------+\n"
                         + "Total line number = 2\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "SHOW TIME SERIES us.d1.s1;";
         expected =
@@ -305,7 +249,7 @@ public class SQLSessionIT {
                         + "|us.d1.s1|    LONG|\n"
                         + "+--------+--------+\n"
                         + "Total line number = 1\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "SHOW TIME SERIES us.d1.s1, us.d1.s3;";
         expected =
@@ -317,14 +261,14 @@ public class SQLSessionIT {
                         + "|us.d1.s3|  BINARY|\n"
                         + "+--------+--------+\n"
                         + "Total line number = 2\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
     }
 
     @Test
     public void testShowReplicaNum() {
         String statement = "SHOW REPLICA NUMBER;";
         String expected = "Replica num: 1\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
     }
 
     @Test
@@ -356,7 +300,7 @@ public class SQLSessionIT {
                         + "|119|     119|\n"
                         + "+---+--------+\n"
                         + "Total line number = 19\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
     }
 
     @Test
@@ -379,11 +323,11 @@ public class SQLSessionIT {
                         + "|209|     209|\n"
                         + "+---+--------+\n"
                         + "Total line number = 9\n";
-        executeAndCompare(query, expected);
+        executor.executeAndCompare(query, expected);
 
         String insert =
                 "INSERT INTO us.d2(key, c) VALUES (1, \"asdas\"), (2, \"sadaa\"), (3, \"sadada\"), (4, \"asdad\"), (5, \"deadsa\"), (6, \"dasda\"), (7, \"asdsad\"), (8, \"frgsa\"), (9, \"asdad\");";
-        execute(insert);
+        executor.execute(insert);
 
         query = "SELECT c FROM us.d2 WHERE c like \"^a.*\";";
         expected =
@@ -397,7 +341,7 @@ public class SQLSessionIT {
                         + "|  9|  asdad|\n"
                         + "+---+-------+\n"
                         + "Total line number = 4\n";
-        executeAndCompare(query, expected);
+        executor.executeAndCompare(query, expected);
 
         query = "SELECT c FROM us.d2 WHERE c like \"^[s|f].*\"";
         expected =
@@ -410,7 +354,7 @@ public class SQLSessionIT {
                         + "|  8|  frgsa|\n"
                         + "+---+-------+\n"
                         + "Total line number = 3\n";
-        executeAndCompare(query, expected);
+        executor.executeAndCompare(query, expected);
 
         query = "SELECT c FROM us.d2 WHERE c like \"^.*[s|d]\";";
         expected =
@@ -424,7 +368,7 @@ public class SQLSessionIT {
                         + "|  9|  asdad|\n"
                         + "+---+-------+\n"
                         + "Total line number = 4\n";
-        executeAndCompare(query, expected);
+        executor.executeAndCompare(query, expected);
 
         StringBuilder builder = new StringBuilder();
         builder.append("INSERT INTO us.d2(key, s1) VALUES ");
@@ -438,7 +382,7 @@ public class SQLSessionIT {
         builder.append(";");
 
         insert = builder.toString();
-        execute(insert);
+        executor.execute(insert);
 
         query = "SELECT s1 FROM us.* WHERE s1 > 200 and s1 < 210;";
         expected =
@@ -452,14 +396,14 @@ public class SQLSessionIT {
                         + "|204|     204|     209|\n"
                         + "+---+--------+--------+\n"
                         + "Total line number = 4\n";
-        executeAndCompare(query, expected);
+        executor.executeAndCompare(query, expected);
     }
 
     @Test
     public void testPathFilter() {
         String insert =
                 "INSERT INTO us.d9(key, a, b) VALUES (1, 1, 9), (2, 2, 8), (3, 3, 7), (4, 4, 6), (5, 5, 5), (6, 6, 4), (7, 7, 3), (8, 8, 2), (9, 9, 1);";
-        execute(insert);
+        executor.execute(insert);
 
         String query = "SELECT a, b FROM us.d9 WHERE a > b;";
         String expected =
@@ -473,7 +417,7 @@ public class SQLSessionIT {
                         + "|  9|      9|      1|\n"
                         + "+---+-------+-------+\n"
                         + "Total line number = 4\n";
-        executeAndCompare(query, expected);
+        executor.executeAndCompare(query, expected);
 
         query = "SELECT a, b FROM us.d9 WHERE a >= b;";
         expected =
@@ -488,7 +432,7 @@ public class SQLSessionIT {
                         + "|  9|      9|      1|\n"
                         + "+---+-------+-------+\n"
                         + "Total line number = 5\n";
-        executeAndCompare(query, expected);
+        executor.executeAndCompare(query, expected);
 
         query = "SELECT a, b FROM us.d9 WHERE a < b;";
         expected =
@@ -502,7 +446,7 @@ public class SQLSessionIT {
                         + "|  4|      4|      6|\n"
                         + "+---+-------+-------+\n"
                         + "Total line number = 4\n";
-        executeAndCompare(query, expected);
+        executor.executeAndCompare(query, expected);
 
         query = "SELECT a, b FROM us.d9 WHERE a <= b;";
         expected =
@@ -517,7 +461,7 @@ public class SQLSessionIT {
                         + "|  5|      5|      5|\n"
                         + "+---+-------+-------+\n"
                         + "Total line number = 5\n";
-        executeAndCompare(query, expected);
+        executor.executeAndCompare(query, expected);
 
         query = "SELECT a, b FROM us.d9 WHERE a = b;";
         expected =
@@ -528,7 +472,7 @@ public class SQLSessionIT {
                         + "|  5|      5|      5|\n"
                         + "+---+-------+-------+\n"
                         + "Total line number = 1\n";
-        executeAndCompare(query, expected);
+        executor.executeAndCompare(query, expected);
 
         query = "SELECT a, b FROM us.d9 WHERE a != b;";
         expected =
@@ -546,7 +490,7 @@ public class SQLSessionIT {
                         + "|  9|      9|      1|\n"
                         + "+---+-------+-------+\n"
                         + "Total line number = 8\n";
-        executeAndCompare(query, expected);
+        executor.executeAndCompare(query, expected);
     }
 
     @Test
@@ -569,7 +513,7 @@ public class SQLSessionIT {
                         + "| 10|      10|\n"
                         + "+---+--------+\n"
                         + "Total line number = 10\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "SELECT s1 FROM us.d1 WHERE key > 0 AND key < 10000 limit 10 offset 5;";
         expected =
@@ -589,7 +533,7 @@ public class SQLSessionIT {
                         + "| 15|      15|\n"
                         + "+---+--------+\n"
                         + "Total line number = 10\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
     }
 
     @Test
@@ -599,7 +543,7 @@ public class SQLSessionIT {
                         + "(1, \"apple\", 871, 232.1), (2, \"peach\", 123, 132.5), (3, \"banana\", 356, 317.8),"
                         + "(4, \"cherry\", 621, 456.1), (5, \"grape\", 336, 132.5), (6, \"dates\", 119, 232.1),"
                         + "(7, \"melon\", 516, 113.6), (8, \"mango\", 458, 232.1), (9, \"pear\", 336, 613.1);";
-        execute(insert);
+        executor.execute(insert);
 
         String orderByQuery = "SELECT * FROM us.d2 ORDER BY KEY";
         String expected =
@@ -618,7 +562,7 @@ public class SQLSessionIT {
                         + "|  9|    pear|     336|   613.1|\n"
                         + "+---+--------+--------+--------+\n"
                         + "Total line number = 9\n";
-        executeAndCompare(orderByQuery, expected);
+        executor.executeAndCompare(orderByQuery, expected);
 
         orderByQuery = "SELECT * FROM us.d2 ORDER BY s1";
         expected =
@@ -637,7 +581,7 @@ public class SQLSessionIT {
                         + "|  9|    pear|     336|   613.1|\n"
                         + "+---+--------+--------+--------+\n"
                         + "Total line number = 9\n";
-        executeAndCompare(orderByQuery, expected);
+        executor.executeAndCompare(orderByQuery, expected);
 
         orderByQuery = "SELECT * FROM us.d2 ORDER BY s1 DESC";
         expected =
@@ -656,7 +600,7 @@ public class SQLSessionIT {
                         + "|  1|   apple|     871|   232.1|\n"
                         + "+---+--------+--------+--------+\n"
                         + "Total line number = 9\n";
-        executeAndCompare(orderByQuery, expected);
+        executor.executeAndCompare(orderByQuery, expected);
 
         orderByQuery = "SELECT * FROM us.d2 ORDER BY s3";
         expected =
@@ -675,7 +619,7 @@ public class SQLSessionIT {
                         + "|  9|    pear|     336|   613.1|\n"
                         + "+---+--------+--------+--------+\n"
                         + "Total line number = 9\n";
-        executeAndCompare(orderByQuery, expected);
+        executor.executeAndCompare(orderByQuery, expected);
 
         orderByQuery = "SELECT * FROM us.d2 ORDER BY s3, s2";
         expected =
@@ -694,7 +638,7 @@ public class SQLSessionIT {
                         + "|  9|    pear|     336|   613.1|\n"
                         + "+---+--------+--------+--------+\n"
                         + "Total line number = 9\n";
-        executeAndCompare(orderByQuery, expected);
+        executor.executeAndCompare(orderByQuery, expected);
 
         orderByQuery = "SELECT * FROM us.d2 ORDER BY s3, s2 DESC";
         expected =
@@ -713,7 +657,52 @@ public class SQLSessionIT {
                         + "|  7|   melon|     516|   113.6|\n"
                         + "+---+--------+--------+--------+\n"
                         + "Total line number = 9\n";
-        executeAndCompare(orderByQuery, expected);
+        executor.executeAndCompare(orderByQuery, expected);
+    }
+
+    @Test
+    public void testRowTransformFunction() {
+        String insert =
+                "INSERT INTO us.d2 (key, s1, s2, s3) values "
+                        + "(1, \"apple\", 871, 232.1), (2, \"peach\", 123, 132.5), (3, \"banana\", 356, 317.8),"
+                        + "(4, \"cherry\", 621, 456.1), (5, \"grape\", 336, 132.5), (6, \"dates\", 119, 232.1),"
+                        + "(7, \"melon\", 516, 113.6), (8, \"mango\", 458, 232.1), (9, \"pear\", 336, 613.1);";
+        executor.execute(insert);
+
+        String statement = "SELECT RATIO(s2, s3) FROM us.d2;";
+        String expected =
+                "ResultSets:\n"
+                        + "+---+-------------------------+\n"
+                        + "|key|ratio(us.d2.s2, us.d2.s3)|\n"
+                        + "+---+-------------------------+\n"
+                        + "|  1|       3.7526928048255064|\n"
+                        + "|  2|       0.9283018867924528|\n"
+                        + "|  3|        1.120201384518565|\n"
+                        + "|  4|       1.3615435211576408|\n"
+                        + "|  5|       2.5358490566037735|\n"
+                        + "|  6|       0.5127100387763895|\n"
+                        + "|  7|        4.542253521126761|\n"
+                        + "|  8|       1.9732873761309782|\n"
+                        + "|  9|       0.5480345783722068|\n"
+                        + "+---+-------------------------+\n"
+                        + "Total line number = 9\n";
+        executor.executeAndCompare(statement, expected);
+
+        statement = "SELECT RATIO(s2, s3) FROM us.d2 WHERE key <= 6;";
+        expected =
+                "ResultSets:\n"
+                        + "+---+-------------------------+\n"
+                        + "|key|ratio(us.d2.s2, us.d2.s3)|\n"
+                        + "+---+-------------------------+\n"
+                        + "|  1|       3.7526928048255064|\n"
+                        + "|  2|       0.9283018867924528|\n"
+                        + "|  3|        1.120201384518565|\n"
+                        + "|  4|       1.3615435211576408|\n"
+                        + "|  5|       2.5358490566037735|\n"
+                        + "|  6|       0.5127100387763895|\n"
+                        + "+---+-------------------------+\n"
+                        + "Total line number = 6\n";
+        executor.executeAndCompare(statement, expected);
     }
 
     @Test
@@ -727,7 +716,7 @@ public class SQLSessionIT {
                         + "|  1|us.d1.s2|    2|\n"
                         + "+---+--------+-----+\n"
                         + "Total line number = 1\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "SELECT LAST(s2) FROM us.d1 WHERE key > 0;";
         expected =
@@ -738,7 +727,7 @@ public class SQLSessionIT {
                         + "|14999|us.d1.s2|15000|\n"
                         + "+-----+--------+-----+\n"
                         + "Total line number = 1\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "SELECT FIRST(s4) FROM us.d1 WHERE key > 0;";
         expected =
@@ -749,7 +738,7 @@ public class SQLSessionIT {
                         + "|  1|us.d1.s4|  1.1|\n"
                         + "+---+--------+-----+\n"
                         + "Total line number = 1\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "SELECT LAST(s4) FROM us.d1 WHERE key > 0;";
         expected =
@@ -760,7 +749,7 @@ public class SQLSessionIT {
                         + "|14999|us.d1.s4|14999.1|\n"
                         + "+-----+--------+-------+\n"
                         + "Total line number = 1\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "SELECT LAST(s2), LAST(s4) FROM us.d1 WHERE key > 0;";
         expected =
@@ -772,7 +761,7 @@ public class SQLSessionIT {
                         + "|14999|us.d1.s4|14999.1|\n"
                         + "+-----+--------+-------+\n"
                         + "Total line number = 2\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "SELECT FIRST(s2), FIRST(s4) FROM us.d1 WHERE key > 0;";
         expected =
@@ -784,7 +773,7 @@ public class SQLSessionIT {
                         + "|  1|us.d1.s4|  1.1|\n"
                         + "+---+--------+-----+\n"
                         + "Total line number = 2\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "SELECT LAST(s2), LAST(s4) FROM us.d1 WHERE key < 1000;";
         expected =
@@ -796,7 +785,7 @@ public class SQLSessionIT {
                         + "|999|us.d1.s4|999.1|\n"
                         + "+---+--------+-----+\n"
                         + "Total line number = 2\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "SELECT FIRST(s2), LAST(s4) FROM us.d1 WHERE key > 1000;";
         expected =
@@ -808,7 +797,7 @@ public class SQLSessionIT {
                         + "|14999|us.d1.s4|14999.1|\n"
                         + "+-----+--------+-------+\n"
                         + "Total line number = 2\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "SELECT FIRST(s4), LAST(s2) FROM us.d1 WHERE key > 1000;";
         expected =
@@ -820,7 +809,7 @@ public class SQLSessionIT {
                         + "|14999|us.d1.s2| 15000|\n"
                         + "+-----+--------+------+\n"
                         + "Total line number = 2\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "SELECT FIRST(s2), LAST(s2) FROM us.d1 WHERE key > 1000;";
         expected =
@@ -832,7 +821,7 @@ public class SQLSessionIT {
                         + "|14999|us.d1.s2|15000|\n"
                         + "+-----+--------+-----+\n"
                         + "Total line number = 2\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "SELECT FIRST(s4), LAST(s4) FROM us.d1 WHERE key > 1000;";
         expected =
@@ -844,7 +833,7 @@ public class SQLSessionIT {
                         + "|14999|us.d1.s4|14999.1|\n"
                         + "+-----+--------+-------+\n"
                         + "Total line number = 2\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
     }
 
     @Test
@@ -906,7 +895,7 @@ public class SQLSessionIT {
         for (int i = 0; i < funcTypeList.size(); i++) {
             String type = funcTypeList.get(i);
             String expected = expectedList.get(i);
-            executeAndCompare(String.format(statement, type, type), expected);
+            executor.executeAndCompare(String.format(statement, type, type), expected);
         }
     }
 
@@ -1032,7 +1021,7 @@ public class SQLSessionIT {
         for (int i = 0; i < funcTypeList.size(); i++) {
             String type = funcTypeList.get(i);
             String expected = expectedList.get(i);
-            executeAndCompare(String.format(statement, type, type), expected);
+            executor.executeAndCompare(String.format(statement, type, type), expected);
         }
     }
 
@@ -1110,7 +1099,7 @@ public class SQLSessionIT {
         for (int i = 0; i < funcTypeList.size(); i++) {
             String type = funcTypeList.get(i);
             String expected = expectedList.get(i);
-            executeAndCompare(String.format(statement, type, type), expected);
+            executor.executeAndCompare(String.format(statement, type, type), expected);
         }
     }
 
@@ -1300,7 +1289,7 @@ public class SQLSessionIT {
         for (int i = 0; i < funcTypeList.size(); i++) {
             String type = funcTypeList.get(i);
             String expected = expectedList.get(i);
-            executeAndCompare(String.format(statement, type, type), expected);
+            executor.executeAndCompare(String.format(statement, type, type), expected);
         }
     }
 
@@ -1406,7 +1395,7 @@ public class SQLSessionIT {
         for (int i = 0; i < funcTypeList.size(); i++) {
             String type = funcTypeList.get(i);
             String expected = expectedList.get(i);
-            executeAndCompare(String.format(statement, type, type), expected);
+            executor.executeAndCompare(String.format(statement, type, type), expected);
         }
     }
 
@@ -1415,7 +1404,7 @@ public class SQLSessionIT {
         String insert =
                 "INSERT INTO test(key, a1.b1, a1.b2, a2.b1, a2.b2) VALUES (0, 0, 0, 0, 0), (1, 1, 1, 1, 1),"
                         + "(2, NULL, 2, 2, 2), (3, NULL, NULL, 3, 3), (4, NULL, NULL, NULL, 4)";
-        execute(insert);
+        executor.execute(insert);
 
         String statement = "SELECT AVG(*), COUNT(*), SUM(*) FROM test AGG LEVEL = 0;";
         String expected =
@@ -1426,7 +1415,7 @@ public class SQLSessionIT {
                         + "|1.4285714285714286|             14|           20|\n"
                         + "+------------------+---------------+-------------+\n"
                         + "Total line number = 1\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "SELECT AVG(*), COUNT(*), SUM(*) FROM test AGG LEVEL = 0,1;";
         expected =
@@ -1437,7 +1426,7 @@ public class SQLSessionIT {
                         + "|           0.8|1.7777777777777777|               5|               9|             4|            16|\n"
                         + "+--------------+------------------+----------------+----------------+--------------+--------------+\n"
                         + "Total line number = 1\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "SELECT AVG(*), COUNT(*), SUM(*) FROM test AGG LEVEL = 1;";
         expected =
@@ -1448,7 +1437,7 @@ public class SQLSessionIT {
                         + "|        0.8|1.7777777777777777|            5|            9|          4|         16|\n"
                         + "+-----------+------------------+-------------+-------------+-----------+-----------+\n"
                         + "Total line number = 1\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "SELECT SUM(*), COUNT(*), AVG(*) FROM test AGG LEVEL = 0,2;";
         expected =
@@ -1459,7 +1448,7 @@ public class SQLSessionIT {
                         + "|             7|            13|               6|               8|1.1666666666666667|         1.625|\n"
                         + "+--------------+--------------+----------------+----------------+------------------+--------------+\n"
                         + "Total line number = 1\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "SELECT SUM(*), COUNT(*), AVG(*) FROM test AGG LEVEL = 2;";
         expected =
@@ -1470,7 +1459,7 @@ public class SQLSessionIT {
                         + "|          7|         13|            6|            8|1.1666666666666667|      1.625|\n"
                         + "+-----------+-----------+-------------+-------------+------------------+-----------+\n"
                         + "Total line number = 1\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
     }
 
     @Test
@@ -1479,7 +1468,7 @@ public class SQLSessionIT {
             return;
         }
         String delete = "DELETE FROM us.d1.s1 WHERE key > 105 AND key < 115;";
-        execute(delete);
+        executor.execute(delete);
 
         String queryOverDeleteRange = "SELECT s1 FROM us.d1 WHERE key > 100 AND key < 120;";
         String expected =
@@ -1499,10 +1488,10 @@ public class SQLSessionIT {
                         + "|119|     119|\n"
                         + "+---+--------+\n"
                         + "Total line number = 10\n";
-        executeAndCompare(queryOverDeleteRange, expected);
+        executor.executeAndCompare(queryOverDeleteRange, expected);
 
         delete = "DELETE FROM us.d1.s1 WHERE key >= 1126 AND key <= 1155;";
-        execute(delete);
+        executor.execute(delete);
 
         queryOverDeleteRange = "SELECT s1 FROM us.d1 WHERE key > 1120 AND key < 1160;";
         expected =
@@ -1521,10 +1510,10 @@ public class SQLSessionIT {
                         + "|1159|    1159|\n"
                         + "+----+--------+\n"
                         + "Total line number = 9\n";
-        executeAndCompare(queryOverDeleteRange, expected);
+        executor.executeAndCompare(queryOverDeleteRange, expected);
 
         delete = "DELETE FROM us.d1.s2, us.d1.s4 WHERE key > 2236 AND key <= 2265;";
-        execute(delete);
+        executor.execute(delete);
 
         queryOverDeleteRange = "SELECT s2, s4 FROM us.d1 WHERE key > 2230 AND key < 2270;";
         expected =
@@ -1544,10 +1533,10 @@ public class SQLSessionIT {
                         + "|2269|    2270|  2269.1|\n"
                         + "+----+--------+--------+\n"
                         + "Total line number = 10\n";
-        executeAndCompare(queryOverDeleteRange, expected);
+        executor.executeAndCompare(queryOverDeleteRange, expected);
 
         delete = "DELETE FROM us.d1.s2, us.d1.s4 WHERE key >= 3346 AND key < 3375;";
-        execute(delete);
+        executor.execute(delete);
 
         queryOverDeleteRange = "SELECT s2, s4 FROM us.d1 WHERE key > 3340 AND key < 3380;";
         expected =
@@ -1567,7 +1556,7 @@ public class SQLSessionIT {
                         + "|3379|    3380|  3379.1|\n"
                         + "+----+--------+--------+\n"
                         + "Total line number = 10\n";
-        executeAndCompare(queryOverDeleteRange, expected);
+        executor.executeAndCompare(queryOverDeleteRange, expected);
     }
 
     @Test
@@ -1577,7 +1566,7 @@ public class SQLSessionIT {
         }
         String delete =
                 "DELETE FROM us.d1.s1 WHERE key > 105 AND key < 115 OR key >= 120 AND key <= 230;";
-        execute(delete);
+        executor.execute(delete);
 
         String queryOverDeleteRange = "SELECT s1 FROM us.d1 WHERE key > 100 AND key < 235;";
         String expected =
@@ -1601,11 +1590,11 @@ public class SQLSessionIT {
                         + "|234|     234|\n"
                         + "+---+--------+\n"
                         + "Total line number = 14\n";
-        executeAndCompare(queryOverDeleteRange, expected);
+        executor.executeAndCompare(queryOverDeleteRange, expected);
 
         delete =
                 "DELETE FROM us.d1.s2, us.d1.s4 WHERE key > 1115 AND key <= 1125 OR key >= 1130 AND key < 1230;";
-        execute(delete);
+        executor.execute(delete);
 
         queryOverDeleteRange = "SELECT s2, s4 FROM us.d1 WHERE key > 1110 AND key < 1235;";
         expected =
@@ -1629,7 +1618,7 @@ public class SQLSessionIT {
                         + "|1234|    1235|  1234.1|\n"
                         + "+----+--------+--------+\n"
                         + "Total line number = 14\n";
-        executeAndCompare(queryOverDeleteRange, expected);
+        executor.executeAndCompare(queryOverDeleteRange, expected);
     }
 
     @Test
@@ -1639,7 +1628,7 @@ public class SQLSessionIT {
         }
         String delete =
                 "DELETE FROM us.d1.s1 WHERE key > 205 AND key < 215 OR key >= 210 AND key <= 230;";
-        execute(delete);
+        executor.execute(delete);
 
         String queryOverDeleteRange = "SELECT s1 FROM us.d1 WHERE key > 200 AND key < 235;";
         String expected =
@@ -1658,11 +1647,11 @@ public class SQLSessionIT {
                         + "|234|     234|\n"
                         + "+---+--------+\n"
                         + "Total line number = 9\n";
-        executeAndCompare(queryOverDeleteRange, expected);
+        executor.executeAndCompare(queryOverDeleteRange, expected);
 
         delete =
                 "DELETE FROM us.d1.s2, us.d1.s4 WHERE key > 1115 AND key <= 1125 OR key >= 1120 AND key < 1230;";
-        execute(delete);
+        executor.execute(delete);
 
         queryOverDeleteRange = "SELECT s2, s4 FROM us.d1 WHERE key > 1110 AND key < 1235;";
         expected =
@@ -1682,14 +1671,14 @@ public class SQLSessionIT {
                         + "|1234|    1235|  1234.1|\n"
                         + "+----+--------+--------+\n"
                         + "Total line number = 10\n";
-        executeAndCompare(queryOverDeleteRange, expected);
+        executor.executeAndCompare(queryOverDeleteRange, expected);
     }
 
     @Test
     public void testGroupBy() {
         String insert =
                 "insert into test(key, a, b, c, d) values (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), (3, 2, 2, 1.1, \"val5\"), (4, 3, 2, 2.1, \"val2\"), (5, 1, 2, 3.1, \"val1\"), (6, 2, 2, 5.1, \"val3\");";
-        execute(insert);
+        executor.execute(insert);
 
         String query = "select * from test;";
         String expected =
@@ -1705,9 +1694,9 @@ public class SQLSessionIT {
                         + "|  6|     2|     2|   5.1|  val3|\n"
                         + "+---+------+------+------+------+\n"
                         + "Total line number = 6\n";
-        executeAndCompare(query, expected);
+        executor.executeAndCompare(query, expected);
 
-        query = "select avg(a), b from test group by b;";
+        query = "select avg(a), b from test group by b order by b;";
         expected =
                 "ResultSets:\n"
                         + "+-----------+------+\n"
@@ -1717,39 +1706,24 @@ public class SQLSessionIT {
                         + "|        1.0|     3|\n"
                         + "+-----------+------+\n"
                         + "Total line number = 2\n";
-        executeAndCompare(query, expected);
+        executor.executeAndCompare(query, expected);
 
-        query = "select avg(a), b, d from test group by b, d;";
+        query = "select avg(a), b, d from test group by b, d order by b, d;";
         expected =
                 "ResultSets:\n"
                         + "+-----------+------+------+\n"
                         + "|avg(test.a)|test.b|test.d|\n"
                         + "+-----------+------+------+\n"
-                        + "|        2.0|     2|  val5|\n"
-                        + "|        2.0|     2|  val3|\n"
-                        + "|        3.0|     2|  val2|\n"
                         + "|        2.0|     2|  val1|\n"
+                        + "|        3.0|     2|  val2|\n"
+                        + "|        2.0|     2|  val3|\n"
+                        + "|        2.0|     2|  val5|\n"
                         + "|        1.0|     3|  val2|\n"
                         + "+-----------+------+------+\n"
                         + "Total line number = 5\n";
-        executeAndCompare(query, expected);
+        executor.executeAndCompare(query, expected);
 
-        query = "select avg(a), c, b, d from test group by c, b, d";
-        expected =
-                "ResultSets:\n"
-                        + "+-----------+------+------+------+\n"
-                        + "|avg(test.a)|test.c|test.b|test.d|\n"
-                        + "+-----------+------+------+------+\n"
-                        + "|        2.0|   3.1|     2|  val1|\n"
-                        + "|        2.0|   5.1|     2|  val3|\n"
-                        + "|        2.0|   1.1|     2|  val5|\n"
-                        + "|        3.0|   2.1|     2|  val2|\n"
-                        + "|        1.0|   2.1|     3|  val2|\n"
-                        + "+-----------+------+------+------+\n"
-                        + "Total line number = 5\n";
-        executeAndCompare(query, expected);
-
-        query = "select avg(a), c, b, d from test group by c, b, d order by c";
+        query = "select avg(a), c, b, d from test group by c, b, d order by c, b, d";
         expected =
                 "ResultSets:\n"
                         + "+-----------+------+------+------+\n"
@@ -1762,21 +1736,22 @@ public class SQLSessionIT {
                         + "|        2.0|   5.1|     2|  val3|\n"
                         + "+-----------+------+------+------+\n"
                         + "Total line number = 5\n";
-        executeAndCompare(query, expected);
+        executor.executeAndCompare(query, expected);
 
-        query = "select min(a), c from test group by c;";
+        query = "select avg(a), c, b, d from test group by c, b, d order by c, b, d";
         expected =
                 "ResultSets:\n"
-                        + "+-----------+------+\n"
-                        + "|min(test.a)|test.c|\n"
-                        + "+-----------+------+\n"
-                        + "|          1|   3.1|\n"
-                        + "|          2|   1.1|\n"
-                        + "|          1|   2.1|\n"
-                        + "|          2|   5.1|\n"
-                        + "+-----------+------+\n"
-                        + "Total line number = 4\n";
-        executeAndCompare(query, expected);
+                        + "+-----------+------+------+------+\n"
+                        + "|avg(test.a)|test.c|test.b|test.d|\n"
+                        + "+-----------+------+------+------+\n"
+                        + "|        2.0|   1.1|     2|  val5|\n"
+                        + "|        3.0|   2.1|     2|  val2|\n"
+                        + "|        1.0|   2.1|     3|  val2|\n"
+                        + "|        2.0|   3.1|     2|  val1|\n"
+                        + "|        2.0|   5.1|     2|  val3|\n"
+                        + "+-----------+------+------+------+\n"
+                        + "Total line number = 5\n";
+        executor.executeAndCompare(query, expected);
 
         query = "select min(a), c from test group by c order by c;";
         expected =
@@ -1790,28 +1765,42 @@ public class SQLSessionIT {
                         + "|          2|   5.1|\n"
                         + "+-----------+------+\n"
                         + "Total line number = 4\n";
-        executeAndCompare(query, expected);
+        executor.executeAndCompare(query, expected);
 
-        query = "select max(a), c from test group by c;";
+        query = "select min(a), c from test group by c order by c;";
+        expected =
+                "ResultSets:\n"
+                        + "+-----------+------+\n"
+                        + "|min(test.a)|test.c|\n"
+                        + "+-----------+------+\n"
+                        + "|          2|   1.1|\n"
+                        + "|          1|   2.1|\n"
+                        + "|          1|   3.1|\n"
+                        + "|          2|   5.1|\n"
+                        + "+-----------+------+\n"
+                        + "Total line number = 4\n";
+        executor.executeAndCompare(query, expected);
+
+        query = "select max(a), c from test group by c order by c;";
         expected =
                 "ResultSets:\n"
                         + "+-----------+------+\n"
                         + "|max(test.a)|test.c|\n"
                         + "+-----------+------+\n"
-                        + "|          3|   3.1|\n"
                         + "|          2|   1.1|\n"
                         + "|          3|   2.1|\n"
+                        + "|          3|   3.1|\n"
                         + "|          2|   5.1|\n"
                         + "+-----------+------+\n"
                         + "Total line number = 4\n";
-        executeAndCompare(query, expected);
+        executor.executeAndCompare(query, expected);
     }
 
     @Test
     public void testGroupByAndHaving() {
         String insert =
                 "insert into test(key, a, b, c, d) values (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), (3, 2, 2, 1.1, \"val5\"), (4, 3, 2, 2.1, \"val2\"), (5, 1, 2, 3.1, \"val1\"), (6, 2, 2, 5.1, \"val3\");";
-        execute(insert);
+        executor.execute(insert);
 
         String query = "select * from test;";
         String expected =
@@ -1827,7 +1816,7 @@ public class SQLSessionIT {
                         + "|  6|     2|     2|   5.1|  val3|\n"
                         + "+---+------+------+------+------+\n"
                         + "Total line number = 6\n";
-        executeAndCompare(query, expected);
+        executor.executeAndCompare(query, expected);
 
         query = "select avg(a), b from test group by b having avg(a) < 2;";
         expected =
@@ -1838,42 +1827,42 @@ public class SQLSessionIT {
                         + "|        1.0|     3|\n"
                         + "+-----------+------+\n"
                         + "Total line number = 1\n";
-        executeAndCompare(query, expected);
+        executor.executeAndCompare(query, expected);
 
-        query = "select min(a), c from test group by c having c > 1.5;";
+        query = "select min(a), c from test group by c having c > 1.5 order by c;";
         expected =
                 "ResultSets:\n"
                         + "+-----------+------+\n"
                         + "|min(test.a)|test.c|\n"
                         + "+-----------+------+\n"
-                        + "|          1|   3.1|\n"
                         + "|          1|   2.1|\n"
+                        + "|          1|   3.1|\n"
                         + "|          2|   5.1|\n"
                         + "+-----------+------+\n"
                         + "Total line number = 3\n";
-        executeAndCompare(query, expected);
+        executor.executeAndCompare(query, expected);
 
-        query = "select max(a), c from test group by c having max(a) > 2;";
+        query = "select max(a), c from test group by c having max(a) > 2 order by c;";
         expected =
                 "ResultSets:\n"
                         + "+-----------+------+\n"
                         + "|max(test.a)|test.c|\n"
                         + "+-----------+------+\n"
-                        + "|          3|   3.1|\n"
                         + "|          3|   2.1|\n"
+                        + "|          3|   3.1|\n"
                         + "+-----------+------+\n"
                         + "Total line number = 2\n";
-        executeAndCompare(query, expected);
+        executor.executeAndCompare(query, expected);
     }
 
     @Test
     public void testJoinWithGroupBy() {
         String insert =
                 "insert into test1(key, a, b, c, d) values (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), (3, 2, 2, 1.1, \"val5\"), (4, 3, 2, 2.1, \"val2\"), (5, 1, 2, 3.1, \"val1\"), (6, 2, 2, 5.1, \"val3\")";
-        execute(insert);
+        executor.execute(insert);
         insert =
                 "insert into test2(key, a, b, c, d) values (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), (3, 2, 2, 1.1, \"val5\"), (4, 3, 2, 2.1, \"val2\"), (5, 1, 2, 3.1, \"val1\"), (6, 2, 2, 5.1, \"val3\")";
-        execute(insert);
+        executor.execute(insert);
 
         String query = "select * from test1 join test2 on test1.a = test2.a";
         String expected =
@@ -1895,10 +1884,10 @@ public class SQLSessionIT {
                         + "|      2|      2|    5.1|   val3|        6|      2|      2|    5.1|   val3|        6|\n"
                         + "+-------+-------+-------+-------+---------+-------+-------+-------+-------+---------+\n"
                         + "Total line number = 12\n";
-        executeAndCompare(query, expected);
+        executor.executeAndCompare(query, expected);
 
         query =
-                "select avg(test1.a), test2.d from test1 join test2 on test1.a = test2.a group by test2.d";
+                "select avg(test1.a), test2.d from test1 join test2 on test1.a = test2.a group by test2.d order by test2.d desc";
         expected =
                 "ResultSets:\n"
                         + "+------------+-------+\n"
@@ -1910,10 +1899,10 @@ public class SQLSessionIT {
                         + "|         2.0|   val1|\n"
                         + "+------------+-------+\n"
                         + "Total line number = 4\n";
-        executeAndCompare(query, expected);
+        executor.executeAndCompare(query, expected);
 
         query =
-                "select avg(test1.a), max(test1.c), test2.d from test1 join test2 on test1.a = test2.a group by test2.d";
+                "select avg(test1.a), max(test1.c), test2.d from test1 join test2 on test1.a = test2.a group by test2.d order by test2.d desc";
         expected =
                 "ResultSets:\n"
                         + "+------------+------------+-------+\n"
@@ -1925,10 +1914,10 @@ public class SQLSessionIT {
                         + "|         2.0|         3.1|   val1|\n"
                         + "+------------+------------+-------+\n"
                         + "Total line number = 4\n";
-        executeAndCompare(query, expected);
+        executor.executeAndCompare(query, expected);
 
         query =
-                "select avg(test1.a), max(test1.c), test2.d from test1 join test2 on test1.a = test2.a group by test2.d having max(test1.c) > 3.5";
+                "select avg(test1.a), max(test1.c), test2.d from test1 join test2 on test1.a = test2.a group by test2.d having max(test1.c) > 3.5 order by test2.d desc";
         expected =
                 "ResultSets:\n"
                         + "+------------+------------+-------+\n"
@@ -1938,7 +1927,7 @@ public class SQLSessionIT {
                         + "|         2.0|         5.1|   val3|\n"
                         + "+------------+------------+-------+\n"
                         + "Total line number = 2\n";
-        executeAndCompare(query, expected);
+        executor.executeAndCompare(query, expected);
 
         query =
                 "select avg(test1.a), max(test1.c), test2.d from test1 join test2 on test1.a = test2.a group by test2.d having max(test1.c) > 3.5 order by test2.d";
@@ -1951,7 +1940,7 @@ public class SQLSessionIT {
                         + "|         2.0|         5.1|   val5|\n"
                         + "+------------+------------+-------+\n"
                         + "Total line number = 2\n";
-        executeAndCompare(query, expected);
+        executor.executeAndCompare(query, expected);
 
         query =
                 "select avg_a, test2.d as res from (select avg(test1.a) as avg_a, max(test1.c), test2.d from test1 join test2 on test1.a = test2.a group by test2.d having max(test1.c) > 3.5 order by test2.d limit 1);";
@@ -1963,14 +1952,14 @@ public class SQLSessionIT {
                         + "|  2.0|val3|\n"
                         + "+-----+----+\n"
                         + "Total line number = 1\n";
-        executeAndCompare(query, expected);
+        executor.executeAndCompare(query, expected);
     }
 
     @Test
     public void testJoin() {
         String insert =
                 "insert into test(key, a.a, a.b, b.a, b.b) values (1, 1, 1.1, 2, 2.1), (2, 3, 3.1, 3, 3.1), (3, 5, 5.1, 4, 4.1), (4, 7, 7.1, 5, 5.1), (5, 9, 9.1, 6, 6.1);";
-        execute(insert);
+        executor.execute(insert);
 
         String statement = "select * from test.a join test.b on test.a.a = test.b.a";
         String expected =
@@ -1982,7 +1971,7 @@ public class SQLSessionIT {
                         + "|       5|     5.1|         3|       5|     5.1|         4|\n"
                         + "+--------+--------+----------+--------+--------+----------+\n"
                         + "Total line number = 2\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "select * from test.a inner join test.b on test.a.a = test.b.a";
         expected =
@@ -1994,7 +1983,7 @@ public class SQLSessionIT {
                         + "|       5|     5.1|         3|       5|     5.1|         4|\n"
                         + "+--------+--------+----------+--------+--------+----------+\n"
                         + "Total line number = 2\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "select * from test.a left join test.b on test.a.a = test.b.a";
         expected =
@@ -2009,7 +1998,7 @@ public class SQLSessionIT {
                         + "|       9|     9.1|         5|    null|    null|      null|\n"
                         + "+--------+--------+----------+--------+--------+----------+\n"
                         + "Total line number = 5\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "select * from test.a left join test.b using a";
         expected =
@@ -2024,7 +2013,7 @@ public class SQLSessionIT {
                         + "|       9|     9.1|         5|    null|      null|\n"
                         + "+--------+--------+----------+--------+----------+\n"
                         + "Total line number = 5\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "select * from test.a right join test.b on test.a.a = test.b.a";
         expected =
@@ -2039,7 +2028,7 @@ public class SQLSessionIT {
                         + "|    null|    null|      null|       6|     6.1|         5|\n"
                         + "+--------+--------+----------+--------+--------+----------+\n"
                         + "Total line number = 5\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "select * from test.a right join test.b using a";
         expected =
@@ -2054,7 +2043,7 @@ public class SQLSessionIT {
                         + "|    null|      null|       6|     6.1|         5|\n"
                         + "+--------+----------+--------+--------+----------+\n"
                         + "Total line number = 5\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "select * from test.a full join test.b on test.a.a = test.b.a";
         expected =
@@ -2072,7 +2061,7 @@ public class SQLSessionIT {
                         + "|    null|    null|      null|       6|     6.1|         5|\n"
                         + "+--------+--------+----------+--------+--------+----------+\n"
                         + "Total line number = 8\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "select * from test.a, test.b";
         expected =
@@ -2107,7 +2096,7 @@ public class SQLSessionIT {
                         + "|       9|     9.1|         5|       6|     6.1|         5|\n"
                         + "+--------+--------+----------+--------+--------+----------+\n"
                         + "Total line number = 25\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "select * from test.a, test.b where test.a.a = test.b.a";
         expected =
@@ -2119,7 +2108,7 @@ public class SQLSessionIT {
                         + "|       5|     5.1|         3|       5|     5.1|         4|\n"
                         + "+--------+--------+----------+--------+--------+----------+\n"
                         + "Total line number = 2\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "select * from test.a cross join test.b";
         expected =
@@ -2154,22 +2143,22 @@ public class SQLSessionIT {
                         + "|       9|     9.1|         5|       6|     6.1|         5|\n"
                         + "+--------+--------+----------+--------+--------+----------+\n"
                         + "Total line number = 25\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
     }
 
     @Test
     public void testMultiJoin() {
         String insert =
                 "insert into test(key, a.a, a.b) values (1, 1, 1.1), (2, 3, 3.1), (3, 5, 5.1), (4, 7, 7.1), (5, 9, 9.1);";
-        execute(insert);
+        executor.execute(insert);
 
         insert =
                 "insert into test(key, b.a, b.b) values (1, 2, \"aaa\"), (2, 3, \"bbb\"), (3, 4, \"ccc\"), (4, 5, \"ddd\"), (5, 6, \"eee\");";
-        execute(insert);
+        executor.execute(insert);
 
         insert =
                 "insert into test(key, c.a, c.b) values (1, \"ddd\", true), (2, \"eee\", false), (3, \"aaa\", true), (4, \"bbb\", false), (5, \"ccc\", true);";
-        execute(insert);
+        executor.execute(insert);
 
         String statement = "select * from test";
         String expected =
@@ -2184,7 +2173,7 @@ public class SQLSessionIT {
                         + "|  5|       9|     9.1|       6|     eee|     ccc|    true|\n"
                         + "+---+--------+--------+--------+--------+--------+--------+\n"
                         + "Total line number = 5\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement =
                 "select * from test.a join test.b on test.a.a = test.b.a join test.c on test.b.b = test.c.a";
@@ -2197,7 +2186,7 @@ public class SQLSessionIT {
                         + "|       5|     5.1|         3|       5|     ddd|         4|     ddd|    true|         1|\n"
                         + "+--------+--------+----------+--------+--------+----------+--------+--------+----------+\n"
                         + "Total line number = 2\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement =
                 "select * from test.a, test.b, test.c where test.a.a = test.b.a and test.b.b = test.c.a";
@@ -2210,7 +2199,7 @@ public class SQLSessionIT {
                         + "|       5|     5.1|         3|       5|     ddd|         4|     ddd|    true|         1|\n"
                         + "+--------+--------+----------+--------+--------+----------+--------+--------+----------+\n"
                         + "Total line number = 2\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "select * from test.a full join test.b on test.a.a = test.b.a";
         expected =
@@ -2228,7 +2217,7 @@ public class SQLSessionIT {
                         + "|    null|    null|      null|       6|     eee|         5|\n"
                         + "+--------+--------+----------+--------+--------+----------+\n"
                         + "Total line number = 8\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement =
                 "select * from test.a full join test.b on test.a.a = test.b.a full join test.c on test.b.b = test.c.a";
@@ -2247,7 +2236,7 @@ public class SQLSessionIT {
                         + "|       9|     9.1|         5|    null|    null|      null|    null|    null|      null|\n"
                         + "+--------+--------+----------+--------+--------+----------+--------+--------+----------+\n"
                         + "Total line number = 8\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
     }
 
     @Test
@@ -2255,7 +2244,7 @@ public class SQLSessionIT {
         String insert =
                 "INSERT INTO us.d3 (key, s1, s2, s3) values "
                         + "(1, 1, 6, 1.5), (2, 2, 5, 2.5), (3, 3, 4, 3.5), (4, 4, 3, 4.5), (5, 5, 2, 5.5), (6, 6, 1, 6.5);";
-        execute(insert);
+        executor.execute(insert);
 
         String statement = "SELECT s1, s2, s3 FROM us.d3;";
         String expected =
@@ -2271,7 +2260,7 @@ public class SQLSessionIT {
                         + "|  6|       6|       1|     6.5|\n"
                         + "+---+--------+--------+--------+\n"
                         + "Total line number = 6\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "SELECT s1+1, s2-1, s3*2 FROM us.d3;";
         expected =
@@ -2287,7 +2276,7 @@ public class SQLSessionIT {
                         + "|  6|           7|           0|        13.0|\n"
                         + "+---+------------+------------+------------+\n"
                         + "Total line number = 6\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "SELECT s1+s2, s1-s2, s1+s3, s1-s3 FROM us.d3;";
         expected =
@@ -2303,7 +2292,7 @@ public class SQLSessionIT {
                         + "|  6|                  7|                  5|               12.5|               -0.5|\n"
                         + "+---+-------------------+-------------------+-------------------+-------------------+\n"
                         + "Total line number = 6\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "SELECT s1*s2, s1/s2, s1%s2 FROM us.d3;";
         expected =
@@ -2319,7 +2308,7 @@ public class SQLSessionIT {
                         + "|  6|                  6|                  6|                  0|\n"
                         + "+---+-------------------+-------------------+-------------------+\n"
                         + "Total line number = 6\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "SELECT s1*s3, s1/s3, s1%s3 FROM us.d3;";
         expected =
@@ -2335,7 +2324,7 @@ public class SQLSessionIT {
                         + "|  6|               39.0| 0.9230769230769231|                6.0|\n"
                         + "+---+-------------------+-------------------+-------------------+\n"
                         + "Total line number = 6\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
     }
 
     @Test
@@ -2343,7 +2332,7 @@ public class SQLSessionIT {
         String insert =
                 "INSERT INTO us.d3 (key, s1, s2, s3) values "
                         + "(1, 1, 6, 1.5), (2, 2, 5, 2.5), (3, 3, 4, 3.5), (4, 4, 3, 4.5), (5, 5, 2, 5.5), (6, 6, 1, 6.5);";
-        execute(insert);
+        executor.execute(insert);
 
         String statement = "SELECT s1, s2, s3 FROM us.d3;";
         String expected =
@@ -2359,7 +2348,7 @@ public class SQLSessionIT {
                         + "|  6|       6|       1|     6.5|\n"
                         + "+---+--------+--------+--------+\n"
                         + "Total line number = 6\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "SELECT (s1+s2)*s3 FROM us.d3;";
         expected =
@@ -2375,7 +2364,7 @@ public class SQLSessionIT {
                         + "|  6|                            45.5|\n"
                         + "+---+--------------------------------+\n"
                         + "Total line number = 6\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "SELECT (s1+s3)*(s2-s3) FROM us.d3;";
         expected =
@@ -2391,7 +2380,7 @@ public class SQLSessionIT {
                         + "|  6|                                       -68.75|\n"
                         + "+---+---------------------------------------------+\n"
                         + "Total line number = 6\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "SELECT ((s1+s2)*s3+s2)*s3 FROM us.d3;";
         expected =
@@ -2407,7 +2396,7 @@ public class SQLSessionIT {
                         + "|  6|                                                  302.25|\n"
                         + "+---+--------------------------------------------------------+\n"
                         + "Total line number = 6\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "SELECT (s1+1)*(s2-1)*(s3*2) FROM us.d3;";
         expected =
@@ -2423,7 +2412,7 @@ public class SQLSessionIT {
                         + "|  6|                                             0.0|\n"
                         + "+---+------------------------------------------------+\n"
                         + "Total line number = 6\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
     }
 
     @Test
@@ -2448,7 +2437,7 @@ public class SQLSessionIT {
                         + "|1009|         1009|    1010|\n"
                         + "+----+-------------+--------+\n"
                         + "Total line number = 10\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         // result set alias
         statement = "SELECT s1, s2 FROM us.d1 WHERE s1 >= 1000 AND s1 < 1010 AS rename_result_set;";
@@ -2469,7 +2458,7 @@ public class SQLSessionIT {
                         + "|1009|                      1009|                      1010|\n"
                         + "+----+--------------------------+--------------------------+\n"
                         + "Total line number = 10\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         // time series and result set alias
         statement =
@@ -2491,7 +2480,7 @@ public class SQLSessionIT {
                         + "|1009|                           1009|                      1010|\n"
                         + "+----+-------------------------------+--------------------------+\n"
                         + "Total line number = 10\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
     }
 
     @Test
@@ -2618,7 +2607,7 @@ public class SQLSessionIT {
         for (int i = 0; i < funcTypeList.size(); i++) {
             String type = funcTypeList.get(i);
             String expected = expectedList.get(i);
-            executeAndCompare(String.format(statement, type, type, type), expected);
+            executor.executeAndCompare(String.format(statement, type, type, type), expected);
         }
     }
 
@@ -2643,7 +2632,7 @@ public class SQLSessionIT {
                         + "|1009|1009|\n"
                         + "+----+----+\n"
                         + "Total line number = 10\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement =
                 "SELECT avg_s1 FROM (SELECT AVG(s1) AS avg_s1 FROM us.d1 OVER (RANGE 100 IN [1000, 1600))) WHERE avg_s1 > 1200;";
@@ -2658,7 +2647,7 @@ public class SQLSessionIT {
                         + "|1500|1549.5|\n"
                         + "+----+------+\n"
                         + "Total line number = 4\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement =
                 "SELECT avg_s1 FROM (SELECT AVG(s1) AS avg_s1 FROM us.d1 WHERE us.d1.s1 < 1500 OVER (RANGE 100 IN [1000, 1600))) WHERE avg_s1 > 1200;";
@@ -2672,7 +2661,7 @@ public class SQLSessionIT {
                         + "|1400|1449.5|\n"
                         + "+----+------+\n"
                         + "Total line number = 3\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
     }
 
     @Test
@@ -2696,7 +2685,7 @@ public class SQLSessionIT {
                         + "|1090|1094.5| 10955|\n"
                         + "+----+------+------+\n"
                         + "Total line number = 10\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement =
                 "SELECT avg_s1, sum_s2 "
@@ -2716,7 +2705,7 @@ public class SQLSessionIT {
                         + "|1070|1074.5| 10755|\n"
                         + "+----+------+------+\n"
                         + "Total line number = 6\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement =
                 "SELECT MAX(avg_s1), MIN(sum_s2) "
@@ -2732,20 +2721,20 @@ public class SQLSessionIT {
                         + "|     1074.5|      10255|\n"
                         + "+-----------+-----------+\n"
                         + "Total line number = 1\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
     }
 
     @Test
     public void testFromSubQuery() {
         String insert =
                 "INSERT INTO test(key, a.a, a.b) VALUES (1, 1, 1.1), (2, 3, 3.1), (3, 7, 7.1);";
-        execute(insert);
+        executor.execute(insert);
         insert =
                 "INSERT INTO test(key, b.a, b.b) VALUES (1, 2, \"aaa\"), (3, 4, \"ccc\"), (5, 6, \"eee\");";
-        execute(insert);
+        executor.execute(insert);
         insert =
                 "INSERT INTO test(key, c.a, c.b) VALUES (2, \"eee\", false), (3, \"aaa\", true), (4, \"bbb\", false);";
-        execute(insert);
+        executor.execute(insert);
 
         String statement = "SELECT * FROM test.a, (SELECT * FROM test.b);";
         String expected =
@@ -2764,7 +2753,7 @@ public class SQLSessionIT {
                         + "|       7|     7.1|         3|       6|     eee|         5|\n"
                         + "+--------+--------+----------+--------+--------+----------+\n"
                         + "Total line number = 9\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "SELECT * FROM (SELECT * FROM test.b), test.a;";
         expected =
@@ -2783,7 +2772,7 @@ public class SQLSessionIT {
                         + "|       7|     7.1|         3|       6|     eee|         5|\n"
                         + "+--------+--------+----------+--------+--------+----------+\n"
                         + "Total line number = 9\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement =
                 "SELECT * FROM test.a, (SELECT * FROM test.b WHERE test.b.a < 6) WHERE test.a.a > 1;";
@@ -2798,7 +2787,7 @@ public class SQLSessionIT {
                         + "|       7|     7.1|         3|       4|     ccc|         3|\n"
                         + "+--------+--------+----------+--------+--------+----------+\n"
                         + "Total line number = 4\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement =
                 "SELECT * FROM (SELECT test.a.a, test.b.a FROM test.a, test.b WHERE test.b.a < 6 AND test.a.a > 1 AS sub_query);";
@@ -2813,7 +2802,7 @@ public class SQLSessionIT {
                         + "|                 7|                 4|\n"
                         + "+------------------+------------------+\n"
                         + "Total line number = 4\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "SELECT * FROM test.a INNER JOIN (SELECT a FROM test.b) ON test.a.a < test.b.a";
         expected =
@@ -2828,7 +2817,7 @@ public class SQLSessionIT {
                         + "|       3|     3.1|         2|       6|         5|\n"
                         + "+--------+--------+----------+--------+----------+\n"
                         + "Total line number = 5\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement =
                 "SELECT * FROM test.a LEFT OUTER JOIN (SELECT a FROM test.b) ON test.a.a < test.b.a";
@@ -2845,7 +2834,7 @@ public class SQLSessionIT {
                         + "|       7|     7.1|         3|    null|      null|\n"
                         + "+--------+--------+----------+--------+----------+\n"
                         + "Total line number = 6\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement =
                 "SELECT * FROM test.a, (SELECT a FROM test.b WHERE test.b.a < 6), (SELECT b FROM test.c WHERE test.c.b = false);";
@@ -2868,7 +2857,7 @@ public class SQLSessionIT {
                         + "|       7|     7.1|         3|       4|         3|   false|         4|\n"
                         + "+--------+--------+----------+--------+----------+--------+----------+\n"
                         + "Total line number = 12\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
     }
 
     @Test
@@ -2876,15 +2865,15 @@ public class SQLSessionIT {
         String insert =
                 "INSERT INTO test.a(key, a, b, c, d) VALUES (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), "
                         + "(3, 2, 2, 1.1, \"val7\"), (4, 3, 2, 2.1, \"val8\"), (5, 1, 2, 3.1, \"val1\"), (6, 2, 2, 5.1, \"val3\");";
-        execute(insert);
+        executor.execute(insert);
         insert =
                 "INSERT INTO test.b(key, a, b, c, d) VALUES (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), "
                         + "(3, 2, 2, 1.1, \"val3\"), (4, 3, 2, 2.1, \"val2\"), (5, 1, 2, 3.1, \"val2\"), (6, 2, 2, 5.1, \"val3\");";
-        execute(insert);
+        executor.execute(insert);
         insert =
                 "INSERT INTO test.c(key, a, b, c, d) VALUES (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), "
                         + "(3, 2, 2, 1.1, \"val3\"), (4, 3, 2, 2.1, \"val4\"), (5, 1, 2, 3.1, \"val5\"), (6, 2, 2, 5.1, \"val6\");";
-        execute(insert);
+        executor.execute(insert);
 
         String statement = "SELECT a FROM test.a;";
         String expected =
@@ -2900,7 +2889,7 @@ public class SQLSessionIT {
                         + "|  6|       2|\n"
                         + "+---+--------+\n"
                         + "Total line number = 6\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "SELECT AVG(a) FROM test.b;";
         expected =
@@ -2911,7 +2900,7 @@ public class SQLSessionIT {
                         + "|          2.0|\n"
                         + "+-------------+\n"
                         + "Total line number = 1\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "SELECT a, (SELECT AVG(a) FROM test.b) FROM test.a;";
         expected =
@@ -2927,7 +2916,7 @@ public class SQLSessionIT {
                         + "|  6|       2|          2.0|\n"
                         + "+---+--------+-------------+\n"
                         + "Total line number = 6\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "SELECT a, (SELECT AVG(a) FROM test.b) FROM test.a WHERE a > 1;";
         expected =
@@ -2941,7 +2930,7 @@ public class SQLSessionIT {
                         + "|  6|       2|          2.0|\n"
                         + "+---+--------+-------------+\n"
                         + "Total line number = 4\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "SELECT d, AVG(a) FROM test.b GROUP BY d HAVING avg(a) > 2;";
         expected =
@@ -2952,7 +2941,7 @@ public class SQLSessionIT {
                         + "|    val1|          3.0|\n"
                         + "+--------+-------------+\n"
                         + "Total line number = 1\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement =
                 "SELECT a, (SELECT d, AVG(a) FROM test.b GROUP BY d HAVING avg(test.b.a) > 2) FROM test.a;";
@@ -2969,7 +2958,7 @@ public class SQLSessionIT {
                         + "|  6|       2|    val1|          3.0|\n"
                         + "+---+--------+--------+-------------+\n"
                         + "Total line number = 6\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "SELECT a, 1 + (SELECT AVG(a) FROM test.b) FROM test.a;";
         expected =
@@ -2985,7 +2974,7 @@ public class SQLSessionIT {
                         + "|  6|       2|              3.0|\n"
                         + "+---+--------+-----------------+\n"
                         + "Total line number = 6\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "SELECT a / (SELECT AVG(a) FROM test.b) FROM test.a;";
         expected =
@@ -3001,7 +2990,7 @@ public class SQLSessionIT {
                         + "|  6|                     1.0|\n"
                         + "+---+------------------------+\n"
                         + "Total line number = 6\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "SELECT a / (1 + (SELECT AVG(a) FROM test.b)) FROM test.a;";
         expected =
@@ -3017,7 +3006,7 @@ public class SQLSessionIT {
                         + "|  6|            0.6666666666666666|\n"
                         + "+---+------------------------------+\n"
                         + "Total line number = 6\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement =
                 "SELECT a, (SELECT AVG(a) AS a1 FROM test.b GROUP BY d HAVING avg(test.b.a) > 2) * (SELECT AVG(a) AS a2 FROM test.b) FROM test.a;";
@@ -3034,7 +3023,7 @@ public class SQLSessionIT {
                         + "|  6|       2|    6.0|\n"
                         + "+---+--------+-------+\n"
                         + "Total line number = 6\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement =
                 "SELECT test.a.a, test.c.a FROM test.a INNER JOIN test.c ON test.a.d = test.c.d";
@@ -3049,7 +3038,7 @@ public class SQLSessionIT {
                         + "|       2|       2|\n"
                         + "+--------+--------+\n"
                         + "Total line number = 4\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement =
                 "SELECT test.a.a, test.c.a, (SELECT AVG(a) FROM test.b) FROM test.a INNER JOIN test.c ON test.a.d = test.c.d";
@@ -3064,7 +3053,7 @@ public class SQLSessionIT {
                         + "|       2|       2|          2.0|\n"
                         + "+--------+--------+-------------+\n"
                         + "Total line number = 4\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
     }
 
     @Test
@@ -3072,15 +3061,15 @@ public class SQLSessionIT {
         String insert =
                 "INSERT INTO test.a(key, a, b, c, d) VALUES (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), "
                         + "(3, 2, 2, 1.1, \"val7\"), (4, 3, 2, 2.1, \"val8\"), (5, 1, 2, 3.1, \"val1\"), (6, 2, 2, 5.1, \"val3\");";
-        execute(insert);
+        executor.execute(insert);
         insert =
                 "INSERT INTO test.b(key, a, b, c, d) VALUES (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), "
                         + "(3, 2, 2, 1.1, \"val3\"), (4, 3, 2, 2.1, \"val2\"), (5, 1, 2, 3.1, \"val2\"), (6, 2, 2, 5.1, \"val3\");";
-        execute(insert);
+        executor.execute(insert);
         insert =
                 "INSERT INTO test.c(key, a, b, c, d) VALUES (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), "
                         + "(3, 2, 2, 1.1, \"val3\"), (4, 3, 2, 2.1, \"val4\"), (5, 1, 2, 3.1, \"val5\"), (6, 2, 2, 5.1, \"val6\");";
-        execute(insert);
+        executor.execute(insert);
 
         String statement = "SELECT * FROM test.a;";
         String expected =
@@ -3096,7 +3085,7 @@ public class SQLSessionIT {
                         + "|  6|       2|       2|     5.1|    val3|\n"
                         + "+---+--------+--------+--------+--------+\n"
                         + "Total line number = 6\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "SELECT * FROM test.b;";
         expected =
@@ -3112,7 +3101,7 @@ public class SQLSessionIT {
                         + "|  6|       2|       2|     5.1|    val3|\n"
                         + "+---+--------+--------+--------+--------+\n"
                         + "Total line number = 6\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "SELECT * FROM test.c;";
         expected =
@@ -3128,7 +3117,7 @@ public class SQLSessionIT {
                         + "|  6|       2|       2|     5.1|    val6|\n"
                         + "+---+--------+--------+--------+--------+\n"
                         + "Total line number = 6\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement =
                 "SELECT * FROM test.a WHERE EXISTS (SELECT * FROM test.b WHERE test.b.d = \"val2\");";
@@ -3145,7 +3134,7 @@ public class SQLSessionIT {
                         + "|  6|       2|       2|     5.1|    val3|\n"
                         + "+---+--------+--------+--------+--------+\n"
                         + "Total line number = 6\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement =
                 "SELECT * FROM test.a WHERE NOT EXISTS (SELECT * FROM test.b WHERE test.b.d = \"val4\");";
@@ -3162,7 +3151,7 @@ public class SQLSessionIT {
                         + "|  6|       2|       2|     5.1|    val3|\n"
                         + "+---+--------+--------+--------+--------+\n"
                         + "Total line number = 6\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement =
                 "SELECT * FROM test.a WHERE EXISTS (SELECT * FROM test.b WHERE test.b.d = \"val4\") OR d = \"val1\";";
@@ -3175,7 +3164,7 @@ public class SQLSessionIT {
                         + "|  5|       1|       2|     3.1|    val1|\n"
                         + "+---+--------+--------+--------+--------+\n"
                         + "Total line number = 2\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "SELECT * FROM test.a WHERE d IN (SELECT d FROM test.b);";
         expected =
@@ -3189,7 +3178,7 @@ public class SQLSessionIT {
                         + "|  6|       2|       2|     5.1|    val3|\n"
                         + "+---+--------+--------+--------+--------+\n"
                         + "Total line number = 4\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "SELECT * FROM test.a WHERE d NOT IN (SELECT d FROM test.b);";
         expected =
@@ -3201,7 +3190,7 @@ public class SQLSessionIT {
                         + "|  4|       3|       2|     2.1|    val8|\n"
                         + "+---+--------+--------+--------+--------+\n"
                         + "Total line number = 2\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "SELECT * FROM test.a WHERE d = SOME (SELECT d FROM test.b);";
         expected =
@@ -3215,7 +3204,7 @@ public class SQLSessionIT {
                         + "|  6|       2|       2|     5.1|    val3|\n"
                         + "+---+--------+--------+--------+--------+\n"
                         + "Total line number = 4\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "SELECT * FROM test.a WHERE c > SOME (SELECT c FROM test.b);";
         expected =
@@ -3230,7 +3219,7 @@ public class SQLSessionIT {
                         + "|  6|       2|       2|     5.1|    val3|\n"
                         + "+---+--------+--------+--------+--------+\n"
                         + "Total line number = 5\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "SELECT * FROM test.a WHERE d != ALL (SELECT d FROM test.b);";
         expected =
@@ -3242,7 +3231,7 @@ public class SQLSessionIT {
                         + "|  4|       3|       2|     2.1|    val8|\n"
                         + "+---+--------+--------+--------+--------+\n"
                         + "Total line number = 2\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "SELECT * FROM test.a WHERE c >= ALL (SELECT c FROM test.b);";
         expected =
@@ -3253,7 +3242,7 @@ public class SQLSessionIT {
                         + "|  6|       2|       2|     5.1|    val3|\n"
                         + "+---+--------+--------+--------+--------+\n"
                         + "Total line number = 1\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "SELECT * FROM test.a WHERE a = (SELECT AVG(a) FROM test.b);";
         expected =
@@ -3265,7 +3254,7 @@ public class SQLSessionIT {
                         + "|  6|       2|       2|     5.1|    val3|\n"
                         + "+---+--------+--------+--------+--------+\n"
                         + "Total line number = 2\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "SELECT * FROM test.a WHERE a > (SELECT AVG(a) FROM test.b);";
         expected =
@@ -3277,7 +3266,7 @@ public class SQLSessionIT {
                         + "|  4|       3|       2|     2.1|    val8|\n"
                         + "+---+--------+--------+--------+--------+\n"
                         + "Total line number = 2\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "SELECT * FROM test.a WHERE a < (SELECT AVG(a) FROM test.b);";
         expected =
@@ -3289,7 +3278,7 @@ public class SQLSessionIT {
                         + "|  5|       1|       2|     3.1|    val1|\n"
                         + "+---+--------+--------+--------+--------+\n"
                         + "Total line number = 2\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement =
                 "SELECT * FROM test.a WHERE (SELECT AVG(a) FROM test.c) = (SELECT AVG(a) FROM test.b);";
@@ -3306,7 +3295,7 @@ public class SQLSessionIT {
                         + "|  6|       2|       2|     5.1|    val3|\n"
                         + "+---+--------+--------+--------+--------+\n"
                         + "Total line number = 6\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
     }
 
     @Test
@@ -3314,15 +3303,15 @@ public class SQLSessionIT {
         String insert =
                 "INSERT INTO test.a(key, a, b, c, d) VALUES (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), "
                         + "(3, 2, 2, 1.1, \"val7\"), (4, 3, 2, 2.1, \"val8\"), (5, 1, 2, 3.1, \"val1\"), (6, 2, 2, 5.1, \"val3\");";
-        execute(insert);
+        executor.execute(insert);
         insert =
                 "INSERT INTO test.b(key, a, b, c, d) VALUES (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), "
                         + "(3, 2, 2, 1.1, \"val3\"), (4, 3, 2, 2.1, \"val2\"), (5, 1, 2, 3.1, \"val2\"), (6, 2, 2, 5.1, \"val3\");";
-        execute(insert);
+        executor.execute(insert);
         insert =
                 "INSERT INTO test.c(key, a, b, c, d) VALUES (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), "
                         + "(3, 2, 2, 1.1, \"val3\"), (4, 3, 2, 2.1, \"val4\"), (5, 1, 2, 3.1, \"val5\"), (6, 2, 2, 5.1, \"val6\");";
-        execute(insert);
+        executor.execute(insert);
 
         String statement = "SELECT test.* FROM test.a JOIN test.c ON test.a.d = test.c.d;";
         String expected =
@@ -3336,7 +3325,7 @@ public class SQLSessionIT {
                         + "|       2|       2|     5.1|    val3|         6|       2|       2|     1.1|    val3|         3|\n"
                         + "+--------+--------+--------+--------+----------+--------+--------+--------+--------+----------+\n"
                         + "Total line number = 4\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement =
                 "SELECT test.* FROM test.a JOIN test.c ON test.a.d = test.c.d WHERE EXISTS (SELECT * FROM test.b WHERE test.b.d = \"val4\") OR test.a.d = \"val1\";";
@@ -3349,7 +3338,7 @@ public class SQLSessionIT {
                         + "|       1|       2|     3.1|    val1|         5|       3|       2|     3.1|    val1|         1|\n"
                         + "+--------+--------+--------+--------+----------+--------+--------+--------+--------+----------+\n"
                         + "Total line number = 2\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement =
                 "SELECT test.* FROM test.a JOIN test.c ON test.a.d = test.c.d WHERE test.a.d IN (SELECT d FROM test.b);";
@@ -3364,7 +3353,7 @@ public class SQLSessionIT {
                         + "|       2|       2|     5.1|    val3|         6|       2|       2|     1.1|    val3|         3|\n"
                         + "+--------+--------+--------+--------+----------+--------+--------+--------+--------+----------+\n"
                         + "Total line number = 4\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement =
                 "SELECT test.* FROM test.a JOIN test.c ON test.a.d = test.c.d WHERE test.a.a < (SELECT AVG(a) FROM test.b);";
@@ -3377,7 +3366,7 @@ public class SQLSessionIT {
                         + "|       1|       2|     3.1|    val1|         5|       3|       2|     3.1|    val1|         1|\n"
                         + "+--------+--------+--------+--------+----------+--------+--------+--------+--------+----------+\n"
                         + "Total line number = 2\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
     }
 
     @Test
@@ -3385,11 +3374,11 @@ public class SQLSessionIT {
         String insert =
                 "INSERT INTO test.a(key, a, b, c, d) VALUES (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), "
                         + "(3, 2, 2, 1.1, \"val5\"), (4, 3, 2, 2.1, \"val2\"), (5, 1, 2, 3.1, \"val1\"), (6, 2, 2, 5.1, \"val3\");";
-        execute(insert);
+        executor.execute(insert);
         insert =
                 "INSERT INTO test.b(key, a, b, c, d) VALUES (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), "
                         + "(3, 2, 2, 1.1, \"val3\"), (4, 3, 2, 2.1, \"val2\"), (5, 1, 2, 3.1, \"val2\"), (6, 2, 2, 5.1, \"val3\");";
-        execute(insert);
+        executor.execute(insert);
 
         String statement = "SELECT AVG(a), b FROM test.a GROUP BY b;";
         String expected =
@@ -3401,7 +3390,7 @@ public class SQLSessionIT {
                         + "|          1.0|       3|\n"
                         + "+-------------+--------+\n"
                         + "Total line number = 2\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "SELECT AVG(a) FROM test.b;";
         expected =
@@ -3412,7 +3401,7 @@ public class SQLSessionIT {
                         + "|          2.0|\n"
                         + "+-------------+\n"
                         + "Total line number = 1\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement =
                 "SELECT AVG(a), b FROM test.a GROUP BY b HAVING avg(a) > (SELECT AVG(a) FROM test.b);";
@@ -3424,7 +3413,7 @@ public class SQLSessionIT {
                         + "|          2.2|       2|\n"
                         + "+-------------+--------+\n"
                         + "Total line number = 1\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
     }
 
     @Test
@@ -3432,15 +3421,15 @@ public class SQLSessionIT {
         String insert =
                 "INSERT INTO test.a(key, a, b, c, d) VALUES (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), "
                         + "(3, 2, 2, 1.1, \"val7\"), (4, 3, 2, 2.1, \"val8\"), (5, 1, 2, 3.1, \"val1\"), (6, 2, 2, 5.1, \"val3\");";
-        execute(insert);
+        executor.execute(insert);
         insert =
                 "INSERT INTO test.b(key, a, b, c, d) VALUES (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), "
                         + "(3, 2, 2, 1.1, \"val3\"), (4, 3, 2, 2.1, \"val2\"), (5, 1, 2, 3.1, \"val2\"), (6, 2, 2, 5.1, \"val3\");";
-        execute(insert);
+        executor.execute(insert);
         insert =
                 "INSERT INTO test.c(key, a, b, c, d) VALUES (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), "
                         + "(3, 2, 2, 1.1, \"val3\"), (4, 3, 2, 2.1, \"val4\"), (5, 1, 2, 3.1, \"val5\"), (6, 2, 2, 5.1, \"val6\");";
-        execute(insert);
+        executor.execute(insert);
 
         String statement = "SELECT test.a.a FROM (SELECT * FROM test.a);";
         String expected =
@@ -3456,7 +3445,7 @@ public class SQLSessionIT {
                         + "|  6|       2|\n"
                         + "+---+--------+\n"
                         + "Total line number = 6\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement = "SELECT test.a.a, (SELECT AVG(a) FROM test.b) FROM (SELECT * FROM test.a);";
         expected =
@@ -3472,7 +3461,7 @@ public class SQLSessionIT {
                         + "|  6|       2|          2.0|\n"
                         + "+---+--------+-------------+\n"
                         + "Total line number = 6\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement =
                 "SELECT test.a.a, test.a.a * (SELECT AVG(a) FROM test.b) FROM (SELECT * FROM test.a);";
@@ -3489,7 +3478,7 @@ public class SQLSessionIT {
                         + "|  6|       2|                     4.0|\n"
                         + "+---+--------+------------------------+\n"
                         + "Total line number = 6\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement =
                 "SELECT test.a.a, test.a.d FROM (SELECT * FROM test.a) WHERE test.a.d IN (SELECT d FROM test.b);";
@@ -3504,7 +3493,7 @@ public class SQLSessionIT {
                         + "|  6|       2|    val3|\n"
                         + "+---+--------+--------+\n"
                         + "Total line number = 4\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement =
                 "SELECT test.a.a, test.a.d FROM (SELECT * FROM test.a) WHERE test.a.d IN (SELECT d FROM test.b) OR test.a.a > 2;";
@@ -3520,7 +3509,7 @@ public class SQLSessionIT {
                         + "|  6|       2|    val3|\n"
                         + "+---+--------+--------+\n"
                         + "Total line number = 5\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
 
         statement =
                 "SELECT test.a.a, test.a.a * (SELECT AVG(a) FROM test.b) FROM (SELECT * FROM test.a) WHERE test.a.d IN (SELECT d FROM test.b) OR test.a.a > 2;";
@@ -3536,7 +3525,7 @@ public class SQLSessionIT {
                         + "|  6|       2|                     4.0|\n"
                         + "+---+--------+------------------------+\n"
                         + "Total line number = 5\n";
-        executeAndCompare(statement, expected);
+        executor.executeAndCompare(statement, expected);
     }
 
     @Test
@@ -3561,7 +3550,7 @@ public class SQLSessionIT {
                         "2021.08.26T16:15:32.001");
 
         for (int i = 0; i < dateFormats.size(); i++) {
-            execute(String.format(insert, dateFormats.get(i), i));
+            executor.execute(String.format(insert, dateFormats.get(i), i));
         }
 
         String query = "SELECT date FROM us.d2;";
@@ -3584,7 +3573,7 @@ public class SQLSessionIT {
                         + "|1629965732001000000|        11|\n"
                         + "+-------------------+----------+\n"
                         + "Total line number = 12\n";
-        executeAndCompare(query, expected);
+        executor.executeAndCompare(query, expected);
 
         query =
                 "SELECT date FROM us.d2 WHERE key >= 2021-08-26 16:15:27 AND key <= 2021.08.26T16:15:32.001;";
@@ -3607,7 +3596,7 @@ public class SQLSessionIT {
                         + "|1629965732001000000|        11|\n"
                         + "+-------------------+----------+\n"
                         + "Total line number = 12\n";
-        executeAndCompare(query, expected);
+        executor.executeAndCompare(query, expected);
 
         query =
                 "SELECT date FROM us.d2 WHERE key >= 2021.08.26 16:15:29 AND key <= 2021-08-26T16:15:30.001;";
@@ -3622,7 +3611,7 @@ public class SQLSessionIT {
                         + "|1629965730001000000|         9|\n"
                         + "+-------------------+----------+\n"
                         + "Total line number = 4\n";
-        executeAndCompare(query, expected);
+        executor.executeAndCompare(query, expected);
 
         query =
                 "SELECT date FROM us.d2 WHERE key >= 2021/08/26 16:15:28 AND key <= 2021/08/26T16:15:31.001;";
@@ -3641,14 +3630,14 @@ public class SQLSessionIT {
                         + "|1629965731001000000|        10|\n"
                         + "+-------------------+----------+\n"
                         + "Total line number = 8\n";
-        executeAndCompare(query, expected);
+        executor.executeAndCompare(query, expected);
     }
 
     @Test
     public void testInsertWithSubQuery() {
         String insert =
                 "INSERT INTO us.d2(key, s1) VALUES (SELECT s1 FROM us.d1 WHERE s1 >= 1000 AND s1 < 1010);";
-        execute(insert);
+        executor.execute(insert);
 
         String query = "SELECT s1 FROM us.d2;";
         String expected =
@@ -3668,11 +3657,11 @@ public class SQLSessionIT {
                         + "|1009|    1009|\n"
                         + "+----+--------+\n"
                         + "Total line number = 10\n";
-        executeAndCompare(query, expected);
+        executor.executeAndCompare(query, expected);
 
         insert =
                 "INSERT INTO us.d3(key, s1) VALUES (SELECT s1 FROM us.d1 WHERE s1 >= 1000 AND s1 < 1010) TIME_OFFSET = 100;";
-        execute(insert);
+        executor.execute(insert);
 
         query = "SELECT s1 FROM us.d3;";
         expected =
@@ -3692,11 +3681,11 @@ public class SQLSessionIT {
                         + "|1109|    1009|\n"
                         + "+----+--------+\n"
                         + "Total line number = 10\n";
-        executeAndCompare(query, expected);
+        executor.executeAndCompare(query, expected);
 
         insert =
                 "INSERT INTO us.d4(key, s1, s2) VALUES (SELECT AVG(s1) AS avg_s1, SUM(s2) AS sum_s2 FROM us.d1 OVER (RANGE 10 IN [1000, 1100)));";
-        execute(insert);
+        executor.execute(insert);
 
         query = "SELECT s1, s2 FROM us.d4";
         expected =
@@ -3716,14 +3705,14 @@ public class SQLSessionIT {
                         + "|1090|  1094.5|   10955|\n"
                         + "+----+--------+--------+\n"
                         + "Total line number = 10\n";
-        executeAndCompare(query, expected);
+        executor.executeAndCompare(query, expected);
 
         insert =
                 "INSERT INTO us.d5(key, s1, s2) VALUES (SELECT avg_s1, sum_s2 "
                         + "FROM (SELECT AVG(s1) AS avg_s1, SUM(s2) AS sum_s2 "
                         + "FROM us.d1 OVER (RANGE 10 IN [1000, 1100))) "
                         + "WHERE avg_s1 > 1020 AND sum_s2 < 10800);";
-        execute(insert);
+        executor.execute(insert);
 
         query = "SELECT s1, s2 FROM us.d5";
         expected =
@@ -3739,7 +3728,7 @@ public class SQLSessionIT {
                         + "|1070|  1074.5|   10755|\n"
                         + "+----+--------+--------+\n"
                         + "Total line number = 6\n";
-        executeAndCompare(query, expected);
+        executor.executeAndCompare(query, expected);
 
         insert =
                 "INSERT INTO us.d6(key, s1, s2) VALUES (SELECT MAX(avg_s1), MIN(sum_s2) "
@@ -3747,7 +3736,7 @@ public class SQLSessionIT {
                         + "FROM (SELECT AVG(s1) AS avg_s1, SUM(s2) AS sum_s2 "
                         + "FROM us.d1 OVER (RANGE 10 IN [1000, 1100))) "
                         + "WHERE avg_s1 > 1020 AND sum_s2 < 10800));";
-        execute(insert);
+        executor.execute(insert);
 
         query = "SELECT s1, s2 FROM us.d6";
         expected =
@@ -3758,7 +3747,7 @@ public class SQLSessionIT {
                         + "|  0|  1074.5|   10255|\n"
                         + "+---+--------+--------+\n"
                         + "Total line number = 1\n";
-        executeAndCompare(query, expected);
+        executor.executeAndCompare(query, expected);
     }
 
     @Test
@@ -3768,7 +3757,7 @@ public class SQLSessionIT {
         }
         // Chinese path
         String insert = "INSERT INTO 测试.前缀(key, 后缀) VALUES (1, 1), (2, 2), (3, 3), (4, 4), (5, 5);";
-        execute(insert);
+        executor.execute(insert);
 
         String query = "SELECT 后缀 FROM 测试.前缀;";
         String expected =
@@ -3783,11 +3772,11 @@ public class SQLSessionIT {
                         + "|  5|       5|\n"
                         + "+---+--------+\n"
                         + "Total line number = 5\n";
-        executeAndCompare(query, expected);
+        executor.executeAndCompare(query, expected);
 
         // number path
         insert = "INSERT INTO 114514(key, 1919810) VALUES (1, 1), (2, 2), (3, 3), (4, 4), (5, 5);";
-        execute(insert);
+        executor.execute(insert);
 
         query = "SELECT 1919810 FROM 114514;";
         expected =
@@ -3802,11 +3791,11 @@ public class SQLSessionIT {
                         + "|  5|             5|\n"
                         + "+---+--------------+\n"
                         + "Total line number = 5\n";
-        executeAndCompare(query, expected);
+        executor.executeAndCompare(query, expected);
 
         // special symbol path
         insert = "INSERT INTO _:@#$(key, _:@#$) VALUES (1, 1), (2, 2), (3, 3), (4, 4), (5, 5);";
-        execute(insert);
+        executor.execute(insert);
 
         query = "SELECT _:@#$ FROM _:@#$;";
         expected =
@@ -3821,12 +3810,12 @@ public class SQLSessionIT {
                         + "|  5|          5|\n"
                         + "+---+-----------+\n"
                         + "Total line number = 5\n";
-        executeAndCompare(query, expected);
+        executor.executeAndCompare(query, expected);
 
         // mix path
         insert =
                 "INSERT INTO 测试.前缀.114514(key, 1919810._:@#$.后缀) VALUES (1, 1), (2, 2), (3, 3), (4, 4), (5, 5);";
-        execute(insert);
+        executor.execute(insert);
 
         query = "SELECT 1919810._:@#$.后缀 FROM 测试.前缀.114514;";
         expected =
@@ -3841,36 +3830,39 @@ public class SQLSessionIT {
                         + "|  5|                            5|\n"
                         + "+---+-----------------------------+\n"
                         + "Total line number = 5\n";
-        executeAndCompare(query, expected);
+        executor.executeAndCompare(query, expected);
     }
 
     @Test
     public void testErrorClause() {
         String errClause =
                 "DELETE FROM us.d1.s1 WHERE key > 105 AND key < 115 AND key >= 120 AND key <= 230;";
-        executeAndCompareErrMsg(errClause, "This clause delete nothing, check your filter again.");
+        executor.executeAndCompareErrMsg(
+                errClause, "This clause delete nothing, check your filter again.");
 
         errClause = "DELETE FROM us.d1.s1 WHERE key > 105 AND key < 115 AND s1 < 10;";
-        executeAndCompareErrMsg(errClause, "delete clause can not use value or path filter.");
+        executor.executeAndCompareErrMsg(
+                errClause, "delete clause can not use value or path filter.");
 
         errClause = "DELETE FROM us.d1.s1 WHERE key != 105;";
-        executeAndCompareErrMsg(errClause, "Not support [!=] in delete clause.");
+        executor.executeAndCompareErrMsg(errClause, "Not support [!=] in delete clause.");
 
         errClause = "SELECT s1 FROM us.d1 OVER (RANGE 100 IN (0, 1000));";
-        executeAndCompareErrMsg(
+        executor.executeAndCompareErrMsg(
                 errClause, "Downsample clause cannot be used without aggregate function.");
 
         errClause = "SELECT last(s1), max(s2) FROM us.d1;";
-        executeAndCompareErrMsg(
+        executor.executeAndCompareErrMsg(
                 errClause,
                 "SetToSet/SetToRow/RowToRow functions can not be mixed in aggregate query.");
 
         errClause = "SELECT s1 FROM us.d1 OVER (RANGE 100 IN (100, 10));";
-        executeAndCompareErrMsg(
+        executor.executeAndCompareErrMsg(
                 errClause, "Start time should be smaller than endTime in time interval.");
 
         errClause = "SELECT last(s1) FROM us.d1 GROUP BY s2;";
-        executeAndCompareErrMsg(errClause, "Group by can not use SetToSet and RowToRow functions.");
+        executor.executeAndCompareErrMsg(
+                errClause, "Group by can not use SetToSet and RowToRow functions.");
     }
 
     @Test
@@ -3890,7 +3882,7 @@ public class SQLSessionIT {
                         + "|      +--Project   |      Project|      Patterns: us.d1.s1,us.d1.s2, Target DU: unit0000000000|\n"
                         + "+-------------------+-------------+------------------------------------------------------------+\n"
                         + "Total line number = 6\n";
-        executeAndCompare(explain, expected);
+        executor.executeAndCompare(explain, expected);
 
         explain = "explain select s1 from us.d1 where s1 > 10 and s1 < 100;";
         expected =
@@ -3904,13 +3896,13 @@ public class SQLSessionIT {
                         + "|      +--Project|      Project|Patterns: us.d1.s1, Target DU: unit0000000000|\n"
                         + "+----------------+-------------+---------------------------------------------+\n"
                         + "Total line number = 4\n";
-        executeAndCompare(explain, expected);
+        executor.executeAndCompare(explain, expected);
 
         explain = "explain physical select max(s2), min(s1) from us.d1;";
-        logger.info(execute(explain));
+        logger.info(executor.execute(explain));
 
         explain = "explain physical select s1 from us.d1 where s1 > 10 and s1 < 100;";
-        logger.info(execute(explain));
+        logger.info(executor.execute(explain));
     }
 
     @Test
@@ -3930,10 +3922,10 @@ public class SQLSessionIT {
                         + "|us.d1.s4|  DOUBLE|\n"
                         + "+--------+--------+\n"
                         + "Total line number = 4\n";
-        executeAndCompare(showTimeSeries, expected);
+        executor.executeAndCompare(showTimeSeries, expected);
 
         String deleteTimeSeries = "DELETE TIME SERIES us.d1.s4";
-        execute(deleteTimeSeries);
+        executor.execute(deleteTimeSeries);
 
         showTimeSeries = "SHOW TIME SERIES us.*;";
         expected =
@@ -3946,14 +3938,14 @@ public class SQLSessionIT {
                         + "|us.d1.s3|  BINARY|\n"
                         + "+--------+--------+\n"
                         + "Total line number = 3\n";
-        executeAndCompare(showTimeSeries, expected);
+        executor.executeAndCompare(showTimeSeries, expected);
 
         String showTimeSeriesData = "SELECT s4 FROM us.d1;";
         expected = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
-        executeAndCompare(showTimeSeriesData, expected);
+        executor.executeAndCompare(showTimeSeriesData, expected);
 
         deleteTimeSeries = "DELETE TIME SERIES us.*";
-        execute(deleteTimeSeries);
+        executor.execute(deleteTimeSeries);
 
         showTimeSeries = "SHOW TIME SERIES us.*;";
         expected =
@@ -3963,15 +3955,15 @@ public class SQLSessionIT {
                         + "+----+--------+\n"
                         + "+----+--------+\n"
                         + "Empty set.\n";
-        executeAndCompare(showTimeSeries, expected);
+        executor.executeAndCompare(showTimeSeries, expected);
 
         showTimeSeriesData = "SELECT * FROM *;";
         expected = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
-        executeAndCompare(showTimeSeriesData, expected);
+        executor.executeAndCompare(showTimeSeriesData, expected);
 
         String countPoints = "COUNT POINTS";
         expected = "Points num: 0\n";
-        executeAndCompare(countPoints, expected);
+        executor.executeAndCompare(countPoints, expected);
     }
 
     @Test
@@ -3981,10 +3973,284 @@ public class SQLSessionIT {
 
         String countPoints = "COUNT POINTS;";
         String expected = "Points num: 0\n";
-        executeAndCompare(countPoints, expected);
+        executor.executeAndCompare(countPoints, expected);
 
         String showTimeSeries = "SELECT * FROM *;";
         expected = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
-        executeAndCompare(showTimeSeries, expected);
+        executor.executeAndCompare(showTimeSeries, expected);
+    }
+
+    @Test
+    public void testConcurrentDeleteSinglePath() {
+        String deleteFormat = "DELETE FROM us.d1.s1 WHERE key >= %d AND key < %d;";
+        int start = 1000, range = 50;
+
+        List<String> deleteStmts = new ArrayList<>();
+        for (int i = 0; i < CONCURRENT_NUM; i++) {
+            deleteStmts.add(String.format(deleteFormat, start, start + range));
+            start += range;
+        }
+        executor.concurrentExecute(deleteStmts);
+
+        String query = "SELECT s1 FROM us.d1 WHERE key > 995 AND key < 1255";
+        String expected =
+                "ResultSets:\n"
+                        + "+----+--------+\n"
+                        + "| key|us.d1.s1|\n"
+                        + "+----+--------+\n"
+                        + "| 996|     996|\n"
+                        + "| 997|     997|\n"
+                        + "| 998|     998|\n"
+                        + "| 999|     999|\n"
+                        + "|1250|    1250|\n"
+                        + "|1251|    1251|\n"
+                        + "|1252|    1252|\n"
+                        + "|1253|    1253|\n"
+                        + "|1254|    1254|\n"
+                        + "+----+--------+\n"
+                        + "Total line number = 9\n";
+        executor.executeAndCompare(query, expected);
+
+        query = "SELECT COUNT(s1) FROM us.d1;";
+        expected =
+                "ResultSets:\n"
+                        + "+---------------+\n"
+                        + "|count(us.d1.s1)|\n"
+                        + "+---------------+\n"
+                        + "|          14750|\n"
+                        + "+---------------+\n"
+                        + "Total line number = 1\n";
+        executor.executeAndCompare(query, expected);
+    }
+
+    @Test
+    public void testConcurrentDeleteSinglePathWithOverlap() {
+        String deleteFormat = "DELETE FROM * WHERE key >= %d AND key < %d;";
+        int start = 1000, range = 70;
+
+        List<String> deleteStmts = new ArrayList<>();
+        for (int i = 0; i < CONCURRENT_NUM; i++) {
+            deleteStmts.add(String.format(deleteFormat, start, start + range));
+            start += range - 20;
+        }
+        executor.concurrentExecute(deleteStmts);
+
+        String query = "SELECT COUNT(*) FROM us.d1;";
+        String expected =
+                "ResultSets:\n"
+                        + "+---------------+---------------+---------------+---------------+\n"
+                        + "|count(us.d1.s1)|count(us.d1.s2)|count(us.d1.s3)|count(us.d1.s4)|\n"
+                        + "+---------------+---------------+---------------+---------------+\n"
+                        + "|          14730|          14730|          14730|          14730|\n"
+                        + "+---------------+---------------+---------------+---------------+\n"
+                        + "Total line number = 1\n";
+        executor.executeAndCompare(query, expected);
+    }
+
+    @Test
+    public void testConcurrentDeleteMultiPath() {
+        String deleteFormat = "DELETE FROM * WHERE key >= %d AND key < %d;";
+        int start = 1000, range = 50;
+
+        List<String> deleteStmts = new ArrayList<>();
+        for (int i = 0; i < CONCURRENT_NUM; i++) {
+            deleteStmts.add(String.format(deleteFormat, start, start + range));
+            start += range;
+        }
+        executor.concurrentExecute(deleteStmts);
+
+        String query = "SELECT COUNT(*) FROM us.d1;";
+        String expected =
+                "ResultSets:\n"
+                        + "+---------------+---------------+---------------+---------------+\n"
+                        + "|count(us.d1.s1)|count(us.d1.s2)|count(us.d1.s3)|count(us.d1.s4)|\n"
+                        + "+---------------+---------------+---------------+---------------+\n"
+                        + "|          14750|          14750|          14750|          14750|\n"
+                        + "+---------------+---------------+---------------+---------------+\n"
+                        + "Total line number = 1\n";
+        executor.executeAndCompare(query, expected);
+    }
+
+    @Test
+    public void testConcurrentDeleteMultiPathWithOverlap() {
+        String deleteFormat = "DELETE FROM * WHERE key >= %d AND key < %d;";
+        int start = 1000, range = 70;
+
+        List<String> deleteStmts = new ArrayList<>();
+        for (int i = 0; i < CONCURRENT_NUM; i++) {
+            deleteStmts.add(String.format(deleteFormat, start, start + range));
+            start += range - 20;
+        }
+        executor.concurrentExecute(deleteStmts);
+
+        String query = "SELECT COUNT(*) FROM us.d1;";
+        String expected =
+                "ResultSets:\n"
+                        + "+---------------+---------------+---------------+---------------+\n"
+                        + "|count(us.d1.s1)|count(us.d1.s2)|count(us.d1.s3)|count(us.d1.s4)|\n"
+                        + "+---------------+---------------+---------------+---------------+\n"
+                        + "|          14730|          14730|          14730|          14730|\n"
+                        + "+---------------+---------------+---------------+---------------+\n"
+                        + "Total line number = 1\n";
+        executor.executeAndCompare(query, expected);
+    }
+
+    @Test
+    public void testConcurrentInsert() {
+        int start = 20000, range = 50;
+
+        List<String> insertStmts = new ArrayList<>();
+        for (int i = 0; i < CONCURRENT_NUM; i++) {
+            insertStmts.add(generateDefaultInsertStatementByTimeRange(start, start + range));
+            start += range;
+        }
+        executor.concurrentExecute(insertStmts);
+
+        String query = "SELECT COUNT(*) FROM us.d1;";
+        String expected =
+                "ResultSets:\n"
+                        + "+---------------+---------------+---------------+---------------+\n"
+                        + "|count(us.d1.s1)|count(us.d1.s2)|count(us.d1.s3)|count(us.d1.s4)|\n"
+                        + "+---------------+---------------+---------------+---------------+\n"
+                        + "|          15250|          15250|          15250|          15250|\n"
+                        + "+---------------+---------------+---------------+---------------+\n"
+                        + "Total line number = 1\n";
+        executor.executeAndCompare(query, expected);
+    }
+
+    @Test
+    public void testConcurrentInsertWithOverlap() {
+        int start = 20000, range = 70;
+
+        List<String> insertStmts = new ArrayList<>();
+        for (int i = 0; i < CONCURRENT_NUM; i++) {
+            insertStmts.add(generateDefaultInsertStatementByTimeRange(start, start + range));
+            start += range - 20;
+        }
+        executor.concurrentExecute(insertStmts);
+
+        String query = "SELECT COUNT(*) FROM us.d1;";
+        String expected =
+                "ResultSets:\n"
+                        + "+---------------+---------------+---------------+---------------+\n"
+                        + "|count(us.d1.s1)|count(us.d1.s2)|count(us.d1.s3)|count(us.d1.s4)|\n"
+                        + "+---------------+---------------+---------------+---------------+\n"
+                        + "|          15270|          15270|          15270|          15270|\n"
+                        + "+---------------+---------------+---------------+---------------+\n"
+                        + "Total line number = 1\n";
+        executor.executeAndCompare(query, expected);
+    }
+
+    @Test
+    public void testBaseInfoConcurrentQuery() {
+        if (isScaling) {
+            return;
+        }
+        List<Pair<String, String>> statementsAndExpectRes =
+                Arrays.asList(
+                        new Pair<>(
+                                "SHOW TIME SERIES",
+                                "Time series:\n"
+                                        + "+--------+--------+\n"
+                                        + "|    Path|DataType|\n"
+                                        + "+--------+--------+\n"
+                                        + "|us.d1.s1|    LONG|\n"
+                                        + "|us.d1.s2|    LONG|\n"
+                                        + "|us.d1.s3|  BINARY|\n"
+                                        + "|us.d1.s4|  DOUBLE|\n"
+                                        + "+--------+--------+\n"
+                                        + "Total line number = 4\n"),
+                        new Pair<>(
+                                "SELECT COUNT(*) FROM us.d1;",
+                                "ResultSets:\n"
+                                        + "+---------------+---------------+---------------+---------------+\n"
+                                        + "|count(us.d1.s1)|count(us.d1.s2)|count(us.d1.s3)|count(us.d1.s4)|\n"
+                                        + "+---------------+---------------+---------------+---------------+\n"
+                                        + "|          15000|          15000|          15000|          15000|\n"
+                                        + "+---------------+---------------+---------------+---------------+\n"
+                                        + "Total line number = 1\n"),
+                        new Pair<>("COUNT POINTS;", "Points num: 60000\n"));
+        executor.concurrentExecuteAndCompare(statementsAndExpectRes);
+    }
+
+    @Test
+    public void testConcurrentQuery() {
+        String insert =
+                "insert into test1(key, a, b, c, d) values (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), (3, 2, 2, 1.1, \"val5\"), (4, 3, 2, 2.1, \"val2\"), (5, 1, 2, 3.1, \"val1\"), (6, 2, 2, 5.1, \"val3\")";
+        executor.execute(insert);
+        insert =
+                "insert into test2(key, a, b, c, d) values (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), (3, 2, 2, 1.1, \"val5\"), (4, 3, 2, 2.1, \"val2\"), (5, 1, 2, 3.1, \"val1\"), (6, 2, 2, 5.1, \"val3\")";
+        executor.execute(insert);
+
+        List<Pair<String, String>> statementsAndExpectRes =
+                Arrays.asList(
+                        new Pair<>(
+                                "SELECT s1 FROM us.d1 WHERE key > 0 AND key < 10000 limit 10;",
+                                "ResultSets:\n"
+                                        + "+---+--------+\n"
+                                        + "|key|us.d1.s1|\n"
+                                        + "+---+--------+\n"
+                                        + "|  1|       1|\n"
+                                        + "|  2|       2|\n"
+                                        + "|  3|       3|\n"
+                                        + "|  4|       4|\n"
+                                        + "|  5|       5|\n"
+                                        + "|  6|       6|\n"
+                                        + "|  7|       7|\n"
+                                        + "|  8|       8|\n"
+                                        + "|  9|       9|\n"
+                                        + "| 10|      10|\n"
+                                        + "+---+--------+\n"
+                                        + "Total line number = 10\n"),
+                        new Pair<>(
+                                "SELECT max(s1), max(s4) FROM us.d1 WHERE key > 300 AND s1 <= 600 OVER (RANGE 100 IN (0, 1000) STEP 50);",
+                                "ResultSets:\n"
+                                        + "+---+-------------+-------------+\n"
+                                        + "|key|max(us.d1.s1)|max(us.d1.s4)|\n"
+                                        + "+---+-------------+-------------+\n"
+                                        + "|251|          350|        350.1|\n"
+                                        + "|301|          400|        400.1|\n"
+                                        + "|351|          450|        450.1|\n"
+                                        + "|401|          500|        500.1|\n"
+                                        + "|451|          550|        550.1|\n"
+                                        + "|501|          600|        600.1|\n"
+                                        + "|551|          600|        600.1|\n"
+                                        + "+---+-------------+-------------+\n"
+                                        + "Total line number = 7\n"),
+                        new Pair<>(
+                                "select avg(test1.a), test2.d from test1 join test2 on test1.a = test2.a group by test2.d",
+                                "ResultSets:\n"
+                                        + "+------------+-------+\n"
+                                        + "|avg(test1.a)|test2.d|\n"
+                                        + "+------------+-------+\n"
+                                        + "|         2.0|   val5|\n"
+                                        + "|         2.0|   val3|\n"
+                                        + "|         2.0|   val2|\n"
+                                        + "|         2.0|   val1|\n"
+                                        + "+------------+-------+\n"
+                                        + "Total line number = 4\n"),
+                        new Pair<>(
+                                "select avg(test1.a), max(test1.c), test2.d from test1 join test2 on test1.a = test2.a group by test2.d",
+                                "ResultSets:\n"
+                                        + "+------------+------------+-------+\n"
+                                        + "|avg(test1.a)|max(test1.c)|test2.d|\n"
+                                        + "+------------+------------+-------+\n"
+                                        + "|         2.0|         5.1|   val5|\n"
+                                        + "|         2.0|         5.1|   val3|\n"
+                                        + "|         2.0|         3.1|   val2|\n"
+                                        + "|         2.0|         3.1|   val1|\n"
+                                        + "+------------+------------+-------+\n"
+                                        + "Total line number = 4\n"),
+                        new Pair<>(
+                                "select avg(test1.a), max(test1.c), test2.d from test1 join test2 on test1.a = test2.a group by test2.d having max(test1.c) > 3.5",
+                                "ResultSets:\n"
+                                        + "+------------+------------+-------+\n"
+                                        + "|avg(test1.a)|max(test1.c)|test2.d|\n"
+                                        + "+------------+------------+-------+\n"
+                                        + "|         2.0|         5.1|   val5|\n"
+                                        + "|         2.0|         5.1|   val3|\n"
+                                        + "+------------+------------+-------+\n"
+                                        + "Total line number = 2\n"));
+        executor.concurrentExecuteAndCompare(statementsAndExpectRes);
     }
 }

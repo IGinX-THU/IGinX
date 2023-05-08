@@ -20,18 +20,19 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils;
 
 import static cn.edu.tsinghua.iginx.thrift.DataType.BOOLEAN;
 
+import cn.edu.tsinghua.iginx.conf.Config;
+import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.constant.GlobalConstant;
 import cn.edu.tsinghua.iginx.engine.physical.exception.InvalidOperatorParameterException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
 import cn.edu.tsinghua.iginx.engine.shared.Constants;
-import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
 import cn.edu.tsinghua.iginx.engine.shared.function.SetMappingFunction;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils;
 import cn.edu.tsinghua.iginx.engine.shared.operator.GroupBy;
@@ -39,14 +40,35 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RowUtils {
+
+    private static final Config config = ConfigDescriptor.getInstance().getConfig();
+
+    private static final Logger logger = LoggerFactory.getLogger(RowUtils.class);
+
+    private static final BlockingQueue<ForkJoinPool> poolQueue = new LinkedBlockingQueue<>();
+
+    static {
+        for (int i = 0; i < config.getParallelGroupByPoolNum(); i++) {
+            poolQueue.add(new ForkJoinPool(config.getParallelGroupByPoolSize()));
+        }
+    }
 
     public static Row transform(Row row, Header targetHeader) {
         Object[] values = new Object[targetHeader.getFieldSize()];
@@ -404,12 +426,12 @@ public class RowUtils {
         }
     }
 
-    public static LinkedList<Row> cacheGroupByResult(GroupBy groupBy, RowStream stream)
+    public static List<Row> cacheGroupByResult(GroupBy groupBy, Table table)
             throws PhysicalException {
         List<String> cols = groupBy.getGroupByCols();
         int[] colIndex = new int[cols.size()];
-        List<Field> fields = new LinkedList<>();
-        Header header = stream.getHeader();
+        List<Field> fields = new ArrayList<>();
+        Header header = table.getHeader();
 
         int cur = 0;
         for (String col : cols) {
@@ -422,43 +444,60 @@ public class RowUtils {
             fields.add(header.getField(index));
         }
 
-        Map<Integer, List<Row>> groups = new HashMap<>();
-        Map<Integer, List<Object>> hashValuesMap = new HashMap<>();
-        while (stream.hasNext()) {
-            Row row = stream.next();
-            Object[] values = row.getValues();
-            List<Object> hashValues = new LinkedList<>();
-            for (int index : colIndex) {
-                if (values[index] instanceof byte[]) {
-                    hashValues.add(new String((byte[]) values[index]));
-                } else {
-                    hashValues.add(values[index]);
-                }
-            }
-
-            int hash = hashValues.hashCode();
-            if (groups.containsKey(hash)) {
-                groups.get(hash).add(row);
-            } else {
-                List<Row> sameHashRows = new LinkedList<>();
-                sameHashRows.add(row);
-                groups.put(hash, sameHashRows);
-                hashValuesMap.put(hash, hashValues);
-            }
+        Map<GroupByKey, List<Row>> groups;
+        if (table.getRowSize() > config.getParallelGroupByRowsThreshold()) {
+            groups = parallelBuild(table, colIndex);
+        } else {
+            groups = seqBuild(table, colIndex);
         }
 
+        return applyFunc(groupBy, fields, header, groups);
+    }
+
+    public static List<Row> applyFunc(
+            GroupBy groupBy, List<Field> fields, Header header, Map<GroupByKey, List<Row>> groups)
+            throws PhysicalException {
+
+        if (groups.size() > config.getParallelApplyFuncGroupsThreshold()) {
+            parallelApplyFunc(groupBy, fields, header, groups);
+        } else {
+            seqApplyFunc(groupBy, fields, header, groups);
+        }
+
+        Header newHeader = new Header(fields);
+        int fieldSize = newHeader.getFieldSize();
+
+        List<Row> cache = new ArrayList<>();
+        for (GroupByKey key : groups.keySet()) {
+            Object[] values = new Object[fieldSize];
+            for (int i = 0; i < key.getRowValues().size(); i++) {
+                Object val = key.getRowValues().get(i);
+                if (val instanceof String) {
+                    values[i] = ((String) val).getBytes();
+                } else {
+                    values[i] = val;
+                }
+            }
+            cache.add(new Row(newHeader, values));
+        }
+        return cache;
+    }
+
+    public static void seqApplyFunc(
+            GroupBy groupBy, List<Field> fields, Header header, Map<GroupByKey, List<Row>> groups)
+            throws PhysicalTaskExecuteFailureException {
         List<FunctionCall> functionCallList = groupBy.getFunctionCallList();
         for (FunctionCall functionCall : functionCallList) {
             SetMappingFunction function = (SetMappingFunction) functionCall.getFunction();
-            Map<String, Value> params = functionCall.getParams();
+            FunctionParams params = functionCall.getParams();
 
             boolean hasAddedFields = false;
-            for (Map.Entry<Integer, List<Row>> entry : groups.entrySet()) {
+            for (Map.Entry<GroupByKey, List<Row>> entry : groups.entrySet()) {
                 List<Row> group = entry.getValue();
                 try {
                     Row row = function.transform(new Table(header, group), params);
                     if (row != null) {
-                        hashValuesMap.get(entry.getKey()).addAll(Arrays.asList(row.getValues()));
+                        entry.getKey().getFuncRet().addAll(Arrays.asList(row.getValues()));
                         if (!hasAddedFields) {
                             fields.addAll(row.getHeader().getFields());
                             hasAddedFields = true;
@@ -473,24 +512,129 @@ public class RowUtils {
                 }
             }
         }
+    }
 
-        Header newHeader = new Header(fields);
-        int fieldSize = newHeader.getFieldSize();
+    private static void parallelApplyFunc(
+            GroupBy groupBy, List<Field> fields, Header header, Map<GroupByKey, List<Row>> groups)
+            throws PhysicalException {
+        List<FunctionCall> functionCallList = groupBy.getFunctionCallList();
 
-        LinkedList<Row> cache = new LinkedList<>();
-        for (Entry<Integer, List<Object>> entry : hashValuesMap.entrySet()) {
-            Object[] values = new Object[fieldSize];
-            for (int i = 0; i < entry.getValue().size(); i++) {
-                Object val = entry.getValue().get(i);
-                if (val instanceof String) {
-                    values[i] = ((String) val).getBytes();
-                } else {
-                    values[i] = val;
+        for (FunctionCall functionCall : functionCallList) {
+            CountDownLatch latch = new CountDownLatch(1);
+            SetMappingFunction function = (SetMappingFunction) functionCall.getFunction();
+            FunctionParams params = functionCall.getParams();
+
+            AtomicBoolean hasAddedFields = new AtomicBoolean(false);
+            ForkJoinPool pool = null;
+            try {
+                // 我们可能需要一种退化情况：获取不到线程池的时候，直接串行执行
+                pool = poolQueue.take();
+                pool.submit(() -> {
+                    groups.entrySet()
+                        .parallelStream()
+                        .forEach(
+                            entry -> {
+                                List<Row> group = entry.getValue();
+                                try {
+                                    Row row = function.transform(new Table(header, group), params);
+                                    if (row != null) {
+                                        entry.getKey()
+                                            .getFuncRet()
+                                            .addAll(Arrays.asList(row.getValues()));
+                                        if (hasAddedFields.compareAndSet(
+                                            false, true)) {
+                                            fields.addAll(row.getHeader().getFields());
+                                        }
+                                    }
+                                } catch (Exception e) {
+                                    logger.error(
+                                        "encounter error when execute set mapping function ");
+                                }
+                            });
+                    latch.countDown();
+                });
+
+                try {
+                    latch.await();
+                } catch (InterruptedException e) {
+                    throw new PhysicalException("Interrupt when latch await ", e);
+                }
+            } catch (InterruptedException e) {
+                throw new PhysicalException("Interrupt when parallel apply func", e);
+            } finally {
+                if (pool != null) {
+                    poolQueue.add(pool);
                 }
             }
-            cache.add(new Row(newHeader, values));
         }
-        return cache;
+    }
+
+    private static Map<GroupByKey, List<Row>> seqBuild(Table table, int[] colIndex) {
+        Map<GroupByKey, List<Row>> groups = new HashMap<>();
+        while (table.hasNext()) {
+            Row row = table.next();
+            Object[] values = row.getValues();
+            List<Object> hashValues = new ArrayList<>();
+            for (int index : colIndex) {
+                if (values[index] instanceof byte[]) {
+                    hashValues.add(new String((byte[]) values[index]));
+                } else {
+                    hashValues.add(values[index]);
+                }
+            }
+
+            GroupByKey key = new GroupByKey(hashValues);
+            groups.computeIfAbsent(key, k -> new ArrayList<>()).add(row);
+        }
+        return groups;
+    }
+
+    private static Map<GroupByKey, List<Row>> parallelBuild(Table table, int[] colIndex)
+            throws PhysicalException {
+        List<Row> rows = table.getRows();
+        ForkJoinPool pool = null;
+        try {
+            pool = poolQueue.take();
+            Map<GroupByKey, List<Row>> groups =
+                    pool.submit(
+                                    () ->
+                                            Collections.synchronizedList(rows)
+                                                    .parallelStream()
+                                                    .collect(
+                                                            Collectors.groupingBy(
+                                                                    row -> {
+                                                                        Object[] values =
+                                                                                row.getValues();
+                                                                        List<Object> hashValues =
+                                                                                new ArrayList<>();
+                                                                        for (int index : colIndex) {
+                                                                            if (values[index]
+                                                                                    instanceof
+                                                                                    byte[]) {
+                                                                                hashValues.add(
+                                                                                        new String(
+                                                                                                (byte
+                                                                                                                [])
+                                                                                                        values[
+                                                                                                                index]));
+                                                                            } else {
+                                                                                hashValues.add(
+                                                                                        values[
+                                                                                                index]);
+                                                                            }
+                                                                        }
+                                                                        return new GroupByKey(
+                                                                                hashValues);
+                                                                    })))
+                            .get();
+            return groups;
+        } catch (InterruptedException | ExecutionException e) {
+            throw new PhysicalException("parallel build failed");
+        } finally {
+            if (pool != null) {
+                poolQueue.add(pool);
+            }
+        }
     }
 
     public static void sortRows(List<Row> rows, boolean asc, List<String> sortByCols)
@@ -503,8 +647,8 @@ public class RowUtils {
         }
         Header header = rows.get(0).getHeader();
 
-        List<Integer> indexList = new LinkedList<>();
-        List<DataType> typeList = new LinkedList<>();
+        List<Integer> indexList = new ArrayList<>();
+        List<DataType> typeList = new ArrayList<>();
         boolean hasKey = false;
         for (String col : sortByCols) {
             if (col.equals(Constants.KEY)) {

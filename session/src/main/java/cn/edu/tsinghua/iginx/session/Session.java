@@ -248,11 +248,11 @@ public class Session {
         try {
             Status status;
             do {
-                lock.readLock().lock();
+                lock.writeLock().lock();
                 try {
                     status = proc.exec();
                 } finally {
-                    lock.readLock().unlock();
+                    lock.writeLock().unlock();
                 }
             } while (checkRedirect(status));
             RpcUtils.verifySuccess(status);

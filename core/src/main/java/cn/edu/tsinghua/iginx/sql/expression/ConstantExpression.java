@@ -3,9 +3,15 @@ package cn.edu.tsinghua.iginx.sql.expression;
 public class ConstantExpression implements Expression {
 
     private final Object value;
+    private String alias;
 
     public ConstantExpression(Object value) {
+        this(value, "");
+    }
+
+    public ConstantExpression(Object value, String alias) {
         this.value = value;
+        this.alias = alias;
     }
 
     public Object getValue() {
@@ -20,5 +26,15 @@ public class ConstantExpression implements Expression {
     @Override
     public ExpressionType getType() {
         return ExpressionType.Constant;
+    }
+
+    @Override
+    public boolean hasAlias() {
+        return alias != null && !alias.equals("");
+    }
+
+    @Override
+    public String getAlias() {
+        return alias;
     }
 }
