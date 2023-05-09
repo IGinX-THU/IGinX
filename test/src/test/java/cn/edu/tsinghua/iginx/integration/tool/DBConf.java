@@ -5,8 +5,8 @@ public final class DBConf {
         parquet,
         iotdb12,
         influxdb,
-        postgresql,
-        mongodb
+        mongodb,
+        postgresql
     }
 
     public static DBType getDBType(String dbName) {
@@ -17,10 +17,10 @@ public final class DBConf {
                 return DBType.influxdb;
             case "parquet":
                 return DBType.parquet;
-            case "postgresql":
-                return DBType.postgresql;
             case "mongodb":
                 return DBType.mongodb;
+            case "postgresql":
+                return DBType.postgresql;
             default:
                 throw new IllegalArgumentException("Invalid DBName value provided");
         }

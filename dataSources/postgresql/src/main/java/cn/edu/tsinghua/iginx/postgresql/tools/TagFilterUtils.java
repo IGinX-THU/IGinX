@@ -45,7 +45,6 @@ public class TagFilterUtils {
                 break;
                 // TODO: case label
             case BasePrecise:
-                break;
             case Precise:
             case WithoutTag:
                 break;
