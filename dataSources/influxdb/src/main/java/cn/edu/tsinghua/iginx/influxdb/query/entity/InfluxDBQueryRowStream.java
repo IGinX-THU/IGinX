@@ -47,7 +47,7 @@ public class InfluxDBQueryRowStream implements RowStream {
 
     private int hasMoreRecords = 0;
 
-    private boolean[] filterMap;
+    private List<Boolean> filterMap;
 
     private final boolean filterByTags;
 
@@ -98,10 +98,7 @@ public class InfluxDBQueryRowStream implements RowStream {
                                     .getDataType());
             fields.add(new Field(path, dataType, tags));
         }
-        filterMap = new boolean[filterList.size()];
-        for (int i = 0; i < filterList.size(); i++) {
-            filterMap[i] = filterList.get(i);
-        }
+        filterMap = filterList;
         this.header = new Header(Field.KEY, fields);
         this.indices = new int[this.tables.size()];
     }
@@ -125,7 +122,7 @@ public class InfluxDBQueryRowStream implements RowStream {
     public Row next() throws PhysicalException {
         long timestamp = Long.MAX_VALUE;
         for (int i = 0; i < this.tables.size(); i++) {
-            if (filterMap[i]) {
+            if (filterMap.get(i)) {
                 continue;
             }
             int index = indices[i];
@@ -142,7 +139,7 @@ public class InfluxDBQueryRowStream implements RowStream {
         }
         Object[] values = new Object[this.tables.size()];
         for (int i = 0; i < this.tables.size(); i++) {
-            if (filterMap[i]) {
+            if (filterMap.get(i)) {
                 continue;
             }
             int index = indices[i];

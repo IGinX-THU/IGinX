@@ -23,21 +23,21 @@ public class ConfLoder {
     private static String confPath;
     private boolean DEBUG = false;
     private static String STORAGEENGINELIST = "storageEngineList";
-    private String TESTTASK = "test-list";
+    private String testTask = "test-list";
     private static String DBCONF = "%s-config";
-    private String RUNNINGSTORAGE = "./src/test/resources/DBConf.txt";
-    private String IFSCALEOUTIN = "./src/test/resources/ifScaleOutIn.txt";
+    private String runningStorage = "./src/test/resources/DBConf.txt";
+    private String isScaling = "./src/test/resources/ifScaleOutIn.txt";
 
     public String getStorageType() {
-        String storageType = FileReader.convertToString(RUNNINGSTORAGE);
+        String storageType = FileReader.convertToString(runningStorage);
         logInfo("run the test on {}", storageType);
         return storageType;
     }
 
-    public boolean ifScaleOutIn() {
-        String ifScaleOutIn = FileReader.convertToString(IFSCALEOUTIN);
-        logInfo("{}", ifScaleOutIn);
-        return ifScaleOutIn != null && !ifScaleOutIn.isEmpty();
+    public boolean isScaling() {
+        String isScaling = FileReader.convertToString(this.isScaling);
+        logInfo("{}", isScaling);
+        return isScaling != null && !isScaling.isEmpty();
     }
 
     public ConfLoder(String confPath) {
@@ -86,8 +86,8 @@ public class ConfLoder {
         for (String storageEngine : storageEngines) {
             String tasks = null;
             String storage = storageEngine.toLowerCase();
-            tasks = properties.getProperty(storage + "-" + TESTTASK);
-            if (tasks == null) tasks = properties.getProperty(TESTTASK);
+            tasks = properties.getProperty(storage + "-" + testTask);
+            if (tasks == null) tasks = properties.getProperty(testTask);
             logInfo("the task of {} is :", storageEngine);
             List<String> oriTaskList = Arrays.asList(tasks.split(",")),
                     taskList = new ArrayList<>();
@@ -102,10 +102,16 @@ public class ConfLoder {
         }
     }
 
-    public DBConf loadDBConf(String storageEngine) throws IOException {
-        InputStream in = Files.newInputStream(Paths.get(confPath));
-        Properties properties = new Properties();
-        properties.load(in);
+    public DBConf loadDBConf(String storageEngine) {
+        Properties properties;
+        try {
+            InputStream in = Files.newInputStream(Paths.get(confPath));
+            properties = new Properties();
+            properties.load(in);
+        } catch (IOException e) {
+            throw new RuntimeException("load conf fail!");
+        }
+
         logInfo("loading the DB conf...");
         String property = properties.getProperty(STORAGEENGINELIST);
         if (property == null || property.length() == 0) return null;

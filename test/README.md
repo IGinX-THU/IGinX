@@ -12,7 +12,7 @@ IGinX代码测试框架于2023年完成重构，测试主要分为以下部分
 - **`standalone-test`**：单机数据库功能测试
   - 文件位于`integration/controller/Controller.java`
   - `testUnion()`方法负责在一组存储引擎上运行测试。首先加载测试配置文件，并提取要测试的存储引擎的相关特性。并将其支持的测试文件写入待测试列表中，然后调用脚本对数据库一一执行测试列表中的测试。
-  - 目前测试的包括`SQLSessionIT,SQLSessionPoolIT,TagIT,RestAnnotationIT,RestIT,TransformIT,UDFIT,SessionV2IT,BaseSessionIT,BaseSessionPoolIT`
+  - 目前测试的包括`SQLSessionIT,SQLSessionPoolIT,TagIT,RestAnnotationIT,RestIT,TransformIT,UDFIT,SessionV2IT,BaseSessionIT,BaseSessionPoolIT,CompactionIT,TimePrecisionIT`
 - **`unit-mds`**：元数据功能测试
   - 文件位于`integration/mds/`下
   - 分别针对ETCD和ZOOKEEPER进行测试
@@ -22,6 +22,7 @@ IGinX代码测试框架于2023年完成重构，测试主要分为以下部分
 - **`case-regression`**：混合测试
   - 文件位于`integration/regression/`下
   - 混合数据库测试
+- **`formatChecker`**：代码格式规范化测试
 
 ### 添加测试以及被测数据库
 

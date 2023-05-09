@@ -59,7 +59,7 @@ public class SQLSessionIT {
     public SQLSessionIT() throws IOException {
         ConfLoder conf = new ConfLoder(Controller.CONFIG_FILE);
         DBConf dbConf = conf.loadDBConf(conf.getStorageType());
-        this.isScaling = conf.ifScaleOutIn();
+        this.isScaling = conf.isScaling();
         this.isAbleToClearData = dbConf.getEnumValue(DBConf.DBConfType.isAbleToClearData);
         this.isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
         this.isAbleToShowTimeSeries = dbConf.getEnumValue(DBConf.DBConfType.isAbleToShowTimeSeries);
@@ -3982,6 +3982,9 @@ public class SQLSessionIT {
 
     @Test
     public void testConcurrentDeleteSinglePath() {
+        if (!isAbleToDelete) {
+            return;
+        }
         String deleteFormat = "DELETE FROM us.d1.s1 WHERE key >= %d AND key < %d;";
         int start = 1000, range = 50;
 
@@ -4025,6 +4028,9 @@ public class SQLSessionIT {
 
     @Test
     public void testConcurrentDeleteSinglePathWithOverlap() {
+        if (!isAbleToDelete) {
+            return;
+        }
         String deleteFormat = "DELETE FROM * WHERE key >= %d AND key < %d;";
         int start = 1000, range = 70;
 
@@ -4049,6 +4055,9 @@ public class SQLSessionIT {
 
     @Test
     public void testConcurrentDeleteMultiPath() {
+        if (!isAbleToDelete) {
+            return;
+        }
         String deleteFormat = "DELETE FROM * WHERE key >= %d AND key < %d;";
         int start = 1000, range = 50;
 
@@ -4073,6 +4082,9 @@ public class SQLSessionIT {
 
     @Test
     public void testConcurrentDeleteMultiPathWithOverlap() {
+        if (!isAbleToDelete) {
+            return;
+        }
         String deleteFormat = "DELETE FROM * WHERE key >= %d AND key < %d;";
         int start = 1000, range = 70;
 

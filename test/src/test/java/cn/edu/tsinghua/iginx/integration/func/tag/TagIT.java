@@ -29,7 +29,7 @@ public class TagIT {
         DBConf dbConf = conf.loadDBConf(conf.getStorageType());
         this.isAbleToClearData = dbConf.getEnumValue(DBConf.DBConfType.isAbleToClearData);
         this.isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
-        this.isScaling = conf.ifScaleOutIn();
+        this.isScaling = conf.isScaling();
     }
 
     @BeforeClass

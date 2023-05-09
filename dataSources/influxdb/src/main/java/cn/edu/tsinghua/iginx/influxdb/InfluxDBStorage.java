@@ -273,8 +273,7 @@ public class InfluxDBStorage implements IStorage {
 
             if (client.getBucketsApi().findBucketByName(bucketName) == null) {
                 logger.warn("storage engine {} doesn't exist", bucketName);
-                return new TaskExecuteResult(
-                        new InfluxDBQueryRowStream(Collections.emptyList(), project));
+                continue;
             }
 
             String fullQuery = "";
