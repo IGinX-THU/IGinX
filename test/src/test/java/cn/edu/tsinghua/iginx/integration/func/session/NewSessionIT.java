@@ -54,9 +54,9 @@ public class NewSessionIT {
 
     private static final TestDataSection baseDataSection = buildBaseDataSection();
 
-    private static boolean isInfluxdb = false;
+    private static boolean isInfluxdb = true;
 
-    private static boolean isAbleToDelete = true;
+    private static boolean isAbleToDelete = false;
 
     public NewSessionIT() {}
 
@@ -101,12 +101,12 @@ public class NewSessionIT {
 
     @BeforeClass
     public static void setUp() throws SessionException {
-        ConfLoder conf = new ConfLoder(Controller.CONFIG_FILE);
-        if (DBConf.getDBType(conf.getStorageType()) == DBConf.DBType.influxdb) {
-            isInfluxdb = true;
-        }
-        DBConf dbConf = conf.loadDBConf(conf.getStorageType());
-        isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
+//        ConfLoder conf = new ConfLoder(Controller.CONFIG_FILE);
+//        if (DBConf.getDBType(conf.getStorageType()) == DBConf.DBType.influxdb) {
+//            isInfluxdb = true;
+//        }
+//        DBConf dbConf = conf.loadDBConf(conf.getStorageType());
+//        isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
         if (isForSession) {
             conn =
                     new MultiConnection(
@@ -319,7 +319,12 @@ public class NewSessionIT {
             boolean actualVal = (boolean) actual;
             assertEquals(expectedVal, actualVal);
         } else if (expected instanceof Integer) {
-            if (isInfluxdb) return;
+            if (isInfluxdb) {
+                long expectedVal = ((Integer) expected).longValue();
+                long actualVal = (long) actual;
+                assertEquals(expectedVal, actualVal);
+                return;
+            }
             int expectedVal = (int) expected;
             int actualVal = (int) actual;
             assertEquals(expectedVal, actualVal);
@@ -328,7 +333,12 @@ public class NewSessionIT {
             long actualVal = (long) actual;
             assertEquals(expectedVal, actualVal);
         } else if (expected instanceof Float) {
-            if (isInfluxdb) return;
+            if (isInfluxdb) {
+                double expectedVal = ((Float) expected).doubleValue();
+                double actualVal = (double) actual;
+                assertEquals(expectedVal, actualVal, expectedVal * DELTA);
+                return;
+            }
             float expectedVal = (float) expected;
             float actualVal = (float) actual;
             assertEquals(expectedVal, actualVal, expectedVal * DELTA);
