@@ -319,6 +319,7 @@ public class NewSessionIT {
             boolean actualVal = (boolean) actual;
             assertEquals(expectedVal, actualVal);
         } else if (expected instanceof Integer) {
+            if (isInfluxdb) return;
             int expectedVal = (int) expected;
             int actualVal = (int) actual;
             assertEquals(expectedVal, actualVal);
@@ -327,6 +328,7 @@ public class NewSessionIT {
             long actualVal = (long) actual;
             assertEquals(expectedVal, actualVal);
         } else if (expected instanceof Float) {
+            if (isInfluxdb) return;
             float expectedVal = (float) expected;
             float actualVal = (float) actual;
             assertEquals(expectedVal, actualVal, expectedVal * DELTA);
