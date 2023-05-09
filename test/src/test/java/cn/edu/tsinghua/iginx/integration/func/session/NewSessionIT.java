@@ -307,7 +307,7 @@ public class NewSessionIT {
     }
 
     private void compareObjectValue(Object expected, Object actual) {
-        if (expected.getClass() != actual.getClass()) {
+        if (expected.getClass() != actual.getClass() && !isInfluxdb) {
             logger.error(
                     "Inconsistent data types, expected:{}, actual:{}",
                     expected.getClass(),
@@ -319,7 +319,6 @@ public class NewSessionIT {
             boolean actualVal = (boolean) actual;
             assertEquals(expectedVal, actualVal);
         } else if (expected instanceof Integer) {
-            if (isInfluxdb) return;
             int expectedVal = (int) expected;
             int actualVal = (int) actual;
             assertEquals(expectedVal, actualVal);
@@ -328,7 +327,6 @@ public class NewSessionIT {
             long actualVal = (long) actual;
             assertEquals(expectedVal, actualVal);
         } else if (expected instanceof Float) {
-            if (isInfluxdb) return;
             float expectedVal = (float) expected;
             float actualVal = (float) actual;
             assertEquals(expectedVal, actualVal, expectedVal * DELTA);
@@ -640,7 +638,7 @@ public class NewSessionIT {
 
     @Test
     public void testQueryAfterDelete() {
-        if(!isAbleToDelete) return;
+        if (!isAbleToDelete) return;
         // single path delete data
         try {
             // first
