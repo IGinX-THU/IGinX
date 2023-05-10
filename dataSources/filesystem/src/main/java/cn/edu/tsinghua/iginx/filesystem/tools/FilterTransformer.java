@@ -3,15 +3,13 @@ package cn.edu.tsinghua.iginx.filesystem.tools;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.utils.JsonUtils;
 import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
-
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class FilterTransformer {
-    private static int index=0;
-    private static int deep=0;
+    private static int index = 0;
+    private static int deep = 0;
     private static String prefix = "A";
+
     public static byte[] toBinary(Filter filter) {
         if (filter == null) {
             return null;
@@ -88,13 +86,12 @@ public class FilterTransformer {
 
     private static String toString(AndFilter filter, BiMap<String, String> vals) {
         String res = "(";
-        for(Filter f : filter.getChildren()){
-           res+=toString(f,vals);
-           res+="&";
+        for (Filter f : filter.getChildren()) {
+            res += toString(f, vals);
+            res += "&";
         }
-        if(res.length()!=1)
-            res=res.substring(0,res.length()-1);
-        res+=")";
+        if (res.length() != 1) res = res.substring(0, res.length() - 1);
+        res += ")";
         refreshIndex();
         return res;
     }
@@ -105,9 +102,8 @@ public class FilterTransformer {
     }
 
     private static String toString(KeyFilter filter, BiMap<String, String> vals) {
-        String val ="key" + " "+ Op.op2Str(filter.getOp()) + " "+ filter.getValue();
-        if(!vals.containsValue(val))
-            vals.put(prefix+(index++), val);
+        String val = "key" + " " + Op.op2Str(filter.getOp()) + " " + filter.getValue();
+        if (!vals.containsValue(val)) vals.put(prefix + (index++), val);
         refreshIndex();
         return vals.inverse().get(val);
     }
@@ -117,36 +113,34 @@ public class FilterTransformer {
         if (filter.getOp().equals(Op.LIKE)) {
             val = filter.getPath() + " like " + filter.getValue().getBinaryVAsString();
         } else {
-            val = filter.getPath()
-            + " "
-            + Op.op2Str(filter.getOp())
-            + " "
-            + filter.getValue().getValue();
+            val =
+                    filter.getPath()
+                            + " "
+                            + Op.op2Str(filter.getOp())
+                            + " "
+                            + filter.getValue().getValue();
         }
-        if(!vals.containsValue(val))
-                vals.put(prefix+(index++), val);
+        if (!vals.containsValue(val)) vals.put(prefix + (index++), val);
         refreshIndex();
         return vals.inverse().get(val);
     }
 
     private static String toString(OrFilter filter, BiMap<String, String> vals) {
         String res = "(";
-        for(Filter f : filter.getChildren()){
-            res+=toString(f,vals);
-            res+="|";
+        for (Filter f : filter.getChildren()) {
+            res += toString(f, vals);
+            res += "|";
         }
-        if(res.length()!=1)
-            res=res.substring(0,res.length()-1);
-        res+=")";
+        if (res.length() != 1) res = res.substring(0, res.length() - 1);
+        res += ")";
         refreshIndex();
         return res;
     }
 
-    private static final void refreshIndex(){
+    private static final void refreshIndex() {
         deep--;
-        if(deep==0){
-            index=0;
+        if (deep == 0) {
+            index = 0;
         }
     }
-
 }

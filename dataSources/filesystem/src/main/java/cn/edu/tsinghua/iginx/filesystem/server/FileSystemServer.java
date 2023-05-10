@@ -39,7 +39,7 @@ public class FileSystemServer implements Runnable {
                         .maxWorkerThreads(config.getMaxThriftWrokerThreadNum());
         args.protocolFactory(new TBinaryProtocol.Factory());
         TServer server = new TThreadPoolServer(args);
-        logger.info("parquet service starts successfully!");
+        logger.info("Filesystem service starts successfully!");
         server.serve();
     }
 

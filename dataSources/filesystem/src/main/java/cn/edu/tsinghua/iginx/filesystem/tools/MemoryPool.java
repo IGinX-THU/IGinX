@@ -1,13 +1,9 @@
 package cn.edu.tsinghua.iginx.filesystem.tools;
 
-import cn.edu.tsinghua.iginx.filesystem.file.entity.DefaultFileOperator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.nio.ByteBuffer;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MemoryPool {
     private static final Logger logger = LoggerFactory.getLogger(MemoryPool.class);
@@ -18,8 +14,8 @@ public class MemoryPool {
     private static int maxNumberOfBlocks;
 
     static {
-        poolSize = 1024*1024*100;
-        blockSize=1024*1024*10;
+        poolSize = 1024 * 1024 * 100;
+        blockSize = 1024 * 1024 * 10;
         maxNumberOfBlocks = poolSize / blockSize;
         numberOfBlocks = new AtomicInteger(poolSize / blockSize);
         freeBlocks = new ConcurrentLinkedQueue<>();
@@ -31,8 +27,7 @@ public class MemoryPool {
 
     public static byte[] allocate(int size) {
         byte[] buffer = freeBlocks.poll();
-        if(numberOfBlocks.get()>0)
-            numberOfBlocks.decrementAndGet();
+        if (numberOfBlocks.get() > 0) numberOfBlocks.decrementAndGet();
         if (buffer == null) {
             logger.warn("Out of memory: No more blocks available");
             return new byte[size];
@@ -41,7 +36,7 @@ public class MemoryPool {
     }
 
     public static void release(byte[] buffer) {
-        if(numberOfBlocks.get()<maxNumberOfBlocks) {
+        if (numberOfBlocks.get() < maxNumberOfBlocks) {
             numberOfBlocks.incrementAndGet();
             freeBlocks.offer(buffer);
         }

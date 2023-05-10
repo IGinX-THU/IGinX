@@ -113,18 +113,16 @@ public class FileSystemHistoryDataCapacityExpansion {
                         + "+---+--------------+-----------+-----------+-----------------+------------+--------------+\n"
                         + "|key|file.cpu_usage|file.engine|file.status|file.us.cpu_usage|file.us.desc|file.us.engine|\n"
                         + "+---+--------------+-----------+-----------+-----------------+------------+--------------+\n"
-                        + "|  0|             1|          4|          7|             null|        null|          null|\n"
-                        + "|  1|             2|          5|          8|             null|        null|          null|\n"
-                        + "|  2|             3|          6|          9|             null|        null|          null|\n"
+                        + "|  0|           123|        456|        789|             null|        null|          null|\n"
                         + "| 10|          null|       null|       null|             12.1|      normal|             1|\n"
                         + "| 11|          null|       null|       null|             32.2|      normal|             2|\n"
                         + "| 12|          null|       null|       null|             66.8|        high|             3|\n"
                         + "+---+--------------+-----------+-----------+-----------------+------------+--------------+\n"
-                        + "Total line number = 6\n";
+                        + "Total line number = 4\n";
         SQLTestTools.executeAndCompare(session, statement, expect);
 
         statement = "count points";
-        expect = "Points num: 18\n";
+        expect = "Points num: 12\n";
         SQLTestTools.executeAndCompare(session, statement, expect);
     }
 
@@ -138,19 +136,17 @@ public class FileSystemHistoryDataCapacityExpansion {
                         + "+---+--------------+-----------+-----------+-----------------+------------+--------------+\n"
                         + "|key|file.cpu_usage|file.engine|file.status|file.us.cpu_usage|file.us.desc|file.us.engine|\n"
                         + "+---+--------------+-----------+-----------+-----------------+------------+--------------+\n"
-                        + "|  0|             1|          4|          7|             null|        null|          null|\n"
-                        + "|  1|             2|          5|          8|             null|        null|          null|\n"
-                        + "|  2|             3|          6|          9|             null|        null|          null|\n"
+                        + "|  0|           123|        456|        789|             null|        null|          null|\n"
                         + "| 10|          null|       null|       null|             12.1|      normal|             1|\n"
                         + "| 11|          null|       null|       null|             32.2|      normal|             2|\n"
                         + "| 12|          null|       null|       null|             66.8|        high|             3|\n"
                         + "| 13|          null|       null|       null|             88.8|        high|             2|\n"
                         + "+---+--------------+-----------+-----------+-----------------+------------+--------------+\n"
-                        + "Total line number = 7\n";
+                        + "Total line number = 5\n";
         SQLTestTools.executeAndCompare(session, statement, expect);
 
         statement = "count points";
-        expect = "Points num: 21\n";
+        expect = "Points num: 15\n";
         SQLTestTools.executeAndCompare(session, statement, expect);
 
         statement = "select count(*) from file.us";

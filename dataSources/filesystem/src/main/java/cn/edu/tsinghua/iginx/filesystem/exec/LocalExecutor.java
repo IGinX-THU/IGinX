@@ -58,7 +58,7 @@ public class LocalExecutor implements Executor {
         TagFilter tagFilter = project.getTagFilter();
         Filter filterEntity = FilterTransformer.toFilter(filter);
         if (isDummyStorageUnit) {
-            if (tagFilter != null){
+            if (tagFilter != null) {
                 logger.warn("dummy storage query should contain no tag filter");
                 return new TaskExecuteResult(new FileSystemHistoryQueryRowStream());
             }
@@ -249,7 +249,8 @@ public class LocalExecutor implements Executor {
             List<File> fileList = new ArrayList<>();
             if (paths.size() == 1 && paths.get(0).equals("*") && delete.getTagFilter() == null) {
                 try {
-                    FileSystemService.deleteFile(new File(FilePath.toIginxPath(root, storageUnit, null)));
+                    FileSystemService.deleteFile(
+                            new File(FilePath.toIginxPath(root, storageUnit, null)));
                 } catch (Exception e) {
                     e.printStackTrace();
                     logger.error("encounter error when clear data: " + e.getMessage());
@@ -316,7 +317,7 @@ public class LocalExecutor implements Executor {
             throws PhysicalException {
         File directory = new File(FilePath.toNormalFilePath(root, prefix));
 
-       Pair<File,File> files = FileSystemService.getBoundaryFiles(directory);
+        Pair<File, File> files = FileSystemService.getBoundaryFiles(directory);
 
         File minPathFile = files.getK();
         File maxPathFile = files.getV();
@@ -340,7 +341,7 @@ public class LocalExecutor implements Executor {
         // 对于pb级的文件系统，遍历是不可能的，直接接入
         Long time = FileSystemService.getMaxTime(directory);
         TimeInterval timeInterval =
-                new TimeInterval(0, time== Long.MIN_VALUE ? Long.MAX_VALUE : time);
+                new TimeInterval(0, time == Long.MIN_VALUE ? Long.MAX_VALUE : time);
 
         return new Pair<>(tsInterval, timeInterval);
     }

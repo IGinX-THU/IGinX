@@ -119,12 +119,13 @@ public class StringUtils {
         return m.find();
     }
 
-    public static List<String>  splitAround(String expr, int left, int right, String separator){
+    public static List<String> splitAround(String expr, int left, int right, String separator) {
         List<String> res = new ArrayList<>();
-        List<String> part = new ArrayList<>(Arrays.asList(expr.substring(left, right).split(separator)));
-                for(String p :part){
-                    res.add(p.trim());
-                }
-                return res;
+        List<String> part =
+                new ArrayList<>(Arrays.asList(expr.substring(left, right).split(separator)));
+        for (String p : part) {
+            res.add(p.trim());
+        }
+        return res;
     }
 }

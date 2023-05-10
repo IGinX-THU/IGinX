@@ -1,12 +1,7 @@
 package cn.edu.tsinghua.iginx.filesystem.tools;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Properties;
-
 import cn.edu.tsinghua.iginx.utils.ConfReader;
+import java.io.File;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,7 +14,9 @@ public class ConfLoader {
     public String ROOTPATH = null;
 
     public static String getRootPath() {
-    return ConfReader.getPropertyVal(confPath,ROOT);
+        String rowRootPath = ConfReader.getPropertyVal(confPath, ROOT);
+        File rootFile = new File(rowRootPath);
+        return rootFile.getAbsolutePath() + System.getProperty("file.separator");
     }
 
     public static File getRootFile() {
@@ -28,6 +25,6 @@ public class ConfLoader {
     }
 
     public static boolean ifLocalFileSystem() {
-       return Boolean.parseBoolean( ConfReader.getPropertyVal(confPath,isLocal));
+        return Boolean.parseBoolean(ConfReader.getPropertyVal(confPath, isLocal));
     }
 }

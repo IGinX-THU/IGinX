@@ -17,7 +17,7 @@ public class FileSystemHistoryQueryRowStream implements RowStream {
     private final List<FSResultTable> rowData;
     private final int[][] indices;
     private final int[] round;
-    private int batch=1024*100;
+    private int batch = 1024 * 100;
     private int hasMoreRecords = 0;
 
     public FileSystemHistoryQueryRowStream() {
@@ -26,7 +26,7 @@ public class FileSystemHistoryQueryRowStream implements RowStream {
 
         this.rowData = new ArrayList<>();
         ;
-        this.indices = new int[0][1024 * 2];
+        this.indices = new int[0][1024 * 1024 + 100];
         this.round = new int[0];
         this.header = new Header(time, fields);
         for (int i = 0; i < this.rowData.size(); i++) {
@@ -67,10 +67,10 @@ public class FileSystemHistoryQueryRowStream implements RowStream {
     @Override
     public void close() throws PhysicalException {
         // release the memory
-        for(FSResultTable table : rowData){
+        for (FSResultTable table : rowData) {
             List<Record> vals = table.getVal();
-            for(Record val:vals){
-                MemoryPool.release((byte[])val.getRawData());
+            for (Record val : vals) {
+                MemoryPool.release((byte[]) val.getRawData());
             }
         }
     }
@@ -89,7 +89,7 @@ public class FileSystemHistoryQueryRowStream implements RowStream {
             if (index == records.size()) { // 数据已经消费完毕了
                 continue;
             }
-            timestamp = Math.min(indices[i][index]/batch, timestamp);
+            timestamp = Math.min(indices[i][index] / batch, timestamp);
         }
         if (timestamp == Long.MAX_VALUE) {
             return null;
@@ -102,14 +102,11 @@ public class FileSystemHistoryQueryRowStream implements RowStream {
                 continue;
             }
             byte[] val = (byte[]) records.get(index).getRawData();
-            if (indices[i][index]/batch == timestamp) {
-                int len = Math.min(batch,val.length-indices[i][index]);
-//                byte[] newVal = new byte[len];
-//                System.arraycopy(val,indices[i][index],newVal,0,len);
-//                newVal[] = val[indices[i][index]];
+            if (indices[i][index] / batch == timestamp) {
+                int len = Math.min(batch, val.length - indices[i][index]);
                 Object value = val;
                 values[i] = value;
-                indices[i][index]+=batch;
+                indices[i][index] += batch;
                 if (indices[i][index] >= val.length) {
                     round[i]++;
                     if (round[i] == records.size()) hasMoreRecords--;

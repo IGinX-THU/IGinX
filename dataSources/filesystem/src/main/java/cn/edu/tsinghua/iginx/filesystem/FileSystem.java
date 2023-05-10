@@ -44,7 +44,6 @@ import cn.edu.tsinghua.iginx.metadata.entity.TimeSeriesRange;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,7 +54,7 @@ public class FileSystem implements IStorage {
     private static final Logger logger = LoggerFactory.getLogger(FileSystem.class);
     private final StorageEngineMeta meta;
     private Executor executor;
-    private String root=ConfLoader.getRootPath();
+    private String root = ConfLoader.getRootPath();
 
     public FileSystem(StorageEngineMeta meta)
             throws StorageInitializationException, TTransportException {
@@ -75,7 +74,7 @@ public class FileSystem implements IStorage {
 
     private void initLocalExecutor(StorageEngineMeta meta) {
         String argRoot = meta.getExtraParams().get("dir");
-        root = argRoot==null?root:argRoot;
+        root = argRoot == null ? root : argRoot;
 
         this.executor = new LocalExecutor(root);
 

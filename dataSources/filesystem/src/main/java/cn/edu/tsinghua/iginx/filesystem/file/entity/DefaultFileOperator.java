@@ -23,7 +23,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,10 +61,10 @@ public class DefaultFileOperator implements IFileOperator {
             throw new IllegalArgumentException("Invalid byte range.");
         }
         if (end > file.length()) {
-            end = file.length()-1;
+            end = file.length() - 1;
         }
-        int round = (int)(end% bufferSize ==0?end/ bufferSize :end/ bufferSize +1);
-        for(int i=0;i<round;i++) {
+        int round = (int) (end % bufferSize == 0 ? end / bufferSize : end / bufferSize + 1);
+        for (int i = 0; i < round; i++) {
             res.add(new byte[0]);
         }
         AtomicLong readPos = new AtomicLong(begin);
@@ -77,26 +76,27 @@ public class DefaultFileOperator implements IFileOperator {
             while (readPos.get() < end) {
                 long finalReadPos = readPos.get();
                 int finalIndex = index.get();
-                executorService.execute(() -> {
-                    try {
-                        byte[] buffer = MemoryPool.allocate(batchSize);// 一次读取1MB
-                        raf.seek(finalReadPos);
-                        // Read the specified range of bytes from the file
-                        int len = raf.read(buffer);
-                        if(len<0){
-                            logger.error("reach the end of the file with len {}",len);
-                            return;
-                        }
-                        if (len != batchSize) {
-                            byte[] subBuffer;
-                            subBuffer = Arrays.copyOf(buffer, len);
-                            res.set(finalIndex, subBuffer);
-                        } else res.set(finalIndex, buffer);
+                executorService.execute(
+                        () -> {
+                            try {
+                                byte[] buffer = MemoryPool.allocate(batchSize); // 一次读取1MB
+                                raf.seek(finalReadPos);
+                                // Read the specified range of bytes from the file
+                                int len = raf.read(buffer);
+                                if (len < 0) {
+                                    logger.error("reach the end of the file with len {}", len);
+                                    return;
+                                }
+                                if (len != batchSize) {
+                                    byte[] subBuffer;
+                                    subBuffer = Arrays.copyOf(buffer, len);
+                                    res.set(finalIndex, subBuffer);
+                                } else res.set(finalIndex, buffer);
 
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                });
+                            } catch (IOException e) {
+                                throw new RuntimeException(e);
+                            }
+                        });
                 index.getAndIncrement();
                 readPos.addAndGet(bufferSize);
             }

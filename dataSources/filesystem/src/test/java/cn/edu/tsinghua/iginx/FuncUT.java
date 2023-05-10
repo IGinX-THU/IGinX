@@ -22,23 +22,16 @@ import cn.edu.tsinghua.iginx.metadata.entity.TimeInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.TimeSeriesRange;
 import cn.edu.tsinghua.iginx.utils.JsonUtils;
 import cn.edu.tsinghua.iginx.utils.Pair;
+import com.bpodgursky.jbool_expressions.Expression;
+import com.bpodgursky.jbool_expressions.parsers.ExprParser;
+import com.bpodgursky.jbool_expressions.rules.RuleSet;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
-import java.util.function.Function;
-
-import com.bpodgursky.jbool_expressions.And;
-import com.bpodgursky.jbool_expressions.Expression;
-import com.bpodgursky.jbool_expressions.options.ExprOptions;
-import com.bpodgursky.jbool_expressions.parsers.ExprParser;
-import com.bpodgursky.jbool_expressions.rules.RuleList;
-import com.bpodgursky.jbool_expressions.rules.RuleSet;
-import com.bpodgursky.jbool_expressions.util.ExprFactory;
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
 import org.apache.commons.jexl3.*;
 import org.junit.Test;
-
 
 public class FuncUT {
     private String root = ConfLoader.getRootPath();
@@ -253,7 +246,7 @@ public class FuncUT {
     }
 
     @Test
-    public void testFilterToString(){
+    public void testFilterToString() {
         Filter keyFilter1 = new KeyFilter(Op.G, 1000);
         Filter keyFilter2 = new KeyFilter(Op.LE, 2000);
         List<Filter> child = new ArrayList<>();
@@ -267,7 +260,8 @@ public class FuncUT {
         Expression<String> nonStandard = ExprParser.parse(res);
         System.out.println(nonStandard.toString());
         System.out.println(vals);
-        com.bpodgursky.jbool_expressions.Expression<String> expr = ExprParser.parse("( ( (! C) | C) & b2 & a1)");
+        com.bpodgursky.jbool_expressions.Expression<String> expr =
+                ExprParser.parse("( ( (! C) | C) & b2 & a1)");
         Expression<String> simplified = RuleSet.simplify(expr);
         System.out.println(simplified);
     }

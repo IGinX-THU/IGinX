@@ -1,8 +1,6 @@
 package cn.edu.tsinghua.iginx.filesystem.filesystem;
 
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.filesystem.file.IFileOperator;
@@ -17,17 +15,16 @@ import cn.edu.tsinghua.iginx.filesystem.tools.TagKVUtils;
 import cn.edu.tsinghua.iginx.filesystem.wrapper.Record;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
-import java.io.*;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.util.*;
-
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import com.bpodgursky.jbool_expressions.Expression;
 import com.bpodgursky.jbool_expressions.parsers.ExprParser;
 import com.bpodgursky.jbool_expressions.rules.RuleSet;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import java.io.*;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import oshi.util.tuples.Triplet;
@@ -39,7 +36,7 @@ public class FileSystemService {
     private static final Logger logger = LoggerFactory.getLogger(FileSystemService.class);
     static IFileOperator fileOperator = new DefaultFileOperator();
     static Charset charset = StandardCharsets.UTF_8;
-    static String MYWILDCARD = FilePath.MYWILDCARD;
+    static String WILDCARD = FilePath.WILDCARD;
 
     // set the fileSystem type with constructor
     public FileSystemService(/*FileSystemType type*/ ) {
@@ -53,141 +50,154 @@ public class FileSystemService {
 
     public static List<List<String>> expressionToParts(String expr) {
         List<List<String>> result = new ArrayList<>();
-        int start = 0,left = 0,right = 0;
+        int start = 0, left = 0, right = 0;
         for (int i = 0; i < expr.length(); i++) {
             char c = expr.charAt(i);
-            if(c=='(') {
+            if (c == '(') {
                 left++;
-                right=expr.indexOf(")",left);
+                right = expr.indexOf(")", left);
             }
 
             if (c == '|') {
-                result.add( StringUtils.splitAround(expr,left+1,right,"&"));
+                result.add(StringUtils.splitAround(expr, left + 1, right, "&"));
                 start = i;
             }
         }
         if (start < expr.length()) {
-            if(expr.contains("(")){
-            left=expr.indexOf("(",start);
-            right=expr.indexOf(")",left);
-           result.add( StringUtils.splitAround(expr,left+1,right,"&"));
+            if (expr.contains("(")) {
+                left = expr.indexOf("(", start);
+                right = expr.indexOf(")", left);
+                result.add(StringUtils.splitAround(expr, left + 1, right, "&"));
             } else {
                 List<String> part = new ArrayList<>(Collections.singleton(expr));
-            result.add(part);
+                result.add(part);
             }
         }
         return result;
     }
 
-    private static Pair<Long,Long> parseKey(List<String> part, BiMap<String, String> vals) {
+    private static Pair<Long, Long> parseKey(List<String> part, BiMap<String, String> vals) {
         Long minTime = Long.MAX_VALUE, maxTime = 0L;
-        for(String p : part){
+        for (String p : part) {
             String val = vals.get(p);
-            if(val.contains("key")){
+            if (val.contains("key")) {
                 String[] parts = val.split(" ");
                 String op = parts[1];
-                switch (Op.str2Op(op)){
+                switch (Op.str2Op(op)) {
                     case L:
                     case LE:
-                        maxTime=Math.max(maxTime,Long.parseLong(parts[2]));
+                        maxTime = Math.max(maxTime, Long.parseLong(parts[2]));
                         break;
                     case GE:
                     case G:
-                        minTime=Math.min(minTime,Long.parseLong(parts[2]));
+                        minTime = Math.min(minTime, Long.parseLong(parts[2]));
                         break;
                     default:
                         break;
                 }
             }
         }
-        return new Pair<>(minTime==Long.MAX_VALUE?0:minTime,maxTime==0?Long.MAX_VALUE:maxTime);
+        return new Pair<>(
+                minTime == Long.MAX_VALUE ? 0 : minTime, maxTime == 0 ? Long.MAX_VALUE : maxTime);
     }
 
-    private static List<Triplet<String,Op,Object>> parseVal(List<String> part, BiMap<String, String> vals) {
-        List<Triplet<String,Op,Object>> res = new ArrayList<>();
-        for(String p : part){
+    private static List<Triplet<String, Op, Object>> parseVal(
+            List<String> part, BiMap<String, String> vals) {
+        List<Triplet<String, Op, Object>> res = new ArrayList<>();
+        for (String p : part) {
             String val = vals.get(p);
-            if(!val.contains("key")){
+            if (!val.contains("key")) {
                 String[] parts = val.split(" ");
-                res.add(new Triplet<>(parts[0], Op.str2Op(parts[1]),parts[2]));
+                res.add(new Triplet<>(parts[0], Op.str2Op(parts[1]), parts[2]));
             }
         }
         return res;
     }
 
-    private static List<Pair<Pair<Long,Long>, List<Triplet<String,Op,Object>>>> parseFilter(Filter filter){
-        List<Pair<Pair<Long,Long>, List<Triplet<String,Op,Object>>>> res = new ArrayList<>();
+    private static List<Pair<Pair<Long, Long>, List<Triplet<String, Op, Object>>>> parseFilter(
+            Filter filter) {
+        List<Pair<Pair<Long, Long>, List<Triplet<String, Op, Object>>>> res = new ArrayList<>();
 
         BiMap<String, String> vals = HashBiMap.create();
         String filterExp = FilterTransformer.toString(filter, vals);
         Expression<String> nonStandard = ExprParser.parse(filterExp);
         Expression<String> sopForm = RuleSet.toDNF(nonStandard);
 
-        List<List<String>> parts =  expressionToParts(sopForm.toString());
-        for(List<String> l : parts){
-            Pair<Long,Long> keys = parseKey(l, vals);
-            List<Triplet<String,Op,Object>> valFilter = parseVal(l,vals);
+        List<List<String>> parts = expressionToParts(sopForm.toString());
+        for (List<String> l : parts) {
+            Pair<Long, Long> keys = parseKey(l, vals);
+            List<Triplet<String, Op, Object>> valFilter = parseVal(l, vals);
             res.add(new Pair<>(keys, valFilter));
         }
-           return res;
+        return res;
     }
 
     public static int compareObjects(DataType dataType, Object a, Object b) {
-        switch (dataType){
+        switch (dataType) {
             case FLOAT:
-                return Float.compare((float)a,(float)b);
+                return Float.compare((float) a, (float) b);
             case DOUBLE:
-                return Double.compare((float)a,(float)b);
+                return Double.compare((float) a, (float) b);
             case BINARY:
-                return (new String((byte[])a)).compareTo(new String((byte[])b));
+                return (new String((byte[]) a)).compareTo(new String((byte[]) b));
             case INTEGER:
-                return Integer.compare((int)a,(int)b);
+                return Integer.compare((int) a, (int) b);
             case LONG:
-                return Long.compare((long)a,(long)b);
+                return Long.compare((long) a, (long) b);
             default:
                 logger.error("cant compare the val!");
                 throw new IllegalArgumentException("cant compare the val with different type");
         }
     }
 
-    public static List<FSResultTable> getValWithFilter(List<File> files, List<Pair<Pair<Long,Long>, List<Triplet<String,Op,Object>>>> filters) throws IOException {
+    public static List<FSResultTable> getValWithFilter(
+            List<File> files,
+            List<Pair<Pair<Long, Long>, List<Triplet<String, Op, Object>>>> filters)
+            throws IOException {
         List<FSResultTable> res = new ArrayList<>();
         for (File f : files) {
             for (Pair<Pair<Long, Long>, List<Triplet<String, Op, Object>>> ft : filters) {
                 long startTime = ft.k.k, endTime = ft.k.v;
                 List<Record> val = new ArrayList<>(), valf = new ArrayList<>();
-                val = doReadFile(f, startTime, endTime);// do read file here
+                val = doReadFile(f, startTime, endTime); // do read file here
 
                 if (FileType.getFileType(f) == FileType.Type.IGINX_FILE) {
                     List<Triplet<String, Op, Object>> valFilters = ft.v;
-                    if(valFilters.size()==0) valf=val;
+                    if (valFilters.size() == 0) valf = val;
                     for (Triplet<String, Op, Object> valFilter : valFilters) {
-                        if (f.getAbsolutePath().contains(valFilter.getA().replaceAll(".", FilePath.getSEPARATOR()))) {
-                            for (Record record : val){
+                        if (f.getAbsolutePath()
+                                .contains(
+                                        valFilter
+                                                .getA()
+                                                .replaceAll(".", FilePath.getSEPARATOR()))) {
+                            for (Record record : val) {
                                 Object data = record.getRawData();
                                 Object dataf = valFilter.getC();
                                 boolean flag = false;
-                                int comRes = compareObjects(record.getDataType(),data,dataf);
-                                switch (valFilter.getB()){
+                                int comRes = compareObjects(record.getDataType(), data, dataf);
+                                switch (valFilter.getB()) {
                                     case L:
-                                       if(comRes<0) flag = true;
-                                       break;
+                                        if (comRes < 0) flag = true;
+                                        break;
                                     case LE:
-                                        if(comRes<=0) flag = true;
+                                        if (comRes <= 0) flag = true;
                                     case G:
-                                        if(comRes>0) flag = true;
+                                        if (comRes > 0) flag = true;
                                     case GE:
-                                        if(comRes>=0) flag = true;
+                                        if (comRes >= 0) flag = true;
                                     case LIKE:
-                                        String s = new String((byte[])data),format=new String((byte[])dataf);
-                                        if(s.matches(format)) flag = true;
+                                        String s = new String((byte[]) data),
+                                                format = new String((byte[]) dataf);
+                                        if (s.matches(format)) flag = true;
                                     case NE:
-                                        if(comRes!=0) flag = true;
+                                        if (comRes != 0) flag = true;
                                 }
-                                if(flag)
-                                    valf.add(new Record(record.getKey(),record.getDataType(),data));
+                                if (flag)
+                                    valf.add(
+                                            new Record(
+                                                    record.getKey(), record.getDataType(), data));
                             }
-                            val=valf;
+                            val = valf;
                         }
                     }
 
@@ -208,9 +218,9 @@ public class FileSystemService {
             return new ArrayList<>();
         }
 
-        List<Pair<Pair<Long,Long>, List<Triplet<String,Op,Object>>>> fts = parseFilter(filter);
+        List<Pair<Pair<Long, Long>, List<Triplet<String, Op, Object>>>> fts = parseFilter(filter);
 
-        return getValWithFilter(files,fts);
+        return getValWithFilter(files, fts);
     }
 
     // read the part of the file
@@ -258,7 +268,8 @@ public class FileSystemService {
         return doWriteFile(file, value);
     }
 
-    public static Exception writeFiles(List<File> files, List<List<Record>> values) throws IOException {
+    public static Exception writeFiles(List<File> files, List<List<Record>> values)
+            throws IOException {
         return writeFiles(files, values, null);
     }
 
@@ -317,8 +328,8 @@ public class FileSystemService {
         return trimFilesContent(Collections.singletonList(file), tagFilter, begin, end);
     }
 
-    public static Exception trimFilesContent(List<File> files, TagFilter tagFilter, long begin, long end)
-            throws IOException {
+    public static Exception trimFilesContent(
+            List<File> files, TagFilter tagFilter, long begin, long end) throws IOException {
         for (File file : files) {
             List<File> fileList = getFilesWithTagFilter(file, tagFilter);
             if (fileList == null) {
@@ -424,18 +435,17 @@ public class FileSystemService {
         File root = null;
         String prefix = null;
         // select * from *
-        if (file.getParentFile().getName().equals(MYWILDCARD)
-                && file.getName().contains(MYWILDCARD)) {
+        if (file.getParentFile().getName().equals(WILDCARD) && file.getName().contains(WILDCARD)) {
             root = file.getParentFile().getParentFile(); // storage unit file
-        } else if (file.getParentFile().getName().equals(MYWILDCARD)
-                && !file.getName().contains(MYWILDCARD)) {
+        } else if (file.getParentFile().getName().equals(WILDCARD)
+                && !file.getName().contains(WILDCARD)) {
             File tmp = file.getParentFile();
-            while (tmp.getName().equals(MYWILDCARD)) {
+            while (tmp.getName().equals(WILDCARD)) {
                 tmp = tmp.getParentFile();
             }
             root = tmp;
             prefix = file.getName();
-        } else if (file.getName().contains(MYWILDCARD)) {
+        } else if (file.getName().contains(WILDCARD)) {
 
             root = file.getParentFile();
         } else if (file.isDirectory()) {
@@ -489,7 +499,8 @@ public class FileSystemService {
         return null;
     }
 
-    private static List<File> getFilesWithTagFilter(File file, TagFilter tagFilter) throws IOException {
+    private static List<File> getFilesWithTagFilter(File file, TagFilter tagFilter)
+            throws IOException {
         List<File> files = getAssociatedFiles(file), res = new ArrayList<>();
         if (files == null) return files;
         for (File fi : files) {
@@ -512,7 +523,8 @@ public class FileSystemService {
      * @return 包含 tags 中所有 key-value 对的 .iginx 文件集合,否则返回 null
      * @throws IOException 任何查找或读写操作导致的 IOException 将被传播
      */
-    private static List<File> getFilesContainTag(File file, Map<String, String> tags) throws IOException {
+    private static List<File> getFilesContainTag(File file, Map<String, String> tags)
+            throws IOException {
         List<File> res = new ArrayList<>();
         List<File> files = getAssociatedFiles(file);
 
@@ -552,7 +564,7 @@ public class FileSystemService {
     }
 
     // 返回最大最小的文件，文件可能是目录
-    public static Pair<File,File> getBoundaryFiles(File dir) {
+    public static Pair<File, File> getBoundaryFiles(File dir) {
         File minFile = getMinFile(dir);
         File maxFile = getMaxFile(dir);
 
@@ -566,7 +578,7 @@ public class FileSystemService {
             lastFile = maxFile;
         }
 
-        return new Pair<>(minFile,maxFile);
+        return new Pair<>(minFile, maxFile);
     }
 
     static File getMinFile(File dir) {
