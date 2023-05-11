@@ -24,11 +24,11 @@
         <module>dataSources/postgresql</module>
         <module>dataSources/parquet</module>
         <module>dataSources/mongodb</module>
+        <module>dataSources/redis</module>
         <module>example</module>
         <module>test</module>
         <module>zeppelin-interpreter</module>
         <module>tools-exportCsv</module>
-        <module>dataSources/redis</module>
     </modules>
 
     <distributionManagement>
