@@ -571,7 +571,7 @@ public class FileSystemService {
         File lastFile = null;
         while (maxFile.isDirectory()) {
             File[] files = maxFile.listFiles();
-            if (files != null) maxFile = files[files.length - 1];
+            if (files != null && files.length != 0) maxFile = files[files.length - 1];
             if (lastFile != null && fileOperator.ifFilesEqual(lastFile, maxFile)) {
                 break;
             }

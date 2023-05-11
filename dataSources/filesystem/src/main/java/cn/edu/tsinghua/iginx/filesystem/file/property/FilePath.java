@@ -1,5 +1,7 @@
 package cn.edu.tsinghua.iginx.filesystem.file.property;
 
+import java.io.File;
+
 // 给出时序列，转换为文件系统的路径
 public final class FilePath {
     private static String SEPARATOR = System.getProperty("file.separator");
@@ -34,19 +36,12 @@ public final class FilePath {
     }
 
     public static String toNormalFilePath(String root, String series) {
+        if (series == null) return root;
         return root + series.replace(".", SEPARATOR);
     }
 
     public static String getFileNameFormSeries(String series) {
         return series.substring(series.lastIndexOf(".") + 1);
-    }
-
-    public static boolean ifDir(String oriSeries) {
-        return !oriSeries.contains("##");
-    }
-
-    public static String convertFilePathToSeries(String filePath, String separator) {
-        return separator + filePath.replace(separator, ".");
     }
 
     public static String convertAbsolutePathToSeries(
@@ -86,5 +81,9 @@ public final class FilePath {
 
     public static String getSEPARATOR() {
         return SEPARATOR;
+    }
+
+    public static String getRootFromArg(String argRoot) {
+        return new File(argRoot).getAbsolutePath() + SEPARATOR;
     }
 }

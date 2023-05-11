@@ -28,7 +28,7 @@ import org.slf4j.LoggerFactory;
 
 public class DefaultFileOperator implements IFileOperator {
     private static final Logger logger = LoggerFactory.getLogger(DefaultFileOperator.class);
-    private int bufferSize = 1024 * 100;
+    private int bufferSize = 10;
 
     @Override
     public List<Record> normalFileReader(File file, long begin, long end, Charset charset)

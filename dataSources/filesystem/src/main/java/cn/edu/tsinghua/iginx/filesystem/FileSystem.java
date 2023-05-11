@@ -34,6 +34,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.filesystem.exec.Executor;
 import cn.edu.tsinghua.iginx.filesystem.exec.LocalExecutor;
 import cn.edu.tsinghua.iginx.filesystem.exec.RemoteExecutor;
+import cn.edu.tsinghua.iginx.filesystem.file.property.FilePath;
 import cn.edu.tsinghua.iginx.filesystem.server.FileSystemServer;
 import cn.edu.tsinghua.iginx.filesystem.tools.ConfLoader;
 import cn.edu.tsinghua.iginx.filesystem.tools.FilterTransformer;
@@ -74,7 +75,7 @@ public class FileSystem implements IStorage {
 
     private void initLocalExecutor(StorageEngineMeta meta) {
         String argRoot = meta.getExtraParams().get("dir");
-        root = argRoot == null ? root : argRoot;
+        root = argRoot == null ? root : FilePath.getRootFromArg(argRoot);
 
         this.executor = new LocalExecutor(root);
 

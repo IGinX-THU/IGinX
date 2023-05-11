@@ -17,7 +17,7 @@ public class FileSystemHistoryQueryRowStream implements RowStream {
     private final List<FSResultTable> rowData;
     private final int[][] indices;
     private final int[] round;
-    private int batch = 1024 * 100;
+    private int batch = 10;
     private int hasMoreRecords = 0;
 
     public FileSystemHistoryQueryRowStream() {
@@ -89,7 +89,7 @@ public class FileSystemHistoryQueryRowStream implements RowStream {
             if (index == records.size()) { // 数据已经消费完毕了
                 continue;
             }
-            timestamp = Math.min(indices[i][index] / batch, timestamp);
+            timestamp = Math.min(index, timestamp);
         }
         if (timestamp == Long.MAX_VALUE) {
             return null;
@@ -102,7 +102,7 @@ public class FileSystemHistoryQueryRowStream implements RowStream {
                 continue;
             }
             byte[] val = (byte[]) records.get(index).getRawData();
-            if (indices[i][index] / batch == timestamp) {
+            if (index == timestamp) {
                 int len = Math.min(batch, val.length - indices[i][index]);
                 Object value = val;
                 values[i] = value;
