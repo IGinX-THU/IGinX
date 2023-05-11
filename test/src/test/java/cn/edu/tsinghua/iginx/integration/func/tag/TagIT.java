@@ -21,7 +21,7 @@ public class TagIT {
     protected static boolean ifClearData;
     protected boolean isAbleToDelete = true;
     protected boolean ifScaleOutIn = false;
-    private String CLEARDATAEXCP =
+    private final String CLEAR_DATA_EXCEPTION =
             "cn.edu.tsinghua.iginx.exceptions.ExecutionException: Caution: can not clear the data of read-only node.";
 
     public TagIT() throws IOException {
@@ -82,7 +82,7 @@ public class TagIT {
             res = session.executeSql(statement);
         } catch (SessionException | ExecutionException e) {
             logger.error("Statement: \"{}\" execute fail. Caused by:", statement, e);
-            if (e.toString().equals(CLEARDATAEXCP)) {
+            if (e.toString().equals(CLEAR_DATA_EXCEPTION)) {
                 logger.error("clear data fail and go on....");
             } else fail();
         }
