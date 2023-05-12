@@ -51,7 +51,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -529,30 +528,37 @@ public class RowUtils {
             try {
                 // 我们可能需要一种退化情况：获取不到线程池的时候，直接串行执行
                 pool = poolQueue.take();
-                pool.submit(() -> {
-                    groups.entrySet()
-                        .parallelStream()
-                        .forEach(
-                            entry -> {
-                                List<Row> group = entry.getValue();
-                                try {
-                                    Row row = function.transform(new Table(header, group), params);
-                                    if (row != null) {
-                                        entry.getKey()
-                                            .getFuncRet()
-                                            .addAll(Arrays.asList(row.getValues()));
-                                        if (hasAddedFields.compareAndSet(
-                                            false, true)) {
-                                            fields.addAll(row.getHeader().getFields());
-                                        }
-                                    }
-                                } catch (Exception e) {
-                                    logger.error(
-                                        "encounter error when execute set mapping function ");
-                                }
-                            });
-                    latch.countDown();
-                });
+                pool.submit(
+                        () -> {
+                            groups.entrySet()
+                                    .parallelStream()
+                                    .forEach(
+                                            entry -> {
+                                                List<Row> group = entry.getValue();
+                                                try {
+                                                    Row row =
+                                                            function.transform(
+                                                                    new Table(header, group),
+                                                                    params);
+                                                    if (row != null) {
+                                                        entry.getKey()
+                                                                .getFuncRet()
+                                                                .addAll(
+                                                                        Arrays.asList(
+                                                                                row.getValues()));
+                                                        if (hasAddedFields.compareAndSet(
+                                                                false, true)) {
+                                                            fields.addAll(
+                                                                    row.getHeader().getFields());
+                                                        }
+                                                    }
+                                                } catch (Exception e) {
+                                                    logger.error(
+                                                            "encounter error when execute set mapping function ");
+                                                }
+                                            });
+                            latch.countDown();
+                        });
 
                 try {
                     latch.await();
