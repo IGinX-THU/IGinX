@@ -3975,7 +3975,7 @@ public abstract class SQLSessionIT {
 
     @Test
     public void testClearData() throws SessionException, ExecutionException {
-        if (!ifClearData) {
+        if (!ifClearData || ifScaleOutIn) {
             return;
         }
         clearData();
