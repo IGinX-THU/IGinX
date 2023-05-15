@@ -26,7 +26,7 @@ public class ConfLoder {
     private String testTask = "test-list";
     private static String DBCONF = "%s-config";
     private String runningStorage = "./src/test/resources/DBConf.txt";
-    private String isScaling = "./src/test/resources/ifScaleOutIn.txt";
+    private String isScaling = "./src/test/resources/isScaling.txt";
 
     public String getStorageType() {
         String storageType = FileReader.convertToString(runningStorage);
