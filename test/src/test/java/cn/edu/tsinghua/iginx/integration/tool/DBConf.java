@@ -6,7 +6,8 @@ public final class DBConf {
         iotdb12,
         influxdb,
         postgresql,
-        mongodb
+        mongodb,
+        redis
     }
 
     public static DBType getDBType(String dbName) {
@@ -21,6 +22,8 @@ public final class DBConf {
                 return DBType.postgresql;
             case "mongodb":
                 return DBType.mongodb;
+            case "redis":
+                return DBType.redis;
             default:
                 throw new IllegalArgumentException("Invalid DBName value provided");
         }
