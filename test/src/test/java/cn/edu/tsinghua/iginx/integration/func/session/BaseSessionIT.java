@@ -3,6 +3,8 @@ package cn.edu.tsinghua.iginx.integration.func.session;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
+import cn.edu.tsinghua.iginx.integration.tool.ConfLoder;
+import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.integration.tool.MultiConnection;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
@@ -32,7 +34,7 @@ public abstract class BaseSessionIT {
     protected String defaultTestUser = "root";
     protected String defaultTestPass = "root";
 
-    protected boolean isAbleToDelete = true;
+    protected boolean isAbleToDelete;
 
     protected static final double delta = 1e-7;
     protected static final long TIME_PERIOD = 100000L;
@@ -48,6 +50,12 @@ public abstract class BaseSessionIT {
                     / (TIME_PERIOD - delTimePeriod);
 
     protected int currPath = 0;
+
+    protected BaseSessionIT() {
+        ConfLoder conf = new ConfLoder(Controller.CONFIG_FILE);
+        DBConf dbConf = conf.loadDBConf(conf.getStorageType());
+        this.isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
+    }
 
     @Before
     public void setUp() {
