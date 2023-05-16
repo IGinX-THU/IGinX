@@ -32,7 +32,7 @@ public abstract class BaseSessionIT {
     protected String defaultTestUser = "root";
     protected String defaultTestPass = "root";
 
-    protected boolean isAbleToDelete = false;
+    protected boolean isAbleToDelete = true;
 
     protected static final double delta = 1e-7;
     protected static final long TIME_PERIOD = 100000L;
