@@ -199,6 +199,7 @@ public class IoTDBStorage implements IStorage {
     public Pair<TimeSeriesRange, TimeInterval> getBoundaryOfStorage(String dataPrefix)
             throws PhysicalException {
         List<String> paths = new ArrayList<>();
+        TimeSeriesRange tsInterval;
         try {
             if (dataPrefix == null) {
                 SessionDataSetWrapper dataSet = sessionPool.executeQueryStatement(SHOW_TIMESERIES);
@@ -213,21 +214,18 @@ public class IoTDBStorage implements IStorage {
                     paths.add(path);
                 }
                 dataSet.close();
-            }
+                paths.sort(String::compareTo);
+                if (paths.size() == 0) {
+                    throw new PhysicalTaskExecuteFailureException("no data!");
+                }
+                tsInterval =
+                        new TimeSeriesInterval(
+                                paths.get(0), StringUtils.nextString(paths.get(paths.size() - 1)));
+            } else
+                tsInterval = new TimeSeriesInterval(dataPrefix, StringUtils.nextString(dataPrefix));
         } catch (IoTDBConnectionException | StatementExecutionException e) {
             throw new PhysicalTaskExecuteFailureException("get time series failure: ", e);
         }
-        paths.sort(String::compareTo);
-        if (paths.size() == 0 && dataPrefix == null) {
-            throw new PhysicalTaskExecuteFailureException("no data!");
-        }
-        TimeSeriesRange tsInterval;
-        if (dataPrefix == null)
-            tsInterval =
-                    new TimeSeriesInterval(
-                            paths.get(0), StringUtils.nextString(paths.get(paths.size() - 1)));
-        else tsInterval = new TimeSeriesInterval(dataPrefix, StringUtils.nextString(dataPrefix));
-
         long minTime = 0, maxTime = Long.MAX_VALUE;
         try {
             SessionDataSetWrapper dataSet;
