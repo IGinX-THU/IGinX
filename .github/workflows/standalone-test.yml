@@ -23,7 +23,7 @@ jobs:
         runs-on: ${{ matrix.os }}
         steps:
             - uses: actions/checkout@v2
-            - name: Environment Dependence
+            - name: Environment dependence
               uses: ./.github/actions/dependence
               with:
                   python-version: ${{ matrix.python-version }}
@@ -35,23 +35,23 @@ jobs:
               with:
                   version: ${{matrix.DB-name}}
 
-            - name: Install IginX with Maven
+            - name: Install IGinX with Maven
               shell: bash
               run: |
                   mvn clean package -DskipTests -P passFormat
 
-            - name: Set The DB Name
+            - name: Set the DB name
               uses: ./.github/actions/confWriter
               with:
                   confFile: DBName
                   DB-name: ${{matrix.DB-name}}
 
-            - name: Set The UDF Conf
+            - name: Set the UDF conf
               uses: ./.github/actions/confWriter
               with:
                   confFile: UDFConf
 
-            - name: Start IginX
+            - name: Start IGinX
               uses: ./.github/actions/iginxRunner
 
             - name: TestController IT
@@ -61,7 +61,7 @@ jobs:
                   chmod +x "${GITHUB_WORKSPACE}/.github/test_union.sh"
                   mvn test -q -Dtest=Controller -DfailIfNoTests=false -P passFormat
 
-            - name: show the test result
+            - name: Show the test result
               if: always()
               shell: bash
               run: |

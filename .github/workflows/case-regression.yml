@@ -36,12 +36,12 @@ jobs:
               with:
                   version: "Mix-IoTDB12-InfluxDB"
 
-            - name: Install IginX with Maven
+            - name: Install IGinX with Maven
               shell: bash
               run: |
                   mvn clean package -DskipTests -P passFormat
 
-            - name: Start IginX
+            - name: Start IGinX
               uses: ./.github/actions/iginxRunner
 
             - name: TestMixCluster

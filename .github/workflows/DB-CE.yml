@@ -26,7 +26,7 @@ jobs:
         runs-on: ${{ matrix.os }}
         steps:
             - uses: actions/checkout@v2
-            - name: Environmet Dependence
+            - name: Environment dependence
               uses: ./.github/actions/dependence
               with:
                   python-version: ${{ matrix.python-version }}
@@ -39,18 +39,18 @@ jobs:
               with:
                   version: ${{matrix.DB-name}}
 
-            - name: Set The DB Name
+            - name: Set the DB name
               uses: ./.github/actions/confWriter
               with:
                   confFile: DBName
                   DB-name: ${{matrix.DB-name}}
 
-            - name: Install IginX with Maven
+            - name: Install IGinX with Maven
               shell: bash
               run: |
                   mvn clean package -DskipTests -P passFormat
 
-            - name: Set The UDF Conf
+            - name: Set the UDF conf
               uses: ./.github/actions/confWriter
               with:
                   confFile: UDFConf
@@ -162,7 +162,7 @@ jobs:
               run: |
                   mvn test -q -Dtest=ParquetHistoryDataGeneratorTest -DfailIfNoTests=false
                   sleep 10
-            - name: Start IginX
+            - name: Start IGinX
               run: |
                   chmod +x "${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/sbin/start_iginx.sh"
                   nohup "${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/sbin/start_iginx.sh" &
