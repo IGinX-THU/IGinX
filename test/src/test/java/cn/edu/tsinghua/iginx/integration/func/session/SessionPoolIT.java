@@ -3,10 +3,14 @@ package cn.edu.tsinghua.iginx.integration.func.session;
 import cn.edu.tsinghua.iginx.integration.tool.MultiConnection;
 import cn.edu.tsinghua.iginx.pool.SessionPool;
 import org.junit.Before;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class BaseSessionPoolIT extends BaseSessionIT {
+public class SessionPoolIT extends SessionIT {
 
-    // check in BaseSessionIT for the initializations of MultiThreadTask before assignment
+    private static final Logger logger = LoggerFactory.getLogger(SessionPoolIT.class);
+
+    // check in SessionIT for the initializations of MultiThreadTask before assignment
     private final int MaxMultiThreadTaskNum = 10;
 
     @Before
@@ -22,6 +26,7 @@ public class BaseSessionPoolIT extends BaseSessionIT {
                                     .password(defaultTestPass)
                                     .maxSize(MaxMultiThreadTaskNum)
                                     .build());
+            session.openSession();
         } catch (Exception e) {
             logger.error(e.getMessage());
         }

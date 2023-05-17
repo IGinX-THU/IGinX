@@ -18,23 +18,23 @@ import org.slf4j.LoggerFactory;
 public class TagIT {
     protected static final Logger logger = LoggerFactory.getLogger(TagIT.class);
     protected static Session session;
-    protected static boolean ifClearData;
+    protected static boolean isAbleToClearData;
     protected boolean isAbleToDelete = true;
-    protected boolean ifScaleOutIn = false;
-    private final String CLEAR_DATA_EXCEPTION =
+    protected boolean isScaling = false;
+    private String CLEARDATAEXCP =
             "cn.edu.tsinghua.iginx.exceptions.ExecutionException: Caution: can not clear the data of read-only node.";
 
     public TagIT() throws IOException {
         ConfLoder conf = new ConfLoder(Controller.CONFIG_FILE);
-        DBConf dbConf = conf.loadDBConf();
-        this.ifClearData = dbConf.getEnumValue(DBConf.DBConfType.isAbleToClearData);
+        DBConf dbConf = conf.loadDBConf(conf.getStorageType());
+        this.isAbleToClearData = dbConf.getEnumValue(DBConf.DBConfType.isAbleToClearData);
         this.isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
-        this.ifScaleOutIn = conf.getStorageType() != null;
+        this.isScaling = conf.isScaling();
     }
 
     @BeforeClass
     public static void setUp() throws SessionException {
-        ifClearData = true;
+        isAbleToClearData = true;
         session = new Session("127.0.0.1", 6888, "root", "root");
         session.openSession();
     }
@@ -82,7 +82,7 @@ public class TagIT {
             res = session.executeSql(statement);
         } catch (SessionException | ExecutionException e) {
             logger.error("Statement: \"{}\" execute fail. Caused by:", statement, e);
-            if (e.toString().equals(CLEAR_DATA_EXCEPTION)) {
+            if (e.toString().equals(CLEARDATAEXCP)) {
                 logger.error("clear data fail and go on....");
             } else fail();
         }
@@ -293,7 +293,7 @@ public class TagIT {
 
     @Test
     public void testCountPoints() {
-        if (ifScaleOutIn) return;
+        if (isScaling) return;
         String statement = "COUNT POINTS;";
         String expected = "Points num: 26\n";
         executeAndCompare(statement, expected);
@@ -491,6 +491,7 @@ public class TagIT {
 
     @Test
     public void testDeleteWithTag() {
+        if (!isAbleToDelete || isScaling) return;
         String statement = "SELECT s FROM ah.*;";
         String expected =
                 "ResultSets:\n"
@@ -531,6 +532,7 @@ public class TagIT {
 
     @Test
     public void testDeleteWithMultiTags() {
+        if (!isAbleToDelete || isScaling) return;
         String statement = "SELECT s FROM ah.*;";
         String expected =
                 "ResultSets:\n"
@@ -609,6 +611,7 @@ public class TagIT {
 
     @Test
     public void testDeleteTSWithTag() {
+        if (!isAbleToDelete || isScaling) return;
         String showTimeSeries = "SHOW TIME SERIES ah.*;";
         String expected =
                 "Time series:\n"
@@ -694,7 +697,7 @@ public class TagIT {
 
     @Test
     public void testDeleteTSWithMultiTags() {
-        if (!isAbleToDelete) return;
+        if (!isAbleToDelete || isScaling) return;
         String showTimeSeries = "SHOW TIME SERIES ah.*;";
         String expected =
                 "Time series:\n"
@@ -1286,7 +1289,7 @@ public class TagIT {
 
     @Test
     public void testClearData() throws SessionException, ExecutionException {
-        if (!ifClearData || ifScaleOutIn) return;
+        if (!isAbleToClearData || isScaling) return;
         clearData();
 
         String countPoints = "COUNT POINTS;";

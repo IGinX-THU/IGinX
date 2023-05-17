@@ -1,4 +1,4 @@
-package cn.edu.tsinghua.iginx.integration;
+package cn.edu.tsinghua.iginx.integration.compaction;
 
 import static org.junit.Assert.assertEquals;
 
