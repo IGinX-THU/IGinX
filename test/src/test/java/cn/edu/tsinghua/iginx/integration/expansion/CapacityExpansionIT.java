@@ -8,6 +8,9 @@ import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.expansion.unit.SQLTestTools;
 import cn.edu.tsinghua.iginx.pool.SessionPool;
 import cn.edu.tsinghua.iginx.session.Session;
+import cn.edu.tsinghua.iginx.thrift.RemovedStorageEngineInfo;
+import java.util.ArrayList;
+import java.util.List;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -15,7 +18,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class CapacityExpansionIT implements BaseCapacityExpansionIT {
+public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
     private static final Logger logger = LoggerFactory.getLogger(CapacityExpansionIT.class);
     protected static Session session;
     protected static SessionPool sessionPool;
@@ -54,32 +57,80 @@ public class CapacityExpansionIT implements BaseCapacityExpansionIT {
     public void oriHasDataExpHasData() throws Exception {
         testQueryHistoryDataFromInitialNode();
         testQueryAfterInsertNewData();
-        testCapacityExpansion_oriHasDataExpHasData();
-        testWriteAndQueryAfterCapacityExpansion_oriHasDataExpHasData();
+        testOriHasDataExpHasData();
+        testWriteAndQueryAfterCEOriHasDataExpHasData();
     }
 
     @Test
     public void oriHasDataExpNoData() throws Exception {
         testQueryHistoryDataFromInitialNode();
         testQueryAfterInsertNewData();
-        testCapacityExpansion_oriHasDataExpNoData();
-        testWriteAndQueryAfterCapacityExpansion_oriHasDataExpNoData();
+        testOriHasDataExpNoData();
+        testWriteAndQueryAfterCEOriHasDataExpNoData();
     }
 
     @Test
     public void oriNoDataExpHasData() throws Exception {
         testQueryHistoryDataFromNoInitialNode();
         testQueryAfterInsertNewDataFromNoInitialNode();
-        testCapacityExpansion_oriNoDataExpHasData();
-        testWriteAndQueryAfterCapacityExpansion_oriNoDataExpHasData();
+        testOriNoDataExpHasData();
+        testWriteAndQueryAfterCEOriNoDataExpHasData();
     }
 
     @Test
     public void oriNoDataExpNoData() throws Exception {
         testQueryHistoryDataFromNoInitialNode();
         testQueryAfterInsertNewDataFromNoInitialNode();
-        testCapacityExpansion_oriNoDataExpNoData();
-        testWriteAndQueryAfterCapacityExpansion_oriNoDataExpNoData();
+        testOriNoDataExpNoData();
+        testWriteAndQueryAfterCEOriNoDataExpNoData();
+    }
+
+    protected abstract void addStorageWithPrefix(String dataPrefix, String schemaPrefix)
+            throws Exception;
+
+    protected abstract int getPort() throws Exception;
+
+    @Test
+    public void testPrefixAndRemoveHistoryDataSource() throws Exception {
+        addStorageWithPrefix("ln", "p1");
+        addStorageWithPrefix("ln", "p2");
+        String statement = "select * from p1.ln";
+        String expect =
+                "ResultSets:\n"
+                        + "+---+----------------------+---------------------------+\n"
+                        + "|key|p1.ln.wf03.wt01.status|p1.ln.wf03.wt01.temperature|\n"
+                        + "+---+----------------------+---------------------------+\n"
+                        + "| 77|                  true|                       null|\n"
+                        + "|200|                 false|                      77.71|\n"
+                        + "+---+----------------------+---------------------------+\n"
+                        + "Total line number = 2\n";
+        SQLTestTools.executeAndCompare(session, statement, expect);
+
+        statement = "select * from p2.ln";
+        expect =
+                "ResultSets:\n"
+                        + "+---+----------------------+---------------------------+\n"
+                        + "|key|p2.ln.wf03.wt01.status|p2.ln.wf03.wt01.temperature|\n"
+                        + "+---+----------------------+---------------------------+\n"
+                        + "| 77|                  true|                       null|\n"
+                        + "|200|                 false|                      77.71|\n"
+                        + "+---+----------------------+---------------------------+\n"
+                        + "Total line number = 2\n";
+        SQLTestTools.executeAndCompare(session, statement, expect);
+
+        List<RemovedStorageEngineInfo> removedStorageEngineList = new ArrayList<>();
+        removedStorageEngineList.add(
+                new RemovedStorageEngineInfo("127.0.0.1", getPort(), "p2", "ln"));
+        sessionPool.removeHistoryDataSource(removedStorageEngineList);
+        statement = "select * from p2.ln";
+        expect = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
+        SQLTestTools.executeAndCompare(session, statement, expect);
+
+        session.executeSql(
+                "remove historydataresource (\"127.0.0.1\", " + getPort() + ", \"p1\", \"ln\")");
+        statement = "select * from p1.ln";
+        expect = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
+        SQLTestTools.executeAndCompare(session, statement, expect);
     }
 
     private void addStorageEngine(boolean hasData) throws SessionException, ExecutionException {
@@ -210,7 +261,7 @@ public class CapacityExpansionIT implements BaseCapacityExpansionIT {
     }
 
     // @Test
-    public void testCapacityExpansion_oriHasDataExpNoData() throws Exception {
+    public void testOriHasDataExpNoData() throws Exception {
         addStorageEngine(false);
         String statement = "select * from ln.wf03";
         String expect =
@@ -232,7 +283,7 @@ public class CapacityExpansionIT implements BaseCapacityExpansionIT {
         SQLTestTools.executeAndCompare(session, statement, expect);
     }
 
-    public void testCapacityExpansion_oriHasDataExpHasData() throws Exception {
+    public void testOriHasDataExpHasData() throws Exception {
         addStorageEngine(true);
         String statement = "select * from ln.wf03";
         String expect =
@@ -262,7 +313,7 @@ public class CapacityExpansionIT implements BaseCapacityExpansionIT {
         SQLTestTools.executeAndCompare(session, statement, expect);
     }
 
-    public void testCapacityExpansion_oriNoDataExpHasData() throws Exception {
+    public void testOriNoDataExpHasData() throws Exception {
         addStorageEngine(true);
         String statement = "select * from ln.wf03";
         String expect =
@@ -292,7 +343,7 @@ public class CapacityExpansionIT implements BaseCapacityExpansionIT {
         SQLTestTools.executeAndCompare(session, statement, expect);
     }
 
-    public void testCapacityExpansion_oriNoDataExpNoData() throws Exception {
+    public void testOriNoDataExpNoData() throws Exception {
         addStorageEngine(false);
         String statement = "select * from ln.wf03";
         String expect =
@@ -314,7 +365,7 @@ public class CapacityExpansionIT implements BaseCapacityExpansionIT {
     }
 
     // @Test
-    public void testWriteAndQueryAfterCapacityExpansion_oriHasDataExpHasData() throws Exception {
+    public void testWriteAndQueryAfterCEOriHasDataExpHasData() throws Exception {
         session.executeSql("insert into ln.wf02 (key, version) values (1600, \"v48\");");
 
         String statement = "select * from ln";
@@ -345,7 +396,7 @@ public class CapacityExpansionIT implements BaseCapacityExpansionIT {
         SQLTestTools.executeAndCompare(session, statement, expect);
     }
 
-    public void testWriteAndQueryAfterCapacityExpansion_oriNoDataExpHasData() throws Exception {
+    public void testWriteAndQueryAfterCEOriNoDataExpHasData() throws Exception {
         session.executeSql("insert into ln.wf02 (key, version) values (1600, \"v48\");");
 
         String statement = "select * from ln";
@@ -376,7 +427,7 @@ public class CapacityExpansionIT implements BaseCapacityExpansionIT {
         SQLTestTools.executeAndCompare(session, statement, expect);
     }
 
-    public void testWriteAndQueryAfterCapacityExpansion_oriHasDataExpNoData() throws Exception {
+    public void testWriteAndQueryAfterCEOriHasDataExpNoData() throws Exception {
         session.executeSql("insert into ln.wf02 (key, version) values (1600, \"v48\");");
 
         String statement = "select * from ln";
@@ -406,7 +457,7 @@ public class CapacityExpansionIT implements BaseCapacityExpansionIT {
         SQLTestTools.executeAndCompare(session, statement, expect);
     }
 
-    public void testWriteAndQueryAfterCapacityExpansion_oriNoDataExpNoData() throws Exception {
+    public void testWriteAndQueryAfterCEOriNoDataExpNoData() throws Exception {
         session.executeSql("insert into ln.wf02 (key, version) values (1600, \"v48\");");
 
         String statement = "select * from ln";

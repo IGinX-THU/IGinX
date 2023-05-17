@@ -26,7 +26,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class SQLSessionIT {
+public class SQLSessionIT {
 
     protected static SQLExecutor executor;
 
@@ -47,23 +47,20 @@ public abstract class SQLSessionIT {
 
     protected boolean isAbleToShowTimeSeries;
 
-    protected boolean ifScaleOutIn = false;
+    protected boolean isScaling = false;
 
     private final long startKey = 0L;
 
     private final long endKey = 15000L;
 
+    protected boolean isAbleToClearData = true;
     private static final int CONCURRENT_NUM = 5;
-
-    protected boolean ifClearData = true;
-
-    protected String storageEngineType;
 
     public SQLSessionIT() throws IOException {
         ConfLoder conf = new ConfLoder(Controller.CONFIG_FILE);
-        DBConf dbConf = conf.loadDBConf();
-        this.ifScaleOutIn = conf.getStorageType() != null;
-        this.ifClearData = dbConf.getEnumValue(DBConf.DBConfType.isAbleToClearData);
+        DBConf dbConf = conf.loadDBConf(conf.getStorageType());
+        this.isScaling = conf.isScaling();
+        this.isAbleToClearData = dbConf.getEnumValue(DBConf.DBConfType.isAbleToClearData);
         this.isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
         this.isAbleToShowTimeSeries = dbConf.getEnumValue(DBConf.DBConfType.isAbleToShowTimeSeries);
         this.isSupportSpecialPath = dbConf.getEnumValue(DBConf.DBConfType.isSupportSpecialPath);
@@ -167,9 +164,7 @@ public abstract class SQLSessionIT {
 
     @Test
     public void testCountPoints() {
-        if (ifScaleOutIn) {
-            return;
-        }
+        if (isScaling) return;
         String statement = "COUNT POINTS;";
         String expected = "Points num: 60000\n";
         executor.executeAndCompare(statement, expected);
@@ -177,7 +172,7 @@ public abstract class SQLSessionIT {
 
     @Test
     public void testShowTimeSeries() {
-        if (!isAbleToShowTimeSeries || ifScaleOutIn) {
+        if (!isAbleToShowTimeSeries || isScaling) {
             return;
         }
         String statement = "SHOW TIME SERIES us.*;";
@@ -3872,9 +3867,7 @@ public abstract class SQLSessionIT {
 
     @Test
     public void testExplain() {
-        if (ifScaleOutIn) {
-            return;
-        }
+        if (isScaling) return;
         String explain = "explain select max(s2), min(s1) from us.d1;";
         String expected =
                 "ResultSets:\n"
@@ -3914,7 +3907,7 @@ public abstract class SQLSessionIT {
 
     @Test
     public void testDeleteTimeSeries() {
-        if (!isAbleToDelete || ifScaleOutIn) {
+        if (!isAbleToDelete || isScaling) {
             return;
         }
         String showTimeSeries = "SHOW TIME SERIES us.*;";
@@ -3975,9 +3968,7 @@ public abstract class SQLSessionIT {
 
     @Test
     public void testClearData() throws SessionException, ExecutionException {
-        if (!ifClearData || ifScaleOutIn) {
-            return;
-        }
+        if (!isAbleToClearData || isScaling) return;
         clearData();
 
         String countPoints = "COUNT POINTS;";
@@ -3991,6 +3982,9 @@ public abstract class SQLSessionIT {
 
     @Test
     public void testConcurrentDeleteSinglePath() {
+        if (!isAbleToDelete) {
+            return;
+        }
         String deleteFormat = "DELETE FROM us.d1.s1 WHERE key >= %d AND key < %d;";
         int start = 1000, range = 50;
 
@@ -4034,6 +4028,9 @@ public abstract class SQLSessionIT {
 
     @Test
     public void testConcurrentDeleteSinglePathWithOverlap() {
+        if (!isAbleToDelete) {
+            return;
+        }
         String deleteFormat = "DELETE FROM * WHERE key >= %d AND key < %d;";
         int start = 1000, range = 70;
 
@@ -4058,6 +4055,9 @@ public abstract class SQLSessionIT {
 
     @Test
     public void testConcurrentDeleteMultiPath() {
+        if (!isAbleToDelete) {
+            return;
+        }
         String deleteFormat = "DELETE FROM * WHERE key >= %d AND key < %d;";
         int start = 1000, range = 50;
 
@@ -4082,6 +4082,9 @@ public abstract class SQLSessionIT {
 
     @Test
     public void testConcurrentDeleteMultiPathWithOverlap() {
+        if (!isAbleToDelete) {
+            return;
+        }
         String deleteFormat = "DELETE FROM * WHERE key >= %d AND key < %d;";
         int start = 1000, range = 70;
 
@@ -4152,7 +4155,7 @@ public abstract class SQLSessionIT {
 
     @Test
     public void testBaseInfoConcurrentQuery() {
-        if (ifScaleOutIn) {
+        if (isScaling) {
             return;
         }
         List<Pair<String, String>> statementsAndExpectRes =
