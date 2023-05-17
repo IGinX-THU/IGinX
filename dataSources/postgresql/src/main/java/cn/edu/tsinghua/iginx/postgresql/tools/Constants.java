@@ -24,7 +24,7 @@ public class Constants {
 
     public static final String CONCAT_QUERY_STATEMENT = "SELECT concat(%s) FROM %s;";
 
-    public static final String QUERY_STATEMENT = "SELECT time, %s FROM %s WHERE %s;";
+    public static final String QUERY_STATEMENT = "SELECT time, %s FROM %s WHERE %s ORDER BY time;";
 
     public static final String QUERY_STATEMENT_WITHOUT_WHERE_CLAUSE =
             "SELECT concat(%s) AS time, %s FROM %s;";
