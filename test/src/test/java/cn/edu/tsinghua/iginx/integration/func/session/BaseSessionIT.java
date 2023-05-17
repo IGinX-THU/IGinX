@@ -37,7 +37,7 @@ public abstract class BaseSessionIT {
     protected boolean isAbleToDelete;
 
     protected static final double delta = 1e-7;
-    protected static final long TIME_PERIOD = 100000L;
+    protected static final long TIME_PERIOD = 10000L;
     protected static final long START_TIME = 1000L;
     protected static final long END_TIME = START_TIME + TIME_PERIOD - 1;
     // params for partialDelete
