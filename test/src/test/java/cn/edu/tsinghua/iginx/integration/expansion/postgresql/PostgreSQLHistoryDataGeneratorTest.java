@@ -56,7 +56,7 @@ public class PostgreSQLHistoryDataGeneratorTest extends BaseHistoryDataGenerator
             Statement stmtB = connB.createStatement();
             stmtB.execute(String.format(DROP_DATABASE_STATEMENT, DATABASE_NAME));
             stmtB.close();
-            stmtB.close();
+            connB.close();
         } catch (Exception e) {
             logger.error(e.getMessage());
         }

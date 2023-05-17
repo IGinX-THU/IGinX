@@ -157,7 +157,7 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
                             + ", is_read_only:true\");");
         else if (ENGINE_TYPE.toLowerCase().contains("postgresql"))
             session.executeSql(
-                    "ADD STORAGEENGINE (\"127.0.0.1\", 5431, \""
+                    "ADD STORAGEENGINE (\"127.0.0.1\", 5433, \""
                             + ENGINE_TYPE
                             + "\", \"username:postgres, password:postgres, has_data:"
                             + hasData

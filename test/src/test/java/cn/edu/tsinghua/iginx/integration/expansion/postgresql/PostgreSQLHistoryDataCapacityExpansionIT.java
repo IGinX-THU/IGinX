@@ -10,7 +10,7 @@ public class PostgreSQLHistoryDataCapacityExpansionIT extends CapacityExpansionI
     @Override
     protected void addStorageWithPrefix(String dataPrefix, String schemaPrefix) throws Exception {
         session.executeSql(
-                "ADD STORAGEENGINE (\"127.0.0.1\", 5431, \""
+                "ADD STORAGEENGINE (\"127.0.0.1\", 5433, \""
                         + ENGINE_TYPE
                         + "\", \"username:postgres, password:postgres, has_data:true, data_prefix:"
                         + dataPrefix
@@ -21,6 +21,6 @@ public class PostgreSQLHistoryDataCapacityExpansionIT extends CapacityExpansionI
 
     @Override
     protected int getPort() throws Exception {
-        return 5431;
+        return 5433;
     }
 }

@@ -18,10 +18,10 @@ public final class DBConf {
                 return DBType.influxdb;
             case "parquet":
                 return DBType.parquet;
-            case "mongodb":
-                return DBType.mongodb;
             case "postgresql":
                 return DBType.postgresql;
+            case "mongodb":
+                return DBType.mongodb;
             case "redis":
                 return DBType.redis;
             default:

@@ -12,6 +12,7 @@ import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.ArrayList;
 import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,7 +22,7 @@ public class SessionConcurrencyIT extends BaseSessionIT {
 
     // TODO: a very suspicious test; somebody should do something
     // TODO: The following test must be added after bug fix
-    //     @Test
+//     @Test
     public void multiThreadTestBad()
             throws SessionException, InterruptedException, ExecutionException {
         // query test, multithread insert for storage; multithread query
