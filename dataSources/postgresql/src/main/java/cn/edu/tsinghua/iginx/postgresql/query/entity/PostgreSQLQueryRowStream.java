@@ -15,6 +15,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
+import cn.edu.tsinghua.iginx.postgresql.entity.TableType;
 import cn.edu.tsinghua.iginx.postgresql.tools.DataTypeTransformer;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
@@ -33,7 +34,7 @@ public class PostgreSQLQueryRowStream implements RowStream {
 
     private final Header header;
 
-    private final boolean isDummy;
+    private final List<TableType> isDummy;
 
     private final Filter filter;
 
@@ -52,7 +53,11 @@ public class PostgreSQLQueryRowStream implements RowStream {
     private boolean hasCachedRow;
 
     public PostgreSQLQueryRowStream(
-            List<ResultSet> resultSets, boolean isDummy, Filter filter, TagFilter tagFilter)
+            List<String> databaseNameList,
+            List<ResultSet> resultSets,
+            List<TableType> isDummy,
+            Filter filter,
+            TagFilter tagFilter)
             throws SQLException {
         this.resultSets = resultSets;
         this.isDummy = isDummy;
@@ -83,14 +88,29 @@ public class PostgreSQLQueryRowStream implements RowStream {
                 }
 
                 Pair<String, Map<String, String>> namesAndTags = splitFullName(columnName);
-                Field field =
-                        new Field(
-                                tableName.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR)
-                                        + IGINX_SEPARATOR
-                                        + namesAndTags.k.replace(
-                                                POSTGRESQL_SEPARATOR, IGINX_SEPARATOR),
-                                DataTypeTransformer.fromPostgreSQL(typeName),
-                                namesAndTags.v);
+                Field field;
+                if (isDummy.get(i) == TableType.nonDummy) {
+                    field =
+                            new Field(
+                                    tableName.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR)
+                                            + IGINX_SEPARATOR
+                                            + namesAndTags.k.replace(
+                                                    POSTGRESQL_SEPARATOR, IGINX_SEPARATOR),
+                                    DataTypeTransformer.fromPostgreSQL(typeName),
+                                    namesAndTags.v);
+                } else {
+                    field =
+                            new Field(
+                                    databaseNameList.get(i)
+                                            + IGINX_SEPARATOR
+                                            + tableName.replace(
+                                                    POSTGRESQL_SEPARATOR, IGINX_SEPARATOR)
+                                            + IGINX_SEPARATOR
+                                            + namesAndTags.k.replace(
+                                                    POSTGRESQL_SEPARATOR, IGINX_SEPARATOR),
+                                    DataTypeTransformer.fromPostgreSQL(typeName),
+                                    namesAndTags.v);
+                }
 
                 if (filterByTags && !TagKVUtils.match(namesAndTags.v, tagFilter)) {
                     continue;
@@ -186,14 +206,13 @@ public class PostgreSQLQueryRowStream implements RowStream {
                     long tempTimestamp;
                     Object tempValue;
 
-                    if (isDummy) {
+                    if (isDummy.get(i) == TableType.dummy) {
                         tempTimestamp = toHash(resultSet.getString("time"));
                     } else {
                         tempTimestamp = resultSet.getLong("time");
                     }
                     cachedTimestamps[i] = tempTimestamp;
 
-                    ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
                     for (int j = 0; j < resultSetSizes[i]; j++) {
                         Object value =
                                 resultSet.getObject(
@@ -238,7 +257,8 @@ public class PostgreSQLQueryRowStream implements RowStream {
                 startIndex = endIndex;
             }
             cachedRow = new Row(header, timestamp, values);
-            if (isDummy && !validate(filter, cachedRow)) {
+            if (isDummy.stream().allMatch(x -> x == TableType.dummy)
+                    && !validate(filter, cachedRow)) {
                 cacheOneRow();
             }
         } else {

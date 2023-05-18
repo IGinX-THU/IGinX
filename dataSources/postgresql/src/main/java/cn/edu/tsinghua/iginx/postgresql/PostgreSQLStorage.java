@@ -19,6 +19,7 @@
 package cn.edu.tsinghua.iginx.postgresql;
 
 import static cn.edu.tsinghua.iginx.postgresql.tools.Constants.*;
+import static cn.edu.tsinghua.iginx.postgresql.tools.DataTypeTransformer.fromPostgreSQL;
 import static cn.edu.tsinghua.iginx.postgresql.tools.HashUtils.toHash;
 import static cn.edu.tsinghua.iginx.postgresql.tools.TagKVUtils.splitFullName;
 import static cn.edu.tsinghua.iginx.postgresql.tools.TagKVUtils.toFullName;
@@ -47,6 +48,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
+import cn.edu.tsinghua.iginx.postgresql.entity.TableType;
 import cn.edu.tsinghua.iginx.postgresql.query.entity.PostgreSQLQueryRowStream;
 import cn.edu.tsinghua.iginx.postgresql.tools.DataTypeTransformer;
 import cn.edu.tsinghua.iginx.postgresql.tools.FilterTransformer;
@@ -240,7 +242,7 @@ public class PostgreSQLStorage implements IStorage {
                                                                 IGINX_SEPARATOR)
                                                         + IGINX_SEPARATOR
                                                         + nameAndTags.k,
-                                                DataTypeTransformer.fromPostgreSQL(typeName),
+                                                fromPostgreSQL(typeName),
                                                 nameAndTags.v));
                             } else {
                                 timeseries.add(
@@ -254,7 +256,7 @@ public class PostgreSQLStorage implements IStorage {
                                                                 IGINX_SEPARATOR)
                                                         + IGINX_SEPARATOR
                                                         + nameAndTags.k,
-                                                DataTypeTransformer.fromPostgreSQL(typeName),
+                                                fromPostgreSQL(typeName),
                                                 nameAndTags.v));
                             }
                         }
@@ -297,8 +299,14 @@ public class PostgreSQLStorage implements IStorage {
                     ResultSet columnSet =
                             databaseMetaData.getColumns(databaseName, "public", tableName, "%");
                     StringBuilder columnNames = new StringBuilder();
+                    boolean hasTimeColumn = false;
                     while (columnSet.next()) {
                         String columnName = columnSet.getString("COLUMN_NAME"); // 获取列名称
+                        String typeName = columnSet.getString("TYPE_NAME"); // 列字段类型
+                        if (columnName.equalsIgnoreCase("time")
+                                && fromPostgreSQL(typeName) == DataType.LONG) {
+                            hasTimeColumn = true;
+                        }
                         paths.add(
                                 databaseName
                                         + IGINX_SEPARATOR
@@ -308,21 +316,33 @@ public class PostgreSQLStorage implements IStorage {
                         columnNames.append(columnName);
                         columnNames.append(", "); // c1, c2, c3,
                     }
-                    columnNames =
-                            new StringBuilder(
-                                    columnNames.substring(
-                                            0, columnNames.length() - 2)); // c1, c2, c3
+                    if (hasTimeColumn) { // 本身就有 time 列
+                        // 获取 key 的范围
+                        String statement = String.format(QUERY_TIME_STATEMENT, tableName);
+                        Statement timeStmt = conn.createStatement();
+                        ResultSet timeSet = timeStmt.executeQuery(statement);
+                        while (timeSet.next()) {
+                            long time = timeSet.getLong("time");
+                            minTime = Math.min(time, minTime);
+                            maxTime = Math.max(time, maxTime);
+                        }
+                    } else {
+                        columnNames =
+                                new StringBuilder(
+                                        columnNames.substring(
+                                                0, columnNames.length() - 2)); // c1, c2, c3
 
-                    // 获取 key 的范围
-                    String statement =
-                            String.format(CONCAT_QUERY_STATEMENT, columnNames, tableName);
-                    Statement concatStmt = conn.createStatement();
-                    ResultSet concatSet = concatStmt.executeQuery(statement);
-                    while (concatSet.next()) {
-                        String concatValue = concatSet.getString("concat");
-                        long time = toHash(concatValue);
-                        minTime = Math.min(time, minTime);
-                        maxTime = Math.max(time, maxTime);
+                        // 获取 key 的范围
+                        String statement =
+                                String.format(CONCAT_QUERY_STATEMENT, columnNames, tableName);
+                        Statement concatStmt = conn.createStatement();
+                        ResultSet concatSet = concatStmt.executeQuery(statement);
+                        while (concatSet.next()) {
+                            String concatValue = concatSet.getString("concat");
+                            long time = toHash(concatValue);
+                            minTime = Math.min(time, minTime);
+                            maxTime = Math.max(time, maxTime);
+                        }
                     }
                 }
             }
@@ -396,7 +416,9 @@ public class PostgreSQLStorage implements IStorage {
     private TaskExecuteResult executeProjectTask(
             Connection conn, String databaseName, Project project, Filter filter) {
         try {
+            List<String> databaseNameList = new ArrayList<>();
             List<ResultSet> resultSets = new ArrayList<>();
+            List<TableType> isDummy = new ArrayList<>();
             ResultSet rs;
             Statement stmt;
 
@@ -424,13 +446,19 @@ public class PostgreSQLStorage implements IStorage {
                             "meet error when executing query {}: {}", statement, e.getMessage());
                     continue;
                 }
+                databaseNameList.add(databaseName);
                 resultSets.add(rs);
+                isDummy.add(TableType.nonDummy);
             }
 
             RowStream rowStream =
                     new ClearEmptyRowStreamWrapper(
                             new PostgreSQLQueryRowStream(
-                                    resultSets, false, filter, project.getTagFilter()));
+                                    databaseNameList,
+                                    resultSets,
+                                    isDummy,
+                                    filter,
+                                    project.getTagFilter()));
             conn.close();
             return new TaskExecuteResult(rowStream);
         } catch (SQLException e) {
@@ -467,7 +495,11 @@ public class PostgreSQLStorage implements IStorage {
 
                 databaseName = parts[0];
                 tableName = parts[1].equals("*") ? "%" : parts[1];
-                columnNames = parts[2].equals("*") ? "%" : parts[2];
+                if (parts.length == 2) {
+                    columnNames = "%";
+                } else {
+                    columnNames = parts[2].equals("*") ? "%" : parts[2];
+                }
             }
 
             if (databaseName.equals("%")) {
@@ -533,7 +565,9 @@ public class PostgreSQLStorage implements IStorage {
 
     private TaskExecuteResult executeHistoryProjectTask(Project project, Filter filter) {
         try {
+            List<String> databaseNameList = new ArrayList<>();
             List<ResultSet> resultSets = new ArrayList<>();
+            List<TableType> isDummy = new ArrayList<>();
             ResultSet rs;
             Connection conn = null;
             Statement stmt;
@@ -547,18 +581,42 @@ public class PostgreSQLStorage implements IStorage {
                     continue;
                 }
                 for (Map.Entry<String, String> entry : splitEntry.getValue().entrySet()) {
+                    boolean hasTimeColumn = false;
                     String tableName = entry.getKey();
+                    DatabaseMetaData databaseMetaData = conn.getMetaData();
+                    ResultSet columnSet =
+                            databaseMetaData.getColumns(databaseName, "public", tableName, "%");
+                    while (columnSet.next()) {
+                        if (columnSet.getString("COLUMN_NAME").equalsIgnoreCase("time")) {
+                            hasTimeColumn = true;
+                            break;
+                        }
+                    }
+
+                    String[] parts = entry.getValue().split(", ");
                     String columnNames =
-                            Arrays.stream(entry.getValue().split(", "))
+                            Arrays.stream(parts)
                                     .map(this::getCompleteName)
                                     .reduce((a, b) -> a + ", " + b)
                                     .orElse("%");
-                    String statement =
-                            String.format(
-                                    QUERY_STATEMENT_WITHOUT_WHERE_CLAUSE,
-                                    columnNames,
-                                    columnNames,
-                                    getCompleteName(tableName));
+                    String statement;
+                    if (hasTimeColumn) {
+                        if (!columnNames.contains("time")) {
+                            columnNames += " , \"time\"";
+                        }
+                        statement =
+                                String.format(
+                                        QUERY_TIME_STATEMENT_WITHOUT_WHERE_CLAUSE,
+                                        columnNames,
+                                        getCompleteName(tableName));
+                    } else {
+                        statement =
+                                String.format(
+                                        CONCAT_QUERY_STATEMENT_WITHOUT_WHERE_CLAUSE,
+                                        columnNames,
+                                        columnNames,
+                                        getCompleteName(tableName));
+                    }
                     try {
                         stmt = conn.createStatement();
                         rs = stmt.executeQuery(statement);
@@ -570,14 +628,24 @@ public class PostgreSQLStorage implements IStorage {
                                 e.getMessage());
                         continue;
                     }
+                    databaseNameList.add(databaseName);
                     resultSets.add(rs);
+                    if (hasTimeColumn) {
+                        isDummy.add(TableType.dummyWithTimeColumn);
+                    } else {
+                        isDummy.add(TableType.dummy);
+                    }
                 }
             }
 
             RowStream rowStream =
                     new ClearEmptyRowStreamWrapper(
                             new PostgreSQLQueryRowStream(
-                                    resultSets, true, filter, project.getTagFilter()));
+                                    databaseNameList,
+                                    resultSets,
+                                    isDummy,
+                                    filter,
+                                    project.getTagFilter()));
             if (conn != null) {
                 conn.close();
             }
