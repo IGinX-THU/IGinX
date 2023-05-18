@@ -33,9 +33,14 @@ public class PostgreSQLHistoryDataGeneratorTest extends BaseHistoryDataGenerator
 
     private static final String DATABASE_NAME = "ln";
 
-    private Connection connect(int port) {
+    private Connection connect(int port, boolean useSystemDatabase) {
         try {
-            String url = String.format("jdbc:postgresql://127.0.0.1:%d/%s", port, DATABASE_NAME);
+            String url;
+            if (useSystemDatabase) {
+                url = String.format("jdbc:postgresql://127.0.0.1:%d/", port);
+            } else {
+                url = String.format("jdbc:postgresql://127.0.0.1:%d/%s", port, DATABASE_NAME);
+            }
             Class.forName("org.postgresql.Driver");
             return DriverManager.getConnection(url, USERNAME, PASSWORD);
         } catch (SQLException | ClassNotFoundException e) {
@@ -46,13 +51,13 @@ public class PostgreSQLHistoryDataGeneratorTest extends BaseHistoryDataGenerator
     @Test
     public void clearData() {
         try {
-            Connection connA = connect(PORT_A);
+            Connection connA = connect(PORT_A, true);
             Statement stmtA = connA.createStatement();
             stmtA.execute(String.format(DROP_DATABASE_STATEMENT, DATABASE_NAME));
             stmtA.close();
             connA.close();
 
-            Connection connB = connect(PORT_B);
+            Connection connB = connect(PORT_B, true);
             Statement stmtB = connB.createStatement();
             stmtB.execute(String.format(DROP_DATABASE_STATEMENT, DATABASE_NAME));
             stmtB.close();
@@ -65,7 +70,7 @@ public class PostgreSQLHistoryDataGeneratorTest extends BaseHistoryDataGenerator
 
     @Test
     public void writeHistoryDataToA() throws Exception {
-        Connection conn = connect(PORT_A);
+        Connection conn = connect(PORT_A, true);
         if (conn == null) {
             logger.error("cannot connect to 5432!");
             return;
@@ -78,10 +83,15 @@ public class PostgreSQLHistoryDataGeneratorTest extends BaseHistoryDataGenerator
             logger.info("database ln exists!");
         }
 
+        stmt.close();
+        conn.close();
+
+        conn = connect(PORT_A, false);
+        stmt = conn.createStatement();
+
         stmt.execute(
                 String.format(
                         CREATE_TABLE_STATEMENT, "wf01", "status boolean, temperature float8"));
-
         stmt.execute(
                 String.format(INSERT_STATEMENT, "wf01", "(100, true, null), (200, false, 20.71)"));
 
@@ -92,7 +102,7 @@ public class PostgreSQLHistoryDataGeneratorTest extends BaseHistoryDataGenerator
 
     @Test
     public void writeHistoryDataToB() throws Exception {
-        Connection conn = connect(PORT_B);
+        Connection conn = connect(PORT_B, true);
         if (conn == null) {
             logger.error("cannot connect to 5433!");
             return;
@@ -104,6 +114,12 @@ public class PostgreSQLHistoryDataGeneratorTest extends BaseHistoryDataGenerator
         } catch (SQLException e) {
             logger.info("database ln exists!");
         }
+
+        stmt.close();
+        conn.close();
+
+        conn = connect(PORT_B, false);
+        stmt = conn.createStatement();
 
         stmt.execute(
                 String.format(
