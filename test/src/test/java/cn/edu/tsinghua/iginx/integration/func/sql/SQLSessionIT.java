@@ -3553,7 +3553,7 @@ public class SQLSessionIT {
             executor.execute(String.format(insert, dateFormats.get(i), i));
         }
 
-        String query = "SELECT date FROM us.d2 ORDER BY key;";
+        String query = "SELECT date FROM us.d2;";
         String expected =
                 "ResultSets:\n"
                         + "+-------------------+----------+\n"
@@ -3576,7 +3576,7 @@ public class SQLSessionIT {
         executor.executeAndCompare(query, expected);
 
         query =
-                "SELECT date FROM us.d2 WHERE key >= 2021-08-26 16:15:27 AND key <= 2021.08.26T16:15:32.001 ORDER BY key;";
+                "SELECT date FROM us.d2 WHERE key >= 2021-08-26 16:15:27 AND key <= 2021.08.26T16:15:32.001;";
         expected =
                 "ResultSets:\n"
                         + "+-------------------+----------+\n"
@@ -3599,7 +3599,7 @@ public class SQLSessionIT {
         executor.executeAndCompare(query, expected);
 
         query =
-                "SELECT date FROM us.d2 WHERE key >= 2021.08.26 16:15:29 AND key <= 2021-08-26T16:15:30.001 ORDER BY key;";
+                "SELECT date FROM us.d2 WHERE key >= 2021.08.26 16:15:29 AND key <= 2021-08-26T16:15:30.001;";
         expected =
                 "ResultSets:\n"
                         + "+-------------------+----------+\n"
@@ -3614,7 +3614,7 @@ public class SQLSessionIT {
         executor.executeAndCompare(query, expected);
 
         query =
-                "SELECT date FROM us.d2 WHERE key >= 2021/08/26 16:15:28 AND key <= 2021/08/26T16:15:31.001 ORDER BY key;";
+                "SELECT date FROM us.d2 WHERE key >= 2021/08/26 16:15:28 AND key <= 2021/08/26T16:15:31.001;";
         expected =
                 "ResultSets:\n"
                         + "+-------------------+----------+\n"
