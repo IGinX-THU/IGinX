@@ -310,7 +310,7 @@ public class PostgreSQLStorage implements IStorage {
                         paths.add(
                                 databaseName
                                         + IGINX_SEPARATOR
-                                        + tableName
+                                        + tableName.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR)
                                         + IGINX_SEPARATOR
                                         + columnName);
                         columnNames.append(columnName);
@@ -374,9 +374,9 @@ public class PostgreSQLStorage implements IStorage {
                     columnNames = "%";
                 } else {
                     tableName =
-                            pattern.substring(0, pattern.lastIndexOf("."))
+                            pattern.substring(0, pattern.lastIndexOf(IGINX_SEPARATOR))
                                     .replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
-                    columnNames = pattern.substring(pattern.lastIndexOf(".") + 1);
+                    columnNames = pattern.substring(pattern.lastIndexOf(IGINX_SEPARATOR) + 1);
                     boolean columnEqualsStar = columnNames.equals("*");
                     boolean tableContainsStar = tableName.contains("*");
                     if (columnEqualsStar || tableContainsStar) {
@@ -484,21 +484,26 @@ public class PostgreSQLStorage implements IStorage {
                 columnNames = "%";
             } else {
                 String[] parts = pattern.split("\\" + IGINX_SEPARATOR);
-                if (parts.length > 3) { // 大于三级，不合法
-                    logger.error("wrong pattern: {}", pattern);
-                    continue;
-                }
-                if (parts.length == 2
-                        && !parts[1].equals("*")) { // 只有两级且第二级不为 *，则此 pattern 不合法，无法拆分出三级
-                    continue;
-                }
 
                 databaseName = parts[0];
-                tableName = parts[1].equals("*") ? "%" : parts[1];
-                if (parts.length == 2) {
+                if (parts.length == 1) { // 只有一级
+                    tableName = "%";
+                    columnNames = "%";
+                } else if (parts.length == 2) {
+                    tableName = parts[1].equals("*") ? "%" : parts[1];
                     columnNames = "%";
                 } else {
-                    columnNames = parts[2].equals("*") ? "%" : parts[2];
+                    tableName =
+                            pattern.substring(
+                                            pattern.indexOf(IGINX_SEPARATOR) + 1,
+                                            pattern.lastIndexOf(IGINX_SEPARATOR))
+                                    .replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR)
+                                    .replace("*", "%");
+                    columnNames = pattern.substring(pattern.lastIndexOf(IGINX_SEPARATOR) + 1);
+                    if (columnNames.equals("*")) {
+                        tableName += "%";
+                        columnNames = "%";
+                    }
                 }
             }
 

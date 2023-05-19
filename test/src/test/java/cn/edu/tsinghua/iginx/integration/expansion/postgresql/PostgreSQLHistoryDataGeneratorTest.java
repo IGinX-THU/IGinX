@@ -92,9 +92,14 @@ public class PostgreSQLHistoryDataGeneratorTest extends BaseHistoryDataGenerator
 
         stmt.execute(
                 String.format(
-                        CREATE_TABLE_STATEMENT, "wf01\u2E82wt01", "status boolean, temperature float8"));
+                        CREATE_TABLE_STATEMENT,
+                        "wf01\u2E82wt01",
+                        "status boolean, temperature float8"));
         stmt.execute(
-                String.format(INSERT_STATEMENT, "wf01\u2E82wt01", "(100, true, null), (200, false, 20.71)"));
+                String.format(
+                        INSERT_STATEMENT,
+                        "wf01\u2E82wt01",
+                        "(100, true, null), (200, false, 20.71)"));
 
         stmt.close();
         conn.close();
@@ -124,10 +129,15 @@ public class PostgreSQLHistoryDataGeneratorTest extends BaseHistoryDataGenerator
 
         stmt.execute(
                 String.format(
-                        CREATE_TABLE_STATEMENT, "wf03\u2E82wt01", "status boolean, temperature float8"));
+                        CREATE_TABLE_STATEMENT,
+                        "wf03\u2E82wt01",
+                        "status boolean, temperature float8"));
 
         stmt.execute(
-                String.format(INSERT_STATEMENT, "wf03\u2E82wt01", "(77, true, null), (200, false, 77.71)"));
+                String.format(
+                        INSERT_STATEMENT,
+                        "wf03\u2E82wt01",
+                        "(77, true, null), (200, false, 77.71)"));
 
         logger.info("write data to 127.0.0.1:5433 success!");
     }
