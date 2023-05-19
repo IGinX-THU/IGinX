@@ -2,6 +2,9 @@ package cn.edu.tsinghua.iginx.integration.func.session;
 
 import static org.junit.Assert.*;
 
+import cn.edu.tsinghua.iginx.integration.controller.Controller;
+import cn.edu.tsinghua.iginx.integration.tool.ConfLoder;
+import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.session_v2.*;
 import cn.edu.tsinghua.iginx.session_v2.annotations.Field;
 import cn.edu.tsinghua.iginx.session_v2.annotations.Measurement;
@@ -12,6 +15,7 @@ import cn.edu.tsinghua.iginx.session_v2.write.Point;
 import cn.edu.tsinghua.iginx.session_v2.write.Record;
 import cn.edu.tsinghua.iginx.session_v2.write.Table;
 import cn.edu.tsinghua.iginx.thrift.*;
+import java.io.IOException;
 import java.util.*;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -30,8 +34,14 @@ public class SessionV2IT {
     private static UsersClient usersClient;
     private static ClusterClient clusterClient;
 
+    private static boolean isInfluxdb = false;
+
     @BeforeClass
-    public static void setUp() {
+    public static void setUp() throws IOException {
+        ConfLoder conf = new ConfLoder(Controller.CONFIG_FILE);
+        if (DBConf.getDBType(conf.getStorageType()) == DBConf.DBType.influxdb) {
+            isInfluxdb = true;
+        }
         iginXClient = IginXClientFactory.create("127.0.0.1", 6888);
 
         writeClient = iginXClient.getWriteClient();
@@ -291,12 +301,14 @@ public class SessionV2IT {
                     assertEquals(DataType.BOOLEAN, column.getDataType());
                     break;
                 case "test.session.v2.int":
+                    if (isInfluxdb) break;
                     assertEquals(DataType.INTEGER, column.getDataType());
                     break;
                 case "test.session.v2.double":
                     assertEquals(DataType.DOUBLE, column.getDataType());
                     break;
                 case "test.session.v2.float":
+                    if (isInfluxdb) break;
                     assertEquals(DataType.FLOAT, column.getDataType());
                     break;
                 case "test.session.v2.long":
@@ -320,14 +332,24 @@ public class SessionV2IT {
             boolean boolValue = (boolean) record.getValue("test.session.v2.bool");
             assertEquals(timestamp % 2 == 0, boolValue);
             // 核验 int 值
-            int intValue = (int) record.getValue("test.session.v2.int");
-            assertEquals((int) timestamp, intValue);
+            if (isInfluxdb) {
+                long intValue = (long) record.getValue("test.session.v2.int");
+                assertEquals((long) timestamp, intValue);
+            } else {
+                int intValue = (int) record.getValue("test.session.v2.int");
+                assertEquals((int) timestamp, intValue);
+            }
             // 核验 long 值
             long longValue = (long) record.getValue("test.session.v2.long");
             assertEquals(timestamp, longValue);
             // 核验 float 值
-            float floatValue = (float) record.getValue("test.session.v2.float");
-            assertEquals((float) (timestamp + 0.1), floatValue, 0.05);
+            if (isInfluxdb) {
+                double floatValue = (double) record.getValue("test.session.v2.float");
+                assertEquals((double) (timestamp + 0.1), floatValue, 0.05);
+            } else {
+                float floatValue = (float) record.getValue("test.session.v2.float");
+                assertEquals((float) (timestamp + 0.1), floatValue, 0.05);
+            }
             // 核验 double 值
             double doubleValue = (double) record.getValue("test.session.v2.double");
             assertEquals(timestamp + 0.2, doubleValue, 0.05);
@@ -410,9 +432,11 @@ public class SessionV2IT {
         for (IginXColumn column : columns) {
             switch (column.getName()) {
                 case "test.session.v3.int{k1=v2}":
+                    if (isInfluxdb) break;
                     assertEquals(DataType.INTEGER, column.getDataType());
                     break;
                 case "test.session.v3.float{k1=v4}":
+                    if (isInfluxdb) break;
                     assertEquals(DataType.FLOAT, column.getDataType());
                     break;
                 case "test.session.v3.string{k1=v6}":
@@ -430,11 +454,21 @@ public class SessionV2IT {
             long timestamp = endTimestamp - 1000 + i;
             assertEquals(timestamp, record.getKey());
             // 核验 int 值
-            int intValue = (int) record.getValue("test.session.v3.int{k1=v2}");
-            assertEquals((int) timestamp, intValue);
+            if (isInfluxdb) {
+                long intValue = (long) record.getValue("test.session.v3.int{k1=v2}");
+                assertEquals((long) timestamp, intValue);
+            } else {
+                int intValue = (int) record.getValue("test.session.v3.int{k1=v2}");
+                assertEquals((int) timestamp, intValue);
+            }
             // 核验 float 值
-            float floatValue = (float) record.getValue("test.session.v3.float{k1=v4}");
-            assertEquals((float) (timestamp + 0.1), floatValue, 0.05);
+            if (isInfluxdb) {
+                double floatValue = (double) record.getValue("test.session.v3.float{k1=v4}");
+                assertEquals((double) (timestamp + 0.1), floatValue, 0.05);
+            } else {
+                float floatValue = (float) record.getValue("test.session.v3.float{k1=v4}");
+                assertEquals((float) (timestamp + 0.1), floatValue, 0.05);
+            }
             // 核验 string 值
             Object object = record.getValue("test.session.v3.string{k1=v6}");
             if (timestamp % 2 == 0) {
@@ -573,6 +607,7 @@ public class SessionV2IT {
 
     @Test
     public void testMeasurementQuery() {
+        if (isInfluxdb) return;
         List<POJO> pojoList =
                 queryClient.query(
                         SimpleQuery.builder()

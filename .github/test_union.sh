@@ -16,16 +16,21 @@ done <  ./test/src/test/resources/testTask.txt
 
 echo "test IT name list : "${LISTS[*]}
 
+echo "test IT name list : "${LISTS[*]} > ./test/src/test/resources/testResult.txt
+
 for line in ${LISTS[@]}
 do
    echo "test IT name : "$line
+   echo "test IT name : "$line >> ./test/src/test/resources/testResult.txt
    mvn test -q -Dtest=$line -DfailIfNoTests=false -P passFormat
 
    if [ $? -ne 0 ];then
      echo " test  -- Faile  : "$?
+     echo " test  -- Faile  : "$? >> ./test/src/test/resources/testResult.txt
      exit 1
    else
      echo " test  -- Success !"
+     echo " test  -- Success !" >> ./test/src/test/resources/testResult.txt
    fi
 done
 

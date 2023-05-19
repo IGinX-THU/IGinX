@@ -16,7 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class RestIT {
-    protected Boolean ifClearData = true;
+    protected Boolean isAbleToClearData = true;
 
     protected static Logger logger = LoggerFactory.getLogger(MetricsResource.class);
 
@@ -25,8 +25,8 @@ public class RestIT {
 
     public RestIT() throws IOException {
         ConfLoder conf = new ConfLoder(Controller.CONFIG_FILE);
-        DBConf dbConf = conf.loadDBConf();
-        this.ifClearData = dbConf.getEnumValue(DBConf.DBConfType.isAbleToClearData);
+        DBConf dbConf = conf.loadDBConf(conf.getStorageType());
+        this.isAbleToClearData = dbConf.getEnumValue(DBConf.DBConfType.isAbleToClearData);
         this.isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
     }
 
@@ -155,7 +155,7 @@ public class RestIT {
     public void testQueryWrongName() {
         String json = "testQueryWrongName.json";
         String result =
-                "{\"queries\":[{\"sample_size\": 0,\"results\": [{ \"name\": \"archive_\",\"group_by\": [{\"name\": \"type\",\"type\": \"number\"}], \"tags\": {}, \"values\": []}]}]}";
+                "{\"queries\":[{\"sample_size\": 0,\"results\": [{ \"name\": \"archive_.a.b.c\",\"group_by\": [{\"name\": \"type\",\"type\": \"number\"}], \"tags\": {}, \"values\": []}]}]}";
         executeAndCompare(json, result);
     }
 

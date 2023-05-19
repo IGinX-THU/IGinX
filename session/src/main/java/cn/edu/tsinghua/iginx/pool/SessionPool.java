@@ -188,6 +188,10 @@ public class SessionPool {
         return constructSession(getIndexOfIginx(currentSize));
     }
 
+    public boolean isClosed() {
+        return closed;
+    }
+
     private Session constructNewSession(Session oldSession) {
         // Construct custom Session
         return new Session(
