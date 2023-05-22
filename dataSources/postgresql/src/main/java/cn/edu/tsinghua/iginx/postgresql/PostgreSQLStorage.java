@@ -995,30 +995,31 @@ public class PostgreSQLStorage implements IStorage {
             String[] parts = columnNames.split(", ");
             boolean hasMultipleRows = parts.length != 1;
 
+            // INSERT INTO XXX (time, XXX, ...) VALUES (XXX, XXX, ...), (XXX, XXX, ...), ..., (XXX, XXX, ...) ON CONFLICT (time) DO UPDATE SET (XXX, ...) = (excluded.XXX, ...);
             StringBuilder statement = new StringBuilder();
             statement.append("INSERT INTO ");
             statement.append(getCompleteName(tableName));
             statement.append(" (time, ");
-            statement.append(
-                    Arrays.stream(parts)
-                            .map(this::getCompleteName)
-                            .reduce((a, b) -> a + ", " + b)
-                            .orElse(""));
+            StringBuilder columnNameStr = new StringBuilder();
+            for (String part : parts) {
+                columnNameStr.append(getCompleteName(part));
+                columnNameStr.append(", ");
+            }
+            statement.append(columnNameStr, 0, columnNameStr.length() - 2);
+
             statement.append(") VALUES");
-            statement.append(
-                    values.stream()
-                            .map(x -> " (" + x.substring(0, x.length() - 2) + ")")
-                            .reduce((a, b) -> a + ", " + b)
-                            .orElse(""));
+            for (String value : values) {
+                statement.append("(");
+                statement.append(value, 0, value.length() - 2);
+                statement.append("), ");
+            }
+            statement = new StringBuilder(statement.substring(0, statement.length() - 2));
+
             statement.append(" ON CONFLICT (time) DO UPDATE SET ");
             if (hasMultipleRows) {
                 statement.append("("); // 只有一列不加括号
             }
-            statement.append(
-                    Arrays.stream(parts)
-                            .map(this::getCompleteName)
-                            .reduce((a, b) -> a + ", " + b)
-                            .orElse(""));
+            statement.append(columnNameStr, 0, columnNameStr.length() - 2);
             if (hasMultipleRows) {
                 statement.append(")"); // 只有一列不加括号
             }
@@ -1026,11 +1027,12 @@ public class PostgreSQLStorage implements IStorage {
             if (hasMultipleRows) {
                 statement.append("("); // 只有一列不加括号
             }
-            statement.append(
-                    Arrays.stream(parts)
-                            .map(x -> "excluded." + getCompleteName(x))
-                            .reduce((a, b) -> a + ", " + b)
-                            .orElse(""));
+            for (String part : parts) {
+                statement.append("excluded.");
+                statement.append(getCompleteName(part));
+                statement.append(", ");
+            }
+            statement = new StringBuilder(statement.substring(0, statement.length() - 2));
             if (hasMultipleRows) {
                 statement.append(")"); // 只有一列不加括号
             }
