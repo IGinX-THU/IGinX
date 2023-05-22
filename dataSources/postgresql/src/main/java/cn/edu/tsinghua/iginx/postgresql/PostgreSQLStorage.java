@@ -995,7 +995,8 @@ public class PostgreSQLStorage implements IStorage {
             String[] parts = columnNames.split(", ");
             boolean hasMultipleRows = parts.length != 1;
 
-            // INSERT INTO XXX (time, XXX, ...) VALUES (XXX, XXX, ...), (XXX, XXX, ...), ..., (XXX, XXX, ...) ON CONFLICT (time) DO UPDATE SET (XXX, ...) = (excluded.XXX, ...);
+            // INSERT INTO XXX (time, XXX, ...) VALUES (XXX, XXX, ...), (XXX, XXX, ...), ..., (XXX,
+            // XXX, ...) ON CONFLICT (time) DO UPDATE SET (XXX, ...) = (excluded.XXX, ...);
             StringBuilder statement = new StringBuilder();
             statement.append("INSERT INTO ");
             statement.append(getCompleteName(tableName));
