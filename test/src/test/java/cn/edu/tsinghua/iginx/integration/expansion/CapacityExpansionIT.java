@@ -132,7 +132,7 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
     }
 
     protected boolean queryAllHistoryData(Session session) throws Exception {
-        String statement = "select * from an";
+        String statement = "select * from zn";
         String expect =
                 "ResultSets:\n"
                         + "+---+-------------------+------------------------+-------------------+------------------------+\n"
