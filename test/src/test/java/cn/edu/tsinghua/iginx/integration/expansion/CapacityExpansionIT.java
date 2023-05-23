@@ -90,38 +90,38 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
 
     protected abstract int getPort() throws Exception;
 
-    protected boolean queryHistoryDataA(Session session) throws Exception{
-        String statement = "select * from an";
+    protected boolean queryHistoryDataA(Session session) throws Exception {
+        String statement = "select * from zn";
         String expect =
-            "ResultSets:\n"
-                + "+---+-------------------+------------------------+\n"
-                + "|key|an.wf01.wt01.status|an.wf01.wt01.temperature|\n"
-                + "+---+-------------------+------------------------+\n"
-                + "|100|               true|                    null|\n"
-                + "|200|              false|                   20.71|\n"
-                + "+---+-------------------+------------------------+\n"
-                + "Total line number = 2\n";
+                "ResultSets:\n"
+                        + "+---+-------------------+------------------------+\n"
+                        + "|key|zn.wf01.wt01.status|zn.wf01.wt01.temperature|\n"
+                        + "+---+-------------------+------------------------+\n"
+                        + "|100|               true|                    null|\n"
+                        + "|200|              false|                   20.71|\n"
+                        + "+---+-------------------+------------------------+\n"
+                        + "Total line number = 2\n";
         SQLTestTools.executeAndCompare(session, statement, expect);
 
-        statement = "select count(*) from an.wf01";
+        statement = "select count(*) from zn.wf01";
         expect =
-            "ResultSets:\n"
-                + "+--------------------------+-------------------------------+\n"
-                + "|count(an.wf01.wt01.status)|count(an.wf01.wt01.temperature)|\n"
-                + "+--------------------------+-------------------------------+\n"
-                + "|                         2|                              1|\n"
-                + "+--------------------------+-------------------------------+\n"
-                + "Total line number = 1\n";
+                "ResultSets:\n"
+                        + "+--------------------------+-------------------------------+\n"
+                        + "|count(zn.wf01.wt01.status)|count(zn.wf01.wt01.temperature)|\n"
+                        + "+--------------------------+-------------------------------+\n"
+                        + "|                         2|                              1|\n"
+                        + "+--------------------------+-------------------------------+\n"
+                        + "Total line number = 1\n";
         SQLTestTools.executeAndCompare(session, statement, expect);
         return true;
     }
 
-    protected boolean queryHistoryDataB(Session session) throws Exception{
-        String statement = "select * from an.wf03";
+    protected boolean queryHistoryDataB(Session session) throws Exception {
+        String statement = "select * from zn.wf03";
         String expect =
                 "ResultSets:\n"
                         + "+---+-------------------+------------------------+\n"
-                        + "|key|an.wf03.wt01.status|an.wf03.wt01.temperature|\n"
+                        + "|key|zn.wf03.wt01.status|zn.wf03.wt01.temperature|\n"
                         + "+---+-------------------+------------------------+\n"
                         + "| 77|               true|                    null|\n"
                         + "|200|              false|                   77.71|\n"
@@ -131,18 +131,18 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
         return true;
     }
 
-    protected boolean queryAllHistoryData(Session session) throws Exception{
+    protected boolean queryAllHistoryData(Session session) throws Exception {
         String statement = "select * from an";
         String expect =
-            "ResultSets:\n"
-                + "+---+-------------------+------------------------+-------------------+------------------------+\n"
-                + "|key|an.wf01.wt01.status|an.wf01.wt01.temperature|an.wf03.wt01.status|an.wf03.wt01.temperature|\n"
-                + "+---+-------------------+------------------------+-------------------+------------------------+\n"
-                + "| 77|               null|                    null|               true|                    null|\n"
-                + "|100|               true|                    null|               null|                    null|\n"
-                + "|200|              false|                   20.71|              false|                   77.71|\n"
-                + "+---+-------------------+------------------------+-------------------+------------------------+\n"
-                + "Total line number = 3\n";
+                "ResultSets:\n"
+                        + "+---+-------------------+------------------------+-------------------+------------------------+\n"
+                        + "|key|zn.wf01.wt01.status|zn.wf01.wt01.temperature|zn.wf03.wt01.status|zn.wf03.wt01.temperature|\n"
+                        + "+---+-------------------+------------------------+-------------------+------------------------+\n"
+                        + "| 77|               null|                    null|               true|                    null|\n"
+                        + "|100|               true|                    null|               null|                    null|\n"
+                        + "|200|              false|                   20.71|              false|                   77.71|\n"
+                        + "+---+-------------------+------------------------+-------------------+------------------------+\n"
+                        + "Total line number = 3\n";
         SQLTestTools.executeAndCompare(session, statement, expect);
         return true;
     }
@@ -155,7 +155,7 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
         String expect =
                 "ResultSets:\n"
                         + "+---+----------------------+---------------------------+\n"
-                        + "|key|p1.an.wf03.wt01.status|p1.an.wf03.wt01.temperature|\n"
+                        + "|key|p1.zn.wf03.wt01.status|p1.zn.wf03.wt01.temperature|\n"
                         + "+---+----------------------+---------------------------+\n"
                         + "| 77|                  true|                       null|\n"
                         + "|200|                 false|                      77.71|\n"
@@ -167,7 +167,7 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
         expect =
                 "ResultSets:\n"
                         + "+---+----------------------+---------------------------+\n"
-                        + "|key|p2.an.wf03.wt01.status|p2.an.wf03.wt01.temperature|\n"
+                        + "|key|p2.zn.wf03.wt01.status|p2.zn.wf03.wt01.temperature|\n"
                         + "+---+----------------------+---------------------------+\n"
                         + "| 77|                  true|                       null|\n"
                         + "|200|                 false|                      77.71|\n"
@@ -220,7 +220,7 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
 
     // @Test
     public void testQueryHistoryDataFromInitialNode() throws Exception {
-       queryHistoryDataA(session);
+        queryHistoryDataA(session);
     }
 
     public void testQueryHistoryDataFromNoInitialNode() throws Exception {
@@ -275,7 +275,7 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
     // @Test
     public void testOriHasDataExpNoData() throws Exception {
         addStorageEngine(false);
-        String statement = "select * from ln.wf03";
+        String statement = "select * from zn.wf03";
         String expect =
                 "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
         SQLTestTools.executeAndCompare(session, statement, expect);
@@ -297,13 +297,12 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
 
     public void testOriNoDataExpNoData() throws Exception {
         addStorageEngine(false);
-        String statement = "select * from ln.wf03";
+        String statement = "select * from zn.wf03";
         String expect =
                 "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
         SQLTestTools.executeAndCompare(session, statement, expect);
         queryNewDataA(session);
     }
-
 
     public void queryAllNewData(Session session) throws Exception {
         String statement = "select * from ln";

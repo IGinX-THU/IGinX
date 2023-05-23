@@ -130,7 +130,7 @@ public class InfluxDBHistoryDataGenerator extends BaseHistoryDataGenerator {
                             OffsetDateTime.ofInstant(Instant.ofEpochMilli(0), ZoneId.of("UTC")),
                             OffsetDateTime.ofInstant(Instant.ofEpochMilli(500), ZoneId.of("UTC")),
                             String.format(DELETE_DATA, "wf01", "wt01.status"),
-                            "ln",
+                            "zn",
                             ORGANIZATION);
 
             client.getDeleteApi()
@@ -138,7 +138,7 @@ public class InfluxDBHistoryDataGenerator extends BaseHistoryDataGenerator {
                             OffsetDateTime.ofInstant(Instant.ofEpochMilli(0), ZoneId.of("UTC")),
                             OffsetDateTime.ofInstant(Instant.ofEpochMilli(500), ZoneId.of("UTC")),
                             String.format(DELETE_DATA, "wf01", "wt01.temperature"),
-                            "ln",
+                            "zn",
                             ORGANIZATION);
             client.close();
             logger.info("clear data of 127.0.0.1:8086 success!");
@@ -150,7 +150,7 @@ public class InfluxDBHistoryDataGenerator extends BaseHistoryDataGenerator {
                             OffsetDateTime.ofInstant(Instant.ofEpochMilli(0), ZoneId.of("UTC")),
                             OffsetDateTime.ofInstant(Instant.ofEpochMilli(500), ZoneId.of("UTC")),
                             String.format(DELETE_DATA, "wf03", "wt01.status"),
-                            "ln",
+                            "zn",
                             ORGANIZATION);
 
             client.getDeleteApi()
@@ -158,7 +158,7 @@ public class InfluxDBHistoryDataGenerator extends BaseHistoryDataGenerator {
                             OffsetDateTime.ofInstant(Instant.ofEpochMilli(0), ZoneId.of("UTC")),
                             OffsetDateTime.ofInstant(Instant.ofEpochMilli(500), ZoneId.of("UTC")),
                             String.format(DELETE_DATA, "wf03", "wt01.temperature"),
-                            "ln",
+                            "zn",
                             ORGANIZATION);
             client.close();
             logger.info("clear data of 127.0.0.1:8087 success!");
