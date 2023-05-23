@@ -993,7 +993,7 @@ public class PostgreSQLStorage implements IStorage {
             statement.append(getFullName(tableName));
             statement.append(" (time, ");
             String fullColumnNames = getFullColumnNames(columnNames);
-            statement.append(fullColumnNames, 0, fullColumnNames.length() - 2);
+            statement.append(fullColumnNames);
 
             statement.append(") VALUES");
             for (String value : values) {
@@ -1007,7 +1007,7 @@ public class PostgreSQLStorage implements IStorage {
             if (hasMultipleRows) {
                 statement.append("("); // 只有一列不加括号
             }
-            statement.append(fullColumnNames, 0, fullColumnNames.length() - 2);
+            statement.append(fullColumnNames);
             if (hasMultipleRows) {
                 statement.append(")"); // 只有一列不加括号
             }
