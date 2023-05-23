@@ -117,11 +117,11 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
     }
 
     protected boolean queryHistoryDataB(Session session) throws Exception{
-        String statement = "select * from ln.wf03";
+        String statement = "select * from an.wf03";
         String expect =
                 "ResultSets:\n"
                         + "+---+-------------------+------------------------+\n"
-                        + "|key|ln.wf03.wt01.status|ln.wf03.wt01.temperature|\n"
+                        + "|key|an.wf03.wt01.status|an.wf03.wt01.temperature|\n"
                         + "+---+-------------------+------------------------+\n"
                         + "| 77|               true|                    null|\n"
                         + "|200|              false|                   77.71|\n"
