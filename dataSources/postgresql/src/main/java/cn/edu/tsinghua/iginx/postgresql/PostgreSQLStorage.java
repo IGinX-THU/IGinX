@@ -426,16 +426,12 @@ public class PostgreSQLStorage implements IStorage {
                     splitAndMergeQueryPatterns(databaseName, conn, project.getPatterns());
             for (Map.Entry<String, String> entry : tableNameToColumnNames.entrySet()) {
                 String tableName = entry.getKey();
-                String columnNames =
-                        Arrays.stream(entry.getValue().split(", "))
-                                .map(this::getCompleteName)
-                                .reduce((a, b) -> a + ", " + b)
-                                .orElse("%");
+                String fullColumnNames = getFullColumnNames(entry.getValue());
                 String statement =
                         String.format(
                                 QUERY_STATEMENT,
-                                columnNames,
-                                getCompleteName(tableName),
+                                fullColumnNames,
+                                getFullName(tableName),
                                 FilterTransformer.toString(filter));
                 try {
                     stmt = conn.createStatement();
@@ -598,29 +594,24 @@ public class PostgreSQLStorage implements IStorage {
                         }
                     }
 
-                    String[] parts = entry.getValue().split(", ");
-                    String columnNames =
-                            Arrays.stream(parts)
-                                    .map(this::getCompleteName)
-                                    .reduce((a, b) -> a + ", " + b)
-                                    .orElse("%");
                     String statement;
+                    String fullColumnNames = getFullColumnNames(entry.getValue());
                     if (hasTimeColumn) {
-                        if (!columnNames.contains("time")) {
-                            columnNames += " , \"time\"";
+                        if (!fullColumnNames.contains("time")) {
+                            fullColumnNames += " , \"time\"";
                         }
                         statement =
                                 String.format(
                                         QUERY_TIME_STATEMENT_WITHOUT_WHERE_CLAUSE,
-                                        columnNames,
-                                        getCompleteName(tableName));
+                                        fullColumnNames,
+                                        getFullName(tableName));
                     } else {
                         statement =
                                 String.format(
                                         CONCAT_QUERY_STATEMENT_WITHOUT_WHERE_CLAUSE,
-                                        columnNames,
-                                        columnNames,
-                                        getCompleteName(tableName));
+                                        fullColumnNames,
+                                        fullColumnNames,
+                                        getFullName(tableName));
                     }
                     try {
                         stmt = conn.createStatement();
@@ -715,8 +706,8 @@ public class PostgreSQLStorage implements IStorage {
                     String statement =
                             String.format(
                                     CREATE_TABLE_STATEMENT,
-                                    getCompleteName(tableName),
-                                    getCompleteName(columnName),
+                                    getFullName(tableName),
+                                    getFullName(columnName),
                                     DataTypeTransformer.toPostgreSQL(dataType));
                     logger.info("[Create] execute create: {}", statement);
                     stmt.execute(statement);
@@ -728,8 +719,8 @@ public class PostgreSQLStorage implements IStorage {
                         String statement =
                                 String.format(
                                         ADD_COLUMN_STATEMENT,
-                                        getCompleteName(tableName),
-                                        getCompleteName(columnName),
+                                        getFullName(tableName),
+                                        getFullName(columnName),
                                         DataTypeTransformer.toPostgreSQL(dataType));
                         logger.info("[Create] execute create: {}", statement);
                         stmt.execute(statement);
@@ -999,14 +990,10 @@ public class PostgreSQLStorage implements IStorage {
             // XXX, ...) ON CONFLICT (time) DO UPDATE SET (XXX, ...) = (excluded.XXX, ...);
             StringBuilder statement = new StringBuilder();
             statement.append("INSERT INTO ");
-            statement.append(getCompleteName(tableName));
+            statement.append(getFullName(tableName));
             statement.append(" (time, ");
-            StringBuilder columnNameStr = new StringBuilder();
-            for (String part : parts) {
-                columnNameStr.append(getCompleteName(part));
-                columnNameStr.append(", ");
-            }
-            statement.append(columnNameStr, 0, columnNameStr.length() - 2);
+            String fullColumnNames = getFullColumnNames(columnNames);
+            statement.append(fullColumnNames, 0, fullColumnNames.length() - 2);
 
             statement.append(") VALUES");
             for (String value : values) {
@@ -1020,7 +1007,7 @@ public class PostgreSQLStorage implements IStorage {
             if (hasMultipleRows) {
                 statement.append("("); // 只有一列不加括号
             }
-            statement.append(columnNameStr, 0, columnNameStr.length() - 2);
+            statement.append(fullColumnNames, 0, fullColumnNames.length() - 2);
             if (hasMultipleRows) {
                 statement.append(")"); // 只有一列不加括号
             }
@@ -1030,7 +1017,7 @@ public class PostgreSQLStorage implements IStorage {
             }
             for (String part : parts) {
                 statement.append("excluded.");
-                statement.append(getCompleteName(part));
+                statement.append(getFullName(part));
                 statement.append(", ");
             }
             statement = new StringBuilder(statement.substring(0, statement.length() - 2));
@@ -1091,8 +1078,8 @@ public class PostgreSQLStorage implements IStorage {
                             statement =
                                     String.format(
                                             DROP_COLUMN_STATEMENT,
-                                            getCompleteName(tableName),
-                                            getCompleteName(columnName));
+                                            getFullName(tableName),
+                                            getFullName(columnName));
                             logger.info("[Delete] execute delete: {}", statement);
                             stmt.execute(statement); // 删除列
                         }
@@ -1111,8 +1098,8 @@ public class PostgreSQLStorage implements IStorage {
                             statement =
                                     String.format(
                                             UPDATE_STATEMENT,
-                                            getCompleteName(tableName),
-                                            getCompleteName(columnName),
+                                            getFullName(tableName),
+                                            getFullName(columnName),
                                             timeRange.getBeginTime(),
                                             timeRange.getEndTime());
                             logger.info("[Delete] execute delete: {}", statement);
@@ -1166,9 +1153,19 @@ public class PostgreSQLStorage implements IStorage {
         return deletedPaths;
     }
 
-    private String getCompleteName(String name) {
+    private String getFullName(String name) {
         return "\"" + name + "\"";
         //        return Character.isDigit(name.charAt(0)) ? "\"" + name + "\"" : name;
+    }
+
+    private String getFullColumnNames(String columnNames) {
+        String[] parts = columnNames.split(", ");
+        StringBuilder fullColumnNames = new StringBuilder();
+        for (String part : parts) {
+            fullColumnNames.append(getFullName(part));
+            fullColumnNames.append(", ");
+        }
+        return fullColumnNames.substring(0, fullColumnNames.length() - 2);
     }
 
     @Override
