@@ -75,11 +75,11 @@ public abstract class BaseHistoryDataGenerator {
     public void oriNoDataExpNoData() throws Exception {}
 
     @Test
-    public void writeHistoryDataToB() throws Exception {}
+    public abstract void writeHistoryDataToB() throws Exception;
 
     @Test
-    public void writeHistoryDataToA() throws Exception {}
+    public abstract void writeHistoryDataToA() throws Exception;
 
     @Test
-    public void clearData() {}
+    public abstract void clearData();
 }
