@@ -1,5 +1,8 @@
 package cn.edu.tsinghua.iginx.integration.tool;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public final class DBConf {
     public enum DBType {
         parquet,
@@ -26,19 +29,18 @@ public final class DBConf {
         }
     }
 
+    private static final Map<DBConfType, Boolean> DB_CONF_TYPE_MAP = new HashMap<>();
+
     public enum DBConfType {
         isAbleToClearData,
         isAbleToDelete,
         isAbleToShowTimeSeries,
-        isSupportSpecialPath,
-        isSupportTagKV
+        isSupportTagKV,
+        isSupportChinesePath,
+        isSupportNumericalPath,
+        isSupportFileSystemSupportedSpecialPath,
+        isSupportFileSystemNotSupportedSpecialPath
     }
-
-    private boolean ableToClearData;
-    private boolean ableToDelete;
-    private boolean ableToShowTimeSeries;
-    private boolean supportSpecialPath;
-    private boolean supportTagKV;
 
     public static DBConfType getDBConfType(String str) {
         switch (str) {
@@ -48,51 +50,26 @@ public final class DBConf {
                 return DBConfType.isAbleToDelete;
             case "isAbleToShowTimeSeries":
                 return DBConfType.isAbleToShowTimeSeries;
-            case "isSupportSpecialPath":
-                return DBConfType.isSupportSpecialPath;
             case "isSupportTagKV":
                 return DBConfType.isSupportTagKV;
+            case "isSupportChinesePath":
+                return DBConfType.isSupportChinesePath;
+            case "isSupportNumericalPath":
+                return DBConfType.isSupportNumericalPath;
+            case "isSupportFileSystemSupportedSpecialPath":
+                return DBConfType.isSupportFileSystemSupportedSpecialPath;
+            case "isSupportFileSystemNotSupportedSpecialPath":
+                return DBConfType.isSupportFileSystemNotSupportedSpecialPath;
             default:
                 throw new IllegalArgumentException("Invalid DBConfType value provided");
         }
     }
 
-    public void setEnumValue(DBConfType myEnum, boolean value) {
-        switch (myEnum) {
-            case isAbleToClearData:
-                ableToClearData = value;
-                break;
-            case isAbleToDelete:
-                ableToDelete = value;
-                break;
-            case isAbleToShowTimeSeries:
-                ableToShowTimeSeries = value;
-                break;
-            case isSupportSpecialPath:
-                supportSpecialPath = value;
-                break;
-            case isSupportTagKV:
-                supportTagKV = value;
-                break;
-            default:
-                throw new IllegalArgumentException("Invalid DBConfType value provided");
-        }
+    public void setEnumValue(DBConfType dbConfType, boolean value) {
+        DB_CONF_TYPE_MAP.put(dbConfType, value);
     }
 
-    public boolean getEnumValue(DBConfType myEnum) {
-        switch (myEnum) {
-            case isAbleToClearData:
-                return ableToClearData;
-            case isAbleToDelete:
-                return ableToDelete;
-            case isAbleToShowTimeSeries:
-                return ableToShowTimeSeries;
-            case isSupportSpecialPath:
-                return supportSpecialPath;
-            case isSupportTagKV:
-                return supportTagKV;
-            default:
-                throw new IllegalArgumentException("Invalid DBConfType value provided");
-        }
+    public boolean getEnumValue(DBConfType dbConfType) {
+        return DB_CONF_TYPE_MAP.get(dbConfType);
     }
 }
