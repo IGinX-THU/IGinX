@@ -77,9 +77,9 @@ public class PostgreSQLQueryRowStream implements RowStream {
 
         for (int i = 0; i < resultSets.size(); i++) {
             ResultSetMetaData resultSetMetaData = resultSets.get(i).getMetaData();
-            String tableName = resultSetMetaData.getTableName(1);
             int cnt = 0;
             for (int j = 1; j <= resultSetMetaData.getColumnCount(); j++) {
+                String tableName = resultSetMetaData.getTableName(j);
                 String columnName = resultSetMetaData.getColumnName(j);
                 String typeName = resultSetMetaData.getColumnTypeName(j);
                 if (j == 1 && columnName.equals("time")) {

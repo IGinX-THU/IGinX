@@ -32,7 +32,7 @@ public class Constants {
             "SELECT %s FROM %s ORDER BY time;";
 
     public static final String CONCAT_QUERY_STATEMENT_WITHOUT_WHERE_CLAUSE =
-            "SELECT concat(%s) AS time, %s FROM %s;";
+            "SELECT concat(%s) AS time, %s FROM %s ORDER BY time;";
 
     public static final String CREATE_TABLE_STATEMENT =
             "CREATE TABLE %s (time BIGINT NOT NULL, %s %s, PRIMARY KEY(time));";

@@ -318,7 +318,8 @@ public class PostgreSQLStorage implements IStorage {
                     }
                     if (hasTimeColumn) { // 本身就有 time 列
                         // 获取 key 的范围
-                        String statement = String.format(QUERY_TIME_STATEMENT, tableName);
+                        String statement =
+                                String.format(QUERY_TIME_STATEMENT, getFullName(tableName));
                         Statement timeStmt = conn.createStatement();
                         ResultSet timeSet = timeStmt.executeQuery(statement);
                         while (timeSet.next()) {
@@ -334,7 +335,10 @@ public class PostgreSQLStorage implements IStorage {
 
                         // 获取 key 的范围
                         String statement =
-                                String.format(CONCAT_QUERY_STATEMENT, columnNames, tableName);
+                                String.format(
+                                        CONCAT_QUERY_STATEMENT,
+                                        getFullColumnNames(columnNames.toString()),
+                                        getFullName(tableName));
                         Statement concatStmt = conn.createStatement();
                         ResultSet concatSet = concatStmt.executeQuery(statement);
                         while (concatSet.next()) {
