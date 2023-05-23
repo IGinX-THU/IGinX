@@ -15,7 +15,7 @@ public abstract class BaseHistoryDataGenerator {
 
     public BaseHistoryDataGenerator() {
         seriesA.put(
-                "ln.wf01.wt01.status",
+                "an.wf01.wt01.status",
                 new Pair<>(
                         DataType.BOOLEAN,
                         new ArrayList<Pair<Long, Object>>() {
@@ -25,7 +25,7 @@ public abstract class BaseHistoryDataGenerator {
                             }
                         }));
         seriesA.put(
-                "ln.wf01.wt01.temperature",
+                "an.wf01.wt01.temperature",
                 new Pair<>(
                         DataType.DOUBLE,
                         new ArrayList<Pair<Long, Object>>() {
@@ -35,7 +35,7 @@ public abstract class BaseHistoryDataGenerator {
                         }));
 
         seriesB.put(
-                "ln.wf03.wt01.status",
+                "an.wf03.wt01.status",
                 new Pair<>(
                         DataType.BOOLEAN,
                         new ArrayList<Pair<Long, Object>>() {
@@ -45,7 +45,7 @@ public abstract class BaseHistoryDataGenerator {
                             }
                         }));
         seriesB.put(
-                "ln.wf03.wt01.temperature",
+                "an.wf03.wt01.temperature",
                 new Pair<>(
                         DataType.DOUBLE,
                         new ArrayList<Pair<Long, Object>>() {
