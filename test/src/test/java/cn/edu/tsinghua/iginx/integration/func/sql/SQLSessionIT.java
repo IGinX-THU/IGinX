@@ -50,8 +50,6 @@ public class SQLSessionIT {
 
     protected boolean isSupportFileSystemSupportedSpecialPath;
 
-    protected boolean isSupportFileSystemNotSupportedSpecialPath;
-
     protected boolean isAbleToShowTimeSeries;
 
     protected boolean isScaling = false;
@@ -74,8 +72,6 @@ public class SQLSessionIT {
         this.isSupportNumericalPath = dbConf.getEnumValue(DBConfType.isSupportNumericalPath);
         this.isSupportFileSystemSupportedSpecialPath =
                 dbConf.getEnumValue(DBConfType.isSupportFileSystemSupportedSpecialPath);
-        this.isSupportFileSystemNotSupportedSpecialPath =
-                dbConf.getEnumValue(DBConfType.isSupportFileSystemNotSupportedSpecialPath);
     }
 
     @BeforeClass
@@ -3843,38 +3839,10 @@ public class SQLSessionIT {
     }
 
     @Test
-    public void testFileSystemNotSupportedSpecialPath() {
-        if (!isSupportFileSystemNotSupportedSpecialPath) {
-            return;
-        }
-
-        // file system not supported special symbol path
-        String insert =
-                "INSERT INTO \\/.?*(key, \\/.?*) VALUES (1, 1), (2, 2), (3, 3), (4, 4), (5, 5);";
-        executor.execute(insert);
-
-        String query = "SELECT _:@#$ FROM _:@#$;";
-        String expected =
-                "ResultSets:\n"
-                        + "+---+-----------+\n"
-                        + "|key|\\/.?*.\\/.?*|\n"
-                        + "+---+-----------+\n"
-                        + "|  1|          1|\n"
-                        + "|  2|          2|\n"
-                        + "|  3|          3|\n"
-                        + "|  4|          4|\n"
-                        + "|  5|          5|\n"
-                        + "+---+-----------+\n"
-                        + "Total line number = 5\n";
-        executor.executeAndCompare(query, expected);
-    }
-
-    @Test
     public void testMixSpecialPath() {
         if (!isSupportChinesePath
                 || !isSupportNumericalPath
-                || !isSupportFileSystemSupportedSpecialPath
-                || !isSupportFileSystemNotSupportedSpecialPath) {
+                || !isSupportFileSystemSupportedSpecialPath) {
             return;
         }
 

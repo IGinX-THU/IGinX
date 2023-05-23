@@ -29,8 +29,6 @@ public final class DBConf {
         }
     }
 
-    private static final Map<DBConfType, Boolean> DB_CONF_TYPE_MAP = new HashMap<>();
-
     public enum DBConfType {
         isAbleToClearData,
         isAbleToDelete,
@@ -38,8 +36,16 @@ public final class DBConf {
         isSupportTagKV,
         isSupportChinesePath,
         isSupportNumericalPath,
-        isSupportFileSystemSupportedSpecialPath,
-        isSupportFileSystemNotSupportedSpecialPath
+        isSupportFileSystemSupportedSpecialPath
+    }
+
+    private static final Map<DBConfType, Boolean> DB_CONF_TYPE_MAP = new HashMap<>();
+
+    static {
+        // initial default value
+        for (DBConfType type : DBConfType.values()) {
+            DB_CONF_TYPE_MAP.put(type, true);
+        }
     }
 
     public static DBConfType getDBConfType(String str) {
@@ -58,8 +64,6 @@ public final class DBConf {
                 return DBConfType.isSupportNumericalPath;
             case "isSupportFileSystemSupportedSpecialPath":
                 return DBConfType.isSupportFileSystemSupportedSpecialPath;
-            case "isSupportFileSystemNotSupportedSpecialPath":
-                return DBConfType.isSupportFileSystemNotSupportedSpecialPath;
             default:
                 throw new IllegalArgumentException("Invalid DBConfType value provided");
         }
