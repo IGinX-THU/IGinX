@@ -1,5 +1,7 @@
 package cn.edu.tsinghua.iginx.integration.func.session;
 
+import static org.junit.Assert.fail;
+
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
@@ -9,17 +11,14 @@ import cn.edu.tsinghua.iginx.integration.tool.MultiConnection;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-import org.junit.After;
-import org.junit.Before;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import static org.junit.Assert.fail;
+import org.junit.After;
+import org.junit.Before;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class BaseSessionIT {
 
@@ -46,7 +45,7 @@ public abstract class BaseSessionIT {
     protected long delTimePeriod = delEndTime - delStartTime;
     protected double deleteAvg =
             ((START_TIME + END_TIME) * TIME_PERIOD / 2.0
-                    - (delStartTime + delEndTime - 1) * delTimePeriod / 2.0)
+                            - (delStartTime + delEndTime - 1) * delTimePeriod / 2.0)
                     / (TIME_PERIOD - delTimePeriod);
 
     protected int currPath = 0;
