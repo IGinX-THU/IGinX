@@ -3812,7 +3812,7 @@ public class SQLSessionIT {
     }
 
     @Test
-    public void testFileSystemSupportedSpecialPath() {
+    public void testSpecialCharacterPath() {
         if (!isSupportSpecialCharacterPath) {
             return;
         }
