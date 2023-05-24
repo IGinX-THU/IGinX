@@ -35,7 +35,7 @@ public final class DBConf {
         isAbleToShowTimeSeries,
         isSupportChinesePath,
         isSupportNumericalPath,
-        isSupportFileSystemSupportedSpecialPath
+        isSupportSpecialCharacterPath
     }
 
     private static final Map<DBConfType, Boolean> DB_CONF_TYPE_MAP = new HashMap<>();
@@ -59,8 +59,8 @@ public final class DBConf {
                 return DBConfType.isSupportChinesePath;
             case "isSupportNumericalPath":
                 return DBConfType.isSupportNumericalPath;
-            case "isSupportFileSystemSupportedSpecialPath":
-                return DBConfType.isSupportFileSystemSupportedSpecialPath;
+            case "isSupportSpecialCharacterPath":
+                return DBConfType.isSupportSpecialCharacterPath;
             default:
                 throw new IllegalArgumentException("Invalid DBConfType value provided");
         }

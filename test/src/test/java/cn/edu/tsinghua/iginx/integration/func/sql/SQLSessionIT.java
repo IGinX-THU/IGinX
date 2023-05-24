@@ -48,7 +48,7 @@ public class SQLSessionIT {
 
     protected boolean isSupportNumericalPath;
 
-    protected boolean isSupportFileSystemSupportedSpecialPath;
+    protected boolean isSupportSpecialCharacterPath;
 
     protected boolean isAbleToShowTimeSeries;
 
@@ -70,8 +70,8 @@ public class SQLSessionIT {
         this.isAbleToShowTimeSeries = dbConf.getEnumValue(DBConf.DBConfType.isAbleToShowTimeSeries);
         this.isSupportChinesePath = dbConf.getEnumValue(DBConfType.isSupportChinesePath);
         this.isSupportNumericalPath = dbConf.getEnumValue(DBConfType.isSupportNumericalPath);
-        this.isSupportFileSystemSupportedSpecialPath =
-                dbConf.getEnumValue(DBConfType.isSupportFileSystemSupportedSpecialPath);
+        this.isSupportSpecialCharacterPath =
+                dbConf.getEnumValue(DBConfType.isSupportSpecialCharacterPath);
     }
 
     @BeforeClass
@@ -3813,36 +3813,34 @@ public class SQLSessionIT {
 
     @Test
     public void testFileSystemSupportedSpecialPath() {
-        if (!isSupportFileSystemSupportedSpecialPath) {
+        if (!isSupportSpecialCharacterPath) {
             return;
         }
 
         // file system supported special symbol path
         String insert =
-                "INSERT INTO _:@#$(key, _:@#$) VALUES (1, 1), (2, 2), (3, 3), (4, 4), (5, 5);";
+                "INSERT INTO _:@#$~^{}(key, _:@#$~^{}) VALUES (1, 1), (2, 2), (3, 3), (4, 4), (5, 5);";
         executor.execute(insert);
 
-        String query = "SELECT _:@#$ FROM _:@#$;";
+        String query = "SELECT _:@#$~^{} FROM _:@#$~^{};";
         String expected =
                 "ResultSets:\n"
-                        + "+---+-----------+\n"
-                        + "|key|_:@#$._:@#$|\n"
-                        + "+---+-----------+\n"
-                        + "|  1|          1|\n"
-                        + "|  2|          2|\n"
-                        + "|  3|          3|\n"
-                        + "|  4|          4|\n"
-                        + "|  5|          5|\n"
-                        + "+---+-----------+\n"
+                        + "+---+-------------------+\n"
+                        + "|key|_:@#$~^{}._:@#$~^{}|\n"
+                        + "+---+-------------------+\n"
+                        + "|  1|                  1|\n"
+                        + "|  2|                  2|\n"
+                        + "|  3|                  3|\n"
+                        + "|  4|                  4|\n"
+                        + "|  5|                  5|\n"
+                        + "+---+-------------------+\n"
                         + "Total line number = 5\n";
         executor.executeAndCompare(query, expected);
     }
 
     @Test
     public void testMixSpecialPath() {
-        if (!isSupportChinesePath
-                || !isSupportNumericalPath
-                || !isSupportFileSystemSupportedSpecialPath) {
+        if (!isSupportChinesePath || !isSupportNumericalPath || !isSupportSpecialCharacterPath) {
             return;
         }
 
