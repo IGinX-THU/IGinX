@@ -33,7 +33,6 @@ public final class DBConf {
         isAbleToClearData,
         isAbleToDelete,
         isAbleToShowTimeSeries,
-        isSupportTagKV,
         isSupportChinesePath,
         isSupportNumericalPath,
         isSupportFileSystemSupportedSpecialPath
@@ -56,8 +55,6 @@ public final class DBConf {
                 return DBConfType.isAbleToDelete;
             case "isAbleToShowTimeSeries":
                 return DBConfType.isAbleToShowTimeSeries;
-            case "isSupportTagKV":
-                return DBConfType.isSupportTagKV;
             case "isSupportChinesePath":
                 return DBConfType.isSupportChinesePath;
             case "isSupportNumericalPath":
