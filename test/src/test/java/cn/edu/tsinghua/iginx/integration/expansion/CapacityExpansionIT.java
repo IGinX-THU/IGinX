@@ -149,9 +149,9 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
 
     @Test
     public void testPrefixAndRemoveHistoryDataSource() throws Exception {
-        addStorageWithPrefix("an", "p1");
-        addStorageWithPrefix("an", "p2");
-        String statement = "select * from p1.an";
+        addStorageWithPrefix("zn", "p1");
+        addStorageWithPrefix("zn", "p2");
+        String statement = "select * from p1.zn";
         String expect =
                 "ResultSets:\n"
                         + "+---+----------------------+---------------------------+\n"
@@ -163,7 +163,7 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
                         + "Total line number = 2\n";
         SQLTestTools.executeAndCompare(session, statement, expect);
 
-        statement = "select * from p2.an";
+        statement = "select * from p2.zn";
         expect =
                 "ResultSets:\n"
                         + "+---+----------------------+---------------------------+\n"
@@ -177,15 +177,15 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
 
         List<RemovedStorageEngineInfo> removedStorageEngineList = new ArrayList<>();
         removedStorageEngineList.add(
-                new RemovedStorageEngineInfo("127.0.0.1", getPort(), "p2", "an"));
+                new RemovedStorageEngineInfo("127.0.0.1", getPort(), "p2", "zn"));
         sessionPool.removeHistoryDataSource(removedStorageEngineList);
-        statement = "select * from p2.an";
+        statement = "select * from p2.zn";
         expect = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
         SQLTestTools.executeAndCompare(session, statement, expect);
 
         session.executeSql(
-                "remove historydataresource (\"127.0.0.1\", " + getPort() + ", \"p1\", \"an\")");
-        statement = "select * from p1.an";
+                "remove historydataresource (\"127.0.0.1\", " + getPort() + ", \"p1\", \"zn\")");
+        statement = "select * from p1.zn";
         expect = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
         SQLTestTools.executeAndCompare(session, statement, expect);
     }
@@ -224,7 +224,7 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
     }
 
     public void testQueryHistoryDataFromNoInitialNode() throws Exception {
-        String statement = "select * from an";
+        String statement = "select * from zn";
         String expect =
                 "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
         SQLTestTools.executeAndCompare(session, statement, expect);
