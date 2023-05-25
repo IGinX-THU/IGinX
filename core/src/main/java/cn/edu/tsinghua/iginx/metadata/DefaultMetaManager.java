@@ -471,7 +471,7 @@ public class DefaultMetaManager implements IMetaManager {
     }
 
     @Override
-    public List<StorageEngineMeta> getWriteableStorageEngineList() {
+    public List<StorageEngineMeta> getWritableStorageEngineList() {
         return cache.getStorageEngineList()
                 .stream()
                 .filter(e -> !e.isReadOnly())
@@ -599,6 +599,11 @@ public class DefaultMetaManager implements IMetaManager {
     public boolean hasDummyFragment(TimeSeriesRange tsInterval) {
         List<FragmentMeta> fragmentList = cache.getDummyFragmentsByTimeSeriesInterval(tsInterval);
         return !fragmentList.isEmpty();
+    }
+
+    @Override
+    public boolean hasWritableStorageEngines() {
+        return !getWritableStorageEngineList().isEmpty();
     }
 
     @Override
@@ -1156,7 +1161,7 @@ public class DefaultMetaManager implements IMetaManager {
     @Override
     public List<Long> selectStorageEngineIdList() {
         List<Long> storageEngineIdList =
-                getWriteableStorageEngineList()
+                getWritableStorageEngineList()
                         .stream()
                         .map(StorageEngineMeta::getId)
                         .collect(Collectors.toList());

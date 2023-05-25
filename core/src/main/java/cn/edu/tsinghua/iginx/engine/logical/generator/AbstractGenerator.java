@@ -39,8 +39,10 @@ public abstract class AbstractGenerator implements LogicalGenerator {
         if (statement == null) return null;
         if (statement.getType() != typeMap.get(type)) return null;
         Operator root = generateRoot(statement);
-        for (Optimizer optimizer : optimizerList) {
-            root = optimizer.optimize(root);
+        if (root != null) {
+            for (Optimizer optimizer : optimizerList) {
+                root = optimizer.optimize(root);
+            }
         }
         return root;
     }

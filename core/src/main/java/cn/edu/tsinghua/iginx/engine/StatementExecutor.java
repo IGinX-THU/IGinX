@@ -13,6 +13,7 @@ import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngine;
 import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngineImpl;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream.EmptyRowStream;
 import cn.edu.tsinghua.iginx.engine.physical.task.BinaryMemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.MultipleMemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
@@ -45,6 +46,8 @@ import cn.edu.tsinghua.iginx.engine.shared.source.SourceType;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SQLParserException;
 import cn.edu.tsinghua.iginx.exceptions.StatusCode;
+import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
+import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.resource.ResourceManager;
 import cn.edu.tsinghua.iginx.sql.statement.DataStatement;
 import cn.edu.tsinghua.iginx.sql.statement.DeleteStatement;
@@ -90,6 +93,8 @@ public class StatementExecutor {
     private static final ConstraintManager constraintManager = engine.getConstraintManager();
 
     private static final ResourceManager resourceManager = ResourceManager.getInstance();
+
+    private static final IMetaManager metaManager = DefaultMetaManager.getInstance();
 
     private static final Map<StatementType, List<LogicalGenerator>> generatorMap = new HashMap<>();
 
@@ -313,6 +318,11 @@ public class StatementExecutor {
             before(ctx, preLogicalProcessors);
             Operator root = generator.generate(ctx);
             after(ctx, postLogicalProcessors);
+            if (root == null && !metaManager.hasWritableStorageEngines()) {
+                ctx.setResult(new Result(RpcUtils.SUCCESS));
+                setResult(ctx, new EmptyRowStream());
+                return;
+            }
             if (constraintManager.check(root) && checker.check(root)) {
                 if (type == StatementType.SELECT) {
                     SelectStatement selectStatement = (SelectStatement) ctx.getStatement();

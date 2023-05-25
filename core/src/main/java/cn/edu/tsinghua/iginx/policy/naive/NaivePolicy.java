@@ -177,7 +177,7 @@ public class NaivePolicy implements IPolicy {
         Map<TimeSeriesRange, List<FragmentMeta>> fragmentMap = new HashMap<>();
         List<StorageUnitMeta> storageUnitList = new ArrayList<>();
 
-        List<StorageEngineMeta> storageEngineList = iMetaManager.getWriteableStorageEngineList();
+        List<StorageEngineMeta> storageEngineList = iMetaManager.getWritableStorageEngineList();
         int storageEngineNum = storageEngineList.size();
 
         String[] clients = ConfigDescriptor.getInstance().getConfig().getClients().split(",");
@@ -344,7 +344,7 @@ public class NaivePolicy implements IPolicy {
                     "function generateFragmentsAndStorageUnits only use insert statement for now.");
         }
         List<String> prefixList =
-                sampler.samplePrefix(iMetaManager.getWriteableStorageEngineList().size() - 1);
+                sampler.samplePrefix(iMetaManager.getWritableStorageEngineList().size() - 1);
 
         List<FragmentMeta> fragmentList = new ArrayList<>();
         List<StorageUnitMeta> storageUnitList = new ArrayList<>();
@@ -398,7 +398,7 @@ public class NaivePolicy implements IPolicy {
 
     private List<Long> generateStorageEngineIdList(int startIndex, int num) {
         List<Long> storageEngineIdList = new ArrayList<>();
-        List<StorageEngineMeta> storageEngines = iMetaManager.getWriteableStorageEngineList();
+        List<StorageEngineMeta> storageEngines = iMetaManager.getWritableStorageEngineList();
         for (int i = startIndex; i < startIndex + num; i++) {
             storageEngineIdList.add(storageEngines.get(i % storageEngines.size()).getId());
         }

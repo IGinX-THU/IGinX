@@ -179,7 +179,7 @@ public class HistoricalPolicy implements IPolicy {
                     "function generateFragmentsAndStorageUnits only use insert statement for now.");
         }
         List<String> prefixList =
-                sampler.samplePrefix(iMetaManager.getWriteableStorageEngineList().size() - 1);
+                sampler.samplePrefix(iMetaManager.getWritableStorageEngineList().size() - 1);
 
         List<FragmentMeta> fragmentList = new ArrayList<>();
         List<StorageUnitMeta> storageUnitList = new ArrayList<>();
@@ -233,7 +233,7 @@ public class HistoricalPolicy implements IPolicy {
 
     private List<Long> generateStorageEngineIdList(int startIndex, int num) {
         List<Long> storageEngineIdList = new ArrayList<>();
-        List<StorageEngineMeta> storageEngines = iMetaManager.getWriteableStorageEngineList();
+        List<StorageEngineMeta> storageEngines = iMetaManager.getWritableStorageEngineList();
         for (int i = startIndex; i < startIndex + num; i++) {
             storageEngineIdList.add(storageEngines.get(i % storageEngines.size()).getId());
         }

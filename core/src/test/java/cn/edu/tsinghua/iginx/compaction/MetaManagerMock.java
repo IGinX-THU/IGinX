@@ -33,7 +33,7 @@ public class MetaManagerMock implements IMetaManager {
     }
 
     @Override
-    public List<StorageEngineMeta> getWriteableStorageEngineList() {
+    public List<StorageEngineMeta> getWritableStorageEngineList() {
         return null;
     }
 
@@ -102,6 +102,11 @@ public class MetaManagerMock implements IMetaManager {
     @Override
     public boolean hasDummyFragment(TimeSeriesRange tsInterval) {
         return false;
+    }
+
+    @Override
+    public boolean hasWritableStorageEngines() {
+        return true;
     }
 
     @Override

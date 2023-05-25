@@ -105,20 +105,20 @@ public class QueryGenerator extends AbstractGenerator {
         if (selectStatement.hasJoinParts()) {
             root = filterAndMergeFragmentsWithJoin(selectStatement);
         } else {
-            if (selectStatement.getFromParts().isEmpty()) {
+            if (!selectStatement.getFromParts().isEmpty()
+                    && selectStatement.getFromParts().get(0).getType()
+                            == FromPartType.SubQueryFromPart) {
+                SubQueryFromPart fromPart =
+                        (SubQueryFromPart) selectStatement.getFromParts().get(0);
+                root = generateRoot(fromPart.getSubQuery());
+            } else {
                 policy.notify(selectStatement);
                 root = filterAndMergeFragments(selectStatement);
-            } else {
-                if (selectStatement.getFromParts().get(0).getType()
-                        == FromPartType.SubQueryFromPart) {
-                    SubQueryFromPart fromPart =
-                            (SubQueryFromPart) selectStatement.getFromParts().get(0);
-                    root = generateRoot(fromPart.getSubQuery());
-                } else {
-                    policy.notify(selectStatement);
-                    root = filterAndMergeFragments(selectStatement);
-                }
             }
+        }
+
+        if (root == null && !metaManager.hasWritableStorageEngines()) {
+            return null;
         }
 
         // 处理where子查询
@@ -676,7 +676,9 @@ public class QueryGenerator extends AbstractGenerator {
                                             schemaPrefix));
                         }
                     });
-            joinList.add(operator);
+            if (operator != null) {
+                joinList.add(operator);
+            }
             operator = OperatorUtils.joinOperatorsByTime(joinList);
         }
         return operator;
@@ -688,11 +690,13 @@ public class QueryGenerator extends AbstractGenerator {
                 metaManager.getFragmentMapByTimeSeriesInterval(
                         PathUtils.trimTimeSeriesInterval(interval), true);
         if (!metaManager.hasFragment()) {
-            // on startup
-            Pair<List<FragmentMeta>, List<StorageUnitMeta>> fragmentsAndStorageUnits =
-                    policy.generateInitialFragmentsAndStorageUnits(selectStatement);
-            metaManager.createInitialFragmentsAndStorageUnits(
-                    fragmentsAndStorageUnits.v, fragmentsAndStorageUnits.k);
+            if (metaManager.hasWritableStorageEngines()) {
+                // on startup
+                Pair<List<FragmentMeta>, List<StorageUnitMeta>> fragmentsAndStorageUnits =
+                        policy.generateInitialFragmentsAndStorageUnits(selectStatement);
+                metaManager.createInitialFragmentsAndStorageUnits(
+                        fragmentsAndStorageUnits.v, fragmentsAndStorageUnits.k);
+            }
             fragmentsByTSInterval = metaManager.getFragmentMapByTimeSeriesInterval(interval, true);
         }
         return keyFromTSIntervalToTimeInterval(fragmentsByTSInterval);

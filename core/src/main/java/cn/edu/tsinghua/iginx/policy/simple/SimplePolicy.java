@@ -86,7 +86,7 @@ public class SimplePolicy implements IPolicy {
         Map<TimeSeriesRange, List<FragmentMeta>> fragmentMap = new HashMap<>();
         List<StorageUnitMeta> storageUnitList = new ArrayList<>();
 
-        List<StorageEngineMeta> storageEngineList = iMetaManager.getWriteableStorageEngineList();
+        List<StorageEngineMeta> storageEngineList = iMetaManager.getWritableStorageEngineList();
         int storageEngineNum = storageEngineList.size();
 
         String[] clients = ConfigDescriptor.getInstance().getConfig().getClients().split(",");
@@ -298,7 +298,7 @@ public class SimplePolicy implements IPolicy {
 
     private List<Long> generateStorageEngineIdList(int startIndex, int num) {
         List<Long> storageEngineIdList = new ArrayList<>();
-        List<StorageEngineMeta> storageEngines = iMetaManager.getWriteableStorageEngineList();
+        List<StorageEngineMeta> storageEngines = iMetaManager.getWritableStorageEngineList();
         for (int i = startIndex; i < startIndex + num; i++) {
             storageEngineIdList.add(storageEngines.get(i % storageEngines.size()).getId());
         }

@@ -26,7 +26,7 @@ import org.slf4j.LoggerFactory;
 
 public class DeleteGenerator extends AbstractGenerator {
     @SuppressWarnings("unused")
-    private static final Logger logger = LoggerFactory.getLogger(InsertGenerator.class);
+    private static final Logger logger = LoggerFactory.getLogger(DeleteGenerator.class);
 
     private static final DeleteGenerator instance = new DeleteGenerator();
     private static final IMetaManager metaManager = DefaultMetaManager.getInstance();
@@ -57,11 +57,13 @@ public class DeleteGenerator extends AbstractGenerator {
         Map<TimeSeriesRange, List<FragmentMeta>> fragments =
                 metaManager.getFragmentMapByTimeSeriesInterval(interval);
         if (fragments.isEmpty()) {
-            // on startup
-            Pair<List<FragmentMeta>, List<StorageUnitMeta>> fragmentsAndStorageUnits =
-                    policy.generateInitialFragmentsAndStorageUnits(deleteStatement);
-            metaManager.createInitialFragmentsAndStorageUnits(
-                    fragmentsAndStorageUnits.v, fragmentsAndStorageUnits.k);
+            if (metaManager.hasWritableStorageEngines()) {
+                // on startup
+                Pair<List<FragmentMeta>, List<StorageUnitMeta>> fragmentsAndStorageUnits =
+                        policy.generateInitialFragmentsAndStorageUnits(deleteStatement);
+                metaManager.createInitialFragmentsAndStorageUnits(
+                        fragmentsAndStorageUnits.v, fragmentsAndStorageUnits.k);
+            }
             fragments = metaManager.getFragmentMapByTimeSeriesInterval(interval);
         }
 
