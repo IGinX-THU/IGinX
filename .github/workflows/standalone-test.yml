@@ -38,7 +38,7 @@ jobs:
             - name: Install IGinX with Maven
               shell: bash
               run: |
-                  mvn clean package -DskipTests -P passFormat -q
+                  mvn clean package -DskipTests -P passFormat -q -ntp
 
             - name: Set the DB name
               uses: ./.github/actions/confWriter
