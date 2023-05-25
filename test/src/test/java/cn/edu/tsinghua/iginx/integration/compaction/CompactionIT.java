@@ -1,6 +1,7 @@
 package cn.edu.tsinghua.iginx.integration.compaction;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
@@ -25,7 +26,6 @@ public class CompactionIT {
 
     @Before
     public void setUp() {
-        ConfigDescriptor.getInstance().getConfig().setEnableInstantCompaction(true);
         session =
                 new MultiConnection(
                         new Session(
@@ -35,15 +35,24 @@ public class CompactionIT {
                                 defaultTestPass));
         try {
             session.openSession();
+//            session.executeSql("SET CONFIG \"enableInstantCompaction\" \"true\"");
+//            System.out.println(ConfigDescriptor.getInstance().getConfig().isEnableInstantCompaction());
+//            session.executeSql("SHOW CONFIG \"enableInstantCompaction\"").print(false, "");
         } catch (SessionException e) {
             logger.error(e.getMessage());
+            fail();
         }
     }
 
     @After
-    public void tearDown() throws SessionException, ExecutionException {
-        ConfigDescriptor.getInstance().getConfig().setEnableInstantCompaction(false);
-        session.closeSession();
+    public void tearDown() {
+        try {
+            session.executeSql("SET CONFIG \"enableInstantCompaction\" \"false\"");
+            session.closeSession();
+        } catch (SessionException | ExecutionException e) {
+            logger.error(e.getMessage());
+            fail();
+        }
     }
 
     @Test
