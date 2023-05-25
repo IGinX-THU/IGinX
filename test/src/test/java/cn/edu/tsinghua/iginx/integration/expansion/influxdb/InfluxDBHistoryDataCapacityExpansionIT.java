@@ -9,7 +9,7 @@ public class InfluxDBHistoryDataCapacityExpansionIT extends CapacityExpansionIT 
             LoggerFactory.getLogger(InfluxDBHistoryDataCapacityExpansionIT.class);
 
     public InfluxDBHistoryDataCapacityExpansionIT() {
-        super("influxdb");
+        super("influxdb", true);
     }
 
     @Override

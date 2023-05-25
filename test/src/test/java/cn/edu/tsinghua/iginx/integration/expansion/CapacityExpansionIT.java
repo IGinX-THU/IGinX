@@ -8,6 +8,7 @@ import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.expansion.unit.SQLTestTools;
 import cn.edu.tsinghua.iginx.pool.SessionPool;
 import cn.edu.tsinghua.iginx.session.Session;
+import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.RemovedStorageEngineInfo;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,9 +24,11 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
     protected static Session session;
     protected static SessionPool sessionPool;
     protected String ENGINE_TYPE;
+    protected final boolean isTSDB;
 
-    public CapacityExpansionIT(String engineType) {
+    public CapacityExpansionIT(String engineType, boolean isTSDB) {
         this.ENGINE_TYPE = engineType;
+        this.isTSDB = isTSDB;
     }
 
     @After
@@ -90,7 +93,139 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
 
     protected abstract int getPort() throws Exception;
 
+    protected boolean queryHistoryDataANotTS(Session session) throws Exception {
+        List<String> header =
+                new ArrayList<String>() {
+                    {
+                        add("mn.wf01.wt01.status");
+                        add("mn.wf01.wt01.temperature");
+                        add("key");
+                    }
+                };
+        List<DataType> dataType =
+                new ArrayList<DataType>() {
+                    {
+                        add(DataType.BOOLEAN);
+                        add(DataType.DOUBLE);
+                        add(DataType.LONG);
+                    }
+                };
+        List<List<Object>> val = new ArrayList<>();
+        val.add(
+                new ArrayList<Object>() {
+                    {
+                        add(new Long(100L));
+                        add(new Boolean(true));
+                        add(null);
+                    }
+                });
+        val.add(
+                new ArrayList<Object>() {
+                    {
+                        add(new Long(200L));
+                        add(new Boolean(false));
+                        add(new Double(20.71));
+                    }
+                });
+        String statement = "select * from mn";
+        SQLTestTools.executeAndCompare(session, statement, header, val, dataType);
+        return true;
+    }
+
+    protected boolean queryHistoryDataBNotTS(Session session) throws Exception {
+        String statement = "select * from mn.wf03";
+        List<String> header =
+                new ArrayList<String>() {
+                    {
+                        add("mn.wf03.wt01.status");
+                        add("mn.wf03.wt01.temperature");
+                        add("key");
+                    }
+                };
+        List<DataType> dataType =
+                new ArrayList<DataType>() {
+                    {
+                        add(DataType.BOOLEAN);
+                        add(DataType.DOUBLE);
+                        add(DataType.LONG);
+                    }
+                };
+        List<List<Object>> val = new ArrayList<>();
+        val.add(
+                new ArrayList<Object>() {
+                    {
+                        add(new Long(77L));
+                        add(new Boolean(true));
+                        add(null);
+                    }
+                });
+        val.add(
+                new ArrayList<Object>() {
+                    {
+                        add(new Long(200L));
+                        add(new Boolean(false));
+                        add(new Double(77.71));
+                    }
+                });
+        SQLTestTools.executeAndCompare(session, statement, header, val, dataType);
+        return true;
+    }
+
+    protected boolean queryAllHistoryDataNotTS(Session session) throws Exception {
+        String statement = "select * from mn";
+        List<String> header =
+                new ArrayList<String>() {
+                    {
+                        add("mn.wf03.wt01.status");
+                        add("mn.wf03.wt01.temperature");
+                        add("mn.wf01.wt01.status");
+                        add("mn.wf01.wt01.temperature");
+                        add("key");
+                    }
+                };
+        List<DataType> dataType =
+                new ArrayList<DataType>() {
+                    {
+                        add(DataType.BOOLEAN);
+                        add(DataType.DOUBLE);
+                        add(DataType.BOOLEAN);
+                        add(DataType.DOUBLE);
+                        add(DataType.LONG);
+                    }
+                };
+        List<List<Object>> val = new ArrayList<>();
+        val.add(
+                new ArrayList<Object>() {
+                    {
+                        add(new Long(77L));
+                        add(new Boolean(true));
+                    }
+                });
+        val.add(
+                new ArrayList<Object>() {
+                    {
+                        add(new Long(100L));
+                        add(new Boolean(true));
+                    }
+                });
+        val.add(
+                new ArrayList<Object>() {
+                    {
+                        add(new Long(200L));
+                        add(new Boolean(false));
+                        add(new Double(77.71));
+                        add(new Boolean(false));
+                        add(new Double(20.71));
+                    }
+                });
+        SQLTestTools.executeAndCompare(session, statement, header, val, dataType);
+        return true;
+    }
+
     protected boolean queryHistoryDataA(Session session) throws Exception {
+        if (isTSDB) {
+            return queryHistoryDataANotTS(session);
+        }
         String statement = "select * from mn";
         String expect =
                 "ResultSets:\n"
@@ -117,6 +252,9 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
     }
 
     protected boolean queryHistoryDataB(Session session) throws Exception {
+        if (isTSDB) {
+            return queryHistoryDataBNotTS(session);
+        }
         String statement = "select * from mn.wf03";
         String expect =
                 "ResultSets:\n"
@@ -132,6 +270,9 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
     }
 
     protected boolean queryAllHistoryData(Session session) throws Exception {
+        if (isTSDB) {
+            return queryAllHistoryDataNotTS(session);
+        }
         String statement = "select * from mn";
         String expect =
                 "ResultSets:\n"
