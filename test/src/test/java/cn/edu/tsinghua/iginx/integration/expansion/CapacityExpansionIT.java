@@ -223,7 +223,7 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
     }
 
     protected boolean queryHistoryDataA(Session session) throws Exception {
-        if (isTSDB) {
+        if (!isTSDB) {
             return queryHistoryDataANotTS(session);
         }
         String statement = "select * from mn";
@@ -252,7 +252,7 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
     }
 
     protected boolean queryHistoryDataB(Session session) throws Exception {
-        if (isTSDB) {
+        if (!isTSDB) {
             return queryHistoryDataBNotTS(session);
         }
         String statement = "select * from mn.wf03";
@@ -270,7 +270,7 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
     }
 
     protected boolean queryAllHistoryData(Session session) throws Exception {
-        if (isTSDB) {
+        if (!isTSDB) {
             return queryAllHistoryDataNotTS(session);
         }
         String statement = "select * from mn";

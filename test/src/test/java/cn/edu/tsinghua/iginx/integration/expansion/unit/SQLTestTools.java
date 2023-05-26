@@ -79,7 +79,6 @@ public class SQLTestTools {
             logger.error("Statement: \"{}\" execute fail. Caused by:", statement, e);
             fail();
         }
-        int len = valAns.get(0).size();
         List<String> headerVal = res.getPaths();
         List<List<Object>> val = res.getValues();
         List<DataType> dataTypes = res.getDataTypeList();
