@@ -46,7 +46,7 @@ jobs:
             - name: Install IGinX with Maven
               shell: bash
               run: |
-                  mvn clean package -DskipTests -P passFormat
+                  mvn clean package -DskipTests -P passFormat -q
 
             - name: Set the UDF conf
               uses: ./.github/actions/confWriter
@@ -155,7 +155,7 @@ jobs:
                     exit 1
                   fi
             - name: Install with Maven
-              run: mvn clean package -DskipTests
+              run: mvn clean package -DskipTests -q
             - name: Write history Data
               run: |
                   mvn test -q -Dtest=ParquetHistoryDataGeneratorTest -DfailIfNoTests=false
