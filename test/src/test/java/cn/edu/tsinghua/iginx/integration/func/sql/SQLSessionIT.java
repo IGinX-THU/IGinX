@@ -7,6 +7,7 @@ import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoder;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
+import cn.edu.tsinghua.iginx.integration.tool.DBConf.DBConfType;
 import cn.edu.tsinghua.iginx.integration.tool.MultiConnection;
 import cn.edu.tsinghua.iginx.integration.tool.SQLExecutor;
 import cn.edu.tsinghua.iginx.pool.IginxInfo;
@@ -43,7 +44,11 @@ public class SQLSessionIT {
 
     protected boolean isAbleToDelete;
 
-    protected boolean isSupportSpecialPath;
+    protected boolean isSupportChinesePath;
+
+    protected boolean isSupportNumericalPath;
+
+    protected boolean isSupportSpecialCharacterPath;
 
     protected boolean isAbleToShowTimeSeries;
 
@@ -63,7 +68,10 @@ public class SQLSessionIT {
         this.isAbleToClearData = dbConf.getEnumValue(DBConf.DBConfType.isAbleToClearData);
         this.isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
         this.isAbleToShowTimeSeries = dbConf.getEnumValue(DBConf.DBConfType.isAbleToShowTimeSeries);
-        this.isSupportSpecialPath = dbConf.getEnumValue(DBConf.DBConfType.isSupportSpecialPath);
+        this.isSupportChinesePath = dbConf.getEnumValue(DBConfType.isSupportChinesePath);
+        this.isSupportNumericalPath = dbConf.getEnumValue(DBConfType.isSupportNumericalPath);
+        this.isSupportSpecialCharacterPath =
+                dbConf.getEnumValue(DBConfType.isSupportSpecialCharacterPath);
     }
 
     @BeforeClass
@@ -3751,10 +3759,11 @@ public class SQLSessionIT {
     }
 
     @Test
-    public void testSpecialPath() {
-        if (!isSupportSpecialPath) {
+    public void testChinesePath() {
+        if (!isSupportChinesePath) {
             return;
         }
+
         // Chinese path
         String insert = "INSERT INTO 测试.前缀(key, 后缀) VALUES (1, 1), (2, 2), (3, 3), (4, 4), (5, 5);";
         executor.execute(insert);
@@ -3773,13 +3782,21 @@ public class SQLSessionIT {
                         + "+---+--------+\n"
                         + "Total line number = 5\n";
         executor.executeAndCompare(query, expected);
+    }
 
-        // number path
-        insert = "INSERT INTO 114514(key, 1919810) VALUES (1, 1), (2, 2), (3, 3), (4, 4), (5, 5);";
+    @Test
+    public void testNumericalPath() {
+        if (!isSupportNumericalPath) {
+            return;
+        }
+
+        // numerical path
+        String insert =
+                "INSERT INTO 114514(key, 1919810) VALUES (1, 1), (2, 2), (3, 3), (4, 4), (5, 5);";
         executor.execute(insert);
 
-        query = "SELECT 1919810 FROM 114514;";
-        expected =
+        String query = "SELECT 1919810 FROM 114514;";
+        String expected =
                 "ResultSets:\n"
                         + "+---+--------------+\n"
                         + "|key|114514.1919810|\n"
@@ -3792,33 +3809,48 @@ public class SQLSessionIT {
                         + "+---+--------------+\n"
                         + "Total line number = 5\n";
         executor.executeAndCompare(query, expected);
+    }
 
-        // special symbol path
-        insert = "INSERT INTO _:@#$(key, _:@#$) VALUES (1, 1), (2, 2), (3, 3), (4, 4), (5, 5);";
+    @Test
+    public void testSpecialCharacterPath() {
+        if (!isSupportSpecialCharacterPath) {
+            return;
+        }
+
+        // file system supported special symbol path
+        String insert =
+                "INSERT INTO _:@#$~^{}(key, _:@#$~^{}) VALUES (1, 1), (2, 2), (3, 3), (4, 4), (5, 5);";
         executor.execute(insert);
 
-        query = "SELECT _:@#$ FROM _:@#$;";
-        expected =
+        String query = "SELECT _:@#$~^{} FROM _:@#$~^{};";
+        String expected =
                 "ResultSets:\n"
-                        + "+---+-----------+\n"
-                        + "|key|_:@#$._:@#$|\n"
-                        + "+---+-----------+\n"
-                        + "|  1|          1|\n"
-                        + "|  2|          2|\n"
-                        + "|  3|          3|\n"
-                        + "|  4|          4|\n"
-                        + "|  5|          5|\n"
-                        + "+---+-----------+\n"
+                        + "+---+-------------------+\n"
+                        + "|key|_:@#$~^{}._:@#$~^{}|\n"
+                        + "+---+-------------------+\n"
+                        + "|  1|                  1|\n"
+                        + "|  2|                  2|\n"
+                        + "|  3|                  3|\n"
+                        + "|  4|                  4|\n"
+                        + "|  5|                  5|\n"
+                        + "+---+-------------------+\n"
                         + "Total line number = 5\n";
         executor.executeAndCompare(query, expected);
+    }
+
+    @Test
+    public void testMixSpecialPath() {
+        if (!isSupportChinesePath || !isSupportNumericalPath || !isSupportSpecialCharacterPath) {
+            return;
+        }
 
         // mix path
-        insert =
+        String insert =
                 "INSERT INTO 测试.前缀.114514(key, 1919810._:@#$.后缀) VALUES (1, 1), (2, 2), (3, 3), (4, 4), (5, 5);";
         executor.execute(insert);
 
-        query = "SELECT 1919810._:@#$.后缀 FROM 测试.前缀.114514;";
-        expected =
+        String query = "SELECT 1919810._:@#$.后缀 FROM 测试.前缀.114514;";
+        String expected =
                 "ResultSets:\n"
                         + "+---+-----------------------------+\n"
                         + "|key|测试.前缀.114514.1919810._:@#$.后缀|\n"

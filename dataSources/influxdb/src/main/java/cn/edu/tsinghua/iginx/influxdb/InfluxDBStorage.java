@@ -52,6 +52,7 @@ import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import com.influxdb.client.InfluxDBClient;
 import com.influxdb.client.InfluxDBClientFactory;
+import com.influxdb.client.InfluxDBClientOptions;
 import com.influxdb.client.domain.Bucket;
 import com.influxdb.client.domain.Organization;
 import com.influxdb.client.domain.WritePrecision;
@@ -65,6 +66,7 @@ import java.time.ZoneId;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+import okhttp3.OkHttpClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -114,7 +116,14 @@ public class InfluxDBStorage implements IStorage {
         }
         Map<String, String> extraParams = meta.getExtraParams();
         String url = extraParams.getOrDefault("url", "http://localhost:8086/");
-        client = InfluxDBClientFactory.create(url, extraParams.get("token").toCharArray());
+        OkHttpClient.Builder builder = new OkHttpClient.Builder().retryOnConnectionFailure(true);
+        InfluxDBClientOptions options =
+                InfluxDBClientOptions.builder()
+                        .url(url)
+                        .authenticateToken(extraParams.get("token").toCharArray())
+                        .okHttpClient(builder)
+                        .build();
+        client = InfluxDBClientFactory.create(options);
         organizationName = extraParams.get("organization");
         organization =
                 client.getOrganizationsApi()
