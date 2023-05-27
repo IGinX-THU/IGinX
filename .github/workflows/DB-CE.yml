@@ -100,6 +100,28 @@ jobs:
                   mvn test -q -Dtest=${{matrix.DB-name}}HistoryDataCapacityExpansionIT#oriNoDataExpHasData -DfailIfNoTests=false -P passFormat
                   mvn test -q -Dtest=${${{matrix.DB-name}}FUNCTEST} -DfailIfNoTests=false -P passFormat
                   mvn test -q -Dtest=${{matrix.DB-name}}HistoryDataCapacityExpansionIT#testPrefixAndRemoveHistoryDataSource -DfailIfNoTests=false -P passFormat
+
+            #测试只读节点==========================================
+            - name: Change IginX Config
+              uses: ./.github/actions/confWriter
+              with:
+                  ReadOnlyNode: true
+
+            - name: Prepare CapExp environment TestReadOnlyNode
+              uses: ./.github/actions/capacityExpansionUnionTest
+              with:
+                  version: ${VERSION}
+                  DB-name: ${{matrix.DB-name}}
+                  Test-Way: oriHasDataExpNoData
+            - name: Test ReadOnly Node
+              run: |
+                  mvn test -q -Dtest=${{matrix.DB-name}}HistoryDataCapacityExpansionIT#testReadOnlyNode -DfailIfNoTests=false -P passFormat
+
+            #测试只读节点 + 扩容可写节点==========================================
+            - name: Test ReadOnly Node with Writable Node
+              run: |
+                  mvn test -q -Dtest=${{matrix.DB-name}}HistoryDataCapacityExpansionIT#testReadOnlyNode -DfailIfNoTests=false -P passFormat
+
             - uses: codecov/codecov-action@v1
               with:
                   file: ./**/target/site/jacoco/jacoco.xml

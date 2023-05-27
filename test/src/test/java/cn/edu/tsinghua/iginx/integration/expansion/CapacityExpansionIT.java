@@ -331,6 +331,32 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
         SQLTestTools.executeAndCompare(session, statement, expect);
     }
 
+    @Test
+    private void testReadOnlyNode() throws Exception {
+        queryHistoryDataA(session);
+
+        addStorageEngine(false);
+
+        testQueryAfterInsertNewDataFromNoInitialNode();
+
+        addStorageWithPrefix("mn", "p1");
+
+        String statement = "select * from p1.mn";
+        String expect =
+                "ResultSets:\n"
+                        + "+---+----------------------+---------------------------+\n"
+                        + "|key|p1.mn.wf03.wt01.status|p1.mn.wf03.wt01.temperature|\n"
+                        + "+---+----------------------+---------------------------+\n"
+                        + "| 77|                  true|                       null|\n"
+                        + "|200|                 false|                      77.71|\n"
+                        + "+---+----------------------+---------------------------+\n"
+                        + "Total line number = 2\n";
+        SQLTestTools.executeAndCompare(session, statement, expect);
+
+        clearData();
+        testQueryAfterInsertNewDataFromNoInitialNode();
+    }
+
     private void addStorageEngine(boolean hasData) throws SessionException, ExecutionException {
         if (ENGINE_TYPE.toLowerCase().contains("iotdb"))
             session.executeSql(
