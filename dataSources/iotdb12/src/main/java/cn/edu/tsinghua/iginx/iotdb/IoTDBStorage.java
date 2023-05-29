@@ -201,7 +201,7 @@ public class IoTDBStorage implements IStorage {
         List<String> paths = new ArrayList<>();
         TimeSeriesRange tsInterval;
         try {
-            if (dataPrefix == null) {
+            if (dataPrefix == null || dataPrefix.isEmpty()) {
                 SessionDataSetWrapper dataSet = sessionPool.executeQueryStatement(SHOW_TIMESERIES);
                 while (dataSet.hasNext()) {
                     RowRecord record = dataSet.next();
@@ -224,7 +224,6 @@ public class IoTDBStorage implements IStorage {
             } else {
                 tsInterval = new TimeSeriesInterval(dataPrefix, StringUtils.nextString(dataPrefix));
             }
-
         } catch (IoTDBConnectionException | StatementExecutionException e) {
             throw new PhysicalTaskExecuteFailureException("get time series failure: ", e);
         }
@@ -233,13 +232,22 @@ public class IoTDBStorage implements IStorage {
             SessionDataSetWrapper dataSet;
             if (dataPrefix == null || dataPrefix.isEmpty())
                 dataSet = sessionPool.executeQueryStatement("select * from root");
-            else dataSet = sessionPool.executeQueryStatement("select " + dataPrefix + " from root");
+            else {
+                dataSet = sessionPool.executeQueryStatement("select " + dataPrefix + " from root");
+            }
             if (dataSet.hasNext()) {
                 RowRecord record = dataSet.next();
                 minTime = record.getTimestamp();
             }
             dataSet.close();
-            dataSet = sessionPool.executeQueryStatement("select * from root order by time desc");
+            if (dataPrefix == null || dataPrefix.isEmpty())
+                dataSet =
+                        sessionPool.executeQueryStatement("select * from root order by time desc");
+            else {
+                dataSet =
+                        sessionPool.executeQueryStatement(
+                                "select " + dataPrefix + " from root order by time desc");
+            }
             if (dataSet.hasNext()) {
                 RowRecord record = dataSet.next();
                 maxTime = record.getTimestamp();
