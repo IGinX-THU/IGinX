@@ -3,7 +3,6 @@ package cn.edu.tsinghua.iginx.integration.compaction;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.tool.MultiConnection;
@@ -35,10 +34,9 @@ public class CompactionIT {
                                 defaultTestPass));
         try {
             session.openSession();
-//            session.executeSql("SET CONFIG \"enableInstantCompaction\" \"true\"");
-//            System.out.println(ConfigDescriptor.getInstance().getConfig().isEnableInstantCompaction());
-//            session.executeSql("SHOW CONFIG \"enableInstantCompaction\"").print(false, "");
-        } catch (SessionException e) {
+            session.executeSql("SET CONFIG \"enableInstantCompaction\" \"true\"");
+            session.executeSql("SHOW CONFIG \"enableInstantCompaction\"").print(false, "");
+        } catch (SessionException | ExecutionException e) {
             logger.error(e.getMessage());
             fail();
         }

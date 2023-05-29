@@ -30,7 +30,8 @@ public class InstantCompaction extends Compaction {
     public void compact() throws Exception {
         logger.info("start to compact all fragments");
         for (List<FragmentMeta> fragmentGroup : toCompactFragmentGroups) {
-            // 分别计算每个du的数据量，取其中数据量最多的du作为目标合并du
+            // 不能合并成 null-null，去掉任意一个分片
+            fragmentGroup.remove(0);
             StorageUnitMeta maxStorageUnitMeta = fragmentGroup.get(0).getMasterStorageUnit();
             compactFragmentGroupToTargetStorageUnit(fragmentGroup, maxStorageUnitMeta, 0L);
         }
