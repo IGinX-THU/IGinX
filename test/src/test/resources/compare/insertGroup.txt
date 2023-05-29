@@ -1,19 +1,19 @@
-INSERT INTO TableA (key, name, city) VALUES
-  (1, 'Alice', 'New York'),
-  (2, 'Bob', 'San Francisco'),
-  (3, 'Charlie', 'Boston'),
-  (4, 'David', 'Seattle'),
-  (5, 'Eve', 'Los Angeles');
+INSERT INTO TableA (key, id, name, city) VALUES
+  (1, 1, 'Alice', 'New York'),
+  (2, 2, 'Bob', 'San Francisco'),
+  (3, 3, 'Charlie', 'Boston'),
+  (4, 4, 'David', 'Seattle'),
+  (5, 5, 'Eve', 'Los Angeles');
 
-INSERT INTO TableB (key, category, amount, state, date) VALUES
-  (1, 'food', 10.99, 'NY', '2022-02-14'),
-  (1, 'clothing', 29.99, 'NY', '2022-05-01'),
-  (2, 'electronics', 399.99, 'CA', '2022-09-03'),
-  (2, 'books', 15.99, 'CA', '2022-10-20'),
-  (3, 'food', 5.99, 'MA', '2022-06-15'),
-  (3, 'clothing', 49.99, 'MA', '2022-08-28'),
-  (4, 'books', 24.99, 'WA', '2022-11-11'),
-  (5, 'electronics', 299.99, 'CA', '2022-12-31');
+INSERT INTO TableB (key, id, category, amount, state, date) VALUES
+  (1, 1, 'food', 10.99, 'NY', '2022-02-14'),
+  (2, 1, 'clothing', 29.99, 'NY', '2022-05-01'),
+  (3, 2, 'electronics', 399.99, 'CA', '2022-09-03'),
+  (4, 2, 'books', 15.99, 'CA', '2022-10-20'),
+  (5, 3, 'food', 5.99, 'MA', '2022-06-15'),
+  (6, 3, 'clothing', 49.99, 'MA', '2022-08-28'),
+  (7, 4, 'books', 24.99, 'WA', '2022-11-11'),
+  (8, 5, 'electronics', 299.99, 'CA', '2022-12-31');
 
 INSERT INTO TableC (key, category, description) VALUES
   (1, 'food', 'Contains essential nutrients'),

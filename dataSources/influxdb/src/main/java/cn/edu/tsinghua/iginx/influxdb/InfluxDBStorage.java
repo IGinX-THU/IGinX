@@ -39,6 +39,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilterType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.influxdb.query.entity.InfluxDBHistoryQueryRowStream;
 import cn.edu.tsinghua.iginx.influxdb.query.entity.InfluxDBQueryRowStream;
@@ -51,6 +52,7 @@ import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import com.influxdb.client.InfluxDBClient;
 import com.influxdb.client.InfluxDBClientFactory;
+import com.influxdb.client.InfluxDBClientOptions;
 import com.influxdb.client.domain.Bucket;
 import com.influxdb.client.domain.Organization;
 import com.influxdb.client.domain.WritePrecision;
@@ -64,6 +66,7 @@ import java.time.ZoneId;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+import okhttp3.OkHttpClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -113,7 +116,14 @@ public class InfluxDBStorage implements IStorage {
         }
         Map<String, String> extraParams = meta.getExtraParams();
         String url = extraParams.getOrDefault("url", "http://localhost:8086/");
-        client = InfluxDBClientFactory.create(url, extraParams.get("token").toCharArray());
+        OkHttpClient.Builder builder = new OkHttpClient.Builder().retryOnConnectionFailure(true);
+        InfluxDBClientOptions options =
+                InfluxDBClientOptions.builder()
+                        .url(url)
+                        .authenticateToken(extraParams.get("token").toCharArray())
+                        .okHttpClient(builder)
+                        .build();
+        client = InfluxDBClientFactory.create(options);
         organizationName = extraParams.get("organization");
         organization =
                 client.getOrganizationsApi()
@@ -269,6 +279,12 @@ public class InfluxDBStorage implements IStorage {
                     SchemaTransformer.processPatternForQuery(pattern, tagFilter);
             String bucketName = pair.k;
             String query = pair.v;
+
+            if (client.getBucketsApi().findBucketByName(bucketName) == null) {
+                logger.warn("storage engine {} doesn't exist", bucketName);
+                continue;
+            }
+
             String fullQuery = "";
             if (bucketQueries.containsKey(bucketName)) {
                 fullQuery = bucketQueries.get(bucketName);
@@ -374,7 +390,8 @@ public class InfluxDBStorage implements IStorage {
 
         if (client.getBucketsApi().findBucketByName(storageUnit) == null) {
             logger.warn("storage engine {} doesn't exist", storageUnit);
-            return new TaskExecuteResult(new InfluxDBQueryRowStream(Collections.emptyList()));
+            return new TaskExecuteResult(
+                    new InfluxDBQueryRowStream(Collections.emptyList(), project));
         }
 
         String statement =
@@ -385,7 +402,7 @@ public class InfluxDBStorage implements IStorage {
                         timeInterval.getStartTime(),
                         timeInterval.getEndTime());
         List<FluxTable> tables = client.getQueryApi().query(statement, organization.getId());
-        InfluxDBQueryRowStream rowStream = new InfluxDBQueryRowStream(tables);
+        InfluxDBQueryRowStream rowStream = new InfluxDBQueryRowStream(tables, project);
         return new TaskExecuteResult(rowStream);
     }
 
@@ -398,6 +415,7 @@ public class InfluxDBStorage implements IStorage {
         String statement = String.format(QUERY_DATA, bucketName, startTime, endTime);
         if (paths.size() != 1 || !paths.get(0).equals("*")) {
             StringBuilder filterStr = new StringBuilder(" |> filter(fn: (r) => ");
+            filterStr.append('('); // make the or statement together
             for (int i = 0; i < paths.size(); i++) {
                 String path = paths.get(i);
                 InfluxDBSchema schema = new InfluxDBSchema(path);
@@ -447,7 +465,8 @@ public class InfluxDBStorage implements IStorage {
 
                 filterStr.append(')');
             }
-            if (tagFilter != null) {
+            filterStr.append(')'); // make the or statement together
+            if (tagFilter != null && tagFilter.getType() != TagFilterType.WithoutTag) {
                 filterStr.append(" and ").append(TagFilterUtils.transformToFilterStr(tagFilter));
             }
             filterStr.append(')');
@@ -531,7 +550,7 @@ public class InfluxDBStorage implements IStorage {
                                             .addTags(schema.getTags())
                                             .addField(
                                                     schema.getField(),
-                                                    (int) data.getValue(i, index))
+                                                    (Number) (int) data.getValue(i, index))
                                             .time(data.getKey(i), WRITE_PRECISION));
                             break;
                         case LONG:
@@ -540,7 +559,7 @@ public class InfluxDBStorage implements IStorage {
                                             .addTags(schema.getTags())
                                             .addField(
                                                     schema.getField(),
-                                                    (long) data.getValue(i, index))
+                                                    (Number) (long) data.getValue(i, index))
                                             .time(data.getKey(i), WRITE_PRECISION));
                             break;
                         case FLOAT:
@@ -549,7 +568,7 @@ public class InfluxDBStorage implements IStorage {
                                             .addTags(schema.getTags())
                                             .addField(
                                                     schema.getField(),
-                                                    (float) data.getValue(i, index))
+                                                    (Number) (float) data.getValue(i, index))
                                             .time(data.getKey(i), WRITE_PRECISION));
                             break;
                         case DOUBLE:
@@ -558,7 +577,7 @@ public class InfluxDBStorage implements IStorage {
                                             .addTags(schema.getTags())
                                             .addField(
                                                     schema.getField(),
-                                                    (double) data.getValue(i, index))
+                                                    (Number) (double) data.getValue(i, index))
                                             .time(data.getKey(i), WRITE_PRECISION));
                             break;
                         case BINARY:
@@ -635,7 +654,7 @@ public class InfluxDBStorage implements IStorage {
                                             .addTags(schema.getTags())
                                             .addField(
                                                     schema.getField(),
-                                                    (int) data.getValue(i, index))
+                                                    (Number) (int) data.getValue(i, index))
                                             .time(data.getKey(j), WRITE_PRECISION));
                             break;
                         case LONG:
@@ -644,7 +663,7 @@ public class InfluxDBStorage implements IStorage {
                                             .addTags(schema.getTags())
                                             .addField(
                                                     schema.getField(),
-                                                    (long) data.getValue(i, index))
+                                                    (Number) (long) data.getValue(i, index))
                                             .time(data.getKey(j), WRITE_PRECISION));
                             break;
                         case FLOAT:
@@ -653,7 +672,7 @@ public class InfluxDBStorage implements IStorage {
                                             .addTags(schema.getTags())
                                             .addField(
                                                     schema.getField(),
-                                                    (float) data.getValue(i, index))
+                                                    (Number) (float) data.getValue(i, index))
                                             .time(data.getKey(j), WRITE_PRECISION));
                             break;
                         case DOUBLE:
@@ -662,7 +681,7 @@ public class InfluxDBStorage implements IStorage {
                                             .addTags(schema.getTags())
                                             .addField(
                                                     schema.getField(),
-                                                    (double) data.getValue(i, index))
+                                                    (Number) (double) data.getValue(i, index))
                                             .time(data.getKey(j), WRITE_PRECISION));
                             break;
                         case BINARY:

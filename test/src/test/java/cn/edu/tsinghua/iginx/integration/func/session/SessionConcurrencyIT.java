@@ -4,116 +4,35 @@ import static org.junit.Assert.*;
 
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
-import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.tool.MultiConnection;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionAggregateQueryDataSet;
-import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.session.SessionQueryDataSet;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import org.junit.After;
-import org.junit.Before;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class BaseSessionConcurrencyIT {
+public class SessionConcurrencyIT extends BaseSessionIT {
 
-    // parameters to be flexibly configured by inheritance
-    protected static MultiConnection session;
-
-    // host info
-    protected String defaultTestHost = "127.0.0.1";
-    protected int defaultTestPort = 6888;
-    protected String defaultTestUser = "root";
-    protected String defaultTestPass = "root";
-
-    protected boolean isAbleToDelete = false;
-
-    // original variables
-    protected static final double delta = 1e-7;
-    protected static final long TIME_PERIOD = 100000L;
-    protected static final long START_TIME = 1000L;
-    protected static final long END_TIME = START_TIME + TIME_PERIOD - 1;
-    // params for partialDelete
-    protected long delStartTime = START_TIME + TIME_PERIOD / 5;
-    protected long delEndTime = START_TIME + TIME_PERIOD / 10 * 9;
-    protected long delTimePeriod = delEndTime - delStartTime;
-    protected double deleteAvg =
-            ((START_TIME + END_TIME) * TIME_PERIOD / 2.0
-                            - (delStartTime + delEndTime - 1) * delTimePeriod / 2.0)
-                    / (TIME_PERIOD - delTimePeriod);
-
-    protected int currPath = 0;
-
-    protected static final Logger logger = LoggerFactory.getLogger(BaseSessionIT.class);
-
-    @Before
-    public void setUp() {
-        try {
-            session =
-                    new MultiConnection(
-                            new Session(
-                                    defaultTestHost,
-                                    defaultTestPort,
-                                    defaultTestUser,
-                                    defaultTestPass));
-            session.openSession();
-        } catch (Exception e) {
-            logger.error(e.getMessage());
-        }
-    }
-
-    @After
-    public void tearDown() throws SessionException {
-        try {
-            clearData();
-            session.closeSession();
-        } catch (ExecutionException e) {
-            logger.error(e.getMessage());
-        }
-    }
-
-    protected void clearData() throws ExecutionException, SessionException {
-        String clearData = "CLEAR DATA;";
-
-        SessionExecuteSqlResult res = null;
-        try {
-            res = session.executeSql(clearData);
-        } catch (SessionException | ExecutionException e) {
-            logger.error("Statement: \"{}\" execute fail. Caused by: {}", clearData, e.toString());
-            if (e.toString().equals(Controller.CLEARDATAEXCP)) {
-                logger.error("clear data fail and go on....");
-            } else fail();
-        }
-
-        if (res != null && res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-            logger.error(
-                    "Statement: \"{}\" execute fail. Caused by: {}.",
-                    clearData,
-                    res.getParseErrorMsg());
-            fail();
-        }
-    }
+    private static final Logger logger = LoggerFactory.getLogger(SessionConcurrencyIT.class);
 
     // TODO: a very suspicious test; somebody should do something
     // TODO: The following test must be added after bug fix
-    // @Test
+    //     @Test
     public void multiThreadTestBad()
             throws SessionException, InterruptedException, ExecutionException {
         // query test, multithread insert for storage; multithread query
         int mulStQueryLen = 5;
         List<String> mulStPaths = getPaths(currPath, mulStQueryLen);
-        BaseSessionConcurrencyIT.MultiThreadTask[] mulStInsertTasks =
-                new BaseSessionConcurrencyIT.MultiThreadTask[mulStQueryLen];
+        SessionConcurrencyIT.MultiThreadTask[] mulStInsertTasks =
+                new SessionConcurrencyIT.MultiThreadTask[mulStQueryLen];
         Thread[] mulStInsertThreads = new Thread[mulStQueryLen];
         for (int i = 0; i < mulStQueryLen; i++) {
             mulStInsertTasks[i] =
-                    new BaseSessionConcurrencyIT.MultiThreadTask(
+                    new SessionConcurrencyIT.MultiThreadTask(
                             1,
                             getPaths(currPath + i, 1),
                             START_TIME,
@@ -134,14 +53,14 @@ public abstract class BaseSessionConcurrencyIT {
 
         // query
         int queryTaskNum = 4;
-        BaseSessionConcurrencyIT.MultiThreadTask[] mulStQueryTasks =
-                new BaseSessionConcurrencyIT.MultiThreadTask[queryTaskNum];
+        SessionConcurrencyIT.MultiThreadTask[] mulStQueryTasks =
+                new SessionConcurrencyIT.MultiThreadTask[queryTaskNum];
         Thread[] mulStQueryThreads = new Thread[queryTaskNum];
         // each query query one storage
 
         for (int i = 0; i < queryTaskNum; i++) {
             mulStQueryTasks[i] =
-                    new BaseSessionConcurrencyIT.MultiThreadTask(
+                    new SessionConcurrencyIT.MultiThreadTask(
                             3, mulStPaths, START_TIME, END_TIME + 1, 0, 0, null, 6888);
             mulStQueryThreads[i] = new Thread(mulStQueryTasks[i]);
         }
@@ -202,12 +121,12 @@ public abstract class BaseSessionConcurrencyIT {
         // query test, multithread insert for time, multithread query
         int mulTimeQueryLen = 5;
         List<String> mulTimePaths = getPaths(currPath, mulTimeQueryLen);
-        BaseSessionConcurrencyIT.MultiThreadTask[] mulTimeInsertTasks =
-                new BaseSessionConcurrencyIT.MultiThreadTask[mulTimeQueryLen];
+        SessionConcurrencyIT.MultiThreadTask[] mulTimeInsertTasks =
+                new SessionConcurrencyIT.MultiThreadTask[mulTimeQueryLen];
         Thread[] mulTimeInsertThreads = new Thread[mulTimeQueryLen];
         for (int i = 0; i < mulTimeQueryLen; i++) {
             mulTimeInsertTasks[i] =
-                    new BaseSessionConcurrencyIT.MultiThreadTask(
+                    new SessionConcurrencyIT.MultiThreadTask(
                             1,
                             mulTimePaths,
                             START_TIME + i,
@@ -281,12 +200,12 @@ public abstract class BaseSessionConcurrencyIT {
             assertEquals(mulDelPSLen, bfPSPath.size());
             assertEquals(TIME_PERIOD, beforePSDataSet.getValues().size());
             int delPSThreadNum = mulDelPSLen - 1;
-            BaseSessionConcurrencyIT.MultiThreadTask[] delPSTasks =
-                    new BaseSessionConcurrencyIT.MultiThreadTask[delPSThreadNum];
+            SessionConcurrencyIT.MultiThreadTask[] delPSTasks =
+                    new SessionConcurrencyIT.MultiThreadTask[delPSThreadNum];
             Thread[] delPSThreads = new Thread[delPSThreadNum];
             for (int i = 0; i < delPSThreadNum; i++) {
                 delPSTasks[i] =
-                        new BaseSessionConcurrencyIT.MultiThreadTask(
+                        new SessionConcurrencyIT.MultiThreadTask(
                                 2,
                                 getPaths(currPath + i, 1),
                                 delStartTime,
@@ -375,8 +294,8 @@ public abstract class BaseSessionConcurrencyIT {
             int delPTPathNum = 4;
             // the deleted paths of the data
             List<String> delPTPaths = getPaths(currPath, delPTPathNum);
-            BaseSessionConcurrencyIT.MultiThreadTask[] delPTTasks =
-                    new BaseSessionConcurrencyIT.MultiThreadTask[delPTThreadNum];
+            SessionConcurrencyIT.MultiThreadTask[] delPTTasks =
+                    new SessionConcurrencyIT.MultiThreadTask[delPTThreadNum];
             Thread[] delPTThreads = new Thread[delPTThreadNum];
             long delPTStartTime = START_TIME + TIME_PERIOD / 5;
             long delPTStep = TIME_PERIOD / 10;
@@ -384,7 +303,7 @@ public abstract class BaseSessionConcurrencyIT {
             long delPTEndTime = delPTStartTime + TIME_PERIOD / 10 * delPTThreadNum - 1;
             for (int i = 0; i < delPTThreadNum; i++) {
                 delPTTasks[i] =
-                        new BaseSessionConcurrencyIT.MultiThreadTask(
+                        new SessionConcurrencyIT.MultiThreadTask(
                                 2,
                                 delPTPaths,
                                 delPTStartTime + delPTStep * i,
@@ -462,12 +381,12 @@ public abstract class BaseSessionConcurrencyIT {
             Thread.sleep(1000);
             // threadNum must < 5
             int delASThreadNum = 4;
-            BaseSessionConcurrencyIT.MultiThreadTask[] delASTasks =
-                    new BaseSessionConcurrencyIT.MultiThreadTask[delASThreadNum];
+            SessionConcurrencyIT.MultiThreadTask[] delASTasks =
+                    new SessionConcurrencyIT.MultiThreadTask[delASThreadNum];
             Thread[] delASThreads = new Thread[delASThreadNum];
             for (int i = 0; i < delASThreadNum; i++) {
                 delASTasks[i] =
-                        new BaseSessionConcurrencyIT.MultiThreadTask(
+                        new SessionConcurrencyIT.MultiThreadTask(
                                 2,
                                 getPaths(currPath + i, 1),
                                 START_TIME,
@@ -540,13 +459,13 @@ public abstract class BaseSessionConcurrencyIT {
             long delATStartTime = START_TIME;
             long delATStep = TIME_PERIOD / delATThreadNum;
 
-            BaseSessionConcurrencyIT.MultiThreadTask[] delATTasks =
-                    new BaseSessionConcurrencyIT.MultiThreadTask[delATThreadNum];
+            SessionConcurrencyIT.MultiThreadTask[] delATTasks =
+                    new SessionConcurrencyIT.MultiThreadTask[delATThreadNum];
             Thread[] delATThreads = new Thread[delATThreadNum];
 
             for (int i = 0; i < delATThreadNum; i++) {
                 delATTasks[i] =
-                        new BaseSessionConcurrencyIT.MultiThreadTask(
+                        new SessionConcurrencyIT.MultiThreadTask(
                                 2,
                                 delATPath,
                                 delATStartTime + delATStep * i,
@@ -610,76 +529,6 @@ public abstract class BaseSessionConcurrencyIT {
         }
     }
 
-    protected int getPathNum(String path) {
-        if (path.contains("(") && path.contains(")")) {
-            path = path.substring(path.indexOf("(") + 1, path.indexOf(")"));
-        }
-
-        String pattern = "^sg1\\.d(\\d+)\\.s(\\d+)$";
-        Pattern p = Pattern.compile(pattern);
-        Matcher m = p.matcher(path);
-        if (m.find()) {
-            int d = Integer.parseInt(m.group(1));
-            int s = Integer.parseInt(m.group(2));
-            if (d == s) {
-                return d;
-            } else {
-                return -1;
-            }
-        } else {
-            return -1;
-        }
-    }
-
-    protected List<String> getPaths(int startPosition, int len) {
-        List<String> paths = new ArrayList<>();
-        for (int i = startPosition; i < startPosition + len; i++) {
-            paths.add("sg1.d" + i + ".s" + i);
-        }
-        return paths;
-    }
-
-    protected double changeResultToDouble(Object rawResult) {
-        double result = 0;
-        if (rawResult instanceof java.lang.Long) {
-            result = (double) ((long) rawResult);
-        } else {
-            try {
-                result = (double) rawResult;
-            } catch (Exception e) {
-                logger.error(e.getMessage());
-                fail();
-            }
-        }
-        return result;
-    }
-
-    protected void insertNumRecords(List<String> insertPaths)
-            throws SessionException, ExecutionException {
-        int pathLen = insertPaths.size();
-        long[] timestamps = new long[(int) TIME_PERIOD];
-        for (long i = 0; i < TIME_PERIOD; i++) {
-            timestamps[(int) i] = i + START_TIME;
-        }
-
-        Object[] valuesList = new Object[pathLen];
-        for (int i = 0; i < pathLen; i++) {
-            int pathNum = getPathNum(insertPaths.get(i));
-            Object[] values = new Object[(int) TIME_PERIOD];
-            for (long j = 0; j < TIME_PERIOD; j++) {
-                values[(int) j] = pathNum + j + START_TIME;
-            }
-            valuesList[i] = values;
-        }
-
-        List<DataType> dataTypeList = new ArrayList<>();
-        for (int i = 0; i < pathLen; i++) {
-            dataTypeList.add(DataType.LONG);
-        }
-        session.insertNonAlignedColumnRecords(
-                insertPaths, timestamps, valuesList, dataTypeList, null);
-    }
-
     protected class MultiThreadTask implements Runnable {
 
         // 1:insert 2:delete 3:query
@@ -714,14 +563,12 @@ public abstract class BaseSessionConcurrencyIT {
             this.aggregateType = aggrType;
 
             this.localSession =
-                    session.isSession()
-                            ? new MultiConnection(
-                                    new Session(
-                                            defaultTestHost,
-                                            defaultTestPort,
-                                            defaultTestUser,
-                                            defaultTestPass))
-                            : session;
+                    new MultiConnection(
+                            new Session(
+                                    defaultTestHost,
+                                    defaultTestPort,
+                                    defaultTestUser,
+                                    defaultTestPass));
             this.localSession.openSession();
         }
 

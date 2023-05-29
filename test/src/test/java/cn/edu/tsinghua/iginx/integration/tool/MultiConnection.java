@@ -34,6 +34,12 @@ public class MultiConnection {
         return sessionPool != null;
     }
 
+    public boolean isClosed() {
+        if (session != null) return session.isClosed();
+        else if (sessionPool != null) return sessionPool.isClosed();
+        return true;
+    }
+
     public void closeSession() throws SessionException {
         if (session != null) session.closeSession();
         else if (sessionPool != null) sessionPool.close();
