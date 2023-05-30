@@ -198,13 +198,17 @@ public class IoTDBStorage implements IStorage {
     @Override
     public Pair<TimeSeriesRange, TimeInterval> getBoundaryOfStorage(String dataPrefix)
             throws PhysicalException {
+        SessionDataSetWrapper dataSet;
+        RowRecord record;
+
+        // 获取序列范围
         List<String> paths = new ArrayList<>();
         TimeSeriesRange tsInterval;
         try {
             if (dataPrefix == null || dataPrefix.isEmpty()) {
-                SessionDataSetWrapper dataSet = sessionPool.executeQueryStatement(SHOW_TIMESERIES);
+                dataSet = sessionPool.executeQueryStatement(SHOW_TIMESERIES);
                 while (dataSet.hasNext()) {
-                    RowRecord record = dataSet.next();
+                    record = dataSet.next();
                     if (record == null || record.getFields().size() < 4) {
                         continue;
                     }
@@ -215,7 +219,7 @@ public class IoTDBStorage implements IStorage {
                 }
                 dataSet.close();
                 paths.sort(String::compareTo);
-                if (paths.size() == 0) {
+                if (paths.isEmpty()) {
                     throw new PhysicalTaskExecuteFailureException("no data!");
                 }
                 tsInterval =
@@ -227,19 +231,23 @@ public class IoTDBStorage implements IStorage {
         } catch (IoTDBConnectionException | StatementExecutionException e) {
             throw new PhysicalTaskExecuteFailureException("get time series failure: ", e);
         }
+
+        // 获取 key 范围
         long minTime = 0, maxTime = Long.MAX_VALUE;
         try {
-            SessionDataSetWrapper dataSet;
-            if (dataPrefix == null || dataPrefix.isEmpty())
+            // 获取 key 的最小值
+            if (dataPrefix == null || dataPrefix.isEmpty()) {
                 dataSet = sessionPool.executeQueryStatement("select * from root");
-            else {
+            } else {
                 dataSet = sessionPool.executeQueryStatement("select " + dataPrefix + " from root");
             }
             if (dataSet.hasNext()) {
-                RowRecord record = dataSet.next();
+                record = dataSet.next();
                 minTime = record.getTimestamp();
             }
             dataSet.close();
+
+            // 获取 key 的最大值
             if (dataPrefix == null || dataPrefix.isEmpty())
                 dataSet =
                         sessionPool.executeQueryStatement("select * from root order by time desc");
@@ -249,7 +257,7 @@ public class IoTDBStorage implements IStorage {
                                 "select " + dataPrefix + " from root order by time desc");
             }
             if (dataSet.hasNext()) {
-                RowRecord record = dataSet.next();
+                record = dataSet.next();
                 maxTime = record.getTimestamp();
             }
             dataSet.close();
@@ -257,6 +265,7 @@ public class IoTDBStorage implements IStorage {
             throw new PhysicalTaskExecuteFailureException("get time series failure: ", e);
         }
         TimeInterval timeInterval = new TimeInterval(minTime, maxTime + 1);
+
         return new Pair<>(tsInterval, timeInterval);
     }
 
