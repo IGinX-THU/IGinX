@@ -8,6 +8,8 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.stream.Collectors;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,13 +47,15 @@ public class ConfLoader {
     }
 
     public void loadTestConf() throws IOException {
-        InputStream in = new FileInputStream(confPath);
+        InputStream in = Files.newInputStream(Paths.get(confPath));
         Properties properties = new Properties();
         properties.load(in);
-        logInfo("loading the test conf...", null);
+        logInfo("loading the test conf...");
         String property = properties.getProperty(STORAGEENGINELIST);
-        if (property == null || property.length() == 0) return;
-        storageEngines.addAll(Arrays.asList(property.split(",")));
+        if (property == null || property.isEmpty()) {
+            return;
+        }
+        storageEngines = Arrays.stream(property.split(",")).map(String::toLowerCase).collect(Collectors.toList());
 
         // load the storageEngine
         for (String storageEngine : storageEngines) {
@@ -84,7 +88,7 @@ public class ConfLoader {
 
         // load the task list
         for (String storageEngine : storageEngines) {
-            String tasks = null;
+            String tasks;
             String storage = storageEngine.toLowerCase();
             tasks = properties.getProperty(storage + "-" + testTask);
             if (tasks == null) tasks = properties.getProperty(testTask);
@@ -103,29 +107,30 @@ public class ConfLoader {
     }
 
     public DBConf loadDBConf(String storageEngine) {
+        DBConf dbConf = new DBConf();
         Properties properties;
         try {
             InputStream in = Files.newInputStream(Paths.get(confPath));
             properties = new Properties();
             properties.load(in);
         } catch (IOException e) {
-            throw new RuntimeException("load conf fail!");
+            logger.error("load conf failure: {}", e.getMessage());
+            return dbConf;
         }
 
         logInfo("loading the DB conf...");
         String property = properties.getProperty(STORAGEENGINELIST);
-        if (property == null || property.length() == 0) return null;
-        storageEngines.addAll(Arrays.asList(property.split(",")));
-
-        DBConf dbConf = new DBConf();
+        if (property == null || property.isEmpty()) {
+            return dbConf;
+        }
+        storageEngines = Arrays.stream(property.split(",")).map(String::toLowerCase).collect(Collectors.toList());
 
         if (storageEngine == null || storageEngine.isEmpty()) {
             return dbConf;
         }
-
         String confs = properties.getProperty(String.format(DBCONF, storageEngine));
         logInfo("the conf of {} is : {}", storageEngine, confs);
-        List<String> confList = Arrays.asList(confs.split(","));
+        String[] confList = confs.split(",");
         for (String conf : confList) {
             String[] confKV = conf.split("=");
             dbConf.setEnumValue(DBConf.getDBConfType(confKV[0]), Boolean.parseBoolean(confKV[1]));
@@ -135,10 +140,6 @@ public class ConfLoader {
 
     public Map<DBType, List<String>> getTaskMap() {
         return taskMap;
-    }
-
-    public List<String> getStorageEngines() {
-        return storageEngines;
     }
 
     public List<StorageEngineMeta> getStorageEngineMetas() {
