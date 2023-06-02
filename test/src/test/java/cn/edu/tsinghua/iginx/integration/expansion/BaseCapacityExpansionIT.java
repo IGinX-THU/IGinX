@@ -5,16 +5,16 @@ import org.junit.Test;
 public interface BaseCapacityExpansionIT {
 
     @Test
-    void testOriHasDataExpHasData();
+    void oriHasDataExpHasData();
 
     @Test
-    void testOriHasDataExpNoData();
+    void oriHasDataExpNoData();
 
     @Test
-    void testOriNoDataExpHasData();
+    void oriNoDataExpHasData();
 
     @Test
-    void testOriNoDataExpNoData();
+    void oriNoDataExpNoData();
 
     @Test
     void testPrefixAndRemoveHistoryDataSource();

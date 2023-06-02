@@ -192,7 +192,8 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
                     "remove history data source through session api error: {}", e.getMessage());
         }
         statement = "select * from p2.mn";
-        String expect = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
+        String expect =
+                "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
         SQLTestTools.executeAndCompare(session, statement, expect);
 
         try {
