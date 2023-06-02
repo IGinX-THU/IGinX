@@ -146,28 +146,46 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
         addStorageWithPrefix("mn", "p1");
         addStorageWithPrefix("mn", "p2");
         String statement = "select * from p1.mn";
-        String expect =
-                "ResultSets:\n"
-                        + "+---+----------------------+---------------------------+\n"
-                        + "|key|p1.mn.wf03.wt01.status|p1.mn.wf03.wt01.temperature|\n"
-                        + "+---+----------------------+---------------------------+\n"
-                        + "| 77|                  true|                       null|\n"
-                        + "|200|                 false|                      77.71|\n"
-                        + "+---+----------------------+---------------------------+\n"
-                        + "Total line number = 2\n";
-        SQLTestTools.executeAndCompare(session, statement, expect);
+        List<String> pathList =
+                new ArrayList<String>() {
+                    {
+                        add("p1.mn.wf03.wt01.status");
+                        add("p1.mn.wf03.wt01.temperature");
+                    }
+                };
+        List<List<Object>> valuesList = new ArrayList<>();
+        valuesList.add(
+                new ArrayList<Object>() {
+                    {
+                        add(true);
+                        add(null);
+                    }
+                });
+        valuesList.add(
+                new ArrayList<Object>() {
+                    {
+                        add(false);
+                        add(77.71);
+                    }
+                });
+        List<DataType> dataTypeList =
+                new ArrayList<DataType>() {
+                    {
+                        add(DataType.DOUBLE);
+                        add(DataType.LONG);
+                    }
+                };
+        SQLTestTools.executeAndCompare(session, statement, pathList, valuesList, dataTypeList);
 
         statement = "select * from p2.mn";
-        expect =
-                "ResultSets:\n"
-                        + "+---+----------------------+---------------------------+\n"
-                        + "|key|p2.mn.wf03.wt01.status|p2.mn.wf03.wt01.temperature|\n"
-                        + "+---+----------------------+---------------------------+\n"
-                        + "| 77|                  true|                       null|\n"
-                        + "|200|                 false|                      77.71|\n"
-                        + "+---+----------------------+---------------------------+\n"
-                        + "Total line number = 2\n";
-        SQLTestTools.executeAndCompare(session, statement, expect);
+        pathList =
+                new ArrayList<String>() {
+                    {
+                        add("p2.mn.wf03.wt01.status");
+                        add("p2.mn.wf03.wt01.temperature");
+                    }
+                };
+        SQLTestTools.executeAndCompare(session, statement, pathList, valuesList, dataTypeList);
 
         List<RemovedStorageEngineInfo> removedStorageEngineList = new ArrayList<>();
         removedStorageEngineList.add(
@@ -179,7 +197,7 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
                     "remove history data source through session api error: {}", e.getMessage());
         }
         statement = "select * from p2.mn";
-        expect = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
+        String expect = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
         SQLTestTools.executeAndCompare(session, statement, expect);
 
         try {
