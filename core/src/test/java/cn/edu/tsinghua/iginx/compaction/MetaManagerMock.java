@@ -83,51 +83,47 @@ public class MetaManagerMock implements IMetaManager {
     }
 
     @Override
-    public Pair<TimeSeriesRange, TimeInterval> getBoundaryOfStorageUnit(String storageUnitId) {
+    public Pair<ColumnsRange, KeyInterval> getBoundaryOfStorageUnit(String storageUnitId) {
         return null;
     }
 
     @Override
-    public Map<TimeSeriesRange, List<FragmentMeta>> getFragmentMapByTimeSeriesInterval(
-            TimeSeriesRange tsInterval) {
+    public Map<ColumnsRange, List<FragmentMeta>> getFragmentMapByTimeSeriesInterval(
+            ColumnsRange tsInterval) {
         return null;
     }
 
     @Override
-    public Map<TimeSeriesRange, List<FragmentMeta>> getFragmentMapByTimeSeriesInterval(
-            TimeSeriesRange tsInterval, boolean withDummyFragment) {
+    public Map<ColumnsRange, List<FragmentMeta>> getFragmentMapByTimeSeriesInterval(
+            ColumnsRange tsInterval, boolean withDummyFragment) {
         return null;
     }
 
     @Override
-    public boolean hasDummyFragment(TimeSeriesRange tsInterval) {
+    public boolean hasDummyFragment(ColumnsRange tsInterval) {
         return false;
     }
 
     @Override
-    public Map<TimeSeriesRange, FragmentMeta> getLatestFragmentMapByTimeSeriesInterval(
-            TimeSeriesRange tsInterval) {
+    public Map<ColumnsRange, FragmentMeta> getLatestFragmentMapByTimeSeriesInterval(
+            ColumnsRange tsInterval) {
         return null;
     }
 
     @Override
-    public Map<TimeSeriesRange, FragmentMeta> getLatestFragmentMap() {
+    public Map<ColumnsRange, FragmentMeta> getLatestFragmentMap() {
         return null;
     }
 
     @Override
-    public Map<TimeSeriesRange, List<FragmentMeta>>
-            getFragmentMapByTimeSeriesIntervalAndTimeInterval(
-                    TimeSeriesRange tsInterval, TimeInterval timeInterval) {
+    public Map<ColumnsRange, List<FragmentMeta>> getFragmentMapByTimeSeriesIntervalAndTimeInterval(
+            ColumnsRange tsInterval, KeyInterval keyInterval) {
         return null;
     }
 
     @Override
-    public Map<TimeSeriesRange, List<FragmentMeta>>
-            getFragmentMapByTimeSeriesIntervalAndTimeInterval(
-                    TimeSeriesRange tsInterval,
-                    TimeInterval timeInterval,
-                    boolean withDummyFragment) {
+    public Map<ColumnsRange, List<FragmentMeta>> getFragmentMapByTimeSeriesIntervalAndTimeInterval(
+            ColumnsRange tsInterval, KeyInterval keyInterval, boolean withDummyFragment) {
         return null;
     }
 
@@ -143,7 +139,7 @@ public class MetaManagerMock implements IMetaManager {
 
     @Override
     public List<FragmentMeta> getFragmentListByTimeSeriesNameAndTimeInterval(
-            String tsName, TimeInterval timeInterval) {
+            String tsName, KeyInterval keyInterval) {
         return null;
     }
 
@@ -325,7 +321,7 @@ public class MetaManagerMock implements IMetaManager {
     public void endFragmentByTimeSeriesInterval(FragmentMeta fragmentMeta, String endTimeSeries) {}
 
     @Override
-    public void updateFragmentByTsInterval(TimeSeriesRange tsInterval, FragmentMeta fragmentMeta) {}
+    public void updateFragmentByTsInterval(ColumnsRange tsInterval, FragmentMeta fragmentMeta) {}
 
     @Override
     public void updateMaxActiveEndTime(long endTime) {}

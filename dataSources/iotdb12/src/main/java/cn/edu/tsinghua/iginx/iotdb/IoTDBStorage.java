@@ -21,13 +21,12 @@ package cn.edu.tsinghua.iginx.iotdb;
 import static cn.edu.tsinghua.iginx.iotdb.tools.DataTypeTransformer.toIoTDB;
 import static cn.edu.tsinghua.iginx.thrift.DataType.BINARY;
 
-import cn.edu.tsinghua.iginx.engine.physical.exception.NonExecutablePhysicalTaskException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
-import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Timeseries;
-import cn.edu.tsinghua.iginx.engine.physical.task.StoragePhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
+import cn.edu.tsinghua.iginx.engine.physical.storage.domain.DataArea;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
 import cn.edu.tsinghua.iginx.engine.shared.TimeRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.ClearEmptyRowStreamWrapper;
@@ -38,7 +37,6 @@ import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.RowDataView;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
@@ -46,7 +44,6 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.iotdb.query.entity.IoTDBQueryRowStream;
 import cn.edu.tsinghua.iginx.iotdb.tools.DataViewWrapper;
 import cn.edu.tsinghua.iginx.iotdb.tools.FilterTransformer;
@@ -155,55 +152,14 @@ public class IoTDBStorage implements IStorage {
     }
 
     @Override
-    public TaskExecuteResult execute(StoragePhysicalTask task) {
-        List<Operator> operators = task.getOperators();
-        if (operators.size() < 1) {
-            return new TaskExecuteResult(
-                    new NonExecutablePhysicalTaskException(
-                            "storage physical task should have one more operators"));
-        }
-        Operator op = operators.get(0);
-        String storageUnit = task.getStorageUnit();
-        boolean isDummyStorageUnit = task.isDummyStorageUnit();
-        if (op.getType() == OperatorType.Project) {
-            Project project = (Project) op;
-            Filter filter;
-            if (operators.size() == 2) {
-                filter = ((Select) operators.get(1)).getFilter();
-            } else {
-                FragmentMeta fragment = task.getTargetFragment();
-                filter =
-                        new AndFilter(
-                                Arrays.asList(
-                                        new KeyFilter(
-                                                Op.GE, fragment.getTimeInterval().getStartTime()),
-                                        new KeyFilter(
-                                                Op.L, fragment.getTimeInterval().getEndTime())));
-            }
-            return isDummyStorageUnit
-                    ? executeQueryHistoryTask(
-                            task.getTargetFragment().getTsInterval(), project, filter)
-                    : executeQueryTask(storageUnit, project, filter);
-        } else if (op.getType() == OperatorType.Insert) {
-            Insert insert = (Insert) op;
-            return executeInsertTask(storageUnit, insert);
-        } else if (op.getType() == OperatorType.Delete) {
-            Delete delete = (Delete) op;
-            return executeDeleteTask(storageUnit, delete);
-        }
-        return new TaskExecuteResult(
-                new NonExecutablePhysicalTaskException("unsupported physical task"));
-    }
-
-    @Override
-    public Pair<TimeSeriesRange, TimeInterval> getBoundaryOfStorage(String dataPrefix)
+    public Pair<ColumnsRange, KeyInterval> getBoundaryOfStorage(String dataPrefix)
             throws PhysicalException {
         SessionDataSetWrapper dataSet;
         RowRecord record;
 
         // 获取序列范围
         List<String> paths = new ArrayList<>();
-        TimeSeriesRange tsInterval;
+        ColumnsRange tsInterval;
         try {
             if (dataPrefix == null || dataPrefix.isEmpty()) {
                 dataSet = sessionPool.executeQueryStatement(SHOW_TIMESERIES);
@@ -223,10 +179,10 @@ public class IoTDBStorage implements IStorage {
                     throw new PhysicalTaskExecuteFailureException("no data!");
                 }
                 tsInterval =
-                        new TimeSeriesInterval(
+                        new ColumnsInterval(
                                 paths.get(0), StringUtils.nextString(paths.get(paths.size() - 1)));
             } else {
-                tsInterval = new TimeSeriesInterval(dataPrefix, StringUtils.nextString(dataPrefix));
+                tsInterval = new ColumnsInterval(dataPrefix, StringUtils.nextString(dataPrefix));
             }
         } catch (IoTDBConnectionException | StatementExecutionException e) {
             throw new PhysicalTaskExecuteFailureException("get time series failure: ", e);
@@ -264,9 +220,9 @@ public class IoTDBStorage implements IStorage {
         } catch (IoTDBConnectionException | StatementExecutionException e) {
             throw new PhysicalTaskExecuteFailureException("get time series failure: ", e);
         }
-        TimeInterval timeInterval = new TimeInterval(minTime, maxTime + 1);
+        KeyInterval keyInterval = new KeyInterval(minTime, maxTime + 1);
 
-        return new Pair<>(tsInterval, timeInterval);
+        return new Pair<>(tsInterval, keyInterval);
     }
 
     @Override
@@ -275,8 +231,8 @@ public class IoTDBStorage implements IStorage {
     }
 
     @Override
-    public List<Timeseries> getTimeSeries() throws PhysicalException {
-        List<Timeseries> timeseries = new ArrayList<>();
+    public List<Column> getColumns() throws PhysicalException {
+        List<Column> timeseries = new ArrayList<>();
         try {
             SessionDataSetWrapper dataSet = sessionPool.executeQueryStatement(SHOW_TIMESERIES);
             while (dataSet.hasNext()) {
@@ -293,22 +249,22 @@ public class IoTDBStorage implements IStorage {
                 String dataTypeName = record.getFields().get(3).getStringValue();
                 switch (dataTypeName) {
                     case "BOOLEAN":
-                        timeseries.add(new Timeseries(pair.k, DataType.BOOLEAN, pair.v));
+                        timeseries.add(new Column(pair.k, DataType.BOOLEAN, pair.v));
                         break;
                     case "FLOAT":
-                        timeseries.add(new Timeseries(pair.k, DataType.FLOAT, pair.v));
+                        timeseries.add(new Column(pair.k, DataType.FLOAT, pair.v));
                         break;
                     case "TEXT":
-                        timeseries.add(new Timeseries(pair.k, DataType.BINARY, pair.v));
+                        timeseries.add(new Column(pair.k, DataType.BINARY, pair.v));
                         break;
                     case "DOUBLE":
-                        timeseries.add(new Timeseries(pair.k, DataType.DOUBLE, pair.v));
+                        timeseries.add(new Column(pair.k, DataType.DOUBLE, pair.v));
                         break;
                     case "INT32":
-                        timeseries.add(new Timeseries(pair.k, DataType.INTEGER, pair.v));
+                        timeseries.add(new Column(pair.k, DataType.INTEGER, pair.v));
                         break;
                     case "INT64":
-                        timeseries.add(new Timeseries(pair.k, DataType.LONG, pair.v));
+                        timeseries.add(new Column(pair.k, DataType.LONG, pair.v));
                         break;
                 }
             }
@@ -322,8 +278,33 @@ public class IoTDBStorage implements IStorage {
         return timeseries;
     }
 
-    private TaskExecuteResult executeQueryTask(
-            String storageUnit, Project project, Filter filter) { // 未来可能要用 tsInterval 对查询出来的数据进行过滤
+    @Override
+    public TaskExecuteResult executeProject(Project project, DataArea dataArea) {
+        String storageUnit = dataArea.getStorageUnit();
+        KeyInterval keyInterval = dataArea.getKeyInterval();
+        Filter filter =
+                new AndFilter(
+                        Arrays.asList(
+                                new KeyFilter(Op.GE, keyInterval.getStartKey()),
+                                new KeyFilter(Op.L, keyInterval.getEndKey())));
+        return executeProjectWithFilter(project, filter, storageUnit);
+    }
+
+    @Override
+    public boolean isSupportProjectWithSelect() {
+        return true;
+    }
+
+    @Override
+    public TaskExecuteResult executeProjectWithSelect(
+            Project project, Select select, DataArea dataArea) {
+        String storageUnit = dataArea.getStorageUnit();
+        Filter filter = select.getFilter();
+        return executeProjectWithFilter(project, filter, storageUnit);
+    }
+
+    private TaskExecuteResult executeProjectWithFilter(
+            Project project, Filter filter, String storageUnit) {
         try {
             StringBuilder builder = new StringBuilder();
             for (String path : project.getPatterns()) {
@@ -350,17 +331,24 @@ public class IoTDBStorage implements IStorage {
         }
     }
 
-    private String getRealPathWithoutPrefix(String oriPath, String prefix) {
-        if (prefix != null && !prefix.isEmpty() && oriPath.contains(prefix)) {
-            return oriPath.substring(oriPath.indexOf(prefix) + prefix.length() + 1);
-        }
-        return oriPath;
+    @Override
+    public TaskExecuteResult executeProjectDummy(Project project, DataArea dataArea) {
+        KeyInterval keyInterval = dataArea.getKeyInterval();
+        Filter filter =
+                new AndFilter(
+                        Arrays.asList(
+                                new KeyFilter(Op.GE, keyInterval.getStartKey()),
+                                new KeyFilter(Op.L, keyInterval.getEndKey())));
+        return executeProjectDummyWithFilter(project, filter);
     }
 
-    private TaskExecuteResult executeQueryHistoryTask(
-            TimeSeriesRange timeSeriesInterval,
-            Project project,
-            Filter filter) { // 未来可能要用 tsInterval 对查询出来的数据进行过滤
+    @Override
+    public TaskExecuteResult executeProjectDummyWithSelect(
+            Project project, Select select, DataArea dataArea) {
+        return executeProjectDummyWithFilter(project, select.getFilter());
+    }
+
+    private TaskExecuteResult executeProjectDummyWithFilter(Project project, Filter filter) {
         try {
             StringBuilder builder = new StringBuilder();
             for (String path : project.getPatterns()) {
@@ -386,8 +374,10 @@ public class IoTDBStorage implements IStorage {
         }
     }
 
-    private TaskExecuteResult executeInsertTask(String storageUnit, Insert insert) {
+    @Override
+    public TaskExecuteResult executeInsert(Insert insert, DataArea dataArea) {
         DataView dataView = insert.getData();
+        String storageUnit = dataArea.getStorageUnit();
         Exception e = null;
         switch (dataView.getRawDataType()) {
             case Row:
@@ -753,7 +743,9 @@ public class IoTDBStorage implements IStorage {
         return null;
     }
 
-    private TaskExecuteResult executeDeleteTask(String storageUnit, Delete delete) {
+    @Override
+    public TaskExecuteResult executeDelete(Delete delete, DataArea dataArea) {
+        String storageUnit = dataArea.getStorageUnit();
         if (delete.getTimeRanges() == null
                 || delete.getTimeRanges().size() == 0) { // 没有传任何 time range
             List<String> paths = delete.getPatterns();
@@ -826,10 +818,10 @@ public class IoTDBStorage implements IStorage {
         } else {
             List<String> patterns = delete.getPatterns();
             TagFilter tagFilter = delete.getTagFilter();
-            List<Timeseries> timeSeries = getTimeSeries();
+            List<Column> timeSeries = getColumns();
 
             List<String> pathList = new ArrayList<>();
-            for (Timeseries ts : timeSeries) {
+            for (Column ts : timeSeries) {
                 for (String pattern : patterns) {
                     if (Pattern.matches(StringUtils.reformatPath(pattern), ts.getPath())
                             && TagKVUtils.match(ts.getTags(), tagFilter)) {

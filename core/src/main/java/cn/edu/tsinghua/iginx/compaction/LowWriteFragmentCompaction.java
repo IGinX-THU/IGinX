@@ -58,7 +58,7 @@ public class LowWriteFragmentCompaction extends Compaction {
         for (FragmentMeta fragmentMeta : fragmentMetaSet) {
             long writeLoad = fragmentHeatWriteMap.getOrDefault(fragmentMeta, 0L);
             long readLoad = fragmentHeatReadMap.getOrDefault(fragmentMeta, 0L);
-            if (fragmentMeta.getTimeInterval().getEndTime() != Long.MAX_VALUE
+            if (fragmentMeta.getKeyInterval().getEndKey() != Long.MAX_VALUE
                     && writeLoad
                             < ConfigDescriptor.getInstance()
                                             .getConfig()

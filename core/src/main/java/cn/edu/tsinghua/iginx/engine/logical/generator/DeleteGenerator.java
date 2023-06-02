@@ -51,10 +51,10 @@ public class DeleteGenerator extends AbstractGenerator {
         List<String> pathList =
                 SortUtils.mergeAndSortPaths(new ArrayList<>(deleteStatement.getPaths()));
 
-        TimeSeriesRange interval =
-                new TimeSeriesInterval(pathList.get(0), pathList.get(pathList.size() - 1));
+        ColumnsRange interval =
+                new ColumnsInterval(pathList.get(0), pathList.get(pathList.size() - 1));
 
-        Map<TimeSeriesRange, List<FragmentMeta>> fragments =
+        Map<ColumnsRange, List<FragmentMeta>> fragments =
                 metaManager.getFragmentMapByTimeSeriesInterval(interval);
         if (fragments.isEmpty()) {
             // on startup
@@ -76,7 +76,7 @@ public class DeleteGenerator extends AbstractGenerator {
                 (k, v) ->
                         v.forEach(
                                 fragmentMeta -> {
-                                    TimeInterval timeInterval = fragmentMeta.getTimeInterval();
+                                    KeyInterval keyInterval = fragmentMeta.getKeyInterval();
                                     if (deleteStatement.isDeleteAll()) {
                                         deleteList.add(
                                                 new Delete(
@@ -87,7 +87,7 @@ public class DeleteGenerator extends AbstractGenerator {
                                     } else {
                                         List<TimeRange> overlapTimeRange =
                                                 getOverlapTimeRange(
-                                                        timeInterval,
+                                                        keyInterval,
                                                         deleteStatement.getTimeRanges());
                                         if (!overlapTimeRange.isEmpty()) {
                                             deleteList.add(
@@ -105,11 +105,11 @@ public class DeleteGenerator extends AbstractGenerator {
         return new CombineNonQuery(sources);
     }
 
-    private List<TimeRange> getOverlapTimeRange(TimeInterval interval, List<TimeRange> timeRanges) {
+    private List<TimeRange> getOverlapTimeRange(KeyInterval interval, List<TimeRange> timeRanges) {
         List<TimeRange> res = new ArrayList<>();
         for (TimeRange range : timeRanges) {
-            if (interval.getStartTime() > range.getEndTime()
-                    || interval.getEndTime() < range.getBeginTime()) continue;
+            if (interval.getStartKey() > range.getEndTime()
+                    || interval.getEndKey() < range.getBeginTime()) continue;
             res.add(range);
         }
         return res;

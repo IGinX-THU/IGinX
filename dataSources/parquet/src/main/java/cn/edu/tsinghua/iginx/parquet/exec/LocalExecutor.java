@@ -6,7 +6,7 @@ import static cn.edu.tsinghua.iginx.parquet.tools.DataTypeTransformer.toParquetD
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
-import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Timeseries;
+import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
 import cn.edu.tsinghua.iginx.engine.shared.TimeRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.ClearEmptyRowStreamWrapper;
@@ -15,9 +15,9 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.BitmapView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
-import cn.edu.tsinghua.iginx.metadata.entity.TimeInterval;
-import cn.edu.tsinghua.iginx.metadata.entity.TimeSeriesInterval;
-import cn.edu.tsinghua.iginx.metadata.entity.TimeSeriesRange;
+import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
+import cn.edu.tsinghua.iginx.metadata.entity.ColumnsRange;
+import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.parquet.entity.ParquetQueryRowStream;
 import cn.edu.tsinghua.iginx.parquet.entity.WritePlan;
 import cn.edu.tsinghua.iginx.parquet.policy.ParquetStoragePolicy;
@@ -183,7 +183,7 @@ public class LocalExecutor implements Executor {
             return determinePathList(storageUnit, patterns, isDummyStorageUnit);
         }
 
-        List<Timeseries> timeSeries = new ArrayList<>();
+        List<Column> timeSeries = new ArrayList<>();
         if (isDummyStorageUnit) {
             timeSeries.addAll(getTimeSeriesOfDir(Paths.get(dataDir, "*.parquet")));
         } else {
@@ -191,7 +191,7 @@ public class LocalExecutor implements Executor {
         }
 
         List<String> pathList = new ArrayList<>();
-        for (Timeseries ts : timeSeries) {
+        for (Column ts : timeSeries) {
             for (String pattern : patterns) {
                 if (Pattern.matches(StringUtils.reformatPath(pattern), ts.getPath())
                         && TagKVUtils.match(ts.getTags(), tagFilter)) {
@@ -219,13 +219,13 @@ public class LocalExecutor implements Executor {
                 });
 
         List<String> pathList = new ArrayList<>();
-        List<Timeseries> timeSeries = new ArrayList<>();
+        List<Column> timeSeries = new ArrayList<>();
         if (isDummyStorageUnit) {
             timeSeries.addAll(getTimeSeriesOfDir(Paths.get(dataDir, "*.parquet")));
         } else {
             timeSeries.addAll(getTimeSeriesOfStorageUnit(storageUnit));
         }
-        for (Timeseries ts : timeSeries) {
+        for (Column ts : timeSeries) {
             if (patternWithoutStarSet.contains(ts.getPath())) {
                 String path = TagKVUtils.toFullName(ts.getPath(), ts.getTags());
                 pathList.add(path);
@@ -334,8 +334,8 @@ public class LocalExecutor implements Executor {
         int startPathIdx = data.getPathIndex(writePlan.getPathList().get(0));
         int endPathIdx =
                 data.getPathIndex(writePlan.getPathList().get(writePlan.getPathList().size() - 1));
-        int startTimeIdx = data.getTimestampIndex(writePlan.getTimeInterval().getStartTime());
-        int endTimeIdx = data.getTimestampIndex(writePlan.getTimeInterval().getEndTime());
+        int startTimeIdx = data.getTimestampIndex(writePlan.getTimeInterval().getStartKey());
+        int endTimeIdx = data.getTimestampIndex(writePlan.getTimeInterval().getEndKey());
 
         for (int i = startTimeIdx; i <= endTimeIdx; i++) {
             BitmapView bitmapView = data.getBitmapView(i);
@@ -369,8 +369,8 @@ public class LocalExecutor implements Executor {
         int startPathIdx = data.getPathIndex(writePlan.getPathList().get(0));
         int endPathIdx =
                 data.getPathIndex(writePlan.getPathList().get(writePlan.getPathList().size() - 1));
-        int startTimeIdx = data.getTimestampIndex(writePlan.getTimeInterval().getStartTime());
-        int endTimeIdx = data.getTimestampIndex(writePlan.getTimeInterval().getEndTime());
+        int startTimeIdx = data.getTimestampIndex(writePlan.getTimeInterval().getStartKey());
+        int endTimeIdx = data.getTimestampIndex(writePlan.getTimeInterval().getEndKey());
 
         String[] rowValueArray = new String[endTimeIdx - startTimeIdx + 1];
         for (int i = startTimeIdx; i <= endTimeIdx; i++) {
@@ -474,13 +474,13 @@ public class LocalExecutor implements Executor {
         if (data.getTimeSize() == 0) { // empty data section
             return new ArrayList<>();
         }
-        TimeInterval timeInterval =
-                new TimeInterval(data.getTimestamp(0), data.getTimestamp(data.getTimeSize() - 1));
+        KeyInterval keyInterval =
+                new KeyInterval(data.getTimestamp(0), data.getTimestamp(data.getTimeSize() - 1));
 
         Pair<Long, List<String>> latestPartition = policy.getLatestPartition(storageUnit);
         List<WritePlan> writePlans = new ArrayList<>();
 
-        if (timeInterval.getStartTime() >= latestPartition.getK()) {
+        if (keyInterval.getStartKey() >= latestPartition.getK()) {
             // 所有写入数据位于最新的分区
             List<String> tsPartition = new ArrayList<>(latestPartition.getV());
             tsPartition.add(null);
@@ -510,8 +510,7 @@ public class LocalExecutor implements Executor {
                                             startPath));
 
                     long pointNum =
-                            pathList.size()
-                                    * (timeInterval.getEndTime() - timeInterval.getStartTime());
+                            pathList.size() * (keyInterval.getEndKey() - keyInterval.getStartKey());
                     if (policy.getFlushType(path, pointNum).equals(FlushType.APPENDIX)) {
                         path =
                                 Paths.get(
@@ -523,7 +522,7 @@ public class LocalExecutor implements Executor {
                                                 latestPartition.getK(),
                                                 startPath));
                     }
-                    writePlans.add(new WritePlan(path, pathList, timeInterval));
+                    writePlans.add(new WritePlan(path, pathList, keyInterval));
                 }
             }
         } else {
@@ -534,10 +533,9 @@ public class LocalExecutor implements Executor {
             for (int i = 0; i < timePartition.size() - 1; i++) {
                 long startTime = timePartition.get(i);
                 long endTime = timePartition.get(i + 1);
-                TimeInterval partTimeInterval = new TimeInterval(startTime, endTime);
-                if (timeInterval.isIntersect(partTimeInterval)) {
-                    TimeInterval timeIntersect =
-                            timeInterval.getIntersectWithLCRO(partTimeInterval);
+                KeyInterval partKeyInterval = new KeyInterval(startTime, endTime);
+                if (keyInterval.isIntersect(partKeyInterval)) {
+                    KeyInterval timeIntersect = keyInterval.getIntersectWithLCRO(partKeyInterval);
                     List<String> tsPartition = new ArrayList<>(allPartition.get(startTime));
                     tsPartition.add(null);
                     for (int j = 0; j < tsPartition.size() - 1; j++) {
@@ -559,16 +557,15 @@ public class LocalExecutor implements Executor {
                                     Paths.get(
                                             dataDir,
                                             storageUnit,
-                                            String.valueOf(partTimeInterval.getStartTime()),
+                                            String.valueOf(partKeyInterval.getStartKey()),
                                             String.format(
                                                     DATA_FILE_NAME_FORMATTER,
-                                                    partTimeInterval.getStartTime(),
+                                                    partKeyInterval.getStartKey(),
                                                     startPath));
 
                             long pointNum =
                                     pathList.size()
-                                            * (timeInterval.getEndTime()
-                                                    - timeInterval.getStartTime());
+                                            * (keyInterval.getEndKey() - keyInterval.getStartKey());
                             if (policy.getFlushType(path, pointNum).equals(FlushType.APPENDIX)) {
                                 path =
                                         Paths.get(
@@ -714,17 +711,15 @@ public class LocalExecutor implements Executor {
     }
 
     @Override
-    public List<Timeseries> getTimeSeriesOfStorageUnit(String storageUnit)
-            throws PhysicalException {
+    public List<Column> getTimeSeriesOfStorageUnit(String storageUnit) throws PhysicalException {
         Path path =
                 Paths.get(
                         dataDir, storageUnit, /*timePartition*/ "*", /*pathPartition*/ "*.parquet");
         return getTimeSeriesOfDir(path);
     }
 
-    private List<Timeseries> getTimeSeriesOfDir(Path path)
-            throws PhysicalTaskExecuteFailureException {
-        Set<Timeseries> timeseries = new HashSet<>();
+    private List<Column> getTimeSeriesOfDir(Path path) throws PhysicalTaskExecuteFailureException {
+        Set<Column> timeseries = new HashSet<>();
         try {
             Connection conn = ((DuckDBConnection) connection).duplicate();
             Statement stmt = conn.createStatement();
@@ -736,7 +731,7 @@ public class LocalExecutor implements Executor {
                 Pair<String, Map<String, String>> pair = TagKVUtils.splitFullName(pathName);
                 DataType type = fromDuckDBDataType((String) rs.getObject(COLUMN_TYPE));
                 if (!pathName.equals(DUCKDB_SCHEMA) && !pathName.equals(COLUMN_TIME)) {
-                    timeseries.add(new Timeseries(pair.k, type, pair.v));
+                    timeseries.add(new Column(pair.k, type, pair.v));
                 }
             }
             stmt.close();
@@ -751,7 +746,7 @@ public class LocalExecutor implements Executor {
     }
 
     @Override
-    public Pair<TimeSeriesRange, TimeInterval> getBoundaryOfStorage() throws PhysicalException {
+    public Pair<ColumnsRange, KeyInterval> getBoundaryOfStorage() throws PhysicalException {
         File rootDir = new File(dataDir);
         List<String> parquetFiles = new ArrayList<>();
         findParquetFiles(parquetFiles, rootDir);
@@ -772,11 +767,10 @@ public class LocalExecutor implements Executor {
 
         if (!pathTreeSet.isEmpty()) {
             return new Pair<>(
-                    new TimeSeriesInterval(pathTreeSet.first(), pathTreeSet.last()),
-                    new TimeInterval(startTime, endTime));
+                    new ColumnsInterval(pathTreeSet.first(), pathTreeSet.last()),
+                    new KeyInterval(startTime, endTime));
         } else {
-            return new Pair<>(
-                    new TimeSeriesInterval(null, null), new TimeInterval(startTime, endTime));
+            return new Pair<>(new ColumnsInterval(null, null), new KeyInterval(startTime, endTime));
         }
     }
 

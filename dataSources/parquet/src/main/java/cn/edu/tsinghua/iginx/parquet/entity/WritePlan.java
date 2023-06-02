@@ -1,6 +1,6 @@
 package cn.edu.tsinghua.iginx.parquet.entity;
 
-import cn.edu.tsinghua.iginx.metadata.entity.TimeInterval;
+import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -10,12 +10,12 @@ public class WritePlan {
 
     private List<String> pathList;
 
-    private TimeInterval timeInterval;
+    private KeyInterval keyInterval;
 
-    public WritePlan(Path filePath, List<String> pathList, TimeInterval timeInterval) {
+    public WritePlan(Path filePath, List<String> pathList, KeyInterval keyInterval) {
         this.filePath = filePath;
         this.pathList = pathList;
-        this.timeInterval = timeInterval;
+        this.keyInterval = keyInterval;
     }
 
     public Path getFilePath() {
@@ -34,11 +34,11 @@ public class WritePlan {
         this.pathList = pathList;
     }
 
-    public TimeInterval getTimeInterval() {
-        return timeInterval;
+    public KeyInterval getTimeInterval() {
+        return keyInterval;
     }
 
-    public void setTimeInterval(TimeInterval timeInterval) {
-        this.timeInterval = timeInterval;
+    public void setTimeInterval(KeyInterval keyInterval) {
+        this.keyInterval = keyInterval;
     }
 }

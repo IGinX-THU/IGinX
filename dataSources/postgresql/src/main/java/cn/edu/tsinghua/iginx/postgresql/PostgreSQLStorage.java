@@ -23,7 +23,8 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
-import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Timeseries;
+import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
+import cn.edu.tsinghua.iginx.engine.physical.storage.domain.DataArea;
 import cn.edu.tsinghua.iginx.engine.physical.task.StoragePhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
 import cn.edu.tsinghua.iginx.engine.shared.TimeRange;
@@ -144,7 +145,6 @@ public class PostgreSQLStorage implements IStorage {
         }
     }
 
-    @Override
     public TaskExecuteResult execute(StoragePhysicalTask task) {
         List<Operator> operators = task.getOperators();
         if (operators.size() != 1) {
@@ -167,9 +167,9 @@ public class PostgreSQLStorage implements IStorage {
                         new AndFilter(
                                 Arrays.asList(
                                         new KeyFilter(
-                                                Op.GE, fragment.getTimeInterval().getStartTime()),
+                                                Op.GE, fragment.getKeyInterval().getStartKey()),
                                         new KeyFilter(
-                                                Op.L, fragment.getTimeInterval().getEndTime())));
+                                                Op.L, fragment.getKeyInterval().getEndKey())));
             }
             return executeProjectTask(project, filter);
         } else if (op.getType() == OperatorType.Insert) {
@@ -184,8 +184,45 @@ public class PostgreSQLStorage implements IStorage {
     }
 
     @Override
-    public List<Timeseries> getTimeSeries() throws PhysicalException {
-        List<Timeseries> timeseries = new ArrayList<>();
+    public TaskExecuteResult executeProject(Project project, DataArea dataArea) {
+        return null;
+    }
+
+    @Override
+    public TaskExecuteResult executeProjectDummy(Project project, DataArea dataArea) {
+        return null;
+    }
+
+    @Override
+    public boolean isSupportProjectWithSelect() {
+        return false;
+    }
+
+    @Override
+    public TaskExecuteResult executeProjectWithSelect(
+            Project project, Select select, DataArea dataArea) {
+        return null;
+    }
+
+    @Override
+    public TaskExecuteResult executeProjectDummyWithSelect(
+            Project project, Select select, DataArea dataArea) {
+        return null;
+    }
+
+    @Override
+    public TaskExecuteResult executeDelete(Delete delete, DataArea dataArea) {
+        return null;
+    }
+
+    @Override
+    public TaskExecuteResult executeInsert(Insert insert, DataArea dataArea) {
+        return null;
+    }
+
+    @Override
+    public List<Column> getColumns() throws PhysicalException {
+        List<Column> timeseries = new ArrayList<>();
         try {
             DatabaseMetaData databaseMetaData = connection.getMetaData();
             ResultSet tableSet = databaseMetaData.getTables(null, "%", "%", new String[] {"TABLE"});
@@ -199,7 +236,7 @@ public class PostgreSQLStorage implements IStorage {
                     String columnName = columnSet.getString("COLUMN_NAME"); // 获取列名称
                     String typeName = columnSet.getString("TYPE_NAME"); // 列字段类型
                     timeseries.add(
-                            new Timeseries(
+                            new Column(
                                     tableName.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR)
                                             + IGINX_SEPARATOR
                                             + columnName.replace(
@@ -214,7 +251,7 @@ public class PostgreSQLStorage implements IStorage {
     }
 
     @Override
-    public Pair<TimeSeriesRange, TimeInterval> getBoundaryOfStorage(String prefix)
+    public Pair<ColumnsRange, KeyInterval> getBoundaryOfStorage(String prefix)
             throws PhysicalException {
         long minTime = Long.MAX_VALUE, maxTime = 0;
         List<String> paths = new ArrayList<>();
@@ -268,8 +305,8 @@ public class PostgreSQLStorage implements IStorage {
         paths.sort(String::compareTo);
 
         return new Pair<>(
-                new TimeSeriesInterval(paths.get(0), paths.get(paths.size() - 1)),
-                new TimeInterval(minTime, maxTime + 1));
+                new ColumnsInterval(paths.get(0), paths.get(paths.size() - 1)),
+                new KeyInterval(minTime, maxTime + 1));
     }
 
     private TaskExecuteResult executeProjectTask(

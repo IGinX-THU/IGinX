@@ -1,7 +1,7 @@
 package cn.edu.tsinghua.iginx.engine.logical.utils;
 
-import cn.edu.tsinghua.iginx.metadata.entity.TimeSeriesInterval;
-import cn.edu.tsinghua.iginx.metadata.entity.TimeSeriesRange;
+import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
+import cn.edu.tsinghua.iginx.metadata.entity.ColumnsRange;
 
 public class PathUtils {
 
@@ -10,8 +10,8 @@ public class PathUtils {
     public static final Character MIN_CHAR = '!';
     public static final Character MAX_CHAR = '~';
 
-    public static TimeSeriesRange trimTimeSeriesInterval(TimeSeriesRange tsInterval) {
-        String startPath = tsInterval.getStartTimeSeries();
+    public static ColumnsRange trimTimeSeriesInterval(ColumnsRange tsInterval) {
+        String startPath = tsInterval.getStartColumn();
         if (startPath.contains(STAR)) {
             if (startPath.startsWith(STAR)) {
                 startPath = null;
@@ -20,7 +20,7 @@ public class PathUtils {
             }
         }
 
-        String endPath = tsInterval.getEndTimeSeries();
+        String endPath = tsInterval.getEndColumn();
         if (endPath.contains(STAR)) {
             if (endPath.startsWith(STAR)) {
                 endPath = null;
@@ -29,6 +29,6 @@ public class PathUtils {
             }
         }
 
-        return new TimeSeriesInterval(startPath, endPath);
+        return new ColumnsInterval(startPath, endPath);
     }
 }

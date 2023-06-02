@@ -88,11 +88,11 @@ public abstract class MigrationPolicy {
                             MigrationExecuteType.RESHARD_TIME_SERIES));
 
             List<String> timeseries = new ArrayList<>(timeseriesLoadMap.keySet());
-            String currStartTimeseries = fragmentMeta.getTsInterval().getStartTimeSeries();
+            String currStartTimeseries = fragmentMeta.getColumnsRange().getStartColumn();
             long currLoad = 0L;
-            String endTimeseries = fragmentMeta.getTsInterval().getEndTimeSeries();
-            long startTime = fragmentMeta.getTimeInterval().getStartTime();
-            long endTime = fragmentMeta.getTimeInterval().getEndTime();
+            String endTimeseries = fragmentMeta.getColumnsRange().getEndColumn();
+            long startTime = fragmentMeta.getKeyInterval().getStartKey();
+            long endTime = fragmentMeta.getKeyInterval().getEndKey();
             StorageUnitMeta storageUnitMeta = fragmentMeta.getMasterStorageUnit();
             List<FragmentMeta> fakedFragmentMetas = new ArrayList<>();
             List<Long> fakedFragmentMetaLoads = new ArrayList<>();
@@ -144,9 +144,9 @@ public abstract class MigrationPolicy {
                     if (fakedFragmentMetaLoads.get(i)
                                     <= currAverageLoad * (1 + maxTimeseriesLoadBalanceThreshold)
                             && currFragmentMeta
-                                    .getTsInterval()
-                                    .getStartTimeSeries()
-                                    .equals(currFragmentMeta.getTsInterval().getEndTimeSeries())) {
+                                    .getColumnsRange()
+                                    .getStartColumn()
+                                    .equals(currFragmentMeta.getColumnsRange().getEndColumn())) {
 
                         // 与他最近的负载最低的时间分区进行合并
                         if (i == (fakedFragmentMetaLoads.size() - 1)
@@ -154,12 +154,12 @@ public abstract class MigrationPolicy {
                                         > fakedFragmentMetaLoads.get(i - 1)) {
                             FragmentMeta toMergeFragmentMeta = fakedFragmentMetas.get(i - 1);
                             toMergeFragmentMeta
-                                    .getTsInterval()
-                                    .setEndTimeSeries(
+                                    .getColumnsRange()
+                                    .setEndColumn(
                                             fakedFragmentMetas
                                                     .get(i)
-                                                    .getTsInterval()
-                                                    .getEndTimeSeries());
+                                                    .getColumnsRange()
+                                                    .getEndColumn());
                             fakedFragmentMetas.remove(i);
                             fakedFragmentMetaLoads.set(
                                     i - 1,
@@ -170,12 +170,12 @@ public abstract class MigrationPolicy {
                                 <= fakedFragmentMetaLoads.get(i - 1)) {
                             FragmentMeta toMergeFragmentMeta = fakedFragmentMetas.get(i);
                             toMergeFragmentMeta
-                                    .getTsInterval()
-                                    .setEndTimeSeries(
+                                    .getColumnsRange()
+                                    .setEndColumn(
                                             fakedFragmentMetas
                                                     .get(i + 1)
-                                                    .getTsInterval()
-                                                    .getEndTimeSeries());
+                                                    .getColumnsRange()
+                                                    .getEndColumn());
                             fakedFragmentMetas.remove(i + 1);
                             fakedFragmentMetaLoads.set(
                                     i,
@@ -205,12 +205,12 @@ public abstract class MigrationPolicy {
                     }
                     FragmentMeta toMergeFragmentMeta = fakedFragmentMetas.get(startIndex);
                     toMergeFragmentMeta
-                            .getTsInterval()
-                            .setEndTimeSeries(
+                            .getColumnsRange()
+                            .setEndColumn(
                                     fakedFragmentMetas
                                             .get(startIndex + 1)
-                                            .getTsInterval()
-                                            .getEndTimeSeries());
+                                            .getColumnsRange()
+                                            .getEndColumn());
                     fakedFragmentMetas.remove(startIndex + 1);
                     fakedFragmentMetaLoads.set(
                             startIndex,
@@ -228,26 +228,26 @@ public abstract class MigrationPolicy {
 
             // 开始实际切分片
             double currAverageLoad = totalLoad * 1.0 / fakedFragmentMetaLoads.size();
-            TimeSeriesInterval sourceTsInterval =
-                    new TimeSeriesInterval(
-                            fragmentMeta.getTsInterval().getStartTimeSeries(),
-                            fragmentMeta.getTsInterval().getEndTimeSeries());
+            ColumnsInterval sourceTsInterval =
+                    new ColumnsInterval(
+                            fragmentMeta.getColumnsRange().getStartColumn(),
+                            fragmentMeta.getColumnsRange().getEndColumn());
             for (int i = 0; i < fakedFragmentMetas.size(); i++) {
                 FragmentMeta targetFragmentMeta = fakedFragmentMetas.get(i);
                 if (i == 0) {
                     DefaultMetaManager.getInstance()
                             .endFragmentByTimeSeriesInterval(
                                     fragmentMeta,
-                                    targetFragmentMeta.getTsInterval().getEndTimeSeries());
+                                    targetFragmentMeta.getColumnsRange().getEndColumn());
                     DefaultMetaManager.getInstance()
                             .updateFragmentByTsInterval(sourceTsInterval, fragmentMeta);
                 } else {
                     FragmentMeta newFragment =
                             new FragmentMeta(
-                                    targetFragmentMeta.getTsInterval().getStartTimeSeries(),
-                                    targetFragmentMeta.getTsInterval().getEndTimeSeries(),
-                                    fragmentMeta.getTimeInterval().getStartTime(),
-                                    fragmentMeta.getTimeInterval().getEndTime(),
+                                    targetFragmentMeta.getColumnsRange().getStartColumn(),
+                                    targetFragmentMeta.getColumnsRange().getEndColumn(),
+                                    fragmentMeta.getKeyInterval().getStartKey(),
+                                    fragmentMeta.getKeyInterval().getEndKey(),
                                     fragmentMeta.getMasterStorageUnit());
                     DefaultMetaManager.getInstance().addFragment(newFragment);
                 }
@@ -266,10 +266,10 @@ public abstract class MigrationPolicy {
                                                 fragmentMeta, targetStorageId);
                         FragmentMeta newFragment =
                                 new FragmentMeta(
-                                        targetFragmentMeta.getTsInterval().getStartTimeSeries(),
-                                        targetFragmentMeta.getTsInterval().getEndTimeSeries(),
-                                        fragmentMeta.getTimeInterval().getStartTime(),
-                                        fragmentMeta.getTimeInterval().getEndTime(),
+                                        targetFragmentMeta.getColumnsRange().getStartColumn(),
+                                        targetFragmentMeta.getColumnsRange().getEndColumn(),
+                                        fragmentMeta.getKeyInterval().getStartKey(),
+                                        fragmentMeta.getKeyInterval().getEndKey(),
                                         newStorageUnitMeta);
                         DefaultMetaManager.getInstance().addFragment(newFragment);
                     }
@@ -309,23 +309,23 @@ public abstract class MigrationPolicy {
             while (rowStream.hasNext()) {
                 Row row = rowStream.next();
                 String timeSeries = new String((byte[]) row.getValue(0));
-                if (fragmentMeta.getTsInterval().isContain(timeSeries)) {
+                if (fragmentMeta.getColumnsRange().isContain(timeSeries)) {
                     pathSet.add(timeSeries);
                 }
             }
             logger.info("start to add new fragment");
             String middleTimeseries = new ArrayList<>(pathSet).get(pathSet.size() / 2);
             logger.info("timeseries split middleTimeseries=" + middleTimeseries);
-            TimeSeriesInterval sourceTsInterval =
-                    new TimeSeriesInterval(
-                            fragmentMeta.getTsInterval().getStartTimeSeries(),
-                            fragmentMeta.getTsInterval().getEndTimeSeries());
+            ColumnsInterval sourceTsInterval =
+                    new ColumnsInterval(
+                            fragmentMeta.getColumnsRange().getStartColumn(),
+                            fragmentMeta.getColumnsRange().getEndColumn());
             FragmentMeta newFragment =
                     new FragmentMeta(
                             middleTimeseries,
-                            sourceTsInterval.getEndTimeSeries(),
-                            fragmentMeta.getTimeInterval().getStartTime(),
-                            fragmentMeta.getTimeInterval().getEndTime(),
+                            sourceTsInterval.getEndColumn(),
+                            fragmentMeta.getKeyInterval().getStartKey(),
+                            fragmentMeta.getKeyInterval().getEndKey(),
                             fragmentMeta.getMasterStorageUnit());
             logger.info("timeseries split new fragment=" + newFragment.toString());
             DefaultMetaManager.getInstance().addFragment(newFragment);
@@ -362,16 +362,16 @@ public abstract class MigrationPolicy {
                 }
             }
 
-            TimeSeriesInterval sourceTsInterval =
-                    new TimeSeriesInterval(
-                            fragmentMeta.getTsInterval().getStartTimeSeries(),
-                            fragmentMeta.getTsInterval().getEndTimeSeries());
+            ColumnsInterval sourceTsInterval =
+                    new ColumnsInterval(
+                            fragmentMeta.getColumnsRange().getStartColumn(),
+                            fragmentMeta.getColumnsRange().getEndColumn());
             FragmentMeta newFragment =
                     new FragmentMeta(
                             middleTimeseries,
-                            sourceTsInterval.getEndTimeSeries(),
-                            fragmentMeta.getTimeInterval().getStartTime(),
-                            fragmentMeta.getTimeInterval().getEndTime(),
+                            sourceTsInterval.getEndColumn(),
+                            fragmentMeta.getKeyInterval().getStartKey(),
+                            fragmentMeta.getKeyInterval().getEndKey(),
                             fragmentMeta.getMasterStorageUnit());
             DefaultMetaManager.getInstance().addFragment(newFragment);
             DefaultMetaManager.getInstance()
@@ -452,7 +452,7 @@ public abstract class MigrationPolicy {
                             // 异步执行耗时的操作
                             if (migrationTask.getMigrationType() == MigrationType.QUERY) {
                                 // 如果之前没切过分区，需要优先切一下分区
-                                if (migrationTask.getFragmentMeta().getTimeInterval().getEndTime()
+                                if (migrationTask.getFragmentMeta().getKeyInterval().getEndKey()
                                         == Long.MAX_VALUE) {
                                     this.logger.error(
                                             "start to reshard query data: {}", migrationTask);
@@ -527,7 +527,7 @@ public abstract class MigrationPolicy {
                     .forEach(
                             field -> {
                                 String timeSeries = field.getName();
-                                if (fragmentMeta.getTsInterval().isContain(timeSeries)) {
+                                if (fragmentMeta.getColumnsRange().isContain(timeSeries)) {
                                     pathSet.add(timeSeries);
                                 }
                             });
@@ -546,9 +546,9 @@ public abstract class MigrationPolicy {
             List<TimeRange> timeRanges = new ArrayList<>();
             timeRanges.add(
                     new TimeRange(
-                            fragmentMeta.getTimeInterval().getStartTime(),
+                            fragmentMeta.getKeyInterval().getStartKey(),
                             true,
-                            fragmentMeta.getTimeInterval().getEndTime(),
+                            fragmentMeta.getKeyInterval().getEndKey(),
                             false));
             Delete delete = new Delete(new FragmentSource(fragmentMeta), timeRanges, paths, null);
             physicalEngine.execute(new RequestContext(), delete);
@@ -582,7 +582,7 @@ public abstract class MigrationPolicy {
                 }
                 logger.info("[migrationData] need migration path: {}", timeSeries);
                 for (FragmentMeta fragmentMeta : fragmentMetas) {
-                    if (fragmentMeta.getTsInterval().isContain(timeSeries)) {
+                    if (fragmentMeta.getColumnsRange().isContain(timeSeries)) {
                         pathSet.add(timeSeries);
                         logger.info(
                                 "[migrationData] path {} belong to {}", timeSeries, fragmentMeta);
@@ -623,18 +623,18 @@ public abstract class MigrationPolicy {
                             targetStorageId,
                             MigrationExecuteType.RESHARD_TIME));
             // [startTime, +∞) & (startPath, endPath)
-            TimeSeriesRange tsInterval = fragmentMeta.getTsInterval();
-            TimeInterval timeInterval = fragmentMeta.getTimeInterval();
+            ColumnsRange tsInterval = fragmentMeta.getColumnsRange();
+            KeyInterval keyInterval = fragmentMeta.getKeyInterval();
             List<Long> storageEngineList = new ArrayList<>();
             storageEngineList.add(targetStorageId);
 
             // 排除乱序写入问题
-            if (timeInterval.getEndTime() == Long.MAX_VALUE) {
+            if (keyInterval.getEndKey() == Long.MAX_VALUE) {
                 operateTaskAndRequest(sourceStorageId, targetStorageId, fragmentMeta);
                 Pair<FragmentMeta, StorageUnitMeta> fragmentMetaStorageUnitMetaPair =
                         policy.generateFragmentAndStorageUnitByTimeSeriesIntervalAndTimeInterval(
-                                tsInterval.getStartTimeSeries(),
-                                tsInterval.getEndTimeSeries(),
+                                tsInterval.getStartColumn(),
+                                tsInterval.getEndColumn(),
                                 DefaultMetaManager.getInstance().getMaxActiveEndTime(),
                                 Long.MAX_VALUE,
                                 storageEngineList);

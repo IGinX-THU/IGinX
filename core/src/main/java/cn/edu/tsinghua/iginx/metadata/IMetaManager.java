@@ -67,33 +67,33 @@ public interface IMetaManager {
     List<FragmentMeta> getFragmentsByStorageUnit(String storageUnitId);
 
     /** 获取某个du的时空范围 */
-    Pair<TimeSeriesRange, TimeInterval> getBoundaryOfStorageUnit(String storageUnitId);
+    Pair<ColumnsRange, KeyInterval> getBoundaryOfStorageUnit(String storageUnitId);
 
     /** 获取某个时间序列区间的所有分片，不会返回虚拟堆叠分片 */
-    Map<TimeSeriesRange, List<FragmentMeta>> getFragmentMapByTimeSeriesInterval(
-            TimeSeriesRange tsInterval);
+    Map<ColumnsRange, List<FragmentMeta>> getFragmentMapByTimeSeriesInterval(
+            ColumnsRange tsInterval);
 
     /** 获取某个时间序列区间的所有分片，根据参数决定是否返回虚拟堆叠分片 */
-    Map<TimeSeriesRange, List<FragmentMeta>> getFragmentMapByTimeSeriesInterval(
-            TimeSeriesRange tsInterval, boolean withDummyFragment);
+    Map<ColumnsRange, List<FragmentMeta>> getFragmentMapByTimeSeriesInterval(
+            ColumnsRange tsInterval, boolean withDummyFragment);
 
     /** 查询某个时间序列区间是否有虚拟堆叠分片 */
-    boolean hasDummyFragment(TimeSeriesRange tsInterval);
+    boolean hasDummyFragment(ColumnsRange tsInterval);
 
     /** 获取某个时间区间的所有最新的分片（这些分片一定也都是未终结的分片） */
-    Map<TimeSeriesRange, FragmentMeta> getLatestFragmentMapByTimeSeriesInterval(
-            TimeSeriesRange tsInterval);
+    Map<ColumnsRange, FragmentMeta> getLatestFragmentMapByTimeSeriesInterval(
+            ColumnsRange tsInterval);
 
     /** 获取全部最新的分片，不会返回虚拟堆叠分片 */
-    Map<TimeSeriesRange, FragmentMeta> getLatestFragmentMap();
+    Map<ColumnsRange, FragmentMeta> getLatestFragmentMap();
 
     /** 获取某个时间序列区间在某个时间区间的所有分片，不会返回虚拟堆叠分片。 */
-    Map<TimeSeriesRange, List<FragmentMeta>> getFragmentMapByTimeSeriesIntervalAndTimeInterval(
-            TimeSeriesRange tsInterval, TimeInterval timeInterval);
+    Map<ColumnsRange, List<FragmentMeta>> getFragmentMapByTimeSeriesIntervalAndTimeInterval(
+            ColumnsRange tsInterval, KeyInterval keyInterval);
 
     /** 获取某个时间序列区间在某个时间区间的所有分片，根据参数决定是否返回虚拟堆叠分片 */
-    Map<TimeSeriesRange, List<FragmentMeta>> getFragmentMapByTimeSeriesIntervalAndTimeInterval(
-            TimeSeriesRange tsInterval, TimeInterval timeInterval, boolean withDummyFragment);
+    Map<ColumnsRange, List<FragmentMeta>> getFragmentMapByTimeSeriesIntervalAndTimeInterval(
+            ColumnsRange tsInterval, KeyInterval keyInterval, boolean withDummyFragment);
 
     /** 获取某个时间序列的所有分片（按照分片时间戳排序），会返回虚拟堆叠分片 */
     List<FragmentMeta> getFragmentListByTimeSeriesName(String tsName);
@@ -103,7 +103,7 @@ public interface IMetaManager {
 
     /** 获取某个时间序列在某个时间区间的所有分片（按照分片时间戳排序） */
     List<FragmentMeta> getFragmentListByTimeSeriesNameAndTimeInterval(
-            String tsName, TimeInterval timeInterval);
+            String tsName, KeyInterval keyInterval);
 
     /** 创建分片和存储单元 */
     boolean createFragmentsAndStorageUnits(
@@ -229,7 +229,7 @@ public interface IMetaManager {
 
     void endFragmentByTimeSeriesInterval(FragmentMeta fragmentMeta, String endTimeSeries);
 
-    void updateFragmentByTsInterval(TimeSeriesRange tsInterval, FragmentMeta fragmentMeta);
+    void updateFragmentByTsInterval(ColumnsRange tsInterval, FragmentMeta fragmentMeta);
 
     void updateMaxActiveEndTime(long endTime);
 

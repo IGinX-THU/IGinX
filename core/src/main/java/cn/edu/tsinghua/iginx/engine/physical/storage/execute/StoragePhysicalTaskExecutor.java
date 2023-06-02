@@ -19,6 +19,7 @@
 package cn.edu.tsinghua.iginx.engine.physical.storage.execute;
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
+import cn.edu.tsinghua.iginx.engine.physical.exception.NonExecutablePhysicalTaskException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.TooManyPhysicalTasksException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.UnexpectedOperatorException;
@@ -26,17 +27,25 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.MemoryPhysicalTaskDispatcher
 import cn.edu.tsinghua.iginx.engine.physical.optimizer.ReplicaDispatcher;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.physical.storage.StorageManager;
-import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Timeseries;
+import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
+import cn.edu.tsinghua.iginx.engine.physical.storage.domain.DataArea;
 import cn.edu.tsinghua.iginx.engine.physical.storage.queue.StoragePhysicalTaskQueue;
 import cn.edu.tsinghua.iginx.engine.physical.storage.utils.TagKVUtils;
 import cn.edu.tsinghua.iginx.engine.physical.task.GlobalPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.MemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.StoragePhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
 import cn.edu.tsinghua.iginx.engine.shared.operator.ShowTimeSeries;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
+import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageUnitMeta;
 import cn.edu.tsinghua.iginx.metadata.hook.StorageEngineChangeHook;
@@ -128,7 +137,103 @@ public class StoragePhysicalTaskExecutor {
                                                         long taskId = System.nanoTime();
                                                         long startTime = System.currentTimeMillis();
                                                         try {
-                                                            result = pair.k.execute(task);
+                                                            List<Operator> operators =
+                                                                    task.getOperators();
+                                                            if (operators.size() < 1) {
+                                                                result =
+                                                                        new TaskExecuteResult(
+                                                                                new NonExecutablePhysicalTaskException(
+                                                                                        "storage physical task should have one more operators"));
+                                                                return;
+                                                            }
+
+                                                            Operator op = operators.get(0);
+                                                            String storageUnit =
+                                                                    task.getStorageUnit();
+                                                            FragmentMeta fragmentMeta =
+                                                                    task.getTargetFragment();
+                                                            boolean isDummyStorageUnit =
+                                                                    task.isDummyStorageUnit();
+                                                            DataArea dataArea =
+                                                                    new DataArea(
+                                                                            storageUnit,
+                                                                            fragmentMeta
+                                                                                    .getKeyInterval());
+
+                                                            switch (op.getType()) {
+                                                                case Project:
+                                                                    boolean needSelectPushDown =
+                                                                            pair.k
+                                                                                            .isSupportProjectWithSelect()
+                                                                                    && operators
+                                                                                                    .size()
+                                                                                            == 2
+                                                                                    && operators
+                                                                                                    .get(
+                                                                                                            1)
+                                                                                                    .getType()
+                                                                                            == OperatorType
+                                                                                                    .Select;
+                                                                    if (isDummyStorageUnit) {
+                                                                        if (needSelectPushDown) {
+                                                                            result =
+                                                                                    pair.k
+                                                                                            .executeProjectDummyWithSelect(
+                                                                                                    (Project)
+                                                                                                            op,
+                                                                                                    (Select)
+                                                                                                            operators
+                                                                                                                    .get(
+                                                                                                                            1),
+                                                                                                    dataArea);
+                                                                        } else {
+                                                                            result =
+                                                                                    pair.k
+                                                                                            .executeProject(
+                                                                                                    (Project)
+                                                                                                            op,
+                                                                                                    dataArea);
+                                                                        }
+                                                                    } else {
+                                                                        if (needSelectPushDown) {
+                                                                            result =
+                                                                                    pair.k
+                                                                                            .executeProjectWithSelect(
+                                                                                                    (Project)
+                                                                                                            op,
+                                                                                                    (Select)
+                                                                                                            operators
+                                                                                                                    .get(
+                                                                                                                            1),
+                                                                                                    dataArea);
+                                                                        } else {
+                                                                            result =
+                                                                                    pair.k
+                                                                                            .executeProject(
+                                                                                                    (Project)
+                                                                                                            op,
+                                                                                                    dataArea);
+                                                                        }
+                                                                    }
+                                                                    break;
+                                                                case Insert:
+                                                                    result =
+                                                                            pair.k.executeInsert(
+                                                                                    (Insert) op,
+                                                                                    dataArea);
+                                                                    break;
+                                                                case Delete:
+                                                                    result =
+                                                                            pair.k.executeDelete(
+                                                                                    (Delete) op,
+                                                                                    dataArea);
+                                                                    break;
+                                                                default:
+                                                                    result =
+                                                                            new TaskExecuteResult(
+                                                                                    new NonExecutablePhysicalTaskException(
+                                                                                            "unsupported physical task"));
+                                                            }
                                                         } catch (Exception e) {
                                                             logger.error(
                                                                     "execute task error: " + e);
@@ -272,7 +377,7 @@ public class StoragePhysicalTaskExecutor {
         List<StorageEngineMeta> storageList = metaManager.getStorageEngineList();
         switch (task.getOperator().getType()) {
             case ShowTimeSeries:
-                Set<Timeseries> timeseriesSet = new HashSet<>();
+                Set<Column> columnSet = new HashSet<>();
                 for (StorageEngineMeta storage : storageList) {
                     long id = storage.getId();
                     Pair<IStorage, ThreadPoolExecutor> pair = storageManager.getStorage(id);
@@ -280,15 +385,15 @@ public class StoragePhysicalTaskExecutor {
                         continue;
                     }
                     try {
-                        List<Timeseries> timeseriesList = pair.k.getTimeSeries();
+                        List<Column> columnList = pair.k.getColumns();
                         // fix the schemaPrefix
                         String schemaPrefix = storage.getSchemaPrefix();
                         if (schemaPrefix != null) {
-                            for (Timeseries timeseries : timeseriesList) {
-                                timeseries.setPath(schemaPrefix + "." + timeseries.getPath());
+                            for (Column column : columnList) {
+                                column.setPath(schemaPrefix + "." + column.getPath());
                             }
                         }
-                        timeseriesSet.addAll(timeseriesList);
+                        columnSet.addAll(columnList);
                     } catch (PhysicalException e) {
                         return new TaskExecuteResult(e);
                     }
@@ -298,50 +403,50 @@ public class StoragePhysicalTaskExecutor {
                 Set<String> pathRegexSet = operator.getPathRegexSet();
                 TagFilter tagFilter = operator.getTagFilter();
 
-                TreeSet<Timeseries> tsSetAfterFilter =
-                        new TreeSet<>(Comparator.comparing(Timeseries::getPhysicalPath));
-                for (Timeseries timeseries : timeseriesSet) {
+                TreeSet<Column> tsSetAfterFilter =
+                        new TreeSet<>(Comparator.comparing(Column::getPhysicalPath));
+                for (Column column : columnSet) {
                     boolean isTarget = true;
                     if (!pathRegexSet.isEmpty()) {
                         isTarget = false;
                         for (String pathRegex : pathRegexSet) {
                             if (Pattern.matches(
-                                    StringUtils.reformatPath(pathRegex), timeseries.getPath())) {
+                                    StringUtils.reformatPath(pathRegex), column.getPath())) {
                                 isTarget = true;
                                 break;
                             }
                         }
                     }
                     if (tagFilter != null) {
-                        if (!TagKVUtils.match(timeseries.getTags(), tagFilter)) {
+                        if (!TagKVUtils.match(column.getTags(), tagFilter)) {
                             isTarget = false;
                         }
                     }
                     if (isTarget) {
-                        tsSetAfterFilter.add(timeseries);
+                        tsSetAfterFilter.add(column);
                     }
                 }
 
                 int limit = operator.getLimit();
                 int offset = operator.getOffset();
                 if (limit == Integer.MAX_VALUE && offset == 0) {
-                    return new TaskExecuteResult(Timeseries.toRowStream(tsSetAfterFilter));
+                    return new TaskExecuteResult(Column.toRowStream(tsSetAfterFilter));
                 } else {
                     // only need part of data.
-                    List<Timeseries> tsList = new ArrayList<>();
+                    List<Column> tsList = new ArrayList<>();
                     int cur = 0, size = tsSetAfterFilter.size();
-                    for (Iterator<Timeseries> iter = tsSetAfterFilter.iterator();
+                    for (Iterator<Column> iter = tsSetAfterFilter.iterator();
                             iter.hasNext();
                             cur++) {
                         if (cur >= size || cur - offset >= limit) {
                             break;
                         }
-                        Timeseries ts = iter.next();
+                        Column ts = iter.next();
                         if (cur >= offset) {
                             tsList.add(ts);
                         }
                     }
-                    return new TaskExecuteResult(Timeseries.toRowStream(tsList));
+                    return new TaskExecuteResult(Column.toRowStream(tsList));
                 }
             default:
                 return new TaskExecuteResult(

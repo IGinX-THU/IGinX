@@ -25,11 +25,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @JSONType(
-        seeAlso = {TimeSeriesInterval.class, TimeSeriesPrefixRange.class},
+        seeAlso = {ColumnsInterval.class, ColumnsPrefixRange.class},
         typeKey = "type")
-public interface TimeSeriesRange extends Comparable<TimeSeriesRange> {
+public interface ColumnsRange extends Comparable<ColumnsRange> {
 
-    public static Logger logger = LoggerFactory.getLogger(TimeSeriesRange.class);
+    public static Logger logger = LoggerFactory.getLogger(ColumnsRange.class);
 
     public static enum TYPE {
         PREFIX,
@@ -46,19 +46,19 @@ public interface TimeSeriesRange extends Comparable<TimeSeriesRange> {
         return getType() == TYPE.PREFIX;
     }
 
-    public default void setTimeSeries(String timeSeries) {
+    public default void setColumn(String column) {
         if (getType() == TYPE.NORMAL) {
             logger.error("TimeSeriesInterval Normal can't not use the setTimeSeries func");
             System.exit(0);
         }
     }
 
-    public default String getTimeSeries() {
+    public default String getColumn() {
         logger.warn("TimeSeriesInterval Normal can't not use the getTimeSeries func");
         return null;
     }
 
-    public default String getStartTimeSeries() {
+    public default String getStartColumn() {
         if (getType() == TYPE.PREFIX) {
             logger.error("TimeSeriesInterval PREFIX can't not use the getStartTimeSeries func");
             return null;
@@ -66,14 +66,14 @@ public interface TimeSeriesRange extends Comparable<TimeSeriesRange> {
         return null;
     }
 
-    public default void setStartTimeSeries(String startTimeSeries) {
+    public default void setStartColumn(String startColumn) {
         if (getType() == TYPE.PREFIX) {
             logger.error("TimeSeriesInterval PREFIX can't not use the setStartTimeSeries func");
             System.exit(0);
         }
     }
 
-    public default String getEndTimeSeries() {
+    public default String getEndColumn() {
         if (getType() == TYPE.PREFIX) {
             logger.error("TimeSeriesInterval PREFIX can't not use the getEndTimeSeries func");
             return null;
@@ -81,7 +81,7 @@ public interface TimeSeriesRange extends Comparable<TimeSeriesRange> {
         return null;
     }
 
-    public default void setEndTimeSeries(String endTimeSeries) {
+    public default void setEndColumn(String endColumn) {
         if (getType() == TYPE.PREFIX) {
             logger.error("TimeSeriesInterval PREFIX can't not use the setEndTimeSeries func");
             System.exit(0);
@@ -92,11 +92,11 @@ public interface TimeSeriesRange extends Comparable<TimeSeriesRange> {
 
     public void setSchemaPrefix(String schemaPrefix);
 
-    public default boolean isCompletelyAfter(TimeSeriesRange tsInterval) {
+    public default boolean isCompletelyAfter(ColumnsRange colRange) {
         return false;
     }
 
-    public default boolean isAfter(String tsName) {
+    public default boolean isAfter(String colName) {
         return false;
     }
 
@@ -105,7 +105,7 @@ public interface TimeSeriesRange extends Comparable<TimeSeriesRange> {
     public void setClosed(boolean closed);
 
     // Strange function: it should not work on the implementation of TimeSeriesPrefixRange
-    public static TimeSeriesRange fromString(String str) throws IllegalArgumentException {
+    public static ColumnsRange fromString(String str) throws IllegalArgumentException {
         if (str.contains("-") && !isContainSpecialChar(str)) {
             String[] parts = str.split("-");
             if (parts.length != 2) {
@@ -113,13 +113,13 @@ public interface TimeSeriesRange extends Comparable<TimeSeriesRange> {
                 throw new IllegalArgumentException(
                         "Input invalid string format in TimeSeriesRange");
             }
-            return new TimeSeriesInterval(
+            return new ColumnsInterval(
                     parts[0].equals("null") ? null : parts[0],
                     parts[1].equals("null") ? null : parts[1]);
         } else {
             if (str.contains(".*") && str.indexOf(".*") == str.length() - 2)
                 str = str.substring(0, str.length() - 2);
-            if (!isContainSpecialChar(str)) return new TimeSeriesPrefixRange(str);
+            if (!isContainSpecialChar(str)) return new ColumnsPrefixRange(str);
             else {
                 logger.error("Input string {} in invalid format of TimeSeriesPrefixRange ", str);
                 throw new IllegalArgumentException(
@@ -128,9 +128,9 @@ public interface TimeSeriesRange extends Comparable<TimeSeriesRange> {
         }
     }
 
-    public boolean isContain(String tsName);
+    public boolean isContain(String colName);
 
-    public boolean isIntersect(TimeSeriesRange tsInterval);
+    public boolean isIntersect(ColumnsRange colRange);
 
-    public int compareTo(TimeSeriesRange o);
+    public int compareTo(ColumnsRange o);
 }

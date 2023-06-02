@@ -19,26 +19,52 @@
 package cn.edu.tsinghua.iginx.engine.physical.storage;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Timeseries;
-import cn.edu.tsinghua.iginx.engine.physical.task.StoragePhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
+import cn.edu.tsinghua.iginx.engine.physical.storage.domain.DataArea;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
-import cn.edu.tsinghua.iginx.metadata.entity.TimeInterval;
-import cn.edu.tsinghua.iginx.metadata.entity.TimeSeriesRange;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
+import cn.edu.tsinghua.iginx.metadata.entity.ColumnsRange;
+import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.List;
 
 public interface IStorage {
+    /** 对非叠加分片查询数据 */
+    TaskExecuteResult executeProject(Project project, DataArea dataArea);
 
-    TaskExecuteResult execute(StoragePhysicalTask task);
+    /** 对叠加分片查询数据 */
+    TaskExecuteResult executeProjectDummy(Project project, DataArea dataArea /*dummy area*/);
 
-    List<Timeseries> getTimeSeries() throws PhysicalException;
+    /** 询问底层是否支持带谓词下推的查询 */
+    boolean isSupportProjectWithSelect();
 
-    Pair<TimeSeriesRange, TimeInterval> getBoundaryOfStorage(String prefix)
-            throws PhysicalException;
+    /** 对非叠加分片带谓词下推的查询 */
+    TaskExecuteResult executeProjectWithSelect(Project project, Select select, DataArea dataArea);
 
-    default Pair<TimeSeriesRange, TimeInterval> getBoundaryOfStorage() throws PhysicalException {
+    /** 对叠加分片带谓词下推的查询 */
+    TaskExecuteResult executeProjectDummyWithSelect(
+            Project project, Select select, DataArea dataArea);
+
+    /** 对非叠加分片删除数据 */
+    TaskExecuteResult executeDelete(Delete delete, DataArea dataArea);
+
+    /** 对某一分片插入数据 */
+    TaskExecuteResult executeInsert(Insert insert, DataArea dataArea);
+
+    /** 获取所有列信息 */
+    List<Column> getColumns() throws PhysicalException;
+
+    /** 获取指定前缀的数据边界 */
+    Pair<ColumnsRange, KeyInterval> getBoundaryOfStorage(String prefix) throws PhysicalException;
+
+    /** 获取数据边界 */
+    default Pair<ColumnsRange, KeyInterval> getBoundaryOfStorage() throws PhysicalException {
         return getBoundaryOfStorage(null);
     }
 
+    /** 释放底层连接 */
     void release() throws PhysicalException;
 }

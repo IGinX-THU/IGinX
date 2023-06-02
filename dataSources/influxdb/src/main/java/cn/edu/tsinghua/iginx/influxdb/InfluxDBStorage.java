@@ -26,7 +26,8 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
-import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Timeseries;
+import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
+import cn.edu.tsinghua.iginx.engine.physical.storage.domain.DataArea;
 import cn.edu.tsinghua.iginx.engine.physical.task.StoragePhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
 import cn.edu.tsinghua.iginx.engine.shared.TimeRange;
@@ -38,6 +39,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilterType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
@@ -166,20 +168,20 @@ public class InfluxDBStorage implements IStorage {
     }
 
     @Override
-    public Pair<TimeSeriesRange, TimeInterval> getBoundaryOfStorage(String dataPrefix)
+    public Pair<ColumnsRange, KeyInterval> getBoundaryOfStorage(String dataPrefix)
             throws PhysicalException {
         List<String> bucketNames = new ArrayList<>(historyBucketMap.keySet());
         bucketNames.sort(String::compareTo);
         if (bucketNames.size() == 0) {
             throw new PhysicalTaskExecuteFailureException("no data!");
         }
-        TimeSeriesRange tsInterval = null;
+        ColumnsRange tsInterval = null;
         if (dataPrefix == null)
             tsInterval =
-                    new TimeSeriesInterval(
+                    new ColumnsInterval(
                             bucketNames.get(0),
                             StringUtils.nextString(bucketNames.get(bucketNames.size() - 1)));
-        else tsInterval = new TimeSeriesInterval(dataPrefix, StringUtils.nextString(dataPrefix));
+        else tsInterval = new ColumnsInterval(dataPrefix, StringUtils.nextString(dataPrefix));
         long minTime = Long.MAX_VALUE, maxTime = 0;
 
         String measurementPrefix = MEASUREMENTALL, fieldPrefix = FIELDALL;
@@ -232,11 +234,10 @@ public class InfluxDBStorage implements IStorage {
         if (maxTime == 0) {
             maxTime = Long.MAX_VALUE - 1;
         }
-        TimeInterval timeInterval = new TimeInterval(minTime, maxTime + 1);
-        return new Pair<>(tsInterval, timeInterval);
+        KeyInterval keyInterval = new KeyInterval(minTime, maxTime + 1);
+        return new Pair<>(tsInterval, keyInterval);
     }
 
-    @Override
     public TaskExecuteResult execute(StoragePhysicalTask task) {
         List<Operator> operators = task.getOperators();
         if (operators.size() != 1) {
@@ -251,12 +252,12 @@ public class InfluxDBStorage implements IStorage {
             Project project = (Project) op;
             return isDummyStorageUnit
                     ? executeHistoryProjectTask(
-                            task.getTargetFragment().getTsInterval(),
-                            fragment.getTimeInterval(),
+                            task.getTargetFragment().getColumnsRange(),
+                            fragment.getKeyInterval(),
                             project)
                     : executeProjectTask(
-                            fragment.getTimeInterval(),
-                            fragment.getTsInterval(),
+                            fragment.getKeyInterval(),
+                            fragment.getColumnsRange(),
                             storageUnit,
                             project);
         } else if (op.getType() == OperatorType.Insert) {
@@ -271,7 +272,7 @@ public class InfluxDBStorage implements IStorage {
     }
 
     private TaskExecuteResult executeHistoryProjectTask(
-            TimeSeriesRange timeSeriesInterval, TimeInterval timeInterval, Project project) {
+            ColumnsRange timeSeriesInterval, KeyInterval keyInterval, Project project) {
         Map<String, String> bucketQueries = new HashMap<>();
         TagFilter tagFilter = project.getTagFilter();
         for (String pattern : project.getPatterns()) {
@@ -294,8 +295,8 @@ public class InfluxDBStorage implements IStorage {
             bucketQueries.put(bucketName, fullQuery);
         }
 
-        long startTime = timeInterval.getStartTime();
-        long endTime = timeInterval.getEndTime();
+        long startTime = keyInterval.getStartKey();
+        long endTime = keyInterval.getEndKey();
 
         Map<String, List<FluxTable>> bucketQueryResults = new HashMap<>();
         for (String bucket : bucketQueries.keySet()) {
@@ -317,8 +318,45 @@ public class InfluxDBStorage implements IStorage {
     }
 
     @Override
-    public List<Timeseries> getTimeSeries() {
-        List<Timeseries> timeseries = new ArrayList<>();
+    public TaskExecuteResult executeProject(Project project, DataArea dataArea) {
+        return null;
+    }
+
+    @Override
+    public TaskExecuteResult executeProjectDummy(Project project, DataArea dataArea) {
+        return null;
+    }
+
+    @Override
+    public boolean isSupportProjectWithSelect() {
+        return false;
+    }
+
+    @Override
+    public TaskExecuteResult executeProjectWithSelect(
+            Project project, Select select, DataArea dataArea) {
+        return null;
+    }
+
+    @Override
+    public TaskExecuteResult executeProjectDummyWithSelect(
+            Project project, Select select, DataArea dataArea) {
+        return null;
+    }
+
+    @Override
+    public TaskExecuteResult executeDelete(Delete delete, DataArea dataArea) {
+        return null;
+    }
+
+    @Override
+    public TaskExecuteResult executeInsert(Insert insert, DataArea dataArea) {
+        return null;
+    }
+
+    @Override
+    public List<Column> getColumns() {
+        List<Column> timeseries = new ArrayList<>();
 
         List<FluxTable> tables = new ArrayList<>();
         for (Bucket bucket :
@@ -371,7 +409,7 @@ public class InfluxDBStorage implements IStorage {
                     logger.warn("DataType don't match and default is String");
                     break;
             }
-            timeseries.add(new Timeseries(path, dataType, tag));
+            timeseries.add(new Column(path, dataType, tag));
         }
 
         return timeseries;
@@ -383,10 +421,7 @@ public class InfluxDBStorage implements IStorage {
     }
 
     private TaskExecuteResult executeProjectTask(
-            TimeInterval timeInterval,
-            TimeSeriesRange tsInterval,
-            String storageUnit,
-            Project project) {
+            KeyInterval keyInterval, ColumnsRange tsInterval, String storageUnit, Project project) {
 
         if (client.getBucketsApi().findBucketByName(storageUnit) == null) {
             logger.warn("storage engine {} doesn't exist", storageUnit);
@@ -399,8 +434,8 @@ public class InfluxDBStorage implements IStorage {
                         storageUnit,
                         project.getPatterns(),
                         project.getTagFilter(),
-                        timeInterval.getStartTime(),
-                        timeInterval.getEndTime());
+                        keyInterval.getStartKey(),
+                        keyInterval.getEndKey());
         List<FluxTable> tables = client.getQueryApi().query(statement, organization.getId());
         InfluxDBQueryRowStream rowStream = new InfluxDBQueryRowStream(tables, project);
         return new TaskExecuteResult(rowStream);
