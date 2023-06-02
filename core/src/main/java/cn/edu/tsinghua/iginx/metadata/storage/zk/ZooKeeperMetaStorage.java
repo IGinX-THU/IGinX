@@ -29,6 +29,7 @@ import cn.edu.tsinghua.iginx.metadata.storage.IMetaStorage;
 import cn.edu.tsinghua.iginx.metadata.utils.ReshardStatus;
 import cn.edu.tsinghua.iginx.utils.JsonUtils;
 import cn.edu.tsinghua.iginx.utils.Pair;
+
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -36,6 +37,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
+
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.recipes.cache.TreeCache;
@@ -877,8 +879,8 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
 
     @Override
     public Map<TimeSeriesRange, List<FragmentMeta>>
-            getFragmentMapByTimeSeriesIntervalAndTimeInterval(
-                    TimeSeriesRange tsInterval, TimeInterval timeInterval) {
+    getFragmentMapByTimeSeriesIntervalAndTimeInterval(
+            TimeSeriesRange tsInterval, TimeInterval timeInterval) {
         try {
             List<String> tsIntervalNames = this.client.getChildren().forPath(FRAGMENT_NODE_PREFIX);
             Map<TimeSeriesRange, List<FragmentMeta>> fragmentMap = new HashMap<>();
@@ -1057,6 +1059,17 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
                                     + fragmentMeta.getTsInterval().toString()
                                     + "/"
                                     + fragmentMeta.getTimeInterval().toString());
+            // 没有子节点，删除父节点
+            if (this.client
+                    .getChildren()
+                    .forPath(FRAGMENT_NODE_PREFIX + "/" + fragmentMeta.getTsInterval()).isEmpty()) {
+                this.client
+                        .delete()
+                        .forPath(
+                                FRAGMENT_NODE_PREFIX
+                                        + "/"
+                                        + fragmentMeta.getTsInterval());
+            }
             // 删除不需要的统计数据
             this.client
                     .delete()

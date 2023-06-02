@@ -110,16 +110,17 @@ public abstract class Compaction {
                                         > 0
                                 ? fragmentMeta.getTsInterval().getStartTimeSeries()
                                 : startTimeseries;
-                if (endTimeseries == null
-                        || fragmentMeta.getTsInterval().getEndTimeSeries() == null) {
-                    endTimeseries = null;
-                } else {
-                    endTimeseries =
-                            endTimeseries.compareTo(fragmentMeta.getTsInterval().getEndTimeSeries())
-                                            > 0
-                                    ? endTimeseries
-                                    : fragmentMeta.getTsInterval().getEndTimeSeries();
-                }
+            }
+
+            if (endTimeseries == null
+                    || fragmentMeta.getTsInterval().getEndTimeSeries() == null) {
+                endTimeseries = null;
+            } else {
+                endTimeseries =
+                        endTimeseries.compareTo(fragmentMeta.getTsInterval().getEndTimeSeries())
+                                > 0
+                                ? endTimeseries
+                                : fragmentMeta.getTsInterval().getEndTimeSeries();
             }
 
             String storageUnitId = fragmentMeta.getMasterStorageUnitId();
