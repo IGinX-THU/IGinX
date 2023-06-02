@@ -4,8 +4,8 @@ import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
-import cn.edu.tsinghua.iginx.integration.tool.ConfLoder;
-import cn.edu.tsinghua.iginx.integration.tool.DBConf;
+import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
+import cn.edu.tsinghua.iginx.integration.tool.DBType;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
@@ -25,7 +25,7 @@ public class Controller {
     private String MVNRUNTEST = "../.github/test_union.sh";
     private List<StorageEngineMeta> storageEngineMetas = new ArrayList<>();
 
-    public static void clearData(Session session) throws ExecutionException, SessionException {
+    public static void clearData(Session session) {
         String clearData = "CLEAR DATA;";
 
         SessionExecuteSqlResult res = null;
@@ -50,9 +50,9 @@ public class Controller {
     @Test
     public void testUnion() throws Exception {
         // load the test conf
-        ConfLoder testConfLoder = new ConfLoder(CONFIG_FILE);
-        testConfLoder.loadTestConf();
-        storageEngineMetas = testConfLoder.getStorageEngineMetas();
+        ConfLoader testConfLoader = new ConfLoader(CONFIG_FILE);
+        testConfLoader.loadTestConf();
+        storageEngineMetas = testConfLoader.getStorageEngineMetas();
 
         ShellRunner shellRunner = new ShellRunner();
         TestEnvironmentController envir = new TestEnvironmentController();
@@ -66,7 +66,7 @@ public class Controller {
         //            envir.addStorageEngine(storageEngineMeta);
         //            // set the task list
         //
-        // envir.setTestTasks(testConfLoder.getTaskMap().get(storageEngineMeta.getStorageEngine()),
+        // envir.setTestTasks(testConfLoader.getTaskMap().get(storageEngineMeta.getStorageEngine()),
         // FILEPATH);
         //            // run the test together
         //            shellRunner.runShellCommand(MVNRUNTEST);
@@ -74,7 +74,7 @@ public class Controller {
 
         // set the task list
         envir.setTestTasks(
-                testConfLoder.getTaskMap().get(DBConf.getDBType(testConfLoder.getStorageType())),
+                testConfLoader.getTaskMap().get(DBType.valueOf(testConfLoader.getStorageType())),
                 FILEPATH);
         // run the test together
         shellRunner.runShellCommand(MVNRUNTEST);

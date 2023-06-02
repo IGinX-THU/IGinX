@@ -18,15 +18,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /*
-一、anntation测试逻辑：
+一、annotation测试逻辑：
 1、正确操作测试，验证单一操作正确性
 2、错误操作测试，验证错误操作，或者无效操作结果
 3、重复性操作测试，测试可重复操作的结果是否正确
 4、操作对象重复，测试操作逻辑中，可重复添加的元素是否符合逻辑
 5、复杂操作，测试多种操作组合结果是否正确
 
-二、anntation测试条目：
-1、查询anntation信息
+二、annotation测试条目：
+1、查询annotation信息
 2、查询数据以及annotation信息
 3、对每个修改操作单独测试，并通过两种查询分别验证正确性：
     3.1、测试 add（增加标签操作），通过queryAnno以及queryAll两种方法测试

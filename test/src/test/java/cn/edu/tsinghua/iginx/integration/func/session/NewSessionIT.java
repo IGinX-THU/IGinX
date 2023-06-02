@@ -7,8 +7,9 @@ import static org.junit.Assert.fail;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
-import cn.edu.tsinghua.iginx.integration.tool.ConfLoder;
+import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
+import cn.edu.tsinghua.iginx.integration.tool.DBType;
 import cn.edu.tsinghua.iginx.integration.tool.MultiConnection;
 import cn.edu.tsinghua.iginx.pool.IginxInfo;
 import cn.edu.tsinghua.iginx.pool.SessionPool;
@@ -101,8 +102,8 @@ public class NewSessionIT {
 
     @BeforeClass
     public static void setUp() throws SessionException {
-        ConfLoder conf = new ConfLoder(Controller.CONFIG_FILE);
-        if (DBConf.getDBType(conf.getStorageType()) == DBConf.DBType.influxdb) {
+        ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
+        if (DBType.valueOf(conf.getStorageType()) == DBType.influxdb) {
             isInfluxdb = true;
         }
         DBConf dbConf = conf.loadDBConf(conf.getStorageType());

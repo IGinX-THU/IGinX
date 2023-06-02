@@ -5,7 +5,7 @@ import static org.junit.Assert.fail;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
-import cn.edu.tsinghua.iginx.integration.tool.ConfLoder;
+import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf.DBConfType;
 import cn.edu.tsinghua.iginx.integration.tool.MultiConnection;
@@ -62,7 +62,7 @@ public class SQLSessionIT {
     private static final int CONCURRENT_NUM = 5;
 
     public SQLSessionIT() throws IOException {
-        ConfLoder conf = new ConfLoder(Controller.CONFIG_FILE);
+        ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
         DBConf dbConf = conf.loadDBConf(conf.getStorageType());
         this.isScaling = conf.isScaling();
         this.isAbleToClearData = dbConf.getEnumValue(DBConf.DBConfType.isAbleToClearData);

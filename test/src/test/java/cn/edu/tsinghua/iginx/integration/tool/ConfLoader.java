@@ -11,15 +11,15 @@ import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ConfLoder {
+public class ConfLoader {
     private final void logInfo(String info, Object... args) {
         if (DEBUG) logger.info(info, args);
     }
 
-    private static final Logger logger = LoggerFactory.getLogger(ConfLoder.class);
+    private static final Logger logger = LoggerFactory.getLogger(ConfLoader.class);
     private static List<String> storageEngines = new ArrayList<>();
     private List<StorageEngineMeta> storageEngineMetas = new ArrayList<>();
-    private Map<DBConf.DBType, List<String>> taskMap = new HashMap<>();
+    private Map<DBType, List<String>> taskMap = new HashMap<>();
     private static String confPath;
     private boolean DEBUG = false;
     private static String STORAGEENGINELIST = "storageEngineList";
@@ -40,7 +40,7 @@ public class ConfLoder {
         return isScaling != null && !isScaling.isEmpty();
     }
 
-    public ConfLoder(String confPath) {
+    public ConfLoader(String confPath) {
         this.confPath = confPath;
     }
 
@@ -98,7 +98,7 @@ public class ConfLoder {
                 taskList.add(taskName);
                 logInfo("{}", taskName);
             }
-            taskMap.put(DBConf.getDBType(storageEngine), taskList);
+            taskMap.put(DBType.valueOf(storageEngine), taskList);
         }
     }
 
@@ -133,7 +133,7 @@ public class ConfLoder {
         return dbConf;
     }
 
-    public Map<DBConf.DBType, List<String>> getTaskMap() {
+    public Map<DBType, List<String>> getTaskMap() {
         return taskMap;
     }
 

@@ -6,7 +6,7 @@ import static org.junit.Assert.fail;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
-import cn.edu.tsinghua.iginx.integration.tool.ConfLoder;
+import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.rest.MetricsResource;
 import cn.edu.tsinghua.iginx.session.Session;
@@ -24,7 +24,7 @@ public class RestIT {
     protected Boolean isAbleToDelete = true;
 
     public RestIT() throws IOException {
-        ConfLoder conf = new ConfLoder(Controller.CONFIG_FILE);
+        ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
         DBConf dbConf = conf.loadDBConf(conf.getStorageType());
         this.isAbleToClearData = dbConf.getEnumValue(DBConf.DBConfType.isAbleToClearData);
         this.isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
@@ -256,7 +256,7 @@ public class RestIT {
 
     @Test
     //    @Ignore
-    public void pathVaildTest() throws Exception {
+    public void pathValidTest() throws Exception {
         try {
             String res = execute("pathVaildTest.json", TYPE.INSERT);
             logger.error("insertData fail. Caused by: {}.", res);
