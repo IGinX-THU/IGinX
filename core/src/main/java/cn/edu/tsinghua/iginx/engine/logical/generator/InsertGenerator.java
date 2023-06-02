@@ -56,8 +56,7 @@ public class InsertGenerator extends AbstractGenerator {
                 new KeyInterval(insertStatement.getStartTime(), insertStatement.getEndTime() + 1);
 
         Map<ColumnsRange, List<FragmentMeta>> fragments =
-                metaManager.getFragmentMapByColumnsIntervalAndKeyInterval(
-                        tsInterval, keyInterval);
+                metaManager.getFragmentMapByColumnsIntervalAndKeyInterval(tsInterval, keyInterval);
         if (fragments.isEmpty()) {
             // on startup
             policy.setNeedReAllocate(false);

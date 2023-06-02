@@ -70,8 +70,7 @@ public interface IMetaManager {
     Pair<ColumnsRange, KeyInterval> getBoundaryOfStorageUnit(String storageUnitId);
 
     /** 获取某个列区间的所有分片，不会返回虚拟堆叠分片 */
-    Map<ColumnsRange, List<FragmentMeta>> getFragmentMapByColumnsRange(
-            ColumnsRange columnsRange);
+    Map<ColumnsRange, List<FragmentMeta>> getFragmentMapByColumnsRange(ColumnsRange columnsRange);
 
     /** 获取某个列区间的所有分片，根据参数决定是否返回虚拟堆叠分片 */
     Map<ColumnsRange, List<FragmentMeta>> getFragmentMapByColumnsRange(
@@ -81,8 +80,7 @@ public interface IMetaManager {
     boolean hasDummyFragment(ColumnsRange columnsRange);
 
     /** 获取某个key区间的所有最新的分片（这些分片一定也都是未终结的分片） */
-    Map<ColumnsRange, FragmentMeta> getLatestFragmentMapByColumnsRange(
-            ColumnsRange columnsRange);
+    Map<ColumnsRange, FragmentMeta> getLatestFragmentMapByColumnsRange(ColumnsRange columnsRange);
 
     /** 获取全部最新的分片，不会返回虚拟堆叠分片 */
     Map<ColumnsRange, FragmentMeta> getLatestFragmentMap();

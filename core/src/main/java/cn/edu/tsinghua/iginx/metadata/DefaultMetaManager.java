@@ -365,8 +365,7 @@ public class DefaultMetaManager implements IMetaManager {
                                     .stream()
                                     .collect(
                                             Collectors.toMap(
-                                                    ColumnCalDO::getColumn,
-                                                    ColumnCalDO::getValue));
+                                                    ColumnCalDO::getColumn, ColumnCalDO::getValue));
                     double countSum =
                             timeseriesData.values().stream().mapToDouble(Double::doubleValue).sum();
                     if (countSum > 1e-9) {
@@ -572,7 +571,7 @@ public class DefaultMetaManager implements IMetaManager {
             KeyInterval beforeKeyInterval = new KeyInterval(0L, cache.getFragmentMinTimestamp());
             fragmentsMap =
                     storage.getFragmentMapByTimeSeriesIntervalAndTimeInterval(
-                        columnsRange, beforeKeyInterval);
+                            columnsRange, beforeKeyInterval);
             updateStorageUnitReference(fragmentsMap);
             Map<ColumnsRange, List<FragmentMeta>> recentFragmentsMap =
                     cache.getFragmentMapByTimeSeriesInterval(columnsRange);
@@ -628,11 +627,11 @@ public class DefaultMetaManager implements IMetaManager {
                     new KeyInterval(keyInterval.getStartKey(), cache.getFragmentMinTimestamp());
             fragmentsMap =
                     storage.getFragmentMapByTimeSeriesIntervalAndTimeInterval(
-                        columnsRange, beforeKeyInterval);
+                            columnsRange, beforeKeyInterval);
             updateStorageUnitReference(fragmentsMap);
             Map<ColumnsRange, List<FragmentMeta>> recentFragmentsMap =
                     cache.getFragmentMapByTimeSeriesIntervalAndTimeInterval(
-                        columnsRange, keyInterval);
+                            columnsRange, keyInterval);
             for (ColumnsRange ts : recentFragmentsMap.keySet()) {
                 List<FragmentMeta> fragments = recentFragmentsMap.get(ts);
                 if (fragmentsMap.containsKey(ts)) {
@@ -644,12 +643,12 @@ public class DefaultMetaManager implements IMetaManager {
         } else {
             fragmentsMap =
                     cache.getFragmentMapByTimeSeriesIntervalAndTimeInterval(
-                        columnsRange, keyInterval);
+                            columnsRange, keyInterval);
         }
         if (withDummyFragment) {
             List<FragmentMeta> fragmentList =
                     cache.getDummyFragmentsByTimeSeriesIntervalAndTimeInterval(
-                        columnsRange, keyInterval);
+                            columnsRange, keyInterval);
             mergeToFragmentMap(fragmentsMap, fragmentList);
         }
         return fragmentsMap;
@@ -682,7 +681,7 @@ public class DefaultMetaManager implements IMetaManager {
             KeyInterval beforeKeyInterval = new KeyInterval(0L, cache.getFragmentMinTimestamp());
             List<FragmentMeta> fragments =
                     storage.getFragmentListByTimeSeriesNameAndTimeInterval(
-                        colName, beforeKeyInterval);
+                            colName, beforeKeyInterval);
             updateStorageUnitReference(fragments);
             fragments.addAll(cache.getFragmentListByTimeSeriesName(colName));
             return fragments;
@@ -704,7 +703,7 @@ public class DefaultMetaManager implements IMetaManager {
                     new KeyInterval(keyInterval.getStartKey(), cache.getFragmentMinTimestamp());
             List<FragmentMeta> fragments =
                     storage.getFragmentListByTimeSeriesNameAndTimeInterval(
-                        colName, beforeKeyInterval);
+                            colName, beforeKeyInterval);
             updateStorageUnitReference(fragments);
             fragments.addAll(
                     cache.getFragmentListByTimeSeriesNameAndTimeInterval(colName, keyInterval));

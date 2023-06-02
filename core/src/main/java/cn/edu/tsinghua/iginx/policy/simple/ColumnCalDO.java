@@ -35,12 +35,7 @@ public class ColumnCalDO implements Comparable<ColumnCalDO> {
         return 0;
     }
 
-    public void merge(
-            Long recentKey,
-            Long firstKey,
-            Long lastKey,
-            Integer count,
-            Long totalByte) {
+    public void merge(Long recentKey, Long firstKey, Long lastKey, Integer count, Long totalByte) {
         this.recentKey = recentKey;
         this.firstKey = Math.min(firstKey, this.firstKey);
         this.lastKey = Math.max(lastKey, this.lastKey);

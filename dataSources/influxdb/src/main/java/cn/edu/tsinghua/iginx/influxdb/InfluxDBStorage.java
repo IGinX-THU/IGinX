@@ -21,14 +21,12 @@ package cn.edu.tsinghua.iginx.influxdb;
 import static cn.edu.tsinghua.iginx.influxdb.tools.TimeUtils.instantToNs;
 import static com.influxdb.client.domain.WritePrecision.NS;
 
-import cn.edu.tsinghua.iginx.engine.physical.exception.NonExecutablePhysicalTaskException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.DataArea;
-import cn.edu.tsinghua.iginx.engine.physical.task.StoragePhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
 import cn.edu.tsinghua.iginx.engine.shared.TimeRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.BitmapView;
@@ -37,12 +35,10 @@ import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.RowDataView;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilterType;
-import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.influxdb.query.entity.InfluxDBHistoryQueryRowStream;
 import cn.edu.tsinghua.iginx.influxdb.query.entity.InfluxDBQueryRowStream;
 import cn.edu.tsinghua.iginx.influxdb.query.entity.InfluxDBSchema;
@@ -311,13 +307,13 @@ public class InfluxDBStorage implements IStorage {
 
     @Override
     public TaskExecuteResult executeProjectWithSelect(
-        Project project, Select select, DataArea dataArea) {
+            Project project, Select select, DataArea dataArea) {
         return null;
     }
 
     @Override
     public TaskExecuteResult executeProjectDummyWithSelect(
-        Project project, Select select, DataArea dataArea) {
+            Project project, Select select, DataArea dataArea) {
         return null;
     }
 
@@ -351,7 +347,7 @@ public class InfluxDBStorage implements IStorage {
         TagFilter tagFilter = project.getTagFilter();
         for (String pattern : project.getPatterns()) {
             Pair<String, String> pair =
-                SchemaTransformer.processPatternForQuery(pattern, tagFilter);
+                    SchemaTransformer.processPatternForQuery(pattern, tagFilter);
             String bucketName = pair.k;
             String query = pair.v;
 
@@ -375,19 +371,19 @@ public class InfluxDBStorage implements IStorage {
         Map<String, List<FluxTable>> bucketQueryResults = new HashMap<>();
         for (String bucket : bucketQueries.keySet()) {
             String statement =
-                String.format(
-                    "from(bucket:\"%s\") |> range(start: time(v: %s), stop: time(v: %s))",
-                    bucket, startTime, endTime);
+                    String.format(
+                            "from(bucket:\"%s\") |> range(start: time(v: %s), stop: time(v: %s))",
+                            bucket, startTime, endTime);
             if (!bucketQueries.get(bucket).equals("()")) {
                 statement += String.format(" |> filter(fn: (r) => %s)", bucketQueries.get(bucket));
             }
             logger.info("execute query: " + statement);
             bucketQueryResults.put(
-                bucket, client.getQueryApi().query(statement, organization.getId()));
+                    bucket, client.getQueryApi().query(statement, organization.getId()));
         }
 
         InfluxDBHistoryQueryRowStream rowStream =
-            new InfluxDBHistoryQueryRowStream(bucketQueryResults, project.getPatterns());
+                new InfluxDBHistoryQueryRowStream(bucketQueryResults, project.getPatterns());
         return new TaskExecuteResult(rowStream);
     }
 

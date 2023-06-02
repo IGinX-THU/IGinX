@@ -321,7 +321,8 @@ public class MetaManagerMock implements IMetaManager {
     public void endFragmentByColumnsRange(FragmentMeta fragmentMeta, String endColumn) {}
 
     @Override
-    public void updateFragmentByColumnsRange(ColumnsRange columnsRange, FragmentMeta fragmentMeta) {}
+    public void updateFragmentByColumnsRange(
+            ColumnsRange columnsRange, FragmentMeta fragmentMeta) {}
 
     @Override
     public void updateMaxActiveEndKey(long endKey) {}
