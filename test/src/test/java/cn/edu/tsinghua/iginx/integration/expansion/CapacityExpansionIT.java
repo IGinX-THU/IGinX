@@ -49,6 +49,7 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
 
     @After
     public void clearData() {
+        historyDataGenerator.clearData();
         Controller.clearData(session);
     }
 

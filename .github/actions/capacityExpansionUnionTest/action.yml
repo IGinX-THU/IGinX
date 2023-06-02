@@ -16,19 +16,13 @@ inputs:
 runs:
     using: "composite" # Mandatory parameter
     steps:
-        - name: clear IoTDB history data
-          uses: ./.github/actions/dbWriter
-          with:
-              version: ${{inputs.DB-name}}
-              Test-Way: clearData
-
-        - name: Stop Iginx
+        - name: Stop IGinX
           uses: ./.github/actions/iginxRunner
           with:
               version: ${{inputs.version}}
               if-stop: true
 
-        - name: Stop and Clear ZooKeeper
+        - name: Stop and clear ZooKeeper
           uses: ./.github/actions/zookeeperRunner
           with:
               if-stop: true
@@ -38,19 +32,13 @@ runs:
           with:
               if-rerun: true
 
-        - name: Write DB history data
-          uses: ./.github/actions/dbWriter
-          with:
-              version: ${{inputs.DB-name}}
-              Test-Way: ${{inputs.Test-Way}}
-
-        - name: Change IginX Config
+        - name: Change IGinX config
           uses: ./.github/actions/confWriter
           with:
               Test-Way: ${{inputs.Test-Way}}
               if-CapExp: true
 
-        - name: Start IginX
+        - name: Start IGinX
           uses: ./.github/actions/iginxRunner
           with:
               version: ${{inputs.version}}
