@@ -7,8 +7,6 @@ on:
 env:
     VERSION: 0.6.0-SNAPSHOT
     FUNCTEST: NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,SessionIT,SessionPoolIT,CompactionIT,TimePrecisionIT
-    IoTDB12FUNCTEST: NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,SessionIT,SessionPoolIT,CompactionIT,TimePrecisionIT
-    InfluxDBFUNCTEST: NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,SessionIT,SessionPoolIT,CompactionIT,TimePrecisionIT
 concurrency:
     group: ${{ github.workflow }}-${{ github.ref }}
     cancel-in-progress: true
@@ -65,7 +63,7 @@ jobs:
             - name: oriHasDataExpHasData IT
               run: |
                   mvn test -q -Dtest=${{matrix.DB-name}}HistoryDataCapacityExpansionIT#oriHasDataExpHasData -DfailIfNoTests=false -P passFormat
-                  mvn test -q -Dtest=${${{matrix.DB-name}}FUNCTEST} -DfailIfNoTests=false -P passFormat
+                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P passFormat
             #第 2 阶段测试开始==========================================
             - name: Prepare CapExp environment oriNoDataExpNoData
               uses: ./.github/actions/capacityExpansionUnionTest
@@ -76,7 +74,7 @@ jobs:
             - name: oriNoDataExpNoData IT
               run: |
                   mvn test -q -Dtest=${{matrix.DB-name}}HistoryDataCapacityExpansionIT#oriNoDataExpNoData -DfailIfNoTests=false -P passFormat
-                  mvn test -q -Dtest=${${{matrix.DB-name}}FUNCTEST} -DfailIfNoTests=false -P passFormat
+                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P passFormat
             #第 3 阶段测试开始==========================================
             - name: Prepare CapExp environment oriHasDataExpNoData
               uses: ./.github/actions/capacityExpansionUnionTest
@@ -87,7 +85,7 @@ jobs:
             - name: oriHasDataExpNoData IT
               run: |
                   mvn test -q -Dtest=${{matrix.DB-name}}HistoryDataCapacityExpansionIT#oriHasDataExpNoData -DfailIfNoTests=false -P passFormat
-                  mvn test -q -Dtest=${${{matrix.DB-name}}FUNCTEST} -DfailIfNoTests=false -P passFormat
+                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P passFormat
             #第 4 阶段测试开始==========================================
             - name: Prepare CapExp environment oriNoDataExpHasData
               uses: ./.github/actions/capacityExpansionUnionTest
@@ -98,7 +96,7 @@ jobs:
             - name: oriNoDataExpHasData IT
               run: |
                   mvn test -q -Dtest=${{matrix.DB-name}}HistoryDataCapacityExpansionIT#oriNoDataExpHasData -DfailIfNoTests=false -P passFormat
-                  mvn test -q -Dtest=${${{matrix.DB-name}}FUNCTEST} -DfailIfNoTests=false -P passFormat
+                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P passFormat
                   mvn test -q -Dtest=${{matrix.DB-name}}HistoryDataCapacityExpansionIT#testPrefixAndRemoveHistoryDataSource -DfailIfNoTests=false -P passFormat
             - uses: codecov/codecov-action@v1
               with:
