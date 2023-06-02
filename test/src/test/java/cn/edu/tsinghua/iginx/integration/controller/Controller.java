@@ -74,7 +74,9 @@ public class Controller {
 
         // set the task list
         envir.setTestTasks(
-                testConfLoader.getTaskMap().get(DBType.valueOf(testConfLoader.getStorageType())),
+                testConfLoader
+                        .getTaskMap()
+                        .get(DBType.valueOf(testConfLoader.getStorageType().toLowerCase())),
                 FILEPATH);
         // run the test together
         shellRunner.runShellCommand(MVNRUNTEST);

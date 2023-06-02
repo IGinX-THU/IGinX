@@ -103,7 +103,7 @@ public class NewSessionIT {
     @BeforeClass
     public static void setUp() throws SessionException {
         ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
-        if (DBType.valueOf(conf.getStorageType()) == DBType.influxdb) {
+        if (DBType.valueOf(conf.getStorageType().toLowerCase()) == DBType.influxdb) {
             isInfluxdb = true;
         }
         DBConf dbConf = conf.loadDBConf(conf.getStorageType());

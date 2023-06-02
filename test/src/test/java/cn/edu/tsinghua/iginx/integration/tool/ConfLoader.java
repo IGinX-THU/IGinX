@@ -2,14 +2,11 @@ package cn.edu.tsinghua.iginx.integration.tool;
 
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.utils.FileReader;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.stream.Collectors;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,7 +52,7 @@ public class ConfLoader {
         if (property == null || property.isEmpty()) {
             return;
         }
-        storageEngines = Arrays.stream(property.split(",")).map(String::toLowerCase).collect(Collectors.toList());
+        storageEngines = Arrays.asList(property.split(","));
 
         // load the storageEngine
         for (String storageEngine : storageEngines) {
@@ -102,7 +99,7 @@ public class ConfLoader {
                 taskList.add(taskName);
                 logInfo("{}", taskName);
             }
-            taskMap.put(DBType.valueOf(storageEngine), taskList);
+            taskMap.put(DBType.valueOf(storageEngine.toLowerCase()), taskList);
         }
     }
 
@@ -123,7 +120,7 @@ public class ConfLoader {
         if (property == null || property.isEmpty()) {
             return dbConf;
         }
-        storageEngines = Arrays.stream(property.split(",")).map(String::toLowerCase).collect(Collectors.toList());
+        storageEngines = Arrays.asList(property.split(","));
 
         if (storageEngine == null || storageEngine.isEmpty()) {
             return dbConf;
