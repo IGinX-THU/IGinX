@@ -685,7 +685,7 @@ public class QueryGenerator extends AbstractGenerator {
     private Pair<Map<KeyInterval, List<FragmentMeta>>, List<FragmentMeta>> getFragmentsByTSInterval(
             SelectStatement selectStatement, ColumnsInterval interval) {
         Map<ColumnsRange, List<FragmentMeta>> fragmentsByTSInterval =
-                metaManager.getFragmentMapByTimeSeriesInterval(
+                metaManager.getFragmentMapByColumnsRange(
                         PathUtils.trimTimeSeriesInterval(interval), true);
         if (!metaManager.hasFragment()) {
             // on startup
@@ -693,7 +693,7 @@ public class QueryGenerator extends AbstractGenerator {
                     policy.generateInitialFragmentsAndStorageUnits(selectStatement);
             metaManager.createInitialFragmentsAndStorageUnits(
                     fragmentsAndStorageUnits.v, fragmentsAndStorageUnits.k);
-            fragmentsByTSInterval = metaManager.getFragmentMapByTimeSeriesInterval(interval, true);
+            fragmentsByTSInterval = metaManager.getFragmentMapByColumnsRange(interval, true);
         }
         return keyFromTSIntervalToTimeInterval(fragmentsByTSInterval);
     }

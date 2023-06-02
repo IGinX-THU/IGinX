@@ -19,7 +19,7 @@
 package cn.edu.tsinghua.iginx.metadata.cache;
 
 import cn.edu.tsinghua.iginx.metadata.entity.*;
-import cn.edu.tsinghua.iginx.policy.simple.TimeSeriesCalDO;
+import cn.edu.tsinghua.iginx.policy.simple.ColumnCalDO;
 import cn.edu.tsinghua.iginx.sql.statement.InsertStatement;
 import java.util.List;
 import java.util.Map;
@@ -130,7 +130,7 @@ public interface IMetaCache {
 
     void saveTimeSeriesData(InsertStatement statement);
 
-    List<TimeSeriesCalDO> getMaxValueFromTimeSeries();
+    List<ColumnCalDO> getMaxValueFromTimeSeries();
 
     double getSumFromTimeSeries();
 

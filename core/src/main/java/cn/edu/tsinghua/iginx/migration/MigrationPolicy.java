@@ -236,11 +236,11 @@ public abstract class MigrationPolicy {
                 FragmentMeta targetFragmentMeta = fakedFragmentMetas.get(i);
                 if (i == 0) {
                     DefaultMetaManager.getInstance()
-                            .endFragmentByTimeSeriesInterval(
+                            .endFragmentByColumnsRange(
                                     fragmentMeta,
                                     targetFragmentMeta.getColumnsRange().getEndColumn());
                     DefaultMetaManager.getInstance()
-                            .updateFragmentByTsInterval(sourceTsInterval, fragmentMeta);
+                            .updateFragmentByColumnsRange(sourceTsInterval, fragmentMeta);
                 } else {
                     FragmentMeta newFragment =
                             new FragmentMeta(
@@ -331,7 +331,7 @@ public abstract class MigrationPolicy {
             DefaultMetaManager.getInstance().addFragment(newFragment);
             logger.info("start to add old fragment");
             DefaultMetaManager.getInstance()
-                    .endFragmentByTimeSeriesInterval(fragmentMeta, middleTimeseries);
+                    .endFragmentByColumnsRange(fragmentMeta, middleTimeseries);
         } finally {
             migrationLogger.logMigrationExecuteTaskEnd();
         }
@@ -375,9 +375,9 @@ public abstract class MigrationPolicy {
                             fragmentMeta.getMasterStorageUnit());
             DefaultMetaManager.getInstance().addFragment(newFragment);
             DefaultMetaManager.getInstance()
-                    .endFragmentByTimeSeriesInterval(fragmentMeta, middleTimeseries);
+                    .endFragmentByColumnsRange(fragmentMeta, middleTimeseries);
             DefaultMetaManager.getInstance()
-                    .updateFragmentByTsInterval(sourceTsInterval, fragmentMeta);
+                    .updateFragmentByColumnsRange(sourceTsInterval, fragmentMeta);
         } finally {
             migrationLogger.logMigrationExecuteTaskEnd();
         }
@@ -635,7 +635,7 @@ public abstract class MigrationPolicy {
                         policy.generateFragmentAndStorageUnitByTimeSeriesIntervalAndTimeInterval(
                                 tsInterval.getStartColumn(),
                                 tsInterval.getEndColumn(),
-                                DefaultMetaManager.getInstance().getMaxActiveEndTime(),
+                                DefaultMetaManager.getInstance().getMaxActiveEndKey(),
                                 Long.MAX_VALUE,
                                 storageEngineList);
                 logger.info("start to splitFragmentAndStorageUnit");

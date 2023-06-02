@@ -22,7 +22,7 @@ import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.*;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
-import cn.edu.tsinghua.iginx.policy.simple.TimeSeriesCalDO;
+import cn.edu.tsinghua.iginx.policy.simple.ColumnCalDO;
 import cn.edu.tsinghua.iginx.sql.statement.InsertStatement;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
@@ -84,7 +84,7 @@ public class DefaultMetaCache implements IMetaCache {
 
     private final ReadWriteLock insertRecordLock = new ReentrantReadWriteLock();
 
-    private final Map<String, TimeSeriesCalDO> timeSeriesCalDOConcurrentHashMap =
+    private final Map<String, ColumnCalDO> timeSeriesCalDOConcurrentHashMap =
             new ConcurrentHashMap<>();
 
     private final Random random = new Random();
@@ -851,13 +851,13 @@ public class DefaultMetaCache implements IMetaCache {
 
     private void updateTimeSeriesCalDOConcurrentHashMap(
             String path, long now, long minn, long maxx, long totalByte, int count) {
-        TimeSeriesCalDO timeSeriesCalDO = new TimeSeriesCalDO();
-        timeSeriesCalDO.setTimeSeries(path);
+        ColumnCalDO columnCalDO = new ColumnCalDO();
+        columnCalDO.setColumn(path);
         if (timeSeriesCalDOConcurrentHashMap.containsKey(path)) {
-            timeSeriesCalDO = timeSeriesCalDOConcurrentHashMap.get(path);
+            columnCalDO = timeSeriesCalDOConcurrentHashMap.get(path);
         }
-        timeSeriesCalDO.merge(now, minn, maxx, count, totalByte);
-        timeSeriesCalDOConcurrentHashMap.put(path, timeSeriesCalDO);
+        columnCalDO.merge(now, minn, maxx, count, totalByte);
+        timeSeriesCalDOConcurrentHashMap.put(path, columnCalDO);
     }
 
     private long transDatatypeToByte(DataType dataType) {
@@ -876,9 +876,9 @@ public class DefaultMetaCache implements IMetaCache {
     }
 
     @Override
-    public List<TimeSeriesCalDO> getMaxValueFromTimeSeries() {
+    public List<ColumnCalDO> getMaxValueFromTimeSeries() {
         insertRecordLock.readLock().lock();
-        List<TimeSeriesCalDO> ret =
+        List<ColumnCalDO> ret =
                 timeSeriesCalDOConcurrentHashMap
                         .values()
                         .stream()
@@ -895,7 +895,7 @@ public class DefaultMetaCache implements IMetaCache {
                 timeSeriesCalDOConcurrentHashMap
                         .values()
                         .stream()
-                        .mapToDouble(TimeSeriesCalDO::getValue)
+                        .mapToDouble(ColumnCalDO::getValue)
                         .sum();
         insertRecordLock.readLock().unlock();
         return ret;

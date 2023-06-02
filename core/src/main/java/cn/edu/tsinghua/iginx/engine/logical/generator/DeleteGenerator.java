@@ -55,14 +55,14 @@ public class DeleteGenerator extends AbstractGenerator {
                 new ColumnsInterval(pathList.get(0), pathList.get(pathList.size() - 1));
 
         Map<ColumnsRange, List<FragmentMeta>> fragments =
-                metaManager.getFragmentMapByTimeSeriesInterval(interval);
+                metaManager.getFragmentMapByColumnsRange(interval);
         if (fragments.isEmpty()) {
             // on startup
             Pair<List<FragmentMeta>, List<StorageUnitMeta>> fragmentsAndStorageUnits =
                     policy.generateInitialFragmentsAndStorageUnits(deleteStatement);
             metaManager.createInitialFragmentsAndStorageUnits(
                     fragmentsAndStorageUnits.v, fragmentsAndStorageUnits.k);
-            fragments = metaManager.getFragmentMapByTimeSeriesInterval(interval);
+            fragments = metaManager.getFragmentMapByColumnsRange(interval);
         }
 
         if (metaManager.hasDummyFragment(interval)) {

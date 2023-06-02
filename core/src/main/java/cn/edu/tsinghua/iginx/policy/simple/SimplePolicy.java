@@ -31,7 +31,7 @@ public class SimplePolicy implements IPolicy {
     @Override
     public void notify(DataStatement statement) {
         if (statement.getType() == StatementType.INSERT) {
-            iMetaManager.saveTimeSeriesData((InsertStatement) statement);
+            iMetaManager.saveColumnsData((InsertStatement) statement);
         }
     }
 
@@ -323,7 +323,7 @@ public class SimplePolicy implements IPolicy {
                     "function generateFragmentsAndStorageUnits only use insert statement for now.");
         }
 
-        Map<String, Double> data = iMetaManager.getTimeseriesData();
+        Map<String, Double> data = iMetaManager.getColumnsData();
         List<String> prefixList = getNewFragment(data);
 
         List<FragmentMeta> fragmentList = new ArrayList<>();

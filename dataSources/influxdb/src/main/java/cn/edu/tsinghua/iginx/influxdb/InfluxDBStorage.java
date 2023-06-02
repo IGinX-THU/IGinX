@@ -238,122 +238,6 @@ public class InfluxDBStorage implements IStorage {
         return new Pair<>(tsInterval, keyInterval);
     }
 
-    public TaskExecuteResult execute(StoragePhysicalTask task) {
-        List<Operator> operators = task.getOperators();
-        if (operators.size() != 1) {
-            return new TaskExecuteResult(
-                    new NonExecutablePhysicalTaskException("unsupported physical task"));
-        }
-        FragmentMeta fragment = task.getTargetFragment();
-        Operator op = operators.get(0);
-        String storageUnit = task.getStorageUnit();
-        boolean isDummyStorageUnit = task.isDummyStorageUnit();
-        if (op.getType() == OperatorType.Project) { // 目前只实现 project 操作符
-            Project project = (Project) op;
-            return isDummyStorageUnit
-                    ? executeHistoryProjectTask(
-                            task.getTargetFragment().getColumnsRange(),
-                            fragment.getKeyInterval(),
-                            project)
-                    : executeProjectTask(
-                            fragment.getKeyInterval(),
-                            fragment.getColumnsRange(),
-                            storageUnit,
-                            project);
-        } else if (op.getType() == OperatorType.Insert) {
-            Insert insert = (Insert) op;
-            return executeInsertTask(storageUnit, insert);
-        } else if (op.getType() == OperatorType.Delete) {
-            Delete delete = (Delete) op;
-            return executeDeleteTask(storageUnit, delete);
-        }
-        return new TaskExecuteResult(
-                new NonExecutablePhysicalTaskException("unsupported physical task"));
-    }
-
-    private TaskExecuteResult executeHistoryProjectTask(
-            ColumnsRange timeSeriesInterval, KeyInterval keyInterval, Project project) {
-        Map<String, String> bucketQueries = new HashMap<>();
-        TagFilter tagFilter = project.getTagFilter();
-        for (String pattern : project.getPatterns()) {
-            Pair<String, String> pair =
-                    SchemaTransformer.processPatternForQuery(pattern, tagFilter);
-            String bucketName = pair.k;
-            String query = pair.v;
-
-            if (client.getBucketsApi().findBucketByName(bucketName) == null) {
-                logger.warn("storage engine {} doesn't exist", bucketName);
-                continue;
-            }
-
-            String fullQuery = "";
-            if (bucketQueries.containsKey(bucketName)) {
-                fullQuery = bucketQueries.get(bucketName);
-                fullQuery += " or ";
-            }
-            fullQuery += query;
-            bucketQueries.put(bucketName, fullQuery);
-        }
-
-        long startTime = keyInterval.getStartKey();
-        long endTime = keyInterval.getEndKey();
-
-        Map<String, List<FluxTable>> bucketQueryResults = new HashMap<>();
-        for (String bucket : bucketQueries.keySet()) {
-            String statement =
-                    String.format(
-                            "from(bucket:\"%s\") |> range(start: time(v: %s), stop: time(v: %s))",
-                            bucket, startTime, endTime);
-            if (!bucketQueries.get(bucket).equals("()")) {
-                statement += String.format(" |> filter(fn: (r) => %s)", bucketQueries.get(bucket));
-            }
-            logger.info("execute query: " + statement);
-            bucketQueryResults.put(
-                    bucket, client.getQueryApi().query(statement, organization.getId()));
-        }
-
-        InfluxDBHistoryQueryRowStream rowStream =
-                new InfluxDBHistoryQueryRowStream(bucketQueryResults, project.getPatterns());
-        return new TaskExecuteResult(rowStream);
-    }
-
-    @Override
-    public TaskExecuteResult executeProject(Project project, DataArea dataArea) {
-        return null;
-    }
-
-    @Override
-    public TaskExecuteResult executeProjectDummy(Project project, DataArea dataArea) {
-        return null;
-    }
-
-    @Override
-    public boolean isSupportProjectWithSelect() {
-        return false;
-    }
-
-    @Override
-    public TaskExecuteResult executeProjectWithSelect(
-            Project project, Select select, DataArea dataArea) {
-        return null;
-    }
-
-    @Override
-    public TaskExecuteResult executeProjectDummyWithSelect(
-            Project project, Select select, DataArea dataArea) {
-        return null;
-    }
-
-    @Override
-    public TaskExecuteResult executeDelete(Delete delete, DataArea dataArea) {
-        return null;
-    }
-
-    @Override
-    public TaskExecuteResult executeInsert(Insert insert, DataArea dataArea) {
-        return null;
-    }
-
     @Override
     public List<Column> getColumns() {
         List<Column> timeseries = new ArrayList<>();
@@ -420,8 +304,27 @@ public class InfluxDBStorage implements IStorage {
         client.close();
     }
 
-    private TaskExecuteResult executeProjectTask(
-            KeyInterval keyInterval, ColumnsRange tsInterval, String storageUnit, Project project) {
+    @Override
+    public boolean isSupportProjectWithSelect() {
+        return false;
+    }
+
+    @Override
+    public TaskExecuteResult executeProjectWithSelect(
+        Project project, Select select, DataArea dataArea) {
+        return null;
+    }
+
+    @Override
+    public TaskExecuteResult executeProjectDummyWithSelect(
+        Project project, Select select, DataArea dataArea) {
+        return null;
+    }
+
+    @Override
+    public TaskExecuteResult executeProject(Project project, DataArea dataArea) {
+        String storageUnit = dataArea.getStorageUnit();
+        KeyInterval keyInterval = dataArea.getKeyInterval();
 
         if (client.getBucketsApi().findBucketByName(storageUnit) == null) {
             logger.warn("storage engine {} doesn't exist", storageUnit);
@@ -438,6 +341,53 @@ public class InfluxDBStorage implements IStorage {
                         keyInterval.getEndKey());
         List<FluxTable> tables = client.getQueryApi().query(statement, organization.getId());
         InfluxDBQueryRowStream rowStream = new InfluxDBQueryRowStream(tables, project);
+        return new TaskExecuteResult(rowStream);
+    }
+
+    @Override
+    public TaskExecuteResult executeProjectDummy(Project project, DataArea dataArea) {
+        KeyInterval keyInterval = dataArea.getKeyInterval();
+        Map<String, String> bucketQueries = new HashMap<>();
+        TagFilter tagFilter = project.getTagFilter();
+        for (String pattern : project.getPatterns()) {
+            Pair<String, String> pair =
+                SchemaTransformer.processPatternForQuery(pattern, tagFilter);
+            String bucketName = pair.k;
+            String query = pair.v;
+
+            if (client.getBucketsApi().findBucketByName(bucketName) == null) {
+                logger.warn("storage engine {} doesn't exist", bucketName);
+                continue;
+            }
+
+            String fullQuery = "";
+            if (bucketQueries.containsKey(bucketName)) {
+                fullQuery = bucketQueries.get(bucketName);
+                fullQuery += " or ";
+            }
+            fullQuery += query;
+            bucketQueries.put(bucketName, fullQuery);
+        }
+
+        long startTime = keyInterval.getStartKey();
+        long endTime = keyInterval.getEndKey();
+
+        Map<String, List<FluxTable>> bucketQueryResults = new HashMap<>();
+        for (String bucket : bucketQueries.keySet()) {
+            String statement =
+                String.format(
+                    "from(bucket:\"%s\") |> range(start: time(v: %s), stop: time(v: %s))",
+                    bucket, startTime, endTime);
+            if (!bucketQueries.get(bucket).equals("()")) {
+                statement += String.format(" |> filter(fn: (r) => %s)", bucketQueries.get(bucket));
+            }
+            logger.info("execute query: " + statement);
+            bucketQueryResults.put(
+                bucket, client.getQueryApi().query(statement, organization.getId()));
+        }
+
+        InfluxDBHistoryQueryRowStream rowStream =
+            new InfluxDBHistoryQueryRowStream(bucketQueryResults, project.getPatterns());
         return new TaskExecuteResult(rowStream);
     }
 
@@ -512,7 +462,9 @@ public class InfluxDBStorage implements IStorage {
         return statement;
     }
 
-    private TaskExecuteResult executeInsertTask(String storageUnit, Insert insert) {
+    @Override
+    public TaskExecuteResult executeInsert(Insert insert, DataArea dataArea) {
+        String storageUnit = dataArea.getStorageUnit();
         DataView dataView = insert.getData();
         Exception e = null;
         switch (dataView.getRawDataType()) {
@@ -746,7 +698,9 @@ public class InfluxDBStorage implements IStorage {
         return null;
     }
 
-    private TaskExecuteResult executeDeleteTask(String storageUnit, Delete delete) {
+    @Override
+    public TaskExecuteResult executeDelete(Delete delete, DataArea dataArea) {
+        String storageUnit = dataArea.getStorageUnit();
         if (delete.getTimeRanges() == null
                 || delete.getTimeRanges().size() == 0) { // 没有传任何 time range
             Bucket bucket = bucketMap.get(storageUnit);

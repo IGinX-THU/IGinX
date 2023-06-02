@@ -56,7 +56,7 @@ public class InsertGenerator extends AbstractGenerator {
                 new KeyInterval(insertStatement.getStartTime(), insertStatement.getEndTime() + 1);
 
         Map<ColumnsRange, List<FragmentMeta>> fragments =
-                metaManager.getFragmentMapByTimeSeriesIntervalAndTimeInterval(
+                metaManager.getFragmentMapByColumnsIntervalAndKeyInterval(
                         tsInterval, keyInterval);
         if (fragments.isEmpty()) {
             // on startup
@@ -65,7 +65,7 @@ public class InsertGenerator extends AbstractGenerator {
                     policy.generateInitialFragmentsAndStorageUnits(insertStatement);
             metaManager.createInitialFragmentsAndStorageUnits(
                     fragmentsAndStorageUnits.v, fragmentsAndStorageUnits.k);
-            fragments = metaManager.getFragmentMapByTimeSeriesInterval(tsInterval);
+            fragments = metaManager.getFragmentMapByColumnsRange(tsInterval);
         } else if (policy.isNeedReAllocate()) {
             // on scale-out or any events requiring reallocation
             logger.debug("Trig ReAllocate!");

@@ -189,7 +189,7 @@ public class StoragePhysicalTaskExecutor {
                                                                         } else {
                                                                             result =
                                                                                     pair.k
-                                                                                            .executeProject(
+                                                                                            .executeProjectDummy(
                                                                                                     (Project)
                                                                                                             op,
                                                                                                     dataArea);
