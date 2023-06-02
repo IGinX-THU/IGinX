@@ -69,23 +69,23 @@ public abstract class BaseHistoryDataGenerator {
     }
 
     @Test
-    public void generateHistoryDataOriHasDataExpHasData() {
+    public void oriHasDataExpHasData() {
         writeHistoryDataToOri();
         writeHistoryDataToExp();
     }
 
     @Test
-    public void generateHistoryDataOriHasDataExpNoData() {
+    public void oriHasDataExpNoData() {
         writeHistoryDataToOri();
     }
 
     @Test
-    public void generateHistoryDataOriNoDataExpHasData() {
+    public void oriNoDataExpHasData() {
         writeHistoryDataToExp();
     }
 
     @Test
-    public void generateHistoryDataOriNoDataExpNoData() {
+    public void oriNoDataExpNoData() {
 
     }
 

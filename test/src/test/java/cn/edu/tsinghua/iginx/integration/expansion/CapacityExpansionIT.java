@@ -73,7 +73,7 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
     }
 
     @Test
-    public void testOriHasDataExpHasData() {
+    public void oriHasDataExpHasData() {
         // 查询原始节点的历史数据，结果不为空
         testQueryHistoryDataOriHasData();
         // 写入并查询新数据
@@ -89,7 +89,7 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
     }
 
     @Test
-    public void testOriHasDataExpNoData() {
+    public void oriHasDataExpNoData() {
         // 查询原始节点的历史数据，结果不为空
         testQueryHistoryDataOriHasData();
         // 写入并查询新数据
@@ -105,7 +105,7 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
     }
 
     @Test
-    public void testOriNoDataExpHasData() {
+    public void oriNoDataExpHasData() {
         // 查询原始节点的历史数据，结果为空
         testQueryHistoryDataOriNoData();
         // 写入并查询新数据
@@ -121,7 +121,7 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
     }
 
     @Test
-    public void testOriNoDataExpNoData() {
+    public void oriNoDataExpNoData() {
         // 查询原始节点的历史数据，结果为空
         testQueryHistoryDataOriNoData();
         // 写入并查询新数据
