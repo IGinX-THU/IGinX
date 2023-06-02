@@ -1,6 +1,8 @@
 package cn.edu.tsinghua.iginx.integration.expansion;
 
 import cn.edu.tsinghua.iginx.thrift.DataType;
+import org.junit.Test;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -66,17 +68,25 @@ public abstract class BaseHistoryDataGenerator {
                 });
     }
 
+    @Test
     public void generateHistoryDataOriHasDataExpHasData() {
         writeHistoryDataToOri();
         writeHistoryDataToExp();
     }
 
+    @Test
     public void generateHistoryDataOriHasDataExpNoData() {
         writeHistoryDataToOri();
     }
 
+    @Test
     public void generateHistoryDataOriNoDataExpHasData() {
         writeHistoryDataToExp();
+    }
+
+    @Test
+    public void generateHistoryDataOriNoDataExpNoData() {
+
     }
 
     public void writeHistoryDataToOri() {}

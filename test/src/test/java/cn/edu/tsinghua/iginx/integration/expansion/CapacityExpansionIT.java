@@ -74,8 +74,6 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
 
     @Test
     public void testOriHasDataExpHasData() {
-        // 生成历史数据
-        historyDataGenerator.generateHistoryDataOriHasDataExpHasData();
         // 查询原始节点的历史数据，结果不为空
         testQueryHistoryDataOriHasData();
         // 写入并查询新数据
@@ -92,8 +90,6 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
 
     @Test
     public void testOriHasDataExpNoData() {
-        // 生成历史数据
-        historyDataGenerator.generateHistoryDataOriHasDataExpNoData();
         // 查询原始节点的历史数据，结果不为空
         testQueryHistoryDataOriHasData();
         // 写入并查询新数据
@@ -110,8 +106,6 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
 
     @Test
     public void testOriNoDataExpHasData() {
-        // 生成历史数据
-        historyDataGenerator.generateHistoryDataOriNoDataExpHasData();
         // 查询原始节点的历史数据，结果为空
         testQueryHistoryDataOriNoData();
         // 写入并查询新数据
