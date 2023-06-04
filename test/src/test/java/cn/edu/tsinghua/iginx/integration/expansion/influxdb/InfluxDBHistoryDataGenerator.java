@@ -71,6 +71,9 @@ public class InfluxDBHistoryDataGenerator extends BaseHistoryDataGenerator {
                 }
 
                 Point point = null;
+                if (valueList.get(i) == null) {
+                    continue;
+                }
                 switch (dataType) {
                     case BOOLEAN:
                         point =

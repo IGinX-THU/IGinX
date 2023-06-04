@@ -35,11 +35,14 @@ public class IoTDB12HistoryDataGenerator extends BaseHistoryDataGenerator {
                     String path = pathList.get(i);
                     String deviceId = path.substring(0, path.lastIndexOf("."));
                     String measurementId = path.substring(path.lastIndexOf(".") + 1);
+                    if (valueList.get(i) != null) {
+                        session.executeNonQueryStatement(
+                                String.format(
+                                        INSERT, deviceId, measurementId, timeCnt, valueList.get(i)));
+                    }
                     logger.info(String.format(
                             INSERT, deviceId, measurementId, timeCnt, valueList.get(i)));
-                    session.executeNonQueryStatement(
-                            String.format(
-                                    INSERT, deviceId, measurementId, timeCnt, valueList.get(i)));
+
                 }
                 timeCnt++;
             }
