@@ -75,19 +75,19 @@ public class InfluxDBHistoryDataGenerator extends BaseHistoryDataGenerator {
                     case BOOLEAN:
                         point =
                                 Point.measurement(measurementName)
-                                        .addField(fieldName.toString(), (boolean) valueList.get(i))
+                                        .addField(fieldName.substring(0, fieldName.length() - 1), (boolean) valueList.get(i))
                                         .time(timeCnt, WRITE_PRECISION);
                         break;
                     case BINARY:
                         point =
                                 Point.measurement(measurementName)
-                                        .addField(fieldName.toString(), (String) valueList.get(i))
+                                        .addField(fieldName.substring(0, fieldName.length() - 1), (String) valueList.get(i))
                                         .time(timeCnt, WRITE_PRECISION);
                         break;
                     case DOUBLE:
                         point =
                                 Point.measurement(measurementName)
-                                        .addField(fieldName.toString(), (Double) valueList.get(i))
+                                        .addField(fieldName.substring(0, fieldName.length() - 1), (Double) valueList.get(i))
                                         .time(timeCnt, WRITE_PRECISION);
                         break;
                     case INTEGER:
