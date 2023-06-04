@@ -13,7 +13,9 @@ public class IoTDB12HistoryDataGenerator extends BaseHistoryDataGenerator {
 
     private static final Logger logger = LoggerFactory.getLogger(IoTDB12HistoryDataGenerator.class);
 
-    private static final String INSERT = "INSERT INTO root.%s (timestamp,%s) values(%s,%s)";
+    private static final String CREATE_TIMESERIES = "CREATE TIMESERIES root.%s WITH DATATYPE=%s";
+
+    private static final String INSERT_DATA = "INSERT INTO root.%s (timestamp,%s) values(%s,%s)";
 
     public IoTDB12HistoryDataGenerator() {
         this.portOri = 6667;
@@ -29,6 +31,14 @@ public class IoTDB12HistoryDataGenerator extends BaseHistoryDataGenerator {
             Session session = new Session("127.0.0.1", port, "root", "root");
             session.open();
 
+            for (int i = 0; i < pathList.size(); i++) {
+                session.executeNonQueryStatement(
+                        String.format(
+                                CREATE_TIMESERIES,
+                                pathList.get(i),
+                                dataTypeList.get(i).toString()));
+            }
+
             int timeCnt = 0;
             for (List<Object> valueList : valuesList) {
                 for (int i = 0; i < pathList.size(); i++) {
@@ -38,11 +48,12 @@ public class IoTDB12HistoryDataGenerator extends BaseHistoryDataGenerator {
                     if (valueList.get(i) != null) {
                         session.executeNonQueryStatement(
                                 String.format(
-                                        INSERT, deviceId, measurementId, timeCnt, valueList.get(i)));
+                                        INSERT_DATA,
+                                        deviceId,
+                                        measurementId,
+                                        timeCnt,
+                                        valueList.get(i)));
                     }
-                    logger.info(String.format(
-                            INSERT, deviceId, measurementId, timeCnt, valueList.get(i)));
-
                 }
                 timeCnt++;
             }
