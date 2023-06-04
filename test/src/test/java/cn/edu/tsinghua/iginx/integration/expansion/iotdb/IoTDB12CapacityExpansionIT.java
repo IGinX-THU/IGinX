@@ -8,17 +8,17 @@ import cn.edu.tsinghua.iginx.integration.expansion.CapacityExpansionIT;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class IoTDB12HistoryDataCapacityExpansionIT extends CapacityExpansionIT {
+public class IoTDB12CapacityExpansionIT extends CapacityExpansionIT {
 
     private static final Logger logger =
-            LoggerFactory.getLogger(IoTDB12HistoryDataCapacityExpansionIT.class);
+            LoggerFactory.getLogger(IoTDB12CapacityExpansionIT.class);
 
-    public IoTDB12HistoryDataCapacityExpansionIT() {
+    public IoTDB12CapacityExpansionIT() {
         super(iotdb12);
     }
 
     @Override
-    public void addStorageWithPrefix(String dataPrefix, String schemaPrefix) {
+    public void addStorageEngineWithPrefix(String dataPrefix, String schemaPrefix) {
         try {
             session.executeSql(
                     "ADD STORAGEENGINE (\"127.0.0.1\", 6668, \""

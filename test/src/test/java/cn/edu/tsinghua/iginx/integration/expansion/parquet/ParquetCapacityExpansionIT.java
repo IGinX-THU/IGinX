@@ -9,10 +9,10 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ParquetHistoryDataCapacityExpansionIT {
+public class ParquetCapacityExpansionIT {
 
     private static final Logger logger =
-            LoggerFactory.getLogger(ParquetHistoryDataCapacityExpansionIT.class);
+            LoggerFactory.getLogger(ParquetCapacityExpansionIT.class);
 
     private static Session session;
 

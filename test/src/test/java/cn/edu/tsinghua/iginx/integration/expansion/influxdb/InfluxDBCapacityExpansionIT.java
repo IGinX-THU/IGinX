@@ -8,17 +8,17 @@ import cn.edu.tsinghua.iginx.integration.expansion.CapacityExpansionIT;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class InfluxDBHistoryDataCapacityExpansionIT extends CapacityExpansionIT {
+public class InfluxDBCapacityExpansionIT extends CapacityExpansionIT {
 
     private static final Logger logger =
-            LoggerFactory.getLogger(InfluxDBHistoryDataCapacityExpansionIT.class);
+            LoggerFactory.getLogger(InfluxDBCapacityExpansionIT.class);
 
-    public InfluxDBHistoryDataCapacityExpansionIT() {
+    public InfluxDBCapacityExpansionIT() {
         super(influxdb);
     }
 
     @Override
-    public void addStorageWithPrefix(String dataPrefix, String schemaPrefix) {
+    public void addStorageEngineWithPrefix(String dataPrefix, String schemaPrefix) {
         try {
             session.executeSql(
                     "ADD STORAGEENGINE (\"127.0.0.1\", 8087, \""

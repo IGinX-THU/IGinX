@@ -16,10 +16,7 @@ public interface BaseCapacityExpansionIT {
     @Test
     void oriNoDataExpNoData();
 
-    @Test
-    void testPrefixAndRemoveHistoryDataSource();
-
-    void addStorageWithPrefix(String dataPrefix, String schemaPrefix);
+    void addStorageEngineWithPrefix(String dataPrefix, String schemaPrefix);
 
     int getPort();
 }

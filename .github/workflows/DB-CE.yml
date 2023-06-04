@@ -62,7 +62,7 @@ jobs:
                   Test-Way: oriHasDataExpHasData
             - name: oriHasDataExpHasData IT
               run: |
-                  mvn test -q -Dtest=${{matrix.DB-name}}HistoryDataCapacityExpansionIT#oriHasDataExpHasData -DfailIfNoTests=false -P passFormat
+                  mvn test -q -Dtest=${{matrix.DB-name}}CapacityExpansionIT#oriHasDataExpHasData -DfailIfNoTests=false -P passFormat
                   mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P passFormat
             #第 2 阶段测试开始==========================================
             - name: Prepare CapExp environment oriNoDataExpNoData
@@ -73,7 +73,7 @@ jobs:
                   Test-Way: oriNoDataExpNoData
             - name: oriNoDataExpNoData IT
               run: |
-                  mvn test -q -Dtest=${{matrix.DB-name}}HistoryDataCapacityExpansionIT#oriNoDataExpNoData -DfailIfNoTests=false -P passFormat
+                  mvn test -q -Dtest=${{matrix.DB-name}}CapacityExpansionIT#oriNoDataExpNoData -DfailIfNoTests=false -P passFormat
                   mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P passFormat
             #第 3 阶段测试开始==========================================
             - name: Prepare CapExp environment oriHasDataExpNoData
@@ -84,7 +84,7 @@ jobs:
                   Test-Way: oriHasDataExpNoData
             - name: oriHasDataExpNoData IT
               run: |
-                  mvn test -q -Dtest=${{matrix.DB-name}}HistoryDataCapacityExpansionIT#oriHasDataExpNoData -DfailIfNoTests=false -P passFormat
+                  mvn test -q -Dtest=${{matrix.DB-name}}CapacityExpansionIT#oriHasDataExpNoData -DfailIfNoTests=false -P passFormat
                   mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P passFormat
             #第 4 阶段测试开始==========================================
             - name: Prepare CapExp environment oriNoDataExpHasData
@@ -95,9 +95,9 @@ jobs:
                   Test-Way: oriNoDataExpHasData
             - name: oriNoDataExpHasData IT
               run: |
-                  mvn test -q -Dtest=${{matrix.DB-name}}HistoryDataCapacityExpansionIT#oriNoDataExpHasData -DfailIfNoTests=false -P passFormat
+                  mvn test -q -Dtest=${{matrix.DB-name}}CapacityExpansionIT#oriNoDataExpHasData -DfailIfNoTests=false -P passFormat
                   mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P passFormat
-                  mvn test -q -Dtest=${{matrix.DB-name}}HistoryDataCapacityExpansionIT#testPrefixAndRemoveHistoryDataSource -DfailIfNoTests=false -P passFormat
+                  mvn test -q -Dtest=${{matrix.DB-name}}CapacityExpansionIT#testPrefixAndRemoveHistoryDataSource -DfailIfNoTests=false -P passFormat
             - uses: codecov/codecov-action@v1
               with:
                   file: ./**/target/site/jacoco/jacoco.xml
@@ -165,7 +165,7 @@ jobs:
                   chmod +x "${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/sbin/start_iginx.sh"
                   nohup "${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/sbin/start_iginx.sh" &
             - name: A Lame Integration Test with Maven for parquet
-              run: mvn test -q -Dtest=ParquetHistoryDataCapacityExpansionIT -DfailIfNoTests=false
+              run: mvn test -q -Dtest=ParquetCapacityExpansionIT -DfailIfNoTests=false
             - uses: codecov/codecov-action@v1
               with:
                   file: ./**/target/site/jacoco/jacoco.xml

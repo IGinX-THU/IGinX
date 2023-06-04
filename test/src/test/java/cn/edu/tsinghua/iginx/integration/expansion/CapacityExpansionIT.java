@@ -118,6 +118,8 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
         queryNewData();
         // 再次写入并查询所有新数据
         testWriteAndQueryNewDataAfterCE();
+        // 测试带前缀的添加和移除存储引擎操作
+        testAddAndRemoveStorageEngineWithPrefix();
     }
 
     @Test
@@ -136,10 +138,9 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
         testWriteAndQueryNewDataAfterCE();
     }
 
-    @Test
-    public void testPrefixAndRemoveHistoryDataSource() {
-        addStorageWithPrefix("mn", "p1");
-        addStorageWithPrefix("mn", "p2");
+    private void testAddAndRemoveStorageEngineWithPrefix() {
+        addStorageEngineWithPrefix("mn", "p1");
+        addStorageEngineWithPrefix("mn", "p2");
         String statement = "select * from p1.mn";
         List<String> pathList =
                 new ArrayList<String>() {
