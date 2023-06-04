@@ -66,6 +66,10 @@ public class SQLTestTools {
             List<List<Object>> valuesList = new ArrayList<>();
             List<DataType> dataTypeList = res.getDataTypeList();
 
+            logger.info(pathList.toString());
+            logger.info(valuesList.toString());
+            logger.info(dataTypeList.toString());
+
             // 不比较 key 列
             for (int i = 0; i < pathListAns.size(); i++) {
                 String pathAns = pathListAns.get(i);
