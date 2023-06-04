@@ -45,12 +45,6 @@ public class SQLTestTools {
 
     private static boolean compareValuesList(
             List<List<Object>> valuesListAns, List<List<Object>> valuesList) {
-        for (List<Object> valueListAns : valuesListAns) {
-            logger.info(valueListAns.toString());
-        }
-        for (List<Object> valueList : valuesList) {
-            logger.info(valueList.toString());
-        }
         Set<List<Object>> valuesSetAns = new HashSet<>(valuesListAns);
         Set<List<Object>> valuesSet = new HashSet<>(valuesList);
         return valuesSet.equals(valuesSetAns);
@@ -68,13 +62,8 @@ public class SQLTestTools {
             List<List<Object>> valuesList = res.getValues();
             List<DataType> dataTypeList = res.getDataTypeList();
 
-            logger.info(pathList.toString());
-            logger.info(valuesList.toString());
-            logger.info(dataTypeList.toString());
-
             for (int i = 0; i < pathListAns.size(); i++) {
-                String pathAns = pathListAns.get(i);
-                assertEquals(pathAns, pathList.get(i));
+                assertEquals(pathListAns.get(i), pathList.get(i));
                 assertEquals(dataTypeListAns.get(i), dataTypeList.get(i));
             }
 
