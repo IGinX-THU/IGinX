@@ -166,8 +166,8 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
         List<DataType> dataTypeList =
                 new ArrayList<DataType>() {
                     {
+                        add(DataType.BOOLEAN);
                         add(DataType.DOUBLE);
-                        add(DataType.LONG);
                     }
                 };
         SQLTestTools.executeAndCompare(session, statement, pathList, valuesList, dataTypeList);
