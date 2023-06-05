@@ -8,7 +8,8 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
-import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Timeseries;
+import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
+import cn.edu.tsinghua.iginx.engine.physical.storage.domain.DataArea;
 import cn.edu.tsinghua.iginx.engine.physical.task.StoragePhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
 import cn.edu.tsinghua.iginx.engine.shared.TimeRange;
@@ -101,7 +102,6 @@ public class OpenTSDBStorage implements IStorage {
         return true;
     }
 
-    @Override
     public TaskExecuteResult execute(StoragePhysicalTask task) {
         List<Operator> operators = task.getOperators();
         if (operators.size() != 1) {
@@ -116,8 +116,8 @@ public class OpenTSDBStorage implements IStorage {
         if (op.getType() == OperatorType.Project) {
             Project project = (Project) op;
             return isDummyStorageUnit
-                    ? executeProjectHistoryTask(fragment.getTimeInterval(), storageUnit, project)
-                    : executeProjectTask(fragment.getTimeInterval(), storageUnit, project);
+                    ? executeProjectHistoryTask(fragment.getKeyInterval(), storageUnit, project)
+                    : executeProjectTask(fragment.getKeyInterval(), storageUnit, project);
         } else if (op.getType() == OperatorType.Insert) {
             Insert insert = (Insert) op;
             return executeInsertTask(storageUnit, insert);
@@ -192,9 +192,9 @@ public class OpenTSDBStorage implements IStorage {
         } else {
             List<String> patterns = delete.getPatterns();
             TagFilter tagFilter = delete.getTagFilter();
-            List<Timeseries> timeSeries = getTimeSeries();
+            List<Column> timeSeries = getColumns();
 
-            for (Timeseries ts : timeSeries) {
+            for (Column ts : timeSeries) {
                 for (String pattern : patterns) {
                     if (Pattern.matches(StringUtils.reformatPath(pattern), ts.getPath())
                             && TagKVUtils.match(ts.getTags(), tagFilter)) {
@@ -394,7 +394,7 @@ public class OpenTSDBStorage implements IStorage {
     }
 
     private TaskExecuteResult executeProjectTask(
-            TimeInterval timeInterval, String storageUnit, Project project) {
+            KeyInterval keyInterval, String storageUnit, Project project) {
         List<String> wholePathList;
         try {
             wholePathList = getPathList();
@@ -404,9 +404,7 @@ public class OpenTSDBStorage implements IStorage {
         }
 
         Query.Builder builder =
-                Query.begin(timeInterval.getStartTime())
-                        .end(timeInterval.getEndTime())
-                        .msResolution();
+                Query.begin(keyInterval.getStartKey()).end(keyInterval.getEndKey()).msResolution();
         for (String queryPath : project.getPatterns()) {
             if (StringUtils.isPattern(queryPath)) {
                 Pattern pattern = Pattern.compile(StringUtils.reformatPath(queryPath));
@@ -442,7 +440,7 @@ public class OpenTSDBStorage implements IStorage {
     }
 
     private TaskExecuteResult executeProjectHistoryTask(
-            TimeInterval timeInterval, String storageUnit, Project project) {
+            KeyInterval keyInterval, String storageUnit, Project project) {
         List<String> wholePathList;
         try {
             wholePathList = getPathList();
@@ -452,9 +450,7 @@ public class OpenTSDBStorage implements IStorage {
         }
 
         Query.Builder builder =
-                Query.begin(timeInterval.getStartTime())
-                        .end(timeInterval.getEndTime())
-                        .msResolution();
+                Query.begin(keyInterval.getStartKey()).end(keyInterval.getEndKey()).msResolution();
         for (String queryPath : project.getPatterns()) {
             if (StringUtils.isPattern(queryPath)) {
                 Pattern pattern = Pattern.compile(StringUtils.reformatPath(queryPath));
@@ -488,15 +484,15 @@ public class OpenTSDBStorage implements IStorage {
     }
 
     @Override
-    public Pair<TimeSeriesRange, TimeInterval> getBoundaryOfStorage(String prefix)
+    public Pair<ColumnsRange, KeyInterval> getBoundaryOfStorage(String prefix)
             throws PhysicalException {
         List<String> paths = getPurePath();
         paths.sort(String::compareTo);
         if (paths.isEmpty()) {
             throw new PhysicalTaskExecuteFailureException("no data!");
         }
-        TimeSeriesRange tsInterval =
-                new TimeSeriesInterval(
+        ColumnsRange tsInterval =
+                new ColumnsInterval(
                         paths.get(0), StringUtils.nextString(paths.get(paths.size() - 1)));
 
         long minTime = 0, maxTime = Long.MAX_VALUE - 1;
@@ -521,13 +517,50 @@ public class OpenTSDBStorage implements IStorage {
             throw new PhysicalTaskExecuteFailureException(
                     "encounter error when query data in opentsdb: ", e);
         }
-        TimeInterval timeInterval = new TimeInterval(minTime, maxTime + 1);
-        return new Pair<>(tsInterval, timeInterval);
+        KeyInterval keyInterval = new KeyInterval(minTime, maxTime + 1);
+        return new Pair<>(tsInterval, keyInterval);
     }
 
     @Override
-    public List<Timeseries> getTimeSeries() throws PhysicalException {
-        List<Timeseries> timeseries = new ArrayList<>();
+    public TaskExecuteResult executeProject(Project project, DataArea dataArea) {
+        return null;
+    }
+
+    @Override
+    public TaskExecuteResult executeProjectDummy(Project project, DataArea dataArea) {
+        return null;
+    }
+
+    @Override
+    public boolean isSupportProjectWithSelect() {
+        return false;
+    }
+
+    @Override
+    public TaskExecuteResult executeProjectWithSelect(
+            Project project, Select select, DataArea dataArea) {
+        return null;
+    }
+
+    @Override
+    public TaskExecuteResult executeProjectDummyWithSelect(
+            Project project, Select select, DataArea dataArea) {
+        return null;
+    }
+
+    @Override
+    public TaskExecuteResult executeDelete(Delete delete, DataArea dataArea) {
+        return null;
+    }
+
+    @Override
+    public TaskExecuteResult executeInsert(Insert insert, DataArea dataArea) {
+        return null;
+    }
+
+    @Override
+    public List<Column> getColumns() throws PhysicalException {
+        List<Column> timeseries = new ArrayList<>();
 
         List<String> paths = getPathWithoutDUPrefixList();
         if (paths.isEmpty()) {
@@ -549,8 +582,7 @@ public class OpenTSDBStorage implements IStorage {
                 }
                 Pair<String, Map<String, String>> pair = TagKVUtils.splitFullName(path);
                 timeseries.add(
-                        new Timeseries(
-                                pair.k, fromOpenTSDB(result.getTags().get(DATA_TYPE)), pair.v));
+                        new Column(pair.k, fromOpenTSDB(result.getTags().get(DATA_TYPE)), pair.v));
             }
         } catch (Exception e) {
             throw new PhysicalTaskExecuteFailureException(
