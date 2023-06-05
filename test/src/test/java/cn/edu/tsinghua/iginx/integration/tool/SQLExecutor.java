@@ -48,7 +48,7 @@ public class SQLExecutor {
         try {
             res = conn.executeSql(statement);
         } catch (SessionException | ExecutionException e) {
-            if (e.toString().equals(Controller.CLEARDATAEXCP)) {
+            if (e.toString().equals(Controller.CLEAR_DATA_EXCEPTION)) {
                 logger.error("clear data fail and go on....");
                 return "";
             } else {

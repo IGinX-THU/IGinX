@@ -41,7 +41,7 @@ public class CompactionIT {
     }
 
     @After
-    public void tearDown() throws SessionException, ExecutionException {
+    public void tearDown() throws SessionException {
         ConfigDescriptor.getInstance().getConfig().setEnableInstantCompaction(false);
         session.closeSession();
     }

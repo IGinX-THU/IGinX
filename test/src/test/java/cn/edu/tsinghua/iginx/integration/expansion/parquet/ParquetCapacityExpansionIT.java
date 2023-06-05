@@ -11,8 +11,7 @@ import org.slf4j.LoggerFactory;
 
 public class ParquetCapacityExpansionIT {
 
-    private static final Logger logger =
-            LoggerFactory.getLogger(ParquetCapacityExpansionIT.class);
+    private static final Logger logger = LoggerFactory.getLogger(ParquetCapacityExpansionIT.class);
 
     private static Session session;
 

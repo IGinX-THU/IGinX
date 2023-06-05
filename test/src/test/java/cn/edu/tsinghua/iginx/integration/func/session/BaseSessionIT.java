@@ -73,16 +73,16 @@ public abstract class BaseSessionIT {
     }
 
     @After
-    public void tearDown() throws SessionException {
+    public void tearDown() {
         try {
             clearData();
             session.closeSession();
-        } catch (ExecutionException e) {
+        } catch (SessionException e) {
             logger.error(e.getMessage());
         }
     }
 
-    protected void clearData() throws ExecutionException, SessionException {
+    protected void clearData() throws SessionException {
         String clearData = "CLEAR DATA;";
 
         SessionExecuteSqlResult res = null;
@@ -101,7 +101,7 @@ public abstract class BaseSessionIT {
             res = session.executeSql(clearData);
         } catch (SessionException | ExecutionException e) {
             logger.error("Statement: \"{}\" execute fail. Caused by: {}", clearData, e.toString());
-            if (e.toString().equals(Controller.CLEARDATAEXCP)) {
+            if (e.toString().equals(Controller.CLEAR_DATA_EXCEPTION)) {
                 logger.error("clear data fail and go on....");
             } else fail();
         }

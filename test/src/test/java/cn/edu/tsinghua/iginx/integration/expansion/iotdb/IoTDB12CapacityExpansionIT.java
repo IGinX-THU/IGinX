@@ -10,8 +10,7 @@ import org.slf4j.LoggerFactory;
 
 public class IoTDB12CapacityExpansionIT extends CapacityExpansionIT {
 
-    private static final Logger logger =
-            LoggerFactory.getLogger(IoTDB12CapacityExpansionIT.class);
+    private static final Logger logger = LoggerFactory.getLogger(IoTDB12CapacityExpansionIT.class);
 
     public IoTDB12CapacityExpansionIT() {
         super(iotdb12);

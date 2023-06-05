@@ -15,7 +15,6 @@ import cn.edu.tsinghua.iginx.session_v2.write.Point;
 import cn.edu.tsinghua.iginx.session_v2.write.Record;
 import cn.edu.tsinghua.iginx.session_v2.write.Table;
 import cn.edu.tsinghua.iginx.thrift.*;
-import java.io.IOException;
 import java.util.*;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -37,7 +36,7 @@ public class SessionV2IT {
     private static boolean isInfluxdb = false;
 
     @BeforeClass
-    public static void setUp() throws IOException {
+    public static void setUp() {
         ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
         if (DBType.valueOf(conf.getStorageType().toLowerCase()) == DBType.influxdb) {
             isInfluxdb = true;

@@ -3,12 +3,10 @@ package cn.edu.tsinghua.iginx.integration.func.rest;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
-import cn.edu.tsinghua.iginx.rest.MetricsResource;
 import cn.edu.tsinghua.iginx.session.Session;
 import java.io.*;
 import org.junit.*;
@@ -16,14 +14,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class RestIT {
-    protected Boolean isAbleToClearData = true;
 
-    protected static Logger logger = LoggerFactory.getLogger(MetricsResource.class);
+    private static final Logger logger = LoggerFactory.getLogger(RestIT.class);
 
-    protected static Session session;
-    protected Boolean isAbleToDelete = true;
+    private boolean isAbleToClearData = true;
 
-    public RestIT() throws IOException {
+    private static Session session;
+
+    private boolean isAbleToDelete = true;
+
+    public RestIT() {
         ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
         DBConf dbConf = conf.loadDBConf(conf.getStorageType());
         this.isAbleToClearData = dbConf.getEnumValue(DBConf.DBConfType.isAbleToClearData);
@@ -52,11 +52,11 @@ public class RestIT {
     }
 
     @After
-    public void clearData() throws ExecutionException, SessionException {
+    public void clearData() {
         Controller.clearData(session);
     }
 
-    private enum TYPE {
+    public enum TYPE {
         QUERY,
         INSERT,
         DELETE,
@@ -64,23 +64,28 @@ public class RestIT {
     }
 
     public String orderGen(String json, TYPE type) {
-        String ret = new String();
+        StringBuilder ret = new StringBuilder();
         if (type.equals(TYPE.DELETEMETRIC)) {
-            ret = "curl -XDELETE";
-            ret += " http://127.0.0.1:6666/api/v1/metric/{" + json + "}";
+            ret.append("curl -XDELETE");
+            ret.append(" http://127.0.0.1:6666/api/v1/metric/{");
+            ret.append(json);
+            ret.append("}");
         } else {
-            String prefix = "curl -XPOST -H\"Content-Type: application/json\" -d @";
-            ret = prefix + json;
-            if (type.equals(TYPE.QUERY)) ret += " http://127.0.0.1:6666/api/v1/datapoints/query";
-            else if (type.equals(TYPE.INSERT)) ret += " http://127.0.0.1:6666/api/v1/datapoints";
-            else if (type.equals(TYPE.DELETE))
-                ret += " http://127.0.0.1:6666/api/v1/datapoints/delete";
+            ret.append("curl -XPOST -H\"Content-Type: application/json\" -d @");
+            ret.append(json);
+            if (type.equals(TYPE.QUERY)) {
+                ret.append(" http://127.0.0.1:6666/api/v1/datapoints/query");
+            } else if (type.equals(TYPE.INSERT)) {
+                ret.append(" http://127.0.0.1:6666/api/v1/datapoints");
+            } else if (type.equals(TYPE.DELETE)) {
+                ret.append(" http://127.0.0.1:6666/api/v1/datapoints/delete");
+            }
         }
-        return ret;
+        return ret.toString();
     }
 
     public String execute(String json, TYPE type) throws Exception {
-        String ret = new String();
+        StringBuilder ret = new StringBuilder();
         String curlArray = orderGen(json, type);
         Process process = null;
         try {
@@ -95,12 +100,12 @@ public class RestIT {
             BufferedReader bufferedReaderINFO = new BufferedReader(inputStreamReaderINFO);
             String lineStr;
             while ((lineStr = bufferedReaderINFO.readLine()) != null) {
-                ret += lineStr;
+                ret.append(lineStr);
             }
             // 等待子进程结束
             process.waitFor();
 
-            return ret;
+            return ret.toString();
         } catch (InterruptedException e) {
             // 强制关闭子进程（如果打开程序，需要额外关闭）
             process.destroyForcibly();
@@ -108,8 +113,8 @@ public class RestIT {
         }
     }
 
-    public void executeAndCompare(String json, String output) {
-        String result = new String();
+    private void executeAndCompare(String json, String output) {
+        String result = "";
         try {
             result = execute(json, TYPE.QUERY);
         } catch (Exception e) {
@@ -120,7 +125,7 @@ public class RestIT {
     }
 
     @Test
-    public void testQueryWithoutTags() throws Exception {
+    public void testQueryWithoutTags() {
         String json = "testQueryWithoutTags.json";
         String result =
                 "{\"queries\":[{\"sample_size\": 3,\"results\": [{ \"name\": \"archive.file.tracked\",\"group_by\": [{\"name\": \"type\",\"type\": \"number\"}], \"tags\": {\"data_center\": [\"DC1\"],\"host\": [\"server1\"]}, \"values\": [[1359788300000,13.2],[1359788400000,123.3],[1359788410000,23.1]]}]},{\"sample_size\": 1,\"results\": [{ \"name\": \"archive.file.search\",\"group_by\": [{\"name\": \"type\",\"type\": \"number\"}], \"tags\": {\"host\": [\"server2\"]}, \"values\": [[1359786400000,321.0]]}]}]}";
@@ -256,9 +261,9 @@ public class RestIT {
 
     @Test
     //    @Ignore
-    public void pathValidTest() throws Exception {
+    public void pathValidTest() {
         try {
-            String res = execute("pathVaildTest.json", TYPE.INSERT);
+            String res = execute("pathValidTest.json", TYPE.INSERT);
             logger.error("insertData fail. Caused by: {}.", res);
         } catch (Exception e) {
             logger.error("insertData fail. Caused by: {}.", e.toString());

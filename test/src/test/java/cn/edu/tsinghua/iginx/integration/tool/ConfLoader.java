@@ -11,30 +11,43 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ConfLoader {
-    private final void logInfo(String info, Object... args) {
-        if (DEBUG) logger.info(info, args);
-    }
 
     private static final Logger logger = LoggerFactory.getLogger(ConfLoader.class);
+
+    private static final String STORAGE_ENGINE_LIST = "storageEngineList";
+
+    private static final String TEST_LIST = "test-list";
+
+    private static final String DBCONF = "%s-config";
+
+    private static final String RUNNING_STORAGE = "./src/test/resources/DBConf.txt";
+
+    private static final String IS_SCALING = "./src/test/resources/isScaling.txt";
+
     private static List<String> storageEngines = new ArrayList<>();
+
     private List<StorageEngineMeta> storageEngineMetas = new ArrayList<>();
+
     private Map<DBType, List<String>> taskMap = new HashMap<>();
+
     private static String confPath;
+
     private boolean DEBUG = false;
-    private static String STORAGEENGINELIST = "storageEngineList";
-    private String testTask = "test-list";
-    private static String DBCONF = "%s-config";
-    private String runningStorage = "./src/test/resources/DBConf.txt";
-    private String isScaling = "./src/test/resources/isScaling.txt";
+
+    private void logInfo(String info, Object... args) {
+        if (DEBUG) {
+            logger.info(info, args);
+        }
+    }
 
     public String getStorageType() {
-        String storageType = FileReader.convertToString(runningStorage);
+        String storageType = FileReader.convertToString(RUNNING_STORAGE);
         logInfo("run the test on {}", storageType);
         return storageType;
     }
 
     public boolean isScaling() {
-        String isScaling = FileReader.convertToString(this.isScaling);
+        String isScaling = FileReader.convertToString(this.IS_SCALING);
         logInfo("{}", isScaling);
         return isScaling != null && !isScaling.isEmpty();
     }
@@ -48,7 +61,7 @@ public class ConfLoader {
         Properties properties = new Properties();
         properties.load(in);
         logInfo("loading the test conf...");
-        String property = properties.getProperty(STORAGEENGINELIST);
+        String property = properties.getProperty(STORAGE_ENGINE_LIST);
         if (property == null || property.isEmpty()) {
             return;
         }
@@ -87,8 +100,10 @@ public class ConfLoader {
         for (String storageEngine : storageEngines) {
             String tasks;
             String storage = storageEngine.toLowerCase();
-            tasks = properties.getProperty(storage + "-" + testTask);
-            if (tasks == null) tasks = properties.getProperty(testTask);
+            tasks = properties.getProperty(storage + "-" + TEST_LIST);
+            if (tasks == null) {
+                tasks = properties.getProperty(TEST_LIST);
+            }
             logInfo("the task of {} is :", storageEngine);
             List<String> oriTaskList = Arrays.asList(tasks.split(",")),
                     taskList = new ArrayList<>();
@@ -116,7 +131,7 @@ public class ConfLoader {
         }
 
         logInfo("loading the DB conf...");
-        String property = properties.getProperty(STORAGEENGINELIST);
+        String property = properties.getProperty(STORAGE_ENGINE_LIST);
         if (property == null || property.isEmpty()) {
             return dbConf;
         }

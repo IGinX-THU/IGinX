@@ -3,10 +3,8 @@ package cn.edu.tsinghua.iginx.integration.func.rest;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
-import cn.edu.tsinghua.iginx.rest.MetricsResource;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.alibaba.fastjson.JSONObject;
@@ -41,11 +39,11 @@ import org.slf4j.LoggerFactory;
 
  */
 public class RestAnnotationIT {
-    private static final Logger LOGGER = LoggerFactory.getLogger(MetricsResource.class);
+    private static final Logger logger = LoggerFactory.getLogger(RestAnnotationIT.class);
 
     private static Session session;
 
-    private enum TYPE {
+    public enum TYPE {
         APPEND,
         UPDATE,
         INSERT,
@@ -54,7 +52,7 @@ public class RestAnnotationIT {
         DELETE
     }
 
-    private String API[] = {
+    private static final String[] API = {
         " http://127.0.0.1:6666/api/v1/datapoints/annotations/add",
         " http://127.0.0.1:6666/api/v1/datapoints/annotations/update",
         " http://127.0.0.1:6666/api/v1/datapoints/annotations",
@@ -63,28 +61,28 @@ public class RestAnnotationIT {
         " http://127.0.0.1:6666/api/v1/datapoints/annotations/delete",
     };
 
+    private static final String PREFIX = "curl -XPOST -H\"Content-Type: application/json\" -d @";
+
     public String orderGen(String fileName, TYPE type) {
-        String ret = new String();
-        String prefix = "curl -XPOST -H\"Content-Type: application/json\" -d @";
-        ret = prefix + fileName;
-        ret += API[type.ordinal()];
-        return ret;
+        return PREFIX + fileName + API[type.ordinal()];
     }
 
     public String execute(String fileName, TYPE type, DataType dataType) throws Exception {
-        String ret = new String();
+        StringBuilder ret = new StringBuilder();
         String curlArray = orderGen(fileName, type);
         Process process = null;
         try {
             ProcessBuilder processBuilder = new ProcessBuilder(curlArray.split(" "));
-            if (dataType.equals(DataType.DOUBLE))
+            if (dataType.equals(DataType.DOUBLE)) {
                 processBuilder.directory(
                         new File("./src/test/resources/restAnnotation/doubleType"));
-            if (dataType.equals(DataType.LONG))
+            } else if (dataType.equals(DataType.LONG)) {
                 processBuilder.directory(new File("./src/test/resources/restAnnotation/longType"));
-            if (dataType.equals(DataType.BINARY))
+            } else if (dataType.equals(DataType.BINARY)) {
                 processBuilder.directory(
                         new File("./src/test/resources/restAnnotation/binaryType"));
+            }
+
             // 执行 url 命令
             process = processBuilder.start();
 
@@ -94,12 +92,12 @@ public class RestAnnotationIT {
             BufferedReader bufferedReaderINFO = new BufferedReader(inputStreamReaderINFO);
             String lineStr;
             while ((lineStr = bufferedReaderINFO.readLine()) != null) {
-                ret += lineStr;
+                ret.append(lineStr);
             }
             // 等待子进程结束
             process.waitFor();
 
-            return ret;
+            return ret.toString();
         } catch (InterruptedException e) {
             // 强制关闭子进程（如果打开程序，需要额外关闭）
             process.destroyForcibly();
@@ -123,13 +121,13 @@ public class RestAnnotationIT {
         try {
             execute("insert.json", TYPE.INSERT, dataType);
         } catch (Exception e) {
-            LOGGER.error("Error occurred during execution ", e);
+            logger.error("Error occurred during execution ", e);
             fail();
         }
     }
 
     @After
-    public void clearData() throws ExecutionException, SessionException {
+    public void clearData() {
         Controller.clearData(session);
     }
 
@@ -152,13 +150,13 @@ public class RestAnnotationIT {
             //            String result = (String) JSONObject.parse(execute(json, type, dataType));
             assertEquals(outputAns, removeSpecialChar(result));
         } catch (Exception e) {
-            LOGGER.error("Error occurred during execution ", e);
+            logger.error("Error occurred during execution ", e);
             fail();
         }
     }
 
     public String ansFromFile(String fileName, DataType dataType) {
-        String ret = new String();
+        StringBuilder ret = new StringBuilder();
         switch (dataType) {
             case DOUBLE:
                 fileName = "./src/test/resources/restAnnotation/doubleType/ans/" + fileName;
@@ -170,7 +168,7 @@ public class RestAnnotationIT {
                 fileName = "./src/test/resources/restAnnotation/binaryType/ans/" + fileName;
                 break;
             default:
-                throw new IllegalStateException("Unexpected DataType: " + dataType.toString());
+                throw new IllegalStateException("Unexpected DataType: " + dataType);
         }
         fileName += ".json";
 
@@ -180,14 +178,14 @@ public class RestAnnotationIT {
             try (BufferedReader br = new BufferedReader(fr)) {
                 String line;
                 while ((line = br.readLine()) != null) {
-                    ret += line;
+                    ret.append(line);
                 }
             }
         } catch (Exception e) {
-            LOGGER.error("Error occurred during execution ", e);
+            logger.error("Error occurred during execution ", e);
             fail();
         }
-        return removeSpecialChar(ret);
+        return removeSpecialChar(ret.toString());
     }
 
     /**
@@ -214,7 +212,7 @@ public class RestAnnotationIT {
     }
 
     public String getAns(String fileName, DataType dataType) {
-        String ans = null;
+        String ans;
         switch (dataType) {
             case DOUBLE:
                 ans = ansFromFile(fileName, DataType.DOUBLE);
@@ -233,10 +231,9 @@ public class RestAnnotationIT {
 
     public void clearDataMen() {
         try {
-            String clearData = "CLEAR DATA;";
             Controller.clearData(session);
         } catch (Exception e) {
-            LOGGER.error("Error occurred during execution ", e);
+            logger.error("Error occurred during execution ", e);
             fail();
         }
     }
@@ -246,7 +243,7 @@ public class RestAnnotationIT {
         DataType dataType = DataType.DOUBLE;
 
         /*
-        1、查询anntation信息
+        1、查询annotation信息
         */
         testQueryAnno(dataType);
         clearDataMen();
@@ -310,7 +307,7 @@ public class RestAnnotationIT {
         DataType dataType = DataType.LONG;
 
         /*
-        1、查询anntation信息
+        1、查询annotation信息
         */
         testQueryAnno(dataType);
         clearDataMen();
@@ -374,7 +371,7 @@ public class RestAnnotationIT {
         DataType dataType = DataType.BINARY;
 
         /*
-        1、查询anntation信息
+        1、查询annotation信息
         */
         testQueryAnno(dataType);
         clearDataMen();
@@ -515,7 +512,7 @@ public class RestAnnotationIT {
             String ans = getAns(getMethodName(), dataType);
             executeAndCompare("queryAppendViaQueryAnno.json", ans, TYPE.QUERYANNO, DataType.DOUBLE);
         } catch (Exception e) {
-            LOGGER.error("Error occurred during execution ", e);
+            logger.error("Error occurred during execution ", e);
             fail();
         }
     }
@@ -527,7 +524,7 @@ public class RestAnnotationIT {
             String ans = getAns(getMethodName(), dataType);
             executeAndCompare("queryAppendViaQueryAll.json", ans, TYPE.QUERYALL, dataType);
         } catch (Exception e) {
-            LOGGER.error("Error occurred during execution ", e);
+            logger.error("Error occurred during execution ", e);
             fail();
         }
     }
@@ -539,7 +536,7 @@ public class RestAnnotationIT {
             String ans = getAns(getMethodName(), dataType);
             executeAndCompare("queryUpdateViaQueryAll.json", ans, TYPE.QUERYALL, dataType);
         } catch (Exception e) {
-            LOGGER.error("Error occurred during execution ", e);
+            logger.error("Error occurred during execution ", e);
             fail();
         }
     }
@@ -551,7 +548,7 @@ public class RestAnnotationIT {
             String ans = getAns(getMethodName(), dataType);
             executeAndCompare("queryUpdateViaQueryAnno.json", ans, TYPE.QUERYANNO, dataType);
         } catch (Exception e) {
-            LOGGER.error("Error occurred during execution ", e);
+            logger.error("Error occurred during execution ", e);
             fail();
         }
     }
@@ -563,7 +560,7 @@ public class RestAnnotationIT {
             String ans = getAns(getMethodName(), dataType);
             executeAndCompare("deleteViaQueryAll.json", ans, TYPE.QUERYALL, dataType);
         } catch (Exception e) {
-            LOGGER.error("Error occurred during execution ", e);
+            logger.error("Error occurred during execution ", e);
             fail();
         }
     }
@@ -575,7 +572,7 @@ public class RestAnnotationIT {
             String ans = getAns(getMethodName(), dataType);
             executeAndCompare("deleteViaQueryAnno.json", ans, TYPE.QUERYANNO, dataType);
         } catch (Exception e) {
-            LOGGER.error("Error occurred during execution ", e);
+            logger.error("Error occurred during execution ", e);
             fail();
         }
     }
@@ -595,7 +592,7 @@ public class RestAnnotationIT {
             String ans = getAns(getMethodName(), dataType);
             executeAndCompare("testAppend2ViaQueryAll.json", ans, TYPE.QUERYALL, dataType);
         } catch (Exception e) {
-            LOGGER.error("Error occurred during execution ", e);
+            logger.error("Error occurred during execution ", e);
             fail();
         }
     }
@@ -609,7 +606,7 @@ public class RestAnnotationIT {
             String ans = getAns(getMethodName(), dataType);
             executeAndCompare("queryAppendViaQueryAll.json", ans, TYPE.QUERYALL, dataType);
         } catch (Exception e) {
-            LOGGER.error("Error occurred during execution ", e);
+            logger.error("Error occurred during execution ", e);
             fail();
         }
     }
@@ -623,7 +620,7 @@ public class RestAnnotationIT {
             String ans = getAns(getMethodName(), dataType);
             executeAndCompare("queryUpdateViaQueryAll.json", ans, TYPE.QUERYALL, dataType);
         } catch (Exception e) {
-            LOGGER.error("Error occurred during execution ", e);
+            logger.error("Error occurred during execution ", e);
             fail();
         }
     }
@@ -637,7 +634,7 @@ public class RestAnnotationIT {
             String ans = getAns(getMethodName(), dataType);
             executeAndCompare("queryUpdateViaQueryAnno.json", ans, TYPE.QUERYANNO, dataType);
         } catch (Exception e) {
-            LOGGER.error("Error occurred during execution ", e);
+            logger.error("Error occurred during execution ", e);
             fail();
         }
     }
@@ -651,7 +648,7 @@ public class RestAnnotationIT {
             String ans = getAns(getMethodName(), dataType);
             executeAndCompare("deleteViaQueryAll.json", ans, TYPE.QUERYALL, dataType);
         } catch (Exception e) {
-            LOGGER.error("Error occurred during execution ", e);
+            logger.error("Error occurred during execution ", e);
             fail();
         }
     }
@@ -667,7 +664,7 @@ public class RestAnnotationIT {
             String ans = getAns(getMethodName(), dataType);
             executeAndCompare("queryData.json", ans, TYPE.QUERYALL, dataType);
         } catch (Exception e) {
-            LOGGER.error("Error occurred during execution ", e);
+            logger.error("Error occurred during execution ", e);
             fail();
         }
     }
@@ -679,7 +676,7 @@ public class RestAnnotationIT {
             String ans = getAns(getMethodName(), dataType);
             executeAndCompare("queryAppendViaQueryAll.json", ans, TYPE.QUERYALL, dataType);
         } catch (Exception e) {
-            LOGGER.error("Error occurred during execution ", e);
+            logger.error("Error occurred during execution ", e);
             fail();
         }
     }
@@ -697,7 +694,7 @@ public class RestAnnotationIT {
             String ans = getAns(getMethodName(), dataType);
             executeAndCompare("testAppend2ViaQueryAll.json", ans, TYPE.QUERYALL, dataType);
         } catch (Exception e) {
-            LOGGER.error("Error occurred during execution ", e);
+            logger.error("Error occurred during execution ", e);
             fail();
         }
     }

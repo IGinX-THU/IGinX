@@ -51,7 +51,7 @@ public class OpenTSDBStorageTest {
         this.storage = new OpenTSDBStorage(meta);
     }
 
-    public void insertData() throws PhysicalException {
+    public void insertData() {
         List<String> paths = new ArrayList<>(Arrays.asList(PATH01, PATH02));
         List<DataType> types = new ArrayList<>(Arrays.asList(DataType.LONG, DataType.DOUBLE));
         List<Long> timestamps = new ArrayList<>();

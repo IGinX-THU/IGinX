@@ -17,12 +17,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class Controller {
-    protected static final Logger logger = LoggerFactory.getLogger(Controller.class);
-    public static String CLEARDATAEXCP =
+
+    private static final Logger logger = LoggerFactory.getLogger(Controller.class);
+
+    public static final String CLEAR_DATA_EXCEPTION =
             "cn.edu.tsinghua.iginx.exceptions.ExecutionException: Caution: can not clear the data of read-only node.";
-    public static String CONFIG_FILE = "./src/test/resources/testConfig.properties";
-    private String FILEPATH = "./src/test/resources/testTask.txt";
-    private String MVNRUNTEST = "../.github/test_union.sh";
+
+    public static final String CONFIG_FILE = "./src/test/resources/testConfig.properties";
+
+    private static final String TEST_TASK_FILE = "./src/test/resources/testTask.txt";
+
+    private static final String MVN_RUN_TEST = "../.github/test_union.sh";
+
     private List<StorageEngineMeta> storageEngineMetas = new ArrayList<>();
 
     public static void clearData(Session session) {
@@ -33,9 +39,12 @@ public class Controller {
             res = session.executeSql(clearData);
         } catch (SessionException | ExecutionException e) {
             logger.error("Statement: \"{}\" execute fail. Caused by: {}", clearData, e.toString());
-            if (e.toString().equals(CLEARDATAEXCP) || e.toString().equals("\n" + CLEARDATAEXCP)) {
+            if (e.toString().equals(CLEAR_DATA_EXCEPTION)
+                    || e.toString().equals("\n" + CLEAR_DATA_EXCEPTION)) {
                 logger.error("clear data fail and go on....");
-            } else fail();
+            } else {
+                fail();
+            }
         }
 
         if (res != null && res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
@@ -77,8 +86,8 @@ public class Controller {
                 testConfLoader
                         .getTaskMap()
                         .get(DBType.valueOf(testConfLoader.getStorageType().toLowerCase())),
-                FILEPATH);
+                TEST_TASK_FILE);
         // run the test together
-        shellRunner.runShellCommand(MVNRUNTEST);
+        shellRunner.runShellCommand(MVN_RUN_TEST);
     }
 }

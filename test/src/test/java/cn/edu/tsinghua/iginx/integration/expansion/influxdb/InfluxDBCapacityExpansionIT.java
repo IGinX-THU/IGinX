@@ -10,8 +10,7 @@ import org.slf4j.LoggerFactory;
 
 public class InfluxDBCapacityExpansionIT extends CapacityExpansionIT {
 
-    private static final Logger logger =
-            LoggerFactory.getLogger(InfluxDBCapacityExpansionIT.class);
+    private static final Logger logger = LoggerFactory.getLogger(InfluxDBCapacityExpansionIT.class);
 
     public InfluxDBCapacityExpansionIT() {
         super(influxdb);

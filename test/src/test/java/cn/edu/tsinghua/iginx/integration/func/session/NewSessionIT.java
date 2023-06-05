@@ -166,7 +166,7 @@ public class NewSessionIT {
     }
 
     @After
-    public void clearData() throws ExecutionException, SessionException {
+    public void clearData() {
         String clearData = "CLEAR DATA;";
 
         SessionExecuteSqlResult res = null;
@@ -174,7 +174,7 @@ public class NewSessionIT {
             res = conn.executeSql(clearData);
         } catch (SessionException | ExecutionException e) {
             logger.error("Statement: \"{}\" execute fail. Caused by: {}", clearData, e.toString());
-            if (e.toString().equals(Controller.CLEARDATAEXCP)) {
+            if (e.toString().equals(Controller.CLEAR_DATA_EXCEPTION)) {
                 logger.error("clear data fail and go on....");
             } else {
                 fail();
