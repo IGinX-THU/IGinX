@@ -94,22 +94,14 @@ public class SessionIT extends BaseSessionIT {
             int pathNum = getPathNum(insertPaths.get(i));
             Object[] values = new Object[(int) TIME_PERIOD];
             for (long j = 0; j < TIME_PERIOD; j++) {
-                if (i == 0) {
-                    values[(int) j] = pathNum + j + START_TIME + 0.0001;
-                } else {
-                    values[(int) j] = pathNum + j + START_TIME;
-                }
+                values[(int) j] = pathNum + j + START_TIME;
             }
             valuesList[i] = values;
         }
 
         List<DataType> dataTypeList = new ArrayList<>();
         for (int i = 0; i < pathLen; i++) {
-            if (i == 0) {
-                dataTypeList.add(DataType.DOUBLE);
-            } else {
-                dataTypeList.add(DataType.LONG);
-            }
+            dataTypeList.add(DataType.LONG);
         }
         session.insertNonAlignedColumnRecords(
                 insertPaths, timestamps, valuesList, dataTypeList, null);

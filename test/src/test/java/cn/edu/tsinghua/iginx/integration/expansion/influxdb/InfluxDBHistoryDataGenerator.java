@@ -4,12 +4,10 @@ import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.influxdb.client.InfluxDBClient;
 import com.influxdb.client.InfluxDBClientFactory;
+import com.influxdb.client.domain.Bucket;
 import com.influxdb.client.domain.Organization;
 import com.influxdb.client.domain.WritePrecision;
 import com.influxdb.client.write.Point;
-import java.time.Instant;
-import java.time.OffsetDateTime;
-import java.time.ZoneId;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -133,42 +131,18 @@ public class InfluxDBHistoryDataGenerator extends BaseHistoryDataGenerator {
     public void clearData() {
         InfluxDBClient client =
                 InfluxDBClientFactory.create(ORI_URL, TOKEN.toCharArray(), ORGANIZATION);
-
-        client.getDeleteApi()
-                .delete(
-                        OffsetDateTime.ofInstant(Instant.ofEpochMilli(0), ZoneId.of("UTC")),
-                        OffsetDateTime.ofInstant(Instant.ofEpochMilli(500), ZoneId.of("UTC")),
-                        String.format(DELETE_DATA, "wf01", "wt01.status"),
-                        "mn",
-                        ORGANIZATION);
-
-        client.getDeleteApi()
-                .delete(
-                        OffsetDateTime.ofInstant(Instant.ofEpochMilli(0), ZoneId.of("UTC")),
-                        OffsetDateTime.ofInstant(Instant.ofEpochMilli(500), ZoneId.of("UTC")),
-                        String.format(DELETE_DATA, "wf01", "wt01.temperature"),
-                        "mn",
-                        ORGANIZATION);
+        Bucket bucket = client.getBucketsApi().findBucketByName("mn");
+        if (bucket != null) {
+            client.getBucketsApi().deleteBucket(bucket);
+        }
         client.close();
         logger.info("clear data of 127.0.0.1:8086 success!");
 
         client = InfluxDBClientFactory.create(EXP_URL, TOKEN.toCharArray(), ORGANIZATION);
-
-        client.getDeleteApi()
-                .delete(
-                        OffsetDateTime.ofInstant(Instant.ofEpochMilli(0), ZoneId.of("UTC")),
-                        OffsetDateTime.ofInstant(Instant.ofEpochMilli(500), ZoneId.of("UTC")),
-                        String.format(DELETE_DATA, "wf03", "wt01.status"),
-                        "mn",
-                        ORGANIZATION);
-
-        client.getDeleteApi()
-                .delete(
-                        OffsetDateTime.ofInstant(Instant.ofEpochMilli(0), ZoneId.of("UTC")),
-                        OffsetDateTime.ofInstant(Instant.ofEpochMilli(500), ZoneId.of("UTC")),
-                        String.format(DELETE_DATA, "wf03", "wt01.temperature"),
-                        "mn",
-                        ORGANIZATION);
+        bucket = client.getBucketsApi().findBucketByName("mn");
+        if (bucket != null) {
+            client.getBucketsApi().deleteBucket(bucket);
+        }
         client.close();
         logger.info("clear data of 127.0.0.1:8087 success!");
     }

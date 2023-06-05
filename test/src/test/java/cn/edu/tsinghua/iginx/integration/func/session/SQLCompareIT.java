@@ -6,7 +6,6 @@ import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
-import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.tool.MultiConnection;
 import cn.edu.tsinghua.iginx.pool.IginxInfo;
 import cn.edu.tsinghua.iginx.pool.SessionPool;
@@ -145,10 +144,12 @@ public class SQLCompareIT {
         try {
             res = conn.executeSql(clearData);
         } catch (SessionException | ExecutionException e) {
-            if (e.toString().equals(CLEAR_DATA_EXCEPTION) || e.toString().equals("\n" + CLEAR_DATA_EXCEPTION)) {
+            if (e.toString().equals(CLEAR_DATA_EXCEPTION)
+                    || e.toString().equals("\n" + CLEAR_DATA_EXCEPTION)) {
                 logger.warn("clear data fail and go on....");
             } else {
-                logger.error("Statement: \"{}\" execute fail. Caused by: {}", clearData, e.toString());
+                logger.error(
+                        "Statement: \"{}\" execute fail. Caused by: {}", clearData, e.toString());
                 fail();
             }
         }

@@ -6,7 +6,6 @@ import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
-import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.ArrayList;
@@ -49,7 +48,8 @@ public class SQLExecutor {
         try {
             res = conn.executeSql(statement);
         } catch (SessionException | ExecutionException e) {
-            if (e.toString().equals(CLEAR_DATA_EXCEPTION) || e.toString().equals("\n" + CLEAR_DATA_EXCEPTION)) {
+            if (e.toString().equals(CLEAR_DATA_EXCEPTION)
+                    || e.toString().equals("\n" + CLEAR_DATA_EXCEPTION)) {
                 logger.warn("clear data fail and go on....");
                 return "";
             } else {

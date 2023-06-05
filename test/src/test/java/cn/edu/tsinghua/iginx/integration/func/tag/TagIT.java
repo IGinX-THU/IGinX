@@ -27,9 +27,6 @@ public class TagIT {
 
     private boolean isScaling = false;
 
-    private static final String CLEAR_DATA_EXCEPTION =
-            "cn.edu.tsinghua.iginx.exceptions.ExecutionException: Caution: can not clear the data of read-only node.";
-
     public TagIT() {
         ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
         DBConf dbConf = conf.loadDBConf(conf.getStorageType());
@@ -88,7 +85,8 @@ public class TagIT {
         try {
             res = session.executeSql(statement);
         } catch (SessionException | ExecutionException e) {
-            if (e.toString().equals(CLEAR_DATA_EXCEPTION) || e.toString().equals("\n" + CLEAR_DATA_EXCEPTION)) {
+            if (e.toString().equals(CLEAR_DATA_EXCEPTION)
+                    || e.toString().equals("\n" + CLEAR_DATA_EXCEPTION)) {
                 logger.warn("clear data fail and go on....");
             } else {
                 logger.error("Statement: \"{}\" execute fail. Caused by:", statement, e);

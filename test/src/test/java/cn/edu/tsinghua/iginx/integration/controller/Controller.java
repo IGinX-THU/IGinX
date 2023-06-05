@@ -42,7 +42,8 @@ public class Controller {
                     || e.toString().equals("\n" + CLEAR_DATA_EXCEPTION)) {
                 logger.warn("clear data fail and go on....");
             } else {
-                logger.error("Statement: \"{}\" execute fail. Caused by: {}", clearData, e.toString());
+                logger.error(
+                        "Statement: \"{}\" execute fail. Caused by: {}", clearData, e.toString());
                 fail();
             }
         }

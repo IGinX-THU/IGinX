@@ -6,7 +6,6 @@ import java.util.List;
 import org.apache.iotdb.rpc.IoTDBConnectionException;
 import org.apache.iotdb.rpc.StatementExecutionException;
 import org.apache.iotdb.session.Session;
-import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,7 +65,6 @@ public class IoTDB12HistoryDataGenerator extends BaseHistoryDataGenerator {
         }
     }
 
-    @Test
     public void writeHistoryDataToOri() {
         writeHistoryData(pathListOri, dataTypeListOri, valuesListOri, portOri);
     }
@@ -79,16 +77,16 @@ public class IoTDB12HistoryDataGenerator extends BaseHistoryDataGenerator {
         try {
             Session sessionOri = new Session("127.0.0.1", portOri, "root", "root");
             sessionOri.open();
-            sessionOri.executeNonQueryStatement("DELETE STORAGE GROUP root.*");
+            sessionOri.executeNonQueryStatement("DELETE STORAGE GROUP root.mn");
             sessionOri.close();
 
             Session sessionExp = new Session("127.0.0.1", portExp, "root", "root");
             sessionExp.open();
-            sessionExp.executeNonQueryStatement("DELETE STORAGE GROUP root.*");
+            sessionExp.executeNonQueryStatement("DELETE STORAGE GROUP root.mn");
             sessionExp.close();
             logger.info("clear data success!");
         } catch (IoTDBConnectionException | StatementExecutionException e) {
-            logger.error("clear data failure: {}", e.getMessage());
+            logger.warn("clear data failure: {}", e.getMessage());
         }
     }
 }

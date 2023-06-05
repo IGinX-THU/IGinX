@@ -237,7 +237,9 @@ public class RestIT {
 
     @Test
     public void testDelete() throws Exception {
-        if (!isAbleToDelete) return;
+        if (!isAbleToDelete) {
+            return;
+        }
         String json = "testDelete.json";
         execute(json, TYPE.DELETE);
 
@@ -249,7 +251,9 @@ public class RestIT {
 
     @Test
     public void testDeleteMetric() throws Exception {
-        if (!isAbleToDelete) return;
+        if (!isAbleToDelete) {
+            return;
+        }
         String json = "archive.file.tracked";
         execute(json, TYPE.DELETEMETRIC);
 
@@ -261,10 +265,11 @@ public class RestIT {
 
     @Test
     //    @Ignore
+    // TODO this test makes no sense
     public void pathValidTest() {
         try {
             String res = execute("pathValidTest.json", TYPE.INSERT);
-            logger.error("insertData fail. Caused by: {}.", res);
+            logger.warn("insertData fail. Caused by: {}.", res);
         } catch (Exception e) {
             logger.error("insertData fail. Caused by: {}.", e.toString());
         }
