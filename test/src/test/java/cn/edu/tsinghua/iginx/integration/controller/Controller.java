@@ -6,6 +6,7 @@ import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.integration.tool.DBType;
+import cn.edu.tsinghua.iginx.integration.tool.MultiConnection;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
@@ -23,6 +24,12 @@ public class Controller {
     public static final String CLEAR_DATA_EXCEPTION =
             "cn.edu.tsinghua.iginx.exceptions.ExecutionException: Caution: can not clear the data of read-only node.";
 
+    public static final String CLEAR_DATA = "CLEAR DATA;";
+
+    public static final String CLEAR_DATA_WARNING = "clear data fail and go on...";
+
+    public static final String CLEAR_DATA_ERROR = "Statement: \"{}\" execute fail. Caused by: {}";
+
     public static final String CONFIG_FILE = "./src/test/resources/testConfig.properties";
 
     private static final String TEST_TASK_FILE = "./src/test/resources/testTask.txt";
@@ -32,27 +39,41 @@ public class Controller {
     private List<StorageEngineMeta> storageEngineMetas = new ArrayList<>();
 
     public static void clearData(Session session) {
-        String clearData = "CLEAR DATA;";
-
         SessionExecuteSqlResult res = null;
         try {
-            res = session.executeSql(clearData);
+            res = session.executeSql(CLEAR_DATA);
         } catch (SessionException | ExecutionException e) {
             if (e.toString().equals(CLEAR_DATA_EXCEPTION)
                     || e.toString().equals("\n" + CLEAR_DATA_EXCEPTION)) {
-                logger.warn("clear data fail and go on....");
+                logger.warn(CLEAR_DATA_WARNING);
             } else {
-                logger.error(
-                        "Statement: \"{}\" execute fail. Caused by: {}", clearData, e.toString());
+                logger.error(CLEAR_DATA_ERROR, CLEAR_DATA, e.getMessage());
                 fail();
             }
         }
 
         if (res != null && res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-            logger.error(
-                    "Statement: \"{}\" execute fail. Caused by: {}.",
-                    clearData,
-                    res.getParseErrorMsg());
+            logger.error(CLEAR_DATA_ERROR, CLEAR_DATA, res.getParseErrorMsg());
+            fail();
+        }
+    }
+
+    public static void clearData(MultiConnection session) {
+        SessionExecuteSqlResult res = null;
+        try {
+            res = session.executeSql(CLEAR_DATA);
+        } catch (SessionException | ExecutionException e) {
+            if (e.toString().equals(CLEAR_DATA_EXCEPTION)
+                    || e.toString().equals("\n" + CLEAR_DATA_EXCEPTION)) {
+                logger.warn(CLEAR_DATA_WARNING);
+            } else {
+                logger.error(CLEAR_DATA_ERROR, CLEAR_DATA, e.toString());
+                fail();
+            }
+        }
+
+        if (res != null && res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
+            logger.error(CLEAR_DATA_ERROR, CLEAR_DATA, res.getParseErrorMsg());
             fail();
         }
     }

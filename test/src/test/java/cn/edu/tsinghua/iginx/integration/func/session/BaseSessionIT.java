@@ -1,6 +1,5 @@
 package cn.edu.tsinghua.iginx.integration.func.session;
 
-import static cn.edu.tsinghua.iginx.integration.controller.Controller.CLEAR_DATA_EXCEPTION;
 import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
@@ -10,7 +9,6 @@ import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.integration.tool.MultiConnection;
 import cn.edu.tsinghua.iginx.session.Session;
-import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.ArrayList;
 import java.util.List;
@@ -84,9 +82,6 @@ public abstract class BaseSessionIT {
     }
 
     protected void clearData() throws SessionException {
-        String clearData = "CLEAR DATA;";
-
-        SessionExecuteSqlResult res = null;
         if (session.isClosed()) {
             session =
                     new MultiConnection(
@@ -98,28 +93,7 @@ public abstract class BaseSessionIT {
             session.openSession();
         }
 
-        try {
-            res = session.executeSql(clearData);
-        } catch (SessionException | ExecutionException e) {
-            if (e.toString().equals(CLEAR_DATA_EXCEPTION)
-                    || e.toString().equals("\n" + CLEAR_DATA_EXCEPTION)) {
-                logger.warn("clear data fail and go on....");
-            } else {
-                logger.error(
-                        "Statement: \"{}\" execute fail. Caused by: {}", clearData, e.toString());
-                fail();
-            }
-        }
-
-        if (res != null && res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-            logger.error(
-                    "Statement: \"{}\" execute fail. Caused by: {}.",
-                    clearData,
-                    res.getParseErrorMsg());
-            fail();
-        }
-
-        session.closeSession();
+        Controller.clearData(session);
     }
 
     protected int getPathNum(String path) {

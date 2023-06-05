@@ -1,6 +1,5 @@
 package cn.edu.tsinghua.iginx.integration.func.session;
 
-import static cn.edu.tsinghua.iginx.integration.controller.Controller.CLEAR_DATA_EXCEPTION;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
@@ -16,7 +15,6 @@ import cn.edu.tsinghua.iginx.pool.IginxInfo;
 import cn.edu.tsinghua.iginx.pool.SessionPool;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionAggregateQueryDataSet;
-import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.session.SessionQueryDataSet;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.thrift.DataType;
@@ -167,30 +165,8 @@ public class NewSessionIT {
     }
 
     @After
-    public void clearData() {
-        String clearData = "CLEAR DATA;";
-
-        SessionExecuteSqlResult res = null;
-        try {
-            res = conn.executeSql(clearData);
-        } catch (SessionException | ExecutionException e) {
-            if (e.toString().equals(CLEAR_DATA_EXCEPTION)
-                    || e.toString().equals("\n" + CLEAR_DATA_EXCEPTION)) {
-                logger.warn("clear data fail and go on....");
-            } else {
-                logger.error(
-                        "Statement: \"{}\" execute fail. Caused by: {}", clearData, e.toString());
-                fail();
-            }
-        }
-
-        if (res != null && res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-            logger.error(
-                    "Statement: \"{}\" execute fail. Caused by: {}.",
-                    clearData,
-                    res.getParseErrorMsg());
-            fail();
-        }
+    public void clearData() throws SessionException {
+        Controller.clearData(conn);
     }
 
     private void insertData(TestDataSection data, InsertAPIType type) {

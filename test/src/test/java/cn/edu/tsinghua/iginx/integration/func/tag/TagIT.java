@@ -1,6 +1,6 @@
 package cn.edu.tsinghua.iginx.integration.func.tag;
 
-import static cn.edu.tsinghua.iginx.integration.controller.Controller.CLEAR_DATA_EXCEPTION;
+import static cn.edu.tsinghua.iginx.integration.controller.Controller.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
@@ -87,9 +87,9 @@ public class TagIT {
         } catch (SessionException | ExecutionException e) {
             if (e.toString().equals(CLEAR_DATA_EXCEPTION)
                     || e.toString().equals("\n" + CLEAR_DATA_EXCEPTION)) {
-                logger.warn("clear data fail and go on....");
+                logger.warn(CLEAR_DATA_WARNING);
             } else {
-                logger.error("Statement: \"{}\" execute fail. Caused by:", statement, e);
+                logger.error(CLEAR_DATA_ERROR, statement, e.getMessage());
                 fail();
             }
         }
@@ -99,10 +99,7 @@ public class TagIT {
         }
 
         if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-            logger.error(
-                    "Statement: \"{}\" execute fail. Caused by: {}.",
-                    statement,
-                    res.getParseErrorMsg());
+            logger.error(CLEAR_DATA_ERROR, statement, res.getParseErrorMsg());
             fail();
             return "";
         }
