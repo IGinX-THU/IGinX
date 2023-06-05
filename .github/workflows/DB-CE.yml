@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
     DB-CE:
-        timeout-minutes: 40
+        timeout-minutes: 45
         strategy:
             fail-fast: false
             matrix:
@@ -62,6 +62,7 @@ jobs:
                   Test-Way: oriHasDataExpHasData
             - name: oriHasDataExpHasData IT
               run: |
+                  sleep 10
                   mvn test -q -Dtest=${{matrix.DB-name}}CapacityExpansionIT#oriHasDataExpHasData -DfailIfNoTests=false -P passFormat
                   mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P passFormat
             #第 2 阶段测试开始==========================================
@@ -73,6 +74,7 @@ jobs:
                   Test-Way: oriNoDataExpNoData
             - name: oriNoDataExpNoData IT
               run: |
+                  sleep 10
                   mvn test -q -Dtest=${{matrix.DB-name}}CapacityExpansionIT#oriNoDataExpNoData -DfailIfNoTests=false -P passFormat
                   mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P passFormat
             #第 3 阶段测试开始==========================================
@@ -84,9 +86,9 @@ jobs:
                   Test-Way: oriHasDataExpNoData
             - name: oriHasDataExpNoData IT
               run: |
+                  sleep 10
                   mvn test -q -Dtest=${{matrix.DB-name}}CapacityExpansionIT#oriHasDataExpNoData -DfailIfNoTests=false -P passFormat
                   mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P passFormat
-                  cat iginx.log
             #第 4 阶段测试开始==========================================
             - name: Prepare CapExp environment oriNoDataExpHasData
               uses: ./.github/actions/capacityExpansionUnionTest
@@ -96,6 +98,7 @@ jobs:
                   Test-Way: oriNoDataExpHasData
             - name: oriNoDataExpHasData IT
               run: |
+                  sleep 10
                   mvn test -q -Dtest=${{matrix.DB-name}}CapacityExpansionIT#oriNoDataExpHasData -DfailIfNoTests=false -P passFormat
                   mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P passFormat
             - uses: codecov/codecov-action@v1

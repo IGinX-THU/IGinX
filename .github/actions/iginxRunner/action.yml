@@ -13,7 +13,7 @@ runs:
     using: "composite" # Mandatory parameter
     steps:
         - if: inputs.if-stop=='false'
-          name: Start IginX
+          name: Start IGinX
           shell: bash
           run: |
               if [ "$RUNNER_OS" == "Linux" ]; then
@@ -25,7 +25,7 @@ runs:
               fi
 
         - if: inputs.if-stop=='true'
-          name: Stop Iginx
+          name: Stop IGinX
           shell: bash
           run: |
               chmod +x "${GITHUB_WORKSPACE}/.github/iginx_kill.sh"
