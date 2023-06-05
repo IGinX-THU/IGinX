@@ -169,17 +169,8 @@ public abstract class Compaction {
             String storageUnitId = fragmentMeta.getMasterStorageUnitId();
             if (!storageUnitId.equals(targetStorageUnit.getId())) {
                 // 删除原分片节点数据
-                List<String> paths = new ArrayList<>();
-                paths.add(fragmentMeta.getMasterStorageUnitId() + "*");
-                List<TimeRange> timeRanges = new ArrayList<>();
-                timeRanges.add(
-                        new TimeRange(
-                                fragmentMeta.getTimeInterval().getStartTime(),
-                                true,
-                                fragmentMeta.getTimeInterval().getEndTime(),
-                                false));
                 Delete delete =
-                        new Delete(new FragmentSource(fragmentMeta), timeRanges, paths, null);
+                        new Delete(new FragmentSource(fragmentMeta), new ArrayList<>(), new ArrayList<>(), null);
                 physicalEngine.execute(new RequestContext(), delete);
             }
         }
