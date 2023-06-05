@@ -3817,7 +3817,7 @@ public class SQLSessionIT {
             return;
         }
 
-        // file system supported special symbol path
+        // IGinX SQL 路径中支持的合法字符
         String insert =
                 "INSERT INTO _:@#$~^{}(key, _:@#$~^{}) VALUES (1, 1), (2, 2), (3, 3), (4, 4), (5, 5);";
         executor.execute(insert);
