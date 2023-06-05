@@ -89,7 +89,6 @@ jobs:
                   sleep 10
                   mvn test -q -Dtest=${{matrix.DB-name}}CapacityExpansionIT#oriHasDataExpNoData -DfailIfNoTests=false -P passFormat
                   mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P passFormat
-                  cat iginx.log
             #第 4 阶段测试开始==========================================
             - name: Prepare CapExp environment oriNoDataExpHasData
               uses: ./.github/actions/capacityExpansionUnionTest
