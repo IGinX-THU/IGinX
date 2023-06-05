@@ -38,11 +38,11 @@ public class Controller {
         try {
             res = session.executeSql(clearData);
         } catch (SessionException | ExecutionException e) {
-            logger.error("Statement: \"{}\" execute fail. Caused by: {}", clearData, e.toString());
             if (e.toString().equals(CLEAR_DATA_EXCEPTION)
                     || e.toString().equals("\n" + CLEAR_DATA_EXCEPTION)) {
-                logger.error("clear data fail and go on....");
+                logger.warn("clear data fail and go on....");
             } else {
+                logger.error("Statement: \"{}\" execute fail. Caused by: {}", clearData, e.toString());
                 fail();
             }
         }

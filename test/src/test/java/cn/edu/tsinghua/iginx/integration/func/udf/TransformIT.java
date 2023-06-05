@@ -649,7 +649,7 @@ public class TransformIT {
 
             List<Long> closedJobIds = session.showEligibleJob(JobState.JOB_CLOSED);
             assertTrue(closedJobIds.contains(jobId));
-        } catch (SessionException | ExecutionException | InterruptedException e) {
+        } catch (SessionException | ExecutionException e) {
             logger.error("Transform:  execute fail. Caused by:", e);
             fail();
         }

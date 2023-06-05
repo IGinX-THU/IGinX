@@ -1,5 +1,6 @@
 package cn.edu.tsinghua.iginx.integration.func.session;
 
+import static cn.edu.tsinghua.iginx.integration.controller.Controller.CLEAR_DATA_EXCEPTION;
 import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
@@ -100,10 +101,12 @@ public abstract class BaseSessionIT {
         try {
             res = session.executeSql(clearData);
         } catch (SessionException | ExecutionException e) {
-            logger.error("Statement: \"{}\" execute fail. Caused by: {}", clearData, e.toString());
-            if (e.toString().equals(Controller.CLEAR_DATA_EXCEPTION)) {
-                logger.error("clear data fail and go on....");
-            } else fail();
+            if (e.toString().equals(CLEAR_DATA_EXCEPTION) || e.toString().equals("\n" + CLEAR_DATA_EXCEPTION)) {
+                logger.warn("clear data fail and go on....");
+            } else {
+                logger.error("Statement: \"{}\" execute fail. Caused by: {}", clearData, e.toString());
+                fail();
+            }
         }
 
         if (res != null && res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {

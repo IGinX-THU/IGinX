@@ -1,5 +1,6 @@
 package cn.edu.tsinghua.iginx.integration.func.tag;
 
+import static cn.edu.tsinghua.iginx.integration.controller.Controller.CLEAR_DATA_EXCEPTION;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
@@ -87,10 +88,10 @@ public class TagIT {
         try {
             res = session.executeSql(statement);
         } catch (SessionException | ExecutionException e) {
-            logger.error("Statement: \"{}\" execute fail. Caused by:", statement, e);
-            if (e.toString().equals(CLEAR_DATA_EXCEPTION)) {
-                logger.error("clear data fail and go on....");
+            if (e.toString().equals(CLEAR_DATA_EXCEPTION) || e.toString().equals("\n" + CLEAR_DATA_EXCEPTION)) {
+                logger.warn("clear data fail and go on....");
             } else {
+                logger.error("Statement: \"{}\" execute fail. Caused by:", statement, e);
                 fail();
             }
         }
