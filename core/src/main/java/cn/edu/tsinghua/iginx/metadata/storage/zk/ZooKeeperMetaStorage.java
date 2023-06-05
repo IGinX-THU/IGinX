@@ -521,14 +521,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
                 byte[] data =
                         this.client.getData().forPath(STORAGE_ENGINE_NODE_PREFIX + "/" + childName);
                 StorageEngineMeta storageEngineMeta =
-                        JsonUtils.fromJson(
-                                JsonUtils.addType(
-                                        "columnsRange",
-                                        new String(data).contains("column")
-                                                ? "ColumnsPrefixRange"
-                                                : "ColumnsInterval",
-                                        data),
-                                StorageEngineMeta.class);
+                        JsonUtils.fromJson(data, StorageEngineMeta.class);
                 if (storageEngineMeta == null) {
                     logger.error(
                             "resolve data from "
@@ -629,15 +622,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
                             data = event.getData().getData();
                             logger.info("storage engine meta updated " + event.getData().getPath());
                             logger.info("storage engine: " + new String(data));
-                            storageEngineMeta =
-                                    JsonUtils.fromJson(
-                                            JsonUtils.addType(
-                                                    "columnsRange",
-                                                    new String(data).contains("column")
-                                                            ? "ColumnsPrefixRange"
-                                                            : "ColumnsInterval",
-                                                    data),
-                                            StorageEngineMeta.class);
+                            storageEngineMeta = JsonUtils.fromJson(data, StorageEngineMeta.class);
                             if (storageEngineMeta != null) {
                                 logger.info(
                                         "new storage engine comes to cluster: id = "
@@ -662,15 +647,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
                                 System.exit(2);
                                 break;
                             }
-                            storageEngineMeta =
-                                    JsonUtils.fromJson(
-                                            JsonUtils.addType(
-                                                    "columnsRange",
-                                                    new String(data).contains("column")
-                                                            ? "ColumnsPrefixRange"
-                                                            : "ColumnsInterval",
-                                                    data),
-                                            StorageEngineMeta.class);
+                            storageEngineMeta = JsonUtils.fromJson(data, StorageEngineMeta.class);
                             if (storageEngineMeta != null) {
                                 logger.info(
                                         "storage engine leave from cluster: id = "
@@ -850,17 +827,14 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
                         }
                         FragmentMeta fragmentMeta =
                                 JsonUtils.fromJson(
-                                        JsonUtils.addType(
-                                                "columnsRange",
-                                                "ColumnsInterval",
-                                                this.client
-                                                        .getData()
-                                                        .forPath(
-                                                                FRAGMENT_NODE_PREFIX
-                                                                        + "/"
-                                                                        + columnsRangeName
-                                                                        + "/"
-                                                                        + timeIntervalName)),
+                                        this.client
+                                                .getData()
+                                                .forPath(
+                                                        FRAGMENT_NODE_PREFIX
+                                                                + "/"
+                                                                + columnsRangeName
+                                                                + "/"
+                                                                + timeIntervalName),
                                         FragmentMeta.class);
                         if (fragmentMeta.getKeyInterval().getEndKey() > keyInterval.getStartKey()) {
                             fragments.add(fragmentMeta);
@@ -896,17 +870,14 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
                         }
                         FragmentMeta fragmentMeta =
                                 JsonUtils.fromJson(
-                                        JsonUtils.addType(
-                                                "columnsRange",
-                                                "ColumnsInterval",
-                                                this.client
-                                                        .getData()
-                                                        .forPath(
-                                                                FRAGMENT_NODE_PREFIX
-                                                                        + "/"
-                                                                        + columnsRangeName
-                                                                        + "/"
-                                                                        + timeIntervalName)),
+                                        this.client
+                                                .getData()
+                                                .forPath(
+                                                        FRAGMENT_NODE_PREFIX
+                                                                + "/"
+                                                                + columnsRangeName
+                                                                + "/"
+                                                                + timeIntervalName),
                                         FragmentMeta.class);
                         if (fragmentMeta.getKeyInterval().getEndKey() > keyInterval.getStartKey()) {
                             fragments.add(fragmentMeta);
@@ -942,17 +913,14 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
                     for (String timeIntervalName : timeIntervalNames) {
                         FragmentMeta fragmentMeta =
                                 JsonUtils.fromJson(
-                                        JsonUtils.addType(
-                                                "columnsRange",
-                                                "ColumnsInterval",
-                                                this.client
-                                                        .getData()
-                                                        .forPath(
-                                                                FRAGMENT_NODE_PREFIX
-                                                                        + "/"
-                                                                        + columnsRangeName
-                                                                        + "/"
-                                                                        + timeIntervalName)),
+                                        this.client
+                                                .getData()
+                                                .forPath(
+                                                        FRAGMENT_NODE_PREFIX
+                                                                + "/"
+                                                                + columnsRangeName
+                                                                + "/"
+                                                                + timeIntervalName),
                                         FragmentMeta.class);
                         fragmentMetaList.add(fragmentMeta);
                     }
@@ -978,11 +946,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
                     switch (event.getType()) {
                         case NODE_UPDATED:
                             data = event.getData().getData();
-                            fragmentMeta =
-                                    JsonUtils.fromJson(
-                                            JsonUtils.addType(
-                                                    "columnsRange", "ColumnsInterval", data),
-                                            FragmentMeta.class);
+                            fragmentMeta = JsonUtils.fromJson(data, FragmentMeta.class);
                             if (fragmentMeta != null) {
                                 fragmentChangeHook.onChange(false, fragmentMeta);
                             } else {
@@ -995,11 +959,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
                             if (pathParts.length == 4) {
                                 fragmentMeta =
                                         JsonUtils.fromJson(
-                                                JsonUtils.addType(
-                                                        "columnsRange",
-                                                        "ColumnsInterval",
-                                                        event.getData().getData()),
-                                                FragmentMeta.class);
+                                                event.getData().getData(), FragmentMeta.class);
                                 if (fragmentMeta != null) {
                                     fragmentChangeHook.onChange(true, fragmentMeta);
                                 } else {

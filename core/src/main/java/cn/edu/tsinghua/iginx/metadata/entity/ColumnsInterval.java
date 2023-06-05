@@ -25,7 +25,7 @@ import java.util.Objects;
 @JSONType(typeName = "ColumnsInterval")
 public final class ColumnsInterval implements ColumnsRange {
 
-    private final ColumnsRange.TYPE type = ColumnsRange.TYPE.NORMAL;
+    private final RangeType rangeType = RangeType.NORMAL;
 
     private String startColumn;
 
@@ -67,8 +67,8 @@ public final class ColumnsInterval implements ColumnsRange {
     }
 
     @Override
-    public TYPE getType() {
-        return type;
+    public RangeType getRangeType() {
+        return rangeType;
     }
 
     @Override

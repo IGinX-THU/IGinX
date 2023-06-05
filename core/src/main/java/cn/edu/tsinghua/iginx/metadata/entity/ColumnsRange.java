@@ -24,30 +24,28 @@ import com.alibaba.fastjson2.annotation.JSONType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@JSONType(
-        seeAlso = {ColumnsInterval.class, ColumnsPrefixRange.class},
-        typeKey = "type")
+@JSONType(seeAlso = {ColumnsInterval.class, ColumnsPrefixRange.class})
 public interface ColumnsRange extends Comparable<ColumnsRange> {
 
     public static Logger logger = LoggerFactory.getLogger(ColumnsRange.class);
 
-    public static enum TYPE {
+    public static enum RangeType {
         PREFIX,
         NORMAL
     }
 
-    public TYPE getType();
+    public RangeType getRangeType();
 
     public default boolean isNormal() {
-        return getType() == TYPE.NORMAL;
+        return getRangeType() == RangeType.NORMAL;
     }
 
     public default boolean isPrefix() {
-        return getType() == TYPE.PREFIX;
+        return getRangeType() == RangeType.PREFIX;
     }
 
     public default void setColumn(String column) {
-        if (getType() == TYPE.NORMAL) {
+        if (getRangeType() == RangeType.NORMAL) {
             logger.error("TimeSeriesInterval Normal can't not use the setTimeSeries func");
             System.exit(0);
         }
@@ -59,7 +57,7 @@ public interface ColumnsRange extends Comparable<ColumnsRange> {
     }
 
     public default String getStartColumn() {
-        if (getType() == TYPE.PREFIX) {
+        if (getRangeType() == RangeType.PREFIX) {
             logger.error("TimeSeriesInterval PREFIX can't not use the getStartTimeSeries func");
             return null;
         }
@@ -67,14 +65,14 @@ public interface ColumnsRange extends Comparable<ColumnsRange> {
     }
 
     public default void setStartColumn(String startColumn) {
-        if (getType() == TYPE.PREFIX) {
+        if (getRangeType() == RangeType.PREFIX) {
             logger.error("TimeSeriesInterval PREFIX can't not use the setStartTimeSeries func");
             System.exit(0);
         }
     }
 
     public default String getEndColumn() {
-        if (getType() == TYPE.PREFIX) {
+        if (getRangeType() == RangeType.PREFIX) {
             logger.error("TimeSeriesInterval PREFIX can't not use the getEndTimeSeries func");
             return null;
         }
@@ -82,7 +80,7 @@ public interface ColumnsRange extends Comparable<ColumnsRange> {
     }
 
     public default void setEndColumn(String endColumn) {
-        if (getType() == TYPE.PREFIX) {
+        if (getRangeType() == RangeType.PREFIX) {
             logger.error("TimeSeriesInterval PREFIX can't not use the setEndTimeSeries func");
             System.exit(0);
         }

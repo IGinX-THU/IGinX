@@ -8,7 +8,7 @@ public class ColumnsPrefixRange implements ColumnsRange {
 
     private String column;
 
-    private final TYPE type = TYPE.PREFIX;
+    private final RangeType rangeType = RangeType.PREFIX;
 
     private boolean isClosed;
 
@@ -76,8 +76,8 @@ public class ColumnsPrefixRange implements ColumnsRange {
     }
 
     @Override
-    public TYPE getType() {
-        return type;
+    public RangeType getRangeType() {
+        return rangeType;
     }
 
     @Override
