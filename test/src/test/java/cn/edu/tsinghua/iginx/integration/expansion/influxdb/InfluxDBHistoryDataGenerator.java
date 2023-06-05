@@ -25,8 +25,6 @@ public class InfluxDBHistoryDataGenerator extends BaseHistoryDataGenerator {
 
     public static final String ORGANIZATION = "testOrg";
 
-    private static final String DELETE_DATA = "_measurement=\"%s\" AND _field=\"%s\"";
-
     private static final WritePrecision WRITE_PRECISION = WritePrecision.NS;
 
     public InfluxDBHistoryDataGenerator() {
