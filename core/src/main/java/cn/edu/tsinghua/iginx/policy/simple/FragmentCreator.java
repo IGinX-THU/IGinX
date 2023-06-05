@@ -30,7 +30,7 @@ public class FragmentCreator {
     public boolean waitforUpdate(int version) {
         int retry = config.getRetryCount();
         while (retry > 0) {
-            Map<Integer, Integer> timeseriesVersionMap = iMetaManager.getTimeseriesVersionMap();
+            Map<Integer, Integer> timeseriesVersionMap = iMetaManager.getColumnsVersionMap();
             Set<Integer> idSet =
                     iMetaManager
                             .getIginxList()
@@ -76,7 +76,7 @@ public class FragmentCreator {
                     LOGGER.error("update failed");
                     return;
                 }
-                if (!policy.checkSuccess(iMetaManager.getTimeseriesData())) {
+                if (!policy.checkSuccess(iMetaManager.getColumnsData())) {
                     policy.setNeedReAllocate(true);
                     LOGGER.info("set ReAllocate true");
                 }

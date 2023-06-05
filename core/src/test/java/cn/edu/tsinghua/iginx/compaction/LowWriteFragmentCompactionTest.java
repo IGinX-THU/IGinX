@@ -79,10 +79,10 @@ public class LowWriteFragmentCompactionTest {
         compaction.executeCompaction(toCompactFragmentGroups, fragmentMetaPointsMap);
         List<FragmentMeta> fragmentMetas = metaManager.getFragments();
         assertEquals(fragmentMetas.size(), 1);
-        assertEquals(fragmentMetas.get(0).getTsInterval().getStartTimeSeries(), "root.z.a");
-        assertNull(fragmentMetas.get(0).getTsInterval().getEndTimeSeries());
+        assertEquals(fragmentMetas.get(0).getColumnsRange().getStartColumn(), "root.z.a");
+        assertNull(fragmentMetas.get(0).getColumnsRange().getEndColumn());
         assertEquals(fragmentMetas.get(0).getMasterStorageUnit().getStorageEngineId(), 1);
-        assertEquals(fragmentMetas.get(0).getTimeInterval().getStartTime(), 0);
-        assertEquals(fragmentMetas.get(0).getTimeInterval().getEndTime(), 1000);
+        assertEquals(fragmentMetas.get(0).getKeyInterval().getStartKey(), 0);
+        assertEquals(fragmentMetas.get(0).getKeyInterval().getEndKey(), 1000);
     }
 }

@@ -1141,9 +1141,9 @@ public class ETCDMetaStorage implements IMetaStorage {
     }
 
     @Override
-    public Map<TimeSeriesRange, List<FragmentMeta>> loadFragment() throws MetaStorageException {
+    public Map<ColumnsRange, List<FragmentMeta>> loadFragment() throws MetaStorageException {
         try {
-            Map<TimeSeriesRange, List<FragmentMeta>> fragmentsMap = new HashMap<>();
+            Map<ColumnsRange, List<FragmentMeta>> fragmentsMap = new HashMap<>();
             GetResponse response =
                     this.client
                             .getKVClient()
@@ -1158,7 +1158,7 @@ public class ETCDMetaStorage implements IMetaStorage {
                 FragmentMeta fragment =
                         JsonUtils.fromJson(kv.getValue().getBytes(), FragmentMeta.class);
                 fragmentsMap
-                        .computeIfAbsent(fragment.getTsInterval(), e -> new ArrayList<>())
+                        .computeIfAbsent(fragment.getColumnsRange(), e -> new ArrayList<>())
                         .add(fragment);
             }
             return fragmentsMap;
@@ -1182,7 +1182,7 @@ public class ETCDMetaStorage implements IMetaStorage {
 
     @Override
     public List<FragmentMeta> getFragmentListByTimeSeriesNameAndTimeInterval(
-            String tsName, TimeInterval timeInterval) {
+            String tsName, KeyInterval keyInterval) {
         try {
             List<FragmentMeta> fragments = new ArrayList<>();
             GetResponse response =
@@ -1198,15 +1198,15 @@ public class ETCDMetaStorage implements IMetaStorage {
             for (KeyValue kv : response.getKvs()) {
                 FragmentMeta fragment =
                         JsonUtils.fromJson(kv.getValue().getBytes(), FragmentMeta.class);
-                if (fragment.getTimeInterval().isIntersect(timeInterval)
-                        && fragment.getTsInterval().isContain(tsName)) {
+                if (fragment.getKeyInterval().isIntersect(keyInterval)
+                        && fragment.getColumnsRange().isContain(tsName)) {
                     fragments.add(fragment);
                 }
             }
             fragments.sort(
                     (o1, o2) -> {
-                        long s1 = o1.getTimeInterval().getStartTime();
-                        long s2 = o2.getTimeInterval().getStartTime();
+                        long s1 = o1.getKeyInterval().getStartKey();
+                        long s2 = o2.getKeyInterval().getStartKey();
                         return Long.compare(s2, s1);
                     });
             return fragments;
@@ -1217,11 +1217,10 @@ public class ETCDMetaStorage implements IMetaStorage {
     }
 
     @Override
-    public Map<TimeSeriesRange, List<FragmentMeta>>
-            getFragmentMapByTimeSeriesIntervalAndTimeInterval(
-                    TimeSeriesRange tsInterval, TimeInterval timeInterval) {
+    public Map<ColumnsRange, List<FragmentMeta>> getFragmentMapByTimeSeriesIntervalAndTimeInterval(
+            ColumnsRange columnsRange, KeyInterval keyInterval) {
         try {
-            Map<TimeSeriesRange, List<FragmentMeta>> fragmentsMap = new HashMap<>();
+            Map<ColumnsRange, List<FragmentMeta>> fragmentsMap = new HashMap<>();
             GetResponse response =
                     this.client
                             .getKVClient()
@@ -1235,10 +1234,10 @@ public class ETCDMetaStorage implements IMetaStorage {
             for (KeyValue kv : response.getKvs()) {
                 FragmentMeta fragment =
                         JsonUtils.fromJson(kv.getValue().getBytes(), FragmentMeta.class);
-                if (fragment.getTimeInterval().isIntersect(timeInterval)
-                        && fragment.getTsInterval().isIntersect(tsInterval)) {
+                if (fragment.getKeyInterval().isIntersect(keyInterval)
+                        && fragment.getColumnsRange().isIntersect(columnsRange)) {
                     fragmentsMap
-                            .computeIfAbsent(fragment.getTsInterval(), e -> new ArrayList<>())
+                            .computeIfAbsent(fragment.getColumnsRange(), e -> new ArrayList<>())
                             .add(fragment);
                 }
             }
@@ -1248,8 +1247,8 @@ public class ETCDMetaStorage implements IMetaStorage {
                             e ->
                                     e.sort(
                                             (o1, o2) -> {
-                                                long s1 = o1.getTimeInterval().getStartTime();
-                                                long s2 = o2.getTimeInterval().getStartTime();
+                                                long s1 = o1.getKeyInterval().getStartKey();
+                                                long s2 = o2.getKeyInterval().getStartKey();
                                                 return Long.compare(s1, s2);
                                             }));
             return fragmentsMap;
@@ -1266,9 +1265,9 @@ public class ETCDMetaStorage implements IMetaStorage {
                     .put(
                             ByteSequence.from(
                                     (FRAGMENT_PREFIX
-                                                    + fragmentMeta.getTsInterval().toString()
+                                                    + fragmentMeta.getColumnsRange().toString()
                                                     + "/"
-                                                    + fragmentMeta.getTimeInterval().toString())
+                                                    + fragmentMeta.getKeyInterval().toString())
                                             .getBytes()),
                             ByteSequence.from(JsonUtils.toJson(fragmentMeta)))
                     .get();
@@ -1278,28 +1277,29 @@ public class ETCDMetaStorage implements IMetaStorage {
     }
 
     @Override
-    public void updateFragmentByTsInterval(TimeSeriesRange tsInterval, FragmentMeta fragmentMeta)
+    public void updateFragmentByColumnsRange(ColumnsRange columnsRange, FragmentMeta fragmentMeta)
             throws MetaStorageException {
         try {
             client.getKVClient()
                     .delete(
                             ByteSequence.from(
                                     (FRAGMENT_PREFIX
-                                                    + tsInterval.toString()
+                                                    + columnsRange.toString()
                                                     + "/"
-                                                    + fragmentMeta.getTimeInterval().toString())
+                                                    + fragmentMeta.getKeyInterval().toString())
                                             .getBytes()));
             GetResponse response =
                     this.client
                             .getKVClient()
                             .get(
                                     ByteSequence.from(
-                                            (FRAGMENT_PREFIX + tsInterval.toString()).getBytes()),
+                                            (FRAGMENT_PREFIX + columnsRange.toString()).getBytes()),
                                     GetOption.newBuilder()
                                             .withPrefix(
                                                     ByteSequence.from(
                                                             (FRAGMENT_PREFIX
-                                                                            + tsInterval.toString())
+                                                                            + columnsRange
+                                                                                    .toString())
                                                                     .getBytes()))
                                             .build())
                             .get();
@@ -1307,15 +1307,15 @@ public class ETCDMetaStorage implements IMetaStorage {
                 client.getKVClient()
                         .delete(
                                 ByteSequence.from(
-                                        (FRAGMENT_PREFIX + tsInterval.toString()).getBytes()));
+                                        (FRAGMENT_PREFIX + columnsRange.toString()).getBytes()));
             }
             client.getKVClient()
                     .put(
                             ByteSequence.from(
                                     (FRAGMENT_PREFIX
-                                                    + fragmentMeta.getTsInterval().toString()
+                                                    + fragmentMeta.getColumnsRange().toString()
                                                     + "/"
-                                                    + fragmentMeta.getTimeInterval().toString())
+                                                    + fragmentMeta.getKeyInterval().toString())
                                             .getBytes()),
                             ByteSequence.from(JsonUtils.toJson(fragmentMeta)))
                     .get();
@@ -1331,9 +1331,9 @@ public class ETCDMetaStorage implements IMetaStorage {
                     .delete(
                             ByteSequence.from(
                                     (FRAGMENT_PREFIX
-                                                    + fragmentMeta.getTsInterval().toString()
+                                                    + fragmentMeta.getColumnsRange().toString()
                                                     + "/"
-                                                    + fragmentMeta.getTimeInterval().toString())
+                                                    + fragmentMeta.getKeyInterval().toString())
                                             .getBytes()));
             // 删除不需要的统计数据
             client.getKVClient()
@@ -1341,27 +1341,27 @@ public class ETCDMetaStorage implements IMetaStorage {
                             ByteSequence.from(
                                     (STATISTICS_FRAGMENT_REQUESTS_PREFIX_WRITE
                                                     + "/"
-                                                    + fragmentMeta.getTsInterval().toString()
+                                                    + fragmentMeta.getColumnsRange().toString()
                                                     + "/"
-                                                    + fragmentMeta.getTimeInterval().toString())
+                                                    + fragmentMeta.getKeyInterval().toString())
                                             .getBytes()));
             client.getKVClient()
                     .delete(
                             ByteSequence.from(
                                     (STATISTICS_FRAGMENT_REQUESTS_PREFIX_READ
                                                     + "/"
-                                                    + fragmentMeta.getTsInterval().toString()
+                                                    + fragmentMeta.getColumnsRange().toString()
                                                     + "/"
-                                                    + fragmentMeta.getTimeInterval().toString())
+                                                    + fragmentMeta.getKeyInterval().toString())
                                             .getBytes()));
             client.getKVClient()
                     .delete(
                             ByteSequence.from(
                                     (STATISTICS_FRAGMENT_POINTS_PREFIX
                                                     + "/"
-                                                    + fragmentMeta.getTsInterval().toString()
+                                                    + fragmentMeta.getColumnsRange().toString()
                                                     + "/"
-                                                    + fragmentMeta.getTimeInterval().toString())
+                                                    + fragmentMeta.getKeyInterval().toString())
                                             .getBytes()));
         } catch (Exception e) {
             throw new MetaStorageException("get error when remove fragment", e);
@@ -1713,15 +1713,15 @@ public class ETCDMetaStorage implements IMetaStorage {
                 String requestsPath =
                         STATISTICS_FRAGMENT_REQUESTS_PREFIX_WRITE
                                 + "/"
-                                + writeRequestsEntry.getKey().getTsInterval().toString()
+                                + writeRequestsEntry.getKey().getColumnsRange().toString()
                                 + "/"
-                                + writeRequestsEntry.getKey().getTimeInterval().toString();
+                                + writeRequestsEntry.getKey().getKeyInterval().toString();
                 String pointsPath =
                         STATISTICS_FRAGMENT_POINTS_PREFIX
                                 + "/"
-                                + writeRequestsEntry.getKey().getTsInterval().toString()
+                                + writeRequestsEntry.getKey().getColumnsRange().toString()
                                 + "/"
-                                + writeRequestsEntry.getKey().getTimeInterval().toString();
+                                + writeRequestsEntry.getKey().getKeyInterval().toString();
                 GetResponse response =
                         client.getKVClient().get(ByteSequence.from(requestsPath.getBytes())).get();
                 if (response == null || response.getCount() <= 0) {
@@ -1766,9 +1766,9 @@ public class ETCDMetaStorage implements IMetaStorage {
             String path =
                     STATISTICS_FRAGMENT_REQUESTS_PREFIX_READ
                             + "/"
-                            + readRequestsEntry.getKey().getTsInterval().toString()
+                            + readRequestsEntry.getKey().getColumnsRange().toString()
                             + "/"
-                            + readRequestsEntry.getKey().getTimeInterval().toString();
+                            + readRequestsEntry.getKey().getKeyInterval().toString();
             GetResponse response =
                     client.getKVClient().get(ByteSequence.from(path.getBytes())).get();
             if (response == null || response.getCount() <= 0) {
@@ -1909,14 +1909,14 @@ public class ETCDMetaStorage implements IMetaStorage {
             keyValues.add(kv);
         }
         for (Map.Entry<String, List<KeyValue>> entry : timeSeriesRangeListMap.entrySet()) {
-            TimeSeriesRange timeSeriesRange = TimeSeriesInterval.fromString(entry.getKey());
+            ColumnsRange columnsRange = ColumnsInterval.fromString(entry.getKey());
             List<FragmentMeta> fragmentMetas =
-                    cache.getFragmentMapByExactTimeSeriesInterval(timeSeriesRange);
+                    cache.getFragmentMapByExactTimeSeriesInterval(columnsRange);
             for (KeyValue kv : entry.getValue()) {
                 String[] tuples = kv.getKey().toString().split("/");
                 long startTime = Long.parseLong(tuples[tuples.length - 1]);
                 for (FragmentMeta fragmentMeta : fragmentMetas) {
-                    if (fragmentMeta.getTimeInterval().getStartTime() == startTime) {
+                    if (fragmentMeta.getKeyInterval().getStartKey() == startTime) {
                         long points = JsonUtils.fromJson(kv.getValue().getBytes(), Long.class);
                         writePointsMap.put(fragmentMeta, points);
                     }
@@ -1927,7 +1927,7 @@ public class ETCDMetaStorage implements IMetaStorage {
     }
 
     @Override
-    public void deleteFragmentPoints(TimeSeriesInterval tsInterval, TimeInterval timeInterval)
+    public void deleteFragmentPoints(ColumnsInterval columnsInterval, KeyInterval keyInterval)
             throws Exception {
         try {
             client.getKVClient()
@@ -1935,9 +1935,9 @@ public class ETCDMetaStorage implements IMetaStorage {
                             ByteSequence.from(
                                     (STATISTICS_FRAGMENT_POINTS_PREFIX
                                                     + "/"
-                                                    + tsInterval.toString()
+                                                    + columnsInterval.toString()
                                                     + "/"
-                                                    + timeInterval.toString())
+                                                    + keyInterval.toString())
                                             .getBytes()))
                     .get();
         } catch (Exception e) {
@@ -1950,9 +1950,9 @@ public class ETCDMetaStorage implements IMetaStorage {
         String path =
                 STATISTICS_FRAGMENT_POINTS_PREFIX
                         + "/"
-                        + fragmentMeta.getTsInterval().toString()
+                        + fragmentMeta.getColumnsRange().toString()
                         + "/"
-                        + fragmentMeta.getTimeInterval().toString();
+                        + fragmentMeta.getKeyInterval().toString();
         client.getKVClient()
                 .put(
                         ByteSequence.from(path.getBytes()),
@@ -1968,9 +1968,9 @@ public class ETCDMetaStorage implements IMetaStorage {
             String path =
                     STATISTICS_FRAGMENT_HEAT_PREFIX_WRITE
                             + "/"
-                            + writeHotspotEntry.getKey().getTsInterval().toString()
+                            + writeHotspotEntry.getKey().getColumnsRange().toString()
                             + "/"
-                            + writeHotspotEntry.getKey().getTimeInterval().toString();
+                            + writeHotspotEntry.getKey().getKeyInterval().toString();
             GetResponse response =
                     client.getKVClient().get(ByteSequence.from(path.getBytes())).get();
             if (response == null || response.getCount() <= 0) {
@@ -1993,9 +1993,9 @@ public class ETCDMetaStorage implements IMetaStorage {
             String path =
                     STATISTICS_FRAGMENT_HEAT_PREFIX_READ
                             + "/"
-                            + readHotspotEntry.getKey().getTsInterval().toString()
+                            + readHotspotEntry.getKey().getColumnsRange().toString()
                             + "/"
-                            + readHotspotEntry.getKey().getTimeInterval().toString();
+                            + readHotspotEntry.getKey().getKeyInterval().toString();
             GetResponse response =
                     client.getKVClient().get(ByteSequence.from(path.getBytes())).get();
             if (response == null || response.getCount() <= 0) {
@@ -2050,17 +2050,17 @@ public class ETCDMetaStorage implements IMetaStorage {
             }
         }
         for (Map.Entry<String, List<KeyValue>> entry : timeSeriesWriteRangeListMap.entrySet()) {
-            TimeSeriesRange timeSeriesRange = TimeSeriesInterval.fromString(entry.getKey());
-            Map<TimeSeriesRange, List<FragmentMeta>> fragmentMapOfTimeSeriesInterval =
-                    cache.getFragmentMapByTimeSeriesInterval(timeSeriesRange);
-            List<FragmentMeta> fragmentMetas = fragmentMapOfTimeSeriesInterval.get(timeSeriesRange);
+            ColumnsRange columnsRange = ColumnsInterval.fromString(entry.getKey());
+            Map<ColumnsRange, List<FragmentMeta>> fragmentMapOfTimeSeriesInterval =
+                    cache.getFragmentMapByTimeSeriesInterval(columnsRange);
+            List<FragmentMeta> fragmentMetas = fragmentMapOfTimeSeriesInterval.get(columnsRange);
 
             if (fragmentMetas != null) {
                 for (KeyValue kv : entry.getValue()) {
                     String[] tuples = kv.getKey().toString().split("/");
                     long startTime = Long.parseLong(tuples[tuples.length - 1]);
                     for (FragmentMeta fragmentMeta : fragmentMetas) {
-                        if (fragmentMeta.getTimeInterval().getStartTime() == startTime) {
+                        if (fragmentMeta.getKeyInterval().getStartKey() == startTime) {
                             long heat = JsonUtils.fromJson(kv.getValue().getBytes(), Long.class);
                             writeHotspotMap.put(fragmentMeta, heat);
                         }
@@ -2069,17 +2069,17 @@ public class ETCDMetaStorage implements IMetaStorage {
             }
         }
         for (Map.Entry<String, List<KeyValue>> entry : timeSeriesReadRangeListMap.entrySet()) {
-            TimeSeriesRange timeSeriesRange = TimeSeriesInterval.fromString(entry.getKey());
-            Map<TimeSeriesRange, List<FragmentMeta>> fragmentMapOfTimeSeriesInterval =
-                    cache.getFragmentMapByTimeSeriesInterval(timeSeriesRange);
-            List<FragmentMeta> fragmentMetas = fragmentMapOfTimeSeriesInterval.get(timeSeriesRange);
+            ColumnsRange columnsRange = ColumnsInterval.fromString(entry.getKey());
+            Map<ColumnsRange, List<FragmentMeta>> fragmentMapOfTimeSeriesInterval =
+                    cache.getFragmentMapByTimeSeriesInterval(columnsRange);
+            List<FragmentMeta> fragmentMetas = fragmentMapOfTimeSeriesInterval.get(columnsRange);
 
             if (fragmentMetas != null) {
                 for (KeyValue kv : entry.getValue()) {
                     String[] tuples = kv.getKey().toString().split("/");
                     long startTime = Long.parseLong(tuples[tuples.length - 1]);
                     for (FragmentMeta fragmentMeta : fragmentMetas) {
-                        if (fragmentMeta.getTimeInterval().getStartTime() == startTime) {
+                        if (fragmentMeta.getKeyInterval().getStartKey() == startTime) {
                             long heat = JsonUtils.fromJson(kv.getValue().getBytes(), Long.class);
                             readHotspotMap.put(fragmentMeta, heat);
                         }

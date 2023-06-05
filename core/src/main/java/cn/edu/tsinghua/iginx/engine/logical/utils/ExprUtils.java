@@ -3,7 +3,7 @@ package cn.edu.tsinghua.iginx.engine.logical.utils;
 import cn.edu.tsinghua.iginx.engine.shared.TimeRange;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.exceptions.SQLParserException;
-import cn.edu.tsinghua.iginx.metadata.entity.TimeSeriesRange;
+import cn.edu.tsinghua.iginx.metadata.entity.ColumnsRange;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -445,13 +445,13 @@ public class ExprUtils {
         return new TimeRange(begin, end);
     }
 
-    public static Filter getSubFilterFromFragment(Filter filter, TimeSeriesRange interval) {
+    public static Filter getSubFilterFromFragment(Filter filter, ColumnsRange interval) {
         Filter filterWithoutNot = removeNot(filter);
         Filter filterWithTrue = setTrue(filterWithoutNot, interval);
         return mergeTrue(filterWithTrue);
     }
 
-    private static Filter setTrue(Filter filter, TimeSeriesRange interval) {
+    private static Filter setTrue(Filter filter, ColumnsRange interval) {
         switch (filter.getType()) {
             case Or:
                 List<Filter> orChildren = ((OrFilter) filter).getChildren();
@@ -469,12 +469,12 @@ public class ExprUtils {
                 return new AndFilter(andChildren);
             case Value:
                 String path = ((ValueFilter) filter).getPath();
-                if (interval.getStartTimeSeries() != null
-                        && interval.getStartTimeSeries().compareTo(path) > 0) {
+                if (interval.getStartColumn() != null
+                        && interval.getStartColumn().compareTo(path) > 0) {
                     return new BoolFilter(true);
                 }
-                if (interval.getEndTimeSeries() != null
-                        && interval.getEndTimeSeries().compareTo(path) <= 0) {
+                if (interval.getEndColumn() != null
+                        && interval.getEndColumn().compareTo(path) <= 0) {
                     return new BoolFilter(true);
                 }
                 return filter;
