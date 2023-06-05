@@ -84,12 +84,12 @@ jobs:
                   version: ${VERSION}
                   DB-name: ${{matrix.DB-name}}
                   Test-Way: oriHasDataExpNoData
-              post: cat iginx.log
             - name: oriHasDataExpNoData IT
               run: |
                   sleep 10
                   mvn test -q -Dtest=${{matrix.DB-name}}CapacityExpansionIT#oriHasDataExpNoData -DfailIfNoTests=false -P passFormat
-                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P passFormat
+                  nohup mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P passFormat > test.log 2>&1 &
+                  tail -f iginx.log
             #第 4 阶段测试开始==========================================
             - name: Prepare CapExp environment oriNoDataExpHasData
               uses: ./.github/actions/capacityExpansionUnionTest
