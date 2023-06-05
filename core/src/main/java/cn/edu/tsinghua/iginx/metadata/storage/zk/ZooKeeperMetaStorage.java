@@ -29,7 +29,6 @@ import cn.edu.tsinghua.iginx.metadata.storage.IMetaStorage;
 import cn.edu.tsinghua.iginx.metadata.utils.ReshardStatus;
 import cn.edu.tsinghua.iginx.utils.JsonUtils;
 import cn.edu.tsinghua.iginx.utils.Pair;
-
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -37,7 +36,6 @@ import java.util.Map.Entry;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
-
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.recipes.cache.TreeCache;
@@ -1017,17 +1015,15 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
                                     + "/"
                                     + fragmentMeta.getColumnsRange().toString()
                                     + "/"
-                                    + fragmentMeta.getTimeInterval().toString());
+                                    + fragmentMeta.getKeyInterval().toString());
             // 没有子节点，删除父节点
             if (this.client
                     .getChildren()
-                    .forPath(FRAGMENT_NODE_PREFIX + "/" + fragmentMeta.getTsInterval()).isEmpty()) {
+                    .forPath(FRAGMENT_NODE_PREFIX + "/" + fragmentMeta.getColumnsRange())
+                    .isEmpty()) {
                 this.client
                         .delete()
-                        .forPath(
-                                FRAGMENT_NODE_PREFIX
-                                        + "/"
-                                        + fragmentMeta.getTsInterval());
+                        .forPath(FRAGMENT_NODE_PREFIX + "/" + fragmentMeta.getColumnsRange());
             }
             // 删除不需要的统计数据
             this.client

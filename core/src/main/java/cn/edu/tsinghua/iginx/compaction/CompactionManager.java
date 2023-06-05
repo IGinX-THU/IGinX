@@ -34,7 +34,9 @@ public class CompactionManager {
 
     public void clearFragment() throws Exception {
         if (ConfigDescriptor.getInstance().getConfig().isEnableInstantCompaction()) {
-            InstantCompaction instantCompaction = new InstantCompaction(PhysicalEngineImpl.getInstance(), DefaultMetaManager.getInstance());
+            InstantCompaction instantCompaction =
+                    new InstantCompaction(
+                            PhysicalEngineImpl.getInstance(), DefaultMetaManager.getInstance());
             if (instantCompaction.needCompaction()) {
                 instantCompaction.compact();
             }

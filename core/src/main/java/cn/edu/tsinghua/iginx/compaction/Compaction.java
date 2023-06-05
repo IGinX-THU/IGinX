@@ -3,7 +3,6 @@ package cn.edu.tsinghua.iginx.compaction;
 import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngine;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
-import cn.edu.tsinghua.iginx.engine.shared.TimeRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
@@ -111,15 +110,13 @@ public abstract class Compaction {
                                 : startTimeseries;
             }
 
-            if (endTimeseries == null
-                    || fragmentMeta.getTsInterval().getEndTimeSeries() == null) {
+            if (endTimeseries == null || fragmentMeta.getColumnsRange().getEndColumn() == null) {
                 endTimeseries = null;
             } else {
                 endTimeseries =
-                        endTimeseries.compareTo(fragmentMeta.getTsInterval().getEndTimeSeries())
-                                > 0
+                        endTimeseries.compareTo(fragmentMeta.getColumnsRange().getEndColumn()) > 0
                                 ? endTimeseries
-                                : fragmentMeta.getTsInterval().getEndTimeSeries();
+                                : fragmentMeta.getColumnsRange().getEndColumn();
             }
 
             String storageUnitId = fragmentMeta.getMasterStorageUnitId();
@@ -169,7 +166,11 @@ public abstract class Compaction {
             if (!storageUnitId.equals(targetStorageUnit.getId())) {
                 // 删除原分片节点数据
                 Delete delete =
-                        new Delete(new FragmentSource(fragmentMeta), new ArrayList<>(), new ArrayList<>(), null);
+                        new Delete(
+                                new FragmentSource(fragmentMeta),
+                                new ArrayList<>(),
+                                new ArrayList<>(),
+                                null);
                 physicalEngine.execute(new RequestContext(), delete);
             }
         }
