@@ -1,5 +1,6 @@
 package cn.edu.tsinghua.iginx.integration.func.session;
 
+import static cn.edu.tsinghua.iginx.integration.controller.Controller.CLEAR_DATA_EXCEPTION;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
