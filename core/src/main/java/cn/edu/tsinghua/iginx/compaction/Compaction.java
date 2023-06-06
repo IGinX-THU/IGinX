@@ -3,7 +3,6 @@ package cn.edu.tsinghua.iginx.compaction;
 import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngine;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
-import cn.edu.tsinghua.iginx.engine.shared.TimeRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
@@ -109,16 +108,15 @@ public abstract class Compaction {
                                         > 0
                                 ? fragmentMeta.getColumnsRange().getStartColumn()
                                 : startTimeseries;
-                if (endTimeseries == null
-                        || fragmentMeta.getColumnsRange().getEndColumn() == null) {
-                    endTimeseries = null;
-                } else {
-                    endTimeseries =
-                            endTimeseries.compareTo(fragmentMeta.getColumnsRange().getEndColumn())
-                                            > 0
-                                    ? endTimeseries
-                                    : fragmentMeta.getColumnsRange().getEndColumn();
-                }
+            }
+
+            if (endTimeseries == null || fragmentMeta.getColumnsRange().getEndColumn() == null) {
+                endTimeseries = null;
+            } else {
+                endTimeseries =
+                        endTimeseries.compareTo(fragmentMeta.getColumnsRange().getEndColumn()) > 0
+                                ? endTimeseries
+                                : fragmentMeta.getColumnsRange().getEndColumn();
             }
 
             String storageUnitId = fragmentMeta.getMasterStorageUnitId();
@@ -167,17 +165,12 @@ public abstract class Compaction {
             String storageUnitId = fragmentMeta.getMasterStorageUnitId();
             if (!storageUnitId.equals(targetStorageUnit.getId())) {
                 // 删除原分片节点数据
-                List<String> paths = new ArrayList<>();
-                paths.add(fragmentMeta.getMasterStorageUnitId() + "*");
-                List<TimeRange> timeRanges = new ArrayList<>();
-                timeRanges.add(
-                        new TimeRange(
-                                fragmentMeta.getKeyInterval().getStartKey(),
-                                true,
-                                fragmentMeta.getKeyInterval().getEndKey(),
-                                false));
                 Delete delete =
-                        new Delete(new FragmentSource(fragmentMeta), timeRanges, paths, null);
+                        new Delete(
+                                new FragmentSource(fragmentMeta),
+                                new ArrayList<>(),
+                                new ArrayList<>(),
+                                null);
                 physicalEngine.execute(new RequestContext(), delete);
             }
         }

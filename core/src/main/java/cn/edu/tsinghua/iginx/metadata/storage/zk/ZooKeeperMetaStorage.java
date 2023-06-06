@@ -1016,6 +1016,15 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
                                     + fragmentMeta.getColumnsRange().toString()
                                     + "/"
                                     + fragmentMeta.getKeyInterval().toString());
+            // 没有子节点，删除父节点
+            if (this.client
+                    .getChildren()
+                    .forPath(FRAGMENT_NODE_PREFIX + "/" + fragmentMeta.getColumnsRange())
+                    .isEmpty()) {
+                this.client
+                        .delete()
+                        .forPath(FRAGMENT_NODE_PREFIX + "/" + fragmentMeta.getColumnsRange());
+            }
             // 删除不需要的统计数据
             this.client
                     .delete()

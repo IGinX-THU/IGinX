@@ -21,5 +21,7 @@ public enum StatementType {
     CANCEL_JOB,
     SHOW_ELIGIBLE_JOB,
     REMOVE_HISTORY_DATA_RESOURCE,
+    SET_CONFIG,
+    SHOW_CONFIG,
     COMPACT
 }
