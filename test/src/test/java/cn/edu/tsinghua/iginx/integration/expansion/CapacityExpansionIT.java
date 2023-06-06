@@ -5,8 +5,6 @@ import static org.junit.Assert.fail;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
-import cn.edu.tsinghua.iginx.integration.expansion.influxdb.InfluxDBHistoryDataGenerator;
-import cn.edu.tsinghua.iginx.integration.expansion.iotdb.IoTDB12HistoryDataGenerator;
 import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
 import cn.edu.tsinghua.iginx.integration.tool.DBType;
 import cn.edu.tsinghua.iginx.session.Session;

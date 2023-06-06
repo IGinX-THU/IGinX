@@ -19,8 +19,8 @@ runs:
         - name: Clear history data
           uses: ./.github/actions/dbWriter
           with:
-            version: ${{inputs.DB-name}}
-            Test-Way: clearHistoryData
+              version: ${{inputs.DB-name}}
+              Test-Way: clearHistoryData
 
         - name: Stop IGinX
           uses: ./.github/actions/iginxRunner
