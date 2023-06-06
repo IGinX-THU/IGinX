@@ -7,14 +7,14 @@ import static org.junit.Assert.fail;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
-import cn.edu.tsinghua.iginx.integration.tool.ConfLoder;
+import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
+import cn.edu.tsinghua.iginx.integration.tool.DBType;
 import cn.edu.tsinghua.iginx.integration.tool.MultiConnection;
 import cn.edu.tsinghua.iginx.pool.IginxInfo;
 import cn.edu.tsinghua.iginx.pool.SessionPool;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionAggregateQueryDataSet;
-import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.session.SessionQueryDataSet;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.thrift.DataType;
@@ -101,8 +101,8 @@ public class NewSessionIT {
 
     @BeforeClass
     public static void setUp() throws SessionException {
-        ConfLoder conf = new ConfLoder(Controller.CONFIG_FILE);
-        if (DBConf.getDBType(conf.getStorageType()) == DBConf.DBType.influxdb) {
+        ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
+        if (DBType.valueOf(conf.getStorageType().toLowerCase()) == DBType.influxdb) {
             isInfluxdb = true;
         }
         DBConf dbConf = conf.loadDBConf(conf.getStorageType());
@@ -165,28 +165,8 @@ public class NewSessionIT {
     }
 
     @After
-    public void clearData() throws ExecutionException, SessionException {
-        String clearData = "CLEAR DATA;";
-
-        SessionExecuteSqlResult res = null;
-        try {
-            res = conn.executeSql(clearData);
-        } catch (SessionException | ExecutionException e) {
-            logger.error("Statement: \"{}\" execute fail. Caused by: {}", clearData, e.toString());
-            if (e.toString().equals(Controller.CLEARDATAEXCP)) {
-                logger.error("clear data fail and go on....");
-            } else {
-                fail();
-            }
-        }
-
-        if (res != null && res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-            logger.error(
-                    "Statement: \"{}\" execute fail. Caused by: {}.",
-                    clearData,
-                    res.getParseErrorMsg());
-            fail();
-        }
+    public void clearData() throws SessionException {
+        Controller.clearData(conn);
     }
 
     private void insertData(TestDataSection data, InsertAPIType type) {

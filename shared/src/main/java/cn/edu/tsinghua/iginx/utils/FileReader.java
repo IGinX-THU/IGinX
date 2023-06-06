@@ -9,18 +9,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class FileReader {
-    static String path;
-
-    private static File file;
 
     private static final Logger logger = LoggerFactory.getLogger(FileReader.class);
-
-    public FileReader(String path) throws FileNotFoundException {
-        // ??? why path & file are static
-        // assignment has no effect!
-        path = path;
-        file = new File(path);
-    }
 
     public static String convertToString(String filePath) {
         String conf = null;
@@ -34,7 +24,9 @@ public class FileReader {
             logger.error(String.format("Fail to find file, path=%s", filePath));
         } finally {
             try {
-                if (in != null) in.close();
+                if (in != null) {
+                    in.close();
+                }
             } catch (IOException e) {
                 logger.error("Fail to close the file, path={}", filePath);
             }

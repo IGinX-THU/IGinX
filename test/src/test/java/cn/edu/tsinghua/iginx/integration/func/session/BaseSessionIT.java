@@ -5,11 +5,10 @@ import static org.junit.Assert.fail;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
-import cn.edu.tsinghua.iginx.integration.tool.ConfLoder;
+import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.integration.tool.MultiConnection;
 import cn.edu.tsinghua.iginx.session.Session;
-import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.ArrayList;
 import java.util.List;
@@ -51,7 +50,7 @@ public abstract class BaseSessionIT {
     protected int currPath = 0;
 
     protected BaseSessionIT() {
-        ConfLoder conf = new ConfLoder(Controller.CONFIG_FILE);
+        ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
         DBConf dbConf = conf.loadDBConf(conf.getStorageType());
         this.isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
     }
@@ -73,19 +72,16 @@ public abstract class BaseSessionIT {
     }
 
     @After
-    public void tearDown() throws SessionException {
+    public void tearDown() {
         try {
             clearData();
             session.closeSession();
-        } catch (ExecutionException e) {
+        } catch (SessionException e) {
             logger.error(e.getMessage());
         }
     }
 
-    protected void clearData() throws ExecutionException, SessionException {
-        String clearData = "CLEAR DATA;";
-
-        SessionExecuteSqlResult res = null;
+    protected void clearData() throws SessionException {
         if (session.isClosed()) {
             session =
                     new MultiConnection(
@@ -97,24 +93,7 @@ public abstract class BaseSessionIT {
             session.openSession();
         }
 
-        try {
-            res = session.executeSql(clearData);
-        } catch (SessionException | ExecutionException e) {
-            logger.error("Statement: \"{}\" execute fail. Caused by: {}", clearData, e.toString());
-            if (e.toString().equals(Controller.CLEARDATAEXCP)) {
-                logger.error("clear data fail and go on....");
-            } else fail();
-        }
-
-        if (res != null && res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-            logger.error(
-                    "Statement: \"{}\" execute fail. Caused by: {}.",
-                    clearData,
-                    res.getParseErrorMsg());
-            fail();
-        }
-
-        session.closeSession();
+        Controller.clearData(session);
     }
 
     protected int getPathNum(String path) {

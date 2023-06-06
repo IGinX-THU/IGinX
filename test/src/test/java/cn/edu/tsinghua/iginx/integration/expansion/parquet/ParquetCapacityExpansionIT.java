@@ -1,7 +1,7 @@
 package cn.edu.tsinghua.iginx.integration.expansion.parquet;
 
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
-import cn.edu.tsinghua.iginx.integration.expansion.unit.SQLTestTools;
+import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
 import cn.edu.tsinghua.iginx.session.Session;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -9,10 +9,9 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ParquetHistoryDataCapacityExpansionIT {
+public class ParquetCapacityExpansionIT {
 
-    private static final Logger logger =
-            LoggerFactory.getLogger(ParquetHistoryDataCapacityExpansionIT.class);
+    private static final Logger logger = LoggerFactory.getLogger(ParquetCapacityExpansionIT.class);
 
     private static Session session;
 

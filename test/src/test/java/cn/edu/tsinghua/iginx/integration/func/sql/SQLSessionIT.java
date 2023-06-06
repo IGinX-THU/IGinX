@@ -5,7 +5,7 @@ import static org.junit.Assert.fail;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
-import cn.edu.tsinghua.iginx.integration.tool.ConfLoder;
+import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf.DBConfType;
 import cn.edu.tsinghua.iginx.integration.tool.MultiConnection;
@@ -14,7 +14,6 @@ import cn.edu.tsinghua.iginx.pool.IginxInfo;
 import cn.edu.tsinghua.iginx.pool.SessionPool;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.utils.Pair;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -61,8 +60,8 @@ public class SQLSessionIT {
     protected boolean isAbleToClearData = true;
     private static final int CONCURRENT_NUM = 5;
 
-    public SQLSessionIT() throws IOException {
-        ConfLoder conf = new ConfLoder(Controller.CONFIG_FILE);
+    public SQLSessionIT() {
+        ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
         DBConf dbConf = conf.loadDBConf(conf.getStorageType());
         this.isScaling = conf.isScaling();
         this.isAbleToClearData = dbConf.getEnumValue(DBConf.DBConfType.isAbleToClearData);
@@ -151,7 +150,7 @@ public class SQLSessionIT {
     }
 
     @After
-    public void clearData() throws ExecutionException, SessionException {
+    public void clearData() {
         String clearData = "CLEAR DATA;";
         executor.execute(clearData);
     }
