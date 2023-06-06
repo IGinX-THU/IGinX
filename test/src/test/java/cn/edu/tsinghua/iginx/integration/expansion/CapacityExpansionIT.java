@@ -14,7 +14,6 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.RemovedStorageEngineInfo;
 import java.util.ArrayList;
 import java.util.List;
-
 import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
