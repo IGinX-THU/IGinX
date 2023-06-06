@@ -30,13 +30,13 @@ public class MigrationExecuteTask {
 
     @Override
     public String toString() {
-        return fragmentMeta.getTimeInterval().getStartTime()
+        return fragmentMeta.getKeyInterval().getStartKey()
                 + SEPARATOR
-                + fragmentMeta.getTimeInterval().getEndTime()
+                + fragmentMeta.getKeyInterval().getEndKey()
                 + SEPARATOR
-                + fragmentMeta.getTsInterval().getStartTimeSeries()
+                + fragmentMeta.getColumnsRange().getStartColumn()
                 + SEPARATOR
-                + fragmentMeta.getTsInterval().getEndTimeSeries()
+                + fragmentMeta.getColumnsRange().getEndColumn()
                 + SEPARATOR
                 + masterStorageUnitId
                 + SEPARATOR

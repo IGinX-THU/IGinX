@@ -64,7 +64,9 @@ import cn.edu.tsinghua.iginx.sql.SqlParser.RegisterTaskStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.RemoveHistoryDataResourceStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.SelectClauseContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.SelectStatementContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.SetConfigStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.ShowClusterInfoStatementContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.ShowConfigStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.ShowEligibleJobStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.ShowJobStatusStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.ShowRegisterTaskStatementContext;
@@ -103,7 +105,9 @@ import cn.edu.tsinghua.iginx.sql.statement.InsertStatement;
 import cn.edu.tsinghua.iginx.sql.statement.RegisterTaskStatement;
 import cn.edu.tsinghua.iginx.sql.statement.RemoveHsitoryDataSourceStatement;
 import cn.edu.tsinghua.iginx.sql.statement.SelectStatement;
+import cn.edu.tsinghua.iginx.sql.statement.SetConfigStatement;
 import cn.edu.tsinghua.iginx.sql.statement.ShowClusterInfoStatement;
+import cn.edu.tsinghua.iginx.sql.statement.ShowConfigStatement;
 import cn.edu.tsinghua.iginx.sql.statement.ShowEligibleJobStatement;
 import cn.edu.tsinghua.iginx.sql.statement.ShowJobStatusStatement;
 import cn.edu.tsinghua.iginx.sql.statement.ShowRegisterTaskStatement;
@@ -564,6 +568,22 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     @Override
     public Statement visitCompactStatement(CompactStatementContext ctx) {
         return new CompactStatement();
+    }
+
+    @Override
+    public Statement visitSetConfigStatement(SetConfigStatementContext ctx) {
+        String name = ctx.configName.getText();
+        name = name.substring(1, name.length() - 1);
+        String value = ctx.configValue.getText();
+        value = value.substring(1, value.length() - 1);
+        return new SetConfigStatement(name, value);
+    }
+
+    @Override
+    public Statement visitShowConfigStatement(ShowConfigStatementContext ctx) {
+        String configName = ctx.configName.getText();
+        configName = configName.substring(1, configName.length() - 1);
+        return new ShowConfigStatement(configName);
     }
 
     private void parseSelectPaths(SelectClauseContext ctx, SelectStatement selectStatement) {

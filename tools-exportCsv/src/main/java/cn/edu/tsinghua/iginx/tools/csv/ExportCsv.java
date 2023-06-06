@@ -22,6 +22,7 @@ import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
+import cn.edu.tsinghua.iginx.thrift.SqlType;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -176,7 +177,7 @@ public class ExportCsv extends AbstractCsvTool {
                 return;
             }
 
-            if (res.isQuery()) {
+            if (res.getSqlType() == SqlType.Query) {
                 System.out.printf("Processing sql statement [%s].%n", sql);
                 writeCsvFile(res, filePath);
                 System.out.printf("Finish to export file [%s].%n", filePath);
