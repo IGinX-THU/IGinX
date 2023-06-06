@@ -12,7 +12,7 @@ inputs:
 runs:
     using: "composite" # Mandatory parameter
     steps:
-        - name: Write history Data
+        - name: Write history data
           shell: bash
           run: |
               mvn test -q -Dtest=${{inputs.version}}HistoryDataGenerator#${{inputs.Test-Way}} -DfailIfNoTests=false -P passFormat

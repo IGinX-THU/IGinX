@@ -552,9 +552,6 @@ public class StatementExecutor {
                 break;
             case DELETE:
                 DeleteStatement deleteStatement = (DeleteStatement) statement;
-                logger.error(deleteStatement.getPaths().toString());
-                logger.error(String.valueOf(deleteStatement.isInvolveDummyData()));
-                logger.error(deleteStatement.getTimeRanges().toString());
                 if (deleteStatement.isInvolveDummyData()) {
                     throw new ExecutionException(
                             "Caution: can not clear the data of read-only node.");
