@@ -22,7 +22,7 @@ import cn.edu.tsinghua.iginx.exceptions.MetaStorageException;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
 import cn.edu.tsinghua.iginx.metadata.hook.StorageEngineChangeHook;
 import cn.edu.tsinghua.iginx.metadata.hook.StorageUnitHook;
-import cn.edu.tsinghua.iginx.policy.simple.TimeSeriesCalDO;
+import cn.edu.tsinghua.iginx.policy.simple.ColumnCalDO;
 import cn.edu.tsinghua.iginx.sql.statement.InsertStatement;
 import cn.edu.tsinghua.iginx.thrift.AuthType;
 import cn.edu.tsinghua.iginx.utils.Pair;
@@ -66,47 +66,45 @@ public interface IMetaManager {
 
     List<FragmentMeta> getFragmentsByStorageUnit(String storageUnitId);
 
-    /** 获取某个du的时空范围 */
-    Pair<TimeSeriesRange, TimeInterval> getBoundaryOfStorageUnit(String storageUnitId);
+    /** 获取某个du的序列和key范围 */
+    Pair<ColumnsRange, KeyInterval> getBoundaryOfStorageUnit(String storageUnitId);
 
-    /** 获取某个时间序列区间的所有分片，不会返回虚拟堆叠分片 */
-    Map<TimeSeriesRange, List<FragmentMeta>> getFragmentMapByTimeSeriesInterval(
-            TimeSeriesRange tsInterval);
+    /** 获取某个列区间的所有分片，不会返回虚拟堆叠分片 */
+    Map<ColumnsRange, List<FragmentMeta>> getFragmentMapByColumnsRange(ColumnsRange columnsRange);
 
-    /** 获取某个时间序列区间的所有分片，根据参数决定是否返回虚拟堆叠分片 */
-    Map<TimeSeriesRange, List<FragmentMeta>> getFragmentMapByTimeSeriesInterval(
-            TimeSeriesRange tsInterval, boolean withDummyFragment);
+    /** 获取某个列区间的所有分片，根据参数决定是否返回虚拟堆叠分片 */
+    Map<ColumnsRange, List<FragmentMeta>> getFragmentMapByColumnsRange(
+            ColumnsRange columnsRange, boolean withDummyFragment);
 
-    /** 查询某个时间序列区间是否有虚拟堆叠分片 */
-    boolean hasDummyFragment(TimeSeriesRange tsInterval);
+    /** 查询某个列区间是否有虚拟堆叠分片 */
+    boolean hasDummyFragment(ColumnsRange columnsRange);
 
     /** 集群中是否存在可写的存储引擎 */
     boolean hasWritableStorageEngines();
 
-    /** 获取某个时间区间的所有最新的分片（这些分片一定也都是未终结的分片） */
-    Map<TimeSeriesRange, FragmentMeta> getLatestFragmentMapByTimeSeriesInterval(
-            TimeSeriesRange tsInterval);
+    /** 获取某个key区间的所有最新的分片（这些分片一定也都是未终结的分片） */
+    Map<ColumnsRange, FragmentMeta> getLatestFragmentMapByColumnsRange(ColumnsRange columnsRange);
 
     /** 获取全部最新的分片，不会返回虚拟堆叠分片 */
-    Map<TimeSeriesRange, FragmentMeta> getLatestFragmentMap();
+    Map<ColumnsRange, FragmentMeta> getLatestFragmentMap();
 
-    /** 获取某个时间序列区间在某个时间区间的所有分片，不会返回虚拟堆叠分片。 */
-    Map<TimeSeriesRange, List<FragmentMeta>> getFragmentMapByTimeSeriesIntervalAndTimeInterval(
-            TimeSeriesRange tsInterval, TimeInterval timeInterval);
+    /** 获取某个列区间在某个时间区间的所有分片，不会返回虚拟堆叠分片。 */
+    Map<ColumnsRange, List<FragmentMeta>> getFragmentMapByColumnsIntervalAndKeyInterval(
+            ColumnsRange columnsRange, KeyInterval keyInterval);
 
-    /** 获取某个时间序列区间在某个时间区间的所有分片，根据参数决定是否返回虚拟堆叠分片 */
-    Map<TimeSeriesRange, List<FragmentMeta>> getFragmentMapByTimeSeriesIntervalAndTimeInterval(
-            TimeSeriesRange tsInterval, TimeInterval timeInterval, boolean withDummyFragment);
+    /** 获取某个列区间在某个key区间的所有分片，根据参数决定是否返回虚拟堆叠分片 */
+    Map<ColumnsRange, List<FragmentMeta>> getFragmentMapByColumnsIntervalAndKeyInterval(
+            ColumnsRange columnsRange, KeyInterval keyInterval, boolean withDummyFragment);
 
-    /** 获取某个时间序列的所有分片（按照分片时间戳排序），会返回虚拟堆叠分片 */
-    List<FragmentMeta> getFragmentListByTimeSeriesName(String tsName);
+    /** 获取某个列的所有分片（按照key排序），会返回虚拟堆叠分片 */
+    List<FragmentMeta> getFragmentListByColumnName(String colName);
 
-    /** 获取某个时间序列的最新分片 */
-    FragmentMeta getLatestFragmentByTimeSeriesName(String tsName);
+    /** 获取某个列的最新分片 */
+    FragmentMeta getLatestFragmentByColumnName(String colName);
 
-    /** 获取某个时间序列在某个时间区间的所有分片（按照分片时间戳排序） */
-    List<FragmentMeta> getFragmentListByTimeSeriesNameAndTimeInterval(
-            String tsName, TimeInterval timeInterval);
+    /** 获取某个列在某个key区间的所有分片（按照分片时间戳排序） */
+    List<FragmentMeta> getFragmentListByColumnNameAndKeyInterval(
+            String colName, KeyInterval keyInterval);
 
     /** 创建分片和存储单元 */
     boolean createFragmentsAndStorageUnits(
@@ -190,15 +188,15 @@ public interface IMetaManager {
 
     boolean election();
 
-    void saveTimeSeriesData(InsertStatement statement);
+    void saveColumnsData(InsertStatement statement);
 
-    List<TimeSeriesCalDO> getMaxValueFromTimeSeries();
+    List<ColumnCalDO> getMaxValueFromColumns();
 
-    Map<String, Double> getTimeseriesData();
+    Map<String, Double> getColumnsData();
 
     int updateVersion();
 
-    Map<Integer, Integer> getTimeseriesVersionMap();
+    Map<Integer, Integer> getColumnsVersionMap();
 
     boolean addTransformTask(TransformTaskMeta transformTask);
 
@@ -230,13 +228,13 @@ public interface IMetaManager {
 
     void addFragment(FragmentMeta fragmentMeta);
 
-    void endFragmentByTimeSeriesInterval(FragmentMeta fragmentMeta, String endTimeSeries);
+    void endFragmentByColumnsRange(FragmentMeta fragmentMeta, String endColumn);
 
-    void updateFragmentByTsInterval(TimeSeriesRange tsInterval, FragmentMeta fragmentMeta);
+    void updateFragmentByColumnsRange(ColumnsRange columnsRange, FragmentMeta fragmentMeta);
 
-    void updateMaxActiveEndTime(long endTime);
+    void updateMaxActiveEndKey(long endKey);
 
-    long getMaxActiveEndTime();
+    long getMaxActiveEndKey();
 
-    void submitMaxActiveEndTime();
+    void submitMaxActiveEndKey();
 }

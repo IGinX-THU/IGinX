@@ -5,7 +5,7 @@ import static org.junit.Assert.assertEquals;
 import cn.edu.tsinghua.iginx.engine.shared.TimeRange;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.exceptions.SQLParserException;
-import cn.edu.tsinghua.iginx.metadata.entity.TimeSeriesInterval;
+import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.sql.TestUtils;
 import cn.edu.tsinghua.iginx.sql.statement.DeleteStatement;
 import cn.edu.tsinghua.iginx.sql.statement.SelectStatement;
@@ -211,8 +211,7 @@ public class ExprUtilsTest {
                 filter.toString());
         assertEquals(
                 "(key > 10 && key <= 100)",
-                ExprUtils.getSubFilterFromFragment(
-                                filter, new TimeSeriesInterval("root.a", "root.c"))
+                ExprUtils.getSubFilterFromFragment(filter, new ColumnsInterval("root.a", "root.c"))
                         .toString());
 
         // sub2
@@ -225,8 +224,7 @@ public class ExprUtilsTest {
                 filter.toString());
         assertEquals(
                 "(root.e >= 27 && key > 10 && key <= 100)",
-                ExprUtils.getSubFilterFromFragment(
-                                filter, new TimeSeriesInterval("root.c", "root.z"))
+                ExprUtils.getSubFilterFromFragment(filter, new ColumnsInterval("root.c", "root.z"))
                         .toString());
 
         // whole
@@ -238,8 +236,7 @@ public class ExprUtilsTest {
                 filter.toString());
         assertEquals(
                 "((root.a > 5 || root.d < 15) && root.e >= 27 && (root.c < 10 || root.b > 2))",
-                ExprUtils.getSubFilterFromFragment(
-                                filter, new TimeSeriesInterval("root.a", "root.z"))
+                ExprUtils.getSubFilterFromFragment(filter, new ColumnsInterval("root.a", "root.z"))
                         .toString());
 
         // empty
@@ -251,8 +248,7 @@ public class ExprUtilsTest {
                 filter.toString());
         assertEquals(
                 "True",
-                ExprUtils.getSubFilterFromFragment(
-                                filter, new TimeSeriesInterval("root.h", "root.z"))
+                ExprUtils.getSubFilterFromFragment(filter, new ColumnsInterval("root.h", "root.z"))
                         .toString());
     }
 }

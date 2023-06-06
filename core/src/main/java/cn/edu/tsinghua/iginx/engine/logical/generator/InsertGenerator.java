@@ -50,14 +50,13 @@ public class InsertGenerator extends AbstractGenerator {
 
         List<String> pathList = new ArrayList<>(insertStatement.getPaths());
 
-        TimeSeriesRange tsInterval =
-                new TimeSeriesInterval(pathList.get(0), pathList.get(pathList.size() - 1));
-        TimeInterval timeInterval =
-                new TimeInterval(insertStatement.getStartTime(), insertStatement.getEndTime() + 1);
+        ColumnsRange tsInterval =
+                new ColumnsInterval(pathList.get(0), pathList.get(pathList.size() - 1));
+        KeyInterval keyInterval =
+                new KeyInterval(insertStatement.getStartTime(), insertStatement.getEndTime() + 1);
 
-        Map<TimeSeriesRange, List<FragmentMeta>> fragments =
-                metaManager.getFragmentMapByTimeSeriesIntervalAndTimeInterval(
-                        tsInterval, timeInterval);
+        Map<ColumnsRange, List<FragmentMeta>> fragments =
+                metaManager.getFragmentMapByColumnsIntervalAndKeyInterval(tsInterval, keyInterval);
         if (fragments.isEmpty()) {
             // on startup
             policy.setNeedReAllocate(false);
@@ -67,7 +66,7 @@ public class InsertGenerator extends AbstractGenerator {
                 metaManager.createInitialFragmentsAndStorageUnits(
                         fragmentsAndStorageUnits.v, fragmentsAndStorageUnits.k);
             }
-            fragments = metaManager.getFragmentMapByTimeSeriesInterval(tsInterval);
+            fragments = metaManager.getFragmentMapByColumnsRange(tsInterval);
         } else if (policy.isNeedReAllocate()) {
             // on scale-out or any events requiring reallocation
             logger.debug("Trig ReAllocate!");
@@ -97,41 +96,41 @@ public class InsertGenerator extends AbstractGenerator {
     }
 
     private DataView getDataSection(FragmentMeta meta, RawData rawData) {
-        TimeInterval timeInterval = meta.getTimeInterval();
-        TimeSeriesRange tsInterval = meta.getTsInterval();
+        KeyInterval keyInterval = meta.getKeyInterval();
+        ColumnsRange tsInterval = meta.getColumnsRange();
         List<Long> insertTimes = rawData.getKeys();
         List<String> paths = rawData.getPaths();
 
         // time overlap doesn't exist.
-        if (timeInterval.getStartTime() > insertTimes.get(insertTimes.size() - 1)
-                || timeInterval.getEndTime() <= insertTimes.get(0)) {
+        if (keyInterval.getStartKey() > insertTimes.get(insertTimes.size() - 1)
+                || keyInterval.getEndKey() <= insertTimes.get(0)) {
             return null;
         }
 
         // path overlap doesn't exist.
-        if (tsInterval.getStartTimeSeries() != null
-                && tsInterval.getStartTimeSeries().compareTo(paths.get(paths.size() - 1)) > 0)
+        if (tsInterval.getStartColumn() != null
+                && tsInterval.getStartColumn().compareTo(paths.get(paths.size() - 1)) > 0)
             return null;
-        if (tsInterval.getEndTimeSeries() != null
-                && tsInterval.getEndTimeSeries().compareTo(paths.get(0)) <= 0) {
+        if (tsInterval.getEndColumn() != null
+                && tsInterval.getEndColumn().compareTo(paths.get(0)) <= 0) {
             return null;
         }
 
         int startTimeIndex = 0;
-        while (timeInterval.getStartTime() > insertTimes.get(startTimeIndex)) startTimeIndex++;
+        while (keyInterval.getStartKey() > insertTimes.get(startTimeIndex)) startTimeIndex++;
         int endTimeIndex = startTimeIndex;
         while (endTimeIndex < insertTimes.size()
-                && timeInterval.getEndTime() > insertTimes.get(endTimeIndex)) endTimeIndex++;
+                && keyInterval.getEndKey() > insertTimes.get(endTimeIndex)) endTimeIndex++;
 
         int startPathIndex = 0;
-        if (tsInterval.getStartTimeSeries() != null) {
-            while (tsInterval.getStartTimeSeries().compareTo(paths.get(startPathIndex)) > 0)
+        if (tsInterval.getStartColumn() != null) {
+            while (tsInterval.getStartColumn().compareTo(paths.get(startPathIndex)) > 0)
                 startPathIndex++;
         }
         int endPathIndex = startPathIndex;
-        if (tsInterval.getEndTimeSeries() != null) {
+        if (tsInterval.getEndColumn() != null) {
             while (endPathIndex < paths.size()
-                    && tsInterval.getEndTimeSeries().compareTo(paths.get(endPathIndex)) > 0)
+                    && tsInterval.getEndColumn().compareTo(paths.get(endPathIndex)) > 0)
                 endPathIndex++;
         } else {
             endPathIndex = paths.size();

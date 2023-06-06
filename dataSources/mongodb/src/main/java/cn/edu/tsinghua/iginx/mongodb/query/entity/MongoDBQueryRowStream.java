@@ -10,7 +10,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
-import cn.edu.tsinghua.iginx.metadata.entity.TimeInterval;
+import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.mongodb.MongoDBStorage;
 import cn.edu.tsinghua.iginx.mongodb.tools.DataUtils;
 import cn.edu.tsinghua.iginx.thrift.DataType;
@@ -24,7 +24,7 @@ public class MongoDBQueryRowStream implements RowStream {
     private final Table table;
 
     public MongoDBQueryRowStream(
-            MongoCursor<Document> cursor, TimeInterval timeInterval, TagFilter tagFilter) {
+            MongoCursor<Document> cursor, KeyInterval keyInterval, TagFilter tagFilter) {
         Map<String, PriorityQueue<MongoDBPoint>> queueMap = new LinkedHashMap<>();
         Set<Field> fieldList = new LinkedHashSet<>();
         while (cursor.hasNext()) {

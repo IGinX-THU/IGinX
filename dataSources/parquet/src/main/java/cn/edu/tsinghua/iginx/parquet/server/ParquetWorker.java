@@ -1,7 +1,7 @@
 package cn.edu.tsinghua.iginx.parquet.server;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Timeseries;
+import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
 import cn.edu.tsinghua.iginx.engine.shared.TimeRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
@@ -18,8 +18,8 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.tag.OrTagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.PreciseTagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.WithoutTagFilter;
-import cn.edu.tsinghua.iginx.metadata.entity.TimeInterval;
-import cn.edu.tsinghua.iginx.metadata.entity.TimeSeriesRange;
+import cn.edu.tsinghua.iginx.metadata.entity.ColumnsRange;
+import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.parquet.exec.Executor;
 import cn.edu.tsinghua.iginx.parquet.thrift.DeleteReq;
 import cn.edu.tsinghua.iginx.parquet.thrift.GetStorageBoundryResp;
@@ -305,7 +305,7 @@ public class ParquetWorker implements ParquetService.Iface {
             throws TException {
         List<TS> ret = new ArrayList<>();
         try {
-            List<Timeseries> tsList = executor.getTimeSeriesOfStorageUnit(storageUnit);
+            List<Column> tsList = executor.getTimeSeriesOfStorageUnit(storageUnit);
             tsList.forEach(
                     timeseries -> {
                         TS ts = new TS(timeseries.getPath(), timeseries.getDataType().toString());
@@ -326,12 +326,12 @@ public class ParquetWorker implements ParquetService.Iface {
     @Override
     public GetStorageBoundryResp getBoundaryOfStorage() throws TException {
         try {
-            Pair<TimeSeriesRange, TimeInterval> pair = executor.getBoundaryOfStorage();
+            Pair<ColumnsRange, KeyInterval> pair = executor.getBoundaryOfStorage();
             GetStorageBoundryResp resp = new GetStorageBoundryResp(SUCCESS);
-            resp.setStartTime(pair.getV().getStartTime());
-            resp.setEndTime(pair.getV().getEndTime());
-            resp.setStartTimeSeries(pair.getK().getStartTimeSeries());
-            resp.setEndTimeSeries(pair.getK().getEndTimeSeries());
+            resp.setStartTime(pair.getV().getStartKey());
+            resp.setEndTime(pair.getV().getEndKey());
+            resp.setStartTimeSeries(pair.getK().getStartColumn());
+            resp.setEndTimeSeries(pair.getK().getEndColumn());
             return resp;
         } catch (PhysicalException e) {
             logger.error("encounter error when getBoundaryOfStorage ", e);
