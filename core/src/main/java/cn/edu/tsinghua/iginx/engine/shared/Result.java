@@ -49,6 +49,8 @@ public class Result {
     private long jobId;
     private List<Long> jobIdList;
 
+    private String configValue;
+
     public Result(Status status) {
         this.status = status;
         this.pointsNum = 0L;
@@ -153,6 +155,7 @@ public class Result {
         resp.setJobId(jobId);
         resp.setJobState(jobState);
         resp.setJobIdList(jobIdList);
+        resp.setConfigValue(configValue);
         return resp;
     }
 

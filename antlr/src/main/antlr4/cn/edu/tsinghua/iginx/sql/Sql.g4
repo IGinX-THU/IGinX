@@ -23,6 +23,8 @@ statement
    | CANCEL TRANSFORM JOB jobId = INT # cancelJobStatement
    | SHOW jobStatus TRANSFORM JOB # showEligibleJobStatement
    | REMOVE HISTORYDATARESOURCE removedStorageEngine (COMMA removedStorageEngine)* # removeHistoryDataResourceStatement
+   | SET CONFIG configName = stringLiteral configValue = stringLiteral # setConfigStatement
+   | SHOW CONFIG configName = stringLiteral # showConfigStatement
    | COMPACT # compactStatement
    ;
 
@@ -378,6 +380,8 @@ keyWords
    | EXPLAIN
    | LOGICAL
    | PHYSICAL
+   | SET
+   | CONFIG
    ;
 
 dateFormat
@@ -775,6 +779,14 @@ ANY
 ALL
    : A L L
    ;
+
+SET
+   : S E T
+   ;
+
+CONFIG
+   : C O N F I G
+   ;
    //============================
    
    // End of the keywords list
@@ -936,6 +948,8 @@ fragment NAME_CHAR
    | '$'
    | '{'
    | '}'
+   | '~'
+   | '^'
    | CN_CHAR
    ;
 

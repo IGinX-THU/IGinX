@@ -101,7 +101,7 @@ public class HistoricalPolicy implements IPolicy {
         List<FragmentMeta> fragmentList = new ArrayList<>();
         List<StorageUnitMeta> storageUnitList = new ArrayList<>();
 
-        TimeInterval timeInterval = Utils.getTimeIntervalFromDataStatement(statement);
+        KeyInterval keyInterval = Utils.getTimeIntervalFromDataStatement(statement);
         List<StorageEngineMeta> storageEngineList = iMetaManager.getStorageEngineList();
         int storageEngineNum = storageEngineList.size();
         int replicaNum =
@@ -116,7 +116,7 @@ public class HistoricalPolicy implements IPolicy {
                 ConfigDescriptor.getInstance().getConfig().getExpectedStorageUnitNum();
 
         List<String> prefixList = new ArrayList<>();
-        List<TimeSeriesRange> timeSeriesIntervalList = new ArrayList<>();
+        List<ColumnsRange> timeSeriesIntervalList = new ArrayList<>();
         for (String historicalPrefix : historicalPrefixList) {
             for (String suffix : suffixList) {
                 if (!prefixList.contains(historicalPrefix + suffix)) {
@@ -127,10 +127,10 @@ public class HistoricalPolicy implements IPolicy {
         Collections.sort(prefixList);
         int prefixNum = prefixList.size();
         prefixList.add(null);
-        timeSeriesIntervalList.add(new TimeSeriesInterval(null, prefixList.get(0)));
+        timeSeriesIntervalList.add(new ColumnsInterval(null, prefixList.get(0)));
         for (int i = 0; i < expectedStorageUnitNum; i++) {
             timeSeriesIntervalList.add(
-                    new TimeSeriesInterval(
+                    new ColumnsInterval(
                             prefixList.get(i * prefixNum / expectedStorageUnitNum),
                             prefixList.get((i + 1) * prefixNum / expectedStorageUnitNum)));
         }
@@ -155,7 +155,7 @@ public class HistoricalPolicy implements IPolicy {
             }
             storageUnitList.add(storageUnit);
             fragmentList.add(
-                    new FragmentMeta(timeSeriesIntervalList.get(i), timeInterval, masterId));
+                    new FragmentMeta(timeSeriesIntervalList.get(i), keyInterval, masterId));
         }
 
         return new Pair<>(fragmentList, storageUnitList);

@@ -29,7 +29,7 @@ import cn.edu.tsinghua.iginx.engine.shared.TimeRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.BitmapView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
-import cn.edu.tsinghua.iginx.metadata.entity.TimeInterval;
+import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.parquet.entity.Column;
 import cn.edu.tsinghua.iginx.parquet.entity.FileMeta;
 import cn.edu.tsinghua.iginx.parquet.tools.DataTypeTransformer;
@@ -745,7 +745,7 @@ public class DUManager {
         return ret;
     }
 
-    public TimeInterval getTimeInterval() {
+    public KeyInterval getTimeInterval() {
         long start = curStartTime;
         long end = curEndTime;
         for (FileMeta fileMeta : fileMetaMap.values()) {
@@ -756,7 +756,7 @@ public class DUManager {
                 end = fileMeta.getEndTime();
             }
         }
-        return new TimeInterval(start, end + 1);
+        return new KeyInterval(start, end + 1);
     }
 
     public boolean isFlushing() {

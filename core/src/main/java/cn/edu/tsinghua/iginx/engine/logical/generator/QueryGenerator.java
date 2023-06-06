@@ -45,11 +45,11 @@ import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
+import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
+import cn.edu.tsinghua.iginx.metadata.entity.ColumnsRange;
 import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
+import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageUnitMeta;
-import cn.edu.tsinghua.iginx.metadata.entity.TimeInterval;
-import cn.edu.tsinghua.iginx.metadata.entity.TimeSeriesInterval;
-import cn.edu.tsinghua.iginx.metadata.entity.TimeSeriesRange;
 import cn.edu.tsinghua.iginx.policy.IPolicy;
 import cn.edu.tsinghua.iginx.policy.PolicyManager;
 import cn.edu.tsinghua.iginx.sql.SQLConstant;
@@ -467,12 +467,12 @@ public class QueryGenerator extends AbstractGenerator {
                 SortUtils.mergeAndSortPaths(new ArrayList<>(selectStatement.getPathSet()));
         TagFilter tagFilter = selectStatement.getTagFilter();
 
-        TimeSeriesInterval interval =
-                new TimeSeriesInterval(pathList.get(0), pathList.get(pathList.size() - 1));
+        ColumnsInterval interval =
+                new ColumnsInterval(pathList.get(0), pathList.get(pathList.size() - 1));
 
-        Pair<Map<TimeInterval, List<FragmentMeta>>, List<FragmentMeta>> pair =
+        Pair<Map<KeyInterval, List<FragmentMeta>>, List<FragmentMeta>> pair =
                 getFragmentsByTSInterval(selectStatement, interval);
-        Map<TimeInterval, List<FragmentMeta>> fragments = pair.k;
+        Map<KeyInterval, List<FragmentMeta>> fragments = pair.k;
         List<FragmentMeta> dummyFragments = pair.v;
 
         return mergeRawData(fragments, dummyFragments, pathList, tagFilter);
@@ -492,12 +492,12 @@ public class QueryGenerator extends AbstractGenerator {
                                 joinList.add(generateRoot(subQueryFromPart.getSubQuery()));
                             } else {
                                 String prefix = fromPart.getPath() + ALL_PATH_SUFFIX;
-                                Pair<Map<TimeInterval, List<FragmentMeta>>, List<FragmentMeta>>
+                                Pair<Map<KeyInterval, List<FragmentMeta>>, List<FragmentMeta>>
                                         pair =
                                                 getFragmentsByTSInterval(
                                                         selectStatement,
-                                                        new TimeSeriesInterval(prefix, prefix));
-                                Map<TimeInterval, List<FragmentMeta>> fragments = pair.k;
+                                                        new ColumnsInterval(prefix, prefix));
+                                Map<KeyInterval, List<FragmentMeta>> fragments = pair.k;
                                 List<FragmentMeta> dummyFragments = pair.v;
                                 joinList.add(
                                         mergeRawData(
@@ -637,7 +637,7 @@ public class QueryGenerator extends AbstractGenerator {
     }
 
     private Operator mergeRawData(
-            Map<TimeInterval, List<FragmentMeta>> fragments,
+            Map<KeyInterval, List<FragmentMeta>> fragments,
             List<FragmentMeta> dummyFragments,
             List<String> pathList,
             TagFilter tagFilter) {
@@ -661,7 +661,7 @@ public class QueryGenerator extends AbstractGenerator {
             dummyFragments.forEach(
                     meta -> {
                         if (meta.isValid()) {
-                            String schemaPrefix = meta.getTsInterval().getSchemaPrefix();
+                            String schemaPrefix = meta.getColumnsRange().getSchemaPrefix();
                             joinList.add(
                                     new AddSchemaPrefix(
                                             new OperatorSource(
@@ -669,8 +669,8 @@ public class QueryGenerator extends AbstractGenerator {
                                                             new FragmentSource(meta),
                                                             pathMatchPrefix(
                                                                     pathList,
-                                                                    meta.getTsInterval()
-                                                                            .getTimeSeries(),
+                                                                    meta.getColumnsRange()
+                                                                            .getColumn(),
                                                                     schemaPrefix),
                                                             tagFilter)),
                                             schemaPrefix));
@@ -682,10 +682,10 @@ public class QueryGenerator extends AbstractGenerator {
         return operator;
     }
 
-    private Pair<Map<TimeInterval, List<FragmentMeta>>, List<FragmentMeta>>
-            getFragmentsByTSInterval(SelectStatement selectStatement, TimeSeriesInterval interval) {
-        Map<TimeSeriesRange, List<FragmentMeta>> fragmentsByTSInterval =
-                metaManager.getFragmentMapByTimeSeriesInterval(
+    private Pair<Map<KeyInterval, List<FragmentMeta>>, List<FragmentMeta>> getFragmentsByTSInterval(
+            SelectStatement selectStatement, ColumnsInterval interval) {
+        Map<ColumnsRange, List<FragmentMeta>> fragmentsByTSInterval =
+                metaManager.getFragmentMapByColumnsRange(
                         PathUtils.trimTimeSeriesInterval(interval), true);
         if (!metaManager.hasFragment()) {
             // on startup
@@ -693,7 +693,7 @@ public class QueryGenerator extends AbstractGenerator {
                     policy.generateInitialFragmentsAndStorageUnits(selectStatement);
             metaManager.createInitialFragmentsAndStorageUnits(
                     fragmentsAndStorageUnits.v, fragmentsAndStorageUnits.k);
-            fragmentsByTSInterval = metaManager.getFragmentMapByTimeSeriesInterval(interval, true);
+            fragmentsByTSInterval = metaManager.getFragmentMapByColumnsRange(interval, true);
         }
         return keyFromTSIntervalToTimeInterval(fragmentsByTSInterval);
     }

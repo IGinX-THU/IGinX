@@ -60,6 +60,8 @@ enum SqlType {
     CancelJob,
     ShowEligibleJob,
     RemoveHistoryDataResource,
+    SetConfig,
+    ShowConfig,
     Compact
 }
 
@@ -340,6 +342,7 @@ struct ExecuteSqlResp {
     22: optional i64 jobId
     23: optional JobState jobState
     24: optional list<i64> jobIdList
+    25: optional string configValue
 }
 
 struct UpdateUserReq {

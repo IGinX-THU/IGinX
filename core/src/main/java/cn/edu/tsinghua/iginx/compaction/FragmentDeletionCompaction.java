@@ -60,9 +60,9 @@ public class FragmentDeletionCompaction extends Compaction {
             List<TimeRange> timeRanges = new ArrayList<>();
             timeRanges.add(
                     new TimeRange(
-                            fragmentMeta.getTimeInterval().getStartTime(),
+                            fragmentMeta.getKeyInterval().getStartKey(),
                             true,
-                            fragmentMeta.getTimeInterval().getEndTime(),
+                            fragmentMeta.getKeyInterval().getEndKey(),
                             false));
             Delete delete = new Delete(new FragmentSource(fragmentMeta), timeRanges, paths, null);
             physicalEngine.execute(new RequestContext(), delete);

@@ -67,14 +67,14 @@ public class TestUtils {
 
     private static String formatFragment(FragmentMeta fragment) {
         return "time["
-                + fragment.getTimeInterval().getStartTime()
+                + fragment.getKeyInterval().getStartKey()
                 + ", "
-                + fragment.getTimeInterval().getEndTime()
+                + fragment.getKeyInterval().getEndKey()
                 + "), "
                 + "ts["
-                + fragment.getTsInterval().getStartTimeSeries()
+                + fragment.getColumnsRange().getStartColumn()
                 + ", "
-                + fragment.getTsInterval().getEndTimeSeries()
+                + fragment.getColumnsRange().getEndColumn()
                 + ")";
     }
 }

@@ -24,7 +24,6 @@ import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.session.QueryDataSet;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
-import cn.edu.tsinghua.iginx.thrift.SqlType;
 import cn.edu.tsinghua.iginx.utils.FormatUtils;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -287,28 +286,29 @@ public class IginxClient {
                 return;
             }
 
-            if (res.isQuery()) {
-                res.print(isSetTimeUnit(), timestampPrecision);
-            } else if (res.getSqlType() == SqlType.ShowTimeSeries) {
-                res.print(false, "");
-            } else if (res.getSqlType() == SqlType.ShowClusterInfo) {
-                res.print(false, "");
-            } else if (res.getSqlType() == SqlType.ShowRegisterTask) {
-                res.print(false, "");
-            } else if (res.getSqlType() == SqlType.ShowEligibleJob) {
-                res.print(false, "");
-            } else if (res.getSqlType() == SqlType.GetReplicaNum) {
-                System.out.println(res.getReplicaNum());
-                System.out.println("success");
-            } else if (res.getSqlType() == SqlType.CountPoints) {
-                System.out.println(res.getPointsNum());
-                System.out.println("success");
-            } else if (res.getSqlType() == SqlType.CommitTransformJob) {
-                System.out.println("job id: " + res.getJobId());
-            } else if (res.getSqlType() == SqlType.ShowJobStatus) {
-                System.out.println("Job status: " + res.getJobState());
-            } else {
-                System.out.println("success");
+            switch (res.getSqlType()) {
+                case Query:
+                    res.print(isSetTimeUnit(), timestampPrecision);
+                    break;
+                case ShowTimeSeries:
+                case ShowClusterInfo:
+                case ShowRegisterTask:
+                case ShowEligibleJob:
+                case ShowConfig:
+                case CommitTransformJob:
+                case ShowJobStatus:
+                    res.print(false, "");
+                    break;
+                case GetReplicaNum:
+                    System.out.println(res.getReplicaNum());
+                    System.out.println("success");
+                    break;
+                case CountPoints:
+                    System.out.println(res.getPointsNum());
+                    System.out.println("success");
+                    break;
+                default:
+                    System.out.println("success");
             }
         } catch (SessionException | ExecutionException e) {
             System.out.println(e.getMessage());
@@ -429,6 +429,8 @@ public class IginxClient {
                         Arrays.asList("show", "transform", "job", "status"),
                         Arrays.asList("cancel", "transform", "job"),
                         Arrays.asList("set", "time", "unit", "in"),
+                        Arrays.asList("set", "config"),
+                        Arrays.asList("show", "config"),
                         Collections.singletonList("select"));
         addArgumentCompleters(iginxCompleters, withNullCompleters, true);
 

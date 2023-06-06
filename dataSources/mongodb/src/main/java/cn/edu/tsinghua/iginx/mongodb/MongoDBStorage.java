@@ -9,7 +9,8 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
-import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Timeseries;
+import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
+import cn.edu.tsinghua.iginx.engine.physical.storage.domain.DataArea;
 import cn.edu.tsinghua.iginx.engine.physical.storage.utils.TagKVUtils;
 import cn.edu.tsinghua.iginx.engine.physical.task.StoragePhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
@@ -22,12 +23,13 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
+import cn.edu.tsinghua.iginx.metadata.entity.ColumnsRange;
 import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
+import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
-import cn.edu.tsinghua.iginx.metadata.entity.TimeInterval;
-import cn.edu.tsinghua.iginx.metadata.entity.TimeSeriesRange;
 import cn.edu.tsinghua.iginx.mongodb.query.entity.MongoDBQueryRowStream;
 import cn.edu.tsinghua.iginx.mongodb.query.entity.MongoDBSchema;
 import cn.edu.tsinghua.iginx.mongodb.tools.DataUtils;
@@ -124,7 +126,6 @@ public class MongoDBStorage implements IStorage {
                 });
     }
 
-    @Override
     public TaskExecuteResult execute(StoragePhysicalTask task) {
         List<Operator> operators = task.getOperators();
         if (operators.size() != 1) {
@@ -136,7 +137,7 @@ public class MongoDBStorage implements IStorage {
         String storageUnit = task.getStorageUnit();
         if (op.getType() == OperatorType.Project) { // 目前只实现 project 操作符，同时不支持历史数据
             Project project = (Project) op;
-            return executeProjectTask(fragment.getTimeInterval(), storageUnit, project);
+            return executeProjectTask(fragment.getKeyInterval(), storageUnit, project);
         } else if (op.getType() == OperatorType.Insert) {
             Insert insert = (Insert) op;
             return executeInsertTask(storageUnit, insert);
@@ -242,7 +243,7 @@ public class MongoDBStorage implements IStorage {
     }
 
     private TaskExecuteResult executeProjectTask(
-            TimeInterval timeInterval, String storageUnit, Project project) {
+            KeyInterval keyInterval, String storageUnit, Project project) {
         MongoCollection<Document> collection = getCollection(storageUnit);
         if (collection == null) {
             return new TaskExecuteResult(
@@ -271,21 +272,19 @@ public class MongoDBStorage implements IStorage {
                                                                         VALUES
                                                                                 + "."
                                                                                 + INNER_TIMESTAMP,
-                                                                        timeInterval
-                                                                                .getStartTime()),
+                                                                        keyInterval.getStartKey()),
                                                                 lt(
                                                                         VALUES
                                                                                 + "."
                                                                                 + INNER_TIMESTAMP,
-                                                                        timeInterval
-                                                                                .getEndTime())))),
+                                                                        keyInterval.getEndKey())))),
                                         unwind(
                                                 "$" + VALUES,
                                                 new UnwindOptions()
                                                         .preserveNullAndEmptyArrays(true))))
                         .cursor()) {
             MongoDBQueryRowStream rowStream =
-                    new MongoDBQueryRowStream(cursor, timeInterval, project.getTagFilter());
+                    new MongoDBQueryRowStream(cursor, keyInterval, project.getTagFilter());
             return new TaskExecuteResult(rowStream);
         }
     }
@@ -326,10 +325,10 @@ public class MongoDBStorage implements IStorage {
 
     private List<ObjectId> determineDeletedObjectIds(
             MongoCollection<Document> collection, Delete delete) {
-        List<Timeseries> timeSeries = getTimeSeries();
+        List<Column> timeSeries = getColumns();
         List<ObjectId> deletedObjectIds = new ArrayList<>();
 
-        for (Timeseries ts : timeSeries) {
+        for (Column ts : timeSeries) {
             for (String path : delete.getPatterns()) {
                 if (Pattern.matches(StringUtils.reformatPath(path), ts.getPath())) {
                     if (delete.getTagFilter() != null
@@ -483,7 +482,44 @@ public class MongoDBStorage implements IStorage {
     }
 
     @Override
-    public List<Timeseries> getTimeSeries() {
+    public TaskExecuteResult executeProject(Project project, DataArea dataArea) {
+        return null;
+    }
+
+    @Override
+    public TaskExecuteResult executeProjectDummy(Project project, DataArea dataArea) {
+        return null;
+    }
+
+    @Override
+    public boolean isSupportProjectWithSelect() {
+        return false;
+    }
+
+    @Override
+    public TaskExecuteResult executeProjectWithSelect(
+            Project project, Select select, DataArea dataArea) {
+        return null;
+    }
+
+    @Override
+    public TaskExecuteResult executeProjectDummyWithSelect(
+            Project project, Select select, DataArea dataArea) {
+        return null;
+    }
+
+    @Override
+    public TaskExecuteResult executeDelete(Delete delete, DataArea dataArea) {
+        return null;
+    }
+
+    @Override
+    public TaskExecuteResult executeInsert(Insert insert, DataArea dataArea) {
+        return null;
+    }
+
+    @Override
+    public List<Column> getColumns() {
         Set<String> storageUnits = new HashSet<>(collectionMap.keySet());
         Map<String, Map<String, DataType>> deDupMap = new HashMap<>();
         for (String storageUnit : storageUnits) {
@@ -508,27 +544,27 @@ public class MongoDBStorage implements IStorage {
                 }
             }
         }
-        List<Timeseries> timeseriesList = new ArrayList<>();
+        List<Column> columnList = new ArrayList<>();
         for (String name : deDupMap.keySet()) {
             Map<String, DataType> dupMap = deDupMap.get(name);
             for (String tagString : dupMap.keySet()) {
                 DataType dataType = dupMap.get(tagString);
                 if (tagString == null || tagString.isEmpty()) {
-                    timeseriesList.add(new Timeseries(name, dataType));
+                    columnList.add(new Column(name, dataType));
                 } else {
-                    timeseriesList.add(
-                            new Timeseries(
+                    columnList.add(
+                            new Column(
                                     name,
                                     dataType,
                                     MongoDBSchema.resolveTagsFromString(tagString)));
                 }
             }
         }
-        return timeseriesList;
+        return columnList;
     }
 
     @Override
-    public Pair<TimeSeriesRange, TimeInterval> getBoundaryOfStorage(String prefix) {
+    public Pair<ColumnsRange, KeyInterval> getBoundaryOfStorage(String prefix) {
         // TODO DOESN'T NEED TO IMPLEMENT
         return null;
     }
