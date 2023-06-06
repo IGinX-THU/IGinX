@@ -14,10 +14,8 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.RemovedStorageEngineInfo;
 import java.util.ArrayList;
 import java.util.List;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+
+import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,12 +45,6 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
         }
     }
 
-    @After
-    public void clearData() {
-        historyDataGenerator.clearData();
-        Controller.clearData(session);
-    }
-
     @BeforeClass
     public static void setUp() {
         try {
@@ -70,6 +62,16 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
         } catch (SessionException e) {
             logger.error("close session error: {}", e.getMessage());
         }
+    }
+
+    @Before
+    public void clearHistoryData() {
+        historyDataGenerator.clearHistoryData();
+    }
+
+    @After
+    public void clearData() {
+        Controller.clearData(session);
     }
 
     @Test

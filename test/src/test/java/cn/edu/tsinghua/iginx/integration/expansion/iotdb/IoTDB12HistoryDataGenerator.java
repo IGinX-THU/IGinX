@@ -66,7 +66,6 @@ public class IoTDB12HistoryDataGenerator extends BaseHistoryDataGenerator {
         }
     }
 
-    @Test
     public void writeHistoryDataToOri() {
         writeHistoryData(pathListOri, dataTypeListOri, valuesListOri, portOri);
     }
@@ -75,8 +74,7 @@ public class IoTDB12HistoryDataGenerator extends BaseHistoryDataGenerator {
         writeHistoryData(pathListExp, dataTypeListExp, valuesListExp, portExp);
     }
 
-    @Test
-    public void clearData() {
+    public void clearHistoryData() {
         try {
             Session sessionOri = new Session("127.0.0.1", portOri, "root", "root");
             sessionOri.open();

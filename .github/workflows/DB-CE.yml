@@ -53,17 +53,6 @@ jobs:
               with:
                   confFile: UDFConf
 
-            #第 3 阶段测试开始==========================================
-            - name: Prepare CapExp environment oriHasDataExpNoData
-              uses: ./.github/actions/capacityExpansionUnionTest
-              with:
-                version: ${VERSION}
-                DB-name: ${{matrix.DB-name}}
-                Test-Way: oriHasDataExpNoData
-            - name: oriHasDataExpNoData IT
-              run: |
-                mvn test -q -Dtest=${{matrix.DB-name}}HistoryDataCapacityExpansionIT#oriHasDataExpNoData -DfailIfNoTests=false -P passFormat
-                mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P passFormat
             #第 1 阶段测试开始==========================================
             - name: Prepare CapExp environment oriHasDataExpHasData
               uses: ./.github/actions/capacityExpansionUnionTest
@@ -85,6 +74,17 @@ jobs:
             - name: oriNoDataExpNoData IT
               run: |
                   mvn test -q -Dtest=${{matrix.DB-name}}HistoryDataCapacityExpansionIT#oriNoDataExpNoData -DfailIfNoTests=false -P passFormat
+                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P passFormat
+            #第 3 阶段测试开始==========================================
+            - name: Prepare CapExp environment oriHasDataExpNoData
+              uses: ./.github/actions/capacityExpansionUnionTest
+              with:
+                  version: ${VERSION}
+                  DB-name: ${{matrix.DB-name}}
+                  Test-Way: oriHasDataExpNoData
+            - name: oriHasDataExpNoData IT
+              run: |
+                  mvn test -q -Dtest=${{matrix.DB-name}}HistoryDataCapacityExpansionIT#oriHasDataExpNoData -DfailIfNoTests=false -P passFormat
                   mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P passFormat
             #第 4 阶段测试开始==========================================
             - name: Prepare CapExp environment oriNoDataExpHasData

@@ -128,8 +128,7 @@ public class InfluxDBHistoryDataGenerator extends BaseHistoryDataGenerator {
         writeHistoryData(pathListExp, dataTypeListExp, valuesListExp, EXP_URL);
     }
 
-    @Test
-    public void clearData() {
+    public void clearHistoryData() {
         InfluxDBClient client =
                 InfluxDBClientFactory.create(ORI_URL, TOKEN.toCharArray(), ORGANIZATION);
         Bucket bucket = client.getBucketsApi().findBucketByName("mn");

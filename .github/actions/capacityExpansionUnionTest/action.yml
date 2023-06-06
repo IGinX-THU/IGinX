@@ -16,12 +16,6 @@ inputs:
 runs:
     using: "composite" # Mandatory parameter
     steps:
-        - name: Clear history data
-          uses: ./.github/actions/dbWriter
-          with:
-            version: ${{inputs.DB-name}}
-            Test-Way: clearData
-
         - name: Stop IGinX
           uses: ./.github/actions/iginxRunner
           with:
