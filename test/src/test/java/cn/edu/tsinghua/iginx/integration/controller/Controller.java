@@ -43,8 +43,7 @@ public class Controller {
         try {
             res = session.executeSql(CLEAR_DATA);
         } catch (SessionException | ExecutionException e) {
-            if (e.toString().equals(CLEAR_DATA_EXCEPTION)
-                    || e.toString().equals("\n" + CLEAR_DATA_EXCEPTION)) {
+            if (e.toString().trim().equals(CLEAR_DATA_EXCEPTION)) {
                 logger.warn(CLEAR_DATA_WARNING);
             } else {
                 logger.error(CLEAR_DATA_ERROR, CLEAR_DATA, e.getMessage());
@@ -63,8 +62,7 @@ public class Controller {
         try {
             res = session.executeSql(CLEAR_DATA);
         } catch (SessionException | ExecutionException e) {
-            if (e.toString().equals(CLEAR_DATA_EXCEPTION)
-                    || e.toString().equals("\n" + CLEAR_DATA_EXCEPTION)) {
+            if (e.toString().trim().equals(CLEAR_DATA_EXCEPTION)) {
                 logger.warn(CLEAR_DATA_WARNING);
             } else {
                 logger.error(CLEAR_DATA_ERROR, CLEAR_DATA, e.toString());
