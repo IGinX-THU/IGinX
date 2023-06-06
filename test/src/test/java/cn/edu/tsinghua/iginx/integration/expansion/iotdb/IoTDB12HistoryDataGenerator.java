@@ -80,12 +80,12 @@ public class IoTDB12HistoryDataGenerator extends BaseHistoryDataGenerator {
         try {
             Session sessionOri = new Session("127.0.0.1", portOri, "root", "root");
             sessionOri.open();
-            sessionOri.executeNonQueryStatement("DELETE STORAGE GROUP root.mn");
+            sessionOri.executeNonQueryStatement("DELETE STORAGE GROUP root.**");
             sessionOri.close();
 
             Session sessionExp = new Session("127.0.0.1", portExp, "root", "root");
             sessionExp.open();
-            sessionExp.executeNonQueryStatement("DELETE STORAGE GROUP root.mn");
+            sessionExp.executeNonQueryStatement("DELETE STORAGE GROUP root.**");
             sessionExp.close();
             logger.info("clear data success!");
         } catch (IoTDBConnectionException | StatementExecutionException e) {
