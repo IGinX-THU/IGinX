@@ -33,7 +33,7 @@ public class MixClusterShowTimeseriesRegressionTest {
     }
 
     @Test
-    public void testShowTimeseriesInMixCluster() throws SessionException, ExecutionException {
+    public void testShowTimeseriesInMixCluster() {
         String[] insertStatements =
                 new String[] {
                     "insert into m (key, d, o) values (2000000, 2, 3)",

@@ -94,7 +94,7 @@ public class UDFIT {
     }
 
     @After
-    public void clearData() throws ExecutionException, SessionException {
+    public void clearData() {
         Controller.clearData(session);
     }
 

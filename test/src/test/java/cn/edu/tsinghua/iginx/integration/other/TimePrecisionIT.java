@@ -10,31 +10,33 @@ import cn.edu.tsinghua.iginx.session.SessionQueryDataSet;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.TimePrecision;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class TimePrecisionIT {
-    protected static Session session;
-    protected static boolean isForSession = true, isForSessionPool = false;
 
-    private final TimePrecision[] timePrecision =
+    private static final Logger logger = LoggerFactory.getLogger(TimePrecisionIT.class);
+
+    private static Session session;
+
+    private static final boolean isForSession = true, isForSessionPool = false;
+
+    private static final TimePrecision[] timePrecision =
             new TimePrecision[] {
                 TimePrecision.S, TimePrecision.MS, TimePrecision.US, TimePrecision.NS
             };
 
-    private final String[] path = new String[] {"sg.d1.s1", "sg.d1.s2", "sg.d2.s1", "sg.d3.s1"};
+    private static final String[] path =
+            new String[] {"sg.d1.s1", "sg.d1.s2", "sg.d2.s1", "sg.d3.s1"};
 
     // host info
-    protected static String defaultTestHost = "127.0.0.1";
-    protected static int defaultTestPort = 6888;
-    protected static String defaultTestUser = "root";
-    protected static String defaultTestPass = "root";
-
-    protected static final Logger logger = LoggerFactory.getLogger(TimePrecisionIT.class);
-
-    protected String storageEngineType;
+    private static String defaultTestHost = "127.0.0.1";
+    private static int defaultTestPort = 6888;
+    private static String defaultTestUser = "root";
+    private static String defaultTestPass = "root";
 
     @BeforeClass
     public static void setUp() throws SessionException {
@@ -57,7 +59,7 @@ public class TimePrecisionIT {
 
         for (int i = 0; i < 4; i++) {
             List<String> paths = new ArrayList<>();
-            paths.add(this.path[i]);
+            paths.add(path[i]);
 
             long[] timestamps = new long[1];
             timestamps[0] = 100;
@@ -76,16 +78,13 @@ public class TimePrecisionIT {
     }
 
     @After
-    public void clearData() throws ExecutionException, SessionException {
+    public void clearData() {
         Controller.clearData(session);
     }
 
     @Test
     public void queryTimeS() throws ExecutionException, SessionException {
-        List<String> paths = new ArrayList<>();
-        for (int i = 0; i < 4; i++) {
-            paths.add(this.path[i]);
-        }
+        List<String> paths = new ArrayList<>(Arrays.asList(path).subList(0, 4));
 
         long startTime = 0L;
         long endTime = 101L;
@@ -100,16 +99,15 @@ public class TimePrecisionIT {
                     || timeList[i] == 100000 && i == 1
                     || timeList[i] == 100000000 && i == 2
                     || timeList[i] == 100000000000L && i == 3) {
-            } else fail();
+            } else {
+                fail();
+            }
         }
     }
 
     @Test
     public void queryTimeMS() throws ExecutionException, SessionException {
-        List<String> paths = new ArrayList<>();
-        for (int i = 0; i < 4; i++) {
-            paths.add(this.path[i]);
-        }
+        List<String> paths = new ArrayList<>(Arrays.asList(path).subList(0, 4));
 
         long startTime = 0L;
         long endTime = 101L;
@@ -124,16 +122,15 @@ public class TimePrecisionIT {
                     || timeList[i] == 100 && i == 0
                     || timeList[i] == 100000 && i == 1
                     || timeList[i] == 100000000 && i == 2) {
-            } else fail();
+            } else {
+                fail();
+            }
         }
     }
 
     @Test
     public void queryTimeUS() throws ExecutionException, SessionException {
-        List<String> paths = new ArrayList<>();
-        for (int i = 0; i < 4; i++) {
-            paths.add(this.path[i]);
-        }
+        List<String> paths = new ArrayList<>(Arrays.asList(path).subList(0, 4));
 
         long startTime = 0L;
         long endTime = 101L;
@@ -147,16 +144,15 @@ public class TimePrecisionIT {
             if (timeList.length <= i
                     || timeList[i] == 100 && i == 0
                     || timeList[i] == 100000 && i == 1) {
-            } else fail();
+            } else {
+                fail();
+            }
         }
     }
 
     @Test
     public void queryTimeNS() throws ExecutionException, SessionException {
-        List<String> paths = new ArrayList<>();
-        for (int i = 0; i < 4; i++) {
-            paths.add(this.path[i]);
-        }
+        List<String> paths = new ArrayList<>(Arrays.asList(path).subList(0, 4));
 
         long startTime = 0L;
         long endTime = 101L;
@@ -168,7 +164,9 @@ public class TimePrecisionIT {
         long[] timeList = dataSet.getKeys();
         for (int i = 0; i < 4; i++) {
             if (timeList.length <= i || timeList[i] == 100 && i == 0) {
-            } else fail();
+            } else {
+                fail();
+            }
         }
     }
 }
