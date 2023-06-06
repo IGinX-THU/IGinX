@@ -23,25 +23,12 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
 
     private static final Logger logger = LoggerFactory.getLogger(CapacityExpansionIT.class);
 
-    private static BaseHistoryDataGenerator historyDataGenerator;
-
     protected static Session session;
 
     protected DBType dbType;
 
     public CapacityExpansionIT(DBType dbType) {
         this.dbType = dbType;
-        switch (dbType) {
-            case iotdb12:
-                historyDataGenerator = new IoTDB12HistoryDataGenerator();
-                break;
-            case influxdb:
-                historyDataGenerator = new InfluxDBHistoryDataGenerator();
-                break;
-            default:
-                logger.error("unsupported storage engine: {}", dbType.name());
-                fail();
-        }
     }
 
     @BeforeClass
@@ -61,11 +48,6 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
         } catch (SessionException e) {
             logger.error("close session error: {}", e.getMessage());
         }
-    }
-
-    @Before
-    public void clearHistoryData() {
-        historyDataGenerator.clearHistoryData();
     }
 
     @After

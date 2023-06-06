@@ -6,6 +6,7 @@ import java.util.List;
 import org.apache.iotdb.rpc.IoTDBConnectionException;
 import org.apache.iotdb.rpc.StatementExecutionException;
 import org.apache.iotdb.session.Session;
+import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,6 +74,7 @@ public class IoTDB12HistoryDataGenerator extends BaseHistoryDataGenerator {
         writeHistoryData(pathListExp, dataTypeListExp, valuesListExp, portExp);
     }
 
+    @Test
     public void clearHistoryData() {
         try {
             Session sessionOri = new Session("127.0.0.1", portOri, "root", "root");
