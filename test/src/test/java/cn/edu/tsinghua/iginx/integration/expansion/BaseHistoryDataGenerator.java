@@ -90,5 +90,6 @@ public abstract class BaseHistoryDataGenerator {
 
     public void writeHistoryDataToExp() {}
 
+    @Test
     public void clearData() {}
 }

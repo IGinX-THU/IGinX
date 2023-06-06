@@ -9,6 +9,8 @@ import com.influxdb.client.domain.Organization;
 import com.influxdb.client.domain.WritePrecision;
 import com.influxdb.client.write.Point;
 import java.util.List;
+
+import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -126,6 +128,7 @@ public class InfluxDBHistoryDataGenerator extends BaseHistoryDataGenerator {
         writeHistoryData(pathListExp, dataTypeListExp, valuesListExp, EXP_URL);
     }
 
+    @Test
     public void clearData() {
         InfluxDBClient client =
                 InfluxDBClientFactory.create(ORI_URL, TOKEN.toCharArray(), ORGANIZATION);
