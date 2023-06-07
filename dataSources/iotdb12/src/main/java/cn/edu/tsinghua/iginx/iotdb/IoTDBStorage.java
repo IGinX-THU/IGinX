@@ -28,7 +28,7 @@ import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.DataArea;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
-import cn.edu.tsinghua.iginx.engine.shared.TimeRange;
+import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.ClearEmptyRowStreamWrapper;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.BitmapView;
@@ -746,8 +746,8 @@ public class IoTDBStorage implements IStorage {
     @Override
     public TaskExecuteResult executeDelete(Delete delete, DataArea dataArea) {
         String storageUnit = dataArea.getStorageUnit();
-        if (delete.getTimeRanges() == null
-                || delete.getTimeRanges().size() == 0) { // 没有传任何 time range
+        if (delete.getKeyRanges() == null
+                || delete.getKeyRanges().size() == 0) { // 没有传任何 time range
             List<String> paths = delete.getPatterns();
             if (paths.size() == 1 && paths.get(0).equals("*") && delete.getTagFilter() == null) {
                 try {
@@ -789,11 +789,9 @@ public class IoTDBStorage implements IStorage {
             try {
                 List<String> paths = determineDeletePathList(storageUnit, delete);
                 if (paths.size() != 0) {
-                    for (TimeRange timeRange : delete.getTimeRanges()) {
+                    for (KeyRange keyRange : delete.getKeyRanges()) {
                         sessionPool.deleteData(
-                                paths,
-                                timeRange.getActualBeginTime(),
-                                timeRange.getActualEndTime());
+                                paths, keyRange.getActualBeginKey(), keyRange.getActualEndKey());
                     }
                 }
             } catch (IoTDBConnectionException | StatementExecutionException | PhysicalException e) {

@@ -1,7 +1,7 @@
 package cn.edu.tsinghua.iginx.engine.logical.generator;
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
-import cn.edu.tsinghua.iginx.engine.shared.TimeRange;
+import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.operator.CombineNonQuery;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
@@ -85,15 +85,15 @@ public class DeleteGenerator extends AbstractGenerator {
                                                         pathList,
                                                         tagFilter));
                                     } else {
-                                        List<TimeRange> overlapTimeRange =
+                                        List<KeyRange> overlapKeyRange =
                                                 getOverlapTimeRange(
                                                         keyInterval,
-                                                        deleteStatement.getTimeRanges());
-                                        if (!overlapTimeRange.isEmpty()) {
+                                                        deleteStatement.getKeyRanges());
+                                        if (!overlapKeyRange.isEmpty()) {
                                             deleteList.add(
                                                     new Delete(
                                                             new FragmentSource(fragmentMeta),
-                                                            overlapTimeRange,
+                                                            overlapKeyRange,
                                                             pathList,
                                                             tagFilter));
                                         }
@@ -105,11 +105,11 @@ public class DeleteGenerator extends AbstractGenerator {
         return new CombineNonQuery(sources);
     }
 
-    private List<TimeRange> getOverlapTimeRange(KeyInterval interval, List<TimeRange> timeRanges) {
-        List<TimeRange> res = new ArrayList<>();
-        for (TimeRange range : timeRanges) {
-            if (interval.getStartKey() > range.getEndTime()
-                    || interval.getEndKey() < range.getBeginTime()) continue;
+    private List<KeyRange> getOverlapTimeRange(KeyInterval interval, List<KeyRange> keyRanges) {
+        List<KeyRange> res = new ArrayList<>();
+        for (KeyRange range : keyRanges) {
+            if (interval.getStartKey() > range.getEndKey()
+                    || interval.getEndKey() < range.getBeginKey()) continue;
             res.add(range);
         }
         return res;

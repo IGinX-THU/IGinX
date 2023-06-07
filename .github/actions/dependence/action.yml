@@ -2,13 +2,13 @@ name: "dependence-setup"
 description: "environment dependence setup"
 inputs:
     python-version:
-        description: "python-version"
+        description: "python version"
         required: false
-        default: 3.7
-    java:
+        default: "3.7"
+    java-version:
         description: "java version"
         required: false
-        default: 8
+        default: "8"
     os:
         description: "running environment"
         required: false
@@ -20,12 +20,14 @@ runs:
           uses: actions/setup-python@v3
           with:
               python-version: ${{ inputs.python-version }}
+
         - name: Install Python dependencies
           shell: bash
           run: |
               python -m pip install --upgrade pip
               pip install pemja==0.3.0 pandas numpy
-        - name: Set up JDK ${{ inputs.java }}
+
+        - name: Set up JDK ${{ inputs.java-version }}
           uses: actions/setup-java@v1
           with:
-              java-version: ${{ inputs.java }}
+              java-version: ${{ inputs.java-version }}

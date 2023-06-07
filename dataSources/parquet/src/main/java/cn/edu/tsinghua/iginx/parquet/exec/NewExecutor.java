@@ -4,7 +4,7 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
-import cn.edu.tsinghua.iginx.engine.shared.TimeRange;
+import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.ClearEmptyRowStreamWrapper;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
@@ -137,10 +137,7 @@ public class NewExecutor implements Executor {
 
     @Override
     public TaskExecuteResult executeDeleteTask(
-            List<String> paths,
-            List<TimeRange> timeRanges,
-            TagFilter tagFilter,
-            String storageUnit) {
+            List<String> paths, List<KeyRange> keyRanges, TagFilter tagFilter, String storageUnit) {
         DUManager duManager;
         try {
             duManager = getDUManager(storageUnit, false);
@@ -149,7 +146,7 @@ public class NewExecutor implements Executor {
         }
 
         try {
-            duManager.delete(paths, timeRanges, tagFilter);
+            duManager.delete(paths, keyRanges, tagFilter);
         } catch (Exception e) {
             return new TaskExecuteResult(null, new PhysicalException("Fail to delete data ", e));
         }

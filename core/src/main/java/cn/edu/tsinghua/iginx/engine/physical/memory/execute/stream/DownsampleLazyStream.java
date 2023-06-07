@@ -84,8 +84,8 @@ public class DownsampleLazyStream extends UnaryLazyStream {
         }
         Row row = null;
         long timestamp = 0;
-        long bias = downsample.getTimeRange().getActualBeginTime();
-        long endTime = downsample.getTimeRange().getActualEndTime();
+        long bias = downsample.getKeyRange().getActualBeginKey();
+        long endTime = downsample.getKeyRange().getActualEndKey();
         long precision = downsample.getPrecision();
         long slideDistance = downsample.getSlideDistance();
         // startTime + (n - 1) * slideDistance + precision - 1 >= endTime

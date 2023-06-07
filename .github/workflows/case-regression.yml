@@ -18,23 +18,26 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                java: [8]
                 python-version: ["3.7"]
+                java-version: ["8"]
                 os: [ubuntu-latest, macos-latest]
         runs-on: ${{ matrix.os }}
         steps:
             - uses: actions/checkout@v2
+
             - name: Environment dependence
               uses: ./.github/actions/dependence
               with:
                   python-version: ${{ matrix.python-version }}
-                  java: ${{ matrix.java }}
+                  java-version: ${{ matrix.java-version }}
+
             - name: Run ZooKeeper
               uses: ./.github/actions/zookeeperRunner
+
             - name: Run DB
               uses: ./.github/actions/dbRunner
               with:
-                  version: "Mix-IoTDB12-InfluxDB"
+                  DB-name: "Mix-IoTDB12-InfluxDB"
 
             - name: Install IGinX with Maven
               shell: bash

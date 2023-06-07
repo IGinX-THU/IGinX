@@ -95,7 +95,7 @@ if __name__ == '__main__':
     dataset.close()
 
     # 使用 SQL 语句查询时间序列
-    dataset = session.execute_statement("show time series", fetch_size=2)
+    dataset = session.execute_statement("SHOW COLUMNS", fetch_size=2)
 
     columns = dataset.columns()
     for column in columns:

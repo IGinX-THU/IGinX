@@ -23,9 +23,9 @@ public class TagIT {
 
     private static boolean isAbleToClearData;
 
-    private boolean isAbleToDelete = true;
+    private boolean isAbleToDelete;
 
-    private boolean isScaling = false;
+    private boolean isScaling;
 
     public TagIT() {
         ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
@@ -108,7 +108,7 @@ public class TagIT {
 
     @Test
     public void testShowTimeSeriesWithTags() {
-        String statement = "SHOW TIME SERIES ah.*;";
+        String statement = "SHOW COLUMNS ah.*;";
         String expected =
                 "Time series:\n"
                         + "+-----------------------+--------+\n"
@@ -131,7 +131,7 @@ public class TagIT {
                         + "Total line number = 13\n";
         executeAndCompare(statement, expected);
 
-        statement = "SHOW TIME SERIES ah.* limit 6;";
+        statement = "SHOW COLUMNS ah.* limit 6;";
         expected =
                 "Time series:\n"
                         + "+-----------------------+--------+\n"
@@ -147,7 +147,7 @@ public class TagIT {
                         + "Total line number = 6\n";
         executeAndCompare(statement, expected);
 
-        statement = "SHOW TIME SERIES ah.* limit 3 offset 7;";
+        statement = "SHOW COLUMNS ah.* limit 3 offset 7;";
         expected =
                 "Time series:\n"
                         + "+-----------------------+--------+\n"
@@ -160,7 +160,7 @@ public class TagIT {
                         + "Total line number = 3\n";
         executeAndCompare(statement, expected);
 
-        statement = "SHOW TIME SERIES ah.* limit 7, 3;";
+        statement = "SHOW COLUMNS ah.* limit 7, 3;";
         expected =
                 "Time series:\n"
                         + "+-----------------------+--------+\n"
@@ -173,7 +173,7 @@ public class TagIT {
                         + "Total line number = 3\n";
         executeAndCompare(statement, expected);
 
-        statement = "SHOW TIME SERIES ah.hr02.*;";
+        statement = "SHOW COLUMNS ah.hr02.*;";
         expected =
                 "Time series:\n"
                         + "+----------------------+--------+\n"
@@ -188,7 +188,7 @@ public class TagIT {
                         + "Total line number = 5\n";
         executeAndCompare(statement, expected);
 
-        statement = "SHOW TIME SERIES ah.hr02.* limit 3 offset 2;";
+        statement = "SHOW COLUMNS ah.hr02.* limit 3 offset 2;";
         expected =
                 "Time series:\n"
                         + "+----------------------+--------+\n"
@@ -201,7 +201,7 @@ public class TagIT {
                         + "Total line number = 3\n";
         executeAndCompare(statement, expected);
 
-        statement = "SHOW TIME SERIES ah.hr02.*, ah.hr03.*;";
+        statement = "SHOW COLUMNS ah.hr02.*, ah.hr03.*;";
         expected =
                 "Time series:\n"
                         + "+-----------------------+--------+\n"
@@ -220,7 +220,7 @@ public class TagIT {
                         + "Total line number = 9\n";
         executeAndCompare(statement, expected);
 
-        statement = "SHOW TIME SERIES ah.hr02.* with t1=v1;";
+        statement = "SHOW COLUMNS ah.hr02.* with t1=v1;";
         expected =
                 "Time series:\n"
                         + "+----------------------+--------+\n"
@@ -233,7 +233,7 @@ public class TagIT {
                         + "Total line number = 3\n";
         executeAndCompare(statement, expected);
 
-        statement = "SHOW TIME SERIES ah.hr02.* with t1=v1 limit 2 offset 1;";
+        statement = "SHOW COLUMNS ah.hr02.* with t1=v1 limit 2 offset 1;";
         expected =
                 "Time series:\n"
                         + "+----------------------+--------+\n"
@@ -245,7 +245,7 @@ public class TagIT {
                         + "Total line number = 2\n";
         executeAndCompare(statement, expected);
 
-        statement = "SHOW TIME SERIES ah.hr02.* with_precise t1=v1;";
+        statement = "SHOW COLUMNS ah.hr02.* with_precise t1=v1;";
         expected =
                 "Time series:\n"
                         + "+----------------+--------+\n"
@@ -257,7 +257,7 @@ public class TagIT {
                         + "Total line number = 2\n";
         executeAndCompare(statement, expected);
 
-        statement = "SHOW TIME SERIES ah.hr02.* with_precise t1=v1 AND t2=v2;";
+        statement = "SHOW COLUMNS ah.hr02.* with_precise t1=v1 AND t2=v2;";
         expected =
                 "Time series:\n"
                         + "+----------------------+--------+\n"
@@ -268,7 +268,7 @@ public class TagIT {
                         + "Total line number = 1\n";
         executeAndCompare(statement, expected);
 
-        statement = "SHOW TIME SERIES ah.hr02.* with t1=v1 AND t2=v2;";
+        statement = "SHOW COLUMNS ah.hr02.* with t1=v1 AND t2=v2;";
         expected =
                 "Time series:\n"
                         + "+----------------------+--------+\n"
@@ -279,7 +279,7 @@ public class TagIT {
                         + "Total line number = 1\n";
         executeAndCompare(statement, expected);
 
-        statement = "SHOW TIME SERIES  ah.* WITHOUT TAG;";
+        statement = "SHOW COLUMNS  ah.* WITHOUT TAG;";
         expected =
                 "Time series:\n"
                         + "+---------+--------+\n"
@@ -615,7 +615,7 @@ public class TagIT {
     @Test
     public void testDeleteTSWithTag() {
         if (!isAbleToDelete || isScaling) return;
-        String showTimeSeries = "SHOW TIME SERIES ah.*;";
+        String showTimeSeries = "SHOW COLUMNS ah.*;";
         String expected =
                 "Time series:\n"
                         + "+-----------------------+--------+\n"
@@ -638,10 +638,10 @@ public class TagIT {
                         + "Total line number = 13\n";
         executeAndCompare(showTimeSeries, expected);
 
-        String deleteTimeSeries = "DELETE TIME SERIES ah.*.s WITH t1=v1";
+        String deleteTimeSeries = "DELETE COLUMNS ah.*.s WITH t1=v1";
         execute(deleteTimeSeries);
 
-        showTimeSeries = "SHOW TIME SERIES ah.*;";
+        showTimeSeries = "SHOW COLUMNS ah.*;";
         expected =
                 "Time series:\n"
                         + "+-----------------------+--------+\n"
@@ -665,10 +665,10 @@ public class TagIT {
         expected = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
         executeAndCompare(showTimeSeriesData, expected);
 
-        deleteTimeSeries = "DELETE TIME SERIES ah.*.v WITH_PRECISE t1=v1";
+        deleteTimeSeries = "DELETE COLUMNS ah.*.v WITH_PRECISE t1=v1";
         execute(deleteTimeSeries);
 
-        showTimeSeries = "SHOW TIME SERIES ah.*;";
+        showTimeSeries = "SHOW COLUMNS ah.*;";
         expected =
                 "Time series:\n"
                         + "+-----------------------+--------+\n"
@@ -701,7 +701,7 @@ public class TagIT {
     @Test
     public void testDeleteTSWithMultiTags() {
         if (!isAbleToDelete || isScaling) return;
-        String showTimeSeries = "SHOW TIME SERIES ah.*;";
+        String showTimeSeries = "SHOW COLUMNS ah.*;";
         String expected =
                 "Time series:\n"
                         + "+-----------------------+--------+\n"
@@ -724,10 +724,10 @@ public class TagIT {
                         + "Total line number = 13\n";
         executeAndCompare(showTimeSeries, expected);
 
-        String deleteTimeSeries = "DELETE TIME SERIES ah.*.v WITH t1=v1 AND t2=v2;";
+        String deleteTimeSeries = "DELETE COLUMNS ah.*.v WITH t1=v1 AND t2=v2;";
         execute(deleteTimeSeries);
 
-        showTimeSeries = "SHOW TIME SERIES ah.*;";
+        showTimeSeries = "SHOW COLUMNS ah.*;";
         expected =
                 "Time series:\n"
                         + "+-----------------------+--------+\n"
@@ -754,10 +754,10 @@ public class TagIT {
         ;
         executeAndCompare(showTimeSeriesData, expected);
 
-        deleteTimeSeries = "DELETE TIME SERIES * WITH t1=v1 AND t2=vv2 OR t1=vv1 AND t2=v2;";
+        deleteTimeSeries = "DELETE COLUMNS * WITH t1=v1 AND t2=vv2 OR t1=vv1 AND t2=v2;";
         execute(deleteTimeSeries);
 
-        showTimeSeries = "SHOW TIME SERIES ah.*;";
+        showTimeSeries = "SHOW COLUMNS ah.*;";
         expected =
                 "Time series:\n"
                         + "+-----------------------+--------+\n"

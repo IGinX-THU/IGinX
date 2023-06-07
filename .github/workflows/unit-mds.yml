@@ -15,42 +15,49 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                java: [8]
+                java-version: ["8"]
                 os: [ubuntu-latest]
-        runs-on: ${{ matrix.os}}
+        runs-on: ${{ matrix.os }}
         env:
             STORAGE: zookeeper
             ZOOKEEPER_CONNECTION_STRING: 127.0.0.1:2181
         steps:
             - uses: actions/checkout@v2
-            - name: Set up JDK ${{ matrix.java }}
+
+            - name: Set up JDK ${{ matrix.java-version }}
               uses: actions/setup-java@v1
               with:
-                  java-version: ${{ matrix.java }}
+                  java-version: ${{ matrix.java-version }}
+
             - name: Cache Maven packages
               uses: actions/cache@v2
               with:
                   path: ~/.m2
                   key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
                   restore-keys: ${{ runner.os }}-m2
+
             - name: Run ZooKeeper
               run: |
                   chmod +x "${GITHUB_WORKSPACE}/.github/zk.sh"
                   "${GITHUB_WORKSPACE}/.github/zk.sh"
-            - name: Run Test For Meta Manager
+
+            - name: Run test for meta manager
               run: mvn test -q -Dtest=IMetaManagerTest -DfailIfNoTests=false -P passFormat
-            - name: Run Test For Sync Protocol
+
+            - name: Run test for sync protocol
               run: mvn test -q -Dtest=ZooKeeperSyncProtocolTest -DfailIfNoTests=false -P passFormat
+
             - uses: codecov/codecov-action@v1
               with:
                   file: ./**/target/site/jacoco/jacoco.xml
                   name: codecov
+
     ETCD-Test:
         strategy:
             fail-fast: false
             max-parallel: 20
             matrix:
-                java: [8]
+                java-version: ["8"]
                 os: [ubuntu-latest]
         runs-on: ${{ matrix.os}}
         env:
@@ -58,24 +65,30 @@ jobs:
             ETCD_ENDPOINTS: http://localhost:2379
         steps:
             - uses: actions/checkout@v2
-            - name: Set up JDK ${{ matrix.java }}
+
+            - name: Set up JDK ${{ matrix.java-version }}
               uses: actions/setup-java@v1
               with:
-                  java-version: ${{ matrix.java }}
+                  java-version: ${{ matrix.java-version }}
+
             - name: Cache Maven packages
               uses: actions/cache@v2
               with:
                   path: ~/.m2
                   key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
                   restore-keys: ${{ runner.os }}-m2
+
             - name: Run ETCD
               run: |
                   chmod +x "${GITHUB_WORKSPACE}/.github/etcd.sh"
                   "${GITHUB_WORKSPACE}/.github/etcd.sh"
-            - name: Run Test For Meta Manager
+
+            - name: Run test for meta manager
               run: mvn test -q -Dtest=IMetaManagerTest -DfailIfNoTests=false -P passFormat
-            - name: Run Test For Sync Protocol
+
+            - name: Run test for sync protocol
               run: mvn test -q -Dtest=ETCDSyncProtocolTest -DfailIfNoTests=false -P passFormat
+
             - uses: codecov/codecov-action@v1
               with:
                   file: ./**/target/site/jacoco/jacoco.xml
