@@ -323,7 +323,6 @@ keyWords
    | OFFSET
    | TIME
    | KEY
-   | SERIES
    | TIMESTAMP
    | GROUP
    | ORDER
@@ -571,10 +570,6 @@ POINTS
 
 CLEAR
    : C L E A R
-   ;
-
-SERIES
-   : S E R I E S
    ;
 
 DESC
