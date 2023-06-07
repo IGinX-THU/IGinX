@@ -79,7 +79,7 @@ public class DataPointsParser {
         }
     }
 
-    private boolean ifInputDataVaild(JsonNode node) {
+    private boolean ifInputDataValid(JsonNode node) {
         String name = node.get("name").toString();
         if (!name.contains(".")) {
             LOGGER.error("The input path should contains at least second order path");
@@ -91,7 +91,7 @@ public class DataPointsParser {
     private Metric getMetricObject(JsonNode node, boolean isAnnotation) throws Exception {
         try {
             Metric ret = new Metric();
-            if (!ifInputDataVaild(node)) {
+            if (!ifInputDataValid(node)) {
                 throw new Exception("The input correctness check is abnormal");
             }
             ret.setName(node.get("name").asText());

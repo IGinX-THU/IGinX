@@ -2,8 +2,8 @@ package cn.edu.tsinghua.iginx.compaction;
 
 import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngine;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
-import cn.edu.tsinghua.iginx.engine.shared.TimeRange;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
 import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
@@ -57,14 +57,14 @@ public class FragmentDeletionCompaction extends Compaction {
             // 删除节点数据
             List<String> paths = new ArrayList<>();
             paths.add(fragmentMeta.getMasterStorageUnitId() + "*");
-            List<TimeRange> timeRanges = new ArrayList<>();
-            timeRanges.add(
-                    new TimeRange(
+            List<KeyRange> keyRanges = new ArrayList<>();
+            keyRanges.add(
+                    new KeyRange(
                             fragmentMeta.getKeyInterval().getStartKey(),
                             true,
                             fragmentMeta.getKeyInterval().getEndKey(),
                             false));
-            Delete delete = new Delete(new FragmentSource(fragmentMeta), timeRanges, paths, null);
+            Delete delete = new Delete(new FragmentSource(fragmentMeta), keyRanges, paths, null);
             physicalEngine.execute(new RequestContext(), delete);
         }
     }

@@ -10,7 +10,7 @@ import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.logical.optimizer.LogicalOptimizerManager;
 import cn.edu.tsinghua.iginx.engine.logical.utils.OperatorUtils;
 import cn.edu.tsinghua.iginx.engine.logical.utils.PathUtils;
-import cn.edu.tsinghua.iginx.engine.shared.TimeRange;
+import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils;
@@ -247,7 +247,7 @@ public class QueryGenerator extends AbstractGenerator {
                                                                         functionManager.getFunction(
                                                                                 k),
                                                                         params),
-                                                                new TimeRange(
+                                                                new KeyRange(
                                                                         selectStatement
                                                                                 .getStartTime(),
                                                                         selectStatement

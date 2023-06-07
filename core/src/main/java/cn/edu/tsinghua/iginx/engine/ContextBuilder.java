@@ -44,7 +44,7 @@ public class ContextBuilder {
     }
 
     public RequestContext build(DeleteColumnsReq req) {
-        DeleteTimeSeriesStatement statement = new DeleteTimeSeriesStatement(req.getPaths());
+        DeleteColumnsStatement statement = new DeleteColumnsStatement(req.getPaths());
         return new RequestContext(req.getSessionId(), statement);
     }
 
@@ -197,7 +197,7 @@ public class ContextBuilder {
     }
 
     public RequestContext build(ShowColumnsReq req) {
-        ShowTimeSeriesStatement statement = new ShowTimeSeriesStatement();
+        ShowColumnsStatement statement = new ShowColumnsStatement();
         return new RequestContext(req.getSessionId(), statement);
     }
 

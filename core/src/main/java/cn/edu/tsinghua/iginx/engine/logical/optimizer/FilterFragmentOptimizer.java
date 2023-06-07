@@ -4,7 +4,7 @@ import static cn.edu.tsinghua.iginx.metadata.utils.FragmentUtils.keyFromTSInterv
 
 import cn.edu.tsinghua.iginx.engine.logical.utils.ExprUtils;
 import cn.edu.tsinghua.iginx.engine.logical.utils.OperatorUtils;
-import cn.edu.tsinghua.iginx.engine.shared.TimeRange;
+import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
@@ -85,7 +85,7 @@ public class FilterFragmentOptimizer implements Optimizer {
         List<FragmentMeta> dummyFragments = pair.v;
 
         Filter filter = selectOperator.getFilter();
-        List<TimeRange> timeRanges = ExprUtils.getTimeRangesFromFilter(filter);
+        List<KeyRange> keyRanges = ExprUtils.getKeyRangesFromFilter(filter);
 
         List<Operator> unionList = new ArrayList<>();
         fragments.forEach(
@@ -93,7 +93,7 @@ public class FilterFragmentOptimizer implements Optimizer {
                     List<Operator> joinList = new ArrayList<>();
                     v.forEach(
                             meta -> {
-                                if (hasTimeRangeOverlap(meta, timeRanges)) {
+                                if (hasTimeRangeOverlap(meta, keyRanges)) {
                                     joinList.add(
                                             new Project(
                                                     new FragmentSource(meta),
@@ -112,7 +112,7 @@ public class FilterFragmentOptimizer implements Optimizer {
             List<Operator> joinList = new ArrayList<>();
             dummyFragments.forEach(
                     meta -> {
-                        if (meta.isValid() && hasTimeRangeOverlap(meta, timeRanges)) {
+                        if (meta.isValid() && hasTimeRangeOverlap(meta, keyRanges)) {
                             joinList.add(
                                     new Project(
                                             new FragmentSource(meta),
@@ -130,11 +130,11 @@ public class FilterFragmentOptimizer implements Optimizer {
         }
     }
 
-    private boolean hasTimeRangeOverlap(FragmentMeta meta, List<TimeRange> timeRanges) {
+    private boolean hasTimeRangeOverlap(FragmentMeta meta, List<KeyRange> keyRanges) {
         KeyInterval interval = meta.getKeyInterval();
-        for (TimeRange range : timeRanges) {
-            if (interval.getStartKey() > range.getEndTime()
-                    || interval.getEndKey() < range.getBeginTime()) {
+        for (KeyRange range : keyRanges) {
+            if (interval.getStartKey() > range.getEndKey()
+                    || interval.getEndKey() < range.getBeginKey()) {
                 // continue
             } else {
                 return true;

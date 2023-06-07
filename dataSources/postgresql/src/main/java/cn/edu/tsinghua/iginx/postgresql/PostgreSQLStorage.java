@@ -27,7 +27,7 @@ import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.DataArea;
 import cn.edu.tsinghua.iginx.engine.physical.task.StoragePhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
-import cn.edu.tsinghua.iginx.engine.shared.TimeRange;
+import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.BitmapView;
@@ -560,7 +560,7 @@ public class PostgreSQLStorage implements IStorage {
         try {
             for (int i = 0; i < delete.getPatterns().size(); i++) {
                 String path = delete.getPatterns().get(i);
-                TimeRange timeRange = delete.getTimeRanges().get(i);
+                KeyRange keyRange = delete.getKeyRanges().get(i);
                 String table = path.substring(0, path.lastIndexOf('.'));
                 table = table.replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
                 String field = path.substring(path.lastIndexOf('.') + 1);
@@ -573,8 +573,8 @@ public class PostgreSQLStorage implements IStorage {
                             String.format(
                                     DELETE_DATA,
                                     table,
-                                    timeRange.getBeginTime(),
-                                    Math.min(timeRange.getEndTime(), MAX_TIMESTAMP));
+                                    keyRange.getBeginKey(),
+                                    Math.min(keyRange.getEndKey(), MAX_TIMESTAMP));
                     Statement stmt = connection.createStatement();
                     stmt.execute(statement);
                 }

@@ -3,7 +3,7 @@ package cn.edu.tsinghua.iginx.parquet.server;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
-import cn.edu.tsinghua.iginx.engine.shared.TimeRange;
+import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.ColumnDataView;
@@ -234,18 +234,18 @@ public class ParquetWorker implements ParquetService.Iface {
     public Status executeDelete(DeleteReq req) throws TException {
         TagFilter tagFilter = resolveRawTagFilter(req.getTagFilter());
 
-        // null timeRanges means delete time series
-        List<TimeRange> timeRanges = null;
+        // null timeRanges means delete columns
+        List<KeyRange> keyRanges = null;
         if (req.isSetTimeRanges()) {
-            timeRanges = new ArrayList<>();
+            keyRanges = new ArrayList<>();
             for (ParquetTimeRange range : req.getTimeRanges()) {
-                timeRanges.add(new TimeRange(range.getBeginTime(), range.getEndTime()));
+                keyRanges.add(new KeyRange(range.getBeginTime(), range.getEndTime()));
             }
         }
 
         TaskExecuteResult result =
                 executor.executeDeleteTask(
-                        req.getPaths(), timeRanges, tagFilter, req.getStorageUnit());
+                        req.getPaths(), keyRanges, tagFilter, req.getStorageUnit());
         if (result.getException() == null) {
             return SUCCESS;
         } else {
