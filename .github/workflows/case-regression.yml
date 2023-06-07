@@ -13,7 +13,7 @@ concurrency:
     cancel-in-progress: true
 
 jobs:
-    MixCluster-ShowColumns:
+    MixCluster-ShowTimeseries:
         timeout-minutes: 15
         strategy:
             fail-fast: false
