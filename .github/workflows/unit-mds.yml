@@ -15,7 +15,7 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                java: [8]
+                java-version: [8]
                 os: [ubuntu-latest]
         runs-on: ${{ matrix.os}}
         env:
@@ -23,10 +23,10 @@ jobs:
             ZOOKEEPER_CONNECTION_STRING: 127.0.0.1:2181
         steps:
             - uses: actions/checkout@v2
-            - name: Set up JDK ${{ matrix.java }}
+            - name: Set up JDK ${{ matrix.java-version }}
               uses: actions/setup-java@v1
               with:
-                  java-version: ${{ matrix.java }}
+                  java-version: ${{ matrix.java-version }}
             - name: Cache Maven packages
               uses: actions/cache@v2
               with:
@@ -50,7 +50,7 @@ jobs:
             fail-fast: false
             max-parallel: 20
             matrix:
-                java: [8]
+                java-version: [8]
                 os: [ubuntu-latest]
         runs-on: ${{ matrix.os}}
         env:
@@ -58,10 +58,10 @@ jobs:
             ETCD_ENDPOINTS: http://localhost:2379
         steps:
             - uses: actions/checkout@v2
-            - name: Set up JDK ${{ matrix.java }}
+            - name: Set up JDK ${{ matrix.java-version }}
               uses: actions/setup-java@v1
               with:
-                  java-version: ${{ matrix.java }}
+                  java-version: ${{ matrix.java-version }}
             - name: Cache Maven packages
               uses: actions/cache@v2
               with:
