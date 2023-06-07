@@ -47,8 +47,8 @@ import cn.edu.tsinghua.iginx.exceptions.SQLParserException;
 import cn.edu.tsinghua.iginx.exceptions.StatusCode;
 import cn.edu.tsinghua.iginx.resource.ResourceManager;
 import cn.edu.tsinghua.iginx.sql.statement.DataStatement;
+import cn.edu.tsinghua.iginx.sql.statement.DeleteColumnsStatement;
 import cn.edu.tsinghua.iginx.sql.statement.DeleteStatement;
-import cn.edu.tsinghua.iginx.sql.statement.DeleteTimeSeriesStatement;
 import cn.edu.tsinghua.iginx.sql.statement.InsertFromSelectStatement;
 import cn.edu.tsinghua.iginx.sql.statement.InsertStatement;
 import cn.edu.tsinghua.iginx.sql.statement.SelectStatement;
@@ -116,7 +116,7 @@ public class StatementExecutor {
         generatorMap.put(StatementType.SELECT, queryGeneratorList);
         generatorMap.put(StatementType.DELETE, deleteGeneratorList);
         generatorMap.put(StatementType.INSERT, insertGeneratorList);
-        generatorMap.put(StatementType.SHOW_TIME_SERIES, showTSGeneratorList);
+        generatorMap.put(StatementType.SHOW_COLUMNS, showTSGeneratorList);
     }
 
     private StatementExecutor() {
@@ -272,7 +272,7 @@ public class StatementExecutor {
                     case SELECT:
                     case DELETE:
                     case INSERT:
-                    case SHOW_TIME_SERIES:
+                    case SHOW_COLUMNS:
                         process(ctx);
                         return;
                     case INSERT_FROM_SELECT:
@@ -281,7 +281,7 @@ public class StatementExecutor {
                     case COUNT_POINTS:
                         processCountPoints(ctx);
                         return;
-                    case DELETE_TIME_SERIES:
+                    case DELETE_COLUMNS:
                         processDeleteTimeSeries(ctx);
                         return;
                     case CLEAR_DATA:
@@ -518,12 +518,10 @@ public class StatementExecutor {
 
     private void processDeleteTimeSeries(RequestContext ctx)
             throws ExecutionException, PhysicalException {
-        DeleteTimeSeriesStatement deleteTimeSeriesStatement =
-                (DeleteTimeSeriesStatement) ctx.getStatement();
+        DeleteColumnsStatement deleteColumnsStatement = (DeleteColumnsStatement) ctx.getStatement();
         DeleteStatement deleteStatement =
                 new DeleteStatement(
-                        deleteTimeSeriesStatement.getPaths(),
-                        deleteTimeSeriesStatement.getTagFilter());
+                        deleteColumnsStatement.getPaths(), deleteColumnsStatement.getTagFilter());
         ctx.setStatement(deleteStatement);
         process(ctx);
     }
@@ -562,7 +560,7 @@ public class StatementExecutor {
             case SELECT:
                 setResultFromRowStream(ctx, stream);
                 break;
-            case SHOW_TIME_SERIES:
+            case SHOW_COLUMNS:
                 setShowTSRowStreamResult(ctx, stream);
                 break;
             default:
@@ -666,7 +664,7 @@ public class StatementExecutor {
                 }
                 types.add(type);
             } else {
-                logger.warn("show time series result col size = {}", rowValues.length);
+                logger.warn("show columns result col size = {}", rowValues.length);
             }
         }
 
@@ -736,7 +734,7 @@ public class StatementExecutor {
         }
         Object[][] values = rows.toArray(new Object[0][0]);
 
-        insertStatement.setTimes(times);
+        insertStatement.setKeys(times);
         insertStatement.setValues(values);
         insertStatement.setTypes(types);
         insertStatement.setBitmaps(bitmaps);

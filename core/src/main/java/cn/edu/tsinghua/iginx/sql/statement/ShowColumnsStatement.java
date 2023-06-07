@@ -4,7 +4,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import java.util.HashSet;
 import java.util.Set;
 
-public class ShowTimeSeriesStatement extends DataStatement {
+public class ShowColumnsStatement extends DataStatement {
 
     private Set<String> pathRegexSet;
     private TagFilter tagFilter;
@@ -12,8 +12,8 @@ public class ShowTimeSeriesStatement extends DataStatement {
     private int limit;
     private int offset;
 
-    public ShowTimeSeriesStatement() {
-        this.statementType = StatementType.SHOW_TIME_SERIES;
+    public ShowColumnsStatement() {
+        this.statementType = StatementType.SHOW_COLUMNS;
         this.pathRegexSet = new HashSet<>();
         this.limit = Integer.MAX_VALUE;
         this.offset = 0;

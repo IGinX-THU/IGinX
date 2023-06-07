@@ -87,7 +87,7 @@ public class TransformIT {
 
     private static final String COMMIT_SQL_FORMATTER = "COMMIT TRANSFORM JOB \"%s\"";
 
-    private static final String SHOW_TIME_SERIES_SQL = "SHOW TIME SERIES;";
+    private static final String SHOW_TIME_SERIES_SQL = "SHOW COLUMNS;";
 
     private static final String QUERY_SQL_1 = "SELECT s2 FROM us.d1 WHERE key >= 14800;";
 
@@ -146,7 +146,7 @@ public class TransformIT {
     }
 
     @After
-    public void clearData() throws ExecutionException, SessionException {
+    public void clearData() {
         Controller.clearData(session);
     }
 
@@ -168,8 +168,7 @@ public class TransformIT {
         }
     }
 
-    private void registerTask(String task)
-            throws SessionException, ExecutionException, InterruptedException {
+    private void registerTask(String task) throws SessionException, ExecutionException {
         dropTask(task);
         session.executeSql(String.format(REGISTER_SQL_FORMATTER, task, TASK_MAP.get(task), task));
     }
@@ -650,7 +649,7 @@ public class TransformIT {
 
             List<Long> closedJobIds = session.showEligibleJob(JobState.JOB_CLOSED);
             assertTrue(closedJobIds.contains(jobId));
-        } catch (SessionException | ExecutionException | InterruptedException e) {
+        } catch (SessionException | ExecutionException e) {
             logger.error("Transform:  execute fail. Caused by:", e);
             fail();
         }

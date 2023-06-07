@@ -4,33 +4,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 public final class DBConf {
-    public enum DBType {
-        parquet,
-        iotdb12,
-        influxdb,
-        postgresql,
-        mongodb,
-        redis
-    }
-
-    public static DBType getDBType(String dbName) {
-        switch (dbName.toLowerCase()) {
-            case "iotdb12":
-                return DBType.iotdb12;
-            case "influxdb":
-                return DBType.influxdb;
-            case "parquet":
-                return DBType.parquet;
-            case "postgresql":
-                return DBType.postgresql;
-            case "mongodb":
-                return DBType.mongodb;
-            case "redis":
-                return DBType.redis;
-            default:
-                throw new IllegalArgumentException("Invalid DBName value provided");
-        }
-    }
 
     public enum DBConfType {
         isAbleToClearData,

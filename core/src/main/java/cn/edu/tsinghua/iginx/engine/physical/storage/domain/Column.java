@@ -28,7 +28,7 @@ import cn.edu.tsinghua.iginx.utils.TagKVUtils;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public final class Timeseries {
+public final class Column {
 
     private String path;
 
@@ -38,17 +38,17 @@ public final class Timeseries {
 
     private String physicalPath = null;
 
-    public Timeseries(String path, DataType dataType) {
+    public Column(String path, DataType dataType) {
         this(path, dataType, null);
     }
 
-    public Timeseries(String path, DataType dataType, Map<String, String> tags) {
+    public Column(String path, DataType dataType, Map<String, String> tags) {
         this.path = path;
         this.dataType = dataType;
         this.tags = tags;
     }
 
-    public static RowStream toRowStream(Collection<Timeseries> timeseries) {
+    public static RowStream toRowStream(Collection<Column> timeseries) {
         Header header =
                 new Header(
                         Arrays.asList(
@@ -96,7 +96,7 @@ public final class Timeseries {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        Timeseries that = (Timeseries) o;
+        Column that = (Column) o;
         return Objects.equals(path, that.path)
                 && dataType == that.dataType
                 && Objects.equals(tags, that.tags);

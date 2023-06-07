@@ -24,16 +24,15 @@ import static cn.edu.tsinghua.iginx.postgresql.tools.HashUtils.toHash;
 import static cn.edu.tsinghua.iginx.postgresql.tools.TagKVUtils.splitFullName;
 import static cn.edu.tsinghua.iginx.postgresql.tools.TagKVUtils.toFullName;
 
-import cn.edu.tsinghua.iginx.engine.physical.exception.NonExecutablePhysicalTaskException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
-import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Timeseries;
+import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
+import cn.edu.tsinghua.iginx.engine.physical.storage.domain.DataArea;
 import cn.edu.tsinghua.iginx.engine.physical.storage.utils.TagKVUtils;
-import cn.edu.tsinghua.iginx.engine.physical.task.StoragePhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
-import cn.edu.tsinghua.iginx.engine.shared.TimeRange;
+import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.ClearEmptyRowStreamWrapper;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.BitmapView;
@@ -41,12 +40,8 @@ import cn.edu.tsinghua.iginx.engine.shared.data.write.ColumnDataView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.RowDataView;
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
 import cn.edu.tsinghua.iginx.postgresql.entity.TableType;
 import cn.edu.tsinghua.iginx.postgresql.query.entity.PostgreSQLQueryRowStream;
@@ -153,55 +148,58 @@ public class PostgreSQLStorage implements IStorage {
         }
     }
 
-    @Override
-    public TaskExecuteResult execute(StoragePhysicalTask task) {
-        List<Operator> operators = task.getOperators();
-        if (operators.size() != 1) {
-            return new TaskExecuteResult(
-                    new NonExecutablePhysicalTaskException("unsupported physical task"));
-        }
-        FragmentMeta fragment = task.getTargetFragment();
-        Operator op = operators.get(0);
-        String storageUnit = task.getStorageUnit();
-        boolean isDummyStorageUnit = task.isDummyStorageUnit();
-        Connection conn = getConnection(storageUnit);
-        if (!isDummyStorageUnit && conn == null) {
-            return new TaskExecuteResult(
-                    new NonExecutablePhysicalTaskException(
-                            String.format("cannot connect to storage unit %s", storageUnit)));
-        }
+    //    @Override
+    //    public TaskExecuteResult execute(StoragePhysicalTask task) {
+    //        List<Operator> operators = task.getOperators();
+    //        if (operators.size() != 1) {
+    //            return new TaskExecuteResult(
+    //                    new NonExecutablePhysicalTaskException("unsupported physical task"));
+    //        }
+    //        FragmentMeta fragment = task.getTargetFragment();
+    //        Operator op = operators.get(0);
+    //        String storageUnit = task.getStorageUnit();
+    //        boolean isDummyStorageUnit = task.isDummyStorageUnit();
+    //        Connection conn = getConnection(storageUnit);
+    //        if (!isDummyStorageUnit && conn == null) {
+    //            return new TaskExecuteResult(
+    //                    new NonExecutablePhysicalTaskException(
+    //                            String.format("cannot connect to storage unit %s", storageUnit)));
+    //        }
+    //
+    //        if (op.getType() == OperatorType.Project) {
+    //            Project project = (Project) op;
+    //            Filter filter;
+    //            if (operators.size() == 2) {
+    //                filter = ((Select) operators.get(1)).getFilter();
+    //            } else {
+    //                filter =
+    //                        new AndFilter(
+    //                                Arrays.asList(
+    //                                        new KeyFilter(
+    //                                                Op.GE,
+    // fragment.getKeyInterval().getStartKey()),
+    //                                        new KeyFilter(
+    //                                                Op.L,
+    // fragment.getKeyInterval().getEndKey())));
+    //            }
+    //            return isDummyStorageUnit
+    //                    ? executeHistoryProjectTask(project, filter)
+    //                    : executeProjectTask(conn, storageUnit, project, filter);
+    //        } else if (op.getType() == OperatorType.Insert) {
+    //            Insert insert = (Insert) op;
+    //            return executeInsertTask(conn, storageUnit, insert);
+    //        } else if (op.getType() == OperatorType.Delete) {
+    //            Delete delete = (Delete) op;
+    //            return executeDeleteTask(conn, storageUnit, delete);
+    //        }
+    //        return new TaskExecuteResult(
+    //                new NonExecutablePhysicalTaskException("unsupported physical task in
+    // postgresql"));
+    //    }
 
-        if (op.getType() == OperatorType.Project) {
-            Project project = (Project) op;
-            Filter filter;
-            if (operators.size() == 2) {
-                filter = ((Select) operators.get(1)).getFilter();
-            } else {
-                filter =
-                        new AndFilter(
-                                Arrays.asList(
-                                        new KeyFilter(
-                                                Op.GE, fragment.getTimeInterval().getStartTime()),
-                                        new KeyFilter(
-                                                Op.L, fragment.getTimeInterval().getEndTime())));
-            }
-            return isDummyStorageUnit
-                    ? executeHistoryProjectTask(project, filter)
-                    : executeProjectTask(conn, storageUnit, project, filter);
-        } else if (op.getType() == OperatorType.Insert) {
-            Insert insert = (Insert) op;
-            return executeInsertTask(conn, storageUnit, insert);
-        } else if (op.getType() == OperatorType.Delete) {
-            Delete delete = (Delete) op;
-            return executeDeleteTask(conn, storageUnit, delete);
-        }
-        return new TaskExecuteResult(
-                new NonExecutablePhysicalTaskException("unsupported physical task in postgresql"));
-    }
-
     @Override
-    public List<Timeseries> getTimeSeries() {
-        List<Timeseries> timeseries = new ArrayList<>();
+    public List<Column> getColumns() {
+        List<Column> columns = new ArrayList<>();
         Map<String, String> extraParams = meta.getExtraParams();
         try {
             Statement stmt = connection.createStatement();
@@ -235,8 +233,8 @@ public class PostgreSQLStorage implements IStorage {
                             Pair<String, Map<String, String>> nameAndTags =
                                     splitFullName(columnName);
                             if (databaseName.startsWith(DATABASE_PREFIX)) {
-                                timeseries.add(
-                                        new Timeseries(
+                                columns.add(
+                                        new Column(
                                                 tableName.replace(
                                                                 POSTGRESQL_SEPARATOR,
                                                                 IGINX_SEPARATOR)
@@ -245,8 +243,8 @@ public class PostgreSQLStorage implements IStorage {
                                                 fromPostgreSQL(typeName),
                                                 nameAndTags.v));
                             } else {
-                                timeseries.add(
-                                        new Timeseries(
+                                columns.add(
+                                        new Column(
                                                 databaseName.replace(
                                                                 POSTGRESQL_SEPARATOR,
                                                                 IGINX_SEPARATOR)
@@ -273,11 +271,48 @@ public class PostgreSQLStorage implements IStorage {
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
-        return timeseries;
+        return columns;
     }
 
     @Override
-    public Pair<TimeSeriesRange, TimeInterval> getBoundaryOfStorage(String prefix)
+    public TaskExecuteResult executeProject(Project project, DataArea dataArea) {
+        return null;
+    }
+
+    @Override
+    public TaskExecuteResult executeProjectDummy(Project project, DataArea dataArea) {
+        return null;
+    }
+
+    @Override
+    public boolean isSupportProjectWithSelect() {
+        return false;
+    }
+
+    @Override
+    public TaskExecuteResult executeProjectWithSelect(
+            Project project, Select select, DataArea dataArea) {
+        return null;
+    }
+
+    @Override
+    public TaskExecuteResult executeProjectDummyWithSelect(
+            Project project, Select select, DataArea dataArea) {
+        return null;
+    }
+
+    @Override
+    public TaskExecuteResult executeDelete(Delete delete, DataArea dataArea) {
+        return null;
+    }
+
+    @Override
+    public TaskExecuteResult executeInsert(Insert insert, DataArea dataArea) {
+        return null;
+    }
+
+    @Override
+    public Pair<ColumnsRange, KeyInterval> getBoundaryOfStorage(String prefix)
             throws PhysicalException {
         long minTime = Long.MAX_VALUE, maxTime = 0;
         List<String> paths = new ArrayList<>();
@@ -356,8 +391,8 @@ public class PostgreSQLStorage implements IStorage {
         }
         paths.sort(String::compareTo);
         return new Pair<>(
-                new TimeSeriesInterval(paths.get(0), paths.get(paths.size() - 1)),
-                new TimeInterval(minTime, maxTime + 1));
+                new ColumnsInterval(paths.get(0), paths.get(paths.size() - 1)),
+                new KeyInterval(minTime, maxTime + 1));
     }
 
     private Map<String, String> splitAndMergeQueryPatterns(
@@ -1049,7 +1084,7 @@ public class PostgreSQLStorage implements IStorage {
             ResultSet tableSet = null;
             ResultSet columnSet = null;
 
-            if (delete.getTimeRanges() == null || delete.getTimeRanges().size() == 0) {
+            if (delete.getKeyRanges() == null || delete.getKeyRanges().size() == 0) {
                 if (paths.size() == 1
                         && paths.get(0).equals("*")
                         && delete.getTagFilter() == null) {
@@ -1098,14 +1133,14 @@ public class PostgreSQLStorage implements IStorage {
                             databaseMetaData.getColumns(
                                     storageUnit, "public", tableName, columnName);
                     if (columnSet.next()) {
-                        for (TimeRange timeRange : delete.getTimeRanges()) {
+                        for (KeyRange keyRange : delete.getKeyRanges()) {
                             statement =
                                     String.format(
                                             UPDATE_STATEMENT,
                                             getFullName(tableName),
                                             getFullName(columnName),
-                                            timeRange.getBeginTime(),
-                                            timeRange.getEndTime());
+                                            keyRange.getBeginKey(),
+                                            keyRange.getEndKey());
                             logger.info("[Delete] execute delete: {}", statement);
                             stmt.execute(statement); // 将目标列的目标范围的值置为空
                         }
@@ -1131,23 +1166,23 @@ public class PostgreSQLStorage implements IStorage {
 
     private List<Pair<String, String>> determineDeletedPaths(
             List<String> paths, TagFilter tagFilter) {
-        List<Timeseries> timeSeries = getTimeSeries();
+        List<Column> columns = getColumns();
         List<Pair<String, String>> deletedPaths = new ArrayList<>();
 
-        for (Timeseries ts : timeSeries) {
+        for (Column column : columns) {
             for (String path : paths) {
-                if (Pattern.matches(StringUtils.reformatPath(path), ts.getPath())) {
-                    if (tagFilter != null && !TagKVUtils.match(ts.getTags(), tagFilter)) {
+                if (Pattern.matches(StringUtils.reformatPath(path), column.getPath())) {
+                    if (tagFilter != null && !TagKVUtils.match(column.getTags(), tagFilter)) {
                         continue;
                     }
-                    String fullPath = ts.getPath();
+                    String fullPath = column.getPath();
                     String tableName =
                             fullPath.substring(0, fullPath.lastIndexOf('.'))
                                     .replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
                     String columnName =
                             toFullName(
                                     fullPath.substring(fullPath.lastIndexOf('.') + 1),
-                                    ts.getTags());
+                                    column.getTags());
                     deletedPaths.add(new Pair<>(tableName, columnName));
                     break;
                 }
