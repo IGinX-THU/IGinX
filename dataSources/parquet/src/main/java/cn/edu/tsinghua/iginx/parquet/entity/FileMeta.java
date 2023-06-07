@@ -2,7 +2,7 @@ package cn.edu.tsinghua.iginx.parquet.entity;
 
 import static cn.edu.tsinghua.iginx.parquet.tools.Constant.CMD_DELETE;
 
-import cn.edu.tsinghua.iginx.engine.shared.TimeRange;
+import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -26,7 +26,7 @@ public class FileMeta {
 
     private final Map<String, DataType> pathMap;
 
-    private final Map<String, List<TimeRange>> deleteRanges;
+    private final Map<String, List<KeyRange>> deleteRanges;
 
     public FileMeta(long startTime, long endTime, Map<String, DataType> pathMap) {
         this.startTime = startTime;
@@ -41,7 +41,7 @@ public class FileMeta {
             long startTime,
             long endTime,
             Map<String, DataType> pathMap,
-            Map<String, List<TimeRange>> deleteRanges) {
+            Map<String, List<KeyRange>> deleteRanges) {
         this.extraPath = extraPath;
         this.dataPath = dataPath;
         this.startTime = startTime;
@@ -50,8 +50,8 @@ public class FileMeta {
         this.deleteRanges = deleteRanges;
     }
 
-    public void deleteData(List<String> paths, List<TimeRange> timeRanges) throws IOException {
-        if (timeRanges == null || timeRanges.size() == 0) {
+    public void deleteData(List<String> paths, List<KeyRange> keyRanges) throws IOException {
+        if (keyRanges == null || keyRanges.size() == 0) {
             for (String path : paths) {
                 pathMap.remove(path);
                 deleteRanges.remove(path);
@@ -59,9 +59,9 @@ public class FileMeta {
         } else {
             for (String path : paths) {
                 if (deleteRanges.containsKey(path)) {
-                    deleteRanges.get(path).addAll(timeRanges);
+                    deleteRanges.get(path).addAll(keyRanges);
                 } else {
-                    deleteRanges.put(path, new ArrayList<>(timeRanges));
+                    deleteRanges.put(path, new ArrayList<>(keyRanges));
                 }
             }
         }
@@ -73,11 +73,11 @@ public class FileMeta {
         }
         builder.deleteCharAt(builder.length() - 1);
         builder.append("#");
-        if (timeRanges != null) {
-            for (TimeRange timeRange : timeRanges) {
-                builder.append(timeRange.getBeginTime())
+        if (keyRanges != null) {
+            for (KeyRange keyRange : keyRanges) {
+                builder.append(keyRange.getBeginKey())
                         .append(",")
-                        .append(timeRange.getEndTime())
+                        .append(keyRange.getEndKey())
                         .append(",");
             }
             builder.deleteCharAt(builder.length() - 1);
@@ -122,7 +122,7 @@ public class FileMeta {
         return pathMap;
     }
 
-    public Map<String, List<TimeRange>> getDeleteRanges() {
+    public Map<String, List<KeyRange>> getDeleteRanges() {
         return deleteRanges;
     }
 }

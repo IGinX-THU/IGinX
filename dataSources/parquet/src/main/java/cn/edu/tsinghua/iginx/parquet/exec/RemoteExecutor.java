@@ -4,7 +4,7 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
-import cn.edu.tsinghua.iginx.engine.shared.TimeRange;
+import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
@@ -245,24 +245,21 @@ public class RemoteExecutor implements Executor {
 
     @Override
     public TaskExecuteResult executeDeleteTask(
-            List<String> paths,
-            List<TimeRange> timeRanges,
-            TagFilter tagFilter,
-            String storageUnit) {
+            List<String> paths, List<KeyRange> keyRanges, TagFilter tagFilter, String storageUnit) {
         DeleteReq req = new DeleteReq(storageUnit, paths);
         if (tagFilter != null) {
             req.setTagFilter(constructRawTagFilter(tagFilter));
         }
-        if (timeRanges != null) {
+        if (keyRanges != null) {
             List<ParquetTimeRange> parquetTimeRanges = new ArrayList<>();
-            timeRanges.forEach(
+            keyRanges.forEach(
                     timeRange ->
                             parquetTimeRanges.add(
                                     new ParquetTimeRange(
-                                            timeRange.getBeginTime(),
-                                            timeRange.isIncludeBeginTime(),
-                                            timeRange.getEndTime(),
-                                            timeRange.isIncludeEndTime())));
+                                            timeRange.getBeginKey(),
+                                            timeRange.isIncludeBeginKey(),
+                                            timeRange.getEndKey(),
+                                            timeRange.isIncludeEndKey())));
             req.setTimeRanges(parquetTimeRanges);
         }
 

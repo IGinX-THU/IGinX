@@ -1,7 +1,7 @@
 package cn.edu.tsinghua.iginx.sql.statement;
 
 import cn.edu.tsinghua.iginx.engine.logical.utils.ExprUtils;
-import cn.edu.tsinghua.iginx.engine.shared.TimeRange;
+import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.exceptions.SQLParserException;
@@ -13,7 +13,7 @@ public class DeleteStatement extends DataStatement {
     private boolean deleteAll; // delete data & path
 
     private List<String> paths;
-    private List<TimeRange> timeRanges;
+    private List<KeyRange> keyRanges;
     private TagFilter tagFilter;
 
     private boolean involveDummyData;
@@ -21,7 +21,7 @@ public class DeleteStatement extends DataStatement {
     public DeleteStatement() {
         this.statementType = StatementType.DELETE;
         this.paths = new ArrayList<>();
-        this.timeRanges = new ArrayList<>();
+        this.keyRanges = new ArrayList<>();
         this.deleteAll = false;
         this.tagFilter = null;
         this.involveDummyData = false;
@@ -30,8 +30,8 @@ public class DeleteStatement extends DataStatement {
     public DeleteStatement(List<String> paths, long startTime, long endTime) {
         this.statementType = StatementType.DELETE;
         this.paths = paths;
-        this.timeRanges = new ArrayList<>();
-        this.timeRanges.add(new TimeRange(startTime, endTime));
+        this.keyRanges = new ArrayList<>();
+        this.keyRanges.add(new KeyRange(startTime, endTime));
         this.deleteAll = false;
         this.tagFilter = null;
         this.involveDummyData = false;
@@ -44,7 +44,7 @@ public class DeleteStatement extends DataStatement {
     public DeleteStatement(List<String> paths, TagFilter tagFilter) {
         this.statementType = StatementType.DELETE;
         this.paths = paths;
-        this.timeRanges = new ArrayList<>();
+        this.keyRanges = new ArrayList<>();
         this.deleteAll = true;
         this.tagFilter = tagFilter;
         this.involveDummyData = false;
@@ -58,12 +58,12 @@ public class DeleteStatement extends DataStatement {
         paths.add(path);
     }
 
-    public List<TimeRange> getTimeRanges() {
-        return timeRanges;
+    public List<KeyRange> getKeyRanges() {
+        return keyRanges;
     }
 
-    public void setTimeRanges(List<TimeRange> timeRanges) {
-        this.timeRanges = timeRanges;
+    public void setKeyRanges(List<KeyRange> keyRanges) {
+        this.keyRanges = keyRanges;
     }
 
     public TagFilter getTagFilter() {
@@ -82,10 +82,10 @@ public class DeleteStatement extends DataStatement {
         this.involveDummyData = involveDummyData;
     }
 
-    public void setTimeRangesByFilter(Filter filter) {
+    public void setKeyRangesByFilter(Filter filter) {
         if (filter != null) {
-            this.timeRanges = ExprUtils.getTimeRangesFromFilter(filter);
-            if (timeRanges.isEmpty()) {
+            this.keyRanges = ExprUtils.getKeyRangesFromFilter(filter);
+            if (keyRanges.isEmpty()) {
                 throw new SQLParserException(
                         "This clause delete nothing, check your filter again.");
             }

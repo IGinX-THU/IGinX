@@ -25,7 +25,7 @@ import static cn.edu.tsinghua.iginx.parquet.tools.Constant.SUFFIX_PARQUET_FILE;
 import static cn.edu.tsinghua.iginx.parquet.tools.DataTypeTransformer.fromParquetDataType;
 import static cn.edu.tsinghua.iginx.parquet.tools.DataTypeTransformer.toParquetDataType;
 
-import cn.edu.tsinghua.iginx.engine.shared.TimeRange;
+import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.BitmapView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
@@ -132,7 +132,7 @@ public class DUManager {
 
                 long startTime = 0, endTime = Long.MAX_VALUE;
                 Map<String, DataType> pathMap = new HashMap<>();
-                Map<String, List<TimeRange>> deleteRanges = new HashMap<>();
+                Map<String, List<KeyRange>> deleteRanges = new HashMap<>();
 
                 String str = null;
                 while ((str = br.readLine()) != null) {
@@ -170,7 +170,7 @@ public class DUManager {
                                     if (!deleteRanges.containsKey(path)) {
                                         deleteRanges.put(path, new ArrayList<>());
                                     }
-                                    deleteRanges.get(path).add(new TimeRange(start, end));
+                                    deleteRanges.get(path).add(new KeyRange(start, end));
                                 }
                             }
                         }
@@ -273,7 +273,7 @@ public class DUManager {
             List<String> paths,
             String filter,
             String dataPath,
-            Map<String, List<TimeRange>> deleteRanges,
+            Map<String, List<KeyRange>> deleteRanges,
             long endTime)
             throws SQLException {
         Connection conn = ((DuckDBConnection) connection).duplicate();
@@ -299,14 +299,14 @@ public class DUManager {
                     continue;
                 }
 
-                List<TimeRange> ranges = deleteRanges.get(column.getPathName());
+                List<KeyRange> ranges = deleteRanges.get(column.getPathName());
                 if (ranges != null) {
                     ranges.forEach(
                             timeRange -> {
-                                long start = timeRange.getActualBeginTime();
+                                long start = timeRange.getActualBeginKey();
                                 long end =
                                         Math.min(
-                                                timeRange.getActualEndTime(),
+                                                timeRange.getActualEndKey(),
                                                 endTime); // optimize time > xxx case
                                 for (long i = start; i <= end; i++) {
                                     column.removeData(i);
@@ -597,37 +597,37 @@ public class DUManager {
         isFlushing = false;
     }
 
-    public void delete(List<String> paths, List<TimeRange> timeRanges, TagFilter tagFilter)
+    public void delete(List<String> paths, List<KeyRange> keyRanges, TagFilter tagFilter)
             throws SQLException, IOException {
         if (paths.size() == 1
                 && paths.get(0).equals("*")
                 && tagFilter == null
-                && (timeRanges == null || timeRanges.size() == 0)) {
+                && (keyRanges == null || keyRanges.size() == 0)) {
             clearData();
         }
 
         List<String> memPaths = determinePathList(curMemTablePathMap.keySet(), paths, tagFilter);
         if (!memPaths.isEmpty()) {
-            deleteDataInMemTable(memPaths, timeRanges);
+            deleteDataInMemTable(memPaths, keyRanges);
         }
 
         for (Map.Entry<String, FileMeta> entry : fileMetaMap.entrySet()) {
             List<String> filePaths =
                     determinePathList(entry.getValue().getPathMap().keySet(), paths, tagFilter);
             if (!filePaths.isEmpty()) {
-                deleteDataInFile(entry.getKey(), filePaths, timeRanges);
+                deleteDataInFile(entry.getKey(), filePaths, keyRanges);
             }
         }
     }
 
-    private void deleteDataInMemTable(List<String> paths, List<TimeRange> timeRanges)
+    private void deleteDataInMemTable(List<String> paths, List<KeyRange> keyRanges)
             throws SQLException {
         try {
             memTableLock.writeLock().lock();
             Connection conn = ((DuckDBConnection) connection).duplicate();
             Statement stmt = conn.createStatement();
 
-            if (timeRanges == null || timeRanges.size() == 0) {
+            if (keyRanges == null || keyRanges.size() == 0) {
                 for (String path : paths) {
                     stmt.execute(
                             String.format(
@@ -638,14 +638,14 @@ public class DUManager {
                 }
             } else {
                 for (String path : paths) {
-                    for (TimeRange timeRange : timeRanges) {
+                    for (KeyRange keyRange : keyRanges) {
                         stmt.execute(
                                 String.format(
                                         DELETE_DATA_STMT,
                                         curMemTable,
                                         path.replaceAll(IGINX_SEPARATOR, PARQUET_SEPARATOR),
-                                        timeRange.getActualBeginTime(),
-                                        timeRange.getActualEndTime()));
+                                        keyRange.getActualBeginKey(),
+                                        keyRange.getActualEndKey()));
                     }
                 }
             }
@@ -657,10 +657,10 @@ public class DUManager {
         }
     }
 
-    private void deleteDataInFile(String fileName, List<String> paths, List<TimeRange> timeRanges)
+    private void deleteDataInFile(String fileName, List<String> paths, List<KeyRange> keyRanges)
             throws IOException {
         FileMeta meta = fileMetaMap.get(fileName);
-        meta.deleteData(paths, timeRanges);
+        meta.deleteData(paths, keyRanges);
     }
 
     private void clearData() throws SQLException {

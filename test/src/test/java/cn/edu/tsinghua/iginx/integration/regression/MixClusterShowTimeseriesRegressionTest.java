@@ -47,7 +47,7 @@ public class MixClusterShowTimeseriesRegressionTest {
         for (String insertStatement : insertStatements) {
             execute(insertStatement);
         }
-        String statement = "show time series";
+        String statement = "SHOW COLUMNS";
         String expected =
                 "Time series:\n"
                         + "+----+--------+\n"
@@ -66,7 +66,7 @@ public class MixClusterShowTimeseriesRegressionTest {
                         + "Total line number = 9\n";
         executeAndCompare(statement, expected);
 
-        statement = "show time series m.*";
+        statement = "SHOW COLUMNS m.*";
         expected =
                 "Time series:\n"
                         + "+----+--------+\n"

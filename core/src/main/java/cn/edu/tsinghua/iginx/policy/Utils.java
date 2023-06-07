@@ -1,7 +1,7 @@
 package cn.edu.tsinghua.iginx.policy;
 
 import cn.edu.tsinghua.iginx.conf.Constants;
-import cn.edu.tsinghua.iginx.engine.shared.TimeRange;
+import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.sql.statement.DataStatement;
 import cn.edu.tsinghua.iginx.sql.statement.DeleteStatement;
@@ -58,7 +58,7 @@ public class Utils {
         switch (type) {
             case INSERT:
                 InsertStatement insertStatement = (InsertStatement) statement;
-                List<Long> times = insertStatement.getTimes();
+                List<Long> times = insertStatement.getKeys();
                 return new KeyInterval(times.get(0), times.get(times.size() - 1));
             case SELECT:
                 SelectStatement selectStatement = (SelectStatement) statement;
@@ -66,14 +66,14 @@ public class Utils {
                         selectStatement.getStartTime(), selectStatement.getEndTime());
             case DELETE:
                 DeleteStatement deleteStatement = (DeleteStatement) statement;
-                List<TimeRange> timeRanges = deleteStatement.getTimeRanges();
+                List<KeyRange> keyRanges = deleteStatement.getKeyRanges();
                 long startTime = Long.MAX_VALUE, endTime = Long.MIN_VALUE;
-                for (TimeRange timeRange : timeRanges) {
-                    if (timeRange.getBeginTime() < startTime) {
-                        startTime = timeRange.getBeginTime();
+                for (KeyRange keyRange : keyRanges) {
+                    if (keyRange.getBeginKey() < startTime) {
+                        startTime = keyRange.getBeginKey();
                     }
-                    if (timeRange.getEndTime() > endTime) {
-                        endTime = timeRange.getEndTime();
+                    if (keyRange.getEndKey() > endTime) {
+                        endTime = keyRange.getEndKey();
                     }
                 }
                 startTime = startTime == Long.MAX_VALUE ? 0 : startTime;

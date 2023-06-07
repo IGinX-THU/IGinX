@@ -8,7 +8,7 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
-import cn.edu.tsinghua.iginx.engine.shared.TimeRange;
+import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.ClearEmptyRowStreamWrapper;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.MergeTimeRowStreamWrapper;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
@@ -588,17 +588,14 @@ public class LocalExecutor implements Executor {
 
     @Override
     public TaskExecuteResult executeDeleteTask(
-            List<String> paths,
-            List<TimeRange> timeRanges,
-            TagFilter tagFilter,
-            String storageUnit) {
+            List<String> paths, List<KeyRange> keyRanges, TagFilter tagFilter, String storageUnit) {
         try {
             createDUDirectoryIfNotExists(storageUnit);
         } catch (PhysicalException e) {
             return new TaskExecuteResult(e);
         }
 
-        if (timeRanges == null || timeRanges.size() == 0) { // 没有传任何 time range
+        if (keyRanges == null || keyRanges.size() == 0) { // 没有传任何 time range
             if (paths.size() == 1 && paths.get(0).equals("*") && tagFilter == null) {
                 File duDir = Paths.get(dataDir, storageUnit).toFile();
                 FileUtils.deleteFile(duDir);
@@ -622,7 +619,7 @@ public class LocalExecutor implements Executor {
                 List<String> deletedPaths =
                         determinePathListWithTagFilter(storageUnit, paths, tagFilter, false);
                 for (String path : deletedPaths) {
-                    deleteDataInAllFiles(storageUnit, path, timeRanges);
+                    deleteDataInAllFiles(storageUnit, path, keyRanges);
                 }
             } catch (PhysicalException e) {
                 logger.error("encounter error when delete data: " + e.getMessage());
@@ -634,7 +631,7 @@ public class LocalExecutor implements Executor {
         return new TaskExecuteResult(null, null);
     }
 
-    private void deleteDataInAllFiles(String storageUnit, String path, List<TimeRange> timeRanges) {
+    private void deleteDataInAllFiles(String storageUnit, String path, List<KeyRange> keyRanges) {
         Path duDir = Paths.get(dataDir, storageUnit);
         if (Files.notExists(duDir)) {
             return;
@@ -645,14 +642,14 @@ public class LocalExecutor implements Executor {
                 File[] files = dir.listFiles();
                 if (files != null) {
                     for (File file : files) {
-                        deleteDataInFile(file, path, timeRanges);
+                        deleteDataInFile(file, path, keyRanges);
                     }
                 }
             }
         }
     }
 
-    private void deleteDataInFile(File file, String path, List<TimeRange> timeRanges) {
+    private void deleteDataInFile(File file, String path, List<KeyRange> keyRanges) {
         path = path.replaceAll(IGINX_SEPARATOR, PARQUET_SEPARATOR);
         try {
             Connection conn = ((DuckDBConnection) connection).duplicate();
@@ -676,17 +673,17 @@ public class LocalExecutor implements Executor {
                 stmt.execute(
                         String.format(
                                 CREATE_TABLE_FROM_PARQUET_STMT, tableName, file.getAbsolutePath()));
-                if (timeRanges == null) {
+                if (keyRanges == null) {
                     stmt.execute(String.format(DROP_COLUMN_STMT, tableName, path));
                 } else {
-                    for (TimeRange timeRange : timeRanges) {
+                    for (KeyRange keyRange : keyRanges) {
                         stmt.execute(
                                 String.format(
                                         DELETE_DATA_STMT,
                                         tableName,
                                         path,
-                                        timeRange.getActualBeginTime(),
-                                        timeRange.getActualEndTime()));
+                                        keyRange.getActualBeginKey(),
+                                        keyRange.getActualEndKey()));
                     }
                 }
                 stmt.execute(

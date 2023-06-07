@@ -1,6 +1,6 @@
 package cn.edu.tsinghua.iginx.engine.logical.utils;
 
-import cn.edu.tsinghua.iginx.engine.shared.TimeRange;
+import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.exceptions.SQLParserException;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsRange;
@@ -327,87 +327,87 @@ public class ExprUtils {
         }
     }
 
-    public static List<TimeRange> getTimeRangesFromFilter(Filter filter) {
+    public static List<KeyRange> getKeyRangesFromFilter(Filter filter) {
         filter = toDNF(filter);
-        List<TimeRange> timeRanges = new ArrayList<>();
-        extractTimeRange(timeRanges, filter);
-        return unionTimeRanges(timeRanges);
+        List<KeyRange> keyRanges = new ArrayList<>();
+        extractKeyRange(keyRanges, filter);
+        return unionKeyRanges(keyRanges);
     }
 
-    private static void extractTimeRange(List<TimeRange> timeRanges, Filter f) {
+    private static void extractKeyRange(List<KeyRange> keyRanges, Filter f) {
         FilterType type = f.getType();
         switch (type) {
             case Value:
             case Path:
                 break;
             case Key:
-                timeRanges.add(getTimeRangesFromTimeFilter((KeyFilter) f));
+                keyRanges.add(getKeyRangesFromKeyFilter((KeyFilter) f));
                 break;
             case And:
-                TimeRange range = getTimeRangeFromAndFilter((AndFilter) f);
-                if (range != null) timeRanges.add(range);
+                KeyRange range = getKeyRangeFromAndFilter((AndFilter) f);
+                if (range != null) keyRanges.add(range);
                 break;
             case Or:
-                List<TimeRange> ranges = getTimeRangeFromOrFilter((OrFilter) f);
+                List<KeyRange> ranges = getKeyRangeFromOrFilter((OrFilter) f);
                 if (!ranges.isEmpty()) {
-                    timeRanges.addAll(ranges);
+                    keyRanges.addAll(ranges);
                 }
                 break;
             default:
                 throw new SQLParserException(
-                        String.format("Illegal token [%s] in getTimeRangeFromAndFilter.", type));
+                        String.format("Illegal token [%s] in extractKeyRange.", type));
         }
     }
 
-    private static List<TimeRange> getTimeRangeFromOrFilter(OrFilter filter) {
-        List<TimeRange> timeRanges = new ArrayList<>();
-        filter.getChildren().forEach(f -> extractTimeRange(timeRanges, f));
-        return unionTimeRanges(timeRanges);
+    private static List<KeyRange> getKeyRangeFromOrFilter(OrFilter filter) {
+        List<KeyRange> keyRanges = new ArrayList<>();
+        filter.getChildren().forEach(f -> extractKeyRange(keyRanges, f));
+        return unionKeyRanges(keyRanges);
     }
 
-    private static TimeRange getTimeRangeFromAndFilter(AndFilter filter) {
-        List<TimeRange> timeRanges = new ArrayList<>();
-        filter.getChildren().forEach(f -> extractTimeRange(timeRanges, f));
-        return intersectTimeRanges(timeRanges);
+    private static KeyRange getKeyRangeFromAndFilter(AndFilter filter) {
+        List<KeyRange> keyRanges = new ArrayList<>();
+        filter.getChildren().forEach(f -> extractKeyRange(keyRanges, f));
+        return intersectKeyRanges(keyRanges);
     }
 
-    private static TimeRange getTimeRangesFromTimeFilter(KeyFilter filter) {
+    private static KeyRange getKeyRangesFromKeyFilter(KeyFilter filter) {
         switch (filter.getOp()) {
             case L:
-                return new TimeRange(0, filter.getValue());
+                return new KeyRange(0, filter.getValue());
             case LE:
-                return new TimeRange(0, filter.getValue() + 1);
+                return new KeyRange(0, filter.getValue() + 1);
             case G:
-                return new TimeRange(filter.getValue() + 1, Long.MAX_VALUE);
+                return new KeyRange(filter.getValue() + 1, Long.MAX_VALUE);
             case GE:
-                return new TimeRange(filter.getValue(), Long.MAX_VALUE);
+                return new KeyRange(filter.getValue(), Long.MAX_VALUE);
             case E:
-                return new TimeRange(filter.getValue(), filter.getValue() + 1);
+                return new KeyRange(filter.getValue(), filter.getValue() + 1);
             case NE:
                 throw new SQLParserException("Not support [!=] in delete clause.");
             default:
                 throw new SQLParserException(
                         String.format(
-                                "Unknown op [%s] in getTimeRangeFromTimeFilter.", filter.getOp()));
+                                "Unknown op [%s] in getKeyRangesFromKeyFilter.", filter.getOp()));
         }
     }
 
-    private static List<TimeRange> unionTimeRanges(List<TimeRange> timeRanges) {
-        if (timeRanges == null || timeRanges.isEmpty()) return new ArrayList<>();
-        timeRanges.sort(
+    private static List<KeyRange> unionKeyRanges(List<KeyRange> keyRanges) {
+        if (keyRanges == null || keyRanges.isEmpty()) return new ArrayList<>();
+        keyRanges.sort(
                 (tr1, tr2) -> {
-                    long diff = tr1.getBeginTime() - tr2.getBeginTime();
+                    long diff = tr1.getBeginKey() - tr2.getBeginKey();
                     return diff == 0 ? 0 : diff > 0 ? 1 : -1;
                 });
 
-        List<TimeRange> res = new ArrayList<>();
+        List<KeyRange> res = new ArrayList<>();
 
-        TimeRange cur = timeRanges.get(0);
-        for (int i = 1; i < timeRanges.size(); i++) {
-            TimeRange union = unionTwoTimeRanges(cur, timeRanges.get(i));
+        KeyRange cur = keyRanges.get(0);
+        for (int i = 1; i < keyRanges.size(); i++) {
+            KeyRange union = unionTwoKeyRanges(cur, keyRanges.get(i));
             if (union == null) {
                 res.add(cur);
-                cur = timeRanges.get(i);
+                cur = keyRanges.get(i);
             } else {
                 cur = union;
             }
@@ -416,33 +416,32 @@ public class ExprUtils {
         return res;
     }
 
-    private static TimeRange unionTwoTimeRanges(TimeRange first, TimeRange second) {
-        if (first.getEndTime() < second.getBeginTime()
-                || first.getBeginTime() > second.getEndTime()) {
+    private static KeyRange unionTwoKeyRanges(KeyRange first, KeyRange second) {
+        if (first.getEndKey() < second.getBeginKey() || first.getBeginKey() > second.getEndKey()) {
             return null;
         }
-        long begin = Math.min(first.getBeginTime(), second.getBeginTime());
-        long end = Math.max(first.getEndTime(), second.getEndTime());
-        return new TimeRange(begin, end);
+        long begin = Math.min(first.getBeginKey(), second.getBeginKey());
+        long end = Math.max(first.getEndKey(), second.getEndKey());
+        return new KeyRange(begin, end);
     }
 
-    private static TimeRange intersectTimeRanges(List<TimeRange> timeRanges) {
-        if (timeRanges == null || timeRanges.isEmpty()) return null;
-        TimeRange ret = timeRanges.get(0);
-        for (int i = 1; i < timeRanges.size(); i++) {
-            ret = intersectTwoTimeRanges(ret, timeRanges.get(i));
+    private static KeyRange intersectKeyRanges(List<KeyRange> keyRanges) {
+        if (keyRanges == null || keyRanges.isEmpty()) return null;
+        KeyRange ret = keyRanges.get(0);
+        for (int i = 1; i < keyRanges.size(); i++) {
+            ret = intersectTwoKeyRanges(ret, keyRanges.get(i));
         }
         return ret;
     }
 
-    private static TimeRange intersectTwoTimeRanges(TimeRange first, TimeRange second) {
+    private static KeyRange intersectTwoKeyRanges(KeyRange first, KeyRange second) {
         if (first == null || second == null) return null;
-        if (first.getEndTime() < second.getBeginTime()
-                || first.getBeginTime() > second.getEndTime()) return null;
+        if (first.getEndKey() < second.getBeginKey() || first.getBeginKey() > second.getEndKey())
+            return null;
 
-        long begin = Math.max(first.getBeginTime(), second.getBeginTime());
-        long end = Math.min(first.getEndTime(), second.getEndTime());
-        return new TimeRange(begin, end);
+        long begin = Math.max(first.getBeginKey(), second.getBeginKey());
+        long end = Math.min(first.getEndKey(), second.getEndKey());
+        return new KeyRange(begin, end);
     }
 
     public static Filter getSubFilterFromFragment(Filter filter, ColumnsRange interval) {
