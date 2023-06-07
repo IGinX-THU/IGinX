@@ -158,6 +158,12 @@ jobs:
             - name: Run ParquetCapacityExpansionIT
               run: mvn test -q -Dtest=ParquetCapacityExpansionIT -DfailIfNoTests=false
 
+            - name: Show IGinX log
+              if: always()
+              shell: bash
+              run: |
+                cat iginx.log
+
             - uses: codecov/codecov-action@v1
               with:
                   file: ./**/target/site/jacoco/jacoco.xml
