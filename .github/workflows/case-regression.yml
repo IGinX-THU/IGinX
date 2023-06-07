@@ -49,3 +49,9 @@ jobs:
               shell: bash
               run: |
                   mvn test -q -Dtest=MixClusterShowTimeseriesRegressionTest -DfailIfNoTests=false -P passFormat
+
+            - name: Show IGinX log
+              if: always()
+              shell: bash
+              run: |
+                  cat iginx.log

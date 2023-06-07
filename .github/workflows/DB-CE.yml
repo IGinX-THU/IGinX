@@ -97,6 +97,11 @@ jobs:
               run: |
                   mvn test -q -Dtest=${{matrix.DB-name}}CapacityExpansionIT#oriNoDataExpHasData -DfailIfNoTests=false -P passFormat
                   mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P passFormat
+            - name: Show IGinX log
+              if: always()
+              shell: bash
+              run: |
+                  cat iginx.log
             - uses: codecov/codecov-action@v1
               with:
                   file: ./**/target/site/jacoco/jacoco.xml
@@ -165,6 +170,11 @@ jobs:
                   nohup "${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/sbin/start_iginx.sh" &
             - name: A Lame Integration Test with Maven for parquet
               run: mvn test -q -Dtest=ParquetCapacityExpansionIT -DfailIfNoTests=false
+            - name: Show IGinX log
+              if: always()
+              shell: bash
+              run: |
+                  cat iginx.log
             - uses: codecov/codecov-action@v1
               with:
                   file: ./**/target/site/jacoco/jacoco.xml
