@@ -14,7 +14,7 @@ import cn.edu.tsinghua.iginx.engine.physical.storage.domain.DataArea;
 import cn.edu.tsinghua.iginx.engine.physical.storage.utils.TagKVUtils;
 import cn.edu.tsinghua.iginx.engine.physical.task.StoragePhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
-import cn.edu.tsinghua.iginx.engine.shared.TimeRange;
+import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.BitmapView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.ColumnDataView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
@@ -295,8 +295,8 @@ public class MongoDBStorage implements IStorage {
             return new TaskExecuteResult(
                     new PhysicalTaskExecuteFailureException("create collection failure!"));
         }
-        if (delete.getTimeRanges() == null
-                || delete.getTimeRanges().size() == 0) { // 没有传任何 time range
+        if (delete.getKeyRanges() == null
+                || delete.getKeyRanges().size() == 0) { // 没有传任何 time range
             List<String> paths = delete.getPatterns();
             if (paths.size() == 1 && paths.get(0).equals("*") && delete.getTagFilter() == null) {
                 collection.drop();
@@ -308,7 +308,7 @@ public class MongoDBStorage implements IStorage {
         } else {
             // 删除序列的一部分
             List<ObjectId> deletedObjectIds = determineDeletedObjectIds(collection, delete);
-            for (TimeRange range : delete.getTimeRanges()) {
+            for (KeyRange range : delete.getKeyRanges()) {
                 collection.updateMany(
                         in("_id", deletedObjectIds),
                         new Document(
@@ -316,8 +316,8 @@ public class MongoDBStorage implements IStorage {
                                 new Document(
                                         VALUES,
                                         and(
-                                                gte(INNER_TIMESTAMP, range.getBeginTime()),
-                                                lt(INNER_TIMESTAMP, range.getEndTime())))));
+                                                gte(INNER_TIMESTAMP, range.getBeginKey()),
+                                                lt(INNER_TIMESTAMP, range.getEndKey())))));
             }
         }
         return new TaskExecuteResult(null, null);

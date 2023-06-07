@@ -9,9 +9,9 @@ statement
    | DELETE FROM path (COMMA path)* whereClause? withClause? # deleteStatement
    | EXPLAIN? (LOGICAL | PHYSICAL)? queryClause # selectStatement
    | COUNT POINTS # countPointsStatement
-   | DELETE TIME SERIES path (COMMA path)* withClause? # deleteTimeSeriesStatement
+   | DELETE COLUMNS path (COMMA path)* withClause? # deleteColumnsStatement
    | CLEAR DATA # clearDataStatement
-   | SHOW TIME SERIES (path (COMMA path)*)? withClause? limitClause? # showTimeSeriesStatement
+   | SHOW COLUMNS (path (COMMA path)*)? withClause? limitClause? # showColumnsStatement
    | SHOW REPLICA NUMBER # showReplicationStatement
    | ADD STORAGEENGINE storageEngineSpec # addStorageEngineStatement
    | SHOW CLUSTER INFO # showClusterInfoStatement
@@ -382,6 +382,7 @@ keyWords
    | PHYSICAL
    | SET
    | CONFIG
+   | COLUMNS
    ;
 
 dateFormat
@@ -786,6 +787,10 @@ SET
 
 CONFIG
    : C O N F I G
+   ;
+
+COLUMNS
+   : C O L U M N S
    ;
    //============================
    

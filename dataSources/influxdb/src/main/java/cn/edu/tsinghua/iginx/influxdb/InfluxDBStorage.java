@@ -28,7 +28,7 @@ import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.DataArea;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
-import cn.edu.tsinghua.iginx.engine.shared.TimeRange;
+import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.BitmapView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.ColumnDataView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
@@ -697,8 +697,8 @@ public class InfluxDBStorage implements IStorage {
     @Override
     public TaskExecuteResult executeDelete(Delete delete, DataArea dataArea) {
         String storageUnit = dataArea.getStorageUnit();
-        if (delete.getTimeRanges() == null
-                || delete.getTimeRanges().size() == 0) { // 没有传任何 time range
+        if (delete.getKeyRanges() == null
+                || delete.getKeyRanges().size() == 0) { // 没有传任何 time range
             Bucket bucket = bucketMap.get(storageUnit);
             if (bucket == null) {
                 return new TaskExecuteResult(null, null);
@@ -735,14 +735,14 @@ public class InfluxDBStorage implements IStorage {
         List<InfluxDBSchema> schemas =
                 delete.getPatterns().stream().map(InfluxDBSchema::new).collect(Collectors.toList());
         for (InfluxDBSchema schema : schemas) {
-            for (TimeRange timeRange : delete.getTimeRanges()) {
+            for (KeyRange keyRange : delete.getKeyRanges()) {
                 client.getDeleteApi()
                         .delete(
                                 OffsetDateTime.ofInstant(
-                                        Instant.ofEpochMilli(timeRange.getActualBeginTime()),
+                                        Instant.ofEpochMilli(keyRange.getActualBeginKey()),
                                         ZoneId.of("UTC")),
                                 OffsetDateTime.ofInstant(
-                                        Instant.ofEpochMilli(timeRange.getActualEndTime()),
+                                        Instant.ofEpochMilli(keyRange.getActualEndKey()),
                                         ZoneId.of("UTC")),
                                 String.format(
                                         DELETE_DATA, schema.getMeasurement(), schema.getField()),
