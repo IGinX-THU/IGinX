@@ -100,7 +100,7 @@ jobs:
               if: always()
               shell: bash
               run: |
-                cat iginx.log
+                  cat iginx.log
 
             - uses: codecov/codecov-action@v1
               with:
@@ -162,7 +162,7 @@ jobs:
               if: always()
               shell: bash
               run: |
-                cat iginx.log
+                  cat iginx.log
 
             - uses: codecov/codecov-action@v1
               with:
