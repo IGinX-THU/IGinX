@@ -119,8 +119,8 @@ jobs:
             - name: Environment dependence
               uses: ./.github/actions/dependence
               with:
-                python-version: ${{ matrix.python-version }}
-                java: ${{ matrix.java }}
+                  python-version: ${{ matrix.python-version }}
+                  java: ${{ matrix.java }}
 
             - name: Cache Maven packages
               uses: actions/cache@v2.1.5
@@ -135,12 +135,12 @@ jobs:
             - name: Run DB
               uses: ./.github/actions/dbRunner
               with:
-                version: Parquet
+                  version: Parquet
 
             - name: Install IGinX with Maven
               shell: bash
               run: |
-                mvn clean package -DskipTests -P passFormat -q
+                  mvn clean package -DskipTests -P passFormat -q
 
             - name: Write history Data
               run: |
@@ -150,7 +150,7 @@ jobs:
             - name: Start IGinX
               uses: ./.github/actions/iginxRunner
               with:
-                version: ${VERSION}
+                  version: ${VERSION}
 
             - name: ParquetCapacityExpansionIT
               run: mvn test -q -Dtest=ParquetCapacityExpansionIT -DfailIfNoTests=false -P passFormat
