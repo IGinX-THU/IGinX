@@ -20,7 +20,7 @@ public class ConfLoader {
 
     private static final String DBCONF = "%s-config";
 
-    private static final String RUNNING_STORAGE = "./src/test/resources/DBConf.txt";
+    private static final String RUNNING_STORAGE = "./src/test/resources/DBName.txt";
 
     private static final String IS_SCALING = "./src/test/resources/isScaling.txt";
 
@@ -47,9 +47,9 @@ public class ConfLoader {
     }
 
     public boolean isScaling() {
-        String isScaling = FileReader.convertToString(this.IS_SCALING);
-        logInfo("{}", isScaling);
-        return isScaling != null && !isScaling.isEmpty();
+        String isScaling = FileReader.convertToString(IS_SCALING);
+        logInfo("isScaling: {}", isScaling);
+        return Boolean.parseBoolean(isScaling);
     }
 
     public ConfLoader(String confPath) {
