@@ -37,7 +37,6 @@
 package cn.edu.tsinghua.iginx.metadata.entity;
 
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
-
 import java.util.Objects;
 
 public final class FragmentMeta {

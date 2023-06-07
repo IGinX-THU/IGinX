@@ -253,7 +253,10 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
             if (client.checkExists().forPath(path) != null) {
                 return false;
             }
-            this.client.create().creatingParentsIfNeeded().withMode(CreateMode.PERSISTENT)
+            this.client
+                    .create()
+                    .creatingParentsIfNeeded()
+                    .withMode(CreateMode.PERSISTENT)
                     .forPath(path, JsonUtils.toJson(plan));
         } catch (Exception e) {
             logger.error("get migration plan failure: ", e);
@@ -274,12 +277,10 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
             if (client.checkExists().forPath(MIGRATION_NODE_PREFIX) == null) {
                 return Collections.emptyList();
             }
-            List<String> children = client.getChildren()
-                    .forPath(MIGRATION_NODE_PREFIX);
+            List<String> children = client.getChildren().forPath(MIGRATION_NODE_PREFIX);
             List<StorageMigrationPlan> plans = new ArrayList<>();
             for (String childName : children) {
-                byte[] data = client.getData()
-                        .forPath(MIGRATION_NODE_PREFIX + "/" + childName);
+                byte[] data = client.getData().forPath(MIGRATION_NODE_PREFIX + "/" + childName);
                 StorageMigrationPlan plan = JsonUtils.fromJson(data, StorageMigrationPlan.class);
                 plans.add(plan);
             }

@@ -22,8 +22,8 @@ import cn.edu.tsinghua.iginx.exceptions.MetaStorageException;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
 import cn.edu.tsinghua.iginx.metadata.hook.StorageEngineChangeHook;
 import cn.edu.tsinghua.iginx.metadata.hook.StorageUnitHook;
-import cn.edu.tsinghua.iginx.policy.simple.ColumnCalDO;
 import cn.edu.tsinghua.iginx.migration.storage.StorageMigrationPlan;
+import cn.edu.tsinghua.iginx.policy.simple.ColumnCalDO;
 import cn.edu.tsinghua.iginx.sql.statement.InsertStatement;
 import cn.edu.tsinghua.iginx.thrift.AuthType;
 import cn.edu.tsinghua.iginx.utils.Pair;
@@ -46,7 +46,8 @@ public interface IMetaManager {
 
     boolean deleteMigrationPlan(long id);
 
-    Map<String, String> startMigrationStorageUnits(Map<String, Long> migrationMap, boolean migrationData);
+    Map<String, String> startMigrationStorageUnits(
+            Map<String, Long> migrationMap, boolean migrationData);
 
     boolean finishMigrationStorageUnit(String storageUnitId, boolean migrationData);
 

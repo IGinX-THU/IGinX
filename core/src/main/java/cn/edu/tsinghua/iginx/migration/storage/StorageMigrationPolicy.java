@@ -10,5 +10,6 @@ public abstract class StorageMigrationPolicy {
         this.metaManager = metaManager;
     }
 
-    public abstract StorageMigrationPlan generateMigrationPlans(long storageId, boolean migrationData);
+    public abstract StorageMigrationPlan generateMigrationPlans(
+            long storageId, boolean migrationData);
 }

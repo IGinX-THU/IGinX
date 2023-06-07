@@ -12,7 +12,11 @@ public class StorageMigrationPlan {
 
     private long migrationOwner;
 
-    public StorageMigrationPlan(long migrationId, boolean migrationData, Map<String, Long> migrationMap, long migrationOwner) {
+    public StorageMigrationPlan(
+            long migrationId,
+            boolean migrationData,
+            Map<String, Long> migrationMap,
+            long migrationOwner) {
         this.migrationId = migrationId;
         this.migrationData = migrationData;
         this.migrationMap = migrationMap;
@@ -41,11 +45,15 @@ public class StorageMigrationPlan {
 
     @Override
     public String toString() {
-        return "StorageMigrationPlan{" +
-                "migrationData=" + migrationData +
-                ", migrationId=" + migrationId +
-                ", migrationMap=" + migrationMap +
-                ", migrationOwner=" + migrationOwner +
-                '}';
+        return "StorageMigrationPlan{"
+                + "migrationData="
+                + migrationData
+                + ", migrationId="
+                + migrationId
+                + ", migrationMap="
+                + migrationMap
+                + ", migrationOwner="
+                + migrationOwner
+                + '}';
     }
 }

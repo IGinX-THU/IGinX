@@ -19,7 +19,6 @@
 package cn.edu.tsinghua.iginx.metadata.entity;
 
 import cn.edu.tsinghua.iginx.conf.Constants;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -65,7 +64,12 @@ public final class StorageUnitMeta implements Cloneable {
         this.replicas = Collections.emptyList();
     }
 
-    public StorageUnitMeta(String id, long storageEngineId, String masterId, boolean isMaster, boolean initialStorageUnit) {
+    public StorageUnitMeta(
+            String id,
+            long storageEngineId,
+            String masterId,
+            boolean isMaster,
+            boolean initialStorageUnit) {
         this.id = id;
         this.storageEngineId = storageEngineId;
         this.masterId = masterId;
@@ -73,7 +77,15 @@ public final class StorageUnitMeta implements Cloneable {
         this.initialStorageUnit = initialStorageUnit;
     }
 
-    public StorageUnitMeta(String id, long storageEngineId, String masterId, boolean isMaster, long createdBy, boolean initialStorageUnit, boolean dummy, List<StorageUnitMeta> replicas) {
+    public StorageUnitMeta(
+            String id,
+            long storageEngineId,
+            String masterId,
+            boolean isMaster,
+            long createdBy,
+            boolean initialStorageUnit,
+            boolean dummy,
+            List<StorageUnitMeta> replicas) {
         this.id = id;
         this.storageEngineId = storageEngineId;
         this.masterId = masterId;
@@ -84,7 +96,17 @@ public final class StorageUnitMeta implements Cloneable {
         this.replicas = replicas;
     }
 
-    public StorageUnitMeta(String id, long storageEngineId, String masterId, boolean isMaster, long createdBy, boolean initialStorageUnit, boolean dummy, StorageUnitState state, String migrationTo, List<StorageUnitMeta> replicas) {
+    public StorageUnitMeta(
+            String id,
+            long storageEngineId,
+            String masterId,
+            boolean isMaster,
+            long createdBy,
+            boolean initialStorageUnit,
+            boolean dummy,
+            StorageUnitState state,
+            String migrationTo,
+            List<StorageUnitMeta> replicas) {
         this.id = id;
         this.storageEngineId = storageEngineId;
         this.masterId = masterId;
@@ -98,9 +120,8 @@ public final class StorageUnitMeta implements Cloneable {
     }
 
     public void addReplica(StorageUnitMeta storageUnit) {
-        if (replicas == null)
-            replicas = new ArrayList<>();
-        for (StorageUnitMeta replica: replicas) {
+        if (replicas == null) replicas = new ArrayList<>();
+        for (StorageUnitMeta replica : replicas) {
             if (Objects.equals(replica.getId(), storageUnit.getId())) {
                 return;
             }
@@ -109,8 +130,7 @@ public final class StorageUnitMeta implements Cloneable {
     }
 
     public void removeReplica(StorageUnitMeta storageUnit) {
-        if (replicas == null)
-            replicas = new ArrayList<>();
+        if (replicas == null) replicas = new ArrayList<>();
         replicas.remove(storageUnit);
     }
 
@@ -139,8 +159,7 @@ public final class StorageUnitMeta implements Cloneable {
     }
 
     public List<StorageUnitMeta> getReplicas() {
-        if (replicas == null)
-            replicas = new ArrayList<>();
+        if (replicas == null) replicas = new ArrayList<>();
         return replicas;
     }
 
@@ -149,18 +168,21 @@ public final class StorageUnitMeta implements Cloneable {
     }
 
     public StorageUnitMeta renameStorageUnitMeta(String id, String masterId) {
-        StorageUnitMeta storageUnitMeta = new StorageUnitMeta(id, storageEngineId, masterId, isMaster);
+        StorageUnitMeta storageUnitMeta =
+                new StorageUnitMeta(id, storageEngineId, masterId, isMaster);
         storageUnitMeta.setCreatedBy(createdBy);
         storageUnitMeta.setInitialStorageUnit(initialStorageUnit);
         return storageUnitMeta;
     }
 
-    public StorageUnitMeta migrationStorageUnitMeta(String id, long migrationBy, long storageEngineId) {
+    public StorageUnitMeta migrationStorageUnitMeta(
+            String id, long migrationBy, long storageEngineId) {
         String masterId = getMasterId();
         if (isMaster) {
             masterId = id;
         }
-        StorageUnitMeta storageUnitMeta = new StorageUnitMeta(id, storageEngineId, masterId, isMaster);
+        StorageUnitMeta storageUnitMeta =
+                new StorageUnitMeta(id, storageEngineId, masterId, isMaster);
         storageUnitMeta.setCreatedBy(migrationBy);
         storageUnitMeta.setInitialStorageUnit(false);
         storageUnitMeta.setState(StorageUnitState.CREATING);
@@ -246,7 +268,7 @@ public final class StorageUnitMeta implements Cloneable {
     }
 
     public static String generateDummyStorageUnitID(long id) {
-        return String.format(Constants.DUMMY + "%010d", (int)id);
+        return String.format(Constants.DUMMY + "%010d", (int) id);
     }
 
     public StorageUnitState getState() {

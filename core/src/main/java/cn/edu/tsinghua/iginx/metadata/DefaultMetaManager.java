@@ -466,7 +466,8 @@ public class DefaultMetaManager implements IMetaManager {
     }
 
     @Override
-    public Map<String, String> startMigrationStorageUnits(Map<String, Long> migrationMap, boolean migrationData) {
+    public Map<String, String> startMigrationStorageUnits(
+            Map<String, Long> migrationMap, boolean migrationData) {
         if (migrationData) {
             return startMigrationStorageUnitsWithData(migrationMap);
         }
@@ -477,7 +478,7 @@ public class DefaultMetaManager implements IMetaManager {
         try {
             Map<String, String> migrationStorageUnitMap = new HashMap<>();
             storage.lockStorageUnit();
-            for (String storageUnitId: migrationMap.keySet()) {
+            for (String storageUnitId : migrationMap.keySet()) {
                 StorageUnitMeta storageUnit = getStorageUnit(storageUnitId);
                 if (storageUnit.getState() == StorageUnitState.DISCARD) { // 已经迁移完了
                     continue;
@@ -488,7 +489,9 @@ public class DefaultMetaManager implements IMetaManager {
                 }
                 String newStorageUnitId = storage.addStorageUnit();
                 StorageUnitMeta clonedStorageUnit = storageUnit.clone();
-                StorageUnitMeta newStorageUnit = clonedStorageUnit.migrationStorageUnitMeta(newStorageUnitId, id, migrationMap.get(storageUnitId));
+                StorageUnitMeta newStorageUnit =
+                        clonedStorageUnit.migrationStorageUnitMeta(
+                                newStorageUnitId, id, migrationMap.get(storageUnitId));
                 // 更新新的 storage unit
                 cache.updateStorageUnit(newStorageUnit);
                 for (StorageUnitHook hook : storageUnitHooks) {
@@ -516,7 +519,8 @@ public class DefaultMetaManager implements IMetaManager {
         return null;
     }
 
-    private Map<String, String> startMigrationStorageUnitsWithoutData(Map<String, Long> migrationMap) { // 这里的 key 指的是实际进行迁移的分片，value 指的是实际的目的地
+    private Map<String, String> startMigrationStorageUnitsWithoutData(
+            Map<String, Long> migrationMap) { // 这里的 key 指的是实际进行迁移的分片，value 指的是实际的目的地
         try {
             Map<String, String> migrationStorageUnitMap = new HashMap<>();
 
@@ -524,20 +528,29 @@ public class DefaultMetaManager implements IMetaManager {
             List<StorageUnitMeta> afterStorageUnits = new ArrayList<>();
 
             storage.lockStorageUnit();
-            for (String storageUnitId: migrationMap.keySet()) {
+            for (String storageUnitId : migrationMap.keySet()) {
                 String newStorageUnitId = storage.addStorageUnit();
 
-                StorageUnitMeta storageUnit = getStorageUnit(storageUnitId); // 宕机的存储单元，直接标记成 Discard
-                if (storageUnit.getState() == StorageUnitState.DISCARD) { // 正处在迁移或者迁移的中间状态，表示当前的请求为一个重试的请求
+                StorageUnitMeta storageUnit =
+                        getStorageUnit(storageUnitId); // 宕机的存储单元，直接标记成 Discard
+                if (storageUnit.getState()
+                        == StorageUnitState.DISCARD) { // 正处在迁移或者迁移的中间状态，表示当前的请求为一个重试的请求
                     StorageUnitMeta targetUnit = getStorageUnit(storageUnit.getMigrationTo());
                     if (targetUnit.getState() == StorageUnitState.CREATING) {
                         // 这里需要选出来一个副本，作为数据迁移的源头
                         if (storageUnit.isMaster()) {
-                            if (storageUnit.getReplicas() != null && storageUnit.getReplicas().size() > 0) {
-                                migrationStorageUnitMap.put(storageUnit.getReplicas().get(storageUnit.getReplicas().size() - 1).getId(), newStorageUnitId);
+                            if (storageUnit.getReplicas() != null
+                                    && storageUnit.getReplicas().size() > 0) {
+                                migrationStorageUnitMap.put(
+                                        storageUnit
+                                                .getReplicas()
+                                                .get(storageUnit.getReplicas().size() - 1)
+                                                .getId(),
+                                        newStorageUnitId);
                             }
                         } else { // 失效的分片是副本的话，只需要找到主本，使用主本作为数据源即可
-                            migrationStorageUnitMap.put(storageUnit.getMasterId(), newStorageUnitId);
+                            migrationStorageUnitMap.put(
+                                    storageUnit.getMasterId(), newStorageUnitId);
                         }
                     }
                     continue;
@@ -547,7 +560,9 @@ public class DefaultMetaManager implements IMetaManager {
                 beforeStorageUnits.add(storageUnit);
                 afterStorageUnits.add(clonedStorageUnit);
 
-                StorageUnitMeta newStorageUnit = clonedStorageUnit.migrationStorageUnitMeta(newStorageUnitId, id, migrationMap.get(storageUnitId));
+                StorageUnitMeta newStorageUnit =
+                        clonedStorageUnit.migrationStorageUnitMeta(
+                                newStorageUnitId, id, migrationMap.get(storageUnitId));
                 clonedStorageUnit.setState(StorageUnitState.DISCARD);
 
                 beforeStorageUnits.add(null);
@@ -556,7 +571,8 @@ public class DefaultMetaManager implements IMetaManager {
                 // 为宕机的副本找到合适的主本
                 if (storageUnit.isMaster()) {
                     if (storageUnit.getReplicas() != null && storageUnit.getReplicas().size() > 0) {
-                        migrationStorageUnitMap.put(storageUnit.getReplicas().get(0).getId(), newStorageUnitId);
+                        migrationStorageUnitMap.put(
+                                storageUnit.getReplicas().get(0).getId(), newStorageUnitId);
                     }
                 } else { // 失效的分片是副本的话，只需要找到主本，使用主本作为数据源即可
                     migrationStorageUnitMap.put(storageUnit.getMasterId(), newStorageUnitId);
@@ -565,7 +581,7 @@ public class DefaultMetaManager implements IMetaManager {
                 // 变更副本关系
                 if (storageUnit.isMaster()) {
                     List<StorageUnitMeta> slaveUnits = storageUnit.getReplicas();
-                    for (StorageUnitMeta unit: slaveUnits) {
+                    for (StorageUnitMeta unit : slaveUnits) {
                         StorageUnitMeta clone = unit.clone();
                         clone.setMasterId(newStorageUnitId);
                         beforeStorageUnits.add(unit);
@@ -629,7 +645,7 @@ public class DefaultMetaManager implements IMetaManager {
             afterStorageUnits.add(clonedTargetStorageUnit);
             if (sourceStorageUnit.isMaster()) {
                 List<StorageUnitMeta> slaveUnits = sourceStorageUnit.getReplicas();
-                for (StorageUnitMeta unit: slaveUnits) {
+                for (StorageUnitMeta unit : slaveUnits) {
                     StorageUnitMeta clone = unit.clone();
                     clone.setMasterId(clonedTargetStorageUnit.getId());
                     beforeStorageUnits.add(unit);
@@ -637,7 +653,8 @@ public class DefaultMetaManager implements IMetaManager {
                     clonedTargetStorageUnit.addReplica(clone);
                 }
             } else {
-                StorageUnitMeta masterStorageUnit = getStorageUnit(clonedSourceStorageUnit.getMasterId());
+                StorageUnitMeta masterStorageUnit =
+                        getStorageUnit(clonedSourceStorageUnit.getMasterId());
                 masterStorageUnit.addReplica(clonedTargetStorageUnit);
                 masterStorageUnit.removeReplica(clonedSourceStorageUnit);
             }
