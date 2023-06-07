@@ -28,8 +28,10 @@ jobs:
               with:
                   python-version: ${{ matrix.python-version }}
                   java: ${{ matrix.java }}
+
             - name: Run ZooKeeper
               uses: ./.github/actions/zookeeperRunner
+
             - name: Run DB
               uses: ./.github/actions/dbRunner
               with:
@@ -40,17 +42,11 @@ jobs:
               run: |
                   mvn clean package -DskipTests -P passFormat -q
 
-            - name: Set the DB name
+            - name: Change IGinX config
               uses: ./.github/actions/confWriter
               with:
-                  confFile: DBName
                   DB-name: ${{matrix.DB-name}}
                   if-CapExp: false
-
-            - name: Set the UDF conf
-              uses: ./.github/actions/confWriter
-              with:
-                  confFile: UDFConf
 
             - name: Start IGinX
               uses: ./.github/actions/iginxRunner

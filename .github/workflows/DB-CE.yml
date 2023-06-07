@@ -29,79 +29,78 @@ jobs:
               with:
                   python-version: ${{ matrix.python-version }}
                   java: ${{ matrix.java }}
+
             - name: Run ZooKeeper
               uses: ./.github/actions/zookeeperRunner
 
             - name: Run DB
               uses: ./.github/actions/dbRunner
               with:
-                  DB-name: ${{matrix.DB-name}}
-
-            - name: Set the DB name
-              uses: ./.github/actions/confWriter
-              with:
-                  confFile: DBName
-                  DB-name: ${{matrix.DB-name}}
+                  DB-name: ${{ matrix.DB-name }}
 
             - name: Install IGinX with Maven
               shell: bash
               run: |
                   mvn clean package -DskipTests -P passFormat -q
 
-            - name: Set the UDF conf
-              uses: ./.github/actions/confWriter
-              with:
-                  confFile: UDFConf
-
-            #第 1 阶段测试开始==========================================
+            # 第 1 阶段测试开始==========================================
             - name: Prepare CapExp environment oriHasDataExpHasData
               uses: ./.github/actions/capacityExpansionUnionTest
               with:
                   version: ${VERSION}
-                  DB-name: ${{matrix.DB-name}}
+                  DB-name: ${{ matrix.DB-name }}
                   Test-Way: oriHasDataExpHasData
+
             - name: oriHasDataExpHasData IT
               run: |
-                  mvn test -q -Dtest=${{matrix.DB-name}}CapacityExpansionIT#oriHasDataExpHasData -DfailIfNoTests=false -P passFormat
+                  mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriHasDataExpHasData -DfailIfNoTests=false -P passFormat
                   mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P passFormat
-            #第 2 阶段测试开始==========================================
+
+            # 第 2 阶段测试开始==========================================
             - name: Prepare CapExp environment oriNoDataExpNoData
               uses: ./.github/actions/capacityExpansionUnionTest
               with:
                   version: ${VERSION}
-                  DB-name: ${{matrix.DB-name}}
+                  DB-name: ${{ matrix.DB-name }}
                   Test-Way: oriNoDataExpNoData
+
             - name: oriNoDataExpNoData IT
               run: |
-                  mvn test -q -Dtest=${{matrix.DB-name}}CapacityExpansionIT#oriNoDataExpNoData -DfailIfNoTests=false -P passFormat
+                  mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriNoDataExpNoData -DfailIfNoTests=false -P passFormat
                   mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P passFormat
-            #第 3 阶段测试开始==========================================
+
+            # 第 3 阶段测试开始==========================================
             - name: Prepare CapExp environment oriHasDataExpNoData
               uses: ./.github/actions/capacityExpansionUnionTest
               with:
                   version: ${VERSION}
-                  DB-name: ${{matrix.DB-name}}
+                  DB-name: ${{ matrix.DB-name }}
                   Test-Way: oriHasDataExpNoData
+
             - name: oriHasDataExpNoData IT
               run: |
-                  mvn test -q -Dtest=${{matrix.DB-name}}CapacityExpansionIT#oriHasDataExpNoData -DfailIfNoTests=false -P passFormat
+                  mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriHasDataExpNoData -DfailIfNoTests=false -P passFormat
                   mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P passFormat
-            #第 4 阶段测试开始==========================================
+
+            # 第 4 阶段测试开始==========================================
             - name: Prepare CapExp environment oriNoDataExpHasData
               uses: ./.github/actions/capacityExpansionUnionTest
               with:
                   version: ${VERSION}
-                  DB-name: ${{matrix.DB-name}}
+                  DB-name: ${{ matrix.DB-name }}
                   Test-Way: oriNoDataExpHasData
+
             - name: oriNoDataExpHasData IT
               run: |
-                  mvn test -q -Dtest=${{matrix.DB-name}}CapacityExpansionIT#oriNoDataExpHasData -DfailIfNoTests=false -P passFormat
+                  mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriNoDataExpHasData -DfailIfNoTests=false -P passFormat
                   mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P passFormat
+
             - name: Show IGinX log
               if: always()
               shell: bash
               run: |
                   cat iginx.log
+
             - uses: codecov/codecov-action@v1
               with:
                   file: ./**/target/site/jacoco/jacoco.xml

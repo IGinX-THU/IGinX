@@ -29,8 +29,10 @@ jobs:
               with:
                   python-version: ${{ matrix.python-version }}
                   java: ${{ matrix.java }}
+
             - name: Run ZooKeeper
               uses: ./.github/actions/zookeeperRunner
+
             - name: Run DB
               uses: ./.github/actions/dbRunner
               with:
