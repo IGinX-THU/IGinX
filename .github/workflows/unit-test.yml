@@ -18,7 +18,7 @@ jobs:
             fail-fast: false
             matrix:
                 python-version: ["3.7"]
-                java-version: [8]
+                java: [8]
                 os: [ubuntu-latest, macos-latest]
         runs-on: ${{ matrix.os }}
         steps:
@@ -27,7 +27,7 @@ jobs:
               uses: ./.github/actions/dependence
               with:
                   python-version: ${{ matrix.python-version }}
-                  java-version: ${{ matrix.java-version }}
+                  java: ${{ matrix.java }}
 
             - name: Test with Maven
               run: mvn clean package -pl core -am -P passFormat -q

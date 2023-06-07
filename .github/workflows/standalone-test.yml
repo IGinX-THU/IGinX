@@ -17,7 +17,7 @@ jobs:
             fail-fast: false
             matrix:
                 python-version: ["3.7"]
-                java-version: [8]
+                java: [8]
                 os: [ubuntu-latest, macos-latest]
                 DB-name: ["IoTDB12", "InfluxDB", "Parquet", "Redis"]
         runs-on: ${{ matrix.os }}
@@ -27,30 +27,26 @@ jobs:
               uses: ./.github/actions/dependence
               with:
                   python-version: ${{ matrix.python-version }}
-                  java-version: ${{ matrix.java-version }}
+                  java: ${{ matrix.java }}
+
             - name: Run ZooKeeper
               uses: ./.github/actions/zookeeperRunner
+
             - name: Run DB
               uses: ./.github/actions/dbRunner
               with:
-                  version: ${{matrix.DB-name}}
+                  DB-name: ${{ matrix.DB-name }}
 
             - name: Install IGinX with Maven
               shell: bash
               run: |
                   mvn clean package -DskipTests -P passFormat -q
 
-            - name: Set the DB name
+            - name: Change IGinX config
               uses: ./.github/actions/confWriter
               with:
-                  confFile: DBName
                   DB-name: ${{matrix.DB-name}}
                   if-CapExp: false
-
-            - name: Set the UDF conf
-              uses: ./.github/actions/confWriter
-              with:
-                  confFile: UDFConf
 
             - name: Start IGinX
               uses: ./.github/actions/iginxRunner
@@ -62,7 +58,7 @@ jobs:
                   chmod +x "${GITHUB_WORKSPACE}/.github/test_union.sh"
                   mvn test -q -Dtest=Controller -DfailIfNoTests=false -P passFormat
 
-            - name: Show the test result
+            - name: Show test result
               if: always()
               shell: bash
               run: |
