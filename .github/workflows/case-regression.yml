@@ -13,7 +13,7 @@ concurrency:
     cancel-in-progress: true
 
 jobs:
-    MixCluster-ShowTimeseries:
+    MixCluster-ShowColumns:
         timeout-minutes: 15
         strategy:
             fail-fast: false
@@ -34,7 +34,7 @@ jobs:
             - name: Run DB
               uses: ./.github/actions/dbRunner
               with:
-                  version: "Mix-IoTDB12-InfluxDB"
+                  DB-name: "Mix-IoTDB12-InfluxDB"
 
             - name: Install IGinX with Maven
               shell: bash

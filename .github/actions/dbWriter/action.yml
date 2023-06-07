@@ -1,10 +1,10 @@
 name: "db-writer"
 description: "db writer"
 inputs:
-    version:
-        description: "DB version"
+    DB-name:
+        description: "DB name"
         required: false
-        default: iotdb12
+        default: IoTDB12
     Test-Way:
         description: "the way to imp"
         required: false
@@ -15,4 +15,4 @@ runs:
         - name: Write history data
           shell: bash
           run: |
-              mvn test -q -Dtest=${{inputs.version}}HistoryDataGenerator#${{inputs.Test-Way}} -DfailIfNoTests=false -P passFormat
+              mvn test -q -Dtest=${{ inputs.DB-name }}HistoryDataGenerator#${{ inputs.Test-Way }} -DfailIfNoTests=false -P passFormat

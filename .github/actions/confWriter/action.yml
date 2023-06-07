@@ -14,9 +14,9 @@ inputs:
         required: false
         default: clearData
     DB-name:
-        description: "IoTDB version"
+        description: "DB name"
         required: false
-        default: iotdb12
+        default: IoTDB12
 
 runs:
     using: "composite" # Mandatory parameter
@@ -24,19 +24,19 @@ runs:
         - name: Set if-CapExp
           shell: bash
           run: |
-              echo "${{inputs.if-CapExp}}" > ${GITHUB_WORKSPACE}/test/src/test/resources/isScaling.txt
+              echo "${{ inputs.if-CapExp }}" > ${GITHUB_WORKSPACE}/test/src/test/resources/isScaling.txt
 
         - if: inputs.if-CapExp=='true'
           name: Change conf/config.properties
           shell: bash
           run: |
-              if [[ "${{inputs.Test-Way}}" == "oriHasDataExpHasData" || "${{inputs.Test-Way}}" == "oriHasDataExpNoData" ]]; then
+              if [[ "${{ inputs.Test-Way }}" == "oriHasDataExpHasData" || "${{ inputs.Test-Way }}" == "oriHasDataExpNoData" ]]; then
                 if [ "$RUNNER_OS" == "Linux" ]; then
                   sed -i "s/has_data=false/has_data=true/g" ${GITHUB_WORKSPACE}/core/target/iginx-core-0.6.0-SNAPSHOT/conf/config.properties
                 elif [ "$RUNNER_OS" == "macOS" ]; then
                   sed -i "" "s/has_data=false/has_data=true/" ${GITHUB_WORKSPACE}/core/target/iginx-core-0.6.0-SNAPSHOT/conf/config.properties
                 fi
-              elif [[ "${{inputs.Test-Way}}" == "oriNoDataExpHasData" || "${{inputs.Test-Way}}" == "oriNoDataExpNoData" ]]; then
+              elif [[ "${{ inputs.Test-Way }}" == "oriNoDataExpHasData" || "${{ inputs.Test-Way }}" == "oriNoDataExpNoData" ]]; then
                 if [ "$RUNNER_OS" == "Linux" ]; then
                   sed -i "s/has_data=true/has_data=false/g" ${GITHUB_WORKSPACE}/core/target/iginx-core-0.6.0-SNAPSHOT/conf/config.properties
                 elif [ "$RUNNER_OS" == "macOS" ]; then
@@ -48,7 +48,7 @@ runs:
           name: Change conf/config.properties
           shell: bash
           run: |
-              echo "${{inputs.DB-name}}" > ${GITHUB_WORKSPACE}/test/src/test/resources/DBName.txt
+              echo "${{ inputs.DB-name }}" > ${GITHUB_WORKSPACE}/test/src/test/resources/DBName.txt
 
         - if: inputs.confFile=='iginxConf'
           name: Change conf/config.properties

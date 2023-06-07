@@ -33,7 +33,7 @@ jobs:
             - name: Run DB
               uses: ./.github/actions/dbRunner
               with:
-                  version: ${{matrix.DB-name}}
+                  DB-name: ${{ matrix.DB-name }}
 
             - name: Install IGinX with Maven
               shell: bash
@@ -62,7 +62,7 @@ jobs:
                   chmod +x "${GITHUB_WORKSPACE}/.github/test_union.sh"
                   mvn test -q -Dtest=Controller -DfailIfNoTests=false -P passFormat
 
-            - name: Show the test result
+            - name: Show test result
               if: always()
               shell: bash
               run: |
