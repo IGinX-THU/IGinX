@@ -48,7 +48,7 @@ jobs:
               if: always()
               shell: bash
               run: |
-                  mvn test -q -Dtest=MixClusterShowTimeseriesRegressionTest -DfailIfNoTests=false -P passFormat
+                  mvn test -q -Dtest=MixClusterShowColumnsRegressionTest -DfailIfNoTests=false -P passFormat
 
             - name: Show IGinX log
               if: always()
