@@ -167,7 +167,7 @@ public class ParquetStorage implements IStorage {
     public TaskExecuteResult executeDelete(Delete delete, DataArea dataArea) {
         return executor.executeDeleteTask(
                 delete.getPatterns(),
-                delete.getTimeRanges(),
+                delete.getKeyRanges(),
                 delete.getTagFilter(),
                 dataArea.getStorageUnit());
     }

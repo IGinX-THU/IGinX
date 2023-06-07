@@ -304,7 +304,7 @@ public class MetricsResource {
 
     private QueryResult annoDataQuery(Query query, QueryParser parser) throws Exception {
         QueryExecutor executor = new QueryExecutor(null);
-        // 调用show time series
+        // 调用SHOW COLUMNS
         QueryResult timeSeries = executor.executeShowTimeSeries();
         // 筛选路径信息，正常信息路径，生成单个query
         Query queryAnnoData = getAnnoDataQueryFromTimeSeries(query, timeSeries);

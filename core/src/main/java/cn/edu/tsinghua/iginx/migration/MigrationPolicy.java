@@ -5,8 +5,8 @@ import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngine;
 import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngineImpl;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
-import cn.edu.tsinghua.iginx.engine.shared.TimeRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
@@ -543,14 +543,14 @@ public abstract class MigrationPolicy {
 
             List<String> paths = new ArrayList<>();
             paths.add(fragmentMeta.getMasterStorageUnitId() + "*");
-            List<TimeRange> timeRanges = new ArrayList<>();
-            timeRanges.add(
-                    new TimeRange(
+            List<KeyRange> keyRanges = new ArrayList<>();
+            keyRanges.add(
+                    new KeyRange(
                             fragmentMeta.getKeyInterval().getStartKey(),
                             true,
                             fragmentMeta.getKeyInterval().getEndKey(),
                             false));
-            Delete delete = new Delete(new FragmentSource(fragmentMeta), timeRanges, paths, null);
+            Delete delete = new Delete(new FragmentSource(fragmentMeta), keyRanges, paths, null);
             physicalEngine.execute(new RequestContext(), delete);
         } catch (Exception e) {
             logger.error(

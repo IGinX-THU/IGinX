@@ -87,7 +87,7 @@ public class TransformIT {
 
     private static final String COMMIT_SQL_FORMATTER = "COMMIT TRANSFORM JOB \"%s\"";
 
-    private static final String SHOW_TIME_SERIES_SQL = "SHOW TIME SERIES;";
+    private static final String SHOW_TIME_SERIES_SQL = "SHOW COLUMNS;";
 
     private static final String QUERY_SQL_1 = "SELECT s2 FROM us.d1 WHERE key >= 14800;";
 

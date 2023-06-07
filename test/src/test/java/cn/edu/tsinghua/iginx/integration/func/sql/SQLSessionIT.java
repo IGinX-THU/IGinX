@@ -182,7 +182,7 @@ public class SQLSessionIT {
         if (!isAbleToShowTimeSeries || isScaling) {
             return;
         }
-        String statement = "SHOW TIME SERIES us.*;";
+        String statement = "SHOW COLUMNS us.*;";
         String expected =
                 "Time series:\n"
                         + "+--------+--------+\n"
@@ -196,7 +196,7 @@ public class SQLSessionIT {
                         + "Total line number = 4\n";
         executor.executeAndCompare(statement, expected);
 
-        statement = "SHOW TIME SERIES us.d1.*;";
+        statement = "SHOW COLUMNS us.d1.*;";
         expected =
                 "Time series:\n"
                         + "+--------+--------+\n"
@@ -210,7 +210,7 @@ public class SQLSessionIT {
                         + "Total line number = 4\n";
         executor.executeAndCompare(statement, expected);
 
-        statement = "SHOW TIME SERIES limit 3;";
+        statement = "SHOW COLUMNS limit 3;";
         expected =
                 "Time series:\n"
                         + "+--------+--------+\n"
@@ -223,7 +223,7 @@ public class SQLSessionIT {
                         + "Total line number = 3\n";
         executor.executeAndCompare(statement, expected);
 
-        statement = "SHOW TIME SERIES limit 2 offset 1;";
+        statement = "SHOW COLUMNS limit 2 offset 1;";
         expected =
                 "Time series:\n"
                         + "+--------+--------+\n"
@@ -235,7 +235,7 @@ public class SQLSessionIT {
                         + "Total line number = 2\n";
         executor.executeAndCompare(statement, expected);
 
-        statement = "SHOW TIME SERIES limit 1, 2;";
+        statement = "SHOW COLUMNS limit 1, 2;";
         expected =
                 "Time series:\n"
                         + "+--------+--------+\n"
@@ -247,7 +247,7 @@ public class SQLSessionIT {
                         + "Total line number = 2\n";
         executor.executeAndCompare(statement, expected);
 
-        statement = "SHOW TIME SERIES us.d1.s1;";
+        statement = "SHOW COLUMNS us.d1.s1;";
         expected =
                 "Time series:\n"
                         + "+--------+--------+\n"
@@ -258,7 +258,7 @@ public class SQLSessionIT {
                         + "Total line number = 1\n";
         executor.executeAndCompare(statement, expected);
 
-        statement = "SHOW TIME SERIES us.d1.s1, us.d1.s3;";
+        statement = "SHOW COLUMNS us.d1.s1, us.d1.s3;";
         expected =
                 "Time series:\n"
                         + "+--------+--------+\n"
@@ -3941,7 +3941,7 @@ public class SQLSessionIT {
         if (!isAbleToDelete || isScaling) {
             return;
         }
-        String showTimeSeries = "SHOW TIME SERIES us.*;";
+        String showTimeSeries = "SHOW COLUMNS us.*;";
         String expected =
                 "Time series:\n"
                         + "+--------+--------+\n"
@@ -3955,10 +3955,10 @@ public class SQLSessionIT {
                         + "Total line number = 4\n";
         executor.executeAndCompare(showTimeSeries, expected);
 
-        String deleteTimeSeries = "DELETE TIME SERIES us.d1.s4";
+        String deleteTimeSeries = "DELETE COLUMNS us.d1.s4";
         executor.execute(deleteTimeSeries);
 
-        showTimeSeries = "SHOW TIME SERIES us.*;";
+        showTimeSeries = "SHOW COLUMNS us.*;";
         expected =
                 "Time series:\n"
                         + "+--------+--------+\n"
@@ -3975,10 +3975,10 @@ public class SQLSessionIT {
         expected = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
         executor.executeAndCompare(showTimeSeriesData, expected);
 
-        deleteTimeSeries = "DELETE TIME SERIES us.*";
+        deleteTimeSeries = "DELETE COLUMNS us.*";
         executor.execute(deleteTimeSeries);
 
-        showTimeSeries = "SHOW TIME SERIES us.*;";
+        showTimeSeries = "SHOW COLUMNS us.*;";
         expected =
                 "Time series:\n"
                         + "+----+--------+\n"
@@ -4192,7 +4192,7 @@ public class SQLSessionIT {
         List<Pair<String, String>> statementsAndExpectRes =
                 Arrays.asList(
                         new Pair<>(
-                                "SHOW TIME SERIES",
+                                "SHOW COLUMNS",
                                 "Time series:\n"
                                         + "+--------+--------+\n"
                                         + "|    Path|DataType|\n"

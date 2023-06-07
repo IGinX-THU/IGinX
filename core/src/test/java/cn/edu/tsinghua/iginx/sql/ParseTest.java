@@ -27,7 +27,7 @@ public class ParseTest {
         List<String> paths = Arrays.asList("a.b.c.hardware", "a.b.c.num", "a.b.c.status");
         assertEquals(paths, statement.getPaths());
 
-        assertEquals(2, statement.getTimes().size());
+        assertEquals(2, statement.getKeys().size());
 
         insertStr =
                 "SELECT avg_s1 FROM (SELECT AVG(s1) AS avg_s1 FROM us.d1 OVER (RANGE 100 IN [1000, 1600)) WHERE avg_s1 > 1200;";
@@ -176,9 +176,9 @@ public class ParseTest {
 
     @Test
     public void testParseDeleteTimeSeries() {
-        String deleteTimeSeriesStr = "DELETE TIME SERIES a.b.c, a.b.d;";
-        DeleteTimeSeriesStatement statement =
-                (DeleteTimeSeriesStatement) TestUtils.buildStatement(deleteTimeSeriesStr);
+        String deleteColumnsStr = "DELETE COLUMNS a.b.c, a.b.d;";
+        DeleteColumnsStatement statement =
+                (DeleteColumnsStatement) TestUtils.buildStatement(deleteColumnsStr);
         List<String> paths = Arrays.asList("a.b.c", "a.b.d");
         assertEquals(paths, statement.getPaths());
     }
@@ -267,7 +267,7 @@ public class ParseTest {
         InsertStatement insertStatement = (InsertStatement) TestUtils.buildStatement(insertStr);
 
         List<Long> expectedTimes = Arrays.asList(1L, 2L, 3000L, 4000000L, 5000000000L);
-        assertEquals(expectedTimes, insertStatement.getTimes());
+        assertEquals(expectedTimes, insertStatement.getKeys());
 
         String queryStr =
                 "SELECT AVG(c) FROM a.b WHERE c > 10 AND c < 1ms OVER (RANGE 10 IN [1s, 2s));";

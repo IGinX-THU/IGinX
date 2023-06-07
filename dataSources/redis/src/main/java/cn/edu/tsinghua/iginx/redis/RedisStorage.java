@@ -7,7 +7,7 @@ import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.DataArea;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
-import cn.edu.tsinghua.iginx.engine.shared.TimeRange;
+import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
@@ -209,7 +209,7 @@ public class RedisStorage implements IStorage {
             return new TaskExecuteResult(null, null);
         }
 
-        if (delete.getTimeRanges() == null || delete.getTimeRanges().isEmpty()) {
+        if (delete.getKeyRanges() == null || delete.getKeyRanges().isEmpty()) {
             // 没有传任何 time range, 删除全部数据
             try (Jedis jedis = jedisPool.getResource()) {
                 int size = deletedPaths.size();
@@ -230,20 +230,20 @@ public class RedisStorage implements IStorage {
             // 删除指定部分数据
             try (Jedis jedis = jedisPool.getResource()) {
                 for (String path : deletedPaths) {
-                    for (TimeRange timeRange : delete.getTimeRanges()) {
+                    for (KeyRange keyRange : delete.getKeyRanges()) {
                         List<String> keys =
                                 jedis.zrangeByScore(
                                         String.format(KEY_FORMAT_ZSET_KEYS, storageUnit, path),
-                                        timeRange.getActualBeginTime(),
-                                        timeRange.getActualEndTime());
+                                        keyRange.getActualBeginKey(),
+                                        keyRange.getActualEndKey());
                         if (!keys.isEmpty()) {
                             jedis.hdel(
                                     String.format(KEY_FORMAT_HASH_VALUES, storageUnit, path),
                                     keys.toArray(new String[0]));
                             jedis.zremrangeByScore(
                                     String.format(KEY_FORMAT_ZSET_KEYS, storageUnit, path),
-                                    timeRange.getActualBeginTime(),
-                                    timeRange.getActualEndTime());
+                                    keyRange.getActualBeginKey(),
+                                    keyRange.getActualEndKey());
                         }
                     }
                 }
