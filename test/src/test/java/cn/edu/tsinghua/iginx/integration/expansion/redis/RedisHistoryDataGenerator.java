@@ -2,9 +2,7 @@ package cn.edu.tsinghua.iginx.integration.expansion.redis;
 
 import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.List;
-import java.util.Map;
 import redis.clients.jedis.Jedis;
 
 public class RedisHistoryDataGenerator extends BaseHistoryDataGenerator {
@@ -16,27 +14,33 @@ public class RedisHistoryDataGenerator extends BaseHistoryDataGenerator {
     private static final int PORT_B = 6380;
 
     @Override
-    public void writeHistoryDataToB() throws Exception {
-        writeHistoryData(this.seriesA, PORT_A);
+    public void writeHistoryDataToOri() {
+        writeHistoryData(this.pathListOri, this.dataTypeListOri, this.valuesListOri, PORT_A);
     }
 
     @Override
-    public void writeHistoryDataToA() throws Exception {
-        writeHistoryData(this.seriesB, PORT_B);
+    public void writeHistoryDataToExp() {
+        writeHistoryData(this.pathListExp, this.dataTypeListExp, this.valuesListExp, PORT_B);
     }
 
     private void writeHistoryData(
-            Map<String, Pair<DataType, List<Pair<Long, Object>>>> series, int port)
-            throws Exception {
+            List<String> pathList,
+            List<DataType> dataTypeList,
+            List<List<Object>> valuesList,
+            int port) {
         Jedis jedis = new Jedis(LOCAL_IP, port);
-        series.forEach(
-                (path, value) ->
-                        value.getV().forEach(pair -> jedis.lpush(path, String.valueOf(pair.v))));
+        valuesList.forEach(
+                row -> {
+                    for (int i = 0; i < row.size(); i++) {
+                        Object value = row.get(i);
+                        jedis.lpush(pathList.get(i), String.valueOf(value));
+                    }
+                });
         jedis.close();
     }
 
     @Override
-    public void clearData() {
+    public void clearHistoryData() {
         Jedis jedisA = new Jedis(LOCAL_IP, PORT_A);
         jedisA.flushDB();
         jedisA.close();

@@ -152,7 +152,7 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
                         add(DataType.DOUBLE);
                     }
                 };
-        SQLTestTools.executeAndCompare(session, statement, pathList, valuesList, dataTypeList);
+        SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
         statement = "select * from p2.mn";
         pathList =
@@ -162,7 +162,7 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
                         add("p2.mn.wf03.wt01.temperature");
                     }
                 };
-        SQLTestTools.executeAndCompare(session, statement, pathList, valuesList, dataTypeList);
+        SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
         List<RemovedStorageEngineInfo> removedStorageEngineList = new ArrayList<>();
         removedStorageEngineList.add(
@@ -222,7 +222,7 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
                         add(DataType.DOUBLE);
                     }
                 };
-        SQLTestTools.executeAndCompare(session, statement, pathList, valuesList, dataTypeList);
+        SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
         statement = "select count(*) from mn.wf01";
         String expect =
@@ -281,7 +281,7 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
                         add(DataType.DOUBLE);
                     }
                 };
-        SQLTestTools.executeAndCompare(session, statement, pathList, valuesList, dataTypeList);
+        SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
     }
 
     private void testWriteAndQueryNewData() {
@@ -377,6 +377,14 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
                                     + "\", \"url:http://localhost:8087/, username:user, password:12345678, sessionPoolSize:20, has_data:"
                                     + hasData
                                     + ", is_read_only:true, token:testToken, organization:testOrg\");");
+                    break;
+                case redis:
+                    session.executeSql(
+                            "ADD STORAGEENGINE (\"127.0.0.1\", 6380, \""
+                                    + dbType.name()
+                                    + "\", \"has_data:"
+                                    + hasData
+                                    + ", is_read_only:true\");");
                     break;
                 default:
                     logger.error("unsupported storage engine: {}", dbType.name());

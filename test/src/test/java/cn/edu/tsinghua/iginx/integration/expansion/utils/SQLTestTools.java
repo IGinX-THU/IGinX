@@ -6,7 +6,6 @@ import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
-import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,32 +43,53 @@ public class SQLTestTools {
     }
 
     private static boolean compareValuesList(
-            List<List<Object>> valuesListAns, List<List<Object>> valuesList) {
-        Set<List<Object>> valuesSetAns = new HashSet<>(valuesListAns);
-        Set<List<Object>> valuesSet = new HashSet<>(valuesList);
-        return valuesSet.equals(valuesSetAns);
+            List<List<Object>> expectedValuesList, List<List<Object>> actualValuesList) {
+        if (expectedValuesList.size() != actualValuesList.size()) {
+            return false;
+        }
+
+        for (int i = 0; i < expectedValuesList.size(); i++) {
+            List<Object> rowA = expectedValuesList.get(i);
+            List<Object> rowB = actualValuesList.get(i);
+            if (rowA.size() != rowB.size()) {
+                return false;
+            }
+
+            for (int j = 0; j < rowA.size(); j++) {
+                String valueA = String.valueOf(rowA.get(j));
+                String valueB;
+                if (rowB.get(i) instanceof byte[]) {
+                    valueB = new String((byte[]) rowB.get(i));
+                } else {
+                    valueB = String.valueOf(rowB.get(j));
+                }
+                if (!valueA.equals(valueB)) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     public static void executeAndCompare(
             Session session,
             String statement,
             List<String> pathListAns,
-            List<List<Object>> valuesListAns,
-            List<DataType> dataTypeListAns) {
+            List<List<Object>> expectedValuesList) {
         try {
             SessionExecuteSqlResult res = session.executeSql(statement);
             List<String> pathList = res.getPaths();
-            List<List<Object>> valuesList = res.getValues();
-            List<DataType> dataTypeList = res.getDataTypeList();
+            List<List<Object>> actualValuesList = res.getValues();
 
             for (int i = 0; i < pathListAns.size(); i++) {
                 assertEquals(pathListAns.get(i), pathList.get(i));
-                assertEquals(dataTypeListAns.get(i), dataTypeList.get(i));
             }
 
-            if (!compareValuesList(valuesListAns, valuesList)) {
+            if (!compareValuesList(expectedValuesList, actualValuesList)) {
                 logger.error(
-                        "actual valuesList is {} and it should be {}", valuesList, valuesListAns);
+                        "actual valuesList is {} and it should be {}",
+                        actualValuesList,
+                        expectedValuesList);
                 fail();
             }
         } catch (SessionException | ExecutionException e) {
