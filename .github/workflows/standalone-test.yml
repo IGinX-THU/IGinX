@@ -45,6 +45,7 @@ jobs:
               with:
                   confFile: DBName
                   DB-name: ${{matrix.DB-name}}
+                  if-CapExp: false
 
             - name: Set the UDF conf
               uses: ./.github/actions/confWriter
