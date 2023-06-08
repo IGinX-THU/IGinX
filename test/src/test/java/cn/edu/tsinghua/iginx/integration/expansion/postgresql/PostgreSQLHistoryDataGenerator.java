@@ -11,10 +11,10 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class PostgreSQLHistoryDataGeneratorTest extends BaseHistoryDataGenerator {
+public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
 
     private static final Logger logger =
-            LoggerFactory.getLogger(PostgreSQLHistoryDataGeneratorTest.class);
+            LoggerFactory.getLogger(PostgreSQLHistoryDataGenerator.class);
 
     public static final char IGINX_SEPARATOR = '.';
 
@@ -34,7 +34,7 @@ public class PostgreSQLHistoryDataGeneratorTest extends BaseHistoryDataGenerator
 
     private static final Set<String> databaseNameList = new HashSet<>();
 
-    public PostgreSQLHistoryDataGeneratorTest() {
+    public PostgreSQLHistoryDataGenerator() {
         this.portOri = 6667;
         this.portExp = 6668;
     }
