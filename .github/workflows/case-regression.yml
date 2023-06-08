@@ -29,12 +29,14 @@ jobs:
               with:
                   python-version: ${{ matrix.python-version }}
                   java: ${{ matrix.java }}
+
             - name: Run ZooKeeper
               uses: ./.github/actions/zookeeperRunner
+
             - name: Run DB
               uses: ./.github/actions/dbRunner
               with:
-                  version: "Mix-IoTDB12-InfluxDB"
+                  DB-name: "Mix-IoTDB12-InfluxDB"
 
             - name: Install IGinX with Maven
               shell: bash
@@ -48,4 +50,10 @@ jobs:
               if: always()
               shell: bash
               run: |
-                  mvn test -q -Dtest=MixClusterShowTimeseriesRegressionTest -DfailIfNoTests=false -P passFormat
+                  mvn test -q -Dtest=MixClusterShowColumnsRegressionTest -DfailIfNoTests=false -P passFormat
+
+            - name: Show IGinX log
+              if: always()
+              shell: bash
+              run: |
+                  cat iginx.log
