@@ -35,8 +35,8 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
     private static final Set<String> databaseNameList = new HashSet<>();
 
     public PostgreSQLHistoryDataGenerator() {
-        this.portOri = 6667;
-        this.portExp = 6668;
+        this.portOri = 5432;
+        this.portExp = 5433;
     }
 
     private Connection connect(int port, boolean useSystemDatabase, String databaseName) {
