@@ -99,7 +99,7 @@ runs:
                 exit 1
               fi
 
-        - if: inputs.version=='PostgreSQL'
+        - if: inputs.DB-name=='PostgreSQL'
           name: Run DB
           shell: bash
           run: |
