@@ -8,7 +8,7 @@ import java.util.*;
 public class TagKVUtils {
 
     public static Pair<String, Map<String, String>> splitFullName(String fullName) {
-        if (!fullName.contains(POSTGRESQL_SEPARATOR)) {
+        if (fullName.indexOf(POSTGRESQL_SEPARATOR) == -1) {
             return new Pair<>(fullName, null);
         }
 

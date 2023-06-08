@@ -378,6 +378,14 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
                                     + hasData
                                     + ", is_read_only:true, token:testToken, organization:testOrg\");");
                     break;
+                case postgresql:
+                    session.executeSql(
+                            "ADD STORAGEENGINE (\"127.0.0.1\", 5431, \""
+                                    + dbType.name()
+                                    + "\", \"username:postgres, password:postgres, has_data:"
+                                    + hasData
+                                    + ", is_read_only:true\");");
+                    break;
                 default:
                     logger.error("unsupported storage engine: {}", dbType.name());
                     fail();

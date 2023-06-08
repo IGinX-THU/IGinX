@@ -1,46 +1,51 @@
 package cn.edu.tsinghua.iginx.integration.expansion.postgresql;
 
 import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
+import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.*;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-// TODO 通过 BaseHistoryDataGenerator 里的 seriesA 和 seriesB 插入数据
 public class PostgreSQLHistoryDataGeneratorTest extends BaseHistoryDataGenerator {
 
     private static final Logger logger =
             LoggerFactory.getLogger(PostgreSQLHistoryDataGeneratorTest.class);
 
+    public static final char IGINX_SEPARATOR = '.';
+
+    public static final char POSTGRESQL_SEPARATOR = '\u2E82';
+
     private static final String CREATE_DATABASE_STATEMENT = "CREATE DATABASE %s;";
 
-    private static final String CREATE_TABLE_STATEMENT =
-            "CREATE TABLE %s (time BIGINT NOT NULL, %s, PRIMARY KEY(time));";
+    private static final String CREATE_TABLE_STATEMENT = "CREATE TABLE %s (%s);";
 
     private static final String INSERT_STATEMENT = "INSERT INTO %s VALUES %s;";
 
     private static final String DROP_DATABASE_STATEMENT = "DROP DATABASE %s;";
 
-    private static final int PORT_A = 5432;
-
-    private static final int PORT_B = 5433;
-
     private static final String USERNAME = "postgres";
 
     private static final String PASSWORD = "postgres";
 
-    private static final String DATABASE_NAME = "ln";
+    private static final Set<String> databaseNameList = new HashSet<>();
 
-    private Connection connect(int port, boolean useSystemDatabase) {
+    public PostgreSQLHistoryDataGeneratorTest() {
+        this.portOri = 6667;
+        this.portExp = 6668;
+    }
+
+    private Connection connect(int port, boolean useSystemDatabase, String databaseName) {
         try {
             String url;
             if (useSystemDatabase) {
                 url = String.format("jdbc:postgresql://127.0.0.1:%d/", port);
             } else {
-                url = String.format("jdbc:postgresql://127.0.0.1:%d/%s", port, DATABASE_NAME);
+                url = String.format("jdbc:postgresql://127.0.0.1:%d/%s", port, databaseName);
             }
             Class.forName("org.postgresql.Driver");
             return DriverManager.getConnection(url, USERNAME, PASSWORD);
@@ -49,96 +54,144 @@ public class PostgreSQLHistoryDataGeneratorTest extends BaseHistoryDataGenerator
         }
     }
 
-    @Test
-    public void clearData() {
-        try {
-            Connection connA = connect(PORT_A, true);
-            Statement stmtA = connA.createStatement();
-            stmtA.execute(String.format(DROP_DATABASE_STATEMENT, DATABASE_NAME));
-            stmtA.close();
-            connA.close();
+    @Override
+    public void writeHistoryDataToOri() {
+        writeHistoryData(pathListOri, dataTypeListOri, valuesListOri, portOri);
+    }
 
-            Connection connB = connect(PORT_B, true);
-            Statement stmtB = connB.createStatement();
-            stmtB.execute(String.format(DROP_DATABASE_STATEMENT, DATABASE_NAME));
-            stmtB.close();
-            connB.close();
-        } catch (Exception e) {
-            logger.error(e.getMessage());
+    @Override
+    public void writeHistoryDataToExp() {
+        writeHistoryData(pathListExp, dataTypeListExp, valuesListExp, portExp);
+    }
+
+    private void writeHistoryData(
+            List<String> pathList,
+            List<DataType> dataTypeList,
+            List<List<Object>> valuesList,
+            int port) {
+        try {
+            Connection conn = connect(port, true, null);
+            if (conn == null) {
+                logger.error("cannot connect to 127.0.0.1:{}!", port);
+                return;
+            }
+
+            Map<String, Map<String, List<Integer>>> databaseToTablesToColumnIndexes =
+                    new HashMap<>();
+            for (int i = 0; i < pathList.size(); i++) {
+                String path = pathList.get(i);
+                String databaseName = path.substring(0, path.indexOf(IGINX_SEPARATOR));
+                String tableName =
+                        path.substring(
+                                        path.indexOf(IGINX_SEPARATOR) + 1,
+                                        path.lastIndexOf(IGINX_SEPARATOR))
+                                .replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
+
+                Map<String, List<Integer>> tablesToColumnIndexes =
+                        databaseToTablesToColumnIndexes.computeIfAbsent(
+                                databaseName, x -> new HashMap<>());
+                List<Integer> columnIndexes =
+                        tablesToColumnIndexes.computeIfAbsent(tableName, x -> new ArrayList<>());
+                columnIndexes.add(i);
+                tablesToColumnIndexes.put(tableName, columnIndexes);
+            }
+
+            for (Map.Entry<String, Map<String, List<Integer>>> entry :
+                    databaseToTablesToColumnIndexes.entrySet()) {
+                String databaseName = entry.getKey();
+                Statement stmt = conn.createStatement();
+                try {
+                    stmt.execute(String.format(CREATE_DATABASE_STATEMENT, databaseName));
+                    databaseNameList.add(databaseName);
+                } catch (SQLException e) {
+                    logger.info("database {} exists!", databaseName);
+                }
+                stmt.close();
+                conn.close();
+
+                conn = connect(port, false, databaseName);
+                stmt = conn.createStatement();
+                for (Map.Entry<String, List<Integer>> item : entry.getValue().entrySet()) {
+                    String tableName = item.getKey();
+                    StringBuilder createTableStr = new StringBuilder();
+                    for (Integer index : item.getValue()) {
+                        String columnName = pathList.get(index);
+                        DataType dataType = dataTypeList.get(index);
+                        createTableStr.append(columnName);
+                        createTableStr.append(" ");
+                        createTableStr.append(toPostgreSQL(dataType));
+                        createTableStr.append(", ");
+                    }
+                    stmt.execute(
+                            String.format(
+                                    CREATE_TABLE_STATEMENT,
+                                    tableName,
+                                    createTableStr.substring(0, createTableStr.length() - 2)));
+
+                    StringBuilder insertStr = new StringBuilder();
+                    for (List<Object> values : valuesList) {
+                        insertStr.append("(");
+                        for (Integer index : item.getValue()) {
+                            insertStr.append(values.get(index));
+                            insertStr.append(", ");
+                        }
+                        insertStr =
+                                new StringBuilder(insertStr.substring(0, insertStr.length() - 2));
+                        insertStr.append("), ");
+                    }
+                    stmt.execute(
+                            String.format(
+                                    INSERT_STATEMENT,
+                                    tableName,
+                                    insertStr.substring(0, insertStr.length() - 2)));
+                }
+                stmt.close();
+                conn.close();
+            }
+
+            logger.info("write data to 127.0.0.1:{} success!", port);
+        } catch (RuntimeException | SQLException e) {
+            logger.error("write data to 127.0.0.1:{} failure: {}", port, e.getMessage());
         }
-        logger.info("clear data success!");
     }
 
     @Test
-    public void writeHistoryDataToA() throws Exception {
-        Connection conn = connect(PORT_A, true);
-        if (conn == null) {
-            logger.error("cannot connect to 5432!");
-            return;
-        }
-
-        Statement stmt = conn.createStatement();
-        try {
-            stmt.execute(String.format(CREATE_DATABASE_STATEMENT, DATABASE_NAME));
-        } catch (SQLException e) {
-            logger.info("database ln exists!");
-        }
-
-        stmt.close();
-        conn.close();
-
-        conn = connect(PORT_A, false);
-        stmt = conn.createStatement();
-
-        stmt.execute(
-                String.format(
-                        CREATE_TABLE_STATEMENT,
-                        "wf01\u2E82wt01",
-                        "status boolean, temperature float8"));
-        stmt.execute(
-                String.format(
-                        INSERT_STATEMENT,
-                        "wf01\u2E82wt01",
-                        "(100, true, null), (200, false, 20.71)"));
-
-        stmt.close();
-        conn.close();
-        logger.info("write data to 127.0.0.1:5432 success!");
+    @Override
+    public void clearHistoryData() {
+        clearHistoryData(portOri);
+        clearHistoryData(portExp);
     }
 
-    @Test
-    public void writeHistoryDataToB() throws Exception {
-        Connection conn = connect(PORT_B, true);
-        if (conn == null) {
-            logger.error("cannot connect to 5433!");
-            return;
-        }
-
-        Statement stmt = conn.createStatement();
+    private void clearHistoryData(int port) {
         try {
-            stmt.execute(String.format(CREATE_DATABASE_STATEMENT, DATABASE_NAME));
+            Connection conn = connect(port, true, null);
+            Statement stmt = conn.createStatement();
+            for (String databaseName : databaseNameList) {
+                stmt.execute(String.format(DROP_DATABASE_STATEMENT, databaseName));
+            }
+            stmt.close();
+            conn.close();
+            logger.info("clear data on 127.0.0.1:{} success!", port);
         } catch (SQLException e) {
-            logger.info("database ln exists!");
+            logger.error("clear data on 127.0.0.1:{} failure: {}", port, e.getMessage());
         }
+    }
 
-        stmt.close();
-        conn.close();
-
-        conn = connect(PORT_B, false);
-        stmt = conn.createStatement();
-
-        stmt.execute(
-                String.format(
-                        CREATE_TABLE_STATEMENT,
-                        "wf03\u2E82wt01",
-                        "status boolean, temperature float8"));
-
-        stmt.execute(
-                String.format(
-                        INSERT_STATEMENT,
-                        "wf03\u2E82wt01",
-                        "(77, true, null), (200, false, 77.71)"));
-
-        logger.info("write data to 127.0.0.1:5433 success!");
+    private static String toPostgreSQL(DataType dataType) {
+        switch (dataType) {
+            case BOOLEAN:
+                return "BOOLEAN";
+            case INTEGER:
+                return "INTEGER";
+            case LONG:
+                return "BIGINT";
+            case FLOAT:
+                return "REAL";
+            case DOUBLE:
+                return "DOUBLE PRECISION";
+            case BINARY:
+            default:
+                return "TEXT";
+        }
     }
 }

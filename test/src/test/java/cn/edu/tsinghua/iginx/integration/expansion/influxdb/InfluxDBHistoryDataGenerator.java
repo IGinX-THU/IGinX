@@ -119,15 +119,18 @@ public class InfluxDBHistoryDataGenerator extends BaseHistoryDataGenerator {
         logger.info("write data to " + URL + " success!");
     }
 
+    @Override
     public void writeHistoryDataToOri() {
         writeHistoryData(pathListOri, dataTypeListOri, valuesListOri, ORI_URL);
     }
 
+    @Override
     public void writeHistoryDataToExp() {
         writeHistoryData(pathListExp, dataTypeListExp, valuesListExp, EXP_URL);
     }
 
     @Test
+    @Override
     public void clearHistoryData() {
         InfluxDBClient client =
                 InfluxDBClientFactory.create(ORI_URL, TOKEN.toCharArray(), ORGANIZATION);

@@ -2,9 +2,9 @@ package cn.edu.tsinghua.iginx.postgresql.tools;
 
 public class Constants {
 
-    public static final String IGINX_SEPARATOR = ".";
+    public static final char IGINX_SEPARATOR = '.';
 
-    public static final String POSTGRESQL_SEPARATOR = "\u2E82";
+    public static final char POSTGRESQL_SEPARATOR = '\u2E82';
 
     public static final int BATCH_SIZE = 10000;
 

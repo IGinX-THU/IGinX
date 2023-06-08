@@ -46,7 +46,6 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
-import cn.edu.tsinghua.iginx.postgresql.entity.TableType;
 import cn.edu.tsinghua.iginx.postgresql.query.entity.PostgreSQLQueryRowStream;
 import cn.edu.tsinghua.iginx.postgresql.tools.DataTypeTransformer;
 import cn.edu.tsinghua.iginx.postgresql.tools.FilterTransformer;
@@ -247,7 +246,6 @@ public class PostgreSQLStorage implements IStorage {
 
             List<String> databaseNameList = new ArrayList<>();
             List<ResultSet> resultSets = new ArrayList<>();
-            List<TableType> isDummy = new ArrayList<>();
             ResultSet rs;
             Statement stmt;
 
@@ -273,7 +271,6 @@ public class PostgreSQLStorage implements IStorage {
                 }
                 databaseNameList.add(databaseName);
                 resultSets.add(rs);
-                isDummy.add(TableType.nonDummy);
             }
 
             RowStream rowStream =
@@ -281,7 +278,7 @@ public class PostgreSQLStorage implements IStorage {
                             new PostgreSQLQueryRowStream(
                                     databaseNameList,
                                     resultSets,
-                                    isDummy,
+                                    false,
                                     filter,
                                     project.getTagFilter()));
             conn.close();
@@ -306,7 +303,6 @@ public class PostgreSQLStorage implements IStorage {
 
             List<String> databaseNameList = new ArrayList<>();
             List<ResultSet> resultSets = new ArrayList<>();
-            List<TableType> isDummy = new ArrayList<>();
             ResultSet rs;
             Connection conn = null;
             Statement stmt;
@@ -320,37 +316,15 @@ public class PostgreSQLStorage implements IStorage {
                     continue;
                 }
                 for (Map.Entry<String, String> entry : splitEntry.getValue().entrySet()) {
-                    boolean hasTimeColumn = false;
                     String tableName = entry.getKey();
-                    DatabaseMetaData databaseMetaData = conn.getMetaData();
-                    ResultSet columnSet =
-                            databaseMetaData.getColumns(databaseName, "public", tableName, "%");
-                    while (columnSet.next()) {
-                        if (columnSet.getString("COLUMN_NAME").equalsIgnoreCase("time")) {
-                            hasTimeColumn = true;
-                            break;
-                        }
-                    }
-
-                    String statement;
                     String fullColumnNames = getFullColumnNames(entry.getValue());
-                    if (hasTimeColumn) {
-                        if (!fullColumnNames.contains("time")) {
-                            fullColumnNames += " , \"time\"";
-                        }
-                        statement =
-                                String.format(
-                                        QUERY_TIME_STATEMENT_WITHOUT_WHERE_CLAUSE,
-                                        fullColumnNames,
-                                        getFullName(tableName));
-                    } else {
-                        statement =
-                                String.format(
-                                        CONCAT_QUERY_STATEMENT_WITHOUT_WHERE_CLAUSE,
-                                        fullColumnNames,
-                                        fullColumnNames,
-                                        getFullName(tableName));
-                    }
+                    String statement =
+                            String.format(
+                                    CONCAT_QUERY_STATEMENT_WITHOUT_WHERE_CLAUSE,
+                                    fullColumnNames,
+                                    fullColumnNames,
+                                    getFullName(tableName));
+
                     try {
                         stmt = conn.createStatement();
                         rs = stmt.executeQuery(statement);
@@ -364,11 +338,6 @@ public class PostgreSQLStorage implements IStorage {
                     }
                     databaseNameList.add(databaseName);
                     resultSets.add(rs);
-                    if (hasTimeColumn) {
-                        isDummy.add(TableType.dummyWithTimeColumn);
-                    } else {
-                        isDummy.add(TableType.dummy);
-                    }
                 }
             }
 
@@ -377,7 +346,7 @@ public class PostgreSQLStorage implements IStorage {
                             new PostgreSQLQueryRowStream(
                                     databaseNameList,
                                     resultSets,
-                                    isDummy,
+                                    true,
                                     filter,
                                     project.getTagFilter()));
             if (conn != null) {
@@ -540,7 +509,8 @@ public class PostgreSQLStorage implements IStorage {
     @Override
     public Pair<ColumnsRange, KeyInterval> getBoundaryOfStorage(String prefix)
             throws PhysicalException {
-        long minTime = Long.MAX_VALUE, maxTime = 0;
+        long minTime = Long.MAX_VALUE;
+        long maxTime = 0;
         List<String> paths = new ArrayList<>();
         try {
             Statement stmt = connection.createStatement();

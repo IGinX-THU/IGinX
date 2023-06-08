@@ -15,7 +15,6 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
-import cn.edu.tsinghua.iginx.postgresql.entity.TableType;
 import cn.edu.tsinghua.iginx.postgresql.tools.DataTypeTransformer;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
@@ -34,7 +33,7 @@ public class PostgreSQLQueryRowStream implements RowStream {
 
     private final Header header;
 
-    private final List<TableType> isDummy;
+    private final boolean isDummy;
 
     private final Filter filter;
 
@@ -55,7 +54,7 @@ public class PostgreSQLQueryRowStream implements RowStream {
     public PostgreSQLQueryRowStream(
             List<String> databaseNameList,
             List<ResultSet> resultSets,
-            List<TableType> isDummy,
+            boolean isDummy,
             Filter filter,
             TagFilter tagFilter)
             throws SQLException {
@@ -88,29 +87,16 @@ public class PostgreSQLQueryRowStream implements RowStream {
                 }
 
                 Pair<String, Map<String, String>> namesAndTags = splitFullName(columnName);
-                Field field;
-                if (isDummy.get(i) == TableType.nonDummy) {
-                    field =
-                            new Field(
-                                    tableName.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR)
-                                            + IGINX_SEPARATOR
-                                            + namesAndTags.k.replace(
-                                                    POSTGRESQL_SEPARATOR, IGINX_SEPARATOR),
-                                    DataTypeTransformer.fromPostgreSQL(typeName),
-                                    namesAndTags.v);
-                } else {
-                    field =
-                            new Field(
-                                    databaseNameList.get(i)
-                                            + IGINX_SEPARATOR
-                                            + tableName.replace(
-                                                    POSTGRESQL_SEPARATOR, IGINX_SEPARATOR)
-                                            + IGINX_SEPARATOR
-                                            + namesAndTags.k.replace(
-                                                    POSTGRESQL_SEPARATOR, IGINX_SEPARATOR),
-                                    DataTypeTransformer.fromPostgreSQL(typeName),
-                                    namesAndTags.v);
-                }
+                Field field =
+                        new Field(
+                                databaseNameList.get(i)
+                                        + IGINX_SEPARATOR
+                                        + tableName.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR)
+                                        + IGINX_SEPARATOR
+                                        + namesAndTags.k.replace(
+                                                POSTGRESQL_SEPARATOR, IGINX_SEPARATOR),
+                                DataTypeTransformer.fromPostgreSQL(typeName),
+                                namesAndTags.v);
 
                 if (filterByTags && !TagKVUtils.match(namesAndTags.v, tagFilter)) {
                     continue;
@@ -206,7 +192,7 @@ public class PostgreSQLQueryRowStream implements RowStream {
                     long tempTimestamp;
                     Object tempValue;
 
-                    if (isDummy.get(i) == TableType.dummy) {
+                    if (isDummy) {
                         tempTimestamp = toHash(resultSet.getString("time"));
                     } else {
                         tempTimestamp = resultSet.getLong("time");
@@ -257,8 +243,7 @@ public class PostgreSQLQueryRowStream implements RowStream {
                 startIndex = endIndex;
             }
             cachedRow = new Row(header, timestamp, values);
-            if (isDummy.stream().allMatch(x -> x == TableType.dummy)
-                    && !validate(filter, cachedRow)) {
+            if (isDummy && !validate(filter, cachedRow)) {
                 cacheOneRow();
             }
         } else {

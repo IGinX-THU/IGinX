@@ -5,5 +5,6 @@ public enum DBType {
     iotdb12,
     influxdb,
     mongodb,
-    redis
+    redis,
+    postgresql
 }

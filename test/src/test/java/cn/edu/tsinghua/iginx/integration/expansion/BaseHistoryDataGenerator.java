@@ -86,10 +86,10 @@ public abstract class BaseHistoryDataGenerator {
     @Test
     public void oriNoDataExpNoData() {}
 
-    public void writeHistoryDataToOri() {}
+    public abstract void writeHistoryDataToOri();
 
-    public void writeHistoryDataToExp() {}
+    public abstract void writeHistoryDataToExp();
 
     @Test
-    public void clearHistoryData() {}
+    public abstract void clearHistoryData();
 }
