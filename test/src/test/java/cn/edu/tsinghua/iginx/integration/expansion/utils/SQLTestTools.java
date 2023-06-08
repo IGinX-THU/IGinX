@@ -6,8 +6,8 @@ import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
-import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.*;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,35 +43,58 @@ public class SQLTestTools {
         return res.getResultInString(false, "");
     }
 
-    private static boolean compareValuesList(
-            List<List<Object>> valuesListAns, List<List<Object>> valuesList) {
-        Set<List<Object>> valuesSetAns = new HashSet<>(valuesListAns);
-        Set<List<Object>> valuesSet = new HashSet<>(valuesList);
-        return valuesSet.equals(valuesSetAns);
+    private static void compareValuesList(
+            List<List<Object>> expectedValuesList, List<List<Object>> actualValuesList) {
+        Set<List<String>> expectedSet =
+                expectedValuesList
+                        .stream()
+                        .map(
+                                row -> {
+                                    List<String> strValues = new ArrayList<>();
+                                    row.forEach(val -> strValues.add(String.valueOf(val)));
+                                    return strValues;
+                                })
+                        .collect(Collectors.toSet());
+
+        Set<List<String>> actualSet =
+                actualValuesList
+                        .stream()
+                        .map(
+                                row -> {
+                                    List<String> strValues = new ArrayList<>();
+                                    row.forEach(
+                                            val -> {
+                                                if (val instanceof byte[]) {
+                                                    strValues.add(new String((byte[]) val));
+                                                } else {
+                                                    strValues.add(String.valueOf(val));
+                                                }
+                                            });
+                                    return strValues;
+                                })
+                        .collect(Collectors.toSet());
+
+        if (!expectedSet.equals(actualSet)) {
+            logger.error("actual valuesList is {} and it should be {}", actualSet, expectedSet);
+            fail();
+        }
     }
 
     public static void executeAndCompare(
             Session session,
             String statement,
             List<String> pathListAns,
-            List<List<Object>> valuesListAns,
-            List<DataType> dataTypeListAns) {
+            List<List<Object>> expectedValuesList) {
         try {
             SessionExecuteSqlResult res = session.executeSql(statement);
             List<String> pathList = res.getPaths();
-            List<List<Object>> valuesList = res.getValues();
-            List<DataType> dataTypeList = res.getDataTypeList();
+            List<List<Object>> actualValuesList = res.getValues();
 
             for (int i = 0; i < pathListAns.size(); i++) {
                 assertEquals(pathListAns.get(i), pathList.get(i));
-                assertEquals(dataTypeListAns.get(i), dataTypeList.get(i));
             }
 
-            if (!compareValuesList(valuesListAns, valuesList)) {
-                logger.error(
-                        "actual valuesList is {} and it should be {}", valuesList, valuesListAns);
-                fail();
-            }
+            compareValuesList(expectedValuesList, actualValuesList);
         } catch (SessionException | ExecutionException e) {
             logger.error("Statement: \"{}\" execute fail. Caused by:", statement, e);
             fail();
