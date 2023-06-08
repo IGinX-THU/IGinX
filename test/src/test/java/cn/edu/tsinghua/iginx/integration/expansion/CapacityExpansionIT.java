@@ -5,341 +5,126 @@ import static org.junit.Assert.fail;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
-import cn.edu.tsinghua.iginx.integration.expansion.unit.SQLTestTools;
-import cn.edu.tsinghua.iginx.pool.SessionPool;
+import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
+import cn.edu.tsinghua.iginx.integration.tool.DBType;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.RemovedStorageEngineInfo;
 import java.util.ArrayList;
 import java.util.List;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/** 原始节点相关的变量命名统一用 ori 扩容节点相关的变量命名统一用 exp */
 public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
+
     private static final Logger logger = LoggerFactory.getLogger(CapacityExpansionIT.class);
+
     protected static Session session;
-    protected static SessionPool sessionPool;
-    protected String ENGINE_TYPE;
-    protected final boolean isTSDB;
 
-    public CapacityExpansionIT(String engineType, boolean isTSDB) {
-        this.ENGINE_TYPE = engineType;
-        this.isTSDB = isTSDB;
-    }
+    protected DBType dbType;
 
-    @After
-    public void clearData() throws ExecutionException, SessionException {
-        Controller.clearData(session);
+    public CapacityExpansionIT(DBType dbType) {
+        this.dbType = dbType;
     }
 
     @BeforeClass
-    public static void setUp() throws SessionException {
-        session = new Session("127.0.0.1", 6888, "root", "root");
-        sessionPool =
-                new SessionPool.Builder()
-                        .host("127.0.0.1")
-                        .port(6888)
-                        .user("root")
-                        .password("root")
-                        .maxSize(3)
-                        .build();
-        session.openSession();
+    public static void setUp() {
+        try {
+            session = new Session("127.0.0.1", 6888, "root", "root");
+            session.openSession();
+        } catch (SessionException e) {
+            logger.error("open session error: {}", e.getMessage());
+        }
     }
 
     @AfterClass
-    public static void tearDown() throws SessionException {
-        session.closeSession();
-        sessionPool.close();
-    }
-
-    @Test
-    public void oriHasDataExpHasData() throws Exception {
-        testQueryHistoryDataFromInitialNode();
-        testQueryAfterInsertNewData();
-        testOriHasDataExpHasData();
-        testWriteAndQueryAfterCEOriHasDataExpHasData();
-    }
-
-    @Test
-    public void oriHasDataExpNoData() throws Exception {
-        testQueryHistoryDataFromInitialNode();
-        testQueryAfterInsertNewData();
-        testOriHasDataExpNoData();
-        testWriteAndQueryAfterCEOriHasDataExpNoData();
-    }
-
-    @Test
-    public void oriNoDataExpHasData() throws Exception {
-        testQueryHistoryDataFromNoInitialNode();
-        testQueryAfterInsertNewDataFromNoInitialNode();
-        testOriNoDataExpHasData();
-        testWriteAndQueryAfterCEOriNoDataExpHasData();
-    }
-
-    @Test
-    public void oriNoDataExpNoData() throws Exception {
-        testQueryHistoryDataFromNoInitialNode();
-        testQueryAfterInsertNewDataFromNoInitialNode();
-        testOriNoDataExpNoData();
-        testWriteAndQueryAfterCEOriNoDataExpNoData();
-    }
-
-    protected abstract void addStorageWithPrefix(String dataPrefix, String schemaPrefix)
-            throws Exception;
-
-    protected abstract int getPort() throws Exception;
-
-    protected boolean queryHistoryDataANotTS(Session session) throws Exception {
-        List<String> header =
-                new ArrayList<String>() {
-                    {
-                        add("mn.wf01.wt01.status");
-                        add("mn.wf01.wt01.temperature");
-                        add("key");
-                    }
-                };
-        List<DataType> dataType =
-                new ArrayList<DataType>() {
-                    {
-                        add(DataType.BOOLEAN);
-                        add(DataType.DOUBLE);
-                        add(DataType.LONG);
-                    }
-                };
-        List<List<Object>> val = new ArrayList<>();
-        val.add(
-                new ArrayList<Object>() {
-                    {
-                        add(new Long(100L));
-                        add(new Boolean(true));
-                        add(null);
-                    }
-                });
-        val.add(
-                new ArrayList<Object>() {
-                    {
-                        add(new Long(200L));
-                        add(new Boolean(false));
-                        add(new Double(20.71));
-                    }
-                });
-        String statement = "select * from mn";
-        SQLTestTools.executeAndCompare(session, statement, header, val, dataType);
-        return true;
-    }
-
-    protected boolean queryHistoryDataBNotTS(Session session) throws Exception {
-        String statement = "select * from mn.wf03";
-        List<String> header =
-                new ArrayList<String>() {
-                    {
-                        add("mn.wf03.wt01.status");
-                        add("mn.wf03.wt01.temperature");
-                        add("key");
-                    }
-                };
-        List<DataType> dataType =
-                new ArrayList<DataType>() {
-                    {
-                        add(DataType.BOOLEAN);
-                        add(DataType.DOUBLE);
-                        add(DataType.LONG);
-                    }
-                };
-        List<List<Object>> val = new ArrayList<>();
-        val.add(
-                new ArrayList<Object>() {
-                    {
-                        add(new Long(77L));
-                        add(new Boolean(true));
-                        add(null);
-                    }
-                });
-        val.add(
-                new ArrayList<Object>() {
-                    {
-                        add(new Long(200L));
-                        add(new Boolean(false));
-                        add(new Double(77.71));
-                    }
-                });
-        SQLTestTools.executeAndCompare(session, statement, header, val, dataType);
-        return true;
-    }
-
-    protected boolean queryAllHistoryDataNotTS(Session session) throws Exception {
-        String statement = "select * from mn";
-        List<String> header =
-                new ArrayList<String>() {
-                    {
-                        add("mn.wf03.wt01.status");
-                        add("mn.wf03.wt01.temperature");
-                        add("mn.wf01.wt01.status");
-                        add("mn.wf01.wt01.temperature");
-                        add("key");
-                    }
-                };
-        List<DataType> dataType =
-                new ArrayList<DataType>() {
-                    {
-                        add(DataType.BOOLEAN);
-                        add(DataType.DOUBLE);
-                        add(DataType.BOOLEAN);
-                        add(DataType.DOUBLE);
-                        add(DataType.LONG);
-                    }
-                };
-        List<List<Object>> val = new ArrayList<>();
-        val.add(
-                new ArrayList<Object>() {
-                    {
-                        add(new Long(77L));
-                        add(new Boolean(true));
-                    }
-                });
-        val.add(
-                new ArrayList<Object>() {
-                    {
-                        add(new Long(100L));
-                        add(new Boolean(true));
-                    }
-                });
-        val.add(
-                new ArrayList<Object>() {
-                    {
-                        add(new Long(200L));
-                        add(new Boolean(false));
-                        add(new Double(77.71));
-                        add(new Boolean(false));
-                        add(new Double(20.71));
-                    }
-                });
-        SQLTestTools.executeAndCompare(session, statement, header, val, dataType);
-        return true;
-    }
-
-    protected boolean queryHistoryDataA(Session session) throws Exception {
-        if (!isTSDB) {
-            return queryHistoryDataANotTS(session);
+    public static void tearDown() {
+        try {
+            session.closeSession();
+        } catch (SessionException e) {
+            logger.error("close session error: {}", e.getMessage());
         }
-        String statement = "select * from mn";
-        String expect =
-                "ResultSets:\n"
-                        + "+---+-------------------+------------------------+\n"
-                        + "|key|mn.wf01.wt01.status|mn.wf01.wt01.temperature|\n"
-                        + "+---+-------------------+------------------------+\n"
-                        + "|100|               true|                    null|\n"
-                        + "|200|              false|                   20.71|\n"
-                        + "+---+-------------------+------------------------+\n"
-                        + "Total line number = 2\n";
-        SQLTestTools.executeAndCompare(session, statement, expect);
-
-        statement = "select count(*) from mn.wf01";
-        expect =
-                "ResultSets:\n"
-                        + "+--------------------------+-------------------------------+\n"
-                        + "|count(mn.wf01.wt01.status)|count(mn.wf01.wt01.temperature)|\n"
-                        + "+--------------------------+-------------------------------+\n"
-                        + "|                         2|                              1|\n"
-                        + "+--------------------------+-------------------------------+\n"
-                        + "Total line number = 1\n";
-        SQLTestTools.executeAndCompare(session, statement, expect);
-        return true;
     }
 
-    protected boolean queryHistoryDataB(Session session) throws Exception {
-        if (!isTSDB) {
-            return queryHistoryDataBNotTS(session);
-        }
-        String statement = "select * from mn.wf03";
-        String expect =
-                "ResultSets:\n"
-                        + "+---+-------------------+------------------------+\n"
-                        + "|key|mn.wf03.wt01.status|mn.wf03.wt01.temperature|\n"
-                        + "+---+-------------------+------------------------+\n"
-                        + "| 77|               true|                    null|\n"
-                        + "|200|              false|                   77.71|\n"
-                        + "+---+-------------------+------------------------+\n"
-                        + "Total line number = 2\n";
-        SQLTestTools.executeAndCompare(session, statement, expect);
-        return true;
-    }
-
-    protected boolean queryAllHistoryData(Session session) throws Exception {
-        if (!isTSDB) {
-            return queryAllHistoryDataNotTS(session);
-        }
-        String statement = "select * from mn";
-        String expect =
-                "ResultSets:\n"
-                        + "+---+-------------------+------------------------+-------------------+------------------------+\n"
-                        + "|key|mn.wf01.wt01.status|mn.wf01.wt01.temperature|mn.wf03.wt01.status|mn.wf03.wt01.temperature|\n"
-                        + "+---+-------------------+------------------------+-------------------+------------------------+\n"
-                        + "| 77|               null|                    null|               true|                    null|\n"
-                        + "|100|               true|                    null|               null|                    null|\n"
-                        + "|200|              false|                   20.71|              false|                   77.71|\n"
-                        + "+---+-------------------+------------------------+-------------------+------------------------+\n"
-                        + "Total line number = 3\n";
-        SQLTestTools.executeAndCompare(session, statement, expect);
-        return true;
+    @After
+    public void clearData() {
+        Controller.clearData(session);
     }
 
     @Test
-    public void testPrefixAndRemoveHistoryDataSource() throws Exception {
-        addStorageWithPrefix("mn", "p1");
-        addStorageWithPrefix("mn", "p2");
-        String statement = "select * from p1.mn";
-        String expect =
-                "ResultSets:\n"
-                        + "+---+----------------------+---------------------------+\n"
-                        + "|key|p1.mn.wf03.wt01.status|p1.mn.wf03.wt01.temperature|\n"
-                        + "+---+----------------------+---------------------------+\n"
-                        + "| 77|                  true|                       null|\n"
-                        + "|200|                 false|                      77.71|\n"
-                        + "+---+----------------------+---------------------------+\n"
-                        + "Total line number = 2\n";
-        SQLTestTools.executeAndCompare(session, statement, expect);
+    public void oriHasDataExpHasData() {
+        // 查询原始节点的历史数据，结果不为空
+        testQueryHistoryDataOriHasData();
+        // 写入并查询新数据
+        testWriteAndQueryNewData();
+        // 扩容
+        addStorageEngine(true);
+        // 查询扩容节点的历史数据，结果不为空
+        testQueryHistoryDataExpHasData();
+        // 再次查询新数据
+        queryNewData();
+        // 再次写入并查询所有新数据
+        testWriteAndQueryNewDataAfterCE();
+    }
 
-        statement = "select * from p2.mn";
-        expect =
-                "ResultSets:\n"
-                        + "+---+----------------------+---------------------------+\n"
-                        + "|key|p2.mn.wf03.wt01.status|p2.mn.wf03.wt01.temperature|\n"
-                        + "+---+----------------------+---------------------------+\n"
-                        + "| 77|                  true|                       null|\n"
-                        + "|200|                 false|                      77.71|\n"
-                        + "+---+----------------------+---------------------------+\n"
-                        + "Total line number = 2\n";
-        SQLTestTools.executeAndCompare(session, statement, expect);
+    @Test
+    public void oriHasDataExpNoData() {
+        // 查询原始节点的历史数据，结果不为空
+        testQueryHistoryDataOriHasData();
+        // 写入并查询新数据
+        testWriteAndQueryNewData();
+        // 扩容
+        addStorageEngine(false);
+        // 查询扩容节点的历史数据，结果为空
+        testQueryHistoryDataExpNoData();
+        // 再次查询新数据
+        queryNewData();
+        // 再次写入并查询所有新数据
+        testWriteAndQueryNewDataAfterCE();
+    }
 
-        List<RemovedStorageEngineInfo> removedStorageEngineList = new ArrayList<>();
-        removedStorageEngineList.add(
-                new RemovedStorageEngineInfo("127.0.0.1", getPort(), "p2", "mn"));
-        sessionPool.removeHistoryDataSource(removedStorageEngineList);
-        statement = "select * from p2.mn";
-        expect = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
-        SQLTestTools.executeAndCompare(session, statement, expect);
+    @Test
+    public void oriNoDataExpHasData() {
+        // 查询原始节点的历史数据，结果为空
+        testQueryHistoryDataOriNoData();
+        // 写入并查询新数据
+        testWriteAndQueryNewData();
+        // 扩容
+        addStorageEngine(true);
+        // 查询扩容节点的历史数据，结果不为空
+        testQueryHistoryDataExpHasData();
+        // 再次查询新数据
+        queryNewData();
+        // 再次写入并查询所有新数据
+        testWriteAndQueryNewDataAfterCE();
+        // 测试带前缀的添加和移除存储引擎操作
+        testAddAndRemoveStorageEngineWithPrefix();
+    }
 
-        session.executeSql(
-                "remove historydataresource (\"127.0.0.1\", " + getPort() + ", \"p1\", \"mn\")");
-        statement = "select * from p1.mn";
-        expect = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
-        SQLTestTools.executeAndCompare(session, statement, expect);
+    @Test
+    public void oriNoDataExpNoData() {
+        // 查询原始节点的历史数据，结果为空
+        testQueryHistoryDataOriNoData();
+        // 写入并查询新数据
+        testWriteAndQueryNewData();
+        // 扩容
+        addStorageEngine(false);
+        // 查询扩容节点的历史数据，结果为空
+        testQueryHistoryDataExpNoData();
+        // 再次查询新数据
+        queryNewData();
+        // 再次写入并查询所有新数据
+        testWriteAndQueryNewDataAfterCE();
     }
 
     @Test
     private void testReadOnlyNode() throws Exception {
-        queryHistoryDataA(session);
-
+        testQueryHistoryDataOriHasData();
         addStorageEngine(false);
-
-        testQueryAfterInsertNewDataFromNoInitialNode();
-
-        addStorageWithPrefix("mn", "p1");
+        testWriteAndQueryNewData();
+        addStorageEngineWithPrefix("mn", "p1");
 
         String statement = "select * from p1.mn";
         String expect =
@@ -354,56 +139,188 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
         SQLTestTools.executeAndCompare(session, statement, expect);
 
         clearData();
-        testQueryAfterInsertNewDataFromNoInitialNode();
+        testWriteAndQueryNewDataAfterCE();
     }
 
-    private void addStorageEngine(boolean hasData) throws SessionException, ExecutionException {
-        if (ENGINE_TYPE.toLowerCase().contains("iotdb"))
-            session.executeSql(
-                    "ADD STORAGEENGINE (\"127.0.0.1\", 6668, \""
-                            + ENGINE_TYPE
-                            + "\", \"username:root, password:root, sessionPoolSize:20, has_data:"
-                            + hasData
-                            + ", is_read_only:true\");");
-        else if (ENGINE_TYPE.toLowerCase().contains("influxdb"))
-            session.executeSql(
-                    "ADD STORAGEENGINE (\"127.0.0.1\", 8087, \""
-                            + ENGINE_TYPE
-                            + "\", \"url:http://localhost:8087/, username:user, password:12345678, sessionPoolSize:20, has_data:"
-                            + hasData
-                            + ", is_read_only:true, token:testToken, organization:testOrg\");");
-        else if (ENGINE_TYPE.toLowerCase().contains("parquet"))
-            session.executeSql(
-                    "ADD STORAGEENGINE (\"127.0.0.1\", 6668, \""
-                            + ENGINE_TYPE
-                            + "\", \"username:root, password:root, sessionPoolSize:20, has_data:"
-                            + hasData
-                            + ", is_read_only:true\");");
-        else {
-            logger.error("not support the DB: {}", ENGINE_TYPE);
-            fail();
+    private void testAddAndRemoveStorageEngineWithPrefix() {
+        addStorageEngineWithPrefix("mn", "p1");
+        addStorageEngineWithPrefix("mn", "p2");
+        String statement = "select * from p1.mn";
+        List<String> pathList =
+                new ArrayList<String>() {
+                    {
+                        add("p1.mn.wf03.wt01.status");
+                        add("p1.mn.wf03.wt01.temperature");
+                    }
+                };
+        List<List<Object>> valuesList = new ArrayList<>();
+        valuesList.add(
+                new ArrayList<Object>() {
+                    {
+                        add(true);
+                        add(null);
+                    }
+                });
+        valuesList.add(
+                new ArrayList<Object>() {
+                    {
+                        add(false);
+                        add(77.71);
+                    }
+                });
+        List<DataType> dataTypeList =
+                new ArrayList<DataType>() {
+                    {
+                        add(DataType.BOOLEAN);
+                        add(DataType.DOUBLE);
+                    }
+                };
+        SQLTestTools.executeAndCompare(session, statement, pathList, valuesList, dataTypeList);
+
+        statement = "select * from p2.mn";
+        pathList =
+                new ArrayList<String>() {
+                    {
+                        add("p2.mn.wf03.wt01.status");
+                        add("p2.mn.wf03.wt01.temperature");
+                    }
+                };
+        SQLTestTools.executeAndCompare(session, statement, pathList, valuesList, dataTypeList);
+
+        List<RemovedStorageEngineInfo> removedStorageEngineList = new ArrayList<>();
+        removedStorageEngineList.add(
+                new RemovedStorageEngineInfo("127.0.0.1", getPort(), "p2", "mn"));
+        try {
+            session.removeHistoryDataSource(removedStorageEngineList);
+        } catch (ExecutionException | SessionException e) {
+            logger.error(
+                    "remove history data source through session api error: {}", e.getMessage());
         }
+        statement = "select * from p2.mn";
+        String expect =
+                "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
+        SQLTestTools.executeAndCompare(session, statement, expect);
+
+        try {
+            session.executeSql(
+                    "remove historydataresource (\"127.0.0.1\", "
+                            + getPort()
+                            + ", \"p1\", \"mn\")");
+        } catch (ExecutionException | SessionException e) {
+            logger.error("remove history data source through sql error: {}", e.getMessage());
+        }
+        statement = "select * from p1.mn";
+        expect = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
+        SQLTestTools.executeAndCompare(session, statement, expect);
     }
 
-    // @Test
-    public void testQueryHistoryDataFromInitialNode() throws Exception {
-        queryHistoryDataA(session);
+    private void testQueryHistoryDataOriHasData() {
+        String statement = "select * from mn";
+        List<String> pathList =
+                new ArrayList<String>() {
+                    {
+                        add("mn.wf01.wt01.status");
+                        add("mn.wf01.wt01.temperature");
+                    }
+                };
+        List<List<Object>> valuesList = new ArrayList<>();
+        valuesList.add(
+                new ArrayList<Object>() {
+                    {
+                        add(true);
+                        add(null);
+                    }
+                });
+        valuesList.add(
+                new ArrayList<Object>() {
+                    {
+                        add(false);
+                        add(20.71);
+                    }
+                });
+        List<DataType> dataTypeList =
+                new ArrayList<DataType>() {
+                    {
+                        add(DataType.BOOLEAN);
+                        add(DataType.DOUBLE);
+                    }
+                };
+        SQLTestTools.executeAndCompare(session, statement, pathList, valuesList, dataTypeList);
+
+        statement = "select count(*) from mn.wf01";
+        String expect =
+                "ResultSets:\n"
+                        + "+--------------------------+-------------------------------+\n"
+                        + "|count(mn.wf01.wt01.status)|count(mn.wf01.wt01.temperature)|\n"
+                        + "+--------------------------+-------------------------------+\n"
+                        + "|                         2|                              1|\n"
+                        + "+--------------------------+-------------------------------+\n"
+                        + "Total line number = 1\n";
+        SQLTestTools.executeAndCompare(session, statement, expect);
     }
 
-    public void testQueryHistoryDataFromNoInitialNode() throws Exception {
+    private void testQueryHistoryDataOriNoData() {
         String statement = "select * from mn";
         String expect =
                 "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
         SQLTestTools.executeAndCompare(session, statement, expect);
     }
 
-    // @Test
-    public void testQueryAfterInsertNewData() throws Exception {
-        testQueryAfterInsertNewDataFromNoInitialNode();
-        queryHistoryDataA(session);
+    private void testQueryHistoryDataExpNoData() {
+        String statement = "select * from mn.wf03";
+        String expect =
+                "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
+        SQLTestTools.executeAndCompare(session, statement, expect);
     }
 
-    public void queryNewDataA(Session session) throws Exception {
+    private void testQueryHistoryDataExpHasData() {
+        String statement = "select * from mn.wf03";
+        List<String> pathList =
+                new ArrayList<String>() {
+                    {
+                        add("mn.wf03.wt01.status");
+                        add("mn.wf03.wt01.temperature");
+                    }
+                };
+        List<List<Object>> valuesList = new ArrayList<>();
+        valuesList.add(
+                new ArrayList<Object>() {
+                    {
+                        add(true);
+                        add(null);
+                    }
+                });
+        valuesList.add(
+                new ArrayList<Object>() {
+                    {
+                        add(false);
+                        add(77.71);
+                    }
+                });
+        List<DataType> dataTypeList =
+                new ArrayList<DataType>() {
+                    {
+                        add(DataType.BOOLEAN);
+                        add(DataType.DOUBLE);
+                    }
+                };
+        SQLTestTools.executeAndCompare(session, statement, pathList, valuesList, dataTypeList);
+    }
+
+    private void testWriteAndQueryNewData() {
+        try {
+            session.executeSql(
+                    "insert into ln.wf02 (key, status, version) values (100, true, \"v1\");");
+            session.executeSql(
+                    "insert into ln.wf02 (key, status, version) values (400, false, \"v4\");");
+            session.executeSql("insert into ln.wf02 (key, version) values (800, \"v8\");");
+            queryNewData();
+        } catch (ExecutionException | SessionException e) {
+            logger.error("insert new data error: {}", e.getMessage());
+        }
+    }
+
+    private void queryNewData() {
         String statement = "select * from ln";
         String expect =
                 "ResultSets:\n"
@@ -429,49 +346,16 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
         SQLTestTools.executeAndCompare(session, statement, expect);
     }
 
-    public void testQueryAfterInsertNewDataFromNoInitialNode() throws Exception {
-        session.executeSql(
-                "insert into ln.wf02 (key, status, version) values (100, true, \"v1\");");
-        session.executeSql(
-                "insert into ln.wf02 (key, status, version) values (400, false, \"v4\");");
-        session.executeSql("insert into ln.wf02 (key, version) values (800, \"v8\");");
-
-        queryNewDataA(session);
+    private void testWriteAndQueryNewDataAfterCE() {
+        try {
+            session.executeSql("insert into ln.wf02 (key, version) values (1600, \"v48\");");
+            queryAllNewData();
+        } catch (ExecutionException | SessionException e) {
+            logger.error("insert new data after capacity expansion error: {}", e.getMessage());
+        }
     }
 
-    // @Test
-    public void testOriHasDataExpNoData() throws Exception {
-        addStorageEngine(false);
-        String statement = "select * from mn.wf03";
-        String expect =
-                "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
-        SQLTestTools.executeAndCompare(session, statement, expect);
-        queryNewDataA(session);
-        queryHistoryDataA(session);
-    }
-
-    public void testOriHasDataExpHasData() throws Exception {
-        addStorageEngine(true);
-        queryNewDataA(session);
-        queryAllHistoryData(session);
-    }
-
-    public void testOriNoDataExpHasData() throws Exception {
-        addStorageEngine(true);
-        queryHistoryDataB(session);
-        queryNewDataA(session);
-    }
-
-    public void testOriNoDataExpNoData() throws Exception {
-        addStorageEngine(false);
-        String statement = "select * from mn.wf03";
-        String expect =
-                "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
-        SQLTestTools.executeAndCompare(session, statement, expect);
-        queryNewDataA(session);
-    }
-
-    public void queryAllNewData(Session session) throws Exception {
+    private void queryAllNewData() {
         String statement = "select * from ln";
         String expect =
                 "ResultSets:\n"
@@ -498,27 +382,31 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
         SQLTestTools.executeAndCompare(session, statement, expect);
     }
 
-    // @Test
-    public void testWriteAndQueryAfterCEOriHasDataExpHasData() throws Exception {
-        session.executeSql("insert into ln.wf02 (key, version) values (1600, \"v48\");");
-        queryAllHistoryData(session);
-        queryAllNewData(session);
-    }
-
-    public void testWriteAndQueryAfterCEOriNoDataExpHasData() throws Exception {
-        session.executeSql("insert into ln.wf02 (key, version) values (1600, \"v48\");");
-        queryAllNewData(session);
-        queryHistoryDataB(session);
-    }
-
-    public void testWriteAndQueryAfterCEOriHasDataExpNoData() throws Exception {
-        session.executeSql("insert into ln.wf02 (key, version) values (1600, \"v48\");");
-        queryAllNewData(session);
-        queryHistoryDataA(session);
-    }
-
-    public void testWriteAndQueryAfterCEOriNoDataExpNoData() throws Exception {
-        session.executeSql("insert into ln.wf02 (key, version) values (1600, \"v48\");");
-        queryAllNewData(session);
+    private void addStorageEngine(boolean hasData) {
+        try {
+            switch (dbType) {
+                case iotdb12:
+                    session.executeSql(
+                            "ADD STORAGEENGINE (\"127.0.0.1\", 6668, \""
+                                    + dbType.name()
+                                    + "\", \"username:root, password:root, sessionPoolSize:20, has_data:"
+                                    + hasData
+                                    + ", is_read_only:true\");");
+                    break;
+                case influxdb:
+                    session.executeSql(
+                            "ADD STORAGEENGINE (\"127.0.0.1\", 8087, \""
+                                    + dbType.name()
+                                    + "\", \"url:http://localhost:8087/, username:user, password:12345678, sessionPoolSize:20, has_data:"
+                                    + hasData
+                                    + ", is_read_only:true, token:testToken, organization:testOrg\");");
+                    break;
+                default:
+                    logger.error("unsupported storage engine: {}", dbType.name());
+                    fail();
+            }
+        } catch (ExecutionException | SessionException e) {
+            logger.error(e.getMessage());
+        }
     }
 }

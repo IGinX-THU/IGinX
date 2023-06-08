@@ -4,20 +4,20 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import java.util.ArrayList;
 import java.util.List;
 
-public class DeleteTimeSeriesStatement extends DataStatement {
+public class DeleteColumnsStatement extends DataStatement {
 
     private final List<String> paths;
 
     private TagFilter tagFilter;
 
-    public DeleteTimeSeriesStatement() {
-        this.statementType = StatementType.DELETE_TIME_SERIES;
+    public DeleteColumnsStatement() {
+        this.statementType = StatementType.DELETE_COLUMNS;
         this.paths = new ArrayList<>();
         this.tagFilter = null;
     }
 
-    public DeleteTimeSeriesStatement(List<String> paths) {
-        this.statementType = StatementType.DELETE_TIME_SERIES;
+    public DeleteColumnsStatement(List<String> paths) {
+        this.statementType = StatementType.DELETE_COLUMNS;
         this.paths = paths;
         this.tagFilter = null;
     }

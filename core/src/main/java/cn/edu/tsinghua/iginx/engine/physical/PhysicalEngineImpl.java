@@ -46,8 +46,8 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
+import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageUnitMeta;
-import cn.edu.tsinghua.iginx.metadata.entity.TimeInterval;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.ByteUtils;
@@ -93,7 +93,7 @@ public class PhysicalEngineImpl implements PhysicalEngine {
                 Migration migration = (Migration) root;
                 FragmentMeta toMigrateFragment = migration.getFragmentMeta();
                 StorageUnitMeta targetStorageUnitMeta = migration.getTargetStorageUnitMeta();
-                TimeInterval timeInterval = toMigrateFragment.getTimeInterval();
+                KeyInterval keyInterval = toMigrateFragment.getKeyInterval();
                 List<String> paths = migration.getPaths();
 
                 // 查询分区数据
@@ -104,8 +104,8 @@ public class PhysicalEngineImpl implements PhysicalEngine {
 
                 List<Operator> selectOperators = new ArrayList<>();
                 List<Filter> selectTimeFilters = new ArrayList<>();
-                selectTimeFilters.add(new KeyFilter(Op.GE, timeInterval.getStartTime()));
-                selectTimeFilters.add(new KeyFilter(Op.L, timeInterval.getEndTime()));
+                selectTimeFilters.add(new KeyFilter(Op.GE, keyInterval.getStartKey()));
+                selectTimeFilters.add(new KeyFilter(Op.L, keyInterval.getEndKey()));
                 selectOperators.add(
                         new Select(
                                 new OperatorSource(project),

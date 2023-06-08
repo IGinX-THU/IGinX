@@ -26,7 +26,7 @@ import static org.junit.Assert.fail;
 import cn.edu.tsinghua.iginx.engine.physical.exception.InvalidOperatorParameterException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.shared.Constants;
-import cn.edu.tsinghua.iginx.engine.shared.TimeRange;
+import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
@@ -1735,7 +1735,7 @@ public abstract class AbstractOperatorMemoryExecutorTest {
                         3,
                         3,
                         new FunctionCall(Avg.getInstance(), params),
-                        new TimeRange(0, 11));
+                        new KeyRange(0, 11));
         RowStream stream = getExecutor().executeUnaryOperator(downsample, table);
 
         Header targetHeader = stream.getHeader();
@@ -1771,7 +1771,7 @@ public abstract class AbstractOperatorMemoryExecutorTest {
                         3,
                         3,
                         new FunctionCall(Max.getInstance(), params),
-                        new TimeRange(0, 11));
+                        new KeyRange(0, 11));
         getExecutor().executeUnaryOperator(downsample, table);
         fail();
     }

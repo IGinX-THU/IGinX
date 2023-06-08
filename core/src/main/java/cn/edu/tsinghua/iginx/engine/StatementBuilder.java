@@ -28,8 +28,8 @@ public class StatementBuilder {
         typeMap.put(StatementType.SHOW_REPLICATION, SqlType.GetReplicaNum);
         typeMap.put(StatementType.COUNT_POINTS, SqlType.CountPoints);
         typeMap.put(StatementType.CLEAR_DATA, SqlType.ClearData);
-        typeMap.put(StatementType.DELETE_TIME_SERIES, SqlType.DeleteTimeSeries);
-        typeMap.put(StatementType.SHOW_TIME_SERIES, SqlType.ShowTimeSeries);
+        typeMap.put(StatementType.DELETE_COLUMNS, SqlType.DeleteTimeSeries);
+        typeMap.put(StatementType.SHOW_COLUMNS, SqlType.ShowTimeSeries);
         typeMap.put(StatementType.SHOW_CLUSTER_INFO, SqlType.ShowClusterInfo);
         typeMap.put(StatementType.SHOW_REGISTER_TASK, SqlType.ShowRegisterTask);
         typeMap.put(StatementType.REGISTER_TASK, SqlType.RegisterTask);
@@ -39,6 +39,8 @@ public class StatementBuilder {
         typeMap.put(StatementType.CANCEL_JOB, SqlType.CancelJob);
         typeMap.put(StatementType.SHOW_ELIGIBLE_JOB, SqlType.ShowEligibleJob);
         typeMap.put(StatementType.COMPACT, SqlType.Compact);
+        typeMap.put(StatementType.SET_CONFIG, SqlType.SetConfig);
+        typeMap.put(StatementType.SHOW_CONFIG, SqlType.ShowConfig);
     }
 
     private static final StatementBuilder instance = new StatementBuilder();

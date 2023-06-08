@@ -22,7 +22,7 @@ public class TransformExample {
     private static final String S4 = "transform.value4";
 
     private static final String QUERY_SQL = "select value1, value2, value3, value4 from transform;";
-    private static final String SHOW_TIME_SERIES_SQL = "show time series;";
+    private static final String SHOW_TIME_SERIES_SQL = "SHOW COLUMNS;";
     private static final String SHOW_REGISTER_TASK_SQL = "SHOW REGISTER PYTHON TASK;";
     private static final String REGISTER_SQL_FORMATTER =
             "REGISTER TRANSFORM PYTHON TASK %s IN %s AS %s";
@@ -82,7 +82,7 @@ public class TransformExample {
         prepareData();
 
         // 查询序列
-        SessionExecuteSqlResult result = session.executeSql("show time series");
+        SessionExecuteSqlResult result = session.executeSql("SHOW COLUMNS");
         result.print(false, "ms");
 
         // 注册任务
@@ -347,7 +347,7 @@ public class TransformExample {
         System.out.println("job state is " + jobState.toString());
 
         // 查询序列
-        SessionExecuteSqlResult result = session.executeSql("show time series");
+        SessionExecuteSqlResult result = session.executeSql("SHOW COLUMNS");
         result.print(false, "ms");
     }
 

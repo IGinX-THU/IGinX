@@ -18,7 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.operator;
 
-import cn.edu.tsinghua.iginx.engine.shared.TimeRange;
+import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
@@ -32,14 +32,14 @@ public class Downsample extends AbstractUnaryOperator {
 
     private final FunctionCall functionCall;
 
-    private final TimeRange timeRange;
+    private final KeyRange keyRange;
 
     public Downsample(
             Source source,
             long precision,
             long slideDistance,
             FunctionCall functionCall,
-            TimeRange timeRange) {
+            KeyRange keyRange) {
         super(OperatorType.Downsample, source);
         if (precision <= 0) {
             throw new IllegalArgumentException("precision should be greater than zero");
@@ -53,13 +53,13 @@ public class Downsample extends AbstractUnaryOperator {
         if (functionCall.getFunction().getMappingType() != MappingType.SetMapping) {
             throw new IllegalArgumentException("function should be set mapping function");
         }
-        if (timeRange == null) {
+        if (keyRange == null) {
             throw new IllegalArgumentException("timeRange shouldn't be null");
         }
         this.precision = precision;
         this.slideDistance = slideDistance;
         this.functionCall = functionCall;
-        this.timeRange = timeRange;
+        this.keyRange = keyRange;
     }
 
     public long getPrecision() {
@@ -74,18 +74,14 @@ public class Downsample extends AbstractUnaryOperator {
         return functionCall;
     }
 
-    public TimeRange getTimeRange() {
-        return timeRange;
+    public KeyRange getKeyRange() {
+        return keyRange;
     }
 
     @Override
     public Operator copy() {
         return new Downsample(
-                getSource().copy(),
-                precision,
-                slideDistance,
-                functionCall.copy(),
-                timeRange.copy());
+                getSource().copy(), precision, slideDistance, functionCall.copy(), keyRange.copy());
     }
 
     @Override
@@ -95,7 +91,7 @@ public class Downsample extends AbstractUnaryOperator {
                 + ", SlideDistance: "
                 + slideDistance
                 + ", TimeRange: "
-                + timeRange.toString()
+                + keyRange.toString()
                 + ", Func: "
                 + functionCall.toString();
     }

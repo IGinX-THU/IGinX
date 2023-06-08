@@ -22,7 +22,7 @@ IGinX代码测试框架于2023年完成重构，测试主要分为以下部分
 - **`case-regression`**：混合测试
   - 文件位于`integration/regression/`下
   - 混合数据库测试
-- **`formatChecker`**：代码格式规范化测试
+- **`format-checker`**：代码格式规范化测试
 
 ### 添加测试以及被测数据库
 

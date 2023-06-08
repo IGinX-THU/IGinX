@@ -2,23 +2,20 @@ package cn.edu.tsinghua.iginx.parquet;
 
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
-import cn.edu.tsinghua.iginx.engine.physical.exception.NonExecutablePhysicalTaskException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
-import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Timeseries;
-import cn.edu.tsinghua.iginx.engine.physical.task.StoragePhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
+import cn.edu.tsinghua.iginx.engine.physical.storage.domain.DataArea;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
-import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
 import cn.edu.tsinghua.iginx.parquet.exec.Executor;
 import cn.edu.tsinghua.iginx.parquet.exec.NewExecutor;
@@ -108,59 +105,85 @@ public class ParquetStorage implements IStorage {
     }
 
     @Override
-    public TaskExecuteResult execute(StoragePhysicalTask task) {
-        List<Operator> operators = task.getOperators();
-        if (operators.size() != 1) {
-            return new TaskExecuteResult(
-                    new NonExecutablePhysicalTaskException("unsupported physical task"));
-        }
-        FragmentMeta fragment = task.getTargetFragment();
-        String storageUnit = task.getStorageUnit();
-        Operator op = operators.get(0);
-
-        boolean isDummyStorageUnit = task.isDummyStorageUnit();
-        if (op.getType() == OperatorType.Project) {
-            Project project = (Project) op;
-            Filter filter;
-            if (operators.size() == 2) {
-                filter = ((Select) operators.get(1)).getFilter();
-            } else {
-                filter =
-                        new AndFilter(
-                                Arrays.asList(
-                                        new KeyFilter(
-                                                Op.GE, fragment.getTimeInterval().getStartTime()),
-                                        new KeyFilter(
-                                                Op.L, fragment.getTimeInterval().getEndTime())));
-            }
-            return executor.executeProjectTask(
-                    project.getPatterns(),
-                    project.getTagFilter(),
-                    FilterTransformer.toString(filter),
-                    storageUnit,
-                    isDummyStorageUnit);
-        } else if (op.getType() == OperatorType.Insert) {
-            Insert insert = (Insert) op;
-            return executor.executeInsertTask(insert.getData(), storageUnit);
-        } else if (op.getType() == OperatorType.Delete) {
-            Delete delete = (Delete) op;
-            return executor.executeDeleteTask(
-                    delete.getPatterns(),
-                    delete.getTimeRanges(),
-                    delete.getTagFilter(),
-                    storageUnit);
-        }
-        return new TaskExecuteResult(
-                new NonExecutablePhysicalTaskException("unsupported physical task"));
+    public TaskExecuteResult executeProject(Project project, DataArea dataArea) {
+        KeyInterval keyInterval = dataArea.getKeyInterval();
+        Filter filter =
+                new AndFilter(
+                        Arrays.asList(
+                                new KeyFilter(Op.GE, keyInterval.getStartKey()),
+                                new KeyFilter(Op.L, keyInterval.getEndKey())));
+        return executor.executeProjectTask(
+                project.getPatterns(),
+                project.getTagFilter(),
+                FilterTransformer.toString(filter),
+                dataArea.getStorageUnit(),
+                false);
     }
 
     @Override
-    public List<Timeseries> getTimeSeries() throws PhysicalException {
+    public TaskExecuteResult executeProjectDummy(Project project, DataArea dataArea) {
+        KeyInterval keyInterval = dataArea.getKeyInterval();
+        Filter filter =
+                new AndFilter(
+                        Arrays.asList(
+                                new KeyFilter(Op.GE, keyInterval.getStartKey()),
+                                new KeyFilter(Op.L, keyInterval.getEndKey())));
+        return executor.executeProjectTask(
+                project.getPatterns(),
+                project.getTagFilter(),
+                FilterTransformer.toString(filter),
+                dataArea.getStorageUnit(),
+                true);
+    }
+
+    @Override
+    public boolean isSupportProjectWithSelect() {
+        return true;
+    }
+
+    @Override
+    public TaskExecuteResult executeProjectWithSelect(
+            Project project, Select select, DataArea dataArea) {
+        return executor.executeProjectTask(
+                project.getPatterns(),
+                project.getTagFilter(),
+                FilterTransformer.toString(select.getFilter()),
+                dataArea.getStorageUnit(),
+                false);
+    }
+
+    @Override
+    public TaskExecuteResult executeProjectDummyWithSelect(
+            Project project, Select select, DataArea dataArea) {
+        return executor.executeProjectTask(
+                project.getPatterns(),
+                project.getTagFilter(),
+                FilterTransformer.toString(select.getFilter()),
+                dataArea.getStorageUnit(),
+                true);
+    }
+
+    @Override
+    public TaskExecuteResult executeDelete(Delete delete, DataArea dataArea) {
+        return executor.executeDeleteTask(
+                delete.getPatterns(),
+                delete.getKeyRanges(),
+                delete.getTagFilter(),
+                dataArea.getStorageUnit());
+    }
+
+    @Override
+    public TaskExecuteResult executeInsert(Insert insert, DataArea dataArea) {
+        return executor.executeInsertTask(insert.getData(), dataArea.getStorageUnit());
+    }
+
+    @Override
+    public List<Column> getColumns() throws PhysicalException {
         return executor.getTimeSeriesOfStorageUnit("*");
     }
 
     @Override
-    public Pair<TimeSeriesRange, TimeInterval> getBoundaryOfStorage(String prefix)
+    public Pair<ColumnsRange, KeyInterval> getBoundaryOfStorage(String prefix)
             throws PhysicalException {
         return executor.getBoundaryOfStorage();
     }

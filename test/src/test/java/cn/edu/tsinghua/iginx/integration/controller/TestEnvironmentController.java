@@ -9,9 +9,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class TestEnvironmentController {
-    protected static final Logger logger = LoggerFactory.getLogger(TestEnvironmentController.class);
-    Session session;
-    private String ADDSTORAGEENGINE = "ADD STORAGEENGINE (\"%s\", %s, \"%s\", \"%s\")";
+
+    private static final Logger logger = LoggerFactory.getLogger(TestEnvironmentController.class);
+
+    private static Session session;
+
+    private static final String ADD_STORAGE_ENGINE =
+            "ADD STORAGEENGINE (\"%s\", %s, \"%s\", \"%s\")";
 
     public TestEnvironmentController() {
         session = new Session("127.0.0.1", 6888, "root", "root");
@@ -37,7 +41,7 @@ public class TestEnvironmentController {
             fileWriter.flush(); // 刷新数据，不刷新写入不进去
             fileWriter.close(); // 关闭流
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error(e.getMessage());
         }
     }
 
@@ -48,10 +52,10 @@ public class TestEnvironmentController {
         }
         extraArg.deleteCharAt(extraArg.length() - 1);
         return String.format(
-                ADDSTORAGEENGINE,
+                ADD_STORAGE_ENGINE,
                 meta.getIp(),
                 meta.getPort(),
                 meta.getStorageEngine(),
-                extraArg.toString());
+                extraArg);
     }
 }

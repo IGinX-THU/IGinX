@@ -7,15 +7,13 @@ on:
 env:
     VERSION: 0.6.0-SNAPSHOT
     FUNCTEST: NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,SessionIT,SessionPoolIT,CompactionIT,TimePrecisionIT
-    IoTDB12FUNCTEST: NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,SessionIT,SessionPoolIT,CompactionIT,TimePrecisionIT
-    InfluxDBFUNCTEST: NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,SessionIT,SessionPoolIT,CompactionIT,TimePrecisionIT
 concurrency:
     group: ${{ github.workflow }}-${{ github.ref }}
     cancel-in-progress: true
 
 jobs:
     DB-CE:
-        timeout-minutes: 40
+        timeout-minutes: 60
         strategy:
             fail-fast: false
             matrix:
@@ -31,77 +29,74 @@ jobs:
               with:
                   python-version: ${{ matrix.python-version }}
                   java: ${{ matrix.java }}
+
             - name: Run ZooKeeper
               uses: ./.github/actions/zookeeperRunner
 
             - name: Run DB
               uses: ./.github/actions/dbRunner
               with:
-                  version: ${{matrix.DB-name}}
-
-            - name: Set the DB name
-              uses: ./.github/actions/confWriter
-              with:
-                  confFile: DBName
-                  DB-name: ${{matrix.DB-name}}
+                  DB-name: ${{ matrix.DB-name }}
 
             - name: Install IGinX with Maven
               shell: bash
               run: |
                   mvn clean package -DskipTests -P passFormat -q
 
-            - name: Set the UDF conf
-              uses: ./.github/actions/confWriter
-              with:
-                  confFile: UDFConf
-
-            #第 1 阶段测试开始==========================================
+            # 第 1 阶段测试开始==========================================
             - name: Prepare CapExp environment oriHasDataExpHasData
               uses: ./.github/actions/capacityExpansionUnionTest
               with:
                   version: ${VERSION}
-                  DB-name: ${{matrix.DB-name}}
+                  DB-name: ${{ matrix.DB-name }}
                   Test-Way: oriHasDataExpHasData
+
             - name: oriHasDataExpHasData IT
               run: |
-                  mvn test -q -Dtest=${{matrix.DB-name}}HistoryDataCapacityExpansionIT#oriHasDataExpHasData -DfailIfNoTests=false -P passFormat
-                  mvn test -q -Dtest=${${{matrix.DB-name}}FUNCTEST} -DfailIfNoTests=false -P passFormat
-            #第 2 阶段测试开始==========================================
+                  mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriHasDataExpHasData -DfailIfNoTests=false -P passFormat
+                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P passFormat
+
+            # 第 2 阶段测试开始==========================================
             - name: Prepare CapExp environment oriNoDataExpNoData
               uses: ./.github/actions/capacityExpansionUnionTest
               with:
                   version: ${VERSION}
-                  DB-name: ${{matrix.DB-name}}
+                  DB-name: ${{ matrix.DB-name }}
                   Test-Way: oriNoDataExpNoData
+
             - name: oriNoDataExpNoData IT
               run: |
-                  mvn test -q -Dtest=${{matrix.DB-name}}HistoryDataCapacityExpansionIT#oriNoDataExpNoData -DfailIfNoTests=false -P passFormat
-                  mvn test -q -Dtest=${${{matrix.DB-name}}FUNCTEST} -DfailIfNoTests=false -P passFormat
-            #第 3 阶段测试开始==========================================
+                  mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriNoDataExpNoData -DfailIfNoTests=false -P passFormat
+                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P passFormat
+
+            # 第 3 阶段测试开始==========================================
             - name: Prepare CapExp environment oriHasDataExpNoData
               uses: ./.github/actions/capacityExpansionUnionTest
               with:
                   version: ${VERSION}
-                  DB-name: ${{matrix.DB-name}}
+                  DB-name: ${{ matrix.DB-name }}
                   Test-Way: oriHasDataExpNoData
+
             - name: oriHasDataExpNoData IT
               run: |
-                  mvn test -q -Dtest=${{matrix.DB-name}}HistoryDataCapacityExpansionIT#oriHasDataExpNoData -DfailIfNoTests=false -P passFormat
-                  mvn test -q -Dtest=${${{matrix.DB-name}}FUNCTEST} -DfailIfNoTests=false -P passFormat
-            #第 4 阶段测试开始==========================================
+                  mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriHasDataExpNoData -DfailIfNoTests=false -P passFormat
+                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P passFormat
+
+            # 第 4 阶段测试开始==========================================
             - name: Prepare CapExp environment oriNoDataExpHasData
               uses: ./.github/actions/capacityExpansionUnionTest
               with:
                   version: ${VERSION}
-                  DB-name: ${{matrix.DB-name}}
+                  DB-name: ${{ matrix.DB-name }}
                   Test-Way: oriNoDataExpHasData
+
             - name: oriNoDataExpHasData IT
               run: |
-                  mvn test -q -Dtest=${{matrix.DB-name}}HistoryDataCapacityExpansionIT#oriNoDataExpHasData -DfailIfNoTests=false -P passFormat
-                  mvn test -q -Dtest=${${{matrix.DB-name}}FUNCTEST} -DfailIfNoTests=false -P passFormat
-                  mvn test -q -Dtest=${{matrix.DB-name}}HistoryDataCapacityExpansionIT#testPrefixAndRemoveHistoryDataSource -DfailIfNoTests=false -P passFormat
+                mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriNoDataExpHasData -DfailIfNoTests=false -P passFormat
+                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P passFormat
+          
 
-            #测试只读节点==========================================
+          # 测试只读节点==========================================
             - name: Change IginX Config
               uses: ./.github/actions/confWriter
               with:
@@ -115,12 +110,20 @@ jobs:
                   Test-Way: oriHasDataExpNoData
             - name: Test ReadOnly Node
               run: |
-                  mvn test -q -Dtest=${{matrix.DB-name}}HistoryDataCapacityExpansionIT#testReadOnlyNode -DfailIfNoTests=false -P passFormat
+                  mvn test -q -Dtest=${{matrix.DB-name}}CapacityExpansionIT#testReadOnlyNode -DfailIfNoTests=false -P passFormat
 
-            #测试只读节点 + 扩容可写节点==========================================
+            # 测试只读节点 + 扩容可写节点==========================================
             - name: Test ReadOnly Node with Writable Node
               run: |
-                  mvn test -q -Dtest=${{matrix.DB-name}}HistoryDataCapacityExpansionIT#testReadOnlyNode -DfailIfNoTests=false -P passFormat
+                  mvn test -q -Dtest=${{matrix.DB-name}}CapacityExpansionIT#testReadOnlyNode -DfailIfNoTests=false -P passFormat
+                  mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriHasDataExpNoData -DfailIfNoTests=false -P passFormat
+                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P passFormat
+
+            - name: Show IGinX log
+              if: always()
+              shell: bash
+              run: |
+                  cat iginx.log
 
             - uses: codecov/codecov-action@v1
               with:
@@ -137,59 +140,51 @@ jobs:
         runs-on: ${{ matrix.os }}
         steps:
             - uses: actions/checkout@v2
-            - name: Set up Python ${{ matrix.python-version }}
-              uses: actions/setup-python@v3
+            - name: Environment dependence
+              uses: ./.github/actions/dependence
               with:
                   python-version: ${{ matrix.python-version }}
-            - name: Install Python dependencies
-              run: |
-                  python -m pip install --upgrade pip
-            - name: Set up JDK ${{ matrix.java }}
-              uses: actions/setup-java@v1
-              with:
-                  java-version: ${{ matrix.java }}
+                  java: ${{ matrix.java }}
+
             - name: Cache Maven packages
               uses: actions/cache@v2.1.5
               with:
                   path: ~/.m2
                   key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
                   restore-keys: ${{ runner.os }}-m2
+
             - name: Run ZooKeeper
+              uses: ./.github/actions/zookeeperRunner
+
+            - name: Run DB
+              uses: ./.github/actions/dbRunner
+              with:
+                  version: Parquet
+
+            - name: Install IGinX with Maven
+              shell: bash
               run: |
-                  if [ "$RUNNER_OS" == "Linux" ]; then
-                    chmod +x "${GITHUB_WORKSPACE}/.github/zk.sh"
-                    "${GITHUB_WORKSPACE}/.github/zk.sh"
-                  elif [ "$RUNNER_OS" == "macOS" ]; then
-                    chmod +x "${GITHUB_WORKSPACE}/.github/zk_macos.sh"
-                    "${GITHUB_WORKSPACE}/.github/zk_macos.sh"
-                  else
-                    echo "$RUNNER_OS is not supported"
-                    exit 1
-                  fi
-            - name: Set Parquet
-              run: |
-                  if [ "$RUNNER_OS" == "Linux" ]; then
-                    chmod +x "${GITHUB_WORKSPACE}/.github/parquet.sh"
-                    "${GITHUB_WORKSPACE}/.github/parquet.sh"
-                  elif [ "$RUNNER_OS" == "macOS" ]; then
-                    chmod +x "${GITHUB_WORKSPACE}/.github/parquet_macos.sh"
-                    "${GITHUB_WORKSPACE}/.github/parquet_macos.sh"
-                  else
-                    echo "$RUNNER_OS is not supported"
-                    exit 1
-                  fi
-            - name: Install with Maven
-              run: mvn clean package -DskipTests -q
+                  mvn clean package -DskipTests -P passFormat -q
+
             - name: Write history Data
               run: |
-                  mvn test -q -Dtest=ParquetHistoryDataGeneratorTest -DfailIfNoTests=false
+                  mvn test -q -Dtest=ParquetHistoryDataGeneratorTest -DfailIfNoTests=false -P passFormat
                   sleep 10
+
             - name: Start IGinX
+              uses: ./.github/actions/iginxRunner
+              with:
+                  version: ${VERSION}
+
+            - name: ParquetCapacityExpansionIT
+              run: mvn test -q -Dtest=ParquetCapacityExpansionIT -DfailIfNoTests=false -P passFormat
+
+            - name: Show IGinX log
+              if: always()
+              shell: bash
               run: |
-                  chmod +x "${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/sbin/start_iginx.sh"
-                  nohup "${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/sbin/start_iginx.sh" &
-            - name: A Lame Integration Test with Maven for parquet
-              run: mvn test -q -Dtest=ParquetHistoryDataCapacityExpansionIT -DfailIfNoTests=false
+                  cat iginx.log
+
             - uses: codecov/codecov-action@v1
               with:
                   file: ./**/target/site/jacoco/jacoco.xml
