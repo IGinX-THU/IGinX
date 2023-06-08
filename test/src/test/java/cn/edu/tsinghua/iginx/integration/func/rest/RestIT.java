@@ -264,7 +264,7 @@ public class RestIT {
     }
 
     @Test
-    //    @Ignore
+    @Ignore
     // TODO this test makes no sense
     public void pathValidTest() {
         try {

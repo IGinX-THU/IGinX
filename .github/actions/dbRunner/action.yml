@@ -1,15 +1,15 @@
 name: "db-runner"
 description: "db runner"
 inputs:
-    version:
+    DB-name:
         description: "DB name"
         required: false
-        default: iotdb12
+        default: IoTDB12
 
 runs:
     using: "composite" # Mandatory parameter
     steps:
-        - if: inputs.version=='InfluxDB'
+        - if: inputs.DB-name=='InfluxDB'
           name: Run DB
           shell: bash
           run: |
@@ -24,7 +24,7 @@ runs:
                 exit 1
               fi
 
-        - if: inputs.version=='IoTDB12'
+        - if: inputs.DB-name=='IoTDB12'
           name: Run DB
           shell: bash
           run: |
@@ -39,7 +39,7 @@ runs:
                 exit 1
               fi
 
-        - if: inputs.version=='Parquet'
+        - if: inputs.DB-name=='Parquet'
           name: Run DB
           shell: bash
           run: |
@@ -54,7 +54,7 @@ runs:
                 exit 1
               fi
 
-        - if: inputs.version=='MongoDB'
+        - if: inputs.DB-name=='MongoDB'
           name: Run DB
           shell: bash
           run: |
@@ -69,7 +69,7 @@ runs:
                 exit 1
               fi
 
-        - if: inputs.version=='Redis'
+        - if: inputs.DB-name=='Redis'
           name: Run DB
           shell: bash
           run: |
@@ -84,7 +84,7 @@ runs:
                 exit 1
               fi
 
-        - if: inputs.version=='Mix-IoTDB12-InfluxDB'
+        - if: inputs.DB-name=='Mix-IoTDB12-InfluxDB'
           name: Run DB
           shell: bash
           run: |
