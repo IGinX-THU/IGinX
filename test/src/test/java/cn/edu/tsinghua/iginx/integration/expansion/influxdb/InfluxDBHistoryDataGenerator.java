@@ -121,12 +121,12 @@ public class InfluxDBHistoryDataGenerator extends BaseHistoryDataGenerator {
 
     @Override
     public void writeHistoryDataToOri() {
-        writeHistoryData(pathListOri, dataTypeListOri, valuesListOri, ORI_URL);
+        writeHistoryData(PATH_LIST_ORI, DATA_TYPE_LIST_ORI, VALUES_LIST_ORI, ORI_URL);
     }
 
     @Override
     public void writeHistoryDataToExp() {
-        writeHistoryData(pathListExp, dataTypeListExp, valuesListExp, EXP_URL);
+        writeHistoryData(PATH_LIST_EXP, DATA_TYPE_LIST_EXP, VALUES_LIST_EXP, EXP_URL);
     }
 
     @Test

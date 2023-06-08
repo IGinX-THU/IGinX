@@ -29,6 +29,20 @@ public class PostgreSQLCapacityExpansionIT extends CapacityExpansionIT {
                             + schemaPrefix
                             + ", is_read_only:true\");");
         } catch (ExecutionException | SessionException e) {
+            logger.error("add storage engine with prefix failure: {}", e.getMessage());
+        }
+    }
+
+    @Override
+    public void addStorageEngine(boolean hasData) {
+        try {
+            session.executeSql(
+                    "ADD STORAGEENGINE (\"127.0.0.1\", 5431, \""
+                            + dbType.name()
+                            + "\", \"username:postgres, password:postgres, has_data:"
+                            + hasData
+                            + ", is_read_only:true\");");
+        } catch (ExecutionException | SessionException e) {
             logger.error("add storage engine failure: {}", e.getMessage());
         }
     }

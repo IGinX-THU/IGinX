@@ -1,7 +1,7 @@
 package cn.edu.tsinghua.iginx.integration.expansion;
 
 import cn.edu.tsinghua.iginx.thrift.DataType;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import org.junit.Test;
 
@@ -9,63 +9,27 @@ public abstract class BaseHistoryDataGenerator {
 
     protected int portOri;
 
-    protected List<String> pathListOri = new ArrayList<>();
+    public static final List<String> PATH_LIST_ORI =
+            Arrays.asList("mn.wf01.wt01.status", "mn.wf01.wt01.temperature");
 
-    protected List<DataType> dataTypeListOri = new ArrayList<>();
+    public static final List<DataType> DATA_TYPE_LIST_ORI =
+            Arrays.asList(DataType.BOOLEAN, DataType.DOUBLE);
 
-    protected List<List<Object>> valuesListOri = new ArrayList<>();
+    public static final List<List<Object>> VALUES_LIST_ORI =
+            Arrays.asList(Arrays.asList(true, 15.27), Arrays.asList(false, 20.71));
 
     protected int portExp;
 
-    protected List<String> pathListExp = new ArrayList<>();
+    public static final List<String> PATH_LIST_EXP =
+            Arrays.asList("mn.wf03.wt01.status", "mn.wf03.wt01.temperature");
 
-    protected List<DataType> dataTypeListExp = new ArrayList<>();
+    public static final List<DataType> DATA_TYPE_LIST_EXP =
+            Arrays.asList(DataType.BOOLEAN, DataType.DOUBLE);
 
-    protected List<List<Object>> valuesListExp = new ArrayList<>();
+    public static final List<List<Object>> VALUES_LIST_EXP =
+            Arrays.asList(Arrays.asList(true, 66.23), Arrays.asList(false, 77.71));
 
-    public BaseHistoryDataGenerator() {
-        pathListOri.add("mn.wf01.wt01.status");
-        pathListOri.add("mn.wf01.wt01.temperature");
-
-        dataTypeListOri.add(DataType.BOOLEAN);
-        dataTypeListOri.add(DataType.DOUBLE);
-
-        valuesListOri.add(
-                new ArrayList<Object>() {
-                    {
-                        add(true);
-                        add(null);
-                    }
-                });
-        valuesListOri.add(
-                new ArrayList<Object>() {
-                    {
-                        add(false);
-                        add(20.71);
-                    }
-                });
-
-        pathListExp.add("mn.wf03.wt01.status");
-        pathListExp.add("mn.wf03.wt01.temperature");
-
-        dataTypeListExp.add(DataType.BOOLEAN);
-        dataTypeListExp.add(DataType.DOUBLE);
-
-        valuesListExp.add(
-                new ArrayList<Object>() {
-                    {
-                        add(true);
-                        add(null);
-                    }
-                });
-        valuesListExp.add(
-                new ArrayList<Object>() {
-                    {
-                        add(false);
-                        add(77.71);
-                    }
-                });
-    }
+    public BaseHistoryDataGenerator() {}
 
     @Test
     public void oriHasDataExpHasData() {

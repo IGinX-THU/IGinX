@@ -56,12 +56,12 @@ public class PostgreSQLHistoryDataGeneratorTest extends BaseHistoryDataGenerator
 
     @Override
     public void writeHistoryDataToOri() {
-        writeHistoryData(pathListOri, dataTypeListOri, valuesListOri, portOri);
+        writeHistoryData(PATH_LIST_ORI, DATA_TYPE_LIST_ORI, VALUES_LIST_ORI, portOri);
     }
 
     @Override
     public void writeHistoryDataToExp() {
-        writeHistoryData(pathListExp, dataTypeListExp, valuesListExp, portExp);
+        writeHistoryData(PATH_LIST_EXP, DATA_TYPE_LIST_EXP, VALUES_LIST_EXP, portExp);
     }
 
     private void writeHistoryData(
