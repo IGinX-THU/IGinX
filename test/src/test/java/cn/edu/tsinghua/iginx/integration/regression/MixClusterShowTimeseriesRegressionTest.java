@@ -49,7 +49,7 @@ public class MixClusterShowTimeseriesRegressionTest {
         }
         String statement = "SHOW COLUMNS";
         String expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+----+--------+\n"
                         + "|Path|DataType|\n"
                         + "+----+--------+\n"
@@ -68,7 +68,7 @@ public class MixClusterShowTimeseriesRegressionTest {
 
         statement = "SHOW COLUMNS m.*";
         expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+----+--------+\n"
                         + "|Path|DataType|\n"
                         + "+----+--------+\n"

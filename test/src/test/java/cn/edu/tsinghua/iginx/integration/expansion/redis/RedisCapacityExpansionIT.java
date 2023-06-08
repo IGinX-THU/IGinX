@@ -7,12 +7,11 @@ import cn.edu.tsinghua.iginx.integration.tool.DBType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class RedisHistoryDataCapacityExpansionIT extends CapacityExpansionIT {
+public class RedisCapacityExpansionIT extends CapacityExpansionIT {
 
-    private static final Logger logger =
-            LoggerFactory.getLogger(RedisHistoryDataCapacityExpansionIT.class);
+    private static final Logger logger = LoggerFactory.getLogger(RedisCapacityExpansionIT.class);
 
-    public RedisHistoryDataCapacityExpansionIT() {
+    public RedisCapacityExpansionIT() {
         super(DBType.redis);
     }
 

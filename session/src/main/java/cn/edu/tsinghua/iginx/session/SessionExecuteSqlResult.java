@@ -248,7 +248,7 @@ public class SessionExecuteSqlResult {
 
     private String buildShowTimeSeriesResult() {
         StringBuilder builder = new StringBuilder();
-        builder.append("Time series:").append("\n");
+        builder.append("Columns:").append("\n");
         int num = 0;
         if (paths != null) {
             List<List<String>> cache = new ArrayList<>();
