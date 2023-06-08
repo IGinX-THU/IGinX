@@ -115,7 +115,8 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
                     String tableName = item.getKey();
                     StringBuilder createTableStr = new StringBuilder();
                     for (Integer index : item.getValue()) {
-                        String columnName = pathList.get(index);
+                        String path = pathList.get(index);
+                        String columnName = path.substring(path.lastIndexOf(IGINX_SEPARATOR) + 1);
                         DataType dataType = dataTypeList.get(index);
                         createTableStr.append(columnName);
                         createTableStr.append(" ");

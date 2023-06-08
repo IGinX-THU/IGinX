@@ -2,6 +2,8 @@ package cn.edu.tsinghua.iginx.integration.expansion.redis;
 
 import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
 import java.util.List;
+
+import org.junit.Test;
 import redis.clients.jedis.Jedis;
 
 public class RedisHistoryDataGenerator extends BaseHistoryDataGenerator {
@@ -34,6 +36,7 @@ public class RedisHistoryDataGenerator extends BaseHistoryDataGenerator {
         jedis.close();
     }
 
+    @Test
     @Override
     public void clearHistoryData() {
         Jedis jedisA = new Jedis(LOCAL_IP, PORT_A);
