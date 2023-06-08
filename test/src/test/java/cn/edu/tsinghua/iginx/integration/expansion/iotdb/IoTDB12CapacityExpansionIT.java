@@ -33,6 +33,20 @@ public class IoTDB12CapacityExpansionIT extends CapacityExpansionIT {
     }
 
     @Override
+    public void addStorageEngine(boolean hasData) {
+        try {
+            session.executeSql(
+                    "ADD STORAGEENGINE (\"127.0.0.1\", 6668, \""
+                            + dbType.name()
+                            + "\", \"username:root, password:root, sessionPoolSize:20, has_data:"
+                            + hasData
+                            + ", is_read_only:true\");");
+        } catch (SessionException | ExecutionException e) {
+            logger.error(e.getMessage());
+        }
+    }
+
+    @Override
     public int getPort() {
         return 6668;
     }

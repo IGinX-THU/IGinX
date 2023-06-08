@@ -1,7 +1,5 @@
 package cn.edu.tsinghua.iginx.integration.expansion;
 
-import static org.junit.Assert.fail;
-
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
@@ -357,41 +355,5 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
                         + "+---------------------+----------------------+\n"
                         + "Total line number = 1\n";
         SQLTestTools.executeAndCompare(session, statement, expect);
-    }
-
-    private void addStorageEngine(boolean hasData) {
-        try {
-            switch (dbType) {
-                case iotdb12:
-                    session.executeSql(
-                            "ADD STORAGEENGINE (\"127.0.0.1\", 6668, \""
-                                    + dbType.name()
-                                    + "\", \"username:root, password:root, sessionPoolSize:20, has_data:"
-                                    + hasData
-                                    + ", is_read_only:true\");");
-                    break;
-                case influxdb:
-                    session.executeSql(
-                            "ADD STORAGEENGINE (\"127.0.0.1\", 8087, \""
-                                    + dbType.name()
-                                    + "\", \"url:http://localhost:8087/, username:user, password:12345678, sessionPoolSize:20, has_data:"
-                                    + hasData
-                                    + ", is_read_only:true, token:testToken, organization:testOrg\");");
-                    break;
-                case redis:
-                    session.executeSql(
-                            "ADD STORAGEENGINE (\"127.0.0.1\", 6380, \""
-                                    + dbType.name()
-                                    + "\", \"has_data:"
-                                    + hasData
-                                    + ", is_read_only:true\");");
-                    break;
-                default:
-                    logger.error("unsupported storage engine: {}", dbType.name());
-                    fail();
-            }
-        } catch (ExecutionException | SessionException e) {
-            logger.error(e.getMessage());
-        }
     }
 }

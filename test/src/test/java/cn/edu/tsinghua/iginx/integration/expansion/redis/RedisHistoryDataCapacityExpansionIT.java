@@ -33,6 +33,20 @@ public class RedisHistoryDataCapacityExpansionIT extends CapacityExpansionIT {
     }
 
     @Override
+    public void addStorageEngine(boolean hasData) {
+        try {
+            session.executeSql(
+                    "ADD STORAGEENGINE (\"127.0.0.1\", 6380, \""
+                            + dbType.name()
+                            + "\", \"has_data:"
+                            + hasData
+                            + ", is_read_only:true\");");
+        } catch (SessionException | ExecutionException e) {
+            logger.error(e.getMessage());
+        }
+    }
+
+    @Override
     public int getPort() {
         return 6380;
     }

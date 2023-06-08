@@ -18,5 +18,7 @@ public interface BaseCapacityExpansionIT {
 
     void addStorageEngineWithPrefix(String dataPrefix, String schemaPrefix);
 
+    void addStorageEngine(boolean hasData);
+
     int getPort();
 }
