@@ -16,19 +16,18 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
+                java: [8]
                 python-version: ["3.7"]
-                java-version: ["8"]
                 os: [ubuntu-latest, macos-latest]
                 DB-name: ["IoTDB12", "InfluxDB", "Parquet", "Redis"]
         runs-on: ${{ matrix.os }}
         steps:
             - uses: actions/checkout@v2
-
             - name: Environment dependence
               uses: ./.github/actions/dependence
               with:
                   python-version: ${{ matrix.python-version }}
-                  java-version: ${{ matrix.java-version }}
+                  java: ${{ matrix.java }}
 
             - name: Run ZooKeeper
               uses: ./.github/actions/zookeeperRunner
@@ -46,7 +45,7 @@ jobs:
             - name: Change IGinX config
               uses: ./.github/actions/confWriter
               with:
-                  DB-name: ${{ matrix.DB-name }}
+                  DB-name: ${{matrix.DB-name}}
                   if-CapExp: false
 
             - name: Start IGinX

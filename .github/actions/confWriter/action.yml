@@ -23,7 +23,7 @@ runs:
               echo "${{ inputs.if-CapExp }}" > ${GITHUB_WORKSPACE}/test/src/test/resources/isScaling.txt
 
         - if: inputs.if-CapExp=='true'
-          name: Set Test-Way
+          name: Change has_data
           shell: bash
           run: |
               if [[ "${{ inputs.Test-Way }}" == "oriHasDataExpHasData" || "${{ inputs.Test-Way }}" == "oriHasDataExpNoData" ]]; then
@@ -40,7 +40,7 @@ runs:
                 fi
               fi
 
-        - name: Set DBName
+        - name: Set DB-name
           shell: bash
           run: |
               echo "${{ inputs.DB-name }}" > ${GITHUB_WORKSPACE}/test/src/test/resources/DBName.txt

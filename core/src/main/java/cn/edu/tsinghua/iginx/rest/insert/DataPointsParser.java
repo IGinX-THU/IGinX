@@ -87,7 +87,6 @@ public class DataPointsParser {
         }
         return true;
     }
-
     // 如果有anno信息会直接放入到插入路径中
     private Metric getMetricObject(JsonNode node, boolean isAnnotation) throws Exception {
         try {

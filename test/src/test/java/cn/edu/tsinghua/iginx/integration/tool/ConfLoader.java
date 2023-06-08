@@ -112,7 +112,7 @@ public class ConfLoader {
                     taskName = taskName.replace("{}", storageEngine);
                 }
                 taskList.add(taskName);
-                logInfo("{}", taskName);
+                logInfo("taskName: {}", taskName);
             }
             taskMap.put(DBType.valueOf(storageEngine.toLowerCase()), taskList);
         }

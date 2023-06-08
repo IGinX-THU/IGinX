@@ -23,9 +23,9 @@ public class TagIT {
 
     private static boolean isAbleToClearData;
 
-    private boolean isAbleToDelete;
+    private boolean isAbleToDelete = true;
 
-    private boolean isScaling;
+    private boolean isScaling = false;
 
     public TagIT() {
         ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);

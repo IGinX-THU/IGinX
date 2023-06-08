@@ -123,7 +123,7 @@ public class ParseTest {
                     + "          }\n"
                     + "      }\n"
                     + "]";
-    private static final Logger LOGGER = LoggerFactory.getLogger(MetricsResource.class);
+    private static final Logger logger = LoggerFactory.getLogger(MetricsResource.class);
     private final ObjectMapper mapper = new ObjectMapper();
     private List<Metric> metricList = new ArrayList<>();
 
@@ -161,7 +161,7 @@ public class ParseTest {
     //                testParseQueryMetrics(queryMetric);
     //            }
     //        } catch (Exception e) {
-    //            LOGGER.error("Error occurred during execution ", e);
+    //            logger.error("Error occurred during execution ", e);
     //        }
     //
     //    }
@@ -235,7 +235,7 @@ public class ParseTest {
             assertEquals(it.getKey(), "host");
             assertEquals(it.getValue(), "server2");
         } catch (Exception e) {
-            LOGGER.error("Error occurred during execution ", e);
+            logger.error("Error occurred during execution ", e);
         }
     }
 
@@ -254,7 +254,7 @@ public class ParseTest {
                 pos++;
             }
         } catch (Exception e) {
-            LOGGER.error("Error occurred during execution ", e);
+            logger.error("Error occurred during execution ", e);
         }
     }
 
@@ -279,7 +279,7 @@ public class ParseTest {
                 pos++;
             }
         } catch (Exception e) {
-            LOGGER.error("Error occurred during execution ", e);
+            logger.error("Error occurred during execution ", e);
         }
     }
 
@@ -300,7 +300,7 @@ public class ParseTest {
                 pos++;
             }
         } catch (Exception e) {
-            LOGGER.error("Error occurred during execution ", e);
+            logger.error("Error occurred during execution ", e);
         }
     }
 
@@ -320,7 +320,7 @@ public class ParseTest {
     //            assertEquals(endRelative, query.getEndAbsolute());
     //            assertEquals(startRelative, query.getStartAbsolute());
     //        } catch (Exception e) {
-    //            LOGGER.error("Error occurred during execution ", e);
+    //            logger.error("Error occurred during execution ", e);
     //        }
     //    }
 
@@ -347,7 +347,7 @@ public class ParseTest {
                 }
             }
         } catch (Exception e) {
-            LOGGER.error("Error occurred during execution ", e);
+            logger.error("Error occurred during execution ", e);
         }
     }
 
@@ -361,7 +361,7 @@ public class ParseTest {
             assertEquals(query.getQueryMetrics().get(0).getName(), "rem.hero");
             assertEquals(query.getQueryMetrics().get(1).getName(), "archive_file_search");
         } catch (Exception e) {
-            LOGGER.error("Error occurred during execution ", e);
+            logger.error("Error occurred during execution ", e);
         }
     }
 
@@ -381,7 +381,7 @@ public class ParseTest {
             dur = 2 * transTimeFromString("weeks");
             assertEquals(dur, queryMetric.getAggregators().get(1).getDur());
         } catch (Exception e) {
-            LOGGER.error("Error occurred during execution ", e);
+            logger.error("Error occurred during execution ", e);
         }
     }
 }

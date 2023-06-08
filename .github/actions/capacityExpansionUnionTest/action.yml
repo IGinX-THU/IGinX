@@ -47,9 +47,9 @@ runs:
         - name: Change IGinX config
           uses: ./.github/actions/confWriter
           with:
-              if-CapExp: true
-              DB-name: ${{ matrix.DB-name }}
               Test-Way: ${{ inputs.Test-Way }}
+              if-CapExp: true
+              DB-name: ${{ inputs.DB-name }}
 
         - name: Start IGinX
           uses: ./.github/actions/iginxRunner
