@@ -110,7 +110,7 @@ public class TagIT {
     public void testShowTimeSeriesWithTags() {
         String statement = "SHOW COLUMNS ah.*;";
         String expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+-----------------------+--------+\n"
                         + "|                   Path|DataType|\n"
                         + "+-----------------------+--------+\n"
@@ -133,7 +133,7 @@ public class TagIT {
 
         statement = "SHOW COLUMNS ah.* limit 6;";
         expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+-----------------------+--------+\n"
                         + "|                   Path|DataType|\n"
                         + "+-----------------------+--------+\n"
@@ -149,7 +149,7 @@ public class TagIT {
 
         statement = "SHOW COLUMNS ah.* limit 3 offset 7;";
         expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+-----------------------+--------+\n"
                         + "|                   Path|DataType|\n"
                         + "+-----------------------+--------+\n"
@@ -162,7 +162,7 @@ public class TagIT {
 
         statement = "SHOW COLUMNS ah.* limit 7, 3;";
         expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+-----------------------+--------+\n"
                         + "|                   Path|DataType|\n"
                         + "+-----------------------+--------+\n"
@@ -175,7 +175,7 @@ public class TagIT {
 
         statement = "SHOW COLUMNS ah.hr02.*;";
         expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+----------------------+--------+\n"
                         + "|                  Path|DataType|\n"
                         + "+----------------------+--------+\n"
@@ -190,7 +190,7 @@ public class TagIT {
 
         statement = "SHOW COLUMNS ah.hr02.* limit 3 offset 2;";
         expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+----------------------+--------+\n"
                         + "|                  Path|DataType|\n"
                         + "+----------------------+--------+\n"
@@ -203,7 +203,7 @@ public class TagIT {
 
         statement = "SHOW COLUMNS ah.hr02.*, ah.hr03.*;";
         expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+-----------------------+--------+\n"
                         + "|                   Path|DataType|\n"
                         + "+-----------------------+--------+\n"
@@ -222,7 +222,7 @@ public class TagIT {
 
         statement = "SHOW COLUMNS ah.hr02.* with t1=v1;";
         expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+----------------------+--------+\n"
                         + "|                  Path|DataType|\n"
                         + "+----------------------+--------+\n"
@@ -235,7 +235,7 @@ public class TagIT {
 
         statement = "SHOW COLUMNS ah.hr02.* with t1=v1 limit 2 offset 1;";
         expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+----------------------+--------+\n"
                         + "|                  Path|DataType|\n"
                         + "+----------------------+--------+\n"
@@ -247,7 +247,7 @@ public class TagIT {
 
         statement = "SHOW COLUMNS ah.hr02.* with_precise t1=v1;";
         expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+----------------+--------+\n"
                         + "|            Path|DataType|\n"
                         + "+----------------+--------+\n"
@@ -259,7 +259,7 @@ public class TagIT {
 
         statement = "SHOW COLUMNS ah.hr02.* with_precise t1=v1 AND t2=v2;";
         expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+----------------------+--------+\n"
                         + "|                  Path|DataType|\n"
                         + "+----------------------+--------+\n"
@@ -270,7 +270,7 @@ public class TagIT {
 
         statement = "SHOW COLUMNS ah.hr02.* with t1=v1 AND t2=v2;";
         expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+----------------------+--------+\n"
                         + "|                  Path|DataType|\n"
                         + "+----------------------+--------+\n"
@@ -281,7 +281,7 @@ public class TagIT {
 
         statement = "SHOW COLUMNS  ah.* WITHOUT TAG;";
         expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+---------+--------+\n"
                         + "|     Path|DataType|\n"
                         + "+---------+--------+\n"
@@ -617,7 +617,7 @@ public class TagIT {
         if (!isAbleToDelete || isScaling) return;
         String showTimeSeries = "SHOW COLUMNS ah.*;";
         String expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+-----------------------+--------+\n"
                         + "|                   Path|DataType|\n"
                         + "+-----------------------+--------+\n"
@@ -643,7 +643,7 @@ public class TagIT {
 
         showTimeSeries = "SHOW COLUMNS ah.*;";
         expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+-----------------------+--------+\n"
                         + "|                   Path|DataType|\n"
                         + "+-----------------------+--------+\n"
@@ -670,7 +670,7 @@ public class TagIT {
 
         showTimeSeries = "SHOW COLUMNS ah.*;";
         expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+-----------------------+--------+\n"
                         + "|                   Path|DataType|\n"
                         + "+-----------------------+--------+\n"
@@ -703,7 +703,7 @@ public class TagIT {
         if (!isAbleToDelete || isScaling) return;
         String showTimeSeries = "SHOW COLUMNS ah.*;";
         String expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+-----------------------+--------+\n"
                         + "|                   Path|DataType|\n"
                         + "+-----------------------+--------+\n"
@@ -729,7 +729,7 @@ public class TagIT {
 
         showTimeSeries = "SHOW COLUMNS ah.*;";
         expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+-----------------------+--------+\n"
                         + "|                   Path|DataType|\n"
                         + "+-----------------------+--------+\n"
@@ -759,7 +759,7 @@ public class TagIT {
 
         showTimeSeries = "SHOW COLUMNS ah.*;";
         expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+-----------------------+--------+\n"
                         + "|                   Path|DataType|\n"
                         + "+-----------------------+--------+\n"
