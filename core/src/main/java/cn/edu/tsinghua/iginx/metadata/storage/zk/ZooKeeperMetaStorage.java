@@ -696,6 +696,14 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
                                     .forPath(STORAGE_UNIT_NODE_PREFIX + "/" + storageUnitId);
                     StorageUnitMeta storageUnitMeta =
                             JsonUtils.fromJson(data, StorageUnitMeta.class);
+                    logger.error(storageUnitMeta.getId());
+                    logger.error(storageUnitMeta.getMasterId());
+                    logger.error(String.valueOf(storageUnitMeta.isInitialStorageUnit()));
+                    logger.error(String.valueOf(storageUnitMeta.getCreatedBy()));
+                    logger.error(String.valueOf(storageUnitMeta.isDummy()));
+                    logger.error(String.valueOf(storageUnitMeta.isIfValid()));
+                    logger.error(String.valueOf(storageUnitMeta.isMaster()));
+                    logger.error(String.valueOf(storageUnitMeta.getStorageEngineId()));
                     if (!storageUnitMeta.isMaster()) { // 需要加入到主节点的子节点列表中
                         StorageUnitMeta masterStorageUnitMeta =
                                 storageUnitMetaMap.get(storageUnitMeta.getMasterId());
