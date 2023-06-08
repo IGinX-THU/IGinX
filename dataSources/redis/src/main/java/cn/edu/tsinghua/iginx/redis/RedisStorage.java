@@ -223,6 +223,7 @@ public class RedisStorage implements IStorage {
                 jedis.del(deletedPathArray);
                 jedis.hdel(KEY_DATA_TYPE, deletedPaths.toArray(new String[0]));
             } catch (Exception e) {
+                logger.warn("encounter error when delete path: " + e.getMessage());
                 return new TaskExecuteResult(
                         new PhysicalException("execute delete path in redis failure", e));
             }
@@ -248,6 +249,7 @@ public class RedisStorage implements IStorage {
                     }
                 }
             } catch (Exception e) {
+                logger.warn("encounter error when delete path: " + e.getMessage());
                 return new TaskExecuteResult(
                         new PhysicalException("execute delete data in redis failure", e));
             }

@@ -446,9 +446,6 @@ public class SessionIT extends BaseSessionIT {
             // ensure after delete there are still points in the timeseries
 
             // delete data
-            logger.error(delPartPaths.toString());
-            logger.error(String.valueOf(delStartTime));
-            logger.error(String.valueOf(delEndTime));
             session.deleteDataInColumns(delPartPaths, delStartTime, delEndTime);
             Thread.sleep(1000);
             SessionQueryDataSet delPartDataSet = session.queryData(paths, START_TIME, END_TIME + 1);
