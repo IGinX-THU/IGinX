@@ -9,6 +9,7 @@ import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.RemovedStorageEngineInfo;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import org.junit.*;
 import org.slf4j.Logger;
@@ -120,46 +121,21 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
     private void testAddAndRemoveStorageEngineWithPrefix() {
         addStorageEngineWithPrefix("mn", "p1");
         addStorageEngineWithPrefix("mn", "p2");
+
         String statement = "select * from p1.mn";
-        List<String> pathList =
-                new ArrayList<String>() {
-                    {
-                        add("p1.mn.wf03.wt01.status");
-                        add("p1.mn.wf03.wt01.temperature");
-                    }
-                };
-        List<List<Object>> valuesList = new ArrayList<>();
-        valuesList.add(
-                new ArrayList<Object>() {
-                    {
-                        add(true);
-                        add(null);
-                    }
-                });
-        valuesList.add(
-                new ArrayList<Object>() {
-                    {
-                        add(false);
-                        add(77.71);
-                    }
-                });
-        List<DataType> dataTypeList =
-                new ArrayList<DataType>() {
-                    {
-                        add(DataType.BOOLEAN);
-                        add(DataType.DOUBLE);
-                    }
-                };
+        List<String> pathList = Arrays.asList(
+            "p1.mn.wf03.wt01.status",
+            "p1.mn.wf03.wt01.temperature"
+        );
+
+        List<List<Object>> valuesList = BaseHistoryDataGenerator.VALUES_LIST_EXP;
         SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
         statement = "select * from p2.mn";
-        pathList =
-                new ArrayList<String>() {
-                    {
-                        add("p2.mn.wf03.wt01.status");
-                        add("p2.mn.wf03.wt01.temperature");
-                    }
-                };
+        pathList = Arrays.asList(
+            "p2.mn.wf03.wt01.status",
+            "p2.mn.wf03.wt01.temperature"
+        );
         SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
         List<RemovedStorageEngineInfo> removedStorageEngineList = new ArrayList<>();
@@ -191,28 +167,8 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
 
     private void testQueryHistoryDataOriHasData() {
         String statement = "select * from mn";
-        List<String> pathList =
-                new ArrayList<String>() {
-                    {
-                        add("mn.wf01.wt01.status");
-                        add("mn.wf01.wt01.temperature");
-                    }
-                };
-        List<List<Object>> valuesList = new ArrayList<>();
-        valuesList.add(
-                new ArrayList<Object>() {
-                    {
-                        add(true);
-                        add(null);
-                    }
-                });
-        valuesList.add(
-                new ArrayList<Object>() {
-                    {
-                        add(false);
-                        add(20.71);
-                    }
-                });
+        List<String> pathList = BaseHistoryDataGenerator.PATH_LIST_ORI;
+        List<List<Object>> valuesList = BaseHistoryDataGenerator.VALUES_LIST_ORI;
         SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
         statement = "select count(*) from mn.wf01";
@@ -221,7 +177,7 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
                         + "+--------------------------+-------------------------------+\n"
                         + "|count(mn.wf01.wt01.status)|count(mn.wf01.wt01.temperature)|\n"
                         + "+--------------------------+-------------------------------+\n"
-                        + "|                         2|                              1|\n"
+                        + "|                         2|                              2|\n"
                         + "+--------------------------+-------------------------------+\n"
                         + "Total line number = 1\n";
         SQLTestTools.executeAndCompare(session, statement, expect);
@@ -243,35 +199,8 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
 
     private void testQueryHistoryDataExpHasData() {
         String statement = "select * from mn.wf03";
-        List<String> pathList =
-                new ArrayList<String>() {
-                    {
-                        add("mn.wf03.wt01.status");
-                        add("mn.wf03.wt01.temperature");
-                    }
-                };
-        List<List<Object>> valuesList = new ArrayList<>();
-        valuesList.add(
-                new ArrayList<Object>() {
-                    {
-                        add(true);
-                        add(null);
-                    }
-                });
-        valuesList.add(
-                new ArrayList<Object>() {
-                    {
-                        add(false);
-                        add(77.71);
-                    }
-                });
-        List<DataType> dataTypeList =
-                new ArrayList<DataType>() {
-                    {
-                        add(DataType.BOOLEAN);
-                        add(DataType.DOUBLE);
-                    }
-                };
+        List<String> pathList = BaseHistoryDataGenerator.PATH_LIST_EXP;
+        List<List<Object>> valuesList = BaseHistoryDataGenerator.VALUES_LIST_EXP;
         SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
     }
 

@@ -15,17 +15,16 @@ public class RedisHistoryDataGenerator extends BaseHistoryDataGenerator {
 
     @Override
     public void writeHistoryDataToOri() {
-        writeHistoryData(this.pathListOri, this.dataTypeListOri, this.valuesListOri, PORT_A);
+        writeHistoryData(PATH_LIST_ORI, VALUES_LIST_ORI, PORT_A);
     }
 
     @Override
     public void writeHistoryDataToExp() {
-        writeHistoryData(this.pathListExp, this.dataTypeListExp, this.valuesListExp, PORT_B);
+        writeHistoryData(PATH_LIST_EXP, VALUES_LIST_EXP, PORT_B);
     }
 
     private void writeHistoryData(
             List<String> pathList,
-            List<DataType> dataTypeList,
             List<List<Object>> valuesList,
             int port) {
         Jedis jedis = new Jedis(LOCAL_IP, port);
