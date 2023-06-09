@@ -23,7 +23,7 @@ public class DataViewWrapper {
     }
 
     public int getTimeSize() {
-        return dataView.getTimeSize();
+        return dataView.getKeySize();
     }
 
     public String getPath(int index) {
@@ -59,7 +59,7 @@ public class DataViewWrapper {
         Pair<Map<String, String>, Map<String, Double>> ret = new Pair<>(values, scores);
 
         if (dataView.isRowData()) {
-            for (int i = 0; i < dataView.getTimeSize(); i++) {
+            for (int i = 0; i < dataView.getKeySize(); i++) {
                 BitmapView bitmapView = dataView.getBitmapView(i);
                 if (bitmapView.get(index)) {
                     int nonNullCnt = 0;
@@ -79,7 +79,7 @@ public class DataViewWrapper {
         } else {
             int nonNullCnt = 0;
             BitmapView bitmapView = dataView.getBitmapView(index);
-            for (int i = 0; i < dataView.getTimeSize(); i++) {
+            for (int i = 0; i < dataView.getKeySize(); i++) {
                 if (bitmapView.get(i)) {
                     String key = String.valueOf(dataView.getKey(i));
                     double score = dataView.getKey(i);

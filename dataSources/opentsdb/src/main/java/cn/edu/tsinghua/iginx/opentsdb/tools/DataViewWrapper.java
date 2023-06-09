@@ -41,7 +41,7 @@ public class DataViewWrapper {
     }
 
     public int getTimeSize() {
-        return dataView.getTimeSize();
+        return dataView.getKeySize();
     }
 
     public String getPath(int index) {

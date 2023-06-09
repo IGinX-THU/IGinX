@@ -72,7 +72,7 @@ public abstract class DataView {
         return endPathIndex - startPathIndex;
     }
 
-    public int getTimeSize() {
+    public int getKeySize() {
         return endKeyIndex - startKeyIndex;
     }
 
@@ -92,9 +92,17 @@ public abstract class DataView {
         return data.getPaths().contains(path) ? data.getPaths().indexOf(path) - startPathIndex : -1;
     }
 
+    public List<String> getPaths() {
+        return data.getPaths().subList(startPathIndex, endPathIndex);
+    }
+
     public String getPath(int index) {
         checkPathIndexRange(index);
         return data.getPaths().get(startPathIndex + index);
+    }
+
+    public List<DataType> getDataTypeList() {
+        return data.getDataTypeList().subList(startPathIndex, endPathIndex);
     }
 
     public DataType getDataType(int index) {
@@ -116,6 +124,13 @@ public abstract class DataView {
     public abstract Object getValue(int index1, int index2);
 
     public abstract BitmapView getBitmapView(int index);
+
+    public List<Map<String, String>> getTagsList() {
+        if (data.getTagsList() != null && !data.getTagsList().isEmpty()) {
+            return data.getTagsList().subList(startPathIndex, endPathIndex);
+        }
+        return data.getTagsList();
+    }
 
     public Map<String, String> getTags(int index) {
         checkPathIndexRange(index);
