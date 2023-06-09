@@ -86,16 +86,29 @@ public class PostgreSQLQueryRowStream implements RowStream {
                 }
 
                 Pair<String, Map<String, String>> namesAndTags = splitFullName(columnName);
-                Field field =
-                        new Field(
-                                databaseNameList.get(i)
-                                        + IGINX_SEPARATOR
-                                        + tableName.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR)
-                                        + IGINX_SEPARATOR
-                                        + namesAndTags.k.replace(
-                                                POSTGRESQL_SEPARATOR, IGINX_SEPARATOR),
-                                DataTypeTransformer.fromPostgreSQL(typeName),
-                                namesAndTags.v);
+                Field field;
+                if (isDummy) {
+                    field =
+                            new Field(
+                                    databaseNameList.get(i)
+                                            + IGINX_SEPARATOR
+                                            + tableName.replace(
+                                                    POSTGRESQL_SEPARATOR, IGINX_SEPARATOR)
+                                            + IGINX_SEPARATOR
+                                            + namesAndTags.k.replace(
+                                                    POSTGRESQL_SEPARATOR, IGINX_SEPARATOR),
+                                    DataTypeTransformer.fromPostgreSQL(typeName),
+                                    namesAndTags.v);
+                } else {
+                    field =
+                            new Field(
+                                    tableName.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR)
+                                            + IGINX_SEPARATOR
+                                            + namesAndTags.k.replace(
+                                                    POSTGRESQL_SEPARATOR, IGINX_SEPARATOR),
+                                    DataTypeTransformer.fromPostgreSQL(typeName),
+                                    namesAndTags.v);
+                }
 
                 if (filterByTags && !TagKVUtils.match(namesAndTags.v, tagFilter)) {
                     continue;

@@ -18,7 +18,7 @@ public class Constants {
 
     public static final String DATABASE_PREFIX = "unit";
 
-    public static final String KEY_NAME = "\"\u2E85\"";
+    public static final String KEY_NAME = "\u2E85";
 
     public static final String QUERY_DATABASES_STATEMENT = "SELECT datname FROM pg_database;";
 
