@@ -92,12 +92,11 @@ jobs:
 
             - name: oriNoDataExpHasData IT
               run: |
-                mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriNoDataExpHasData -DfailIfNoTests=false -P passFormat
+                  mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriNoDataExpHasData -DfailIfNoTests=false -P passFormat
                   mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P passFormat
-          
 
-          # 测试只读节点==========================================
-            - name: Change IginX Config
+            # 测试只读节点==========================================
+            - name: Change IGinX Config
               uses: ./.github/actions/confWriter
               with:
                   ReadOnlyNode: true
