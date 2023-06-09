@@ -66,7 +66,7 @@ public class MetricsResource {
     private static final String ERROR_PATH = "{string : .+}";
 
     private static final Config config = ConfigDescriptor.getInstance().getConfig();
-    private static final Logger LOGGER = LoggerFactory.getLogger(MetricsResource.class);
+    private static final Logger logger = LoggerFactory.getLogger(MetricsResource.class);
     private static final ExecutorService threadPool =
             Executors.newFixedThreadPool(config.getAsyncRestThreadPool());
 
@@ -94,7 +94,7 @@ public class MetricsResource {
             return setHeaders(Response.status(Status.OK).entity(entity + "\n")).build();
 
         } catch (Exception e) {
-            LOGGER.error("Error occurred during execution ", e);
+            logger.error("Error occurred during execution ", e);
             return setHeaders(
                             Response.status(Status.BAD_REQUEST)
                                     .entity("Error occurred during execution\n"))
@@ -121,7 +121,7 @@ public class MetricsResource {
             String str = inputStreamToString(stream);
             appendAnno(str, httpheaders, asyncResponse);
         } catch (Exception e) {
-            LOGGER.error("Error occurred during execution ", e);
+            logger.error("Error occurred during execution ", e);
             return setHeaders(
                             Response.status(Status.BAD_REQUEST)
                                     .entity("Error occurred during execution\n"))
@@ -140,7 +140,7 @@ public class MetricsResource {
             String str = inputStreamToString(stream);
             updateAnno(str, httpheaders, asyncResponse);
         } catch (Exception e) {
-            LOGGER.error("Error occurred during execution ", e);
+            logger.error("Error occurred during execution ", e);
             return setHeaders(
                             Response.status(Status.BAD_REQUEST)
                                     .entity("Error occurred during execution\n"))
@@ -155,7 +155,7 @@ public class MetricsResource {
         try {
             return postQuery(jsonStr, true, false, true);
         } catch (Exception e) {
-            LOGGER.error("Error occurred during execution ", e);
+            logger.error("Error occurred during execution ", e);
             return setHeaders(
                             Response.status(Status.BAD_REQUEST)
                                     .entity("Error occurred during execution\n"))
@@ -169,7 +169,7 @@ public class MetricsResource {
         try {
             return postQuery(jsonStr, true, false, false);
         } catch (Exception e) {
-            LOGGER.error("Error occurred during execution ", e);
+            logger.error("Error occurred during execution ", e);
             return setHeaders(
                             Response.status(Status.BAD_REQUEST)
                                     .entity("Error occurred during execution\n"))
@@ -183,7 +183,7 @@ public class MetricsResource {
         try {
             return postQuery(jsonStr, true, true, false);
         } catch (Exception e) {
-            LOGGER.error("Error occurred during execution ", e);
+            logger.error("Error occurred during execution ", e);
             return setHeaders(
                             Response.status(Status.BAD_REQUEST)
                                     .entity("Error occurred during execution\n"))
@@ -219,7 +219,7 @@ public class MetricsResource {
             String str = inputStreamToString(stream);
             return postQuery(str, false, false, false);
         } catch (Exception e) {
-            LOGGER.error("Error occurred during execution ", e);
+            logger.error("Error occurred during execution ", e);
             return setHeaders(
                             Response.status(Status.BAD_REQUEST)
                                     .entity("Error occurred during execution\n"))
@@ -234,7 +234,7 @@ public class MetricsResource {
             String str = inputStreamToString(stream);
             return postDelete(str);
         } catch (Exception e) {
-            LOGGER.error("Error occurred during execution ", e);
+            logger.error("Error occurred during execution ", e);
             return setHeaders(
                             Response.status(Status.BAD_REQUEST)
                                     .entity("Error occurred during execution\n"))
@@ -249,7 +249,7 @@ public class MetricsResource {
             String str = inputStreamToString(stream);
             return postAnnoDelete(str);
         } catch (Exception e) {
-            LOGGER.error("Error occurred during execution ", e);
+            logger.error("Error occurred during execution ", e);
             return setHeaders(
                             Response.status(Status.BAD_REQUEST)
                                     .entity("Error occurred during execution\n"))
@@ -264,7 +264,7 @@ public class MetricsResource {
             deleteMetric(metricName);
             return setHeaders(Response.status(Status.OK)).build();
         } catch (Exception e) {
-            LOGGER.error("Error occurred during execution ", e);
+            logger.error("Error occurred during execution ", e);
             return setHeaders(
                             Response.status(Status.BAD_REQUEST)
                                     .entity("Error occurred during execution\n"))
@@ -304,7 +304,7 @@ public class MetricsResource {
 
     private QueryResult annoDataQuery(Query query, QueryParser parser) throws Exception {
         QueryExecutor executor = new QueryExecutor(null);
-        // 调用show time series
+        // 调用SHOW COLUMNS
         QueryResult timeSeries = executor.executeShowTimeSeries();
         // 筛选路径信息，正常信息路径，生成单个query
         Query queryAnnoData = getAnnoDataQueryFromTimeSeries(query, timeSeries);
@@ -368,7 +368,7 @@ public class MetricsResource {
             }
             return setHeaders(Response.status(Status.OK).entity(entity + "\n")).build();
         } catch (Exception e) {
-            LOGGER.error("Error occurred during execution ", e);
+            logger.error("Error occurred during execution ", e);
             return setHeaders(
                             Response.status(Status.BAD_REQUEST)
                                     .entity("Error occurred during execution\n"))
@@ -387,7 +387,7 @@ public class MetricsResource {
         try {
             executorAnno.queryAnno(resultAnno);
         } catch (Exception e) {
-            LOGGER.error("Error occurred during execution ", e);
+            logger.error("Error occurred during execution ", e);
             throw e;
         }
         return resultAnno;
@@ -483,7 +483,7 @@ public class MetricsResource {
             String entity = parser.parseResultToJson(null, true);
             return setHeaders(Response.status(Status.OK).entity(entity + "\n")).build();
         } catch (Exception e) {
-            LOGGER.error("Error occurred during execution ", e);
+            logger.error("Error occurred during execution ", e);
             return setHeaders(
                             Response.status(Status.BAD_REQUEST)
                                     .entity("Error occurred during execution\n"))
@@ -503,7 +503,7 @@ public class MetricsResource {
             String entity = parser.parseResultToJson(result, true);
             return setHeaders(Response.status(Status.OK).entity(entity + "\n")).build();
         } catch (Exception e) {
-            LOGGER.error("Error occurred during execution ", e);
+            logger.error("Error occurred during execution ", e);
             return setHeaders(
                             Response.status(Status.BAD_REQUEST)
                                     .entity("Error occurred during execution\n"))

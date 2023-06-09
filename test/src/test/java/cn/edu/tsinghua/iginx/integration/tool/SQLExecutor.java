@@ -1,11 +1,11 @@
 package cn.edu.tsinghua.iginx.integration.tool;
 
+import static cn.edu.tsinghua.iginx.integration.controller.Controller.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
-import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.ArrayList;
@@ -48,20 +48,17 @@ public class SQLExecutor {
         try {
             res = conn.executeSql(statement);
         } catch (SessionException | ExecutionException e) {
-            if (e.toString().equals(Controller.CLEARDATAEXCP)) {
-                logger.error("clear data fail and go on....");
+            if (e.toString().trim().equals(CLEAR_DATA_EXCEPTION)) {
+                logger.warn(CLEAR_DATA_WARNING);
                 return "";
             } else {
-                logger.error("Statement: \"{}\" execute fail. Caused by:", statement, e);
+                logger.error(CLEAR_DATA_ERROR, statement, e.getMessage());
                 fail();
             }
         }
 
         if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-            logger.error(
-                    "Statement: \"{}\" execute fail. Caused by: {}.",
-                    statement,
-                    res.getParseErrorMsg());
+            logger.error(CLEAR_DATA_ERROR, statement, res.getParseErrorMsg());
             fail();
             return "";
         }

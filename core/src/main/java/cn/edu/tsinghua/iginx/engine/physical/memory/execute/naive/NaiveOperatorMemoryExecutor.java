@@ -254,8 +254,8 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
                     "downsample operator is not support for row stream without timestamps.");
         }
         List<Row> rows = table.getRows();
-        long bias = downsample.getTimeRange().getActualBeginTime();
-        long endTime = downsample.getTimeRange().getActualEndTime();
+        long bias = downsample.getKeyRange().getActualBeginKey();
+        long endTime = downsample.getKeyRange().getActualEndKey();
         long precision = downsample.getPrecision();
         long slideDistance = downsample.getSlideDistance();
         // startTime + (n - 1) * slideDistance + precision - 1 >= endTime

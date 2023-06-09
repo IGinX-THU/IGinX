@@ -1,25 +1,23 @@
 package cn.edu.tsinghua.iginx.integration.func.session;
 
+import static org.junit.Assert.fail;
+
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
-import cn.edu.tsinghua.iginx.integration.tool.ConfLoder;
+import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.integration.tool.MultiConnection;
 import cn.edu.tsinghua.iginx.session.Session;
-import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-import org.junit.After;
-import org.junit.Before;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import static org.junit.Assert.fail;
+import org.junit.After;
+import org.junit.Before;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class BaseSessionIT {
 
@@ -37,7 +35,7 @@ public abstract class BaseSessionIT {
     protected boolean isAbleToDelete;
 
     protected static final double delta = 1e-7;
-    protected static final long TIME_PERIOD = 10000L;
+    protected static final long TIME_PERIOD = 100000L;
     protected static final long START_TIME = 1000L;
     protected static final long END_TIME = START_TIME + TIME_PERIOD - 1;
     // params for partialDelete
@@ -46,13 +44,13 @@ public abstract class BaseSessionIT {
     protected long delTimePeriod = delEndTime - delStartTime;
     protected double deleteAvg =
             ((START_TIME + END_TIME) * TIME_PERIOD / 2.0
-                    - (delStartTime + delEndTime - 1) * delTimePeriod / 2.0)
+                            - (delStartTime + delEndTime - 1) * delTimePeriod / 2.0)
                     / (TIME_PERIOD - delTimePeriod);
 
     protected int currPath = 0;
 
     protected BaseSessionIT() {
-        ConfLoder conf = new ConfLoder(Controller.CONFIG_FILE);
+        ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
         DBConf dbConf = conf.loadDBConf(conf.getStorageType());
         this.isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
     }
@@ -74,19 +72,16 @@ public abstract class BaseSessionIT {
     }
 
     @After
-    public void tearDown() throws SessionException {
+    public void tearDown() {
         try {
             clearData();
             session.closeSession();
-        } catch (ExecutionException e) {
+        } catch (SessionException e) {
             logger.error(e.getMessage());
         }
     }
 
-    protected void clearData() throws ExecutionException, SessionException {
-        String clearData = "CLEAR DATA;";
-
-        SessionExecuteSqlResult res = null;
+    protected void clearData() throws SessionException {
         if (session.isClosed()) {
             session =
                     new MultiConnection(
@@ -98,24 +93,7 @@ public abstract class BaseSessionIT {
             session.openSession();
         }
 
-        try {
-            res = session.executeSql(clearData);
-        } catch (SessionException | ExecutionException e) {
-            logger.error("Statement: \"{}\" execute fail. Caused by: {}", clearData, e.toString());
-            if (e.toString().equals(Controller.CLEARDATAEXCP)) {
-                logger.error("clear data fail and go on....");
-            } else fail();
-        }
-
-        if (res != null && res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-            logger.error(
-                    "Statement: \"{}\" execute fail. Caused by: {}.",
-                    clearData,
-                    res.getParseErrorMsg());
-            fail();
-        }
-
-        session.closeSession();
+        Controller.clearData(session);
     }
 
     protected int getPathNum(String path) {

@@ -28,28 +28,25 @@ jobs:
               with:
                   python-version: ${{ matrix.python-version }}
                   java: ${{ matrix.java }}
+
             - name: Run ZooKeeper
               uses: ./.github/actions/zookeeperRunner
+
             - name: Run DB
               uses: ./.github/actions/dbRunner
               with:
-                  version: ${{matrix.DB-name}}
+                  DB-name: ${{ matrix.DB-name }}
 
             - name: Install IGinX with Maven
               shell: bash
               run: |
-                  mvn clean package -DskipTests -P passFormat
+                  mvn clean package -DskipTests -P passFormat -q
 
-            - name: Set the DB name
+            - name: Change IGinX config
               uses: ./.github/actions/confWriter
               with:
-                  confFile: DBName
                   DB-name: ${{matrix.DB-name}}
-
-            - name: Set the UDF conf
-              uses: ./.github/actions/confWriter
-              with:
-                  confFile: UDFConf
+                  if-CapExp: false
 
             - name: Start IGinX
               uses: ./.github/actions/iginxRunner
@@ -61,8 +58,14 @@ jobs:
                   chmod +x "${GITHUB_WORKSPACE}/.github/test_union.sh"
                   mvn test -q -Dtest=Controller -DfailIfNoTests=false -P passFormat
 
-            - name: Show the test result
+            - name: Show test result
               if: always()
               shell: bash
               run: |
                   cat ${GITHUB_WORKSPACE}/test/src/test/resources/testResult.txt
+
+            - name: Show IGinX log
+              if: always()
+              shell: bash
+              run: |
+                  cat iginx.log

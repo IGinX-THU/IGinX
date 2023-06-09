@@ -1,85 +1,71 @@
 package cn.edu.tsinghua.iginx.integration.expansion;
 
 import cn.edu.tsinghua.iginx.thrift.DataType;
-import cn.edu.tsinghua.iginx.utils.Pair;
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import org.junit.Test;
 
 public abstract class BaseHistoryDataGenerator {
 
-    protected Map<String, Pair<DataType, List<Pair<Long, Object>>>> seriesA = new HashMap<>();
-    protected Map<String, Pair<DataType, List<Pair<Long, Object>>>> seriesB = new HashMap<>();
+    protected int portOri;
 
-    public BaseHistoryDataGenerator() {
-        seriesA.put(
-                "ln.wf01.wt01.status",
-                new Pair<>(
-                        DataType.BOOLEAN,
-                        new ArrayList<Pair<Long, Object>>() {
-                            {
-                                add(new Pair<>(100L, true));
-                                add(new Pair<>(200L, false));
-                            }
-                        }));
-        seriesA.put(
-                "ln.wf01.wt01.temperature",
-                new Pair<>(
-                        DataType.DOUBLE,
-                        new ArrayList<Pair<Long, Object>>() {
-                            {
-                                add(new Pair<>(200L, 20.71));
-                            }
-                        }));
+    public static final List<String> PATH_LIST_ORI = Arrays.asList(
+        "mn.wf01.wt01.status",
+        "mn.wf01.wt01.temperature"
+    );
 
-        seriesB.put(
-                "ln.wf03.wt01.status",
-                new Pair<>(
-                        DataType.BOOLEAN,
-                        new ArrayList<Pair<Long, Object>>() {
-                            {
-                                add(new Pair<>(77L, true));
-                                add(new Pair<>(200L, false));
-                            }
-                        }));
-        seriesB.put(
-                "ln.wf03.wt01.temperature",
-                new Pair<>(
-                        DataType.DOUBLE,
-                        new ArrayList<Pair<Long, Object>>() {
-                            {
-                                add(new Pair<>(200L, 77.71));
-                            }
-                        }));
+    public static final List<DataType> DATA_TYPE_LIST_ORI = Arrays.asList(
+        DataType.BOOLEAN,
+        DataType.DOUBLE
+    );
+
+    public static final List<List<Object>> VALUES_LIST_ORI = Arrays.asList(
+        Arrays.asList(true, 15.27),
+        Arrays.asList(false, 20.71)
+    );
+
+    protected int portExp;
+
+    public static final List<String> PATH_LIST_EXP = Arrays.asList(
+        "mn.wf03.wt01.status",
+        "mn.wf03.wt01.temperature"
+    );
+
+    public static final List<DataType> DATA_TYPE_LIST_EXP = Arrays.asList(
+        DataType.BOOLEAN,
+        DataType.DOUBLE
+    );
+
+    public static final List<List<Object>> VALUES_LIST_EXP = Arrays.asList(
+        Arrays.asList(true, 66.23),
+        Arrays.asList(false, 77.71)
+    );
+
+    public BaseHistoryDataGenerator() {}
+
+    @Test
+    public void oriHasDataExpHasData() {
+        writeHistoryDataToOri();
+        writeHistoryDataToExp();
     }
 
     @Test
-    public void oriHasDataExpHasData() throws Exception {
-        writeHistoryDataToA();
-        writeHistoryDataToB();
+    public void oriHasDataExpNoData() {
+        writeHistoryDataToOri();
     }
 
     @Test
-    public void oriHasDataExpNoData() throws Exception {
-        writeHistoryDataToA();
+    public void oriNoDataExpHasData() {
+        writeHistoryDataToExp();
     }
 
     @Test
-    public void oriNoDataExpHasData() throws Exception {
-        writeHistoryDataToB();
-    }
+    public void oriNoDataExpNoData() {}
+
+    public abstract void writeHistoryDataToOri();
+
+    public abstract void writeHistoryDataToExp();
 
     @Test
-    public void oriNoDataExpNoData() throws Exception {}
-
-    @Test
-    public void writeHistoryDataToB() throws Exception {}
-
-    @Test
-    public void writeHistoryDataToA() throws Exception {}
-
-    @Test
-    public void clearData() {}
+    public abstract void clearHistoryData();
 }

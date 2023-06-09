@@ -1,25 +1,22 @@
 package cn.edu.tsinghua.iginx.redis;
 
-import cn.edu.tsinghua.iginx.engine.physical.exception.NonExecutablePhysicalTaskException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
-import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Timeseries;
-import cn.edu.tsinghua.iginx.engine.physical.task.StoragePhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
+import cn.edu.tsinghua.iginx.engine.physical.storage.domain.DataArea;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
-import cn.edu.tsinghua.iginx.engine.shared.TimeRange;
+import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
+import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
+import cn.edu.tsinghua.iginx.metadata.entity.ColumnsRange;
+import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
-import cn.edu.tsinghua.iginx.metadata.entity.TimeInterval;
-import cn.edu.tsinghua.iginx.metadata.entity.TimeSeriesInterval;
-import cn.edu.tsinghua.iginx.metadata.entity.TimeSeriesRange;
-import cn.edu.tsinghua.iginx.redis.entity.Column;
 import cn.edu.tsinghua.iginx.redis.entity.RedisQueryRowStream;
 import cn.edu.tsinghua.iginx.redis.tools.DataTransformer;
 import cn.edu.tsinghua.iginx.redis.tools.DataViewWrapper;
@@ -78,33 +75,25 @@ public class RedisStorage implements IStorage {
     }
 
     @Override
-    public TaskExecuteResult execute(StoragePhysicalTask task) {
-        List<Operator> operators = task.getOperators();
-        if (operators.size() < 1) {
-            return new TaskExecuteResult(
-                    new NonExecutablePhysicalTaskException(
-                            "storage physical task should have one more operators"));
-        }
-        Operator op = operators.get(0);
-        String storageUnit = task.getStorageUnit();
-        boolean isDummyStorageUnit = task.isDummyStorageUnit();
-        if (op.getType() == OperatorType.Project) {
-            Project project = (Project) op;
-            return isDummyStorageUnit
-                    ? executeQueryHistoryTask(task.getTargetFragment().getTsInterval(), project)
-                    : executeQueryTask(storageUnit, project);
-        } else if (op.getType() == OperatorType.Insert) {
-            Insert insert = (Insert) op;
-            return executeInsertTask(storageUnit, insert);
-        } else if (op.getType() == OperatorType.Delete) {
-            Delete delete = (Delete) op;
-            return executeDeleteTask(storageUnit, delete);
-        }
-        return new TaskExecuteResult(
-                new NonExecutablePhysicalTaskException("unsupported physical task"));
+    public boolean isSupportProjectWithSelect() {
+        return false;
     }
 
-    private TaskExecuteResult executeQueryTask(String storageUnit, Project project) {
+    @Override
+    public TaskExecuteResult executeProjectWithSelect(
+            Project project, Select select, DataArea dataArea) {
+        return null;
+    }
+
+    @Override
+    public TaskExecuteResult executeProjectDummyWithSelect(
+            Project project, Select select, DataArea dataArea) {
+        return null;
+    }
+
+    @Override
+    public TaskExecuteResult executeProject(Project project, DataArea dataArea) {
+        String storageUnit = dataArea.getStorageUnit();
         List<String> queryPaths;
         try {
             queryPaths =
@@ -116,7 +105,7 @@ public class RedisStorage implements IStorage {
                             "execute delete path task in redis failure", e));
         }
 
-        List<Column> columns = new ArrayList<>();
+        List<cn.edu.tsinghua.iginx.redis.entity.Column> columns = new ArrayList<>();
         try (Jedis jedis = jedisPool.getResource()) {
             for (String queryPath : queryPaths) {
                 DataType type =
@@ -125,7 +114,8 @@ public class RedisStorage implements IStorage {
                     Map<String, String> colData =
                             jedis.hgetAll(
                                     String.format(KEY_FORMAT_HASH_VALUES, storageUnit, queryPath));
-                    Column column = new Column(queryPath, type, colData);
+                    cn.edu.tsinghua.iginx.redis.entity.Column column =
+                            new cn.edu.tsinghua.iginx.redis.entity.Column(queryPath, type, colData);
                     columns.add(column);
                 }
             }
@@ -137,8 +127,8 @@ public class RedisStorage implements IStorage {
         return new TaskExecuteResult(new RedisQueryRowStream(columns), null);
     }
 
-    private TaskExecuteResult executeQueryHistoryTask(
-            TimeSeriesRange timeSeriesInterval, Project project) {
+    @Override
+    public TaskExecuteResult executeProjectDummy(Project project, DataArea dataArea) {
         List<String> patterns = project.getPatterns();
         Set<String> queryPaths = new HashSet<>();
         for (String pattern : patterns) {
@@ -149,32 +139,41 @@ public class RedisStorage implements IStorage {
             }
         }
 
-        List<Column> columns = new ArrayList<>();
+        List<cn.edu.tsinghua.iginx.redis.entity.Column> columns = new ArrayList<>();
         try (Jedis jedis = jedisPool.getResource()) {
             for (String queryPath : queryPaths) {
                 String type = jedis.type(queryPath);
                 switch (type) {
                     case "string":
                         String value = jedis.get(queryPath);
-                        columns.add(new Column(queryPath, value));
+                        columns.add(
+                                new cn.edu.tsinghua.iginx.redis.entity.Column(queryPath, value));
                         break;
                     case "list":
                         List<String> listValues = jedis.lrange(queryPath, 0, -1);
-                        columns.add(new Column(queryPath, listValues));
+                        columns.add(
+                                new cn.edu.tsinghua.iginx.redis.entity.Column(
+                                        queryPath, listValues));
                         break;
                     case "set":
                         Set<String> setValues = jedis.smembers(queryPath);
-                        columns.add(new Column(queryPath, setValues));
+                        columns.add(
+                                new cn.edu.tsinghua.iginx.redis.entity.Column(
+                                        queryPath, setValues));
                         break;
                     case "zset":
                         List<String> zSetValues = jedis.zrange(queryPath, 0, -1);
-                        columns.add(new Column(queryPath, zSetValues));
+                        columns.add(
+                                new cn.edu.tsinghua.iginx.redis.entity.Column(
+                                        queryPath, zSetValues));
                         break;
                     case "hash":
                         Map<String, String> hashValues = jedis.hgetAll(queryPath);
-                        columns.add(new Column(queryPath + SUFFIX_KEY, hashValues.keySet()));
                         columns.add(
-                                new Column(
+                                new cn.edu.tsinghua.iginx.redis.entity.Column(
+                                        queryPath + SUFFIX_KEY, hashValues.keySet()));
+                        columns.add(
+                                new cn.edu.tsinghua.iginx.redis.entity.Column(
                                         queryPath + SUFFIX_VALUE,
                                         new ArrayList<>(hashValues.values())));
                         break;
@@ -192,7 +191,9 @@ public class RedisStorage implements IStorage {
         return new TaskExecuteResult(new RedisQueryRowStream(columns), null);
     }
 
-    private TaskExecuteResult executeDeleteTask(String storageUnit, Delete delete) {
+    @Override
+    public TaskExecuteResult executeDelete(Delete delete, DataArea dataArea) {
+        String storageUnit = dataArea.getStorageUnit();
         List<String> deletedPaths;
         try {
             deletedPaths =
@@ -208,7 +209,7 @@ public class RedisStorage implements IStorage {
             return new TaskExecuteResult(null, null);
         }
 
-        if (delete.getTimeRanges() == null || delete.getTimeRanges().isEmpty()) {
+        if (delete.getKeyRanges() == null || delete.getKeyRanges().isEmpty()) {
             // 没有传任何 time range, 删除全部数据
             try (Jedis jedis = jedisPool.getResource()) {
                 int size = deletedPaths.size();
@@ -222,6 +223,7 @@ public class RedisStorage implements IStorage {
                 jedis.del(deletedPathArray);
                 jedis.hdel(KEY_DATA_TYPE, deletedPaths.toArray(new String[0]));
             } catch (Exception e) {
+                logger.warn("encounter error when delete path: " + e.getMessage());
                 return new TaskExecuteResult(
                         new PhysicalException("execute delete path in redis failure", e));
             }
@@ -229,24 +231,25 @@ public class RedisStorage implements IStorage {
             // 删除指定部分数据
             try (Jedis jedis = jedisPool.getResource()) {
                 for (String path : deletedPaths) {
-                    for (TimeRange timeRange : delete.getTimeRanges()) {
+                    for (KeyRange keyRange : delete.getKeyRanges()) {
                         List<String> keys =
                                 jedis.zrangeByScore(
                                         String.format(KEY_FORMAT_ZSET_KEYS, storageUnit, path),
-                                        timeRange.getActualBeginTime(),
-                                        timeRange.getActualEndTime());
+                                        keyRange.getActualBeginKey(),
+                                        keyRange.getActualEndKey());
                         if (!keys.isEmpty()) {
                             jedis.hdel(
                                     String.format(KEY_FORMAT_HASH_VALUES, storageUnit, path),
                                     keys.toArray(new String[0]));
                             jedis.zremrangeByScore(
                                     String.format(KEY_FORMAT_ZSET_KEYS, storageUnit, path),
-                                    timeRange.getActualBeginTime(),
-                                    timeRange.getActualEndTime());
+                                    keyRange.getActualBeginKey(),
+                                    keyRange.getActualEndKey());
                         }
                     }
                 }
             } catch (Exception e) {
+                logger.warn("encounter error when delete path: " + e.getMessage());
                 return new TaskExecuteResult(
                         new PhysicalException("execute delete data in redis failure", e));
             }
@@ -290,7 +293,9 @@ public class RedisStorage implements IStorage {
         return filterPaths;
     }
 
-    private TaskExecuteResult executeInsertTask(String storageUnit, Insert insert) {
+    @Override
+    public TaskExecuteResult executeInsert(Insert insert, DataArea dataArea) {
+        String storageUnit = dataArea.getStorageUnit();
         DataViewWrapper data = new DataViewWrapper(insert.getData());
         for (int i = 0; i < data.getPathNum(); i++) {
             String path = data.getPath(i);
@@ -318,15 +323,15 @@ public class RedisStorage implements IStorage {
     }
 
     @Override
-    public List<Timeseries> getTimeSeries() {
-        List<Timeseries> ret = new ArrayList<>();
+    public List<Column> getColumns() {
+        List<Column> ret = new ArrayList<>();
         try (Jedis jedis = jedisPool.getResource()) {
             Map<String, String> pathsAndTypes = jedis.hgetAll(KEY_DATA_TYPE);
             pathsAndTypes.forEach(
                     (k, v) -> {
                         DataType type = DataTransformer.fromStringDataType(v);
                         Pair<String, Map<String, String>> pair = TagKVUtils.splitFullName(k);
-                        ret.add(new Timeseries(pair.k, type, pair.v));
+                        ret.add(new Column(pair.k, type, pair.v));
                     });
         } catch (Exception e) {
             logger.error("get time series error, cause by: ", e);
@@ -336,21 +341,21 @@ public class RedisStorage implements IStorage {
     }
 
     @Override
-    public Pair<TimeSeriesRange, TimeInterval> getBoundaryOfStorage(String prefix)
+    public Pair<ColumnsRange, KeyInterval> getBoundaryOfStorage(String prefix)
             throws PhysicalException {
         List<String> paths = getKeysByPattern(STAR);
         paths.sort(String::compareTo);
 
-        TimeSeriesRange tsInterval;
+        ColumnsRange tsInterval;
         if (prefix != null) {
-            tsInterval = new TimeSeriesInterval(prefix, StringUtils.nextString(prefix));
+            tsInterval = new ColumnsInterval(prefix, StringUtils.nextString(prefix));
         } else {
             if (!paths.isEmpty()) {
                 tsInterval =
-                        new TimeSeriesInterval(
+                        new ColumnsInterval(
                                 paths.get(0), StringUtils.nextString(paths.get(paths.size() - 1)));
             } else {
-                tsInterval = new TimeSeriesInterval(null, null);
+                tsInterval = new ColumnsInterval(null, null);
             }
         }
         long minTime = 0, maxTime = Long.MIN_VALUE;
@@ -383,8 +388,8 @@ public class RedisStorage implements IStorage {
         if (maxTime == Long.MIN_VALUE) {
             maxTime = Long.MAX_VALUE - 1;
         }
-        TimeInterval timeInterval = new TimeInterval(minTime, maxTime + 1);
-        return new Pair<>(tsInterval, timeInterval);
+        KeyInterval keyInterval = new KeyInterval(minTime, maxTime + 1);
+        return new Pair<>(tsInterval, keyInterval);
     }
 
     private List<String> getKeysByPattern(String pattern) {

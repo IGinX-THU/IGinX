@@ -13,10 +13,10 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class MixClusterShowTimeseriesRegressionTest {
+public class MixClusterShowColumnsRegressionTest {
 
     private static final Logger logger =
-            LoggerFactory.getLogger(MixClusterShowTimeseriesRegressionTest.class);
+            LoggerFactory.getLogger(MixClusterShowColumnsRegressionTest.class);
 
     private Session session;
 
@@ -33,7 +33,7 @@ public class MixClusterShowTimeseriesRegressionTest {
     }
 
     @Test
-    public void testShowTimeseriesInMixCluster() throws SessionException, ExecutionException {
+    public void testShowColumnsInMixCluster() {
         String[] insertStatements =
                 new String[] {
                     "insert into m (key, d, o) values (2000000, 2, 3)",
@@ -47,9 +47,9 @@ public class MixClusterShowTimeseriesRegressionTest {
         for (String insertStatement : insertStatements) {
             execute(insertStatement);
         }
-        String statement = "show time series";
+        String statement = "SHOW COLUMNS";
         String expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+----+--------+\n"
                         + "|Path|DataType|\n"
                         + "+----+--------+\n"
@@ -66,9 +66,9 @@ public class MixClusterShowTimeseriesRegressionTest {
                         + "Total line number = 9\n";
         executeAndCompare(statement, expected);
 
-        statement = "show time series m.*";
+        statement = "SHOW COLUMNS m.*";
         expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+----+--------+\n"
                         + "|Path|DataType|\n"
                         + "+----+--------+\n"

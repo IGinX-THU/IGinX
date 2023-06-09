@@ -2,9 +2,9 @@ package cn.edu.tsinghua.iginx.parquet.exec;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
-import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Timeseries;
+import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
-import cn.edu.tsinghua.iginx.engine.shared.TimeRange;
+import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
@@ -18,9 +18,9 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.tag.BaseTagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.OrTagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.PreciseTagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
-import cn.edu.tsinghua.iginx.metadata.entity.TimeInterval;
-import cn.edu.tsinghua.iginx.metadata.entity.TimeSeriesInterval;
-import cn.edu.tsinghua.iginx.metadata.entity.TimeSeriesRange;
+import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
+import cn.edu.tsinghua.iginx.metadata.entity.ColumnsRange;
+import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.parquet.thrift.DeleteReq;
 import cn.edu.tsinghua.iginx.parquet.thrift.GetStorageBoundryResp;
 import cn.edu.tsinghua.iginx.parquet.thrift.GetTimeSeriesOfStorageUnitResp;
@@ -245,24 +245,21 @@ public class RemoteExecutor implements Executor {
 
     @Override
     public TaskExecuteResult executeDeleteTask(
-            List<String> paths,
-            List<TimeRange> timeRanges,
-            TagFilter tagFilter,
-            String storageUnit) {
+            List<String> paths, List<KeyRange> keyRanges, TagFilter tagFilter, String storageUnit) {
         DeleteReq req = new DeleteReq(storageUnit, paths);
         if (tagFilter != null) {
             req.setTagFilter(constructRawTagFilter(tagFilter));
         }
-        if (timeRanges != null) {
+        if (keyRanges != null) {
             List<ParquetTimeRange> parquetTimeRanges = new ArrayList<>();
-            timeRanges.forEach(
+            keyRanges.forEach(
                     timeRange ->
                             parquetTimeRanges.add(
                                     new ParquetTimeRange(
-                                            timeRange.getBeginTime(),
-                                            timeRange.isIncludeBeginTime(),
-                                            timeRange.getEndTime(),
-                                            timeRange.isIncludeEndTime())));
+                                            timeRange.getBeginKey(),
+                                            timeRange.isIncludeBeginKey(),
+                                            timeRange.getEndKey(),
+                                            timeRange.isIncludeEndKey())));
             req.setTimeRanges(parquetTimeRanges);
         }
 
@@ -342,16 +339,15 @@ public class RemoteExecutor implements Executor {
     }
 
     @Override
-    public List<Timeseries> getTimeSeriesOfStorageUnit(String storageUnit)
-            throws PhysicalException {
+    public List<Column> getTimeSeriesOfStorageUnit(String storageUnit) throws PhysicalException {
         try {
             GetTimeSeriesOfStorageUnitResp resp = client.getTimeSeriesOfStorageUnit(storageUnit);
-            List<Timeseries> timeSeriesList = new ArrayList<>();
+            List<Column> timeSeriesList = new ArrayList<>();
             resp.getTsList()
                     .forEach(
                             ts ->
                                     timeSeriesList.add(
-                                            new Timeseries(
+                                            new Column(
                                                     ts.getPath(),
                                                     DataTypeUtils.strToDataType(ts.getDataType()),
                                                     ts.getTags())));
@@ -362,12 +358,12 @@ public class RemoteExecutor implements Executor {
     }
 
     @Override
-    public Pair<TimeSeriesRange, TimeInterval> getBoundaryOfStorage() throws PhysicalException {
+    public Pair<ColumnsRange, KeyInterval> getBoundaryOfStorage() throws PhysicalException {
         try {
             GetStorageBoundryResp resp = client.getBoundaryOfStorage();
             return new Pair<>(
-                    new TimeSeriesInterval(resp.getStartTimeSeries(), resp.getEndTimeSeries()),
-                    new TimeInterval(resp.getStartTime(), resp.getEndTime()));
+                    new ColumnsInterval(resp.getStartTimeSeries(), resp.getEndTimeSeries()),
+                    new KeyInterval(resp.getStartTime(), resp.getEndTime()));
         } catch (TException e) {
             throw new PhysicalException("encounter error when getBoundaryOfStorage ", e);
         }

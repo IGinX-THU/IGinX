@@ -9,3 +9,5 @@ sed -i "" "s/#storageEngineList=127.0.0.1#6379/storageEngineList=127.0.0.1#6379/
 sh -c "brew install redis"
 
 sh -c "nohup redis-server &"
+
+sh -c "nohup redis-server --port 6380 &"

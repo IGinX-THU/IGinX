@@ -5,15 +5,15 @@ import static org.junit.Assert.fail;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
-import cn.edu.tsinghua.iginx.integration.tool.ConfLoder;
+import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
+import cn.edu.tsinghua.iginx.integration.tool.DBConf.DBConfType;
 import cn.edu.tsinghua.iginx.integration.tool.MultiConnection;
 import cn.edu.tsinghua.iginx.integration.tool.SQLExecutor;
 import cn.edu.tsinghua.iginx.pool.IginxInfo;
 import cn.edu.tsinghua.iginx.pool.SessionPool;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.utils.Pair;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -43,7 +43,11 @@ public class SQLSessionIT {
 
     protected boolean isAbleToDelete;
 
-    protected boolean isSupportSpecialPath;
+    protected boolean isSupportChinesePath;
+
+    protected boolean isSupportNumericalPath;
+
+    protected boolean isSupportSpecialCharacterPath;
 
     protected boolean isAbleToShowTimeSeries;
 
@@ -56,14 +60,17 @@ public class SQLSessionIT {
     protected boolean isAbleToClearData = true;
     private static final int CONCURRENT_NUM = 5;
 
-    public SQLSessionIT() throws IOException {
-        ConfLoder conf = new ConfLoder(Controller.CONFIG_FILE);
+    public SQLSessionIT() {
+        ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
         DBConf dbConf = conf.loadDBConf(conf.getStorageType());
         this.isScaling = conf.isScaling();
         this.isAbleToClearData = dbConf.getEnumValue(DBConf.DBConfType.isAbleToClearData);
         this.isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
         this.isAbleToShowTimeSeries = dbConf.getEnumValue(DBConf.DBConfType.isAbleToShowTimeSeries);
-        this.isSupportSpecialPath = dbConf.getEnumValue(DBConf.DBConfType.isSupportSpecialPath);
+        this.isSupportChinesePath = dbConf.getEnumValue(DBConfType.isSupportChinesePath);
+        this.isSupportNumericalPath = dbConf.getEnumValue(DBConfType.isSupportNumericalPath);
+        this.isSupportSpecialCharacterPath =
+                dbConf.getEnumValue(DBConfType.isSupportSpecialCharacterPath);
     }
 
     @BeforeClass
@@ -143,7 +150,7 @@ public class SQLSessionIT {
     }
 
     @After
-    public void clearData() throws ExecutionException, SessionException {
+    public void clearData() {
         String clearData = "CLEAR DATA;";
         executor.execute(clearData);
     }
@@ -175,9 +182,9 @@ public class SQLSessionIT {
         if (!isAbleToShowTimeSeries || isScaling) {
             return;
         }
-        String statement = "SHOW TIME SERIES us.*;";
+        String statement = "SHOW COLUMNS us.*;";
         String expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+--------+--------+\n"
                         + "|    Path|DataType|\n"
                         + "+--------+--------+\n"
@@ -189,9 +196,9 @@ public class SQLSessionIT {
                         + "Total line number = 4\n";
         executor.executeAndCompare(statement, expected);
 
-        statement = "SHOW TIME SERIES us.d1.*;";
+        statement = "SHOW COLUMNS us.d1.*;";
         expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+--------+--------+\n"
                         + "|    Path|DataType|\n"
                         + "+--------+--------+\n"
@@ -203,9 +210,9 @@ public class SQLSessionIT {
                         + "Total line number = 4\n";
         executor.executeAndCompare(statement, expected);
 
-        statement = "SHOW TIME SERIES limit 3;";
+        statement = "SHOW COLUMNS limit 3;";
         expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+--------+--------+\n"
                         + "|    Path|DataType|\n"
                         + "+--------+--------+\n"
@@ -216,9 +223,9 @@ public class SQLSessionIT {
                         + "Total line number = 3\n";
         executor.executeAndCompare(statement, expected);
 
-        statement = "SHOW TIME SERIES limit 2 offset 1;";
+        statement = "SHOW COLUMNS limit 2 offset 1;";
         expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+--------+--------+\n"
                         + "|    Path|DataType|\n"
                         + "+--------+--------+\n"
@@ -228,9 +235,9 @@ public class SQLSessionIT {
                         + "Total line number = 2\n";
         executor.executeAndCompare(statement, expected);
 
-        statement = "SHOW TIME SERIES limit 1, 2;";
+        statement = "SHOW COLUMNS limit 1, 2;";
         expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+--------+--------+\n"
                         + "|    Path|DataType|\n"
                         + "+--------+--------+\n"
@@ -240,9 +247,9 @@ public class SQLSessionIT {
                         + "Total line number = 2\n";
         executor.executeAndCompare(statement, expected);
 
-        statement = "SHOW TIME SERIES us.d1.s1;";
+        statement = "SHOW COLUMNS us.d1.s1;";
         expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+--------+--------+\n"
                         + "|    Path|DataType|\n"
                         + "+--------+--------+\n"
@@ -251,9 +258,9 @@ public class SQLSessionIT {
                         + "Total line number = 1\n";
         executor.executeAndCompare(statement, expected);
 
-        statement = "SHOW TIME SERIES us.d1.s1, us.d1.s3;";
+        statement = "SHOW COLUMNS us.d1.s1, us.d1.s3;";
         expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+--------+--------+\n"
                         + "|    Path|DataType|\n"
                         + "+--------+--------+\n"
@@ -3751,10 +3758,11 @@ public class SQLSessionIT {
     }
 
     @Test
-    public void testSpecialPath() {
-        if (!isSupportSpecialPath) {
+    public void testChinesePath() {
+        if (!isSupportChinesePath) {
             return;
         }
+
         // Chinese path
         String insert = "INSERT INTO 测试.前缀(key, 后缀) VALUES (1, 1), (2, 2), (3, 3), (4, 4), (5, 5);";
         executor.execute(insert);
@@ -3773,13 +3781,21 @@ public class SQLSessionIT {
                         + "+---+--------+\n"
                         + "Total line number = 5\n";
         executor.executeAndCompare(query, expected);
+    }
 
-        // number path
-        insert = "INSERT INTO 114514(key, 1919810) VALUES (1, 1), (2, 2), (3, 3), (4, 4), (5, 5);";
+    @Test
+    public void testNumericalPath() {
+        if (!isSupportNumericalPath) {
+            return;
+        }
+
+        // numerical path
+        String insert =
+                "INSERT INTO 114514(key, 1919810) VALUES (1, 1), (2, 2), (3, 3), (4, 4), (5, 5);";
         executor.execute(insert);
 
-        query = "SELECT 1919810 FROM 114514;";
-        expected =
+        String query = "SELECT 1919810 FROM 114514;";
+        String expected =
                 "ResultSets:\n"
                         + "+---+--------------+\n"
                         + "|key|114514.1919810|\n"
@@ -3792,33 +3808,48 @@ public class SQLSessionIT {
                         + "+---+--------------+\n"
                         + "Total line number = 5\n";
         executor.executeAndCompare(query, expected);
+    }
 
-        // special symbol path
-        insert = "INSERT INTO _:@#$(key, _:@#$) VALUES (1, 1), (2, 2), (3, 3), (4, 4), (5, 5);";
+    @Test
+    public void testSpecialCharacterPath() {
+        if (!isSupportSpecialCharacterPath) {
+            return;
+        }
+
+        // IGinX SQL 路径中支持的合法字符
+        String insert =
+                "INSERT INTO _:@#$~^{}(key, _:@#$~^{}) VALUES (1, 1), (2, 2), (3, 3), (4, 4), (5, 5);";
         executor.execute(insert);
 
-        query = "SELECT _:@#$ FROM _:@#$;";
-        expected =
+        String query = "SELECT _:@#$~^{} FROM _:@#$~^{};";
+        String expected =
                 "ResultSets:\n"
-                        + "+---+-----------+\n"
-                        + "|key|_:@#$._:@#$|\n"
-                        + "+---+-----------+\n"
-                        + "|  1|          1|\n"
-                        + "|  2|          2|\n"
-                        + "|  3|          3|\n"
-                        + "|  4|          4|\n"
-                        + "|  5|          5|\n"
-                        + "+---+-----------+\n"
+                        + "+---+-------------------+\n"
+                        + "|key|_:@#$~^{}._:@#$~^{}|\n"
+                        + "+---+-------------------+\n"
+                        + "|  1|                  1|\n"
+                        + "|  2|                  2|\n"
+                        + "|  3|                  3|\n"
+                        + "|  4|                  4|\n"
+                        + "|  5|                  5|\n"
+                        + "+---+-------------------+\n"
                         + "Total line number = 5\n";
         executor.executeAndCompare(query, expected);
+    }
+
+    @Test
+    public void testMixSpecialPath() {
+        if (!isSupportChinesePath || !isSupportNumericalPath || !isSupportSpecialCharacterPath) {
+            return;
+        }
 
         // mix path
-        insert =
+        String insert =
                 "INSERT INTO 测试.前缀.114514(key, 1919810._:@#$.后缀) VALUES (1, 1), (2, 2), (3, 3), (4, 4), (5, 5);";
         executor.execute(insert);
 
-        query = "SELECT 1919810._:@#$.后缀 FROM 测试.前缀.114514;";
-        expected =
+        String query = "SELECT 1919810._:@#$.后缀 FROM 测试.前缀.114514;";
+        String expected =
                 "ResultSets:\n"
                         + "+---+-----------------------------+\n"
                         + "|key|测试.前缀.114514.1919810._:@#$.后缀|\n"
@@ -3910,9 +3941,9 @@ public class SQLSessionIT {
         if (!isAbleToDelete || isScaling) {
             return;
         }
-        String showTimeSeries = "SHOW TIME SERIES us.*;";
+        String showTimeSeries = "SHOW COLUMNS us.*;";
         String expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+--------+--------+\n"
                         + "|    Path|DataType|\n"
                         + "+--------+--------+\n"
@@ -3924,12 +3955,12 @@ public class SQLSessionIT {
                         + "Total line number = 4\n";
         executor.executeAndCompare(showTimeSeries, expected);
 
-        String deleteTimeSeries = "DELETE TIME SERIES us.d1.s4";
+        String deleteTimeSeries = "DELETE COLUMNS us.d1.s4";
         executor.execute(deleteTimeSeries);
 
-        showTimeSeries = "SHOW TIME SERIES us.*;";
+        showTimeSeries = "SHOW COLUMNS us.*;";
         expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+--------+--------+\n"
                         + "|    Path|DataType|\n"
                         + "+--------+--------+\n"
@@ -3944,12 +3975,12 @@ public class SQLSessionIT {
         expected = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
         executor.executeAndCompare(showTimeSeriesData, expected);
 
-        deleteTimeSeries = "DELETE TIME SERIES us.*";
+        deleteTimeSeries = "DELETE COLUMNS us.*";
         executor.execute(deleteTimeSeries);
 
-        showTimeSeries = "SHOW TIME SERIES us.*;";
+        showTimeSeries = "SHOW COLUMNS us.*;";
         expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+----+--------+\n"
                         + "|Path|DataType|\n"
                         + "+----+--------+\n"
@@ -4161,8 +4192,8 @@ public class SQLSessionIT {
         List<Pair<String, String>> statementsAndExpectRes =
                 Arrays.asList(
                         new Pair<>(
-                                "SHOW TIME SERIES",
-                                "Time series:\n"
+                                "SHOW COLUMNS",
+                                "Columns:\n"
                                         + "+--------+--------+\n"
                                         + "|    Path|DataType|\n"
                                         + "+--------+--------+\n"

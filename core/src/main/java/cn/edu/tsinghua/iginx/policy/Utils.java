@@ -1,8 +1,8 @@
 package cn.edu.tsinghua.iginx.policy;
 
 import cn.edu.tsinghua.iginx.conf.Constants;
-import cn.edu.tsinghua.iginx.engine.shared.TimeRange;
-import cn.edu.tsinghua.iginx.metadata.entity.TimeInterval;
+import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
+import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.sql.statement.DataStatement;
 import cn.edu.tsinghua.iginx.sql.statement.DeleteStatement;
 import cn.edu.tsinghua.iginx.sql.statement.InsertStatement;
@@ -53,34 +53,34 @@ public class Utils {
         return new ArrayList<>(beCutPaths);
     }
 
-    public static TimeInterval getTimeIntervalFromDataStatement(DataStatement statement) {
+    public static KeyInterval getTimeIntervalFromDataStatement(DataStatement statement) {
         StatementType type = statement.getType();
         switch (type) {
             case INSERT:
                 InsertStatement insertStatement = (InsertStatement) statement;
-                List<Long> times = insertStatement.getTimes();
-                return new TimeInterval(times.get(0), times.get(times.size() - 1));
+                List<Long> times = insertStatement.getKeys();
+                return new KeyInterval(times.get(0), times.get(times.size() - 1));
             case SELECT:
                 SelectStatement selectStatement = (SelectStatement) statement;
-                return new TimeInterval(
+                return new KeyInterval(
                         selectStatement.getStartTime(), selectStatement.getEndTime());
             case DELETE:
                 DeleteStatement deleteStatement = (DeleteStatement) statement;
-                List<TimeRange> timeRanges = deleteStatement.getTimeRanges();
+                List<KeyRange> keyRanges = deleteStatement.getKeyRanges();
                 long startTime = Long.MAX_VALUE, endTime = Long.MIN_VALUE;
-                for (TimeRange timeRange : timeRanges) {
-                    if (timeRange.getBeginTime() < startTime) {
-                        startTime = timeRange.getBeginTime();
+                for (KeyRange keyRange : keyRanges) {
+                    if (keyRange.getBeginKey() < startTime) {
+                        startTime = keyRange.getBeginKey();
                     }
-                    if (timeRange.getEndTime() > endTime) {
-                        endTime = timeRange.getEndTime();
+                    if (keyRange.getEndKey() > endTime) {
+                        endTime = keyRange.getEndKey();
                     }
                 }
                 startTime = startTime == Long.MAX_VALUE ? 0 : startTime;
                 endTime = endTime == Long.MIN_VALUE ? Long.MAX_VALUE : endTime;
-                return new TimeInterval(startTime, endTime);
+                return new KeyInterval(startTime, endTime);
             default:
-                return new TimeInterval(0, Long.MAX_VALUE);
+                return new KeyInterval(0, Long.MAX_VALUE);
         }
     }
 }

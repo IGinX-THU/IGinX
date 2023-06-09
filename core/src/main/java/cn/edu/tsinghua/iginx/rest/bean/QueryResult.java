@@ -34,7 +34,7 @@ import org.slf4j.LoggerFactory;
 
 @Data
 public class QueryResult {
-    public static final Logger LOGGER = LoggerFactory.getLogger(QueryResult.class);
+    public static final Logger logger = LoggerFactory.getLogger(QueryResult.class);
     private static final IMetaManager META_MANAGER = DefaultMetaManager.getInstance();
     private List<QueryMetric> queryMetrics = new ArrayList<>();
     private List<QueryResultDataset> queryResultDatasets = new ArrayList<>();
@@ -249,7 +249,7 @@ public class QueryResult {
                             queryMetrics.get(num).getName(),
                             queryResultDatasets.get(num).getPaths());
         } catch (Exception e) {
-            LOGGER.error("Error occurred during parsing tags ", e);
+            logger.error("Error occurred during parsing tags ", e);
         }
         for (Map.Entry<String, Set<String>> entry : tags.entrySet()) {
             ret.append(String.format("\"%s\": [", entry.getKey()));
