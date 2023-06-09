@@ -824,10 +824,7 @@ public class PostgreSQLStorage implements IStorage {
                                 path.substring(0, path.lastIndexOf(IGINX_SEPARATOR))
                                         .replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
                         String columnName = path.substring(path.lastIndexOf(IGINX_SEPARATOR) + 1);
-                        Map<String, String> tags = new HashMap<>();
-                        if (data.hasTagsList()) {
-                            tags = data.getTags(j);
-                        }
+                        Map<String, String> tags = data.getTags(j);
 
                         StringBuilder columnKeys = new StringBuilder();
                         List<String> columnValues = new ArrayList<>();
@@ -940,11 +937,7 @@ public class PostgreSQLStorage implements IStorage {
                             path.substring(0, path.lastIndexOf(IGINX_SEPARATOR))
                                     .replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
                     String columnName = path.substring(path.lastIndexOf(IGINX_SEPARATOR) + 1);
-                    Map<String, String> tags = new HashMap<>();
-                    if (data.hasTagsList()) {
-                        tags = data.getTags(i);
-                    }
-
+                    Map<String, String> tags = data.getTags(i);
                     BitmapView bitmapView = data.getBitmapView(i);
 
                     StringBuilder columnKeys = new StringBuilder();
@@ -1057,7 +1050,7 @@ public class PostgreSQLStorage implements IStorage {
             String fullColumnNames = getFullColumnNames(columnNames);
             statement.append(fullColumnNames);
 
-            statement.append(") VALUES");
+            statement.append(") VALUES ");
             for (String value : values) {
                 statement.append("(");
                 statement.append(value, 0, value.length() - 2);
@@ -1090,7 +1083,7 @@ public class PostgreSQLStorage implements IStorage {
             }
             statement.append(";");
 
-            logger.info("[Insert] execute insert: {}", statement);
+//            logger.info("[Insert] execute insert: {}", statement);
             stmt.addBatch(statement.toString());
         }
         stmt.executeBatch();

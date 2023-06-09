@@ -173,7 +173,8 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
                         || databaseName.equalsIgnoreCase("postgres")) {
                     continue;
                 }
-                dropDatabaseStatement.addBatch(String.format(DROP_DATABASE_STATEMENT, databaseName));
+                dropDatabaseStatement.addBatch(
+                        String.format(DROP_DATABASE_STATEMENT, databaseName));
             }
             dropDatabaseStatement.executeBatch();
 

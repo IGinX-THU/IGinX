@@ -32,11 +32,12 @@ public class TagKVUtils {
             TreeMap<String, String> sortedTags = new TreeMap<>(tags);
             StringBuilder pathBuilder = new StringBuilder();
             sortedTags.forEach(
-                    (tagKey, tagValue) -> pathBuilder
-                            .append(POSTGRESQL_SEPARATOR)
-                            .append(tagKey)
-                            .append(POSTGRESQL_SEPARATOR)
-                            .append(tagValue));
+                    (tagKey, tagValue) ->
+                            pathBuilder
+                                    .append(POSTGRESQL_SEPARATOR)
+                                    .append(tagKey)
+                                    .append(POSTGRESQL_SEPARATOR)
+                                    .append(tagValue));
             name += pathBuilder.toString();
         }
         return name;

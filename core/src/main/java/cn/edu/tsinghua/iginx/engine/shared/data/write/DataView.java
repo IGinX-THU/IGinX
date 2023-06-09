@@ -140,8 +140,4 @@ public abstract class DataView {
         }
         return tagsList.get(startPathIndex + index);
     }
-
-    public boolean hasTagsList() {
-        return getTagsList() != null && getTagsList().size() != 0;
-    }
 }
