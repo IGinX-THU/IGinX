@@ -154,8 +154,8 @@ public class RemoteExecutor implements Executor {
             tagsList.add(dataView.getTags(i) == null ? new HashMap<>() : dataView.getTags(i));
         }
 
-        long[] times = new long[dataView.getTimeSize()];
-        for (int i = 0; i < dataView.getTimeSize(); i++) {
+        long[] times = new long[dataView.getKeySize()];
+        for (int i = 0; i < dataView.getKeySize(); i++) {
             times[i] = dataView.getKey(i);
         }
 
@@ -200,7 +200,7 @@ public class RemoteExecutor implements Executor {
             dataTypeList.add(dataView.getDataType(i));
         }
 
-        for (int i = 0; i < dataView.getTimeSize(); i++) {
+        for (int i = 0; i < dataView.getKeySize(); i++) {
             BitmapView bitmapView = dataView.getBitmapView(i);
             Object[] values = new Object[dataView.getPathNum()];
 
@@ -226,10 +226,10 @@ public class RemoteExecutor implements Executor {
         for (int i = 0; i < dataView.getPathNum(); i++) {
             DataType dataType = dataView.getDataType(i);
             BitmapView bitmapView = dataView.getBitmapView(i);
-            Object[] values = new Object[dataView.getTimeSize()];
+            Object[] values = new Object[dataView.getKeySize()];
 
             int index = 0;
-            for (int j = 0; j < dataView.getTimeSize(); j++) {
+            for (int j = 0; j < dataView.getKeySize(); j++) {
                 if (bitmapView.get(j)) {
                     values[j] = dataView.getValue(i, index);
                     index++;

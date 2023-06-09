@@ -511,7 +511,7 @@ public class InfluxDBStorage implements IStorage {
         }
 
         List<Point> points = new ArrayList<>();
-        for (int i = 0; i < data.getTimeSize(); i++) {
+        for (int i = 0; i < data.getKeySize(); i++) {
             BitmapView bitmapView = data.getBitmapView(i);
             int index = 0;
             for (int j = 0; j < data.getPathNum(); j++) {
@@ -619,7 +619,7 @@ public class InfluxDBStorage implements IStorage {
             InfluxDBSchema schema = new InfluxDBSchema(data.getPath(i), data.getTags(i));
             BitmapView bitmapView = data.getBitmapView(i);
             int index = 0;
-            for (int j = 0; j < data.getTimeSize(); j++) {
+            for (int j = 0; j < data.getKeySize(); j++) {
                 if (bitmapView.get(j)) {
                     switch (data.getDataType(i)) {
                         case BOOLEAN:

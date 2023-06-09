@@ -1,8 +1,8 @@
 package cn.edu.tsinghua.iginx.integration.expansion.redis;
 
 import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
-import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.List;
+import org.junit.Test;
 import redis.clients.jedis.Jedis;
 
 public class RedisHistoryDataGenerator extends BaseHistoryDataGenerator {
@@ -23,10 +23,7 @@ public class RedisHistoryDataGenerator extends BaseHistoryDataGenerator {
         writeHistoryData(PATH_LIST_EXP, VALUES_LIST_EXP, PORT_B);
     }
 
-    private void writeHistoryData(
-            List<String> pathList,
-            List<List<Object>> valuesList,
-            int port) {
+    private void writeHistoryData(List<String> pathList, List<List<Object>> valuesList, int port) {
         Jedis jedis = new Jedis(LOCAL_IP, port);
         valuesList.forEach(
                 row -> {
@@ -38,6 +35,7 @@ public class RedisHistoryDataGenerator extends BaseHistoryDataGenerator {
         jedis.close();
     }
 
+    @Test
     @Override
     public void clearHistoryData() {
         Jedis jedisA = new Jedis(LOCAL_IP, PORT_A);
