@@ -184,7 +184,7 @@ public class SQLSessionIT {
         }
         String statement = "SHOW COLUMNS us.*;";
         String expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+--------+--------+\n"
                         + "|    Path|DataType|\n"
                         + "+--------+--------+\n"
@@ -198,7 +198,7 @@ public class SQLSessionIT {
 
         statement = "SHOW COLUMNS us.d1.*;";
         expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+--------+--------+\n"
                         + "|    Path|DataType|\n"
                         + "+--------+--------+\n"
@@ -212,7 +212,7 @@ public class SQLSessionIT {
 
         statement = "SHOW COLUMNS limit 3;";
         expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+--------+--------+\n"
                         + "|    Path|DataType|\n"
                         + "+--------+--------+\n"
@@ -225,7 +225,7 @@ public class SQLSessionIT {
 
         statement = "SHOW COLUMNS limit 2 offset 1;";
         expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+--------+--------+\n"
                         + "|    Path|DataType|\n"
                         + "+--------+--------+\n"
@@ -237,7 +237,7 @@ public class SQLSessionIT {
 
         statement = "SHOW COLUMNS limit 1, 2;";
         expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+--------+--------+\n"
                         + "|    Path|DataType|\n"
                         + "+--------+--------+\n"
@@ -249,7 +249,7 @@ public class SQLSessionIT {
 
         statement = "SHOW COLUMNS us.d1.s1;";
         expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+--------+--------+\n"
                         + "|    Path|DataType|\n"
                         + "+--------+--------+\n"
@@ -260,7 +260,7 @@ public class SQLSessionIT {
 
         statement = "SHOW COLUMNS us.d1.s1, us.d1.s3;";
         expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+--------+--------+\n"
                         + "|    Path|DataType|\n"
                         + "+--------+--------+\n"
@@ -3943,7 +3943,7 @@ public class SQLSessionIT {
         }
         String showTimeSeries = "SHOW COLUMNS us.*;";
         String expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+--------+--------+\n"
                         + "|    Path|DataType|\n"
                         + "+--------+--------+\n"
@@ -3960,7 +3960,7 @@ public class SQLSessionIT {
 
         showTimeSeries = "SHOW COLUMNS us.*;";
         expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+--------+--------+\n"
                         + "|    Path|DataType|\n"
                         + "+--------+--------+\n"
@@ -3980,7 +3980,7 @@ public class SQLSessionIT {
 
         showTimeSeries = "SHOW COLUMNS us.*;";
         expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+----+--------+\n"
                         + "|Path|DataType|\n"
                         + "+----+--------+\n"
@@ -4193,7 +4193,7 @@ public class SQLSessionIT {
                 Arrays.asList(
                         new Pair<>(
                                 "SHOW COLUMNS",
-                                "Time series:\n"
+                                "Columns:\n"
                                         + "+--------+--------+\n"
                                         + "|    Path|DataType|\n"
                                         + "+--------+--------+\n"
