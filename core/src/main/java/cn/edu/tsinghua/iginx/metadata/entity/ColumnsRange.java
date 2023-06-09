@@ -47,12 +47,11 @@ public interface ColumnsRange extends Comparable<ColumnsRange> {
     public default void setColumn(String column) {
         if (getRangeType() == RangeType.NORMAL) {
             logger.error("TimeSeriesInterval Normal can't not use the setTimeSeries func");
-            System.exit(0);
         }
     }
 
     public default String getColumn() {
-        logger.warn("TimeSeriesInterval Normal can't not use the getTimeSeries func");
+        logger.error("TimeSeriesInterval Normal can't not use the getTimeSeries func");
         return null;
     }
 
@@ -67,7 +66,6 @@ public interface ColumnsRange extends Comparable<ColumnsRange> {
     public default void setStartColumn(String startColumn) {
         if (getRangeType() == RangeType.PREFIX) {
             logger.error("TimeSeriesInterval PREFIX can't not use the setStartTimeSeries func");
-            System.exit(0);
         }
     }
 
@@ -82,7 +80,6 @@ public interface ColumnsRange extends Comparable<ColumnsRange> {
     public default void setEndColumn(String endColumn) {
         if (getRangeType() == RangeType.PREFIX) {
             logger.error("TimeSeriesInterval PREFIX can't not use the setEndTimeSeries func");
-            System.exit(0);
         }
     }
 
