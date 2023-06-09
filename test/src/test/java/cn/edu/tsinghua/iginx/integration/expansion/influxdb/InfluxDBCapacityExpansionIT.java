@@ -33,6 +33,20 @@ public class InfluxDBCapacityExpansionIT extends CapacityExpansionIT {
     }
 
     @Override
+    public void addStorageEngine(boolean hasData) {
+        try {
+            session.executeSql(
+                    "ADD STORAGEENGINE (\"127.0.0.1\", 8087, \""
+                            + dbType.name()
+                            + "\", \"url:http://localhost:8087/, username:user, password:12345678, sessionPoolSize:20, has_data:"
+                            + hasData
+                            + ", is_read_only:true, token:testToken, organization:testOrg\");");
+        } catch (SessionException | ExecutionException e) {
+            logger.error(e.getMessage());
+        }
+    }
+
+    @Override
     public int getPort() {
         return 8087;
     }
