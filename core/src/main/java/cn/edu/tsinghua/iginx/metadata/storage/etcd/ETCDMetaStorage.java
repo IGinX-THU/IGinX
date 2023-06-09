@@ -27,6 +27,7 @@ import cn.edu.tsinghua.iginx.metadata.entity.*;
 import cn.edu.tsinghua.iginx.metadata.hook.*;
 import cn.edu.tsinghua.iginx.metadata.storage.IMetaStorage;
 import cn.edu.tsinghua.iginx.metadata.utils.ReshardStatus;
+import cn.edu.tsinghua.iginx.migration.storage.StorageMigrationPlan;
 import cn.edu.tsinghua.iginx.utils.JsonUtils;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import io.etcd.jetcd.*;
@@ -863,6 +864,31 @@ public class ETCDMetaStorage implements IMetaStorage {
             logger.error("got error when load schema mapping: ", e);
             throw new MetaStorageException(e);
         }
+    }
+
+    @Override
+    public boolean storeMigrationPlan(StorageMigrationPlan plan) {
+        return false;
+    }
+
+    @Override
+    public List<StorageMigrationPlan> scanStorageMigrationPlan() {
+        return null;
+    }
+
+    @Override
+    public StorageMigrationPlan getStorageMigrationPlan(long storageId) {
+        return null;
+    }
+
+    @Override
+    public boolean transferMigrationPlan(long id, long from, long to) {
+        return false;
+    }
+
+    @Override
+    public boolean deleteMigrationPlan(long id) {
+        return false;
     }
 
     @Override

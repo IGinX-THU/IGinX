@@ -58,6 +58,8 @@ public final class StorageEngineMeta {
 
     private boolean needReAllocate;
 
+    private boolean removed = false;
+
     public StorageEngineMeta(
             long id,
             String ip,
@@ -271,6 +273,14 @@ public final class StorageEngineMeta {
 
     public void setNeedReAllocate(boolean needReAllocate) {
         this.needReAllocate = needReAllocate;
+    }
+
+    public boolean isRemoved() {
+        return removed;
+    }
+
+    public void setRemoved(boolean removed) {
+        this.removed = removed;
     }
 
     @Override

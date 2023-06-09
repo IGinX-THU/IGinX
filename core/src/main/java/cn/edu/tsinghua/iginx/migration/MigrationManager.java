@@ -1,6 +1,9 @@
 package cn.edu.tsinghua.iginx.migration;
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
+import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
+import cn.edu.tsinghua.iginx.migration.storage.GreedyStorageMigrationPolicy;
+import cn.edu.tsinghua.iginx.migration.storage.StorageMigrationPolicy;
 import java.util.HashMap;
 import java.util.Map;
 import org.slf4j.Logger;
@@ -43,5 +46,9 @@ public class MigrationManager {
             }
         }
         return policy;
+    }
+
+    public StorageMigrationPolicy getStorageMigration() {
+        return new GreedyStorageMigrationPolicy(DefaultMetaManager.getInstance());
     }
 }

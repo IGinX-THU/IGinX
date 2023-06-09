@@ -27,6 +27,7 @@ import cn.edu.tsinghua.iginx.metadata.entity.*;
 import cn.edu.tsinghua.iginx.metadata.hook.*;
 import cn.edu.tsinghua.iginx.metadata.storage.IMetaStorage;
 import cn.edu.tsinghua.iginx.metadata.utils.ReshardStatus;
+import cn.edu.tsinghua.iginx.migration.storage.StorageMigrationPlan;
 import cn.edu.tsinghua.iginx.utils.JsonUtils;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.math.BigDecimal;
@@ -143,6 +144,10 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
 
     private static final String TRANSFORM_LOCK_NODE = "/lock/transform";
 
+    private static final String MIGRATION_NODE_PREFIX = "/migration";
+
+    private static final String MIGRATION_LOCK_NODE = "/lock/migration";
+
     private boolean isMaster = false;
 
     private final int STORAGE_ENGINE_NODE_NUM_LENGTH =
@@ -237,6 +242,119 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
 
     private String generateID(String prefix, long idLength, long val) {
         return String.format(prefix + "%0" + idLength + "d", (int) val);
+    }
+
+    @Override
+    public boolean storeMigrationPlan(StorageMigrationPlan plan) {
+        InterProcessMutex mutex = new InterProcessMutex(client, MIGRATION_LOCK_NODE);
+        try {
+            mutex.acquire();
+            String path = MIGRATION_NODE_PREFIX + "/" + plan.getMigrationId();
+            if (client.checkExists().forPath(path) != null) {
+                return false;
+            }
+            this.client
+                    .create()
+                    .creatingParentsIfNeeded()
+                    .withMode(CreateMode.PERSISTENT)
+                    .forPath(path, JsonUtils.toJson(plan));
+        } catch (Exception e) {
+            logger.error("get migration plan failure: ", e);
+            return false;
+        } finally {
+            try {
+                mutex.release();
+            } catch (Exception e) {
+                logger.error("release migration lock failure: ", e);
+            }
+        }
+        return true;
+    }
+
+    @Override
+    public List<StorageMigrationPlan> scanStorageMigrationPlan() {
+        try {
+            if (client.checkExists().forPath(MIGRATION_NODE_PREFIX) == null) {
+                return Collections.emptyList();
+            }
+            List<String> children = client.getChildren().forPath(MIGRATION_NODE_PREFIX);
+            List<StorageMigrationPlan> plans = new ArrayList<>();
+            for (String childName : children) {
+                byte[] data = client.getData().forPath(MIGRATION_NODE_PREFIX + "/" + childName);
+                StorageMigrationPlan plan = JsonUtils.fromJson(data, StorageMigrationPlan.class);
+                plans.add(plan);
+            }
+            return plans;
+        } catch (Exception e) {
+            logger.error("get error scan migration plans", e);
+        }
+        return Collections.emptyList();
+    }
+
+    @Override
+    public StorageMigrationPlan getStorageMigrationPlan(long storageId) {
+        try {
+            String path = MIGRATION_NODE_PREFIX + "/" + storageId;
+            if (client.checkExists().forPath(path) == null) {
+                return null;
+            }
+            byte[] data = client.getData().forPath(path);
+            return JsonUtils.fromJson(data, StorageMigrationPlan.class);
+        } catch (Exception e) {
+            logger.error("get migration plan failure: ", e);
+        }
+        return null;
+    }
+
+    @Override
+    public boolean transferMigrationPlan(long id, long from, long to) {
+        InterProcessMutex mutex = new InterProcessMutex(client, MIGRATION_LOCK_NODE);
+        try {
+            String path = MIGRATION_NODE_PREFIX + "/" + id;
+            if (client.checkExists().forPath(path) != null) {
+                return false;
+            }
+            byte[] data = client.getData().forPath(path);
+            StorageMigrationPlan plan = JsonUtils.fromJson(data, StorageMigrationPlan.class);
+            if (plan.getMigrationOwner() != from) {
+                return false;
+            }
+            plan.setMigrationOwner(to);
+            client.setData().forPath(path, JsonUtils.toJson(plan));
+        } catch (Exception e) {
+            logger.error("transfer migration plan failure: ", e);
+            return false;
+        } finally {
+            try {
+                mutex.release();
+            } catch (Exception e) {
+                logger.error("transfer migration lock failure: ", e);
+            }
+        }
+        return true;
+    }
+
+    @Override
+    public boolean deleteMigrationPlan(long id) {
+        InterProcessMutex mutex = new InterProcessMutex(client, MIGRATION_LOCK_NODE);
+        try {
+            mutex.acquire();
+            String path = MIGRATION_NODE_PREFIX + "/" + id;
+            if (client.checkExists().forPath(path) != null) {
+                return true;
+            }
+            client.delete().forPath(path);
+        } catch (Exception e) {
+            logger.error("transfer migration plan failure: ", e);
+            return false;
+        } finally {
+            try {
+                mutex.release();
+            } catch (Exception e) {
+                logger.error("transfer migration lock failure: ", e);
+            }
+        }
+        return true;
     }
 
     @Override

@@ -235,6 +235,8 @@ public class ConfigDescriptor {
             config.setStreamParallelGroupByWorkerNum(
                     Integer.parseInt(
                             properties.getProperty("streamParallelGroupByWorkerNum", "5")));
+            config.setMigrationThreadPoolSize(
+                    Integer.parseInt(properties.getProperty("migrationThreadPoolSize", "20")));
         } catch (IOException e) {
             logger.error("Fail to load properties: ", e);
         }
@@ -361,6 +363,8 @@ public class ConfigDescriptor {
                 EnvUtils.loadEnv(
                         "streamParallelGroupByWorkerNum",
                         config.getStreamParallelGroupByWorkerNum()));
+        config.setMigrationThreadPoolSize(
+                EnvUtils.loadEnv("migrationThreadPoolSize", config.getMigrationThreadPoolSize()));
     }
 
     private void loadUDFListFromFile() {

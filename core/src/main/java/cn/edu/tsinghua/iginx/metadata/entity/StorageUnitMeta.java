@@ -24,7 +24,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-public final class StorageUnitMeta {
+public final class StorageUnitMeta implements Cloneable {
 
     private String id;
 
@@ -32,7 +32,7 @@ public final class StorageUnitMeta {
 
     private String masterId;
 
-    private final boolean isMaster;
+    private boolean isMaster;
 
     private long createdBy;
 
@@ -41,6 +41,10 @@ public final class StorageUnitMeta {
     private boolean dummy = false;
 
     private boolean ifValid = true;
+
+    private StorageUnitState state = StorageUnitState.NORMAL;
+
+    private String migrationTo = null;
 
     private transient List<StorageUnitMeta> replicas = new ArrayList<>();
 
@@ -92,8 +96,36 @@ public final class StorageUnitMeta {
         this.replicas = replicas;
     }
 
+    public StorageUnitMeta(
+            String id,
+            long storageEngineId,
+            String masterId,
+            boolean isMaster,
+            long createdBy,
+            boolean initialStorageUnit,
+            boolean dummy,
+            StorageUnitState state,
+            String migrationTo,
+            List<StorageUnitMeta> replicas) {
+        this.id = id;
+        this.storageEngineId = storageEngineId;
+        this.masterId = masterId;
+        this.isMaster = isMaster;
+        this.createdBy = createdBy;
+        this.initialStorageUnit = initialStorageUnit;
+        this.dummy = dummy;
+        this.state = state;
+        this.migrationTo = migrationTo;
+        this.replicas = replicas;
+    }
+
     public void addReplica(StorageUnitMeta storageUnit) {
         if (replicas == null) replicas = new ArrayList<>();
+        for (StorageUnitMeta replica : replicas) {
+            if (Objects.equals(replica.getId(), storageUnit.getId())) {
+                return;
+            }
+        }
         replicas.add(storageUnit);
     }
 
@@ -143,6 +175,23 @@ public final class StorageUnitMeta {
         return storageUnitMeta;
     }
 
+    public StorageUnitMeta migrationStorageUnitMeta(
+            String id, long migrationBy, long storageEngineId) {
+        String masterId = getMasterId();
+        if (isMaster) {
+            masterId = id;
+        }
+        StorageUnitMeta storageUnitMeta =
+                new StorageUnitMeta(id, storageEngineId, masterId, isMaster);
+        storageUnitMeta.setCreatedBy(migrationBy);
+        storageUnitMeta.setInitialStorageUnit(false);
+        storageUnitMeta.setState(StorageUnitState.CREATING);
+
+        this.setMigrationTo(id);
+        this.setState(StorageUnitState.MIGRATION);
+        return storageUnitMeta;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -167,8 +216,10 @@ public final class StorageUnitMeta {
         builder.append(masterId);
         builder.append(", isMaster = ");
         builder.append(isMaster);
-        builder.append(", createdBy = ");
-        builder.append(createdBy);
+        builder.append(", state = ");
+        builder.append(state);
+        builder.append(", migration = ");
+        builder.append(migrationTo);
         if (replicas != null) {
             builder.append(", replica id list = ");
             for (StorageUnitMeta storageUnit : replicas) {
@@ -218,5 +269,34 @@ public final class StorageUnitMeta {
 
     public static String generateDummyStorageUnitID(long id) {
         return String.format(Constants.DUMMY + "%010d", (int) id);
+    }
+
+    public StorageUnitState getState() {
+        return state;
+    }
+
+    public void setState(StorageUnitState state) {
+        this.state = state;
+    }
+
+    public String getMigrationTo() {
+        return migrationTo;
+    }
+
+    public void setMigrationTo(String migrationTo) {
+        this.migrationTo = migrationTo;
+    }
+
+    @Override
+    public StorageUnitMeta clone() {
+        try {
+            return (StorageUnitMeta) super.clone();
+        } catch (CloneNotSupportedException e) {
+            throw new AssertionError();
+        }
+    }
+
+    public void setMaster(boolean master) {
+        isMaster = master;
     }
 }

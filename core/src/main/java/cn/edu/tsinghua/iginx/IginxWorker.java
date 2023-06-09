@@ -35,6 +35,7 @@ import cn.edu.tsinghua.iginx.exceptions.StatusCode;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
+import cn.edu.tsinghua.iginx.migration.storage.StorageMigrationExecutor;
 import cn.edu.tsinghua.iginx.resource.QueryResourceManager;
 import cn.edu.tsinghua.iginx.thrift.*;
 import cn.edu.tsinghua.iginx.transform.exec.TransformJobManager;
@@ -256,6 +257,33 @@ public class IginxWorker implements IService.Iface {
             }
         }
         return status;
+    }
+
+    @Override
+    public Status removeStorageEngine(RemoveStorageEngineReq req) {
+        if (!sessionManager.checkSession(req.getSessionId(), AuthType.Cluster)) {
+            return RpcUtils.ACCESS_DENY;
+        }
+        long storageId = req.getStorageId();
+        StorageEngineMeta storageEngine = metaManager.getStorageEngine(storageId);
+        if (storageEngine == null) {
+            Status status = new Status(StatusCode.STATEMENT_EXECUTION_ERROR.getStatusCode());
+            status.setMessage("storage engine is not exists.");
+            return status;
+        }
+        try {
+            if (StorageMigrationExecutor.getInstance().migration(storageId, req.sync, true)) {
+                return RpcUtils.SUCCESS;
+            }
+            Status status = new Status(StatusCode.STATEMENT_EXECUTION_ERROR.getStatusCode());
+            status.setMessage("unexpected error during storage migration");
+            return status;
+        } catch (Exception e) {
+            logger.error("unexpected error during storage migration: ", e);
+            Status status = new Status(StatusCode.STATEMENT_EXECUTION_ERROR.getStatusCode());
+            status.setMessage("unexpected error during storage migration: " + e.getMessage());
+            return status;
+        }
     }
 
     @Override
