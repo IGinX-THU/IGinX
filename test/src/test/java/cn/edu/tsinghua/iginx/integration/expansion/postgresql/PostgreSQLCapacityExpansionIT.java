@@ -37,7 +37,7 @@ public class PostgreSQLCapacityExpansionIT extends CapacityExpansionIT {
     public void addStorageEngine(boolean hasData) {
         try {
             session.executeSql(
-                    "ADD STORAGEENGINE (\"127.0.0.1\", 5431, \""
+                    "ADD STORAGEENGINE (\"127.0.0.1\", 5433, \""
                             + dbType.name()
                             + "\", \"username:postgres, password:postgres, has_data:"
                             + hasData
