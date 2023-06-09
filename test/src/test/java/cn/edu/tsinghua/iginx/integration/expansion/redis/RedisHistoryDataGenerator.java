@@ -2,7 +2,6 @@ package cn.edu.tsinghua.iginx.integration.expansion.redis;
 
 import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
 import java.util.List;
-
 import org.junit.Test;
 import redis.clients.jedis.Jedis;
 

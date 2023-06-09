@@ -865,8 +865,7 @@ public class PostgreSQLStorage implements IStorage {
                         if (i - cnt < columnValues.size()) {
                             columnValues.set(i - cnt, columnValues.get(i - cnt) + value + ", ");
                         } else {
-                            columnValues.add(
-                                    data.getKey(i) + ", " + value + ", "); // 添加 key 列
+                            columnValues.add(data.getKey(i) + ", " + value + ", "); // 添加 key 列
                         }
 
                         tableToColumnEntries.put(
@@ -985,8 +984,7 @@ public class PostgreSQLStorage implements IStorage {
                         if (j - cnt < columnValues.size()) {
                             columnValues.set(j - cnt, columnValues.get(j - cnt) + value + ", ");
                         } else {
-                            columnValues.add(
-                                    data.getKey(j) + ", " + value + ", "); // 添加 key 列
+                            columnValues.add(data.getKey(j) + ", " + value + ", "); // 添加 key 列
                         }
                     }
                     pathIndexToBitmapIndex.put(i, index);
@@ -1047,14 +1045,15 @@ public class PostgreSQLStorage implements IStorage {
             String[] parts = columnNames.split(", ");
             boolean hasMultipleRows = parts.length != 1;
 
-            // INSERT INTO XXX ("\u2E85", XXX, ...) VALUES (XXX, XXX, ...), (XXX, XXX, ...), ..., (XXX,
+            // INSERT INTO XXX ("\u2E85", XXX, ...) VALUES (XXX, XXX, ...), (XXX, XXX, ...), ...,
+            // (XXX,
             // XXX, ...) ON CONFLICT ("\u2E85") DO UPDATE SET (XXX, ...) = (excluded.XXX, ...);
             StringBuilder statement = new StringBuilder();
             statement.append("INSERT INTO ");
             statement.append(getFullName(tableName));
-            statement.append(" (\"");
+            statement.append(" (");
             statement.append(KEY_NAME);
-            statement.append("\", ");
+            statement.append(", ");
             String fullColumnNames = getFullColumnNames(columnNames);
             statement.append(fullColumnNames);
 
@@ -1066,9 +1065,9 @@ public class PostgreSQLStorage implements IStorage {
             }
             statement = new StringBuilder(statement.substring(0, statement.length() - 2));
 
-            statement.append(" ON CONFLICT (\"");
+            statement.append(" ON CONFLICT (");
             statement.append(KEY_NAME);
-            statement.append("\") DO UPDATE SET ");
+            statement.append(") DO UPDATE SET ");
             if (hasMultipleRows) {
                 statement.append("("); // 只有一列不加括号
             }

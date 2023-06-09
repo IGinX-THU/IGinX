@@ -18,12 +18,12 @@
  */
 package cn.edu.tsinghua.iginx.postgresql.tools;
 
+import static cn.edu.tsinghua.iginx.postgresql.tools.Constants.KEY_NAME;
+
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import java.util.stream.Collectors;
 
 public class FilterTransformer {
-
-    public static final long MAX_TIMESTAMP = Long.MAX_VALUE;
 
     public static String toString(Filter filter) {
         if (filter == null) {
@@ -57,10 +57,7 @@ public class FilterTransformer {
     }
 
     private static String toString(KeyFilter filter) {
-        return "time "
-                + Op.op2Str(filter.getOp())
-                + " "
-                + Math.min(filter.getValue(), MAX_TIMESTAMP);
+        return KEY_NAME + " " + Op.op2Str(filter.getOp()) + " " + filter.getValue();
     }
 
     private static String toString(ValueFilter filter) {
