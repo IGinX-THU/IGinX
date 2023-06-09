@@ -18,24 +18,26 @@ public class Constants {
 
     public static final String DATABASE_PREFIX = "unit";
 
+    public static final String KEY_NAME = "\u2E85";
+
     public static final String QUERY_DATABASES_STATEMENT = "SELECT datname FROM pg_database;";
 
     public static final String CREATE_DATABASE_STATEMENT = "CREATE DATABASE %s;";
 
-    public static final String QUERY_TIME_STATEMENT = "SELECT time FROM %s ORDER BY time;";
+    public static final String QUERY_KEY_STATEMENT = "SELECT \"" + KEY_NAME + "\" FROM %s ORDER BY \"" + KEY_NAME + "\";";
 
     public static final String CONCAT_QUERY_STATEMENT = "SELECT concat(%s) FROM %s;";
 
-    public static final String QUERY_STATEMENT = "SELECT time, %s FROM %s WHERE %s ORDER BY time;";
+    public static final String QUERY_STATEMENT = "SELECT \"" + KEY_NAME + "\", %s FROM %s WHERE %s ORDER BY \"" + KEY_NAME + "\";";
 
-    public static final String QUERY_TIME_STATEMENT_WITHOUT_WHERE_CLAUSE =
-            "SELECT %s FROM %s ORDER BY time;";
+    public static final String QUERY_KEY_STATEMENT_WITHOUT_WHERE_CLAUSE =
+            "SELECT %s FROM %s ORDER BY \"" + KEY_NAME + "\";";
 
     public static final String CONCAT_QUERY_STATEMENT_WITHOUT_WHERE_CLAUSE =
-            "SELECT concat(%s) AS time, %s FROM %s ORDER BY time;";
+            "SELECT concat(%s) AS \"" + KEY_NAME + "\", %s FROM %s ORDER BY \"" + KEY_NAME + "\";";
 
     public static final String CREATE_TABLE_STATEMENT =
-            "CREATE TABLE %s (time BIGINT NOT NULL, %s %s, PRIMARY KEY(time));";
+            "CREATE TABLE %s (\"" + KEY_NAME + "\" BIGINT NOT NULL, %s %s, PRIMARY KEY(\"" + KEY_NAME + "\"));";
 
     public static final String ADD_COLUMN_STATEMENT = "ALTER TABLE %s ADD COLUMN %s %s;";
 
@@ -44,5 +46,5 @@ public class Constants {
     public static final String DROP_COLUMN_STATEMENT = "ALTER TABLE %s DROP COLUMN IF EXISTS %s;";
 
     public static final String UPDATE_STATEMENT =
-            "UPDATE %s SET %s = null WHERE (time >= %d AND time < %d);";
+            "UPDATE %s SET %s = null WHERE (\"" + KEY_NAME + "\" >= %d AND \"" + KEY_NAME + "\" < %d);";
 }

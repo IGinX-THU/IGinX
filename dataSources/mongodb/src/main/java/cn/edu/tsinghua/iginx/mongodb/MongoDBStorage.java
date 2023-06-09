@@ -368,7 +368,7 @@ public class MongoDBStorage implements IStorage {
         }
 
         Map<MongoDBSchema, List<JSONObject>> points = new HashMap<>();
-        for (int i = 0; i < data.getTimeSize(); i++) {
+        for (int i = 0; i < data.getKeySize(); i++) {
             BitmapView bitmapView = data.getBitmapView(i);
             int index = 0;
             for (int j = 0; j < data.getPathNum(); j++) {
@@ -427,7 +427,7 @@ public class MongoDBStorage implements IStorage {
             BitmapView bitmapView = data.getBitmapView(i);
             int index = 0;
             List<JSONObject> jsonObjects = new ArrayList<>();
-            for (int j = 0; j < data.getTimeSize(); j++) {
+            for (int j = 0; j < data.getKeySize(); j++) {
                 if (bitmapView.get(j)) {
                     Map<String, Object> timeAndValueMap = new HashMap<>();
                     timeAndValueMap.put(MongoDBStorage.INNER_TIMESTAMP, data.getKey(j));

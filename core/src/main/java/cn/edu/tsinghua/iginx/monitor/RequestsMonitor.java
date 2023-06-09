@@ -34,7 +34,7 @@ public class RequestsMonitor implements IMonitor {
             if (operator.getType() == OperatorType.Insert) {
                 Insert insert = (Insert) operator;
                 long count = writeRequestsMap.getOrDefault(fragmentMeta, 0L);
-                count += (long) insert.getData().getPathNum() * insert.getData().getTimeSize();
+                count += (long) insert.getData().getPathNum() * insert.getData().getKeySize();
                 writeRequestsMap.put(fragmentMeta, count);
             } else if (operator.getType() == OperatorType.Project) {
                 long count = readRequestsMap.getOrDefault(fragmentMeta, 0L);

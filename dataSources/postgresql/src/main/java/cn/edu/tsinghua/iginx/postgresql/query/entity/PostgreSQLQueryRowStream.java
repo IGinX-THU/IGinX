@@ -1,8 +1,7 @@
 package cn.edu.tsinghua.iginx.postgresql.query.entity;
 
 import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils.validate;
-import static cn.edu.tsinghua.iginx.postgresql.tools.Constants.IGINX_SEPARATOR;
-import static cn.edu.tsinghua.iginx.postgresql.tools.Constants.POSTGRESQL_SEPARATOR;
+import static cn.edu.tsinghua.iginx.postgresql.tools.Constants.*;
 import static cn.edu.tsinghua.iginx.postgresql.tools.HashUtils.toHash;
 import static cn.edu.tsinghua.iginx.postgresql.tools.TagKVUtils.splitFullName;
 
@@ -39,7 +38,7 @@ public class PostgreSQLQueryRowStream implements RowStream {
 
     private boolean[] gotNext; // 标记每个结果集是否已经获取到下一行，如果是，则在下次调用 next() 时无需再调用该结果集的 next()
 
-    private long[] cachedTimestamps; // 缓存每个结果集当前的 time 列的值
+    private long[] cachedKeys; // 缓存每个结果集当前的 key 列的值
 
     private Object[] cachedValues; // 缓存每列当前的值
 
@@ -69,7 +68,7 @@ public class PostgreSQLQueryRowStream implements RowStream {
 
         boolean filterByTags = tagFilter != null;
 
-        Field time = null;
+        Field key = null;
         List<Field> fields = new ArrayList<>();
         this.resultSetSizes = new int[resultSets.size()];
         this.fieldToColumnName = new HashMap<>();
@@ -81,8 +80,8 @@ public class PostgreSQLQueryRowStream implements RowStream {
                 String tableName = resultSetMetaData.getTableName(j);
                 String columnName = resultSetMetaData.getColumnName(j);
                 String typeName = resultSetMetaData.getColumnTypeName(j);
-                if (j == 1 && columnName.equals("time")) {
-                    time = Field.KEY;
+                if (j == 1 && columnName.equals(KEY_NAME)) {
+                    key = Field.KEY;
                     continue;
                 }
 
@@ -108,12 +107,12 @@ public class PostgreSQLQueryRowStream implements RowStream {
             resultSetSizes[i] = cnt;
         }
 
-        this.header = new Header(time, fields);
+        this.header = new Header(key, fields);
 
         this.gotNext = new boolean[resultSets.size()];
         Arrays.fill(gotNext, false);
-        this.cachedTimestamps = new long[resultSets.size()];
-        Arrays.fill(cachedTimestamps, Long.MAX_VALUE);
+        this.cachedKeys = new long[resultSets.size()];
+        Arrays.fill(cachedKeys, Long.MAX_VALUE);
         this.cachedValues = new Object[fields.size()];
         Arrays.fill(cachedValues, null);
         this.cachedRow = null;
@@ -172,7 +171,7 @@ public class PostgreSQLQueryRowStream implements RowStream {
 
     private void cacheOneRow() throws SQLException, PhysicalException {
         boolean hasNext = false;
-        long timestamp;
+        long key;
         Object[] values = new Object[header.getFieldSize()];
 
         int startIndex = 0;
@@ -189,15 +188,15 @@ public class PostgreSQLQueryRowStream implements RowStream {
                 gotNext[i] = true;
 
                 if (tempHasNext) {
-                    long tempTimestamp;
+                    long tempKey;
                     Object tempValue;
 
                     if (isDummy) {
-                        tempTimestamp = toHash(resultSet.getString("time"));
+                        tempKey = toHash(resultSet.getString(KEY_NAME));
                     } else {
-                        tempTimestamp = resultSet.getLong("time");
+                        tempKey = resultSet.getLong(KEY_NAME);
                     }
-                    cachedTimestamps[i] = tempTimestamp;
+                    cachedKeys[i] = tempKey;
 
                     for (int j = 0; j < resultSetSizes[i]; j++) {
                         Object value =
@@ -212,7 +211,7 @@ public class PostgreSQLQueryRowStream implements RowStream {
                         cachedValues[startIndex + j] = tempValue;
                     }
                 } else {
-                    cachedTimestamps[i] = Long.MAX_VALUE;
+                    cachedKeys[i] = Long.MAX_VALUE;
                     for (int j = startIndex; j < endIndex; j++) {
                         cachedValues[j] = null;
                     }
@@ -224,12 +223,12 @@ public class PostgreSQLQueryRowStream implements RowStream {
         }
 
         if (hasNext) {
-            timestamp = Arrays.stream(cachedTimestamps).min().getAsLong();
+            key = Arrays.stream(cachedKeys).min().getAsLong();
             startIndex = 0;
             endIndex = 0;
             for (int i = 0; i < resultSets.size(); i++) {
                 endIndex += resultSetSizes[i];
-                if (cachedTimestamps[i] == timestamp) {
+                if (cachedKeys[i] == key) {
                     for (int j = 0; j < resultSetSizes[i]; j++) {
                         values[startIndex + j] = cachedValues[startIndex + j];
                     }
@@ -242,7 +241,7 @@ public class PostgreSQLQueryRowStream implements RowStream {
                 }
                 startIndex = endIndex;
             }
-            cachedRow = new Row(header, timestamp, values);
+            cachedRow = new Row(header, key, values);
             if (isDummy && !validate(filter, cachedRow)) {
                 cacheOneRow();
             }

@@ -72,7 +72,7 @@ public abstract class DataView {
         return endPathIndex - startPathIndex;
     }
 
-    public int getTimeSize() {
+    public int getKeySize() {
         return endKeyIndex - startKeyIndex;
     }
 

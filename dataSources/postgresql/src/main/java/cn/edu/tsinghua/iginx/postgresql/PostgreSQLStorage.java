@@ -180,7 +180,7 @@ public class PostgreSQLStorage implements IStorage {
                         while (columnSet.next()) {
                             String columnName = columnSet.getString("COLUMN_NAME"); // 获取列名称
                             String typeName = columnSet.getString("TYPE_NAME"); // 列字段类型
-                            if (columnName.equals("time")) { // time 列不显示
+                            if (columnName.equals(KEY_NAME)) { // key 列不显示
                                 continue;
                             }
                             Pair<String, Map<String, String>> nameAndTags =
@@ -509,8 +509,8 @@ public class PostgreSQLStorage implements IStorage {
     @Override
     public Pair<ColumnsRange, KeyInterval> getBoundaryOfStorage(String prefix)
             throws PhysicalException {
-        long minTime = Long.MAX_VALUE;
-        long maxTime = 0;
+        long minKey = Long.MAX_VALUE;
+        long maxKey = 0;
         List<String> paths = new ArrayList<>();
         try {
             Statement stmt = connection.createStatement();
@@ -530,14 +530,8 @@ public class PostgreSQLStorage implements IStorage {
                     ResultSet columnSet =
                             databaseMetaData.getColumns(databaseName, "public", tableName, "%");
                     StringBuilder columnNames = new StringBuilder();
-                    boolean hasTimeColumn = false;
                     while (columnSet.next()) {
                         String columnName = columnSet.getString("COLUMN_NAME"); // 获取列名称
-                        String typeName = columnSet.getString("TYPE_NAME"); // 列字段类型
-                        if (columnName.equalsIgnoreCase("time")
-                                && fromPostgreSQL(typeName) == DataType.LONG) {
-                            hasTimeColumn = true;
-                        }
                         paths.add(
                                 databaseName
                                         + IGINX_SEPARATOR
@@ -547,37 +541,24 @@ public class PostgreSQLStorage implements IStorage {
                         columnNames.append(columnName);
                         columnNames.append(", "); // c1, c2, c3,
                     }
-                    if (hasTimeColumn) { // 本身就有 time 列
-                        // 获取 key 的范围
-                        String statement =
-                                String.format(QUERY_TIME_STATEMENT, getFullName(tableName));
-                        Statement timeStmt = conn.createStatement();
-                        ResultSet timeSet = timeStmt.executeQuery(statement);
-                        while (timeSet.next()) {
-                            long time = timeSet.getLong("time");
-                            minTime = Math.min(time, minTime);
-                            maxTime = Math.max(time, maxTime);
-                        }
-                    } else {
-                        columnNames =
-                                new StringBuilder(
-                                        columnNames.substring(
-                                                0, columnNames.length() - 2)); // c1, c2, c3
+                    columnNames =
+                            new StringBuilder(
+                                    columnNames.substring(
+                                            0, columnNames.length() - 2)); // c1, c2, c3
 
-                        // 获取 key 的范围
-                        String statement =
-                                String.format(
-                                        CONCAT_QUERY_STATEMENT,
-                                        getFullColumnNames(columnNames.toString()),
-                                        getFullName(tableName));
-                        Statement concatStmt = conn.createStatement();
-                        ResultSet concatSet = concatStmt.executeQuery(statement);
-                        while (concatSet.next()) {
-                            String concatValue = concatSet.getString("concat");
-                            long time = toHash(concatValue);
-                            minTime = Math.min(time, minTime);
-                            maxTime = Math.max(time, maxTime);
-                        }
+                    // 获取 key 的范围
+                    String statement =
+                            String.format(
+                                    CONCAT_QUERY_STATEMENT,
+                                    getFullColumnNames(columnNames.toString()),
+                                    getFullName(tableName));
+                    Statement concatStmt = conn.createStatement();
+                    ResultSet concatSet = concatStmt.executeQuery(statement);
+                    while (concatSet.next()) {
+                        String concatValue = concatSet.getString("concat");
+                        long key = toHash(concatValue);
+                        minKey = Math.min(key, minKey);
+                        maxKey = Math.max(key, maxKey);
                     }
                 }
             }
@@ -588,7 +569,7 @@ public class PostgreSQLStorage implements IStorage {
         paths.sort(String::compareTo);
         return new Pair<>(
                 new ColumnsInterval(paths.get(0), paths.get(paths.size() - 1)),
-                new KeyInterval(minTime, maxTime + 1));
+                new KeyInterval(minKey, maxKey + 1));
     }
 
     private Map<String, String> splitAndMergeQueryPatterns(
@@ -634,7 +615,7 @@ public class PostgreSQLStorage implements IStorage {
             while (rs.next()) {
                 tableName = rs.getString("TABLE_NAME");
                 columnNames = rs.getString("COLUMN_NAME");
-                if (columnNames.equals("time")) {
+                if (columnNames.equals(KEY_NAME)) {
                     continue;
                 }
                 if (tableNameToColumnNames.containsKey(tableName)) {
@@ -813,7 +794,7 @@ public class PostgreSQLStorage implements IStorage {
 
     private Exception insertNonAlignedRowRecords(
             Connection conn, String databaseName, RowDataView data) {
-        int batchSize = Math.min(data.getTimeSize(), BATCH_SIZE);
+        int batchSize = Math.min(data.getKeySize(), BATCH_SIZE);
         try {
             Statement stmt = conn.createStatement();
 
@@ -830,8 +811,8 @@ public class PostgreSQLStorage implements IStorage {
                     new HashMap<>(); // <表名, <列名，值列表>>
             int cnt = 0;
             boolean firstRound = true;
-            while (cnt < data.getTimeSize()) {
-                int size = Math.min(data.getTimeSize() - cnt, batchSize);
+            while (cnt < data.getKeySize()) {
+                int size = Math.min(data.getKeySize() - cnt, batchSize);
                 Map<String, boolean[]> tableHasData = new HashMap<>(); // 记录每一张表的每一行是否有数据点
                 for (int i = cnt; i < cnt + size; i++) {
                     BitmapView bitmapView = data.getBitmapView(i);
@@ -885,7 +866,7 @@ public class PostgreSQLStorage implements IStorage {
                             columnValues.set(i - cnt, columnValues.get(i - cnt) + value + ", ");
                         } else {
                             columnValues.add(
-                                    data.getKey(i) + ", " + value + ", "); // 添加 key(time) 列
+                                    data.getKey(i) + ", " + value + ", "); // 添加 key 列
                         }
 
                         tableToColumnEntries.put(
@@ -932,7 +913,7 @@ public class PostgreSQLStorage implements IStorage {
 
     private Exception insertNonAlignedColumnRecords(
             Connection conn, String databaseName, ColumnDataView data) {
-        int batchSize = Math.min(data.getTimeSize(), BATCH_SIZE);
+        int batchSize = Math.min(data.getKeySize(), BATCH_SIZE);
         try {
             Statement stmt = conn.createStatement();
 
@@ -950,8 +931,8 @@ public class PostgreSQLStorage implements IStorage {
             Map<Integer, Integer> pathIndexToBitmapIndex = new HashMap<>();
             int cnt = 0;
             boolean firstRound = true;
-            while (cnt < data.getTimeSize()) {
-                int size = Math.min(data.getTimeSize() - cnt, batchSize);
+            while (cnt < data.getKeySize()) {
+                int size = Math.min(data.getKeySize() - cnt, batchSize);
                 Map<String, boolean[]> tableHasData = new HashMap<>(); // 记录每一张表的每一行是否有数据点
                 for (int i = 0; i < data.getPathNum(); i++) {
                     String path = data.getPath(i);
@@ -1005,7 +986,7 @@ public class PostgreSQLStorage implements IStorage {
                             columnValues.set(j - cnt, columnValues.get(j - cnt) + value + ", ");
                         } else {
                             columnValues.add(
-                                    data.getKey(j) + ", " + value + ", "); // 添加 key(time) 列
+                                    data.getKey(j) + ", " + value + ", "); // 添加 key 列
                         }
                     }
                     pathIndexToBitmapIndex.put(i, index);
@@ -1066,12 +1047,14 @@ public class PostgreSQLStorage implements IStorage {
             String[] parts = columnNames.split(", ");
             boolean hasMultipleRows = parts.length != 1;
 
-            // INSERT INTO XXX (time, XXX, ...) VALUES (XXX, XXX, ...), (XXX, XXX, ...), ..., (XXX,
-            // XXX, ...) ON CONFLICT (time) DO UPDATE SET (XXX, ...) = (excluded.XXX, ...);
+            // INSERT INTO XXX ("\u2E85", XXX, ...) VALUES (XXX, XXX, ...), (XXX, XXX, ...), ..., (XXX,
+            // XXX, ...) ON CONFLICT ("\u2E85") DO UPDATE SET (XXX, ...) = (excluded.XXX, ...);
             StringBuilder statement = new StringBuilder();
             statement.append("INSERT INTO ");
             statement.append(getFullName(tableName));
-            statement.append(" (time, ");
+            statement.append(" (\"");
+            statement.append(KEY_NAME);
+            statement.append("\", ");
             String fullColumnNames = getFullColumnNames(columnNames);
             statement.append(fullColumnNames);
 
@@ -1083,7 +1066,9 @@ public class PostgreSQLStorage implements IStorage {
             }
             statement = new StringBuilder(statement.substring(0, statement.length() - 2));
 
-            statement.append(" ON CONFLICT (time) DO UPDATE SET ");
+            statement.append(" ON CONFLICT (\"");
+            statement.append(KEY_NAME);
+            statement.append("\") DO UPDATE SET ");
             if (hasMultipleRows) {
                 statement.append("("); // 只有一列不加括号
             }
@@ -1106,7 +1091,7 @@ public class PostgreSQLStorage implements IStorage {
             }
             statement.append(";");
 
-            //            logger.info("[Insert] execute insert: {}", statement);
+            logger.info("[Insert] execute insert: {}", statement);
             stmt.addBatch(statement.toString());
         }
         stmt.executeBatch();
