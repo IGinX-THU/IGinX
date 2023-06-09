@@ -2,10 +2,7 @@ package cn.edu.tsinghua.iginx.integration.expansion.postgresql;
 
 import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.*;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -16,9 +13,11 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
     private static final Logger logger =
             LoggerFactory.getLogger(PostgreSQLHistoryDataGenerator.class);
 
-    public static final char IGINX_SEPARATOR = '.';
+    private static final char IGINX_SEPARATOR = '.';
 
-    public static final char POSTGRESQL_SEPARATOR = '\u2E82';
+    private static final char POSTGRESQL_SEPARATOR = '\u2E82';
+
+    private static final String QUERY_DATABASES_STATEMENT = "SELECT datname FROM pg_database;";
 
     private static final String CREATE_DATABASE_STATEMENT = "CREATE DATABASE %s;";
 
@@ -31,8 +30,6 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
     private static final String USERNAME = "postgres";
 
     private static final String PASSWORD = "postgres";
-
-    private static final Set<String> databaseNameList = new HashSet<>();
 
     public PostgreSQLHistoryDataGenerator() {
         this.portOri = 5432;
@@ -102,7 +99,6 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
                 Statement stmt = conn.createStatement();
                 try {
                     stmt.execute(String.format(CREATE_DATABASE_STATEMENT, databaseName));
-                    databaseNameList.add(databaseName);
                 } catch (SQLException e) {
                     logger.info("database {} exists!", databaseName);
                 }
@@ -167,8 +163,23 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
         try {
             Connection conn = connect(port, true, null);
             Statement stmt = conn.createStatement();
-            for (String databaseName : databaseNameList) {
-                stmt.execute(String.format(DROP_DATABASE_STATEMENT, databaseName));
+            ResultSet databaseSet = stmt.executeQuery(QUERY_DATABASES_STATEMENT);
+            while (databaseSet.next()) {
+                String databaseName = databaseSet.getString("DATNAME");
+                try {
+                    if (databaseName.equalsIgnoreCase("template0")
+                            || databaseName.equalsIgnoreCase("template1")
+                            || databaseName.equalsIgnoreCase("postgres")) {
+                        continue;
+                    }
+                    stmt.execute(String.format(DROP_DATABASE_STATEMENT, databaseName));
+                } catch (SQLException e) {
+                    logger.error(
+                            "drop database {} on 127.0.0.1:{} failure: {}",
+                            databaseName,
+                            port,
+                            e.getMessage());
+                }
             }
             stmt.close();
             conn.close();
