@@ -742,10 +742,10 @@ public class PostgreSQLStorage implements IStorage {
             }
             DataType dataType = dataTypeList.get(i);
             String tableName =
-                    path.substring(0, path.lastIndexOf('.'))
+                    path.substring(0, path.lastIndexOf(IGINX_SEPARATOR))
                             .replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
             String columnName =
-                    path.substring(path.lastIndexOf('.') + 1)
+                    path.substring(path.lastIndexOf(IGINX_SEPARATOR) + 1)
                             .replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
 
             try {
@@ -821,9 +821,9 @@ public class PostgreSQLStorage implements IStorage {
                         String path = data.getPath(j);
                         DataType dataType = data.getDataType(j);
                         String tableName =
-                                path.substring(0, path.lastIndexOf('.'))
+                                path.substring(0, path.lastIndexOf(IGINX_SEPARATOR))
                                         .replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
-                        String columnName = path.substring(path.lastIndexOf('.') + 1);
+                        String columnName = path.substring(path.lastIndexOf(IGINX_SEPARATOR) + 1);
                         Map<String, String> tags = new HashMap<>();
                         if (data.hasTagsList()) {
                             tags = data.getTags(j);
@@ -937,9 +937,9 @@ public class PostgreSQLStorage implements IStorage {
                     String path = data.getPath(i);
                     DataType dataType = data.getDataType(i);
                     String tableName =
-                            path.substring(0, path.lastIndexOf('.'))
+                            path.substring(0, path.lastIndexOf(IGINX_SEPARATOR))
                                     .replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
-                    String columnName = path.substring(path.lastIndexOf('.') + 1);
+                    String columnName = path.substring(path.lastIndexOf(IGINX_SEPARATOR) + 1);
                     Map<String, String> tags = new HashMap<>();
                     if (data.hasTagsList()) {
                         tags = data.getTags(i);
@@ -1090,7 +1090,7 @@ public class PostgreSQLStorage implements IStorage {
             }
             statement.append(";");
 
-            //            logger.info("[Insert] execute insert: {}", statement);
+            logger.info("[Insert] execute insert: {}", statement);
             stmt.addBatch(statement.toString());
         }
         stmt.executeBatch();
@@ -1109,11 +1109,11 @@ public class PostgreSQLStorage implements IStorage {
                     }
                     String fullPath = column.getPath();
                     String tableName =
-                            fullPath.substring(0, fullPath.lastIndexOf('.'))
+                            fullPath.substring(0, fullPath.lastIndexOf(IGINX_SEPARATOR))
                                     .replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
                     String columnName =
                             toFullName(
-                                    fullPath.substring(fullPath.lastIndexOf('.') + 1),
+                                    fullPath.substring(fullPath.lastIndexOf(IGINX_SEPARATOR) + 1),
                                     column.getTags());
                     deletedPaths.add(new Pair<>(tableName, columnName));
                     break;

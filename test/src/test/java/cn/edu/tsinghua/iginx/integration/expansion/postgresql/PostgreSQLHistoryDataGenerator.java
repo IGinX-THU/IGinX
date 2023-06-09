@@ -164,6 +164,8 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
             Connection conn = connect(port, true, null);
             Statement stmt = conn.createStatement();
             ResultSet databaseSet = stmt.executeQuery(QUERY_DATABASES_STATEMENT);
+            Statement dropDatabaseStatement = conn.createStatement();
+
             while (databaseSet.next()) {
                 String databaseName = databaseSet.getString("DATNAME");
                 if (databaseName.equalsIgnoreCase("template0")
@@ -171,9 +173,11 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
                         || databaseName.equalsIgnoreCase("postgres")) {
                     continue;
                 }
-                logger.error(databaseName);
-                stmt.execute(String.format(DROP_DATABASE_STATEMENT, databaseName));
+                dropDatabaseStatement.addBatch(String.format(DROP_DATABASE_STATEMENT, databaseName));
             }
+            dropDatabaseStatement.executeBatch();
+
+            dropDatabaseStatement.close();
             databaseSet.close();
             stmt.close();
             conn.close();
