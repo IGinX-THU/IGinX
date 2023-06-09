@@ -36,12 +36,12 @@ public class Constants {
             "SELECT %s FROM %s ORDER BY " + KEY_NAME + ";";
 
     public static final String CONCAT_QUERY_STATEMENT_WITHOUT_WHERE_CLAUSE =
-            "SELECT concat(%s) AS \"" + KEY_NAME + "\", %s FROM %s ORDER BY " + KEY_NAME + ";";
+            "SELECT concat(%s) AS " + KEY_NAME + ", %s FROM %s ORDER BY " + KEY_NAME + ";";
 
     public static final String CREATE_TABLE_STATEMENT =
-            "CREATE TABLE %s (\""
+            "CREATE TABLE %s ("
                     + KEY_NAME
-                    + "\" BIGINT NOT NULL, %s %s, PRIMARY KEY("
+                    + " BIGINT NOT NULL, %s %s, PRIMARY KEY("
                     + KEY_NAME
                     + "));";
 
