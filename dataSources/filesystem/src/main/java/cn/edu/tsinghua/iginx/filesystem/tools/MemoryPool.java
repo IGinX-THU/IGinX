@@ -41,4 +41,8 @@ public class MemoryPool {
             freeBlocks.offer(buffer);
         }
     }
+
+    public static int getBlockSize() {
+        return blockSize;
+    }
 }

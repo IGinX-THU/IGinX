@@ -30,13 +30,13 @@ import org.slf4j.LoggerFactory;
 import oshi.util.tuples.Triplet;
 
 /*
- *缓存，索引以及优化策略都在这里执行
+ * 缓存，索引以及优化策略都在这里执行
  */
 public class FileSystemService {
     private static final Logger logger = LoggerFactory.getLogger(FileSystemService.class);
-    static IFileOperator fileOperator = new DefaultFileOperator();
-    static Charset charset = StandardCharsets.UTF_8;
-    static String WILDCARD = FilePath.WILDCARD;
+    private static IFileOperator fileOperator = new DefaultFileOperator();
+    private static Charset charset = StandardCharsets.UTF_8;
+    private static String WILDCARD = FilePath.WILDCARD;
 
     // set the fileSystem type with constructor
     public FileSystemService(/*FileSystemType type*/ ) {
@@ -161,7 +161,7 @@ public class FileSystemService {
                 List<Record> val = new ArrayList<>(), valf = new ArrayList<>();
                 val = doReadFile(f, startTime, endTime); // do read file here
 
-                if (FileType.getFileType(f) == FileType.Type.IGINX_FILE) {
+                if (FileType.getFileType(f) == FileType.IGINX_FILE) {
                     List<Triplet<String, Op, Object>> valFilters = ft.v;
                     if (valFilters.size() == 0) valf = val;
                     for (Triplet<String, Op, Object> valFilter : valFilters) {
@@ -232,16 +232,16 @@ public class FileSystemService {
         List<Record> res = new ArrayList<>();
         switch (FileType.getFileType(file)) {
             case DIR:
-                res = fileOperator.dirReader(file);
+                res = fileOperator.readDir(file);
                 break;
             case IGINX_FILE:
-                res = fileOperator.iginxFileReaderByKey(file, begin, end, charset);
+                res = fileOperator.readIGinXFileByKey(file, begin, end, charset);
                 break;
             case NORMAL_FILE:
-                res = fileOperator.normalFileReader(file, begin, end, charset);
+                res = fileOperator.readNormalFile(file, begin, end, charset);
                 break;
             default:
-                res = fileOperator.normalFileReader(file, begin, end, charset);
+                res = fileOperator.readNormalFile(file, begin, end, charset);
         }
         return res;
     }
@@ -278,7 +278,10 @@ public class FileSystemService {
             List<File> files, List<List<Record>> values, List<Map<String, String>> tagList)
             throws IOException {
         for (int i = 0; i < files.size(); i++) {
-            writeFile(files.get(i), values.get(i), tagList.get(i));
+            Exception e = writeFile(files.get(i), values.get(i), tagList.get(i));
+            if (e!=null){
+                return e;
+            }
         }
         return null;
     }
@@ -337,7 +340,7 @@ public class FileSystemService {
                 continue;
             }
             for (File f : fileList) {
-                fileOperator.fileTrimmer(f, begin, end);
+                fileOperator.trimFile(f, begin, end);
             }
         }
         return null;
@@ -396,12 +399,12 @@ public class FileSystemService {
                 }
                 break;
             case IGINX_FILE:
-                res = fileOperator.iginxFileWriter(file, value);
+                res = fileOperator.writeIGinXFile(file, value);
                 break;
             case NORMAL_FILE:
                 break;
             default:
-                res = fileOperator.iginxFileWriter(file, value);
+                res = fileOperator.writeIGinXFile(file, value);
         }
         return res;
     }
@@ -506,7 +509,7 @@ public class FileSystemService {
         for (File fi : files) {
             if (fi.isDirectory() || !fileOperator.ifFileExists(fi)) continue;
             FileMeta fileMeta = null;
-            if (FileType.getFileType(fi) == FileType.Type.IGINX_FILE)
+            if (FileType.getFileType(fi) == FileType.IGINX_FILE)
                 fileMeta = fileOperator.getFileMeta(fi);
             if (tagFilter == null || TagKVUtils.match(fileMeta.getTag(), tagFilter)) {
                 res.add(fi);
@@ -547,7 +550,7 @@ public class FileSystemService {
             File current = stack.pop();
             List<File> fileList = null;
             if (current.isDirectory()) fileList = fileOperator.listFiles(current);
-            else if (FileType.getFileType(current) == FileType.Type.IGINX_FILE) {
+            else if (FileType.getFileType(current) == FileType.IGINX_FILE) {
                 try {
                     res.add(new Pair<>(current, fileOperator.getFileMeta(current)));
                 } catch (IOException e) {
@@ -610,18 +613,10 @@ public class FileSystemService {
         return max;
     }
 
-    public static Date getCreationTime(File file) {
-        return fileOperator.getCreationTime(file);
-    }
-
     private long getFileSize(File file) {
         try {
-            if (file.exists()) {
-                if (file.isFile()) {
-                    return fileOperator.length(file);
-                } else {
-                    return 0;
-                }
+            if (file.exists() && file.isFile()) {
+                return fileOperator.length(file);
             }
         } catch (IOException e) {
             logger.error(e.getMessage());

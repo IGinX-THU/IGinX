@@ -18,7 +18,9 @@ public class ConfReader {
             Properties properties = new Properties();
             properties.load(in);
             val = properties.getProperty(property);
-            if (val == null || val.length() == 0) return null;
+            if (val == null || val.length() == 0) {
+                return null;
+            }
         } catch (IOException e) {
             logger.error("get conf {} fail!", confPath);
         }

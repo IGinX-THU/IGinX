@@ -45,6 +45,9 @@ import cn.edu.tsinghua.iginx.metadata.entity.TimeSeriesRange;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,6 +57,7 @@ public class FileSystem implements IStorage {
     public static final int MAXFILESIZE = 100_000_000;
     private static final Logger logger = LoggerFactory.getLogger(FileSystem.class);
     private final StorageEngineMeta meta;
+    ExecutorService executorService = Executors.newFixedThreadPool(1);//为了更好的管理线程
     private Executor executor;
     private String root = ConfLoader.getRootPath();
 
@@ -79,7 +83,7 @@ public class FileSystem implements IStorage {
 
         this.executor = new LocalExecutor(root);
 
-        new Thread(new FileSystemServer(meta.getPort(), executor)).start();
+        executorService.submit(new Thread(new FileSystemServer(meta.getPort(), executor)));
     }
 
     @Override
@@ -135,5 +139,6 @@ public class FileSystem implements IStorage {
     @Override
     public void release() throws PhysicalException {
         executor.close();
+        executorService.shutdown();
     }
 }

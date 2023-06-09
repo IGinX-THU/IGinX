@@ -18,23 +18,21 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.*;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class DefaultFileOperator implements IFileOperator {
+    private final int IGINX_FILE_PRE_READ_LEN = 8192;
     private static final Logger logger = LoggerFactory.getLogger(DefaultFileOperator.class);
-    private int bufferSize = 10;
+    private final int BUFFER_SIZE = MemoryPool.getBlockSize();
 
     @Override
-    public List<Record> normalFileReader(File file, long begin, long end, Charset charset)
+    public List<Record> readNormalFile(File file, long begin, long end, Charset charset)
             throws IOException {
         List<Record> res = new ArrayList<>();
-        List<byte[]> valList = normalFileReadByByte(file, begin, end);
+        List<byte[]> valList = readNormalFileByByte(file, begin, end);
         int key = 0;
         for (byte[] val : valList) {
             res.add(new Record(key++, val));
@@ -51,9 +49,7 @@ public class DefaultFileOperator implements IFileOperator {
      * @return An array of bytes containing the read data.
      * @throws IOException If there is an error reading the file.
      */
-    public List<byte[]> normalFileReadByByte(File file, long begin, long end) throws IOException {
-        ExecutorService executorService = Executors.newCachedThreadPool();
-        List<byte[]> res = new ArrayList<>();
+    public List<byte[]> readNormalFileByByte(File file, long begin, long end) throws IOException {
         if (file == null || !file.exists() || !file.isFile()) {
             throw new IllegalArgumentException("Invalid file.");
         }
@@ -63,63 +59,85 @@ public class DefaultFileOperator implements IFileOperator {
         if (end > file.length()) {
             end = file.length() - 1;
         }
-        int round = (int) (end % bufferSize == 0 ? end / bufferSize : end / bufferSize + 1);
+        ExecutorService executorService = null;
+        List<Future<Void>> futures = new ArrayList<>();
+        List<byte[]> res = new ArrayList<>();
+        int round = (int) (end % BUFFER_SIZE == 0 ? end / BUFFER_SIZE : end / BUFFER_SIZE + 1);
         for (int i = 0; i < round; i++) {
             res.add(new byte[0]);
         }
-        AtomicLong readPos = new AtomicLong(begin);
-        AtomicInteger index = new AtomicInteger();
-        int batchSize = bufferSize;
+        long readPos = begin;
+        int index = 0;
+        int batchSize = BUFFER_SIZE;
+        boolean ifNeedMultithread = file.length() / (BUFFER_SIZE) > 5;
+        if(ifNeedMultithread){
+            executorService = Executors.newCachedThreadPool();
+        }
 
         // Move the file pointer to the starting position
         try (RandomAccessFile raf = new RandomAccessFile(file, "r")) {
-            while (readPos.get() < end) {
-                long finalReadPos = readPos.get();
-                int finalIndex = index.get();
-                executorService.execute(
-                        () -> {
-                            try {
-                                byte[] buffer = MemoryPool.allocate(batchSize); // 一次读取1MB
-                                raf.seek(finalReadPos);
-                                // Read the specified range of bytes from the file
-                                int len = raf.read(buffer);
-                                if (len < 0) {
-                                    logger.error("reach the end of the file with len {}", len);
-                                    return;
-                                }
-                                if (len != batchSize) {
-                                    byte[] subBuffer;
-                                    subBuffer = Arrays.copyOf(buffer, len);
-                                    res.set(finalIndex, subBuffer);
-                                } else res.set(finalIndex, buffer);
-
-                            } catch (IOException e) {
-                                throw new RuntimeException(e);
-                            }
-                        });
-                index.getAndIncrement();
-                readPos.addAndGet(bufferSize);
+            while (readPos < end) {
+                long finalReadPos = readPos;
+                int finalIndex = index;
+                if (ifNeedMultithread) {
+                    futures.add(executorService.submit(() -> {
+                        readBatch(raf, batchSize, finalReadPos, finalIndex, res);
+                        return null;
+                    }));
+                }else{
+                    readBatch(raf, batchSize, finalReadPos, finalIndex, res);
+                }
+                index++;
+                readPos += BUFFER_SIZE;
             }
-            executorService.shutdown();
-            if (!executorService.awaitTermination(10, TimeUnit.SECONDS)) {
-                executorService.shutdownNow();
+        } finally {
+            if(executorService!=null){
+                executorService.shutdown();
             }
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
         }
 
+        for (Future<Void> future : futures) {
+            try {
+                future.get();
+            } catch (InterruptedException | ExecutionException e) {
+                logger.error("Exception thrown by task: " + e.getMessage());
+                throw new RuntimeException(e);
+            }
+        }
         return res;
+    }
+
+    public final void readBatch(RandomAccessFile raf, int batchSize, long readPos, int index, List<byte[]> res) throws IOException {
+        try {
+            byte[] buffer = MemoryPool.allocate(batchSize); // 一次读取1MB
+            raf.seek(readPos);
+            // Read the specified range of bytes from the file
+            int len = raf.read(buffer);
+            if (len < 0) {
+                logger.error("reach the end of the file with len {}", len);
+                return;
+            }
+            if (len != batchSize) {
+                byte[] subBuffer;
+                subBuffer = Arrays.copyOf(buffer, len);
+                res.set(index, subBuffer);
+            } else {
+                res.set(index, buffer);
+            }
+        } catch (IOException e) {
+            throw new IOException(e);
+        }
     }
 
     private Map<String, String> readIginxMetaInfo(File file) throws IOException {
         Map<String, String> result = new HashMap<>();
         BufferedReader reader = new BufferedReader(new FileReader(file));
         String line;
-        int lineCount = 1;
+        int lineCount = 0;
         while ((line = reader.readLine()) != null) {
-            if (lineCount == 1) {
+            if (lineCount == 0) {
                 result.put("series", line);
-            } else if (lineCount == 2) {
+            } else if (lineCount == 1) {
                 result.put("type", line);
             }
             lineCount++;
@@ -129,7 +147,7 @@ public class DefaultFileOperator implements IFileOperator {
     }
 
     public List<Record> readIginxFileByKey(File file, long begin, long end, Charset charset)
-            throws IOException {
+            throws IOException{
         Map<String, String> fileInfo = readIginxMetaInfo(file);
         List<Record> res = new ArrayList<>();
         long key;
@@ -138,19 +156,21 @@ public class DefaultFileOperator implements IFileOperator {
             end = Long.MAX_VALUE;
         }
         if (begin < 0 || end < 0 || (begin > end)) {
-            throw new IOException(
+            throw new IllegalArgumentException(
                     "Read information outside the boundary with BEGIN "
                             + begin
                             + " and END "
                             + end);
         }
 
-        long currentLine = 0;
         try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
             String line;
+            long currentLine = 0;
             while ((line = reader.readLine()) != null) {
                 currentLine++;
-                if (currentLine <= FileMeta.iginxFileMetaIndex) continue;
+                if (currentLine <= FileMeta.iginxFileMetaIndex) {
+                    continue;
+                }
                 String[] kv = line.split(",", 2);
                 key = Long.parseLong(kv[0]);
                 if (key >= begin && key <= end) {
@@ -160,19 +180,19 @@ public class DefaultFileOperator implements IFileOperator {
                             new Record(
                                     Long.parseLong(kv[0]),
                                     dataType,
-                                    DataTypeUtils.stringToDataType(kv[1], dataType)));
+                                    DataTypeUtils.parseStringByDataTyp(kv[1], dataType)));
                 }
             }
         }
         return res;
     }
 
-    public List<Record> dirReader(File file) throws IOException {
+    public List<Record> readDir(File file) throws IOException {
         return new ArrayList<>();
     }
 
     @Override
-    public List<Record> iginxFileReaderByKey(File file, long begin, long end, Charset charset)
+    public List<Record> readIGinXFileByKey(File file, long begin, long end, Charset charset)
             throws IOException {
         return readIginxFileByKey(file, begin, end, charset);
     }
@@ -224,12 +244,12 @@ public class DefaultFileOperator implements IFileOperator {
                 + convertObjectToString(record.getRawData(), record.getDataType());
     }
 
-    private Exception appendValToIginxFile(File file, List<Record> valList, int beg, int end)
+    private Exception appendValToIginxFile(File file, List<Record> valList, int begin, int end)
             throws IOException {
-        if (beg == -1) beg = 0;
+        if (begin == -1) begin = 0;
         if (end == -1) end = valList.size();
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(file, true))) {
-            for (int i = beg; i < end; i++) {
+            for (int i = begin; i < end; i++) {
                 writer.write(recordToString(valList.get(i)));
                 writer.write("\n");
             }
@@ -243,15 +263,15 @@ public class DefaultFileOperator implements IFileOperator {
 
     private String getLastValOfIginxFile(File file) throws IOException {
         String res = new String();
-        int BUFFER_SIZE = 8192; // 8 KB
+        int stepLen = IGINX_FILE_PRE_READ_LEN; // 8 KB
         if (ifIginxFileEmpty(file)) {
             return res;
         }
         // 一定包含数值
         if (file.exists() && file.length() > 0) {
             try (RandomAccessFile raf = new RandomAccessFile(file, "r")) {
-                raf.seek(Math.max(file.length() - BUFFER_SIZE, 0));
-                byte[] buffer = new byte[BUFFER_SIZE];
+                raf.seek(Math.max(file.length() - stepLen, 0));
+                byte[] buffer = new byte[stepLen];
                 int n = raf.read(buffer);
                 String lastLine = new String();
                 while (n != -1) {
@@ -261,7 +281,7 @@ public class DefaultFileOperator implements IFileOperator {
                     if (!lastLine.contains("\n")
                             || lastLine.indexOf("\n")
                                     == lastLine.lastIndexOf("\n")) { // 是否确切包含了最后一行
-                        raf.seek(Math.max(raf.getFilePointer() - BUFFER_SIZE, 0));
+                        raf.seek(Math.max(raf.getFilePointer() - stepLen, 0));
                         n = raf.read(buffer);
                         continue;
                     }
@@ -280,7 +300,7 @@ public class DefaultFileOperator implements IFileOperator {
     }
 
     boolean ifIginxFileEmpty(File file) throws IOException {
-        if (FileType.getFileType(file) != FileType.Type.IGINX_FILE) {
+        if (FileType.getFileType(file) != FileType.IGINX_FILE) {
             logger.error("not a iginx file!");
             return true;
         }
@@ -315,7 +335,7 @@ public class DefaultFileOperator implements IFileOperator {
     }
 
     @Override
-    public Exception iginxFileWriter(File file, List<Record> valList) throws IOException {
+    public Exception writeIGinXFile(File file, List<Record> valList) throws IOException {
         int BUFFER_SIZE = 8192; // 8 KB
         if (file.exists() && file.isDirectory()) {
             throw new IOException("Cannot write to directory: " + file.getAbsolutePath());
@@ -430,7 +450,7 @@ public class DefaultFileOperator implements IFileOperator {
         return null;
     }
 
-    public Exception fileTrimmer(File file, long begin, long end) throws IOException {
+    public Exception trimFile(File file, long begin, long end) throws IOException {
         // Create temporary file
         File tempFile = new File(file.getParentFile(), file.getName() + ".tmp");
         BufferedWriter writer = null;
@@ -508,7 +528,7 @@ public class DefaultFileOperator implements IFileOperator {
                 writer.write(String.valueOf(fileMeta.getDataType().getValue()));
                 writer.write("\n");
                 writer.write(
-                        fileMeta.getTag() == null ? "{}" : JsonUtils.mapToJson(fileMeta.getTag()));
+                        fileMeta.getTag() == null ? "{}" : new String(JsonUtils.toJson(fileMeta.getTag())));
                 writer.write("\n");
                 for (int i = 0; i < FileMeta.iginxFileMetaIndex - 3; i++) {
                     writer.write("\n");
@@ -584,12 +604,7 @@ public class DefaultFileOperator implements IFileOperator {
         FileFilter readFileFilter = null;
         if (prefix != null) {
             readFileFilter =
-                    new FileFilter() {
-                        @Override
-                        public boolean accept(File file) {
-                            return file.getName().startsWith(prefix);
-                        }
-                    };
+                file1 -> file1.getName().startsWith(prefix);
         }
 
         File[] files = null;
@@ -601,12 +616,8 @@ public class DefaultFileOperator implements IFileOperator {
         return files == null || files.length == 0 ? null : Arrays.asList(files);
     }
 
-    public Date getCreationTime(File file) {
-        return getCreationTime(file);
-    }
-
     public long length(File file) throws IOException {
-        if (FileType.getFileType(file) == FileType.Type.IGINX_FILE) {
+        if (FileType.getFileType(file) == FileType.IGINX_FILE) {
             return getIginxFileMaxKey(file);
         } else {
             return file.length();
@@ -614,10 +625,11 @@ public class DefaultFileOperator implements IFileOperator {
     }
 
     public boolean ifFilesEqual(File... file) {
-        boolean flag = true;
         for (int i = 1; i < file.length; i++) {
-            if (!file[i].getAbsolutePath().equals(file[i - 1].getAbsolutePath())) flag = false;
+            if (!file[i].getAbsolutePath().equals(file[i - 1].getAbsolutePath())) {
+                return false;
+            }
         }
-        return flag;
+        return true;
     }
 }

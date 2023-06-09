@@ -2,25 +2,24 @@ package cn.edu.tsinghua.iginx.filesystem.file.property;
 
 import java.io.File;
 
-public class FileType {
+public enum FileType {
 
-    public static enum Type {
-        IGINX_FILE,
-        NORMAL_FILE,
-        DIR
-    }
+    IGINX_FILE,
+    NORMAL_FILE,
+    UNKNOWN_FILE,
+    DIR;
 
-    public static Type getFileType(File file) {
+    public static FileType getFileType(File file) {
         String fileName = file.getName();
         if (file.isDirectory()) {
-            return Type.DIR;
+            return DIR;
         }
         if (fileName.contains(".iginx")) {
-            return Type.IGINX_FILE;
+            return IGINX_FILE;
         } else if (fileName.endsWith(".txt")) {
-            return Type.NORMAL_FILE;
+            return NORMAL_FILE;
         } else {
-            return Type.NORMAL_FILE;
+            return UNKNOWN_FILE;
         }
     }
 }

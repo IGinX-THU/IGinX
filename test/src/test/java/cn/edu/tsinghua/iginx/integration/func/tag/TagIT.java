@@ -854,7 +854,7 @@ public class TagIT {
         executeAndCompare(statement, expected);
     }
 
-    //    @Test
+        @Test
     public void testMixQueryWithAggregate() {
         String statement = "select last(s) from ah.hr01;";
         String expected =

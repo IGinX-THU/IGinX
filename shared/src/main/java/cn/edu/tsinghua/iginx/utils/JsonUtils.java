@@ -31,10 +31,6 @@ public class JsonUtils {
         return json.toString().getBytes();
     }
 
-    public static String mapToJson(Map<String, String> map) {
-        return JSON.toJSONString(map);
-    }
-
     public static Map<String, Integer> transform(String content) {
         Map<String, Object> rawMap = JSON.parseObject(content);
         Map<String, Integer> ret = new HashMap<>();
@@ -43,7 +39,9 @@ public class JsonUtils {
     }
 
     public static Map<String, String> transformToSS(String content) {
-        if (content == null || content.equals("{}")) return null;
+        if (content == null || content.equals("{}")) {
+            return null;
+        }
         Map<String, Object> rawMap = JSON.parseObject(content);
         Map<String, String> ret = new HashMap<>();
         rawMap.forEach((key, value) -> ret.put(key, (String) value));

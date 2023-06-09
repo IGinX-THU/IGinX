@@ -85,7 +85,7 @@ public class FileSystemHistoryDataGeneratorTest extends BaseHistoryDataGenerator
         if (fileOperator.ifFileExists(file)) {
             fileOperator.create(file, fileMeta);
         }
-        fileOperator.iginxFileWriter(file, val);
+        fileOperator.writeIGinXFile(file, val);
     }
 
     @Override

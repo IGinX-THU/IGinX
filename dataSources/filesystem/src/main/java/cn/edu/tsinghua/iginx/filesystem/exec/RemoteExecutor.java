@@ -31,6 +31,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.transport.TSocket;
@@ -251,65 +253,64 @@ public class RemoteExecutor implements Executor {
     }
 
     private RawTagFilter constructRawTagFilter(TagFilter tagFilter) {
+        RawTagFilter filter  = null;
         switch (tagFilter.getType()) {
             case Base:
                 {
                     BaseTagFilter baseTagFilter = (BaseTagFilter) tagFilter;
-                    RawTagFilter filter = new RawTagFilter(TagFilterType.Base);
+                    filter = new RawTagFilter(TagFilterType.Base);
                     filter.setKey(baseTagFilter.getTagKey());
                     filter.setValue(baseTagFilter.getTagValue());
-                    return filter;
+                   break;
                 }
             case WithoutTag:
                 {
-                    return new RawTagFilter(TagFilterType.WithoutTag);
+                    filter = new RawTagFilter(TagFilterType.WithoutTag);
+                    break;
                 }
             case BasePrecise:
                 {
                     BasePreciseTagFilter basePreciseTagFilter = (BasePreciseTagFilter) tagFilter;
-                    RawTagFilter filter = new RawTagFilter(TagFilterType.BasePrecise);
+                    filter = new RawTagFilter(TagFilterType.BasePrecise);
                     filter.setTags(basePreciseTagFilter.getTags());
-                    return filter;
+                    break;
                 }
             case Precise:
                 {
                     PreciseTagFilter preciseTagFilter = (PreciseTagFilter) tagFilter;
-                    RawTagFilter filter = new RawTagFilter(TagFilterType.Precise);
-                    List<RawTagFilter> children = new ArrayList<>();
-                    preciseTagFilter
-                            .getChildren()
-                            .forEach(child -> children.add(constructRawTagFilter(child)));
-                    filter.setChildren(children);
-                    return filter;
+                    filter = new RawTagFilter(TagFilterType.Precise);
+                    filter.setChildren(preciseTagFilter.getChildren()
+                        .stream()
+                        .map(this::constructRawTagFilter)
+                        .collect(Collectors.toList()));
+                    break;
                 }
             case And:
                 {
                     AndTagFilter andTagFilter = (AndTagFilter) tagFilter;
-                    RawTagFilter filter = new RawTagFilter(TagFilterType.And);
-                    List<RawTagFilter> children = new ArrayList<>();
-                    andTagFilter
-                            .getChildren()
-                            .forEach(child -> children.add(constructRawTagFilter(child)));
-                    filter.setChildren(children);
-                    return filter;
+                    filter = new RawTagFilter(TagFilterType.And);
+                    filter.setChildren(andTagFilter.getChildren()
+                        .stream()
+                        .map(this::constructRawTagFilter)
+                        .collect(Collectors.toList()));
+                    break;
                 }
             case Or:
                 {
                     OrTagFilter orTagFilter = (OrTagFilter) tagFilter;
-                    RawTagFilter filter = new RawTagFilter(TagFilterType.Or);
-                    List<RawTagFilter> children = new ArrayList<>();
-                    orTagFilter
-                            .getChildren()
-                            .forEach(child -> children.add(constructRawTagFilter(child)));
-                    filter.setChildren(children);
-                    return filter;
+                    filter = new RawTagFilter(TagFilterType.Or);
+                    filter.setChildren(orTagFilter.getChildren()
+                        .stream()
+                        .map(this::constructRawTagFilter)
+                        .collect(Collectors.toList()));
+                    break;
                 }
             default:
                 {
                     logger.error("unknown tag filter type: {}", tagFilter.getType());
-                    return null;
                 }
         }
+        return filter;
     }
 
     private Pair<List<ByteBuffer>, List<ByteBuffer>> compressColData(DataView dataView) {

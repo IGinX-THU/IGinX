@@ -48,7 +48,9 @@ public class LocalExecutor implements Executor {
     public LocalExecutor(String root) {
         if (root == null) {
             logger.error("root should not to be null!");
-        } else this.root = root;
+        } else {
+            this.root = root;
+        }
     }
 
     @Override
@@ -83,8 +85,8 @@ public class LocalExecutor implements Executor {
             RowStream rowStream = new FileSystemQueryRowStream(result, storageUnit, root);
             return new TaskExecuteResult(rowStream);
         } catch (Exception e) {
-            e.printStackTrace();
-            logger.error(e.getMessage());
+            logger.error(String.format("read file error, storageUnit %s, series(%s), tagFilter(%s), filter(%s)", storageUnit,series,tagFilter,filter));
+                logger.error(e.getMessage());
             return new TaskExecuteResult(
                     new PhysicalTaskExecuteFailureException(
                             "execute project task in fileSystem failure", e));
@@ -151,27 +153,7 @@ public class LocalExecutor implements Executor {
             int index = 0;
             for (int j = 0; j < data.getPathNum(); j++) {
                 if (bitmapView.get(j)) {
-                    DataType dataType = null;
-                    switch (data.getDataType(j)) {
-                        case BOOLEAN:
-                            dataType = BOOLEAN;
-                            break;
-                        case INTEGER:
-                            dataType = INTEGER;
-                            break;
-                        case LONG:
-                            dataType = LONG;
-                            break;
-                        case FLOAT:
-                            dataType = FLOAT;
-                            break;
-                        case DOUBLE:
-                            dataType = DOUBLE;
-                            break;
-                        case BINARY:
-                            dataType = BINARY;
-                            break;
-                    }
+                    DataType dataType = data.getDataType(j);
                     valList.get(j)
                             .add(new Record(data.getKey(i), dataType, data.getValue(i, index)));
                     index++;
@@ -180,11 +162,9 @@ public class LocalExecutor implements Executor {
         }
         try {
             logger.info("开始数据写入");
-            FileSystemService.writeFiles(fileList, valList, tagList);
+            return FileSystemService.writeFiles(fileList, valList, tagList);
         } catch (Exception e) {
             logger.error("encounter error when write points to fileSystem: ", e);
-        } finally {
-            logger.info("数据写入完毕！");
         }
         return null;
     }
@@ -205,26 +185,7 @@ public class LocalExecutor implements Executor {
             int index = 0;
             for (int j = 0; j < data.getTimeSize(); j++) {
                 if (bitmapView.get(j)) {
-                    switch (data.getDataType(i)) {
-                        case BOOLEAN:
-                            val.add(new Record(data.getKey(j), BOOLEAN, data.getValue(i, index)));
-                            break;
-                        case INTEGER:
-                            val.add(new Record(data.getKey(j), INTEGER, data.getValue(i, index)));
-                            break;
-                        case LONG:
-                            val.add(new Record(data.getKey(j), LONG, data.getValue(i, index)));
-                            break;
-                        case FLOAT:
-                            val.add(new Record(data.getKey(j), FLOAT, data.getValue(i, index)));
-                            break;
-                        case DOUBLE:
-                            val.add(new Record(data.getKey(j), DOUBLE, data.getValue(i, index)));
-                            break;
-                        case BINARY:
-                            val.add(new Record(data.getKey(j), BINARY, data.getValue(i, index)));
-                            break;
-                    }
+                    val.add(new Record(data.getKey(j), data.getDataType(i), data.getValue(i, index)));
                     index++;
                 }
             }
@@ -233,11 +194,9 @@ public class LocalExecutor implements Executor {
 
         try {
             logger.info("开始数据写入");
-            FileSystemService.writeFiles(fileList, valList, tagList);
+            return FileSystemService.writeFiles(fileList, valList, tagList);
         } catch (Exception e) {
             logger.error("encounter error when write points to fileSystem: ", e);
-        } finally {
-            logger.info("数据写入完毕！");
         }
         return null;
     }
@@ -245,25 +204,26 @@ public class LocalExecutor implements Executor {
     @Override
     public TaskExecuteResult executeDeleteTask(Delete delete, String storageUnit) {
         List<String> paths = delete.getPatterns();
+        Exception exception= null;
         if (delete.getTimeRanges() == null || delete.getTimeRanges().size() == 0) {
             List<File> fileList = new ArrayList<>();
             if (paths.size() == 1 && paths.get(0).equals("*") && delete.getTagFilter() == null) {
                 try {
-                    FileSystemService.deleteFile(
+                    exception=FileSystemService.deleteFile(
                             new File(FilePath.toIginxPath(root, storageUnit, null)));
                 } catch (Exception e) {
-                    e.printStackTrace();
                     logger.error("encounter error when clear data: " + e.getMessage());
+                    exception=e;
                 }
             } else {
                 for (String path : paths) {
                     fileList.add(new File(FilePath.toIginxPath(root, storageUnit, path)));
                 }
                 try {
-                    FileSystemService.deleteFiles(fileList, delete.getTagFilter());
+                    exception= FileSystemService.deleteFiles(fileList, delete.getTagFilter());
                 } catch (Exception e) {
-                    e.printStackTrace();
                     logger.error("encounter error when clear data: " + e.getMessage());
+                    exception=e;
                 }
             }
         } else {
@@ -274,7 +234,7 @@ public class LocalExecutor implements Executor {
                         fileList.add(new File(FilePath.toIginxPath(root, storageUnit, path)));
                     }
                     for (TimeRange timeRange : delete.getTimeRanges()) {
-                        FileSystemService.trimFilesContent(
+                        exception=FileSystemService.trimFilesContent(
                                 fileList,
                                 delete.getTagFilter(),
                                 timeRange.getActualBeginTime(),
@@ -282,12 +242,11 @@ public class LocalExecutor implements Executor {
                     }
                 }
             } catch (IOException e) {
-                e.printStackTrace();
                 logger.error("encounter error when delete data: " + e.getMessage());
-                throw new RuntimeException(e);
+                exception=e;
             }
         }
-        return new TaskExecuteResult(null, null);
+        return new TaskExecuteResult(null, exception!=null? new PhysicalException(exception.getMessage()):null);
     }
 
     @Override

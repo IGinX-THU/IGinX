@@ -69,7 +69,9 @@ public class FilterPushDownOptimizer implements Optimizer {
 
         Filter filter = selectOperator.getFilter().copy();
         TagFilter tagFilter = null;
-        if (selectOperator.getTagFilter() != null) tagFilter = selectOperator.getTagFilter().copy();
+        if (selectOperator.getTagFilter() != null) {
+            tagFilter = selectOperator.getTagFilter().copy();
+        }
         Map<String, Filter> cache = new HashMap<>();
         for (Pair<Project, Operator> pair : projectAndFatherOperatorList) {
             Project project = pair.getK();
