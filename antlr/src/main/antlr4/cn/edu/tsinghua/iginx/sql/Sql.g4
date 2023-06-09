@@ -954,7 +954,7 @@ fragment NAME_CHAR
    ;
 
 fragment CN_CHAR
-   : '\u2E85' .. '\u9FFF'
+   : '\u2E86' .. '\u9FFF'
    ;
 
 DOUBLE_QUOTE_STRING_LITERAL
