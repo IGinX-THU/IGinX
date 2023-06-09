@@ -35,7 +35,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class QueryExecutor {
-    public static final Logger LOGGER = LoggerFactory.getLogger(QueryExecutor.class);
+    public static final Logger logger = LoggerFactory.getLogger(QueryExecutor.class);
     private Query query;
 
     private final RestSession session = new RestSession();
@@ -51,7 +51,7 @@ public class QueryExecutor {
             ret.addResultSet(new QueryShowTimeSeries().doAggregate(session));
             session.closeSession();
         } catch (Exception e) {
-            LOGGER.error("Error occurred during executing", e);
+            logger.error("Error occurred during executing", e);
             throw e;
         }
         return ret;
@@ -105,7 +105,7 @@ public class QueryExecutor {
             }
             session.closeSession();
         } catch (Exception e) {
-            LOGGER.error("Error occurred during executing", e);
+            logger.error("Error occurred during executing", e);
             throw e;
         }
 
@@ -193,7 +193,7 @@ public class QueryExecutor {
                 }
             }
         } catch (Exception e) {
-            LOGGER.error("Error occurred during executing", e);
+            logger.error("Error occurred during executing", e);
             throw e;
         }
     }
