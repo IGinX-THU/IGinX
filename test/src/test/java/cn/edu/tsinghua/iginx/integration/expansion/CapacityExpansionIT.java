@@ -117,6 +117,29 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
         testWriteAndQueryNewDataAfterCE();
     }
 
+    @Test
+    private void testReadOnlyNode() throws Exception {
+        testQueryHistoryDataOriHasData();
+        addStorageEngine(false);
+        testWriteAndQueryNewData();
+        addStorageEngineWithPrefix("mn", "p1");
+
+        String statement = "select * from p1.mn";
+        String expect =
+                "ResultSets:\n"
+                        + "+---+----------------------+---------------------------+\n"
+                        + "|key|p1.mn.wf03.wt01.status|p1.mn.wf03.wt01.temperature|\n"
+                        + "+---+----------------------+---------------------------+\n"
+                        + "| 77|                  true|                       null|\n"
+                        + "|200|                 false|                      77.71|\n"
+                        + "+---+----------------------+---------------------------+\n"
+                        + "Total line number = 2\n";
+        SQLTestTools.executeAndCompare(session, statement, expect);
+
+        clearData();
+        testWriteAndQueryNewDataAfterCE();
+    }
+
     private void testAddAndRemoveStorageEngineWithPrefix() {
         addStorageEngineWithPrefix("mn", "p1");
         addStorageEngineWithPrefix("mn", "p2");

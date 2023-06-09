@@ -5,6 +5,10 @@ inputs:
         description: "if you need capacity expansion"
         required: false
         default: "false"
+    ReadOnlyNode:
+        description: "make the initial node read-only"
+        required: false
+        default: "false"
     Test-Way:
         description: "the way to imp"
         required: false
@@ -52,6 +56,19 @@ runs:
                 sudo sed -i 's/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
               elif [ "$RUNNER_OS" == "macOS" ]; then
                 sudo sed -i '' 's/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
+              else
+                echo "$RUNNER_OS is not supported"
+                exit 1
+              fi
+
+        - if: inputs.ReadOnlyNode=='true'
+          name: Change conf/config.properties
+          shell: bash
+          run: |
+              if [ "$RUNNER_OS" == "Linux" ]; then
+                sudo sed -i 's/is_read_only=false/is_read_only=true/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
+              elif [ "$RUNNER_OS" == "macOS" ]; then
+                sudo sed -i '' 's/is_read_only=false/is_read_only=true/' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
               else
                 echo "$RUNNER_OS is not supported"
                 exit 1
