@@ -166,21 +166,15 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
             ResultSet databaseSet = stmt.executeQuery(QUERY_DATABASES_STATEMENT);
             while (databaseSet.next()) {
                 String databaseName = databaseSet.getString("DATNAME");
-                try {
-                    if (databaseName.equalsIgnoreCase("template0")
-                            || databaseName.equalsIgnoreCase("template1")
-                            || databaseName.equalsIgnoreCase("postgres")) {
-                        continue;
-                    }
-                    stmt.execute(String.format(DROP_DATABASE_STATEMENT, databaseName));
-                } catch (SQLException e) {
-                    logger.error(
-                            "drop database {} on 127.0.0.1:{} failure: {}",
-                            databaseName,
-                            port,
-                            e.getMessage());
+                if (databaseName.equalsIgnoreCase("template0")
+                        || databaseName.equalsIgnoreCase("template1")
+                        || databaseName.equalsIgnoreCase("postgres")) {
+                    continue;
                 }
+                logger.error(databaseName);
+                stmt.execute(String.format(DROP_DATABASE_STATEMENT, databaseName));
             }
+            databaseSet.close();
             stmt.close();
             conn.close();
             logger.info("clear data on 127.0.0.1:{} success!", port);
