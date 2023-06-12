@@ -118,7 +118,7 @@ public class InfluxDBHistoryDataGenerator extends BaseHistoryDataGenerator {
     }
 
     @Override
-    public void clearHistoryData(int port) {
+    public void clearHistoryDataForGivenPort(int port) {
         String url = "http://localhost:" + port + "/";
         InfluxDBClient client =
                 InfluxDBClientFactory.create(url, TOKEN.toCharArray(), ORGANIZATION);
