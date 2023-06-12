@@ -45,7 +45,7 @@ public abstract class BaseCapacityExpansionIT {
             int port, boolean hasData, boolean isReadOnly, String dataPrefix, String schemaPrefix) {
         try {
             StringBuilder statement = new StringBuilder();
-            statement.append("ADD STORAGEENGINE (127.0.0.1, ");
+            statement.append("ADD STORAGEENGINE (\"127.0.0.1\", ");
             statement.append(port);
             statement.append(", \"");
             statement.append(dbType.name());
