@@ -70,10 +70,10 @@ public class IoTDB12HistoryDataGenerator extends BaseHistoryDataGenerator {
     @Override
     public void clearHistoryData(int port) {
         try {
-            Session sessionOri = new Session("127.0.0.1", port, "root", "root");
-            sessionOri.open();
-            sessionOri.executeNonQueryStatement("DELETE STORAGE GROUP root.*");
-            sessionOri.close();
+            Session session = new Session("127.0.0.1", port, "root", "root");
+            session.open();
+            session.executeNonQueryStatement("DELETE STORAGE GROUP root.*");
+            session.close();
             logger.info("clear data on 127.0.0.1:{} success!", port);
         } catch (IoTDBConnectionException | StatementExecutionException e) {
             logger.warn("clear data on 127.0.0.1:{} failure: {}", port, e.getMessage());
