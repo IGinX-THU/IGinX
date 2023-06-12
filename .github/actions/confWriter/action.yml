@@ -5,7 +5,7 @@ inputs:
         description: "if you need capacity expansion"
         required: false
         default: "false"
-    ReadOnlyNode:
+    Read-Only:
         description: "make the initial node read-only"
         required: false
         default: "false"
@@ -61,8 +61,8 @@ runs:
                 exit 1
               fi
 
-        - if: inputs.ReadOnlyNode=='true'
-          name: Change conf/config.properties
+        - if: inputs.Read-Only=='true'
+          name: Change is_read_only
           shell: bash
           run: |
               if [ "$RUNNER_OS" == "Linux" ]; then

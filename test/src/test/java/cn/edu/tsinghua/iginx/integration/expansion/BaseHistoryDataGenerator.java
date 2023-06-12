@@ -7,27 +7,38 @@ import org.junit.Test;
 
 public abstract class BaseHistoryDataGenerator {
 
-    protected int portOri;
+    protected int oriPort;
 
-    public static final List<String> PATH_LIST_ORI =
+    protected static final List<String> ORI_PATH_LIST =
             Arrays.asList("mn.wf01.wt01.status", "mn.wf01.wt01.temperature");
 
-    public static final List<DataType> DATA_TYPE_LIST_ORI =
+    protected static final List<DataType> ORI_DATA_TYPE_LIST =
             Arrays.asList(DataType.BOOLEAN, DataType.DOUBLE);
 
-    public static final List<List<Object>> VALUES_LIST_ORI =
+    protected static final List<List<Object>> ORI_VALUES_LIST =
             Arrays.asList(Arrays.asList(true, 15.27), Arrays.asList(false, 20.71));
 
-    protected int portExp;
+    protected int expPort;
 
-    public static final List<String> PATH_LIST_EXP =
+    protected static final List<String> EXP_PATH_LIST =
             Arrays.asList("mn.wf03.wt01.status", "mn.wf03.wt01.temperature");
 
-    public static final List<DataType> DATA_TYPE_LIST_EXP =
+    protected static final List<DataType> EXP_DATA_TYPE_LIST =
             Arrays.asList(DataType.BOOLEAN, DataType.DOUBLE);
 
-    public static final List<List<Object>> VALUES_LIST_EXP =
+    protected static final List<List<Object>> EXP_VALUES_LIST =
             Arrays.asList(Arrays.asList(true, 66.23), Arrays.asList(false, 77.71));
+
+    protected int readOnlyPort;
+
+    protected static final List<String> READ_ONLY_PATH_LIST =
+            Arrays.asList("mn.wf05.wt01.status", "mn.wf05.wt03.temperature");
+
+    protected static final List<DataType> READ_ONLY_DATA_TYPE_LIST =
+            Arrays.asList(DataType.BOOLEAN, DataType.DOUBLE);
+
+    protected static final List<List<Object>> READ_ONLY_VALUES_LIST =
+            Arrays.asList(Arrays.asList(false, 100.01), Arrays.asList(true, 99.99));
 
     public BaseHistoryDataGenerator() {}
 
@@ -35,6 +46,7 @@ public abstract class BaseHistoryDataGenerator {
     public void oriHasDataExpHasData() {
         writeHistoryDataToOri();
         writeHistoryDataToExp();
+        writeHistoryDataToReadOnly();
     }
 
     @Test
@@ -50,10 +62,30 @@ public abstract class BaseHistoryDataGenerator {
     @Test
     public void oriNoDataExpNoData() {}
 
-    public abstract void writeHistoryDataToOri();
+    private void writeHistoryDataToOri() {
+        writeHistoryData(oriPort, ORI_PATH_LIST, ORI_DATA_TYPE_LIST, ORI_VALUES_LIST);
+    }
 
-    public abstract void writeHistoryDataToExp();
+    private void writeHistoryDataToExp() {
+        writeHistoryData(expPort, EXP_PATH_LIST, EXP_DATA_TYPE_LIST, EXP_VALUES_LIST);
+    }
+
+    private void writeHistoryDataToReadOnly() {
+        writeHistoryData(readOnlyPort, READ_ONLY_PATH_LIST, READ_ONLY_DATA_TYPE_LIST, READ_ONLY_VALUES_LIST);
+    }
+
+    protected abstract void writeHistoryData(
+            int port,
+            List<String> pathList,
+            List<DataType> dataTypeList,
+            List<List<Object>> valuesList);
 
     @Test
-    public abstract void clearHistoryData();
+    public void clearHistoryData() {
+        clearHistoryData(oriPort);
+        clearHistoryData(expPort);
+        clearHistoryData(readOnlyPort);
+    }
+
+    protected abstract void clearHistoryData(int port);
 }

@@ -3,7 +3,7 @@ package cn.edu.tsinghua.iginx.engine.logical.generator;
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.ALL_PATH_SUFFIX;
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.ORDINAL;
 import static cn.edu.tsinghua.iginx.engine.shared.function.system.ArithmeticExpr.ARITHMETIC_EXPR;
-import static cn.edu.tsinghua.iginx.metadata.utils.FragmentUtils.keyFromTSIntervalToTimeInterval;
+import static cn.edu.tsinghua.iginx.metadata.utils.FragmentUtils.keyFromColumnsIntervalToKeyInterval;
 
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
@@ -699,7 +699,7 @@ public class QueryGenerator extends AbstractGenerator {
             }
             fragmentsByColumnsRange = metaManager.getFragmentMapByColumnsRange(interval, true);
         }
-        return keyFromTSIntervalToTimeInterval(fragmentsByColumnsRange);
+        return keyFromColumnsIntervalToKeyInterval(fragmentsByColumnsRange);
     }
 
     // 筛选出满足 dataPrefix前缀，并且去除 schemaPrefix

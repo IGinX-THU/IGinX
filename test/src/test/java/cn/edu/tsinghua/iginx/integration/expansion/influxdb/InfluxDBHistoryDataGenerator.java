@@ -9,7 +9,6 @@ import com.influxdb.client.domain.Organization;
 import com.influxdb.client.domain.WritePrecision;
 import com.influxdb.client.write.Point;
 import java.util.List;
-import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,26 +19,25 @@ public class InfluxDBHistoryDataGenerator extends BaseHistoryDataGenerator {
 
     public static final String TOKEN = "testToken";
 
-    public static final String ORI_URL = "http://localhost:8086/";
-
-    public static final String EXP_URL = "http://localhost:8087/";
-
     public static final String ORGANIZATION = "testOrg";
 
     private static final WritePrecision WRITE_PRECISION = WritePrecision.NS;
 
     public InfluxDBHistoryDataGenerator() {
-        this.portOri = 8086;
-        this.portExp = 8087;
+        this.oriPort = 8086;
+        this.expPort = 8087;
+        this.readOnlyPort = 8088;
     }
 
-    private void writeHistoryData(
+    @Override
+    public void writeHistoryData(
+            int port,
             List<String> pathList,
             List<DataType> dataTypeList,
-            List<List<Object>> valuesList,
-            String URL) {
+            List<List<Object>> valuesList) {
+        String url = "http://localhost:" + port + "/";
         InfluxDBClient client =
-                InfluxDBClientFactory.create(URL, TOKEN.toCharArray(), ORGANIZATION);
+                InfluxDBClientFactory.create(url, TOKEN.toCharArray(), ORGANIZATION);
         Organization organization =
                 client.getOrganizationsApi()
                         .findOrganizations()
@@ -116,37 +114,19 @@ public class InfluxDBHistoryDataGenerator extends BaseHistoryDataGenerator {
         }
 
         client.close();
-        logger.info("write data to " + URL + " success!");
+        logger.info("write data to " + url + " success!");
     }
 
     @Override
-    public void writeHistoryDataToOri() {
-        writeHistoryData(PATH_LIST_ORI, DATA_TYPE_LIST_ORI, VALUES_LIST_ORI, ORI_URL);
-    }
-
-    @Override
-    public void writeHistoryDataToExp() {
-        writeHistoryData(PATH_LIST_EXP, DATA_TYPE_LIST_EXP, VALUES_LIST_EXP, EXP_URL);
-    }
-
-    @Test
-    @Override
-    public void clearHistoryData() {
+    public void clearHistoryData(int port) {
+        String url = "http://localhost:" + port + "/";
         InfluxDBClient client =
-                InfluxDBClientFactory.create(ORI_URL, TOKEN.toCharArray(), ORGANIZATION);
+                InfluxDBClientFactory.create(url, TOKEN.toCharArray(), ORGANIZATION);
         Bucket bucket = client.getBucketsApi().findBucketByName("mn");
         if (bucket != null) {
             client.getBucketsApi().deleteBucket(bucket);
         }
         client.close();
-        logger.info("clear data of 127.0.0.1:8086 success!");
-
-        client = InfluxDBClientFactory.create(EXP_URL, TOKEN.toCharArray(), ORGANIZATION);
-        bucket = client.getBucketsApi().findBucketByName("mn");
-        if (bucket != null) {
-            client.getBucketsApi().deleteBucket(bucket);
-        }
-        client.close();
-        logger.info("clear data of 127.0.0.1:8087 success!");
+        logger.info("clear data on 127.0.0.1:{} success!", port);
     }
 }

@@ -20,8 +20,8 @@ runs:
                 chmod +x "${GITHUB_WORKSPACE}/.github/iginx_runner_linux.sh"
                 "${GITHUB_WORKSPACE}/.github/iginx_runner_linux.sh"
               elif [ "$RUNNER_OS" == "macOS" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/iginx_runner_macOS.sh"
-                "${GITHUB_WORKSPACE}/.github/iginx_runner_macOS.sh"
+                chmod +x "${GITHUB_WORKSPACE}/.github/iginx_runner_macos.sh"
+                "${GITHUB_WORKSPACE}/.github/iginx_runner_macos.sh"
               fi
 
         - if: inputs.if-stop=='true'

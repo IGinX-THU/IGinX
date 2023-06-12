@@ -6,7 +6,6 @@ import java.util.List;
 import org.apache.iotdb.rpc.IoTDBConnectionException;
 import org.apache.iotdb.rpc.StatementExecutionException;
 import org.apache.iotdb.session.Session;
-import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,15 +18,17 @@ public class IoTDB12HistoryDataGenerator extends BaseHistoryDataGenerator {
     private static final String INSERT_DATA = "INSERT INTO root.%s (timestamp,%s) values(%s,%s)";
 
     public IoTDB12HistoryDataGenerator() {
-        this.portOri = 6667;
-        this.portExp = 6668;
+        this.oriPort = 6667;
+        this.expPort = 6668;
+        this.readOnlyPort = 6669;
     }
 
-    private void writeHistoryData(
+    @Override
+    public void writeHistoryData(
+            int port,
             List<String> pathList,
             List<DataType> dataTypeList,
-            List<List<Object>> valuesList,
-            int port) {
+            List<List<Object>> valuesList) {
         try {
             Session session = new Session("127.0.0.1", port, "root", "root");
             session.open();
@@ -67,31 +68,15 @@ public class IoTDB12HistoryDataGenerator extends BaseHistoryDataGenerator {
     }
 
     @Override
-    public void writeHistoryDataToOri() {
-        writeHistoryData(PATH_LIST_ORI, DATA_TYPE_LIST_ORI, VALUES_LIST_ORI, portOri);
-    }
-
-    @Override
-    public void writeHistoryDataToExp() {
-        writeHistoryData(PATH_LIST_EXP, DATA_TYPE_LIST_EXP, VALUES_LIST_EXP, portExp);
-    }
-
-    @Test
-    @Override
-    public void clearHistoryData() {
+    public void clearHistoryData(int port) {
         try {
-            Session sessionOri = new Session("127.0.0.1", portOri, "root", "root");
+            Session sessionOri = new Session("127.0.0.1", port, "root", "root");
             sessionOri.open();
             sessionOri.executeNonQueryStatement("DELETE STORAGE GROUP root.*");
             sessionOri.close();
-
-            Session sessionExp = new Session("127.0.0.1", portExp, "root", "root");
-            sessionExp.open();
-            sessionExp.executeNonQueryStatement("DELETE STORAGE GROUP root.*");
-            sessionExp.close();
-            logger.info("clear data success!");
+            logger.info("clear data on 127.0.0.1:{} success!", port);
         } catch (IoTDBConnectionException | StatementExecutionException e) {
-            logger.warn("clear data failure: {}", e.getMessage());
+            logger.warn("clear data on 127.0.0.1:{} failure: {}", port, e.getMessage());
         }
     }
 }

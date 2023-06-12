@@ -47,7 +47,6 @@ jobs:
               uses: ./.github/actions/confWriter
               with:
                   DB-name: ${{ matrix.DB-name }}
-                  if-CapExp: false
 
             - name: Start IGinX
               uses: ./.github/actions/iginxRunner

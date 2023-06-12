@@ -95,27 +95,18 @@ jobs:
                   mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriNoDataExpHasData -DfailIfNoTests=false -P passFormat
                   mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P passFormat
 
-            # 测试只读节点==========================================
-            - name: Change IGinX Config
-              uses: ./.github/actions/confWriter
-              with:
-                  ReadOnlyNode: true
-
-            - name: Prepare CapExp environment TestReadOnlyNode
+            # 测试只读节点===============================================
+            - name: Prepare CapExp environment for testReadOnly
               uses: ./.github/actions/capacityExpansionUnionTest
               with:
                   version: ${VERSION}
-                  DB-name: ${{matrix.DB-name}}
-                  Test-Way: oriHasDataExpNoData
-            - name: Test ReadOnly Node
-              run: |
-                  mvn test -q -Dtest=${{matrix.DB-name}}CapacityExpansionIT#testReadOnlyNode -DfailIfNoTests=false -P passFormat
+                  DB-name: ${{ matrix.DB-name }}
+                  Test-Way: oriHasDataExpHasData
+                  Read-Only: true
 
-            # 测试只读节点 + 扩容可写节点==========================================
-            - name: Test ReadOnly Node with Writable Node
+            - name: Run testReadOnly
               run: |
-                  mvn test -q -Dtest=${{matrix.DB-name}}CapacityExpansionIT#testReadOnlyNode -DfailIfNoTests=false -P passFormat
-                  mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriHasDataExpNoData -DfailIfNoTests=false -P passFormat
+                  mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#testReadOnly -DfailIfNoTests=false -P passFormat
                   mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P passFormat
 
             - name: Show IGinX log
