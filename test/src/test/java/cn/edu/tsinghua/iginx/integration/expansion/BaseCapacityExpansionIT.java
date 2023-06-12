@@ -71,6 +71,7 @@ public abstract class BaseCapacityExpansionIT {
             }
             statement.append("\");");
 
+            logger.info("execute sql {}", statement);
             session.executeSql(statement.toString());
         } catch (ExecutionException | SessionException e) {
             logger.error(
@@ -116,7 +117,7 @@ public abstract class BaseCapacityExpansionIT {
         // 写入并查询新数据
         testWriteAndQueryNewData();
         // 扩容
-        addStorageEngine(expPort, true, false, null, null);
+        addStorageEngine(expPort, true, true, null, null);
         // 查询扩容节点的历史数据，结果不为空
         testQueryHistoryDataExpHasData();
         // 再次查询新数据
@@ -148,7 +149,7 @@ public abstract class BaseCapacityExpansionIT {
         // 写入并查询新数据
         testWriteAndQueryNewData();
         // 扩容
-        addStorageEngine(expPort, true, false, null, null);
+        addStorageEngine(expPort, true, true, null, null);
         // 查询扩容节点的历史数据，结果不为空
         testQueryHistoryDataExpHasData();
         // 再次查询新数据
@@ -316,8 +317,8 @@ public abstract class BaseCapacityExpansionIT {
     }
 
     private void testAddAndRemoveStorageEngineWithPrefix() {
-        addStorageEngine(expPort, true, false, "mn", "p1");
-        addStorageEngine(expPort, true, false, "mn", "p2");
+        addStorageEngine(expPort, true, true, "mn", "p1");
+        addStorageEngine(expPort, true, true, "mn", "p2");
 
         String statement = "select * from p1.mn";
         List<String> pathList =
