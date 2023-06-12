@@ -98,3 +98,18 @@ runs:
                 echo "$RUNNER_OS is not supported"
                 exit 1
               fi
+
+        - if: inputs.DB-name=='PostgreSQL'
+          name: Run DB
+          shell: bash
+          run: |
+              if [ "$RUNNER_OS" == "Linux" ]; then
+                chmod +x "${GITHUB_WORKSPACE}/.github/postgresql.sh"
+                "${GITHUB_WORKSPACE}/.github/postgresql.sh"
+              elif [ "$RUNNER_OS" == "macOS" ]; then
+                chmod +x "${GITHUB_WORKSPACE}/.github/postgresql_macos.sh"
+                "${GITHUB_WORKSPACE}/.github/postgresql_macos.sh"
+              else
+                echo "$RUNNER_OS is not supported"
+                exit 1
+              fi
