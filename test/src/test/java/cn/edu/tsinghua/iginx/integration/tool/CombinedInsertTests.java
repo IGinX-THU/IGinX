@@ -68,8 +68,11 @@ public class CombinedInsertTests {
 
         List<DataType> dataTypeList = new ArrayList<>();
         for (long j = 0; j < 4; j++) {
-            if (j % 2 == 1) dataTypeList.add(DataType.LONG);
-            else dataTypeList.add(DataType.BINARY);
+            if (j % 2 == 1) {
+                dataTypeList.add(DataType.LONG);
+            } else {
+                dataTypeList.add(DataType.BINARY);
+            }
         }
 
         System.out.println("insertColumnRecords...");
@@ -111,8 +114,11 @@ public class CombinedInsertTests {
 
         List<DataType> dataTypeList = new ArrayList<>();
         for (long j = 0; j < 4; j++) {
-            if (j % 2 == 0) dataTypeList.add(DataType.LONG);
-            else dataTypeList.add(DataType.BINARY);
+            if (j % 2 == 0) {
+                dataTypeList.add(DataType.LONG);
+            } else {
+                dataTypeList.add(DataType.BINARY);
+            }
         }
 
         System.out.println("insertNonAlignedColumnRecords...");
@@ -147,8 +153,11 @@ public class CombinedInsertTests {
 
         List<DataType> dataTypeList = new ArrayList<>();
         for (long j = 0; j < colNum; j++) {
-            if (j % 2 == 0) dataTypeList.add(DataType.LONG);
-            else dataTypeList.add(DataType.BINARY);
+            if (j % 2 == 0) {
+                dataTypeList.add(DataType.LONG);
+            } else {
+                dataTypeList.add(DataType.BINARY);
+            }
         }
 
         System.out.println("insertRowRecords...");
@@ -186,8 +195,11 @@ public class CombinedInsertTests {
 
         List<DataType> dataTypeList = new ArrayList<>();
         for (long j = 0; j < colNum; j++) {
-            if (j % 2 == 0) dataTypeList.add(DataType.LONG);
-            else dataTypeList.add(DataType.BINARY);
+            if (j % 2 == 0) {
+                dataTypeList.add(DataType.LONG);
+            } else {
+                dataTypeList.add(DataType.BINARY);
+            }
         }
 
         System.out.println("insertNonAlignedRowRecords...");

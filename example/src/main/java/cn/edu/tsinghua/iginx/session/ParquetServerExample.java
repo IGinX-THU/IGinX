@@ -34,7 +34,7 @@ public class ParquetServerExample {
         SessionExecuteSqlResult result1 = session1.executeSql("SELECT * FROM test");
         result1.print(false, "");
 
-        result1 = session1.executeSql("SHOW TIME SERIES");
+        result1 = session1.executeSql("SHOW COLUMNS");
         result1.print(false, "");
 
         System.out.println("================================");
@@ -44,7 +44,7 @@ public class ParquetServerExample {
         SessionExecuteSqlResult result2 = session2.executeSql("SELECT * FROM test");
         result2.print(false, "");
 
-        result2 = session2.executeSql("SHOW TIME SERIES");
+        result2 = session2.executeSql("SHOW COLUMNS");
         result2.print(false, "");
 
         System.out.println("================================");
@@ -63,7 +63,7 @@ public class ParquetServerExample {
         result1 = session1.executeSql("SELECT * FROM test");
         result1.print(false, "");
 
-        result1 = session1.executeSql("SHOW TIME SERIES");
+        result1 = session1.executeSql("SHOW COLUMNS");
         result1.print(false, "");
 
         System.out.println("================================");
@@ -77,7 +77,7 @@ public class ParquetServerExample {
         result1 = session1.executeSql("SELECT * FROM test");
         result1.print(false, "");
 
-        result1 = session1.executeSql("SHOW TIME SERIES");
+        result1 = session1.executeSql("SHOW COLUMNS");
         result1.print(false, "");
 
         session1.closeSession();

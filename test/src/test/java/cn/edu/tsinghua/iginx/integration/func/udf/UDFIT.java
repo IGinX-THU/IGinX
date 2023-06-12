@@ -25,11 +25,9 @@ import static org.junit.Assert.fail;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
-import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
-import cn.edu.tsinghua.iginx.metadata.IMetaManager;
-import cn.edu.tsinghua.iginx.metadata.entity.TransformTaskMeta;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
+import cn.edu.tsinghua.iginx.thrift.RegisterTaskInfo;
 import cn.edu.tsinghua.iginx.thrift.UDFType;
 import java.util.Arrays;
 import java.util.Collections;
@@ -48,8 +46,6 @@ public class UDFIT {
     private static final double delta = 0.01d;
 
     private static final Logger logger = LoggerFactory.getLogger(UDFIT.class);
-
-    private static final IMetaManager metaManager = DefaultMetaManager.getInstance();
 
     private static Session session;
 
@@ -98,7 +94,7 @@ public class UDFIT {
     }
 
     @After
-    public void clearData() throws ExecutionException, SessionException {
+    public void clearData() {
         Controller.clearData(session);
     }
 
@@ -126,19 +122,22 @@ public class UDFIT {
 
     @Test
     public void baseTests() {
+        String showRegisterUDF = "SHOW REGISTER PYTHON TASK;";
         String udtfSQLFormat = "SELECT %s(s1) FROM us.d1 WHERE key < 200;";
         String udafSQLFormat = "SELECT %s(s1) FROM us.d1 OVER (RANGE 50 IN [0, 200));";
         String udsfSQLFormat = "SELECT %s(s1) FROM us.d1 WHERE key < 50;";
 
-        List<TransformTaskMeta> taskMetas = metaManager.getTransformTasks();
-        for (TransformTaskMeta taskMeta : taskMetas) {
+        SessionExecuteSqlResult ret = execute(showRegisterUDF);
+
+        List<RegisterTaskInfo> registerUDFs = ret.getRegisterTaskInfos();
+        for (RegisterTaskInfo info : registerUDFs) {
             // execute udf
-            if (taskMeta.getType().equals(UDFType.UDTF)) {
-                execute(String.format(udtfSQLFormat, taskMeta.getName()));
-            } else if (taskMeta.getType().equals(UDFType.UDAF)) {
-                execute(String.format(udafSQLFormat, taskMeta.getName()));
-            } else if (taskMeta.getType().equals(UDFType.UDSF)) {
-                execute(String.format(udsfSQLFormat, taskMeta.getName()));
+            if (info.getType().equals(UDFType.UDTF)) {
+                execute(String.format(udtfSQLFormat, info.getName()));
+            } else if (info.getType().equals(UDFType.UDAF)) {
+                execute(String.format(udafSQLFormat, info.getName()));
+            } else if (info.getType().equals(UDFType.UDSF)) {
+                execute(String.format(udsfSQLFormat, info.getName()));
             }
         }
     }

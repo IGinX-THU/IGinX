@@ -4,7 +4,7 @@ set -e
 
 sh -c "wget -nv https://dlcdn.apache.org/zookeeper/zookeeper-3.7.1/apache-zookeeper-3.7.1-bin.tar.gz --no-check-certificate"
 
-sh -c "tar -xzf apache-zookeeper-3.7.1-bin.tar.gz"
+sh -c "tar -zxf apache-zookeeper-3.7.1-bin.tar.gz"
 
 sh -c "mv apache-zookeeper-3.7.1-bin zookeeper"
 

@@ -44,7 +44,7 @@ public class ExecuteStatisticsCollector extends AbstractStageStatisticsCollector
         if (statement.getType() == StatementType.INSERT) {
             InsertStatement insertStatement = (InsertStatement) statement;
             insertPoints +=
-                    (long) insertStatement.getTimes().size() * insertStatement.getPaths().size();
+                    (long) insertStatement.getKeys().size() * insertStatement.getPaths().size();
         }
         if (statement.getType() == StatementType.SELECT) {
             Result result = statistics.getContext().getResult();

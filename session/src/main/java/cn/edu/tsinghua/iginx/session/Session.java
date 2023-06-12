@@ -92,6 +92,10 @@ public class Session {
         this.lock = new ReentrantReadWriteLock();
     }
 
+    public boolean isClosed() {
+        return isClosed;
+    }
+
     private synchronized boolean checkRedirect(Status status) throws SessionException, TException {
         if (RpcUtils.verifyNoRedirect(status)) {
             redirectTimes = 0;

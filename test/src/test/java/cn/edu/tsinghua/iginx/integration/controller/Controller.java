@@ -4,8 +4,9 @@ import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
-import cn.edu.tsinghua.iginx.integration.tool.ConfLoder;
-import cn.edu.tsinghua.iginx.integration.tool.DBConf;
+import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
+import cn.edu.tsinghua.iginx.integration.tool.DBType;
+import cn.edu.tsinghua.iginx.integration.tool.MultiConnection;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
@@ -17,33 +18,60 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class Controller {
-    protected static final Logger logger = LoggerFactory.getLogger(Controller.class);
-    public static String CLEARDATAEXCP =
+
+    private static final Logger logger = LoggerFactory.getLogger(Controller.class);
+
+    public static final String CLEAR_DATA_EXCEPTION =
             "cn.edu.tsinghua.iginx.exceptions.ExecutionException: Caution: can not clear the data of read-only node.";
-    public static String CONFIG_FILE =
-            "./src/test/java/cn/edu/tsinghua/iginx/integration/controller/testConfig.properties";
-    private String FILEPATH = "./src/test/resources/testTask.txt";
-    private String MVNRUNTEST = "../.github/test_union.sh";
+
+    public static final String CLEAR_DATA = "CLEAR DATA;";
+
+    public static final String CLEAR_DATA_WARNING = "clear data fail and go on...";
+
+    public static final String CLEAR_DATA_ERROR = "Statement: \"{}\" execute fail. Caused by: {}";
+
+    public static final String CONFIG_FILE = "./src/test/resources/testConfig.properties";
+
+    private static final String TEST_TASK_FILE = "./src/test/resources/testTask.txt";
+
+    private static final String MVN_RUN_TEST = "../.github/test_union.sh";
+
     private List<StorageEngineMeta> storageEngineMetas = new ArrayList<>();
 
-    public static void clearData(Session session) throws ExecutionException, SessionException {
-        String clearData = "CLEAR DATA;";
-
+    public static void clearData(Session session) {
         SessionExecuteSqlResult res = null;
         try {
-            res = session.executeSql(clearData);
+            res = session.executeSql(CLEAR_DATA);
         } catch (SessionException | ExecutionException e) {
-            logger.error("Statement: \"{}\" execute fail. Caused by: {}", clearData, e.toString());
-            if (e.toString().equals(CLEARDATAEXCP) || e.toString().equals("\n" + CLEARDATAEXCP)) {
-                logger.error("clear data fail and go on....");
-            } else fail();
+            if (e.toString().trim().equals(CLEAR_DATA_EXCEPTION)) {
+                logger.warn(CLEAR_DATA_WARNING);
+            } else {
+                logger.error(CLEAR_DATA_ERROR, CLEAR_DATA, e.getMessage());
+                fail();
+            }
         }
 
         if (res != null && res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-            logger.error(
-                    "Statement: \"{}\" execute fail. Caused by: {}.",
-                    clearData,
-                    res.getParseErrorMsg());
+            logger.error(CLEAR_DATA_ERROR, CLEAR_DATA, res.getParseErrorMsg());
+            fail();
+        }
+    }
+
+    public static void clearData(MultiConnection session) {
+        SessionExecuteSqlResult res = null;
+        try {
+            res = session.executeSql(CLEAR_DATA);
+        } catch (SessionException | ExecutionException e) {
+            if (e.toString().trim().equals(CLEAR_DATA_EXCEPTION)) {
+                logger.warn(CLEAR_DATA_WARNING);
+            } else {
+                logger.error(CLEAR_DATA_ERROR, CLEAR_DATA, e.toString());
+                fail();
+            }
+        }
+
+        if (res != null && res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
+            logger.error(CLEAR_DATA_ERROR, CLEAR_DATA, res.getParseErrorMsg());
             fail();
         }
     }
@@ -51,9 +79,9 @@ public class Controller {
     @Test
     public void testUnion() throws Exception {
         // load the test conf
-        ConfLoder testConfLoder = new ConfLoder(CONFIG_FILE);
-        testConfLoder.loadTestConf();
-        storageEngineMetas = testConfLoder.getStorageEngineMetas();
+        ConfLoader testConfLoader = new ConfLoader(CONFIG_FILE);
+        testConfLoader.loadTestConf();
+        storageEngineMetas = testConfLoader.getStorageEngineMetas();
 
         ShellRunner shellRunner = new ShellRunner();
         TestEnvironmentController envir = new TestEnvironmentController();
@@ -67,7 +95,7 @@ public class Controller {
         //            envir.addStorageEngine(storageEngineMeta);
         //            // set the task list
         //
-        // envir.setTestTasks(testConfLoder.getTaskMap().get(storageEngineMeta.getStorageEngine()),
+        // envir.setTestTasks(testConfLoader.getTaskMap().get(storageEngineMeta.getStorageEngine()),
         // FILEPATH);
         //            // run the test together
         //            shellRunner.runShellCommand(MVNRUNTEST);
@@ -75,9 +103,11 @@ public class Controller {
 
         // set the task list
         envir.setTestTasks(
-                testConfLoder.getTaskMap().get(DBConf.getDBType(testConfLoder.getStorageType())),
-                FILEPATH);
+                testConfLoader
+                        .getTaskMap()
+                        .get(DBType.valueOf(testConfLoader.getStorageType().toLowerCase())),
+                TEST_TASK_FILE);
         // run the test together
-        shellRunner.runShellCommand(MVNRUNTEST);
+        shellRunner.runShellCommand(MVN_RUN_TEST);
     }
 }

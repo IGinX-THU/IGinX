@@ -7,12 +7,14 @@ import static org.junit.Assert.fail;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
+import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
+import cn.edu.tsinghua.iginx.integration.tool.DBConf;
+import cn.edu.tsinghua.iginx.integration.tool.DBType;
 import cn.edu.tsinghua.iginx.integration.tool.MultiConnection;
 import cn.edu.tsinghua.iginx.pool.IginxInfo;
 import cn.edu.tsinghua.iginx.pool.SessionPool;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionAggregateQueryDataSet;
-import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.session.SessionQueryDataSet;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.thrift.DataType;
@@ -51,6 +53,10 @@ public class NewSessionIT {
     private static final double DELTA = 0.0001D;
 
     private static final TestDataSection baseDataSection = buildBaseDataSection();
+
+    private static boolean isInfluxdb = false;
+
+    private static boolean isAbleToDelete = true;
 
     public NewSessionIT() {}
 
@@ -95,6 +101,12 @@ public class NewSessionIT {
 
     @BeforeClass
     public static void setUp() throws SessionException {
+        ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
+        if (DBType.valueOf(conf.getStorageType().toLowerCase()) == DBType.influxdb) {
+            isInfluxdb = true;
+        }
+        DBConf dbConf = conf.loadDBConf(conf.getStorageType());
+        isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
         if (isForSession) {
             conn =
                     new MultiConnection(
@@ -153,28 +165,8 @@ public class NewSessionIT {
     }
 
     @After
-    public void clearData() throws ExecutionException, SessionException {
-        String clearData = "CLEAR DATA;";
-
-        SessionExecuteSqlResult res = null;
-        try {
-            res = conn.executeSql(clearData);
-        } catch (SessionException | ExecutionException e) {
-            logger.error("Statement: \"{}\" execute fail. Caused by: {}", clearData, e.toString());
-            if (e.toString().equals(Controller.CLEARDATAEXCP)) {
-                logger.error("clear data fail and go on....");
-            } else {
-                fail();
-            }
-        }
-
-        if (res != null && res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-            logger.error(
-                    "Statement: \"{}\" execute fail. Caused by: {}.",
-                    clearData,
-                    res.getParseErrorMsg());
-            fail();
-        }
+    public void clearData() throws SessionException {
+        Controller.clearData(conn);
     }
 
     private void insertData(TestDataSection data, InsertAPIType type) {
@@ -295,7 +287,7 @@ public class NewSessionIT {
     }
 
     private void compareObjectValue(Object expected, Object actual) {
-        if (expected.getClass() != actual.getClass()) {
+        if (expected.getClass() != actual.getClass() && !isInfluxdb) {
             logger.error(
                     "Inconsistent data types, expected:{}, actual:{}",
                     expected.getClass(),
@@ -307,6 +299,12 @@ public class NewSessionIT {
             boolean actualVal = (boolean) actual;
             assertEquals(expectedVal, actualVal);
         } else if (expected instanceof Integer) {
+            if (isInfluxdb) {
+                long expectedVal = ((Integer) expected).longValue();
+                long actualVal = (long) actual;
+                assertEquals(expectedVal, actualVal);
+                return;
+            }
             int expectedVal = (int) expected;
             int actualVal = (int) actual;
             assertEquals(expectedVal, actualVal);
@@ -315,6 +313,12 @@ public class NewSessionIT {
             long actualVal = (long) actual;
             assertEquals(expectedVal, actualVal);
         } else if (expected instanceof Float) {
+            if (isInfluxdb) {
+                double expectedVal = ((Float) expected).doubleValue();
+                double actualVal = (double) actual;
+                assertEquals(expectedVal, actualVal, expectedVal * DELTA);
+                return;
+            }
             float expectedVal = (float) expected;
             float actualVal = (float) actual;
             assertEquals(expectedVal, actualVal, expectedVal * DELTA);
@@ -626,6 +630,7 @@ public class NewSessionIT {
 
     @Test
     public void testQueryAfterDelete() {
+        if (!isAbleToDelete) return;
         // single path delete data
         try {
             // first

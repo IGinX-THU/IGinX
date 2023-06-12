@@ -2,32 +2,32 @@ package cn.edu.tsinghua.iginx.engine.logical.utils;
 
 import static org.junit.Assert.assertEquals;
 
-import cn.edu.tsinghua.iginx.metadata.entity.TimeSeriesInterval;
-import cn.edu.tsinghua.iginx.metadata.entity.TimeSeriesRange;
+import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
+import cn.edu.tsinghua.iginx.metadata.entity.ColumnsRange;
 import org.junit.Test;
 
 public class PathUtilsTest {
 
     @Test
     public void test() {
-        TimeSeriesRange interval1 = new TimeSeriesInterval("*", "*");
-        TimeSeriesRange expected1 = new TimeSeriesInterval(null, null);
+        ColumnsRange interval1 = new ColumnsInterval("*", "*");
+        ColumnsRange expected1 = new ColumnsInterval(null, null);
         assertEquals(expected1, PathUtils.trimTimeSeriesInterval(interval1));
 
-        TimeSeriesRange interval2 = new TimeSeriesInterval("a.*", "*.c");
-        TimeSeriesRange expected2 = new TimeSeriesInterval("a.!", null);
+        ColumnsRange interval2 = new ColumnsInterval("a.*", "*.c");
+        ColumnsRange expected2 = new ColumnsInterval("a.!", null);
         assertEquals(expected2, PathUtils.trimTimeSeriesInterval(interval2));
 
-        TimeSeriesRange interval3 = new TimeSeriesInterval("*.d", "b.*");
-        TimeSeriesRange expected3 = new TimeSeriesInterval(null, "b.~");
+        ColumnsRange interval3 = new ColumnsInterval("*.d", "b.*");
+        ColumnsRange expected3 = new ColumnsInterval(null, "b.~");
         assertEquals(expected3, PathUtils.trimTimeSeriesInterval(interval3));
 
-        TimeSeriesRange interval4 = new TimeSeriesInterval("a.*.c", "b.*.c");
-        TimeSeriesInterval expected4 = new TimeSeriesInterval("a.!", "b.~");
+        ColumnsRange interval4 = new ColumnsInterval("a.*.c", "b.*.c");
+        ColumnsInterval expected4 = new ColumnsInterval("a.!", "b.~");
         assertEquals(expected4, PathUtils.trimTimeSeriesInterval(interval4));
 
-        TimeSeriesInterval interval5 = new TimeSeriesInterval("a.*.*.c", "b.*.*.*.c");
-        TimeSeriesInterval expected5 = new TimeSeriesInterval("a.!", "b.~");
+        ColumnsInterval interval5 = new ColumnsInterval("a.*.*.c", "b.*.*.*.c");
+        ColumnsInterval expected5 = new ColumnsInterval("a.!", "b.~");
         assertEquals(expected5, PathUtils.trimTimeSeriesInterval(interval5));
     }
 }
