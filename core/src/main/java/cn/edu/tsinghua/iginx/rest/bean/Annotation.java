@@ -6,11 +6,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 import lombok.Data;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Data
 public class Annotation {
-    private static final org.slf4j.Logger LOGGER = LoggerFactory.getLogger(Annotation.class);
+    private static final Logger logger = LoggerFactory.getLogger(Annotation.class);
     private List<String> tags = new ArrayList<>();
     private String text;
     private String title;
@@ -40,7 +41,7 @@ public class Annotation {
             }
         } catch (Exception e) {
             e.printStackTrace();
-            LOGGER.error("Wrong annotation form in database");
+            logger.error("Wrong annotation form in database");
         }
     }
 

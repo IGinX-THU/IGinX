@@ -3,7 +3,7 @@ package cn.edu.tsinghua.iginx.engine.logical.generator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.ShowTimeSeries;
 import cn.edu.tsinghua.iginx.engine.shared.source.GlobalSource;
-import cn.edu.tsinghua.iginx.sql.statement.ShowTimeSeriesStatement;
+import cn.edu.tsinghua.iginx.sql.statement.ShowColumnsStatement;
 import cn.edu.tsinghua.iginx.sql.statement.Statement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,12 +24,12 @@ public class ShowTimeSeriesGenerator extends AbstractGenerator {
 
     @Override
     protected Operator generateRoot(Statement statement) {
-        ShowTimeSeriesStatement showTimeSeriesStatement = (ShowTimeSeriesStatement) statement;
+        ShowColumnsStatement showColumnsStatement = (ShowColumnsStatement) statement;
         return new ShowTimeSeries(
                 new GlobalSource(),
-                showTimeSeriesStatement.getPathRegexSet(),
-                showTimeSeriesStatement.getTagFilter(),
-                showTimeSeriesStatement.getLimit(),
-                showTimeSeriesStatement.getOffset());
+                showColumnsStatement.getPathRegexSet(),
+                showColumnsStatement.getTagFilter(),
+                showColumnsStatement.getLimit(),
+                showColumnsStatement.getOffset());
     }
 }

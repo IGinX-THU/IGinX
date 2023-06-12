@@ -43,6 +43,7 @@ public class SessionExecuteSqlResult {
     private long jobId;
     private JobState jobState;
     private List<Long> jobIdList;
+    private String configValue;
 
     // Only for mock test
     public SessionExecuteSqlResult() {}
@@ -96,6 +97,9 @@ public class SessionExecuteSqlResult {
             case ShowEligibleJob:
                 this.jobIdList = resp.getJobIdList();
                 break;
+            case ShowConfig:
+                this.configValue = resp.getConfigValue();
+                break;
             default:
                 break;
         }
@@ -124,7 +128,7 @@ public class SessionExecuteSqlResult {
     public List<List<String>> getResultInList(
             boolean needFormatTime, String timeFormat, String timePrecision) {
         List<List<String>> result = new ArrayList<>();
-        if (isQuery()) {
+        if (sqlType == SqlType.Query) {
             result = cacheResult(needFormatTime, timeFormat, timePrecision);
         } else if (sqlType == SqlType.ShowTimeSeries) {
             result.add(new ArrayList<>(Arrays.asList("Path", "DataType")));
@@ -150,22 +154,29 @@ public class SessionExecuteSqlResult {
     }
 
     public String getResultInString(boolean needFormatTime, String timePrecision) {
-        if (isQuery()) {
-            return buildQueryResult(needFormatTime, timePrecision);
-        } else if (sqlType == SqlType.ShowTimeSeries) {
-            return buildShowTimeSeriesResult();
-        } else if (sqlType == SqlType.ShowClusterInfo) {
-            return buildShowClusterInfoResult();
-        } else if (sqlType == SqlType.ShowRegisterTask) {
-            return buildShowRegisterTaskResult();
-        } else if (sqlType == SqlType.ShowEligibleJob) {
-            return buildShowEligibleJobResult();
-        } else if (sqlType == SqlType.GetReplicaNum) {
-            return "Replica num: " + replicaNum + "\n";
-        } else if (sqlType == SqlType.CountPoints) {
-            return "Points num: " + pointsNum + "\n";
-        } else {
-            return "No data to print." + "\n";
+        switch (sqlType) {
+            case Query:
+                return buildQueryResult(needFormatTime, timePrecision);
+            case ShowTimeSeries:
+                return buildShowTimeSeriesResult();
+            case ShowClusterInfo:
+                return buildShowClusterInfoResult();
+            case ShowRegisterTask:
+                return buildShowRegisterTaskResult();
+            case ShowEligibleJob:
+                return buildShowEligibleJobResult();
+            case GetReplicaNum:
+                return "Replica num: " + replicaNum + "\n";
+            case CountPoints:
+                return "Points num: " + pointsNum + "\n";
+            case CommitTransformJob:
+                return "job id: " + jobId;
+            case ShowJobStatus:
+                return "Job status: " + jobState;
+            case ShowConfig:
+                return "config value: " + configValue + "\n";
+            default:
+                return "No data to print." + "\n";
         }
     }
 
@@ -237,7 +248,7 @@ public class SessionExecuteSqlResult {
 
     private String buildShowTimeSeriesResult() {
         StringBuilder builder = new StringBuilder();
-        builder.append("Time series:").append("\n");
+        builder.append("Columns:").append("\n");
         int num = 0;
         if (paths != null) {
             List<List<String>> cache = new ArrayList<>();
@@ -360,10 +371,6 @@ public class SessionExecuteSqlResult {
         }
 
         return builder.toString();
-    }
-
-    public boolean isQuery() {
-        return sqlType == SqlType.Query;
     }
 
     public SqlType getSqlType() {

@@ -44,7 +44,7 @@ public class MonitorManager implements Runnable {
                 metaManager.updateFragmentRequests(
                         RequestsMonitor.getInstance().getWriteRequestsMap(),
                         RequestsMonitor.getInstance().getReadRequestsMap());
-                metaManager.submitMaxActiveEndTime();
+                metaManager.submitMaxActiveEndKey();
                 Map<FragmentMeta, Long> writeHotspotMap =
                         HotSpotMonitor.getInstance().getWriteHotspotMap();
                 Map<FragmentMeta, Long> readHotspotMap =

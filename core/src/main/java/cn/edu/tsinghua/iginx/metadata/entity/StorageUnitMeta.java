@@ -32,7 +32,7 @@ public final class StorageUnitMeta {
 
     private String masterId;
 
-    private final boolean isMaster;
+    private boolean isMaster;
 
     private long createdBy;
 
@@ -102,6 +102,14 @@ public final class StorageUnitMeta {
         replicas.remove(storageUnit);
     }
 
+    public StorageUnitMeta renameStorageUnitMeta(String id, String masterId) {
+        StorageUnitMeta storageUnitMeta =
+                new StorageUnitMeta(id, storageEngineId, masterId, isMaster);
+        storageUnitMeta.setCreatedBy(createdBy);
+        storageUnitMeta.setInitialStorageUnit(initialStorageUnit);
+        return storageUnitMeta;
+    }
+
     public String getId() {
         return id;
     }
@@ -112,6 +120,10 @@ public final class StorageUnitMeta {
 
     public long getStorageEngineId() {
         return storageEngineId;
+    }
+
+    public void setStorageEngineId(long storageEngineId) {
+        this.storageEngineId = storageEngineId;
     }
 
     public String getMasterId() {
@@ -126,8 +138,46 @@ public final class StorageUnitMeta {
         return isMaster;
     }
 
+    public void setMaster(boolean master) {
+        isMaster = master;
+    }
+
+    public long getCreatedBy() {
+        return createdBy;
+    }
+
+    public void setCreatedBy(long createdBy) {
+        this.createdBy = createdBy;
+    }
+
+    public boolean isInitialStorageUnit() {
+        return initialStorageUnit;
+    }
+
+    public void setInitialStorageUnit(boolean initialStorageUnit) {
+        this.initialStorageUnit = initialStorageUnit;
+    }
+
+    public boolean isDummy() {
+        return dummy;
+    }
+
+    public void setDummy(boolean dummy) {
+        this.dummy = dummy;
+    }
+
+    public boolean isIfValid() {
+        return ifValid;
+    }
+
+    public void setIfValid(boolean ifValid) {
+        this.ifValid = ifValid;
+    }
+
     public List<StorageUnitMeta> getReplicas() {
-        if (replicas == null) replicas = new ArrayList<>();
+        if (replicas == null) {
+            replicas = new ArrayList<>();
+        }
         return replicas;
     }
 
@@ -135,18 +185,14 @@ public final class StorageUnitMeta {
         this.replicas = replicas;
     }
 
-    public StorageUnitMeta renameStorageUnitMeta(String id, String masterId) {
-        StorageUnitMeta storageUnitMeta =
-                new StorageUnitMeta(id, storageEngineId, masterId, isMaster);
-        storageUnitMeta.setCreatedBy(createdBy);
-        storageUnitMeta.setInitialStorageUnit(initialStorageUnit);
-        return storageUnitMeta;
-    }
-
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         StorageUnitMeta that = (StorageUnitMeta) o;
         return Objects.equals(id, that.id);
     }
@@ -178,42 +224,6 @@ public final class StorageUnitMeta {
         }
         builder.append("}");
         return builder.toString();
-    }
-
-    public long getCreatedBy() {
-        return createdBy;
-    }
-
-    public void setCreatedBy(long createdBy) {
-        this.createdBy = createdBy;
-    }
-
-    public boolean isInitialStorageUnit() {
-        return initialStorageUnit;
-    }
-
-    public void setInitialStorageUnit(boolean initialStorageUnit) {
-        this.initialStorageUnit = initialStorageUnit;
-    }
-
-    public void setStorageEngineId(long storageEngineId) {
-        this.storageEngineId = storageEngineId;
-    }
-
-    public boolean isDummy() {
-        return dummy;
-    }
-
-    public void setDummy(boolean dummy) {
-        this.dummy = dummy;
-    }
-
-    public boolean isIfValid() {
-        return ifValid;
-    }
-
-    public void setIfValid(boolean ifValid) {
-        this.ifValid = ifValid;
     }
 
     public static String generateDummyStorageUnitID(long id) {

@@ -50,7 +50,7 @@ public class YamlReadTest {
     };
 
     @Test
-    public void test() throws FileNotFoundException {
+    public void test() {
         try {
             YAMLReader yamlReader = new YAMLReader(filePath);
             JobFromYAML jobFromYAML = yamlReader.getJobFromYAML();

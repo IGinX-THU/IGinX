@@ -3,15 +3,22 @@ package cn.edu.tsinghua.iginx.integration.expansion;
 import org.junit.Test;
 
 public interface BaseCapacityExpansionIT {
-    @Test
-    public void oriHasDataExpHasData() throws Exception;
 
     @Test
-    public void oriHasDataExpNoData() throws Exception;
+    void oriHasDataExpHasData();
 
     @Test
-    public void oriNoDataExpHasData() throws Exception;
+    void oriHasDataExpNoData();
 
     @Test
-    public void oriNoDataExpNoData() throws Exception;
+    void oriNoDataExpHasData();
+
+    @Test
+    void oriNoDataExpNoData();
+
+    void addStorageEngineWithPrefix(String dataPrefix, String schemaPrefix);
+
+    void addStorageEngine(boolean hasData);
+
+    int getPort();
 }

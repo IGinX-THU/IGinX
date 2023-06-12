@@ -1,40 +1,42 @@
 package cn.edu.tsinghua.iginx.integration.func.tag;
 
+import static cn.edu.tsinghua.iginx.integration.controller.Controller.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
-import cn.edu.tsinghua.iginx.integration.tool.ConfLoder;
+import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
-import java.io.IOException;
 import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class TagIT {
-    protected static final Logger logger = LoggerFactory.getLogger(TagIT.class);
-    protected static Session session;
-    protected static boolean ifClearData;
-    protected boolean isAbleToDelete = true;
-    protected boolean ifScaleOutIn = false;
-    private String CLEARDATAEXCP =
-            "cn.edu.tsinghua.iginx.exceptions.ExecutionException: Caution: can not clear the data of read-only node.";
+    private static final Logger logger = LoggerFactory.getLogger(TagIT.class);
 
-    public TagIT() throws IOException {
-        ConfLoder conf = new ConfLoder(Controller.CONFIG_FILE);
+    private static Session session;
+
+    private static boolean isAbleToClearData;
+
+    private boolean isAbleToDelete = true;
+
+    private boolean isScaling = false;
+
+    public TagIT() {
+        ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
         DBConf dbConf = conf.loadDBConf(conf.getStorageType());
-        this.ifClearData = dbConf.getEnumValue(DBConf.DBConfType.isAbleToClearData);
+        this.isAbleToClearData = dbConf.getEnumValue(DBConf.DBConfType.isAbleToClearData);
         this.isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
-        this.ifScaleOutIn = conf.getStorageType() != null;
+        this.isScaling = conf.isScaling();
     }
 
     @BeforeClass
     public static void setUp() throws SessionException {
-        ifClearData = true;
+        isAbleToClearData = true;
         session = new Session("127.0.0.1", 6888, "root", "root");
         session.openSession();
     }
@@ -47,13 +49,14 @@ public class TagIT {
     @Before
     public void insertData() throws ExecutionException, SessionException {
         String[] insertStatements =
-                ("insert into ah.hr01 (key, s, v, s[t1=v1, t2=vv1], v[t1=v2, t2=vv1]) values (0, 1, 2, 3, 4), (1, 2, 3, 4, 5), (2, 3, 4, 5, 6), (3, 4, 5, 6, 7);\n"
-                                + "insert into ah.hr02 (key, s, v) values (100, true, \"v1\");\n"
-                                + "insert into ah.hr02[t1=v1] (key, s, v) values (400, false, \"v4\");\n"
-                                + "insert into ah.hr02[t1=v1,t2=v2] (key, v) values (800, \"v8\");\n"
-                                + "insert into ah.hr03 (key, s[t1=vv1,t2=v2], v[t1=vv11]) values (1600, true, 16);\n"
-                                + "insert into ah.hr03 (key, s[t1=v1,t2=vv2], v[t1=v1], v[t1=vv11]) values (3200, true, 16, 32);")
-                        .split("\n");
+                new String[] {
+                    "insert into ah.hr01 (key, s, v, s[t1=v1, t2=vv1], v[t1=v2, t2=vv1]) values (0, 1, 2, 3, 4), (1, 2, 3, 4, 5), (2, 3, 4, 5, 6), (3, 4, 5, 6, 7);",
+                    "insert into ah.hr02 (key, s, v) values (100, true, \"v1\");",
+                    "insert into ah.hr02[t1=v1] (key, s, v) values (400, false, \"v4\");",
+                    "insert into ah.hr02[t1=v1,t2=v2] (key, v) values (800, \"v8\");",
+                    "insert into ah.hr03 (key, s[t1=vv1,t2=v2], v[t1=vv11]) values (1600, true, 16);",
+                    "insert into ah.hr03 (key, s[t1=v1,t2=vv2], v[t1=v1], v[t1=vv11]) values (3200, true, 16, 32);"
+                };
 
         for (String insertStatement : insertStatements) {
             SessionExecuteSqlResult res = session.executeSql(insertStatement);
@@ -65,7 +68,7 @@ public class TagIT {
     }
 
     @After
-    public void clearData() throws ExecutionException, SessionException {
+    public void clearData() {
         Controller.clearData(session);
     }
 
@@ -81,10 +84,12 @@ public class TagIT {
         try {
             res = session.executeSql(statement);
         } catch (SessionException | ExecutionException e) {
-            logger.error("Statement: \"{}\" execute fail. Caused by:", statement, e);
-            if (e.toString().equals(CLEARDATAEXCP)) {
-                logger.error("clear data fail and go on....");
-            } else fail();
+            if (e.toString().trim().equals(CLEAR_DATA_EXCEPTION)) {
+                logger.warn(CLEAR_DATA_WARNING);
+            } else {
+                logger.error(CLEAR_DATA_ERROR, statement, e.getMessage());
+                fail();
+            }
         }
 
         if (res == null) {
@@ -92,10 +97,7 @@ public class TagIT {
         }
 
         if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-            logger.error(
-                    "Statement: \"{}\" execute fail. Caused by: {}.",
-                    statement,
-                    res.getParseErrorMsg());
+            logger.error(CLEAR_DATA_ERROR, statement, res.getParseErrorMsg());
             fail();
             return "";
         }
@@ -105,9 +107,9 @@ public class TagIT {
 
     @Test
     public void testShowTimeSeriesWithTags() {
-        String statement = "SHOW TIME SERIES ah.*;";
+        String statement = "SHOW COLUMNS ah.*;";
         String expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+-----------------------+--------+\n"
                         + "|                   Path|DataType|\n"
                         + "+-----------------------+--------+\n"
@@ -128,9 +130,9 @@ public class TagIT {
                         + "Total line number = 13\n";
         executeAndCompare(statement, expected);
 
-        statement = "SHOW TIME SERIES ah.* limit 6;";
+        statement = "SHOW COLUMNS ah.* limit 6;";
         expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+-----------------------+--------+\n"
                         + "|                   Path|DataType|\n"
                         + "+-----------------------+--------+\n"
@@ -144,9 +146,9 @@ public class TagIT {
                         + "Total line number = 6\n";
         executeAndCompare(statement, expected);
 
-        statement = "SHOW TIME SERIES ah.* limit 3 offset 7;";
+        statement = "SHOW COLUMNS ah.* limit 3 offset 7;";
         expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+-----------------------+--------+\n"
                         + "|                   Path|DataType|\n"
                         + "+-----------------------+--------+\n"
@@ -157,9 +159,9 @@ public class TagIT {
                         + "Total line number = 3\n";
         executeAndCompare(statement, expected);
 
-        statement = "SHOW TIME SERIES ah.* limit 7, 3;";
+        statement = "SHOW COLUMNS ah.* limit 7, 3;";
         expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+-----------------------+--------+\n"
                         + "|                   Path|DataType|\n"
                         + "+-----------------------+--------+\n"
@@ -170,9 +172,9 @@ public class TagIT {
                         + "Total line number = 3\n";
         executeAndCompare(statement, expected);
 
-        statement = "SHOW TIME SERIES ah.hr02.*;";
+        statement = "SHOW COLUMNS ah.hr02.*;";
         expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+----------------------+--------+\n"
                         + "|                  Path|DataType|\n"
                         + "+----------------------+--------+\n"
@@ -185,9 +187,9 @@ public class TagIT {
                         + "Total line number = 5\n";
         executeAndCompare(statement, expected);
 
-        statement = "SHOW TIME SERIES ah.hr02.* limit 3 offset 2;";
+        statement = "SHOW COLUMNS ah.hr02.* limit 3 offset 2;";
         expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+----------------------+--------+\n"
                         + "|                  Path|DataType|\n"
                         + "+----------------------+--------+\n"
@@ -198,9 +200,9 @@ public class TagIT {
                         + "Total line number = 3\n";
         executeAndCompare(statement, expected);
 
-        statement = "SHOW TIME SERIES ah.hr02.*, ah.hr03.*;";
+        statement = "SHOW COLUMNS ah.hr02.*, ah.hr03.*;";
         expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+-----------------------+--------+\n"
                         + "|                   Path|DataType|\n"
                         + "+-----------------------+--------+\n"
@@ -217,9 +219,9 @@ public class TagIT {
                         + "Total line number = 9\n";
         executeAndCompare(statement, expected);
 
-        statement = "SHOW TIME SERIES ah.hr02.* with t1=v1;";
+        statement = "SHOW COLUMNS ah.hr02.* with t1=v1;";
         expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+----------------------+--------+\n"
                         + "|                  Path|DataType|\n"
                         + "+----------------------+--------+\n"
@@ -230,9 +232,9 @@ public class TagIT {
                         + "Total line number = 3\n";
         executeAndCompare(statement, expected);
 
-        statement = "SHOW TIME SERIES ah.hr02.* with t1=v1 limit 2 offset 1;";
+        statement = "SHOW COLUMNS ah.hr02.* with t1=v1 limit 2 offset 1;";
         expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+----------------------+--------+\n"
                         + "|                  Path|DataType|\n"
                         + "+----------------------+--------+\n"
@@ -242,9 +244,9 @@ public class TagIT {
                         + "Total line number = 2\n";
         executeAndCompare(statement, expected);
 
-        statement = "SHOW TIME SERIES ah.hr02.* with_precise t1=v1;";
+        statement = "SHOW COLUMNS ah.hr02.* with_precise t1=v1;";
         expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+----------------+--------+\n"
                         + "|            Path|DataType|\n"
                         + "+----------------+--------+\n"
@@ -254,9 +256,9 @@ public class TagIT {
                         + "Total line number = 2\n";
         executeAndCompare(statement, expected);
 
-        statement = "SHOW TIME SERIES ah.hr02.* with_precise t1=v1 AND t2=v2;";
+        statement = "SHOW COLUMNS ah.hr02.* with_precise t1=v1 AND t2=v2;";
         expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+----------------------+--------+\n"
                         + "|                  Path|DataType|\n"
                         + "+----------------------+--------+\n"
@@ -265,9 +267,9 @@ public class TagIT {
                         + "Total line number = 1\n";
         executeAndCompare(statement, expected);
 
-        statement = "SHOW TIME SERIES ah.hr02.* with t1=v1 AND t2=v2;";
+        statement = "SHOW COLUMNS ah.hr02.* with t1=v1 AND t2=v2;";
         expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+----------------------+--------+\n"
                         + "|                  Path|DataType|\n"
                         + "+----------------------+--------+\n"
@@ -276,9 +278,9 @@ public class TagIT {
                         + "Total line number = 1\n";
         executeAndCompare(statement, expected);
 
-        statement = "SHOW TIME SERIES  ah.* WITHOUT TAG;";
+        statement = "SHOW COLUMNS  ah.* WITHOUT TAG;";
         expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+---------+--------+\n"
                         + "|     Path|DataType|\n"
                         + "+---------+--------+\n"
@@ -293,7 +295,7 @@ public class TagIT {
 
     @Test
     public void testCountPoints() {
-        if (ifScaleOutIn) return;
+        if (isScaling) return;
         String statement = "COUNT POINTS;";
         String expected = "Points num: 26\n";
         executeAndCompare(statement, expected);
@@ -491,6 +493,7 @@ public class TagIT {
 
     @Test
     public void testDeleteWithTag() {
+        if (!isAbleToDelete || isScaling) return;
         String statement = "SELECT s FROM ah.*;";
         String expected =
                 "ResultSets:\n"
@@ -531,6 +534,7 @@ public class TagIT {
 
     @Test
     public void testDeleteWithMultiTags() {
+        if (!isAbleToDelete || isScaling) return;
         String statement = "SELECT s FROM ah.*;";
         String expected =
                 "ResultSets:\n"
@@ -609,9 +613,10 @@ public class TagIT {
 
     @Test
     public void testDeleteTSWithTag() {
-        String showTimeSeries = "SHOW TIME SERIES ah.*;";
+        if (!isAbleToDelete || isScaling) return;
+        String showTimeSeries = "SHOW COLUMNS ah.*;";
         String expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+-----------------------+--------+\n"
                         + "|                   Path|DataType|\n"
                         + "+-----------------------+--------+\n"
@@ -632,12 +637,12 @@ public class TagIT {
                         + "Total line number = 13\n";
         executeAndCompare(showTimeSeries, expected);
 
-        String deleteTimeSeries = "DELETE TIME SERIES ah.*.s WITH t1=v1";
+        String deleteTimeSeries = "DELETE COLUMNS ah.*.s WITH t1=v1";
         execute(deleteTimeSeries);
 
-        showTimeSeries = "SHOW TIME SERIES ah.*;";
+        showTimeSeries = "SHOW COLUMNS ah.*;";
         expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+-----------------------+--------+\n"
                         + "|                   Path|DataType|\n"
                         + "+-----------------------+--------+\n"
@@ -659,12 +664,12 @@ public class TagIT {
         expected = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
         executeAndCompare(showTimeSeriesData, expected);
 
-        deleteTimeSeries = "DELETE TIME SERIES ah.*.v WITH_PRECISE t1=v1";
+        deleteTimeSeries = "DELETE COLUMNS ah.*.v WITH_PRECISE t1=v1";
         execute(deleteTimeSeries);
 
-        showTimeSeries = "SHOW TIME SERIES ah.*;";
+        showTimeSeries = "SHOW COLUMNS ah.*;";
         expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+-----------------------+--------+\n"
                         + "|                   Path|DataType|\n"
                         + "+-----------------------+--------+\n"
@@ -694,10 +699,10 @@ public class TagIT {
 
     @Test
     public void testDeleteTSWithMultiTags() {
-        if (!isAbleToDelete) return;
-        String showTimeSeries = "SHOW TIME SERIES ah.*;";
+        if (!isAbleToDelete || isScaling) return;
+        String showTimeSeries = "SHOW COLUMNS ah.*;";
         String expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+-----------------------+--------+\n"
                         + "|                   Path|DataType|\n"
                         + "+-----------------------+--------+\n"
@@ -718,12 +723,12 @@ public class TagIT {
                         + "Total line number = 13\n";
         executeAndCompare(showTimeSeries, expected);
 
-        String deleteTimeSeries = "DELETE TIME SERIES ah.*.v WITH t1=v1 AND t2=v2;";
+        String deleteTimeSeries = "DELETE COLUMNS ah.*.v WITH t1=v1 AND t2=v2;";
         execute(deleteTimeSeries);
 
-        showTimeSeries = "SHOW TIME SERIES ah.*;";
+        showTimeSeries = "SHOW COLUMNS ah.*;";
         expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+-----------------------+--------+\n"
                         + "|                   Path|DataType|\n"
                         + "+-----------------------+--------+\n"
@@ -748,12 +753,12 @@ public class TagIT {
         ;
         executeAndCompare(showTimeSeriesData, expected);
 
-        deleteTimeSeries = "DELETE TIME SERIES * WITH t1=v1 AND t2=vv2 OR t1=vv1 AND t2=v2;";
+        deleteTimeSeries = "DELETE COLUMNS * WITH t1=v1 AND t2=vv2 OR t1=vv1 AND t2=v2;";
         execute(deleteTimeSeries);
 
-        showTimeSeries = "SHOW TIME SERIES ah.*;";
+        showTimeSeries = "SHOW COLUMNS ah.*;";
         expected =
-                "Time series:\n"
+                "Columns:\n"
                         + "+-----------------------+--------+\n"
                         + "|                   Path|DataType|\n"
                         + "+-----------------------+--------+\n"
@@ -1286,7 +1291,9 @@ public class TagIT {
 
     @Test
     public void testClearData() throws SessionException, ExecutionException {
-        if (!ifClearData || ifScaleOutIn) return;
+        if (!isAbleToClearData || isScaling) {
+            return;
+        }
         clearData();
 
         String countPoints = "COUNT POINTS;";

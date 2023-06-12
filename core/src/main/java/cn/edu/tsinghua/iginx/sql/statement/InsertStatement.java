@@ -15,7 +15,7 @@ public class InsertStatement extends DataStatement {
     private List<String> paths;
     private Map<String, String> globalTags;
     private List<Map<String, String>> tagsList;
-    private List<Long> times;
+    private List<Long> keys;
     private Object[] values;
     private List<DataType> types;
     private List<Bitmap> bitmaps;
@@ -32,7 +32,7 @@ public class InsertStatement extends DataStatement {
     public InsertStatement(
             RawDataType rawDataType,
             List<String> paths,
-            List<Long> times,
+            List<Long> keys,
             Object[] values,
             List<DataType> types,
             List<Bitmap> bitmaps,
@@ -40,7 +40,7 @@ public class InsertStatement extends DataStatement {
         this.statementType = StatementType.INSERT;
         this.rawDataType = rawDataType;
         this.paths = paths;
-        this.times = times;
+        this.keys = keys;
         this.values = values;
         this.types = types;
         this.bitmaps = bitmaps;
@@ -92,12 +92,12 @@ public class InsertStatement extends DataStatement {
         this.tagsList = tagsList;
     }
 
-    public List<Long> getTimes() {
-        return times;
+    public List<Long> getKeys() {
+        return keys;
     }
 
-    public void setTimes(List<Long> times) {
-        this.times = times;
+    public void setKeys(List<Long> keys) {
+        this.keys = keys;
     }
 
     public Object[] getValues() {
@@ -125,20 +125,20 @@ public class InsertStatement extends DataStatement {
     }
 
     public long getStartTime() {
-        return times.get(0);
+        return keys.get(0);
     }
 
     public long getEndTime() {
-        return times.get(times.size() - 1);
+        return keys.get(keys.size() - 1);
     }
 
     public void sortData() {
-        Integer[] index = new Integer[times.size()];
-        for (int i = 0; i < times.size(); i++) {
+        Integer[] index = new Integer[keys.size()];
+        for (int i = 0; i < keys.size(); i++) {
             index[i] = i;
         }
-        Arrays.sort(index, Comparator.comparingLong(times::get));
-        Collections.sort(times);
+        Arrays.sort(index, Comparator.comparingLong(keys::get));
+        Collections.sort(keys);
         for (int i = 0; i < values.length; i++) {
             Object[] tmpValues = new Object[index.length];
             for (int j = 0; j < index.length; j++) {
@@ -166,8 +166,8 @@ public class InsertStatement extends DataStatement {
 
         for (int i = 0; i < sortedValuesList.length; i++) {
             Object[] values = (Object[]) sortedValuesList[i];
-            Bitmap bitmap = new Bitmap(times.size());
-            for (int j = 0; j < times.size(); j++) {
+            Bitmap bitmap = new Bitmap(keys.size());
+            for (int j = 0; j < keys.size(); j++) {
                 if (values[j] != null) {
                     bitmap.mark(j);
                 }
@@ -187,6 +187,6 @@ public class InsertStatement extends DataStatement {
                 tagsList.add(globalTags);
             }
         }
-        return new RawData(paths, tagsList, times, values, types, bitmaps, rawDataType);
+        return new RawData(paths, tagsList, keys, values, types, bitmaps, rawDataType);
     }
 }

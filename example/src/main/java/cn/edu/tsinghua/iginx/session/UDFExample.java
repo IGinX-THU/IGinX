@@ -43,7 +43,7 @@ public class UDFExample {
         prepareData();
 
         // 查询序列
-        SessionExecuteSqlResult result = session.executeSql("show time series");
+        SessionExecuteSqlResult result = session.executeSql("SHOW COLUMNS");
         result.print(false, "ms");
 
         // 注册UDTF

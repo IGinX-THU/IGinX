@@ -337,7 +337,7 @@ public class IginxWorker implements IService.Iface {
                 String dataPrefix = meta.getDataPrefix();
                 StorageUnitMeta dummyStorageUnit =
                         new StorageUnitMeta(StorageUnitMeta.generateDummyStorageUnitID(0), -1);
-                Pair<TimeSeriesRange, TimeInterval> boundary =
+                Pair<ColumnsRange, KeyInterval> boundary =
                         StorageManager.getBoundaryOfStorage(meta, dataPrefix);
                 FragmentMeta dummyFragment;
                 String schemaPrefixTmp = null;
@@ -350,7 +350,7 @@ public class IginxWorker implements IService.Iface {
                 } else {
                     dummyFragment =
                             new FragmentMeta(
-                                    new TimeSeriesPrefixRange(dataPrefix, schemaPrefixTmp),
+                                    new ColumnsPrefixRange(dataPrefix, schemaPrefixTmp),
                                     boundary.v,
                                     dummyStorageUnit);
                 }
@@ -928,10 +928,10 @@ public class IginxWorker implements IService.Iface {
                                 f ->
                                         new Fragment(
                                                 f.getMasterStorageUnitId(),
-                                                f.getTimeInterval().getStartTime(),
-                                                f.getTimeInterval().getEndTime(),
-                                                f.getTsInterval().getStartTimeSeries(),
-                                                f.getTsInterval().getEndTimeSeries()))
+                                                f.getKeyInterval().getStartKey(),
+                                                f.getKeyInterval().getEndKey(),
+                                                f.getColumnsRange().getStartColumn(),
+                                                f.getColumnsRange().getEndColumn()))
                         .collect(Collectors.toList());
         return new GetMetaResp(fragments, storages, units);
     }

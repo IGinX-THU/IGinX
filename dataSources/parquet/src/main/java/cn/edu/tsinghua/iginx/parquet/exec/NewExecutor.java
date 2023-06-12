@@ -2,17 +2,16 @@ package cn.edu.tsinghua.iginx.parquet.exec;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
-import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Timeseries;
+import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
-import cn.edu.tsinghua.iginx.engine.shared.TimeRange;
+import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.ClearEmptyRowStreamWrapper;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
-import cn.edu.tsinghua.iginx.metadata.entity.TimeInterval;
-import cn.edu.tsinghua.iginx.metadata.entity.TimeSeriesInterval;
-import cn.edu.tsinghua.iginx.metadata.entity.TimeSeriesRange;
-import cn.edu.tsinghua.iginx.parquet.entity.Column;
+import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
+import cn.edu.tsinghua.iginx.metadata.entity.ColumnsRange;
+import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.parquet.entity.NewQueryRowStream;
 import cn.edu.tsinghua.iginx.parquet.tools.TagKVUtils;
 import cn.edu.tsinghua.iginx.utils.Pair;
@@ -109,7 +108,8 @@ public class NewExecutor implements Executor {
         }
 
         try {
-            List<Column> columns = duManager.project(paths, tagFilter, filter);
+            List<cn.edu.tsinghua.iginx.parquet.entity.Column> columns =
+                    duManager.project(paths, tagFilter, filter);
             RowStream rowStream = new ClearEmptyRowStreamWrapper(new NewQueryRowStream(columns));
             return new TaskExecuteResult(rowStream, null);
         } catch (SQLException e) {
@@ -137,10 +137,7 @@ public class NewExecutor implements Executor {
 
     @Override
     public TaskExecuteResult executeDeleteTask(
-            List<String> paths,
-            List<TimeRange> timeRanges,
-            TagFilter tagFilter,
-            String storageUnit) {
+            List<String> paths, List<KeyRange> keyRanges, TagFilter tagFilter, String storageUnit) {
         DUManager duManager;
         try {
             duManager = getDUManager(storageUnit, false);
@@ -149,7 +146,7 @@ public class NewExecutor implements Executor {
         }
 
         try {
-            duManager.delete(paths, timeRanges, tagFilter);
+            duManager.delete(paths, keyRanges, tagFilter);
         } catch (Exception e) {
             return new TaskExecuteResult(null, new PhysicalException("Fail to delete data ", e));
         }
@@ -158,9 +155,8 @@ public class NewExecutor implements Executor {
     }
 
     @Override
-    public List<Timeseries> getTimeSeriesOfStorageUnit(String storageUnit)
-            throws PhysicalException {
-        List<Timeseries> ret = new ArrayList<>();
+    public List<Column> getTimeSeriesOfStorageUnit(String storageUnit) throws PhysicalException {
+        List<Column> ret = new ArrayList<>();
         if (storageUnit.equals("*")) {
             duManagerMap.forEach(
                     (id, duManager) -> {
@@ -170,7 +166,7 @@ public class NewExecutor implements Executor {
                                         (path, type) -> {
                                             Pair<String, Map<String, String>> pair =
                                                     TagKVUtils.splitFullName(path);
-                                            ret.add(new Timeseries(pair.k, type, pair.v));
+                                            ret.add(new Column(pair.k, type, pair.v));
                                         });
                     });
         } else {
@@ -187,14 +183,14 @@ public class NewExecutor implements Executor {
                             (path, type) -> {
                                 Pair<String, Map<String, String>> pair =
                                         TagKVUtils.splitFullName(path);
-                                ret.add(new Timeseries(pair.k, type, pair.v));
+                                ret.add(new Column(pair.k, type, pair.v));
                             });
         }
         return ret;
     }
 
     @Override
-    public Pair<TimeSeriesRange, TimeInterval> getBoundaryOfStorage() throws PhysicalException {
+    public Pair<ColumnsRange, KeyInterval> getBoundaryOfStorage() throws PhysicalException {
         List<String> paths = new ArrayList<>();
         long start = Long.MAX_VALUE, end = Long.MIN_VALUE;
         for (DUManager duManager : duManagerMap.values()) {
@@ -206,12 +202,12 @@ public class NewExecutor implements Executor {
                                         TagKVUtils.splitFullName(path);
                                 paths.add(pair.k);
                             });
-            TimeInterval interval = duManager.getTimeInterval();
-            if (interval.getStartTime() < start) {
-                start = interval.getStartTime();
+            KeyInterval interval = duManager.getTimeInterval();
+            if (interval.getStartKey() < start) {
+                start = interval.getStartKey();
             }
-            if (interval.getEndTime() > end) {
-                end = interval.getEndTime();
+            if (interval.getEndKey() > end) {
+                end = interval.getEndKey();
             }
         }
         paths.sort(String::compareTo);
@@ -221,11 +217,11 @@ public class NewExecutor implements Executor {
         if (start == Long.MAX_VALUE || end == Long.MIN_VALUE) {
             throw new PhysicalTaskExecuteFailureException("time range error");
         }
-        TimeSeriesRange tsRange =
-                new TimeSeriesInterval(
+        ColumnsRange tsRange =
+                new ColumnsInterval(
                         paths.get(0), StringUtils.nextString(paths.get(paths.size() - 1)));
-        TimeInterval timeInterval = new TimeInterval(start, end);
-        return new Pair<>(tsRange, timeInterval);
+        KeyInterval keyInterval = new KeyInterval(start, end);
+        return new Pair<>(tsRange, keyInterval);
     }
 
     @Override

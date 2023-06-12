@@ -1,6 +1,7 @@
 package cn.edu.tsinghua.iginx.utils;
 
 import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONWriter.Feature;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -9,26 +10,12 @@ public class JsonUtils {
     public static final String TYPENAME = "iginxtype";
 
     public static byte[] toJson(Object o) {
-        return JSON.toJSONBytes(o);
+        String tmp = JSON.toJSONString(o, Feature.WriteClassName);
+        return tmp.getBytes();
     }
 
     public static <T> T fromJson(byte[] data, Class<T> clazz) {
         return JSON.parseObject(data, clazz);
-    }
-
-    public static byte[] addType(String type, String typeSpecificName, byte[] data) {
-        return addType(type, typeSpecificName, data, 0);
-    }
-
-    public static byte[] addType(String type, String typeSpecificName, byte[] data, int begIndex) {
-        StringBuilder json = new StringBuilder(new String(data));
-        int index = json.indexOf(type, begIndex);
-        if (index != -1) {
-            // 3 is the length of the ":{", and the position +1
-            int addIndex = json.indexOf("{", index);
-            json.insert(addIndex + 1, "\"" + TYPENAME + "\":" + "\"" + typeSpecificName + "\",");
-        }
-        return json.toString().getBytes();
     }
 
     public static Map<String, Integer> transform(String content) {
