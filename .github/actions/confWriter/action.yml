@@ -5,18 +5,18 @@ inputs:
         description: "if you need capacity expansion"
         required: false
         default: "false"
-    Read-Only:
-        description: "make the storage engine read-only"
-        required: false
-        default: "false"
-    Test-Way:
-        description: "the way to imp"
-        required: false
-        default: clearData
     DB-name:
         description: "DB name"
         required: false
         default: IoTDB12
+    Test-Way:
+        description: "the way to test"
+        required: false
+        default: clearData
+    Read-Only:
+        description: "make the storage engine read-only"
+        required: false
+        default: "false"
 
 runs:
     using: "composite" # Mandatory parameter

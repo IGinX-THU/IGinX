@@ -13,6 +13,11 @@ inputs:
         description: "the way to test"
         required: false
         default: clearData
+    Read-Only:
+      description: "make the storage engine read-only"
+      required: false
+      default: "false"
+
 runs:
     using: "composite" # Mandatory parameter
     steps:
@@ -50,6 +55,7 @@ runs:
               Test-Way: ${{ inputs.Test-Way }}
               if-CapExp: true
               DB-name: ${{ inputs.DB-name }}
+              Read-Only: ${{ inputs.Read-Only }}
 
         - name: Start IGinX
           uses: ./.github/actions/iginxRunner
