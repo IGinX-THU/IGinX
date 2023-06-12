@@ -49,7 +49,7 @@ public class SQLSessionIT {
 
     protected boolean isSupportSpecialCharacterPath;
 
-    protected boolean isAbleToShowTimeSeries;
+    protected boolean isAbleToShowColumns;
 
     protected boolean isScaling = false;
 
@@ -66,7 +66,7 @@ public class SQLSessionIT {
         this.isScaling = conf.isScaling();
         this.isAbleToClearData = dbConf.getEnumValue(DBConf.DBConfType.isAbleToClearData);
         this.isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
-        this.isAbleToShowTimeSeries = dbConf.getEnumValue(DBConf.DBConfType.isAbleToShowTimeSeries);
+        this.isAbleToShowColumns = dbConf.getEnumValue(DBConf.DBConfType.isAbleToShowColumns);
         this.isSupportChinesePath = dbConf.getEnumValue(DBConfType.isSupportChinesePath);
         this.isSupportNumericalPath = dbConf.getEnumValue(DBConfType.isSupportNumericalPath);
         this.isSupportSpecialCharacterPath =
@@ -179,7 +179,7 @@ public class SQLSessionIT {
 
     @Test
     public void testShowTimeSeries() {
-        if (!isAbleToShowTimeSeries || isScaling) {
+        if (!isAbleToShowColumns || isScaling) {
             return;
         }
         String statement = "SHOW COLUMNS us.*;";

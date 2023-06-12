@@ -75,7 +75,7 @@ public class ConfigDescriptor {
             config.setDatabaseClassNames(
                     properties.getProperty(
                             "databaseClassNames",
-                            "iotdb=cn.edu.tsinghua.iginx.iotdb.IoTDBPlanExecutor,influxdb=cn.edu.tsinghua.iginx.influxdb.InfluxDBPlanExecutor,parquet=cn.edu.tsinghua.iginx.parquet.parquetStorage,mongodb=cn.edu.tsinghua.iginx.mongodb.MongoDBStorage"));
+                            "iotdb=cn.edu.tsinghua.iginx.iotdb.IoTDBPlanExecutor,influxdb=cn.edu.tsinghua.iginx.influxdb.InfluxDBPlanExecutor,parquet=cn.edu.tsinghua.iginx.parquet.parquetStorage,mongodb=cn.edu.tsinghua.iginx.mongodb.MongoDBStorage,postgresql=cn.edu.tsinghua.iginx.postgresql.PostgreSQLStorage"));
             // ,opentsdb=cn.edu.tsinghua.iginx.opentsdb.OpenTSDBStorage,timescaledb=cn.edu.tsinghua.iginx.timescaledb.TimescaleDBStorage,postgresql=cn.edu.tsinghua.iginx.postgresql.PostgreSQLStorage
 
             config.setPolicyClassName(

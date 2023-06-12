@@ -8,7 +8,7 @@ public final class DBConf {
     public enum DBConfType {
         isAbleToClearData,
         isAbleToDelete,
-        isAbleToShowTimeSeries,
+        isAbleToShowColumns,
         isSupportChinesePath,
         isSupportNumericalPath,
         isSupportSpecialCharacterPath
@@ -29,8 +29,8 @@ public final class DBConf {
                 return DBConfType.isAbleToClearData;
             case "isAbleToDelete":
                 return DBConfType.isAbleToDelete;
-            case "isAbleToShowTimeSeries":
-                return DBConfType.isAbleToShowTimeSeries;
+            case "isAbleToShowColumns":
+                return DBConfType.isAbleToShowColumns;
             case "isSupportChinesePath":
                 return DBConfType.isSupportChinesePath;
             case "isSupportNumericalPath":
