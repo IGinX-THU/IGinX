@@ -71,7 +71,8 @@ public abstract class BaseHistoryDataGenerator {
     }
 
     private void writeHistoryDataToReadOnly() {
-        writeHistoryData(readOnlyPort, READ_ONLY_PATH_LIST, READ_ONLY_DATA_TYPE_LIST, READ_ONLY_VALUES_LIST);
+        writeHistoryData(
+                readOnlyPort, READ_ONLY_PATH_LIST, READ_ONLY_DATA_TYPE_LIST, READ_ONLY_VALUES_LIST);
     }
 
     protected abstract void writeHistoryData(
