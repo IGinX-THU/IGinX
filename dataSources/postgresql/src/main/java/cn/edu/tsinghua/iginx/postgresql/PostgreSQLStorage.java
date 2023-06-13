@@ -309,6 +309,7 @@ public class PostgreSQLStorage implements IStorage {
 
             Map<String, Map<String, String>> splitResults =
                     splitAndMergeHistoryQueryPatterns(project.getPatterns());
+            logger.error("splitResults {}", splitResults);
             for (Map.Entry<String, Map<String, String>> splitEntry : splitResults.entrySet()) {
                 String databaseName = splitEntry.getKey();
                 conn = getConnection(databaseName);
@@ -528,26 +529,24 @@ public class PostgreSQLStorage implements IStorage {
                                 databaseName, "public", "%", new String[] {"TABLE"});
                 while (tableSet.next()) {
                     String tableName = tableSet.getString("TABLE_NAME"); // 获取表名称
-                    logger.error("tableName {}", tableName);
-                    logger.error("dataPrefix {}", dataPrefix);
-                    if (dataPrefix != null
-                            && !tableName.startsWith(
-                                    dataPrefix.replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR))) {
-                        continue;
-                    }
                     ResultSet columnSet =
                             databaseMetaData.getColumns(databaseName, "public", tableName, "%");
                     StringBuilder columnNames = new StringBuilder();
                     while (columnSet.next()) {
                         String columnName = columnSet.getString("COLUMN_NAME"); // 获取列名称
-                        paths.add(
+                        columnNames.append(columnName);
+                        columnNames.append(", "); // c1, c2, c3,
+
+                        String path =
                                 databaseName
                                         + IGINX_SEPARATOR
                                         + tableName.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR)
                                         + IGINX_SEPARATOR
-                                        + columnName);
-                        columnNames.append(columnName);
-                        columnNames.append(", "); // c1, c2, c3,
+                                        + columnName;
+                        if (dataPrefix != null && !path.startsWith(dataPrefix)) {
+                            continue;
+                        }
+                        paths.add(path);
                     }
                     columnNames =
                             new StringBuilder(

@@ -169,7 +169,7 @@ public class DataPointsParser {
         try {
             // 构造查询
             QueryMetric metric = new QueryMetric();
-            metric.setName(ANNOTAIONSEQUENCE);
+            metric.setName(ANNOTATION_SEQUENCE);
             //            metric.addLastAggregator();
             Query query = new Query();
             query.addQueryMetrics(metric);
@@ -186,7 +186,7 @@ public class DataPointsParser {
                 return new Long(-1L);
             } else {
                 if (result.getQueryResultDatasets().get(0).getKeys().isEmpty())
-                    return new Long(ANNOSTARTTIME + 1L);
+                    return new Long(ANNOTATION_START_KEY + 1L);
                 else {
                     Object val =
                             result.getQueryResultDatasets().get(0).getValueLists().get(0).get(0);
@@ -213,12 +213,12 @@ public class DataPointsParser {
         List<DataType> type = new ArrayList<>();
         List<Map<String, String>> tagsList = new ArrayList<>();
 
-        paths.add(ANNOTAIONSEQUENCE);
+        paths.add(ANNOTATION_SEQUENCE);
         timestamps.add(1L);
         if (ifUpdate) {
             value[0] = getType(String.valueOf(val), DataType.BINARY);
         } else {
-            value[0] = getType(String.valueOf(ANNOSTARTTIME + 1L), DataType.BINARY);
+            value[0] = getType(String.valueOf(ANNOTATION_START_KEY + 1L), DataType.BINARY);
         }
 
         type.add(DataType.BINARY);
@@ -251,7 +251,7 @@ public class DataPointsParser {
         }
         valuesList[0] = valuesAnno;
         type.add(DataType.BINARY);
-        ANNOPATHS.add(ANNOTAIONSEQUENCE);
+        ANNOPATHS.add(ANNOTATION_SEQUENCE);
         try {
             session.insertNonAlignedColumnRecords(
                     ANNOPATHS,
@@ -286,13 +286,13 @@ public class DataPointsParser {
             if (anno.get("title") != null) {
                 valuesAnno[pos++] = getType(String.valueOf(time + num), typeAb);
                 annoSequence.put(time + num, anno.get("title"));
-                timestamps.add(TITLETIEM);
+                timestamps.add(TITLE_KEY);
                 num++;
             }
             if (anno.get("description") != null) {
                 valuesAnno[pos++] = getType(String.valueOf(time + num), typeAb);
                 annoSequence.put(time + num, anno.get("description"));
-                timestamps.add(DESCRIPTIONTIEM);
+                timestamps.add(DESCRIPTION_KEY);
                 num++;
             }
             // 首先更新anno列表可用最小值

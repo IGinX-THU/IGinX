@@ -188,7 +188,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
     private TransformChangeHook transformChangeHook = null;
     private ReshardStatusChangeHook reshardStatusChangeHook = null;
     private ReshardCounterChangeHook reshardCounterChangeHook = null;
-    private MaxActiveEndTimeStatisticsChangeHook maxActiveEndTimeStatisticsChangeHook = null;
+    private MaxActiveEndKeyStatisticsChangeHook maxActiveEndKeyStatisticsChangeHook = null;
 
     protected TreeCache userCache;
 
@@ -808,7 +808,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
     }
 
     @Override
-    public List<FragmentMeta> getFragmentListByTimeSeriesNameAndTimeInterval(
+    public List<FragmentMeta> getFragmentListByColumnNameAndKeyInterval(
             String tsName, KeyInterval keyInterval) {
         try {
             List<String> columnsRangeNames =
@@ -850,7 +850,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
     }
 
     @Override
-    public Map<ColumnsRange, List<FragmentMeta>> getFragmentMapByTimeSeriesIntervalAndTimeInterval(
+    public Map<ColumnsRange, List<FragmentMeta>> getFragmentMapByColumnsIntervalAndKeyInterval(
             ColumnsRange columnsRange, KeyInterval keyInterval) {
         try {
             List<String> columnsRangeNames =
@@ -1338,7 +1338,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
     }
 
     @Override
-    public Map<String, Double> getTimeseriesData() {
+    public Map<String, Double> getColumnsData() {
         Map<String, Double> ret = new HashMap<>();
         try {
             Set<Integer> idSet =
@@ -1899,7 +1899,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
             for (String child : children) {
                 ColumnsRange columnsRange = ColumnsInterval.fromString(child);
                 List<FragmentMeta> fragmentMetas =
-                        cache.getFragmentMapByExactTimeSeriesInterval(columnsRange);
+                        cache.getFragmentMapByExactColumnsInterval(columnsRange);
 
                 List<String> timeIntervals =
                         client.getChildren()
@@ -2132,7 +2132,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
             for (String child : children) {
                 ColumnsRange columnsRange = ColumnsInterval.fromString(child);
                 Map<ColumnsRange, List<FragmentMeta>> fragmentMapOfTimeSeriesInterval =
-                        cache.getFragmentMapByTimeSeriesInterval(columnsRange);
+                        cache.getFragmentMapByColumnsInterval(columnsRange);
                 List<FragmentMeta> fragmentMetas =
                         fragmentMapOfTimeSeriesInterval.get(columnsRange);
 
@@ -2169,7 +2169,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
             for (String child : children) {
                 ColumnsRange columnsRange = ColumnsInterval.fromString(child);
                 Map<ColumnsRange, List<FragmentMeta>> fragmentMapOfTimeSeriesInterval =
-                        cache.getFragmentMapByTimeSeriesInterval(columnsRange);
+                        cache.getFragmentMapByColumnsInterval(columnsRange);
                 List<FragmentMeta> fragmentMetas =
                         fragmentMapOfTimeSeriesInterval.get(columnsRange);
 
@@ -2504,7 +2504,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
                 new TreeCache(this.client, MAX_ACTIVE_END_TIME_STATISTICS_NODE_PREFIX);
         TreeCacheListener listener =
                 (curatorFramework, event) -> {
-                    if (maxActiveEndTimeStatisticsChangeHook == null) {
+                    if (maxActiveEndKeyStatisticsChangeHook == null) {
                         return;
                     }
                     String path;
@@ -2518,7 +2518,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
                             String[] pathParts = path.split("/");
                             if (pathParts.length == 7) {
                                 endTime = JsonUtils.fromJson(data, Long.class);
-                                maxActiveEndTimeStatisticsChangeHook.onChange(endTime);
+                                maxActiveEndKeyStatisticsChangeHook.onChange(endTime);
                             }
                             break;
                         default:
@@ -2530,7 +2530,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
     }
 
     @Override
-    public void lockMaxActiveEndTimeStatistics() throws MetaStorageException {
+    public void lockMaxActiveEndKeyStatistics() throws MetaStorageException {
         try {
             maxActiveEndTimeStatisticsMutexLock.lock();
             maxActiveEndTimeStatisticsMutex.acquire();
@@ -2542,18 +2542,18 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
     }
 
     @Override
-    public void addOrUpdateMaxActiveEndTimeStatistics(long endTime) throws MetaStorageException {
+    public void addOrUpdateMaxActiveEndKeyStatistics(long endKey) throws MetaStorageException {
         try {
             if (this.client.checkExists().forPath(MAX_ACTIVE_END_TIME_STATISTICS_NODE) == null) {
                 this.client
                         .create()
                         .creatingParentsIfNeeded()
                         .withMode(CreateMode.PERSISTENT)
-                        .forPath(MAX_ACTIVE_END_TIME_STATISTICS_NODE, JsonUtils.toJson(endTime));
+                        .forPath(MAX_ACTIVE_END_TIME_STATISTICS_NODE, JsonUtils.toJson(endKey));
             } else {
                 this.client
                         .setData()
-                        .forPath(MAX_ACTIVE_END_TIME_STATISTICS_NODE, JsonUtils.toJson(endTime));
+                        .forPath(MAX_ACTIVE_END_TIME_STATISTICS_NODE, JsonUtils.toJson(endKey));
             }
         } catch (Exception e) {
             throw new MetaStorageException(
@@ -2562,7 +2562,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
     }
 
     @Override
-    public long getMaxActiveEndTimeStatistics() throws MetaStorageException {
+    public long getMaxActiveEndKeyStatistics() throws MetaStorageException {
         try {
             if (this.client.checkExists().forPath(MAX_ACTIVE_END_TIME_STATISTICS_NODE) != null) {
                 return JsonUtils.fromJson(
@@ -2577,7 +2577,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
     }
 
     @Override
-    public void releaseMaxActiveEndTimeStatistics() throws MetaStorageException {
+    public void releaseMaxActiveEndKeyStatistics() throws MetaStorageException {
         try {
             maxActiveEndTimeStatisticsMutex.release();
         } catch (Exception e) {
@@ -2589,9 +2589,9 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
     }
 
     @Override
-    public void registerMaxActiveEndTimeStatisticsChangeHook(
-            MaxActiveEndTimeStatisticsChangeHook hook) throws MetaStorageException {
-        this.maxActiveEndTimeStatisticsChangeHook = hook;
+    public void registerMaxActiveEndKeyStatisticsChangeHook(
+            MaxActiveEndKeyStatisticsChangeHook hook) throws MetaStorageException {
+        this.maxActiveEndKeyStatisticsChangeHook = hook;
     }
 
     private void registerReshardCounterListener() throws Exception {

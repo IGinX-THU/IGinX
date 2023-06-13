@@ -107,37 +107,31 @@ public abstract class QueryAggregator {
             RestSession session,
             List<String> paths,
             Map<String, List<String>> tagList,
-            long startTimestamp,
-            long endTimestamp) {
+            long startKey,
+            long endKey) {
         return doAggregate(
-                session,
-                paths,
-                tagList,
-                startTimestamp,
-                endTimestamp,
-                TimeUtils.DEFAULT_TIMESTAMP_PRECISION);
+                session, paths, tagList, startKey, endKey, TimeUtils.DEFAULT_TIMESTAMP_PRECISION);
     }
 
     public QueryResultDataset doAggregate(
             RestSession session,
             List<String> paths,
             Map<String, List<String>> tagList,
-            long startTimestamp,
-            long endTimestamp,
+            long startKey,
+            long endKey,
             TimePrecision timePrecision) {
         SessionQueryDataSet sessionQueryDataSet = null;
         try {
             if (type == QueryAggregatorType.NONE) {
                 sessionQueryDataSet =
-                        session.queryData(
-                                paths, startTimestamp, endTimestamp, tagList, timePrecision);
+                        session.queryData(paths, startKey, endKey, tagList, timePrecision);
             } else if (aggregateType != null) {
                 sessionQueryDataSet =
                         session.downsampleQuery(
                                 paths,
                                 tagList,
-                                startTimestamp,
-                                endTimestamp,
+                                startKey,
+                                endKey,
                                 aggregateType,
                                 getDur(),
                                 timePrecision);

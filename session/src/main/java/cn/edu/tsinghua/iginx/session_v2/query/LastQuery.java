@@ -23,28 +23,28 @@ import java.util.*;
 
 public class LastQuery extends Query {
 
-    private final long startTime;
+    private final long startKey;
 
     private final String timePrecision;
 
-    public LastQuery(Set<String> measurements, Map<String, List<String>> tagsList, long startTime) {
+    public LastQuery(Set<String> measurements, Map<String, List<String>> tagsList, long startKey) {
         super(measurements, tagsList);
-        this.startTime = startTime;
+        this.startKey = startKey;
         this.timePrecision = null;
     }
 
     public LastQuery(
             Set<String> measurements,
             Map<String, List<String>> tagsList,
-            long startTime,
+            long startKey,
             String timePrecision) {
         super(measurements, tagsList);
-        this.startTime = startTime;
+        this.startKey = startKey;
         this.timePrecision = timePrecision;
     }
 
-    public long getStartTime() {
-        return startTime;
+    public long getStartKey() {
+        return startKey;
     }
 
     public static LastQuery.Builder builder() {
@@ -61,14 +61,14 @@ public class LastQuery extends Query {
 
         private final Map<String, List<String>> tagsList;
 
-        private long startTime;
+        private long startKey;
 
         private String timePrecision;
 
         private Builder() {
             this.measurements = new HashSet<>();
             this.tagsList = new HashMap<>();
-            this.startTime = 0L;
+            this.startKey = 0L;
             this.timePrecision = null;
         }
 
@@ -98,11 +98,11 @@ public class LastQuery extends Query {
             return this;
         }
 
-        public LastQuery.Builder startTime(long startTime) {
-            if (startTime < 0) {
-                throw new IllegalArgumentException("startTime must greater than zero.");
+        public LastQuery.Builder startKey(long startKey) {
+            if (startKey < 0) {
+                throw new IllegalArgumentException("startKey must greater than zero.");
             }
-            this.startTime = startTime;
+            this.startKey = startKey;
             return this;
         }
 
@@ -116,7 +116,7 @@ public class LastQuery extends Query {
             if (this.measurements.isEmpty()) {
                 throw new IllegalStateException("last query at least has one measurement.");
             }
-            return new LastQuery(measurements, tagsList, startTime, timePrecision);
+            return new LastQuery(measurements, tagsList, startKey, timePrecision);
         }
     }
 }

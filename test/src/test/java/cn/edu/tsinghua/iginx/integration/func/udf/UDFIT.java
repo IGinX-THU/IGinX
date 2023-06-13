@@ -64,16 +64,16 @@ public class UDFIT {
     public void insertData() throws ExecutionException, SessionException {
         String insertStrPrefix = "INSERT INTO us.d1 (key, s1, s2, s3, s4) values ";
 
-        long startTimestamp = 0L;
-        long endTimestamp = 15000L;
+        long startKey = 0L;
+        long endKey = 15000L;
 
         StringBuilder builder = new StringBuilder(insertStrPrefix);
 
-        int size = (int) (endTimestamp - startTimestamp);
+        int size = (int) (endKey - startKey);
         for (int i = 0; i < size; i++) {
             builder.append(", ");
             builder.append("(");
-            builder.append(startTimestamp + i).append(", ");
+            builder.append(startKey + i).append(", ");
             builder.append(i).append(", ");
             builder.append(i + 1).append(", ");
             builder.append("\"")

@@ -21,20 +21,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.tag.WithoutTagFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsRange;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.parquet.exec.Executor;
-import cn.edu.tsinghua.iginx.parquet.thrift.DeleteReq;
-import cn.edu.tsinghua.iginx.parquet.thrift.GetStorageBoundryResp;
-import cn.edu.tsinghua.iginx.parquet.thrift.GetTimeSeriesOfStorageUnitResp;
-import cn.edu.tsinghua.iginx.parquet.thrift.InsertReq;
-import cn.edu.tsinghua.iginx.parquet.thrift.ParquetHeader;
-import cn.edu.tsinghua.iginx.parquet.thrift.ParquetRawData;
-import cn.edu.tsinghua.iginx.parquet.thrift.ParquetRow;
-import cn.edu.tsinghua.iginx.parquet.thrift.ParquetService;
-import cn.edu.tsinghua.iginx.parquet.thrift.ParquetTimeRange;
-import cn.edu.tsinghua.iginx.parquet.thrift.ProjectReq;
-import cn.edu.tsinghua.iginx.parquet.thrift.ProjectResp;
-import cn.edu.tsinghua.iginx.parquet.thrift.RawTagFilter;
-import cn.edu.tsinghua.iginx.parquet.thrift.Status;
-import cn.edu.tsinghua.iginx.parquet.thrift.TS;
+import cn.edu.tsinghua.iginx.parquet.thrift.*;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.ByteUtils;
@@ -132,7 +119,7 @@ public class ParquetWorker implements ParquetService.Iface {
                                 ByteUtils.getRowByteBuffer(rowValues, dataTypes),
                                 ByteBuffer.wrap(bitmap.getBytes()));
                 if (hasTime) {
-                    parquetRow.setTimestamp(row.getKey());
+                    parquetRow.setKey(row.getKey());
                 }
                 parquetRows.add(parquetRow);
             }
@@ -156,7 +143,7 @@ public class ParquetWorker implements ParquetService.Iface {
         }
 
         List<String> paths = parquetRawData.getPaths();
-        long[] timeArray = ByteUtils.getLongArrayFromByteArray(parquetRawData.getTimestamps());
+        long[] timeArray = ByteUtils.getLongArrayFromByteArray(parquetRawData.getKeys());
         List<Long> times = new ArrayList<>();
         Arrays.stream(timeArray).forEach(times::add);
         List<ByteBuffer> valueList = parquetRawData.getValuesList();
@@ -236,10 +223,10 @@ public class ParquetWorker implements ParquetService.Iface {
 
         // null timeRanges means delete columns
         List<KeyRange> keyRanges = null;
-        if (req.isSetTimeRanges()) {
+        if (req.isSetKeyRanges()) {
             keyRanges = new ArrayList<>();
-            for (ParquetTimeRange range : req.getTimeRanges()) {
-                keyRanges.add(new KeyRange(range.getBeginTime(), range.getEndTime()));
+            for (ParquetKeyRange range : req.getKeyRanges()) {
+                keyRanges.add(new KeyRange(range.getBeginKey(), range.getEndKey()));
             }
         }
 
@@ -301,11 +288,11 @@ public class ParquetWorker implements ParquetService.Iface {
     }
 
     @Override
-    public GetTimeSeriesOfStorageUnitResp getTimeSeriesOfStorageUnit(String storageUnit)
+    public GetColumnsOfStorageUnitResp getColumnsOfStorageUnit(String storageUnit)
             throws TException {
         List<TS> ret = new ArrayList<>();
         try {
-            List<Column> tsList = executor.getTimeSeriesOfStorageUnit(storageUnit);
+            List<Column> tsList = executor.getColumnsOfStorageUnit(storageUnit);
             tsList.forEach(
                     timeseries -> {
                         TS ts = new TS(timeseries.getPath(), timeseries.getDataType().toString());
@@ -314,28 +301,28 @@ public class ParquetWorker implements ParquetService.Iface {
                         }
                         ret.add(ts);
                     });
-            GetTimeSeriesOfStorageUnitResp resp = new GetTimeSeriesOfStorageUnitResp(SUCCESS);
+            GetColumnsOfStorageUnitResp resp = new GetColumnsOfStorageUnitResp(SUCCESS);
             resp.setTsList(ret);
             return resp;
         } catch (PhysicalException e) {
-            logger.error("encounter error when getTimeSeriesOfStorageUnit ", e);
-            return new GetTimeSeriesOfStorageUnitResp(GET_TS_FAIL);
+            logger.error("encounter error when getColumnsOfStorageUnit ", e);
+            return new GetColumnsOfStorageUnitResp(GET_TS_FAIL);
         }
     }
 
     @Override
-    public GetStorageBoundryResp getBoundaryOfStorage() throws TException {
+    public GetStorageBoundaryResp getBoundaryOfStorage() throws TException {
         try {
             Pair<ColumnsRange, KeyInterval> pair = executor.getBoundaryOfStorage();
-            GetStorageBoundryResp resp = new GetStorageBoundryResp(SUCCESS);
-            resp.setStartTime(pair.getV().getStartKey());
-            resp.setEndTime(pair.getV().getEndKey());
-            resp.setStartTimeSeries(pair.getK().getStartColumn());
-            resp.setEndTimeSeries(pair.getK().getEndColumn());
+            GetStorageBoundaryResp resp = new GetStorageBoundaryResp(SUCCESS);
+            resp.setStartKey(pair.getV().getStartKey());
+            resp.setEndKey(pair.getV().getEndKey());
+            resp.setStartColumn(pair.getK().getStartColumn());
+            resp.setEndColumn(pair.getK().getEndColumn());
             return resp;
         } catch (PhysicalException e) {
             logger.error("encounter error when getBoundaryOfStorage ", e);
-            return new GetStorageBoundryResp(GET_BOUNDARY_FAIL);
+            return new GetStorageBoundaryResp(GET_BOUNDARY_FAIL);
         }
     }
 }

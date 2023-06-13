@@ -38,12 +38,12 @@ public class QueryAggregatorPercentile extends QueryAggregator {
             RestSession session,
             List<String> paths,
             Map<String, List<String>> tagList,
-            long startTimestamp,
-            long endTimestamp) {
+            long startKey,
+            long endKey) {
         QueryResultDataset queryResultDataset = new QueryResultDataset();
         try {
             SessionQueryDataSet sessionQueryDataSet =
-                    session.queryData(paths, startTimestamp, endTimestamp, tagList);
+                    session.queryData(paths, startKey, endKey, tagList);
             queryResultDataset.setPaths(getPathsFromSessionQueryDataSet(sessionQueryDataSet));
             DataType type = RestUtils.checkType(sessionQueryDataSet);
             int n = sessionQueryDataSet.getKeys().length;
@@ -62,18 +62,16 @@ public class QueryAggregatorPercentile extends QueryAggregator {
                         if (i == n - 1
                                 || RestUtils.getInterval(
                                                 sessionQueryDataSet.getKeys()[i],
-                                                startTimestamp,
+                                                startKey,
                                                 getDur())
                                         != RestUtils.getInterval(
                                                 sessionQueryDataSet.getKeys()[i + 1],
-                                                startTimestamp,
+                                                startKey,
                                                 getDur())) {
                             Collections.sort(tmp);
                             queryResultDataset.add(
                                     RestUtils.getIntervalStart(
-                                            sessionQueryDataSet.getKeys()[i],
-                                            startTimestamp,
-                                            getDur()),
+                                            sessionQueryDataSet.getKeys()[i], startKey, getDur()),
                                     tmp.get((int) Math.floor(getPercentile() * (tmp.size() - 1))));
                             tmp = new ArrayList<>();
                         }
@@ -91,18 +89,16 @@ public class QueryAggregatorPercentile extends QueryAggregator {
                         if (i == n - 1
                                 || RestUtils.getInterval(
                                                 sessionQueryDataSet.getKeys()[i],
-                                                startTimestamp,
+                                                startKey,
                                                 getDur())
                                         != RestUtils.getInterval(
                                                 sessionQueryDataSet.getKeys()[i + 1],
-                                                startTimestamp,
+                                                startKey,
                                                 getDur())) {
                             Collections.sort(tmpd);
                             queryResultDataset.add(
                                     RestUtils.getIntervalStart(
-                                            sessionQueryDataSet.getKeys()[i],
-                                            startTimestamp,
-                                            getDur()),
+                                            sessionQueryDataSet.getKeys()[i], startKey, getDur()),
                                     tmpd.get(
                                             (int) Math.floor(getPercentile() * (tmpd.size() - 1))));
                             tmpd = new ArrayList<>();

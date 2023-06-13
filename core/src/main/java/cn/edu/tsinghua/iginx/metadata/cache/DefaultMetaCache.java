@@ -55,7 +55,7 @@ public class DefaultMetaCache implements IMetaCache {
 
     private final boolean enableFragmentCacheControl = config.isEnableMetaCacheControl();
 
-    private long minTimestamp = 0L;
+    private long minKey = 0L;
 
     private final ReadWriteLock fragmentLock;
 
@@ -79,13 +79,12 @@ public class DefaultMetaCache implements IMetaCache {
     // user 的缓存
     private final Map<String, UserMeta> userMetaMap;
 
-    // 时序列信息版本号的缓存
-    private final Map<Integer, Integer> timeSeriesVersionMap;
+    // 序列信息版本号的缓存
+    private final Map<Integer, Integer> columnsVersionMap;
 
     private final ReadWriteLock insertRecordLock = new ReentrantReadWriteLock();
 
-    private final Map<String, ColumnCalDO> timeSeriesCalDOConcurrentHashMap =
-            new ConcurrentHashMap<>();
+    private final Map<String, ColumnCalDO> columnCalDOConcurrentHashMap = new ConcurrentHashMap<>();
 
     private final Random random = new Random();
 
@@ -120,7 +119,7 @@ public class DefaultMetaCache implements IMetaCache {
         // user 相关
         userMetaMap = new ConcurrentHashMap<>();
         // 时序列信息版本号相关
-        timeSeriesVersionMap = new ConcurrentHashMap<>();
+        columnsVersionMap = new ConcurrentHashMap<>();
         // transform task 相关
         transformTaskMetaMap = new ConcurrentHashMap<>();
     }
@@ -142,8 +141,8 @@ public class DefaultMetaCache implements IMetaCache {
     }
 
     @Override
-    public long getFragmentMinTimestamp() {
-        return minTimestamp;
+    public long getFragmentMinKey() {
+        return minKey;
     }
 
     private static List<Pair<ColumnsRange, List<FragmentMeta>>> searchFragmentSeriesList(
@@ -245,20 +244,20 @@ public class DefaultMetaCache implements IMetaCache {
     }
 
     private void kickOffHistoryFragment() {
-        long nextMinTimestamp = 0L;
+        long nextMinKey = 0L;
         for (List<FragmentMeta> fragmentList : fragmentMetaListMap.values()) {
             FragmentMeta fragment = fragmentList.get(0);
-            if (fragment.getKeyInterval().getStartKey() == minTimestamp) {
+            if (fragment.getKeyInterval().getStartKey() == minKey) {
                 fragmentList.remove(0);
-                nextMinTimestamp = fragment.getKeyInterval().getEndKey();
+                nextMinKey = fragment.getKeyInterval().getEndKey();
                 fragmentCacheSize--;
             }
         }
-        if (nextMinTimestamp == 0L || nextMinTimestamp == Long.MAX_VALUE) {
-            logger.error("unexpected next min timestamp " + nextMinTimestamp + "!");
+        if (nextMinKey == 0L || nextMinKey == Long.MAX_VALUE) {
+            logger.error("unexpected next min key " + nextMinKey + "!");
             System.exit(-1);
         }
-        minTimestamp = nextMinTimestamp;
+        minKey = nextMinKey;
     }
 
     @Override
@@ -274,8 +273,8 @@ public class DefaultMetaCache implements IMetaCache {
         }
         fragmentMetaList.add(fragmentMeta);
         if (enableFragmentCacheControl) {
-            if (fragmentMeta.getKeyInterval().getStartKey() < minTimestamp) {
-                minTimestamp = fragmentMeta.getKeyInterval().getStartKey();
+            if (fragmentMeta.getKeyInterval().getStartKey() < minKey) {
+                minKey = fragmentMeta.getKeyInterval().getStartKey();
             }
             fragmentCacheSize++;
             while (fragmentCacheSize > fragmentCacheMaxSize) {
@@ -323,7 +322,8 @@ public class DefaultMetaCache implements IMetaCache {
     }
 
     @Override
-    public void updateFragmentByTsInterval(ColumnsRange tsInterval, FragmentMeta fragmentMeta) {
+    public void updateFragmentByColumnsInterval(
+            ColumnsRange tsInterval, FragmentMeta fragmentMeta) {
         fragmentLock.writeLock().lock();
         try {
             // 更新 fragmentMetaListMap
@@ -332,10 +332,10 @@ public class DefaultMetaCache implements IMetaCache {
             fragmentMetaListMap.put(fragmentMeta.getColumnsRange(), fragmentMetaList);
             fragmentMetaListMap.remove(tsInterval);
 
-            for (Pair<ColumnsRange, List<FragmentMeta>> timeSeriesIntervalListPair :
+            for (Pair<ColumnsRange, List<FragmentMeta>> columnsIntervalListPair :
                     sortedFragmentMetaLists) {
-                if (timeSeriesIntervalListPair.getK().equals(tsInterval)) {
-                    timeSeriesIntervalListPair.k = fragmentMeta.getColumnsRange();
+                if (columnsIntervalListPair.getK().equals(tsInterval)) {
+                    columnsIntervalListPair.k = fragmentMeta.getColumnsRange();
                 }
             }
         } finally {
@@ -344,7 +344,8 @@ public class DefaultMetaCache implements IMetaCache {
     }
 
     @Override
-    public void deleteFragmentByTsInterval(ColumnsRange tsInterval, FragmentMeta fragmentMeta) {
+    public void deleteFragmentByColumnsInterval(
+            ColumnsRange tsInterval, FragmentMeta fragmentMeta) {
         fragmentLock.writeLock().lock();
         try {
             // 更新 fragmentMetaListMap
@@ -368,7 +369,7 @@ public class DefaultMetaCache implements IMetaCache {
     }
 
     @Override
-    public Map<ColumnsRange, List<FragmentMeta>> getFragmentMapByTimeSeriesInterval(
+    public Map<ColumnsRange, List<FragmentMeta>> getFragmentMapByColumnsInterval(
             ColumnsRange tsInterval) {
         Map<ColumnsRange, List<FragmentMeta>> resultMap = new HashMap<>();
         fragmentLock.readLock().lock();
@@ -379,7 +380,7 @@ public class DefaultMetaCache implements IMetaCache {
     }
 
     @Override
-    public List<FragmentMeta> getDummyFragmentsByTimeSeriesInterval(ColumnsRange tsInterval) {
+    public List<FragmentMeta> getDummyFragmentsByColumnsInterval(ColumnsRange tsInterval) {
         fragmentLock.readLock().lock();
         List<FragmentMeta> results = new ArrayList<>();
         for (FragmentMeta fragmentMeta : dummyFragments) {
@@ -405,7 +406,7 @@ public class DefaultMetaCache implements IMetaCache {
     }
 
     @Override
-    public Map<ColumnsRange, FragmentMeta> getLatestFragmentMapByTimeSeriesInterval(
+    public Map<ColumnsRange, FragmentMeta> getLatestFragmentMapByColumnsInterval(
             ColumnsRange tsInterval) {
         Map<ColumnsRange, FragmentMeta> latestFragmentMap = new HashMap<>();
         fragmentLock.readLock().lock();
@@ -419,7 +420,7 @@ public class DefaultMetaCache implements IMetaCache {
     }
 
     @Override
-    public Map<ColumnsRange, List<FragmentMeta>> getFragmentMapByTimeSeriesIntervalAndTimeInterval(
+    public Map<ColumnsRange, List<FragmentMeta>> getFragmentMapByColumnsIntervalAndKeyInterval(
             ColumnsRange tsInterval, KeyInterval keyInterval) {
         Map<ColumnsRange, List<FragmentMeta>> resultMap = new HashMap<>();
         fragmentLock.readLock().lock();
@@ -437,7 +438,7 @@ public class DefaultMetaCache implements IMetaCache {
     }
 
     @Override
-    public List<FragmentMeta> getDummyFragmentsByTimeSeriesIntervalAndTimeInterval(
+    public List<FragmentMeta> getDummyFragmentsByColumnsIntervalAndKeyInterval(
             ColumnsRange tsInterval, KeyInterval keyInterval) {
         fragmentLock.readLock().lock();
         List<FragmentMeta> results = new ArrayList<>();
@@ -453,7 +454,7 @@ public class DefaultMetaCache implements IMetaCache {
     }
 
     @Override
-    public List<FragmentMeta> getFragmentListByTimeSeriesName(String tsName) {
+    public List<FragmentMeta> getFragmentListByColumnName(String tsName) {
         List<FragmentMeta> resultList;
         fragmentLock.readLock().lock();
         resultList =
@@ -480,7 +481,7 @@ public class DefaultMetaCache implements IMetaCache {
     }
 
     @Override
-    public FragmentMeta getLatestFragmentByTimeSeriesName(String tsName) {
+    public FragmentMeta getLatestFragmentByColumnName(String tsName) {
         FragmentMeta result;
         fragmentLock.readLock().lock();
         result =
@@ -496,7 +497,7 @@ public class DefaultMetaCache implements IMetaCache {
     }
 
     @Override
-    public List<FragmentMeta> getFragmentMapByExactTimeSeriesInterval(ColumnsRange tsInterval) {
+    public List<FragmentMeta> getFragmentMapByExactColumnsInterval(ColumnsRange tsInterval) {
         List<FragmentMeta> res = fragmentMetaListMap.getOrDefault(tsInterval, new ArrayList<>());
         // 对象不匹配的情况需要手动匹配（?）
         if (res.size() == 0) {
@@ -511,7 +512,7 @@ public class DefaultMetaCache implements IMetaCache {
     }
 
     @Override
-    public List<FragmentMeta> getFragmentListByTimeSeriesNameAndTimeInterval(
+    public List<FragmentMeta> getFragmentListByColumnNameAndKeyInterval(
             String tsName, KeyInterval keyInterval) {
         List<FragmentMeta> resultList;
         fragmentLock.readLock().lock();
@@ -545,8 +546,7 @@ public class DefaultMetaCache implements IMetaCache {
 
     @Override
     public boolean hasFragment() {
-        return !sortedFragmentMetaLists.isEmpty()
-                || (enableFragmentCacheControl && minTimestamp != 0L);
+        return !sortedFragmentMetaLists.isEmpty() || (enableFragmentCacheControl && minKey != 0L);
     }
 
     @Override
@@ -776,11 +776,11 @@ public class DefaultMetaCache implements IMetaCache {
 
     @Override
     public void timeSeriesIsUpdated(int node, int version) {
-        timeSeriesVersionMap.put(node, version);
+        columnsVersionMap.put(node, version);
     }
 
     @Override
-    public void saveTimeSeriesData(InsertStatement statement) {
+    public void saveColumnsData(InsertStatement statement) {
         insertRecordLock.writeLock().lock();
         long now = System.currentTimeMillis();
 
@@ -808,7 +808,7 @@ public class DefaultMetaCache implements IMetaCache {
                     }
                 }
                 if (count > 0) {
-                    updateTimeSeriesCalDOConcurrentHashMap(
+                    updateColumnCalDOConcurrentHashMap(
                             paths.get(i), now, minn, maxx, totalByte, count);
                 }
             }
@@ -841,7 +841,7 @@ public class DefaultMetaCache implements IMetaCache {
             }
             for (int i = 0; i < count.length; i++) {
                 if (count[i] > 0) {
-                    updateTimeSeriesCalDOConcurrentHashMap(
+                    updateColumnCalDOConcurrentHashMap(
                             paths.get(i), now, minn[i], maxx[i], totalByte[i], count[i]);
                 }
             }
@@ -849,15 +849,15 @@ public class DefaultMetaCache implements IMetaCache {
         insertRecordLock.writeLock().unlock();
     }
 
-    private void updateTimeSeriesCalDOConcurrentHashMap(
+    private void updateColumnCalDOConcurrentHashMap(
             String path, long now, long minn, long maxx, long totalByte, int count) {
         ColumnCalDO columnCalDO = new ColumnCalDO();
         columnCalDO.setColumn(path);
-        if (timeSeriesCalDOConcurrentHashMap.containsKey(path)) {
-            columnCalDO = timeSeriesCalDOConcurrentHashMap.get(path);
+        if (columnCalDOConcurrentHashMap.containsKey(path)) {
+            columnCalDO = columnCalDOConcurrentHashMap.get(path);
         }
         columnCalDO.merge(now, minn, maxx, count, totalByte);
-        timeSeriesCalDOConcurrentHashMap.put(path, columnCalDO);
+        columnCalDOConcurrentHashMap.put(path, columnCalDO);
     }
 
     private long transDatatypeToByte(DataType dataType) {
@@ -876,10 +876,10 @@ public class DefaultMetaCache implements IMetaCache {
     }
 
     @Override
-    public List<ColumnCalDO> getMaxValueFromTimeSeries() {
+    public List<ColumnCalDO> getMaxValueFromColumns() {
         insertRecordLock.readLock().lock();
         List<ColumnCalDO> ret =
-                timeSeriesCalDOConcurrentHashMap
+                columnCalDOConcurrentHashMap
                         .values()
                         .stream()
                         .filter(e -> random.nextDouble() < config.getCachedTimeseriesProb())
@@ -889,10 +889,10 @@ public class DefaultMetaCache implements IMetaCache {
     }
 
     @Override
-    public double getSumFromTimeSeries() {
+    public double getSumFromColumns() {
         insertRecordLock.readLock().lock();
         double ret =
-                timeSeriesCalDOConcurrentHashMap
+                columnCalDOConcurrentHashMap
                         .values()
                         .stream()
                         .mapToDouble(ColumnCalDO::getValue)
@@ -902,8 +902,8 @@ public class DefaultMetaCache implements IMetaCache {
     }
 
     @Override
-    public Map<Integer, Integer> getTimeseriesVersionMap() {
-        return timeSeriesVersionMap;
+    public Map<Integer, Integer> getColumnsVersionMap() {
+        return columnsVersionMap;
     }
 
     @Override

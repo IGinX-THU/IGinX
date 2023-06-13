@@ -55,7 +55,7 @@ public class LocalExecutor implements Executor {
 
     private static final Logger logger = LoggerFactory.getLogger(LocalExecutor.class);
 
-    // data-startTime-startPath
+    // data-startKey-startPath
     private static final String DATA_FILE_NAME_FORMATTER = "data__%s__%s.parquet";
 
     private static final String APPENDIX_DATA_FILE_NAME_FORMATTER = "appendixData__%s__%s.parquet";
@@ -183,15 +183,15 @@ public class LocalExecutor implements Executor {
             return determinePathList(storageUnit, patterns, isDummyStorageUnit);
         }
 
-        List<Column> timeSeries = new ArrayList<>();
+        List<Column> columns = new ArrayList<>();
         if (isDummyStorageUnit) {
-            timeSeries.addAll(getTimeSeriesOfDir(Paths.get(dataDir, "*.parquet")));
+            columns.addAll(getColumnsOfDir(Paths.get(dataDir, "*.parquet")));
         } else {
-            timeSeries.addAll(getTimeSeriesOfStorageUnit(storageUnit));
+            columns.addAll(getColumnsOfStorageUnit(storageUnit));
         }
 
         List<String> pathList = new ArrayList<>();
-        for (Column ts : timeSeries) {
+        for (Column ts : columns) {
             for (String pattern : patterns) {
                 if (Pattern.matches(StringUtils.reformatPath(pattern), ts.getPath())
                         && TagKVUtils.match(ts.getTags(), tagFilter)) {
@@ -219,13 +219,13 @@ public class LocalExecutor implements Executor {
                 });
 
         List<String> pathList = new ArrayList<>();
-        List<Column> timeSeries = new ArrayList<>();
+        List<Column> columns = new ArrayList<>();
         if (isDummyStorageUnit) {
-            timeSeries.addAll(getTimeSeriesOfDir(Paths.get(dataDir, "*.parquet")));
+            columns.addAll(getColumnsOfDir(Paths.get(dataDir, "*.parquet")));
         } else {
-            timeSeries.addAll(getTimeSeriesOfStorageUnit(storageUnit));
+            columns.addAll(getColumnsOfStorageUnit(storageUnit));
         }
-        for (Column ts : timeSeries) {
+        for (Column ts : columns) {
             if (patternWithoutStarSet.contains(ts.getPath())) {
                 String path = TagKVUtils.toFullName(ts.getPath(), ts.getTags());
                 pathList.add(path);
@@ -334,12 +334,12 @@ public class LocalExecutor implements Executor {
         int startPathIdx = data.getPathIndex(writePlan.getPathList().get(0));
         int endPathIdx =
                 data.getPathIndex(writePlan.getPathList().get(writePlan.getPathList().size() - 1));
-        int startTimeIdx = data.getTimestampIndex(writePlan.getTimeInterval().getStartKey());
-        int endTimeIdx = data.getTimestampIndex(writePlan.getTimeInterval().getEndKey());
+        int startKeyIdx = data.getKeyIndex(writePlan.getKeyInterval().getStartKey());
+        int endKeyIdx = data.getKeyIndex(writePlan.getKeyInterval().getEndKey());
 
-        for (int i = startTimeIdx; i <= endTimeIdx; i++) {
+        for (int i = startKeyIdx; i <= endKeyIdx; i++) {
             BitmapView bitmapView = data.getBitmapView(i);
-            builder.append("(").append(data.getTimestamp(i)).append(", ");
+            builder.append("(").append(data.getKey(i)).append(", ");
 
             int index = 0;
             for (int j = 0; j < data.getPathNum(); j++) {
@@ -369,36 +369,36 @@ public class LocalExecutor implements Executor {
         int startPathIdx = data.getPathIndex(writePlan.getPathList().get(0));
         int endPathIdx =
                 data.getPathIndex(writePlan.getPathList().get(writePlan.getPathList().size() - 1));
-        int startTimeIdx = data.getTimestampIndex(writePlan.getTimeInterval().getStartKey());
-        int endTimeIdx = data.getTimestampIndex(writePlan.getTimeInterval().getEndKey());
+        int startKeyIdx = data.getKeyIndex(writePlan.getKeyInterval().getStartKey());
+        int endKeyIdx = data.getKeyIndex(writePlan.getKeyInterval().getEndKey());
 
-        String[] rowValueArray = new String[endTimeIdx - startTimeIdx + 1];
-        for (int i = startTimeIdx; i <= endTimeIdx; i++) {
-            rowValueArray[i] = "(" + data.getTimestamp(i) + ", ";
+        String[] rowValueArray = new String[endKeyIdx - startKeyIdx + 1];
+        for (int i = startKeyIdx; i <= endKeyIdx; i++) {
+            rowValueArray[i] = "(" + data.getKey(i) + ", ";
         }
         for (int i = startPathIdx; i <= endPathIdx; i++) {
             BitmapView bitmapView = data.getBitmapView(i);
 
             int index = 0;
-            for (int j = 0; j < data.getTimeSize(); j++) {
+            for (int j = 0; j < data.getKeySize(); j++) {
                 if (bitmapView.get(j)) {
-                    if (startTimeIdx <= j && j <= endTimeIdx) {
+                    if (startKeyIdx <= j && j <= endKeyIdx) {
                         if (data.getDataType(i) == DataType.BINARY) {
-                            rowValueArray[j - startTimeIdx] +=
+                            rowValueArray[j - startKeyIdx] +=
                                     "'" + new String((byte[]) data.getValue(i, index)) + "', ";
                         } else {
-                            rowValueArray[j - startTimeIdx] += data.getValue(i, index) + ", ";
+                            rowValueArray[j - startKeyIdx] += data.getValue(i, index) + ", ";
                         }
                     }
                     index++;
                 } else {
-                    if (startTimeIdx <= j && j <= endTimeIdx) {
-                        rowValueArray[j - startTimeIdx] += "NULL, ";
+                    if (startKeyIdx <= j && j <= endKeyIdx) {
+                        rowValueArray[j - startKeyIdx] += "NULL, ";
                     }
                 }
             }
         }
-        for (int i = startTimeIdx; i <= endTimeIdx; i++) {
+        for (int i = startKeyIdx; i <= endKeyIdx; i++) {
             rowValueArray[i] += "), ";
         }
 
@@ -453,7 +453,7 @@ public class LocalExecutor implements Executor {
     private String generateCreateTableStmt(
             DataViewWrapper data, WritePlan writePlan, String tableName) {
         StringBuilder builder = new StringBuilder();
-        builder.append(COLUMN_TIME).append(" ").append(DATATYPE_BIGINT).append(", ");
+        builder.append(COLUMN_KEY).append(" ").append(DATATYPE_BIGINT).append(", ");
         for (int i = 0; i < data.getPathNum(); i++) {
             String path = data.getPath(i);
             if (writePlan.getPathList().contains(path)) {
@@ -471,11 +471,11 @@ public class LocalExecutor implements Executor {
     }
 
     private List<WritePlan> getWritePlans(DataViewWrapper data, String storageUnit) {
-        if (data.getTimeSize() == 0) { // empty data section
+        if (data.getKeySize() == 0) { // empty data section
             return new ArrayList<>();
         }
         KeyInterval keyInterval =
-                new KeyInterval(data.getTimestamp(0), data.getTimestamp(data.getTimeSize() - 1));
+                new KeyInterval(data.getKey(0), data.getKey(data.getKeySize() - 1));
 
         Pair<Long, List<String>> latestPartition = policy.getLatestPartition(storageUnit);
         List<WritePlan> writePlans = new ArrayList<>();
@@ -528,15 +528,15 @@ public class LocalExecutor implements Executor {
         } else {
             // 有老分区数据需要写入
             TreeMap<Long, List<String>> allPartition = policy.getAllPartition(storageUnit);
-            List<Long> timePartition = new ArrayList<>(allPartition.keySet());
-            timePartition.add(Long.MAX_VALUE);
-            for (int i = 0; i < timePartition.size() - 1; i++) {
-                long startTime = timePartition.get(i);
-                long endTime = timePartition.get(i + 1);
-                KeyInterval partKeyInterval = new KeyInterval(startTime, endTime);
+            List<Long> keyPartition = new ArrayList<>(allPartition.keySet());
+            keyPartition.add(Long.MAX_VALUE);
+            for (int i = 0; i < keyPartition.size() - 1; i++) {
+                long startKey = keyPartition.get(i);
+                long endKey = keyPartition.get(i + 1);
+                KeyInterval partKeyInterval = new KeyInterval(startKey, endKey);
                 if (keyInterval.isIntersect(partKeyInterval)) {
-                    KeyInterval timeIntersect = keyInterval.getIntersectWithLCRO(partKeyInterval);
-                    List<String> tsPartition = new ArrayList<>(allPartition.get(startTime));
+                    KeyInterval keyIntersect = keyInterval.getIntersectWithLCRO(partKeyInterval);
+                    List<String> tsPartition = new ArrayList<>(allPartition.get(startKey));
                     tsPartition.add(null);
                     for (int j = 0; j < tsPartition.size() - 1; j++) {
                         List<String> pathList = new ArrayList<>();
@@ -577,7 +577,7 @@ public class LocalExecutor implements Executor {
                                                         latestPartition.getK(),
                                                         startPath));
                             }
-                            writePlans.add(new WritePlan(path, pathList, timeIntersect));
+                            writePlans.add(new WritePlan(path, pathList, keyIntersect));
                         }
                     }
                 }
@@ -595,7 +595,7 @@ public class LocalExecutor implements Executor {
             return new TaskExecuteResult(e);
         }
 
-        if (keyRanges == null || keyRanges.size() == 0) { // 没有传任何 time range
+        if (keyRanges == null || keyRanges.size() == 0) { // 没有传任何 key range
             if (paths.size() == 1 && paths.get(0).equals("*") && tagFilter == null) {
                 File duDir = Paths.get(dataDir, storageUnit).toFile();
                 FileUtils.deleteFile(duDir);
@@ -708,15 +708,15 @@ public class LocalExecutor implements Executor {
     }
 
     @Override
-    public List<Column> getTimeSeriesOfStorageUnit(String storageUnit) throws PhysicalException {
+    public List<Column> getColumnsOfStorageUnit(String storageUnit) throws PhysicalException {
         Path path =
                 Paths.get(
-                        dataDir, storageUnit, /*timePartition*/ "*", /*pathPartition*/ "*.parquet");
-        return getTimeSeriesOfDir(path);
+                        dataDir, storageUnit, /*keyPartition*/ "*", /*pathPartition*/ "*.parquet");
+        return getColumnsOfDir(path);
     }
 
-    private List<Column> getTimeSeriesOfDir(Path path) throws PhysicalTaskExecuteFailureException {
-        Set<Column> timeseries = new HashSet<>();
+    private List<Column> getColumnsOfDir(Path path) throws PhysicalTaskExecuteFailureException {
+        Set<Column> columns = new HashSet<>();
         try {
             Connection conn = ((DuckDBConnection) connection).duplicate();
             Statement stmt = conn.createStatement();
@@ -727,19 +727,19 @@ public class LocalExecutor implements Executor {
                                 .replaceAll(PARQUET_SEPARATOR, IGINX_SEPARATOR);
                 Pair<String, Map<String, String>> pair = TagKVUtils.splitFullName(pathName);
                 DataType type = fromDuckDBDataType((String) rs.getObject(COLUMN_TYPE));
-                if (!pathName.equals(DUCKDB_SCHEMA) && !pathName.equals(COLUMN_TIME)) {
-                    timeseries.add(new Column(pair.k, type, pair.v));
+                if (!pathName.equals(DUCKDB_SCHEMA) && !pathName.equals(COLUMN_KEY)) {
+                    columns.add(new Column(pair.k, type, pair.v));
                 }
             }
             stmt.close();
             conn.close();
         } catch (SQLException e) {
             if (e.getMessage().contains("No files found that match the pattern")) {
-                return new ArrayList<>(timeseries);
+                return new ArrayList<>(columns);
             }
-            throw new PhysicalTaskExecuteFailureException("get time series failure", e);
+            throw new PhysicalTaskExecuteFailureException("get columns failure", e);
         }
-        return new ArrayList<>(timeseries);
+        return new ArrayList<>(columns);
     }
 
     @Override
@@ -748,26 +748,26 @@ public class LocalExecutor implements Executor {
         List<String> parquetFiles = new ArrayList<>();
         findParquetFiles(parquetFiles, rootDir);
 
-        long startTime = Long.MAX_VALUE, endTime = Long.MIN_VALUE;
+        long startKey = Long.MAX_VALUE, endKey = Long.MIN_VALUE;
         TreeSet<String> pathTreeSet = new TreeSet<>();
         for (String filepath : parquetFiles) {
             Pair<Set<String>, Pair<Long, Long>> ret = getBoundaryOfSingleFile(filepath);
             if (ret != null) {
                 pathTreeSet.addAll(ret.getK());
-                startTime = Math.min(startTime, ret.getV().getK());
-                endTime = Math.max(endTime, ret.getV().getV());
+                startKey = Math.min(startKey, ret.getV().getK());
+                endKey = Math.max(endKey, ret.getV().getV());
             }
         }
 
-        startTime = startTime == Long.MAX_VALUE ? 0 : startTime;
-        endTime = endTime == Long.MIN_VALUE ? Long.MAX_VALUE : endTime;
+        startKey = startKey == Long.MAX_VALUE ? 0 : startKey;
+        endKey = endKey == Long.MIN_VALUE ? Long.MAX_VALUE : endKey;
 
         if (!pathTreeSet.isEmpty()) {
             return new Pair<>(
                     new ColumnsInterval(pathTreeSet.first(), pathTreeSet.last()),
-                    new KeyInterval(startTime, endTime));
+                    new KeyInterval(startKey, endKey));
         } else {
-            return new Pair<>(new ColumnsInterval(null, null), new KeyInterval(startTime, endTime));
+            return new Pair<>(new ColumnsInterval(null, null), new KeyInterval(startKey, endKey));
         }
     }
 
@@ -778,32 +778,32 @@ public class LocalExecutor implements Executor {
             return null;
         }
 
-        long startTime = 0, endTime = Long.MAX_VALUE;
+        long startKey = 0, endKey = Long.MAX_VALUE;
         Set<String> pathSet = new HashSet<>();
         try {
             Connection conn = ((DuckDBConnection) connection).duplicate();
             Statement stmt = conn.createStatement();
 
-            ResultSet firstTimeRS =
-                    stmt.executeQuery(String.format(SELECT_FIRST_TIME_STMT, path.toString()));
-            while (firstTimeRS.next()) {
-                startTime = firstTimeRS.getLong(COLUMN_TIME);
+            ResultSet firstKeyRS =
+                    stmt.executeQuery(String.format(SELECT_FIRST_KEY_STMT, path.toString()));
+            while (firstKeyRS.next()) {
+                startKey = firstKeyRS.getLong(COLUMN_KEY);
             }
-            firstTimeRS.close();
+            firstKeyRS.close();
 
-            ResultSet lastTimeRS =
-                    stmt.executeQuery(String.format(SELECT_LAST_TIME_STMT, path.toString()));
-            while (lastTimeRS.next()) {
-                endTime = lastTimeRS.getLong(COLUMN_TIME);
+            ResultSet lastKeyRS =
+                    stmt.executeQuery(String.format(SELECT_LAST_KEY_STMT, path.toString()));
+            while (lastKeyRS.next()) {
+                endKey = lastKeyRS.getLong(COLUMN_KEY);
             }
-            lastTimeRS.close();
+            lastKeyRS.close();
 
             ResultSet rs = stmt.executeQuery(String.format(SELECT_PARQUET_SCHEMA, path.toString()));
             while (rs.next()) {
                 String pathName =
                         ((String) rs.getObject(NAME))
                                 .replaceAll(PARQUET_SEPARATOR, IGINX_SEPARATOR);
-                if (!pathName.equals(DUCKDB_SCHEMA) && !pathName.equals(COLUMN_TIME)) {
+                if (!pathName.equals(DUCKDB_SCHEMA) && !pathName.equals(COLUMN_KEY)) {
                     pathSet.add(pathName);
                 }
             }
@@ -815,7 +815,7 @@ public class LocalExecutor implements Executor {
             throw new PhysicalTaskExecuteFailureException(
                     "get boundary of file failure: " + filepath);
         }
-        return new Pair<>(pathSet, new Pair<>(startTime, endTime));
+        return new Pair<>(pathSet, new Pair<>(startKey, endKey));
     }
 
     private void findParquetFiles(List<String> parquetFiles, File file) {

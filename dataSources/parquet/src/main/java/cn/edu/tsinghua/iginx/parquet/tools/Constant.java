@@ -8,7 +8,7 @@ public class Constant {
 
     public static final String COLUMN_TYPE = "type";
 
-    public static final String COLUMN_TIME = "time";
+    public static final String COLUMN_KEY = "time";
 
     public static final String DATATYPE_BIGINT = "BIGINT";
 
@@ -24,7 +24,7 @@ public class Constant {
 
     public static final String CMD_PATHS = "PATHS";
 
-    public static final String CMD_TIME = "TIME";
+    public static final String CMD_KEY = "TIME";
 
     public static final String CMD_DELETE = "DELETE";
 
@@ -49,12 +49,12 @@ public class Constant {
 
     public static final String SELECT_MEM_STMT = "SELECT time, %s FROM %s WHERE %s ORDER BY time";
 
-    public static final String SELECT_TIME_STMT = "SELECT time FROM '%s' ORDER BY time";
+    public static final String SELECT_KEY_STMT = "SELECT time FROM '%s' ORDER BY time";
 
-    public static final String SELECT_FIRST_TIME_STMT =
+    public static final String SELECT_FIRST_KEY_STMT =
             "SELECT time FROM '%s' order by time limit 1";
 
-    public static final String SELECT_LAST_TIME_STMT =
+    public static final String SELECT_LAST_KEY_STMT =
             "SELECT time FROM '%s' order by time desc limit 1";
 
     public static final String SELECT_PARQUET_SCHEMA = "SELECT * FROM parquet_schema('%s')";

@@ -27,11 +27,11 @@ public class DeleteStatement extends DataStatement {
         this.involveDummyData = false;
     }
 
-    public DeleteStatement(List<String> paths, long startTime, long endTime) {
+    public DeleteStatement(List<String> paths, long startKey, long endKey) {
         this.statementType = StatementType.DELETE;
         this.paths = paths;
         this.keyRanges = new ArrayList<>();
-        this.keyRanges.add(new KeyRange(startTime, endTime));
+        this.keyRanges.add(new KeyRange(startKey, endKey));
         this.deleteAll = false;
         this.tagFilter = null;
         this.involveDummyData = false;

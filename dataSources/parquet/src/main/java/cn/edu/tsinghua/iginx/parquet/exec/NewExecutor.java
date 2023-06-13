@@ -155,7 +155,7 @@ public class NewExecutor implements Executor {
     }
 
     @Override
-    public List<Column> getTimeSeriesOfStorageUnit(String storageUnit) throws PhysicalException {
+    public List<Column> getColumnsOfStorageUnit(String storageUnit) throws PhysicalException {
         List<Column> ret = new ArrayList<>();
         if (storageUnit.equals("*")) {
             duManagerMap.forEach(

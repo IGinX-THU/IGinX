@@ -26,8 +26,8 @@ public interface IPolicy {
             generateFragmentAndStorageUnitByColumnsIntervalAndKeyInterval(
                     String startPath,
                     String endPath,
-                    long startTime,
-                    long endTime,
+                    long startKey,
+                    long endKey,
                     List<Long> storageEngineList);
 
     boolean isNeedReAllocate();

@@ -116,11 +116,11 @@ public class InsertGenerator extends AbstractGenerator {
             return null;
         }
 
-        int startTimeIndex = 0;
-        while (keyInterval.getStartKey() > insertTimes.get(startTimeIndex)) startTimeIndex++;
-        int endTimeIndex = startTimeIndex;
-        while (endTimeIndex < insertTimes.size()
-                && keyInterval.getEndKey() > insertTimes.get(endTimeIndex)) endTimeIndex++;
+        int startKeyIndex = 0;
+        while (keyInterval.getStartKey() > insertTimes.get(startKeyIndex)) startKeyIndex++;
+        int endKeyIndex = startKeyIndex;
+        while (endKeyIndex < insertTimes.size()
+                && keyInterval.getEndKey() > insertTimes.get(endKeyIndex)) endKeyIndex++;
 
         int startPathIndex = 0;
         if (tsInterval.getStartColumn() != null) {
@@ -138,10 +138,10 @@ public class InsertGenerator extends AbstractGenerator {
 
         if (rawData.isRowData()) {
             return new RowDataView(
-                    rawData, startPathIndex, endPathIndex, startTimeIndex, endTimeIndex);
+                    rawData, startPathIndex, endPathIndex, startKeyIndex, endKeyIndex);
         } else {
             return new ColumnDataView(
-                    rawData, startPathIndex, endPathIndex, startTimeIndex, endTimeIndex);
+                    rawData, startPathIndex, endPathIndex, startKeyIndex, endKeyIndex);
         }
     }
 }

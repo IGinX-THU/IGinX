@@ -18,7 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.rest.bean;
 
-import static cn.edu.tsinghua.iginx.rest.RestUtils.TOPTIEM;
+import static cn.edu.tsinghua.iginx.rest.RestUtils.TOP_KEY;
 
 import cn.edu.tsinghua.iginx.rest.query.aggregator.QueryAggregator;
 import cn.edu.tsinghua.iginx.rest.query.aggregator.QueryAggregatorFirst;
@@ -57,7 +57,7 @@ public class QueryMetric {
     public void addFirstAggregator() {
         QueryAggregator qa;
         qa = new QueryAggregatorFirst();
-        qa.setDur(TOPTIEM);
+        qa.setDur(TOP_KEY);
         addAggregator(qa);
     }
 

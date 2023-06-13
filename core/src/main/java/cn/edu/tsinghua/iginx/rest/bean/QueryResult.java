@@ -18,7 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.rest.bean;
 
-import static cn.edu.tsinghua.iginx.rest.RestUtils.TOPTIEM;
+import static cn.edu.tsinghua.iginx.rest.RestUtils.TOP_KEY;
 
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
@@ -297,7 +297,7 @@ public class QueryResult {
         List<Object> valueLists = queryResultDatasets.get(num).getValueLists().get(now);
 
         for (int j = 0; j < timeLists.size(); j++) {
-            if (timeLists.get(j) > TOPTIEM) continue;
+            if (timeLists.get(j) > TOP_KEY) continue;
             long timeInPrecision =
                     TimeUtils.getTimeFromNsToSpecPrecision(
                             timeLists.get(j), TimeUtils.DEFAULT_TIMESTAMP_PRECISION);

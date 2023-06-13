@@ -34,7 +34,7 @@ public enum QueryAggregatorType {
     RATE("rate"),
     SAMPLER("sampler"),
     PERCENTILE("percentile"),
-    SHOWTIMESERIES("showtimeseries"),
+    SHOW_COLUMNS("show_columns"),
     NONE("");
     private final String type;
 

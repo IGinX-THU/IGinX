@@ -28,9 +28,9 @@ public class RowDataView extends DataView {
             RawData data,
             int startPathIndex,
             int endPathIndex,
-            int startTimeIndex,
-            int endTimeIndex) {
-        super(data, startPathIndex, endPathIndex, startTimeIndex, endTimeIndex);
+            int startKeyIndex,
+            int endKeyIndex) {
+        super(data, startPathIndex, endPathIndex, startKeyIndex, endKeyIndex);
         this.biases = new int[this.endKeyIndex - this.startKeyIndex];
         for (int i = this.startKeyIndex; i < this.endKeyIndex; i++) {
             Bitmap bitmap = data.getBitmaps().get(i);

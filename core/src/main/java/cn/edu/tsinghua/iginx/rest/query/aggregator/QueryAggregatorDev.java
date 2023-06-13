@@ -36,12 +36,12 @@ public class QueryAggregatorDev extends QueryAggregator {
             RestSession session,
             List<String> paths,
             Map<String, List<String>> tagList,
-            long startTimestamp,
-            long endTimestamp) {
+            long startKey,
+            long endKey) {
         QueryResultDataset queryResultDataset = new QueryResultDataset();
         try {
             SessionQueryDataSet sessionQueryDataSet =
-                    session.queryData(paths, startTimestamp, endTimestamp, tagList);
+                    session.queryData(paths, startKey, endKey, tagList);
             queryResultDataset.setPaths(getPathsFromSessionQueryDataSet(sessionQueryDataSet));
             DataType type = RestUtils.checkType(sessionQueryDataSet);
             int n = sessionQueryDataSet.getKeys().length;
@@ -71,17 +71,15 @@ public class QueryAggregatorDev extends QueryAggregator {
                         if (i == n - 1
                                 || RestUtils.getInterval(
                                                 sessionQueryDataSet.getKeys()[i],
-                                                startTimestamp,
+                                                startKey,
                                                 getDur())
                                         != RestUtils.getInterval(
                                                 sessionQueryDataSet.getKeys()[i + 1],
-                                                startTimestamp,
+                                                startKey,
                                                 getDur())) {
                             queryResultDataset.add(
                                     RestUtils.getIntervalStart(
-                                            sessionQueryDataSet.getKeys()[i],
-                                            startTimestamp,
-                                            getDur()),
+                                            sessionQueryDataSet.getKeys()[i], startKey, getDur()),
                                     sum2 / cnt - Math.pow(sum / cnt, 2));
                             sum = 0;
                             sum2 = 0;

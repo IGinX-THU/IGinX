@@ -32,74 +32,74 @@ public interface DeleteClient {
 
     void deleteMeasurement(final Class<?> measurementType) throws IginXException;
 
-    void deleteMeasurementData(final String measurement, long startTime, long endTime)
+    void deleteMeasurementData(final String measurement, long startKey, long endKey)
             throws IginXException;
 
     void deleteMeasurementData(
-            final String measurement, long startTime, long endTime, TimePrecision timePrecisioin)
+            final String measurement, long startKey, long endKey, TimePrecision timePrecisioin)
             throws IginXException;
 
-    void deleteMeasurementsData(final Collection<String> measurements, long startTime, long endTime)
+    void deleteMeasurementsData(final Collection<String> measurements, long startKey, long endKey)
             throws IginXException;
 
     void deleteMeasurementsData(
             final Collection<String> measurements,
-            long startTime,
-            long endTime,
+            long startKey,
+            long endKey,
             TimePrecision timePrecisioin)
             throws IginXException;
 
-    void deleteMeasurementData(final Class<?> measurementType, long startTime, long endTime)
+    void deleteMeasurementData(final Class<?> measurementType, long startKey, long endKey)
             throws IginXException;
 
     void deleteMeasurementData(
             final Class<?> measurementType,
-            long startTime,
-            long endTime,
+            long startKey,
+            long endKey,
             TimePrecision timePrecisioin)
             throws IginXException;
 
     void deleteMeasurementData(
             final String measurement,
-            long startTime,
-            long endTime,
+            long startKey,
+            long endKey,
             Map<String, List<String>> tagsList)
             throws IginXException;
 
     void deleteMeasurementData(
             final String measurement,
-            long startTime,
-            long endTime,
+            long startKey,
+            long endKey,
             Map<String, List<String>> tagsList,
             TimePrecision timePrecisioin)
             throws IginXException;
 
     void deleteMeasurementsData(
             final Collection<String> measurements,
-            long startTime,
-            long endTime,
+            long startKey,
+            long endKey,
             Map<String, List<String>> tagsList)
             throws IginXException;
 
     void deleteMeasurementsData(
             final Collection<String> measurements,
-            long startTime,
-            long endTime,
+            long startKey,
+            long endKey,
             Map<String, List<String>> tagsList,
             TimePrecision timePrecisioin)
             throws IginXException;
 
     void deleteMeasurementData(
             final Class<?> measurementType,
-            long startTime,
-            long endTime,
+            long startKey,
+            long endKey,
             Map<String, List<String>> tagsList)
             throws IginXException;
 
     void deleteMeasurementData(
             final Class<?> measurementType,
-            long startTime,
-            long endTime,
+            long startKey,
+            long endKey,
             Map<String, List<String>> tagsList,
             TimePrecision timePrecisioin)
             throws IginXException;
