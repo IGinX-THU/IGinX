@@ -83,10 +83,10 @@ public abstract class BaseHistoryDataGenerator {
 
     @Test
     public void clearHistoryData() {
-        clearHistoryData(oriPort);
-        clearHistoryData(expPort);
-        clearHistoryData(readOnlyPort);
+        clearHistoryDataForGivenPort(oriPort);
+        clearHistoryDataForGivenPort(expPort);
+        clearHistoryDataForGivenPort(readOnlyPort);
     }
 
-    public abstract void clearHistoryData(int port);
+    public abstract void clearHistoryDataForGivenPort(int port);
 }

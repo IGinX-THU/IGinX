@@ -68,7 +68,7 @@ public class IoTDB12HistoryDataGenerator extends BaseHistoryDataGenerator {
     }
 
     @Override
-    public void clearHistoryData(int port) {
+    public void clearHistoryDataForGivenPort(int port) {
         try {
             Session session = new Session("127.0.0.1", port, "root", "root");
             session.open();

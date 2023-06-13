@@ -507,8 +507,9 @@ public class PostgreSQLStorage implements IStorage {
     }
 
     @Override
-    public Pair<ColumnsRange, KeyInterval> getBoundaryOfStorage(String prefix)
+    public Pair<ColumnsRange, KeyInterval> getBoundaryOfStorage(String dataPrefix)
             throws PhysicalException {
+        ColumnsRange columnsRange;
         long minKey = Long.MAX_VALUE;
         long maxKey = 0;
         List<String> paths = new ArrayList<>();
@@ -527,6 +528,11 @@ public class PostgreSQLStorage implements IStorage {
                                 databaseName, "public", "%", new String[] {"TABLE"});
                 while (tableSet.next()) {
                     String tableName = tableSet.getString("TABLE_NAME"); // 获取表名称
+                    if (dataPrefix != null
+                            && !tableName.startsWith(
+                                    dataPrefix.replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR))) {
+                        continue;
+                    }
                     ResultSet columnSet =
                             databaseMetaData.getColumns(databaseName, "public", tableName, "%");
                     StringBuilder columnNames = new StringBuilder();
@@ -560,16 +566,26 @@ public class PostgreSQLStorage implements IStorage {
                         minKey = Math.min(key, minKey);
                         maxKey = Math.max(key, maxKey);
                     }
+                    concatSet.close();
+                    concatStmt.close();
                 }
+                tableSet.close();
+                conn.close();
             }
+            databaseSet.close();
             stmt.close();
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            logger.error("encounter error when getting boundary of storage: {}", e.getMessage());
         }
         paths.sort(String::compareTo);
-        return new Pair<>(
-                new ColumnsInterval(paths.get(0), paths.get(paths.size() - 1)),
-                new KeyInterval(minKey, maxKey + 1));
+
+        if (dataPrefix != null) {
+            columnsRange = new ColumnsInterval(dataPrefix, StringUtils.nextString(dataPrefix));
+        } else {
+            columnsRange = new ColumnsInterval(paths.get(0), paths.get(paths.size() - 1));
+        }
+
+        return new Pair<>(columnsRange, new KeyInterval(minKey, maxKey + 1));
     }
 
     private Map<String, String> splitAndMergeQueryPatterns(

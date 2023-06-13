@@ -144,7 +144,7 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
     }
 
     @Override
-    public void clearHistoryData(int port) {
+    public void clearHistoryDataForGivenPort(int port) {
         try {
             Connection conn = connect(port, true, null);
             Statement stmt = conn.createStatement();
