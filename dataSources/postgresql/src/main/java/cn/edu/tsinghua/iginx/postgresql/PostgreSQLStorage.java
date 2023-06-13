@@ -309,7 +309,6 @@ public class PostgreSQLStorage implements IStorage {
 
             Map<String, Map<String, String>> splitResults =
                     splitAndMergeHistoryQueryPatterns(project.getPatterns());
-            logger.error("splitResults {}", splitResults);
             for (Map.Entry<String, Map<String, String>> splitEntry : splitResults.entrySet()) {
                 String databaseName = splitEntry.getKey();
                 conn = getConnection(databaseName);
@@ -724,6 +723,8 @@ public class PostgreSQLStorage implements IStorage {
                             }
                             tableNameToColumnNames.put(tempTableName, tempColumnNames);
                             splitResults.put(tempDatabaseName, tableNameToColumnNames);
+                            logger.error("tempDatabaseName {}", tempDatabaseName);
+                            logger.error("tableNameToColumnNames {}", tableNameToColumnNames);
                         }
                     }
                 }
@@ -745,6 +746,8 @@ public class PostgreSQLStorage implements IStorage {
                     }
                     tableNameToColumnNames.put(tableName, columnNames);
                     splitResults.put(databaseName, tableNameToColumnNames);
+                    logger.error("databaseName {}", databaseName);
+                    logger.error("tableNameToColumnNames {}", tableNameToColumnNames);
                 }
             }
         }
