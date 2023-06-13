@@ -32,7 +32,7 @@ public abstract class BaseHistoryDataGenerator {
     public int readOnlyPort;
 
     public static final List<String> READ_ONLY_PATH_LIST =
-            Arrays.asList("mn.wf05.wt01.status", "mn.wf05.wt03.temperature");
+            Arrays.asList("mn.wf05.wt01.status", "mn.wf05.wt01.temperature");
 
     public static final List<DataType> READ_ONLY_DATA_TYPE_LIST =
             Arrays.asList(DataType.BOOLEAN, DataType.DOUBLE);

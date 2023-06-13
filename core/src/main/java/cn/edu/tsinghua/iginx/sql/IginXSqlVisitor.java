@@ -978,7 +978,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         }
 
         if (startKey > endKey) {
-            throw new SQLParserException("start key should be smaller than end key in key interval.");
+            throw new SQLParserException(
+                    "start key should be smaller than end key in key interval.");
         }
 
         return new Pair<>(startKey, endKey);

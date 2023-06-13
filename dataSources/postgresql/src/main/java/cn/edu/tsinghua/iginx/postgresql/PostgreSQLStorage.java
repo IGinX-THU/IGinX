@@ -738,12 +738,10 @@ public class PostgreSQLStorage implements IStorage {
                 while (rs.next()) {
                     tableName = rs.getString("TABLE_NAME");
                     columnNames = rs.getString("COLUMN_NAME");
-                    logger.error("tableName {} columnNames {}", tableName, columnNames);
                     if (tableNameToColumnNames.containsKey(tableName)) {
                         columnNames = tableNameToColumnNames.get(tableName) + ", " + columnNames;
                     }
                     tableNameToColumnNames.put(tableName, columnNames);
-                    logger.error("tableNameToColumnNames {}", tableNameToColumnNames);
                 }
                 if (splitResults.containsKey(databaseName)) {
                     tableNameToColumnNames.putAll(splitResults.get(databaseName));
