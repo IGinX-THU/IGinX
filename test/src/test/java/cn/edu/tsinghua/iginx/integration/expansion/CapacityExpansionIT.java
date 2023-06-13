@@ -6,7 +6,6 @@ import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
 import cn.edu.tsinghua.iginx.integration.tool.DBType;
 import cn.edu.tsinghua.iginx.session.Session;
-import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.RemovedStorageEngineInfo;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -123,19 +122,14 @@ public abstract class CapacityExpansionIT implements BaseCapacityExpansionIT {
         addStorageEngineWithPrefix("mn", "p2");
 
         String statement = "select * from p1.mn";
-        List<String> pathList = Arrays.asList(
-            "p1.mn.wf03.wt01.status",
-            "p1.mn.wf03.wt01.temperature"
-        );
+        List<String> pathList =
+                Arrays.asList("p1.mn.wf03.wt01.status", "p1.mn.wf03.wt01.temperature");
 
         List<List<Object>> valuesList = BaseHistoryDataGenerator.VALUES_LIST_EXP;
         SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
         statement = "select * from p2.mn";
-        pathList = Arrays.asList(
-            "p2.mn.wf03.wt01.status",
-            "p2.mn.wf03.wt01.temperature"
-        );
+        pathList = Arrays.asList("p2.mn.wf03.wt01.status", "p2.mn.wf03.wt01.temperature");
         SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
         List<RemovedStorageEngineInfo> removedStorageEngineList = new ArrayList<>();

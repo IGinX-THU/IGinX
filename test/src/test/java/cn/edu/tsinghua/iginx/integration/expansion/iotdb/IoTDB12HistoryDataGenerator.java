@@ -66,15 +66,18 @@ public class IoTDB12HistoryDataGenerator extends BaseHistoryDataGenerator {
         }
     }
 
+    @Override
     public void writeHistoryDataToOri() {
         writeHistoryData(PATH_LIST_ORI, DATA_TYPE_LIST_ORI, VALUES_LIST_ORI, portOri);
     }
 
+    @Override
     public void writeHistoryDataToExp() {
         writeHistoryData(PATH_LIST_EXP, DATA_TYPE_LIST_EXP, VALUES_LIST_EXP, portExp);
     }
 
     @Test
+    @Override
     public void clearHistoryData() {
         try {
             Session sessionOri = new Session("127.0.0.1", portOri, "root", "root");

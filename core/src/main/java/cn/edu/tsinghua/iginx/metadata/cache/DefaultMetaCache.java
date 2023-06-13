@@ -795,7 +795,7 @@ public class DefaultMetaCache implements IMetaCache {
                 long totalByte = 0L;
                 int count = 0;
                 BitmapView bitmapView = view.getBitmapView(i);
-                for (int j = 0; j < view.getTimeSize(); j++) {
+                for (int j = 0; j < view.getKeySize(); j++) {
                     if (bitmapView.get(j)) {
                         minn = Math.min(minn, view.getKey(j));
                         maxx = Math.max(maxx, view.getKey(j));
@@ -822,7 +822,7 @@ public class DefaultMetaCache implements IMetaCache {
             Arrays.fill(minn, Long.MAX_VALUE);
             Arrays.fill(maxx, Long.MIN_VALUE);
 
-            for (int i = 0; i < view.getTimeSize(); i++) {
+            for (int i = 0; i < view.getKeySize(); i++) {
                 BitmapView bitmapView = view.getBitmapView(i);
                 int index = 0;
                 for (int j = 0; j < view.getPathNum(); j++) {
