@@ -71,7 +71,7 @@ public abstract class BaseCapacityExpansionIT {
             }
             statement.append("\");");
 
-            logger.info("execute sql {}", statement);
+            logger.info("Execute Statement: \"{}\"", statement);
             session.executeSql(statement.toString());
         } catch (ExecutionException | SessionException e) {
             logger.error(

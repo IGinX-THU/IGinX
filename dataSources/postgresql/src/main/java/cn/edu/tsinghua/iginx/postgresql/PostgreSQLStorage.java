@@ -528,6 +528,8 @@ public class PostgreSQLStorage implements IStorage {
                                 databaseName, "public", "%", new String[] {"TABLE"});
                 while (tableSet.next()) {
                     String tableName = tableSet.getString("TABLE_NAME"); // 获取表名称
+                    logger.error("tableName {}", tableName);
+                    logger.error("dataPrefix {}", dataPrefix);
                     if (dataPrefix != null
                             && !tableName.startsWith(
                                     dataPrefix.replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR))) {
@@ -583,6 +585,13 @@ public class PostgreSQLStorage implements IStorage {
             columnsRange = new ColumnsInterval(dataPrefix, StringUtils.nextString(dataPrefix));
         } else {
             columnsRange = new ColumnsInterval(paths.get(0), paths.get(paths.size() - 1));
+        }
+
+        if (minKey == Long.MAX_VALUE) {
+            minKey = 0;
+        }
+        if (maxKey == 0) {
+            maxKey = Long.MAX_VALUE - 1;
         }
 
         return new Pair<>(columnsRange, new KeyInterval(minKey, maxKey + 1));

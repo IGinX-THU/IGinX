@@ -37,8 +37,8 @@ jobs:
 
             - name: Run ZooKeeper
               run: |
-                  chmod +x "${GITHUB_WORKSPACE}/.github/zk.sh"
-                  "${GITHUB_WORKSPACE}/.github/zk.sh"
+                  chmod +x "${GITHUB_WORKSPACE}/.github/scripts/metadata/zk.sh"
+                  "${GITHUB_WORKSPACE}/.github/scripts/metadata/zk.sh"
 
             - name: Run test for meta manager
               run: mvn test -q -Dtest=IMetaManagerTest -DfailIfNoTests=false -P passFormat
@@ -78,8 +78,8 @@ jobs:
 
             - name: Run ETCD
               run: |
-                  chmod +x "${GITHUB_WORKSPACE}/.github/etcd.sh"
-                  "${GITHUB_WORKSPACE}/.github/etcd.sh"
+                  chmod +x "${GITHUB_WORKSPACE}/.github/scripts/metadata/etcd.sh"
+                  "${GITHUB_WORKSPACE}/.github/scripts/metadata/etcd.sh"
 
             - name: Run test for meta manager
               run: mvn test -q -Dtest=IMetaManagerTest -DfailIfNoTests=false -P passFormat
