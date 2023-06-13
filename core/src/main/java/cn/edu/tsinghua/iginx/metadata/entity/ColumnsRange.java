@@ -46,18 +46,18 @@ public interface ColumnsRange extends Comparable<ColumnsRange> {
 
     public default void setColumn(String column) {
         if (getRangeType() == RangeType.NORMAL) {
-            logger.error("TimeSeriesInterval Normal can't not use the setTimeSeries func");
+            logger.error("ColumnsInterval can't not use the setColumn func");
         }
     }
 
     public default String getColumn() {
-        logger.error("TimeSeriesInterval Normal can't not use the getTimeSeries func");
+        logger.error("ColumnsInterval can't not use the getColumn func");
         return null;
     }
 
     public default String getStartColumn() {
         if (getRangeType() == RangeType.PREFIX) {
-            logger.error("TimeSeriesInterval PREFIX can't not use the getStartTimeSeries func");
+            logger.error("ColumnsPrefixRange can't not use the getStartColumn func");
             return null;
         }
         return null;
@@ -65,13 +65,13 @@ public interface ColumnsRange extends Comparable<ColumnsRange> {
 
     public default void setStartColumn(String startColumn) {
         if (getRangeType() == RangeType.PREFIX) {
-            logger.error("TimeSeriesInterval PREFIX can't not use the setStartTimeSeries func");
+            logger.error("ColumnsPrefixRange can't not use the setStartColumn func");
         }
     }
 
     public default String getEndColumn() {
         if (getRangeType() == RangeType.PREFIX) {
-            logger.error("TimeSeriesInterval PREFIX can't not use the getEndTimeSeries func");
+            logger.error("ColumnsPrefixRange can't not use the getEndColumn func");
             return null;
         }
         return null;
@@ -79,7 +79,7 @@ public interface ColumnsRange extends Comparable<ColumnsRange> {
 
     public default void setEndColumn(String endColumn) {
         if (getRangeType() == RangeType.PREFIX) {
-            logger.error("TimeSeriesInterval PREFIX can't not use the setEndTimeSeries func");
+            logger.error("ColumnsPrefixRange can't not use the setEndColumn func");
         }
     }
 
@@ -104,9 +104,8 @@ public interface ColumnsRange extends Comparable<ColumnsRange> {
         if (str.contains("-") && !isContainSpecialChar(str)) {
             String[] parts = str.split("-");
             if (parts.length != 2) {
-                logger.error("Input string {} in invalid format of TimeSeriesInterval ", str);
-                throw new IllegalArgumentException(
-                        "Input invalid string format in TimeSeriesRange");
+                logger.error("Input string {} in invalid format of ColumnsInterval ", str);
+                throw new IllegalArgumentException("Input invalid string format in ColumnsRange");
             }
             return new ColumnsInterval(
                     parts[0].equals("null") ? null : parts[0],
@@ -116,9 +115,8 @@ public interface ColumnsRange extends Comparable<ColumnsRange> {
                 str = str.substring(0, str.length() - 2);
             if (!isContainSpecialChar(str)) return new ColumnsPrefixRange(str);
             else {
-                logger.error("Input string {} in invalid format of TimeSeriesPrefixRange ", str);
-                throw new IllegalArgumentException(
-                        "Input invalid string format in TimeSeriesRange");
+                logger.error("Input string {} in invalid format of ColumnsPrefixRange ", str);
+                throw new IllegalArgumentException("Input invalid string format in ColumnsRange");
             }
         }
     }
