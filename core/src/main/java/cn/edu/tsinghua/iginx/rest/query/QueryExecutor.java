@@ -131,10 +131,10 @@ public class QueryExecutor {
         try {
             for (int i = 0; i < anno.getQueryResultDatasets().size(); i++) {
                 QueryResultDataset data = anno.getQueryResultDatasets().get(i);
-                if (data.getTimeLists().isEmpty()) continue;
-                int subLen = data.getTimeLists().size();
+                if (data.getKeyLists().isEmpty()) continue;
+                int subLen = data.getKeyLists().size();
                 for (int j = 0; j < subLen; j++) {
-                    List<Long> timeList = data.getTimeLists().get(j);
+                    List<Long> timeList = data.getKeyLists().get(j);
                     for (int z = timeList.size() - 1; z >= 0; z--) {
                         // 这里减小了对时间查询的范围
                         if (timeList.get(z) < DESCRIPTIONTIEM) break;

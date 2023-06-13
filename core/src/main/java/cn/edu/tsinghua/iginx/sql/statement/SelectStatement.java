@@ -56,8 +56,8 @@ public class SelectStatement extends DataStatement {
     private Filter havingFilter;
     private TagFilter tagFilter;
     private long precision;
-    private long startTime;
-    private long endTime;
+    private long startKey;
+    private long endKey;
     private int limit;
     private int offset;
     private long slideDistance;
@@ -85,7 +85,7 @@ public class SelectStatement extends DataStatement {
     }
 
     // simple query
-    public SelectStatement(List<String> paths, long startTime, long endTime) {
+    public SelectStatement(List<String> paths, long startKey, long endKey) {
         this.queryType = QueryType.SimpleQuery;
 
         this.pathSet = new HashSet<>();
@@ -109,12 +109,12 @@ public class SelectStatement extends DataStatement {
         this.hasFunc = false;
         this.hasGroupBy = false;
 
-        this.setFromSession(startTime, endTime);
+        this.setFromSession(startKey, endKey);
     }
 
     // aggregate query
     public SelectStatement(
-            List<String> paths, long startTime, long endTime, AggregateType aggregateType) {
+            List<String> paths, long startKey, long endKey, AggregateType aggregateType) {
         if (aggregateType == AggregateType.LAST || aggregateType == AggregateType.FIRST) {
             this.queryType = QueryType.LastFirstQuery;
         } else {
@@ -145,24 +145,24 @@ public class SelectStatement extends DataStatement {
         this.hasFunc = true;
         this.hasGroupBy = false;
 
-        this.setFromSession(startTime, endTime);
+        this.setFromSession(startKey, endKey);
     }
 
     // downSample query
     public SelectStatement(
             List<String> paths,
-            long startTime,
-            long endTime,
+            long startKey,
+            long endKey,
             AggregateType aggregateType,
             long precision) {
-        this(paths, startTime, endTime, aggregateType, precision, precision);
+        this(paths, startKey, endKey, aggregateType, precision, precision);
     }
 
     // downsample with slide window query
     public SelectStatement(
             List<String> paths,
-            long startTime,
-            long endTime,
+            long startKey,
+            long endKey,
             AggregateType aggregateType,
             long precision,
             long slideDistance) {
@@ -194,14 +194,14 @@ public class SelectStatement extends DataStatement {
 
         this.precision = precision;
         this.slideDistance = slideDistance;
-        this.startTime = startTime;
-        this.endTime = endTime;
+        this.startKey = startKey;
+        this.endKey = endKey;
         this.hasDownsample = true;
 
-        this.setFromSession(startTime, endTime);
+        this.setFromSession(startKey, endKey);
     }
 
-    private void setFromSession(long startTime, long endTime) {
+    private void setFromSession(long startKey, long endKey) {
         this.statementType = StatementType.SELECT;
 
         this.ascending = true;
@@ -212,8 +212,8 @@ public class SelectStatement extends DataStatement {
                 new AndFilter(
                         new ArrayList<>(
                                 Arrays.asList(
-                                        new KeyFilter(Op.GE, startTime),
-                                        new KeyFilter(Op.L, endTime))));
+                                        new KeyFilter(Op.GE, startKey),
+                                        new KeyFilter(Op.L, endKey))));
         this.hasValueFilter = true;
         this.layers = new ArrayList<>();
     }
@@ -447,20 +447,20 @@ public class SelectStatement extends DataStatement {
         this.havingFilter = havingFilter;
     }
 
-    public long getStartTime() {
-        return startTime;
+    public long getStartKey() {
+        return startKey;
     }
 
-    public void setStartTime(long startTime) {
-        this.startTime = startTime;
+    public void setStartKey(long startKey) {
+        this.startKey = startKey;
     }
 
-    public long getEndTime() {
-        return endTime;
+    public long getEndKey() {
+        return endKey;
     }
 
-    public void setEndTime(long endTime) {
-        this.endTime = endTime;
+    public void setEndKey(long endKey) {
+        this.endKey = endKey;
     }
 
     public long getPrecision() {

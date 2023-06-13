@@ -19,8 +19,8 @@ public class SessionAggregateQueryDataSet {
 
     public SessionAggregateQueryDataSet(AggregateQueryResp resp, AggregateType type) {
         this.paths = resp.getPaths();
-        if (resp.timestamps != null) {
-            this.keys = getLongArrayFromByteBuffer(resp.timestamps);
+        if (resp.keys != null) {
+            this.keys = getLongArrayFromByteBuffer(resp.keys);
         }
         this.values = ByteUtils.getValuesByDataType(resp.valuesList, resp.dataTypeList);
         this.type = type;

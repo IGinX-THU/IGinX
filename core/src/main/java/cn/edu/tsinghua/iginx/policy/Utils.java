@@ -53,32 +53,31 @@ public class Utils {
         return new ArrayList<>(beCutPaths);
     }
 
-    public static KeyInterval getTimeIntervalFromDataStatement(DataStatement statement) {
+    public static KeyInterval getKeyIntervalFromDataStatement(DataStatement statement) {
         StatementType type = statement.getType();
         switch (type) {
             case INSERT:
                 InsertStatement insertStatement = (InsertStatement) statement;
-                List<Long> times = insertStatement.getKeys();
-                return new KeyInterval(times.get(0), times.get(times.size() - 1));
+                List<Long> keys = insertStatement.getKeys();
+                return new KeyInterval(keys.get(0), keys.get(keys.size() - 1));
             case SELECT:
                 SelectStatement selectStatement = (SelectStatement) statement;
-                return new KeyInterval(
-                        selectStatement.getStartTime(), selectStatement.getEndTime());
+                return new KeyInterval(selectStatement.getStartKey(), selectStatement.getEndKey());
             case DELETE:
                 DeleteStatement deleteStatement = (DeleteStatement) statement;
                 List<KeyRange> keyRanges = deleteStatement.getKeyRanges();
-                long startTime = Long.MAX_VALUE, endTime = Long.MIN_VALUE;
+                long startKey = Long.MAX_VALUE, endKey = Long.MIN_VALUE;
                 for (KeyRange keyRange : keyRanges) {
-                    if (keyRange.getBeginKey() < startTime) {
-                        startTime = keyRange.getBeginKey();
+                    if (keyRange.getBeginKey() < startKey) {
+                        startKey = keyRange.getBeginKey();
                     }
-                    if (keyRange.getEndKey() > endTime) {
-                        endTime = keyRange.getEndKey();
+                    if (keyRange.getEndKey() > endKey) {
+                        endKey = keyRange.getEndKey();
                     }
                 }
-                startTime = startTime == Long.MAX_VALUE ? 0 : startTime;
-                endTime = endTime == Long.MIN_VALUE ? Long.MAX_VALUE : endTime;
-                return new KeyInterval(startTime, endTime);
+                startKey = startKey == Long.MAX_VALUE ? 0 : startKey;
+                endKey = endKey == Long.MIN_VALUE ? Long.MAX_VALUE : endKey;
+                return new KeyInterval(startKey, endKey);
             default:
                 return new KeyInterval(0, Long.MAX_VALUE);
         }

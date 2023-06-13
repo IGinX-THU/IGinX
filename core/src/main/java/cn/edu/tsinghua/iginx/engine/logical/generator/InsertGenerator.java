@@ -53,7 +53,7 @@ public class InsertGenerator extends AbstractGenerator {
         ColumnsRange tsInterval =
                 new ColumnsInterval(pathList.get(0), pathList.get(pathList.size() - 1));
         KeyInterval keyInterval =
-                new KeyInterval(insertStatement.getStartTime(), insertStatement.getEndTime() + 1);
+                new KeyInterval(insertStatement.getStartKey(), insertStatement.getEndKey() + 1);
 
         Map<ColumnsRange, List<FragmentMeta>> fragments =
                 metaManager.getFragmentMapByColumnsIntervalAndKeyInterval(tsInterval, keyInterval);

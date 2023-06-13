@@ -783,8 +783,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
             DownsampleClauseContext ctx, SelectStatement selectStatement) {
         long precision = parseAggLen(ctx.aggLen(0));
         Pair<Long, Long> timeInterval = parseTimeInterval(ctx.timeInterval());
-        selectStatement.setStartTime(timeInterval.k);
-        selectStatement.setEndTime(timeInterval.v);
+        selectStatement.setStartKey(timeInterval.k);
+        selectStatement.setEndKey(timeInterval.v);
         selectStatement.setPrecision(precision);
         selectStatement.setSlideDistance(precision);
         selectStatement.setHasDownsample(true);

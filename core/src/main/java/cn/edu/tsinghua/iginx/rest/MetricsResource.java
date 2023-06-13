@@ -408,13 +408,13 @@ public class MetricsResource {
                     if (!data.getPaths().isEmpty()) dataRet.addPath(data.getPaths().get(j));
                     if (!data.getDescriptions().isEmpty())
                         dataRet.addDescription(data.getDescriptions().get(j));
-                    if (!data.getCategorys().isEmpty())
-                        dataRet.addCategory(data.getCategorys().get(j));
+                    if (!data.getCategoryLists().isEmpty())
+                        dataRet.addCategory(data.getCategoryLists().get(j));
                     if (!data.getTitles().isEmpty()) dataRet.addTitle(data.getTitles().get(j));
                     if (!data.getValueLists().isEmpty())
                         dataRet.addValueLists(data.getValueLists().get(j));
-                    if (!data.getTimeLists().isEmpty())
-                        dataRet.addTimeLists(data.getTimeLists().get(j));
+                    if (!data.getKeyLists().isEmpty())
+                        dataRet.addKeyLists(data.getKeyLists().get(j));
                 }
             }
             ret.addqueryResultDataset(dataRet);

@@ -55,7 +55,7 @@ public class ParseTest {
                 new HashSet<>(Arrays.asList("test.status", "test.hardware", "test.num"));
         assertEquals(pathSet, selectStatement.getPathSet());
 
-        assertEquals(5, statement.getTimeOffset());
+        assertEquals(5, statement.getKeyOffset());
     }
 
     @Test
@@ -93,8 +93,8 @@ public class ParseTest {
                 "(((key > 100 && key < 1000) || a.b.d == \"abc\" || a.b.c >= \"666\" || (a.b.e < 10 && !(a.b.f < 10))) && key >= 200 && key < 300)",
                 statement.getFilter().toString());
 
-        assertEquals(200, statement.getStartTime());
-        assertEquals(300, statement.getEndTime());
+        assertEquals(200, statement.getStartKey());
+        assertEquals(300, statement.getEndKey());
         assertEquals(10, statement.getPrecision());
 
         assertEquals(Arrays.asList(2, 3), statement.getLayers());
@@ -117,8 +117,8 @@ public class ParseTest {
     public void testParseGroupBy() {
         String selectStr = "SELECT MAX(c) FROM a.b OVER (RANGE 10 IN [100, 1000));";
         SelectStatement statement = (SelectStatement) TestUtils.buildStatement(selectStr);
-        assertEquals(100, statement.getStartTime());
-        assertEquals(1000, statement.getEndTime());
+        assertEquals(100, statement.getStartKey());
+        assertEquals(1000, statement.getEndKey());
         assertEquals(10L, statement.getPrecision());
 
         selectStr = "SELECT SUM(c) FROM a.b AGG LEVEL = 1, 2;";
@@ -151,15 +151,15 @@ public class ParseTest {
         String groupBy = "SELECT max(a) FROM test OVER (RANGE 5 IN (10, 120])";
         statement = (SelectStatement) TestUtils.buildStatement(groupBy);
 
-        assertEquals(11, statement.getStartTime());
-        assertEquals(121, statement.getEndTime());
+        assertEquals(11, statement.getStartKey());
+        assertEquals(121, statement.getEndKey());
         assertEquals(5L, statement.getPrecision());
 
         String groupByAndLimit =
                 "SELECT max(a) FROM test OVER (RANGE 10 IN (10, 120)) LIMIT 5 OFFSET 2;";
         statement = (SelectStatement) TestUtils.buildStatement(groupByAndLimit);
-        assertEquals(11, statement.getStartTime());
-        assertEquals(120, statement.getEndTime());
+        assertEquals(11, statement.getStartKey());
+        assertEquals(120, statement.getEndKey());
         assertEquals(10L, statement.getPrecision());
         assertEquals(2, statement.getOffset());
         assertEquals(5, statement.getLimit());
@@ -277,8 +277,8 @@ public class ParseTest {
                 "((a.b.c > 10 && a.b.c < 1000000) && key >= 1000000000 && key < 2000000000)",
                 selectStatement.getFilter().toString());
 
-        assertEquals(1000000000L, selectStatement.getStartTime());
-        assertEquals(2000000000L, selectStatement.getEndTime());
+        assertEquals(1000000000L, selectStatement.getStartKey());
+        assertEquals(2000000000L, selectStatement.getEndKey());
         assertEquals(10L, selectStatement.getPrecision());
     }
 

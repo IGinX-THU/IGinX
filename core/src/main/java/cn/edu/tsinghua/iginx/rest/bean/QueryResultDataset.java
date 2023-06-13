@@ -26,14 +26,14 @@ import lombok.Data;
 public class QueryResultDataset {
     private int size = 0;
     private int sampleSize = 0;
-    private List<Long> timestamps = new ArrayList<>();
+    private List<Long> keys = new ArrayList<>();
     private List<Object> values = new ArrayList<>();
     private List<List<Object>> valueLists = new ArrayList<>(); // 对应一个path的数据点序列值
-    private List<List<Long>> timeLists = new ArrayList<>(); // 数据点的对应时间序列
+    private List<List<Long>> keyLists = new ArrayList<>(); // 数据点的对应时间序列
     private List<String> paths = new ArrayList<>();
     private List<String> titles = new ArrayList<>();
     private List<String> descriptions = new ArrayList<>();
-    private List<List<String>> categorys = new ArrayList<>();
+    private List<List<String>> categoryLists = new ArrayList<>();
 
     public void addPath(String path) {
         paths.add(path);
@@ -47,24 +47,24 @@ public class QueryResultDataset {
         descriptions.add(description);
     }
 
-    public void addCategory(List<String> category) {
-        categorys.add(category);
+    public void addCategory(List<String> categoryList) {
+        categoryLists.add(categoryList);
     }
 
     private void addSize() {
         this.size++;
     }
 
-    private void addTimestamp(long timestamp) {
-        this.timestamps.add(timestamp);
+    private void addKey(long key) {
+        this.keys.add(key);
     }
 
     public void addValue(Object value) {
         this.values.add(value);
     }
 
-    public void add(long timestamp, Object value) {
-        addTimestamp(timestamp);
+    public void add(long key, Object value) {
+        addKey(key);
         addValue(value);
         addSize();
     }
@@ -73,20 +73,20 @@ public class QueryResultDataset {
         valueLists.add(value);
     }
 
-    public void addTimeLists(List<Long> time) {
-        timeLists.add(time);
+    public void addKeyLists(List<Long> keyList) {
+        keyLists.add(keyList);
     }
 
     public void addPlus(
             String path,
             String description,
-            List<String> category,
+            List<String> categoryList,
             List<Object> valueList,
-            List<Long> timeList) {
+            List<Long> keyList) {
         paths.add(path);
         descriptions.add(description);
-        categorys.add(category);
+        categoryLists.add(categoryList);
         valueLists.add(valueList);
-        timeLists.add(timeList);
+        keyLists.add(keyList);
     }
 }

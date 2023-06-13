@@ -14,9 +14,9 @@ inputs:
         required: false
         default: clearData
     Read-Only:
-      description: "make the storage engine read-only"
-      required: false
-      default: "false"
+        description: "make the storage engine read-only"
+        required: false
+        default: "false"
 
 runs:
     using: "composite" # Mandatory parameter

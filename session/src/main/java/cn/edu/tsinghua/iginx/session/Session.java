@@ -396,7 +396,7 @@ public class Session {
         InsertColumnRecordsReq req = new InsertColumnRecordsReq();
         req.setSessionId(sessionId);
         req.setPaths(sortedPaths);
-        req.setTimestamps(getByteArrayFromLongArray(sortedTimestamps));
+        req.setKeys(getByteArrayFromLongArray(sortedTimestamps));
         req.setValuesList(valueBufferList);
         req.setBitmapList(bitmapBufferList);
         req.setDataTypeList(sortedDataTypeList);
@@ -508,7 +508,7 @@ public class Session {
         InsertNonAlignedColumnRecordsReq req = new InsertNonAlignedColumnRecordsReq();
         req.setSessionId(sessionId);
         req.setPaths(sortedPaths);
-        req.setTimestamps(getByteArrayFromLongArray(sortedTimestamps));
+        req.setKeys(getByteArrayFromLongArray(sortedTimestamps));
         req.setValuesList(valueBufferList);
         req.setBitmapList(bitmapBufferList);
         req.setDataTypeList(sortedDataTypeList);
@@ -618,7 +618,7 @@ public class Session {
         InsertRowRecordsReq req = new InsertRowRecordsReq();
         req.setSessionId(sessionId);
         req.setPaths(sortedPaths);
-        req.setTimestamps(getByteArrayFromLongArray(sortedTimestamps));
+        req.setKeys(getByteArrayFromLongArray(sortedTimestamps));
         req.setValuesList(valueBufferList);
         req.setBitmapList(bitmapBufferList);
         req.setDataTypeList(sortedDataTypeList);
@@ -734,7 +734,7 @@ public class Session {
         InsertNonAlignedRowRecordsReq req = new InsertNonAlignedRowRecordsReq();
         req.setSessionId(sessionId);
         req.setPaths(sortedPaths);
-        req.setTimestamps(getByteArrayFromLongArray(sortedTimestamps));
+        req.setKeys(getByteArrayFromLongArray(sortedTimestamps));
         req.setValuesList(valueBufferList);
         req.setBitmapList(bitmapBufferList);
         req.setDataTypeList(sortedDataTypeList);
@@ -1127,7 +1127,7 @@ public class Session {
                 new CurveMatchReq(sessionId, paths, startTime, endTime, curveQuery, curveUnit);
         Reference<CurveMatchResp> ref = new Reference<>();
         executeWithCheck(() -> (ref.resp = client.curveMatch(req)).status);
-        return new CurveMatchResult(ref.resp.getMatchedTimestamp(), ref.resp.getMatchedPath());
+        return new CurveMatchResult(ref.resp.getMatchedKey(), ref.resp.getMatchedPath());
     }
 
     public void removeHistoryDataSource(List<RemovedStorageEngineInfo> removedStorageEngineList)

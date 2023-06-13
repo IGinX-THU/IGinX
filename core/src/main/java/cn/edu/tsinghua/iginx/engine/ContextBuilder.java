@@ -54,7 +54,7 @@ public class ContextBuilder {
                 RawDataType.Column,
                 req.getPaths(),
                 req.getDataTypeList(),
-                req.getTimestamps(),
+                req.getKeys(),
                 req.getValuesList(),
                 req.getBitmapList(),
                 req.getTagsList(),
@@ -67,7 +67,7 @@ public class ContextBuilder {
                 RawDataType.NonAlignedColumn,
                 req.getPaths(),
                 req.getDataTypeList(),
-                req.getTimestamps(),
+                req.getKeys(),
                 req.getValuesList(),
                 req.getBitmapList(),
                 req.getTagsList(),
@@ -80,7 +80,7 @@ public class ContextBuilder {
                 RawDataType.Row,
                 req.getPaths(),
                 req.getDataTypeList(),
-                req.getTimestamps(),
+                req.getKeys(),
                 req.getValuesList(),
                 req.getBitmapList(),
                 req.getTagsList(),
@@ -93,7 +93,7 @@ public class ContextBuilder {
                 RawDataType.NonAlignedRow,
                 req.getPaths(),
                 req.getDataTypeList(),
-                req.getTimestamps(),
+                req.getKeys(),
                 req.getValuesList(),
                 req.getBitmapList(),
                 req.getTagsList(),
@@ -145,8 +145,8 @@ public class ContextBuilder {
         DeleteStatement statement =
                 new DeleteStatement(
                         req.getPaths(),
-                        getTimeWithPrecision(req.getStartTime(), req.getTimePrecision()),
-                        getTimeWithPrecision(req.getEndTime(), req.getTimePrecision()));
+                        getTimeWithPrecision(req.getStartKey(), req.getTimePrecision()),
+                        getTimeWithPrecision(req.getEndKey(), req.getTimePrecision()));
 
         if (req.isSetTagsList()) {
             statement.setTagFilter(constructTagFilterFromTagList(req.getTagsList()));
@@ -158,8 +158,8 @@ public class ContextBuilder {
         SelectStatement statement =
                 new SelectStatement(
                         req.getPaths(),
-                        getTimeWithPrecision(req.getStartTime(), req.getTimePrecision()),
-                        getTimeWithPrecision(req.getEndTime(), req.getTimePrecision()));
+                        getTimeWithPrecision(req.getStartKey(), req.getTimePrecision()),
+                        getTimeWithPrecision(req.getEndKey(), req.getTimePrecision()));
 
         if (req.isSetTagsList()) {
             statement.setTagFilter(constructTagFilterFromTagList(req.getTagsList()));
@@ -171,8 +171,8 @@ public class ContextBuilder {
         SelectStatement statement =
                 new SelectStatement(
                         req.getPaths(),
-                        getTimeWithPrecision(req.getStartTime(), req.getTimePrecision()),
-                        getTimeWithPrecision(req.getEndTime(), req.getTimePrecision()),
+                        getTimeWithPrecision(req.getStartKey(), req.getTimePrecision()),
+                        getTimeWithPrecision(req.getEndKey(), req.getTimePrecision()),
                         req.getAggregateType());
 
         if (req.isSetTagsList()) {
@@ -185,8 +185,8 @@ public class ContextBuilder {
         SelectStatement statement =
                 new SelectStatement(
                         req.getPaths(),
-                        getTimeWithPrecision(req.getStartTime(), req.getTimePrecision()),
-                        getTimeWithPrecision(req.getEndTime(), req.getTimePrecision()),
+                        getTimeWithPrecision(req.getStartKey(), req.getTimePrecision()),
+                        getTimeWithPrecision(req.getEndKey(), req.getTimePrecision()),
                         req.getAggregateType(),
                         getTimeWithPrecision(req.getPrecision(), req.getTimePrecision()));
 
@@ -213,7 +213,7 @@ public class ContextBuilder {
         SelectStatement statement =
                 new SelectStatement(
                         req.getPaths(),
-                        getTimeWithPrecision(req.getStartTime(), req.getTimePrecision()),
+                        getTimeWithPrecision(req.getStartKey(), req.getTimePrecision()),
                         Long.MAX_VALUE,
                         AggregateType.LAST);
 

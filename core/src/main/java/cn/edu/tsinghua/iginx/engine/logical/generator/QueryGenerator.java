@@ -249,9 +249,9 @@ public class QueryGenerator extends AbstractGenerator {
                                                                         params),
                                                                 new KeyRange(
                                                                         selectStatement
-                                                                                .getStartTime(),
+                                                                                .getStartKey(),
                                                                         selectStatement
-                                                                                .getEndTime())));
+                                                                                .getEndKey())));
                                             }));
         } else if (selectStatement.getQueryType() == SelectStatement.QueryType.AggregateQuery) {
             // Aggregate Query

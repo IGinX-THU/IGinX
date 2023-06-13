@@ -63,7 +63,7 @@ public class SimplePolicy implements IPolicy {
     public Pair<List<FragmentMeta>, List<StorageUnitMeta>> generateInitialFragmentsAndStorageUnits(
             DataStatement statement) {
         List<String> paths = Utils.getNonWildCardPaths(Utils.getPathListFromStatement(statement));
-        KeyInterval keyInterval = Utils.getTimeIntervalFromDataStatement(statement);
+        KeyInterval keyInterval = Utils.getKeyIntervalFromDataStatement(statement);
 
         if (ConfigDescriptor.getInstance().getConfig().getClients().indexOf(",") > 0) {
             Pair<Map<ColumnsRange, List<FragmentMeta>>, List<StorageUnitMeta>> pair =
@@ -204,23 +204,23 @@ public class SimplePolicy implements IPolicy {
         Pair<FragmentMeta, StorageUnitMeta> pair;
         int index = 0;
 
-        // [0, startTime) & (-∞, +∞)
+        // [0, startKey) & (-∞, +∞)
         // 一般情况下该范围内几乎无数据，因此作为一个分片处理
         if (keyInterval.getStartKey() != 0) {
             storageEngineIdList = generateStorageEngineIdList(index++, replicaNum);
             pair =
-                    generateFragmentAndStorageUnitByTimeSeriesIntervalAndTimeInterval(
+                    generateFragmentAndStorageUnitByColumnsIntervalAndKeyInterval(
                             null, null, 0, keyInterval.getStartKey(), storageEngineIdList);
             fragmentList.add(pair.k);
             storageUnitList.add(pair.v);
         }
 
-        // [startTime, +∞) & (-∞, +∞)
+        // [startKey, +∞) & (-∞, +∞)
         // 在初始查询/删除等语句中没有具体路径，只有通配符的情况下创建初始分片
         if (paths.isEmpty()) {
             storageEngineIdList = generateStorageEngineIdList(index++, replicaNum);
             pair =
-                    generateFragmentAndStorageUnitByTimeSeriesIntervalAndTimeInterval(
+                    generateFragmentAndStorageUnitByColumnsIntervalAndKeyInterval(
                             null,
                             null,
                             keyInterval.getStartKey(),
@@ -231,10 +231,10 @@ public class SimplePolicy implements IPolicy {
             return new Pair<>(fragmentList, storageUnitList);
         }
 
-        // [startTime, +∞) & (null, startPath)
+        // [startKey, +∞) & (null, startPath)
         storageEngineIdList = generateStorageEngineIdList(index++, replicaNum);
         pair =
-                generateFragmentAndStorageUnitByTimeSeriesIntervalAndTimeInterval(
+                generateFragmentAndStorageUnitByColumnsIntervalAndKeyInterval(
                         null,
                         paths.get(0),
                         keyInterval.getStartKey(),
@@ -243,12 +243,12 @@ public class SimplePolicy implements IPolicy {
         fragmentList.add(pair.k);
         storageUnitList.add(pair.v);
 
-        // [startTime, +∞) & [startPath, endPath)
+        // [startKey, +∞) & [startPath, endPath)
         int splitNum = Math.max(Math.min(storageEngineNum, paths.size() - 1), 0);
         for (int i = 0; i < splitNum; i++) {
             storageEngineIdList = generateStorageEngineIdList(index++, replicaNum);
             pair =
-                    generateFragmentAndStorageUnitByTimeSeriesIntervalAndTimeInterval(
+                    generateFragmentAndStorageUnitByColumnsIntervalAndKeyInterval(
                             paths.get(i * (paths.size() - 1) / splitNum),
                             paths.get((i + 1) * (paths.size() - 1) / splitNum),
                             keyInterval.getStartKey(),
@@ -258,10 +258,10 @@ public class SimplePolicy implements IPolicy {
             storageUnitList.add(pair.v);
         }
 
-        // [startTime, +∞) & [endPath, null)
+        // [startKey, +∞) & [endPath, null)
         storageEngineIdList = generateStorageEngineIdList(index, replicaNum);
         pair =
-                generateFragmentAndStorageUnitByTimeSeriesIntervalAndTimeInterval(
+                generateFragmentAndStorageUnitByColumnsIntervalAndKeyInterval(
                         paths.get(paths.size() - 1),
                         null,
                         keyInterval.getStartKey(),
@@ -274,16 +274,16 @@ public class SimplePolicy implements IPolicy {
     }
 
     public Pair<FragmentMeta, StorageUnitMeta>
-            generateFragmentAndStorageUnitByTimeSeriesIntervalAndTimeInterval(
+            generateFragmentAndStorageUnitByColumnsIntervalAndKeyInterval(
                     String startPath,
                     String endPath,
-                    long startTime,
-                    long endTime,
+                    long startKey,
+                    long endKey,
                     List<Long> storageEngineList) {
         String masterId = RandomStringUtils.randomAlphanumeric(16);
         StorageUnitMeta storageUnit =
                 new StorageUnitMeta(masterId, storageEngineList.get(0), masterId, true, false);
-        FragmentMeta fragment = new FragmentMeta(startPath, endPath, startTime, endTime, masterId);
+        FragmentMeta fragment = new FragmentMeta(startPath, endPath, startKey, endKey, masterId);
         for (int i = 1; i < storageEngineList.size(); i++) {
             storageUnit.addReplica(
                     new StorageUnitMeta(
@@ -308,10 +308,10 @@ public class SimplePolicy implements IPolicy {
     @Override
     public Pair<List<FragmentMeta>, List<StorageUnitMeta>> generateFragmentsAndStorageUnits(
             DataStatement statement) {
-        long startTime;
+        long startKey;
         if (statement.getType() == StatementType.INSERT) {
-            startTime =
-                    ((InsertStatement) statement).getEndTime()
+            startKey =
+                    ((InsertStatement) statement).getEndKey()
                             + TimeUnit.SECONDS.toMillis(
                                             ConfigDescriptor.getInstance()
                                                     .getConfig()
@@ -338,36 +338,36 @@ public class SimplePolicy implements IPolicy {
         Pair<FragmentMeta, StorageUnitMeta> pair;
         int index = 0;
 
-        // [startTime, +∞) & (null, startPath)
+        // [startKey, +∞) & (null, startPath)
         storageEngineIdList = generateStorageEngineIdList(index++, replicaNum);
         pair =
-                generateFragmentAndStorageUnitByTimeSeriesIntervalAndTimeInterval(
-                        null, prefixList.get(0), startTime, Long.MAX_VALUE, storageEngineIdList);
+                generateFragmentAndStorageUnitByColumnsIntervalAndKeyInterval(
+                        null, prefixList.get(0), startKey, Long.MAX_VALUE, storageEngineIdList);
         fragmentList.add(pair.k);
         storageUnitList.add(pair.v);
 
-        // [startTime, +∞) & [startPath, endPath)
+        // [startKey, +∞) & [startPath, endPath)
         int splitNum = Math.max(prefixList.size() - 1, 0);
         for (int i = 0; i < splitNum; i++) {
             storageEngineIdList = generateStorageEngineIdList(index++, replicaNum);
             pair =
-                    generateFragmentAndStorageUnitByTimeSeriesIntervalAndTimeInterval(
+                    generateFragmentAndStorageUnitByColumnsIntervalAndKeyInterval(
                             prefixList.get(i),
                             prefixList.get(i + 1),
-                            startTime,
+                            startKey,
                             Long.MAX_VALUE,
                             storageEngineIdList);
             fragmentList.add(pair.k);
             storageUnitList.add(pair.v);
         }
 
-        // [startTime, +∞) & [endPath, null)
+        // [startKey, +∞) & [endPath, null)
         storageEngineIdList = generateStorageEngineIdList(index, replicaNum);
         pair =
-                generateFragmentAndStorageUnitByTimeSeriesIntervalAndTimeInterval(
+                generateFragmentAndStorageUnitByColumnsIntervalAndKeyInterval(
                         prefixList.get(prefixList.size() - 1),
                         null,
-                        startTime,
+                        startKey,
                         Long.MAX_VALUE,
                         storageEngineIdList);
         fragmentList.add(pair.k);
@@ -440,19 +440,18 @@ public class SimplePolicy implements IPolicy {
         this.needReAllocate.set(needReAllocate);
     }
 
-    public boolean checkSuccess(Map<String, Double> timeseriesData) {
+    public boolean checkSuccess(Map<String, Double> columnsData) {
         Map<ColumnsRange, FragmentMeta> latestFragments = iMetaManager.getLatestFragmentMap();
         Map<ColumnsRange, Double> fragmentValue =
                 latestFragments
                         .keySet()
                         .stream()
                         .collect(Collectors.toMap(Function.identity(), e1 -> 0.0, (e1, e2) -> e1));
-        timeseriesData.forEach(
+        columnsData.forEach(
                 (key, value) -> {
-                    for (ColumnsRange timeSeriesInterval : fragmentValue.keySet()) {
-                        if (timeSeriesInterval.isContain(key)) {
-                            Double tmp = fragmentValue.get(timeSeriesInterval);
-                            fragmentValue.put(timeSeriesInterval, value + tmp);
+                    for (Map.Entry<ColumnsRange, Double> entry : fragmentValue.entrySet()) {
+                        if (entry.getKey().isContain(key)) {
+                            fragmentValue.put(entry.getKey(), value + entry.getValue());
                         }
                     }
                 });

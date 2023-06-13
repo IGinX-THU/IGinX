@@ -614,7 +614,7 @@ public class QueryParser {
 
                 long timeInPrecision =
                         TimeUtils.getTimeFromNsToSpecPrecision(
-                                result.getQueryResultDatasets().get(i).getTimestamps().get(j),
+                                result.getQueryResultDatasets().get(i).getKeys().get(j),
                                 TimeUtils.DEFAULT_TIMESTAMP_PRECISION);
                 ret.append(String.format(",%d", timeInPrecision));
                 ret.append("],");

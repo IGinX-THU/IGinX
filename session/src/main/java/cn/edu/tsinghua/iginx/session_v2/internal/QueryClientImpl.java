@@ -285,10 +285,10 @@ public class QueryClientImpl extends AbstractFunctionClient implements QueryClie
             List<String> measurements,
             List<Map<String, String>> tagsList,
             List<DataType> dataTypes) {
-        boolean hasTimestamp = dataSet.getTimestamps() != null;
+        boolean hasTimestamp = dataSet.getKeys() != null;
         long[] timestamps = new long[0];
         if (hasTimestamp) {
-            timestamps = getLongArrayFromByteBuffer(dataSet.timestamps);
+            timestamps = getLongArrayFromByteBuffer(dataSet.keys);
         }
 
         List<IginXColumn> columns = new ArrayList<>();

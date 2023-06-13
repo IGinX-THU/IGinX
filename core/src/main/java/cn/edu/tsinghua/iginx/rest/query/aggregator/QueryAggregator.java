@@ -169,7 +169,7 @@ public abstract class QueryAggregator {
                 }
             }
             queryResultDataset.addValueLists(value);
-            queryResultDataset.addTimeLists(time);
+            queryResultDataset.addKeyLists(time);
         }
         queryResultDataset.setSampleSize(datapoints);
         return queryResultDataset;

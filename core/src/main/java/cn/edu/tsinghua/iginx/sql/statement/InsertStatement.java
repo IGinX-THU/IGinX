@@ -124,11 +124,11 @@ public class InsertStatement extends DataStatement {
         this.bitmaps = bitmaps;
     }
 
-    public long getStartTime() {
+    public long getStartKey() {
         return keys.get(0);
     }
 
-    public long getEndTime() {
+    public long getEndKey() {
         return keys.get(keys.size() - 1);
     }
 

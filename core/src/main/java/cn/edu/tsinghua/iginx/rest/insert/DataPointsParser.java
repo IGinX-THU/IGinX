@@ -185,7 +185,7 @@ public class DataPointsParser {
             if (result.getQueryResultDatasets().get(0).getPaths().isEmpty()) {
                 return new Long(-1L);
             } else {
-                if (result.getQueryResultDatasets().get(0).getTimestamps().isEmpty())
+                if (result.getQueryResultDatasets().get(0).getKeys().isEmpty())
                     return new Long(ANNOSTARTTIME + 1L);
                 else {
                     Object val =
@@ -622,8 +622,8 @@ public class DataPointsParser {
         if (!anno.getTitle().equals(".*")) metric.addAnno("title", anno.getTitle());
         if (!anno.getText().equals(".*")) metric.addAnno("description", anno.getText());
         // 添加数据点信息
-        for (int tl = 0; tl < queryResultDataset.getTimeLists().get(pl).size(); tl++) {
-            metric.addKey(queryResultDataset.getTimeLists().get(pl).get(tl));
+        for (int tl = 0; tl < queryResultDataset.getKeyLists().get(pl).size(); tl++) {
+            metric.addKey(queryResultDataset.getKeyLists().get(pl).get(tl));
             Object val = queryResultDataset.getValueLists().get(pl).get(tl);
             metric.addValue(getStringVal(val));
         }

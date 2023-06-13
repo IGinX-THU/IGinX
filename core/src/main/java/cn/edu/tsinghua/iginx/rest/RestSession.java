@@ -237,7 +237,7 @@ public class RestSession {
         InsertNonAlignedColumnRecordsReq req = new InsertNonAlignedColumnRecordsReq();
         req.setSessionId(sessionId);
         req.setPaths(paths);
-        req.setTimestamps(getByteArrayFromLongArray(timestamps));
+        req.setKeys(getByteArrayFromLongArray(timestamps));
         req.setValuesList(valueBufferList);
         req.setBitmapList(bitmapBufferList);
         req.setDataTypeList(dataTypeList);
@@ -343,7 +343,7 @@ public class RestSession {
         InsertNonAlignedRowRecordsReq req = new InsertNonAlignedRowRecordsReq();
         req.setSessionId(sessionId);
         req.setPaths(paths);
-        req.setTimestamps(getByteArrayFromLongArray(timestamps));
+        req.setKeys(getByteArrayFromLongArray(timestamps));
         req.setValuesList(valueBufferList);
         req.setBitmapList(bitmapBufferList);
         req.setDataTypeList(sortedDataTypeList);

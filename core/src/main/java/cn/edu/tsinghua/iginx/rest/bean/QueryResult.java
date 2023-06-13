@@ -174,7 +174,7 @@ public class QueryResult {
                         "\"description\": \"%s\",",
                         queryResultDatasets.get(i).getDescriptions().get(now)));
         ret.append("\"category\": [");
-        for (String tag : queryResultDatasets.get(i).getCategorys().get(now)) {
+        for (String tag : queryResultDatasets.get(i).getCategoryLists().get(now)) {
             ret.append(String.format("\"%s\",", tag));
         }
         if (ret.charAt(ret.length() - 1) == ',') {
@@ -195,7 +195,7 @@ public class QueryResult {
                         "\"description\": \"%s\",",
                         queryResultDatasets.get(i).getDescriptions().get(now)));
         ret.append("\"category\": [");
-        for (String tag : queryResultDatasets.get(i).getCategorys().get(now)) {
+        for (String tag : queryResultDatasets.get(i).getCategoryLists().get(now)) {
             ret.append(String.format("\"%s\",", tag));
         }
         if (ret.charAt(ret.length() - 1) == ',') {
@@ -272,7 +272,7 @@ public class QueryResult {
         for (int i = 0; i < n; i++) {
             long timeRes =
                     TimeUtils.getTimeFromNsToSpecPrecision(
-                            queryResultDatasets.get(num).getTimestamps().get(i),
+                            queryResultDatasets.get(num).getKeys().get(i),
                             TimeUtils.DEFAULT_TIMESTAMP_PRECISION);
             ret.append(String.format("[%d,", timeRes));
             if (queryResultDatasets.get(num).getValues().get(i) instanceof byte[]) {
@@ -293,7 +293,7 @@ public class QueryResult {
 
     private String valueToStringAnno(int now, int num) {
         StringBuilder ret = new StringBuilder(" \"values\": [");
-        List<Long> timeLists = queryResultDatasets.get(num).getTimeLists().get(now);
+        List<Long> timeLists = queryResultDatasets.get(num).getKeyLists().get(now);
         List<Object> valueLists = queryResultDatasets.get(num).getValueLists().get(now);
 
         for (int j = 0; j < timeLists.size(); j++) {

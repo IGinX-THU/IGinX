@@ -151,7 +151,7 @@ public class PublishHandler extends AbstractInterceptHandler {
         // 采用行接口写入数据
         InsertNonAlignedRowRecordsReq req = new InsertNonAlignedRowRecordsReq();
         req.setSessionId(sessionId);
-        req.setTimestamps(ByteUtils.getColumnByteBuffer(timestamps.toArray(), DataType.LONG));
+        req.setKeys(ByteUtils.getColumnByteBuffer(timestamps.toArray(), DataType.LONG));
         req.setPaths(paths);
         req.setDataTypeList(dataTypeList);
         req.setValuesList(valuesList);

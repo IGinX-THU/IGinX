@@ -498,7 +498,7 @@ public class StatementExecutor {
         // step 2: insert stage
         InsertStatement insertStatement = statement.getSubInsertStatement();
         parseOldTagsFromHeader(rowStream.getHeader(), insertStatement);
-        parseInsertValuesSpecFromRowStream(statement.getTimeOffset(), rowStream, insertStatement);
+        parseInsertValuesSpecFromRowStream(statement.getKeyOffset(), rowStream, insertStatement);
         RequestContext subInsertContext =
                 new RequestContext(ctx.getSessionId(), insertStatement, ctx.isUseStream());
         process(subInsertContext);
@@ -544,7 +544,7 @@ public class StatementExecutor {
 
     private void setEmptyQueryResp(RequestContext ctx) {
         Result result = new Result(RpcUtils.SUCCESS);
-        result.setTimestamps(new Long[0]);
+        result.setKeys(new Long[0]);
         result.setValuesList(new ArrayList<>());
         result.setBitmapList(new ArrayList<>());
         result.setPaths(new ArrayList<>());
@@ -637,7 +637,7 @@ public class StatementExecutor {
         Result result = new Result(RpcUtils.SUCCESS);
         if (timestampList.size() != 0) {
             Long[] timestamps = timestampList.toArray(new Long[timestampList.size()]);
-            result.setTimestamps(timestamps);
+            result.setKeys(timestamps);
         }
         result.setValuesList(valuesList);
         result.setBitmapList(bitmapList);
