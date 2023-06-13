@@ -723,8 +723,6 @@ public class PostgreSQLStorage implements IStorage {
                             }
                             tableNameToColumnNames.put(tempTableName, tempColumnNames);
                             splitResults.put(tempDatabaseName, tableNameToColumnNames);
-                            logger.error("tempDatabaseName {}", tempDatabaseName);
-                            logger.error("tableNameToColumnNames {}", tableNameToColumnNames);
                         }
                     }
                 }
@@ -736,19 +734,21 @@ public class PostgreSQLStorage implements IStorage {
                 ResultSet rs =
                         conn.getMetaData()
                                 .getColumns(databaseName, "public", tableName, columnNames);
+                Map<String, String> tableNameToColumnNames = new HashMap<>();
                 while (rs.next()) {
                     tableName = rs.getString("TABLE_NAME");
                     columnNames = rs.getString("COLUMN_NAME");
-                    Map<String, String> tableNameToColumnNames = new HashMap<>();
-                    if (splitResults.containsKey(databaseName)) {
-                        tableNameToColumnNames = splitResults.get(databaseName);
+                    logger.error("tableName {} columnNames {}", tableName, columnNames);
+                    if (tableNameToColumnNames.containsKey(tableName)) {
                         columnNames = tableNameToColumnNames.get(tableName) + ", " + columnNames;
                     }
                     tableNameToColumnNames.put(tableName, columnNames);
-                    splitResults.put(databaseName, tableNameToColumnNames);
-                    logger.error("databaseName {}", databaseName);
                     logger.error("tableNameToColumnNames {}", tableNameToColumnNames);
                 }
+                if (splitResults.containsKey(databaseName)) {
+                    tableNameToColumnNames.putAll(splitResults.get(databaseName));
+                }
+                splitResults.put(databaseName, tableNameToColumnNames);
             }
         }
 

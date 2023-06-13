@@ -89,7 +89,6 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
                 String databaseName = entry.getKey();
                 Statement stmt = conn.createStatement();
                 try {
-                    logger.error(String.format(CREATE_DATABASE_STATEMENT, databaseName));
                     stmt.execute(String.format(CREATE_DATABASE_STATEMENT, databaseName));
                 } catch (SQLException e) {
                     logger.info("database {} exists!", databaseName);
@@ -111,10 +110,6 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
                         createTableStr.append(toPostgreSQL(dataType));
                         createTableStr.append(", ");
                     }
-                    logger.error(String.format(
-                            CREATE_TABLE_STATEMENT,
-                            tableName,
-                            createTableStr.substring(0, createTableStr.length() - 2)));
                     stmt.execute(
                             String.format(
                                     CREATE_TABLE_STATEMENT,
@@ -132,10 +127,6 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
                                 new StringBuilder(insertStr.substring(0, insertStr.length() - 2));
                         insertStr.append("), ");
                     }
-                    logger.error(String.format(
-                            INSERT_STATEMENT,
-                            tableName,
-                            insertStr.substring(0, insertStr.length() - 2)));
                     stmt.execute(
                             String.format(
                                     INSERT_STATEMENT,
