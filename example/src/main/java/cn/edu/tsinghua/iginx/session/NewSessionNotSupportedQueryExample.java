@@ -43,8 +43,8 @@ public class NewSessionNotSupportedQueryExample {
                 queryClient.query( // 查询 a.a.a 序列最近一秒内的数据
                         SimpleQuery.builder()
                                 .addMeasurement("a.a.a")
-                                .startTime(System.currentTimeMillis() - 1000L)
-                                .endTime(System.currentTimeMillis())
+                                .startKey(System.currentTimeMillis() - 1000L)
+                                .endKey(System.currentTimeMillis())
                                 .build());
         List<POJO> pojoList =
                 queryClient.query(

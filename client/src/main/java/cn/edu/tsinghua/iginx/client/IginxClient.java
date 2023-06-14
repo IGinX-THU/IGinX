@@ -290,7 +290,7 @@ public class IginxClient {
                 case Query:
                     res.print(isSetTimeUnit(), timestampPrecision);
                     break;
-                case ShowTimeSeries:
+                case ShowColumns:
                 case ShowClusterInfo:
                 case ShowRegisterTask:
                 case ShowEligibleJob:

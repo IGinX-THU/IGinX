@@ -75,7 +75,7 @@ public class SessionExecuteSqlResult {
             case Query:
                 constructQueryResult(resp);
                 break;
-            case ShowTimeSeries:
+            case ShowColumns:
                 this.paths = resp.getPaths();
                 this.dataTypeList = resp.getDataTypeList();
                 break;
@@ -109,8 +109,8 @@ public class SessionExecuteSqlResult {
         this.paths = resp.getPaths();
         this.dataTypeList = resp.getDataTypeList();
 
-        if (resp.timestamps != null) {
-            this.keys = getLongArrayFromByteBuffer(resp.timestamps);
+        if (resp.keys != null) {
+            this.keys = getLongArrayFromByteBuffer(resp.keys);
         }
 
         // parse values
@@ -130,7 +130,7 @@ public class SessionExecuteSqlResult {
         List<List<String>> result = new ArrayList<>();
         if (sqlType == SqlType.Query) {
             result = cacheResult(needFormatTime, timeFormat, timePrecision);
-        } else if (sqlType == SqlType.ShowTimeSeries) {
+        } else if (sqlType == SqlType.ShowColumns) {
             result.add(new ArrayList<>(Arrays.asList("Path", "DataType")));
             if (paths != null) {
                 for (int i = 0; i < paths.size(); i++) {
@@ -157,7 +157,7 @@ public class SessionExecuteSqlResult {
         switch (sqlType) {
             case Query:
                 return buildQueryResult(needFormatTime, timePrecision);
-            case ShowTimeSeries:
+            case ShowColumns:
                 return buildShowTimeSeriesResult();
             case ShowClusterInfo:
                 return buildShowClusterInfoResult();

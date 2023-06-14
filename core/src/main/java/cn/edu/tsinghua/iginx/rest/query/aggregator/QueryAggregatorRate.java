@@ -36,12 +36,12 @@ public class QueryAggregatorRate extends QueryAggregator {
             RestSession session,
             List<String> paths,
             Map<String, List<String>> tagList,
-            long startTimestamp,
-            long endTimestamp) {
+            long startKey,
+            long endKey) {
         QueryResultDataset queryResultDataset = new QueryResultDataset();
         try {
             SessionQueryDataSet sessionQueryDataSet =
-                    session.queryData(paths, startTimestamp, endTimestamp, tagList);
+                    session.queryData(paths, startKey, endKey, tagList);
             queryResultDataset.setPaths(getPathsFromSessionQueryDataSet(sessionQueryDataSet));
             DataType type = RestUtils.checkType(sessionQueryDataSet);
             int n = sessionQueryDataSet.getKeys().length;

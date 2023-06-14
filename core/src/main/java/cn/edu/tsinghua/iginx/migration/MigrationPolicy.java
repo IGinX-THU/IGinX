@@ -632,7 +632,7 @@ public abstract class MigrationPolicy {
             if (keyInterval.getEndKey() == Long.MAX_VALUE) {
                 operateTaskAndRequest(sourceStorageId, targetStorageId, fragmentMeta);
                 Pair<FragmentMeta, StorageUnitMeta> fragmentMetaStorageUnitMetaPair =
-                        policy.generateFragmentAndStorageUnitByTimeSeriesIntervalAndTimeInterval(
+                        policy.generateFragmentAndStorageUnitByColumnsIntervalAndKeyInterval(
                                 tsInterval.getStartColumn(),
                                 tsInterval.getEndColumn(),
                                 DefaultMetaManager.getInstance().getMaxActiveEndKey(),

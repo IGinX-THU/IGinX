@@ -20,17 +20,17 @@ public class FileMeta {
 
     private String dataPath;
 
-    private final long startTime;
+    private final long startKey;
 
-    private final long endTime;
+    private final long endKey;
 
     private final Map<String, DataType> pathMap;
 
     private final Map<String, List<KeyRange>> deleteRanges;
 
-    public FileMeta(long startTime, long endTime, Map<String, DataType> pathMap) {
-        this.startTime = startTime;
-        this.endTime = endTime;
+    public FileMeta(long startKey, long endKey, Map<String, DataType> pathMap) {
+        this.startKey = startKey;
+        this.endKey = endKey;
         this.pathMap = pathMap;
         this.deleteRanges = new HashMap<>();
     }
@@ -38,14 +38,14 @@ public class FileMeta {
     public FileMeta(
             String extraPath,
             String dataPath,
-            long startTime,
-            long endTime,
+            long startKey,
+            long endKey,
             Map<String, DataType> pathMap,
             Map<String, List<KeyRange>> deleteRanges) {
         this.extraPath = extraPath;
         this.dataPath = dataPath;
-        this.startTime = startTime;
-        this.endTime = endTime;
+        this.startKey = startKey;
+        this.endKey = endKey;
         this.pathMap = pathMap;
         this.deleteRanges = deleteRanges;
     }
@@ -110,12 +110,12 @@ public class FileMeta {
         return dataPath;
     }
 
-    public long getStartTime() {
-        return startTime;
+    public long getStartKey() {
+        return startKey;
     }
 
-    public long getEndTime() {
-        return endTime;
+    public long getEndKey() {
+        return endKey;
     }
 
     public Map<String, DataType> getPathMap() {

@@ -33,14 +33,14 @@ public class IoTDBSessionExample {
     private static final String S2 = "sg.d1.s2";
     private static final String S3 = "sg.d2.s1";
     private static final String S4 = "sg.d3.s1";
-    private static final long COLUMN_START_TIMESTAMP = 1L;
-    private static final long COLUMN_END_TIMESTAMP = 10000L;
-    private static final long NON_ALIGNED_COLUMN_START_TIMESTAMP = 10001L;
-    private static final long NON_ALIGNED_COLUMN_END_TIMESTAMP = 20000L;
-    private static final long ROW_START_TIMESTAMP = 20001L;
-    private static final long ROW_END_TIMESTAMP = 30000L;
-    private static final long NON_ALIGNED_ROW_START_TIMESTAMP = 30001L;
-    private static final long NON_ALIGNED_ROW_END_TIMESTAMP = 40000L;
+    private static final long COLUMN_START_KEY = 1L;
+    private static final long COLUMN_END_KEY = 10000L;
+    private static final long NON_ALIGNED_COLUMN_START_KEY = 10001L;
+    private static final long NON_ALIGNED_COLUMN_END_KEY = 20000L;
+    private static final long ROW_START_KEY = 20001L;
+    private static final long ROW_END_KEY = 30000L;
+    private static final long NON_ALIGNED_ROW_START_KEY = 30001L;
+    private static final long NON_ALIGNED_ROW_END_KEY = 40000L;
     private static final int INTERVAL = 10;
     private static Session session;
 
@@ -87,10 +87,10 @@ public class IoTDBSessionExample {
         paths.add(S3);
         paths.add(S4);
 
-        int size = (int) (COLUMN_END_TIMESTAMP - COLUMN_START_TIMESTAMP + 1);
+        int size = (int) (COLUMN_END_KEY - COLUMN_START_KEY + 1);
         long[] timestamps = new long[size];
         for (long i = 0; i < size; i++) {
-            timestamps[(int) i] = i + COLUMN_START_TIMESTAMP;
+            timestamps[(int) i] = i + COLUMN_START_KEY;
         }
 
         Object[] valuesList = new Object[4];
@@ -127,11 +127,10 @@ public class IoTDBSessionExample {
         paths.add(S3);
         paths.add(S4);
 
-        int size =
-                (int) (NON_ALIGNED_COLUMN_END_TIMESTAMP - NON_ALIGNED_COLUMN_START_TIMESTAMP + 1);
+        int size = (int) (NON_ALIGNED_COLUMN_END_KEY - NON_ALIGNED_COLUMN_START_KEY + 1);
         long[] timestamps = new long[size];
         for (long i = 0; i < size; i++) {
-            timestamps[(int) i] = i + NON_ALIGNED_COLUMN_START_TIMESTAMP;
+            timestamps[(int) i] = i + NON_ALIGNED_COLUMN_START_KEY;
         }
 
         Object[] valuesList = new Object[4];
@@ -171,11 +170,11 @@ public class IoTDBSessionExample {
         paths.add(S3);
         paths.add(S4);
 
-        int size = (int) (ROW_END_TIMESTAMP - ROW_START_TIMESTAMP + 1);
+        int size = (int) (ROW_END_KEY - ROW_START_KEY + 1);
         long[] timestamps = new long[size];
         Object[] valuesList = new Object[size];
         for (long i = 0; i < size; i++) {
-            timestamps[(int) i] = ROW_START_TIMESTAMP + i;
+            timestamps[(int) i] = ROW_START_KEY + i;
             Object[] values = new Object[4];
             for (long j = 0; j < 4; j++) {
                 if (j < 2) {
@@ -207,11 +206,11 @@ public class IoTDBSessionExample {
         paths.add(S3);
         paths.add(S4);
 
-        int size = (int) (NON_ALIGNED_ROW_END_TIMESTAMP - NON_ALIGNED_ROW_START_TIMESTAMP + 1);
+        int size = (int) (NON_ALIGNED_ROW_END_KEY - NON_ALIGNED_ROW_START_KEY + 1);
         long[] timestamps = new long[size];
         Object[] valuesList = new Object[size];
         for (long i = 0; i < size; i++) {
-            timestamps[(int) i] = NON_ALIGNED_ROW_START_TIMESTAMP + i;
+            timestamps[(int) i] = NON_ALIGNED_ROW_START_KEY + i;
             Object[] values = new Object[4];
             for (long j = 0; j < 4; j++) {
                 if ((i + j) % 2 == 0) {
@@ -252,10 +251,10 @@ public class IoTDBSessionExample {
         paths.add(S3);
         paths.add(S4);
 
-        long startTime = NON_ALIGNED_COLUMN_END_TIMESTAMP - 100L;
-        long endTime = ROW_START_TIMESTAMP + 100L;
+        long startKey = NON_ALIGNED_COLUMN_END_KEY - 100L;
+        long endKey = ROW_START_KEY + 100L;
 
-        SessionQueryDataSet dataSet = session.queryData(paths, startTime, endTime);
+        SessionQueryDataSet dataSet = session.queryData(paths, startKey, endKey);
         dataSet.print();
     }
 
@@ -264,39 +263,39 @@ public class IoTDBSessionExample {
         paths.add(S1);
         paths.add(S2);
 
-        long startTime = COLUMN_END_TIMESTAMP - 100L;
-        long endTime = NON_ALIGNED_ROW_START_TIMESTAMP + 100L;
+        long startKey = COLUMN_END_KEY - 100L;
+        long endKey = NON_ALIGNED_ROW_START_KEY + 100L;
 
         // 聚合查询开始
         System.out.println("Aggregate Query: ");
 
         // MAX
         SessionAggregateQueryDataSet dataSet =
-                session.aggregateQuery(paths, startTime, endTime, AggregateType.MAX);
+                session.aggregateQuery(paths, startKey, endKey, AggregateType.MAX);
         dataSet.print();
 
         // MIN
-        dataSet = session.aggregateQuery(paths, startTime, endTime, AggregateType.MIN);
+        dataSet = session.aggregateQuery(paths, startKey, endKey, AggregateType.MIN);
         dataSet.print();
 
         // FIRST_VALUE
-        dataSet = session.aggregateQuery(paths, startTime, endTime, AggregateType.FIRST_VALUE);
+        dataSet = session.aggregateQuery(paths, startKey, endKey, AggregateType.FIRST_VALUE);
         dataSet.print();
 
         // LAST_VALUE
-        dataSet = session.aggregateQuery(paths, startTime, endTime, AggregateType.LAST_VALUE);
+        dataSet = session.aggregateQuery(paths, startKey, endKey, AggregateType.LAST_VALUE);
         dataSet.print();
 
         // COUNT
-        dataSet = session.aggregateQuery(paths, startTime, endTime, AggregateType.COUNT);
+        dataSet = session.aggregateQuery(paths, startKey, endKey, AggregateType.COUNT);
         dataSet.print();
 
         // SUM
-        dataSet = session.aggregateQuery(paths, startTime, endTime, AggregateType.SUM);
+        dataSet = session.aggregateQuery(paths, startKey, endKey, AggregateType.SUM);
         dataSet.print();
 
         // AVG
-        dataSet = session.aggregateQuery(paths, startTime, endTime, AggregateType.AVG);
+        dataSet = session.aggregateQuery(paths, startKey, endKey, AggregateType.AVG);
         dataSet.print();
 
         // 聚合查询结束
@@ -319,8 +318,8 @@ public class IoTDBSessionExample {
         paths.add(S1);
         paths.add(S2);
 
-        long startTime = COLUMN_END_TIMESTAMP - 100L;
-        long endTime = NON_ALIGNED_ROW_START_TIMESTAMP + 100L;
+        long startKey = COLUMN_END_KEY - 100L;
+        long endKey = NON_ALIGNED_ROW_START_KEY + 100L;
 
         // 降采样查询开始
         System.out.println("Downsample Query: ");
@@ -328,43 +327,43 @@ public class IoTDBSessionExample {
         // MAX
         SessionQueryDataSet dataSet =
                 session.downsampleQuery(
-                        paths, startTime, endTime, AggregateType.MAX, INTERVAL * 100L);
+                        paths, startKey, endKey, AggregateType.MAX, INTERVAL * 100L);
         dataSet.print();
 
         // MIN
         dataSet =
                 session.downsampleQuery(
-                        paths, startTime, endTime, AggregateType.MIN, INTERVAL * 100L);
+                        paths, startKey, endKey, AggregateType.MIN, INTERVAL * 100L);
         dataSet.print();
 
         // FIRST_VALUE
         dataSet =
                 session.downsampleQuery(
-                        paths, startTime, endTime, AggregateType.FIRST_VALUE, INTERVAL * 100L);
+                        paths, startKey, endKey, AggregateType.FIRST_VALUE, INTERVAL * 100L);
         dataSet.print();
 
         // LAST_VALUE
         dataSet =
                 session.downsampleQuery(
-                        paths, startTime, endTime, AggregateType.LAST_VALUE, INTERVAL * 100L);
+                        paths, startKey, endKey, AggregateType.LAST_VALUE, INTERVAL * 100L);
         dataSet.print();
 
         // COUNT
         dataSet =
                 session.downsampleQuery(
-                        paths, startTime, endTime, AggregateType.COUNT, INTERVAL * 100L);
+                        paths, startKey, endKey, AggregateType.COUNT, INTERVAL * 100L);
         dataSet.print();
 
         // SUM
         dataSet =
                 session.downsampleQuery(
-                        paths, startTime, endTime, AggregateType.SUM, INTERVAL * 100L);
+                        paths, startKey, endKey, AggregateType.SUM, INTERVAL * 100L);
         dataSet.print();
 
         // AVG
         dataSet =
                 session.downsampleQuery(
-                        paths, startTime, endTime, AggregateType.AVG, INTERVAL * 100L);
+                        paths, startKey, endKey, AggregateType.AVG, INTERVAL * 100L);
         dataSet.print();
 
         // 降采样查询结束
@@ -376,19 +375,18 @@ public class IoTDBSessionExample {
         paths.add(S1);
         paths.add(S2);
 
-        long startTime = COLUMN_END_TIMESTAMP - 100L;
-        long endTime = NON_ALIGNED_ROW_START_TIMESTAMP + 100L;
+        long startKey = COLUMN_END_KEY - 100L;
+        long endKey = NON_ALIGNED_ROW_START_KEY + 100L;
 
         double bias = 6.0;
         int queryNum = 30;
         List<Double> queryList = new ArrayList<>();
         for (int i = 0; i < queryNum; i++) {
-            queryList.add(startTime + bias + i);
+            queryList.add(startKey + bias + i);
         }
         long curveUnit = 1L;
 
-        CurveMatchResult result =
-                session.curveMatch(paths, startTime, endTime, queryList, curveUnit);
+        CurveMatchResult result = session.curveMatch(paths, startKey, endKey, queryList, curveUnit);
         System.out.println(result.toString());
     }
 
@@ -398,10 +396,10 @@ public class IoTDBSessionExample {
         paths.add(S3);
         paths.add(S4);
 
-        long startTime = NON_ALIGNED_COLUMN_END_TIMESTAMP - 50L;
-        long endTime = ROW_START_TIMESTAMP + 50L;
+        long startKey = NON_ALIGNED_COLUMN_END_KEY - 50L;
+        long endKey = ROW_START_KEY + 50L;
 
-        session.deleteDataInColumns(paths, startTime, endTime);
+        session.deleteDataInColumns(paths, startKey, endKey);
     }
 
     public static void showClusterInfo() throws SessionException, ExecutionException {

@@ -21,20 +21,8 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsRange;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
-import cn.edu.tsinghua.iginx.parquet.thrift.DeleteReq;
-import cn.edu.tsinghua.iginx.parquet.thrift.GetStorageBoundryResp;
-import cn.edu.tsinghua.iginx.parquet.thrift.GetTimeSeriesOfStorageUnitResp;
-import cn.edu.tsinghua.iginx.parquet.thrift.InsertReq;
-import cn.edu.tsinghua.iginx.parquet.thrift.ParquetHeader;
-import cn.edu.tsinghua.iginx.parquet.thrift.ParquetRawData;
-import cn.edu.tsinghua.iginx.parquet.thrift.ParquetService;
+import cn.edu.tsinghua.iginx.parquet.thrift.*;
 import cn.edu.tsinghua.iginx.parquet.thrift.ParquetService.Client;
-import cn.edu.tsinghua.iginx.parquet.thrift.ParquetTimeRange;
-import cn.edu.tsinghua.iginx.parquet.thrift.ProjectReq;
-import cn.edu.tsinghua.iginx.parquet.thrift.ProjectResp;
-import cn.edu.tsinghua.iginx.parquet.thrift.RawTagFilter;
-import cn.edu.tsinghua.iginx.parquet.thrift.Status;
-import cn.edu.tsinghua.iginx.parquet.thrift.TagFilterType;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.ByteUtils;
@@ -104,7 +92,7 @@ public class RemoteExecutor implements Executor {
                                     parquetHeader.getTagsList().get(i)));
                 }
                 Header header =
-                        parquetHeader.hasTime ? new Header(Field.KEY, fields) : new Header(fields);
+                        parquetHeader.hasKey ? new Header(Field.KEY, fields) : new Header(fields);
 
                 List<Row> rowList = new ArrayList<>();
                 resp.getRows()
@@ -125,9 +113,8 @@ public class RemoteExecutor implements Executor {
                                         }
                                     }
 
-                                    if (parquetRow.isSetTimestamp()) {
-                                        rowList.add(
-                                                new Row(header, parquetRow.getTimestamp(), values));
+                                    if (parquetRow.isSetKey()) {
+                                        rowList.add(new Row(header, parquetRow.getKey(), values));
                                     } else {
                                         rowList.add(new Row(header, values));
                                     }
@@ -251,16 +238,16 @@ public class RemoteExecutor implements Executor {
             req.setTagFilter(constructRawTagFilter(tagFilter));
         }
         if (keyRanges != null) {
-            List<ParquetTimeRange> parquetTimeRanges = new ArrayList<>();
+            List<ParquetKeyRange> parquetKeyRanges = new ArrayList<>();
             keyRanges.forEach(
                     timeRange ->
-                            parquetTimeRanges.add(
-                                    new ParquetTimeRange(
+                            parquetKeyRanges.add(
+                                    new ParquetKeyRange(
                                             timeRange.getBeginKey(),
                                             timeRange.isIncludeBeginKey(),
                                             timeRange.getEndKey(),
                                             timeRange.isIncludeEndKey())));
-            req.setTimeRanges(parquetTimeRanges);
+            req.setKeyRanges(parquetKeyRanges);
         }
 
         try {
@@ -339,31 +326,31 @@ public class RemoteExecutor implements Executor {
     }
 
     @Override
-    public List<Column> getTimeSeriesOfStorageUnit(String storageUnit) throws PhysicalException {
+    public List<Column> getColumnsOfStorageUnit(String storageUnit) throws PhysicalException {
         try {
-            GetTimeSeriesOfStorageUnitResp resp = client.getTimeSeriesOfStorageUnit(storageUnit);
-            List<Column> timeSeriesList = new ArrayList<>();
+            GetColumnsOfStorageUnitResp resp = client.getColumnsOfStorageUnit(storageUnit);
+            List<Column> columnList = new ArrayList<>();
             resp.getTsList()
                     .forEach(
                             ts ->
-                                    timeSeriesList.add(
+                                    columnList.add(
                                             new Column(
                                                     ts.getPath(),
                                                     DataTypeUtils.strToDataType(ts.getDataType()),
                                                     ts.getTags())));
-            return timeSeriesList;
+            return columnList;
         } catch (TException e) {
-            throw new PhysicalException("encounter error when getTimeSeriesOfStorageUnit ", e);
+            throw new PhysicalException("encounter error when getColumnsOfStorageUnit ", e);
         }
     }
 
     @Override
     public Pair<ColumnsRange, KeyInterval> getBoundaryOfStorage() throws PhysicalException {
         try {
-            GetStorageBoundryResp resp = client.getBoundaryOfStorage();
+            GetStorageBoundaryResp resp = client.getBoundaryOfStorage();
             return new Pair<>(
-                    new ColumnsInterval(resp.getStartTimeSeries(), resp.getEndTimeSeries()),
-                    new KeyInterval(resp.getStartTime(), resp.getEndTime()));
+                    new ColumnsInterval(resp.getStartColumn(), resp.getEndColumn()),
+                    new KeyInterval(resp.getStartKey(), resp.getEndKey()));
         } catch (TException e) {
             throw new PhysicalException("encounter error when getBoundaryOfStorage ", e);
         }

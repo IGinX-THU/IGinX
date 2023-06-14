@@ -783,8 +783,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
             DownsampleClauseContext ctx, SelectStatement selectStatement) {
         long precision = parseAggLen(ctx.aggLen(0));
         Pair<Long, Long> timeInterval = parseTimeInterval(ctx.timeInterval());
-        selectStatement.setStartTime(timeInterval.k);
-        selectStatement.setEndTime(timeInterval.v);
+        selectStatement.setStartKey(timeInterval.k);
+        selectStatement.setEndKey(timeInterval.v);
         selectStatement.setPrecision(precision);
         selectStatement.setSlideDistance(precision);
         selectStatement.setHasDownsample(true);
@@ -794,17 +794,16 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         }
 
         // merge value filter and group time range filter
-        KeyFilter startTime = new KeyFilter(Op.GE, timeInterval.k);
-        KeyFilter endTime = new KeyFilter(Op.L, timeInterval.v);
+        KeyFilter startKey = new KeyFilter(Op.GE, timeInterval.k);
+        KeyFilter endKey = new KeyFilter(Op.L, timeInterval.v);
         Filter mergedFilter;
         if (selectStatement.hasValueFilter()) {
             mergedFilter =
                     new AndFilter(
                             new ArrayList<>(
-                                    Arrays.asList(
-                                            selectStatement.getFilter(), startTime, endTime)));
+                                    Arrays.asList(selectStatement.getFilter(), startKey, endKey)));
         } else {
-            mergedFilter = new AndFilter(new ArrayList<>(Arrays.asList(startTime, endTime)));
+            mergedFilter = new AndFilter(new ArrayList<>(Arrays.asList(startKey, endKey)));
             selectStatement.setHasValueFilter(true);
         }
         selectStatement.setFilter(mergedFilter);
@@ -957,33 +956,33 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     }
 
     private Pair<Long, Long> parseTimeInterval(TimeIntervalContext interval) {
-        long startTime, endTime;
+        long startKey, endKey;
 
         if (interval == null) {
-            startTime = 0;
-            endTime = Long.MAX_VALUE;
+            startKey = 0;
+            endKey = Long.MAX_VALUE;
         } else {
             // use index +- 1 to implement [start, end], [start, end),
             // (start, end), (start, end] range in [start, end) interface.
             if (interval.LR_BRACKET() != null) { // (
-                startTime = parseTime(interval.startTime) + 1;
+                startKey = parseTime(interval.startTime) + 1;
             } else {
-                startTime = parseTime(interval.startTime);
+                startKey = parseTime(interval.startTime);
             }
 
             if (interval.RR_BRACKET() != null) { // )
-                endTime = parseTime(interval.endTime);
+                endKey = parseTime(interval.endTime);
             } else {
-                endTime = parseTime(interval.endTime) + 1;
+                endKey = parseTime(interval.endTime) + 1;
             }
         }
 
-        if (startTime > endTime) {
+        if (startKey > endKey) {
             throw new SQLParserException(
-                    "Start time should be smaller than endTime in time interval.");
+                    "start key should be smaller than end key in key interval.");
         }
 
-        return new Pair<>(startTime, endTime);
+        return new Pair<>(startKey, endKey);
     }
 
     private TagFilter parseWithClause(WithClauseContext ctx) {

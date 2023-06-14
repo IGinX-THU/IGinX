@@ -133,37 +133,35 @@ public final class ColumnsInterval implements ColumnsRange {
     @Override
     public boolean isContain(String colName) {
         // judge if is the dummy node && it will have specific prefix
-        String startTimeSeries = realColumn(this.startColumn);
-        String endTimeSeries = realColumn(this.endColumn);
+        String startColumn = realColumn(this.startColumn);
+        String endColumn = realColumn(this.endColumn);
 
-        return (startTimeSeries == null
+        return (startColumn == null
                         || (colName != null
-                                && StringUtils.compare(colName, startTimeSeries, true) >= 0))
-                && (endTimeSeries == null
-                        || (colName != null
-                                && StringUtils.compare(colName, endTimeSeries, false) < 0));
+                                && StringUtils.compare(colName, startColumn, true) >= 0))
+                && (endColumn == null
+                        || (colName != null && StringUtils.compare(colName, endColumn, false) < 0));
     }
 
     public boolean isCompletelyBefore(String colName) {
         // judge if is the dummy node && it will have specific prefix
-        String endTimeSeries = realColumn(this.endColumn);
+        String endColumn = realColumn(this.endColumn);
 
-        return endTimeSeries != null && colName != null && endTimeSeries.compareTo(colName) <= 0;
+        return endColumn != null && colName != null && endColumn.compareTo(colName) <= 0;
     }
 
     @Override
     public boolean isIntersect(ColumnsRange colRange) {
         // judge if is the dummy node && it will have specific prefix
-        String startTimeSeries = realColumn(this.startColumn);
-        String endTimeSeries = realColumn(this.endColumn);
+        String startColumn = realColumn(this.startColumn);
+        String endColumn = realColumn(this.endColumn);
 
         return (colRange.getStartColumn() == null
-                        || endTimeSeries == null
-                        || StringUtils.compare(colRange.getStartColumn(), endTimeSeries, false) < 0)
+                        || endColumn == null
+                        || StringUtils.compare(colRange.getStartColumn(), endColumn, false) < 0)
                 && (colRange.getEndColumn() == null
-                        || startTimeSeries == null
-                        || StringUtils.compare(colRange.getEndColumn(), startTimeSeries, true)
-                                >= 0);
+                        || startColumn == null
+                        || StringUtils.compare(colRange.getEndColumn(), startColumn, true) >= 0);
     }
 
     public ColumnsRange getIntersect(ColumnsRange colRange) {
@@ -171,59 +169,55 @@ public final class ColumnsInterval implements ColumnsRange {
             return null;
         }
         // judge if is the dummy node && it will have specific prefix
-        String startTimeSeries = realColumn(this.startColumn);
-        String endTimeSeries = realColumn(this.endColumn);
+        String startColumn = realColumn(this.startColumn);
+        String endColumn = realColumn(this.endColumn);
 
         String start =
-                startTimeSeries == null
+                startColumn == null
                         ? colRange.getStartColumn()
                         : colRange.getStartColumn() == null
-                                ? startTimeSeries
-                                : StringUtils.compare(
-                                                        colRange.getStartColumn(),
-                                                        startTimeSeries,
-                                                        true)
+                                ? startColumn
+                                : StringUtils.compare(colRange.getStartColumn(), startColumn, true)
                                                 < 0
-                                        ? startTimeSeries
+                                        ? startColumn
                                         : colRange.getStartColumn();
         String end =
-                endTimeSeries == null
+                endColumn == null
                         ? colRange.getEndColumn()
                         : colRange.getEndColumn() == null
-                                ? endTimeSeries
-                                : StringUtils.compare(colRange.getEndColumn(), endTimeSeries, false)
-                                                < 0
+                                ? endColumn
+                                : StringUtils.compare(colRange.getEndColumn(), endColumn, false) < 0
                                         ? colRange.getEndColumn()
-                                        : endTimeSeries;
+                                        : endColumn;
         return new ColumnsInterval(start, end);
     }
 
     @Override
     public boolean isCompletelyAfter(ColumnsRange colRange) {
         // judge if is the dummy node && it will have specific prefix
-        String startTimeSeries = realColumn(this.startColumn);
+        String startColumn = realColumn(this.startColumn);
 
         return colRange.getEndColumn() != null
-                && startTimeSeries != null
-                && StringUtils.compare(colRange.getEndColumn(), startTimeSeries, true) < 0;
+                && startColumn != null
+                && StringUtils.compare(colRange.getEndColumn(), startColumn, true) < 0;
     }
 
     @Override
     public boolean isAfter(String colName) {
         // judge if is the dummy node && it will have specific prefix
-        String startTimeSeries = realColumn(this.startColumn);
+        String startColumn = realColumn(this.startColumn);
 
-        return startTimeSeries != null && StringUtils.compare(colName, startTimeSeries, true) < 0;
+        return startColumn != null && StringUtils.compare(colName, startColumn, true) < 0;
     }
 
     @Override
     public int compareTo(ColumnsRange o) {
         // judge if is the dummy node && it will have specific prefix
-        String startTimeSeries = realColumn(this.startColumn);
-        String endTimeSeries = realColumn(this.endColumn);
+        String startColumn = realColumn(this.startColumn);
+        String endColumn = realColumn(this.endColumn);
 
-        int value = compareTo(startTimeSeries, o.getStartColumn());
+        int value = compareTo(startColumn, o.getStartColumn());
         if (value != 0) return value;
-        return compareTo(endTimeSeries, o.getEndColumn());
+        return compareTo(endColumn, o.getEndColumn());
     }
 }

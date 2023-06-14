@@ -44,7 +44,7 @@ public class QueryExecutor {
         this.query = query;
     }
 
-    public QueryResult executeShowTimeSeries() throws Exception {
+    public QueryResult executeShowColumns() throws Exception {
         QueryResult ret = new QueryResult();
         try {
             session.openSession();
@@ -131,22 +131,22 @@ public class QueryExecutor {
         try {
             for (int i = 0; i < anno.getQueryResultDatasets().size(); i++) {
                 QueryResultDataset data = anno.getQueryResultDatasets().get(i);
-                if (data.getTimeLists().isEmpty()) continue;
-                int subLen = data.getTimeLists().size();
+                if (data.getKeyLists().isEmpty()) continue;
+                int subLen = data.getKeyLists().size();
                 for (int j = 0; j < subLen; j++) {
-                    List<Long> timeList = data.getTimeLists().get(j);
+                    List<Long> timeList = data.getKeyLists().get(j);
                     for (int z = timeList.size() - 1; z >= 0; z--) {
                         // 这里减小了对时间查询的范围
-                        if (timeList.get(z) < DESCRIPTIONTIEM) break;
+                        if (timeList.get(z) < DESCRIPTION_KEY) break;
 
                         // 将多种类型转换为Long
                         Long annoTime = getLongVal(data.getValueLists().get(j).get(z));
 
-                        if (timeList.get(z).equals(TITLETIEM)) {
+                        if (timeList.get(z).equals(TITLE_KEY)) {
                             hasTitle = true;
                             titleQuery.setStartAbsolute(annoTime);
                             titleQuery.setEndAbsolute(annoTime + 1L);
-                        } else if (timeList.get(z).equals(DESCRIPTIONTIEM)) {
+                        } else if (timeList.get(z).equals(DESCRIPTION_KEY)) {
                             hasDescription = true;
                             descriptionQuery.setStartAbsolute(annoTime);
                             descriptionQuery.setEndAbsolute(annoTime + 1L);
@@ -154,7 +154,7 @@ public class QueryExecutor {
                     }
 
                     QueryMetric metric = new QueryMetric();
-                    metric.setName(ANNOTAIONSEQUENCE);
+                    metric.setName(ANNOTATION_SEQUENCE);
                     List<QueryMetric> metrics = new ArrayList<>();
                     metrics.add(metric);
                     if (hasTitle) {

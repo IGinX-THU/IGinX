@@ -38,7 +38,7 @@ public class SessionQueryDataSet {
     public SessionQueryDataSet(LastQueryResp resp) {
         this.paths = resp.getPaths();
         this.tagsList = resp.getTagsList();
-        this.keys = getLongArrayFromByteBuffer(resp.queryDataSet.timestamps);
+        this.keys = getLongArrayFromByteBuffer(resp.queryDataSet.keys);
         this.values =
                 getValuesFromBufferAndBitmaps(
                         resp.dataTypeList,
@@ -54,7 +54,7 @@ public class SessionQueryDataSet {
     public SessionQueryDataSet(QueryDataResp resp) {
         this.paths = resp.getPaths();
         this.tagsList = resp.getTagsList();
-        this.keys = getLongArrayFromByteBuffer(resp.queryDataSet.timestamps);
+        this.keys = getLongArrayFromByteBuffer(resp.queryDataSet.keys);
         this.values =
                 getValuesFromBufferAndBitmaps(
                         resp.dataTypeList,
@@ -66,7 +66,7 @@ public class SessionQueryDataSet {
         this.paths = resp.getPaths();
         this.tagsList = resp.getTagsList();
         if (resp.queryDataSet != null) {
-            this.keys = getLongArrayFromByteBuffer(resp.queryDataSet.timestamps);
+            this.keys = getLongArrayFromByteBuffer(resp.queryDataSet.keys);
             this.values =
                     getValuesFromBufferAndBitmaps(
                             resp.dataTypeList,

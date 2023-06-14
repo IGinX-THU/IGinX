@@ -3,7 +3,7 @@ package cn.edu.tsinghua.iginx.engine.logical.generator;
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.ALL_PATH_SUFFIX;
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.ORDINAL;
 import static cn.edu.tsinghua.iginx.engine.shared.function.system.ArithmeticExpr.ARITHMETIC_EXPR;
-import static cn.edu.tsinghua.iginx.metadata.utils.FragmentUtils.keyFromTSIntervalToTimeInterval;
+import static cn.edu.tsinghua.iginx.metadata.utils.FragmentUtils.keyFromColumnsIntervalToKeyInterval;
 
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
@@ -105,20 +105,20 @@ public class QueryGenerator extends AbstractGenerator {
         if (selectStatement.hasJoinParts()) {
             root = filterAndMergeFragmentsWithJoin(selectStatement);
         } else {
-            if (selectStatement.getFromParts().isEmpty()) {
+            if (!selectStatement.getFromParts().isEmpty()
+                    && selectStatement.getFromParts().get(0).getType()
+                            == FromPartType.SubQueryFromPart) {
+                SubQueryFromPart fromPart =
+                        (SubQueryFromPart) selectStatement.getFromParts().get(0);
+                root = generateRoot(fromPart.getSubQuery());
+            } else {
                 policy.notify(selectStatement);
                 root = filterAndMergeFragments(selectStatement);
-            } else {
-                if (selectStatement.getFromParts().get(0).getType()
-                        == FromPartType.SubQueryFromPart) {
-                    SubQueryFromPart fromPart =
-                            (SubQueryFromPart) selectStatement.getFromParts().get(0);
-                    root = generateRoot(fromPart.getSubQuery());
-                } else {
-                    policy.notify(selectStatement);
-                    root = filterAndMergeFragments(selectStatement);
-                }
             }
+        }
+
+        if (root == null && !metaManager.hasWritableStorageEngines()) {
+            return null;
         }
 
         // 处理where子查询
@@ -249,9 +249,9 @@ public class QueryGenerator extends AbstractGenerator {
                                                                         params),
                                                                 new KeyRange(
                                                                         selectStatement
-                                                                                .getStartTime(),
+                                                                                .getStartKey(),
                                                                         selectStatement
-                                                                                .getEndTime())));
+                                                                                .getEndKey())));
                                             }));
         } else if (selectStatement.getQueryType() == SelectStatement.QueryType.AggregateQuery) {
             // Aggregate Query
@@ -676,7 +676,9 @@ public class QueryGenerator extends AbstractGenerator {
                                             schemaPrefix));
                         }
                     });
-            joinList.add(operator);
+            if (operator != null) {
+                joinList.add(operator);
+            }
             operator = OperatorUtils.joinOperatorsByTime(joinList);
         }
         return operator;
@@ -684,18 +686,20 @@ public class QueryGenerator extends AbstractGenerator {
 
     private Pair<Map<KeyInterval, List<FragmentMeta>>, List<FragmentMeta>> getFragmentsByTSInterval(
             SelectStatement selectStatement, ColumnsInterval interval) {
-        Map<ColumnsRange, List<FragmentMeta>> fragmentsByTSInterval =
+        Map<ColumnsRange, List<FragmentMeta>> fragmentsByColumnsRange =
                 metaManager.getFragmentMapByColumnsRange(
                         PathUtils.trimTimeSeriesInterval(interval), true);
         if (!metaManager.hasFragment()) {
-            // on startup
-            Pair<List<FragmentMeta>, List<StorageUnitMeta>> fragmentsAndStorageUnits =
-                    policy.generateInitialFragmentsAndStorageUnits(selectStatement);
-            metaManager.createInitialFragmentsAndStorageUnits(
-                    fragmentsAndStorageUnits.v, fragmentsAndStorageUnits.k);
-            fragmentsByTSInterval = metaManager.getFragmentMapByColumnsRange(interval, true);
+            if (metaManager.hasWritableStorageEngines()) {
+                // on startup
+                Pair<List<FragmentMeta>, List<StorageUnitMeta>> fragmentsAndStorageUnits =
+                        policy.generateInitialFragmentsAndStorageUnits(selectStatement);
+                metaManager.createInitialFragmentsAndStorageUnits(
+                        fragmentsAndStorageUnits.v, fragmentsAndStorageUnits.k);
+            }
+            fragmentsByColumnsRange = metaManager.getFragmentMapByColumnsRange(interval, true);
         }
-        return keyFromTSIntervalToTimeInterval(fragmentsByTSInterval);
+        return keyFromColumnsIntervalToKeyInterval(fragmentsByColumnsRange);
     }
 
     // 筛选出满足 dataPrefix前缀，并且去除 schemaPrefix

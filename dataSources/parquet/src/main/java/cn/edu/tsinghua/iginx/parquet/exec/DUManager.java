@@ -2,9 +2,9 @@ package cn.edu.tsinghua.iginx.parquet.exec;
 
 import static cn.edu.tsinghua.iginx.parquet.tools.Constant.ADD_COLUMNS_STMT;
 import static cn.edu.tsinghua.iginx.parquet.tools.Constant.CMD_DELETE;
+import static cn.edu.tsinghua.iginx.parquet.tools.Constant.CMD_KEY;
 import static cn.edu.tsinghua.iginx.parquet.tools.Constant.CMD_PATHS;
-import static cn.edu.tsinghua.iginx.parquet.tools.Constant.CMD_TIME;
-import static cn.edu.tsinghua.iginx.parquet.tools.Constant.COLUMN_TIME;
+import static cn.edu.tsinghua.iginx.parquet.tools.Constant.COLUMN_KEY;
 import static cn.edu.tsinghua.iginx.parquet.tools.Constant.CREATE_TABLE_STMT;
 import static cn.edu.tsinghua.iginx.parquet.tools.Constant.DATATYPE_BIGINT;
 import static cn.edu.tsinghua.iginx.parquet.tools.Constant.DELETE_DATA_STMT;
@@ -144,7 +144,7 @@ public class DUManager {
                             DataType type = DataTypeTransformer.fromStringDataType(paths[i + 1]);
                             pathMap.put(path, type);
                         }
-                    } else if (str.startsWith(CMD_TIME)) {
+                    } else if (str.startsWith(CMD_KEY)) {
                         String[] times = details.split(",");
                         if (times.length != 2) {
                             logger.error("The number of time must be two");
@@ -205,7 +205,7 @@ public class DUManager {
                                 filter,
                                 fileMeta.getDataPath(),
                                 fileMeta.getDeleteRanges(),
-                                fileMeta.getEndTime());
+                                fileMeta.getEndKey());
                 mergeData(dataMap, columns);
             }
         }
@@ -324,7 +324,7 @@ public class DUManager {
         for (int i = 1; i <= rsMetaData.getColumnCount(); i++) { // start from index 1
             String physicalPath = rsMetaData.getColumnName(i);
             String pathName = physicalPath.replaceAll(PARQUET_SEPARATOR, IGINX_SEPARATOR);
-            if (i == 1 && pathName.equals(COLUMN_TIME)) {
+            if (i == 1 && pathName.equals(COLUMN_KEY)) {
                 continue;
             }
             DataType type = fromParquetDataType(rsMetaData.getColumnTypeName(i));
@@ -332,7 +332,7 @@ public class DUManager {
         }
 
         while (rs.next()) {
-            long time = (long) rs.getObject(COLUMN_TIME);
+            long time = (long) rs.getObject(COLUMN_KEY);
             for (Column column : columns) {
                 Object value = rs.getObject(column.getPhysicalPath());
                 if (value != null) {
@@ -370,7 +370,7 @@ public class DUManager {
                 curMemTable = id + "_" + System.currentTimeMillis();
 
                 StringBuilder builder = new StringBuilder();
-                builder.append(COLUMN_TIME).append(" ").append(DATATYPE_BIGINT).append(", ");
+                builder.append(COLUMN_KEY).append(" ").append(DATATYPE_BIGINT).append(", ");
                 for (int i = 0; i < data.getPathNum(); i++) {
                     String path = data.getPath(i);
                     builder.append(path.replaceAll(IGINX_SEPARATOR, PARQUET_SEPARATOR))
@@ -417,11 +417,11 @@ public class DUManager {
             }
             stmt.execute(insertPrefix + insertBody);
 
-            if (data.getMaxTime() > curEndTime) {
-                curEndTime = data.getMaxTime();
+            if (data.getMaxKey() > curEndTime) {
+                curEndTime = data.getMaxKey();
             }
-            if (data.getMinTime() < curStartTime) {
-                curStartTime = data.getMinTime();
+            if (data.getMinKey() < curStartTime) {
+                curStartTime = data.getMinKey();
             }
 
             if (curMemSize > MAX_MEM_SIZE) {
@@ -452,9 +452,9 @@ public class DUManager {
     private String generateRowInsertStmtBody(DataViewWrapper data) {
         StringBuilder builder = new StringBuilder();
 
-        for (int i = 0; i < data.getTimeSize(); i++) {
+        for (int i = 0; i < data.getKeySize(); i++) {
             BitmapView bitmapView = data.getBitmapView(i);
-            builder.append("(").append(data.getTimestamp(i)).append(", ");
+            builder.append("(").append(data.getKey(i)).append(", ");
 
             int index = 0;
             for (int j = 0; j < data.getPathNum(); j++) {
@@ -479,15 +479,15 @@ public class DUManager {
     }
 
     private String generateColInsertStmtBody(DataViewWrapper data) {
-        String[] rowValueArray = new String[data.getTimeSize()];
-        for (int i = 0; i < data.getTimeSize(); i++) {
-            rowValueArray[i] = "(" + data.getTimestamp(i) + ", ";
+        String[] rowValueArray = new String[data.getKeySize()];
+        for (int i = 0; i < data.getKeySize(); i++) {
+            rowValueArray[i] = "(" + data.getKey(i) + ", ";
         }
         for (int i = 0; i < data.getPathNum(); i++) {
             BitmapView bitmapView = data.getBitmapView(i);
 
             int index = 0;
-            for (int j = 0; j < data.getTimeSize(); j++) {
+            for (int j = 0; j < data.getKeySize(); j++) {
                 if (bitmapView.get(j)) {
                     DataType type = data.getDataType(i);
                     if (type == DataType.BINARY) {
@@ -504,7 +504,7 @@ public class DUManager {
                 }
             }
         }
-        for (int i = 0; i < data.getTimeSize(); i++) {
+        for (int i = 0; i < data.getKeySize(); i++) {
             rowValueArray[i] += "), ";
         }
 
@@ -574,7 +574,7 @@ public class DUManager {
         builder.append(CMD_PATHS).append(" ");
         paths.forEach((k, v) -> builder.append(k).append(",").append(v.toString()).append(","));
         builder.deleteCharAt(builder.length() - 1).append("\n");
-        builder.append(CMD_TIME)
+        builder.append(CMD_KEY)
                 .append(" ")
                 .append(startTime)
                 .append(",")
@@ -726,7 +726,7 @@ public class DUManager {
                 String pathName =
                         ((String) rs.getObject(NAME))
                                 .replaceAll(PARQUET_SEPARATOR, IGINX_SEPARATOR);
-                if (!pathName.equals(DUCKDB_SCHEMA) && !pathName.equals(COLUMN_TIME)) {
+                if (!pathName.equals(DUCKDB_SCHEMA) && !pathName.equals(COLUMN_KEY)) {
                     ret.add(pathName);
                 }
             }
@@ -749,11 +749,11 @@ public class DUManager {
         long start = curStartTime;
         long end = curEndTime;
         for (FileMeta fileMeta : fileMetaMap.values()) {
-            if (fileMeta.getStartTime() < start) {
-                start = fileMeta.getStartTime();
+            if (fileMeta.getStartKey() < start) {
+                start = fileMeta.getStartKey();
             }
-            if (fileMeta.getEndTime() > end) {
-                end = fileMeta.getEndTime();
+            if (fileMeta.getEndKey() > end) {
+                end = fileMeta.getEndKey();
             }
         }
         return new KeyInterval(start, end + 1);

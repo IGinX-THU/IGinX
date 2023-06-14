@@ -1,6 +1,6 @@
 package cn.edu.tsinghua.iginx.parquet.policy;
 
-import static cn.edu.tsinghua.iginx.parquet.tools.Constant.COLUMN_TIME;
+import static cn.edu.tsinghua.iginx.parquet.tools.Constant.COLUMN_KEY;
 
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
@@ -146,7 +146,7 @@ public class NaiveParquetStoragePolicy implements ParquetStoragePolicy {
             Statement stmt = conn.createStatement();
             ResultSet rs = stmt.executeQuery(String.format(SELECT_LAST_TIME_STMT, path.toString()));
             while (rs.next()) {
-                latestTime = rs.getLong(COLUMN_TIME);
+                latestTime = rs.getLong(COLUMN_KEY);
             }
             rs.close();
             stmt.close();

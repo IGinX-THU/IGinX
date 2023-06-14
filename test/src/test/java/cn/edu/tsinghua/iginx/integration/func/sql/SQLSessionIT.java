@@ -3889,7 +3889,7 @@ public class SQLSessionIT {
 
         errClause = "SELECT s1 FROM us.d1 OVER (RANGE 100 IN (100, 10));";
         executor.executeAndCompareErrMsg(
-                errClause, "Start time should be smaller than endTime in time interval.");
+                errClause, "start key should be smaller than end key in key interval.");
 
         errClause = "SELECT last(s1) FROM us.d1 GROUP BY s2;";
         executor.executeAndCompareErrMsg(

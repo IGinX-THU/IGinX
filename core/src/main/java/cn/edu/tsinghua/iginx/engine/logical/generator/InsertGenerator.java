@@ -53,17 +53,19 @@ public class InsertGenerator extends AbstractGenerator {
         ColumnsRange tsInterval =
                 new ColumnsInterval(pathList.get(0), pathList.get(pathList.size() - 1));
         KeyInterval keyInterval =
-                new KeyInterval(insertStatement.getStartTime(), insertStatement.getEndTime() + 1);
+                new KeyInterval(insertStatement.getStartKey(), insertStatement.getEndKey() + 1);
 
         Map<ColumnsRange, List<FragmentMeta>> fragments =
                 metaManager.getFragmentMapByColumnsIntervalAndKeyInterval(tsInterval, keyInterval);
         if (fragments.isEmpty()) {
             // on startup
             policy.setNeedReAllocate(false);
-            Pair<List<FragmentMeta>, List<StorageUnitMeta>> fragmentsAndStorageUnits =
-                    policy.generateInitialFragmentsAndStorageUnits(insertStatement);
-            metaManager.createInitialFragmentsAndStorageUnits(
-                    fragmentsAndStorageUnits.v, fragmentsAndStorageUnits.k);
+            if (metaManager.hasWritableStorageEngines()) {
+                Pair<List<FragmentMeta>, List<StorageUnitMeta>> fragmentsAndStorageUnits =
+                        policy.generateInitialFragmentsAndStorageUnits(insertStatement);
+                metaManager.createInitialFragmentsAndStorageUnits(
+                        fragmentsAndStorageUnits.v, fragmentsAndStorageUnits.k);
+            }
             fragments = metaManager.getFragmentMapByColumnsRange(tsInterval);
         } else if (policy.isNeedReAllocate()) {
             // on scale-out or any events requiring reallocation
@@ -114,11 +116,11 @@ public class InsertGenerator extends AbstractGenerator {
             return null;
         }
 
-        int startTimeIndex = 0;
-        while (keyInterval.getStartKey() > insertTimes.get(startTimeIndex)) startTimeIndex++;
-        int endTimeIndex = startTimeIndex;
-        while (endTimeIndex < insertTimes.size()
-                && keyInterval.getEndKey() > insertTimes.get(endTimeIndex)) endTimeIndex++;
+        int startKeyIndex = 0;
+        while (keyInterval.getStartKey() > insertTimes.get(startKeyIndex)) startKeyIndex++;
+        int endKeyIndex = startKeyIndex;
+        while (endKeyIndex < insertTimes.size()
+                && keyInterval.getEndKey() > insertTimes.get(endKeyIndex)) endKeyIndex++;
 
         int startPathIndex = 0;
         if (tsInterval.getStartColumn() != null) {
@@ -136,10 +138,10 @@ public class InsertGenerator extends AbstractGenerator {
 
         if (rawData.isRowData()) {
             return new RowDataView(
-                    rawData, startPathIndex, endPathIndex, startTimeIndex, endTimeIndex);
+                    rawData, startPathIndex, endPathIndex, startKeyIndex, endKeyIndex);
         } else {
             return new ColumnDataView(
-                    rawData, startPathIndex, endPathIndex, startTimeIndex, endTimeIndex);
+                    rawData, startPathIndex, endPathIndex, startKeyIndex, endKeyIndex);
         }
     }
 }

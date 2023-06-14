@@ -255,11 +255,11 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         }
         List<Row> rows = table.getRows();
         long bias = downsample.getKeyRange().getActualBeginKey();
-        long endTime = downsample.getKeyRange().getActualEndKey();
+        long endKey = downsample.getKeyRange().getActualEndKey();
         long precision = downsample.getPrecision();
         long slideDistance = downsample.getSlideDistance();
-        // startTime + (n - 1) * slideDistance + precision - 1 >= endTime
-        int n = (int) (Math.ceil((double) (endTime - bias - precision + 1) / slideDistance) + 1);
+        // startKey + (n - 1) * slideDistance + precision - 1 >= endKey
+        int n = (int) (Math.ceil((double) (endKey - bias - precision + 1) / slideDistance) + 1);
         TreeMap<Long, List<Row>> groups = new TreeMap<>();
         SetMappingFunction function =
                 (SetMappingFunction) downsample.getFunctionCall().getFunction();

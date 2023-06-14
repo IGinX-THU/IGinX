@@ -53,7 +53,7 @@ public class NewSessionExample {
                         SimpleQuery.builder()
                                 .addMeasurement("a.a.a")
                                 .addMeasurement("a.b.b")
-                                .endTime(System.currentTimeMillis() + 1000L)
+                                .endKey(System.currentTimeMillis() + 1000L)
                                 .build());
         System.out.println("Header:" + table.getHeader());
 

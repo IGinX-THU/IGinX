@@ -41,7 +41,7 @@ public interface IMetaManager {
     /** 获取所有的存储引擎实例的原信息（包括每个存储引擎的存储单元列表） */
     List<StorageEngineMeta> getStorageEngineList();
 
-    List<StorageEngineMeta> getWriteableStorageEngineList();
+    List<StorageEngineMeta> getWritableStorageEngineList();
 
     /** 获取存储引擎实例的数量 */
     int getStorageEngineNum();
@@ -78,6 +78,9 @@ public interface IMetaManager {
 
     /** 查询某个列区间是否有虚拟堆叠分片 */
     boolean hasDummyFragment(ColumnsRange columnsRange);
+
+    /** 集群中是否存在可写的存储引擎 */
+    boolean hasWritableStorageEngines();
 
     /** 获取某个key区间的所有最新的分片（这些分片一定也都是未终结的分片） */
     Map<ColumnsRange, FragmentMeta> getLatestFragmentMapByColumnsRange(ColumnsRange columnsRange);

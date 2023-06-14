@@ -2,13 +2,13 @@
 
 set -e
 
-sh -c "chmod +x .github/iotdb12.sh"
+sh -c "chmod +x .github/scripts/dataSources/iotdb12_macos.sh"
 
-sh -c "chmod +x .github/influxdb.sh"
+sh -c "chmod +x .github/scripts/dataSources/influxdb_macos.sh"
 
-sh -c ".github/iotdb12.sh"
+sh -c ".github/scripts/dataSources/iotdb12_macos.sh"
 
-sh -c ".github/influxdb.sh"
+sh -c ".github/scripts/dataSources/influxdb_macos.sh"
 
 set -i "s/storageEngineList/#storageEngineList/g" conf/config.properties
 

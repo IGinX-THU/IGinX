@@ -507,8 +507,9 @@ public class PostgreSQLStorage implements IStorage {
     }
 
     @Override
-    public Pair<ColumnsRange, KeyInterval> getBoundaryOfStorage(String prefix)
+    public Pair<ColumnsRange, KeyInterval> getBoundaryOfStorage(String dataPrefix)
             throws PhysicalException {
+        ColumnsRange columnsRange;
         long minKey = Long.MAX_VALUE;
         long maxKey = 0;
         List<String> paths = new ArrayList<>();
@@ -532,14 +533,19 @@ public class PostgreSQLStorage implements IStorage {
                     StringBuilder columnNames = new StringBuilder();
                     while (columnSet.next()) {
                         String columnName = columnSet.getString("COLUMN_NAME"); // 获取列名称
-                        paths.add(
+                        columnNames.append(columnName);
+                        columnNames.append(", "); // c1, c2, c3,
+
+                        String path =
                                 databaseName
                                         + IGINX_SEPARATOR
                                         + tableName.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR)
                                         + IGINX_SEPARATOR
-                                        + columnName);
-                        columnNames.append(columnName);
-                        columnNames.append(", "); // c1, c2, c3,
+                                        + columnName;
+                        if (dataPrefix != null && !path.startsWith(dataPrefix)) {
+                            continue;
+                        }
+                        paths.add(path);
                     }
                     columnNames =
                             new StringBuilder(
@@ -560,16 +566,33 @@ public class PostgreSQLStorage implements IStorage {
                         minKey = Math.min(key, minKey);
                         maxKey = Math.max(key, maxKey);
                     }
+                    concatSet.close();
+                    concatStmt.close();
                 }
+                tableSet.close();
+                conn.close();
             }
+            databaseSet.close();
             stmt.close();
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            logger.error("encounter error when getting boundary of storage: {}", e.getMessage());
         }
         paths.sort(String::compareTo);
-        return new Pair<>(
-                new ColumnsInterval(paths.get(0), paths.get(paths.size() - 1)),
-                new KeyInterval(minKey, maxKey + 1));
+
+        if (dataPrefix != null) {
+            columnsRange = new ColumnsInterval(dataPrefix, StringUtils.nextString(dataPrefix));
+        } else {
+            columnsRange = new ColumnsInterval(paths.get(0), paths.get(paths.size() - 1));
+        }
+
+        if (minKey == Long.MAX_VALUE) {
+            minKey = 0;
+        }
+        if (maxKey == 0) {
+            maxKey = Long.MAX_VALUE - 1;
+        }
+
+        return new Pair<>(columnsRange, new KeyInterval(minKey, maxKey + 1));
     }
 
     private Map<String, String> splitAndMergeQueryPatterns(
@@ -711,17 +734,19 @@ public class PostgreSQLStorage implements IStorage {
                 ResultSet rs =
                         conn.getMetaData()
                                 .getColumns(databaseName, "public", tableName, columnNames);
+                Map<String, String> tableNameToColumnNames = new HashMap<>();
                 while (rs.next()) {
                     tableName = rs.getString("TABLE_NAME");
                     columnNames = rs.getString("COLUMN_NAME");
-                    Map<String, String> tableNameToColumnNames = new HashMap<>();
-                    if (splitResults.containsKey(databaseName)) {
-                        tableNameToColumnNames = splitResults.get(databaseName);
+                    if (tableNameToColumnNames.containsKey(tableName)) {
                         columnNames = tableNameToColumnNames.get(tableName) + ", " + columnNames;
                     }
                     tableNameToColumnNames.put(tableName, columnNames);
-                    splitResults.put(databaseName, tableNameToColumnNames);
                 }
+                if (splitResults.containsKey(databaseName)) {
+                    tableNameToColumnNames.putAll(splitResults.get(databaseName));
+                }
+                splitResults.put(databaseName, tableNameToColumnNames);
             }
         }
 
@@ -1083,7 +1108,7 @@ public class PostgreSQLStorage implements IStorage {
             }
             statement.append(";");
 
-//            logger.info("[Insert] execute insert: {}", statement);
+            //            logger.info("[Insert] execute insert: {}", statement);
             stmt.addBatch(statement.toString());
         }
         stmt.executeBatch();

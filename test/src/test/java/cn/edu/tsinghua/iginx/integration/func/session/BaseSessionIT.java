@@ -35,17 +35,17 @@ public abstract class BaseSessionIT {
     protected boolean isAbleToDelete;
 
     protected static final double delta = 1e-7;
-    protected static final long TIME_PERIOD = 100000L;
-    protected static final long START_TIME = 1000L;
-    protected static final long END_TIME = START_TIME + TIME_PERIOD - 1;
+    protected static final long KEY_PERIOD = 100000L;
+    protected static final long START_KEY = 1000L;
+    protected static final long END_KEY = START_KEY + KEY_PERIOD - 1;
     // params for partialDelete
-    protected long delStartTime = START_TIME + TIME_PERIOD / 5;
-    protected long delEndTime = START_TIME + TIME_PERIOD / 10 * 9;
-    protected long delTimePeriod = delEndTime - delStartTime;
+    protected long delStartKey = START_KEY + KEY_PERIOD / 5;
+    protected long delEndKey = START_KEY + KEY_PERIOD / 10 * 9;
+    protected long delKeyPeriod = delEndKey - delStartKey;
     protected double deleteAvg =
-            ((START_TIME + END_TIME) * TIME_PERIOD / 2.0
-                            - (delStartTime + delEndTime - 1) * delTimePeriod / 2.0)
-                    / (TIME_PERIOD - delTimePeriod);
+            ((START_KEY + END_KEY) * KEY_PERIOD / 2.0
+                            - (delStartKey + delEndKey - 1) * delKeyPeriod / 2.0)
+                    / (KEY_PERIOD - delKeyPeriod);
 
     protected int currPath = 0;
 
@@ -128,17 +128,17 @@ public abstract class BaseSessionIT {
     protected void insertNumRecords(List<String> insertPaths)
             throws SessionException, ExecutionException {
         int pathLen = insertPaths.size();
-        long[] timestamps = new long[(int) TIME_PERIOD];
-        for (long i = 0; i < TIME_PERIOD; i++) {
-            timestamps[(int) i] = i + START_TIME;
+        long[] keys = new long[(int) KEY_PERIOD];
+        for (long i = 0; i < KEY_PERIOD; i++) {
+            keys[(int) i] = i + START_KEY;
         }
 
         Object[] valuesList = new Object[pathLen];
         for (int i = 0; i < pathLen; i++) {
             int pathNum = getPathNum(insertPaths.get(i));
-            Object[] values = new Object[(int) TIME_PERIOD];
-            for (long j = 0; j < TIME_PERIOD; j++) {
-                values[(int) j] = pathNum + j + START_TIME;
+            Object[] values = new Object[(int) KEY_PERIOD];
+            for (long j = 0; j < KEY_PERIOD; j++) {
+                values[(int) j] = pathNum + j + START_KEY;
             }
             valuesList[i] = values;
         }
@@ -147,8 +147,7 @@ public abstract class BaseSessionIT {
         for (int i = 0; i < pathLen; i++) {
             dataTypeList.add(DataType.LONG);
         }
-        session.insertNonAlignedColumnRecords(
-                insertPaths, timestamps, valuesList, dataTypeList, null);
+        session.insertNonAlignedColumnRecords(insertPaths, keys, valuesList, dataTypeList, null);
     }
 
     protected double changeResultToDouble(Object rawResult) {

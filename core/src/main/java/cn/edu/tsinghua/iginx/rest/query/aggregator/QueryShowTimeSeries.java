@@ -24,7 +24,7 @@ import cn.edu.tsinghua.iginx.session.SessionQueryDataSet;
 
 public class QueryShowTimeSeries extends QueryAggregator {
     public QueryShowTimeSeries() {
-        super(QueryAggregatorType.SHOWTIMESERIES);
+        super(QueryAggregatorType.SHOW_COLUMNS);
     }
 
     public QueryResultDataset doAggregate(RestSession session) {

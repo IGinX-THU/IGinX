@@ -128,40 +128,40 @@ public class MultiConnection {
     }
 
     public SessionAggregateQueryDataSet aggregateQuery(
-            List<String> paths, long startTime, long endTime, AggregateType aggregateType)
+            List<String> paths, long startKey, long endKey, AggregateType aggregateType)
             throws SessionException, ExecutionException {
         if (session != null) {
-            return session.aggregateQuery(paths, startTime, endTime, aggregateType);
+            return session.aggregateQuery(paths, startKey, endKey, aggregateType);
         }
         if (sessionPool != null) {
-            return sessionPool.aggregateQuery(paths, startTime, endTime, aggregateType);
+            return sessionPool.aggregateQuery(paths, startKey, endKey, aggregateType);
         }
         return null;
     }
 
     public SessionQueryDataSet downsampleQuery(
             List<String> paths,
-            long startTime,
-            long endTime,
+            long startKey,
+            long endKey,
             AggregateType aggregateType,
             long precision)
             throws SessionException, ExecutionException {
         if (session != null) {
-            return session.downsampleQuery(paths, startTime, endTime, aggregateType, precision);
+            return session.downsampleQuery(paths, startKey, endKey, aggregateType, precision);
         }
         if (sessionPool != null) {
-            return sessionPool.downsampleQuery(paths, startTime, endTime, aggregateType, precision);
+            return sessionPool.downsampleQuery(paths, startKey, endKey, aggregateType, precision);
         }
         return null;
     }
 
-    public SessionQueryDataSet queryData(List<String> paths, long startTime, long endTime)
+    public SessionQueryDataSet queryData(List<String> paths, long startKey, long endKey)
             throws SessionException, ExecutionException {
         if (session != null) {
-            return session.queryData(paths, startTime, endTime);
+            return session.queryData(paths, startKey, endKey);
         }
         if (sessionPool != null) {
-            return sessionPool.queryData(paths, startTime, endTime);
+            return sessionPool.queryData(paths, startKey, endKey);
         }
         return null;
     }
@@ -186,12 +186,12 @@ public class MultiConnection {
         }
     }
 
-    public void deleteDataInColumns(List<String> paths, long startTime, long endTime)
+    public void deleteDataInColumns(List<String> paths, long startKey, long endKey)
             throws SessionException, ExecutionException {
         if (session != null) {
-            session.deleteDataInColumns(paths, startTime, endTime);
+            session.deleteDataInColumns(paths, startKey, endKey);
         } else if (sessionPool != null) {
-            sessionPool.deleteDataInColumns(paths, startTime, endTime);
+            sessionPool.deleteDataInColumns(paths, startKey, endKey);
         }
     }
 }

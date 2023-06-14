@@ -776,7 +776,7 @@ public class IginxWorker implements IService.Iface {
     public CurveMatchResp curveMatch(CurveMatchReq req) throws TException {
         QueryDataReq queryDataReq =
                 new QueryDataReq(
-                        req.getSessionId(), req.getPaths(), req.getStartTime(), req.getEndTime());
+                        req.getSessionId(), req.getPaths(), req.getStartKey(), req.getEndKey());
         RequestContext ctx = contextBuilder.build(queryDataReq);
         executor.execute(ctx);
         QueryDataResp queryDataResp = ctx.getResult().getQueryDataResp();
@@ -797,8 +797,7 @@ public class IginxWorker implements IService.Iface {
         List<Double> lower = CurveMatchUtils.getWindow(queryList, maxWarpingWindow, false);
 
         List<String> paths = queryDataResp.getPaths();
-        long[] queryTimestamps =
-                getLongArrayFromByteBuffer(queryDataResp.getQueryDataSet().timestamps);
+        long[] queryTimestamps = getLongArrayFromByteBuffer(queryDataResp.getQueryDataSet().keys);
         List<List<Object>> values =
                 ByteUtils.getValuesFromBufferAndBitmaps(
                         queryDataResp.getDataTypeList(),
@@ -806,7 +805,7 @@ public class IginxWorker implements IService.Iface {
                         queryDataResp.getQueryDataSet().getBitmapList());
 
         double globalBestResult = Double.MAX_VALUE;
-        long globalMatchedTimestamp = 0L;
+        long globalMatchedKey = 0L;
         String globalMatchedPath = "";
 
         for (int i = 0; i < paths.size(); i++) {
@@ -855,14 +854,14 @@ public class IginxWorker implements IService.Iface {
             for (int j = 0; j < bestResultList.size(); j++) {
                 if (bestResultList.get(j) < globalBestResult) {
                     globalBestResult = bestResultList.get(j);
-                    globalMatchedTimestamp = matchedTimestampList.get(j);
+                    globalMatchedKey = matchedTimestampList.get(j);
                     globalMatchedPath = paths.get(i);
                 }
             }
         }
 
         CurveMatchResp resp = new CurveMatchResp(RpcUtils.SUCCESS);
-        resp.setMatchedTimestamp(globalMatchedTimestamp);
+        resp.setMatchedKey(globalMatchedKey);
         resp.setMatchedPath(globalMatchedPath);
         return resp;
     }

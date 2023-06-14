@@ -237,7 +237,7 @@ public class RestSession {
         InsertNonAlignedColumnRecordsReq req = new InsertNonAlignedColumnRecordsReq();
         req.setSessionId(sessionId);
         req.setPaths(paths);
-        req.setTimestamps(getByteArrayFromLongArray(timestamps));
+        req.setKeys(getByteArrayFromLongArray(timestamps));
         req.setValuesList(valueBufferList);
         req.setBitmapList(bitmapBufferList);
         req.setDataTypeList(dataTypeList);
@@ -343,7 +343,7 @@ public class RestSession {
         InsertNonAlignedRowRecordsReq req = new InsertNonAlignedRowRecordsReq();
         req.setSessionId(sessionId);
         req.setPaths(paths);
-        req.setTimestamps(getByteArrayFromLongArray(timestamps));
+        req.setKeys(getByteArrayFromLongArray(timestamps));
         req.setValuesList(valueBufferList);
         req.setBitmapList(bitmapBufferList);
         req.setDataTypeList(sortedDataTypeList);
@@ -363,26 +363,25 @@ public class RestSession {
     }
 
     public void deleteDataInColumn(
-            String path, Map<String, List<String>> tagList, long startTime, long endTime) {
+            String path, Map<String, List<String>> tagList, long startKey, long endKey) {
         List<String> paths = new ArrayList<>();
         paths.add(path);
-        deleteDataInColumns(paths, tagList, startTime, endTime);
+        deleteDataInColumns(paths, tagList, startKey, endKey);
     }
 
     public void deleteDataInColumns(
-            List<String> paths, Map<String, List<String>> tagList, long startTime, long endTime) {
+            List<String> paths, Map<String, List<String>> tagList, long startKey, long endKey) {
         deleteDataInColumns(
-                paths, tagList, startTime, endTime, TimeUtils.DEFAULT_TIMESTAMP_PRECISION);
+                paths, tagList, startKey, endKey, TimeUtils.DEFAULT_TIMESTAMP_PRECISION);
     }
 
     public void deleteDataInColumns(
             List<String> paths,
             Map<String, List<String>> tagList,
-            long startTime,
-            long endTime,
+            long startKey,
+            long endKey,
             TimePrecision timePrecision) {
-        DeleteDataInColumnsReq req =
-                new DeleteDataInColumnsReq(sessionId, paths, startTime, endTime);
+        DeleteDataInColumnsReq req = new DeleteDataInColumnsReq(sessionId, paths, startKey, endKey);
         if (!tagList.isEmpty()) // LHZ这里要全部将size改为这个empty的判断
         req.setTagsList(tagList);
         req.setTimePrecision(timePrecision);
@@ -399,21 +398,21 @@ public class RestSession {
     }
 
     public SessionQueryDataSet queryData(
-            List<String> paths, long startTime, long endTime, Map<String, List<String>> tagList) {
-        return queryData(paths, startTime, endTime, tagList);
+            List<String> paths, long startKey, long endKey, Map<String, List<String>> tagList) {
+        return queryData(paths, startKey, endKey, tagList);
     }
 
     public SessionQueryDataSet queryData(
             List<String> paths,
-            long startTime,
-            long endTime,
+            long startKey,
+            long endKey,
             Map<String, List<String>> tagList,
             TimePrecision timePrecision) {
-        if (paths.isEmpty() || startTime > endTime) {
+        if (paths.isEmpty() || startKey > endKey) {
             logger.error("Invalid query request!");
             return null;
         }
-        QueryDataReq req = new QueryDataReq(sessionId, paths, startTime, endTime);
+        QueryDataReq req = new QueryDataReq(sessionId, paths, startKey, endKey);
         if (tagList.size() != 0) req.setTagsList(tagList);
         req.setTimePrecision(timePrecision);
 
@@ -433,13 +432,13 @@ public class RestSession {
 
     public SessionAggregateQueryDataSet aggregateQuery(
             List<String> paths,
-            long startTime,
-            long endTime,
+            long startKey,
+            long endKey,
             Map<String, List<String>> tagList,
             AggregateType aggregateType,
             TimePrecision timePrecision) {
         AggregateQueryReq req =
-                new AggregateQueryReq(sessionId, paths, startTime, endTime, aggregateType);
+                new AggregateQueryReq(sessionId, paths, startKey, endKey, aggregateType);
         req.setTagsList(tagList);
         req.setTimePrecision(timePrecision);
 
@@ -459,14 +458,14 @@ public class RestSession {
     public SessionQueryDataSet downsampleQuery(
             List<String> paths,
             Map<String, List<String>> tagList,
-            long startTime,
-            long endTime,
+            long startKey,
+            long endKey,
             AggregateType aggregateType,
             long precision,
             TimePrecision timePrecision) {
         DownsampleQueryReq req =
                 new DownsampleQueryReq(
-                        sessionId, paths, startTime, endTime, aggregateType, precision);
+                        sessionId, paths, startKey, endKey, aggregateType, precision);
         req.setTagsList(tagList);
         req.setTimePrecision(timePrecision);
 

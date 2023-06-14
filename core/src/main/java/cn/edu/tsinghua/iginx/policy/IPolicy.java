@@ -23,11 +23,11 @@ public interface IPolicy {
             DataStatement statement);
 
     Pair<FragmentMeta, StorageUnitMeta>
-            generateFragmentAndStorageUnitByTimeSeriesIntervalAndTimeInterval(
+            generateFragmentAndStorageUnitByColumnsIntervalAndKeyInterval(
                     String startPath,
                     String endPath,
-                    long startTime,
-                    long endTime,
+                    long startKey,
+                    long endKey,
                     List<Long> storageEngineList);
 
     boolean isNeedReAllocate();

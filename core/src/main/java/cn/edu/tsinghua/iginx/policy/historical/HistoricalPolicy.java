@@ -101,7 +101,7 @@ public class HistoricalPolicy implements IPolicy {
         List<FragmentMeta> fragmentList = new ArrayList<>();
         List<StorageUnitMeta> storageUnitList = new ArrayList<>();
 
-        KeyInterval keyInterval = Utils.getTimeIntervalFromDataStatement(statement);
+        KeyInterval keyInterval = Utils.getKeyIntervalFromDataStatement(statement);
         List<StorageEngineMeta> storageEngineList = iMetaManager.getStorageEngineList();
         int storageEngineNum = storageEngineList.size();
         int replicaNum =
@@ -116,7 +116,7 @@ public class HistoricalPolicy implements IPolicy {
                 ConfigDescriptor.getInstance().getConfig().getExpectedStorageUnitNum();
 
         List<String> prefixList = new ArrayList<>();
-        List<ColumnsRange> timeSeriesIntervalList = new ArrayList<>();
+        List<ColumnsRange> columnsIntervalList = new ArrayList<>();
         for (String historicalPrefix : historicalPrefixList) {
             for (String suffix : suffixList) {
                 if (!prefixList.contains(historicalPrefix + suffix)) {
@@ -127,9 +127,9 @@ public class HistoricalPolicy implements IPolicy {
         Collections.sort(prefixList);
         int prefixNum = prefixList.size();
         prefixList.add(null);
-        timeSeriesIntervalList.add(new ColumnsInterval(null, prefixList.get(0)));
+        columnsIntervalList.add(new ColumnsInterval(null, prefixList.get(0)));
         for (int i = 0; i < expectedStorageUnitNum; i++) {
-            timeSeriesIntervalList.add(
+            columnsIntervalList.add(
                     new ColumnsInterval(
                             prefixList.get(i * prefixNum / expectedStorageUnitNum),
                             prefixList.get((i + 1) * prefixNum / expectedStorageUnitNum)));
@@ -137,7 +137,7 @@ public class HistoricalPolicy implements IPolicy {
 
         String masterId;
         StorageUnitMeta storageUnit;
-        for (int i = 0; i < timeSeriesIntervalList.size(); i++) {
+        for (int i = 0; i < columnsIntervalList.size(); i++) {
             masterId = RandomStringUtils.randomAlphanumeric(16);
             storageUnit =
                     new StorageUnitMeta(
@@ -154,8 +154,7 @@ public class HistoricalPolicy implements IPolicy {
                                 false));
             }
             storageUnitList.add(storageUnit);
-            fragmentList.add(
-                    new FragmentMeta(timeSeriesIntervalList.get(i), keyInterval, masterId));
+            fragmentList.add(new FragmentMeta(columnsIntervalList.get(i), keyInterval, masterId));
         }
 
         return new Pair<>(fragmentList, storageUnitList);
@@ -164,10 +163,10 @@ public class HistoricalPolicy implements IPolicy {
     @Override
     public Pair<List<FragmentMeta>, List<StorageUnitMeta>> generateFragmentsAndStorageUnits(
             DataStatement statement) {
-        long startTime;
+        long startKey;
         if (statement.getType() == StatementType.INSERT) {
-            startTime =
-                    ((InsertStatement) statement).getEndTime()
+            startKey =
+                    ((InsertStatement) statement).getEndKey()
                             + TimeUnit.SECONDS.toMillis(
                                             ConfigDescriptor.getInstance()
                                                     .getConfig()
@@ -178,62 +177,79 @@ public class HistoricalPolicy implements IPolicy {
             throw new IllegalArgumentException(
                     "function generateFragmentsAndStorageUnits only use insert statement for now.");
         }
-        List<String> prefixList =
-                sampler.samplePrefix(iMetaManager.getWriteableStorageEngineList().size() - 1);
 
         List<FragmentMeta> fragmentList = new ArrayList<>();
         List<StorageUnitMeta> storageUnitList = new ArrayList<>();
-
-        int storageEngineNum = iMetaManager.getStorageEngineNum();
+        int storageEngineNum = iMetaManager.getWritableStorageEngineList().size();
         int replicaNum =
                 Math.min(
                         1 + ConfigDescriptor.getInstance().getConfig().getReplicaNum(),
                         storageEngineNum);
         List<Long> storageEngineIdList;
         Pair<FragmentMeta, StorageUnitMeta> pair;
-        int index = 0;
 
-        // [startTime, +∞) & [startPath, endPath)
-        int splitNum = Math.max(Math.min(storageEngineNum, prefixList.size() - 1), 0);
-        for (int i = 0; i < splitNum; i++) {
+        if (storageEngineNum == 0) {
+            // 系统中无可写存储引擎
+            throw new IllegalArgumentException("there are no writable storage engines!");
+        } else if (storageEngineNum == 1) {
+            // 系统中只有一个可写存储引擎
+            // [startKey, +∞) & (null, null)
+            storageEngineIdList =
+                    Collections.singletonList(
+                            iMetaManager.getWritableStorageEngineList().get(0).getId());
+            pair =
+                    generateFragmentAndStorageUnitByColumnsIntervalAndKeyInterval(
+                            null, null, startKey, Long.MAX_VALUE, storageEngineIdList);
+            fragmentList.add(pair.k);
+            storageUnitList.add(pair.v);
+        } else {
+            // 系统中有多个可写存储引擎
+            List<String> prefixList = sampler.samplePrefix(storageEngineNum - 1);
+
+            int index = 0;
+
+            // [startKey, +∞) & [startPath, endPath)
+            int splitNum = Math.max(Math.min(storageEngineNum, prefixList.size() - 1), 0);
+            for (int i = 0; i < splitNum; i++) {
+                storageEngineIdList = generateStorageEngineIdList(index++, replicaNum);
+                pair =
+                        generateFragmentAndStorageUnitByColumnsIntervalAndKeyInterval(
+                                prefixList.get(i),
+                                prefixList.get(i + 1),
+                                startKey,
+                                Long.MAX_VALUE,
+                                storageEngineIdList);
+                fragmentList.add(pair.k);
+                storageUnitList.add(pair.v);
+            }
+
+            // [startKey, +∞) & [endPath, null)
             storageEngineIdList = generateStorageEngineIdList(index++, replicaNum);
             pair =
-                    generateFragmentAndStorageUnitByTimeSeriesIntervalAndTimeInterval(
-                            prefixList.get(i),
-                            prefixList.get(i + 1),
-                            startTime,
+                    generateFragmentAndStorageUnitByColumnsIntervalAndKeyInterval(
+                            prefixList.get(prefixList.size() - 1),
+                            null,
+                            startKey,
                             Long.MAX_VALUE,
                             storageEngineIdList);
             fragmentList.add(pair.k);
             storageUnitList.add(pair.v);
+
+            // [startKey, +∞) & (null, startPath)
+            storageEngineIdList = generateStorageEngineIdList(index, replicaNum);
+            pair =
+                    generateFragmentAndStorageUnitByColumnsIntervalAndKeyInterval(
+                            null, prefixList.get(0), startKey, Long.MAX_VALUE, storageEngineIdList);
+            fragmentList.add(pair.k);
+            storageUnitList.add(pair.v);
         }
-
-        // [startTime, +∞) & [endPath, null)
-        storageEngineIdList = generateStorageEngineIdList(index++, replicaNum);
-        pair =
-                generateFragmentAndStorageUnitByTimeSeriesIntervalAndTimeInterval(
-                        prefixList.get(prefixList.size() - 1),
-                        null,
-                        startTime,
-                        Long.MAX_VALUE,
-                        storageEngineIdList);
-        fragmentList.add(pair.k);
-        storageUnitList.add(pair.v);
-
-        // [startTime, +∞) & (null, startPath)
-        storageEngineIdList = generateStorageEngineIdList(index, replicaNum);
-        pair =
-                generateFragmentAndStorageUnitByTimeSeriesIntervalAndTimeInterval(
-                        null, prefixList.get(0), startTime, Long.MAX_VALUE, storageEngineIdList);
-        fragmentList.add(pair.k);
-        storageUnitList.add(pair.v);
 
         return new Pair<>(fragmentList, storageUnitList);
     }
 
     private List<Long> generateStorageEngineIdList(int startIndex, int num) {
         List<Long> storageEngineIdList = new ArrayList<>();
-        List<StorageEngineMeta> storageEngines = iMetaManager.getWriteableStorageEngineList();
+        List<StorageEngineMeta> storageEngines = iMetaManager.getWritableStorageEngineList();
         for (int i = startIndex; i < startIndex + num; i++) {
             storageEngineIdList.add(storageEngines.get(i % storageEngines.size()).getId());
         }
@@ -241,16 +257,16 @@ public class HistoricalPolicy implements IPolicy {
     }
 
     public Pair<FragmentMeta, StorageUnitMeta>
-            generateFragmentAndStorageUnitByTimeSeriesIntervalAndTimeInterval(
+            generateFragmentAndStorageUnitByColumnsIntervalAndKeyInterval(
                     String startPath,
                     String endPath,
-                    long startTime,
-                    long endTime,
+                    long startKey,
+                    long endKey,
                     List<Long> storageEngineList) {
         String masterId = RandomStringUtils.randomAlphanumeric(16);
         StorageUnitMeta storageUnit =
                 new StorageUnitMeta(masterId, storageEngineList.get(0), masterId, true);
-        FragmentMeta fragment = new FragmentMeta(startPath, endPath, startTime, endTime, masterId);
+        FragmentMeta fragment = new FragmentMeta(startPath, endPath, startKey, endKey, masterId);
         for (int i = 1; i < storageEngineList.size(); i++) {
             storageUnit.addReplica(
                     new StorageUnitMeta(

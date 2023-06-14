@@ -34,11 +34,11 @@ public class WritePlan {
         this.pathList = pathList;
     }
 
-    public KeyInterval getTimeInterval() {
+    public KeyInterval getKeyInterval() {
         return keyInterval;
     }
 
-    public void setTimeInterval(KeyInterval keyInterval) {
+    public void setKeyInterval(KeyInterval keyInterval) {
         this.keyInterval = keyInterval;
     }
 }

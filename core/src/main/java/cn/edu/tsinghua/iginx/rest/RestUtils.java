@@ -6,12 +6,12 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 public class RestUtils {
 
     public static final String CATEGORY = "" + '\u2E84'; // "category";
-    public static final Long TOPTIEM = 9223372036854775804L;
-    public static final Long DESCRIPTIONTIEM = 9223372036854775805L;
-    public static final Long TITLETIEM = 9223372036854775806L;
-    public static final Long MAXTIEM = 9223372036854775807L;
-    public static final Long ANNOSTARTTIME = 10L;
-    public static final String ANNOTAIONSEQUENCE = "TITLE.DESCRIPTION";
+    public static final long TOP_KEY = 9223372036854775804L;
+    public static final long DESCRIPTION_KEY = 9223372036854775805L;
+    public static final long TITLE_KEY = 9223372036854775806L;
+    public static final long MAX_KEY = 9223372036854775807L;
+    public static final long ANNOTATION_START_KEY = 10L;
+    public static final String ANNOTATION_SEQUENCE = "TITLE.DESCRIPTION";
 
     public static DataType checkType(SessionQueryDataSet sessionQueryDataSet) {
         int n = sessionQueryDataSet.getKeys().length;
@@ -45,11 +45,11 @@ public class RestUtils {
         }
     }
 
-    public static long getInterval(long timestamp, long startTime, long duration) {
-        return (timestamp - startTime) / duration;
+    public static long getInterval(long key, long startKey, long duration) {
+        return (key - startKey) / duration;
     }
 
-    public static long getIntervalStart(long timestamp, long startTime, long duration) {
-        return (timestamp - startTime) / duration * duration + startTime;
+    public static long getIntervalStart(long key, long startKey, long duration) {
+        return (key - startKey) / duration * duration + startKey;
     }
 }

@@ -68,10 +68,10 @@ public interface IMetaStorage {
 
     void lockFragment() throws MetaStorageException;
 
-    List<FragmentMeta> getFragmentListByTimeSeriesNameAndTimeInterval(
+    List<FragmentMeta> getFragmentListByColumnNameAndKeyInterval(
             String tsName, KeyInterval keyInterval);
 
-    Map<ColumnsRange, List<FragmentMeta>> getFragmentMapByTimeSeriesIntervalAndTimeInterval(
+    Map<ColumnsRange, List<FragmentMeta>> getFragmentMapByColumnsIntervalAndKeyInterval(
             ColumnsRange columnsRange, KeyInterval keyInterval);
 
     void updateFragment(FragmentMeta fragmentMeta) throws MetaStorageException;
@@ -106,7 +106,7 @@ public interface IMetaStorage {
     void updateTimeseriesData(Map<String, Double> timeseriesData, long iginxid, long version)
             throws Exception;
 
-    Map<String, Double> getTimeseriesData();
+    Map<String, Double> getColumnsData();
 
     void registerPolicy(long iginxId, int num) throws Exception;
 
@@ -204,14 +204,14 @@ public interface IMetaStorage {
 
     void registerReshardCounterChangeHook(ReshardCounterChangeHook hook);
 
-    void lockMaxActiveEndTimeStatistics() throws MetaStorageException;
+    void lockMaxActiveEndKeyStatistics() throws MetaStorageException;
 
-    void addOrUpdateMaxActiveEndTimeStatistics(long endTime) throws MetaStorageException;
+    void addOrUpdateMaxActiveEndKeyStatistics(long endKey) throws MetaStorageException;
 
-    long getMaxActiveEndTimeStatistics() throws MetaStorageException;
+    long getMaxActiveEndKeyStatistics() throws MetaStorageException;
 
-    void releaseMaxActiveEndTimeStatistics() throws MetaStorageException;
+    void releaseMaxActiveEndKeyStatistics() throws MetaStorageException;
 
-    void registerMaxActiveEndTimeStatisticsChangeHook(MaxActiveEndTimeStatisticsChangeHook hook)
+    void registerMaxActiveEndKeyStatisticsChangeHook(MaxActiveEndKeyStatisticsChangeHook hook)
             throws MetaStorageException;
 }

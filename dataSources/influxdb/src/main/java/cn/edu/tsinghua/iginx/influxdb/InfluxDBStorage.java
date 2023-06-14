@@ -365,15 +365,15 @@ public class InfluxDBStorage implements IStorage {
             bucketQueries.put(bucketName, fullQuery);
         }
 
-        long startTime = keyInterval.getStartKey();
-        long endTime = keyInterval.getEndKey();
+        long startKey = keyInterval.getStartKey();
+        long endKey = keyInterval.getEndKey();
 
         Map<String, List<FluxTable>> bucketQueryResults = new HashMap<>();
         for (String bucket : bucketQueries.keySet()) {
             String statement =
                     String.format(
                             "from(bucket:\"%s\") |> range(start: time(v: %s), stop: time(v: %s))",
-                            bucket, startTime, endTime);
+                            bucket, startKey, endKey);
             if (!bucketQueries.get(bucket).equals("()")) {
                 statement += String.format(" |> filter(fn: (r) => %s)", bucketQueries.get(bucket));
             }
@@ -391,9 +391,9 @@ public class InfluxDBStorage implements IStorage {
             String bucketName,
             List<String> paths,
             TagFilter tagFilter,
-            long startTime,
-            long endTime) {
-        String statement = String.format(QUERY_DATA, bucketName, startTime, endTime);
+            long startKey,
+            long endKey) {
+        String statement = String.format(QUERY_DATA, bucketName, startKey, endKey);
         if (paths.size() != 1 || !paths.get(0).equals("*")) {
             StringBuilder filterStr = new StringBuilder(" |> filter(fn: (r) => ");
             filterStr.append('('); // make the or statement together

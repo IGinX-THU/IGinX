@@ -186,7 +186,7 @@ public class ETCDMetaStorage implements IMetaStorage {
     private ReshardCounterChangeHook reshardCounterChangeHook = null;
     private long reshardCounterLease = -1L;
     private Watch.Watcher maxActiveEndTimeStatisticsWatcher;
-    private MaxActiveEndTimeStatisticsChangeHook maxActiveEndTimeStatisticsChangeHook = null;
+    private MaxActiveEndKeyStatisticsChangeHook maxActiveEndKeyStatisticsChangeHook = null;
     private long maxActiveEndTimeStatisticsLease = -1L;
 
     private final int IGINX_NODE_LENGTH = 7;
@@ -706,8 +706,7 @@ public class ETCDMetaStorage implements IMetaStorage {
                                 new Watch.Listener() {
                                     @Override
                                     public void onNext(WatchResponse watchResponse) {
-                                        if (ETCDMetaStorage.this
-                                                        .maxActiveEndTimeStatisticsChangeHook
+                                        if (ETCDMetaStorage.this.maxActiveEndKeyStatisticsChangeHook
                                                 == null) {
                                             return;
                                         }
@@ -721,7 +720,7 @@ public class ETCDMetaStorage implements IMetaStorage {
                                                                             .getValue()
                                                                             .getBytes(),
                                                                     Long.class);
-                                                    maxActiveEndTimeStatisticsChangeHook.onChange(
+                                                    maxActiveEndKeyStatisticsChangeHook.onChange(
                                                             endTime);
                                                     break;
                                                 case DELETE:
@@ -731,7 +730,7 @@ public class ETCDMetaStorage implements IMetaStorage {
                                                                             .getValue()
                                                                             .getBytes(),
                                                                     Long.class);
-                                                    maxActiveEndTimeStatisticsChangeHook.onChange(
+                                                    maxActiveEndKeyStatisticsChangeHook.onChange(
                                                             endTime);
                                                     break;
                                                 default:
@@ -1181,7 +1180,7 @@ public class ETCDMetaStorage implements IMetaStorage {
     }
 
     @Override
-    public List<FragmentMeta> getFragmentListByTimeSeriesNameAndTimeInterval(
+    public List<FragmentMeta> getFragmentListByColumnNameAndKeyInterval(
             String tsName, KeyInterval keyInterval) {
         try {
             List<FragmentMeta> fragments = new ArrayList<>();
@@ -1217,7 +1216,7 @@ public class ETCDMetaStorage implements IMetaStorage {
     }
 
     @Override
-    public Map<ColumnsRange, List<FragmentMeta>> getFragmentMapByTimeSeriesIntervalAndTimeInterval(
+    public Map<ColumnsRange, List<FragmentMeta>> getFragmentMapByColumnsIntervalAndKeyInterval(
             ColumnsRange columnsRange, KeyInterval keyInterval) {
         try {
             Map<ColumnsRange, List<FragmentMeta>> fragmentsMap = new HashMap<>();
@@ -1522,7 +1521,7 @@ public class ETCDMetaStorage implements IMetaStorage {
             throws Exception {}
 
     @Override
-    public Map<String, Double> getTimeseriesData() {
+    public Map<String, Double> getColumnsData() {
         return null;
     }
 
@@ -1911,7 +1910,7 @@ public class ETCDMetaStorage implements IMetaStorage {
         for (Map.Entry<String, List<KeyValue>> entry : timeSeriesRangeListMap.entrySet()) {
             ColumnsRange columnsRange = ColumnsInterval.fromString(entry.getKey());
             List<FragmentMeta> fragmentMetas =
-                    cache.getFragmentMapByExactTimeSeriesInterval(columnsRange);
+                    cache.getFragmentMapByExactColumnsInterval(columnsRange);
             for (KeyValue kv : entry.getValue()) {
                 String[] tuples = kv.getKey().toString().split("/");
                 long startTime = Long.parseLong(tuples[tuples.length - 1]);
@@ -2052,7 +2051,7 @@ public class ETCDMetaStorage implements IMetaStorage {
         for (Map.Entry<String, List<KeyValue>> entry : timeSeriesWriteRangeListMap.entrySet()) {
             ColumnsRange columnsRange = ColumnsInterval.fromString(entry.getKey());
             Map<ColumnsRange, List<FragmentMeta>> fragmentMapOfTimeSeriesInterval =
-                    cache.getFragmentMapByTimeSeriesInterval(columnsRange);
+                    cache.getFragmentMapByColumnsInterval(columnsRange);
             List<FragmentMeta> fragmentMetas = fragmentMapOfTimeSeriesInterval.get(columnsRange);
 
             if (fragmentMetas != null) {
@@ -2071,7 +2070,7 @@ public class ETCDMetaStorage implements IMetaStorage {
         for (Map.Entry<String, List<KeyValue>> entry : timeSeriesReadRangeListMap.entrySet()) {
             ColumnsRange columnsRange = ColumnsInterval.fromString(entry.getKey());
             Map<ColumnsRange, List<FragmentMeta>> fragmentMapOfTimeSeriesInterval =
-                    cache.getFragmentMapByTimeSeriesInterval(columnsRange);
+                    cache.getFragmentMapByColumnsInterval(columnsRange);
             List<FragmentMeta> fragmentMetas = fragmentMapOfTimeSeriesInterval.get(columnsRange);
 
             if (fragmentMetas != null) {
@@ -2472,7 +2471,7 @@ public class ETCDMetaStorage implements IMetaStorage {
     }
 
     @Override
-    public void lockMaxActiveEndTimeStatistics() throws MetaStorageException {
+    public void lockMaxActiveEndKeyStatistics() throws MetaStorageException {
         try {
             maxActiveEndTimeStatisticsLeaseLock.lock();
             maxActiveEndTimeStatisticsLease =
@@ -2488,12 +2487,12 @@ public class ETCDMetaStorage implements IMetaStorage {
     }
 
     @Override
-    public void addOrUpdateMaxActiveEndTimeStatistics(long endTime) throws MetaStorageException {
+    public void addOrUpdateMaxActiveEndKeyStatistics(long endKey) throws MetaStorageException {
         try {
             client.getKVClient()
                     .put(
                             ByteSequence.from(MAX_ACTIVE_END_TIME_STATISTICS_NODE.getBytes()),
-                            ByteSequence.from(JsonUtils.toJson(endTime)));
+                            ByteSequence.from(JsonUtils.toJson(endKey)));
         } catch (Exception e) {
             throw new MetaStorageException(
                     "encounter error when adding or updating max active end time statistics: ", e);
@@ -2501,7 +2500,7 @@ public class ETCDMetaStorage implements IMetaStorage {
     }
 
     @Override
-    public long getMaxActiveEndTimeStatistics() throws MetaStorageException {
+    public long getMaxActiveEndKeyStatistics() throws MetaStorageException {
         try {
             String[] tuples = MAX_ACTIVE_END_TIME_STATISTICS_NODE.split("/");
             String lastTuple = tuples[tuples.length - 1];
@@ -2527,7 +2526,7 @@ public class ETCDMetaStorage implements IMetaStorage {
     }
 
     @Override
-    public void releaseMaxActiveEndTimeStatistics() throws MetaStorageException {
+    public void releaseMaxActiveEndKeyStatistics() throws MetaStorageException {
         try {
             client.getLockClient()
                     .unlock(ByteSequence.from(ACTIVE_END_TIME_COUNTER_LOCK_NODE.getBytes()))
@@ -2542,9 +2541,9 @@ public class ETCDMetaStorage implements IMetaStorage {
     }
 
     @Override
-    public void registerMaxActiveEndTimeStatisticsChangeHook(
-            MaxActiveEndTimeStatisticsChangeHook hook) throws MetaStorageException {
-        this.maxActiveEndTimeStatisticsChangeHook = hook;
+    public void registerMaxActiveEndKeyStatisticsChangeHook(
+            MaxActiveEndKeyStatisticsChangeHook hook) throws MetaStorageException {
+        this.maxActiveEndKeyStatisticsChangeHook = hook;
     }
 
     public void close() throws MetaStorageException {

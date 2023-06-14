@@ -34,11 +34,11 @@ struct ParquetHeader {
     1: required list<string> names
     2: required list<string> types
     3: required list<map<string, string>> tagsList;
-    4: required bool hasTime
+    4: required bool hasKey
 }
 
 struct ParquetRow {
-    1: optional i64 timestamp
+    1: optional i64 key
     2: required binary rowValues
     3: required binary bitmap
 }
@@ -52,7 +52,7 @@ struct ProjectResp {
 struct ParquetRawData {
     1: required list<string> paths
     2: required list<map<string, string>> tagsList
-    3: required binary timestamps
+    3: required binary keys
     4: required list<binary> valuesList
     5: required list<binary> bitmapList
     6: required list<string> dataTypeList
@@ -64,26 +64,26 @@ struct InsertReq {
     2: required ParquetRawData rawData;
 }
 
-struct ParquetTimeRange {
-    1: required i64 beginTime;
-    2: required bool includeBeginTime;
-    3: required i64 endTime;
-    4: required bool includeEndTime;
+struct ParquetKeyRange {
+    1: required i64 beginKey;
+    2: required bool includeBeginKey;
+    3: required i64 endKey;
+    4: required bool includeEndKey;
 }
 
 struct DeleteReq {
     1: required string storageUnit
     2: required list<string> paths
     3: optional RawTagFilter tagFilter
-    4: optional list<ParquetTimeRange> timeRanges
+    4: optional list<ParquetKeyRange> keyRanges
 }
 
-struct GetStorageBoundryResp {
+struct GetStorageBoundaryResp {
     1: required Status status
-    2: optional i64 startTime
-    3: optional i64 endTime
-    4: optional string startTimeSeries
-    5: optional string endTimeSeries
+    2: optional i64 startKey
+    3: optional i64 endKey
+    4: optional string startColumn
+    5: optional string endColumn
 }
 
 struct TS {
@@ -92,7 +92,7 @@ struct TS {
     3: optional map<string, string> tags
 }
 
-struct GetTimeSeriesOfStorageUnitResp {
+struct GetColumnsOfStorageUnitResp {
     1: required Status status
     2: optional list<TS> tsList
 }
@@ -105,8 +105,8 @@ service ParquetService {
 
     Status executeDelete(1: DeleteReq req);
 
-    GetTimeSeriesOfStorageUnitResp getTimeSeriesOfStorageUnit(1: string storageUnit);
+    GetColumnsOfStorageUnitResp getColumnsOfStorageUnit(1: string storageUnit);
 
-    GetStorageBoundryResp getBoundaryOfStorage();
+    GetStorageBoundaryResp getBoundaryOfStorage();
 
 }
