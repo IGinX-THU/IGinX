@@ -22,7 +22,7 @@ public class DataViewWrapper {
         return dataView.getPathNum();
     }
 
-    public int getTimeSize() {
+    public int getKeySize() {
         return dataView.getKeySize();
     }
 
@@ -41,7 +41,7 @@ public class DataViewWrapper {
         return dataView.getDataType(index);
     }
 
-    public Long getTimestamp(int index) {
+    public Long getKey(int index) {
         return dataView.getKey(index);
     }
 
@@ -66,15 +66,15 @@ public class DataViewWrapper {
         return -1;
     }
 
-    public int getTimestampIndex(long timestamp) {
-        return dataView.getKeyIndex(timestamp);
+    public int getKeyIndex(long key) {
+        return dataView.getKeyIndex(key);
     }
 
-    public long getMinTime() {
-        return getTimestamp(0);
+    public long getMinKey() {
+        return getKey(0);
     }
 
-    public long getMaxTime() {
-        return getTimestamp(getTimeSize() - 1);
+    public long getMaxKey() {
+        return getKey(getKeySize() - 1);
     }
 }

@@ -14,29 +14,29 @@ public class ParquetSessionExample {
         session.openSession();
 
         // 查看数据分区情况
-        long startTimestamp = 0L;
+        long startKey = 0L;
         long step = 10000L;
         for (int i = 0; i < 100; i++) {
             System.out.println("start insert batch data: " + i);
-            insertData(startTimestamp, startTimestamp + step);
-            startTimestamp += step;
+            insertData(startKey, startKey + step);
+            startKey += step;
         }
 
         // 关闭 Session
         session.closeSession();
     }
 
-    private static void insertData(long startTimestamp, long endTimestamp)
+    private static void insertData(long startKey, long endKey)
             throws ExecutionException, SessionException {
         String insertStrPrefix = "INSERT INTO us.d1 (key, s1, s2, s3, s4) values ";
 
         StringBuilder builder = new StringBuilder(insertStrPrefix);
 
-        int size = (int) (endTimestamp - startTimestamp);
+        int size = (int) (endKey - startKey);
         for (int i = 0; i < size; i++) {
             builder.append(", ");
             builder.append("(");
-            builder.append(startTimestamp + i).append(", ");
+            builder.append(startKey + i).append(", ");
             builder.append(i).append(", ");
             builder.append(i + 1).append(", ");
             builder.append("\"")

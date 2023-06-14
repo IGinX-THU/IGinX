@@ -76,8 +76,8 @@ public class QueryClientImpl extends AbstractFunctionClient implements QueryClie
                 new QueryDataReq(
                         sessionId,
                         MeasurementUtils.mergeAndSortMeasurements(measurements),
-                        query.getStartTime(),
-                        query.getEndTime());
+                        query.getStartKey(),
+                        query.getEndKey());
 
         if (query.getTagsList() != null) {
             req.setTagsList(query.getTagsList());
@@ -108,8 +108,8 @@ public class QueryClientImpl extends AbstractFunctionClient implements QueryClie
                 new AggregateQueryReq(
                         sessionId,
                         MeasurementUtils.mergeAndSortMeasurements(measurements),
-                        query.getStartTime(),
-                        query.getEndTime(),
+                        query.getStartKey(),
+                        query.getEndKey(),
                         query.getAggregateType());
 
         if (query.getTagsList() != null) {
@@ -153,8 +153,8 @@ public class QueryClientImpl extends AbstractFunctionClient implements QueryClie
                 new DownsampleQueryReq(
                         sessionId,
                         MeasurementUtils.mergeAndSortMeasurements(measurements),
-                        query.getStartTime(),
-                        query.getEndTime(),
+                        query.getStartKey(),
+                        query.getEndKey(),
                         query.getAggregateType(),
                         query.getPrecision());
 
@@ -186,7 +186,7 @@ public class QueryClientImpl extends AbstractFunctionClient implements QueryClie
                 new LastQueryReq(
                         sessionId,
                         MeasurementUtils.mergeAndSortMeasurements(measurements),
-                        query.getStartTime());
+                        query.getStartKey());
 
         if (query.getTagsList() != null) {
             req.setTagsList(query.getTagsList());
@@ -285,10 +285,10 @@ public class QueryClientImpl extends AbstractFunctionClient implements QueryClie
             List<String> measurements,
             List<Map<String, String>> tagsList,
             List<DataType> dataTypes) {
-        boolean hasTimestamp = dataSet.getTimestamps() != null;
+        boolean hasTimestamp = dataSet.getKeys() != null;
         long[] timestamps = new long[0];
         if (hasTimestamp) {
-            timestamps = getLongArrayFromByteBuffer(dataSet.timestamps);
+            timestamps = getLongArrayFromByteBuffer(dataSet.keys);
         }
 
         List<IginXColumn> columns = new ArrayList<>();

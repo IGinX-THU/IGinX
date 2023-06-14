@@ -233,10 +233,10 @@ public class InfluxDBSessionExample {
         paths.add(S3);
         paths.add(S4);
 
-        long startTime = NON_ALIGNED_COLUMN_END_TIMESTAMP - 100L;
-        long endTime = ROW_START_TIMESTAMP + 100L;
+        long startKey = NON_ALIGNED_COLUMN_END_TIMESTAMP - 100L;
+        long endKey = ROW_START_TIMESTAMP + 100L;
 
-        SessionQueryDataSet dataSet = session.queryData(paths, startTime, endTime);
+        SessionQueryDataSet dataSet = session.queryData(paths, startKey, endKey);
         dataSet.print();
     }
 
@@ -247,10 +247,10 @@ public class InfluxDBSessionExample {
     //        paths.add(S3);
     //        paths.add(S4);
     //
-    //        long startTime = NON_ALIGNED_COLUMN_END_TIMESTAMP - 100L;
-    //        long endTime = ROW_START_TIMESTAMP + 100L;
+    //        long startKey = NON_ALIGNED_COLUMN_END_TIMESTAMP - 100L;
+    //        long endKey = ROW_START_TIMESTAMP + 100L;
     //        String booleanExpression = S2 + " < " + 9930 + " && " + S1 + " > " + 9910;
-    //        SessionQueryDataSet dataSet = session.valueFilterQuery(paths, startTime, endTime,
+    //        SessionQueryDataSet dataSet = session.valueFilterQuery(paths, startKey, endKey,
     // booleanExpression);
     //        dataSet.print();
     //    }
@@ -260,39 +260,39 @@ public class InfluxDBSessionExample {
         paths.add(S1);
         paths.add(S2);
 
-        long startTime = COLUMN_END_TIMESTAMP - 100L;
-        long endTime = NON_ALIGNED_ROW_START_TIMESTAMP + 100L;
+        long startKey = COLUMN_END_TIMESTAMP - 100L;
+        long endKey = NON_ALIGNED_ROW_START_TIMESTAMP + 100L;
 
         // 聚合查询开始
         System.out.println("Aggregate Query: ");
 
         // MAX
         SessionAggregateQueryDataSet dataSet =
-                session.aggregateQuery(paths, startTime, endTime, AggregateType.MAX);
+                session.aggregateQuery(paths, startKey, endKey, AggregateType.MAX);
         dataSet.print();
 
         // MIN
-        dataSet = session.aggregateQuery(paths, startTime, endTime, AggregateType.MIN);
+        dataSet = session.aggregateQuery(paths, startKey, endKey, AggregateType.MIN);
         dataSet.print();
 
         // FIRST_VALUE
-        dataSet = session.aggregateQuery(paths, startTime, endTime, AggregateType.FIRST_VALUE);
+        dataSet = session.aggregateQuery(paths, startKey, endKey, AggregateType.FIRST_VALUE);
         dataSet.print();
 
         // LAST_VALUE
-        dataSet = session.aggregateQuery(paths, startTime, endTime, AggregateType.LAST_VALUE);
+        dataSet = session.aggregateQuery(paths, startKey, endKey, AggregateType.LAST_VALUE);
         dataSet.print();
 
         // COUNT
-        dataSet = session.aggregateQuery(paths, startTime, endTime, AggregateType.COUNT);
+        dataSet = session.aggregateQuery(paths, startKey, endKey, AggregateType.COUNT);
         dataSet.print();
 
         // SUM
-        dataSet = session.aggregateQuery(paths, startTime, endTime, AggregateType.SUM);
+        dataSet = session.aggregateQuery(paths, startKey, endKey, AggregateType.SUM);
         dataSet.print();
 
         // AVG
-        dataSet = session.aggregateQuery(paths, startTime, endTime, AggregateType.AVG);
+        dataSet = session.aggregateQuery(paths, startKey, endKey, AggregateType.AVG);
         dataSet.print();
 
         // 聚合查询结束
@@ -315,8 +315,8 @@ public class InfluxDBSessionExample {
         paths.add(S1);
         paths.add(S2);
 
-        long startTime = COLUMN_END_TIMESTAMP - 100L;
-        long endTime = NON_ALIGNED_ROW_START_TIMESTAMP + 100L;
+        long startKey = COLUMN_END_TIMESTAMP - 100L;
+        long endKey = NON_ALIGNED_ROW_START_TIMESTAMP + 100L;
 
         // 降采样查询开始
         System.out.println("Downsample Query: ");
@@ -324,43 +324,43 @@ public class InfluxDBSessionExample {
         // MAX
         SessionQueryDataSet dataSet =
                 session.downsampleQuery(
-                        paths, startTime, endTime, AggregateType.MAX, INTERVAL * 100L);
+                        paths, startKey, endKey, AggregateType.MAX, INTERVAL * 100L);
         dataSet.print();
 
         // MIN
         dataSet =
                 session.downsampleQuery(
-                        paths, startTime, endTime, AggregateType.MIN, INTERVAL * 100L);
+                        paths, startKey, endKey, AggregateType.MIN, INTERVAL * 100L);
         dataSet.print();
 
         // FIRST_VALUE
         dataSet =
                 session.downsampleQuery(
-                        paths, startTime, endTime, AggregateType.FIRST_VALUE, INTERVAL * 100L);
+                        paths, startKey, endKey, AggregateType.FIRST_VALUE, INTERVAL * 100L);
         dataSet.print();
 
         // LAST_VALUE
         dataSet =
                 session.downsampleQuery(
-                        paths, startTime, endTime, AggregateType.LAST_VALUE, INTERVAL * 100L);
+                        paths, startKey, endKey, AggregateType.LAST_VALUE, INTERVAL * 100L);
         dataSet.print();
 
         // COUNT
         dataSet =
                 session.downsampleQuery(
-                        paths, startTime, endTime, AggregateType.COUNT, INTERVAL * 100L);
+                        paths, startKey, endKey, AggregateType.COUNT, INTERVAL * 100L);
         dataSet.print();
 
         // SUM
         dataSet =
                 session.downsampleQuery(
-                        paths, startTime, endTime, AggregateType.SUM, INTERVAL * 100L);
+                        paths, startKey, endKey, AggregateType.SUM, INTERVAL * 100L);
         dataSet.print();
 
         // AVG
         dataSet =
                 session.downsampleQuery(
-                        paths, startTime, endTime, AggregateType.AVG, INTERVAL * 100L);
+                        paths, startKey, endKey, AggregateType.AVG, INTERVAL * 100L);
         dataSet.print();
 
         // 降采样查询结束
@@ -373,9 +373,9 @@ public class InfluxDBSessionExample {
         paths.add(S3);
         paths.add(S4);
 
-        long startTime = NON_ALIGNED_COLUMN_END_TIMESTAMP - 50L;
-        long endTime = ROW_START_TIMESTAMP + 50L;
+        long startKey = NON_ALIGNED_COLUMN_END_TIMESTAMP - 50L;
+        long endKey = ROW_START_TIMESTAMP + 50L;
 
-        session.deleteDataInColumns(paths, startTime, endTime);
+        session.deleteDataInColumns(paths, startKey, endKey);
     }
 }

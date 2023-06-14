@@ -28,8 +28,8 @@ public class StatementBuilder {
         typeMap.put(StatementType.SHOW_REPLICATION, SqlType.GetReplicaNum);
         typeMap.put(StatementType.COUNT_POINTS, SqlType.CountPoints);
         typeMap.put(StatementType.CLEAR_DATA, SqlType.ClearData);
-        typeMap.put(StatementType.DELETE_COLUMNS, SqlType.DeleteTimeSeries);
-        typeMap.put(StatementType.SHOW_COLUMNS, SqlType.ShowTimeSeries);
+        typeMap.put(StatementType.DELETE_COLUMNS, SqlType.DeleteColumns);
+        typeMap.put(StatementType.SHOW_COLUMNS, SqlType.ShowColumns);
         typeMap.put(StatementType.SHOW_CLUSTER_INFO, SqlType.ShowClusterInfo);
         typeMap.put(StatementType.SHOW_REGISTER_TASK, SqlType.ShowRegisterTask);
         typeMap.put(StatementType.REGISTER_TASK, SqlType.RegisterTask);

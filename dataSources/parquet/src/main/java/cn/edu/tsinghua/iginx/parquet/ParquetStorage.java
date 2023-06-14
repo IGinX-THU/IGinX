@@ -179,7 +179,7 @@ public class ParquetStorage implements IStorage {
 
     @Override
     public List<Column> getColumns() throws PhysicalException {
-        return executor.getTimeSeriesOfStorageUnit("*");
+        return executor.getColumnsOfStorageUnit("*");
     }
 
     @Override

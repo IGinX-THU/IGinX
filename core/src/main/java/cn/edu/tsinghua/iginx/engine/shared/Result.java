@@ -27,7 +27,7 @@ public class Result {
     private List<String> paths;
     private List<Map<String, String>> tagsList;
     private List<DataType> dataTypes;
-    private Long[] timestamps;
+    private Long[] keys;
     private List<ByteBuffer> valuesList;
     private List<ByteBuffer> bitmapList;
 
@@ -62,13 +62,13 @@ public class Result {
         resp.setPaths(paths);
         resp.setTagsList(tagsList);
         resp.setDataTypeList(dataTypes);
-        if (timestamps == null || timestamps.length == 0) {
+        if (keys == null || keys.length == 0) {
             resp.setQueryDataSet(
                     new QueryDataSet(ByteBuffer.allocate(0), new ArrayList<>(), new ArrayList<>()));
             return resp;
         }
-        ByteBuffer timeBuffer = ByteUtils.getByteBufferFromLongArray(timestamps);
-        resp.setQueryDataSet(new QueryDataSet(timeBuffer, valuesList, bitmapList));
+        ByteBuffer keyBuffer = ByteUtils.getByteBufferFromLongArray(keys);
+        resp.setQueryDataSet(new QueryDataSet(keyBuffer, valuesList, bitmapList));
         return resp;
     }
 
@@ -90,13 +90,13 @@ public class Result {
         resp.setPaths(paths);
         resp.setTagsList(tagsList);
         resp.setDataTypeList(dataTypes);
-        if (timestamps == null || timestamps.length == 0) {
+        if (keys == null || keys.length == 0) {
             resp.setQueryDataSet(
                     new QueryDataSet(ByteBuffer.allocate(0), new ArrayList<>(), new ArrayList<>()));
             return resp;
         }
-        ByteBuffer timeBuffer = ByteUtils.getByteBufferFromLongArray(timestamps);
-        resp.setQueryDataSet(new QueryDataSet(timeBuffer, valuesList, bitmapList));
+        ByteBuffer keyBuffer = ByteUtils.getByteBufferFromLongArray(keys);
+        resp.setQueryDataSet(new QueryDataSet(keyBuffer, valuesList, bitmapList));
         return resp;
     }
 
@@ -105,13 +105,13 @@ public class Result {
         resp.setPaths(paths);
         resp.setTagsList(tagsList);
         resp.setDataTypeList(dataTypes);
-        if (timestamps == null || timestamps.length == 0) {
+        if (keys == null || keys.length == 0) {
             resp.setQueryDataSet(
                     new QueryDataSet(ByteBuffer.allocate(0), new ArrayList<>(), new ArrayList<>()));
             return resp;
         }
-        ByteBuffer timeBuffer = ByteUtils.getByteBufferFromLongArray(timestamps);
-        resp.setQueryDataSet(new QueryDataSet(timeBuffer, valuesList, bitmapList));
+        ByteBuffer keyBuffer = ByteUtils.getByteBufferFromLongArray(keys);
+        resp.setQueryDataSet(new QueryDataSet(keyBuffer, valuesList, bitmapList));
         return resp;
     }
 
@@ -137,10 +137,10 @@ public class Result {
         resp.setDataTypeList(dataTypes);
 
         if (valuesList != null) {
-            if (timestamps != null) {
-                ByteBuffer timeBuffer = ByteUtils.getByteBufferFromLongArray(timestamps);
-                resp.setTimestamps(timeBuffer);
-                resp.setQueryDataSet(new QueryDataSet(timeBuffer, valuesList, bitmapList));
+            if (keys != null) {
+                ByteBuffer keyBuffer = ByteUtils.getByteBufferFromLongArray(keys);
+                resp.setKeys(keyBuffer);
+                resp.setQueryDataSet(new QueryDataSet(keyBuffer, valuesList, bitmapList));
             } else {
                 resp.setQueryDataSet(
                         new QueryDataSet(ByteBuffer.allocate(0), valuesList, bitmapList));
@@ -196,13 +196,13 @@ public class Result {
             List<ByteBuffer> bitmapList = new ArrayList<>();
 
             int cnt = 0;
-            boolean hasTimestamp = resultStream.getHeader().hasKey();
+            boolean hasKey = resultStream.getHeader().hasKey();
             while (resultStream.hasNext() && cnt < fetchSize) {
                 Row row = resultStream.next();
 
                 Object[] rawValues = row.getValues();
                 Object[] rowValues = rawValues;
-                if (hasTimestamp) {
+                if (hasKey) {
                     rowValues = new Object[rawValues.length + 1];
                     rowValues[0] = row.getKey();
                     System.arraycopy(rawValues, 0, rowValues, 1, rawValues.length);
@@ -250,13 +250,13 @@ public class Result {
             List<ByteBuffer> bitmapList = new ArrayList<>();
 
             int cnt = 0;
-            boolean hasTimestamp = resultStream.getHeader().hasKey();
+            boolean hasKey = resultStream.getHeader().hasKey();
             while (resultStream.hasNext() && cnt < fetchSize) {
                 Row row = resultStream.next();
 
                 Object[] rawValues = row.getValues();
                 Object[] rowValues = rawValues;
-                if (hasTimestamp) {
+                if (hasKey) {
                     rowValues = new Object[rawValues.length + 1];
                     rowValues[0] = row.getKey();
                     System.arraycopy(rawValues, 0, rowValues, 1, rawValues.length);

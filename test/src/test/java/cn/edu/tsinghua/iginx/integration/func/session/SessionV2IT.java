@@ -22,8 +22,8 @@ import org.junit.Test;
 
 public class SessionV2IT {
 
-    private static final long startTimestamp = 0L;
-    private static final long endTimestamp = 10000L;
+    private static final long startKey = 0L;
+    private static final long endKey = 10000L;
     private static final long SLEEP_TIME = 1000L;
     private static IginXClient iginXClient;
     private static WriteClient writeClient;
@@ -72,7 +72,7 @@ public class SessionV2IT {
 
     private static List<Point> buildInsertDataPoints() {
         List<Point> points = new ArrayList<>();
-        for (long i = startTimestamp; i < endTimestamp; i++) {
+        for (long i = startKey; i < endKey; i++) {
             points.add(
                     Point.builder()
                             .key(i)
@@ -132,7 +132,7 @@ public class SessionV2IT {
 
     private static List<Record> buildInsertDataRecords() {
         List<Record> records = new ArrayList<>();
-        for (long i = startTimestamp; i < endTimestamp; i++) {
+        for (long i = startKey; i < endKey; i++) {
             Record.Builder builder =
                     Record.builder()
                             .measurement("test.session.v2")
@@ -176,7 +176,7 @@ public class SessionV2IT {
                         .addField("double", DataType.DOUBLE)
                         .addField("string", DataType.BINARY);
 
-        for (long i = startTimestamp; i < endTimestamp; i++) {
+        for (long i = startKey; i < endKey; i++) {
             if (i % 2 == 0) {
                 builder = builder.binaryValue("string", String.valueOf(i).getBytes());
             }
@@ -219,7 +219,7 @@ public class SessionV2IT {
                         .addField("double", DataType.DOUBLE, Collections.singletonMap("k1", "v5"))
                         .addField("string", DataType.BINARY, Collections.singletonMap("k1", "v6"));
 
-        for (long i = startTimestamp; i < endTimestamp; i++) {
+        for (long i = startKey; i < endKey; i++) {
             if (i % 2 == 0) {
                 builder = builder.binaryValue("string", String.valueOf(i).getBytes());
             }
@@ -243,7 +243,7 @@ public class SessionV2IT {
 
     private static List<POJO> buildInsertMeasurements() {
         List<POJO> measurements = new ArrayList<>();
-        for (long i = startTimestamp; i < endTimestamp; i++) {
+        for (long i = startKey; i < endKey; i++) {
             byte[] binaryValue = null;
             if (i % 2 == 0) {
                 binaryValue = String.valueOf(i).getBytes();
@@ -286,8 +286,8 @@ public class SessionV2IT {
                 queryClient.query(
                         SimpleQuery.builder()
                                 .addMeasurement("test.session.v2.*")
-                                .startTime(endTimestamp - 1000L)
-                                .endTime(endTimestamp)
+                                .startKey(endKey - 1000L)
+                                .endKey(endKey)
                                 .build());
         assertNotNull(table);
         IginXHeader header = table.getHeader();
@@ -325,7 +325,7 @@ public class SessionV2IT {
         assertEquals(1000, records.size());
         for (int i = 0; i < records.size(); i++) {
             IginXRecord record = records.get(i);
-            long timestamp = endTimestamp - 1000 + i;
+            long timestamp = endKey - 1000 + i;
             assertEquals(timestamp, record.getKey());
             // 核验 bool 值
             boolean boolValue = (boolean) record.getValue("test.session.v2.bool");
@@ -369,8 +369,8 @@ public class SessionV2IT {
                 queryClient.query(
                         SimpleQuery.builder()
                                 .addMeasurement("test.session.v3.*")
-                                .startTime(endTimestamp - 1000L)
-                                .endTime(endTimestamp)
+                                .startKey(endKey - 1000L)
+                                .endKey(endKey)
                                 .addTags("k1", Arrays.asList("v1", "v3", "v5"))
                                 .build());
         assertNotNull(table);
@@ -400,7 +400,7 @@ public class SessionV2IT {
         assertEquals(1000, records.size());
         for (int i = 0; i < records.size(); i++) {
             IginXRecord record = records.get(i);
-            long timestamp = endTimestamp - 1000 + i;
+            long timestamp = endKey - 1000 + i;
             assertEquals(timestamp, record.getKey());
             // 核验 bool 值
             boolean boolValue = (boolean) record.getValue("test.session.v3.bool{k1=v1}");
@@ -417,8 +417,8 @@ public class SessionV2IT {
                 queryClient.query(
                         SimpleQuery.builder()
                                 .addMeasurement("test.session.v3.*")
-                                .startTime(endTimestamp - 1000L)
-                                .endTime(endTimestamp)
+                                .startKey(endKey - 1000L)
+                                .endKey(endKey)
                                 .addTags("k1", Arrays.asList("v2", "v4", "v6"))
                                 .build());
         assertNotNull(table);
@@ -450,7 +450,7 @@ public class SessionV2IT {
         assertEquals(1000, records.size());
         for (int i = 0; i < records.size(); i++) {
             IginXRecord record = records.get(i);
-            long timestamp = endTimestamp - 1000 + i;
+            long timestamp = endKey - 1000 + i;
             assertEquals(timestamp, record.getKey());
             // 核验 int 值
             if (isInfluxdb) {
@@ -486,8 +486,8 @@ public class SessionV2IT {
                         .addMeasurements(
                                 new HashSet<>(Collections.singletonList("test.session.v2.*")))
                         .aggregate(AggregateType.COUNT)
-                        .startTime(startTimestamp)
-                        .endTime(endTimestamp)
+                        .startKey(startKey)
+                        .endKey(endKey)
                         .build();
         IginXTable table = queryClient.query(query);
         assertNotNull(table);
@@ -516,9 +516,9 @@ public class SessionV2IT {
         for (Map.Entry<String, Object> entry : record.getValues().entrySet()) {
             long value = (long) entry.getValue();
             if (entry.getKey().equals("count(test.session.v2.string)")) {
-                assertEquals((endTimestamp - startTimestamp) / 2, value);
+                assertEquals((endKey - startKey) / 2, value);
             } else {
-                assertEquals(endTimestamp - startTimestamp, value);
+                assertEquals(endKey - startKey, value);
             }
         }
     }
@@ -531,7 +531,7 @@ public class SessionV2IT {
                                 new HashSet<>(
                                         Arrays.asList(
                                                 "test.session.v2.string", "test.session.v2.int")))
-                        .startTime(startTimestamp)
+                        .startKey(startKey)
                         .build();
 
         IginXTable table = queryClient.query(query);
@@ -545,12 +545,12 @@ public class SessionV2IT {
         for (IginXRecord record : records) {
             String value = new String((byte[]) record.getValue("value"));
             if ((new String((byte[]) record.getValue("path"))).equals("test.session.v2.string")) {
-                assertEquals(endTimestamp - 2, record.getKey());
-                assertEquals(String.valueOf(endTimestamp - 2), value);
+                assertEquals(endKey - 2, record.getKey());
+                assertEquals(String.valueOf(endKey - 2), value);
             } else if ((new String((byte[]) record.getValue("path")))
                     .equals("test.session.v2.int")) {
-                assertEquals(endTimestamp - 1, record.getKey());
-                assertEquals(String.valueOf(endTimestamp - 1), value);
+                assertEquals(endKey - 1, record.getKey());
+                assertEquals(String.valueOf(endKey - 1), value);
             } else {
                 fail();
             }
@@ -564,9 +564,9 @@ public class SessionV2IT {
                         .addMeasurement("test.session.v2.long")
                         .addMeasurement("test.session.v2.double")
                         .aggregate(AggregateType.SUM)
-                        .precision((endTimestamp - startTimestamp) / 10)
-                        .startTime(startTimestamp)
-                        .endTime(endTimestamp + (endTimestamp - startTimestamp))
+                        .precision((endKey - startKey) / 10)
+                        .startKey(startKey)
+                        .endKey(endKey + (endKey - startKey))
                         .build();
         IginXTable table = queryClient.query(query);
         assertNotNull(table);
@@ -590,13 +590,12 @@ public class SessionV2IT {
         assertEquals(10, records.size());
         for (IginXRecord record : records) {
             long timestamp = record.getKey();
-            if (timestamp >= endTimestamp) {
+            if (timestamp >= endKey) {
                 fail();
             } else {
-                long nextTimestamps = timestamp + (endTimestamp - startTimestamp) / 10;
-                long longSum =
-                        (nextTimestamps + timestamp - 1) * (endTimestamp - startTimestamp) / 20;
-                double doubleSum = longSum + 0.2 * (endTimestamp - startTimestamp) / 10.0;
+                long nextTimestamps = timestamp + (endKey - startKey) / 10;
+                long longSum = (nextTimestamps + timestamp - 1) * (endKey - startKey) / 20;
+                double doubleSum = longSum + 0.2 * (endKey - startKey) / 10.0;
                 assertEquals(longSum, record.getValue("sum(test.session.v2.long)"));
                 assertEquals(
                         doubleSum, (double) record.getValue("sum(test.session.v2.double)"), 0.01);
@@ -611,14 +610,14 @@ public class SessionV2IT {
                 queryClient.query(
                         SimpleQuery.builder()
                                 .addMeasurement("test.session.v2.*")
-                                .startTime(endTimestamp - 1000L)
-                                .endTime(endTimestamp)
+                                .startKey(endKey - 1000L)
+                                .endKey(endKey)
                                 .build(),
                         POJO.class);
         assertEquals(1000, pojoList.size());
         for (int i = 0; i < pojoList.size(); i++) {
             POJO pojo = pojoList.get(i);
-            long timestamp = endTimestamp - 1000 + i;
+            long timestamp = endKey - 1000 + i;
             assertEquals(timestamp, pojo.timestamp);
             assertEquals(timestamp % 2 == 0, pojo.boolValue);
             assertEquals((int) timestamp, pojo.intValue);

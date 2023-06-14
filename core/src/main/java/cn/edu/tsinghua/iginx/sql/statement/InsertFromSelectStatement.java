@@ -2,24 +2,24 @@ package cn.edu.tsinghua.iginx.sql.statement;
 
 public class InsertFromSelectStatement extends DataStatement {
 
-    private final long timeOffset;
+    private final long keyOffset;
 
     private final SelectStatement subSelectStatement;
 
     private final InsertStatement subInsertStatement;
 
     public InsertFromSelectStatement(
-            long timeOffset,
+            long keyOffset,
             SelectStatement subSelectStatement,
             InsertStatement subInsertStatement) {
         this.statementType = StatementType.INSERT_FROM_SELECT;
-        this.timeOffset = timeOffset;
+        this.keyOffset = keyOffset;
         this.subSelectStatement = subSelectStatement;
         this.subInsertStatement = subInsertStatement;
     }
 
-    public long getTimeOffset() {
-        return timeOffset;
+    public long getKeyOffset() {
+        return keyOffset;
     }
 
     public SelectStatement getSubSelectStatement() {

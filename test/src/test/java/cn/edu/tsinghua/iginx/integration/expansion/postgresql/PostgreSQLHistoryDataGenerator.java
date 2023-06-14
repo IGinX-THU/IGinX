@@ -4,7 +4,6 @@ import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.sql.*;
 import java.util.*;
-import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,8 +31,9 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
     private static final String PASSWORD = "postgres";
 
     public PostgreSQLHistoryDataGenerator() {
-        this.portOri = 5432;
-        this.portExp = 5433;
+        this.oriPort = 5432;
+        this.expPort = 5433;
+        this.readOnlyPort = 5434;
     }
 
     private Connection connect(int port, boolean useSystemDatabase, String databaseName) {
@@ -52,20 +52,11 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
     }
 
     @Override
-    public void writeHistoryDataToOri() {
-        writeHistoryData(PATH_LIST_ORI, DATA_TYPE_LIST_ORI, VALUES_LIST_ORI, portOri);
-    }
-
-    @Override
-    public void writeHistoryDataToExp() {
-        writeHistoryData(PATH_LIST_EXP, DATA_TYPE_LIST_EXP, VALUES_LIST_EXP, portExp);
-    }
-
-    private void writeHistoryData(
+    public void writeHistoryData(
+            int port,
             List<String> pathList,
             List<DataType> dataTypeList,
-            List<List<Object>> valuesList,
-            int port) {
+            List<List<Object>> valuesList) {
         try {
             Connection conn = connect(port, true, null);
             if (conn == null) {
@@ -152,14 +143,8 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
         }
     }
 
-    @Test
     @Override
-    public void clearHistoryData() {
-        clearHistoryData(portOri);
-        clearHistoryData(portExp);
-    }
-
-    private void clearHistoryData(int port) {
+    public void clearHistoryDataForGivenPort(int port) {
         try {
             Connection conn = connect(port, true, null);
             Statement stmt = conn.createStatement();
@@ -184,7 +169,7 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
             conn.close();
             logger.info("clear data on 127.0.0.1:{} success!", port);
         } catch (SQLException e) {
-            logger.error("clear data on 127.0.0.1:{} failure: {}", port, e.getMessage());
+            logger.warn("clear data on 127.0.0.1:{} failure: {}", port, e.getMessage());
         }
     }
 

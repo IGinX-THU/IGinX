@@ -13,6 +13,7 @@ import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngine;
 import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngineImpl;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream.EmptyRowStream;
 import cn.edu.tsinghua.iginx.engine.physical.task.BinaryMemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.MultipleMemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
@@ -45,6 +46,8 @@ import cn.edu.tsinghua.iginx.engine.shared.source.SourceType;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SQLParserException;
 import cn.edu.tsinghua.iginx.exceptions.StatusCode;
+import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
+import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.resource.ResourceManager;
 import cn.edu.tsinghua.iginx.sql.statement.DataStatement;
 import cn.edu.tsinghua.iginx.sql.statement.DeleteColumnsStatement;
@@ -90,6 +93,8 @@ public class StatementExecutor {
     private static final ConstraintManager constraintManager = engine.getConstraintManager();
 
     private static final ResourceManager resourceManager = ResourceManager.getInstance();
+
+    private static final IMetaManager metaManager = DefaultMetaManager.getInstance();
 
     private static final Map<StatementType, List<LogicalGenerator>> generatorMap = new HashMap<>();
 
@@ -313,6 +318,11 @@ public class StatementExecutor {
             before(ctx, preLogicalProcessors);
             Operator root = generator.generate(ctx);
             after(ctx, postLogicalProcessors);
+            if (root == null && !metaManager.hasWritableStorageEngines()) {
+                ctx.setResult(new Result(RpcUtils.SUCCESS));
+                setResult(ctx, new EmptyRowStream());
+                return;
+            }
             if (constraintManager.check(root) && checker.check(root)) {
                 if (type == StatementType.SELECT) {
                     SelectStatement selectStatement = (SelectStatement) ctx.getStatement();
@@ -488,7 +498,7 @@ public class StatementExecutor {
         // step 2: insert stage
         InsertStatement insertStatement = statement.getSubInsertStatement();
         parseOldTagsFromHeader(rowStream.getHeader(), insertStatement);
-        parseInsertValuesSpecFromRowStream(statement.getTimeOffset(), rowStream, insertStatement);
+        parseInsertValuesSpecFromRowStream(statement.getKeyOffset(), rowStream, insertStatement);
         RequestContext subInsertContext =
                 new RequestContext(ctx.getSessionId(), insertStatement, ctx.isUseStream());
         process(subInsertContext);
@@ -534,7 +544,7 @@ public class StatementExecutor {
 
     private void setEmptyQueryResp(RequestContext ctx) {
         Result result = new Result(RpcUtils.SUCCESS);
-        result.setTimestamps(new Long[0]);
+        result.setKeys(new Long[0]);
         result.setValuesList(new ArrayList<>());
         result.setBitmapList(new ArrayList<>());
         result.setPaths(new ArrayList<>());
@@ -627,7 +637,7 @@ public class StatementExecutor {
         Result result = new Result(RpcUtils.SUCCESS);
         if (timestampList.size() != 0) {
             Long[] timestamps = timestampList.toArray(new Long[timestampList.size()]);
-            result.setTimestamps(timestamps);
+            result.setKeys(timestamps);
         }
         result.setValuesList(valuesList);
         result.setBitmapList(bitmapList);

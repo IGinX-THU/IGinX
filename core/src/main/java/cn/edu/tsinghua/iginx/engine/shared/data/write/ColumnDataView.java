@@ -28,9 +28,9 @@ public final class ColumnDataView extends DataView {
             RawData data,
             int startPathIndex,
             int endPathIndex,
-            int startTimeIndex,
-            int endTimeIndex) {
-        super(data, startPathIndex, endPathIndex, startTimeIndex, endTimeIndex);
+            int startKeyIndex,
+            int endKeyIndex) {
+        super(data, startPathIndex, endPathIndex, startKeyIndex, endKeyIndex);
         this.biases = new int[this.endPathIndex - this.startPathIndex];
         for (int i = this.startPathIndex; i < this.endPathIndex; i++) {
             Bitmap bitmap = data.getBitmaps().get(i);

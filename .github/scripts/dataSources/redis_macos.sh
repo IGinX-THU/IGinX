@@ -11,3 +11,5 @@ sh -c "brew install redis"
 sh -c "nohup redis-server &"
 
 sh -c "nohup redis-server --port 6380 &"
+
+sh -c "nohup redis-server --port 6381 &"

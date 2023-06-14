@@ -1,6 +1,6 @@
 package cn.edu.tsinghua.iginx.engine.logical.optimizer;
 
-import static cn.edu.tsinghua.iginx.metadata.utils.FragmentUtils.keyFromTSIntervalToTimeInterval;
+import static cn.edu.tsinghua.iginx.metadata.utils.FragmentUtils.keyFromColumnsIntervalToKeyInterval;
 
 import cn.edu.tsinghua.iginx.engine.logical.utils.ExprUtils;
 import cn.edu.tsinghua.iginx.engine.logical.utils.OperatorUtils;
@@ -77,10 +77,10 @@ public class FilterFragmentOptimizer implements Optimizer {
 
         ColumnsRange interval =
                 new ColumnsInterval(pathList.get(0), pathList.get(pathList.size() - 1));
-        Map<ColumnsRange, List<FragmentMeta>> fragmentsByTSInterval =
+        Map<ColumnsRange, List<FragmentMeta>> fragmentsByColumnsInterval =
                 metaManager.getFragmentMapByColumnsRange(interval, true);
         Pair<Map<KeyInterval, List<FragmentMeta>>, List<FragmentMeta>> pair =
-                keyFromTSIntervalToTimeInterval(fragmentsByTSInterval);
+                keyFromColumnsIntervalToKeyInterval(fragmentsByColumnsInterval);
         Map<KeyInterval, List<FragmentMeta>> fragments = pair.k;
         List<FragmentMeta> dummyFragments = pair.v;
 

@@ -36,40 +36,40 @@ public interface IMetaCache {
 
     void updateFragment(FragmentMeta fragmentMeta);
 
-    void updateFragmentByTsInterval(ColumnsRange tsInterval, FragmentMeta fragmentMeta);
+    void updateFragmentByColumnsInterval(ColumnsRange columnsInterval, FragmentMeta fragmentMeta);
 
-    void deleteFragmentByTsInterval(ColumnsRange tsInterval, FragmentMeta fragmentMeta);
+    void deleteFragmentByColumnsInterval(ColumnsRange columnsInterval, FragmentMeta fragmentMeta);
 
-    List<FragmentMeta> getFragmentMapByExactTimeSeriesInterval(ColumnsRange tsInterval);
+    List<FragmentMeta> getFragmentMapByExactColumnsInterval(ColumnsRange columnsInterval);
 
-    Map<ColumnsRange, List<FragmentMeta>> getFragmentMapByTimeSeriesInterval(
-            ColumnsRange tsInterval);
+    Map<ColumnsRange, List<FragmentMeta>> getFragmentMapByColumnsInterval(
+            ColumnsRange columnsInterval);
 
-    List<FragmentMeta> getDummyFragmentsByTimeSeriesInterval(ColumnsRange tsInterval);
+    List<FragmentMeta> getDummyFragmentsByColumnsInterval(ColumnsRange columnsInterval);
 
     Map<ColumnsRange, FragmentMeta> getLatestFragmentMap();
 
-    Map<ColumnsRange, FragmentMeta> getLatestFragmentMapByTimeSeriesInterval(
-            ColumnsRange tsInterval);
+    Map<ColumnsRange, FragmentMeta> getLatestFragmentMapByColumnsInterval(
+            ColumnsRange columnsInterval);
 
-    Map<ColumnsRange, List<FragmentMeta>> getFragmentMapByTimeSeriesIntervalAndTimeInterval(
-            ColumnsRange tsInterval, KeyInterval keyInterval);
+    Map<ColumnsRange, List<FragmentMeta>> getFragmentMapByColumnsIntervalAndKeyInterval(
+            ColumnsRange columnsInterval, KeyInterval keyInterval);
 
-    List<FragmentMeta> getDummyFragmentsByTimeSeriesIntervalAndTimeInterval(
-            ColumnsRange tsInterval, KeyInterval keyInterval);
+    List<FragmentMeta> getDummyFragmentsByColumnsIntervalAndKeyInterval(
+            ColumnsRange columnsInterval, KeyInterval keyInterval);
 
-    List<FragmentMeta> getFragmentListByTimeSeriesName(String tsName);
+    List<FragmentMeta> getFragmentListByColumnName(String columnName);
 
-    FragmentMeta getLatestFragmentByTimeSeriesName(String tsName);
+    FragmentMeta getLatestFragmentByColumnName(String columnName);
 
-    List<FragmentMeta> getFragmentListByTimeSeriesNameAndTimeInterval(
-            String tsName, KeyInterval keyInterval);
+    List<FragmentMeta> getFragmentListByColumnNameAndKeyInterval(
+            String columnName, KeyInterval keyInterval);
 
     List<FragmentMeta> getFragmentListByStorageUnitId(String storageUnitId);
 
     boolean hasFragment();
 
-    long getFragmentMinTimestamp();
+    long getFragmentMinKey();
 
     // 数据单元相关的缓存读写接口
     boolean hasStorageUnit();
@@ -128,13 +128,13 @@ public interface IMetaCache {
 
     void timeSeriesIsUpdated(int node, int version);
 
-    void saveTimeSeriesData(InsertStatement statement);
+    void saveColumnsData(InsertStatement statement);
 
-    List<ColumnCalDO> getMaxValueFromTimeSeries();
+    List<ColumnCalDO> getMaxValueFromColumns();
 
-    double getSumFromTimeSeries();
+    double getSumFromColumns();
 
-    Map<Integer, Integer> getTimeseriesVersionMap();
+    Map<Integer, Integer> getColumnsVersionMap();
 
     void addOrUpdateTransformTask(TransformTaskMeta transformTask);
 

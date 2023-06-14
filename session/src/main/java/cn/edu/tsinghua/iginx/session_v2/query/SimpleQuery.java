@@ -23,32 +23,32 @@ import java.util.*;
 
 public class SimpleQuery extends Query {
 
-    private final long startTime;
+    private final long startKey;
 
-    private final long endTime;
+    private final long endKey;
 
     private final String timePrecision;
 
     private SimpleQuery(
             Set<String> measurements,
             Map<String, List<String>> tagsList,
-            long startTime,
-            long endTime) {
+            long startKey,
+            long endKey) {
         super(Collections.unmodifiableSet(measurements), tagsList);
-        this.startTime = startTime;
-        this.endTime = endTime;
+        this.startKey = startKey;
+        this.endKey = endKey;
         this.timePrecision = null;
     }
 
     private SimpleQuery(
             Set<String> measurements,
             Map<String, List<String>> tagsList,
-            long startTime,
-            long endTime,
+            long startKey,
+            long endKey,
             String timePrecision) {
         super(Collections.unmodifiableSet(measurements), tagsList);
-        this.startTime = startTime;
-        this.endTime = endTime;
+        this.startKey = startKey;
+        this.endKey = endKey;
         this.timePrecision = timePrecision;
     }
 
@@ -56,12 +56,12 @@ public class SimpleQuery extends Query {
         return new Builder();
     }
 
-    public long getStartTime() {
-        return startTime;
+    public long getStartKey() {
+        return startKey;
     }
 
-    public long getEndTime() {
-        return endTime;
+    public long getEndKey() {
+        return endKey;
     }
 
     public String getTimePrecision() {
@@ -74,17 +74,17 @@ public class SimpleQuery extends Query {
 
         private final Map<String, List<String>> tagsList;
 
-        private long startTime;
+        private long startKey;
 
-        private long endTime;
+        private long endKey;
 
         private String timePrecision;
 
         private Builder() {
             this.measurements = new HashSet<>();
             this.tagsList = new HashMap<>();
-            this.startTime = 0L;
-            this.endTime = Long.MAX_VALUE;
+            this.startKey = 0L;
+            this.endKey = Long.MAX_VALUE;
             this.timePrecision = null;
         }
 
@@ -114,25 +114,25 @@ public class SimpleQuery extends Query {
             return this;
         }
 
-        public SimpleQuery.Builder startTime(long startTime) {
-            if (startTime < 0) {
-                throw new IllegalArgumentException("startTime must greater than zero.");
+        public SimpleQuery.Builder startKey(long startKey) {
+            if (startKey < 0) {
+                throw new IllegalArgumentException("startKey must greater than zero.");
             }
-            if (startTime >= endTime) {
-                throw new IllegalArgumentException("startTime must less than endTime.");
+            if (startKey >= endKey) {
+                throw new IllegalArgumentException("startKey must less than endKey.");
             }
-            this.startTime = startTime;
+            this.startKey = startKey;
             return this;
         }
 
-        public SimpleQuery.Builder endTime(long endTime) {
-            if (endTime < 0) {
-                throw new IllegalArgumentException("endTime mush greater than zero.");
+        public SimpleQuery.Builder endKey(long endKey) {
+            if (endKey < 0) {
+                throw new IllegalArgumentException("endKey mush greater than zero.");
             }
-            if (endTime <= startTime) {
-                throw new IllegalArgumentException("endTime must greater than startTime.");
+            if (endKey <= startKey) {
+                throw new IllegalArgumentException("endKey must greater than startKey.");
             }
-            this.endTime = endTime;
+            this.endKey = endKey;
             return this;
         }
 
@@ -146,7 +146,7 @@ public class SimpleQuery extends Query {
             if (this.measurements.isEmpty()) {
                 throw new IllegalStateException("simple query at least has one measurement.");
             }
-            return new SimpleQuery(measurements, tagsList, startTime, endTime, timePrecision);
+            return new SimpleQuery(measurements, tagsList, startKey, endKey, timePrecision);
         }
     }
 }

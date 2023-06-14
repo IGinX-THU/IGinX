@@ -47,7 +47,6 @@ jobs:
               uses: ./.github/actions/confWriter
               with:
                   DB-name: ${{ matrix.DB-name }}
-                  if-CapExp: false
 
             - name: Start IGinX
               uses: ./.github/actions/iginxRunner
@@ -56,7 +55,7 @@ jobs:
               if: always()
               shell: bash
               run: |
-                  chmod +x "${GITHUB_WORKSPACE}/.github/test_union.sh"
+                  chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/test_union.sh"
                   mvn test -q -Dtest=Controller -DfailIfNoTests=false -P passFormat
 
             - name: Show test result

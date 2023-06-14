@@ -25,7 +25,7 @@ public interface Executor {
     TaskExecuteResult executeDeleteTask(
             List<String> paths, List<KeyRange> keyRanges, TagFilter tagFilter, String storageUnit);
 
-    List<Column> getTimeSeriesOfStorageUnit(String storageUnit) throws PhysicalException;
+    List<Column> getColumnsOfStorageUnit(String storageUnit) throws PhysicalException;
 
     Pair<ColumnsRange, KeyInterval> getBoundaryOfStorage() throws PhysicalException;
 

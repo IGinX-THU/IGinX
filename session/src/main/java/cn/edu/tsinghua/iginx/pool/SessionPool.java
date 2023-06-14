@@ -817,12 +817,12 @@ public class SessionPool {
         }
     }
 
-    public void deleteDataInColumn(String path, long startTime, long endTime)
+    public void deleteDataInColumn(String path, long startKey, long endKey)
             throws SessionException, ExecutionException {
         for (int i = 0; i < RETRY; i++) {
             Session session = getSession();
             try {
-                session.deleteDataInColumn(path, startTime, endTime);
+                session.deleteDataInColumn(path, startKey, endKey);
                 putBack(session);
                 return;
             } catch (SessionException e) {
@@ -836,12 +836,12 @@ public class SessionPool {
         }
     }
 
-    public void deleteDataInColumns(List<String> paths, long startTime, long endTime)
+    public void deleteDataInColumns(List<String> paths, long startKey, long endKey)
             throws SessionException, ExecutionException {
         for (int i = 0; i < RETRY; i++) {
             Session session = getSession();
             try {
-                session.deleteDataInColumns(paths, startTime, endTime);
+                session.deleteDataInColumns(paths, startKey, endKey);
                 putBack(session);
                 return;
             } catch (SessionException e) {
@@ -856,12 +856,12 @@ public class SessionPool {
     }
 
     public void deleteDataInColumns(
-            List<String> paths, long startTime, long endTime, Map<String, List<String>> tagsList)
+            List<String> paths, long startKey, long endKey, Map<String, List<String>> tagsList)
             throws SessionException, ExecutionException {
         for (int i = 0; i < RETRY; i++) {
             Session session = getSession();
             try {
-                session.deleteDataInColumns(paths, startTime, endTime, tagsList);
+                session.deleteDataInColumns(paths, startKey, endKey, tagsList);
                 putBack(session);
                 return;
             } catch (SessionException e) {
@@ -875,13 +875,13 @@ public class SessionPool {
         }
     }
 
-    public SessionQueryDataSet queryData(List<String> paths, long startTime, long endTime)
+    public SessionQueryDataSet queryData(List<String> paths, long startKey, long endKey)
             throws SessionException, ExecutionException {
         SessionQueryDataSet sessionQueryDataSet = null;
         for (int i = 0; i < RETRY; i++) {
             Session session = getSession();
             try {
-                sessionQueryDataSet = session.queryData(paths, startTime, endTime);
+                sessionQueryDataSet = session.queryData(paths, startKey, endKey);
                 putBack(session);
                 return sessionQueryDataSet;
             } catch (SessionException e) {
@@ -897,13 +897,13 @@ public class SessionPool {
     }
 
     public SessionQueryDataSet queryData(
-            List<String> paths, long startTime, long endTime, Map<String, List<String>> tagsList)
+            List<String> paths, long startKey, long endKey, Map<String, List<String>> tagsList)
             throws SessionException, ExecutionException {
         SessionQueryDataSet sessionQueryDataSet = null;
         for (int i = 0; i < RETRY; i++) {
             Session session = getSession();
             try {
-                sessionQueryDataSet = session.queryData(paths, startTime, endTime, tagsList);
+                sessionQueryDataSet = session.queryData(paths, startKey, endKey, tagsList);
                 putBack(session);
                 return sessionQueryDataSet;
             } catch (SessionException e) {
@@ -919,14 +919,14 @@ public class SessionPool {
     }
 
     public SessionAggregateQueryDataSet aggregateQuery(
-            List<String> paths, long startTime, long endTime, AggregateType aggregateType)
+            List<String> paths, long startKey, long endKey, AggregateType aggregateType)
             throws SessionException, ExecutionException {
         SessionAggregateQueryDataSet sessionAggregateQueryDataSet = null;
         for (int i = 0; i < RETRY; i++) {
             Session session = getSession();
             try {
                 sessionAggregateQueryDataSet =
-                        session.aggregateQuery(paths, startTime, endTime, aggregateType);
+                        session.aggregateQuery(paths, startKey, endKey, aggregateType);
                 putBack(session);
                 return sessionAggregateQueryDataSet;
             } catch (SessionException e) {
@@ -943,8 +943,8 @@ public class SessionPool {
 
     public SessionAggregateQueryDataSet aggregateQuery(
             List<String> paths,
-            long startTime,
-            long endTime,
+            long startKey,
+            long endKey,
             AggregateType aggregateType,
             Map<String, List<String>> tagsList)
             throws SessionException, ExecutionException {
@@ -953,7 +953,7 @@ public class SessionPool {
             Session session = getSession();
             try {
                 sessionAggregateQueryDataSet =
-                        session.aggregateQuery(paths, startTime, endTime, aggregateType);
+                        session.aggregateQuery(paths, startKey, endKey, aggregateType);
                 putBack(session);
                 return sessionAggregateQueryDataSet;
             } catch (SessionException e) {
@@ -970,8 +970,8 @@ public class SessionPool {
 
     public SessionQueryDataSet downsampleQuery(
             List<String> paths,
-            long startTime,
-            long endTime,
+            long startKey,
+            long endKey,
             AggregateType aggregateType,
             long precision)
             throws SessionException, ExecutionException {
@@ -980,8 +980,7 @@ public class SessionPool {
             Session session = getSession();
             try {
                 sessionQueryDataSet =
-                        session.downsampleQuery(
-                                paths, startTime, endTime, aggregateType, precision);
+                        session.downsampleQuery(paths, startKey, endKey, aggregateType, precision);
                 putBack(session);
                 return sessionQueryDataSet;
             } catch (SessionException e) {
@@ -998,8 +997,8 @@ public class SessionPool {
 
     public SessionQueryDataSet downsampleQuery(
             List<String> paths,
-            long startTime,
-            long endTime,
+            long startKey,
+            long endKey,
             AggregateType aggregateType,
             long precision,
             Map<String, List<String>> tagsList)
@@ -1010,7 +1009,7 @@ public class SessionPool {
             try {
                 sessionQueryDataSet =
                         session.downsampleQuery(
-                                paths, startTime, endTime, aggregateType, precision, tagsList);
+                                paths, startKey, endKey, aggregateType, precision, tagsList);
                 putBack(session);
                 return sessionQueryDataSet;
             } catch (SessionException e) {
@@ -1066,13 +1065,13 @@ public class SessionPool {
         return sessionExecuteSqlResult;
     }
 
-    public SessionQueryDataSet queryLast(List<String> paths, long startTime)
+    public SessionQueryDataSet queryLast(List<String> paths, long startKey)
             throws SessionException, ExecutionException {
         SessionQueryDataSet sessionQueryDataSet = null;
         for (int i = 0; i < RETRY; i++) {
             Session session = getSession();
             try {
-                sessionQueryDataSet = session.queryLast(paths, startTime);
+                sessionQueryDataSet = session.queryLast(paths, startKey);
                 putBack(session);
                 return sessionQueryDataSet;
             } catch (SessionException e) {
@@ -1088,13 +1087,13 @@ public class SessionPool {
     }
 
     public SessionQueryDataSet queryLast(
-            List<String> paths, long startTime, Map<String, List<String>> tagsList)
+            List<String> paths, long startKey, Map<String, List<String>> tagsList)
             throws SessionException, ExecutionException {
         SessionQueryDataSet sessionQueryDataSet = null;
         for (int i = 0; i < RETRY; i++) {
             Session session = getSession();
             try {
-                sessionQueryDataSet = session.queryLast(paths, startTime, tagsList);
+                sessionQueryDataSet = session.queryLast(paths, startKey, tagsList);
                 putBack(session);
                 return sessionQueryDataSet;
             } catch (SessionException e) {
@@ -1288,17 +1287,13 @@ public class SessionPool {
     }
 
     public CurveMatchResult curveMatch(
-            List<String> paths,
-            long startTime,
-            long endTime,
-            List<Double> curveQuery,
-            long curveUnit)
+            List<String> paths, long startKey, long endKey, List<Double> curveQuery, long curveUnit)
             throws SessionException, ExecutionException {
         CurveMatchResult ret = null;
         for (int i = 0; i < RETRY; i++) {
             Session session = getSession();
             try {
-                ret = session.curveMatch(paths, startTime, endTime, curveQuery, curveUnit);
+                ret = session.curveMatch(paths, startKey, endKey, curveQuery, curveUnit);
                 putBack(session);
                 return ret;
             } catch (SessionException e) {

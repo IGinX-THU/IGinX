@@ -305,13 +305,13 @@ public class MetricsResource {
     private QueryResult annoDataQuery(Query query, QueryParser parser) throws Exception {
         QueryExecutor executor = new QueryExecutor(null);
         // 调用SHOW COLUMNS
-        QueryResult timeSeries = executor.executeShowTimeSeries();
+        QueryResult columns = executor.executeShowColumns();
         // 筛选路径信息，正常信息路径，生成单个query
-        Query queryAnnoData = getAnnoDataQueryFromTimeSeries(query, timeSeries);
+        Query queryAnnoData = getAnnoDataQueryFromColumns(query, columns);
         // 先查询title信息
         // 查询anno的title以及dsp信息
         queryAnnoData.setTimePrecision(TimePrecision.NS);
-        QueryResult resultAnno = getAnno(queryAnnoData, 1L, MAXTIEM);
+        QueryResult resultAnno = getAnno(queryAnnoData, 1L, MAX_KEY);
 
         // 添加cat信息
         parser.getAnnoCategory(resultAnno);
@@ -328,7 +328,7 @@ public class MetricsResource {
         // 通过first聚合查询，先查找出所以路径集合
         queryBase.addFirstAggregator();
         queryBase.setStartAbsolute(1L);
-        queryBase.setEndAbsolute(TOPTIEM);
+        queryBase.setEndAbsolute(TOP_KEY);
         queryBase.setTimePrecision(TimePrecision.NS);
         QueryExecutor executorPath = new QueryExecutor(queryBase);
         QueryResult resultPath = executorPath.execute(false);
@@ -340,7 +340,7 @@ public class MetricsResource {
 
         // 查询anno的title以及dsp信息
         queryAnno.setTimePrecision(TimePrecision.NS);
-        return getAnno(queryAnno, DESCRIPTIONTIEM, MAXTIEM);
+        return getAnno(queryAnno, DESCRIPTION_KEY, MAX_KEY);
     }
 
     public Response postQuery(
@@ -377,10 +377,10 @@ public class MetricsResource {
     }
 
     // 传入queryAnno信息，即要查找的序列信息，返回anno信息
-    private QueryResult getAnno(Query queryAnno, Long startTime, Long endTime) throws Exception {
+    private QueryResult getAnno(Query queryAnno, long startKey, long endKey) throws Exception {
         // 查找title以及description信息
-        queryAnno.setStartAbsolute(startTime); // LHZ这里可以不用查出所有数据，可以优化
-        queryAnno.setEndAbsolute(endTime);
+        queryAnno.setStartAbsolute(startKey); // LHZ这里可以不用查出所有数据，可以优化
+        queryAnno.setEndAbsolute(endKey);
         QueryExecutor executorAnno = new QueryExecutor(queryAnno); // 要确认下是否annotation信息在查找时会影响结果
         QueryResult resultAnno = executorAnno.execute(false);
 
@@ -408,13 +408,13 @@ public class MetricsResource {
                     if (!data.getPaths().isEmpty()) dataRet.addPath(data.getPaths().get(j));
                     if (!data.getDescriptions().isEmpty())
                         dataRet.addDescription(data.getDescriptions().get(j));
-                    if (!data.getCategorys().isEmpty())
-                        dataRet.addCategory(data.getCategorys().get(j));
+                    if (!data.getCategoryLists().isEmpty())
+                        dataRet.addCategory(data.getCategoryLists().get(j));
                     if (!data.getTitles().isEmpty()) dataRet.addTitle(data.getTitles().get(j));
                     if (!data.getValueLists().isEmpty())
                         dataRet.addValueLists(data.getValueLists().get(j));
-                    if (!data.getTimeLists().isEmpty())
-                        dataRet.addTimeLists(data.getTimeLists().get(j));
+                    if (!data.getKeyLists().isEmpty())
+                        dataRet.addKeyLists(data.getKeyLists().get(j));
                 }
             }
             ret.addqueryResultDataset(dataRet);
@@ -424,7 +424,7 @@ public class MetricsResource {
         return ret;
     }
 
-    public Query getAnnoDataQueryFromTimeSeries(Query query, QueryResult result) {
+    public Query getAnnoDataQueryFromColumns(Query query, QueryResult result) {
         Query ret = new Query();
         QueryParser parser = new QueryParser();
         // 筛选出符合全部anno信息的路径
@@ -456,7 +456,7 @@ public class MetricsResource {
             // 加入category路径信息
             Query querySp = parser.addAnnoTags(queryBase);
             querySp.setStartAbsolute(1L);
-            querySp.setEndAbsolute(TOPTIEM);
+            querySp.setEndAbsolute(TOP_KEY);
             querySp.setTimePrecision(TimePrecision.NS);
             QueryExecutor executorPath = new QueryExecutor(querySp);
             QueryResult resultALL = executorPath.execute(false);
@@ -469,7 +469,7 @@ public class MetricsResource {
             // 找到精确路径
             Query queryAll = parser.getSpecificQuery(resultALL, queryBase);
             queryAll.setStartAbsolute(1L);
-            queryAll.setEndAbsolute(TOPTIEM);
+            queryAll.setEndAbsolute(TOP_KEY);
             queryAll.setTimePrecision(TimePrecision.NS);
 
             // 空查询判断
@@ -550,7 +550,7 @@ public class MetricsResource {
         // 加入category路径信息
         Query querySp = parser.addAnnoTags(queryBase);
         querySp.setStartAbsolute(1L);
-        querySp.setEndAbsolute(TOPTIEM);
+        querySp.setEndAbsolute(TOP_KEY);
         querySp.setTimePrecision(TimePrecision.NS);
         QueryExecutor executorPath = new QueryExecutor(querySp);
         QueryResult resultALL = executorPath.execute(false);
@@ -558,7 +558,7 @@ public class MetricsResource {
         // 路径筛选，这里代码的意义是为了之后的拓展
         Query queryAll = parser.getSpecificQuery(resultALL, queryBase);
         queryAll.setStartAbsolute(1L);
-        queryAll.setEndAbsolute(TOPTIEM);
+        queryAll.setEndAbsolute(TOP_KEY);
         queryAll.setTimePrecision(TimePrecision.NS);
         QueryExecutor executorData = new QueryExecutor(queryAll);
         // 执行删除操作

@@ -1,6 +1,6 @@
 package cn.edu.tsinghua.iginx.parquet.entity;
 
-import static cn.edu.tsinghua.iginx.parquet.tools.Constant.COLUMN_TIME;
+import static cn.edu.tsinghua.iginx.parquet.tools.Constant.COLUMN_KEY;
 import static cn.edu.tsinghua.iginx.parquet.tools.Constant.IGINX_SEPARATOR;
 import static cn.edu.tsinghua.iginx.parquet.tools.Constant.PARQUET_SEPARATOR;
 import static cn.edu.tsinghua.iginx.parquet.tools.DataTypeTransformer.fromParquetDataType;
@@ -59,7 +59,7 @@ public class ParquetQueryRowStream implements RowStream {
             for (int i = 1; i <= rsMetaData.getColumnCount(); i++) { // start from index 1
                 String pathName =
                         rsMetaData.getColumnName(i).replaceAll(PARQUET_SEPARATOR, IGINX_SEPARATOR);
-                if (i == 1 && pathName.equals(COLUMN_TIME)) {
+                if (i == 1 && pathName.equals(COLUMN_KEY)) {
                     time = Field.KEY;
                     continue;
                 }
@@ -139,7 +139,7 @@ public class ParquetQueryRowStream implements RowStream {
     }
 
     private Row constructOneRow() throws SQLException {
-        long timestamp = (long) rs.getObject(COLUMN_TIME);
+        long timestamp = (long) rs.getObject(COLUMN_KEY);
 
         Object[] values = new Object[header.getFieldSize()];
         for (int i = 0; i < header.getFieldSize(); i++) {

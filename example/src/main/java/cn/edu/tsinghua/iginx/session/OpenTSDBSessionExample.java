@@ -12,14 +12,14 @@ public class OpenTSDBSessionExample {
     private static final String S2 = "sg.d1.s2";
     private static final String S3 = "sg.d2.s1";
     private static final String S4 = "sg.d3.s1";
-    private static final long COLUMN_START_TIMESTAMP = 1L;
-    private static final long COLUMN_END_TIMESTAMP = 10L;
-    private static final long NON_ALIGNED_COLUMN_START_TIMESTAMP = 11L;
-    private static final long NON_ALIGNED_COLUMN_END_TIMESTAMP = 20L;
-    private static final long ROW_START_TIMESTAMP = 21L;
-    private static final long ROW_END_TIMESTAMP = 30L;
-    private static final long NON_ALIGNED_ROW_START_TIMESTAMP = 31L;
-    private static final long NON_ALIGNED_ROW_END_TIMESTAMP = 40L;
+    private static final long COLUMN_START_KEY = 1L;
+    private static final long COLUMN_END_KEY = 10L;
+    private static final long NON_ALIGNED_COLUMN_START_KEY = 11L;
+    private static final long NON_ALIGNED_COLUMN_END_KEY = 20L;
+    private static final long ROW_START_KEY = 21L;
+    private static final long ROW_END_KEY = 30L;
+    private static final long NON_ALIGNED_ROW_START_KEY = 31L;
+    private static final long NON_ALIGNED_ROW_END_KEY = 40L;
     private static final int INTERVAL = 10;
     private static Session session;
 
@@ -45,11 +45,11 @@ public class OpenTSDBSessionExample {
         paths.add(S1);
         paths.add(S2);
 
-        int size = (int) (ROW_END_TIMESTAMP - ROW_START_TIMESTAMP + 1);
+        int size = (int) (ROW_END_KEY - ROW_START_KEY + 1);
         long[] timestamps = new long[size];
         Object[] valuesList = new Object[size];
         for (long i = 0; i < size; i++) {
-            timestamps[(int) i] = ROW_START_TIMESTAMP + i;
+            timestamps[(int) i] = ROW_START_KEY + i;
             Object[] values = new Object[2];
             for (long j = 0; j < 2; j++) {
                 values[(int) j] = i + j;
@@ -78,10 +78,10 @@ public class OpenTSDBSessionExample {
         paths.add(S1);
         paths.add(S2);
 
-        long startTime = NON_ALIGNED_COLUMN_END_TIMESTAMP - 100L;
-        long endTime = ROW_START_TIMESTAMP + 100L;
+        long startKey = NON_ALIGNED_COLUMN_END_KEY - 100L;
+        long endKey = ROW_START_KEY + 100L;
 
-        SessionQueryDataSet dataSet = session.queryData(paths, startTime, endTime);
+        SessionQueryDataSet dataSet = session.queryData(paths, startKey, endKey);
         dataSet.print();
     }
 
@@ -90,9 +90,9 @@ public class OpenTSDBSessionExample {
         paths.add(S1);
         paths.add(S2);
 
-        long startTime = NON_ALIGNED_COLUMN_END_TIMESTAMP - 50L;
-        long endTime = ROW_START_TIMESTAMP + 50L;
+        long startKey = NON_ALIGNED_COLUMN_END_KEY - 50L;
+        long endKey = ROW_START_KEY + 50L;
 
-        session.deleteDataInColumns(paths, startTime, endTime);
+        session.deleteDataInColumns(paths, startKey, endKey);
     }
 }

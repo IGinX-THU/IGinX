@@ -115,10 +115,10 @@ public class TimescaleDBSessionExample {
         //        paths.add(S3);
         //        paths.add(S4);
 
-        long startTime = NON_ALIGNED_COLUMN_END_TIMESTAMP - 100L;
-        long endTime = ROW_START_TIMESTAMP + 100L;
+        long startKey = NON_ALIGNED_COLUMN_END_TIMESTAMP - 100L;
+        long endKey = ROW_START_TIMESTAMP + 100L;
 
-        SessionQueryDataSet dataSet = session.queryData(paths, startTime, endTime);
+        SessionQueryDataSet dataSet = session.queryData(paths, startKey, endKey);
         dataSet.print();
     }
 
@@ -127,9 +127,9 @@ public class TimescaleDBSessionExample {
         paths.add(S1);
         paths.add(S2);
 
-        long startTime = NON_ALIGNED_COLUMN_END_TIMESTAMP - 50L;
-        long endTime = ROW_START_TIMESTAMP + 50L;
+        long startKey = NON_ALIGNED_COLUMN_END_TIMESTAMP - 50L;
+        long endKey = ROW_START_TIMESTAMP + 50L;
 
-        session.deleteDataInColumns(paths, startTime, endTime);
+        session.deleteDataInColumns(paths, startKey, endKey);
     }
 }

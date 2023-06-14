@@ -85,16 +85,16 @@ public class TagKVSessionExample {
         paths.add(S3);
         paths.add(S4);
 
-        long startTime = COLUMN_START_TIMESTAMP + 2;
-        long endTime = COLUMN_END_TIMESTAMP - 2;
+        long startKey = COLUMN_START_TIMESTAMP + 2;
+        long endKey = COLUMN_END_TIMESTAMP - 2;
 
-        SessionQueryDataSet dataSet = session.queryData(paths, startTime, endTime, null);
+        SessionQueryDataSet dataSet = session.queryData(paths, startKey, endKey, null);
         dataSet.print();
 
         Map<String, List<String>> tagsList = new HashMap<>();
         tagsList.put("k", Arrays.asList("v1", "v3"));
 
-        dataSet = session.queryData(paths, startTime, endTime, tagsList);
+        dataSet = session.queryData(paths, startKey, endKey, tagsList);
         dataSet.print();
     }
 }
