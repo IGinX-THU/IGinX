@@ -37,6 +37,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilterType;
 import cn.edu.tsinghua.iginx.influxdb.query.entity.InfluxDBHistoryQueryRowStream;
@@ -44,6 +45,7 @@ import cn.edu.tsinghua.iginx.influxdb.query.entity.InfluxDBQueryRowStream;
 import cn.edu.tsinghua.iginx.influxdb.query.entity.InfluxDBSchema;
 import cn.edu.tsinghua.iginx.influxdb.tools.SchemaTransformer;
 import cn.edu.tsinghua.iginx.influxdb.tools.TagFilterUtils;
+import cn.edu.tsinghua.iginx.influxdb.tools.FilterTransformer;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
@@ -302,19 +304,100 @@ public class InfluxDBStorage implements IStorage {
 
     @Override
     public boolean isSupportProjectWithSelect() {
-        return false;
+        return true;
     }
 
     @Override
     public TaskExecuteResult executeProjectWithSelect(
             Project project, Select select, DataArea dataArea) {
-        return null;
+        String storageUnit = dataArea.getStorageUnit();
+        KeyInterval keyInterval = dataArea.getKeyInterval();
+        Filter filter = select.getFilter();
+
+        if (client.getBucketsApi().findBucketByName(storageUnit) == null) {
+            logger.warn("storage engine {} doesn't exist", storageUnit);
+            return new TaskExecuteResult(
+                    new InfluxDBQueryRowStream(Collections.emptyList(), project));
+        }
+
+        String statement =
+                generateQueryStatement(
+                        storageUnit,
+                        project.getPatterns(),
+                        project.getTagFilter(),
+                        filter,
+                        keyInterval.getStartKey(),
+                        keyInterval.getEndKey());
+
+        List<FluxTable> tables = client.getQueryApi().query(statement, organization.getId());
+        InfluxDBQueryRowStream rowStream = new InfluxDBQueryRowStream(tables, project);
+        return new TaskExecuteResult(rowStream);
     }
 
     @Override
     public TaskExecuteResult executeProjectDummyWithSelect(
             Project project, Select select, DataArea dataArea) {
-        return null;
+        KeyInterval keyInterval = dataArea.getKeyInterval();
+        Map<String, String> bucketQueries = new HashMap<>();
+        TagFilter tagFilter = project.getTagFilter();
+        Filter filter = select.getFilter();
+        for (String pattern : project.getPatterns()) {
+            Pair<String, String> pair =
+                    SchemaTransformer.processPatternForQuery(pattern, tagFilter);
+            String bucketName = pair.k;
+            String query = pair.v;
+
+            if (client.getBucketsApi().findBucketByName(bucketName) == null) {
+                logger.warn("storage engine {} doesn't exist", bucketName);
+                continue;
+            }
+
+            String fullQuery = "";
+            if (bucketQueries.containsKey(bucketName)) {
+                fullQuery = bucketQueries.get(bucketName);
+                fullQuery += " or ";
+            }
+            fullQuery += query;
+            bucketQueries.put(bucketName, fullQuery);
+        }
+
+        long startTime = keyInterval.getStartKey();
+        long endTime = keyInterval.getEndKey();
+
+        Map<String, List<FluxTable>> bucketQueryResults = new HashMap<>();
+        for (String bucket : bucketQueries.keySet()) {
+            String statement =
+                    String.format(
+                            "from(bucket:\"%s\") |> range(start: time(v: %s), stop: time(v: %s))",
+                            bucket, startTime, endTime);
+            if (!bucketQueries.get(bucket).equals("()")) {
+                statement += String.format(" |> filter(fn: (r) => %s)", bucketQueries.get(bucket));
+            }
+
+            // 添加谓词下推语句
+            if (filter != null){
+                String timeColumnStr = "time_column = "
+                        + statement
+                        + " |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")"
+                        + " |> filter(fn: (r) => "
+                        + FilterTransformer.toString(filter)
+                        + ")"
+                        + " |> findColumn(fn: (key) => true, column: \"_time\") \n";
+
+                String containStr = statement
+                        + " |> filter(fn: (r) => contains(value: r._time, set: time_column))";
+
+                statement = timeColumnStr + containStr;
+            }
+
+            logger.info("execute query: " + statement);
+            bucketQueryResults.put(
+                    bucket, client.getQueryApi().query(statement, organization.getId()));
+        }
+
+        InfluxDBHistoryQueryRowStream rowStream =
+                new InfluxDBHistoryQueryRowStream(bucketQueryResults, project.getPatterns());
+        return new TaskExecuteResult(rowStream);
     }
 
     @Override
@@ -333,6 +416,7 @@ public class InfluxDBStorage implements IStorage {
                         storageUnit,
                         project.getPatterns(),
                         project.getTagFilter(),
+                        null,
                         keyInterval.getStartKey(),
                         keyInterval.getEndKey());
         List<FluxTable> tables = client.getQueryApi().query(statement, organization.getId());
@@ -391,6 +475,7 @@ public class InfluxDBStorage implements IStorage {
             String bucketName,
             List<String> paths,
             TagFilter tagFilter,
+            Filter filter,
             long startTime,
             long endTime) {
         String statement = String.format(QUERY_DATA, bucketName, startTime, endTime);
@@ -452,6 +537,21 @@ public class InfluxDBStorage implements IStorage {
             }
             filterStr.append(')');
             statement += filterStr;
+        }
+
+        if (filter != null){
+            String timeColumnStr = "time_column = "
+                    + statement
+                    + " |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")"
+                    + " |> filter(fn: (r) => "
+                    + FilterTransformer.toString(filter)
+                    + ")"
+                    + " |> findColumn(fn: (key) => true, column: \"_time\") \n";
+
+            String containStr = statement
+                    + " |> filter(fn: (r) => contains(value: r._time, set: time_column))";
+
+            statement = timeColumnStr + containStr;
         }
 
         logger.info("generate query: " + statement);

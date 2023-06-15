@@ -1,0 +1,107 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package cn.edu.tsinghua.iginx.influxdb.tools;
+
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.NotFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.OrFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.ValueFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
+import cn.edu.tsinghua.iginx.thrift.DataType;
+
+import java.util.stream.Collectors;
+
+public class FilterTransformer {
+
+    public static String toString(Filter filter) {
+        if (filter == null) {
+            return "";
+        }
+        switch (filter.getType()) {
+            case And:
+                return toString((AndFilter) filter);
+            case Or:
+                return toString((OrFilter) filter);
+            case Not:
+                return toString((NotFilter) filter);
+            case Value:
+                return toString((ValueFilter) filter);
+            case Key:
+                return toString((KeyFilter) filter);
+            case Path:
+                return toString((PathFilter) filter);
+            default:
+                return "";
+        }
+    }
+
+    private static String toString(AndFilter filter) {
+        return filter.getChildren()
+                .stream()
+                .map(FilterTransformer::toString)
+                .collect(Collectors.joining(" and ", "(", ")"));
+    }
+
+    private static String toString(NotFilter filter) {
+        return "not " + filter.toString();
+    }
+
+    private static String toString(KeyFilter filter) {
+        return "r[\"_time\"] " + Op.op2Str(filter.getOp()) + " time(v: " + filter.getValue() + ")";
+    }
+
+    private static String toString(ValueFilter filter) {
+        // path 获取的是 table.field，需要删掉.前面的table名。
+        String path = filter.getPath().substring(filter.getPath().indexOf('.') + 1);
+        String value = filter.getValue().getDataType() == DataType.BINARY ?
+                "\"" + filter.getValue().getBinaryVAsString() + "\"" :
+                filter.getValue().getValue().toString();
+
+        return "r[\""
+                + path
+                + "\"] "
+                + Op.op2Str(filter.getOp())
+                + " "
+                + value;
+    }
+
+    private static String toString(OrFilter filter) {
+        return filter.getChildren()
+                .stream()
+                .map(FilterTransformer::toString)
+                .collect(Collectors.joining(" or ", "(", ")"));
+    }
+
+    private static String toString(PathFilter filter) {
+        // path 获取的是 table.field，需要删掉.前面的table名。
+        String pathA = filter.getPathA().substring(filter.getPathA().indexOf('.') + 1);
+        String pathB = filter.getPathB().substring(filter.getPathB().indexOf('.') + 1);
+
+        return "r[\""
+                + pathA
+                + "\"] "
+                + Op.op2Str(filter.getOp())
+                + " r[\""
+                + pathB
+                + "\"]";
+    }
+}
