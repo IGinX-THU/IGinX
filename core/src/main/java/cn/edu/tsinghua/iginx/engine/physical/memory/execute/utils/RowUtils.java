@@ -36,6 +36,7 @@ import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
 import cn.edu.tsinghua.iginx.engine.shared.function.SetMappingFunction;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils;
 import cn.edu.tsinghua.iginx.engine.shared.operator.GroupBy;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.ArrayList;
@@ -640,6 +641,39 @@ public class RowUtils {
             if (pool != null) {
                 poolQueue.add(pool);
             }
+        }
+    }
+
+    public static List<Row> cacheFilterResult(List<Row> rows, Filter filter)
+        throws PhysicalException {
+        if (rows.size() > config.getParallelFilterThreshold()) {
+            ForkJoinPool pool = null;
+            try {
+                pool = poolQueue.take();
+                return rows.parallelStream().filter(row -> {
+                    try {
+                        return FilterUtils.validate(filter, row);
+                    } catch (PhysicalException e) {
+                        logger.error("execute parallel filter error, cause by: ", e.getCause());
+                        return false;
+                    }
+                }).collect(Collectors.toList());
+            } catch (InterruptedException e) {
+                throw new PhysicalException("parallel filter failed");
+            } finally {
+                if (pool != null) {
+                    poolQueue.add(pool);
+                }
+            }
+        } else {
+            return rows.stream().filter(row -> {
+                try {
+                    return FilterUtils.validate(filter, row);
+                } catch (PhysicalException e) {
+                    logger.error("execute sequence filter error, cause by: ", e.getCause());
+                    return false;
+                }
+            }).collect(Collectors.toList());
         }
     }
 

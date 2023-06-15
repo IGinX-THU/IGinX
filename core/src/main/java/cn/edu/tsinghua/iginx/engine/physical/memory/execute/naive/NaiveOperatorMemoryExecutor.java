@@ -19,9 +19,12 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.naive;
 
 import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils.getJoinPathFromFilter;
+import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils.validate;
 import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.combineMultipleColumns;
 import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.constructNewHead;
 
+import cn.edu.tsinghua.iginx.conf.Config;
+import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.physical.exception.InvalidOperatorParameterException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
@@ -83,8 +86,15 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
+
+    private static final Logger logger = LoggerFactory.getLogger(NaiveOperatorMemoryExecutor.class);
+
+    private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
     private NaiveOperatorMemoryExecutor() {}
 
@@ -211,13 +221,8 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
 
     private RowStream executeSelect(Select select, Table table) throws PhysicalException {
         Filter filter = select.getFilter();
-        List<Row> targetRows = new ArrayList<>();
-        while (table.hasNext()) {
-            Row row = table.next();
-            if (FilterUtils.validate(filter, row)) {
-                targetRows.add(row);
-            }
-        }
+        List<Row> rows = table.getRows();
+        List<Row> targetRows = RowUtils.cacheFilterResult(rows, filter);
         return new Table(table.getHeader(), targetRows);
     }
 

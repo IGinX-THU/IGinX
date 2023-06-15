@@ -20,17 +20,24 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
+import java.util.ArrayList;
+import java.util.List;
 
 public class SelectLazyStream extends UnaryLazyStream {
 
     private final Select select;
 
-    private Row nextRow = null;
+    private final static int BATCH_SIZE = 1000;
+
+    private int cacheIndex = 0;
+
+    private List<Row> nextBatchCache = new ArrayList<>();
 
     public SelectLazyStream(Select select, RowStream stream) {
         super(stream);
@@ -44,21 +51,21 @@ public class SelectLazyStream extends UnaryLazyStream {
 
     @Override
     public boolean hasNext() throws PhysicalException {
-        if (nextRow == null) {
-            nextRow = calculateNext();
+        if (cacheIndex >= nextBatchCache.size()) {
+            calculateNextBatch();
         }
-        return nextRow != null;
+        return cacheIndex < nextBatchCache.size();
     }
 
-    private Row calculateNext() throws PhysicalException {
-        Filter filter = select.getFilter();
-        while (stream.hasNext()) {
-            Row row = stream.next();
-            if (FilterUtils.validate(filter, row)) {
-                return row;
-            }
+    private void calculateNextBatch() throws PhysicalException {
+        int rowCnt = 0;
+        List<Row> rows = new ArrayList<>();
+        while (stream.hasNext() && rowCnt < BATCH_SIZE) {
+            rows.add(stream.next());
+            rowCnt++;
         }
-        return null;
+        nextBatchCache = RowUtils.cacheFilterResult(rows, select.getFilter());
+        cacheIndex = 0;
     }
 
     @Override
@@ -66,8 +73,6 @@ public class SelectLazyStream extends UnaryLazyStream {
         if (!hasNext()) {
             throw new IllegalStateException("row stream doesn't have more data!");
         }
-        Row row = nextRow;
-        nextRow = null;
-        return row;
+        return nextBatchCache.get(cacheIndex++);
     }
 }
