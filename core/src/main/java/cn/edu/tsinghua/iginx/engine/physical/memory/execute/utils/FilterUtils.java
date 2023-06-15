@@ -40,182 +40,182 @@ import java.util.List;
 
 public class FilterUtils {
 
-public static boolean validate(Filter filter, Row row) throws PhysicalException {
+  public static boolean validate(Filter filter, Row row) throws PhysicalException {
     switch (filter.getType()) {
-    case Or:
+      case Or:
         OrFilter orFilter = (OrFilter) filter;
         for (Filter childFilter : orFilter.getChildren()) {
-        if (validate(childFilter, row)) { // 任何一个子条件满足，都直接返回
+          if (validate(childFilter, row)) { // 任何一个子条件满足，都直接返回
             return true;
-        }
+          }
         }
         return false;
-    case Bool:
+      case Bool:
         BoolFilter booleanFilter = (BoolFilter) filter;
         return booleanFilter.isTrue();
-    case And:
+      case And:
         AndFilter andFilter = (AndFilter) filter;
         for (Filter childFilter : andFilter.getChildren()) {
-        if (!validate(childFilter, row)) { // 任何一个子条件不满足，都直接返回
+          if (!validate(childFilter, row)) { // 任何一个子条件不满足，都直接返回
             return false;
-        }
+          }
         }
         return true;
-    case Not:
+      case Not:
         NotFilter notFilter = (NotFilter) filter;
         return !validate(notFilter.getChild(), row);
-    case Key:
+      case Key:
         KeyFilter keyFilter = (KeyFilter) filter;
         if (row.getKey() == Row.NON_EXISTED_KEY) {
-        return false;
+          return false;
         }
         return validateTimeFilter(keyFilter, row);
-    case Value:
+      case Value:
         ValueFilter valueFilter = (ValueFilter) filter;
         return validateValueFilter(valueFilter, row);
-    case Path:
+      case Path:
         PathFilter pathFilter = (PathFilter) filter;
         return validatePathFilter(pathFilter, row);
-    default:
+      default:
         break;
     }
     return false;
-}
+  }
 
-private static boolean validateTimeFilter(KeyFilter keyFilter, Row row) {
+  private static boolean validateTimeFilter(KeyFilter keyFilter, Row row) {
     long timestamp = row.getKey();
     switch (keyFilter.getOp()) {
-    case E:
+      case E:
         return timestamp == keyFilter.getValue();
-    case G:
+      case G:
         return timestamp > keyFilter.getValue();
-    case L:
+      case L:
         return timestamp < keyFilter.getValue();
-    case GE:
+      case GE:
         return timestamp >= keyFilter.getValue();
-    case LE:
+      case LE:
         return timestamp <= keyFilter.getValue();
-    case NE:
+      case NE:
         return timestamp != keyFilter.getValue();
-    case LIKE: // TODO: case label. should we return false?
+      case LIKE: // TODO: case label. should we return false?
         break;
     }
     return false;
-}
+  }
 
-private static boolean validateValueFilter(ValueFilter valueFilter, Row row)
-    throws PhysicalException {
+  private static boolean validateValueFilter(ValueFilter valueFilter, Row row)
+      throws PhysicalException {
     String path = valueFilter.getPath();
     Value targetValue = valueFilter.getValue();
     if (targetValue.isNull()) { // targetValue是空值，则认为不可比较
-    return false;
+      return false;
     }
 
     if (path.contains("*")) {
-    List<Value> valueList = row.getAsValueByPattern(path);
-    for (Value value : valueList) {
+      List<Value> valueList = row.getAsValueByPattern(path);
+      for (Value value : valueList) {
         if (value == null || value.isNull()) { // 任何一个value是空值，则认为不可比较
-        return false;
+          return false;
         }
         if (!validateValueCompare(valueFilter.getOp(), value, targetValue)) { // 任何一个子条件不满足，都直接返回
-        return false;
+          return false;
         }
-    }
-    return true;
+      }
+      return true;
     } else {
-    Value value = row.getAsValue(path);
-    if (value == null || value.isNull()) { // value是空值，则认为不可比较
+      Value value = row.getAsValue(path);
+      if (value == null || value.isNull()) { // value是空值，则认为不可比较
         return false;
+      }
+      return validateValueCompare(valueFilter.getOp(), value, targetValue);
     }
-    return validateValueCompare(valueFilter.getOp(), value, targetValue);
-    }
-}
+  }
 
-private static boolean validatePathFilter(PathFilter pathFilter, Row row)
-    throws PhysicalException {
+  private static boolean validatePathFilter(PathFilter pathFilter, Row row)
+      throws PhysicalException {
     Value valueA = row.getAsValue(pathFilter.getPathA());
     Value valueB = row.getAsValue(pathFilter.getPathB());
     if (valueA == null
         || valueA.isNull()
         || valueB == null
         || valueB.isNull()) { // 如果任何一个是空值，则认为不可比较
-    return false;
+      return false;
     }
     return validateValueCompare(pathFilter.getOp(), valueA, valueB);
-}
+  }
 
-private static boolean validateValueCompare(Op op, Value valueA, Value valueB)
-    throws PhysicalException {
+  private static boolean validateValueCompare(Op op, Value valueA, Value valueB)
+      throws PhysicalException {
     if (valueA.getDataType() != valueB.getDataType()) {
-    if (ValueUtils.isNumericType(valueA) && ValueUtils.isNumericType(valueB)) {
+      if (ValueUtils.isNumericType(valueA) && ValueUtils.isNumericType(valueB)) {
         valueA = ValueUtils.transformToDouble(valueA);
         valueB = ValueUtils.transformToDouble(valueB);
-    } else { // 数值类型和非数值类型无法比较
+      } else { // 数值类型和非数值类型无法比较
         return false;
-    }
+      }
     }
 
     switch (op) {
-    case E:
+      case E:
         return ValueUtils.compare(valueA, valueB) == 0;
-    case G:
+      case G:
         return ValueUtils.compare(valueA, valueB) > 0;
-    case L:
+      case L:
         return ValueUtils.compare(valueA, valueB) < 0;
-    case GE:
+      case GE:
         return ValueUtils.compare(valueA, valueB) >= 0;
-    case LE:
+      case LE:
         return ValueUtils.compare(valueA, valueB) <= 0;
-    case NE:
+      case NE:
         return ValueUtils.compare(valueA, valueB) != 0;
-    case LIKE:
+      case LIKE:
         return ValueUtils.regexCompare(valueA, valueB);
     }
     return false;
-}
+  }
 
-public static List<Pair<String, String>> getJoinColumnsFromFilter(Filter filter) {
+  public static List<Pair<String, String>> getJoinColumnsFromFilter(Filter filter) {
     List<Pair<String, String>> l = new ArrayList<>();
     switch (filter.getType()) {
-    case And:
+      case And:
         AndFilter andFilter = (AndFilter) filter;
         for (Filter childFilter : andFilter.getChildren()) {
-        l.addAll(getJoinColumnsFromFilter(childFilter));
+          l.addAll(getJoinColumnsFromFilter(childFilter));
         }
-    case Path:
+      case Path:
         l.add(getJoinColumnFromPathFilter((PathFilter) filter));
-    default:
+      default:
         break;
     }
     return l;
-}
+  }
 
-public static Pair<String, String> getJoinColumnFromPathFilter(PathFilter pathFilter) {
+  public static Pair<String, String> getJoinColumnFromPathFilter(PathFilter pathFilter) {
     if (pathFilter.getOp().equals(Op.E)) {
-    return new Pair<>(pathFilter.getPathA(), pathFilter.getPathB());
+      return new Pair<>(pathFilter.getPathA(), pathFilter.getPathB());
     }
     return null;
-}
+  }
 
-public static Pair<String, String> getJoinPathFromFilter(
-    Filter filter, Header headerA, Header headerB) throws PhysicalException {
+  public static Pair<String, String> getJoinPathFromFilter(
+      Filter filter, Header headerA, Header headerB) throws PhysicalException {
     if (!filter.getType().equals(FilterType.Path)) {
-    throw new InvalidOperatorParameterException(
-        "Unsupported hash join filter type: " + filter.getType());
+      throw new InvalidOperatorParameterException(
+          "Unsupported hash join filter type: " + filter.getType());
     }
     PathFilter pathFilter = (PathFilter) filter;
     if (!pathFilter.getOp().equals(Op.E)) {
-    throw new InvalidOperatorParameterException(
-        "Unsupported hash join filter op type: " + pathFilter.getOp());
+      throw new InvalidOperatorParameterException(
+          "Unsupported hash join filter op type: " + pathFilter.getOp());
     }
     if (headerA.indexOf(pathFilter.getPathA()) != -1
         && headerB.indexOf(pathFilter.getPathB()) != -1) {
-    return new Pair<>(pathFilter.getPathA(), pathFilter.getPathB());
+      return new Pair<>(pathFilter.getPathA(), pathFilter.getPathB());
     } else if (headerA.indexOf(pathFilter.getPathB()) != -1
         && headerB.indexOf(pathFilter.getPathA()) != -1) {
-    return new Pair<>(pathFilter.getPathB(), pathFilter.getPathA());
+      return new Pair<>(pathFilter.getPathB(), pathFilter.getPathA());
     } else {
-    throw new InvalidOperatorParameterException("invalid hash join path filter input.");
+      throw new InvalidOperatorParameterException("invalid hash join path filter input.");
     }
-}
+  }
 }

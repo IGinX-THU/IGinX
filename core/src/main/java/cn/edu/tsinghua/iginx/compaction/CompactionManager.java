@@ -10,11 +10,11 @@ import org.slf4j.LoggerFactory;
 
 public class CompactionManager {
 
-private static final Logger logger = LoggerFactory.getLogger(CompactionManager.class);
+  private static final Logger logger = LoggerFactory.getLogger(CompactionManager.class);
 
-private static final List<Compaction> compactionList = new ArrayList<>();
+  private static final List<Compaction> compactionList = new ArrayList<>();
 
-static {
+  static {
     compactionList.add(
         new FragmentDeletionCompaction(
             PhysicalEngineImpl.getInstance(), DefaultMetaManager.getInstance()));
@@ -24,27 +24,27 @@ static {
     compactionList.add(
         new LowAccessFragmentCompaction(
             PhysicalEngineImpl.getInstance(), DefaultMetaManager.getInstance()));
-}
+  }
 
-private static final CompactionManager instance = new CompactionManager();
+  private static final CompactionManager instance = new CompactionManager();
 
-public static CompactionManager getInstance() {
+  public static CompactionManager getInstance() {
     return instance;
-}
+  }
 
-public void clearFragment() throws Exception {
+  public void clearFragment() throws Exception {
     if (ConfigDescriptor.getInstance().getConfig().isEnableInstantCompaction()) {
-    InstantCompaction instantCompaction =
-        new InstantCompaction(PhysicalEngineImpl.getInstance(), DefaultMetaManager.getInstance());
-    if (instantCompaction.needCompaction()) {
+      InstantCompaction instantCompaction =
+          new InstantCompaction(PhysicalEngineImpl.getInstance(), DefaultMetaManager.getInstance());
+      if (instantCompaction.needCompaction()) {
         instantCompaction.compact();
-    }
+      }
     } else if (ConfigDescriptor.getInstance().getConfig().isEnableFragmentCompaction()) {
-    for (Compaction compaction : compactionList) {
+      for (Compaction compaction : compactionList) {
         if (compaction.needCompaction()) {
-        compaction.compact();
+          compaction.compact();
         }
+      }
     }
-    }
-}
+  }
 }

@@ -11,29 +11,29 @@ import org.slf4j.LoggerFactory;
 
 public class ParquetCapacityExpansionIT {
 
-private static final Logger logger = LoggerFactory.getLogger(ParquetCapacityExpansionIT.class);
+  private static final Logger logger = LoggerFactory.getLogger(ParquetCapacityExpansionIT.class);
 
-private static Session session;
+  private static Session session;
 
-@BeforeClass
-public static void setUp() throws SessionException {
+  @BeforeClass
+  public static void setUp() throws SessionException {
     session = new Session("127.0.0.1", 6888, "root", "root");
     session.openSession();
-}
+  }
 
-@AfterClass
-public static void tearDown() throws SessionException {
+  @AfterClass
+  public static void tearDown() throws SessionException {
     session.closeSession();
-}
+  }
 
-@Test
-public void test() throws Exception {
+  @Test
+  public void test() throws Exception {
     testInitialNodeInsertAndQuery();
     testCapacityExpansion();
     testWriteAndQueryAfterCapacityExpansion();
-}
+  }
 
-private void testInitialNodeInsertAndQuery() throws Exception {
+  private void testInitialNodeInsertAndQuery() throws Exception {
     session.executeSql(
         "insert into test.us (key, cpu_usage, engine, desc) values (10, 12.1, 1, \"normal\");");
     session.executeSql(
@@ -68,9 +68,9 @@ private void testInitialNodeInsertAndQuery() throws Exception {
             + "+------------------------+-------------------+---------------------+\n"
             + "Total line number = 1\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
-}
+  }
 
-private void testCapacityExpansion() throws Exception {
+  private void testCapacityExpansion() throws Exception {
     session.executeSql(
         "ADD STORAGEENGINE (\"127.0.0.1\", 6610, \"parquet\", \"dir:test, has_data:true, is_read_only:true\");");
 
@@ -107,9 +107,9 @@ private void testCapacityExpansion() throws Exception {
     statement = "count points";
     expect = "Points num: 18\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
-}
+  }
 
-private void testWriteAndQueryAfterCapacityExpansion() throws Exception {
+  private void testWriteAndQueryAfterCapacityExpansion() throws Exception {
     session.executeSql(
         "insert into test.us (key, cpu_usage, engine, desc) values (13, 88.8, 2, \"high\");");
 
@@ -145,5 +145,5 @@ private void testWriteAndQueryAfterCapacityExpansion() throws Exception {
             + "Total line number = 1\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
     SQLTestTools.executeAndCompare(session, statement, expect);
-}
+  }
 }

@@ -26,28 +26,28 @@ import org.slf4j.LoggerFactory;
 
 public class StoragePhysicalTaskQueue {
 
-private static final Logger logger = LoggerFactory.getLogger(StoragePhysicalTaskQueue.class);
+  private static final Logger logger = LoggerFactory.getLogger(StoragePhysicalTaskQueue.class);
 
-private final BlockingQueue<StoragePhysicalTask> tasks;
+  private final BlockingQueue<StoragePhysicalTask> tasks;
 
-public StoragePhysicalTaskQueue() {
+  public StoragePhysicalTaskQueue() {
     tasks = new LinkedBlockingQueue<>();
-}
+  }
 
-public void addTask(StoragePhysicalTask task) {
+  public void addTask(StoragePhysicalTask task) {
     try {
-    tasks.put(task);
+      tasks.put(task);
     } catch (InterruptedException e) {
-    logger.error("add task to physical task queue error: ", e);
+      logger.error("add task to physical task queue error: ", e);
     }
-}
+  }
 
-public StoragePhysicalTask getTask() {
+  public StoragePhysicalTask getTask() {
     try {
-    return tasks.take();
+      return tasks.take();
     } catch (Exception e) {
-    logger.error("encounter error when get memory task: ", e);
+      logger.error("encounter error when get memory task: ", e);
     }
     return null;
-}
+  }
 }

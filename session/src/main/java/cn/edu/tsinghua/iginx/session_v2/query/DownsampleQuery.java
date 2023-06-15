@@ -24,72 +24,72 @@ import java.util.*;
 
 public class DownsampleQuery extends Query {
 
-private final long startKey;
+  private final long startKey;
 
-private final long endKey;
+  private final long endKey;
 
-private final AggregateType aggregateType;
+  private final AggregateType aggregateType;
 
-private final long precision;
+  private final long precision;
 
-private final String timePrecision;
+  private final String timePrecision;
 
-public DownsampleQuery(
-    Set<String> measurements,
-    Map<String, List<String>> tagsList,
-    long startKey,
-    long endKey,
-    AggregateType aggregateType,
-    long precision) {
+  public DownsampleQuery(
+      Set<String> measurements,
+      Map<String, List<String>> tagsList,
+      long startKey,
+      long endKey,
+      AggregateType aggregateType,
+      long precision) {
     super(measurements, tagsList);
     this.startKey = startKey;
     this.endKey = endKey;
     this.aggregateType = aggregateType;
     this.precision = precision;
     this.timePrecision = null;
-}
+  }
 
-public DownsampleQuery(
-    Set<String> measurements,
-    Map<String, List<String>> tagsList,
-    long startKey,
-    long endKey,
-    AggregateType aggregateType,
-    long precision,
-    String timePrecision) {
+  public DownsampleQuery(
+      Set<String> measurements,
+      Map<String, List<String>> tagsList,
+      long startKey,
+      long endKey,
+      AggregateType aggregateType,
+      long precision,
+      String timePrecision) {
     super(measurements, tagsList);
     this.startKey = startKey;
     this.endKey = endKey;
     this.aggregateType = aggregateType;
     this.precision = precision;
     this.timePrecision = timePrecision;
-}
+  }
 
-public static DownsampleQuery.Builder builder() {
+  public static DownsampleQuery.Builder builder() {
     return new DownsampleQuery.Builder();
-}
+  }
 
-public long getStartKey() {
+  public long getStartKey() {
     return startKey;
-}
+  }
 
-public long getEndKey() {
+  public long getEndKey() {
     return endKey;
-}
+  }
 
-public AggregateType getAggregateType() {
+  public AggregateType getAggregateType() {
     return aggregateType;
-}
+  }
 
-public long getPrecision() {
+  public long getPrecision() {
     return precision;
-}
+  }
 
-public String getTimePrecision() {
+  public String getTimePrecision() {
     return timePrecision;
-}
+  }
 
-public static class Builder {
+  public static class Builder {
 
     private final Set<String> measurements;
 
@@ -106,92 +106,92 @@ public static class Builder {
     private String timePrecision;
 
     private Builder() {
-    this.measurements = new HashSet<>();
-    this.tagsList = new HashMap<>();
-    this.startKey = 0L;
-    this.endKey = Long.MAX_VALUE;
-    this.precision = 0L;
-    this.timePrecision = null;
+      this.measurements = new HashSet<>();
+      this.tagsList = new HashMap<>();
+      this.startKey = 0L;
+      this.endKey = Long.MAX_VALUE;
+      this.precision = 0L;
+      this.timePrecision = null;
     }
 
     public DownsampleQuery.Builder addMeasurement(String measurement) {
-    Arguments.checkNonEmpty(measurement, "measurement");
-    this.measurements.add(measurement);
-    return this;
+      Arguments.checkNonEmpty(measurement, "measurement");
+      this.measurements.add(measurement);
+      return this;
     }
 
     public DownsampleQuery.Builder addMeasurements(Set<String> measurements) {
-    measurements.forEach(measurement -> Arguments.checkNonEmpty(measurement, "measurement"));
-    this.measurements.addAll(measurements);
-    return this;
+      measurements.forEach(measurement -> Arguments.checkNonEmpty(measurement, "measurement"));
+      this.measurements.addAll(measurements);
+      return this;
     }
 
     public DownsampleQuery.Builder addTags(String tagK, List<String> valueList) {
-    Arguments.checkListNonEmpty(valueList, "valueList");
-    this.tagsList.put(tagK, valueList);
-    return this;
+      Arguments.checkListNonEmpty(valueList, "valueList");
+      this.tagsList.put(tagK, valueList);
+      return this;
     }
 
     public DownsampleQuery.Builder addTagsList(Map<String, List<String>> tagsList) {
-    tagsList.forEach((key, valueList) -> Arguments.checkListNonEmpty(valueList, "valueList"));
-    this.tagsList.putAll(tagsList);
-    return this;
+      tagsList.forEach((key, valueList) -> Arguments.checkListNonEmpty(valueList, "valueList"));
+      this.tagsList.putAll(tagsList);
+      return this;
     }
 
     public DownsampleQuery.Builder startKey(long startKey) {
-    if (startKey < 0) {
+      if (startKey < 0) {
         throw new IllegalArgumentException("startKey must greater than zero.");
-    }
-    if (startKey >= endKey) {
+      }
+      if (startKey >= endKey) {
         throw new IllegalArgumentException("startKey must less than endKey.");
-    }
-    this.startKey = startKey;
-    return this;
+      }
+      this.startKey = startKey;
+      return this;
     }
 
     public DownsampleQuery.Builder endKey(long endKey) {
-    if (endKey < 0) {
+      if (endKey < 0) {
         throw new IllegalArgumentException("endKey mush greater than zero.");
-    }
-    if (endKey <= startKey) {
+      }
+      if (endKey <= startKey) {
         throw new IllegalArgumentException("endKey must greater than startKey.");
-    }
-    this.endKey = endKey;
-    return this;
+      }
+      this.endKey = endKey;
+      return this;
     }
 
     public DownsampleQuery.Builder aggregate(AggregateType aggregateType) {
-    Arguments.checkNotNull(aggregateType, "aggregateType");
-    this.aggregateType = aggregateType;
-    return this;
+      Arguments.checkNotNull(aggregateType, "aggregateType");
+      this.aggregateType = aggregateType;
+      return this;
     }
 
     public DownsampleQuery.Builder precision(long precision) {
-    if (precision <= 0L) {
+      if (precision <= 0L) {
         throw new IllegalArgumentException("precision should greater than zero.");
-    }
-    this.precision = precision;
-    return this;
+      }
+      this.precision = precision;
+      return this;
     }
 
     public DownsampleQuery.Builder timePrecision(String timePrecision) {
-    Arguments.checkNotNull(timePrecision, "timePrecision");
-    this.timePrecision = timePrecision;
-    return this;
+      Arguments.checkNotNull(timePrecision, "timePrecision");
+      this.timePrecision = timePrecision;
+      return this;
     }
 
     public DownsampleQuery build() {
-    if (this.measurements.isEmpty()) {
+      if (this.measurements.isEmpty()) {
         throw new IllegalStateException("simple query at least has one measurement.");
-    }
-    if (this.aggregateType == null) {
+      }
+      if (this.aggregateType == null) {
         throw new IllegalStateException("aggregate type should not be null.");
-    }
-    if (this.precision <= 0L) {
+      }
+      if (this.precision <= 0L) {
         throw new IllegalStateException("precision should greater than zero.");
+      }
+      return new DownsampleQuery(
+          measurements, tagsList, startKey, endKey, aggregateType, precision, timePrecision);
     }
-    return new DownsampleQuery(
-        measurements, tagsList, startKey, endKey, aggregateType, precision, timePrecision);
-    }
-}
+  }
 }

@@ -7,72 +7,72 @@ import java.util.Map;
 
 public class TestDataSection {
 
-public static final TestDataSection EMPTY_TEST_DATA_SECTION =
-    new TestDataSection(
-        new ArrayList<>(),
-        new ArrayList<>(),
-        new ArrayList<>(),
-        new ArrayList<>(),
-        new ArrayList<>());
+  public static final TestDataSection EMPTY_TEST_DATA_SECTION =
+      new TestDataSection(
+          new ArrayList<>(),
+          new ArrayList<>(),
+          new ArrayList<>(),
+          new ArrayList<>(),
+          new ArrayList<>());
 
-private final List<Long> keys;
+  private final List<Long> keys;
 
-private final List<DataType> types;
+  private final List<DataType> types;
 
-private final List<String> paths;
+  private final List<String> paths;
 
-private final List<List<Object>> values;
+  private final List<List<Object>> values;
 
-private final List<Map<String, String>> tagsList;
+  private final List<Map<String, String>> tagsList;
 
-public TestDataSection(
-    List<Long> keys, List<DataType> types, List<String> paths, List<List<Object>> values) {
+  public TestDataSection(
+      List<Long> keys, List<DataType> types, List<String> paths, List<List<Object>> values) {
     this(keys, types, paths, values, null);
-}
+  }
 
-public TestDataSection(
-    List<Long> keys,
-    List<DataType> types,
-    List<String> paths,
-    List<List<Object>> values,
-    List<Map<String, String>> tagsList) {
+  public TestDataSection(
+      List<Long> keys,
+      List<DataType> types,
+      List<String> paths,
+      List<List<Object>> values,
+      List<Map<String, String>> tagsList) {
     this.keys = keys;
     this.types = types;
     this.paths = paths;
     this.values = values;
     this.tagsList = tagsList;
-}
+  }
 
-public List<Long> getKeys() {
+  public List<Long> getKeys() {
     return keys;
-}
+  }
 
-public List<DataType> getTypes() {
+  public List<DataType> getTypes() {
     return types;
-}
+  }
 
-public List<String> getPaths() {
+  public List<String> getPaths() {
     return paths;
-}
+  }
 
-public List<List<Object>> getValues() {
+  public List<List<Object>> getValues() {
     return values;
-}
+  }
 
-public List<Map<String, String>> getTagsList() {
+  public List<Map<String, String>> getTagsList() {
     return tagsList;
-}
+  }
 
-// return sub data section which key in [startKey, endKey)
-public TestDataSection getSubDataSectionWithKey(long startKey, long endKey) {
+  // return sub data section which key in [startKey, endKey)
+  public TestDataSection getSubDataSectionWithKey(long startKey, long endKey) {
     List<Long> newKeys = new ArrayList<>();
     List<List<Object>> newValues = new ArrayList<>();
     for (int i = 0; i < keys.size(); i++) {
-    long key = keys.get(i);
-    if (startKey <= key && key < endKey) {
+      long key = keys.get(i);
+      if (startKey <= key && key < endKey) {
         newKeys.add(key);
         newValues.add(values.get(i));
-    }
+      }
     }
     return new TestDataSection(
         newKeys,
@@ -80,31 +80,31 @@ public TestDataSection getSubDataSectionWithKey(long startKey, long endKey) {
         new ArrayList<>(paths),
         newValues,
         tagsList == null ? null : new ArrayList<>(tagsList));
-}
+  }
 
-public TestDataSection getSubDataSectionWithPath(List<String> selectedPaths) {
+  public TestDataSection getSubDataSectionWithPath(List<String> selectedPaths) {
     List<Integer> indexList = new ArrayList<>();
     List<String> newPaths = new ArrayList<>();
     List<DataType> newTypes = new ArrayList<>();
     for (String path : selectedPaths) {
-    int index = paths.indexOf(path);
-    if (index != -1) {
+      int index = paths.indexOf(path);
+      if (index != -1) {
         indexList.add(index);
         newPaths.add(path);
         newTypes.add(types.get(index));
-    }
+      }
     }
     if (indexList.isEmpty()) {
-    return EMPTY_TEST_DATA_SECTION;
+      return EMPTY_TEST_DATA_SECTION;
     }
 
     List<List<Object>> newValues = new ArrayList<>();
     for (List<Object> rowValues : values) {
-    List<Object> newRowValues = new ArrayList<>();
-    for (int index : indexList) {
+      List<Object> newRowValues = new ArrayList<>();
+      for (int index : indexList) {
         newRowValues.add(rowValues.get(index));
-    }
-    newValues.add(newRowValues);
+      }
+      newValues.add(newRowValues);
     }
 
     return new TestDataSection(
@@ -113,11 +113,11 @@ public TestDataSection getSubDataSectionWithPath(List<String> selectedPaths) {
         newPaths,
         newValues,
         tagsList == null ? null : new ArrayList<>(tagsList));
-}
+  }
 
-public TestDataSection mergeOther(TestDataSection other) {
+  public TestDataSection mergeOther(TestDataSection other) {
     keys.addAll(other.getKeys());
     values.addAll(other.getValues());
     return this;
-}
+  }
 }

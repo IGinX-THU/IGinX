@@ -26,57 +26,57 @@ import java.util.List;
 
 public class Table implements RowStream {
 
-public static final Table EMPTY_TABLE = new Table(Header.EMPTY_HEADER, Collections.emptyList());
+  public static final Table EMPTY_TABLE = new Table(Header.EMPTY_HEADER, Collections.emptyList());
 
-private final Header header;
+  private final Header header;
 
-private final List<Row> rows;
+  private final List<Row> rows;
 
-private int index;
+  private int index;
 
-public Table(Header header, List<Row> rows) {
+  public Table(Header header, List<Row> rows) {
     this.header = header;
     this.rows = rows;
     this.index = 0;
-}
+  }
 
-@Override
-public Header getHeader() {
+  @Override
+  public Header getHeader() {
     return header;
-}
+  }
 
-@Override
-public boolean hasNext() {
+  @Override
+  public boolean hasNext() {
     return index < rows.size();
-}
+  }
 
-public boolean isEmpty() {
+  public boolean isEmpty() {
     return rows == null || rows.isEmpty();
-}
+  }
 
-@Override
-public Row next() {
+  @Override
+  public Row next() {
     Row row = rows.get(index);
     index++;
     return row;
-}
+  }
 
-public List<Row> getRows() {
+  public List<Row> getRows() {
     return rows;
-}
+  }
 
-public Row getRow(int index) {
+  public Row getRow(int index) {
     return rows.get(index);
-}
+  }
 
-public int getRowSize() {
+  public int getRowSize() {
     return rows.size();
-}
+  }
 
-@Override
-public void close() {}
+  @Override
+  public void close() {}
 
-public void reset() {
+  public void reset() {
     this.index = 0;
-}
+  }
 }

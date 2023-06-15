@@ -23,34 +23,34 @@ import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 
 public class Limit extends AbstractUnaryOperator {
 
-private final int limit;
+  private final int limit;
 
-private final int offset;
+  private final int offset;
 
-public Limit(Source source, int limit, int offset) {
+  public Limit(Source source, int limit, int offset) {
     super(OperatorType.Limit, source);
     if (limit < 0 || offset < 0) {
-    throw new IllegalArgumentException("limit and offset shouldn't less than zero");
+      throw new IllegalArgumentException("limit and offset shouldn't less than zero");
     }
     this.limit = limit;
     this.offset = offset;
-}
+  }
 
-public int getLimit() {
+  public int getLimit() {
     return limit;
-}
+  }
 
-public int getOffset() {
+  public int getOffset() {
     return offset;
-}
+  }
 
-@Override
-public Operator copy() {
+  @Override
+  public Operator copy() {
     return new Limit(getSource().copy(), limit, offset);
-}
+  }
 
-@Override
-public String getInfo() {
+  @Override
+  public String getInfo() {
     return "Limit: " + limit + ", Offset: " + offset;
-}
+  }
 }

@@ -21,89 +21,89 @@ package cn.edu.tsinghua.iginx.engine.shared.operator.filter;
 import cn.edu.tsinghua.iginx.exceptions.SQLParserException;
 
 public enum Op {
-GE,
-G,
-LE,
-L,
-E,
-NE,
-LIKE;
+  GE,
+  G,
+  LE,
+  L,
+  E,
+  NE,
+  LIKE;
 
-public static Op getOpposite(Op op) {
+  public static Op getOpposite(Op op) {
     switch (op) {
-    case NE:
+      case NE:
         return E;
-    case E:
+      case E:
         return NE;
-    case GE:
+      case GE:
         return L;
-    case LE:
+      case LE:
         return G;
-    case G:
+      case G:
         return LE;
-    case L:
+      case L:
         return GE;
-    default:
+      default:
         return op;
     }
-}
+  }
 
-public static Op getDirectionOpposite(Op op) {
+  public static Op getDirectionOpposite(Op op) {
     switch (op) {
-    case GE:
+      case GE:
         return LE;
-    case LE:
+      case LE:
         return GE;
-    case G:
+      case G:
         return L;
-    case L:
+      case L:
         return G;
-    default:
+      default:
         return op;
     }
-}
+  }
 
-public static Op str2Op(String op) {
+  public static Op str2Op(String op) {
     switch (op) {
-    case "=":
-    case "==":
+      case "=":
+      case "==":
         return E;
-    case "!=":
-    case "<>":
+      case "!=":
+      case "<>":
         return NE;
-    case ">":
+      case ">":
         return G;
-    case ">=":
+      case ">=":
         return GE;
-    case "<":
+      case "<":
         return L;
-    case "<=":
+      case "<=":
         return LE;
-    case "like":
+      case "like":
         return LIKE;
-    default:
+      default:
         throw new SQLParserException(String.format("Not support comparison operator %s", op));
     }
-}
+  }
 
-public static String op2Str(Op op) {
+  public static String op2Str(Op op) {
     switch (op) {
-    case GE:
+      case GE:
         return ">=";
-    case G:
+      case G:
         return ">";
-    case LE:
+      case LE:
         return "<=";
-    case L:
+      case L:
         return "<";
-    case E:
+      case E:
         return "==";
-    case NE:
+      case NE:
         return "!=";
-    case LIKE:
+      case LIKE:
         return "like";
-    default:
+      default:
         return "";
     }
-}
+  }
 }

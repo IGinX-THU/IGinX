@@ -23,30 +23,30 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 
 public abstract class BinaryLazyStream implements RowStream {
 
-protected final RowStream streamA;
+  protected final RowStream streamA;
 
-protected final RowStream streamB;
+  protected final RowStream streamB;
 
-public BinaryLazyStream(RowStream streamA, RowStream streamB) {
+  public BinaryLazyStream(RowStream streamA, RowStream streamB) {
     this.streamA = streamA;
     this.streamB = streamB;
-}
+  }
 
-@Override
-public void close() throws PhysicalException {
+  @Override
+  public void close() throws PhysicalException {
     PhysicalException pe = null;
     try {
-    streamA.close();
+      streamA.close();
     } catch (PhysicalException e) {
-    pe = e;
+      pe = e;
     }
     try {
-    streamB.close();
+      streamB.close();
     } catch (PhysicalException e) {
-    pe = e;
+      pe = e;
     }
     if (pe != null) {
-    throw pe;
+      throw pe;
     }
-}
+  }
 }

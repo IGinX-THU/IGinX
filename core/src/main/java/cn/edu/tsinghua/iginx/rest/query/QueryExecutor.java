@@ -35,61 +35,61 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class QueryExecutor {
-public static final Logger logger = LoggerFactory.getLogger(QueryExecutor.class);
-private Query query;
+  public static final Logger logger = LoggerFactory.getLogger(QueryExecutor.class);
+  private Query query;
 
-private final RestSession session = new RestSession();
+  private final RestSession session = new RestSession();
 
-public QueryExecutor(Query query) {
+  public QueryExecutor(Query query) {
     this.query = query;
-}
+  }
 
-public QueryResult executeShowColumns() throws Exception {
+  public QueryResult executeShowColumns() throws Exception {
     QueryResult ret = new QueryResult();
     try {
-    session.openSession();
-    ret.addResultSet(new QueryShowTimeSeries().doAggregate(session));
-    session.closeSession();
+      session.openSession();
+      ret.addResultSet(new QueryShowTimeSeries().doAggregate(session));
+      session.closeSession();
     } catch (Exception e) {
-    logger.error("Error occurred during executing", e);
-    throw e;
+      logger.error("Error occurred during executing", e);
+      throw e;
     }
     return ret;
-}
+  }
 
-public QueryResult execute(boolean isDelete) throws Exception {
+  public QueryResult execute(boolean isDelete) throws Exception {
     QueryResult ret = new QueryResult();
     try {
-    session.openSession();
-    for (QueryMetric queryMetric : query.getQueryMetrics()) {
+      session.openSession();
+      for (QueryMetric queryMetric : query.getQueryMetrics()) {
         List<String> paths = new ArrayList<>();
         StringBuilder path = new StringBuilder();
         path.append(queryMetric.getName());
         paths.add(path.toString());
         if (isDelete) {
-        RestSession session = new RestSession();
-        session.openSession();
-        session.deleteDataInColumns(
-            paths,
-            queryMetric.getTags(),
-            query.getStartAbsolute(),
-            query.getEndAbsolute(),
-            query.getTimePrecision());
-        session.closeSession();
+          RestSession session = new RestSession();
+          session.openSession();
+          session.deleteDataInColumns(
+              paths,
+              queryMetric.getTags(),
+              query.getStartAbsolute(),
+              query.getEndAbsolute(),
+              query.getTimePrecision());
+          session.closeSession();
         } else if (queryMetric.getAggregators().size() == 0) {
-        ret.addResultSet(
-            new QueryAggregatorNone()
-                .doAggregate(
-                    session,
-                    paths,
-                    queryMetric.getTags(),
-                    query.getStartAbsolute(),
-                    query.getEndAbsolute(),
-                    query.getTimePrecision()),
-            queryMetric,
-            new QueryAggregatorNone());
+          ret.addResultSet(
+              new QueryAggregatorNone()
+                  .doAggregate(
+                      session,
+                      paths,
+                      queryMetric.getTags(),
+                      query.getStartAbsolute(),
+                      query.getEndAbsolute(),
+                      query.getTimePrecision()),
+              queryMetric,
+              new QueryAggregatorNone());
         } else {
-        for (QueryAggregator queryAggregator : queryMetric.getAggregators()) {
+          for (QueryAggregator queryAggregator : queryMetric.getAggregators()) {
             ret.addResultSet(
                 queryAggregator.doAggregate(
                     session,
@@ -100,42 +100,42 @@ public QueryResult execute(boolean isDelete) throws Exception {
                     query.getTimePrecision()),
                 queryMetric,
                 queryAggregator);
+          }
         }
-        }
-    }
-    session.closeSession();
+      }
+      session.closeSession();
     } catch (Exception e) {
-    logger.error("Error occurred during executing", e);
-    throw e;
+      logger.error("Error occurred during executing", e);
+      throw e;
     }
 
     return ret;
-}
+  }
 
-private String getStringFromObject(Object val) {
+  private String getStringFromObject(Object val) {
     String valStr = new String();
     if (val instanceof byte[]) {
-    valStr = new String((byte[]) val);
+      valStr = new String((byte[]) val);
     } else {
-    valStr = String.valueOf(val.toString());
+      valStr = String.valueOf(val.toString());
     }
     return valStr;
-}
+  }
 
-// 结果通过引用传出
-public void queryAnno(QueryResult anno) throws Exception {
+  // 结果通过引用传出
+  public void queryAnno(QueryResult anno) throws Exception {
     QueryResult title = new QueryResult(), description = new QueryResult();
     Query titleQuery = new Query();
     Query descriptionQuery = new Query();
     boolean hasTitle = false, hasDescription = false;
     try {
-    for (int i = 0; i < anno.getQueryResultDatasets().size(); i++) {
+      for (int i = 0; i < anno.getQueryResultDatasets().size(); i++) {
         QueryResultDataset data = anno.getQueryResultDatasets().get(i);
         if (data.getKeyLists().isEmpty()) continue;
         int subLen = data.getKeyLists().size();
         for (int j = 0; j < subLen; j++) {
-        List<Long> timeList = data.getKeyLists().get(j);
-        for (int z = timeList.size() - 1; z >= 0; z--) {
+          List<Long> timeList = data.getKeyLists().get(j);
+          for (int z = timeList.size() - 1; z >= 0; z--) {
             // 这里减小了对时间查询的范围
             if (timeList.get(z) < DESCRIPTION_KEY) break;
 
@@ -143,21 +143,21 @@ public void queryAnno(QueryResult anno) throws Exception {
             Long annoTime = getLongVal(data.getValueLists().get(j).get(z));
 
             if (timeList.get(z).equals(TITLE_KEY)) {
-            hasTitle = true;
-            titleQuery.setStartAbsolute(annoTime);
-            titleQuery.setEndAbsolute(annoTime + 1L);
+              hasTitle = true;
+              titleQuery.setStartAbsolute(annoTime);
+              titleQuery.setEndAbsolute(annoTime + 1L);
             } else if (timeList.get(z).equals(DESCRIPTION_KEY)) {
-            hasDescription = true;
-            descriptionQuery.setStartAbsolute(annoTime);
-            descriptionQuery.setEndAbsolute(annoTime + 1L);
+              hasDescription = true;
+              descriptionQuery.setStartAbsolute(annoTime);
+              descriptionQuery.setEndAbsolute(annoTime + 1L);
             }
-        }
+          }
 
-        QueryMetric metric = new QueryMetric();
-        metric.setName(ANNOTATION_SEQUENCE);
-        List<QueryMetric> metrics = new ArrayList<>();
-        metrics.add(metric);
-        if (hasTitle) {
+          QueryMetric metric = new QueryMetric();
+          metric.setName(ANNOTATION_SEQUENCE);
+          List<QueryMetric> metrics = new ArrayList<>();
+          metrics.add(metric);
+          if (hasTitle) {
             titleQuery.setQueryMetrics(metrics);
             titleQuery.setTimePrecision(TimePrecision.NS);
             this.query = titleQuery;
@@ -166,10 +166,10 @@ public void queryAnno(QueryResult anno) throws Exception {
                 .get(i)
                 .addTitle(
                     getStringFromObject(title.getQueryResultDatasets().get(0).getValues().get(0)));
-        } else {
+          } else {
             anno.getQueryResultDatasets().get(i).addTitle(new String());
-        }
-        if (hasDescription) {
+          }
+          if (hasDescription) {
             descriptionQuery.setQueryMetrics(metrics);
             descriptionQuery.setTimePrecision(TimePrecision.NS);
             this.query = descriptionQuery;
@@ -179,53 +179,53 @@ public void queryAnno(QueryResult anno) throws Exception {
                 .addDescription(
                     getStringFromObject(
                         description.getQueryResultDatasets().get(0).getValues().get(0)));
-        } else {
+          } else {
             anno.getQueryResultDatasets().get(i).addDescription(new String());
+          }
         }
-        }
-    }
+      }
     } catch (Exception e) {
-    logger.error("Error occurred during executing", e);
-    throw e;
+      logger.error("Error occurred during executing", e);
+      throw e;
     }
-}
+  }
 
-public void deleteMetric() throws Exception {
+  public void deleteMetric() throws Exception {
     RestSession restSession = new RestSession();
     restSession.openSession();
     List<String> ins = new ArrayList<>();
     for (QueryMetric metric : query.getQueryMetrics()) {
-    ins.add(metric.getPathName());
+      ins.add(metric.getPathName());
     }
     if (!ins.isEmpty()) restSession.deleteColumns(ins);
     restSession.closeSession();
-}
+  }
 
-public DataType judgeObjectType(Object obj) {
+  public DataType judgeObjectType(Object obj) {
     if (obj instanceof Boolean) {
-    return DataType.BOOLEAN;
+      return DataType.BOOLEAN;
     } else if (obj instanceof Byte || obj instanceof String || obj instanceof Character) {
-    return DataType.BINARY;
+      return DataType.BINARY;
     } else if (obj instanceof Long || obj instanceof Integer) {
-    return DataType.LONG;
+      return DataType.LONG;
     } else if (obj instanceof Double || obj instanceof Float) {
-    return DataType.DOUBLE;
+      return DataType.DOUBLE;
     }
     // 否则默认字符串类型
     return DataType.BINARY;
-}
+  }
 
-// 错误返回-1
-public Long getLongVal(Object val) {
+  // 错误返回-1
+  public Long getLongVal(Object val) {
     switch (judgeObjectType(val)) {
-    case BINARY:
+      case BINARY:
         return Long.valueOf(new String((byte[]) val));
-    case DOUBLE:
+      case DOUBLE:
         return Math.round((Double) (val));
-    case LONG:
+      case LONG:
         return (Long) val;
-    default:
+      default:
         return new Long(-1); // 尽量不要传null
     }
-}
+  }
 }

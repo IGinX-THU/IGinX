@@ -26,44 +26,44 @@ import org.slf4j.LoggerFactory;
 
 public class PostgreSQLQueryRowStream implements RowStream {
 
-private static final Logger logger = LoggerFactory.getLogger(PostgreSQLQueryRowStream.class);
+  private static final Logger logger = LoggerFactory.getLogger(PostgreSQLQueryRowStream.class);
 
-private final List<ResultSet> resultSets;
+  private final List<ResultSet> resultSets;
 
-private final Header header;
+  private final Header header;
 
-private final boolean isDummy;
+  private final boolean isDummy;
 
-private final Filter filter;
+  private final Filter filter;
 
-private boolean[] gotNext; // 标记每个结果集是否已经获取到下一行，如果是，则在下次调用 next() 时无需再调用该结果集的 next()
+  private boolean[] gotNext; // 标记每个结果集是否已经获取到下一行，如果是，则在下次调用 next() 时无需再调用该结果集的 next()
 
-private long[] cachedKeys; // 缓存每个结果集当前的 key 列的值
+  private long[] cachedKeys; // 缓存每个结果集当前的 key 列的值
 
-private Object[] cachedValues; // 缓存每列当前的值
+  private Object[] cachedValues; // 缓存每列当前的值
 
-private int[] resultSetSizes; // 记录每个结果集的列数
+  private int[] resultSetSizes; // 记录每个结果集的列数
 
-private Map<Field, String> fieldToColumnName; // 记录匹配 tagFilter 的列名
+  private Map<Field, String> fieldToColumnName; // 记录匹配 tagFilter 的列名
 
-private Row cachedRow;
+  private Row cachedRow;
 
-private boolean hasCachedRow;
+  private boolean hasCachedRow;
 
-public PostgreSQLQueryRowStream(
-    List<String> databaseNameList,
-    List<ResultSet> resultSets,
-    boolean isDummy,
-    Filter filter,
-    TagFilter tagFilter)
-    throws SQLException {
+  public PostgreSQLQueryRowStream(
+      List<String> databaseNameList,
+      List<ResultSet> resultSets,
+      boolean isDummy,
+      Filter filter,
+      TagFilter tagFilter)
+      throws SQLException {
     this.resultSets = resultSets;
     this.isDummy = isDummy;
     this.filter = filter;
 
     if (resultSets.isEmpty()) {
-    this.header = new Header(Field.KEY, Collections.emptyList());
-    return;
+      this.header = new Header(Field.KEY, Collections.emptyList());
+      return;
     }
 
     boolean filterByTags = tagFilter != null;
@@ -74,47 +74,47 @@ public PostgreSQLQueryRowStream(
     this.fieldToColumnName = new HashMap<>();
 
     for (int i = 0; i < resultSets.size(); i++) {
-    ResultSetMetaData resultSetMetaData = resultSets.get(i).getMetaData();
-    int cnt = 0;
-    for (int j = 1; j <= resultSetMetaData.getColumnCount(); j++) {
+      ResultSetMetaData resultSetMetaData = resultSets.get(i).getMetaData();
+      int cnt = 0;
+      for (int j = 1; j <= resultSetMetaData.getColumnCount(); j++) {
         String tableName = resultSetMetaData.getTableName(j);
         String columnName = resultSetMetaData.getColumnName(j);
         String typeName = resultSetMetaData.getColumnTypeName(j);
         if (j == 1 && columnName.equals(KEY_NAME)) {
-        key = Field.KEY;
-        continue;
+          key = Field.KEY;
+          continue;
         }
 
         Pair<String, Map<String, String>> namesAndTags = splitFullName(columnName);
         Field field;
         if (isDummy) {
-        field =
-            new Field(
-                databaseNameList.get(i)
-                    + IGINX_SEPARATOR
-                    + tableName.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR)
-                    + IGINX_SEPARATOR
-                    + namesAndTags.k.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR),
-                DataTypeTransformer.fromPostgreSQL(typeName),
-                namesAndTags.v);
+          field =
+              new Field(
+                  databaseNameList.get(i)
+                      + IGINX_SEPARATOR
+                      + tableName.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR)
+                      + IGINX_SEPARATOR
+                      + namesAndTags.k.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR),
+                  DataTypeTransformer.fromPostgreSQL(typeName),
+                  namesAndTags.v);
         } else {
-        field =
-            new Field(
-                tableName.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR)
-                    + IGINX_SEPARATOR
-                    + namesAndTags.k.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR),
-                DataTypeTransformer.fromPostgreSQL(typeName),
-                namesAndTags.v);
+          field =
+              new Field(
+                  tableName.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR)
+                      + IGINX_SEPARATOR
+                      + namesAndTags.k.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR),
+                  DataTypeTransformer.fromPostgreSQL(typeName),
+                  namesAndTags.v);
         }
 
         if (filterByTags && !TagKVUtils.match(namesAndTags.v, tagFilter)) {
-        continue;
+          continue;
         }
         fieldToColumnName.put(field, columnName);
         fields.add(field);
         cnt++;
-    }
-    resultSetSizes[i] = cnt;
+      }
+      resultSetSizes[i] = cnt;
     }
 
     this.header = new Header(key, fields);
@@ -127,59 +127,59 @@ public PostgreSQLQueryRowStream(
     Arrays.fill(cachedValues, null);
     this.cachedRow = null;
     this.hasCachedRow = false;
-}
+  }
 
-@Override
-public Header getHeader() {
+  @Override
+  public Header getHeader() {
     return header;
-}
+  }
 
-@Override
-public void close() {
+  @Override
+  public void close() {
     try {
-    for (ResultSet resultSet : resultSets) {
+      for (ResultSet resultSet : resultSets) {
         resultSet.close();
-    }
+      }
     } catch (SQLException e) {
-    logger.error(e.getMessage());
+      logger.error(e.getMessage());
     }
-}
+  }
 
-@Override
-public boolean hasNext() {
+  @Override
+  public boolean hasNext() {
     if (resultSets.isEmpty()) {
-    return false;
+      return false;
     }
 
     try {
-    if (!hasCachedRow) {
+      if (!hasCachedRow) {
         cacheOneRow();
-    }
+      }
     } catch (SQLException | PhysicalException e) {
-    logger.error(e.getMessage());
+      logger.error(e.getMessage());
     }
 
     return cachedRow != null;
-}
+  }
 
-@Override
-public Row next() throws PhysicalException {
+  @Override
+  public Row next() throws PhysicalException {
     try {
-    Row row;
-    if (!hasCachedRow) {
+      Row row;
+      if (!hasCachedRow) {
         cacheOneRow();
-    }
-    row = cachedRow;
-    hasCachedRow = false;
-    cachedRow = null;
-    return row;
+      }
+      row = cachedRow;
+      hasCachedRow = false;
+      cachedRow = null;
+      return row;
     } catch (SQLException | PhysicalException e) {
-    logger.error(e.getMessage());
-    throw new RowFetchException(e);
+      logger.error(e.getMessage());
+      throw new RowFetchException(e);
     }
-}
+  }
 
-private void cacheOneRow() throws SQLException, PhysicalException {
+  private void cacheOneRow() throws SQLException, PhysicalException {
     boolean hasNext = false;
     long key;
     Object[] values = new Object[header.getFieldSize()];
@@ -187,75 +187,75 @@ private void cacheOneRow() throws SQLException, PhysicalException {
     int startIndex = 0;
     int endIndex = 0;
     for (int i = 0; i < resultSets.size(); i++) {
-    ResultSet resultSet = resultSets.get(i);
-    if (resultSetSizes[i] == 0) {
+      ResultSet resultSet = resultSets.get(i);
+      if (resultSetSizes[i] == 0) {
         continue;
-    }
-    endIndex += resultSetSizes[i];
-    if (!gotNext[i]) {
+      }
+      endIndex += resultSetSizes[i];
+      if (!gotNext[i]) {
         boolean tempHasNext = resultSet.next();
         hasNext |= tempHasNext;
         gotNext[i] = true;
 
         if (tempHasNext) {
-        long tempKey;
-        Object tempValue;
+          long tempKey;
+          Object tempValue;
 
-        if (isDummy) {
+          if (isDummy) {
             tempKey = toHash(resultSet.getString(KEY_NAME));
-        } else {
+          } else {
             tempKey = resultSet.getLong(KEY_NAME);
-        }
-        cachedKeys[i] = tempKey;
+          }
+          cachedKeys[i] = tempKey;
 
-        for (int j = 0; j < resultSetSizes[i]; j++) {
+          for (int j = 0; j < resultSetSizes[i]; j++) {
             Object value =
                 resultSet.getObject(fieldToColumnName.get(header.getField(startIndex + j)));
             if (header.getField(startIndex + j).getType() == DataType.BINARY && value != null) {
-            tempValue = value.toString().getBytes();
+              tempValue = value.toString().getBytes();
             } else {
-            tempValue = value;
+              tempValue = value;
             }
             cachedValues[startIndex + j] = tempValue;
-        }
+          }
         } else {
-        cachedKeys[i] = Long.MAX_VALUE;
-        for (int j = startIndex; j < endIndex; j++) {
+          cachedKeys[i] = Long.MAX_VALUE;
+          for (int j = startIndex; j < endIndex; j++) {
             cachedValues[j] = null;
+          }
         }
-        }
-    } else {
+      } else {
         hasNext = true;
-    }
-    startIndex = endIndex;
+      }
+      startIndex = endIndex;
     }
 
     if (hasNext) {
-    key = Arrays.stream(cachedKeys).min().getAsLong();
-    startIndex = 0;
-    endIndex = 0;
-    for (int i = 0; i < resultSets.size(); i++) {
+      key = Arrays.stream(cachedKeys).min().getAsLong();
+      startIndex = 0;
+      endIndex = 0;
+      for (int i = 0; i < resultSets.size(); i++) {
         endIndex += resultSetSizes[i];
         if (cachedKeys[i] == key) {
-        for (int j = 0; j < resultSetSizes[i]; j++) {
+          for (int j = 0; j < resultSetSizes[i]; j++) {
             values[startIndex + j] = cachedValues[startIndex + j];
-        }
-        gotNext[i] = false;
+          }
+          gotNext[i] = false;
         } else {
-        for (int j = 0; j < resultSetSizes[i]; j++) {
+          for (int j = 0; j < resultSetSizes[i]; j++) {
             values[startIndex + j] = null;
-        }
-        gotNext[i] = true;
+          }
+          gotNext[i] = true;
         }
         startIndex = endIndex;
-    }
-    cachedRow = new Row(header, key, values);
-    if (isDummy && !validate(filter, cachedRow)) {
+      }
+      cachedRow = new Row(header, key, values);
+      if (isDummy && !validate(filter, cachedRow)) {
         cacheOneRow();
-    }
+      }
     } else {
-    cachedRow = null;
+      cachedRow = null;
     }
     hasCachedRow = true;
-}
+  }
 }

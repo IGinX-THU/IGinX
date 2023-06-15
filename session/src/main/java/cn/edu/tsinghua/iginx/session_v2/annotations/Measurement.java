@@ -27,5 +27,5 @@ import java.lang.annotation.Target;
 @Target({ElementType.TYPE})
 public @interface Measurement {
 
-String name();
+  String name();
 }

@@ -26,78 +26,78 @@ import java.util.List;
 
 public class StoragePhysicalTask extends AbstractPhysicalTask {
 
-private final FragmentMeta targetFragment;
-private final boolean sync;
-private final boolean needBroadcasting;
-private String storageUnit;
-private long storage;
-private boolean dummyStorageUnit;
+  private final FragmentMeta targetFragment;
+  private final boolean sync;
+  private final boolean needBroadcasting;
+  private String storageUnit;
+  private long storage;
+  private boolean dummyStorageUnit;
 
-public StoragePhysicalTask(List<Operator> operators) {
+  public StoragePhysicalTask(List<Operator> operators) {
     this(
         operators,
         ((FragmentSource) ((UnaryOperator) operators.get(0)).getSource()).getFragment(),
         true,
         false);
-}
+  }
 
-public StoragePhysicalTask(List<Operator> operators, boolean sync, boolean needBroadcasting) {
+  public StoragePhysicalTask(List<Operator> operators, boolean sync, boolean needBroadcasting) {
     this(
         operators,
         ((FragmentSource) ((UnaryOperator) operators.get(0)).getSource()).getFragment(),
         sync,
         needBroadcasting);
-}
+  }
 
-public StoragePhysicalTask(
-    List<Operator> operators,
-    FragmentMeta targetFragment,
-    boolean sync,
-    boolean needBroadcasting) {
+  public StoragePhysicalTask(
+      List<Operator> operators,
+      FragmentMeta targetFragment,
+      boolean sync,
+      boolean needBroadcasting) {
     super(TaskType.Storage, operators);
     this.targetFragment = targetFragment;
     this.sync = sync;
     this.needBroadcasting = needBroadcasting;
-}
+  }
 
-public FragmentMeta getTargetFragment() {
+  public FragmentMeta getTargetFragment() {
     return targetFragment;
-}
+  }
 
-public String getStorageUnit() {
+  public String getStorageUnit() {
     return storageUnit;
-}
+  }
 
-public void setStorageUnit(String storageUnit) {
+  public void setStorageUnit(String storageUnit) {
     this.storageUnit = storageUnit;
-}
+  }
 
-public boolean isDummyStorageUnit() {
+  public boolean isDummyStorageUnit() {
     return dummyStorageUnit;
-}
+  }
 
-public void setDummyStorageUnit(boolean dummyStorageUnit) {
+  public void setDummyStorageUnit(boolean dummyStorageUnit) {
     this.dummyStorageUnit = dummyStorageUnit;
-}
+  }
 
-public long getStorage() {
+  public long getStorage() {
     return storage;
-}
+  }
 
-public void setStorage(long storage) {
+  public void setStorage(long storage) {
     this.storage = storage;
-}
+  }
 
-public boolean isSync() {
+  public boolean isSync() {
     return sync;
-}
+  }
 
-public boolean isNeedBroadcasting() {
+  public boolean isNeedBroadcasting() {
     return needBroadcasting;
-}
+  }
 
-@Override
-public String toString() {
+  @Override
+  public String toString() {
     return "StoragePhysicalTask{"
         + "targetFragment="
         + targetFragment
@@ -107,5 +107,5 @@ public String toString() {
         + ", storage="
         + storage
         + '}';
-}
+  }
 }

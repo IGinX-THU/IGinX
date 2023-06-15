@@ -11,30 +11,30 @@ import org.slf4j.LoggerFactory;
 
 public class MonitorManager implements Runnable {
 
-private static final Logger logger = LoggerFactory.getLogger(MonitorManager.class);
+  private static final Logger logger = LoggerFactory.getLogger(MonitorManager.class);
 
-private static final int interval =
-    ConfigDescriptor.getInstance().getConfig().getLoadBalanceCheckInterval();
+  private static final int interval =
+      ConfigDescriptor.getInstance().getConfig().getLoadBalanceCheckInterval();
 
-private final IMetaManager metaManager = DefaultMetaManager.getInstance();
-private final CompactionManager compactionManager = CompactionManager.getInstance();
-private static MonitorManager INSTANCE;
+  private final IMetaManager metaManager = DefaultMetaManager.getInstance();
+  private final CompactionManager compactionManager = CompactionManager.getInstance();
+  private static MonitorManager INSTANCE;
 
-public static MonitorManager getInstance() {
+  public static MonitorManager getInstance() {
     if (INSTANCE == null) {
-    synchronized (MonitorManager.class) {
+      synchronized (MonitorManager.class) {
         if (INSTANCE == null) {
-        INSTANCE = new MonitorManager();
+          INSTANCE = new MonitorManager();
         }
-    }
+      }
     }
     return INSTANCE;
-}
+  }
 
-@Override
-public void run() {
+  @Override
+  public void run() {
     while (true) {
-    try {
+      try {
         // 清空节点信息
         compactionManager.clearFragment();
         metaManager.clearMonitors();
@@ -48,9 +48,9 @@ public void run() {
         Map<FragmentMeta, Long> writeHotspotMap = HotSpotMonitor.getInstance().getWriteHotspotMap();
         Map<FragmentMeta, Long> readHotspotMap = HotSpotMonitor.getInstance().getReadHotspotMap();
         metaManager.updateFragmentHeat(writeHotspotMap, readHotspotMap);
-    } catch (Exception e) {
+      } catch (Exception e) {
         logger.error("monitor manager error ", e);
+      }
     }
-    }
-}
+  }
 }

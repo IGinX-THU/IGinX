@@ -21,113 +21,113 @@ import org.slf4j.LoggerFactory;
 @Data
 public class Result {
 
-private static final Logger logger = LoggerFactory.getLogger(Result.class);
+  private static final Logger logger = LoggerFactory.getLogger(Result.class);
 
-private Status status;
-private List<String> paths;
-private List<Map<String, String>> tagsList;
-private List<DataType> dataTypes;
-private Long[] keys;
-private List<ByteBuffer> valuesList;
-private List<ByteBuffer> bitmapList;
+  private Status status;
+  private List<String> paths;
+  private List<Map<String, String>> tagsList;
+  private List<DataType> dataTypes;
+  private Long[] keys;
+  private List<ByteBuffer> valuesList;
+  private List<ByteBuffer> bitmapList;
 
-private SqlType sqlType;
-private Long pointsNum;
-private Integer replicaNum;
+  private SqlType sqlType;
+  private Long pointsNum;
+  private Integer replicaNum;
 
-private List<IginxInfo> iginxInfos;
-private List<StorageEngineInfo> storageEngineInfos;
-private List<MetaStorageInfo> metaStorageInfos;
-private LocalMetaStorageInfo localMetaStorageInfo;
+  private List<IginxInfo> iginxInfos;
+  private List<StorageEngineInfo> storageEngineInfos;
+  private List<MetaStorageInfo> metaStorageInfos;
+  private LocalMetaStorageInfo localMetaStorageInfo;
 
-private List<RegisterTaskInfo> registerTaskInfos;
+  private List<RegisterTaskInfo> registerTaskInfos;
 
-private long queryId;
-private JobState jobState;
-private RowStream resultStream;
+  private long queryId;
+  private JobState jobState;
+  private RowStream resultStream;
 
-private long jobId;
-private List<Long> jobIdList;
+  private long jobId;
+  private List<Long> jobIdList;
 
-private String configValue;
+  private String configValue;
 
-public Result(Status status) {
+  public Result(Status status) {
     this.status = status;
     this.pointsNum = 0L;
     this.replicaNum = 0;
-}
+  }
 
-public QueryDataResp getQueryDataResp() {
+  public QueryDataResp getQueryDataResp() {
     QueryDataResp resp = new QueryDataResp(status);
     resp.setPaths(paths);
     resp.setTagsList(tagsList);
     resp.setDataTypeList(dataTypes);
     if (keys == null || keys.length == 0) {
-    resp.setQueryDataSet(
-        new QueryDataSet(ByteBuffer.allocate(0), new ArrayList<>(), new ArrayList<>()));
-    return resp;
+      resp.setQueryDataSet(
+          new QueryDataSet(ByteBuffer.allocate(0), new ArrayList<>(), new ArrayList<>()));
+      return resp;
     }
     ByteBuffer keyBuffer = ByteUtils.getByteBufferFromLongArray(keys);
     resp.setQueryDataSet(new QueryDataSet(keyBuffer, valuesList, bitmapList));
     return resp;
-}
+  }
 
-public AggregateQueryResp getAggregateQueryResp() {
+  public AggregateQueryResp getAggregateQueryResp() {
     AggregateQueryResp resp = new AggregateQueryResp(status);
     resp.setPaths(paths);
     resp.setTagsList(tagsList);
     resp.setDataTypeList(dataTypes);
     if (valuesList == null || valuesList.size() == 0) {
-    resp.setValuesList(ByteBuffer.allocate(0));
-    return resp;
+      resp.setValuesList(ByteBuffer.allocate(0));
+      return resp;
     }
     resp.setValuesList(valuesList.get(0));
     return resp;
-}
+  }
 
-public DownsampleQueryResp getDownSampleQueryResp() {
+  public DownsampleQueryResp getDownSampleQueryResp() {
     DownsampleQueryResp resp = new DownsampleQueryResp(status);
     resp.setPaths(paths);
     resp.setTagsList(tagsList);
     resp.setDataTypeList(dataTypes);
     if (keys == null || keys.length == 0) {
-    resp.setQueryDataSet(
-        new QueryDataSet(ByteBuffer.allocate(0), new ArrayList<>(), new ArrayList<>()));
-    return resp;
+      resp.setQueryDataSet(
+          new QueryDataSet(ByteBuffer.allocate(0), new ArrayList<>(), new ArrayList<>()));
+      return resp;
     }
     ByteBuffer keyBuffer = ByteUtils.getByteBufferFromLongArray(keys);
     resp.setQueryDataSet(new QueryDataSet(keyBuffer, valuesList, bitmapList));
     return resp;
-}
+  }
 
-public LastQueryResp getLastQueryResp() {
+  public LastQueryResp getLastQueryResp() {
     LastQueryResp resp = new LastQueryResp(status);
     resp.setPaths(paths);
     resp.setTagsList(tagsList);
     resp.setDataTypeList(dataTypes);
     if (keys == null || keys.length == 0) {
-    resp.setQueryDataSet(
-        new QueryDataSet(ByteBuffer.allocate(0), new ArrayList<>(), new ArrayList<>()));
-    return resp;
+      resp.setQueryDataSet(
+          new QueryDataSet(ByteBuffer.allocate(0), new ArrayList<>(), new ArrayList<>()));
+      return resp;
     }
     ByteBuffer keyBuffer = ByteUtils.getByteBufferFromLongArray(keys);
     resp.setQueryDataSet(new QueryDataSet(keyBuffer, valuesList, bitmapList));
     return resp;
-}
+  }
 
-public ShowColumnsResp getShowColumnsResp() {
+  public ShowColumnsResp getShowColumnsResp() {
     ShowColumnsResp resp = new ShowColumnsResp(status);
     resp.setPaths(paths);
     resp.setTagsList(tagsList);
     resp.setDataTypeList(dataTypes);
     return resp;
-}
+  }
 
-public ExecuteSqlResp getExecuteSqlResp() {
+  public ExecuteSqlResp getExecuteSqlResp() {
     ExecuteSqlResp resp = new ExecuteSqlResp(status, sqlType);
     if (status != RpcUtils.SUCCESS) {
-    resp.setParseErrorMsg(status.getMessage());
-    return resp;
+      resp.setParseErrorMsg(status.getMessage());
+      return resp;
     }
 
     resp.setReplicaNum(replicaNum);
@@ -137,13 +137,13 @@ public ExecuteSqlResp getExecuteSqlResp() {
     resp.setDataTypeList(dataTypes);
 
     if (valuesList != null) {
-    if (keys != null) {
+      if (keys != null) {
         ByteBuffer keyBuffer = ByteUtils.getByteBufferFromLongArray(keys);
         resp.setKeys(keyBuffer);
         resp.setQueryDataSet(new QueryDataSet(keyBuffer, valuesList, bitmapList));
-    } else {
+      } else {
         resp.setQueryDataSet(new QueryDataSet(ByteBuffer.allocate(0), valuesList, bitmapList));
-    }
+      }
     }
 
     resp.setIginxInfos(iginxInfos);
@@ -156,127 +156,127 @@ public ExecuteSqlResp getExecuteSqlResp() {
     resp.setJobIdList(jobIdList);
     resp.setConfigValue(configValue);
     return resp;
-}
+  }
 
-public ExecuteStatementResp getExecuteStatementResp(int fetchSize) {
+  public ExecuteStatementResp getExecuteStatementResp(int fetchSize) {
     ExecuteStatementResp resp = new ExecuteStatementResp(status, sqlType);
     if (status != RpcUtils.SUCCESS) {
-    return resp;
+      return resp;
     }
     resp.setQueryId(queryId);
     try {
-    List<String> paths = new ArrayList<>();
-    List<Map<String, String>> tagsList = new ArrayList<>();
-    List<DataType> types = new ArrayList<>();
+      List<String> paths = new ArrayList<>();
+      List<Map<String, String>> tagsList = new ArrayList<>();
+      List<DataType> types = new ArrayList<>();
 
-    Header header = resultStream.getHeader();
+      Header header = resultStream.getHeader();
 
-    if (header.hasKey()) {
+      if (header.hasKey()) {
         paths.add(Field.KEY.getFullName());
         types.add(Field.KEY.getType());
         tagsList.add(new HashMap<>());
-    }
+      }
 
-    resultStream
-        .getHeader()
-        .getFields()
-        .forEach(
-            field -> {
+      resultStream
+          .getHeader()
+          .getFields()
+          .forEach(
+              field -> {
                 paths.add(field.getFullName());
                 types.add(field.getType());
                 if (field.getTags() == null) {
-                tagsList.add(new HashMap<>());
+                  tagsList.add(new HashMap<>());
                 } else {
-                tagsList.add(field.getTags());
+                  tagsList.add(field.getTags());
                 }
-            });
+              });
 
-    List<ByteBuffer> valuesList = new ArrayList<>();
-    List<ByteBuffer> bitmapList = new ArrayList<>();
+      List<ByteBuffer> valuesList = new ArrayList<>();
+      List<ByteBuffer> bitmapList = new ArrayList<>();
 
-    int cnt = 0;
-    boolean hasKey = resultStream.getHeader().hasKey();
-    while (resultStream.hasNext() && cnt < fetchSize) {
+      int cnt = 0;
+      boolean hasKey = resultStream.getHeader().hasKey();
+      while (resultStream.hasNext() && cnt < fetchSize) {
         Row row = resultStream.next();
 
         Object[] rawValues = row.getValues();
         Object[] rowValues = rawValues;
         if (hasKey) {
-        rowValues = new Object[rawValues.length + 1];
-        rowValues[0] = row.getKey();
-        System.arraycopy(rawValues, 0, rowValues, 1, rawValues.length);
+          rowValues = new Object[rawValues.length + 1];
+          rowValues[0] = row.getKey();
+          System.arraycopy(rawValues, 0, rowValues, 1, rawValues.length);
         }
         valuesList.add(ByteUtils.getRowByteBuffer(rowValues, types));
 
         Bitmap bitmap = new Bitmap(rowValues.length);
         for (int i = 0; i < rowValues.length; i++) {
-        if (rowValues[i] != null) {
+          if (rowValues[i] != null) {
             bitmap.mark(i);
-        }
+          }
         }
         bitmapList.add(ByteBuffer.wrap(bitmap.getBytes()));
         cnt++;
-    }
-    resp.setColumns(paths);
-    resp.setTagsList(tagsList);
-    resp.setDataTypeList(types);
-    resp.setQueryDataSet(new QueryDataSetV2(valuesList, bitmapList));
+      }
+      resp.setColumns(paths);
+      resp.setTagsList(tagsList);
+      resp.setDataTypeList(types);
+      resp.setQueryDataSet(new QueryDataSetV2(valuesList, bitmapList));
     } catch (PhysicalException e) {
-    logger.error("unexpected error when load row stream: ", e);
-    resp.setStatus(RpcUtils.FAILURE);
+      logger.error("unexpected error when load row stream: ", e);
+      resp.setStatus(RpcUtils.FAILURE);
     }
     return resp;
-}
+  }
 
-public FetchResultsResp fetch(int fetchSize) {
+  public FetchResultsResp fetch(int fetchSize) {
     FetchResultsResp resp = new FetchResultsResp(status, false);
 
     if (status != RpcUtils.SUCCESS) {
-    return resp;
+      return resp;
     }
     try {
-    List<DataType> types = new ArrayList<>();
+      List<DataType> types = new ArrayList<>();
 
-    Header header = resultStream.getHeader();
+      Header header = resultStream.getHeader();
 
-    if (header.hasKey()) {
+      if (header.hasKey()) {
         types.add(Field.KEY.getType());
-    }
+      }
 
-    resultStream.getHeader().getFields().forEach(field -> types.add(field.getType()));
+      resultStream.getHeader().getFields().forEach(field -> types.add(field.getType()));
 
-    List<ByteBuffer> valuesList = new ArrayList<>();
-    List<ByteBuffer> bitmapList = new ArrayList<>();
+      List<ByteBuffer> valuesList = new ArrayList<>();
+      List<ByteBuffer> bitmapList = new ArrayList<>();
 
-    int cnt = 0;
-    boolean hasKey = resultStream.getHeader().hasKey();
-    while (resultStream.hasNext() && cnt < fetchSize) {
+      int cnt = 0;
+      boolean hasKey = resultStream.getHeader().hasKey();
+      while (resultStream.hasNext() && cnt < fetchSize) {
         Row row = resultStream.next();
 
         Object[] rawValues = row.getValues();
         Object[] rowValues = rawValues;
         if (hasKey) {
-        rowValues = new Object[rawValues.length + 1];
-        rowValues[0] = row.getKey();
-        System.arraycopy(rawValues, 0, rowValues, 1, rawValues.length);
+          rowValues = new Object[rawValues.length + 1];
+          rowValues[0] = row.getKey();
+          System.arraycopy(rawValues, 0, rowValues, 1, rawValues.length);
         }
         valuesList.add(ByteUtils.getRowByteBuffer(rowValues, types));
 
         Bitmap bitmap = new Bitmap(rowValues.length);
         for (int i = 0; i < rowValues.length; i++) {
-        if (rowValues[i] != null) {
+          if (rowValues[i] != null) {
             bitmap.mark(i);
-        }
+          }
         }
         bitmapList.add(ByteBuffer.wrap(bitmap.getBytes()));
         cnt++;
-    }
-    resp.setHasMoreResults(resultStream.hasNext());
-    resp.setQueryDataSet(new QueryDataSetV2(valuesList, bitmapList));
+      }
+      resp.setHasMoreResults(resultStream.hasNext());
+      resp.setQueryDataSet(new QueryDataSetV2(valuesList, bitmapList));
     } catch (PhysicalException e) {
-    logger.error("unexpected error when load row stream: ", e);
-    resp.setStatus(RpcUtils.FAILURE);
+      logger.error("unexpected error when load row stream: ", e);
+      resp.setStatus(RpcUtils.FAILURE);
     }
     return resp;
-}
+  }
 }

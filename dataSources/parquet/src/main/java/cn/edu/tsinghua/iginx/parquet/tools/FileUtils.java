@@ -4,18 +4,18 @@ import java.io.File;
 
 public class FileUtils {
 
-public static boolean deleteFile(File file) {
+  public static boolean deleteFile(File file) {
     if (!file.exists()) {
-    return false;
+      return false;
     }
     if (file.isDirectory()) {
-    File[] files = file.listFiles();
-    if (files != null) {
+      File[] files = file.listFiles();
+      if (files != null) {
         for (File f : files) {
-        deleteFile(f);
+          deleteFile(f);
         }
-    }
+      }
     }
     return file.delete();
-}
+  }
 }

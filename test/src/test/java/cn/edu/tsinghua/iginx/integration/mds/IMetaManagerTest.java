@@ -32,45 +32,45 @@ import org.junit.*;
 
 public class IMetaManagerTest {
 
-private static IMetaManager iMetaManager;
+  private static IMetaManager iMetaManager;
 
-@BeforeClass
-public static void beforeClass() {
+  @BeforeClass
+  public static void beforeClass() {
     if (System.getenv("STORAGE") != null) {
-    switch (System.getenv("STORAGE")) {
+      switch (System.getenv("STORAGE")) {
         case "zookeeper":
-        ConfigDescriptor.getInstance().getConfig().setMetaStorage("zookeeper");
-        ConfigDescriptor.getInstance()
-            .getConfig()
-            .setZookeeperConnectionString(System.getenv("ZOOKEEPER_CONNECTION_STRING"));
-        System.out.println("use zookeeper as meta storage engine");
-        break;
+          ConfigDescriptor.getInstance().getConfig().setMetaStorage("zookeeper");
+          ConfigDescriptor.getInstance()
+              .getConfig()
+              .setZookeeperConnectionString(System.getenv("ZOOKEEPER_CONNECTION_STRING"));
+          System.out.println("use zookeeper as meta storage engine");
+          break;
         case "etcd":
-        ConfigDescriptor.getInstance().getConfig().setMetaStorage("etcd");
-        ConfigDescriptor.getInstance()
-            .getConfig()
-            .setEtcdEndpoints(System.getenv("ETCD_ENDPOINTS"));
-        System.out.println("use etcd as meta storage engine");
-        break;
-    }
+          ConfigDescriptor.getInstance().getConfig().setMetaStorage("etcd");
+          ConfigDescriptor.getInstance()
+              .getConfig()
+              .setEtcdEndpoints(System.getenv("ETCD_ENDPOINTS"));
+          System.out.println("use etcd as meta storage engine");
+          break;
+      }
     }
     ConfigDescriptor.getInstance().getConfig().setStorageEngineList("");
     iMetaManager = DefaultMetaManager.getInstance();
-}
+  }
 
-@AfterClass
-public static void afterClass() {
+  @AfterClass
+  public static void afterClass() {
     iMetaManager = null;
-}
+  }
 
-@Before
-public void setUp() {}
+  @Before
+  public void setUp() {}
 
-@After
-public void tearDown() {}
+  @After
+  public void tearDown() {}
 
-@Test
-public void schemaMappingTest() {
+  @Test
+  public void schemaMappingTest() {
     // add schema1-key1-1
     iMetaManager.addOrUpdateSchemaMappingItem("schema1", "key1", 1);
     // query schema1-key1-1
@@ -87,7 +87,7 @@ public void schemaMappingTest() {
     // query schema2
     Map<String, Integer> queriedSchemaMap2 = iMetaManager.getSchemaMapping("schema2");
     for (String key : queriedSchemaMap2.keySet()) {
-    assertEquals(schemaMap2.get(key), queriedSchemaMap2.get(key));
+      assertEquals(schemaMap2.get(key), queriedSchemaMap2.get(key));
     }
     // add schema2-key3-6
     schemaMap2.put("key3", 6);
@@ -95,12 +95,12 @@ public void schemaMappingTest() {
     // query schema2
     queriedSchemaMap2 = iMetaManager.getSchemaMapping("schema2");
     for (String key : queriedSchemaMap2.keySet()) {
-    assertEquals(schemaMap2.get(key), queriedSchemaMap2.get(key));
+      assertEquals(schemaMap2.get(key), queriedSchemaMap2.get(key));
     }
-}
+  }
 
-@Test
-public void storageEngineTest() {
+  @Test
+  public void storageEngineTest() {
     List<StorageEngineMeta> storageEngines = iMetaManager.getStorageEngineList();
     // 初始情况下没有存储数据后端
     assertEquals(0, storageEngines.size());
@@ -118,10 +118,10 @@ public void storageEngineTest() {
     assertEquals(1, storageEngines.size());
     assertEquals(1001, storageEngines.get(0).getPort());
     assertEquals(iMetaManager.getIginxId(), storageEngines.get(0).getCreatedBy());
-}
+  }
 
-@Test
-public void storageUnitAndFragmentTest() {
+  @Test
+  public void storageUnitAndFragmentTest() {
     // TODO: 测试优先级
-}
+  }
 }

@@ -22,37 +22,37 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 
 public class DataTypeUtils {
 
-public static boolean isNumber(DataType dataType) {
+  public static boolean isNumber(DataType dataType) {
     return dataType == DataType.INTEGER
         || dataType == DataType.LONG
         || dataType == DataType.FLOAT
         || dataType == DataType.DOUBLE;
-}
+  }
 
-public static boolean isFloatingNumber(DataType dataType) {
+  public static boolean isFloatingNumber(DataType dataType) {
     return dataType == DataType.FLOAT || dataType == DataType.DOUBLE;
-}
+  }
 
-public static boolean isWholeNumber(DataType dataType) {
+  public static boolean isWholeNumber(DataType dataType) {
     return dataType == DataType.INTEGER || dataType == DataType.LONG;
-}
+  }
 
-public static DataType strToDataType(String type) {
+  public static DataType strToDataType(String type) {
     switch (type.toLowerCase()) {
-    case "boolean":
+      case "boolean":
         return DataType.BOOLEAN;
-    case "integer":
+      case "integer":
         return DataType.INTEGER;
-    case "long":
+      case "long":
         return DataType.LONG;
-    case "float":
+      case "float":
         return DataType.FLOAT;
-    case "double":
+      case "double":
         return DataType.DOUBLE;
-    case "binary":
+      case "binary":
         return DataType.BINARY;
-    default:
+      default:
         return null;
     }
-}
+  }
 }

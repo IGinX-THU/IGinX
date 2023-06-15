@@ -23,28 +23,28 @@ import java.util.List;
 
 public class IginXTable {
 
-public static final IginXTable EMPTY_TABLE =
-    new IginXTable(IginXHeader.EMPTY_HEADER, Collections.emptyList());
+  public static final IginXTable EMPTY_TABLE =
+      new IginXTable(IginXHeader.EMPTY_HEADER, Collections.emptyList());
 
-private final IginXHeader header;
+  private final IginXHeader header;
 
-private final List<IginXRecord> records;
+  private final List<IginXRecord> records;
 
-public IginXTable(IginXHeader header, List<IginXRecord> records) {
+  public IginXTable(IginXHeader header, List<IginXRecord> records) {
     this.header = header;
     this.records = records;
-}
+  }
 
-public IginXHeader getHeader() {
+  public IginXHeader getHeader() {
     return header;
-}
+  }
 
-public List<IginXRecord> getRecords() {
+  public List<IginXRecord> getRecords() {
     return records;
-}
+  }
 
-@Override
-public String toString() {
+  @Override
+  public String toString() {
     return "IginXTable{" + "header=" + header + ", records=" + records + '}';
-}
+  }
 }

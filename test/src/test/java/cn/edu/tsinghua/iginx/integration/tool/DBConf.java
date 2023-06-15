@@ -5,48 +5,48 @@ import java.util.Map;
 
 public final class DBConf {
 
-public enum DBConfType {
+  public enum DBConfType {
     isAbleToClearData,
     isAbleToDelete,
     isAbleToShowColumns,
     isSupportChinesePath,
     isSupportNumericalPath,
     isSupportSpecialCharacterPath
-}
+  }
 
-private static final Map<DBConfType, Boolean> DB_CONF_TYPE_MAP = new HashMap<>();
+  private static final Map<DBConfType, Boolean> DB_CONF_TYPE_MAP = new HashMap<>();
 
-static {
+  static {
     // initial default value
     for (DBConfType type : DBConfType.values()) {
-    DB_CONF_TYPE_MAP.put(type, true);
+      DB_CONF_TYPE_MAP.put(type, true);
     }
-}
+  }
 
-public static DBConfType getDBConfType(String str) {
+  public static DBConfType getDBConfType(String str) {
     switch (str) {
-    case "isAbleToClearData":
+      case "isAbleToClearData":
         return DBConfType.isAbleToClearData;
-    case "isAbleToDelete":
+      case "isAbleToDelete":
         return DBConfType.isAbleToDelete;
-    case "isAbleToShowColumns":
+      case "isAbleToShowColumns":
         return DBConfType.isAbleToShowColumns;
-    case "isSupportChinesePath":
+      case "isSupportChinesePath":
         return DBConfType.isSupportChinesePath;
-    case "isSupportNumericalPath":
+      case "isSupportNumericalPath":
         return DBConfType.isSupportNumericalPath;
-    case "isSupportSpecialCharacterPath":
+      case "isSupportSpecialCharacterPath":
         return DBConfType.isSupportSpecialCharacterPath;
-    default:
+      default:
         throw new IllegalArgumentException("Invalid DBConfType value provided");
     }
-}
+  }
 
-public void setEnumValue(DBConfType dbConfType, boolean value) {
+  public void setEnumValue(DBConfType dbConfType, boolean value) {
     DB_CONF_TYPE_MAP.put(dbConfType, value);
-}
+  }
 
-public boolean getEnumValue(DBConfType dbConfType) {
+  public boolean getEnumValue(DBConfType dbConfType) {
     return DB_CONF_TYPE_MAP.get(dbConfType);
-}
+  }
 }

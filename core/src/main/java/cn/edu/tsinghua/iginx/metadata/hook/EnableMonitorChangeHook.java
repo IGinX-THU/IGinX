@@ -20,5 +20,5 @@ package cn.edu.tsinghua.iginx.metadata.hook;
 
 public interface EnableMonitorChangeHook {
 
-void onChange(boolean status);
+  void onChange(boolean status);
 }

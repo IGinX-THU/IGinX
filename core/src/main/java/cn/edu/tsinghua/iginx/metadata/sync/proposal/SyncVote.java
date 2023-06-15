@@ -2,20 +2,20 @@ package cn.edu.tsinghua.iginx.metadata.sync.proposal;
 
 public class SyncVote {
 
-private final long voter;
+  private final long voter;
 
-private final byte[] content;
+  private final byte[] content;
 
-public SyncVote(long voter, byte[] content) {
+  public SyncVote(long voter, byte[] content) {
     this.voter = voter;
     this.content = content;
-}
+  }
 
-public long getVoter() {
+  public long getVoter() {
     return voter;
-}
+  }
 
-public byte[] getContent() {
+  public byte[] getContent() {
     return content;
-}
+  }
 }

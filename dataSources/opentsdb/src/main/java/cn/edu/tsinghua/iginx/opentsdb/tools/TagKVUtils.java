@@ -35,14 +35,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class TagKVUtils {
-@SuppressWarnings("unused")
-private static final Logger logger = LoggerFactory.getLogger(TagKVUtils.class);
+  @SuppressWarnings("unused")
+  private static final Logger logger = LoggerFactory.getLogger(TagKVUtils.class);
 
-public static final String tagNameAnnotation = Config.tagNameAnnotation;
+  public static final String tagNameAnnotation = Config.tagNameAnnotation;
 
-public static Pair<String, Map<String, String>> splitFullName(String fullName) {
+  public static Pair<String, Map<String, String>> splitFullName(String fullName) {
     if (!fullName.contains(tagNameAnnotation)) {
-    return new Pair<>(fullName, null);
+      return new Pair<>(fullName, null);
     }
 
     String[] parts = fullName.split(tagNameAnnotation, 2);
@@ -53,80 +53,80 @@ public static Pair<String, Map<String, String>> splitFullName(String fullName) {
         Arrays.stream(parts[1].split("\\."))
             .map(
                 e -> {
-                if (e.startsWith(tagNameAnnotation)) {
+                  if (e.startsWith(tagNameAnnotation)) {
                     return e.substring(tagNameAnnotation.length());
-                } else {
+                  } else {
                     return e;
-                }
+                  }
                 })
             .collect(Collectors.toList());
     assert tagKVList.size() % 2 == 0;
     Map<String, String> tags = new HashMap<>();
     for (int i = 0; i < tagKVList.size(); i++) {
-    if (i % 2 == 0) {
+      if (i % 2 == 0) {
         continue;
-    }
-    String tagKey = tagKVList.get(i - 1);
-    String tagValue = tagKVList.get(i);
-    tags.put(tagKey, tagValue);
+      }
+      String tagKey = tagKVList.get(i - 1);
+      String tagValue = tagKVList.get(i);
+      tags.put(tagKey, tagValue);
     }
 
     return new Pair<>(name, tags);
-}
+  }
 
-public static boolean match(Map<String, String> tags, TagFilter tagFilter) {
+  public static boolean match(Map<String, String> tags, TagFilter tagFilter) {
     if (tags == null || tags.isEmpty()) {
-    return false;
+      return false;
     }
     switch (tagFilter.getType()) {
-    case And:
+      case And:
         return match(tags, (AndTagFilter) tagFilter);
-    case Or:
+      case Or:
         return match(tags, (OrTagFilter) tagFilter);
-    case Base:
+      case Base:
         return match(tags, (BaseTagFilter) tagFilter);
         // TODO: case label
-    case BasePrecise:
+      case BasePrecise:
         break;
-    case Precise:
+      case Precise:
         break;
-    case WithoutTag:
+      case WithoutTag:
         break;
     }
     return false;
-}
+  }
 
-private static boolean match(Map<String, String> tags, AndTagFilter tagFilter) {
+  private static boolean match(Map<String, String> tags, AndTagFilter tagFilter) {
     List<TagFilter> children = tagFilter.getChildren();
     for (TagFilter child : children) {
-    if (!match(tags, child)) {
+      if (!match(tags, child)) {
         return false;
-    }
+      }
     }
     return true;
-}
+  }
 
-private static boolean match(Map<String, String> tags, OrTagFilter tagFilter) {
+  private static boolean match(Map<String, String> tags, OrTagFilter tagFilter) {
     List<TagFilter> children = tagFilter.getChildren();
     for (TagFilter child : children) {
-    if (match(tags, child)) {
+      if (match(tags, child)) {
         return true;
-    }
+      }
     }
     return false;
-}
+  }
 
-private static boolean match(Map<String, String> tags, BaseTagFilter tagFilter) {
+  private static boolean match(Map<String, String> tags, BaseTagFilter tagFilter) {
     String tagKey = tagFilter.getTagKey();
     String expectedValue = tagFilter.getTagValue();
     if (!tags.containsKey(tagKey)) {
-    return false;
+      return false;
     }
     String actualValue = tags.get(tagKey);
     if (!StringUtils.isPattern(expectedValue)) {
-    return expectedValue.equals(actualValue);
+      return expectedValue.equals(actualValue);
     } else {
-    return Pattern.matches(StringUtils.reformatPath(expectedValue), actualValue);
+      return Pattern.matches(StringUtils.reformatPath(expectedValue), actualValue);
     }
-}
+  }
 }

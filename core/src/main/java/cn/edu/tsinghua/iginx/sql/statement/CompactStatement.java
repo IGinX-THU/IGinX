@@ -8,21 +8,21 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class CompactStatement extends SystemStatement {
-private static final Logger logger = LoggerFactory.getLogger(CompactStatement.class);
+  private static final Logger logger = LoggerFactory.getLogger(CompactStatement.class);
 
-public CompactStatement() {
+  public CompactStatement() {
     this.statementType = StatementType.COMPACT;
-}
+  }
 
-@Override
-public void execute(RequestContext ctx) {
+  @Override
+  public void execute(RequestContext ctx) {
     Result result = new Result(RpcUtils.SUCCESS);
     try {
-    CompactionManager.getInstance().clearFragment();
-    ctx.setResult(result);
+      CompactionManager.getInstance().clearFragment();
+      ctx.setResult(result);
     } catch (Exception e) {
-    logger.error("execute compact failed", e);
-    ctx.setResult(new Result(RpcUtils.FAILURE));
+      logger.error("execute compact failed", e);
+      ctx.setResult(new Result(RpcUtils.FAILURE));
     }
-}
+  }
 }

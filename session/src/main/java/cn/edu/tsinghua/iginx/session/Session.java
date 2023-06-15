@@ -49,40 +49,40 @@ import org.slf4j.LoggerFactory;
 
 public class Session {
 
-private static final Logger logger = LoggerFactory.getLogger(Session.class);
+  private static final Logger logger = LoggerFactory.getLogger(Session.class);
 
-private static final int MAX_REDIRECT_TIME = 3;
+  private static final int MAX_REDIRECT_TIME = 3;
 
-private static final String USERNAME = "root";
+  private static final String USERNAME = "root";
 
-private static final String PASSWORD = "root";
+  private static final String PASSWORD = "root";
 
-private final String username;
-private final String password;
-private final ReadWriteLock lock;
-private String host;
-private int port;
-private IService.Iface client;
-private long sessionId;
-private TTransport transport;
-private boolean isClosed;
-private int redirectTimes;
+  private final String username;
+  private final String password;
+  private final ReadWriteLock lock;
+  private String host;
+  private int port;
+  private IService.Iface client;
+  private long sessionId;
+  private TTransport transport;
+  private boolean isClosed;
+  private int redirectTimes;
 
-private static final TimePrecision timeUnit = TimePrecision.NS;
+  private static final TimePrecision timeUnit = TimePrecision.NS;
 
-public Session(String host, int port) {
+  public Session(String host, int port) {
     this(host, port, USERNAME, PASSWORD);
-}
+  }
 
-public Session(String host, String port) {
+  public Session(String host, String port) {
     this(host, port, USERNAME, PASSWORD);
-}
+  }
 
-public Session(String host, String port, String username, String password) {
+  public Session(String host, String port, String username, String password) {
     this(host, Integer.parseInt(port), username, password);
-}
+  }
 
-public Session(String host, int port, String username, String password) {
+  public Session(String host, int port, String username, String password) {
     this.host = host;
     this.port = port;
     this.username = username;
@@ -90,33 +90,33 @@ public Session(String host, int port, String username, String password) {
     this.isClosed = true;
     this.redirectTimes = 0;
     this.lock = new ReentrantReadWriteLock();
-}
+  }
 
-public boolean isClosed() {
+  public boolean isClosed() {
     return isClosed;
-}
+  }
 
-private synchronized boolean checkRedirect(Status status) throws SessionException, TException {
+  private synchronized boolean checkRedirect(Status status) throws SessionException, TException {
     if (RpcUtils.verifyNoRedirect(status)) {
-    redirectTimes = 0;
-    return false;
+      redirectTimes = 0;
+      return false;
     }
 
     redirectTimes += 1;
     if (redirectTimes > MAX_REDIRECT_TIME) {
-    throw new SessionException("重定向次数过多！");
+      throw new SessionException("重定向次数过多！");
     }
 
     lock.writeLock().lock();
 
     try {
-    tryCloseSession();
+      tryCloseSession();
 
-    while (redirectTimes <= MAX_REDIRECT_TIME) {
+      while (redirectTimes <= MAX_REDIRECT_TIME) {
 
         String[] targetAddress = status.getMessage().split(":");
         if (targetAddress.length != 2) {
-        throw new SessionException("unexpected redirect address " + status.getMessage());
+          throw new SessionException("unexpected redirect address " + status.getMessage());
         }
         logger.info("当前请求将被重定向到：" + status.getMessage());
         this.host = targetAddress[0];
@@ -125,33 +125,33 @@ private synchronized boolean checkRedirect(Status status) throws SessionExceptio
         OpenSessionResp resp = tryOpenSession();
 
         if (RpcUtils.verifyNoRedirect(resp.status)) {
-        sessionId = resp.getSessionId();
-        break;
+          sessionId = resp.getSessionId();
+          break;
         }
 
         status = resp.status;
 
         redirectTimes += 1;
-    }
+      }
 
-    if (redirectTimes > MAX_REDIRECT_TIME) {
+      if (redirectTimes > MAX_REDIRECT_TIME) {
         throw new SessionException("重定向次数过多！");
-    }
+      }
     } finally {
-    lock.writeLock().unlock();
+      lock.writeLock().unlock();
     }
 
     return true;
-}
+  }
 
-private OpenSessionResp tryOpenSession() throws SessionException, TException {
+  private OpenSessionResp tryOpenSession() throws SessionException, TException {
     transport = new TSocket(host, port);
     if (!transport.isOpen()) {
-    try {
+      try {
         transport.open();
-    } catch (TTransportException e) {
+      } catch (TTransportException e) {
         throw new SessionException(e);
-    }
+      }
     }
 
     client = new IService.Client(new TBinaryProtocol(transport));
@@ -161,40 +161,40 @@ private OpenSessionResp tryOpenSession() throws SessionException, TException {
     req.setPassword(password);
 
     return client.openSession(req);
-}
+  }
 
-private void tryCloseSession() throws SessionException {
+  private void tryCloseSession() throws SessionException {
     CloseSessionReq req = new CloseSessionReq(sessionId);
     try {
-    client.closeSession(req);
+      client.closeSession(req);
     } catch (TException e) {
-    throw new SessionException(e);
+      throw new SessionException(e);
     } finally {
-    if (transport != null) {
+      if (transport != null) {
         transport.close();
+      }
     }
-    }
-}
+  }
 
-public synchronized void openSession() throws SessionException {
+  public synchronized void openSession() throws SessionException {
     if (!isClosed) {
-    return;
+      return;
     }
 
     try {
-    do {
+      do {
         OpenSessionResp resp = tryOpenSession();
 
         if (RpcUtils.verifyNoRedirect(resp.status)) {
-        sessionId = resp.getSessionId();
-        break;
+          sessionId = resp.getSessionId();
+          break;
         }
 
         transport.close();
 
         String[] targetAddress = resp.status.getMessage().split(":");
         if (targetAddress.length != 2) {
-        throw new SessionException("unexpected redirect address " + resp.status.getMessage());
+          throw new SessionException("unexpected redirect address " + resp.status.getMessage());
         }
         logger.info("当前请求将被重定向到：" + resp.status.getMessage());
 
@@ -202,156 +202,156 @@ public synchronized void openSession() throws SessionException {
         this.port = Integer.parseInt(targetAddress[1]);
         redirectTimes += 1;
 
-    } while (redirectTimes <= MAX_REDIRECT_TIME);
+      } while (redirectTimes <= MAX_REDIRECT_TIME);
 
-    if (redirectTimes > MAX_REDIRECT_TIME) {
+      if (redirectTimes > MAX_REDIRECT_TIME) {
         throw new SessionException("重定向次数过多！");
-    }
-    redirectTimes = 0;
+      }
+      redirectTimes = 0;
 
     } catch (TException e) {
-    transport.close();
-    throw new SessionException(e);
+      transport.close();
+      throw new SessionException(e);
     }
 
     isClosed = false;
-}
+  }
 
-public synchronized void closeSession() throws SessionException {
+  public synchronized void closeSession() throws SessionException {
     if (isClosed) {
-    return;
+      return;
     }
     try {
-    tryCloseSession();
+      tryCloseSession();
     } finally {
-    isClosed = true;
+      isClosed = true;
     }
-}
+  }
 
-private class Reference<V> {
+  private class Reference<V> {
     public V resp;
 
     public Reference() {
-    resp = null;
+      resp = null;
     }
-}
+  }
 
-@FunctionalInterface
-public interface SessionExecution {
+  @FunctionalInterface
+  public interface SessionExecution {
     Status exec() throws TException;
-}
+  }
 
-private void executeWithCheck(SessionExecution proc) throws SessionException, ExecutionException {
+  private void executeWithCheck(SessionExecution proc) throws SessionException, ExecutionException {
     try {
-    Status status;
-    do {
+      Status status;
+      do {
         lock.writeLock().lock();
         try {
-        status = proc.exec();
+          status = proc.exec();
         } finally {
-        lock.writeLock().unlock();
+          lock.writeLock().unlock();
         }
-    } while (checkRedirect(status));
-    RpcUtils.verifySuccess(status);
+      } while (checkRedirect(status));
+      RpcUtils.verifySuccess(status);
     } catch (TException e) {
-    throw new SessionException(e);
+      throw new SessionException(e);
     }
-}
+  }
 
-public void addStorageEngine(String ip, int port, String type, Map<String, String> extraParams)
-    throws SessionException, ExecutionException {
+  public void addStorageEngine(String ip, int port, String type, Map<String, String> extraParams)
+      throws SessionException, ExecutionException {
     StorageEngine storageEngine = new StorageEngine(ip, port, type, extraParams);
     addStorageEngines(Collections.singletonList(storageEngine));
-}
+  }
 
-public void addStorageEngines(List<StorageEngine> storageEngines)
-    throws SessionException, ExecutionException {
+  public void addStorageEngines(List<StorageEngine> storageEngines)
+      throws SessionException, ExecutionException {
     AddStorageEnginesReq req = new AddStorageEnginesReq(sessionId, storageEngines);
     executeWithCheck(() -> client.addStorageEngines(req));
-}
+  }
 
-public List<Column> showColumns() throws SessionException, ExecutionException {
+  public List<Column> showColumns() throws SessionException, ExecutionException {
     ShowColumnsReq req = new ShowColumnsReq(sessionId);
     Reference<ShowColumnsResp> ref = new Reference<>();
     executeWithCheck(() -> (ref.resp = client.showColumns(req)).status);
     List<Column> columns = new ArrayList<>();
     for (int i = 0; i < ref.resp.paths.size(); i++) {
-    columns.add(new Column(ref.resp.paths.get(i), ref.resp.dataTypeList.get(i)));
+      columns.add(new Column(ref.resp.paths.get(i), ref.resp.dataTypeList.get(i)));
     }
     return columns;
-}
+  }
 
-public void deleteColumn(String path) throws SessionException, ExecutionException {
+  public void deleteColumn(String path) throws SessionException, ExecutionException {
     List<String> paths = new ArrayList<>();
     paths.add(path);
     deleteColumns(paths);
-}
+  }
 
-public void deleteColumns(List<String> paths) throws SessionException, ExecutionException {
+  public void deleteColumns(List<String> paths) throws SessionException, ExecutionException {
     DeleteColumnsReq req = new DeleteColumnsReq(sessionId, mergeAndSortPaths(paths));
     executeWithCheck(() -> client.deleteColumns(req));
-}
+  }
 
-public void insertColumnRecords(
-    List<String> paths, long[] timestamps, Object[] valuesList, List<DataType> dataTypeList)
-    throws SessionException, ExecutionException {
+  public void insertColumnRecords(
+      List<String> paths, long[] timestamps, Object[] valuesList, List<DataType> dataTypeList)
+      throws SessionException, ExecutionException {
     insertColumnRecords(paths, timestamps, valuesList, dataTypeList, null, timeUnit);
-}
+  }
 
-public void insertColumnRecords(
-    List<String> paths,
-    long[] timestamps,
-    Object[] valuesList,
-    List<DataType> dataTypeList,
-    List<Map<String, String>> tagsList)
-    throws SessionException, ExecutionException {
+  public void insertColumnRecords(
+      List<String> paths,
+      long[] timestamps,
+      Object[] valuesList,
+      List<DataType> dataTypeList,
+      List<Map<String, String>> tagsList)
+      throws SessionException, ExecutionException {
     insertColumnRecords(paths, timestamps, valuesList, dataTypeList, tagsList, timeUnit);
-}
+  }
 
-public void insertColumnRecords(
-    List<String> paths,
-    long[] timestamps,
-    Object[] valuesList,
-    List<DataType> dataTypeList,
-    List<Map<String, String>> tagsList,
-    TimePrecision precision)
-    throws SessionException, ExecutionException {
+  public void insertColumnRecords(
+      List<String> paths,
+      long[] timestamps,
+      Object[] valuesList,
+      List<DataType> dataTypeList,
+      List<Map<String, String>> tagsList,
+      TimePrecision precision)
+      throws SessionException, ExecutionException {
     if (paths.isEmpty()
         || timestamps.length == 0
         || valuesList.length == 0
         || dataTypeList.isEmpty()) {
-    logger.error("Invalid insert request!");
-    return;
+      logger.error("Invalid insert request!");
+      return;
     }
     if (paths.size() != valuesList.length || paths.size() != dataTypeList.size()) {
-    logger.error("The sizes of paths, valuesList and dataTypeList should be equal.");
-    return;
+      logger.error("The sizes of paths, valuesList and dataTypeList should be equal.");
+      return;
     }
     if (tagsList != null && paths.size() != tagsList.size()) {
-    logger.error("The sizes of paths, valuesList, dataTypeList and tagsList should be equal.");
-    return;
+      logger.error("The sizes of paths, valuesList, dataTypeList and tagsList should be equal.");
+      return;
     }
 
     long[] sortedTimestamps = Arrays.copyOf(timestamps, timestamps.length);
     Integer[] index = new Integer[sortedTimestamps.length];
     for (int i = 0; i < sortedTimestamps.length; i++) {
-    index[i] = i;
+      index[i] = i;
     }
     Arrays.sort(
         index, Comparator.comparingLong(Arrays.asList(ArrayUtils.toObject(sortedTimestamps))::get));
     Arrays.sort(sortedTimestamps);
     for (int i = 0; i < valuesList.length; i++) {
-    Object[] values = new Object[index.length];
-    for (int j = 0; j < index.length; j++) {
+      Object[] values = new Object[index.length];
+      for (int j = 0; j < index.length; j++) {
         values[j] = ((Object[]) valuesList[i])[index[j]];
-    }
-    valuesList[i] = values;
+      }
+      valuesList[i] = values;
     }
 
     List<String> sortedPaths = new ArrayList<>(paths);
     index = new Integer[sortedPaths.size()];
     for (int i = 0; i < sortedPaths.size(); i++) {
-    index[i] = i;
+      index[i] = i;
     }
     Arrays.sort(index, Comparator.comparing(sortedPaths::get));
     Collections.sort(sortedPaths);
@@ -359,31 +359,31 @@ public void insertColumnRecords(
     List<DataType> sortedDataTypeList = new ArrayList<>();
     List<Map<String, String>> sortedTagsList = new ArrayList<>();
     for (int i = 0; i < valuesList.length; i++) {
-    sortedValuesList[i] = valuesList[index[i]];
-    sortedDataTypeList.add(dataTypeList.get(index[i]));
+      sortedValuesList[i] = valuesList[index[i]];
+      sortedDataTypeList.add(dataTypeList.get(index[i]));
     }
     if (tagsList != null) {
-    for (Integer i : index) {
+      for (Integer i : index) {
         sortedTagsList.add(tagsList.get(i));
-    }
+      }
     }
 
     List<ByteBuffer> valueBufferList = new ArrayList<>();
     List<ByteBuffer> bitmapBufferList = new ArrayList<>();
     for (int i = 0; i < sortedValuesList.length; i++) {
-    Object[] values = (Object[]) sortedValuesList[i];
-    if (values.length != sortedTimestamps.length) {
+      Object[] values = (Object[]) sortedValuesList[i];
+      if (values.length != sortedTimestamps.length) {
         logger.error("The sizes of timestamps and the element of valuesList should be equal.");
         return;
-    }
-    valueBufferList.add(ByteUtils.getColumnByteBuffer(values, sortedDataTypeList.get(i)));
-    Bitmap bitmap = new Bitmap(sortedTimestamps.length);
-    for (int j = 0; j < sortedTimestamps.length; j++) {
+      }
+      valueBufferList.add(ByteUtils.getColumnByteBuffer(values, sortedDataTypeList.get(i)));
+      Bitmap bitmap = new Bitmap(sortedTimestamps.length);
+      for (int j = 0; j < sortedTimestamps.length; j++) {
         if (values[j] != null) {
-        bitmap.mark(j);
+          bitmap.mark(j);
         }
-    }
-    bitmapBufferList.add(ByteBuffer.wrap(bitmap.getBytes()));
+      }
+      bitmapBufferList.add(ByteBuffer.wrap(bitmap.getBytes()));
     }
 
     InsertColumnRecordsReq req = new InsertColumnRecordsReq();
@@ -397,68 +397,68 @@ public void insertColumnRecords(
     req.setTimePrecision(precision);
 
     executeWithCheck(() -> client.insertColumnRecords(req));
-}
+  }
 
-public void insertNonAlignedColumnRecords(
-    List<String> paths, long[] timestamps, Object[] valuesList, List<DataType> dataTypeList)
-    throws SessionException, ExecutionException {
+  public void insertNonAlignedColumnRecords(
+      List<String> paths, long[] timestamps, Object[] valuesList, List<DataType> dataTypeList)
+      throws SessionException, ExecutionException {
     insertNonAlignedColumnRecords(paths, timestamps, valuesList, dataTypeList, null, timeUnit);
-}
+  }
 
-public void insertNonAlignedColumnRecords(
-    List<String> paths,
-    long[] timestamps,
-    Object[] valuesList,
-    List<DataType> dataTypeList,
-    List<Map<String, String>> tagsList)
-    throws SessionException, ExecutionException {
+  public void insertNonAlignedColumnRecords(
+      List<String> paths,
+      long[] timestamps,
+      Object[] valuesList,
+      List<DataType> dataTypeList,
+      List<Map<String, String>> tagsList)
+      throws SessionException, ExecutionException {
     insertNonAlignedColumnRecords(paths, timestamps, valuesList, dataTypeList, tagsList, timeUnit);
-}
+  }
 
-public void insertNonAlignedColumnRecords(
-    List<String> paths,
-    long[] timestamps,
-    Object[] valuesList,
-    List<DataType> dataTypeList,
-    List<Map<String, String>> tagsList,
-    TimePrecision precision)
-    throws SessionException, ExecutionException {
+  public void insertNonAlignedColumnRecords(
+      List<String> paths,
+      long[] timestamps,
+      Object[] valuesList,
+      List<DataType> dataTypeList,
+      List<Map<String, String>> tagsList,
+      TimePrecision precision)
+      throws SessionException, ExecutionException {
     if (paths.isEmpty()
         || timestamps.length == 0
         || valuesList.length == 0
         || dataTypeList.isEmpty()) {
-    logger.error("Invalid insert request!");
-    return;
+      logger.error("Invalid insert request!");
+      return;
     }
     if (paths.size() != valuesList.length || paths.size() != dataTypeList.size()) {
-    logger.error("The sizes of paths, valuesList and dataTypeList should be equal.");
-    return;
+      logger.error("The sizes of paths, valuesList and dataTypeList should be equal.");
+      return;
     }
     if (tagsList != null && paths.size() != tagsList.size()) {
-    logger.error("The sizes of paths, valuesList, dataTypeList and tagsList should be equal.");
-    return;
+      logger.error("The sizes of paths, valuesList, dataTypeList and tagsList should be equal.");
+      return;
     }
 
     long[] sortedTimestamps = Arrays.copyOf(timestamps, timestamps.length);
     Integer[] index = new Integer[sortedTimestamps.length];
     for (int i = 0; i < sortedTimestamps.length; i++) {
-    index[i] = i;
+      index[i] = i;
     }
     Arrays.sort(
         index, Comparator.comparingLong(Arrays.asList(ArrayUtils.toObject(sortedTimestamps))::get));
     Arrays.sort(sortedTimestamps);
     for (int i = 0; i < valuesList.length; i++) {
-    Object[] values = new Object[index.length];
-    for (int j = 0; j < index.length; j++) {
+      Object[] values = new Object[index.length];
+      for (int j = 0; j < index.length; j++) {
         values[j] = ((Object[]) valuesList[i])[index[j]];
-    }
-    valuesList[i] = values;
+      }
+      valuesList[i] = values;
     }
 
     List<String> sortedPaths = new ArrayList<>(paths);
     index = new Integer[sortedPaths.size()];
     for (int i = 0; i < sortedPaths.size(); i++) {
-    index[i] = i;
+      index[i] = i;
     }
     Arrays.sort(index, Comparator.comparing(sortedPaths::get));
     Collections.sort(sortedPaths);
@@ -466,31 +466,31 @@ public void insertNonAlignedColumnRecords(
     List<DataType> sortedDataTypeList = new ArrayList<>();
     List<Map<String, String>> sortedTagsList = new ArrayList<>();
     for (int i = 0; i < valuesList.length; i++) {
-    sortedValuesList[i] = valuesList[index[i]];
-    sortedDataTypeList.add(dataTypeList.get(index[i]));
+      sortedValuesList[i] = valuesList[index[i]];
+      sortedDataTypeList.add(dataTypeList.get(index[i]));
     }
     if (tagsList != null) {
-    for (Integer i : index) {
+      for (Integer i : index) {
         sortedTagsList.add(tagsList.get(i));
-    }
+      }
     }
 
     List<ByteBuffer> valueBufferList = new ArrayList<>();
     List<ByteBuffer> bitmapBufferList = new ArrayList<>();
     for (int i = 0; i < sortedValuesList.length; i++) {
-    Object[] values = (Object[]) sortedValuesList[i];
-    if (values.length != sortedTimestamps.length) {
+      Object[] values = (Object[]) sortedValuesList[i];
+      if (values.length != sortedTimestamps.length) {
         logger.error("The sizes of timestamps and the element of valuesList should be equal.");
         return;
-    }
-    valueBufferList.add(ByteUtils.getColumnByteBuffer(values, sortedDataTypeList.get(i)));
-    Bitmap bitmap = new Bitmap(sortedTimestamps.length);
-    for (int j = 0; j < sortedTimestamps.length; j++) {
+      }
+      valueBufferList.add(ByteUtils.getColumnByteBuffer(values, sortedDataTypeList.get(i)));
+      Bitmap bitmap = new Bitmap(sortedTimestamps.length);
+      for (int j = 0; j < sortedTimestamps.length; j++) {
         if (values[j] != null) {
-        bitmap.mark(j);
+          bitmap.mark(j);
         }
-    }
-    bitmapBufferList.add(ByteBuffer.wrap(bitmap.getBytes()));
+      }
+      bitmapBufferList.add(ByteBuffer.wrap(bitmap.getBytes()));
     }
 
     InsertNonAlignedColumnRecordsReq req = new InsertNonAlignedColumnRecordsReq();
@@ -504,100 +504,100 @@ public void insertNonAlignedColumnRecords(
     req.setTimePrecision(precision);
 
     executeWithCheck(() -> client.insertNonAlignedColumnRecords(req));
-}
+  }
 
-public void insertRowRecords(
-    List<String> paths,
-    long[] timestamps,
-    Object[] valuesList,
-    List<DataType> dataTypeList,
-    List<Map<String, String>> tagsList)
-    throws SessionException, ExecutionException {
+  public void insertRowRecords(
+      List<String> paths,
+      long[] timestamps,
+      Object[] valuesList,
+      List<DataType> dataTypeList,
+      List<Map<String, String>> tagsList)
+      throws SessionException, ExecutionException {
     insertRowRecords(paths, timestamps, valuesList, dataTypeList, tagsList, timeUnit);
-}
+  }
 
-public void insertRowRecords(
-    List<String> paths,
-    long[] timestamps,
-    Object[] valuesList,
-    List<DataType> dataTypeList,
-    List<Map<String, String>> tagsList,
-    TimePrecision precision)
-    throws SessionException, ExecutionException {
+  public void insertRowRecords(
+      List<String> paths,
+      long[] timestamps,
+      Object[] valuesList,
+      List<DataType> dataTypeList,
+      List<Map<String, String>> tagsList,
+      TimePrecision precision)
+      throws SessionException, ExecutionException {
     if (paths.isEmpty()
         || timestamps.length == 0
         || valuesList.length == 0
         || dataTypeList.isEmpty()) {
-    logger.error("Invalid insert request!");
-    return;
+      logger.error("Invalid insert request!");
+      return;
     }
     if (paths.size() != dataTypeList.size()) {
-    logger.error("The sizes of paths and dataTypeList should be equal.");
-    return;
+      logger.error("The sizes of paths and dataTypeList should be equal.");
+      return;
     }
     if (timestamps.length != valuesList.length) {
-    logger.error("The sizes of timestamps and valuesList should be equal.");
-    return;
+      logger.error("The sizes of timestamps and valuesList should be equal.");
+      return;
     }
     if (tagsList != null && paths.size() != tagsList.size()) {
-    logger.error("The sizes of paths, valuesList, dataTypeList and tagsList should be equal.");
-    return;
+      logger.error("The sizes of paths, valuesList, dataTypeList and tagsList should be equal.");
+      return;
     }
 
     long[] sortedTimestamps = Arrays.copyOf(timestamps, timestamps.length);
     Integer[] index = new Integer[sortedTimestamps.length];
     for (int i = 0; i < sortedTimestamps.length; i++) {
-    index[i] = i;
+      index[i] = i;
     }
     Arrays.sort(
         index, Comparator.comparingLong(Arrays.asList(ArrayUtils.toObject(sortedTimestamps))::get));
     Arrays.sort(sortedTimestamps);
     Object[] sortedValuesList = new Object[valuesList.length];
     for (int i = 0; i < valuesList.length; i++) {
-    sortedValuesList[i] = valuesList[index[i]];
+      sortedValuesList[i] = valuesList[index[i]];
     }
 
     List<String> sortedPaths = new ArrayList<>(paths);
     index = new Integer[sortedPaths.size()];
     for (int i = 0; i < sortedPaths.size(); i++) {
-    index[i] = i;
+      index[i] = i;
     }
     Arrays.sort(index, Comparator.comparing(sortedPaths::get));
     Collections.sort(sortedPaths);
     List<DataType> sortedDataTypeList = new ArrayList<>();
     List<Map<String, String>> sortedTagsList = new ArrayList<>();
     for (int i = 0; i < sortedValuesList.length; i++) {
-    Object[] values = new Object[index.length];
-    for (int j = 0; j < index.length; j++) {
+      Object[] values = new Object[index.length];
+      for (int j = 0; j < index.length; j++) {
         values[j] = ((Object[]) sortedValuesList[i])[index[j]];
-    }
-    sortedValuesList[i] = values;
+      }
+      sortedValuesList[i] = values;
     }
     for (Integer i : index) {
-    sortedDataTypeList.add(dataTypeList.get(i));
+      sortedDataTypeList.add(dataTypeList.get(i));
     }
     if (tagsList != null) {
-    for (Integer i : index) {
+      for (Integer i : index) {
         sortedTagsList.add(tagsList.get(i));
-    }
+      }
     }
 
     List<ByteBuffer> valueBufferList = new ArrayList<>();
     List<ByteBuffer> bitmapBufferList = new ArrayList<>();
     for (int i = 0; i < sortedTimestamps.length; i++) {
-    Object[] values = (Object[]) sortedValuesList[i];
-    if (values.length != sortedPaths.size()) {
+      Object[] values = (Object[]) sortedValuesList[i];
+      if (values.length != sortedPaths.size()) {
         logger.error("The sizes of paths and the element of valuesList should be equal.");
         return;
-    }
-    valueBufferList.add(ByteUtils.getRowByteBuffer(values, sortedDataTypeList));
-    Bitmap bitmap = new Bitmap(values.length);
-    for (int j = 0; j < values.length; j++) {
+      }
+      valueBufferList.add(ByteUtils.getRowByteBuffer(values, sortedDataTypeList));
+      Bitmap bitmap = new Bitmap(values.length);
+      for (int j = 0; j < values.length; j++) {
         if (values[j] != null) {
-        bitmap.mark(j);
+          bitmap.mark(j);
         }
-    }
-    bitmapBufferList.add(ByteBuffer.wrap(bitmap.getBytes()));
+      }
+      bitmapBufferList.add(ByteBuffer.wrap(bitmap.getBytes()));
     }
 
     InsertRowRecordsReq req = new InsertRowRecordsReq();
@@ -611,106 +611,106 @@ public void insertRowRecords(
     req.setTimePrecision(precision);
 
     executeWithCheck(() -> client.insertRowRecords(req));
-}
+  }
 
-public void insertNonAlignedRowRecords(
-    List<String> paths, long[] timestamps, Object[] valuesList, List<DataType> dataTypeList)
-    throws SessionException, ExecutionException {
+  public void insertNonAlignedRowRecords(
+      List<String> paths, long[] timestamps, Object[] valuesList, List<DataType> dataTypeList)
+      throws SessionException, ExecutionException {
     insertNonAlignedRowRecords(paths, timestamps, valuesList, dataTypeList, null, timeUnit);
-}
+  }
 
-public void insertNonAlignedRowRecords(
-    List<String> paths,
-    long[] timestamps,
-    Object[] valuesList,
-    List<DataType> dataTypeList,
-    List<Map<String, String>> tagsList)
-    throws SessionException, ExecutionException {
+  public void insertNonAlignedRowRecords(
+      List<String> paths,
+      long[] timestamps,
+      Object[] valuesList,
+      List<DataType> dataTypeList,
+      List<Map<String, String>> tagsList)
+      throws SessionException, ExecutionException {
     insertNonAlignedRowRecords(paths, timestamps, valuesList, dataTypeList, tagsList, timeUnit);
-}
+  }
 
-public void insertNonAlignedRowRecords(
-    List<String> paths,
-    long[] timestamps,
-    Object[] valuesList,
-    List<DataType> dataTypeList,
-    List<Map<String, String>> tagsList,
-    TimePrecision precision)
-    throws SessionException, ExecutionException {
+  public void insertNonAlignedRowRecords(
+      List<String> paths,
+      long[] timestamps,
+      Object[] valuesList,
+      List<DataType> dataTypeList,
+      List<Map<String, String>> tagsList,
+      TimePrecision precision)
+      throws SessionException, ExecutionException {
     if (paths.isEmpty()
         || timestamps.length == 0
         || valuesList.length == 0
         || dataTypeList.isEmpty()) {
-    logger.error("Invalid insert request!");
-    return;
+      logger.error("Invalid insert request!");
+      return;
     }
     if (paths.size() != dataTypeList.size()) {
-    logger.error("The sizes of paths and dataTypeList should be equal.");
-    return;
+      logger.error("The sizes of paths and dataTypeList should be equal.");
+      return;
     }
     if (timestamps.length != valuesList.length) {
-    logger.error("The sizes of timestamps and valuesList should be equal.");
-    return;
+      logger.error("The sizes of timestamps and valuesList should be equal.");
+      return;
     }
     if (tagsList != null && paths.size() != tagsList.size()) {
-    logger.error("The sizes of paths, valuesList, dataTypeList and tagsList should be equal.");
-    return;
+      logger.error("The sizes of paths, valuesList, dataTypeList and tagsList should be equal.");
+      return;
     }
 
     long[] sortedTimestamps = Arrays.copyOf(timestamps, timestamps.length);
     Integer[] index = new Integer[sortedTimestamps.length];
     for (int i = 0; i < sortedTimestamps.length; i++) {
-    index[i] = i;
+      index[i] = i;
     }
     Arrays.sort(
         index, Comparator.comparingLong(Arrays.asList(ArrayUtils.toObject(sortedTimestamps))::get));
     Arrays.sort(sortedTimestamps);
     Object[] sortedValuesList = new Object[valuesList.length];
     for (int i = 0; i < valuesList.length; i++) {
-    sortedValuesList[i] = valuesList[index[i]];
+      sortedValuesList[i] = valuesList[index[i]];
     }
 
     List<String> sortedPaths = new ArrayList<>(paths);
     index = new Integer[sortedPaths.size()];
     for (int i = 0; i < sortedPaths.size(); i++) {
-    index[i] = i;
+      index[i] = i;
     }
     Arrays.sort(index, Comparator.comparing(sortedPaths::get));
     Collections.sort(sortedPaths);
     List<DataType> sortedDataTypeList = new ArrayList<>();
     List<Map<String, String>> sortedTagsList = new ArrayList<>();
     for (int i = 0; i < sortedValuesList.length; i++) {
-    Object[] values = new Object[index.length];
-    for (int j = 0; j < index.length; j++) {
+      Object[] values = new Object[index.length];
+      for (int j = 0; j < index.length; j++) {
         values[j] = ((Object[]) sortedValuesList[i])[index[j]];
-    }
-    sortedValuesList[i] = values;
+      }
+      sortedValuesList[i] = values;
     }
     for (Integer i : index) {
-    sortedDataTypeList.add(dataTypeList.get(i));
+      sortedDataTypeList.add(dataTypeList.get(i));
     }
     if (tagsList != null) {
-    for (Integer i : index) {
+      for (Integer i : index) {
         sortedTagsList.add(tagsList.get(i));
-    }
+      }
     }
 
     List<ByteBuffer> valueBufferList = new ArrayList<>();
     List<ByteBuffer> bitmapBufferList = new ArrayList<>();
     for (int i = 0; i < sortedTimestamps.length; i++) {
-    Object[] values = (Object[]) sortedValuesList[i];
-    if (values.length != sortedPaths.size()) {
+      Object[] values = (Object[]) sortedValuesList[i];
+      if (values.length != sortedPaths.size()) {
         logger.error("The sizes of paths and the element of valuesList should be equal.");
         return;
-    }
-    valueBufferList.add(ByteUtils.getRowByteBuffer(values, sortedDataTypeList));
-    Bitmap bitmap = new Bitmap(values.length);
-    for (int j = 0; j < values.length; j++) {
+      }
+      valueBufferList.add(ByteUtils.getRowByteBuffer(values, sortedDataTypeList));
+      Bitmap bitmap = new Bitmap(values.length);
+      for (int j = 0; j < values.length; j++) {
         if (values[j] != null) {
-        bitmap.mark(j);
+          bitmap.mark(j);
         }
-    }
-    bitmapBufferList.add(ByteBuffer.wrap(bitmap.getBytes()));
+      }
+      bitmapBufferList.add(ByteBuffer.wrap(bitmap.getBytes()));
     }
 
     InsertNonAlignedRowRecordsReq req = new InsertNonAlignedRowRecordsReq();
@@ -724,58 +724,58 @@ public void insertNonAlignedRowRecords(
     req.setTimePrecision(precision);
 
     executeWithCheck(() -> client.insertNonAlignedRowRecords(req));
-}
+  }
 
-public void deleteDataInColumn(String path, long startKey, long endKey)
-    throws SessionException, ExecutionException {
+  public void deleteDataInColumn(String path, long startKey, long endKey)
+      throws SessionException, ExecutionException {
     List<String> paths = Collections.singletonList(path);
     deleteDataInColumns(paths, startKey, endKey);
-}
+  }
 
-public void deleteDataInColumns(List<String> paths, long startKey, long endKey)
-    throws SessionException, ExecutionException {
+  public void deleteDataInColumns(List<String> paths, long startKey, long endKey)
+      throws SessionException, ExecutionException {
     deleteDataInColumns(paths, startKey, endKey, null);
-}
+  }
 
-public void deleteDataInColumns(
-    List<String> paths, long startKey, long endKey, Map<String, List<String>> tagsList)
-    throws SessionException, ExecutionException {
+  public void deleteDataInColumns(
+      List<String> paths, long startKey, long endKey, Map<String, List<String>> tagsList)
+      throws SessionException, ExecutionException {
     DeleteDataInColumnsReq req =
         new DeleteDataInColumnsReq(sessionId, mergeAndSortPaths(paths), startKey, endKey);
 
     if (tagsList != null && !tagsList.isEmpty()) {
-    req.setTagsList(tagsList);
+      req.setTagsList(tagsList);
     }
 
     executeWithCheck(() -> client.deleteDataInColumns(req));
-}
+  }
 
-public SessionQueryDataSet queryData(List<String> paths, long startKey, long endKey)
-    throws SessionException, ExecutionException {
+  public SessionQueryDataSet queryData(List<String> paths, long startKey, long endKey)
+      throws SessionException, ExecutionException {
     return queryData(paths, startKey, endKey, null, timeUnit);
-}
+  }
 
-public SessionQueryDataSet queryData(
-    List<String> paths, long startKey, long endKey, Map<String, List<String>> tagsList)
-    throws SessionException, ExecutionException {
+  public SessionQueryDataSet queryData(
+      List<String> paths, long startKey, long endKey, Map<String, List<String>> tagsList)
+      throws SessionException, ExecutionException {
     return queryData(paths, startKey, endKey, tagsList, timeUnit);
-}
+  }
 
-public SessionQueryDataSet queryData(
-    List<String> paths,
-    long startKey,
-    long endKey,
-    Map<String, List<String>> tagsList,
-    TimePrecision timePrecision)
-    throws SessionException, ExecutionException {
+  public SessionQueryDataSet queryData(
+      List<String> paths,
+      long startKey,
+      long endKey,
+      Map<String, List<String>> tagsList,
+      TimePrecision timePrecision)
+      throws SessionException, ExecutionException {
     if (paths.isEmpty() || startKey > endKey) {
-    logger.error("Invalid query request!");
-    return null;
+      logger.error("Invalid query request!");
+      return null;
     }
     QueryDataReq req = new QueryDataReq(sessionId, mergeAndSortPaths(paths), startKey, endKey);
 
     if (tagsList != null && !tagsList.isEmpty()) {
-    req.setTagsList(tagsList);
+      req.setTagsList(tagsList);
     }
     req.setTimePrecision(timePrecision);
 
@@ -783,47 +783,47 @@ public SessionQueryDataSet queryData(
     executeWithCheck(() -> (ref.resp = client.queryData(req)).status);
 
     return new SessionQueryDataSet(ref.resp);
-}
+  }
 
-public SessionAggregateQueryDataSet aggregateQuery(
-    List<String> paths, long startKey, long endKey, AggregateType aggregateType)
-    throws SessionException, ExecutionException {
+  public SessionAggregateQueryDataSet aggregateQuery(
+      List<String> paths, long startKey, long endKey, AggregateType aggregateType)
+      throws SessionException, ExecutionException {
     return aggregateQuery(paths, startKey, endKey, aggregateType, null, timeUnit);
-}
+  }
 
-public SessionAggregateQueryDataSet aggregateQuery(
-    List<String> paths,
-    long startKey,
-    long endKey,
-    AggregateType aggregateType,
-    TimePrecision timePrecision)
-    throws SessionException, ExecutionException {
+  public SessionAggregateQueryDataSet aggregateQuery(
+      List<String> paths,
+      long startKey,
+      long endKey,
+      AggregateType aggregateType,
+      TimePrecision timePrecision)
+      throws SessionException, ExecutionException {
     return aggregateQuery(paths, startKey, endKey, aggregateType, null, timePrecision);
-}
+  }
 
-public SessionAggregateQueryDataSet aggregateQuery(
-    List<String> paths,
-    long startKey,
-    long endKey,
-    AggregateType aggregateType,
-    Map<String, List<String>> tagsList)
-    throws SessionException, ExecutionException {
+  public SessionAggregateQueryDataSet aggregateQuery(
+      List<String> paths,
+      long startKey,
+      long endKey,
+      AggregateType aggregateType,
+      Map<String, List<String>> tagsList)
+      throws SessionException, ExecutionException {
     return aggregateQuery(paths, startKey, endKey, aggregateType, tagsList, timeUnit);
-}
+  }
 
-public SessionAggregateQueryDataSet aggregateQuery(
-    List<String> paths,
-    long startKey,
-    long endKey,
-    AggregateType aggregateType,
-    Map<String, List<String>> tagsList,
-    TimePrecision timePrecision)
-    throws SessionException, ExecutionException {
+  public SessionAggregateQueryDataSet aggregateQuery(
+      List<String> paths,
+      long startKey,
+      long endKey,
+      AggregateType aggregateType,
+      Map<String, List<String>> tagsList,
+      TimePrecision timePrecision)
+      throws SessionException, ExecutionException {
     AggregateQueryReq req =
         new AggregateQueryReq(sessionId, mergeAndSortPaths(paths), startKey, endKey, aggregateType);
 
     if (tagsList != null && !tagsList.isEmpty()) {
-    req.setTagsList(tagsList);
+      req.setTagsList(tagsList);
     }
     req.setTimePrecision(timePrecision);
 
@@ -831,51 +831,51 @@ public SessionAggregateQueryDataSet aggregateQuery(
     executeWithCheck(() -> (ref.resp = client.aggregateQuery(req)).status);
 
     return new SessionAggregateQueryDataSet(ref.resp, aggregateType);
-}
+  }
 
-public SessionQueryDataSet downsampleQuery(
-    List<String> paths,
-    long startKey,
-    long endKey,
-    AggregateType aggregateType,
-    long precision,
-    TimePrecision timePrecision)
-    throws SessionException, ExecutionException {
+  public SessionQueryDataSet downsampleQuery(
+      List<String> paths,
+      long startKey,
+      long endKey,
+      AggregateType aggregateType,
+      long precision,
+      TimePrecision timePrecision)
+      throws SessionException, ExecutionException {
     return downsampleQuery(paths, startKey, endKey, aggregateType, precision, null, timePrecision);
-}
+  }
 
-public SessionQueryDataSet downsampleQuery(
-    List<String> paths, long startKey, long endKey, AggregateType aggregateType, long precision)
-    throws SessionException, ExecutionException {
+  public SessionQueryDataSet downsampleQuery(
+      List<String> paths, long startKey, long endKey, AggregateType aggregateType, long precision)
+      throws SessionException, ExecutionException {
     return downsampleQuery(paths, startKey, endKey, aggregateType, precision, null, timeUnit);
-}
+  }
 
-public SessionQueryDataSet downsampleQuery(
-    List<String> paths,
-    long startKey,
-    long endKey,
-    AggregateType aggregateType,
-    long precision,
-    Map<String, List<String>> tagsList)
-    throws SessionException, ExecutionException {
+  public SessionQueryDataSet downsampleQuery(
+      List<String> paths,
+      long startKey,
+      long endKey,
+      AggregateType aggregateType,
+      long precision,
+      Map<String, List<String>> tagsList)
+      throws SessionException, ExecutionException {
     return downsampleQuery(paths, startKey, endKey, aggregateType, precision, tagsList, timeUnit);
-}
+  }
 
-public SessionQueryDataSet downsampleQuery(
-    List<String> paths,
-    long startKey,
-    long endKey,
-    AggregateType aggregateType,
-    long precision,
-    Map<String, List<String>> tagsList,
-    TimePrecision timePrecision)
-    throws SessionException, ExecutionException {
+  public SessionQueryDataSet downsampleQuery(
+      List<String> paths,
+      long startKey,
+      long endKey,
+      AggregateType aggregateType,
+      long precision,
+      Map<String, List<String>> tagsList,
+      TimePrecision timePrecision)
+      throws SessionException, ExecutionException {
     DownsampleQueryReq req =
         new DownsampleQueryReq(
             sessionId, mergeAndSortPaths(paths), startKey, endKey, aggregateType, precision);
 
     if (tagsList != null && !tagsList.isEmpty()) {
-    req.setTagsList(tagsList);
+      req.setTagsList(tagsList);
     }
     req.setTimePrecision(timePrecision);
 
@@ -883,56 +883,56 @@ public SessionQueryDataSet downsampleQuery(
     executeWithCheck(() -> (ref.resp = client.downsampleQuery(req)).status);
 
     return new SessionQueryDataSet(ref.resp);
-}
+  }
 
-public int getReplicaNum() throws SessionException, ExecutionException {
+  public int getReplicaNum() throws SessionException, ExecutionException {
     GetReplicaNumReq req = new GetReplicaNumReq(sessionId);
     Reference<GetReplicaNumResp> ref = new Reference<>();
     executeWithCheck(() -> (ref.resp = client.getReplicaNum(req)).status);
 
     return ref.resp.getReplicaNum();
-}
+  }
 
-public SessionExecuteSqlResult executeSql(String statement)
-    throws SessionException, ExecutionException {
+  public SessionExecuteSqlResult executeSql(String statement)
+      throws SessionException, ExecutionException {
     ExecuteSqlReq req = new ExecuteSqlReq(sessionId, statement);
     Reference<ExecuteSqlResp> ref = new Reference<>();
     executeWithCheck(() -> (ref.resp = client.executeSql(req)).status);
 
     return new SessionExecuteSqlResult(ref.resp);
-}
+  }
 
-public SessionQueryDataSet queryLast(
-    List<String> paths, long startKey, TimePrecision timePrecision)
-    throws SessionException, ExecutionException {
+  public SessionQueryDataSet queryLast(
+      List<String> paths, long startKey, TimePrecision timePrecision)
+      throws SessionException, ExecutionException {
     return queryLast(paths, startKey, null, timePrecision);
-}
+  }
 
-public SessionQueryDataSet queryLast(List<String> paths, long startKey)
-    throws SessionException, ExecutionException {
+  public SessionQueryDataSet queryLast(List<String> paths, long startKey)
+      throws SessionException, ExecutionException {
     return queryLast(paths, startKey, null, timeUnit);
-}
+  }
 
-public SessionQueryDataSet queryLast(
-    List<String> paths, long startKey, Map<String, List<String>> tagsList)
-    throws SessionException, ExecutionException {
+  public SessionQueryDataSet queryLast(
+      List<String> paths, long startKey, Map<String, List<String>> tagsList)
+      throws SessionException, ExecutionException {
     return queryLast(paths, startKey, tagsList, timeUnit);
-}
+  }
 
-public SessionQueryDataSet queryLast(
-    List<String> paths,
-    long startKey,
-    Map<String, List<String>> tagsList,
-    TimePrecision timePrecision)
-    throws SessionException, ExecutionException {
+  public SessionQueryDataSet queryLast(
+      List<String> paths,
+      long startKey,
+      Map<String, List<String>> tagsList,
+      TimePrecision timePrecision)
+      throws SessionException, ExecutionException {
     if (paths.isEmpty()) {
-    logger.error("Invalid query request!");
-    return null;
+      logger.error("Invalid query request!");
+      return null;
     }
 
     LastQueryReq req = new LastQueryReq(sessionId, mergeAndSortPaths(paths), startKey);
     if (tagsList != null && !tagsList.isEmpty()) {
-    req.setTagsList(tagsList);
+      req.setTagsList(tagsList);
     }
     req.setTimePrecision(timePrecision);
 
@@ -940,46 +940,46 @@ public SessionQueryDataSet queryLast(
     executeWithCheck(() -> (ref.resp = client.lastQuery(req)).status);
 
     return new SessionQueryDataSet(ref.resp);
-}
+  }
 
-public void addUser(String username, String password, Set<AuthType> auths)
-    throws SessionException, ExecutionException {
+  public void addUser(String username, String password, Set<AuthType> auths)
+      throws SessionException, ExecutionException {
     AddUserReq req = new AddUserReq(sessionId, username, password, auths);
     executeWithCheck(() -> client.addUser(req));
-}
+  }
 
-public void updateUser(String username, String password, Set<AuthType> auths)
-    throws SessionException, ExecutionException {
+  public void updateUser(String username, String password, Set<AuthType> auths)
+      throws SessionException, ExecutionException {
     UpdateUserReq req = new UpdateUserReq(sessionId, username);
     if (password != null) {
-    req.setPassword(password);
+      req.setPassword(password);
     }
     if (auths != null) {
-    req.setAuths(auths);
+      req.setAuths(auths);
     }
     executeWithCheck(() -> client.updateUser(req));
-}
+  }
 
-public void deleteUser(String username) throws SessionException, ExecutionException {
+  public void deleteUser(String username) throws SessionException, ExecutionException {
     DeleteUserReq req = new DeleteUserReq(sessionId, username);
     executeWithCheck(() -> client.deleteUser(req));
-}
+  }
 
-public ClusterInfo getClusterInfo() throws SessionException, ExecutionException {
+  public ClusterInfo getClusterInfo() throws SessionException, ExecutionException {
     GetClusterInfoReq req = new GetClusterInfoReq(sessionId);
 
     Reference<GetClusterInfoResp> ref = new Reference<>();
     executeWithCheck(() -> (ref.resp = client.getClusterInfo(req)).status);
 
     return new ClusterInfo(ref.resp);
-}
+  }
 
-// 适用于查询类请求和删除类请求，因为其 paths 可能带有 *
-private List<String> mergeAndSortPaths(List<String> paths) {
+  // 适用于查询类请求和删除类请求，因为其 paths 可能带有 *
+  private List<String> mergeAndSortPaths(List<String> paths) {
     if (paths.stream().anyMatch(x -> x.equals("*"))) {
-    List<String> tempPaths = new ArrayList<>();
-    tempPaths.add("*");
-    return tempPaths;
+      List<String> tempPaths = new ArrayList<>();
+      tempPaths.add("*");
+      return tempPaths;
     }
     List<String> prefixes =
         paths.stream()
@@ -987,35 +987,35 @@ private List<String> mergeAndSortPaths(List<String> paths) {
             .map(x -> x.substring(0, x.indexOf("*")))
             .collect(Collectors.toList());
     if (prefixes.isEmpty()) {
-    Collections.sort(paths);
-    return paths;
+      Collections.sort(paths);
+      return paths;
     }
     List<String> mergedPaths = new ArrayList<>();
     for (String path : paths) {
-    if (!path.contains("*")) {
+      if (!path.contains("*")) {
         boolean skip = false;
         for (String prefix : prefixes) {
-        if (path.startsWith(prefix)) {
+          if (path.startsWith(prefix)) {
             skip = true;
             break;
-        }
+          }
         }
         if (skip) {
-        continue;
+          continue;
         }
-    }
-    mergedPaths.add(path);
+      }
+      mergedPaths.add(path);
     }
     mergedPaths.sort(String::compareTo);
     return mergedPaths;
-}
+  }
 
-public QueryDataSet executeQuery(String statement) throws SessionException, ExecutionException {
+  public QueryDataSet executeQuery(String statement) throws SessionException, ExecutionException {
     return executeQuery(statement, Integer.MAX_VALUE);
-}
+  }
 
-public QueryDataSet executeQuery(String statement, int fetchSize)
-    throws SessionException, ExecutionException {
+  public QueryDataSet executeQuery(String statement, int fetchSize)
+      throws SessionException, ExecutionException {
     ExecuteStatementReq req = new ExecuteStatementReq(sessionId, statement);
     req.setFetchSize(fetchSize);
     Reference<ExecuteStatementResp> ref = new Reference<>();
@@ -1028,85 +1028,85 @@ public QueryDataSet executeQuery(String statement, int fetchSize)
 
     return new QueryDataSet(
         this, queryId, columns, dataTypes, fetchSize, dataSetV2.valuesList, dataSetV2.bitmapList);
-}
+  }
 
-Pair<QueryDataSetV2, Boolean> fetchResult(long queryId, int fetchSize)
-    throws SessionException, ExecutionException {
+  Pair<QueryDataSetV2, Boolean> fetchResult(long queryId, int fetchSize)
+      throws SessionException, ExecutionException {
     FetchResultsReq req = new FetchResultsReq(sessionId, queryId);
     req.setFetchSize(fetchSize);
     Reference<FetchResultsResp> ref = new Reference<>();
     executeWithCheck(() -> (ref.resp = client.fetchResults(req)).status);
 
     return new Pair<>(ref.resp.getQueryDataSet(), ref.resp.isHasMoreResults());
-}
+  }
 
-void closeQuery(long queryId) throws SessionException, ExecutionException {
+  void closeQuery(long queryId) throws SessionException, ExecutionException {
     CloseStatementReq req = new CloseStatementReq(sessionId, queryId);
     executeWithCheck(() -> client.closeStatement(req));
-}
+  }
 
-public long commitTransformJob(
-    List<TaskInfo> taskInfoList, ExportType exportType, String fileName)
-    throws SessionException, ExecutionException {
+  public long commitTransformJob(
+      List<TaskInfo> taskInfoList, ExportType exportType, String fileName)
+      throws SessionException, ExecutionException {
     CommitTransformJobReq req = new CommitTransformJobReq(sessionId, taskInfoList, exportType);
     if (fileName != null) {
-    req.setFileName(fileName);
+      req.setFileName(fileName);
     }
 
     Reference<CommitTransformJobResp> ref = new Reference<>();
     executeWithCheck(() -> (ref.resp = client.commitTransformJob(req)).status);
     return ref.resp.getJobId();
-}
+  }
 
-public JobState queryTransformJobStatus(long jobId) throws SessionException, ExecutionException {
+  public JobState queryTransformJobStatus(long jobId) throws SessionException, ExecutionException {
     QueryTransformJobStatusReq req = new QueryTransformJobStatusReq(sessionId, jobId);
     Reference<QueryTransformJobStatusResp> ref = new Reference<>();
     executeWithCheck(() -> (ref.resp = client.queryTransformJobStatus(req)).status);
     return ref.resp.getJobState();
-}
+  }
 
-public List<Long> showEligibleJob(JobState jobState) throws SessionException, ExecutionException {
+  public List<Long> showEligibleJob(JobState jobState) throws SessionException, ExecutionException {
     ShowEligibleJobReq req = new ShowEligibleJobReq(sessionId, jobState);
     Reference<ShowEligibleJobResp> ref = new Reference<>();
     executeWithCheck(() -> (ref.resp = client.showEligibleJob(req)).status);
     return ref.resp.getJobIdList();
-}
+  }
 
-public void cancelTransformJob(long jobId) throws SessionException, ExecutionException {
+  public void cancelTransformJob(long jobId) throws SessionException, ExecutionException {
     CancelTransformJobReq req = new CancelTransformJobReq(sessionId, jobId);
     executeWithCheck(() -> client.cancelTransformJob(req));
-}
+  }
 
-public CurveMatchResult curveMatch(
-    List<String> paths, long startKey, long endKey, List<Double> curveQuery, long curveUnit)
-    throws SessionException, ExecutionException {
+  public CurveMatchResult curveMatch(
+      List<String> paths, long startKey, long endKey, List<Double> curveQuery, long curveUnit)
+      throws SessionException, ExecutionException {
     CurveMatchReq req =
         new CurveMatchReq(sessionId, paths, startKey, endKey, curveQuery, curveUnit);
     Reference<CurveMatchResp> ref = new Reference<>();
     executeWithCheck(() -> (ref.resp = client.curveMatch(req)).status);
     return new CurveMatchResult(ref.resp.getMatchedKey(), ref.resp.getMatchedPath());
-}
+  }
 
-public void removeHistoryDataSource(List<RemovedStorageEngineInfo> removedStorageEngineList)
-    throws SessionException, ExecutionException {
+  public void removeHistoryDataSource(List<RemovedStorageEngineInfo> removedStorageEngineList)
+      throws SessionException, ExecutionException {
     RemoveHistoryDataSourceReq req =
         new RemoveHistoryDataSourceReq(sessionId, removedStorageEngineList);
     executeWithCheck(() -> client.removeHistoryDataSource(req));
-}
+  }
 
-public String getUsername() {
+  public String getUsername() {
     return username;
-}
+  }
 
-public String getPassword() {
+  public String getPassword() {
     return password;
-}
+  }
 
-public String getHost() {
+  public String getHost() {
     return host;
-}
+  }
 
-public int getPort() {
+  public int getPort() {
     return port;
-}
+  }
 }

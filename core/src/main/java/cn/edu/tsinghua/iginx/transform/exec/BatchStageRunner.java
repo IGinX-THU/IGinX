@@ -17,38 +17,38 @@ import org.slf4j.LoggerFactory;
 
 public class BatchStageRunner implements Runner {
 
-private final BatchStage batchStage;
+  private final BatchStage batchStage;
 
-private final Mutex mutex;
+  private final Mutex mutex;
 
-private Writer writer;
+  private Writer writer;
 
-private PemjaWorker pemjaWorker;
+  private PemjaWorker pemjaWorker;
 
-private final PemjaDriver driver = PemjaDriver.getInstance();
+  private final PemjaDriver driver = PemjaDriver.getInstance();
 
-private static final Logger logger = LoggerFactory.getLogger(BatchStageRunner.class);
+  private static final Logger logger = LoggerFactory.getLogger(BatchStageRunner.class);
 
-public BatchStageRunner(BatchStage batchStage) {
+  public BatchStageRunner(BatchStage batchStage) {
     this.batchStage = batchStage;
     this.writer = batchStage.getExportWriter();
     this.mutex = ((ExportWriter) writer).getMutex();
-}
+  }
 
-@Override
-public void start() throws TransformException {
+  @Override
+  public void start() throws TransformException {
     Task task = batchStage.getTask();
     if (task.isPythonTask()) {
-    pemjaWorker = driver.createWorker((PythonTask) task, writer);
+      pemjaWorker = driver.createWorker((PythonTask) task, writer);
     } else {
-    logger.error("Batch task must be python task.");
-    throw new CreateWorkerException("Only python task can create worker.");
+      logger.error("Batch task must be python task.");
+      throw new CreateWorkerException("Only python task can create worker.");
     }
     writer = new PemjaWriter(pemjaWorker);
-}
+  }
 
-@Override
-public void run() throws WriteBatchException {
+  @Override
+  public void run() throws WriteBatchException {
     CollectionWriter collectionWriter =
         (CollectionWriter) batchStage.getBeforeStage().getExportWriter();
     BatchData batchData = collectionWriter.getCollectedData();
@@ -58,8 +58,8 @@ public void run() throws WriteBatchException {
 
     // wait for py work finish writing.
     mutex.lock();
-}
+  }
 
-@Override
-public void close() {}
+  @Override
+  public void close() {}
 }

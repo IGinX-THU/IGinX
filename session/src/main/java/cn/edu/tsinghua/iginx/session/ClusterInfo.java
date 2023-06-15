@@ -27,29 +27,29 @@ import java.util.List;
 
 public class ClusterInfo {
 
-private final GetClusterInfoResp resp;
+  private final GetClusterInfoResp resp;
 
-public ClusterInfo(GetClusterInfoResp resp) {
+  public ClusterInfo(GetClusterInfoResp resp) {
     this.resp = resp;
-}
+  }
 
-public List<IginxInfo> getIginxInfos() {
+  public List<IginxInfo> getIginxInfos() {
     return resp.getIginxInfos();
-}
+  }
 
-public List<StorageEngineInfo> getStorageEngineInfos() {
+  public List<StorageEngineInfo> getStorageEngineInfos() {
     return resp.getStorageEngineInfos();
-}
+  }
 
-public boolean isUseLocalMetaStorage() {
+  public boolean isUseLocalMetaStorage() {
     return resp.isSetLocalMetaStorageInfo();
-}
+  }
 
-public LocalMetaStorageInfo getLocalMetaStorageInfo() {
+  public LocalMetaStorageInfo getLocalMetaStorageInfo() {
     return resp.getLocalMetaStorageInfo();
-}
+  }
 
-public List<MetaStorageInfo> getMetaStorageInfos() {
+  public List<MetaStorageInfo> getMetaStorageInfos() {
     return resp.getMetaStorageInfos();
-}
+  }
 }

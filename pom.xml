@@ -20,11 +20,10 @@
         <module>dataSources/iotdb12</module>
         <module>dataSources/influxdb</module>
         <module>dataSources/opentsdb</module>
-        <!--module>dataSources/timescaledb</module-->
         <module>dataSources/postgresql</module>
         <module>dataSources/parquet</module>
-        <module>dataSources/mongodb</module>
         <module>dataSources/redis</module>
+        <module>dataSources/mongodb</module>
         <module>example</module>
         <module>test</module>
         <module>zeppelin-interpreter</module>
@@ -93,14 +92,6 @@
                                     <version>1.7</version>
                                     <style>GOOGLE</style>
                                 </googleJavaFormat>
-                                <indent>
-                                    <tabs>true</tabs>
-                                    <spacesPerTab>4</spacesPerTab>
-                                </indent>
-                                <indent>
-                                    <spaces>true</spaces>
-                                    <spacesPerTab>4</spacesPerTab>
-                                </indent>
                             </java>
                             <python>
                                 <includes>

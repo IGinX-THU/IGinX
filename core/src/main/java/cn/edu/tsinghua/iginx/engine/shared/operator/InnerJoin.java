@@ -9,36 +9,36 @@ import java.util.List;
 
 public class InnerJoin extends AbstractBinaryOperator {
 
-private final String prefixA;
+  private final String prefixA;
 
-private final String prefixB;
+  private final String prefixB;
 
-private final Filter filter;
+  private final Filter filter;
 
-private final List<String> joinColumns;
+  private final List<String> joinColumns;
 
-private final JoinAlgType joinAlgType;
+  private final JoinAlgType joinAlgType;
 
-private final boolean isNaturalJoin;
+  private final boolean isNaturalJoin;
 
-public InnerJoin(
-    Source sourceA,
-    Source sourceB,
-    String prefixA,
-    String prefixB,
-    Filter filter,
-    List<String> joinColumns) {
+  public InnerJoin(
+      Source sourceA,
+      Source sourceB,
+      String prefixA,
+      String prefixB,
+      Filter filter,
+      List<String> joinColumns) {
     this(sourceA, sourceB, prefixA, prefixB, filter, joinColumns, false);
-}
+  }
 
-public InnerJoin(
-    Source sourceA,
-    Source sourceB,
-    String prefixA,
-    String prefixB,
-    Filter filter,
-    List<String> joinColumns,
-    boolean isNaturalJoin) {
+  public InnerJoin(
+      Source sourceA,
+      Source sourceB,
+      String prefixA,
+      String prefixB,
+      Filter filter,
+      List<String> joinColumns,
+      boolean isNaturalJoin) {
     this(
         sourceA,
         sourceB,
@@ -48,56 +48,56 @@ public InnerJoin(
         joinColumns,
         isNaturalJoin,
         JoinAlgType.HashJoin);
-}
+  }
 
-public InnerJoin(
-    Source sourceA,
-    Source sourceB,
-    String prefixA,
-    String prefixB,
-    Filter filter,
-    List<String> joinColumns,
-    boolean isNaturalJoin,
-    JoinAlgType joinAlgType) {
+  public InnerJoin(
+      Source sourceA,
+      Source sourceB,
+      String prefixA,
+      String prefixB,
+      Filter filter,
+      List<String> joinColumns,
+      boolean isNaturalJoin,
+      JoinAlgType joinAlgType) {
     super(OperatorType.InnerJoin, sourceA, sourceB);
     this.prefixA = prefixA;
     this.prefixB = prefixB;
     this.filter = filter;
     if (joinColumns != null) {
-    this.joinColumns = joinColumns;
+      this.joinColumns = joinColumns;
     } else {
-    this.joinColumns = new ArrayList<>();
+      this.joinColumns = new ArrayList<>();
     }
     this.joinAlgType = joinAlgType;
     this.isNaturalJoin = isNaturalJoin;
-}
+  }
 
-public String getPrefixA() {
+  public String getPrefixA() {
     return prefixA;
-}
+  }
 
-public String getPrefixB() {
+  public String getPrefixB() {
     return prefixB;
-}
+  }
 
-public Filter getFilter() {
+  public Filter getFilter() {
     return filter;
-}
+  }
 
-public List<String> getJoinColumns() {
+  public List<String> getJoinColumns() {
     return joinColumns;
-}
+  }
 
-public JoinAlgType getJoinAlgType() {
+  public JoinAlgType getJoinAlgType() {
     return joinAlgType;
-}
+  }
 
-public boolean isNaturalJoin() {
+  public boolean isNaturalJoin() {
     return isNaturalJoin;
-}
+  }
 
-@Override
-public Operator copy() {
+  @Override
+  public Operator copy() {
     return new InnerJoin(
         getSourceA().copy(),
         getSourceB().copy(),
@@ -107,24 +107,24 @@ public Operator copy() {
         new ArrayList<>(joinColumns),
         isNaturalJoin,
         joinAlgType);
-}
+  }
 
-@Override
-public String getInfo() {
+  @Override
+  public String getInfo() {
     StringBuilder builder = new StringBuilder();
     builder.append("PrefixA: ").append(prefixA);
     builder.append(", PrefixB: ").append(prefixB);
     builder.append(", IsNatural: ").append(isNaturalJoin);
     if (filter != null) {
-    builder.append(", Filter: ").append(filter.toString());
+      builder.append(", Filter: ").append(filter.toString());
     }
     if (joinColumns != null) {
-    builder.append(", JoinColumns: ");
-    for (String col : joinColumns) {
+      builder.append(", JoinColumns: ");
+      for (String col : joinColumns) {
         builder.append(col).append(",");
-    }
-    builder.deleteCharAt(builder.length() - 1);
+      }
+      builder.deleteCharAt(builder.length() - 1);
     }
     return builder.toString();
-}
+  }
 }

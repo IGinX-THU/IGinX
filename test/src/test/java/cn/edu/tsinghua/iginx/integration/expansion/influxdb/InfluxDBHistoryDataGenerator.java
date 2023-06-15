@@ -14,23 +14,23 @@ import org.slf4j.LoggerFactory;
 
 public class InfluxDBHistoryDataGenerator extends BaseHistoryDataGenerator {
 
-private static final Logger logger = LoggerFactory.getLogger(InfluxDBHistoryDataGenerator.class);
+  private static final Logger logger = LoggerFactory.getLogger(InfluxDBHistoryDataGenerator.class);
 
-public static final String TOKEN = "testToken";
+  public static final String TOKEN = "testToken";
 
-public static final String ORGANIZATION = "testOrg";
+  public static final String ORGANIZATION = "testOrg";
 
-private static final WritePrecision WRITE_PRECISION = WritePrecision.NS;
+  private static final WritePrecision WRITE_PRECISION = WritePrecision.NS;
 
-public InfluxDBHistoryDataGenerator() {
+  public InfluxDBHistoryDataGenerator() {
     this.oriPort = 8086;
     this.expPort = 8087;
     this.readOnlyPort = 8088;
-}
+  }
 
-@Override
-public void writeHistoryData(
-    int port, List<String> pathList, List<DataType> dataTypeList, List<List<Object>> valuesList) {
+  @Override
+  public void writeHistoryData(
+      int port, List<String> pathList, List<DataType> dataTypeList, List<List<Object>> valuesList) {
     String url = "http://localhost:" + port + "/";
     InfluxDBClient client = InfluxDBClientFactory.create(url, TOKEN.toCharArray(), ORGANIZATION);
     Organization organization =
@@ -41,7 +41,7 @@ public void writeHistoryData(
 
     int timeCnt = 0;
     for (List<Object> valueList : valuesList) {
-    for (int i = 0; i < pathList.size(); i++) {
+      for (int i = 0; i < pathList.size(); i++) {
         String path = pathList.get(i);
         DataType dataType = dataTypeList.get(i);
 
@@ -50,72 +50,72 @@ public void writeHistoryData(
         String measurementName = parts[1];
         StringBuilder fieldName = new StringBuilder();
         for (int j = 2; j < parts.length; j++) {
-        fieldName.append(parts[j]);
-        fieldName.append(".");
+          fieldName.append(parts[j]);
+          fieldName.append(".");
         }
 
         if (client.getBucketsApi().findBucketByName(bucketName) == null) {
-        client.getBucketsApi().createBucket(bucketName, organization);
+          client.getBucketsApi().createBucket(bucketName, organization);
         }
 
         Point point = null;
         if (valueList.get(i) == null) {
-        continue;
+          continue;
         }
         switch (dataType) {
-        case BOOLEAN:
+          case BOOLEAN:
             point =
                 Point.measurement(measurementName)
                     .addField(
                         fieldName.substring(0, fieldName.length() - 1), (boolean) valueList.get(i))
                     .time(timeCnt, WRITE_PRECISION);
             break;
-        case BINARY:
+          case BINARY:
             point =
                 Point.measurement(measurementName)
                     .addField(
                         fieldName.substring(0, fieldName.length() - 1), (String) valueList.get(i))
                     .time(timeCnt, WRITE_PRECISION);
             break;
-        case DOUBLE:
+          case DOUBLE:
             point =
                 Point.measurement(measurementName)
                     .addField(
                         fieldName.substring(0, fieldName.length() - 1), (Double) valueList.get(i))
                     .time(timeCnt, WRITE_PRECISION);
             break;
-        case INTEGER:
+          case INTEGER:
             point =
                 Point.measurement(measurementName)
                     .addField(fieldName.toString(), (Integer) valueList.get(i))
                     .time(timeCnt, WRITE_PRECISION);
             break;
-        default:
+          default:
             logger.error("unsupported data type: {}", dataType);
             break;
         }
         if (point == null) {
-        break;
+          break;
         }
 
         client.getWriteApiBlocking().writePoint(bucketName, organization.getId(), point);
-    }
-    timeCnt++;
+      }
+      timeCnt++;
     }
 
     client.close();
     logger.info("write data to " + url + " success!");
-}
+  }
 
-@Override
-public void clearHistoryDataForGivenPort(int port) {
+  @Override
+  public void clearHistoryDataForGivenPort(int port) {
     String url = "http://localhost:" + port + "/";
     InfluxDBClient client = InfluxDBClientFactory.create(url, TOKEN.toCharArray(), ORGANIZATION);
     Bucket bucket = client.getBucketsApi().findBucketByName("mn");
     if (bucket != null) {
-    client.getBucketsApi().deleteBucket(bucket);
+      client.getBucketsApi().deleteBucket(bucket);
     }
     client.close();
     logger.info("clear data on 127.0.0.1:{} success!", port);
-}
+  }
 }

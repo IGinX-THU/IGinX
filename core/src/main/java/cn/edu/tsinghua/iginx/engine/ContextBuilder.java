@@ -21,34 +21,34 @@ import java.util.stream.Collectors;
 
 public class ContextBuilder {
 
-private static ContextBuilder instance;
+  private static ContextBuilder instance;
 
-private static final Config config = ConfigDescriptor.getInstance().getConfig();
+  private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
-private ContextBuilder() {}
+  private ContextBuilder() {}
 
-public static ContextBuilder getInstance() {
+  public static ContextBuilder getInstance() {
     if (instance == null) {
-    synchronized (ContextBuilder.class) {
+      synchronized (ContextBuilder.class) {
         if (instance == null) {
-        instance = new ContextBuilder();
+          instance = new ContextBuilder();
         }
-    }
+      }
     }
     return instance;
-}
+  }
 
-public long getTimeWithPrecision(long time, TimePrecision timePrecision) {
+  public long getTimeWithPrecision(long time, TimePrecision timePrecision) {
     if (timePrecision == null) timePrecision = config.getTimePrecision();
     return TimeUtils.getTimeInNs(time, timePrecision);
-}
+  }
 
-public RequestContext build(DeleteColumnsReq req) {
+  public RequestContext build(DeleteColumnsReq req) {
     DeleteColumnsStatement statement = new DeleteColumnsStatement(req.getPaths());
     return new RequestContext(req.getSessionId(), statement);
-}
+  }
 
-public RequestContext build(InsertColumnRecordsReq req) {
+  public RequestContext build(InsertColumnRecordsReq req) {
     return buildFromInsertReq(
         req.getSessionId(),
         RawDataType.Column,
@@ -59,9 +59,9 @@ public RequestContext build(InsertColumnRecordsReq req) {
         req.getBitmapList(),
         req.getTagsList(),
         req.getTimePrecision());
-}
+  }
 
-public RequestContext build(InsertNonAlignedColumnRecordsReq req) {
+  public RequestContext build(InsertNonAlignedColumnRecordsReq req) {
     return buildFromInsertReq(
         req.getSessionId(),
         RawDataType.NonAlignedColumn,
@@ -72,9 +72,9 @@ public RequestContext build(InsertNonAlignedColumnRecordsReq req) {
         req.getBitmapList(),
         req.getTagsList(),
         req.getTimePrecision());
-}
+  }
 
-public RequestContext build(InsertRowRecordsReq req) {
+  public RequestContext build(InsertRowRecordsReq req) {
     return buildFromInsertReq(
         req.getSessionId(),
         RawDataType.Row,
@@ -85,9 +85,9 @@ public RequestContext build(InsertRowRecordsReq req) {
         req.getBitmapList(),
         req.getTagsList(),
         req.getTimePrecision());
-}
+  }
 
-public RequestContext build(InsertNonAlignedRowRecordsReq req) {
+  public RequestContext build(InsertNonAlignedRowRecordsReq req) {
     return buildFromInsertReq(
         req.getSessionId(),
         RawDataType.NonAlignedRow,
@@ -98,47 +98,47 @@ public RequestContext build(InsertNonAlignedRowRecordsReq req) {
         req.getBitmapList(),
         req.getTagsList(),
         req.getTimePrecision());
-}
+  }
 
-private RequestContext buildFromInsertReq(
-    long sessionId,
-    RawDataType rawDataType,
-    List<String> paths,
-    List<DataType> types,
-    byte[] timestamps,
-    List<ByteBuffer> valueList,
-    List<ByteBuffer> bitmapList,
-    List<Map<String, String>> tagsList,
-    TimePrecision timePrecision) {
+  private RequestContext buildFromInsertReq(
+      long sessionId,
+      RawDataType rawDataType,
+      List<String> paths,
+      List<DataType> types,
+      byte[] timestamps,
+      List<ByteBuffer> valueList,
+      List<ByteBuffer> bitmapList,
+      List<Map<String, String>> tagsList,
+      TimePrecision timePrecision) {
     long[] timeArray = ByteUtils.getLongArrayFromByteArray(timestamps);
     List<Long> times = new ArrayList<>();
     if (timePrecision == null) timePrecision = config.getTimePrecision();
     for (long time : timeArray) {
-    times.add(TimeUtils.getTimeInNs(time, timePrecision));
+      times.add(TimeUtils.getTimeInNs(time, timePrecision));
     }
 
     List<Bitmap> bitmaps;
     Object[] values;
     if (rawDataType == RawDataType.Row || rawDataType == RawDataType.NonAlignedRow) {
-    bitmaps =
-        bitmapList.stream()
-            .map(x -> new Bitmap(paths.size(), x.array()))
-            .collect(Collectors.toList());
-    values = ByteUtils.getRowValuesByDataType(valueList, types, bitmapList);
+      bitmaps =
+          bitmapList.stream()
+              .map(x -> new Bitmap(paths.size(), x.array()))
+              .collect(Collectors.toList());
+      values = ByteUtils.getRowValuesByDataType(valueList, types, bitmapList);
     } else {
-    bitmaps =
-        bitmapList.stream()
-            .map(x -> new Bitmap(times.size(), x.array()))
-            .collect(Collectors.toList());
-    values = ByteUtils.getColumnValuesByDataType(valueList, types, bitmapList, times.size());
+      bitmaps =
+          bitmapList.stream()
+              .map(x -> new Bitmap(times.size(), x.array()))
+              .collect(Collectors.toList());
+      values = ByteUtils.getColumnValuesByDataType(valueList, types, bitmapList, times.size());
     }
 
     InsertStatement statement =
         new InsertStatement(rawDataType, paths, times, values, types, bitmaps, tagsList);
     return new RequestContext(sessionId, statement);
-}
+  }
 
-public RequestContext build(DeleteDataInColumnsReq req) {
+  public RequestContext build(DeleteDataInColumnsReq req) {
     DeleteStatement statement =
         new DeleteStatement(
             req.getPaths(),
@@ -146,12 +146,12 @@ public RequestContext build(DeleteDataInColumnsReq req) {
             getTimeWithPrecision(req.getEndKey(), req.getTimePrecision()));
 
     if (req.isSetTagsList()) {
-    statement.setTagFilter(constructTagFilterFromTagList(req.getTagsList()));
+      statement.setTagFilter(constructTagFilterFromTagList(req.getTagsList()));
     }
     return new RequestContext(req.getSessionId(), statement);
-}
+  }
 
-public RequestContext build(QueryDataReq req) {
+  public RequestContext build(QueryDataReq req) {
     SelectStatement statement =
         new SelectStatement(
             req.getPaths(),
@@ -159,12 +159,12 @@ public RequestContext build(QueryDataReq req) {
             getTimeWithPrecision(req.getEndKey(), req.getTimePrecision()));
 
     if (req.isSetTagsList()) {
-    statement.setTagFilter(constructTagFilterFromTagList(req.getTagsList()));
+      statement.setTagFilter(constructTagFilterFromTagList(req.getTagsList()));
     }
     return new RequestContext(req.getSessionId(), statement);
-}
+  }
 
-public RequestContext build(AggregateQueryReq req) {
+  public RequestContext build(AggregateQueryReq req) {
     SelectStatement statement =
         new SelectStatement(
             req.getPaths(),
@@ -173,12 +173,12 @@ public RequestContext build(AggregateQueryReq req) {
             req.getAggregateType());
 
     if (req.isSetTagsList()) {
-    statement.setTagFilter(constructTagFilterFromTagList(req.getTagsList()));
+      statement.setTagFilter(constructTagFilterFromTagList(req.getTagsList()));
     }
     return new RequestContext(req.getSessionId(), statement);
-}
+  }
 
-public RequestContext build(DownsampleQueryReq req) {
+  public RequestContext build(DownsampleQueryReq req) {
     SelectStatement statement =
         new SelectStatement(
             req.getPaths(),
@@ -188,25 +188,25 @@ public RequestContext build(DownsampleQueryReq req) {
             getTimeWithPrecision(req.getPrecision(), req.getTimePrecision()));
 
     if (req.isSetTagsList()) {
-    statement.setTagFilter(constructTagFilterFromTagList(req.getTagsList()));
+      statement.setTagFilter(constructTagFilterFromTagList(req.getTagsList()));
     }
     return new RequestContext(req.getSessionId(), statement);
-}
+  }
 
-public RequestContext build(ShowColumnsReq req) {
+  public RequestContext build(ShowColumnsReq req) {
     ShowColumnsStatement statement = new ShowColumnsStatement();
     return new RequestContext(req.getSessionId(), statement);
-}
+  }
 
-public RequestContext build(ExecuteSqlReq req) {
+  public RequestContext build(ExecuteSqlReq req) {
     return new RequestContext(req.getSessionId(), req.getStatement());
-}
+  }
 
-public RequestContext build(ExecuteStatementReq req) {
+  public RequestContext build(ExecuteStatementReq req) {
     return new RequestContext(req.getSessionId(), req.getStatement(), true);
-}
+  }
 
-public RequestContext build(LastQueryReq req) {
+  public RequestContext build(LastQueryReq req) {
     SelectStatement statement =
         new SelectStatement(
             req.getPaths(),
@@ -215,19 +215,19 @@ public RequestContext build(LastQueryReq req) {
             AggregateType.LAST);
 
     if (req.isSetTagsList()) {
-    statement.setTagFilter(constructTagFilterFromTagList(req.getTagsList()));
+      statement.setTagFilter(constructTagFilterFromTagList(req.getTagsList()));
     }
     return new RequestContext(req.getSessionId(), statement);
-}
+  }
 
-private TagFilter constructTagFilterFromTagList(Map<String, List<String>> tagList) {
+  private TagFilter constructTagFilterFromTagList(Map<String, List<String>> tagList) {
     List<TagFilter> andTagFilterList = new ArrayList<>();
     tagList.forEach(
         (key, valueList) -> {
-        List<TagFilter> orTagFilterList = new ArrayList<>();
-        valueList.forEach(value -> orTagFilterList.add(new BaseTagFilter(key, value)));
-        andTagFilterList.add(new OrTagFilter(orTagFilterList));
+          List<TagFilter> orTagFilterList = new ArrayList<>();
+          valueList.forEach(value -> orTagFilterList.add(new BaseTagFilter(key, value)));
+          andTagFilterList.add(new OrTagFilter(orTagFilterList));
         });
     return andTagFilterList.isEmpty() ? null : new AndTagFilter(andTagFilterList);
-}
+  }
 }

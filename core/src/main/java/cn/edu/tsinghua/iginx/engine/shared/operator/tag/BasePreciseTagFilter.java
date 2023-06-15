@@ -5,30 +5,30 @@ import java.util.StringJoiner;
 
 public class BasePreciseTagFilter implements TagFilter {
 
-private final Map<String, String> tags;
+  private final Map<String, String> tags;
 
-public BasePreciseTagFilter(Map<String, String> tags) {
+  public BasePreciseTagFilter(Map<String, String> tags) {
     this.tags = tags;
-}
+  }
 
-public Map<String, String> getTags() {
+  public Map<String, String> getTags() {
     return tags;
-}
+  }
 
-@Override
-public TagFilterType getType() {
+  @Override
+  public TagFilterType getType() {
     return TagFilterType.BasePrecise;
-}
+  }
 
-@Override
-public TagFilter copy() {
+  @Override
+  public TagFilter copy() {
     return new BasePreciseTagFilter(tags);
-}
+  }
 
-@Override
-public String toString() {
+  @Override
+  public String toString() {
     StringJoiner joiner = new StringJoiner(" && ", "(", ")");
     tags.forEach((k, v) -> joiner.add(k + "=" + v));
     return joiner.toString();
-}
+  }
 }

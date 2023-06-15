@@ -4,90 +4,90 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 
 public class DataTypeTransformer {
 
-public static DataType fromParquetDataType(String dataType) {
+  public static DataType fromParquetDataType(String dataType) {
     switch (dataType) {
-    case "BOOLEAN":
+      case "BOOLEAN":
         return DataType.BOOLEAN;
-    case "INTEGER":
+      case "INTEGER":
         return DataType.INTEGER;
-    case "BIGINT":
+      case "BIGINT":
         return DataType.LONG;
-    case "FLOAT":
+      case "FLOAT":
         return DataType.FLOAT;
-    case "DOUBLE":
+      case "DOUBLE":
         return DataType.DOUBLE;
-    case "VARCHAR":
-    default:
+      case "VARCHAR":
+      default:
         return DataType.BINARY;
     }
-}
+  }
 
-public static DataType fromDuckDBDataType(String dataType) {
+  public static DataType fromDuckDBDataType(String dataType) {
     switch (dataType) {
-    case "BOOLEAN":
+      case "BOOLEAN":
         return DataType.BOOLEAN;
-    case "INT32":
+      case "INT32":
         return DataType.INTEGER;
-    case "INT64":
+      case "INT64":
         return DataType.LONG;
-    case "FLOAT":
+      case "FLOAT":
         return DataType.FLOAT;
-    case "DOUBLE":
+      case "DOUBLE":
         return DataType.DOUBLE;
-    case "BYTE_ARRAY":
-    default:
+      case "BYTE_ARRAY":
+      default:
         return DataType.BINARY;
     }
-}
+  }
 
-public static DataType fromStringDataType(String dataType) {
+  public static DataType fromStringDataType(String dataType) {
     switch (dataType) {
-    case "BOOLEAN":
+      case "BOOLEAN":
         return DataType.BOOLEAN;
-    case "INTEGER":
+      case "INTEGER":
         return DataType.INTEGER;
-    case "LONG":
+      case "LONG":
         return DataType.LONG;
-    case "FLOAT":
+      case "FLOAT":
         return DataType.FLOAT;
-    case "DOUBLE":
+      case "DOUBLE":
         return DataType.DOUBLE;
-    case "BINARY":
-    default:
+      case "BINARY":
+      default:
         return DataType.BINARY;
     }
-}
+  }
 
-public static String toParquetDataType(DataType dataType) {
+  public static String toParquetDataType(DataType dataType) {
     switch (dataType) {
-    case BOOLEAN:
+      case BOOLEAN:
         return "BOOLEAN";
-    case INTEGER:
+      case INTEGER:
         return "INTEGER";
-    case LONG:
+      case LONG:
         return "BIGINT";
-    case FLOAT:
+      case FLOAT:
         return "FLOAT";
-    case DOUBLE:
+      case DOUBLE:
         return "DOUBLE";
-    case BINARY:
-    default:
+      case BINARY:
+      default:
         return "VARCHAR";
     }
-}
+  }
 
-public static int getDataSize(DataType type) {
+  public static int getDataSize(DataType type) {
     switch (type) {
-    case BOOLEAN:
+      case BOOLEAN:
         return 1;
-    case FLOAT:
-    case INTEGER:
+      case FLOAT:
+      case INTEGER:
         return 4;
-    case LONG:
-    case DOUBLE:
+      case LONG:
+      case DOUBLE:
         return 8;
-    default:
+      default:
         return 0;
     }
-}
+  }
 }

@@ -34,53 +34,53 @@ import java.util.List;
 
 public class DownsampleLazyStream extends UnaryLazyStream {
 
-private final RowStreamWrapper wrapper;
+  private final RowStreamWrapper wrapper;
 
-private final Downsample downsample;
+  private final Downsample downsample;
 
-private final SetMappingFunction function;
+  private final SetMappingFunction function;
 
-private final FunctionParams params;
+  private final FunctionParams params;
 
-private Row nextTarget;
+  private Row nextTarget;
 
-private boolean hasInitialized = false;
+  private boolean hasInitialized = false;
 
-private Header header;
+  private Header header;
 
-public DownsampleLazyStream(Downsample downsample, RowStream stream) {
+  public DownsampleLazyStream(Downsample downsample, RowStream stream) {
     super(stream);
     this.wrapper = new RowStreamWrapper(stream);
     this.downsample = downsample;
     this.function = (SetMappingFunction) downsample.getFunctionCall().getFunction();
     this.params = downsample.getFunctionCall().getParams();
-}
+  }
 
-private void initialize() throws PhysicalException {
+  private void initialize() throws PhysicalException {
     if (hasInitialized) {
-    return;
+      return;
     }
     nextTarget = loadNext();
     if (nextTarget != null) {
-    header = nextTarget.getHeader();
+      header = nextTarget.getHeader();
     }
     hasInitialized = true;
-}
+  }
 
-@Override
-public Header getHeader() throws PhysicalException {
+  @Override
+  public Header getHeader() throws PhysicalException {
     if (!hasInitialized) {
-    initialize();
+      initialize();
     }
     if (header == null) {
-    header = Header.EMPTY_HEADER;
+      header = Header.EMPTY_HEADER;
     }
     return header;
-}
+  }
 
-private Row loadNext() throws PhysicalException {
+  private Row loadNext() throws PhysicalException {
     if (nextTarget != null) {
-    return nextTarget;
+      return nextTarget;
     }
     Row row = null;
     long timestamp = 0;
@@ -91,43 +91,43 @@ private Row loadNext() throws PhysicalException {
     // startKey + (n - 1) * slideDistance + precision - 1 >= endKey
     int n = (int) (Math.ceil((double) (endKey - bias - precision + 1) / slideDistance) + 1);
     while (row == null && wrapper.hasNext()) {
-    timestamp = wrapper.nextTimestamp() - (wrapper.nextTimestamp() - bias) % precision;
-    List<Row> rows = new ArrayList<>();
-    while (wrapper.hasNext() && wrapper.nextTimestamp() < timestamp + precision) {
+      timestamp = wrapper.nextTimestamp() - (wrapper.nextTimestamp() - bias) % precision;
+      List<Row> rows = new ArrayList<>();
+      while (wrapper.hasNext() && wrapper.nextTimestamp() < timestamp + precision) {
         rows.add(wrapper.next());
-    }
-    Table table = new Table(rows.get(0).getHeader(), rows);
-    try {
+      }
+      Table table = new Table(rows.get(0).getHeader(), rows);
+      try {
         row = function.transform(table, params);
-    } catch (Exception e) {
+      } catch (Exception e) {
         throw new PhysicalTaskExecuteFailureException(
             "encounter error when execute set mapping function " + function.getIdentifier() + ".",
             e);
-    }
+      }
     }
     return row == null
         ? null
         : new Row(new Header(Field.KEY, row.getHeader().getFields()), timestamp, row.getValues());
-}
+  }
 
-@Override
-public boolean hasNext() throws PhysicalException {
+  @Override
+  public boolean hasNext() throws PhysicalException {
     if (!hasInitialized) {
-    initialize();
+      initialize();
     }
     if (nextTarget == null) {
-    nextTarget = loadNext();
+      nextTarget = loadNext();
     }
     return nextTarget != null;
-}
+  }
 
-@Override
-public Row next() throws PhysicalException {
+  @Override
+  public Row next() throws PhysicalException {
     if (!hasNext()) {
-    throw new IllegalStateException("row stream doesn't have more data!");
+      throw new IllegalStateException("row stream doesn't have more data!");
     }
     Row row = nextTarget;
     nextTarget = null;
     return row;
-}
+  }
 }
