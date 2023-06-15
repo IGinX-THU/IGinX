@@ -2,20 +2,20 @@ package cn.edu.tsinghua.iginx.sql.expression;
 
 public interface Expression {
 
-    String getColumnName();
+String getColumnName();
 
-    ExpressionType getType();
+ExpressionType getType();
 
-    boolean hasAlias();
+boolean hasAlias();
 
-    String getAlias();
+String getAlias();
 
-    enum ExpressionType {
-        Bracket,
-        Binary,
-        Unary,
-        Function,
-        Base,
-        Constant
-    }
+enum ExpressionType {
+    Bracket,
+    Binary,
+    Unary,
+    Function,
+    Base,
+    Constant
+}
 }

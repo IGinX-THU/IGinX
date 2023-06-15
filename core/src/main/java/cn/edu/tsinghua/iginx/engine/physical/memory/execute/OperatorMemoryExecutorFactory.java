@@ -24,19 +24,18 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream.StreamOperato
 
 public class OperatorMemoryExecutorFactory {
 
-    private static final OperatorMemoryExecutorFactory INSTANCE =
-            new OperatorMemoryExecutorFactory();
+private static final OperatorMemoryExecutorFactory INSTANCE = new OperatorMemoryExecutorFactory();
 
-    private OperatorMemoryExecutorFactory() {}
+private OperatorMemoryExecutorFactory() {}
 
-    public OperatorMemoryExecutor getMemoryExecutor() {
-        if (ConfigDescriptor.getInstance().getConfig().isUseStreamExecutor()) {
-            return StreamOperatorMemoryExecutor.getInstance();
-        }
-        return NaiveOperatorMemoryExecutor.getInstance();
+public OperatorMemoryExecutor getMemoryExecutor() {
+    if (ConfigDescriptor.getInstance().getConfig().isUseStreamExecutor()) {
+    return StreamOperatorMemoryExecutor.getInstance();
     }
+    return NaiveOperatorMemoryExecutor.getInstance();
+}
 
-    public static OperatorMemoryExecutorFactory getInstance() {
-        return INSTANCE;
-    }
+public static OperatorMemoryExecutorFactory getInstance() {
+    return INSTANCE;
+}
 }

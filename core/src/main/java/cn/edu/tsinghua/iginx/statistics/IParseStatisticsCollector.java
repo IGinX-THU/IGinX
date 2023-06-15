@@ -5,7 +5,7 @@ import cn.edu.tsinghua.iginx.engine.shared.processor.PreParseProcessor;
 
 public interface IParseStatisticsCollector {
 
-    PreParseProcessor getPreParseProcessor();
+PreParseProcessor getPreParseProcessor();
 
-    PostParseProcessor getPostParseProcessor();
+PostParseProcessor getPostParseProcessor();
 }

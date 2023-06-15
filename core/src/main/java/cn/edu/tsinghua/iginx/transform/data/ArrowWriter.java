@@ -15,58 +15,58 @@ import org.slf4j.LoggerFactory;
 
 public class ArrowWriter implements Writer {
 
-    private final String ip;
+private final String ip;
 
-    private final int writerPort;
+private final int writerPort;
 
-    private static final Config config = ConfigDescriptor.getInstance().getConfig();
+private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
-    private static final Logger logger = LoggerFactory.getLogger(ArrowWriter.class);
+private static final Logger logger = LoggerFactory.getLogger(ArrowWriter.class);
 
-    public ArrowWriter(int writerPort) {
-        this.ip = config.getIp();
-        this.writerPort = writerPort;
+public ArrowWriter(int writerPort) {
+    this.ip = config.getIp();
+    this.writerPort = writerPort;
+}
+
+public void writeVector(VectorSchemaRoot root) throws WriteBatchException {
+    try {
+    Socket socket = new Socket(ip, writerPort);
+    OutputStream os = socket.getOutputStream();
+
+    ArrowStreamWriter writer = new ArrowStreamWriter(root, null, Channels.newChannel(os));
+
+    writer.start();
+    writer.writeBatch();
+    writer.end();
+
+    writer.close();
+    os.close();
+    socket.close();
+    } catch (IOException e) {
+    logger.error("ArrowWriter fail to write vector");
+    throw new WriteBatchException("ArrowWriter fail to write vector", e);
     }
+}
 
-    public void writeVector(VectorSchemaRoot root) throws WriteBatchException {
-        try {
-            Socket socket = new Socket(ip, writerPort);
-            OutputStream os = socket.getOutputStream();
+@Override
+public void writeBatch(BatchData batchData) throws WriteBatchException {
+    try {
+    Socket socket = new Socket(ip, writerPort);
+    OutputStream os = socket.getOutputStream();
 
-            ArrowStreamWriter writer = new ArrowStreamWriter(root, null, Channels.newChannel(os));
+    VectorSchemaRoot root = batchData.wrapAsVectorSchemaRoot();
+    ArrowStreamWriter writer = new ArrowStreamWriter(root, null, Channels.newChannel(os));
 
-            writer.start();
-            writer.writeBatch();
-            writer.end();
+    writer.start();
+    writer.writeBatch();
+    writer.end();
 
-            writer.close();
-            os.close();
-            socket.close();
-        } catch (IOException e) {
-            logger.error("ArrowWriter fail to write vector");
-            throw new WriteBatchException("ArrowWriter fail to write vector", e);
-        }
+    writer.close();
+    os.close();
+    socket.close();
+    } catch (IOException e) {
+    logger.error("ArrowWriter fail to write batch");
+    throw new WriteBatchException("ArrowWriter fail to write batch", e);
     }
-
-    @Override
-    public void writeBatch(BatchData batchData) throws WriteBatchException {
-        try {
-            Socket socket = new Socket(ip, writerPort);
-            OutputStream os = socket.getOutputStream();
-
-            VectorSchemaRoot root = batchData.wrapAsVectorSchemaRoot();
-            ArrowStreamWriter writer = new ArrowStreamWriter(root, null, Channels.newChannel(os));
-
-            writer.start();
-            writer.writeBatch();
-            writer.end();
-
-            writer.close();
-            os.close();
-            socket.close();
-        } catch (IOException e) {
-            logger.error("ArrowWriter fail to write batch");
-            throw new WriteBatchException("ArrowWriter fail to write batch", e);
-        }
-    }
+}
 }

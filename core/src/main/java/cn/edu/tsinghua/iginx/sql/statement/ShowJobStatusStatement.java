@@ -11,23 +11,23 @@ import cn.edu.tsinghua.iginx.utils.RpcUtils;
 
 public class ShowJobStatusStatement extends SystemStatement {
 
-    private final long jobId;
+private final long jobId;
 
-    private final IginxWorker worker = IginxWorker.getInstance();
+private final IginxWorker worker = IginxWorker.getInstance();
 
-    public ShowJobStatusStatement(long jobId) {
-        this.statementType = StatementType.SHOW_JOB_STATUS;
-        this.jobId = jobId;
-    }
+public ShowJobStatusStatement(long jobId) {
+    this.statementType = StatementType.SHOW_JOB_STATUS;
+    this.jobId = jobId;
+}
 
-    @Override
-    public void execute(RequestContext ctx) throws ExecutionException {
-        QueryTransformJobStatusReq req = new QueryTransformJobStatusReq(ctx.getSessionId(), jobId);
-        QueryTransformJobStatusResp resp = worker.queryTransformJobStatus(req);
-        JobState jobState = resp.getJobState();
+@Override
+public void execute(RequestContext ctx) throws ExecutionException {
+    QueryTransformJobStatusReq req = new QueryTransformJobStatusReq(ctx.getSessionId(), jobId);
+    QueryTransformJobStatusResp resp = worker.queryTransformJobStatus(req);
+    JobState jobState = resp.getJobState();
 
-        Result result = new Result(RpcUtils.SUCCESS);
-        result.setJobState(jobState);
-        ctx.setResult(result);
-    }
+    Result result = new Result(RpcUtils.SUCCESS);
+    result.setJobState(jobState);
+    ctx.setResult(result);
+}
 }

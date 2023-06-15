@@ -39,98 +39,97 @@ import org.slf4j.LoggerFactory;
 
 public class Count implements SetMappingFunction {
 
-    public static final String COUNT = "count";
+public static final String COUNT = "count";
 
-    @SuppressWarnings("unused")
-    private static final Logger logger = LoggerFactory.getLogger(Count.class);
+@SuppressWarnings("unused")
+private static final Logger logger = LoggerFactory.getLogger(Count.class);
 
-    private static final Count INSTANCE = new Count();
+private static final Count INSTANCE = new Count();
 
-    private Count() {}
+private Count() {}
 
-    public static Count getInstance() {
-        return INSTANCE;
+public static Count getInstance() {
+    return INSTANCE;
+}
+
+@Override
+public FunctionType getFunctionType() {
+    return FunctionType.System;
+}
+
+@Override
+public MappingType getMappingType() {
+    return MappingType.SetMapping;
+}
+
+@Override
+public String getIdentifier() {
+    return COUNT;
+}
+
+@Override
+public Row transform(RowStream rows, FunctionParams params) throws Exception {
+    List<String> pathParams = params.getPaths();
+    if (pathParams == null || pathParams.size() != 1) {
+    throw new IllegalArgumentException("unexpected param type for avg.");
     }
+    List<Integer> groupByLevels = params.getLevels();
 
-    @Override
-    public FunctionType getFunctionType() {
-        return FunctionType.System;
-    }
-
-    @Override
-    public MappingType getMappingType() {
-        return MappingType.SetMapping;
-    }
-
-    @Override
-    public String getIdentifier() {
-        return COUNT;
-    }
-
-    @Override
-    public Row transform(RowStream rows, FunctionParams params) throws Exception {
-        List<String> pathParams = params.getPaths();
-        if (pathParams == null || pathParams.size() != 1) {
-            throw new IllegalArgumentException("unexpected param type for avg.");
+    String target = pathParams.get(0);
+    Pattern pattern = Pattern.compile(StringUtils.reformatPath(target) + ".*");
+    List<Field> targetFields = new ArrayList<>();
+    List<Integer> indices = new ArrayList<>();
+    Map<String, Integer> groupNameIndexMap = new HashMap<>(); // 只有在存在 group by 的时候才奏效
+    Map<Integer, Integer> groupOrderIndexMap = new HashMap<>();
+    for (int i = 0; i < rows.getHeader().getFieldSize(); i++) {
+    Field field = rows.getHeader().getField(i);
+    if (pattern.matcher(field.getFullName()).matches()) {
+        if (groupByLevels == null) {
+        String name = getIdentifier() + "(" + field.getName() + ")";
+        String fullName = getIdentifier() + "(" + field.getFullName() + ")";
+        targetFields.add(new Field(name, fullName, DataType.LONG));
+        } else {
+        String targetFieldName =
+            getIdentifier()
+                + "("
+                + GroupByUtils.transformPath(field.getName(), groupByLevels)
+                + ")";
+        String targetFieldFullName =
+            getIdentifier()
+                + "("
+                + GroupByUtils.transformPath(field.getFullName(), groupByLevels)
+                + ")";
+        int index = groupNameIndexMap.getOrDefault(targetFieldFullName, -1);
+        if (index != -1) {
+            groupOrderIndexMap.put(i, index);
+        } else {
+            groupNameIndexMap.put(targetFieldFullName, targetFields.size());
+            groupOrderIndexMap.put(i, targetFields.size());
+            targetFields.add(new Field(targetFieldName, targetFieldFullName, DataType.LONG));
         }
-        List<Integer> groupByLevels = params.getLevels();
-
-        String target = pathParams.get(0);
-        Pattern pattern = Pattern.compile(StringUtils.reformatPath(target) + ".*");
-        List<Field> targetFields = new ArrayList<>();
-        List<Integer> indices = new ArrayList<>();
-        Map<String, Integer> groupNameIndexMap = new HashMap<>(); // 只有在存在 group by 的时候才奏效
-        Map<Integer, Integer> groupOrderIndexMap = new HashMap<>();
-        for (int i = 0; i < rows.getHeader().getFieldSize(); i++) {
-            Field field = rows.getHeader().getField(i);
-            if (pattern.matcher(field.getFullName()).matches()) {
-                if (groupByLevels == null) {
-                    String name = getIdentifier() + "(" + field.getName() + ")";
-                    String fullName = getIdentifier() + "(" + field.getFullName() + ")";
-                    targetFields.add(new Field(name, fullName, DataType.LONG));
-                } else {
-                    String targetFieldName =
-                            getIdentifier()
-                                    + "("
-                                    + GroupByUtils.transformPath(field.getName(), groupByLevels)
-                                    + ")";
-                    String targetFieldFullName =
-                            getIdentifier()
-                                    + "("
-                                    + GroupByUtils.transformPath(field.getFullName(), groupByLevels)
-                                    + ")";
-                    int index = groupNameIndexMap.getOrDefault(targetFieldFullName, -1);
-                    if (index != -1) {
-                        groupOrderIndexMap.put(i, index);
-                    } else {
-                        groupNameIndexMap.put(targetFieldFullName, targetFields.size());
-                        groupOrderIndexMap.put(i, targetFields.size());
-                        targetFields.add(
-                                new Field(targetFieldName, targetFieldFullName, DataType.LONG));
-                    }
-                }
-                indices.add(i);
-            }
         }
-        long[] counts = new long[targetFields.size()];
-        while (rows.hasNext()) {
-            Row row = rows.next();
-            Object[] values = row.getValues();
-            for (int i = 0; i < indices.size(); i++) {
-                int index = indices.get(i);
-                if (values[index] != null) {
-                    int targetIndex = i;
-                    if (groupByLevels != null) {
-                        targetIndex = groupOrderIndexMap.get(index);
-                    }
-                    counts[targetIndex]++;
-                }
-            }
-        }
-        Object[] targetValues = new Object[targetFields.size()];
-        for (int i = 0; i < counts.length; i++) {
-            targetValues[i] = counts[i];
-        }
-        return new Row(new Header(targetFields), targetValues);
+        indices.add(i);
     }
+    }
+    long[] counts = new long[targetFields.size()];
+    while (rows.hasNext()) {
+    Row row = rows.next();
+    Object[] values = row.getValues();
+    for (int i = 0; i < indices.size(); i++) {
+        int index = indices.get(i);
+        if (values[index] != null) {
+        int targetIndex = i;
+        if (groupByLevels != null) {
+            targetIndex = groupOrderIndexMap.get(index);
+        }
+        counts[targetIndex]++;
+        }
+    }
+    }
+    Object[] targetValues = new Object[targetFields.size()];
+    for (int i = 0; i < counts.length; i++) {
+    targetValues[i] = counts[i];
+    }
+    return new Row(new Header(targetFields), targetValues);
+}
 }

@@ -4,11 +4,11 @@ import cn.edu.tsinghua.iginx.sql.statement.frompart.join.JoinCondition;
 
 public interface FromPart {
 
-    FromPartType getType();
+FromPartType getType();
 
-    String getPath();
+String getPath();
 
-    boolean isJoinPart();
+boolean isJoinPart();
 
-    JoinCondition getJoinCondition();
+JoinCondition getJoinCondition();
 }

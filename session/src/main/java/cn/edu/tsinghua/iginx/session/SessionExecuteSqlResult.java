@@ -27,413 +27,402 @@ import java.util.*;
 
 public class SessionExecuteSqlResult {
 
-    private SqlType sqlType;
-    private long[] keys;
-    private List<String> paths;
-    private List<List<Object>> values;
-    private List<DataType> dataTypeList;
-    private int replicaNum;
-    private long pointsNum;
-    private String parseErrorMsg;
-    private List<IginxInfo> iginxInfos;
-    private List<StorageEngineInfo> storageEngineInfos;
-    private List<MetaStorageInfo> metaStorageInfos;
-    private LocalMetaStorageInfo localMetaStorageInfo;
-    private List<RegisterTaskInfo> registerTaskInfos;
-    private long jobId;
-    private JobState jobState;
-    private List<Long> jobIdList;
-    private String configValue;
+private SqlType sqlType;
+private long[] keys;
+private List<String> paths;
+private List<List<Object>> values;
+private List<DataType> dataTypeList;
+private int replicaNum;
+private long pointsNum;
+private String parseErrorMsg;
+private List<IginxInfo> iginxInfos;
+private List<StorageEngineInfo> storageEngineInfos;
+private List<MetaStorageInfo> metaStorageInfos;
+private LocalMetaStorageInfo localMetaStorageInfo;
+private List<RegisterTaskInfo> registerTaskInfos;
+private long jobId;
+private JobState jobState;
+private List<Long> jobIdList;
+private String configValue;
 
-    // Only for mock test
-    public SessionExecuteSqlResult() {}
+// Only for mock test
+public SessionExecuteSqlResult() {}
 
-    // Only for mock test
-    public SessionExecuteSqlResult(
-            SqlType sqlType,
-            long[] keys,
-            List<String> paths,
-            List<List<Object>> values,
-            List<DataType> dataTypeList) {
-        this.sqlType = sqlType;
-        this.keys = keys;
-        this.paths = paths;
-        this.values = values;
-        this.dataTypeList = dataTypeList;
-    }
+// Only for mock test
+public SessionExecuteSqlResult(
+    SqlType sqlType,
+    long[] keys,
+    List<String> paths,
+    List<List<Object>> values,
+    List<DataType> dataTypeList) {
+    this.sqlType = sqlType;
+    this.keys = keys;
+    this.paths = paths;
+    this.values = values;
+    this.dataTypeList = dataTypeList;
+}
 
-    public SessionExecuteSqlResult(ExecuteSqlResp resp) {
-        this.sqlType = resp.getType();
-        this.parseErrorMsg = resp.getParseErrorMsg();
-        switch (resp.getType()) {
-            case GetReplicaNum:
-                this.replicaNum = resp.getReplicaNum();
-                break;
-            case CountPoints: // TODO 需要在底层屏蔽系统级时间序列以及注释索引数据点
-                this.pointsNum = resp.getPointsNum();
-                break;
-            case Query:
-                constructQueryResult(resp);
-                break;
-            case ShowColumns:
-                this.paths = resp.getPaths();
-                this.dataTypeList = resp.getDataTypeList();
-                break;
-            case ShowClusterInfo:
-                this.iginxInfos = resp.getIginxInfos();
-                this.storageEngineInfos = resp.getStorageEngineInfos();
-                this.metaStorageInfos = resp.getMetaStorageInfos();
-                this.localMetaStorageInfo = resp.getLocalMetaStorageInfo();
-                break;
-            case ShowRegisterTask:
-                this.registerTaskInfos = resp.getRegisterTaskInfos();
-                break;
-            case CommitTransformJob:
-                this.jobId = resp.getJobId();
-                break;
-            case ShowJobStatus:
-                this.jobState = resp.getJobState();
-                break;
-            case ShowEligibleJob:
-                this.jobIdList = resp.getJobIdList();
-                break;
-            case ShowConfig:
-                this.configValue = resp.getConfigValue();
-                break;
-            default:
-                break;
-        }
-    }
-
-    private void constructQueryResult(ExecuteSqlResp resp) {
+public SessionExecuteSqlResult(ExecuteSqlResp resp) {
+    this.sqlType = resp.getType();
+    this.parseErrorMsg = resp.getParseErrorMsg();
+    switch (resp.getType()) {
+    case GetReplicaNum:
+        this.replicaNum = resp.getReplicaNum();
+        break;
+    case CountPoints: // TODO 需要在底层屏蔽系统级时间序列以及注释索引数据点
+        this.pointsNum = resp.getPointsNum();
+        break;
+    case Query:
+        constructQueryResult(resp);
+        break;
+    case ShowColumns:
         this.paths = resp.getPaths();
         this.dataTypeList = resp.getDataTypeList();
+        break;
+    case ShowClusterInfo:
+        this.iginxInfos = resp.getIginxInfos();
+        this.storageEngineInfos = resp.getStorageEngineInfos();
+        this.metaStorageInfos = resp.getMetaStorageInfos();
+        this.localMetaStorageInfo = resp.getLocalMetaStorageInfo();
+        break;
+    case ShowRegisterTask:
+        this.registerTaskInfos = resp.getRegisterTaskInfos();
+        break;
+    case CommitTransformJob:
+        this.jobId = resp.getJobId();
+        break;
+    case ShowJobStatus:
+        this.jobState = resp.getJobState();
+        break;
+    case ShowEligibleJob:
+        this.jobIdList = resp.getJobIdList();
+        break;
+    case ShowConfig:
+        this.configValue = resp.getConfigValue();
+        break;
+    default:
+        break;
+    }
+}
 
-        if (resp.keys != null) {
-            this.keys = getLongArrayFromByteBuffer(resp.keys);
-        }
+private void constructQueryResult(ExecuteSqlResp resp) {
+    this.paths = resp.getPaths();
+    this.dataTypeList = resp.getDataTypeList();
 
-        // parse values
-        if (resp.getQueryDataSet() != null) {
-            this.values =
-                    getValuesFromBufferAndBitmaps(
-                            resp.dataTypeList,
-                            resp.queryDataSet.valuesList,
-                            resp.queryDataSet.bitmapList);
-        } else {
-            this.values = new ArrayList<>();
-        }
+    if (resp.keys != null) {
+    this.keys = getLongArrayFromByteBuffer(resp.keys);
     }
 
-    public List<List<String>> getResultInList(
-            boolean needFormatTime, String timeFormat, String timePrecision) {
-        List<List<String>> result = new ArrayList<>();
-        if (sqlType == SqlType.Query) {
-            result = cacheResult(needFormatTime, timeFormat, timePrecision);
-        } else if (sqlType == SqlType.ShowColumns) {
-            result.add(new ArrayList<>(Arrays.asList("Path", "DataType")));
-            if (paths != null) {
-                for (int i = 0; i < paths.size(); i++) {
-                    result.add(Arrays.asList(paths.get(i) + "", dataTypeList.get(i) + ""));
-                }
-            }
-        } else if (sqlType == SqlType.GetReplicaNum) {
-            result.add(new ArrayList<>(Collections.singletonList("Replica num")));
-            result.add(new ArrayList<>(Collections.singletonList(replicaNum + "")));
-        } else if (sqlType == SqlType.CountPoints) {
-            result.add(new ArrayList<>(Collections.singletonList("Points num")));
-            result.add(new ArrayList<>(Collections.singletonList(pointsNum + "")));
-        } else {
-            result.add(new ArrayList<>(Collections.singletonList("Empty set")));
-        }
-        return result;
+    // parse values
+    if (resp.getQueryDataSet() != null) {
+    this.values =
+        getValuesFromBufferAndBitmaps(
+            resp.dataTypeList, resp.queryDataSet.valuesList, resp.queryDataSet.bitmapList);
+    } else {
+    this.values = new ArrayList<>();
     }
+}
 
-    public void print(boolean needFormatTime, String timePrecision) {
-        System.out.print(getResultInString(needFormatTime, timePrecision));
-    }
-
-    public String getResultInString(boolean needFormatTime, String timePrecision) {
-        switch (sqlType) {
-            case Query:
-                return buildQueryResult(needFormatTime, timePrecision);
-            case ShowColumns:
-                return buildShowTimeSeriesResult();
-            case ShowClusterInfo:
-                return buildShowClusterInfoResult();
-            case ShowRegisterTask:
-                return buildShowRegisterTaskResult();
-            case ShowEligibleJob:
-                return buildShowEligibleJobResult();
-            case GetReplicaNum:
-                return "Replica num: " + replicaNum + "\n";
-            case CountPoints:
-                return "Points num: " + pointsNum + "\n";
-            case CommitTransformJob:
-                return "job id: " + jobId;
-            case ShowJobStatus:
-                return "Job status: " + jobState;
-            case ShowConfig:
-                return "config value: " + configValue + "\n";
-            default:
-                return "No data to print." + "\n";
-        }
-    }
-
-    private String buildQueryResult(boolean needFormatTime, String timePrecision) {
-        StringBuilder builder = new StringBuilder();
-        builder.append("ResultSets:").append("\n");
-
-        List<List<String>> cache =
-                cacheResult(needFormatTime, FormatUtils.DEFAULT_TIME_FORMAT, timePrecision);
-        builder.append(FormatUtils.formatResult(cache));
-
-        builder.append(FormatUtils.formatCount(cache.size() - 1));
-        return builder.toString();
-    }
-
-    private List<List<String>> cacheResult(
-            boolean needFormatTime, String timeFormat, String timePrecision) {
-        List<List<String>> cache = new ArrayList<>();
-        List<String> label = new ArrayList<>();
-        int annotationPathIndex = -1;
-        if (keys != null) {
-            label.add(GlobalConstant.KEY_NAME);
-        }
+public List<List<String>> getResultInList(
+    boolean needFormatTime, String timeFormat, String timePrecision) {
+    List<List<String>> result = new ArrayList<>();
+    if (sqlType == SqlType.Query) {
+    result = cacheResult(needFormatTime, timeFormat, timePrecision);
+    } else if (sqlType == SqlType.ShowColumns) {
+    result.add(new ArrayList<>(Arrays.asList("Path", "DataType")));
+    if (paths != null) {
         for (int i = 0; i < paths.size(); i++) {
-            String path = paths.get(i);
-            if (!path.equals("TITLE.DESCRIPTION")) { // TODO 不展示系统级时间序列
-                label.add(path);
-            } else {
-                annotationPathIndex = i;
-            }
+        result.add(Arrays.asList(paths.get(i) + "", dataTypeList.get(i) + ""));
         }
+    }
+    } else if (sqlType == SqlType.GetReplicaNum) {
+    result.add(new ArrayList<>(Collections.singletonList("Replica num")));
+    result.add(new ArrayList<>(Collections.singletonList(replicaNum + "")));
+    } else if (sqlType == SqlType.CountPoints) {
+    result.add(new ArrayList<>(Collections.singletonList("Points num")));
+    result.add(new ArrayList<>(Collections.singletonList(pointsNum + "")));
+    } else {
+    result.add(new ArrayList<>(Collections.singletonList("Empty set")));
+    }
+    return result;
+}
 
-        for (int i = 0; i < values.size(); i++) {
-            List<String> rowCache = new ArrayList<>();
-            if (keys != null) {
-                if (keys[i] == Long.MAX_VALUE - 1 || keys[i] == Long.MAX_VALUE - 2) {
-                    continue;
-                }
-                String timeValue;
-                if (needFormatTime) {
-                    timeValue = FormatUtils.formatTime(keys[i], timeFormat, timePrecision);
-                } else {
-                    timeValue = String.valueOf(keys[i]);
-                }
-                rowCache.add(timeValue);
-            }
+public void print(boolean needFormatTime, String timePrecision) {
+    System.out.print(getResultInString(needFormatTime, timePrecision));
+}
 
-            List<Object> rowData = values.get(i);
-            boolean isNull = true; // TODO 该行除系统级时间序列之外全部为空
-            for (int j = 0; j < rowData.size(); j++) {
-                if (j == annotationPathIndex) {
-                    continue;
-                }
-                String rowValue = FormatUtils.valueToString(rowData.get(j));
-                rowCache.add(rowValue);
-                if (!rowValue.equalsIgnoreCase("null")) {
-                    isNull = false;
-                }
-            }
-            if (!isNull) {
-                cache.add(rowCache);
-            }
+public String getResultInString(boolean needFormatTime, String timePrecision) {
+    switch (sqlType) {
+    case Query:
+        return buildQueryResult(needFormatTime, timePrecision);
+    case ShowColumns:
+        return buildShowTimeSeriesResult();
+    case ShowClusterInfo:
+        return buildShowClusterInfoResult();
+    case ShowRegisterTask:
+        return buildShowRegisterTaskResult();
+    case ShowEligibleJob:
+        return buildShowEligibleJobResult();
+    case GetReplicaNum:
+        return "Replica num: " + replicaNum + "\n";
+    case CountPoints:
+        return "Points num: " + pointsNum + "\n";
+    case CommitTransformJob:
+        return "job id: " + jobId;
+    case ShowJobStatus:
+        return "Job status: " + jobState;
+    case ShowConfig:
+        return "config value: " + configValue + "\n";
+    default:
+        return "No data to print." + "\n";
+    }
+}
+
+private String buildQueryResult(boolean needFormatTime, String timePrecision) {
+    StringBuilder builder = new StringBuilder();
+    builder.append("ResultSets:").append("\n");
+
+    List<List<String>> cache =
+        cacheResult(needFormatTime, FormatUtils.DEFAULT_TIME_FORMAT, timePrecision);
+    builder.append(FormatUtils.formatResult(cache));
+
+    builder.append(FormatUtils.formatCount(cache.size() - 1));
+    return builder.toString();
+}
+
+private List<List<String>> cacheResult(
+    boolean needFormatTime, String timeFormat, String timePrecision) {
+    List<List<String>> cache = new ArrayList<>();
+    List<String> label = new ArrayList<>();
+    int annotationPathIndex = -1;
+    if (keys != null) {
+    label.add(GlobalConstant.KEY_NAME);
+    }
+    for (int i = 0; i < paths.size(); i++) {
+    String path = paths.get(i);
+    if (!path.equals("TITLE.DESCRIPTION")) { // TODO 不展示系统级时间序列
+        label.add(path);
+    } else {
+        annotationPathIndex = i;
+    }
+    }
+
+    for (int i = 0; i < values.size(); i++) {
+    List<String> rowCache = new ArrayList<>();
+    if (keys != null) {
+        if (keys[i] == Long.MAX_VALUE - 1 || keys[i] == Long.MAX_VALUE - 2) {
+        continue;
         }
-
-        cache.add(0, label);
-
-        return cache;
-    }
-
-    private String buildShowTimeSeriesResult() {
-        StringBuilder builder = new StringBuilder();
-        builder.append("Columns:").append("\n");
-        int num = 0;
-        if (paths != null) {
-            List<List<String>> cache = new ArrayList<>();
-            cache.add(new ArrayList<>(Arrays.asList("Path", "DataType")));
-            for (int i = 0; i < paths.size(); i++) {
-                if (!paths.get(i).equals("TITLE.DESCRIPTION")) { // TODO 不展示系统级时间序列
-                    cache.add(
-                            new ArrayList<>(
-                                    Arrays.asList(paths.get(i), dataTypeList.get(i).toString())));
-                    num++;
-                }
-            }
-            builder.append(FormatUtils.formatResult(cache));
+        String timeValue;
+        if (needFormatTime) {
+        timeValue = FormatUtils.formatTime(keys[i], timeFormat, timePrecision);
+        } else {
+        timeValue = String.valueOf(keys[i]);
         }
-        builder.append(FormatUtils.formatCount(num));
-        return builder.toString();
+        rowCache.add(timeValue);
     }
 
-    private String buildShowClusterInfoResult() {
-        StringBuilder builder = new StringBuilder();
-
-        if (iginxInfos != null && !iginxInfos.isEmpty()) {
-            builder.append("IginX infos:").append("\n");
-            List<List<String>> cache = new ArrayList<>();
-            cache.add(new ArrayList<>(Arrays.asList("ID", "IP", "PORT")));
-            for (IginxInfo info : iginxInfos) {
-                cache.add(
-                        new ArrayList<>(
-                                Arrays.asList(
-                                        String.valueOf(info.getId()),
-                                        info.getIp(),
-                                        String.valueOf(info.getPort()))));
-            }
-            builder.append(FormatUtils.formatResult(cache));
+    List<Object> rowData = values.get(i);
+    boolean isNull = true; // TODO 该行除系统级时间序列之外全部为空
+    for (int j = 0; j < rowData.size(); j++) {
+        if (j == annotationPathIndex) {
+        continue;
         }
-
-        if (storageEngineInfos != null && !storageEngineInfos.isEmpty()) {
-            builder.append("Storage engine infos:").append("\n");
-            List<List<String>> cache = new ArrayList<>();
-            cache.add(
-                    new ArrayList<>(
-                            Arrays.asList(
-                                    "ID", "IP", "PORT", "TYPE", "SCHEMA_PREFIX", "DATAPREFIX")));
-            for (StorageEngineInfo info : storageEngineInfos) {
-                cache.add(
-                        new ArrayList<>(
-                                Arrays.asList(
-                                        String.valueOf(info.getId()),
-                                        info.getIp(),
-                                        String.valueOf(info.getPort()),
-                                        info.getType(),
-                                        info.getSchemaPrefix(),
-                                        info.getDataPrefix())));
-            }
-            builder.append(FormatUtils.formatResult(cache));
+        String rowValue = FormatUtils.valueToString(rowData.get(j));
+        rowCache.add(rowValue);
+        if (!rowValue.equalsIgnoreCase("null")) {
+        isNull = false;
         }
+    }
+    if (!isNull) {
+        cache.add(rowCache);
+    }
+    }
 
-        if (metaStorageInfos != null && !metaStorageInfos.isEmpty()) {
-            builder.append("Meta Storage infos:").append("\n");
-            List<List<String>> cache = new ArrayList<>();
-            cache.add(new ArrayList<>(Arrays.asList("IP", "PORT", "TYPE")));
-            for (MetaStorageInfo info : metaStorageInfos) {
-                cache.add(
-                        new ArrayList<>(
-                                Arrays.asList(
-                                        info.getIp(),
-                                        String.valueOf(info.getPort()),
-                                        info.getType())));
-            }
-            builder.append(FormatUtils.formatResult(cache));
+    cache.add(0, label);
+
+    return cache;
+}
+
+private String buildShowTimeSeriesResult() {
+    StringBuilder builder = new StringBuilder();
+    builder.append("Columns:").append("\n");
+    int num = 0;
+    if (paths != null) {
+    List<List<String>> cache = new ArrayList<>();
+    cache.add(new ArrayList<>(Arrays.asList("Path", "DataType")));
+    for (int i = 0; i < paths.size(); i++) {
+        if (!paths.get(i).equals("TITLE.DESCRIPTION")) { // TODO 不展示系统级时间序列
+        cache.add(new ArrayList<>(Arrays.asList(paths.get(i), dataTypeList.get(i).toString())));
+        num++;
         }
+    }
+    builder.append(FormatUtils.formatResult(cache));
+    }
+    builder.append(FormatUtils.formatCount(num));
+    return builder.toString();
+}
 
-        if (localMetaStorageInfo != null) {
-            builder.append("Meta Storage path:").append("\n");
-            List<List<String>> cache = new ArrayList<>();
-            cache.add(new ArrayList<>(Collections.singletonList("PATH")));
-            cache.add(new ArrayList<>(Collections.singletonList(localMetaStorageInfo.getPath())));
-            builder.append(FormatUtils.formatResult(cache));
-        }
+private String buildShowClusterInfoResult() {
+    StringBuilder builder = new StringBuilder();
 
-        return builder.toString();
+    if (iginxInfos != null && !iginxInfos.isEmpty()) {
+    builder.append("IginX infos:").append("\n");
+    List<List<String>> cache = new ArrayList<>();
+    cache.add(new ArrayList<>(Arrays.asList("ID", "IP", "PORT")));
+    for (IginxInfo info : iginxInfos) {
+        cache.add(
+            new ArrayList<>(
+                Arrays.asList(
+                    String.valueOf(info.getId()), info.getIp(), String.valueOf(info.getPort()))));
+    }
+    builder.append(FormatUtils.formatResult(cache));
     }
 
-    private String buildShowRegisterTaskResult() {
-        StringBuilder builder = new StringBuilder();
-
-        if (registerTaskInfos != null && !registerTaskInfos.isEmpty()) {
-            builder.append("Register task infos:").append("\n");
-            List<List<String>> cache = new ArrayList<>();
-            cache.add(
-                    new ArrayList<>(
-                            Arrays.asList("NAME", "CLASS_NAME", "FILE_NAME", "IP", "UDF_TYPE")));
-            for (RegisterTaskInfo info : registerTaskInfos) {
-                cache.add(
-                        new ArrayList<>(
-                                Arrays.asList(
-                                        info.getName(),
-                                        info.getClassName(),
-                                        info.getFileName(),
-                                        info.getIp(),
-                                        info.getType().toString())));
-            }
-            builder.append(FormatUtils.formatResult(cache));
-        }
-
-        return builder.toString();
+    if (storageEngineInfos != null && !storageEngineInfos.isEmpty()) {
+    builder.append("Storage engine infos:").append("\n");
+    List<List<String>> cache = new ArrayList<>();
+    cache.add(
+        new ArrayList<>(
+            Arrays.asList("ID", "IP", "PORT", "TYPE", "SCHEMA_PREFIX", "DATAPREFIX")));
+    for (StorageEngineInfo info : storageEngineInfos) {
+        cache.add(
+            new ArrayList<>(
+                Arrays.asList(
+                    String.valueOf(info.getId()),
+                    info.getIp(),
+                    String.valueOf(info.getPort()),
+                    info.getType(),
+                    info.getSchemaPrefix(),
+                    info.getDataPrefix())));
+    }
+    builder.append(FormatUtils.formatResult(cache));
     }
 
-    private String buildShowEligibleJobResult() {
-        StringBuilder builder = new StringBuilder();
-
-        if (jobIdList != null) {
-            builder.append("Transform Id List:").append("\n");
-            List<List<String>> cache = new ArrayList<>();
-            cache.add(new ArrayList<>(Collections.singletonList("JobIdList")));
-            for (long jobId : jobIdList) {
-                cache.add(new ArrayList<>(Collections.singletonList(String.valueOf(jobId))));
-            }
-            builder.append(FormatUtils.formatResult(cache));
-        }
-
-        return builder.toString();
+    if (metaStorageInfos != null && !metaStorageInfos.isEmpty()) {
+    builder.append("Meta Storage infos:").append("\n");
+    List<List<String>> cache = new ArrayList<>();
+    cache.add(new ArrayList<>(Arrays.asList("IP", "PORT", "TYPE")));
+    for (MetaStorageInfo info : metaStorageInfos) {
+        cache.add(
+            new ArrayList<>(
+                Arrays.asList(info.getIp(), String.valueOf(info.getPort()), info.getType())));
+    }
+    builder.append(FormatUtils.formatResult(cache));
     }
 
-    public SqlType getSqlType() {
-        return sqlType;
+    if (localMetaStorageInfo != null) {
+    builder.append("Meta Storage path:").append("\n");
+    List<List<String>> cache = new ArrayList<>();
+    cache.add(new ArrayList<>(Collections.singletonList("PATH")));
+    cache.add(new ArrayList<>(Collections.singletonList(localMetaStorageInfo.getPath())));
+    builder.append(FormatUtils.formatResult(cache));
     }
 
-    public void setSqlType(SqlType sqlType) {
-        this.sqlType = sqlType;
+    return builder.toString();
+}
+
+private String buildShowRegisterTaskResult() {
+    StringBuilder builder = new StringBuilder();
+
+    if (registerTaskInfos != null && !registerTaskInfos.isEmpty()) {
+    builder.append("Register task infos:").append("\n");
+    List<List<String>> cache = new ArrayList<>();
+    cache.add(
+        new ArrayList<>(Arrays.asList("NAME", "CLASS_NAME", "FILE_NAME", "IP", "UDF_TYPE")));
+    for (RegisterTaskInfo info : registerTaskInfos) {
+        cache.add(
+            new ArrayList<>(
+                Arrays.asList(
+                    info.getName(),
+                    info.getClassName(),
+                    info.getFileName(),
+                    info.getIp(),
+                    info.getType().toString())));
+    }
+    builder.append(FormatUtils.formatResult(cache));
     }
 
-    public long[] getKeys() {
-        return keys;
+    return builder.toString();
+}
+
+private String buildShowEligibleJobResult() {
+    StringBuilder builder = new StringBuilder();
+
+    if (jobIdList != null) {
+    builder.append("Transform Id List:").append("\n");
+    List<List<String>> cache = new ArrayList<>();
+    cache.add(new ArrayList<>(Collections.singletonList("JobIdList")));
+    for (long jobId : jobIdList) {
+        cache.add(new ArrayList<>(Collections.singletonList(String.valueOf(jobId))));
+    }
+    builder.append(FormatUtils.formatResult(cache));
     }
 
-    public void setKeys(long[] keys) {
-        this.keys = keys;
-    }
+    return builder.toString();
+}
 
-    public List<String> getPaths() {
-        return paths;
-    }
+public SqlType getSqlType() {
+    return sqlType;
+}
 
-    public void setPaths(List<String> paths) {
-        this.paths = paths;
-    }
+public void setSqlType(SqlType sqlType) {
+    this.sqlType = sqlType;
+}
 
-    public List<List<Object>> getValues() {
-        return values;
-    }
+public long[] getKeys() {
+    return keys;
+}
 
-    public void setValues(List<List<Object>> values) {
-        this.values = values;
-    }
+public void setKeys(long[] keys) {
+    this.keys = keys;
+}
 
-    public List<DataType> getDataTypeList() {
-        return dataTypeList;
-    }
+public List<String> getPaths() {
+    return paths;
+}
 
-    public void setDataTypeList(List<DataType> dataTypeList) {
-        this.dataTypeList = dataTypeList;
-    }
+public void setPaths(List<String> paths) {
+    this.paths = paths;
+}
 
-    public int getReplicaNum() {
-        return replicaNum;
-    }
+public List<List<Object>> getValues() {
+    return values;
+}
 
-    public long getPointsNum() {
-        return pointsNum;
-    }
+public void setValues(List<List<Object>> values) {
+    this.values = values;
+}
 
-    public String getParseErrorMsg() {
-        return parseErrorMsg;
-    }
+public List<DataType> getDataTypeList() {
+    return dataTypeList;
+}
 
-    public long getJobId() {
-        return jobId;
-    }
+public void setDataTypeList(List<DataType> dataTypeList) {
+    this.dataTypeList = dataTypeList;
+}
 
-    public JobState getJobState() {
-        return jobState;
-    }
+public int getReplicaNum() {
+    return replicaNum;
+}
 
-    public List<RegisterTaskInfo> getRegisterTaskInfos() {
-        return registerTaskInfos;
-    }
+public long getPointsNum() {
+    return pointsNum;
+}
+
+public String getParseErrorMsg() {
+    return parseErrorMsg;
+}
+
+public long getJobId() {
+    return jobId;
+}
+
+public JobState getJobState() {
+    return jobState;
+}
+
+public List<RegisterTaskInfo> getRegisterTaskInfos() {
+    return registerTaskInfos;
+}
 }

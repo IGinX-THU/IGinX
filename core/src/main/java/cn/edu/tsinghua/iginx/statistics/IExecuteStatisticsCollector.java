@@ -5,7 +5,7 @@ import cn.edu.tsinghua.iginx.engine.shared.processor.PreExecuteProcessor;
 
 public interface IExecuteStatisticsCollector {
 
-    PreExecuteProcessor getPreExecuteProcessor();
+PreExecuteProcessor getPreExecuteProcessor();
 
-    PostExecuteProcessor getPostExecuteProcessor();
+PostExecuteProcessor getPostExecuteProcessor();
 }

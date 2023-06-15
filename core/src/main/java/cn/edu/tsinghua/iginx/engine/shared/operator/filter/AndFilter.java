@@ -25,57 +25,55 @@ import java.util.stream.Collectors;
 
 public class AndFilter implements Filter {
 
-    private final FilterType type = FilterType.And;
+private final FilterType type = FilterType.And;
 
-    private final List<Filter> children;
+private final List<Filter> children;
 
-    public AndFilter(List<Filter> children) {
-        this.children = children;
+public AndFilter(List<Filter> children) {
+    this.children = children;
+}
+
+public List<Filter> getChildren() {
+    return children;
+}
+
+@Override
+public void accept(FilterVisitor visitor) {
+    visitor.visit(this);
+    this.children.forEach(child -> child.accept(visitor));
+}
+
+@Override
+public FilterType getType() {
+    return type;
+}
+
+@Override
+public Filter copy() {
+    List<Filter> newChildren = new ArrayList<>();
+    children.forEach(e -> newChildren.add(e.copy()));
+    return new AndFilter(newChildren);
+}
+
+@Override
+public String toString() {
+    return children.stream().map(Object::toString).collect(Collectors.joining(" && ", "(", ")"));
+}
+
+@Override
+public boolean equals(Object o) {
+    if (this == o) {
+    return true;
     }
-
-    public List<Filter> getChildren() {
-        return children;
+    if (o == null || getClass() != o.getClass()) {
+    return false;
     }
+    AndFilter andFilter = (AndFilter) o;
+    return type == andFilter.type && Objects.equals(children, andFilter.children);
+}
 
-    @Override
-    public void accept(FilterVisitor visitor) {
-        visitor.visit(this);
-        this.children.forEach(child -> child.accept(visitor));
-    }
-
-    @Override
-    public FilterType getType() {
-        return type;
-    }
-
-    @Override
-    public Filter copy() {
-        List<Filter> newChildren = new ArrayList<>();
-        children.forEach(e -> newChildren.add(e.copy()));
-        return new AndFilter(newChildren);
-    }
-
-    @Override
-    public String toString() {
-        return children.stream()
-                .map(Object::toString)
-                .collect(Collectors.joining(" && ", "(", ")"));
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        AndFilter andFilter = (AndFilter) o;
-        return type == andFilter.type && Objects.equals(children, andFilter.children);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(type, children);
-    }
+@Override
+public int hashCode() {
+    return Objects.hash(type, children);
+}
 }

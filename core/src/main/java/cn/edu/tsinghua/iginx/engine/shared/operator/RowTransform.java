@@ -27,11 +27,25 @@ import java.util.List;
 
 public class RowTransform extends AbstractUnaryOperator {
 
-    private final List<FunctionCall> functionCallList;
+private final List<FunctionCall> functionCallList;
 
-    public RowTransform(Source source, FunctionCall functionCall) {
-        super(OperatorType.RowTransform, source);
-        this.functionCallList = new ArrayList<>();
+public RowTransform(Source source, FunctionCall functionCall) {
+    super(OperatorType.RowTransform, source);
+    this.functionCallList = new ArrayList<>();
+    if (functionCall == null || functionCall.getFunction() == null) {
+    throw new IllegalArgumentException("function shouldn't be null");
+    }
+    if (functionCall.getFunction().getMappingType() != MappingType.RowMapping) {
+    throw new IllegalArgumentException("function should be set mapping function");
+    }
+    this.functionCallList.add(functionCall);
+}
+
+public RowTransform(Source source, List<FunctionCall> functionCallList) {
+    super(OperatorType.RowTransform, source);
+    this.functionCallList = new ArrayList<>();
+    functionCallList.forEach(
+        functionCall -> {
         if (functionCall == null || functionCall.getFunction() == null) {
             throw new IllegalArgumentException("function shouldn't be null");
         }
@@ -39,35 +53,20 @@ public class RowTransform extends AbstractUnaryOperator {
             throw new IllegalArgumentException("function should be set mapping function");
         }
         this.functionCallList.add(functionCall);
-    }
+        });
+}
 
-    public RowTransform(Source source, List<FunctionCall> functionCallList) {
-        super(OperatorType.RowTransform, source);
-        this.functionCallList = new ArrayList<>();
-        functionCallList.forEach(
-                functionCall -> {
-                    if (functionCall == null || functionCall.getFunction() == null) {
-                        throw new IllegalArgumentException("function shouldn't be null");
-                    }
-                    if (functionCall.getFunction().getMappingType() != MappingType.RowMapping) {
-                        throw new IllegalArgumentException(
-                                "function should be set mapping function");
-                    }
-                    this.functionCallList.add(functionCall);
-                });
-    }
+public List<FunctionCall> getFunctionCallList() {
+    return functionCallList;
+}
 
-    public List<FunctionCall> getFunctionCallList() {
-        return functionCallList;
-    }
+@Override
+public Operator copy() {
+    return new RowTransform(getSource().copy(), new ArrayList<>(functionCallList));
+}
 
-    @Override
-    public Operator copy() {
-        return new RowTransform(getSource().copy(), new ArrayList<>(functionCallList));
-    }
-
-    @Override
-    public String getInfo() {
-        return "FuncList: " + functionCallList.toString();
-    }
+@Override
+public String getInfo() {
+    return "FuncList: " + functionCallList.toString();
+}
 }

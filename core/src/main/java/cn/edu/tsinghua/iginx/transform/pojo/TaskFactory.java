@@ -6,26 +6,26 @@ import cn.edu.tsinghua.iginx.utils.TaskFromYAML;
 
 public class TaskFactory {
 
-    public static Task getTask(TaskInfo info) {
-        TaskType taskType = info.getTaskType();
+public static Task getTask(TaskInfo info) {
+    TaskType taskType = info.getTaskType();
 
-        if (taskType.equals(TaskType.IginX)) {
-            return new IginXTask(info);
-        } else if (taskType.equals(TaskType.Python)) {
-            return new PythonTask(info);
-        } else {
-            throw new IllegalArgumentException("Unknown task type: " + taskType.toString());
-        }
+    if (taskType.equals(TaskType.IginX)) {
+    return new IginXTask(info);
+    } else if (taskType.equals(TaskType.Python)) {
+    return new PythonTask(info);
+    } else {
+    throw new IllegalArgumentException("Unknown task type: " + taskType.toString());
     }
+}
 
-    public static Task getTask(TaskFromYAML info) {
-        String type = info.getTaskType().toLowerCase().trim();
-        if (type.equals("iginx")) {
-            return new IginXTask(info);
-        } else if (type.equals("python")) {
-            return new PythonTask(info);
-        } else {
-            throw new IllegalArgumentException("Unknown task type: " + type);
-        }
+public static Task getTask(TaskFromYAML info) {
+    String type = info.getTaskType().toLowerCase().trim();
+    if (type.equals("iginx")) {
+    return new IginXTask(info);
+    } else if (type.equals("python")) {
+    return new PythonTask(info);
+    } else {
+    throw new IllegalArgumentException("Unknown task type: " + type);
     }
+}
 }

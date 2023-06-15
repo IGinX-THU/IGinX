@@ -15,57 +15,57 @@ import org.slf4j.LoggerFactory;
 
 public class FragmentDeletionCompaction extends Compaction {
 
-    private static final Logger logger = LoggerFactory.getLogger(FragmentDeletionCompaction.class);
-    private List<FragmentMeta> toDeletionFragments = new ArrayList<>();
+private static final Logger logger = LoggerFactory.getLogger(FragmentDeletionCompaction.class);
+private List<FragmentMeta> toDeletionFragments = new ArrayList<>();
 
-    public FragmentDeletionCompaction(PhysicalEngine physicalEngine, IMetaManager metaManager) {
-        super(physicalEngine, metaManager);
+public FragmentDeletionCompaction(PhysicalEngine physicalEngine, IMetaManager metaManager) {
+    super(physicalEngine, metaManager);
+}
+
+@Override
+public boolean needCompaction() throws Exception {
+    // 集中信息（初版主要是统计分区热度）
+    Pair<Map<FragmentMeta, Long>, Map<FragmentMeta, Long>> fragmentHeatPair =
+        metaManager.loadFragmentHeat();
+    Map<FragmentMeta, Long> fragmentHeatWriteMap = fragmentHeatPair.getK();
+    Map<FragmentMeta, Long> fragmentHeatReadMap = fragmentHeatPair.getV();
+    if (fragmentHeatWriteMap == null) {
+    fragmentHeatWriteMap = new HashMap<>();
+    }
+    if (fragmentHeatReadMap == null) {
+    fragmentHeatReadMap = new HashMap<>();
     }
 
-    @Override
-    public boolean needCompaction() throws Exception {
-        // 集中信息（初版主要是统计分区热度）
-        Pair<Map<FragmentMeta, Long>, Map<FragmentMeta, Long>> fragmentHeatPair =
-                metaManager.loadFragmentHeat();
-        Map<FragmentMeta, Long> fragmentHeatWriteMap = fragmentHeatPair.getK();
-        Map<FragmentMeta, Long> fragmentHeatReadMap = fragmentHeatPair.getV();
-        if (fragmentHeatWriteMap == null) {
-            fragmentHeatWriteMap = new HashMap<>();
-        }
-        if (fragmentHeatReadMap == null) {
-            fragmentHeatReadMap = new HashMap<>();
-        }
-
-        long totalHeats = 0;
-        for (Map.Entry<FragmentMeta, Long> fragmentHeatReadEntry : fragmentHeatReadMap.entrySet()) {
-            totalHeats += fragmentHeatReadEntry.getValue();
-        }
-        double limitReadHeats = totalHeats * 1.0 / fragmentHeatReadMap.size();
-
-        // 判断是否要删除可定制化副本生成的冗余分片
-        // TODO
-
-        return !toDeletionFragments.isEmpty();
+    long totalHeats = 0;
+    for (Map.Entry<FragmentMeta, Long> fragmentHeatReadEntry : fragmentHeatReadMap.entrySet()) {
+    totalHeats += fragmentHeatReadEntry.getValue();
     }
+    double limitReadHeats = totalHeats * 1.0 / fragmentHeatReadMap.size();
 
-    @Override
-    public void compact() throws PhysicalException {
-        for (FragmentMeta fragmentMeta : toDeletionFragments) {
-            // 删除可定制化副本分片元数据
-            // TODO
+    // 判断是否要删除可定制化副本生成的冗余分片
+    // TODO
 
-            // 删除节点数据
-            List<String> paths = new ArrayList<>();
-            paths.add(fragmentMeta.getMasterStorageUnitId() + "*");
-            List<KeyRange> keyRanges = new ArrayList<>();
-            keyRanges.add(
-                    new KeyRange(
-                            fragmentMeta.getKeyInterval().getStartKey(),
-                            true,
-                            fragmentMeta.getKeyInterval().getEndKey(),
-                            false));
-            Delete delete = new Delete(new FragmentSource(fragmentMeta), keyRanges, paths, null);
-            physicalEngine.execute(new RequestContext(), delete);
-        }
+    return !toDeletionFragments.isEmpty();
+}
+
+@Override
+public void compact() throws PhysicalException {
+    for (FragmentMeta fragmentMeta : toDeletionFragments) {
+    // 删除可定制化副本分片元数据
+    // TODO
+
+    // 删除节点数据
+    List<String> paths = new ArrayList<>();
+    paths.add(fragmentMeta.getMasterStorageUnitId() + "*");
+    List<KeyRange> keyRanges = new ArrayList<>();
+    keyRanges.add(
+        new KeyRange(
+            fragmentMeta.getKeyInterval().getStartKey(),
+            true,
+            fragmentMeta.getKeyInterval().getEndKey(),
+            false));
+    Delete delete = new Delete(new FragmentSource(fragmentMeta), keyRanges, paths, null);
+    physicalEngine.execute(new RequestContext(), delete);
     }
+}
 }

@@ -26,22 +26,22 @@ import org.slf4j.LoggerFactory;
 
 public class MemoryPhysicalTaskQueueImpl implements MemoryPhysicalTaskQueue {
 
-    private static final Logger logger = LoggerFactory.getLogger(MemoryPhysicalTaskQueueImpl.class);
+private static final Logger logger = LoggerFactory.getLogger(MemoryPhysicalTaskQueueImpl.class);
 
-    private final BlockingQueue<MemoryPhysicalTask> tasks = new LinkedBlockingQueue<>();
+private final BlockingQueue<MemoryPhysicalTask> tasks = new LinkedBlockingQueue<>();
 
-    @Override
-    public boolean addTask(MemoryPhysicalTask memoryTask) {
-        return tasks.add(memoryTask);
+@Override
+public boolean addTask(MemoryPhysicalTask memoryTask) {
+    return tasks.add(memoryTask);
+}
+
+@Override
+public MemoryPhysicalTask getTask() {
+    try {
+    return tasks.take();
+    } catch (Exception e) {
+    logger.error("encounter error when get memory task: ", e);
     }
-
-    @Override
-    public MemoryPhysicalTask getTask() {
-        try {
-            return tasks.take();
-        } catch (Exception e) {
-            logger.error("encounter error when get memory task: ", e);
-        }
-        return null;
-    }
+    return null;
+}
 }

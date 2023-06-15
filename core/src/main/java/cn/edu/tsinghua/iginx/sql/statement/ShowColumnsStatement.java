@@ -6,52 +6,52 @@ import java.util.Set;
 
 public class ShowColumnsStatement extends DataStatement {
 
-    private Set<String> pathRegexSet;
-    private TagFilter tagFilter;
+private Set<String> pathRegexSet;
+private TagFilter tagFilter;
 
-    private int limit;
-    private int offset;
+private int limit;
+private int offset;
 
-    public ShowColumnsStatement() {
-        this.statementType = StatementType.SHOW_COLUMNS;
-        this.pathRegexSet = new HashSet<>();
-        this.limit = Integer.MAX_VALUE;
-        this.offset = 0;
-    }
+public ShowColumnsStatement() {
+    this.statementType = StatementType.SHOW_COLUMNS;
+    this.pathRegexSet = new HashSet<>();
+    this.limit = Integer.MAX_VALUE;
+    this.offset = 0;
+}
 
-    public void setPathRegex(String pathRegex) {
-        this.pathRegexSet.add(pathRegex);
-    }
+public void setPathRegex(String pathRegex) {
+    this.pathRegexSet.add(pathRegex);
+}
 
-    public Set<String> getPathRegexSet() {
-        return pathRegexSet;
-    }
+public Set<String> getPathRegexSet() {
+    return pathRegexSet;
+}
 
-    public void setPathRegexSet(Set<String> pathRegexSet) {
-        this.pathRegexSet = pathRegexSet;
-    }
+public void setPathRegexSet(Set<String> pathRegexSet) {
+    this.pathRegexSet = pathRegexSet;
+}
 
-    public TagFilter getTagFilter() {
-        return tagFilter;
-    }
+public TagFilter getTagFilter() {
+    return tagFilter;
+}
 
-    public void setTagFilter(TagFilter tagFilter) {
-        this.tagFilter = tagFilter;
-    }
+public void setTagFilter(TagFilter tagFilter) {
+    this.tagFilter = tagFilter;
+}
 
-    public int getLimit() {
-        return limit;
-    }
+public int getLimit() {
+    return limit;
+}
 
-    public void setLimit(int limit) {
-        this.limit = limit;
-    }
+public void setLimit(int limit) {
+    this.limit = limit;
+}
 
-    public int getOffset() {
-        return offset;
-    }
+public int getOffset() {
+    return offset;
+}
 
-    public void setOffset(int offset) {
-        this.offset = offset;
-    }
+public void setOffset(int offset) {
+    this.offset = offset;
+}
 }

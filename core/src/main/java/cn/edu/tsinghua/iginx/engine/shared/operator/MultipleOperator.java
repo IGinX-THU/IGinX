@@ -5,7 +5,7 @@ import java.util.List;
 
 public interface MultipleOperator extends Operator {
 
-    List<Source> getSources();
+List<Source> getSources();
 
-    void setSources(List<Source> sources);
+void setSources(List<Source> sources);
 }

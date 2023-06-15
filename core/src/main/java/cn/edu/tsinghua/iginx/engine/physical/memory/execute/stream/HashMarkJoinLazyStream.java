@@ -22,110 +22,108 @@ import java.util.List;
 
 public class HashMarkJoinLazyStream extends BinaryLazyStream {
 
-    private final MarkJoin markJoin;
-    private final HashMap<Integer, List<Row>> streamBHashMap;
-    private final Deque<Row> cache;
-    private Header header;
-    private boolean hasInitialized = false;
-    private String joinPathA;
-    private boolean needTypeCast = false;
+private final MarkJoin markJoin;
+private final HashMap<Integer, List<Row>> streamBHashMap;
+private final Deque<Row> cache;
+private Header header;
+private boolean hasInitialized = false;
+private String joinPathA;
+private boolean needTypeCast = false;
 
-    public HashMarkJoinLazyStream(MarkJoin markJoin, RowStream streamA, RowStream streamB) {
-        super(streamA, streamB);
-        this.markJoin = markJoin;
-        this.streamBHashMap = new HashMap<>();
-        this.cache = new LinkedList<>();
+public HashMarkJoinLazyStream(MarkJoin markJoin, RowStream streamA, RowStream streamB) {
+    super(streamA, streamB);
+    this.markJoin = markJoin;
+    this.streamBHashMap = new HashMap<>();
+    this.cache = new LinkedList<>();
+}
+
+private void initialize() throws PhysicalException {
+    this.header = constructNewHead(streamA.getHeader(), markJoin.getMarkColumn());
+    Pair<String, String> joinPath =
+        getJoinPathFromFilter(markJoin.getFilter(), streamA.getHeader(), streamB.getHeader());
+    this.joinPathA = joinPath.k;
+    String joinPathB = joinPath.v;
+
+    DataType dataType1 =
+        streamA.getHeader().getField(streamA.getHeader().indexOf(joinPathA)).getType();
+    DataType dataType2 =
+        streamB.getHeader().getField(streamB.getHeader().indexOf(joinPathB)).getType();
+    if (ValueUtils.isNumericType(dataType1) && ValueUtils.isNumericType(dataType2)) {
+    this.needTypeCast = true;
     }
 
-    private void initialize() throws PhysicalException {
-        this.header = constructNewHead(streamA.getHeader(), markJoin.getMarkColumn());
-        Pair<String, String> joinPath =
-                getJoinPathFromFilter(
-                        markJoin.getFilter(), streamA.getHeader(), streamB.getHeader());
-        this.joinPathA = joinPath.k;
-        String joinPathB = joinPath.v;
+    while (streamB.hasNext()) {
+    Row rowB = streamB.next();
+    Value value = rowB.getAsValue(joinPathB);
+    if (value == null) {
+        continue;
+    }
+    if (needTypeCast) {
+        value = ValueUtils.transformToDouble(value);
+    }
+    int hash;
+    if (value.getDataType() == DataType.BINARY) {
+        hash = Arrays.hashCode(value.getBinaryV());
+    } else {
+        hash = value.getValue().hashCode();
+    }
+    List<Row> rows = streamBHashMap.getOrDefault(hash, new ArrayList<>());
+    rows.add(rowB);
+    streamBHashMap.putIfAbsent(hash, rows);
+    }
+    this.hasInitialized = true;
+}
 
-        DataType dataType1 =
-                streamA.getHeader().getField(streamA.getHeader().indexOf(joinPathA)).getType();
-        DataType dataType2 =
-                streamB.getHeader().getField(streamB.getHeader().indexOf(joinPathB)).getType();
-        if (ValueUtils.isNumericType(dataType1) && ValueUtils.isNumericType(dataType2)) {
-            this.needTypeCast = true;
-        }
+@Override
+public Header getHeader() throws PhysicalException {
+    if (!hasInitialized) {
+    initialize();
+    }
+    return header;
+}
 
-        while (streamB.hasNext()) {
-            Row rowB = streamB.next();
-            Value value = rowB.getAsValue(joinPathB);
-            if (value == null) {
-                continue;
-            }
-            if (needTypeCast) {
-                value = ValueUtils.transformToDouble(value);
-            }
-            int hash;
-            if (value.getDataType() == DataType.BINARY) {
-                hash = Arrays.hashCode(value.getBinaryV());
-            } else {
-                hash = value.getValue().hashCode();
-            }
-            List<Row> rows = streamBHashMap.getOrDefault(hash, new ArrayList<>());
-            rows.add(rowB);
-            streamBHashMap.putIfAbsent(hash, rows);
-        }
-        this.hasInitialized = true;
+@Override
+public boolean hasNext() throws PhysicalException {
+    if (!hasInitialized) {
+    initialize();
+    }
+    while (cache.isEmpty() && streamA.hasNext()) {
+    tryMatch();
+    }
+    return !cache.isEmpty();
+}
+
+private void tryMatch() throws PhysicalException {
+    Row rowA = streamA.next();
+
+    Value value = rowA.getAsValue(joinPathA);
+    if (value == null) {
+    return;
+    }
+    if (needTypeCast) {
+    value = ValueUtils.transformToDouble(value);
+    }
+    int hash;
+    if (value.getDataType() == DataType.BINARY) {
+    hash = Arrays.hashCode(value.getBinaryV());
+    } else {
+    hash = value.getValue().hashCode();
     }
 
-    @Override
-    public Header getHeader() throws PhysicalException {
-        if (!hasInitialized) {
-            initialize();
-        }
-        return header;
+    if (streamBHashMap.containsKey(hash)) {
+    Row returnRow = RowUtils.constructNewRowWithMark(header, rowA, !markJoin.isAntiJoin());
+    cache.add(returnRow);
+    } else {
+    Row unmatchedRow = RowUtils.constructNewRowWithMark(header, rowA, markJoin.isAntiJoin());
+    cache.add(unmatchedRow);
     }
+}
 
-    @Override
-    public boolean hasNext() throws PhysicalException {
-        if (!hasInitialized) {
-            initialize();
-        }
-        while (cache.isEmpty() && streamA.hasNext()) {
-            tryMatch();
-        }
-        return !cache.isEmpty();
+@Override
+public Row next() throws PhysicalException {
+    if (!hasNext()) {
+    throw new IllegalStateException("row stream doesn't have more data!");
     }
-
-    private void tryMatch() throws PhysicalException {
-        Row rowA = streamA.next();
-
-        Value value = rowA.getAsValue(joinPathA);
-        if (value == null) {
-            return;
-        }
-        if (needTypeCast) {
-            value = ValueUtils.transformToDouble(value);
-        }
-        int hash;
-        if (value.getDataType() == DataType.BINARY) {
-            hash = Arrays.hashCode(value.getBinaryV());
-        } else {
-            hash = value.getValue().hashCode();
-        }
-
-        if (streamBHashMap.containsKey(hash)) {
-            Row returnRow = RowUtils.constructNewRowWithMark(header, rowA, !markJoin.isAntiJoin());
-            cache.add(returnRow);
-        } else {
-            Row unmatchedRow =
-                    RowUtils.constructNewRowWithMark(header, rowA, markJoin.isAntiJoin());
-            cache.add(unmatchedRow);
-        }
-    }
-
-    @Override
-    public Row next() throws PhysicalException {
-        if (!hasNext()) {
-            throw new IllegalStateException("row stream doesn't have more data!");
-        }
-        return cache.pollFirst();
-    }
+    return cache.pollFirst();
+}
 }

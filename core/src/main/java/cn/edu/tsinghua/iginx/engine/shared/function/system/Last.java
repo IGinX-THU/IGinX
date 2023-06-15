@@ -43,93 +43,90 @@ import java.util.regex.Pattern;
 
 public class Last implements MappingFunction {
 
-    public static final String LAST = "last";
+public static final String LAST = "last";
 
-    private static final Last INSTANCE = new Last();
+private static final Last INSTANCE = new Last();
 
-    private static final String PATH = "path";
+private static final String PATH = "path";
 
-    private static final String VALUE = "value";
+private static final String VALUE = "value";
 
-    private Last() {}
+private Last() {}
 
-    public static Last getInstance() {
-        return INSTANCE;
+public static Last getInstance() {
+    return INSTANCE;
+}
+
+@Override
+public FunctionType getFunctionType() {
+    return FunctionType.System;
+}
+
+@Override
+public MappingType getMappingType() {
+    return MappingType.Mapping;
+}
+
+@Override
+public String getIdentifier() {
+    return LAST;
+}
+
+@Override
+public RowStream transform(RowStream rows, FunctionParams params) throws Exception {
+    List<String> pathParams = params.getPaths();
+    if (pathParams == null || pathParams.size() != 1) {
+    throw new IllegalArgumentException("unexpected param type for avg.");
     }
 
-    @Override
-    public FunctionType getFunctionType() {
-        return FunctionType.System;
+    String target = pathParams.get(0);
+    Header header =
+        new Header(
+            Field.KEY,
+            Arrays.asList(new Field(PATH, DataType.BINARY), new Field(VALUE, DataType.BINARY)));
+    List<Row> resultRows = new ArrayList<>();
+    Map<Integer, Pair<Long, Object>> valueMap = new HashMap<>();
+    Pattern pattern = Pattern.compile(StringUtils.reformatPath(target) + ".*");
+    Set<Integer> indices = new HashSet<>();
+    for (int i = 0; i < rows.getHeader().getFieldSize(); i++) {
+    Field field = rows.getHeader().getField(i);
+    if (pattern.matcher(field.getFullName()).matches()) {
+        indices.add(i);
     }
-
-    @Override
-    public MappingType getMappingType() {
-        return MappingType.Mapping;
     }
+    while (rows.hasNext()) {
+    Row row = rows.next();
+    Object[] values = row.getValues();
 
-    @Override
-    public String getIdentifier() {
-        return LAST;
-    }
-
-    @Override
-    public RowStream transform(RowStream rows, FunctionParams params) throws Exception {
-        List<String> pathParams = params.getPaths();
-        if (pathParams == null || pathParams.size() != 1) {
-            throw new IllegalArgumentException("unexpected param type for avg.");
+    for (int i = 0; i < values.length; i++) {
+        if (values[i] == null || !indices.contains(i)) {
+        continue;
         }
-
-        String target = pathParams.get(0);
-        Header header =
-                new Header(
-                        Field.KEY,
-                        Arrays.asList(
-                                new Field(PATH, DataType.BINARY),
-                                new Field(VALUE, DataType.BINARY)));
-        List<Row> resultRows = new ArrayList<>();
-        Map<Integer, Pair<Long, Object>> valueMap = new HashMap<>();
-        Pattern pattern = Pattern.compile(StringUtils.reformatPath(target) + ".*");
-        Set<Integer> indices = new HashSet<>();
-        for (int i = 0; i < rows.getHeader().getFieldSize(); i++) {
-            Field field = rows.getHeader().getField(i);
-            if (pattern.matcher(field.getFullName()).matches()) {
-                indices.add(i);
-            }
+        if (!valueMap.containsKey(i)) {
+        valueMap.put(i, new Pair<>(row.getKey(), values[i]));
+        } else {
+        Pair<Long, Object> pair = valueMap.get(i);
+        pair.k = row.getKey();
+        pair.v = values[i];
         }
-        while (rows.hasNext()) {
-            Row row = rows.next();
-            Object[] values = row.getValues();
-
-            for (int i = 0; i < values.length; i++) {
-                if (values[i] == null || !indices.contains(i)) {
-                    continue;
-                }
-                if (!valueMap.containsKey(i)) {
-                    valueMap.put(i, new Pair<>(row.getKey(), values[i]));
-                } else {
-                    Pair<Long, Object> pair = valueMap.get(i);
-                    pair.k = row.getKey();
-                    pair.v = values[i];
-                }
-            }
-        }
-        for (Map.Entry<Integer, Pair<Long, Object>> entry : valueMap.entrySet()) {
-            resultRows.add(
-                    new Row(
-                            header,
-                            entry.getValue().k,
-                            new Object[] {
-                                rows.getHeader()
-                                        .getField(entry.getKey())
-                                        .getFullName()
-                                        .getBytes(StandardCharsets.UTF_8),
-                                ValueUtils.toString(
-                                                entry.getValue().v,
-                                                rows.getHeader().getField(entry.getKey()).getType())
-                                        .getBytes(StandardCharsets.UTF_8)
-                            }));
-        }
-        resultRows.sort(ValueUtils.firstLastRowComparator());
-        return new Table(header, resultRows);
     }
+    }
+    for (Map.Entry<Integer, Pair<Long, Object>> entry : valueMap.entrySet()) {
+    resultRows.add(
+        new Row(
+            header,
+            entry.getValue().k,
+            new Object[] {
+                rows.getHeader()
+                    .getField(entry.getKey())
+                    .getFullName()
+                    .getBytes(StandardCharsets.UTF_8),
+                ValueUtils.toString(
+                        entry.getValue().v, rows.getHeader().getField(entry.getKey()).getType())
+                    .getBytes(StandardCharsets.UTF_8)
+            }));
+    }
+    resultRows.sort(ValueUtils.firstLastRowComparator());
+    return new Table(header, resultRows);
+}
 }
