@@ -43,323 +43,313 @@ import org.slf4j.LoggerFactory;
 
 public class RemoteExecutor implements Executor {
 
-    private static final Logger logger = LoggerFactory.getLogger(RemoteExecutor.class);
+  private static final Logger logger = LoggerFactory.getLogger(RemoteExecutor.class);
 
-    private static final int SUCCESS_CODE = 200;
+  private static final int SUCCESS_CODE = 200;
 
-    private final TTransport transport;
+  private final TTransport transport;
 
-    private final ParquetService.Iface client;
+  private final ParquetService.Iface client;
 
-    public RemoteExecutor(String ip, int port) throws TTransportException {
-        this.transport = new TSocket(ip, port);
-        if (!transport.isOpen()) {
-            transport.open();
-        }
-
-        this.client = new Client(new TBinaryProtocol(transport));
+  public RemoteExecutor(String ip, int port) throws TTransportException {
+    this.transport = new TSocket(ip, port);
+    if (!transport.isOpen()) {
+      transport.open();
     }
 
-    @Override
-    public TaskExecuteResult executeProjectTask(
-            List<String> paths,
-            TagFilter tagFilter,
-            String filter,
-            String storageUnit,
-            boolean isDummyStorageUnit) {
-        ProjectReq req = new ProjectReq(storageUnit, isDummyStorageUnit, paths);
-        if (tagFilter != null) {
-            req.setTagFilter(constructRawTagFilter(tagFilter));
-        }
-        if (filter != null && !filter.equals("")) {
-            req.setFilter(filter);
-        }
+    this.client = new Client(new TBinaryProtocol(transport));
+  }
 
-        try {
-            ProjectResp resp = client.executeProject(req);
-            if (resp.getStatus().code == SUCCESS_CODE) {
-                ParquetHeader parquetHeader = resp.getHeader();
-                List<DataType> dataTypes = new ArrayList<>();
-                List<Field> fields = new ArrayList<>();
-                for (int i = 0; i < parquetHeader.getNamesSize(); i++) {
-                    DataType dataType =
-                            DataTypeUtils.strToDataType(parquetHeader.getTypes().get(i));
-                    dataTypes.add(dataType);
-                    fields.add(
-                            new Field(
-                                    parquetHeader.getNames().get(i),
-                                    dataType,
-                                    parquetHeader.getTagsList().get(i)));
-                }
-                Header header =
-                        parquetHeader.hasKey ? new Header(Field.KEY, fields) : new Header(fields);
-
-                List<Row> rowList = new ArrayList<>();
-                resp.getRows()
-                        .forEach(
-                                parquetRow -> {
-                                    Object[] values = new Object[dataTypes.size()];
-                                    Bitmap bitmap =
-                                            new Bitmap(dataTypes.size(), parquetRow.getBitmap());
-                                    ByteBuffer valuesBuffer =
-                                            ByteBuffer.wrap(parquetRow.getRowValues());
-                                    for (int i = 0; i < dataTypes.size(); i++) {
-                                        if (bitmap.get(i)) {
-                                            values[i] =
-                                                    ByteUtils.getValueFromByteBufferByDataType(
-                                                            valuesBuffer, dataTypes.get(i));
-                                        } else {
-                                            values[i] = null;
-                                        }
-                                    }
-
-                                    if (parquetRow.isSetKey()) {
-                                        rowList.add(new Row(header, parquetRow.getKey(), values));
-                                    } else {
-                                        rowList.add(new Row(header, values));
-                                    }
-                                });
-                RowStream rowStream = new Table(header, rowList);
-                return new TaskExecuteResult(rowStream, null);
-            } else {
-                return new TaskExecuteResult(
-                        null, new PhysicalException("execute remote project task error"));
-            }
-        } catch (TException e) {
-            return new TaskExecuteResult(null, new PhysicalException(e));
-        }
+  @Override
+  public TaskExecuteResult executeProjectTask(
+      List<String> paths,
+      TagFilter tagFilter,
+      String filter,
+      String storageUnit,
+      boolean isDummyStorageUnit) {
+    ProjectReq req = new ProjectReq(storageUnit, isDummyStorageUnit, paths);
+    if (tagFilter != null) {
+      req.setTagFilter(constructRawTagFilter(tagFilter));
+    }
+    if (filter != null && !filter.equals("")) {
+      req.setFilter(filter);
     }
 
-    @Override
-    public TaskExecuteResult executeInsertTask(DataView dataView, String storageUnit) {
-        List<String> paths = new ArrayList<>();
-        List<String> types = new ArrayList<>();
-        List<Map<String, String>> tagsList = new ArrayList<>();
-        for (int i = 0; i < dataView.getPathNum(); i++) {
-            paths.add(dataView.getPath(i));
-            types.add(dataView.getDataType(i).toString());
-            tagsList.add(dataView.getTags(i) == null ? new HashMap<>() : dataView.getTags(i));
+    try {
+      ProjectResp resp = client.executeProject(req);
+      if (resp.getStatus().code == SUCCESS_CODE) {
+        ParquetHeader parquetHeader = resp.getHeader();
+        List<DataType> dataTypes = new ArrayList<>();
+        List<Field> fields = new ArrayList<>();
+        for (int i = 0; i < parquetHeader.getNamesSize(); i++) {
+          DataType dataType = DataTypeUtils.strToDataType(parquetHeader.getTypes().get(i));
+          dataTypes.add(dataType);
+          fields.add(
+              new Field(
+                  parquetHeader.getNames().get(i), dataType, parquetHeader.getTagsList().get(i)));
         }
+        Header header = parquetHeader.hasKey ? new Header(Field.KEY, fields) : new Header(fields);
 
-        long[] times = new long[dataView.getKeySize()];
-        for (int i = 0; i < dataView.getKeySize(); i++) {
-            times[i] = dataView.getKey(i);
-        }
+        List<Row> rowList = new ArrayList<>();
+        resp.getRows()
+            .forEach(
+                parquetRow -> {
+                  Object[] values = new Object[dataTypes.size()];
+                  Bitmap bitmap = new Bitmap(dataTypes.size(), parquetRow.getBitmap());
+                  ByteBuffer valuesBuffer = ByteBuffer.wrap(parquetRow.getRowValues());
+                  for (int i = 0; i < dataTypes.size(); i++) {
+                    if (bitmap.get(i)) {
+                      values[i] =
+                          ByteUtils.getValueFromByteBufferByDataType(
+                              valuesBuffer, dataTypes.get(i));
+                    } else {
+                      values[i] = null;
+                    }
+                  }
 
-        Pair<List<ByteBuffer>, List<ByteBuffer>> pair;
-        if (dataView.getRawDataType() == RawDataType.Row
-                || dataView.getRawDataType() == RawDataType.NonAlignedRow) {
-            pair = compressRowData(dataView);
+                  if (parquetRow.isSetKey()) {
+                    rowList.add(new Row(header, parquetRow.getKey(), values));
+                  } else {
+                    rowList.add(new Row(header, values));
+                  }
+                });
+        RowStream rowStream = new Table(header, rowList);
+        return new TaskExecuteResult(rowStream, null);
+      } else {
+        return new TaskExecuteResult(
+            null, new PhysicalException("execute remote project task error"));
+      }
+    } catch (TException e) {
+      return new TaskExecuteResult(null, new PhysicalException(e));
+    }
+  }
+
+  @Override
+  public TaskExecuteResult executeInsertTask(DataView dataView, String storageUnit) {
+    List<String> paths = new ArrayList<>();
+    List<String> types = new ArrayList<>();
+    List<Map<String, String>> tagsList = new ArrayList<>();
+    for (int i = 0; i < dataView.getPathNum(); i++) {
+      paths.add(dataView.getPath(i));
+      types.add(dataView.getDataType(i).toString());
+      tagsList.add(dataView.getTags(i) == null ? new HashMap<>() : dataView.getTags(i));
+    }
+
+    long[] times = new long[dataView.getKeySize()];
+    for (int i = 0; i < dataView.getKeySize(); i++) {
+      times[i] = dataView.getKey(i);
+    }
+
+    Pair<List<ByteBuffer>, List<ByteBuffer>> pair;
+    if (dataView.getRawDataType() == RawDataType.Row
+        || dataView.getRawDataType() == RawDataType.NonAlignedRow) {
+      pair = compressRowData(dataView);
+    } else {
+      pair = compressColData(dataView);
+    }
+
+    ParquetRawData parquetRawData =
+        new ParquetRawData(
+            paths,
+            tagsList,
+            ByteBuffer.wrap(ByteUtils.getByteArrayFromLongArray(times)),
+            pair.getK(),
+            pair.getV(),
+            types,
+            dataView.getRawDataType().toString());
+
+    InsertReq req = new InsertReq(storageUnit, parquetRawData);
+    try {
+      Status status = client.executeInsert(req);
+      if (status.code == SUCCESS_CODE) {
+        return new TaskExecuteResult(null, null);
+      } else {
+        return new TaskExecuteResult(
+            null, new PhysicalException("execute remote insert task error"));
+      }
+    } catch (TException e) {
+      return new TaskExecuteResult(null, new PhysicalException(e));
+    }
+  }
+
+  private Pair<List<ByteBuffer>, List<ByteBuffer>> compressRowData(DataView dataView) {
+    List<ByteBuffer> valueBufferList = new ArrayList<>();
+    List<ByteBuffer> bitmapBufferList = new ArrayList<>();
+
+    List<DataType> dataTypeList = new ArrayList<>();
+    for (int i = 0; i < dataView.getPathNum(); i++) {
+      dataTypeList.add(dataView.getDataType(i));
+    }
+
+    for (int i = 0; i < dataView.getKeySize(); i++) {
+      BitmapView bitmapView = dataView.getBitmapView(i);
+      Object[] values = new Object[dataView.getPathNum()];
+
+      int index = 0;
+      for (int j = 0; j < dataView.getPathNum(); j++) {
+        if (bitmapView.get(j)) {
+          values[j] = dataView.getValue(i, index);
+          index++;
         } else {
-            pair = compressColData(dataView);
+          values[j] = null;
         }
+      }
+      valueBufferList.add(ByteUtils.getRowByteBuffer(values, dataTypeList));
+      bitmapBufferList.add(ByteBuffer.wrap(bitmapView.getBitmap().getBytes()));
+    }
+    return new Pair<>(valueBufferList, bitmapBufferList);
+  }
 
-        ParquetRawData parquetRawData =
-                new ParquetRawData(
-                        paths,
-                        tagsList,
-                        ByteBuffer.wrap(ByteUtils.getByteArrayFromLongArray(times)),
-                        pair.getK(),
-                        pair.getV(),
-                        types,
-                        dataView.getRawDataType().toString());
+  private Pair<List<ByteBuffer>, List<ByteBuffer>> compressColData(DataView dataView) {
+    List<ByteBuffer> valueBufferList = new ArrayList<>();
+    List<ByteBuffer> bitmapBufferList = new ArrayList<>();
 
-        InsertReq req = new InsertReq(storageUnit, parquetRawData);
-        try {
-            Status status = client.executeInsert(req);
-            if (status.code == SUCCESS_CODE) {
-                return new TaskExecuteResult(null, null);
-            } else {
-                return new TaskExecuteResult(
-                        null, new PhysicalException("execute remote insert task error"));
-            }
-        } catch (TException e) {
-            return new TaskExecuteResult(null, new PhysicalException(e));
+    for (int i = 0; i < dataView.getPathNum(); i++) {
+      DataType dataType = dataView.getDataType(i);
+      BitmapView bitmapView = dataView.getBitmapView(i);
+      Object[] values = new Object[dataView.getKeySize()];
+
+      int index = 0;
+      for (int j = 0; j < dataView.getKeySize(); j++) {
+        if (bitmapView.get(j)) {
+          values[j] = dataView.getValue(i, index);
+          index++;
+        } else {
+          values[j] = null;
         }
+      }
+      valueBufferList.add(ByteUtils.getColumnByteBuffer(values, dataType));
+      bitmapBufferList.add(ByteBuffer.wrap(bitmapView.getBitmap().getBytes()));
+    }
+    return new Pair<>(valueBufferList, bitmapBufferList);
+  }
+
+  @Override
+  public TaskExecuteResult executeDeleteTask(
+      List<String> paths, List<KeyRange> keyRanges, TagFilter tagFilter, String storageUnit) {
+    DeleteReq req = new DeleteReq(storageUnit, paths);
+    if (tagFilter != null) {
+      req.setTagFilter(constructRawTagFilter(tagFilter));
+    }
+    if (keyRanges != null) {
+      List<ParquetKeyRange> parquetKeyRanges = new ArrayList<>();
+      keyRanges.forEach(
+          timeRange ->
+              parquetKeyRanges.add(
+                  new ParquetKeyRange(
+                      timeRange.getBeginKey(),
+                      timeRange.isIncludeBeginKey(),
+                      timeRange.getEndKey(),
+                      timeRange.isIncludeEndKey())));
+      req.setKeyRanges(parquetKeyRanges);
     }
 
-    private Pair<List<ByteBuffer>, List<ByteBuffer>> compressRowData(DataView dataView) {
-        List<ByteBuffer> valueBufferList = new ArrayList<>();
-        List<ByteBuffer> bitmapBufferList = new ArrayList<>();
-
-        List<DataType> dataTypeList = new ArrayList<>();
-        for (int i = 0; i < dataView.getPathNum(); i++) {
-            dataTypeList.add(dataView.getDataType(i));
-        }
-
-        for (int i = 0; i < dataView.getKeySize(); i++) {
-            BitmapView bitmapView = dataView.getBitmapView(i);
-            Object[] values = new Object[dataView.getPathNum()];
-
-            int index = 0;
-            for (int j = 0; j < dataView.getPathNum(); j++) {
-                if (bitmapView.get(j)) {
-                    values[j] = dataView.getValue(i, index);
-                    index++;
-                } else {
-                    values[j] = null;
-                }
-            }
-            valueBufferList.add(ByteUtils.getRowByteBuffer(values, dataTypeList));
-            bitmapBufferList.add(ByteBuffer.wrap(bitmapView.getBitmap().getBytes()));
-        }
-        return new Pair<>(valueBufferList, bitmapBufferList);
+    try {
+      Status status = client.executeDelete(req);
+      if (status.code == SUCCESS_CODE) {
+        return new TaskExecuteResult(null, null);
+      } else {
+        return new TaskExecuteResult(
+            null, new PhysicalException("execute remote delete task error"));
+      }
+    } catch (TException e) {
+      return new TaskExecuteResult(null, new PhysicalException(e));
     }
+  }
 
-    private Pair<List<ByteBuffer>, List<ByteBuffer>> compressColData(DataView dataView) {
-        List<ByteBuffer> valueBufferList = new ArrayList<>();
-        List<ByteBuffer> bitmapBufferList = new ArrayList<>();
-
-        for (int i = 0; i < dataView.getPathNum(); i++) {
-            DataType dataType = dataView.getDataType(i);
-            BitmapView bitmapView = dataView.getBitmapView(i);
-            Object[] values = new Object[dataView.getKeySize()];
-
-            int index = 0;
-            for (int j = 0; j < dataView.getKeySize(); j++) {
-                if (bitmapView.get(j)) {
-                    values[j] = dataView.getValue(i, index);
-                    index++;
-                } else {
-                    values[j] = null;
-                }
-            }
-            valueBufferList.add(ByteUtils.getColumnByteBuffer(values, dataType));
-            bitmapBufferList.add(ByteBuffer.wrap(bitmapView.getBitmap().getBytes()));
+  private RawTagFilter constructRawTagFilter(TagFilter tagFilter) {
+    switch (tagFilter.getType()) {
+      case Base:
+        {
+          BaseTagFilter baseTagFilter = (BaseTagFilter) tagFilter;
+          RawTagFilter filter = new RawTagFilter(TagFilterType.Base);
+          filter.setKey(baseTagFilter.getTagKey());
+          filter.setValue(baseTagFilter.getTagValue());
+          return filter;
         }
-        return new Pair<>(valueBufferList, bitmapBufferList);
-    }
-
-    @Override
-    public TaskExecuteResult executeDeleteTask(
-            List<String> paths, List<KeyRange> keyRanges, TagFilter tagFilter, String storageUnit) {
-        DeleteReq req = new DeleteReq(storageUnit, paths);
-        if (tagFilter != null) {
-            req.setTagFilter(constructRawTagFilter(tagFilter));
+      case WithoutTag:
+        {
+          return new RawTagFilter(TagFilterType.WithoutTag);
         }
-        if (keyRanges != null) {
-            List<ParquetKeyRange> parquetKeyRanges = new ArrayList<>();
-            keyRanges.forEach(
-                    timeRange ->
-                            parquetKeyRanges.add(
-                                    new ParquetKeyRange(
-                                            timeRange.getBeginKey(),
-                                            timeRange.isIncludeBeginKey(),
-                                            timeRange.getEndKey(),
-                                            timeRange.isIncludeEndKey())));
-            req.setKeyRanges(parquetKeyRanges);
+      case BasePrecise:
+        {
+          BasePreciseTagFilter basePreciseTagFilter = (BasePreciseTagFilter) tagFilter;
+          RawTagFilter filter = new RawTagFilter(TagFilterType.BasePrecise);
+          filter.setTags(basePreciseTagFilter.getTags());
+          return filter;
         }
-
-        try {
-            Status status = client.executeDelete(req);
-            if (status.code == SUCCESS_CODE) {
-                return new TaskExecuteResult(null, null);
-            } else {
-                return new TaskExecuteResult(
-                        null, new PhysicalException("execute remote delete task error"));
-            }
-        } catch (TException e) {
-            return new TaskExecuteResult(null, new PhysicalException(e));
+      case Precise:
+        {
+          PreciseTagFilter preciseTagFilter = (PreciseTagFilter) tagFilter;
+          RawTagFilter filter = new RawTagFilter(TagFilterType.Precise);
+          List<RawTagFilter> children = new ArrayList<>();
+          preciseTagFilter
+              .getChildren()
+              .forEach(child -> children.add(constructRawTagFilter(child)));
+          filter.setChildren(children);
+          return filter;
+        }
+      case And:
+        {
+          AndTagFilter andTagFilter = (AndTagFilter) tagFilter;
+          RawTagFilter filter = new RawTagFilter(TagFilterType.And);
+          List<RawTagFilter> children = new ArrayList<>();
+          andTagFilter.getChildren().forEach(child -> children.add(constructRawTagFilter(child)));
+          filter.setChildren(children);
+          return filter;
+        }
+      case Or:
+        {
+          OrTagFilter orTagFilter = (OrTagFilter) tagFilter;
+          RawTagFilter filter = new RawTagFilter(TagFilterType.Or);
+          List<RawTagFilter> children = new ArrayList<>();
+          orTagFilter.getChildren().forEach(child -> children.add(constructRawTagFilter(child)));
+          filter.setChildren(children);
+          return filter;
+        }
+      default:
+        {
+          logger.error("unknown tag filter type: {}", tagFilter.getType());
+          return null;
         }
     }
+  }
 
-    private RawTagFilter constructRawTagFilter(TagFilter tagFilter) {
-        switch (tagFilter.getType()) {
-            case Base:
-                {
-                    BaseTagFilter baseTagFilter = (BaseTagFilter) tagFilter;
-                    RawTagFilter filter = new RawTagFilter(TagFilterType.Base);
-                    filter.setKey(baseTagFilter.getTagKey());
-                    filter.setValue(baseTagFilter.getTagValue());
-                    return filter;
-                }
-            case WithoutTag:
-                {
-                    return new RawTagFilter(TagFilterType.WithoutTag);
-                }
-            case BasePrecise:
-                {
-                    BasePreciseTagFilter basePreciseTagFilter = (BasePreciseTagFilter) tagFilter;
-                    RawTagFilter filter = new RawTagFilter(TagFilterType.BasePrecise);
-                    filter.setTags(basePreciseTagFilter.getTags());
-                    return filter;
-                }
-            case Precise:
-                {
-                    PreciseTagFilter preciseTagFilter = (PreciseTagFilter) tagFilter;
-                    RawTagFilter filter = new RawTagFilter(TagFilterType.Precise);
-                    List<RawTagFilter> children = new ArrayList<>();
-                    preciseTagFilter
-                            .getChildren()
-                            .forEach(child -> children.add(constructRawTagFilter(child)));
-                    filter.setChildren(children);
-                    return filter;
-                }
-            case And:
-                {
-                    AndTagFilter andTagFilter = (AndTagFilter) tagFilter;
-                    RawTagFilter filter = new RawTagFilter(TagFilterType.And);
-                    List<RawTagFilter> children = new ArrayList<>();
-                    andTagFilter
-                            .getChildren()
-                            .forEach(child -> children.add(constructRawTagFilter(child)));
-                    filter.setChildren(children);
-                    return filter;
-                }
-            case Or:
-                {
-                    OrTagFilter orTagFilter = (OrTagFilter) tagFilter;
-                    RawTagFilter filter = new RawTagFilter(TagFilterType.Or);
-                    List<RawTagFilter> children = new ArrayList<>();
-                    orTagFilter
-                            .getChildren()
-                            .forEach(child -> children.add(constructRawTagFilter(child)));
-                    filter.setChildren(children);
-                    return filter;
-                }
-            default:
-                {
-                    logger.error("unknown tag filter type: {}", tagFilter.getType());
-                    return null;
-                }
-        }
+  @Override
+  public List<Column> getColumnsOfStorageUnit(String storageUnit) throws PhysicalException {
+    try {
+      GetColumnsOfStorageUnitResp resp = client.getColumnsOfStorageUnit(storageUnit);
+      List<Column> columnList = new ArrayList<>();
+      resp.getTsList()
+          .forEach(
+              ts ->
+                  columnList.add(
+                      new Column(
+                          ts.getPath(),
+                          DataTypeUtils.strToDataType(ts.getDataType()),
+                          ts.getTags())));
+      return columnList;
+    } catch (TException e) {
+      throw new PhysicalException("encounter error when getColumnsOfStorageUnit ", e);
     }
+  }
 
-    @Override
-    public List<Column> getColumnsOfStorageUnit(String storageUnit) throws PhysicalException {
-        try {
-            GetColumnsOfStorageUnitResp resp = client.getColumnsOfStorageUnit(storageUnit);
-            List<Column> columnList = new ArrayList<>();
-            resp.getTsList()
-                    .forEach(
-                            ts ->
-                                    columnList.add(
-                                            new Column(
-                                                    ts.getPath(),
-                                                    DataTypeUtils.strToDataType(ts.getDataType()),
-                                                    ts.getTags())));
-            return columnList;
-        } catch (TException e) {
-            throw new PhysicalException("encounter error when getColumnsOfStorageUnit ", e);
-        }
+  @Override
+  public Pair<ColumnsRange, KeyInterval> getBoundaryOfStorage() throws PhysicalException {
+    try {
+      GetStorageBoundaryResp resp = client.getBoundaryOfStorage();
+      return new Pair<>(
+          new ColumnsInterval(resp.getStartColumn(), resp.getEndColumn()),
+          new KeyInterval(resp.getStartKey(), resp.getEndKey()));
+    } catch (TException e) {
+      throw new PhysicalException("encounter error when getBoundaryOfStorage ", e);
     }
+  }
 
-    @Override
-    public Pair<ColumnsRange, KeyInterval> getBoundaryOfStorage() throws PhysicalException {
-        try {
-            GetStorageBoundaryResp resp = client.getBoundaryOfStorage();
-            return new Pair<>(
-                    new ColumnsInterval(resp.getStartColumn(), resp.getEndColumn()),
-                    new KeyInterval(resp.getStartKey(), resp.getEndKey()));
-        } catch (TException e) {
-            throw new PhysicalException("encounter error when getBoundaryOfStorage ", e);
-        }
+  @Override
+  public void close() throws PhysicalException {
+    if (transport != null && transport.isOpen()) {
+      transport.close();
     }
-
-    @Override
-    public void close() throws PhysicalException {
-        if (transport != null && transport.isOpen()) {
-            transport.close();
-        }
-    }
+  }
 }

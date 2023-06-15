@@ -32,39 +32,39 @@ import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.List;
 
 public interface IStorage {
-    /** 对非叠加分片查询数据 */
-    TaskExecuteResult executeProject(Project project, DataArea dataArea);
+  /** 对非叠加分片查询数据 */
+  TaskExecuteResult executeProject(Project project, DataArea dataArea);
 
-    /** 对叠加分片查询数据 */
-    TaskExecuteResult executeProjectDummy(Project project, DataArea dataArea /*dummy area*/);
+  /** 对叠加分片查询数据 */
+  TaskExecuteResult executeProjectDummy(Project project, DataArea dataArea /*dummy area*/);
 
-    /** 询问底层是否支持带谓词下推的查询 */
-    boolean isSupportProjectWithSelect();
+  /** 询问底层是否支持带谓词下推的查询 */
+  boolean isSupportProjectWithSelect();
 
-    /** 对非叠加分片带谓词下推的查询 */
-    TaskExecuteResult executeProjectWithSelect(Project project, Select select, DataArea dataArea);
+  /** 对非叠加分片带谓词下推的查询 */
+  TaskExecuteResult executeProjectWithSelect(Project project, Select select, DataArea dataArea);
 
-    /** 对叠加分片带谓词下推的查询 */
-    TaskExecuteResult executeProjectDummyWithSelect(
-            Project project, Select select, DataArea dataArea);
+  /** 对叠加分片带谓词下推的查询 */
+  TaskExecuteResult executeProjectDummyWithSelect(
+      Project project, Select select, DataArea dataArea);
 
-    /** 对非叠加分片删除数据 */
-    TaskExecuteResult executeDelete(Delete delete, DataArea dataArea);
+  /** 对非叠加分片删除数据 */
+  TaskExecuteResult executeDelete(Delete delete, DataArea dataArea);
 
-    /** 对某一分片插入数据 */
-    TaskExecuteResult executeInsert(Insert insert, DataArea dataArea);
+  /** 对某一分片插入数据 */
+  TaskExecuteResult executeInsert(Insert insert, DataArea dataArea);
 
-    /** 获取所有列信息 */
-    List<Column> getColumns() throws PhysicalException;
+  /** 获取所有列信息 */
+  List<Column> getColumns() throws PhysicalException;
 
-    /** 获取指定前缀的数据边界 */
-    Pair<ColumnsRange, KeyInterval> getBoundaryOfStorage(String prefix) throws PhysicalException;
+  /** 获取指定前缀的数据边界 */
+  Pair<ColumnsRange, KeyInterval> getBoundaryOfStorage(String prefix) throws PhysicalException;
 
-    /** 获取数据边界 */
-    default Pair<ColumnsRange, KeyInterval> getBoundaryOfStorage() throws PhysicalException {
-        return getBoundaryOfStorage(null);
-    }
+  /** 获取数据边界 */
+  default Pair<ColumnsRange, KeyInterval> getBoundaryOfStorage() throws PhysicalException {
+    return getBoundaryOfStorage(null);
+  }
 
-    /** 释放底层连接 */
-    void release() throws PhysicalException;
+  /** 释放底层连接 */
+  void release() throws PhysicalException;
 }

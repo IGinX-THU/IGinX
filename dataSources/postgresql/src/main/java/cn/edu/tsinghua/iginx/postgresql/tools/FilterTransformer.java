@@ -25,53 +25,51 @@ import java.util.stream.Collectors;
 
 public class FilterTransformer {
 
-    public static String toString(Filter filter) {
-        if (filter == null) {
-            return "";
-        }
-        switch (filter.getType()) {
-            case And:
-                return toString((AndFilter) filter);
-            case Or:
-                return toString((OrFilter) filter);
-            case Not:
-                return toString((NotFilter) filter);
-            case Value:
-                return toString((ValueFilter) filter);
-            case Key:
-                return toString((KeyFilter) filter);
-            default:
-                return "";
-        }
+  public static String toString(Filter filter) {
+    if (filter == null) {
+      return "";
     }
+    switch (filter.getType()) {
+      case And:
+        return toString((AndFilter) filter);
+      case Or:
+        return toString((OrFilter) filter);
+      case Not:
+        return toString((NotFilter) filter);
+      case Value:
+        return toString((ValueFilter) filter);
+      case Key:
+        return toString((KeyFilter) filter);
+      default:
+        return "";
+    }
+  }
 
-    private static String toString(AndFilter filter) {
-        return filter.getChildren()
-                .stream()
-                .map(FilterTransformer::toString)
-                .collect(Collectors.joining(" and ", "(", ")"));
-    }
+  private static String toString(AndFilter filter) {
+    return filter
+        .getChildren()
+        .stream()
+        .map(FilterTransformer::toString)
+        .collect(Collectors.joining(" and ", "(", ")"));
+  }
 
-    private static String toString(NotFilter filter) {
-        return "not " + filter.toString();
-    }
+  private static String toString(NotFilter filter) {
+    return "not " + filter.toString();
+  }
 
-    private static String toString(KeyFilter filter) {
-        return KEY_NAME + " " + Op.op2Str(filter.getOp()) + " " + filter.getValue();
-    }
+  private static String toString(KeyFilter filter) {
+    return KEY_NAME + " " + Op.op2Str(filter.getOp()) + " " + filter.getValue();
+  }
 
-    private static String toString(ValueFilter filter) {
-        return filter.getPath()
-                + " "
-                + Op.op2Str(filter.getOp())
-                + " "
-                + filter.getValue().getValue();
-    }
+  private static String toString(ValueFilter filter) {
+    return filter.getPath() + " " + Op.op2Str(filter.getOp()) + " " + filter.getValue().getValue();
+  }
 
-    private static String toString(OrFilter filter) {
-        return filter.getChildren()
-                .stream()
-                .map(FilterTransformer::toString)
-                .collect(Collectors.joining(" or ", "(", ")"));
-    }
+  private static String toString(OrFilter filter) {
+    return filter
+        .getChildren()
+        .stream()
+        .map(FilterTransformer::toString)
+        .collect(Collectors.joining(" or ", "(", ")"));
+  }
 }

@@ -33,63 +33,63 @@ import java.util.regex.Pattern;
 
 public class FirstValue implements SetMappingFunction {
 
-    public static final String FIRST_VALUE = "first_value";
+  public static final String FIRST_VALUE = "first_value";
 
-    private static final FirstValue INSTANCE = new FirstValue();
+  private static final FirstValue INSTANCE = new FirstValue();
 
-    private FirstValue() {}
+  private FirstValue() {}
 
-    public static FirstValue getInstance() {
-        return INSTANCE;
+  public static FirstValue getInstance() {
+    return INSTANCE;
+  }
+
+  @Override
+  public FunctionType getFunctionType() {
+    return FunctionType.System;
+  }
+
+  @Override
+  public MappingType getMappingType() {
+    return MappingType.SetMapping;
+  }
+
+  @Override
+  public String getIdentifier() {
+    return FIRST_VALUE;
+  }
+
+  @Override
+  public Row transform(RowStream rows, FunctionParams params) throws Exception {
+    List<String> pathParams = params.getPaths();
+    if (pathParams == null || pathParams.size() != 1) {
+      throw new IllegalArgumentException("unexpected param type for avg.");
     }
 
-    @Override
-    public FunctionType getFunctionType() {
-        return FunctionType.System;
+    String target = pathParams.get(0);
+    List<Field> fields = rows.getHeader().getFields();
+    Pattern pattern = Pattern.compile(StringUtils.reformatPath(target) + ".*");
+    List<Field> targetFields = new ArrayList<>();
+    List<Integer> indices = new ArrayList<>();
+    for (int i = 0; i < fields.size(); i++) {
+      Field field = fields.get(i);
+      if (pattern.matcher(field.getFullName()).matches()) {
+        String name = getIdentifier() + "(" + field.getName() + ")";
+        String fullName = getIdentifier() + "(" + field.getFullName() + ")";
+        targetFields.add(new Field(name, fullName, field.getType()));
+        indices.add(i);
+      }
     }
-
-    @Override
-    public MappingType getMappingType() {
-        return MappingType.SetMapping;
-    }
-
-    @Override
-    public String getIdentifier() {
-        return FIRST_VALUE;
-    }
-
-    @Override
-    public Row transform(RowStream rows, FunctionParams params) throws Exception {
-        List<String> pathParams = params.getPaths();
-        if (pathParams == null || pathParams.size() != 1) {
-            throw new IllegalArgumentException("unexpected param type for avg.");
+    Object[] targetValues = new Object[targetFields.size()];
+    while (rows.hasNext()) {
+      Row row = rows.next();
+      for (int i = 0; i < indices.size(); i++) {
+        Object value = row.getValue(indices.get(i));
+        if (targetValues[i] != null) { // 找到第一个非空值之后，后续不再找了
+          continue;
         }
-
-        String target = pathParams.get(0);
-        List<Field> fields = rows.getHeader().getFields();
-        Pattern pattern = Pattern.compile(StringUtils.reformatPath(target) + ".*");
-        List<Field> targetFields = new ArrayList<>();
-        List<Integer> indices = new ArrayList<>();
-        for (int i = 0; i < fields.size(); i++) {
-            Field field = fields.get(i);
-            if (pattern.matcher(field.getFullName()).matches()) {
-                String name = getIdentifier() + "(" + field.getName() + ")";
-                String fullName = getIdentifier() + "(" + field.getFullName() + ")";
-                targetFields.add(new Field(name, fullName, field.getType()));
-                indices.add(i);
-            }
-        }
-        Object[] targetValues = new Object[targetFields.size()];
-        while (rows.hasNext()) {
-            Row row = rows.next();
-            for (int i = 0; i < indices.size(); i++) {
-                Object value = row.getValue(indices.get(i));
-                if (targetValues[i] != null) { // 找到第一个非空值之后，后续不再找了
-                    continue;
-                }
-                targetValues[i] = value;
-            }
-        }
-        return new Row(new Header(targetFields), targetValues);
+        targetValues[i] = value;
+      }
     }
+    return new Row(new Header(targetFields), targetValues);
+  }
 }

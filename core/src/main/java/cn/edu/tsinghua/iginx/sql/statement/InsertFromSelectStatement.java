@@ -2,31 +2,29 @@ package cn.edu.tsinghua.iginx.sql.statement;
 
 public class InsertFromSelectStatement extends DataStatement {
 
-    private final long keyOffset;
+  private final long keyOffset;
 
-    private final SelectStatement subSelectStatement;
+  private final SelectStatement subSelectStatement;
 
-    private final InsertStatement subInsertStatement;
+  private final InsertStatement subInsertStatement;
 
-    public InsertFromSelectStatement(
-            long keyOffset,
-            SelectStatement subSelectStatement,
-            InsertStatement subInsertStatement) {
-        this.statementType = StatementType.INSERT_FROM_SELECT;
-        this.keyOffset = keyOffset;
-        this.subSelectStatement = subSelectStatement;
-        this.subInsertStatement = subInsertStatement;
-    }
+  public InsertFromSelectStatement(
+      long keyOffset, SelectStatement subSelectStatement, InsertStatement subInsertStatement) {
+    this.statementType = StatementType.INSERT_FROM_SELECT;
+    this.keyOffset = keyOffset;
+    this.subSelectStatement = subSelectStatement;
+    this.subInsertStatement = subInsertStatement;
+  }
 
-    public long getKeyOffset() {
-        return keyOffset;
-    }
+  public long getKeyOffset() {
+    return keyOffset;
+  }
 
-    public SelectStatement getSubSelectStatement() {
-        return subSelectStatement;
-    }
+  public SelectStatement getSubSelectStatement() {
+    return subSelectStatement;
+  }
 
-    public InsertStatement getSubInsertStatement() {
-        return subInsertStatement;
-    }
+  public InsertStatement getSubInsertStatement() {
+    return subInsertStatement;
+  }
 }

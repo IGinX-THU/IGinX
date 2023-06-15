@@ -94,8 +94,8 @@
 								<formatAnnotations/-->
                                 <googleJavaFormat>
                                     <version>1.6</version>
-                                    <style>AOSP</style>
-                                    <!-- or GOOGLE(optional) -->
+                                    <style>GOOGLE</style>
+                                    <!-- or AOSP(optional) -->
                                 </googleJavaFormat>
                                 <indent>
                                     <spaces>true</spaces>

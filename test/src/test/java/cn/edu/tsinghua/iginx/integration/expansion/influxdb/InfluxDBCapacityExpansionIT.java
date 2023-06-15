@@ -8,14 +8,14 @@ import org.slf4j.LoggerFactory;
 
 public class InfluxDBCapacityExpansionIT extends BaseCapacityExpansionIT {
 
-    private static final Logger logger = LoggerFactory.getLogger(InfluxDBCapacityExpansionIT.class);
+  private static final Logger logger = LoggerFactory.getLogger(InfluxDBCapacityExpansionIT.class);
 
-    public InfluxDBCapacityExpansionIT() {
-        super(
-                influxdb,
-                "username:user, password:12345678, token:testToken, organization:testOrg",
-                8086,
-                8087,
-                8088);
-    }
+  public InfluxDBCapacityExpansionIT() {
+    super(
+        influxdb,
+        "username:user, password:12345678, token:testToken, organization:testOrg",
+        8086,
+        8087,
+        8088);
+  }
 }

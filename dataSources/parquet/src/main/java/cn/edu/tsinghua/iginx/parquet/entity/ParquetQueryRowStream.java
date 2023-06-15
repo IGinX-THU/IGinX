@@ -27,141 +27,141 @@ import org.slf4j.LoggerFactory;
 
 public class ParquetQueryRowStream implements RowStream {
 
-    public static final Logger logger = LoggerFactory.getLogger(ParquetQueryRowStream.class);
+  public static final Logger logger = LoggerFactory.getLogger(ParquetQueryRowStream.class);
 
-    public static final ParquetQueryRowStream EMPTY_PARQUET_ROW_STREAM =
-            new ParquetQueryRowStream(null, null);
+  public static final ParquetQueryRowStream EMPTY_PARQUET_ROW_STREAM =
+      new ParquetQueryRowStream(null, null);
 
-    private final Header header;
+  private final Header header;
 
-    private final ResultSet rs;
+  private final ResultSet rs;
 
-    private boolean hasNext = false;
+  private boolean hasNext = false;
 
-    private boolean hasNextCache = false;
+  private boolean hasNextCache = false;
 
-    private final Map<Field, String> physicalNameCache = new HashMap<>();
+  private final Map<Field, String> physicalNameCache = new HashMap<>();
 
-    public ParquetQueryRowStream(ResultSet rs, TagFilter tagFilter) {
-        this.rs = rs;
+  public ParquetQueryRowStream(ResultSet rs, TagFilter tagFilter) {
+    this.rs = rs;
 
-        if (rs == null) {
-            this.header = new Header(Field.KEY, Collections.emptyList());
-            return;
-        }
-
-        boolean filterByTags = tagFilter != null;
-
-        Field time = null;
-        List<Field> fields = new ArrayList<>();
-        try {
-            ResultSetMetaData rsMetaData = rs.getMetaData();
-            for (int i = 1; i <= rsMetaData.getColumnCount(); i++) { // start from index 1
-                String pathName =
-                        rsMetaData.getColumnName(i).replaceAll(PARQUET_SEPARATOR, IGINX_SEPARATOR);
-                if (i == 1 && pathName.equals(COLUMN_KEY)) {
-                    time = Field.KEY;
-                    continue;
-                }
-
-                Pair<String, Map<String, String>> pair = TagKVUtils.splitFullName(pathName);
-                DataType type = fromParquetDataType(rsMetaData.getColumnTypeName(i));
-
-                Field field = new Field(pair.getK(), type, pair.getV());
-
-                if (filterByTags && !TagKVUtils.match(pair.v, tagFilter)) {
-                    continue;
-                }
-                fields.add(field);
-            }
-        } catch (SQLException e) {
-            logger.error("encounter error when get header of result set.");
-        }
-
-        if (time == null) {
-            this.header = new Header(fields);
-        } else {
-            this.header = new Header(Field.KEY, fields);
-        }
+    if (rs == null) {
+      this.header = new Header(Field.KEY, Collections.emptyList());
+      return;
     }
 
-    @Override
-    public Header getHeader() throws PhysicalException {
-        return header;
-    }
+    boolean filterByTags = tagFilter != null;
 
-    @Override
-    public void close() throws PhysicalException {
-        try {
-            if (rs != null) {
-                rs.close();
-            }
-        } catch (SQLException e) {
-            throw new PhysicalException(e);
+    Field time = null;
+    List<Field> fields = new ArrayList<>();
+    try {
+      ResultSetMetaData rsMetaData = rs.getMetaData();
+      for (int i = 1; i <= rsMetaData.getColumnCount(); i++) { // start from index 1
+        String pathName =
+            rsMetaData.getColumnName(i).replaceAll(PARQUET_SEPARATOR, IGINX_SEPARATOR);
+        if (i == 1 && pathName.equals(COLUMN_KEY)) {
+          time = Field.KEY;
+          continue;
         }
-    }
 
-    @Override
-    public boolean hasNext() throws PhysicalException {
-        // DuckDB JDBC does not implements many function
-        // so we need a tricky way to maintains the idempotency of hasNext()
-        if (rs == null) {
-            return false;
-        } else if (hasNextCache) {
-            return hasNext;
-        } else {
-            try {
-                hasNext = rs.next();
-                hasNextCache = true;
-                return hasNext;
-            } catch (SQLException e) {
-                throw new PhysicalException(e);
-            }
+        Pair<String, Map<String, String>> pair = TagKVUtils.splitFullName(pathName);
+        DataType type = fromParquetDataType(rsMetaData.getColumnTypeName(i));
+
+        Field field = new Field(pair.getK(), type, pair.getV());
+
+        if (filterByTags && !TagKVUtils.match(pair.v, tagFilter)) {
+          continue;
         }
+        fields.add(field);
+      }
+    } catch (SQLException e) {
+      logger.error("encounter error when get header of result set.");
     }
 
-    @Override
-    public Row next() throws PhysicalException {
-        try {
-            if (rs == null) {
-                return null;
-            } else if (hasNextCache) {
-                hasNextCache = false;
-                return constructOneRow();
-            } else if (rs.next()) {
-                return constructOneRow();
-            } else {
-                return null;
-            }
-        } catch (SQLException e) {
-            throw new PhysicalException(e);
-        }
+    if (time == null) {
+      this.header = new Header(fields);
+    } else {
+      this.header = new Header(Field.KEY, fields);
     }
+  }
 
-    private Row constructOneRow() throws SQLException {
-        long timestamp = (long) rs.getObject(COLUMN_KEY);
+  @Override
+  public Header getHeader() throws PhysicalException {
+    return header;
+  }
 
-        Object[] values = new Object[header.getFieldSize()];
-        for (int i = 0; i < header.getFieldSize(); i++) {
-            Object value = rs.getObject(getPhysicalPath(header.getField(i)));
-            if (header.getField(i).getType() == DataType.BINARY && value != null) {
-                values[i] = ((String) value).getBytes();
-            } else {
-                values[i] = value;
-            }
-        }
-        return new Row(header, timestamp, values);
+  @Override
+  public void close() throws PhysicalException {
+    try {
+      if (rs != null) {
+        rs.close();
+      }
+    } catch (SQLException e) {
+      throw new PhysicalException(e);
     }
+  }
 
-    private String getPhysicalPath(Field field) {
-        if (physicalNameCache.containsKey(field)) {
-            return physicalNameCache.get(field);
-        } else {
-            String name = field.getName();
-            String path = TagKVUtils.toFullName(name, field.getTags());
-            path = path.replaceAll(IGINX_SEPARATOR, PARQUET_SEPARATOR);
-            physicalNameCache.put(field, path);
-            return path;
-        }
+  @Override
+  public boolean hasNext() throws PhysicalException {
+    // DuckDB JDBC does not implements many function
+    // so we need a tricky way to maintains the idempotency of hasNext()
+    if (rs == null) {
+      return false;
+    } else if (hasNextCache) {
+      return hasNext;
+    } else {
+      try {
+        hasNext = rs.next();
+        hasNextCache = true;
+        return hasNext;
+      } catch (SQLException e) {
+        throw new PhysicalException(e);
+      }
     }
+  }
+
+  @Override
+  public Row next() throws PhysicalException {
+    try {
+      if (rs == null) {
+        return null;
+      } else if (hasNextCache) {
+        hasNextCache = false;
+        return constructOneRow();
+      } else if (rs.next()) {
+        return constructOneRow();
+      } else {
+        return null;
+      }
+    } catch (SQLException e) {
+      throw new PhysicalException(e);
+    }
+  }
+
+  private Row constructOneRow() throws SQLException {
+    long timestamp = (long) rs.getObject(COLUMN_KEY);
+
+    Object[] values = new Object[header.getFieldSize()];
+    for (int i = 0; i < header.getFieldSize(); i++) {
+      Object value = rs.getObject(getPhysicalPath(header.getField(i)));
+      if (header.getField(i).getType() == DataType.BINARY && value != null) {
+        values[i] = ((String) value).getBytes();
+      } else {
+        values[i] = value;
+      }
+    }
+    return new Row(header, timestamp, values);
+  }
+
+  private String getPhysicalPath(Field field) {
+    if (physicalNameCache.containsKey(field)) {
+      return physicalNameCache.get(field);
+    } else {
+      String name = field.getName();
+      String path = TagKVUtils.toFullName(name, field.getTags());
+      path = path.replaceAll(IGINX_SEPARATOR, PARQUET_SEPARATOR);
+      physicalNameCache.put(field, path);
+      return path;
+    }
+  }
 }
