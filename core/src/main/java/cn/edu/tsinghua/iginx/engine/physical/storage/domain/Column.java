@@ -30,25 +30,25 @@ import java.util.stream.Collectors;
 
 public final class Column {
 
-private String path;
+  private String path;
 
-private final Map<String, String> tags;
+  private final Map<String, String> tags;
 
-private final DataType dataType;
+  private final DataType dataType;
 
-private String physicalPath = null;
+  private String physicalPath = null;
 
-public Column(String path, DataType dataType) {
+  public Column(String path, DataType dataType) {
     this(path, dataType, null);
-}
+  }
 
-public Column(String path, DataType dataType, Map<String, String> tags) {
+  public Column(String path, DataType dataType, Map<String, String> tags) {
     this.path = path;
     this.dataType = dataType;
     this.tags = tags;
-}
+  }
 
-public static RowStream toRowStream(Collection<Column> timeseries) {
+  public static RowStream toRowStream(Collection<Column> timeseries) {
     Header header =
         new Header(
             Arrays.asList(new Field("path", DataType.BINARY), new Field("type", DataType.BINARY)));
@@ -59,48 +59,48 @@ public static RowStream toRowStream(Collection<Column> timeseries) {
                     new Row(
                         header,
                         new Object[] {
-                        Field.toFullName(e.path, e.tags).getBytes(),
-                        e.dataType.toString().getBytes()
+                          Field.toFullName(e.path, e.tags).getBytes(),
+                          e.dataType.toString().getBytes()
                         }))
             .collect(Collectors.toList());
     return new Table(header, rows);
-}
+  }
 
-public String getPath() {
+  public String getPath() {
     return path;
-}
+  }
 
-public void setPath(String path) {
+  public void setPath(String path) {
     this.path = path;
-}
+  }
 
-public String getPhysicalPath() {
+  public String getPhysicalPath() {
     if (physicalPath == null) {
-    physicalPath = TagKVUtils.toPhysicalPath(path, tags);
+      physicalPath = TagKVUtils.toPhysicalPath(path, tags);
     }
     return physicalPath;
-}
+  }
 
-public DataType getDataType() {
+  public DataType getDataType() {
     return dataType;
-}
+  }
 
-public Map<String, String> getTags() {
+  public Map<String, String> getTags() {
     return tags;
-}
+  }
 
-@Override
-public boolean equals(Object o) {
+  @Override
+  public boolean equals(Object o) {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
     Column that = (Column) o;
     return Objects.equals(path, that.path)
         && dataType == that.dataType
         && Objects.equals(tags, that.tags);
-}
+  }
 
-@Override
-public int hashCode() {
+  @Override
+  public int hashCode() {
     return Objects.hash(path, dataType, tags);
-}
+  }
 }

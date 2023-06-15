@@ -13,21 +13,21 @@ import java.util.List;
 
 public interface Executor {
 
-TaskExecuteResult executeProjectTask(
-    List<String> paths,
-    TagFilter tagFilter,
-    String filter,
-    String storageUnit,
-    boolean isDummyStorageUnit);
+  TaskExecuteResult executeProjectTask(
+      List<String> paths,
+      TagFilter tagFilter,
+      String filter,
+      String storageUnit,
+      boolean isDummyStorageUnit);
 
-TaskExecuteResult executeInsertTask(DataView dataView, String storageUnit);
+  TaskExecuteResult executeInsertTask(DataView dataView, String storageUnit);
 
-TaskExecuteResult executeDeleteTask(
-    List<String> paths, List<KeyRange> keyRanges, TagFilter tagFilter, String storageUnit);
+  TaskExecuteResult executeDeleteTask(
+      List<String> paths, List<KeyRange> keyRanges, TagFilter tagFilter, String storageUnit);
 
-List<Column> getColumnsOfStorageUnit(String storageUnit) throws PhysicalException;
+  List<Column> getColumnsOfStorageUnit(String storageUnit) throws PhysicalException;
 
-Pair<ColumnsRange, KeyInterval> getBoundaryOfStorage() throws PhysicalException;
+  Pair<ColumnsRange, KeyInterval> getBoundaryOfStorage() throws PhysicalException;
 
-void close() throws PhysicalException;
+  void close() throws PhysicalException;
 }

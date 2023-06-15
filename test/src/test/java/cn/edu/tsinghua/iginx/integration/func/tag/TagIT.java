@@ -17,97 +17,97 @@ import org.slf4j.LoggerFactory;
 
 public class TagIT {
 
-private static final Logger logger = LoggerFactory.getLogger(TagIT.class);
+  private static final Logger logger = LoggerFactory.getLogger(TagIT.class);
 
-private static Session session;
+  private static Session session;
 
-private static boolean isAbleToClearData;
+  private static boolean isAbleToClearData;
 
-private boolean isAbleToDelete = true;
+  private boolean isAbleToDelete = true;
 
-private boolean isScaling = false;
+  private boolean isScaling = false;
 
-public TagIT() {
+  public TagIT() {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     DBConf dbConf = conf.loadDBConf(conf.getStorageType());
     this.isAbleToClearData = dbConf.getEnumValue(DBConf.DBConfType.isAbleToClearData);
     this.isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
     this.isScaling = conf.isScaling();
-}
+  }
 
-@BeforeClass
-public static void setUp() throws SessionException {
+  @BeforeClass
+  public static void setUp() throws SessionException {
     isAbleToClearData = true;
     session = new Session("127.0.0.1", 6888, "root", "root");
     session.openSession();
-}
+  }
 
-@AfterClass
-public static void tearDown() throws SessionException {
+  @AfterClass
+  public static void tearDown() throws SessionException {
     session.closeSession();
-}
+  }
 
-@Before
-public void insertData() throws ExecutionException, SessionException {
+  @Before
+  public void insertData() throws ExecutionException, SessionException {
     String[] insertStatements =
         new String[] {
-        "insert into ah.hr01 (key, s, v, s[t1=v1, t2=vv1], v[t1=v2, t2=vv1]) values (0, 1, 2, 3, 4), (1, 2, 3, 4, 5), (2, 3, 4, 5, 6), (3, 4, 5, 6, 7);",
-        "insert into ah.hr02 (key, s, v) values (100, true, \"v1\");",
-        "insert into ah.hr02[t1=v1] (key, s, v) values (400, false, \"v4\");",
-        "insert into ah.hr02[t1=v1,t2=v2] (key, v) values (800, \"v8\");",
-        "insert into ah.hr03 (key, s[t1=vv1,t2=v2], v[t1=vv11]) values (1600, true, 16);",
-        "insert into ah.hr03 (key, s[t1=v1,t2=vv2], v[t1=v1], v[t1=vv11]) values (3200, true, 16, 32);"
+          "insert into ah.hr01 (key, s, v, s[t1=v1, t2=vv1], v[t1=v2, t2=vv1]) values (0, 1, 2, 3, 4), (1, 2, 3, 4, 5), (2, 3, 4, 5, 6), (3, 4, 5, 6, 7);",
+          "insert into ah.hr02 (key, s, v) values (100, true, \"v1\");",
+          "insert into ah.hr02[t1=v1] (key, s, v) values (400, false, \"v4\");",
+          "insert into ah.hr02[t1=v1,t2=v2] (key, v) values (800, \"v8\");",
+          "insert into ah.hr03 (key, s[t1=vv1,t2=v2], v[t1=vv11]) values (1600, true, 16);",
+          "insert into ah.hr03 (key, s[t1=v1,t2=vv2], v[t1=v1], v[t1=vv11]) values (3200, true, 16, 32);"
         };
 
     for (String insertStatement : insertStatements) {
-    SessionExecuteSqlResult res = session.executeSql(insertStatement);
-    if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
+      SessionExecuteSqlResult res = session.executeSql(insertStatement);
+      if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
         logger.error("Insert date execute fail. Caused by: {}.", res.getParseErrorMsg());
         fail();
+      }
     }
-    }
-}
+  }
 
-@After
-public void clearData() {
+  @After
+  public void clearData() {
     Controller.clearData(session);
-}
+  }
 
-private void executeAndCompare(String statement, String expectedOutput) {
+  private void executeAndCompare(String statement, String expectedOutput) {
     String actualOutput = execute(statement);
     assertEquals(expectedOutput, actualOutput);
-}
+  }
 
-private String execute(String statement) {
+  private String execute(String statement) {
     logger.info("Execute Statement: \"{}\"", statement);
 
     SessionExecuteSqlResult res = null;
     try {
-    res = session.executeSql(statement);
+      res = session.executeSql(statement);
     } catch (SessionException | ExecutionException e) {
-    if (e.toString().trim().equals(CLEAR_DATA_EXCEPTION)) {
+      if (e.toString().trim().equals(CLEAR_DATA_EXCEPTION)) {
         logger.warn(CLEAR_DATA_WARNING);
-    } else {
+      } else {
         logger.error(CLEAR_DATA_ERROR, statement, e.getMessage());
         fail();
-    }
+      }
     }
 
     if (res == null) {
-    return "";
+      return "";
     }
 
     if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-    logger.error(CLEAR_DATA_ERROR, statement, res.getParseErrorMsg());
-    fail();
-    return "";
+      logger.error(CLEAR_DATA_ERROR, statement, res.getParseErrorMsg());
+      fail();
+      return "";
     }
 
     return res.getResultInString(false, "");
-}
+  }
 
-@Test
-public void testShowTimeSeriesWithTags() {
+  @Test
+  public void testShowTimeSeriesWithTags() {
     String statement = "SHOW COLUMNS ah.*;";
     String expected =
         "Columns:\n"
@@ -292,18 +292,18 @@ public void testShowTimeSeriesWithTags() {
             + "+---------+--------+\n"
             + "Total line number = 4\n";
     executeAndCompare(statement, expected);
-}
+  }
 
-@Test
-public void testCountPoints() {
+  @Test
+  public void testCountPoints() {
     if (isScaling) return;
     String statement = "COUNT POINTS;";
     String expected = "Points num: 26\n";
     executeAndCompare(statement, expected);
-}
+  }
 
-@Test
-public void testCountPath() {
+  @Test
+  public void testCountPath() {
     String statement = "SELECT COUNT(*) FROM ah;";
     String expected =
         "ResultSets:\n"
@@ -314,10 +314,10 @@ public void testCountPath() {
             + "+----------------+------------------------------+----------------+------------------------------+----------------+-----------------------+----------------+-----------------------------+-----------------------+------------------------------+------------------------------+-----------------------+-------------------------+\n"
             + "Total line number = 1\n";
     executeAndCompare(statement, expected);
-}
+  }
 
-@Test
-public void testBasicQuery() {
+  @Test
+  public void testBasicQuery() {
     String statement = "SELECT * FROM ah;";
     String expected =
         "ResultSets:\n"
@@ -336,10 +336,10 @@ public void testBasicQuery() {
             + "+----+---------+-----------------------+---------+-----------------------+---------+----------------+---------+----------------------+----------------+-----------------------+-----------------------+----------------+------------------+\n"
             + "Total line number = 9\n";
     executeAndCompare(statement, expected);
-}
+  }
 
-@Test
-public void testQueryWithoutTags() {
+  @Test
+  public void testQueryWithoutTags() {
     String statement = "SELECT s FROM ah.*;";
     String expected =
         "ResultSets:\n"
@@ -406,10 +406,10 @@ public void testQueryWithoutTags() {
             + "+---+---------+---------+\n"
             + "Total line number = 5\n";
     executeAndCompare(statement, expected);
-}
+  }
 
-@Test
-public void testQueryWithTag() {
+  @Test
+  public void testQueryWithTag() {
     String statement = "SELECT s FROM ah.* with t1=v1;";
     String expected =
         "ResultSets:\n"
@@ -436,10 +436,10 @@ public void testQueryWithTag() {
             + "+---+----------------+\n"
             + "Total line number = 1\n";
     executeAndCompare(statement, expected);
-}
+  }
 
-@Test
-public void testQueryWithMultiTags() {
+  @Test
+  public void testQueryWithMultiTags() {
     String statement = "SELECT s FROM ah.* with t1=v1 OR t2=v2;";
     String expected =
         "ResultSets:\n"
@@ -490,10 +490,10 @@ public void testQueryWithMultiTags() {
             + "+---+----------------+\n"
             + "Total line number = 1\n";
     executeAndCompare(statement, expected);
-}
+  }
 
-@Test
-public void testDeleteWithTag() {
+  @Test
+  public void testDeleteWithTag() {
     if (!isAbleToDelete || isScaling) return;
     String statement = "SELECT s FROM ah.*;";
     String expected =
@@ -531,10 +531,10 @@ public void testDeleteWithTag() {
             + "+----+---------+-----------------------+---------+----------------+-----------------------+-----------------------+\n"
             + "Total line number = 6\n";
     executeAndCompare(statement, expected);
-}
+  }
 
-@Test
-public void testDeleteWithMultiTags() {
+  @Test
+  public void testDeleteWithMultiTags() {
     if (!isAbleToDelete || isScaling) return;
     String statement = "SELECT s FROM ah.*;";
     String expected =
@@ -610,10 +610,10 @@ public void testDeleteWithMultiTags() {
             + "+---+---------+-----------------------+---------+----------------+-----------------------+-----------------------+\n"
             + "Total line number = 5\n";
     executeAndCompare(statement, expected);
-}
+  }
 
-@Test
-public void testDeleteTSWithTag() {
+  @Test
+  public void testDeleteTSWithTag() {
     if (!isAbleToDelete || isScaling) return;
     String showTimeSeries = "SHOW COLUMNS ah.*;";
     String expected =
@@ -696,10 +696,10 @@ public void testDeleteTSWithTag() {
             + "+---+----------------------+\n"
             + "Total line number = 1\n";
     executeAndCompare(showTimeSeriesData, expected);
-}
+  }
 
-@Test
-public void testDeleteTSWithMultiTags() {
+  @Test
+  public void testDeleteTSWithMultiTags() {
     if (!isAbleToDelete || isScaling) return;
     String showTimeSeries = "SHOW COLUMNS ah.*;";
     String expected =
@@ -781,10 +781,10 @@ public void testDeleteTSWithMultiTags() {
     expected = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
     ;
     executeAndCompare(showTimeSeriesData, expected);
-}
+  }
 
-@Test
-public void testQueryWithWildcardTag() {
+  @Test
+  public void testQueryWithWildcardTag() {
     String statement = "SELECT s FROM ah.* with t2=*;";
     String expected =
         "ResultSets:\n"
@@ -800,10 +800,10 @@ public void testQueryWithWildcardTag() {
             + "+----+-----------------------+-----------------------+-----------------------+\n"
             + "Total line number = 6\n";
     executeAndCompare(statement, expected);
-}
+  }
 
-@Test
-public void testQueryWithAggregate() {
+  @Test
+  public void testQueryWithAggregate() {
     String statement = "SELECT sum(v) FROM ah.hr03 with t1=vv11;";
     String expected =
         "ResultSets:\n"
@@ -858,10 +858,10 @@ public void testQueryWithAggregate() {
             + "+-------------------------+\n"
             + "Total line number = 1\n";
     executeAndCompare(statement, expected);
-}
+  }
 
-@Test
-public void testMixQueryWithAggregate() {
+  @Test
+  public void testMixQueryWithAggregate() {
     String statement = "select last(s) from ah.hr01;";
     String expected =
         "ResultSets:\n"
@@ -1143,10 +1143,10 @@ public void testMixQueryWithAggregate() {
             + "+---------------------+-----------------------+\n"
             + "Total line number = 1\n";
     executeAndCompare(statement, expected);
-}
+  }
 
-@Test
-public void testAlias() {
+  @Test
+  public void testAlias() {
     String statement = "SELECT s AS ts FROM ah.hr02;";
     String expected =
         "ResultSets:\n"
@@ -1182,10 +1182,10 @@ public void testAlias() {
             + "+---+-------------+--------------------+\n"
             + "Total line number = 2\n";
     executeAndCompare(statement, expected);
-}
+  }
 
-@Test
-public void testSubQuery() {
+  @Test
+  public void testSubQuery() {
     String statement = "SELECT SUM(ts2) FROM (SELECT s AS ts1, v AS ts2 FROM ah.hr03 with t1=v1);";
     String expected =
         "ResultSets:\n"
@@ -1242,10 +1242,10 @@ public void testSubQuery() {
             + "+-----------+----------------------+----------------+-----------+-----------------------+----------------+\n"
             + "Total line number = 2\n";
     executeAndCompare(statement, expected);
-}
+  }
 
-@Test
-public void testTagInsertWithSubQuery() {
+  @Test
+  public void testTagInsertWithSubQuery() {
 
     String query = "SELECT s AS ts1, v AS ts2 FROM ah.hr03 with t1=v1;";
     String expected =
@@ -1287,10 +1287,10 @@ public void testTagInsertWithSubQuery() {
             + "+----+----------------------------+---------------------------+\n"
             + "Total line number = 1\n";
     executeAndCompare(query, expected);
-}
+  }
 
-@Test
-public void testClearData() throws SessionException, ExecutionException {
+  @Test
+  public void testClearData() throws SessionException, ExecutionException {
     if (!isAbleToClearData || isScaling) return;
     clearData();
 
@@ -1301,5 +1301,5 @@ public void testClearData() throws SessionException, ExecutionException {
     String showTimeSeries = "SELECT * FROM *;";
     expected = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
     executeAndCompare(showTimeSeries, expected);
-}
+  }
 }

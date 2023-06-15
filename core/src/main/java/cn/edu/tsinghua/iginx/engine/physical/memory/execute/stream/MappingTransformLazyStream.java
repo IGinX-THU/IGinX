@@ -29,51 +29,51 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.MappingTransform;
 
 public class MappingTransformLazyStream extends UnaryLazyStream {
 
-private final MappingTransform transform;
+  private final MappingTransform transform;
 
-private final MappingFunction function;
+  private final MappingFunction function;
 
-private final FunctionParams params;
+  private final FunctionParams params;
 
-private RowStream resultStream;
+  private RowStream resultStream;
 
-public MappingTransformLazyStream(MappingTransform transform, RowStream stream) {
+  public MappingTransformLazyStream(MappingTransform transform, RowStream stream) {
     super(stream);
     this.transform = transform;
     this.function = (MappingFunction) transform.getFunctionCall().getFunction();
     this.params = transform.getFunctionCall().getParams();
-}
+  }
 
-@Override
-public Header getHeader() throws PhysicalException {
+  @Override
+  public Header getHeader() throws PhysicalException {
     if (resultStream == null) {
-    resultStream = calculateResults();
+      resultStream = calculateResults();
     }
     return resultStream == null ? Header.EMPTY_HEADER : resultStream.getHeader();
-}
+  }
 
-@Override
-public boolean hasNext() throws PhysicalException {
+  @Override
+  public boolean hasNext() throws PhysicalException {
     if (resultStream == null) {
-    resultStream = calculateResults();
+      resultStream = calculateResults();
     }
     return resultStream != null && resultStream.hasNext();
-}
+  }
 
-@Override
-public Row next() throws PhysicalException {
+  @Override
+  public Row next() throws PhysicalException {
     if (!hasNext()) {
-    throw new IllegalStateException("row stream doesn't have more data!");
+      throw new IllegalStateException("row stream doesn't have more data!");
     }
     return resultStream.next();
-}
+  }
 
-private RowStream calculateResults() throws PhysicalException {
+  private RowStream calculateResults() throws PhysicalException {
     try {
-    return function.transform(stream, params);
+      return function.transform(stream, params);
     } catch (Exception e) {
-    throw new PhysicalTaskExecuteFailureException(
-        "encounter error when execute mapping function " + function.getIdentifier() + ".", e);
+      throw new PhysicalTaskExecuteFailureException(
+          "encounter error when execute mapping function " + function.getIdentifier() + ".", e);
     }
-}
+  }
 }

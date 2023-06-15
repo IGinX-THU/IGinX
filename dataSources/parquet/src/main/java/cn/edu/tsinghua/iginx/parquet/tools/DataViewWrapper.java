@@ -9,72 +9,72 @@ import java.util.Map;
 
 public class DataViewWrapper {
 
-private final DataView dataView;
+  private final DataView dataView;
 
-private final Map<Integer, String> pathCache;
+  private final Map<Integer, String> pathCache;
 
-public DataViewWrapper(DataView dataView) {
+  public DataViewWrapper(DataView dataView) {
     this.dataView = dataView;
     this.pathCache = new HashMap<>();
-}
+  }
 
-public int getPathNum() {
+  public int getPathNum() {
     return dataView.getPathNum();
-}
+  }
 
-public int getKeySize() {
+  public int getKeySize() {
     return dataView.getKeySize();
-}
+  }
 
-public String getPath(int index) {
+  public String getPath(int index) {
     if (pathCache.containsKey(index)) {
-    return pathCache.get(index);
+      return pathCache.get(index);
     }
     String path = dataView.getPath(index);
     Map<String, String> tags = dataView.getTags(index);
     path = TagKVUtils.toFullName(path, tags);
     pathCache.put(index, path);
     return path;
-}
+  }
 
-public DataType getDataType(int index) {
+  public DataType getDataType(int index) {
     return dataView.getDataType(index);
-}
+  }
 
-public Long getKey(int index) {
+  public Long getKey(int index) {
     return dataView.getKey(index);
-}
+  }
 
-public Object getValue(int index1, int index2) {
+  public Object getValue(int index1, int index2) {
     return dataView.getValue(index1, index2);
-}
+  }
 
-public BitmapView getBitmapView(int index) {
+  public BitmapView getBitmapView(int index) {
     return dataView.getBitmapView(index);
-}
+  }
 
-public RawDataType getRawDataType() {
+  public RawDataType getRawDataType() {
     return dataView.getRawDataType();
-}
+  }
 
-public int getPathIndex(String path) {
+  public int getPathIndex(String path) {
     for (int i = 0; i < getPathNum(); i++) {
-    if (getPath(i).equals(path)) {
+      if (getPath(i).equals(path)) {
         return i;
-    }
+      }
     }
     return -1;
-}
+  }
 
-public int getKeyIndex(long key) {
+  public int getKeyIndex(long key) {
     return dataView.getKeyIndex(key);
-}
+  }
 
-public long getMinKey() {
+  public long getMinKey() {
     return getKey(0);
-}
+  }
 
-public long getMaxKey() {
+  public long getMaxKey() {
     return getKey(getKeySize() - 1);
-}
+  }
 }

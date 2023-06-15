@@ -17,21 +17,21 @@ import org.slf4j.LoggerFactory;
 public class ExecuteStatisticsCollector extends AbstractStageStatisticsCollector
     implements IExecuteStatisticsCollector {
 
-private static final Logger logger = LoggerFactory.getLogger(ExecuteStatisticsCollector.class);
-private final ReadWriteLock lock = new ReentrantReadWriteLock();
-private final Map<StatementType, Pair<Long, Long>> detailInfos = new HashMap<>();
-private long count = 0;
-private long span = 0;
-private long queryPoints = 0;
-private long insertPoints = 0;
+  private static final Logger logger = LoggerFactory.getLogger(ExecuteStatisticsCollector.class);
+  private final ReadWriteLock lock = new ReentrantReadWriteLock();
+  private final Map<StatementType, Pair<Long, Long>> detailInfos = new HashMap<>();
+  private long count = 0;
+  private long span = 0;
+  private long queryPoints = 0;
+  private long insertPoints = 0;
 
-@Override
-protected String getStageName() {
+  @Override
+  protected String getStageName() {
     return "ExecuteStage";
-}
+  }
 
-@Override
-protected void processStatistics(Statistics statistics) {
+  @Override
+  protected void processStatistics(Statistics statistics) {
     lock.writeLock().lock();
     count += 1;
     span += statistics.getEndTime() - statistics.getStartTime();
@@ -42,46 +42,46 @@ protected void processStatistics(Statistics statistics) {
     detailInfo.k += 1;
     detailInfo.v += statistics.getEndTime() - statistics.getStartTime();
     if (statement.getType() == StatementType.INSERT) {
-    InsertStatement insertStatement = (InsertStatement) statement;
-    insertPoints += (long) insertStatement.getKeys().size() * insertStatement.getPaths().size();
+      InsertStatement insertStatement = (InsertStatement) statement;
+      insertPoints += (long) insertStatement.getKeys().size() * insertStatement.getPaths().size();
     }
     if (statement.getType() == StatementType.SELECT) {
-    Result result = statistics.getContext().getResult();
-    queryPoints += (long) result.getBitmapList().size() * result.getPaths().size();
+      Result result = statistics.getContext().getResult();
+      queryPoints += (long) result.getBitmapList().size() * result.getPaths().size();
     }
     lock.writeLock().unlock();
-}
+  }
 
-@Override
-public void broadcastStatistics() {
+  @Override
+  public void broadcastStatistics() {
     lock.readLock().lock();
     logger.info("Execute Stage Statistics Info: ");
     logger.info("\tcount: " + count + ", span: " + span + "μs");
     if (count != 0) {
-    logger.info("\taverage-span: " + (1.0 * span) / count + "μs");
+      logger.info("\taverage-span: " + (1.0 * span) / count + "μs");
     }
     for (Map.Entry<StatementType, Pair<Long, Long>> entry : detailInfos.entrySet()) {
-    logger.info(
-        "\t\tFor Request: "
-            + entry.getKey()
-            + ", count: "
-            + entry.getValue().k
-            + ", span: "
-            + entry.getValue().v
-            + "μs");
+      logger.info(
+          "\t\tFor Request: "
+              + entry.getKey()
+              + ", count: "
+              + entry.getValue().k
+              + ", span: "
+              + entry.getValue().v
+              + "μs");
     }
     logger.info("\ttotal insert points: " + insertPoints);
     logger.info("\ttotal query points: " + queryPoints);
     lock.readLock().unlock();
-}
+  }
 
-@Override
-public PreExecuteProcessor getPreExecuteProcessor() {
+  @Override
+  public PreExecuteProcessor getPreExecuteProcessor() {
     return before::apply;
-}
+  }
 
-@Override
-public PostExecuteProcessor getPostExecuteProcessor() {
+  @Override
+  public PostExecuteProcessor getPostExecuteProcessor() {
     return after::apply;
-}
+  }
 }

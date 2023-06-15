@@ -6,7 +6,7 @@ public interface IStatisticsCollector
         IPhysicalStatisticsCollector,
         IExecuteStatisticsCollector {
 
-void startBroadcasting();
+  void startBroadcasting();
 
-void endBroadcasting();
+  void endBroadcasting();
 }

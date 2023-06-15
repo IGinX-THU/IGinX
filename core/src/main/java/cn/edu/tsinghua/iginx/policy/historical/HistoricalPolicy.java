@@ -46,57 +46,57 @@ import org.slf4j.LoggerFactory;
 // expectedStorageUnitNum=50
 public class HistoricalPolicy implements IPolicy {
 
-private static final Logger logger = LoggerFactory.getLogger(HistoricalPolicy.class);
+  private static final Logger logger = LoggerFactory.getLogger(HistoricalPolicy.class);
 
-protected AtomicBoolean needReAllocate = new AtomicBoolean(false);
-private IMetaManager iMetaManager;
-private Sampler sampler;
-private List<String> suffixList = new ArrayList<>();
+  protected AtomicBoolean needReAllocate = new AtomicBoolean(false);
+  private IMetaManager iMetaManager;
+  private Sampler sampler;
+  private List<String> suffixList = new ArrayList<>();
 
-@Override
-public void notify(DataStatement statement) {
+  @Override
+  public void notify(DataStatement statement) {
     List<String> pathList = Utils.getPathListFromStatement(statement);
     if (pathList != null && !pathList.isEmpty()) {
-    sampler.updatePrefix(
-        new ArrayList<>(Arrays.asList(pathList.get(0), pathList.get(pathList.size() - 1))));
+      sampler.updatePrefix(
+          new ArrayList<>(Arrays.asList(pathList.get(0), pathList.get(pathList.size() - 1))));
     }
-}
+  }
 
-@Override
-public void init(IMetaManager iMetaManager) {
+  @Override
+  public void init(IMetaManager iMetaManager) {
     this.iMetaManager = iMetaManager;
     this.sampler = Sampler.getInstance();
     StorageEngineChangeHook hook = getStorageEngineChangeHook();
     if (hook != null) {
-    iMetaManager.registerStorageEngineChangeHook(hook);
+      iMetaManager.registerStorageEngineChangeHook(hook);
     }
 
     for (int i = 0; i <= 9; i++) {
-    suffixList.add(String.valueOf(i));
+      suffixList.add(String.valueOf(i));
     }
     for (char c = 'A'; c <= 'Z'; c++) {
-    suffixList.add(String.valueOf(c));
+      suffixList.add(String.valueOf(c));
     }
-}
+  }
 
-@Override
-public StorageEngineChangeHook getStorageEngineChangeHook() {
+  @Override
+  public StorageEngineChangeHook getStorageEngineChangeHook() {
     return (before, after) -> {
-    // 哪台机器加了分片，哪台机器初始化，并且在批量添加的时候只有最后一个存储引擎才会导致扩容发生
-    if (before == null
-        && after != null
-        && after.getCreatedBy() == iMetaManager.getIginxId()
-        && after.isNeedReAllocate()) {
+      // 哪台机器加了分片，哪台机器初始化，并且在批量添加的时候只有最后一个存储引擎才会导致扩容发生
+      if (before == null
+          && after != null
+          && after.getCreatedBy() == iMetaManager.getIginxId()
+          && after.isNeedReAllocate()) {
         needReAllocate.set(true);
         logger.info("新的可写节点进入集群，集群需要重新分片");
-    }
-    // TODO: 针对节点退出的情况缩容
+      }
+      // TODO: 针对节点退出的情况缩容
     };
-}
+  }
 
-@Override
-public Pair<List<FragmentMeta>, List<StorageUnitMeta>> generateInitialFragmentsAndStorageUnits(
-    DataStatement statement) {
+  @Override
+  public Pair<List<FragmentMeta>, List<StorageUnitMeta>> generateInitialFragmentsAndStorageUnits(
+      DataStatement statement) {
     List<FragmentMeta> fragmentList = new ArrayList<>();
     List<StorageUnitMeta> storageUnitList = new ArrayList<>();
 
@@ -115,59 +115,59 @@ public Pair<List<FragmentMeta>, List<StorageUnitMeta>> generateInitialFragmentsA
     List<String> prefixList = new ArrayList<>();
     List<ColumnsRange> columnsIntervalList = new ArrayList<>();
     for (String historicalPrefix : historicalPrefixList) {
-    for (String suffix : suffixList) {
+      for (String suffix : suffixList) {
         if (!prefixList.contains(historicalPrefix + suffix)) {
-        prefixList.add(historicalPrefix + suffix);
+          prefixList.add(historicalPrefix + suffix);
         }
-    }
+      }
     }
     Collections.sort(prefixList);
     int prefixNum = prefixList.size();
     prefixList.add(null);
     columnsIntervalList.add(new ColumnsInterval(null, prefixList.get(0)));
     for (int i = 0; i < expectedStorageUnitNum; i++) {
-    columnsIntervalList.add(
-        new ColumnsInterval(
-            prefixList.get(i * prefixNum / expectedStorageUnitNum),
-            prefixList.get((i + 1) * prefixNum / expectedStorageUnitNum)));
+      columnsIntervalList.add(
+          new ColumnsInterval(
+              prefixList.get(i * prefixNum / expectedStorageUnitNum),
+              prefixList.get((i + 1) * prefixNum / expectedStorageUnitNum)));
     }
 
     String masterId;
     StorageUnitMeta storageUnit;
     for (int i = 0; i < columnsIntervalList.size(); i++) {
-    masterId = RandomStringUtils.randomAlphanumeric(16);
-    storageUnit =
-        new StorageUnitMeta(
-            masterId, storageEngineList.get(i % storageEngineNum).getId(), masterId, true);
-    for (int j = i + 1; j < i + replicaNum; j++) {
+      masterId = RandomStringUtils.randomAlphanumeric(16);
+      storageUnit =
+          new StorageUnitMeta(
+              masterId, storageEngineList.get(i % storageEngineNum).getId(), masterId, true);
+      for (int j = i + 1; j < i + replicaNum; j++) {
         storageUnit.addReplica(
             new StorageUnitMeta(
                 RandomStringUtils.randomAlphanumeric(16),
                 storageEngineList.get(j % storageEngineNum).getId(),
                 masterId,
                 false));
-    }
-    storageUnitList.add(storageUnit);
-    fragmentList.add(new FragmentMeta(columnsIntervalList.get(i), keyInterval, masterId));
+      }
+      storageUnitList.add(storageUnit);
+      fragmentList.add(new FragmentMeta(columnsIntervalList.get(i), keyInterval, masterId));
     }
 
     return new Pair<>(fragmentList, storageUnitList);
-}
+  }
 
-@Override
-public Pair<List<FragmentMeta>, List<StorageUnitMeta>> generateFragmentsAndStorageUnits(
-    DataStatement statement) {
+  @Override
+  public Pair<List<FragmentMeta>, List<StorageUnitMeta>> generateFragmentsAndStorageUnits(
+      DataStatement statement) {
     long startKey;
     if (statement.getType() == StatementType.INSERT) {
-    startKey =
-        ((InsertStatement) statement).getEndKey()
-            + TimeUnit.SECONDS.toMillis(
-                    ConfigDescriptor.getInstance().getConfig().getDisorderMargin())
-                * 2
-            + 1;
+      startKey =
+          ((InsertStatement) statement).getEndKey()
+              + TimeUnit.SECONDS.toMillis(
+                      ConfigDescriptor.getInstance().getConfig().getDisorderMargin())
+                  * 2
+              + 1;
     } else {
-    throw new IllegalArgumentException(
-        "function generateFragmentsAndStorageUnits only use insert statement for now.");
+      throw new IllegalArgumentException(
+          "function generateFragmentsAndStorageUnits only use insert statement for now.");
     }
 
     List<FragmentMeta> fragmentList = new ArrayList<>();
@@ -179,27 +179,27 @@ public Pair<List<FragmentMeta>, List<StorageUnitMeta>> generateFragmentsAndStora
     Pair<FragmentMeta, StorageUnitMeta> pair;
 
     if (storageEngineNum == 0) {
-    // 系统中无可写存储引擎
-    throw new IllegalArgumentException("there are no writable storage engines!");
+      // 系统中无可写存储引擎
+      throw new IllegalArgumentException("there are no writable storage engines!");
     } else if (storageEngineNum == 1) {
-    // 系统中只有一个可写存储引擎
-    // [startKey, +∞) & (null, null)
-    storageEngineIdList =
-        Collections.singletonList(iMetaManager.getWritableStorageEngineList().get(0).getId());
-    pair =
-        generateFragmentAndStorageUnitByColumnsIntervalAndKeyInterval(
-            null, null, startKey, Long.MAX_VALUE, storageEngineIdList);
-    fragmentList.add(pair.k);
-    storageUnitList.add(pair.v);
+      // 系统中只有一个可写存储引擎
+      // [startKey, +∞) & (null, null)
+      storageEngineIdList =
+          Collections.singletonList(iMetaManager.getWritableStorageEngineList().get(0).getId());
+      pair =
+          generateFragmentAndStorageUnitByColumnsIntervalAndKeyInterval(
+              null, null, startKey, Long.MAX_VALUE, storageEngineIdList);
+      fragmentList.add(pair.k);
+      storageUnitList.add(pair.v);
     } else {
-    // 系统中有多个可写存储引擎
-    List<String> prefixList = sampler.samplePrefix(storageEngineNum - 1);
+      // 系统中有多个可写存储引擎
+      List<String> prefixList = sampler.samplePrefix(storageEngineNum - 1);
 
-    int index = 0;
+      int index = 0;
 
-    // [startKey, +∞) & [startPath, endPath)
-    int splitNum = Math.max(Math.min(storageEngineNum, prefixList.size() - 1), 0);
-    for (int i = 0; i < splitNum; i++) {
+      // [startKey, +∞) & [startPath, endPath)
+      int splitNum = Math.max(Math.min(storageEngineNum, prefixList.size() - 1), 0);
+      for (int i = 0; i < splitNum; i++) {
         storageEngineIdList = generateStorageEngineIdList(index++, replicaNum);
         pair =
             generateFragmentAndStorageUnitByColumnsIntervalAndKeyInterval(
@@ -210,67 +210,67 @@ public Pair<List<FragmentMeta>, List<StorageUnitMeta>> generateFragmentsAndStora
                 storageEngineIdList);
         fragmentList.add(pair.k);
         storageUnitList.add(pair.v);
-    }
+      }
 
-    // [startKey, +∞) & [endPath, null)
-    storageEngineIdList = generateStorageEngineIdList(index++, replicaNum);
-    pair =
-        generateFragmentAndStorageUnitByColumnsIntervalAndKeyInterval(
-            prefixList.get(prefixList.size() - 1),
-            null,
-            startKey,
-            Long.MAX_VALUE,
-            storageEngineIdList);
-    fragmentList.add(pair.k);
-    storageUnitList.add(pair.v);
+      // [startKey, +∞) & [endPath, null)
+      storageEngineIdList = generateStorageEngineIdList(index++, replicaNum);
+      pair =
+          generateFragmentAndStorageUnitByColumnsIntervalAndKeyInterval(
+              prefixList.get(prefixList.size() - 1),
+              null,
+              startKey,
+              Long.MAX_VALUE,
+              storageEngineIdList);
+      fragmentList.add(pair.k);
+      storageUnitList.add(pair.v);
 
-    // [startKey, +∞) & (null, startPath)
-    storageEngineIdList = generateStorageEngineIdList(index, replicaNum);
-    pair =
-        generateFragmentAndStorageUnitByColumnsIntervalAndKeyInterval(
-            null, prefixList.get(0), startKey, Long.MAX_VALUE, storageEngineIdList);
-    fragmentList.add(pair.k);
-    storageUnitList.add(pair.v);
+      // [startKey, +∞) & (null, startPath)
+      storageEngineIdList = generateStorageEngineIdList(index, replicaNum);
+      pair =
+          generateFragmentAndStorageUnitByColumnsIntervalAndKeyInterval(
+              null, prefixList.get(0), startKey, Long.MAX_VALUE, storageEngineIdList);
+      fragmentList.add(pair.k);
+      storageUnitList.add(pair.v);
     }
 
     return new Pair<>(fragmentList, storageUnitList);
-}
+  }
 
-private List<Long> generateStorageEngineIdList(int startIndex, int num) {
+  private List<Long> generateStorageEngineIdList(int startIndex, int num) {
     List<Long> storageEngineIdList = new ArrayList<>();
     List<StorageEngineMeta> storageEngines = iMetaManager.getWritableStorageEngineList();
     for (int i = startIndex; i < startIndex + num; i++) {
-    storageEngineIdList.add(storageEngines.get(i % storageEngines.size()).getId());
+      storageEngineIdList.add(storageEngines.get(i % storageEngines.size()).getId());
     }
     return storageEngineIdList;
-}
+  }
 
-public Pair<FragmentMeta, StorageUnitMeta>
-    generateFragmentAndStorageUnitByColumnsIntervalAndKeyInterval(
-        String startPath,
-        String endPath,
-        long startKey,
-        long endKey,
-        List<Long> storageEngineList) {
+  public Pair<FragmentMeta, StorageUnitMeta>
+      generateFragmentAndStorageUnitByColumnsIntervalAndKeyInterval(
+          String startPath,
+          String endPath,
+          long startKey,
+          long endKey,
+          List<Long> storageEngineList) {
     String masterId = RandomStringUtils.randomAlphanumeric(16);
     StorageUnitMeta storageUnit =
         new StorageUnitMeta(masterId, storageEngineList.get(0), masterId, true);
     FragmentMeta fragment = new FragmentMeta(startPath, endPath, startKey, endKey, masterId);
     for (int i = 1; i < storageEngineList.size(); i++) {
-    storageUnit.addReplica(
-        new StorageUnitMeta(
-            RandomStringUtils.randomAlphanumeric(16), storageEngineList.get(i), masterId, false));
+      storageUnit.addReplica(
+          new StorageUnitMeta(
+              RandomStringUtils.randomAlphanumeric(16), storageEngineList.get(i), masterId, false));
     }
     return new Pair<>(fragment, storageUnit);
-}
+  }
 
-@Override
-public boolean isNeedReAllocate() {
+  @Override
+  public boolean isNeedReAllocate() {
     return needReAllocate.getAndSet(false);
-}
+  }
 
-@Override
-public void setNeedReAllocate(boolean needReAllocate) {
+  @Override
+  public void setNeedReAllocate(boolean needReAllocate) {
     this.needReAllocate.set(needReAllocate);
-}
+  }
 }

@@ -27,80 +27,80 @@ import java.util.TreeMap;
 
 public final class Field {
 
-public static final Field KEY = new Field();
+  public static final Field KEY = new Field();
 
-private final String name;
+  private final String name;
 
-private final String fullName;
+  private final String fullName;
 
-private final Map<String, String> tags;
+  private final Map<String, String> tags;
 
-private final DataType type;
+  private final DataType type;
 
-public Field() {
+  public Field() {
     this(GlobalConstant.KEY_NAME, DataType.LONG, Collections.emptyMap());
-}
+  }
 
-public Field(String name, DataType type) {
+  public Field(String name, DataType type) {
     this(name, type, Collections.emptyMap());
-}
+  }
 
-public Field(String name, DataType type, Map<String, String> tags) {
+  public Field(String name, DataType type, Map<String, String> tags) {
     this.name = name;
     this.type = type;
     this.tags = tags;
     if (this.tags == null || this.tags.isEmpty()) {
-    this.fullName = name;
+      this.fullName = name;
     } else {
-    StringBuilder builder = new StringBuilder();
-    builder.append(name);
-    builder.append('{');
-    TreeMap<String, String> treeMap = new TreeMap<>(tags);
+      StringBuilder builder = new StringBuilder();
+      builder.append(name);
+      builder.append('{');
+      TreeMap<String, String> treeMap = new TreeMap<>(tags);
 
-    int cnt = 0;
-    for (String key : treeMap.keySet()) {
+      int cnt = 0;
+      for (String key : treeMap.keySet()) {
         if (cnt != 0) {
-        builder.append(',');
+          builder.append(',');
         }
         builder.append(key);
         builder.append("=");
         builder.append(treeMap.get(key));
         cnt++;
+      }
+      builder.append('}');
+      this.fullName = builder.toString();
     }
-    builder.append('}');
-    this.fullName = builder.toString();
-    }
-}
+  }
 
-public Field(String name, String fullName, DataType type) {
+  public Field(String name, String fullName, DataType type) {
     this(name, fullName, type, Collections.emptyMap());
-}
+  }
 
-public Field(String name, String fullName, DataType type, Map<String, String> tags) {
+  public Field(String name, String fullName, DataType type, Map<String, String> tags) {
     this.name = name;
     this.fullName = fullName;
     this.type = type;
     this.tags = tags;
-}
+  }
 
-public String getName() {
+  public String getName() {
     return name;
-}
+  }
 
-public String getFullName() {
+  public String getFullName() {
     return fullName;
-}
+  }
 
-public DataType getType() {
+  public DataType getType() {
     return type;
-}
+  }
 
-public Map<String, String> getTags() {
+  public Map<String, String> getTags() {
     return tags;
-}
+  }
 
-@Override
-public String toString() {
+  @Override
+  public String toString() {
     return "Field{"
         + "name='"
         + name
@@ -111,10 +111,10 @@ public String toString() {
         + ", type="
         + type
         + '}';
-}
+  }
 
-@Override
-public boolean equals(Object o) {
+  @Override
+  public boolean equals(Object o) {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
     Field that = (Field) o;
@@ -122,34 +122,34 @@ public boolean equals(Object o) {
         && Objects.equals(fullName, that.fullName)
         && type == that.type
         && Objects.equals(tags, that.tags);
-}
+  }
 
-@Override
-public int hashCode() {
+  @Override
+  public int hashCode() {
     return Objects.hash(name, fullName, type, tags);
-}
+  }
 
-public static String toFullName(String name, Map<String, String> tags) {
+  public static String toFullName(String name, Map<String, String> tags) {
     if (tags == null || tags.isEmpty()) {
-    return name;
+      return name;
     } else {
-    StringBuilder builder = new StringBuilder();
-    builder.append(name);
-    builder.append('{');
-    TreeMap<String, String> treeMap = new TreeMap<>(tags);
+      StringBuilder builder = new StringBuilder();
+      builder.append(name);
+      builder.append('{');
+      TreeMap<String, String> treeMap = new TreeMap<>(tags);
 
-    int cnt = 0;
-    for (String key : treeMap.keySet()) {
+      int cnt = 0;
+      for (String key : treeMap.keySet()) {
         if (cnt != 0) {
-        builder.append(',');
+          builder.append(',');
         }
         builder.append(key);
         builder.append("=");
         builder.append(treeMap.get(key));
         cnt++;
+      }
+      builder.append('}');
+      return builder.toString();
     }
-    builder.append('}');
-    return builder.toString();
-    }
-}
+  }
 }

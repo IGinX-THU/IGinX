@@ -43,40 +43,40 @@ import java.util.regex.Pattern;
 
 public class First implements MappingFunction {
 
-public static final String FIRST = "first";
+  public static final String FIRST = "first";
 
-private static final First INSTANCE = new First();
+  private static final First INSTANCE = new First();
 
-private static final String PATH = "path";
+  private static final String PATH = "path";
 
-private static final String VALUE = "value";
+  private static final String VALUE = "value";
 
-private First() {}
+  private First() {}
 
-public static First getInstance() {
+  public static First getInstance() {
     return INSTANCE;
-}
+  }
 
-@Override
-public FunctionType getFunctionType() {
+  @Override
+  public FunctionType getFunctionType() {
     return FunctionType.System;
-}
+  }
 
-@Override
-public MappingType getMappingType() {
+  @Override
+  public MappingType getMappingType() {
     return MappingType.Mapping;
-}
+  }
 
-@Override
-public String getIdentifier() {
+  @Override
+  public String getIdentifier() {
     return FIRST;
-}
+  }
 
-@Override
-public RowStream transform(RowStream rows, FunctionParams params) throws Exception {
+  @Override
+  public RowStream transform(RowStream rows, FunctionParams params) throws Exception {
     List<String> pathParams = params.getPaths();
     if (pathParams == null || pathParams.size() != 1) {
-    throw new IllegalArgumentException("unexpected param type for avg.");
+      throw new IllegalArgumentException("unexpected param type for avg.");
     }
 
     String target = pathParams.get(0);
@@ -89,30 +89,30 @@ public RowStream transform(RowStream rows, FunctionParams params) throws Excepti
     Pattern pattern = Pattern.compile(StringUtils.reformatPath(target) + ".*");
     Set<Integer> indices = new HashSet<>();
     for (int i = 0; i < rows.getHeader().getFieldSize(); i++) {
-    Field field = rows.getHeader().getField(i);
-    if (pattern.matcher(field.getFullName()).matches()) {
+      Field field = rows.getHeader().getField(i);
+      if (pattern.matcher(field.getFullName()).matches()) {
         indices.add(i);
-    }
+      }
     }
     while (rows.hasNext() && valueMap.size() < indices.size()) {
-    Row row = rows.next();
-    Object[] values = row.getValues();
+      Row row = rows.next();
+      Object[] values = row.getValues();
 
-    for (int i = 0; i < values.length; i++) {
+      for (int i = 0; i < values.length; i++) {
         if (values[i] == null || !indices.contains(i)) {
-        continue;
+          continue;
         }
         if (!valueMap.containsKey(i)) {
-        valueMap.put(i, new Pair<>(row.getKey(), values[i]));
+          valueMap.put(i, new Pair<>(row.getKey(), values[i]));
         }
-    }
+      }
     }
     for (Map.Entry<Integer, Pair<Long, Object>> entry : valueMap.entrySet()) {
-    resultRows.add(
-        new Row(
-            header,
-            entry.getValue().k,
-            new Object[] {
+      resultRows.add(
+          new Row(
+              header,
+              entry.getValue().k,
+              new Object[] {
                 rows.getHeader()
                     .getField(entry.getKey())
                     .getFullName()
@@ -120,9 +120,9 @@ public RowStream transform(RowStream rows, FunctionParams params) throws Excepti
                 ValueUtils.toString(
                         entry.getValue().v, rows.getHeader().getField(entry.getKey()).getType())
                     .getBytes(StandardCharsets.UTF_8)
-            }));
+              }));
     }
     resultRows.sort(ValueUtils.firstLastRowComparator());
     return new Table(header, resultRows);
-}
+  }
 }

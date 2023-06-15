@@ -23,39 +23,39 @@ import java.util.*;
 
 public class LastQuery extends Query {
 
-private final long startKey;
+  private final long startKey;
 
-private final String timePrecision;
+  private final String timePrecision;
 
-public LastQuery(Set<String> measurements, Map<String, List<String>> tagsList, long startKey) {
+  public LastQuery(Set<String> measurements, Map<String, List<String>> tagsList, long startKey) {
     super(measurements, tagsList);
     this.startKey = startKey;
     this.timePrecision = null;
-}
+  }
 
-public LastQuery(
-    Set<String> measurements,
-    Map<String, List<String>> tagsList,
-    long startKey,
-    String timePrecision) {
+  public LastQuery(
+      Set<String> measurements,
+      Map<String, List<String>> tagsList,
+      long startKey,
+      String timePrecision) {
     super(measurements, tagsList);
     this.startKey = startKey;
     this.timePrecision = timePrecision;
-}
+  }
 
-public long getStartKey() {
+  public long getStartKey() {
     return startKey;
-}
+  }
 
-public static LastQuery.Builder builder() {
+  public static LastQuery.Builder builder() {
     return new LastQuery.Builder();
-}
+  }
 
-public String getTimePrecision() {
+  public String getTimePrecision() {
     return timePrecision;
-}
+  }
 
-public static class Builder {
+  public static class Builder {
 
     private final Set<String> measurements;
 
@@ -66,55 +66,55 @@ public static class Builder {
     private String timePrecision;
 
     private Builder() {
-    this.measurements = new HashSet<>();
-    this.tagsList = new HashMap<>();
-    this.startKey = 0L;
-    this.timePrecision = null;
+      this.measurements = new HashSet<>();
+      this.tagsList = new HashMap<>();
+      this.startKey = 0L;
+      this.timePrecision = null;
     }
 
     public LastQuery.Builder addMeasurement(String measurement) {
-    Arguments.checkNonEmpty(measurement, "measurement");
-    this.measurements.add(measurement);
-    return this;
+      Arguments.checkNonEmpty(measurement, "measurement");
+      this.measurements.add(measurement);
+      return this;
     }
 
     public LastQuery.Builder addMeasurements(Set<String> measurements) {
-    measurements.forEach(measurement -> Arguments.checkNonEmpty(measurement, "measurement"));
-    this.measurements.addAll(measurements);
-    return this;
+      measurements.forEach(measurement -> Arguments.checkNonEmpty(measurement, "measurement"));
+      this.measurements.addAll(measurements);
+      return this;
     }
 
     public LastQuery.Builder addTags(String tagK, List<String> valueList) {
-    Arguments.checkListNonEmpty(valueList, "valueList");
-    this.tagsList.put(tagK, valueList);
-    return this;
+      Arguments.checkListNonEmpty(valueList, "valueList");
+      this.tagsList.put(tagK, valueList);
+      return this;
     }
 
     public LastQuery.Builder addTagsList(Map<String, List<String>> tagsList) {
-    tagsList.forEach((key, valueList) -> Arguments.checkListNonEmpty(valueList, "valueList"));
-    this.tagsList.putAll(tagsList);
-    return this;
+      tagsList.forEach((key, valueList) -> Arguments.checkListNonEmpty(valueList, "valueList"));
+      this.tagsList.putAll(tagsList);
+      return this;
     }
 
     public LastQuery.Builder startKey(long startKey) {
-    if (startKey < 0) {
+      if (startKey < 0) {
         throw new IllegalArgumentException("startKey must greater than zero.");
-    }
-    this.startKey = startKey;
-    return this;
+      }
+      this.startKey = startKey;
+      return this;
     }
 
     public LastQuery.Builder timePrecision(String timePrecision) {
-    Arguments.checkNotNull(timePrecision, "timePrecision");
-    this.timePrecision = timePrecision;
-    return this;
+      Arguments.checkNotNull(timePrecision, "timePrecision");
+      this.timePrecision = timePrecision;
+      return this;
     }
 
     public LastQuery build() {
-    if (this.measurements.isEmpty()) {
+      if (this.measurements.isEmpty()) {
         throw new IllegalStateException("last query at least has one measurement.");
+      }
+      return new LastQuery(measurements, tagsList, startKey, timePrecision);
     }
-    return new LastQuery(measurements, tagsList, startKey, timePrecision);
-    }
-}
+  }
 }

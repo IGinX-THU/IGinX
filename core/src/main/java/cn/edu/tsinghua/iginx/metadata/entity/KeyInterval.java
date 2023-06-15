@@ -22,69 +22,69 @@ import java.util.Objects;
 
 public final class KeyInterval {
 
-private long startKey;
+  private long startKey;
 
-private long endKey;
+  private long endKey;
 
-public KeyInterval(long startKey, long endKey) {
+  public KeyInterval(long startKey, long endKey) {
     this.startKey = startKey;
     this.endKey = endKey;
-}
+  }
 
-public long getStartKey() {
+  public long getStartKey() {
     return startKey;
-}
+  }
 
-public void setStartKey(long startKey) {
+  public void setStartKey(long startKey) {
     this.startKey = startKey;
-}
+  }
 
-public long getSpan() {
+  public long getSpan() {
     return endKey - startKey;
-}
+  }
 
-public long getEndKey() {
+  public long getEndKey() {
     return endKey;
-}
+  }
 
-public void setEndKey(long endKey) {
+  public void setEndKey(long endKey) {
     this.endKey = endKey;
-}
+  }
 
-@Override
-public String toString() {
+  @Override
+  public String toString() {
     return "" + startKey;
-}
+  }
 
-@Override
-public boolean equals(Object o) {
+  @Override
+  public boolean equals(Object o) {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
     KeyInterval that = (KeyInterval) o;
     return startKey == that.startKey && endKey == that.endKey;
-}
+  }
 
-@Override
-public int hashCode() {
+  @Override
+  public int hashCode() {
     return Objects.hash(startKey, endKey);
-}
+  }
 
-// 这里以及下面两个函数传入的都是闭区间
-public boolean isIntersect(KeyInterval keyInterval) {
+  // 这里以及下面两个函数传入的都是闭区间
+  public boolean isIntersect(KeyInterval keyInterval) {
     return (keyInterval.startKey < endKey) && (keyInterval.endKey >= startKey);
-}
+  }
 
-public boolean isBefore(KeyInterval keyInterval) {
+  public boolean isBefore(KeyInterval keyInterval) {
     return endKey <= keyInterval.startKey;
-}
+  }
 
-public boolean isAfter(KeyInterval keyInterval) {
+  public boolean isAfter(KeyInterval keyInterval) {
     return startKey > keyInterval.endKey;
-}
+  }
 
-public KeyInterval getIntersectWithLCRO(KeyInterval keyInterval) {
+  public KeyInterval getIntersectWithLCRO(KeyInterval keyInterval) {
     long start = Math.max(keyInterval.startKey, startKey);
     long end = Math.min(keyInterval.endKey, endKey);
     return new KeyInterval(start, end);
-}
+  }
 }

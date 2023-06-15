@@ -33,29 +33,29 @@ import java.util.Set;
 
 public class UnionLazyStream extends BinaryLazyStream {
 
-private final Union union;
+  private final Union union;
 
-private boolean hasInitialized = false;
+  private boolean hasInitialized = false;
 
-private Header header;
+  private Header header;
 
-private Row nextA;
+  private Row nextA;
 
-private Row nextB;
+  private Row nextB;
 
-public UnionLazyStream(Union union, RowStream streamA, RowStream streamB) {
+  public UnionLazyStream(Union union, RowStream streamA, RowStream streamB) {
     super(streamA, streamB);
     this.union = union;
-}
+  }
 
-private void initialize() throws PhysicalException {
+  private void initialize() throws PhysicalException {
     if (hasInitialized) {
-    return;
+      return;
     }
     Header headerA = streamA.getHeader();
     Header headerB = streamB.getHeader();
     if (headerA.hasKey() ^ headerB.hasKey()) {
-    throw new InvalidOperatorParameterException("row stream to be union must have same fields");
+      throw new InvalidOperatorParameterException("row stream to be union must have same fields");
     }
     boolean hasTimestamp = headerA.hasKey();
     Set<Field> targetFieldSet = new HashSet<>();
@@ -63,65 +63,65 @@ private void initialize() throws PhysicalException {
     targetFieldSet.addAll(headerB.getFields());
     List<Field> targetFields = new ArrayList<>(targetFieldSet);
     if (hasTimestamp) {
-    header = new Header(Field.KEY, targetFields);
+      header = new Header(Field.KEY, targetFields);
     } else {
-    header = new Header(targetFields);
+      header = new Header(targetFields);
     }
     hasInitialized = true;
-}
+  }
 
-@Override
-public Header getHeader() throws PhysicalException {
+  @Override
+  public Header getHeader() throws PhysicalException {
     if (!hasInitialized) {
-    initialize();
+      initialize();
     }
     return header;
-}
+  }
 
-@Override
-public boolean hasNext() throws PhysicalException {
+  @Override
+  public boolean hasNext() throws PhysicalException {
     if (!hasInitialized) {
-    initialize();
+      initialize();
     }
     return nextA != null || nextB != null || streamA.hasNext() || streamB.hasNext();
-}
+  }
 
-@Override
-public Row next() throws PhysicalException {
+  @Override
+  public Row next() throws PhysicalException {
     if (!hasNext()) {
-    throw new IllegalStateException("row stream doesn't have more data!");
+      throw new IllegalStateException("row stream doesn't have more data!");
     }
     if (!header.hasKey()) {
-    // 不包含时间戳，只需要迭代式的顺次访问两个 stream 即可
-    if (streamA.hasNext()) {
+      // 不包含时间戳，只需要迭代式的顺次访问两个 stream 即可
+      if (streamA.hasNext()) {
         return streamA.next();
-    }
-    return streamB.next();
+      }
+      return streamB.next();
     }
     if (nextA == null && streamA.hasNext()) {
-    nextA = streamA.next();
+      nextA = streamA.next();
     }
     if (nextB == null && streamB.hasNext()) {
-    nextB = streamB.next();
+      nextB = streamB.next();
     }
     if (nextA == null) { // 流 A 被消费完毕
-    Row row = nextB;
-    nextB = null;
-    return RowUtils.transform(row, header);
+      Row row = nextB;
+      nextB = null;
+      return RowUtils.transform(row, header);
     }
     if (nextB == null) { // 流 B 被消费完毕
-    Row row = nextA;
-    nextA = null;
-    return RowUtils.transform(row, header);
+      Row row = nextA;
+      nextA = null;
+      return RowUtils.transform(row, header);
     }
     if (nextA.getKey() <= nextB.getKey()) {
-    Row row = nextA;
-    nextA = null;
-    return RowUtils.transform(row, header);
+      Row row = nextA;
+      nextA = null;
+      return RowUtils.transform(row, header);
     } else {
-    Row row = nextB;
-    nextB = null;
-    return RowUtils.transform(row, header);
+      Row row = nextB;
+      nextB = null;
+      return RowUtils.transform(row, header);
     }
-}
+  }
 }

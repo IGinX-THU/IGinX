@@ -4,42 +4,42 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 
 public class TypeUtils {
 
-public static DataType getDataTypeFromString(String type) {
+  public static DataType getDataTypeFromString(String type) {
     switch (type.toLowerCase()) {
-    case "boolean":
+      case "boolean":
         return DataType.BOOLEAN;
-    case "integer":
+      case "integer":
         return DataType.INTEGER;
-    case "long":
+      case "long":
         return DataType.LONG;
-    case "float":
+      case "float":
         return DataType.FLOAT;
-    case "double":
+      case "double":
         return DataType.DOUBLE;
-    case "binary":
+      case "binary":
         return DataType.BINARY;
-    default:
+      default:
         return null;
     }
-}
+  }
 
-public static DataType getDataTypeFromObject(Object object) {
+  public static DataType getDataTypeFromObject(Object object) {
     if (object instanceof Boolean) {
-    return DataType.BOOLEAN;
+      return DataType.BOOLEAN;
     } else if (object instanceof Integer) {
-    return DataType.INTEGER;
+      return DataType.INTEGER;
     } else if (object instanceof Long) {
-    return DataType.LONG;
+      return DataType.LONG;
     } else if (object instanceof Float) {
-    return DataType.FLOAT;
+      return DataType.FLOAT;
     } else if (object instanceof Double) {
-    return DataType.DOUBLE;
+      return DataType.DOUBLE;
     } else if (object instanceof String) {
-    return DataType.BINARY;
+      return DataType.BINARY;
     } else if (object instanceof byte[]) {
-    return DataType.BINARY;
+      return DataType.BINARY;
     } else {
-    return null;
+      return null;
     }
-}
+  }
 }

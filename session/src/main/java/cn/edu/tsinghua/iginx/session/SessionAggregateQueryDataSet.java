@@ -9,68 +9,68 @@ import java.util.List;
 
 public class SessionAggregateQueryDataSet {
 
-private final AggregateType type;
+  private final AggregateType type;
 
-private List<String> paths;
+  private List<String> paths;
 
-private long[] keys;
+  private long[] keys;
 
-private final Object[] values;
+  private final Object[] values;
 
-public SessionAggregateQueryDataSet(AggregateQueryResp resp, AggregateType type) {
+  public SessionAggregateQueryDataSet(AggregateQueryResp resp, AggregateType type) {
     this.paths = resp.getPaths();
     if (resp.keys != null) {
-    this.keys = getLongArrayFromByteBuffer(resp.keys);
+      this.keys = getLongArrayFromByteBuffer(resp.keys);
     }
     this.values = ByteUtils.getValuesByDataType(resp.valuesList, resp.dataTypeList);
     this.type = type;
-}
+  }
 
-public List<String> getPaths() {
+  public List<String> getPaths() {
     return paths;
-}
+  }
 
-public void setPaths(List<String> paths) {
+  public void setPaths(List<String> paths) {
     this.paths = paths;
-}
+  }
 
-public long[] getKeys() {
+  public long[] getKeys() {
     return keys;
-}
+  }
 
-public Object[] getValues() {
+  public Object[] getValues() {
     return values;
-}
+  }
 
-public void print() {
+  public void print() {
     System.out.println("Start to Print ResultSets:");
     if (keys == null) {
-    for (String path : paths) {
+      for (String path : paths) {
         System.out.print(path + "\t");
-    }
-    System.out.println();
-    for (Object value : values) {
+      }
+      System.out.println();
+      for (Object value : values) {
         if (value instanceof byte[]) {
-        System.out.print(new String((byte[]) value) + "\t");
+          System.out.print(new String((byte[]) value) + "\t");
         } else {
-        System.out.print(value + "\t");
+          System.out.print(value + "\t");
         }
-    }
-    System.out.println();
+      }
+      System.out.println();
     } else {
-    for (int i = 0; i < keys.length; i++) {
+      for (int i = 0; i < keys.length; i++) {
         System.out.print("Time\t");
         System.out.print(paths.get(i) + "\t");
         System.out.println();
         System.out.print(keys[i] + "\t");
         if (values[i] instanceof byte[]) {
-        System.out.print(new String((byte[]) values[i]) + "\t");
+          System.out.print(new String((byte[]) values[i]) + "\t");
         } else {
-        System.out.print(values[i] + "\t");
+          System.out.print(values[i] + "\t");
         }
         System.out.println();
-    }
+      }
     }
     System.out.println("Printing ResultSets Finished.");
-}
+  }
 }

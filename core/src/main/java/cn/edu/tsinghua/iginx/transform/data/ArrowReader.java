@@ -14,17 +14,17 @@ import org.apache.arrow.vector.types.pojo.Schema;
 
 public class ArrowReader implements Reader {
 
-private final VectorSchemaRoot root;
+  private final VectorSchemaRoot root;
 
-private final int batchSize;
+  private final int batchSize;
 
-private final Header header;
+  private final Header header;
 
-private final List<Row> rowList;
+  private final List<Row> rowList;
 
-private int offset = 0;
+  private int offset = 0;
 
-public ArrowReader(VectorSchemaRoot root, int batchSize) {
+  public ArrowReader(VectorSchemaRoot root, int batchSize) {
     this.root = root;
     this.batchSize = batchSize;
 
@@ -32,73 +32,73 @@ public ArrowReader(VectorSchemaRoot root, int batchSize) {
     this.header = getHeaderFromArrowSchema(schema);
 
     this.rowList = getRowListFromVectorSchemaRoot(root);
-}
+  }
 
-private Header getHeaderFromArrowSchema(Schema schema) {
+  private Header getHeaderFromArrowSchema(Schema schema) {
     boolean hasTime = false;
     List<cn.edu.tsinghua.iginx.engine.shared.data.read.Field> fieldList = new ArrayList<>();
     for (Field field : schema.getFields()) {
-    if (field.getName().equals(Constants.KEY)) {
+      if (field.getName().equals(Constants.KEY)) {
         hasTime = true;
-    } else {
+      } else {
         fieldList.add(
             new cn.edu.tsinghua.iginx.engine.shared.data.read.Field(
                 field.getName(), TypeUtils.arrowTypeToDataType(field.getType())));
-    }
+      }
     }
 
     if (hasTime) {
-    return new Header(cn.edu.tsinghua.iginx.engine.shared.data.read.Field.KEY, fieldList);
+      return new Header(cn.edu.tsinghua.iginx.engine.shared.data.read.Field.KEY, fieldList);
     } else {
-    return new Header(fieldList);
+      return new Header(fieldList);
     }
-}
+  }
 
-private List<Row> getRowListFromVectorSchemaRoot(VectorSchemaRoot root) {
+  private List<Row> getRowListFromVectorSchemaRoot(VectorSchemaRoot root) {
     List<Row> rowList = new ArrayList<>();
 
     BigIntVector bigIntVector = null;
     if (header.hasKey()) {
-    bigIntVector = (BigIntVector) root.getVector(Constants.KEY);
+      bigIntVector = (BigIntVector) root.getVector(Constants.KEY);
     }
 
     for (int i = 0; i < root.getRowCount(); i++) {
-    Object[] objects = new Object[header.getFields().size()];
-    for (int j = 0; j < header.getFields().size(); j++) {
+      Object[] objects = new Object[header.getFields().size()];
+      for (int j = 0; j < header.getFields().size(); j++) {
         String vectorName = header.getFields().get(j).getFullName();
         objects[j] = root.getVector(vectorName).getObject(i);
-    }
+      }
 
-    if (header.hasKey()) {
+      if (header.hasKey()) {
         assert bigIntVector != null;
         rowList.add(new Row(header, bigIntVector.get(i), objects));
-    } else {
+      } else {
         rowList.add(new Row(header, objects));
-    }
+      }
     }
     return rowList;
-}
+  }
 
-@Override
-public boolean hasNextBatch() {
+  @Override
+  public boolean hasNextBatch() {
     return offset < rowList.size();
-}
+  }
 
-@Override
-public BatchData loadNextBatch() {
+  @Override
+  public BatchData loadNextBatch() {
     BatchData batchData = new BatchData(header);
     int countDown = batchSize;
     while (countDown > 0 && offset < rowList.size()) {
-    batchData.appendRow(rowList.get(offset));
-    countDown--;
-    offset++;
+      batchData.appendRow(rowList.get(offset));
+      countDown--;
+      offset++;
     }
     return batchData;
-}
+  }
 
-@Override
-public void close() {
+  @Override
+  public void close() {
     rowList.clear();
     root.close();
-}
+  }
 }

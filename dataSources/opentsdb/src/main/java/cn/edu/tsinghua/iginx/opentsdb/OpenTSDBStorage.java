@@ -49,27 +49,27 @@ import org.slf4j.LoggerFactory;
 
 public class OpenTSDBStorage implements IStorage {
 
-private static final String STORAGE_ENGINE = "opentsdb";
+  private static final String STORAGE_ENGINE = "opentsdb";
 
-private static final String DU_PREFIX = "unit";
+  private static final String DU_PREFIX = "unit";
 
-private static final int HTTP_CONNECT_POOL_SIZE = 100;
+  private static final int HTTP_CONNECT_POOL_SIZE = 100;
 
-private static final int HTTP_CONNECT_TIMEOUT = 100;
+  private static final int HTTP_CONNECT_TIMEOUT = 100;
 
-private final OpenTSDBClient client;
+  private final OpenTSDBClient client;
 
-private final StorageEngineMeta meta;
+  private final StorageEngineMeta meta;
 
-private static final Logger logger = LoggerFactory.getLogger(OpenTSDBStorage.class);
+  private static final Logger logger = LoggerFactory.getLogger(OpenTSDBStorage.class);
 
-public OpenTSDBStorage(StorageEngineMeta meta) throws StorageInitializationException {
+  public OpenTSDBStorage(StorageEngineMeta meta) throws StorageInitializationException {
     this.meta = meta;
     if (!meta.getStorageEngine().equals(STORAGE_ENGINE)) {
-    throw new StorageInitializationException("unexpected database: " + meta.getStorageEngine());
+      throw new StorageInitializationException("unexpected database: " + meta.getStorageEngine());
     }
     if (!testConnection()) {
-    throw new StorageInitializationException("cannot connect to " + meta.toString());
+      throw new StorageInitializationException("cannot connect to " + meta.toString());
     }
     Map<String, String> extraParams = meta.getExtraParams();
     String url = extraParams.getOrDefault("url", "http://127.0.0.1");
@@ -80,32 +80,32 @@ public OpenTSDBStorage(StorageEngineMeta meta) throws StorageInitializationExcep
             .httpConnectTimeout(HTTP_CONNECT_TIMEOUT)
             .config();
     try {
-    client = OpenTSDBClientFactory.connect(config);
+      client = OpenTSDBClientFactory.connect(config);
     } catch (IOReactorException e) {
-    throw new StorageInitializationException("cannot connect to " + meta.toString());
+      throw new StorageInitializationException("cannot connect to " + meta.toString());
     }
     logger.info(meta + " is initialized.");
-}
+  }
 
-private boolean testConnection() {
+  private boolean testConnection() {
     Map<String, String> extraParams = meta.getExtraParams();
     String url = extraParams.get("url");
     OpenTSDBConfig config = OpenTSDBConfig.address(url, meta.getPort()).config();
     try {
-    OpenTSDBClient client = OpenTSDBClientFactory.connect(config);
-    client.gracefulClose();
+      OpenTSDBClient client = OpenTSDBClientFactory.connect(config);
+      client.gracefulClose();
     } catch (IOException e) {
-    logger.error("test connection error: {}", e.getMessage());
-    return false;
+      logger.error("test connection error: {}", e.getMessage());
+      return false;
     }
     return true;
-}
+  }
 
-public TaskExecuteResult execute(StoragePhysicalTask task) {
+  public TaskExecuteResult execute(StoragePhysicalTask task) {
     List<Operator> operators = task.getOperators();
     if (operators.size() != 1) {
-    return new TaskExecuteResult(
-        new NonExecutablePhysicalTaskException("unsupported physical task"));
+      return new TaskExecuteResult(
+          new NonExecutablePhysicalTaskException("unsupported physical task"));
     }
     FragmentMeta fragment = task.getTargetFragment();
     Operator op = operators.get(0);
@@ -113,34 +113,34 @@ public TaskExecuteResult execute(StoragePhysicalTask task) {
 
     boolean isDummyStorageUnit = task.isDummyStorageUnit();
     if (op.getType() == OperatorType.Project) {
-    Project project = (Project) op;
-    return isDummyStorageUnit
-        ? executeProjectHistoryTask(fragment.getKeyInterval(), storageUnit, project)
-        : executeProjectTask(fragment.getKeyInterval(), storageUnit, project);
+      Project project = (Project) op;
+      return isDummyStorageUnit
+          ? executeProjectHistoryTask(fragment.getKeyInterval(), storageUnit, project)
+          : executeProjectTask(fragment.getKeyInterval(), storageUnit, project);
     } else if (op.getType() == OperatorType.Insert) {
-    Insert insert = (Insert) op;
-    return executeInsertTask(storageUnit, insert);
+      Insert insert = (Insert) op;
+      return executeInsertTask(storageUnit, insert);
     } else if (op.getType() == OperatorType.Delete) {
-    Delete delete = (Delete) op;
-    return executeDeleteTask(storageUnit, delete);
+      Delete delete = (Delete) op;
+      return executeDeleteTask(storageUnit, delete);
     }
     return new TaskExecuteResult(
         new NonExecutablePhysicalTaskException("unsupported physical task"));
-}
+  }
 
-private TaskExecuteResult executeDeleteTask(String storageUnit, Delete delete) {
+  private TaskExecuteResult executeDeleteTask(String storageUnit, Delete delete) {
     List<OpenTSDBSchema> schemas = null;
     try {
-    schemas = determineDeletePathList(storageUnit, delete);
+      schemas = determineDeletePathList(storageUnit, delete);
     } catch (PhysicalException e) {
-    logger.error("encounter error when delete data in opentsdb: ", e);
+      logger.error("encounter error when delete data in opentsdb: ", e);
     }
     if (schemas == null || schemas.size() == 0) {
-    return new TaskExecuteResult(null, null);
+      return new TaskExecuteResult(null, null);
     }
 
     if (delete.getKeyRanges() == null || delete.getKeyRanges().size() == 0) { // 没有传任何 time range
-    for (OpenTSDBSchema schema : schemas) {
+      for (OpenTSDBSchema schema : schemas) {
         Query query =
             Query.begin(0L)
                 .end(Long.MAX_VALUE)
@@ -151,16 +151,16 @@ private TaskExecuteResult executeDeleteTask(String storageUnit, Delete delete) {
                 .msResolution()
                 .build();
         try {
-        client.delete(query);
+          client.delete(query);
         } catch (Exception e) {
-        logger.error("encounter error when delete data in opentsdb: ", e);
+          logger.error("encounter error when delete data in opentsdb: ", e);
         }
-    }
-    return new TaskExecuteResult(null, null);
+      }
+      return new TaskExecuteResult(null, null);
     }
     // 删除某些序列的某一段数据
     for (OpenTSDBSchema schema : schemas) {
-    for (KeyRange keyRange : delete.getKeyRanges()) {
+      for (KeyRange keyRange : delete.getKeyRanges()) {
         Query query =
             Query.begin(keyRange.getActualBeginKey())
                 .end(keyRange.getActualEndKey())
@@ -171,295 +171,295 @@ private TaskExecuteResult executeDeleteTask(String storageUnit, Delete delete) {
                 .msResolution()
                 .build();
         try {
-        client.delete(query);
+          client.delete(query);
         } catch (Exception e) {
-        logger.error("encounter error when delete data in opentsdb: ", e);
+          logger.error("encounter error when delete data in opentsdb: ", e);
         }
-    }
+      }
     }
     return new TaskExecuteResult(null, null);
-}
+  }
 
-private List<OpenTSDBSchema> determineDeletePathList(String storageUnit, Delete delete)
-    throws PhysicalException {
+  private List<OpenTSDBSchema> determineDeletePathList(String storageUnit, Delete delete)
+      throws PhysicalException {
     List<OpenTSDBSchema> schemas = new ArrayList<>();
 
     if (delete.getTagFilter() == null) {
-    delete
-        .getPatterns()
-        .forEach(pattern -> schemas.add(new OpenTSDBSchema(pattern, storageUnit)));
+      delete
+          .getPatterns()
+          .forEach(pattern -> schemas.add(new OpenTSDBSchema(pattern, storageUnit)));
     } else {
-    List<String> patterns = delete.getPatterns();
-    TagFilter tagFilter = delete.getTagFilter();
-    List<Column> timeSeries = getColumns();
+      List<String> patterns = delete.getPatterns();
+      TagFilter tagFilter = delete.getTagFilter();
+      List<Column> timeSeries = getColumns();
 
-    for (Column ts : timeSeries) {
+      for (Column ts : timeSeries) {
         for (String pattern : patterns) {
-        if (Pattern.matches(StringUtils.reformatPath(pattern), ts.getPath())
-            && TagKVUtils.match(ts.getTags(), tagFilter)) {
+          if (Pattern.matches(StringUtils.reformatPath(pattern), ts.getPath())
+              && TagKVUtils.match(ts.getTags(), tagFilter)) {
             schemas.add(new OpenTSDBSchema(ts.getPhysicalPath(), storageUnit));
             break;
+          }
         }
-        }
-    }
+      }
     }
     return schemas;
-}
+  }
 
-private TaskExecuteResult executeInsertTask(String storageUnit, Insert insert) {
+  private TaskExecuteResult executeInsertTask(String storageUnit, Insert insert) {
     DataView dataView = insert.getData();
     Exception e = null;
     switch (dataView.getRawDataType()) {
-    case Row:
-    case NonAlignedRow:
+      case Row:
+      case NonAlignedRow:
         e = insertRowRecords((RowDataView) dataView, storageUnit);
         break;
-    case Column:
-    case NonAlignedColumn:
+      case Column:
+      case NonAlignedColumn:
         e = insertColRecords((ColumnDataView) dataView, storageUnit);
     }
     if (e != null) {
-    return new TaskExecuteResult(
-        null, new PhysicalException("execute insert task in opentsdb failure", e));
+      return new TaskExecuteResult(
+          null, new PhysicalException("execute insert task in opentsdb failure", e));
     }
     return new TaskExecuteResult(null, null);
-}
+  }
 
-private Exception insertRowRecords(RowDataView dataView, String storageUnit) {
+  private Exception insertRowRecords(RowDataView dataView, String storageUnit) {
     DataViewWrapper data = new DataViewWrapper(dataView);
     List<OpenTSDBSchema> schemas = new ArrayList<>();
     for (int i = 0; i < data.getPathNum(); i++) {
-    schemas.add(new OpenTSDBSchema(data.getPath(i), storageUnit));
+      schemas.add(new OpenTSDBSchema(data.getPath(i), storageUnit));
     }
 
     List<Point> points = new ArrayList<>();
     for (int i = 0; i < data.getTimeSize(); i++) {
-    BitmapView bitmapView = data.getBitmapView(i);
-    int index = 0;
-    for (int j = 0; j < data.getPathNum(); j++) {
+      BitmapView bitmapView = data.getBitmapView(i);
+      int index = 0;
+      for (int j = 0; j < data.getPathNum(); j++) {
         if (bitmapView.get(j)) {
-        OpenTSDBSchema schema = schemas.get(j);
-        DataType type = data.getDataType(j);
-        switch (type) {
+          OpenTSDBSchema schema = schemas.get(j);
+          DataType type = data.getDataType(j);
+          switch (type) {
             case BOOLEAN:
-            points.add(
-                Point.metric(schema.getMetric())
-                    .tag(schema.getTags())
-                    .tag(DATA_TYPE, type.toString())
-                    .value(data.getTimestamp(i), (boolean) data.getValue(i, index) ? 1 : 0)
-                    .build());
-            break;
+              points.add(
+                  Point.metric(schema.getMetric())
+                      .tag(schema.getTags())
+                      .tag(DATA_TYPE, type.toString())
+                      .value(data.getTimestamp(i), (boolean) data.getValue(i, index) ? 1 : 0)
+                      .build());
+              break;
             case INTEGER:
-            points.add(
-                Point.metric(schema.getMetric())
-                    .tag(schema.getTags())
-                    .tag(DATA_TYPE, type.toString())
-                    .value(data.getTimestamp(i), (int) data.getValue(i, index))
-                    .build());
-            break;
+              points.add(
+                  Point.metric(schema.getMetric())
+                      .tag(schema.getTags())
+                      .tag(DATA_TYPE, type.toString())
+                      .value(data.getTimestamp(i), (int) data.getValue(i, index))
+                      .build());
+              break;
             case LONG:
-            points.add(
-                Point.metric(schema.getMetric())
-                    .tag(schema.getTags())
-                    .tag(DATA_TYPE, type.toString())
-                    .value(data.getTimestamp(i), (long) data.getValue(i, index))
-                    .build());
-            break;
+              points.add(
+                  Point.metric(schema.getMetric())
+                      .tag(schema.getTags())
+                      .tag(DATA_TYPE, type.toString())
+                      .value(data.getTimestamp(i), (long) data.getValue(i, index))
+                      .build());
+              break;
             case FLOAT:
-            points.add(
-                Point.metric(schema.getMetric())
-                    .tag(schema.getTags())
-                    .tag(DATA_TYPE, type.toString())
-                    .value(data.getTimestamp(i), (float) data.getValue(i, index))
-                    .build());
-            break;
+              points.add(
+                  Point.metric(schema.getMetric())
+                      .tag(schema.getTags())
+                      .tag(DATA_TYPE, type.toString())
+                      .value(data.getTimestamp(i), (float) data.getValue(i, index))
+                      .build());
+              break;
             case DOUBLE:
-            points.add(
-                Point.metric(schema.getMetric())
-                    .tag(schema.getTags())
-                    .tag(DATA_TYPE, type.toString())
-                    .value(data.getTimestamp(i), (double) data.getValue(i, index))
-                    .build());
-            break;
+              points.add(
+                  Point.metric(schema.getMetric())
+                      .tag(schema.getTags())
+                      .tag(DATA_TYPE, type.toString())
+                      .value(data.getTimestamp(i), (double) data.getValue(i, index))
+                      .build());
+              break;
             case BINARY:
-            return new PhysicalTaskExecuteFailureException(
-                "opentsdb not support string for now!");
+              return new PhysicalTaskExecuteFailureException(
+                  "opentsdb not support string for now!");
+          }
+          index++;
         }
-        index++;
-        }
-    }
+      }
     }
 
     try {
-    logger.info("开始数据写入");
-    client.putSync(points);
+      logger.info("开始数据写入");
+      client.putSync(points);
     } catch (Exception e) {
-    logger.error("encounter error when write points to opentsdb: ", e);
+      logger.error("encounter error when write points to opentsdb: ", e);
     } finally {
-    logger.info("数据写入完毕！");
+      logger.info("数据写入完毕！");
     }
     return null;
-}
+  }
 
-private Exception insertColRecords(ColumnDataView dataView, String storageUnit) {
+  private Exception insertColRecords(ColumnDataView dataView, String storageUnit) {
     DataViewWrapper data = new DataViewWrapper(dataView);
     List<Point> points = new ArrayList<>();
     for (int i = 0; i < data.getPathNum(); i++) {
-    OpenTSDBSchema schema = new OpenTSDBSchema(data.getPath(i), storageUnit);
-    BitmapView bitmapView = data.getBitmapView(i);
-    int index = 0;
-    for (int j = 0; j < data.getTimeSize(); j++) {
+      OpenTSDBSchema schema = new OpenTSDBSchema(data.getPath(i), storageUnit);
+      BitmapView bitmapView = data.getBitmapView(i);
+      int index = 0;
+      for (int j = 0; j < data.getTimeSize(); j++) {
         if (bitmapView.get(j)) {
-        DataType type = data.getDataType(i);
-        switch (type) {
+          DataType type = data.getDataType(i);
+          switch (type) {
             case BOOLEAN:
-            points.add(
-                Point.metric(schema.getMetric())
-                    .tag(schema.getTags())
-                    .tag(DATA_TYPE, type.toString())
-                    .value(data.getTimestamp(i), (boolean) data.getValue(i, index) ? 1 : 0)
-                    .build());
-            break;
+              points.add(
+                  Point.metric(schema.getMetric())
+                      .tag(schema.getTags())
+                      .tag(DATA_TYPE, type.toString())
+                      .value(data.getTimestamp(i), (boolean) data.getValue(i, index) ? 1 : 0)
+                      .build());
+              break;
             case INTEGER:
-            points.add(
-                Point.metric(schema.getMetric())
-                    .tag(schema.getTags())
-                    .tag(DATA_TYPE, type.toString())
-                    .value(data.getTimestamp(i), (int) data.getValue(i, index))
-                    .build());
-            break;
+              points.add(
+                  Point.metric(schema.getMetric())
+                      .tag(schema.getTags())
+                      .tag(DATA_TYPE, type.toString())
+                      .value(data.getTimestamp(i), (int) data.getValue(i, index))
+                      .build());
+              break;
             case LONG:
-            points.add(
-                Point.metric(schema.getMetric())
-                    .tag(schema.getTags())
-                    .tag(DATA_TYPE, type.toString())
-                    .value(data.getTimestamp(i), (long) data.getValue(i, index))
-                    .build());
-            break;
+              points.add(
+                  Point.metric(schema.getMetric())
+                      .tag(schema.getTags())
+                      .tag(DATA_TYPE, type.toString())
+                      .value(data.getTimestamp(i), (long) data.getValue(i, index))
+                      .build());
+              break;
             case FLOAT:
-            points.add(
-                Point.metric(schema.getMetric())
-                    .tag(schema.getTags())
-                    .tag(DATA_TYPE, type.toString())
-                    .value(data.getTimestamp(i), (float) data.getValue(i, index))
-                    .build());
-            break;
+              points.add(
+                  Point.metric(schema.getMetric())
+                      .tag(schema.getTags())
+                      .tag(DATA_TYPE, type.toString())
+                      .value(data.getTimestamp(i), (float) data.getValue(i, index))
+                      .build());
+              break;
             case DOUBLE:
-            points.add(
-                Point.metric(schema.getMetric())
-                    .tag(schema.getTags())
-                    .tag(DATA_TYPE, type.toString())
-                    .value(data.getTimestamp(i), (double) data.getValue(i, index))
-                    .build());
-            break;
+              points.add(
+                  Point.metric(schema.getMetric())
+                      .tag(schema.getTags())
+                      .tag(DATA_TYPE, type.toString())
+                      .value(data.getTimestamp(i), (double) data.getValue(i, index))
+                      .build());
+              break;
             case BINARY:
-            return new PhysicalTaskExecuteFailureException(
-                "opentsdb not support string for now!");
+              return new PhysicalTaskExecuteFailureException(
+                  "opentsdb not support string for now!");
+          }
+          index++;
         }
-        index++;
-        }
-    }
+      }
     }
 
     try {
-    logger.info("开始数据写入");
-    client.putSync(points);
+      logger.info("开始数据写入");
+      client.putSync(points);
     } catch (Exception e) {
-    logger.error("encounter error when write points to opentsdb: ", e);
+      logger.error("encounter error when write points to opentsdb: ", e);
     } finally {
-    logger.info("数据写入完毕！");
+      logger.info("数据写入完毕！");
     }
     return null;
-}
+  }
 
-private TaskExecuteResult executeProjectTask(
-    KeyInterval keyInterval, String storageUnit, Project project) {
+  private TaskExecuteResult executeProjectTask(
+      KeyInterval keyInterval, String storageUnit, Project project) {
     List<String> wholePathList;
     try {
-    wholePathList = getPathList();
+      wholePathList = getPathList();
     } catch (PhysicalTaskExecuteFailureException e) {
-    return new TaskExecuteResult(
-        new PhysicalException("encounter error when query data in opentsdb: ", e));
+      return new TaskExecuteResult(
+          new PhysicalException("encounter error when query data in opentsdb: ", e));
     }
 
     Query.Builder builder =
         Query.begin(keyInterval.getStartKey()).end(keyInterval.getEndKey()).msResolution();
     for (String queryPath : project.getPatterns()) {
-    if (StringUtils.isPattern(queryPath)) {
+      if (StringUtils.isPattern(queryPath)) {
         Pattern pattern = Pattern.compile(StringUtils.reformatPath(queryPath));
         for (String path : wholePathList) {
-        if (pattern.matcher(path).matches()) {
+          if (pattern.matcher(path).matches()) {
             OpenTSDBSchema schema = new OpenTSDBSchema(path, storageUnit);
             builder =
                 builder.sub(
                     SubQuery.metric(schema.getMetric())
                         .aggregator(SubQuery.Aggregator.NONE)
                         .build());
+          }
         }
-        }
-    } else {
+      } else {
         OpenTSDBSchema schema = new OpenTSDBSchema(queryPath, storageUnit);
         builder =
             builder.sub(
                 SubQuery.metric(schema.getMetric()).aggregator(SubQuery.Aggregator.NONE).build());
-    }
+      }
     }
     Query query = builder.build();
     try {
-    List<QueryResult> resultList = client.query(query);
-    RowStream rowStream = new ClearEmptyRowStreamWrapper(new OpenTSDBRowStream(resultList, true));
-    return new TaskExecuteResult(rowStream);
+      List<QueryResult> resultList = client.query(query);
+      RowStream rowStream = new ClearEmptyRowStreamWrapper(new OpenTSDBRowStream(resultList, true));
+      return new TaskExecuteResult(rowStream);
     } catch (Exception e) {
-    return new TaskExecuteResult(
-        new PhysicalException("encounter error when query data in opentsdb: ", e));
+      return new TaskExecuteResult(
+          new PhysicalException("encounter error when query data in opentsdb: ", e));
     }
-}
+  }
 
-private TaskExecuteResult executeProjectHistoryTask(
-    KeyInterval keyInterval, String storageUnit, Project project) {
+  private TaskExecuteResult executeProjectHistoryTask(
+      KeyInterval keyInterval, String storageUnit, Project project) {
     List<String> wholePathList;
     try {
-    wholePathList = getPathList();
+      wholePathList = getPathList();
     } catch (PhysicalTaskExecuteFailureException e) {
-    return new TaskExecuteResult(
-        new PhysicalException("encounter error when query data in opentsdb: ", e));
+      return new TaskExecuteResult(
+          new PhysicalException("encounter error when query data in opentsdb: ", e));
     }
 
     Query.Builder builder =
         Query.begin(keyInterval.getStartKey()).end(keyInterval.getEndKey()).msResolution();
     for (String queryPath : project.getPatterns()) {
-    if (StringUtils.isPattern(queryPath)) {
+      if (StringUtils.isPattern(queryPath)) {
         Pattern pattern = Pattern.compile(StringUtils.reformatPath(queryPath));
         for (String path : wholePathList) {
-        if (pattern.matcher(path).matches()) {
+          if (pattern.matcher(path).matches()) {
             builder =
                 builder.sub(SubQuery.metric(path).aggregator(SubQuery.Aggregator.NONE).build());
+          }
         }
-        }
-    } else {
+      } else {
         builder =
             builder.sub(SubQuery.metric(queryPath).aggregator(SubQuery.Aggregator.NONE).build());
-    }
+      }
     }
     Query query = builder.build();
     try {
-    List<QueryResult> resultList = client.query(query);
-    RowStream rowStream =
-        new ClearEmptyRowStreamWrapper(new OpenTSDBRowStream(resultList, false));
-    return new TaskExecuteResult(rowStream);
+      List<QueryResult> resultList = client.query(query);
+      RowStream rowStream =
+          new ClearEmptyRowStreamWrapper(new OpenTSDBRowStream(resultList, false));
+      return new TaskExecuteResult(rowStream);
     } catch (Exception e) {
-    return new TaskExecuteResult(
-        new PhysicalException("encounter error when query data in opentsdb: ", e));
+      return new TaskExecuteResult(
+          new PhysicalException("encounter error when query data in opentsdb: ", e));
     }
-}
+  }
 
-@Override
-public Pair<ColumnsRange, KeyInterval> getBoundaryOfStorage(String prefix)
-    throws PhysicalException {
+  @Override
+  public Pair<ColumnsRange, KeyInterval> getBoundaryOfStorage(String prefix)
+      throws PhysicalException {
     List<String> paths = getPurePath();
     paths.sort(String::compareTo);
     if (paths.isEmpty()) {
-    throw new PhysicalTaskExecuteFailureException("no data!");
+      throw new PhysicalTaskExecuteFailureException("no data!");
     }
     ColumnsRange tsInterval =
         new ColumnsInterval(paths.get(0), StringUtils.nextString(paths.get(paths.size() - 1)));
@@ -467,146 +467,146 @@ public Pair<ColumnsRange, KeyInterval> getBoundaryOfStorage(String prefix)
     long minTime = 0, maxTime = Long.MAX_VALUE - 1;
     Query.Builder builder = Query.begin(0L).end(Long.MAX_VALUE).msResolution();
     for (String path : paths) {
-    builder = builder.sub(SubQuery.metric(path).aggregator(SubQuery.Aggregator.NONE).build());
+      builder = builder.sub(SubQuery.metric(path).aggregator(SubQuery.Aggregator.NONE).build());
     }
     Query query = builder.build();
     try {
-    List<QueryResult> resultList = client.query(query);
-    List<Long> times = new ArrayList<>();
-    for (QueryResult result : resultList) {
+      List<QueryResult> resultList = client.query(query);
+      List<Long> times = new ArrayList<>();
+      for (QueryResult result : resultList) {
         times.addAll(result.getDps().keySet());
-    }
-    if (!times.isEmpty()) {
+      }
+      if (!times.isEmpty()) {
         times.sort(Long::compareTo);
         minTime = times.get(0);
         maxTime = times.get(times.size() - 1);
-    }
+      }
     } catch (Exception e) {
-    throw new PhysicalTaskExecuteFailureException(
-        "encounter error when query data in opentsdb: ", e);
+      throw new PhysicalTaskExecuteFailureException(
+          "encounter error when query data in opentsdb: ", e);
     }
     KeyInterval keyInterval = new KeyInterval(minTime, maxTime + 1);
     return new Pair<>(tsInterval, keyInterval);
-}
+  }
 
-@Override
-public TaskExecuteResult executeProject(Project project, DataArea dataArea) {
+  @Override
+  public TaskExecuteResult executeProject(Project project, DataArea dataArea) {
     return null;
-}
+  }
 
-@Override
-public TaskExecuteResult executeProjectDummy(Project project, DataArea dataArea) {
+  @Override
+  public TaskExecuteResult executeProjectDummy(Project project, DataArea dataArea) {
     return null;
-}
+  }
 
-@Override
-public boolean isSupportProjectWithSelect() {
+  @Override
+  public boolean isSupportProjectWithSelect() {
     return false;
-}
+  }
 
-@Override
-public TaskExecuteResult executeProjectWithSelect(
-    Project project, Select select, DataArea dataArea) {
+  @Override
+  public TaskExecuteResult executeProjectWithSelect(
+      Project project, Select select, DataArea dataArea) {
     return null;
-}
+  }
 
-@Override
-public TaskExecuteResult executeProjectDummyWithSelect(
-    Project project, Select select, DataArea dataArea) {
+  @Override
+  public TaskExecuteResult executeProjectDummyWithSelect(
+      Project project, Select select, DataArea dataArea) {
     return null;
-}
+  }
 
-@Override
-public TaskExecuteResult executeDelete(Delete delete, DataArea dataArea) {
+  @Override
+  public TaskExecuteResult executeDelete(Delete delete, DataArea dataArea) {
     return null;
-}
+  }
 
-@Override
-public TaskExecuteResult executeInsert(Insert insert, DataArea dataArea) {
+  @Override
+  public TaskExecuteResult executeInsert(Insert insert, DataArea dataArea) {
     return null;
-}
+  }
 
-@Override
-public List<Column> getColumns() throws PhysicalException {
+  @Override
+  public List<Column> getColumns() throws PhysicalException {
     List<Column> timeseries = new ArrayList<>();
 
     List<String> paths = getPathWithoutDUPrefixList();
     if (paths.isEmpty()) {
-    return timeseries;
+      return timeseries;
     }
 
     Query.Builder builder = Query.begin(0L).end(Long.MAX_VALUE).msResolution();
     for (String path : paths) {
-    builder = builder.sub(SubQuery.metric(path).aggregator(SubQuery.Aggregator.NONE).build());
+      builder = builder.sub(SubQuery.metric(path).aggregator(SubQuery.Aggregator.NONE).build());
     }
     Query query = builder.build();
     try {
-    List<QueryResult> resultList = client.query(query);
-    for (QueryResult result : resultList) {
+      List<QueryResult> resultList = client.query(query);
+      for (QueryResult result : resultList) {
         String path = result.getMetric();
         if (path.startsWith("unit")) {
-        path = path.substring(path.indexOf('.') + 1);
+          path = path.substring(path.indexOf('.') + 1);
         }
         Pair<String, Map<String, String>> pair = TagKVUtils.splitFullName(path);
         timeseries.add(new Column(pair.k, fromOpenTSDB(result.getTags().get(DATA_TYPE)), pair.v));
-    }
+      }
     } catch (Exception e) {
-    throw new PhysicalTaskExecuteFailureException(
-        "encounter error when query data in opentsdb: ", e);
+      throw new PhysicalTaskExecuteFailureException(
+          "encounter error when query data in opentsdb: ", e);
     }
     return timeseries;
-}
+  }
 
-private List<String> getPurePath() throws PhysicalTaskExecuteFailureException {
+  private List<String> getPurePath() throws PhysicalTaskExecuteFailureException {
     List<String> suggests = getPathList();
 
     List<String> paths = new ArrayList<>();
     for (String metric : suggests) {
-    String path = metric;
-    if (path.startsWith(DU_PREFIX)) {
+      String path = metric;
+      if (path.startsWith(DU_PREFIX)) {
         path = metric.substring(metric.indexOf(".") + 1);
-    }
-    paths.add(TagKVUtils.splitFullName(path).k);
+      }
+      paths.add(TagKVUtils.splitFullName(path).k);
     }
     return paths;
-}
+  }
 
-private List<String> getPathWithoutDUPrefixList() throws PhysicalTaskExecuteFailureException {
+  private List<String> getPathWithoutDUPrefixList() throws PhysicalTaskExecuteFailureException {
     List<String> suggests = getPathList();
 
     List<String> paths = new ArrayList<>();
     for (String metric : suggests) {
-    if (metric.startsWith(DU_PREFIX)) {
+      if (metric.startsWith(DU_PREFIX)) {
         paths.add(metric.substring(metric.indexOf(".") + 1));
-    } else {
+      } else {
         paths.add(metric);
-    }
+      }
     }
     return paths;
-}
+  }
 
-private List<String> getPathList() throws PhysicalTaskExecuteFailureException {
+  private List<String> getPathList() throws PhysicalTaskExecuteFailureException {
     SuggestQuery suggestQuery =
         SuggestQuery.type(SuggestQuery.Type.METRICS).max(Integer.MAX_VALUE).build();
     try {
-    return client.querySuggest(suggestQuery);
+      return client.querySuggest(suggestQuery);
     } catch (Exception e) {
-    throw new PhysicalTaskExecuteFailureException("get time series failure: ", e);
+      throw new PhysicalTaskExecuteFailureException("get time series failure: ", e);
     }
-}
+  }
 
-@Override
-public void release() throws PhysicalException {
+  @Override
+  public void release() throws PhysicalException {
     try {
-    client.gracefulClose();
+      client.gracefulClose();
     } catch (IOException e) {
-    logger.error("can not close opentsdb gracefully, because " + e.getMessage());
-    try {
+      logger.error("can not close opentsdb gracefully, because " + e.getMessage());
+      try {
         client.forceClose();
-    } catch (IOException ioException) {
+      } catch (IOException ioException) {
         throw new PhysicalTaskExecuteFailureException(
             "can not close opentsdb, because " + e.getMessage());
+      }
     }
-    }
-}
+  }
 }

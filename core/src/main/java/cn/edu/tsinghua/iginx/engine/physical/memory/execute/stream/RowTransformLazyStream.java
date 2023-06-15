@@ -34,15 +34,15 @@ import java.util.List;
 
 public class RowTransformLazyStream extends UnaryLazyStream {
 
-private final RowTransform rowTransform;
+  private final RowTransform rowTransform;
 
-private final List<Pair<RowMappingFunction, FunctionParams>> functionAndParamslist;
+  private final List<Pair<RowMappingFunction, FunctionParams>> functionAndParamslist;
 
-private Row nextRow;
+  private Row nextRow;
 
-private Header header;
+  private Header header;
 
-public RowTransformLazyStream(RowTransform rowTransform, RowStream stream) {
+  public RowTransformLazyStream(RowTransform rowTransform, RowStream stream) {
     super(stream);
     this.rowTransform = rowTransform;
     this.functionAndParamslist = new ArrayList<>();
@@ -50,72 +50,72 @@ public RowTransformLazyStream(RowTransform rowTransform, RowStream stream) {
         .getFunctionCallList()
         .forEach(
             functionCall -> {
-            this.functionAndParamslist.add(
-                new Pair<>(
-                    (RowMappingFunction) functionCall.getFunction(), functionCall.getParams()));
+              this.functionAndParamslist.add(
+                  new Pair<>(
+                      (RowMappingFunction) functionCall.getFunction(), functionCall.getParams()));
             });
-}
+  }
 
-@Override
-public Header getHeader() throws PhysicalException {
+  @Override
+  public Header getHeader() throws PhysicalException {
     if (header == null) {
-    if (nextRow == null) {
+      if (nextRow == null) {
         nextRow = calculateNext();
-    }
-    header = nextRow == null ? Header.EMPTY_HEADER : nextRow.getHeader();
+      }
+      header = nextRow == null ? Header.EMPTY_HEADER : nextRow.getHeader();
     }
     return header;
-}
+  }
 
-private Row calculateNext() throws PhysicalException {
+  private Row calculateNext() throws PhysicalException {
     while (stream.hasNext()) {
-    List<Row> columnList = new ArrayList<>();
-    functionAndParamslist.forEach(
-        pair -> {
+      List<Row> columnList = new ArrayList<>();
+      functionAndParamslist.forEach(
+          pair -> {
             RowMappingFunction function = pair.k;
             FunctionParams params = pair.v;
             Row column = null;
             try {
-            // 分别计算每个表达式得到相应的结果
-            column = function.transform(stream.next(), params);
+              // 分别计算每个表达式得到相应的结果
+              column = function.transform(stream.next(), params);
             } catch (Exception e) {
-            try {
+              try {
                 throw new PhysicalTaskExecuteFailureException(
                     "encounter error when execute row mapping function "
                         + function.getIdentifier()
                         + ".",
                     e);
-            } catch (PhysicalTaskExecuteFailureException ex) {
+              } catch (PhysicalTaskExecuteFailureException ex) {
                 throw new RuntimeException(ex);
-            }
+              }
             }
             if (column != null) {
-            columnList.add(column);
+              columnList.add(column);
             }
-        });
-    // 如果计算结果都不为空，将计算结果合并成一行
-    if (columnList.size() == functionAndParamslist.size()) {
+          });
+      // 如果计算结果都不为空，将计算结果合并成一行
+      if (columnList.size() == functionAndParamslist.size()) {
         return combineMultipleColumns(columnList);
-    }
+      }
     }
     return null;
-}
+  }
 
-@Override
-public boolean hasNext() throws PhysicalException {
+  @Override
+  public boolean hasNext() throws PhysicalException {
     if (nextRow == null) {
-    nextRow = calculateNext();
+      nextRow = calculateNext();
     }
     return nextRow != null;
-}
+  }
 
-@Override
-public Row next() throws PhysicalException {
+  @Override
+  public Row next() throws PhysicalException {
     if (!hasNext()) {
-    throw new IllegalStateException("row stream doesn't have more data!");
+      throw new IllegalStateException("row stream doesn't have more data!");
     }
     Row row = nextRow;
     nextRow = null;
     return row;
-}
+  }
 }

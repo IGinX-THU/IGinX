@@ -23,36 +23,36 @@ import java.util.List;
 /** input two stream must be ascending order. */
 public class SortedMergeInnerJoinLazyStream extends BinaryLazyStream {
 
-private final InnerJoin innerJoin;
+  private final InnerJoin innerJoin;
 
-private Header header;
+  private Header header;
 
-private boolean hasInitialized = false;
+  private boolean hasInitialized = false;
 
-private String joinColumnA;
+  private String joinColumnA;
 
-private String joinColumnB;
+  private String joinColumnB;
 
-private Row nextA;
+  private Row nextA;
 
-private Row nextB;
+  private Row nextB;
 
-private int index;
+  private int index;
 
-private Value curJoinColumnBValue; // 当前StreamB中join列的值，用于同值join
+  private Value curJoinColumnBValue; // 当前StreamB中join列的值，用于同值join
 
-private final List<Row> sameValueStreamBRows; // StreamB中join列的值相同的列缓存
+  private final List<Row> sameValueStreamBRows; // StreamB中join列的值相同的列缓存
 
-private final Deque<Row> cache;
+  private final Deque<Row> cache;
 
-public SortedMergeInnerJoinLazyStream(InnerJoin innerJoin, RowStream streamA, RowStream streamB) {
+  public SortedMergeInnerJoinLazyStream(InnerJoin innerJoin, RowStream streamA, RowStream streamB) {
     super(streamA, streamB);
     this.innerJoin = innerJoin;
     this.sameValueStreamBRows = new ArrayList<>();
     this.cache = new LinkedList<>();
-}
+  }
 
-private void initialize() throws PhysicalException {
+  private void initialize() throws PhysicalException {
     Filter filter = innerJoin.getFilter();
 
     Header headerA = streamA.getHeader();
@@ -60,139 +60,139 @@ private void initialize() throws PhysicalException {
 
     List<String> joinColumns = new ArrayList<>(innerJoin.getJoinColumns());
     if (innerJoin.isNaturalJoin()) {
-    RowUtils.fillNaturalJoinColumns(
-        joinColumns, headerA, headerB, innerJoin.getPrefixA(), innerJoin.getPrefixB());
+      RowUtils.fillNaturalJoinColumns(
+          joinColumns, headerA, headerB, innerJoin.getPrefixA(), innerJoin.getPrefixB());
     }
     if ((filter == null && joinColumns.isEmpty()) || (filter != null && !joinColumns.isEmpty())) {
-    throw new InvalidOperatorParameterException(
-        "using(or natural) and on operator cannot be used at the same time");
+      throw new InvalidOperatorParameterException(
+          "using(or natural) and on operator cannot be used at the same time");
     }
 
     if (filter != null) {
-    if (!filter.getType().equals(FilterType.Path)) {
+      if (!filter.getType().equals(FilterType.Path)) {
         throw new InvalidOperatorParameterException(
             "sorted merge join only support one path filter yet.");
-    }
-    Pair<String, String> p = FilterUtils.getJoinColumnFromPathFilter((PathFilter) filter);
-    if (p == null) {
+      }
+      Pair<String, String> p = FilterUtils.getJoinColumnFromPathFilter((PathFilter) filter);
+      if (p == null) {
         throw new InvalidOperatorParameterException(
             "sorted merge join only support equal path filter yet.");
-    }
-    if (headerA.indexOf(p.k) != -1 && headerB.indexOf(p.v) != -1) {
+      }
+      if (headerA.indexOf(p.k) != -1 && headerB.indexOf(p.v) != -1) {
         this.joinColumnA = p.k.replaceFirst(innerJoin.getPrefixA() + '.', "");
         this.joinColumnB = p.v.replaceFirst(innerJoin.getPrefixB() + ".", "");
-    } else if (headerA.indexOf(p.v) != -1 && headerB.indexOf(p.k) != -1) {
+      } else if (headerA.indexOf(p.v) != -1 && headerB.indexOf(p.k) != -1) {
         this.joinColumnA = p.v.replaceFirst(innerJoin.getPrefixA() + '.', "");
         this.joinColumnB = p.k.replaceFirst(innerJoin.getPrefixB() + ".", "");
-    } else {
+      } else {
         throw new InvalidOperatorParameterException("invalid sorted merge join path filter input.");
-    }
+      }
     } else {
-    if (joinColumns.size() != 1) {
+      if (joinColumns.size() != 1) {
         throw new InvalidOperatorParameterException(
             "sorted merge join only support the number of join column is one yet.");
-    }
-    if (headerA.indexOf(innerJoin.getPrefixA() + '.' + joinColumns.get(0)) != -1
-        && headerB.indexOf(innerJoin.getPrefixB() + '.' + joinColumns.get(0)) != -1) {
+      }
+      if (headerA.indexOf(innerJoin.getPrefixA() + '.' + joinColumns.get(0)) != -1
+          && headerB.indexOf(innerJoin.getPrefixB() + '.' + joinColumns.get(0)) != -1) {
         this.joinColumnA = this.joinColumnB = joinColumns.get(0);
-    } else {
+      } else {
         throw new InvalidOperatorParameterException("invalid sorted merge join column input.");
-    }
+      }
     }
     this.index = headerB.indexOf(innerJoin.getPrefixB() + '.' + joinColumnB);
 
     if (filter != null) { // Join condition: on
-    this.header =
-        RowUtils.constructNewHead(
-            headerA, headerB, innerJoin.getPrefixA(), innerJoin.getPrefixB());
+      this.header =
+          RowUtils.constructNewHead(
+              headerA, headerB, innerJoin.getPrefixA(), innerJoin.getPrefixB());
     } else { // Join condition: natural or using
-    this.header =
-        RowUtils.constructNewHead(
-                headerA,
-                headerB,
-                innerJoin.getPrefixA(),
-                innerJoin.getPrefixB(),
-                Collections.singletonList(joinColumnB),
-                true)
-            .getV();
+      this.header =
+          RowUtils.constructNewHead(
+                  headerA,
+                  headerB,
+                  innerJoin.getPrefixA(),
+                  innerJoin.getPrefixB(),
+                  Collections.singletonList(joinColumnB),
+                  true)
+              .getV();
     }
 
     this.hasInitialized = true;
-}
+  }
 
-@Override
-public Header getHeader() throws PhysicalException {
+  @Override
+  public Header getHeader() throws PhysicalException {
     if (!hasInitialized) {
-    initialize();
+      initialize();
     }
     return header;
-}
+  }
 
-@Override
-public boolean hasNext() throws PhysicalException {
+  @Override
+  public boolean hasNext() throws PhysicalException {
     while (cache.isEmpty() && hasMoreRows()) {
-    tryMatch();
+      tryMatch();
     }
     return !cache.isEmpty();
-}
+  }
 
-private void tryMatch() throws PhysicalException {
+  private void tryMatch() throws PhysicalException {
     Value curJoinColumnAValue = nextA.getAsValue(innerJoin.getPrefixA() + "." + joinColumnA);
     int cmp = ValueUtils.compare(curJoinColumnAValue, curJoinColumnBValue);
     if (cmp < 0) {
-    nextA = null;
+      nextA = null;
     } else if (cmp > 0) {
-    sameValueStreamBRows.clear();
+      sameValueStreamBRows.clear();
     } else {
-    for (Row rowB : sameValueStreamBRows) {
+      for (Row rowB : sameValueStreamBRows) {
         if (innerJoin.getFilter() != null) {
-        Row row = RowUtils.constructNewRow(header, nextA, rowB);
-        if (FilterUtils.validate(innerJoin.getFilter(), row)) {
+          Row row = RowUtils.constructNewRow(header, nextA, rowB);
+          if (FilterUtils.validate(innerJoin.getFilter(), row)) {
             cache.addLast(row);
-        }
+          }
         } else {
-        Row row = RowUtils.constructNewRow(header, nextA, rowB, new int[] {index}, true);
-        cache.addLast(row);
+          Row row = RowUtils.constructNewRow(header, nextA, rowB, new int[] {index}, true);
+          cache.addLast(row);
         }
+      }
+      nextA = null;
     }
-    nextA = null;
-    }
-}
+  }
 
-private boolean hasMoreRows() throws PhysicalException {
+  private boolean hasMoreRows() throws PhysicalException {
     if (!hasInitialized) {
-    initialize();
+      initialize();
     }
     while (nextA == null && streamA.hasNext()) {
-    nextA = streamA.next();
+      nextA = streamA.next();
     }
     while (nextB == null && streamB.hasNext()) {
-    nextB = streamB.next();
+      nextB = streamB.next();
     }
     while (sameValueStreamBRows.isEmpty() && nextB != null) {
-    sameValueStreamBRows.add(nextB);
-    curJoinColumnBValue = nextB.getAsValue(innerJoin.getPrefixB() + "." + joinColumnB);
-    nextB = null;
+      sameValueStreamBRows.add(nextB);
+      curJoinColumnBValue = nextB.getAsValue(innerJoin.getPrefixB() + "." + joinColumnB);
+      nextB = null;
 
-    while (streamB.hasNext()) {
+      while (streamB.hasNext()) {
         nextB = streamB.next();
         Value joinColumnBValue = nextB.getAsValue(innerJoin.getPrefixB() + "." + joinColumnB);
         if (ValueUtils.compare(joinColumnBValue, curJoinColumnBValue) == 0) {
-        sameValueStreamBRows.add(nextB);
-        nextB = null;
+          sameValueStreamBRows.add(nextB);
+          nextB = null;
         } else {
-        break;
+          break;
         }
-    }
+      }
     }
     return nextA != null && !sameValueStreamBRows.isEmpty();
-}
+  }
 
-@Override
-public Row next() throws PhysicalException {
+  @Override
+  public Row next() throws PhysicalException {
     if (!hasNext()) {
-    throw new IllegalStateException("row stream doesn't have more data!");
+      throw new IllegalStateException("row stream doesn't have more data!");
     }
     return cache.pollFirst();
-}
+  }
 }

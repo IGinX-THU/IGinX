@@ -23,14 +23,14 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 
 public abstract class UnaryLazyStream implements RowStream {
 
-protected final RowStream stream;
+  protected final RowStream stream;
 
-public UnaryLazyStream(RowStream stream) {
+  public UnaryLazyStream(RowStream stream) {
     this.stream = stream;
-}
+  }
 
-@Override
-public void close() throws PhysicalException {
+  @Override
+  public void close() throws PhysicalException {
     stream.close();
-}
+  }
 }

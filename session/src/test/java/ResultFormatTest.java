@@ -13,12 +13,12 @@ import org.junit.Test;
 
 public class ResultFormatTest {
 
-@Test
-public void SessionExecuteSqlResultFormatTest() {
+  @Test
+  public void SessionExecuteSqlResultFormatTest() {
     SqlType sqlType = SqlType.Query;
     long[] keys =
         new long[] {
-        1679389046000L, 1679389047000L, 1679389048000L, 1679389049000L, 1679389050000L,
+          1679389046000L, 1679389047000L, 1679389048000L, 1679389049000L, 1679389050000L,
         };
     List<String> paths = Arrays.asList("cpu.usage", "cpu.info");
     List<List<Object>> data =
@@ -33,17 +33,17 @@ public void SessionExecuteSqlResultFormatTest() {
 
     List<String> timePrecisionList = Arrays.asList("ns", "us", "ms", "s");
     for (String timePrecision : timePrecisionList) {
-    List<List<String>> cacheResult =
-        result.getResultInList(true, FormatUtils.DEFAULT_TIME_FORMAT, timePrecision);
+      List<List<String>> cacheResult =
+          result.getResultInList(true, FormatUtils.DEFAULT_TIME_FORMAT, timePrecision);
 
-    SimpleDateFormat simpleDateFormat = new SimpleDateFormat(FormatUtils.DEFAULT_TIME_FORMAT);
-    simpleDateFormat.setTimeZone(TimeZone.getDefault()); // 设置为系统当前时区
+      SimpleDateFormat simpleDateFormat = new SimpleDateFormat(FormatUtils.DEFAULT_TIME_FORMAT);
+      simpleDateFormat.setTimeZone(TimeZone.getDefault()); // 设置为系统当前时区
 
-    for (int i = 0; i < keys.length; i++) {
+      for (int i = 0; i < keys.length; i++) {
         long timestamp =
             TimeUtils.getTimeInNs(keys[i], TimeUtils.strToTimePrecision(timePrecision));
         assertEquals(simpleDateFormat.format(timestamp), cacheResult.get(i + 1).get(0));
+      }
     }
-    }
-}
+  }
 }

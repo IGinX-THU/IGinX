@@ -7,43 +7,43 @@ import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 
 public class MarkJoin extends AbstractBinaryOperator {
 
-private final Filter filter;
-private final String markColumn;
-private final boolean isAntiJoin;
-private final JoinAlgType joinAlgType;
+  private final Filter filter;
+  private final String markColumn;
+  private final boolean isAntiJoin;
+  private final JoinAlgType joinAlgType;
 
-public MarkJoin(
-    Source sourceA,
-    Source sourceB,
-    Filter filter,
-    String markColumn,
-    boolean isAntiJoin,
-    JoinAlgType joinAlgType) {
+  public MarkJoin(
+      Source sourceA,
+      Source sourceB,
+      Filter filter,
+      String markColumn,
+      boolean isAntiJoin,
+      JoinAlgType joinAlgType) {
     super(OperatorType.MarkJoin, sourceA, sourceB);
     this.filter = filter;
     this.markColumn = markColumn;
     this.isAntiJoin = isAntiJoin;
     this.joinAlgType = joinAlgType;
-}
+  }
 
-public Filter getFilter() {
+  public Filter getFilter() {
     return filter;
-}
+  }
 
-public String getMarkColumn() {
+  public String getMarkColumn() {
     return markColumn;
-}
+  }
 
-public boolean isAntiJoin() {
+  public boolean isAntiJoin() {
     return isAntiJoin;
-}
+  }
 
-public JoinAlgType getJoinAlgType() {
+  public JoinAlgType getJoinAlgType() {
     return joinAlgType;
-}
+  }
 
-@Override
-public Operator copy() {
+  @Override
+  public Operator copy() {
     return new MarkJoin(
         getSourceA().copy(),
         getSourceB().copy(),
@@ -51,15 +51,15 @@ public Operator copy() {
         markColumn,
         isAntiJoin,
         joinAlgType);
-}
+  }
 
-@Override
-public String getInfo() {
+  @Override
+  public String getInfo() {
     return "Filter: "
         + filter.toString()
         + ", MarkColumn: "
         + markColumn
         + ", IsAntiJoin: "
         + isAntiJoin;
-}
+  }
 }

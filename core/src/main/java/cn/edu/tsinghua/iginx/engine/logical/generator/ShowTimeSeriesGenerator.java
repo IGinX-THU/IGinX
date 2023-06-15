@@ -9,21 +9,21 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ShowTimeSeriesGenerator extends AbstractGenerator {
-@SuppressWarnings("unused")
-private static final Logger logger = LoggerFactory.getLogger(ShowTimeSeriesGenerator.class);
+  @SuppressWarnings("unused")
+  private static final Logger logger = LoggerFactory.getLogger(ShowTimeSeriesGenerator.class);
 
-private static final ShowTimeSeriesGenerator instance = new ShowTimeSeriesGenerator();
+  private static final ShowTimeSeriesGenerator instance = new ShowTimeSeriesGenerator();
 
-private ShowTimeSeriesGenerator() {
+  private ShowTimeSeriesGenerator() {
     this.type = GeneratorType.ShowTimeSeries;
-}
+  }
 
-public static ShowTimeSeriesGenerator getInstance() {
+  public static ShowTimeSeriesGenerator getInstance() {
     return instance;
-}
+  }
 
-@Override
-protected Operator generateRoot(Statement statement) {
+  @Override
+  protected Operator generateRoot(Statement statement) {
     ShowColumnsStatement showColumnsStatement = (ShowColumnsStatement) statement;
     return new ShowTimeSeries(
         new GlobalSource(),
@@ -31,5 +31,5 @@ protected Operator generateRoot(Statement statement) {
         showColumnsStatement.getTagFilter(),
         showColumnsStatement.getLimit(),
         showColumnsStatement.getOffset());
-}
+  }
 }

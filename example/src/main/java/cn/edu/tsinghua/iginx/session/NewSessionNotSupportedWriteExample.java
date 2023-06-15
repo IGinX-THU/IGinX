@@ -35,7 +35,7 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
  */
 public class NewSessionNotSupportedWriteExample {
 
-public static void main(String[] args) {
+  public static void main(String[] args) {
 
     IginXClient client = IginXClientFactory.create();
     WriteClient writeClient = client.getWriteClient();
@@ -82,10 +82,10 @@ public static void main(String[] args) {
     System.out.println("写入数据对象成功");
 
     client.close();
-}
+  }
 
-@Measurement(name = "demo.pojo")
-static class POJO {
+  @Measurement(name = "demo.pojo")
+  static class POJO {
 
     @Field(timestamp = true)
     long timestamp;
@@ -95,9 +95,9 @@ static class POJO {
     @Field int b;
 
     POJO(long timestamp, int a, int b) {
-    this.timestamp = timestamp;
-    this.a = a;
-    this.b = b;
+      this.timestamp = timestamp;
+      this.a = a;
+      this.b = b;
     }
-}
+  }
 }

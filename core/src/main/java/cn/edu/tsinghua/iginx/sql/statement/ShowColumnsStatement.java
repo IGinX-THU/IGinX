@@ -6,52 +6,52 @@ import java.util.Set;
 
 public class ShowColumnsStatement extends DataStatement {
 
-private Set<String> pathRegexSet;
-private TagFilter tagFilter;
+  private Set<String> pathRegexSet;
+  private TagFilter tagFilter;
 
-private int limit;
-private int offset;
+  private int limit;
+  private int offset;
 
-public ShowColumnsStatement() {
+  public ShowColumnsStatement() {
     this.statementType = StatementType.SHOW_COLUMNS;
     this.pathRegexSet = new HashSet<>();
     this.limit = Integer.MAX_VALUE;
     this.offset = 0;
-}
+  }
 
-public void setPathRegex(String pathRegex) {
+  public void setPathRegex(String pathRegex) {
     this.pathRegexSet.add(pathRegex);
-}
+  }
 
-public Set<String> getPathRegexSet() {
+  public Set<String> getPathRegexSet() {
     return pathRegexSet;
-}
+  }
 
-public void setPathRegexSet(Set<String> pathRegexSet) {
+  public void setPathRegexSet(Set<String> pathRegexSet) {
     this.pathRegexSet = pathRegexSet;
-}
+  }
 
-public TagFilter getTagFilter() {
+  public TagFilter getTagFilter() {
     return tagFilter;
-}
+  }
 
-public void setTagFilter(TagFilter tagFilter) {
+  public void setTagFilter(TagFilter tagFilter) {
     this.tagFilter = tagFilter;
-}
+  }
 
-public int getLimit() {
+  public int getLimit() {
     return limit;
-}
+  }
 
-public void setLimit(int limit) {
+  public void setLimit(int limit) {
     this.limit = limit;
-}
+  }
 
-public int getOffset() {
+  public int getOffset() {
     return offset;
-}
+  }
 
-public void setOffset(int offset) {
+  public void setOffset(int offset) {
     this.offset = offset;
-}
+  }
 }

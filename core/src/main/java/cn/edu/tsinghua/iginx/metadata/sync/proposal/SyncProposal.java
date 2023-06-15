@@ -2,44 +2,44 @@ package cn.edu.tsinghua.iginx.metadata.sync.proposal;
 
 public class SyncProposal {
 
-private long createTime;
+  private long createTime;
 
-private long updateTime;
+  private long updateTime;
 
-private final long proposer;
+  private final long proposer;
 
-private byte[] content;
+  private byte[] content;
 
-public SyncProposal(long proposer, byte[] content) {
+  public SyncProposal(long proposer, byte[] content) {
     this.proposer = proposer;
     this.content = content;
-}
+  }
 
-public long getCreateTime() {
+  public long getCreateTime() {
     return createTime;
-}
+  }
 
-public void setCreateTime(long createTime) {
+  public void setCreateTime(long createTime) {
     this.createTime = createTime;
-}
+  }
 
-public long getUpdateTime() {
+  public long getUpdateTime() {
     return updateTime;
-}
+  }
 
-public void setUpdateTime(long updateTime) {
+  public void setUpdateTime(long updateTime) {
     this.updateTime = updateTime;
-}
+  }
 
-public long getProposer() {
+  public long getProposer() {
     return proposer;
-}
+  }
 
-public byte[] getContent() {
+  public byte[] getContent() {
     return content;
-}
+  }
 
-public void setContent(byte[] content) {
+  public void setContent(byte[] content) {
     this.content = content;
-}
+  }
 }

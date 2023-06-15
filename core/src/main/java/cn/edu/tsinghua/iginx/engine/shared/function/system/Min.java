@@ -34,36 +34,36 @@ import java.util.regex.Pattern;
 
 public class Min implements SetMappingFunction {
 
-public static final String MIN = "min";
+  public static final String MIN = "min";
 
-private static final Min INSTANCE = new Min();
+  private static final Min INSTANCE = new Min();
 
-private Min() {}
+  private Min() {}
 
-public static Min getInstance() {
+  public static Min getInstance() {
     return INSTANCE;
-}
+  }
 
-@Override
-public FunctionType getFunctionType() {
+  @Override
+  public FunctionType getFunctionType() {
     return FunctionType.System;
-}
+  }
 
-@Override
-public MappingType getMappingType() {
+  @Override
+  public MappingType getMappingType() {
     return MappingType.SetMapping;
-}
+  }
 
-@Override
-public String getIdentifier() {
+  @Override
+  public String getIdentifier() {
     return MIN;
-}
+  }
 
-@Override
-public Row transform(RowStream rows, FunctionParams params) throws Exception {
+  @Override
+  public Row transform(RowStream rows, FunctionParams params) throws Exception {
     List<String> pathParams = params.getPaths();
     if (pathParams == null || pathParams.size() != 1) {
-    throw new IllegalArgumentException("unexpected param type for avg.");
+      throw new IllegalArgumentException("unexpected param type for avg.");
     }
 
     String target = pathParams.get(0);
@@ -71,30 +71,30 @@ public Row transform(RowStream rows, FunctionParams params) throws Exception {
     List<Field> targetFields = new ArrayList<>();
     List<Integer> indices = new ArrayList<>();
     for (int i = 0; i < rows.getHeader().getFieldSize(); i++) {
-    Field field = rows.getHeader().getField(i);
-    if (pattern.matcher(field.getFullName()).matches()) {
+      Field field = rows.getHeader().getField(i);
+      if (pattern.matcher(field.getFullName()).matches()) {
         String name = getIdentifier() + "(" + field.getName() + ")";
         String fullName = getIdentifier() + "(" + field.getFullName() + ")";
         targetFields.add(new Field(name, fullName, field.getType()));
         indices.add(i);
-    }
+      }
     }
     Object[] targetValues = new Object[targetFields.size()];
     while (rows.hasNext()) {
-    Row row = rows.next();
-    Object[] values = row.getValues();
-    for (int i = 0; i < indices.size(); i++) {
+      Row row = rows.next();
+      Object[] values = row.getValues();
+      for (int i = 0; i < indices.size(); i++) {
         Object value = values[indices.get(i)];
         if (targetValues[i] == null) {
-        targetValues[i] = value;
+          targetValues[i] = value;
         } else {
-        if (value != null
-            && ValueUtils.compare(targetValues[i], value, targetFields.get(i).getType()) > 0) {
+          if (value != null
+              && ValueUtils.compare(targetValues[i], value, targetFields.get(i).getType()) > 0) {
             targetValues[i] = value;
+          }
         }
-        }
-    }
+      }
     }
     return new Row(new Header(targetFields), targetValues);
-}
+  }
 }

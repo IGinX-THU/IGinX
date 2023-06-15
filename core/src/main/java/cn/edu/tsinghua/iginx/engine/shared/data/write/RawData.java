@@ -7,28 +7,28 @@ import java.util.Map;
 
 public class RawData {
 
-private final List<String> paths;
+  private final List<String> paths;
 
-private final List<Map<String, String>> tagsList;
+  private final List<Map<String, String>> tagsList;
 
-private final List<Long> keys;
+  private final List<Long> keys;
 
-private final Object[] valuesList;
+  private final Object[] valuesList;
 
-private final List<DataType> dataTypeList;
+  private final List<DataType> dataTypeList;
 
-private final List<Bitmap> bitmaps;
+  private final List<Bitmap> bitmaps;
 
-private final RawDataType type;
+  private final RawDataType type;
 
-public RawData(
-    List<String> paths,
-    List<Map<String, String>> tagsList,
-    List<Long> keys,
-    Object[] valuesList,
-    List<DataType> dataTypeList,
-    List<Bitmap> bitmaps,
-    RawDataType type) {
+  public RawData(
+      List<String> paths,
+      List<Map<String, String>> tagsList,
+      List<Long> keys,
+      Object[] valuesList,
+      List<DataType> dataTypeList,
+      List<Bitmap> bitmaps,
+      RawDataType type) {
     this.paths = paths;
     this.tagsList = tagsList;
     this.keys = keys;
@@ -36,41 +36,41 @@ public RawData(
     this.dataTypeList = dataTypeList;
     this.bitmaps = bitmaps;
     this.type = type;
-}
+  }
 
-public List<String> getPaths() {
+  public List<String> getPaths() {
     return paths;
-}
+  }
 
-public List<Map<String, String>> getTagsList() {
+  public List<Map<String, String>> getTagsList() {
     return tagsList;
-}
+  }
 
-public List<Long> getKeys() {
+  public List<Long> getKeys() {
     return keys;
-}
+  }
 
-public Object[] getValuesList() {
+  public Object[] getValuesList() {
     return valuesList;
-}
+  }
 
-public List<DataType> getDataTypeList() {
+  public List<DataType> getDataTypeList() {
     return dataTypeList;
-}
+  }
 
-public List<Bitmap> getBitmaps() {
+  public List<Bitmap> getBitmaps() {
     return bitmaps;
-}
+  }
 
-public RawDataType getType() {
+  public RawDataType getType() {
     return type;
-}
+  }
 
-public boolean isRowData() {
+  public boolean isRowData() {
     return type == RawDataType.Row || type == RawDataType.NonAlignedRow;
-}
+  }
 
-public boolean isColumnData() {
+  public boolean isColumnData() {
     return type == RawDataType.Column || type == RawDataType.NonAlignedColumn;
-}
+  }
 }

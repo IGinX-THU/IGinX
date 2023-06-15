@@ -6,30 +6,30 @@ import lombok.Data;
 @Data
 public class MigrationExecuteTask {
 
-public static final String SEPARATOR = "-";
-public static final long RESHARD_MIGRATION_COST = 10;
+  public static final String SEPARATOR = "-";
+  public static final long RESHARD_MIGRATION_COST = 10;
 
-private FragmentMeta fragmentMeta;
-private String masterStorageUnitId;
-private Long sourceStorageId;
-private Long targetStorageId;
-private MigrationExecuteType migrationExecuteType;
+  private FragmentMeta fragmentMeta;
+  private String masterStorageUnitId;
+  private Long sourceStorageId;
+  private Long targetStorageId;
+  private MigrationExecuteType migrationExecuteType;
 
-public MigrationExecuteTask(
-    FragmentMeta fragmentMeta,
-    String masterStorageUnitId,
-    Long sourceStorageId,
-    Long targetStorageId,
-    MigrationExecuteType migrationExecuteType) {
+  public MigrationExecuteTask(
+      FragmentMeta fragmentMeta,
+      String masterStorageUnitId,
+      Long sourceStorageId,
+      Long targetStorageId,
+      MigrationExecuteType migrationExecuteType) {
     this.fragmentMeta = fragmentMeta;
     this.masterStorageUnitId = masterStorageUnitId;
     this.sourceStorageId = sourceStorageId;
     this.targetStorageId = targetStorageId;
     this.migrationExecuteType = migrationExecuteType;
-}
+  }
 
-@Override
-public String toString() {
+  @Override
+  public String toString() {
     return fragmentMeta.getKeyInterval().getStartKey()
         + SEPARATOR
         + fragmentMeta.getKeyInterval().getEndKey()
@@ -45,9 +45,9 @@ public String toString() {
         + targetStorageId
         + SEPARATOR
         + migrationExecuteType;
-}
+  }
 
-public static MigrationExecuteTask fromString(String input) {
+  public static MigrationExecuteTask fromString(String input) {
     String[] tuples = input.split(SEPARATOR);
     return new MigrationExecuteTask(
         new FragmentMeta(
@@ -56,5 +56,5 @@ public static MigrationExecuteTask fromString(String input) {
         Long.parseLong(tuples[5]),
         Long.parseLong(tuples[6]),
         MigrationExecuteType.valueOf(tuples[7]));
-}
+  }
 }

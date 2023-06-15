@@ -22,5 +22,5 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 
 public interface MappingFunction extends Function {
 
-RowStream transform(RowStream rows, FunctionParams params) throws Exception;
+  RowStream transform(RowStream rows, FunctionParams params) throws Exception;
 }

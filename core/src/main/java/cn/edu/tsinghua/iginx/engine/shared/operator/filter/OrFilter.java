@@ -25,55 +25,55 @@ import java.util.stream.Collectors;
 
 public class OrFilter implements Filter {
 
-private final FilterType type = FilterType.Or;
+  private final FilterType type = FilterType.Or;
 
-private final List<Filter> children;
+  private final List<Filter> children;
 
-public OrFilter(List<Filter> children) {
+  public OrFilter(List<Filter> children) {
     this.children = children;
-}
+  }
 
-public List<Filter> getChildren() {
+  public List<Filter> getChildren() {
     return children;
-}
+  }
 
-@Override
-public void accept(FilterVisitor visitor) {
+  @Override
+  public void accept(FilterVisitor visitor) {
     visitor.visit(this);
     this.children.forEach(child -> child.accept(visitor));
-}
+  }
 
-@Override
-public FilterType getType() {
+  @Override
+  public FilterType getType() {
     return type;
-}
+  }
 
-@Override
-public Filter copy() {
+  @Override
+  public Filter copy() {
     List<Filter> newChildren = new ArrayList<>();
     children.forEach(e -> newChildren.add(e.copy()));
     return new OrFilter(newChildren);
-}
+  }
 
-@Override
-public String toString() {
+  @Override
+  public String toString() {
     return children.stream().map(Object::toString).collect(Collectors.joining(" || ", "(", ")"));
-}
+  }
 
-@Override
-public boolean equals(Object o) {
+  @Override
+  public boolean equals(Object o) {
     if (this == o) {
-    return true;
+      return true;
     }
     if (o == null || getClass() != o.getClass()) {
-    return false;
+      return false;
     }
     OrFilter filter = (OrFilter) o;
     return type == filter.type && Objects.equals(children, filter.children);
-}
+  }
 
-@Override
-public int hashCode() {
+  @Override
+  public int hashCode() {
     return Objects.hash(type, children);
-}
+  }
 }

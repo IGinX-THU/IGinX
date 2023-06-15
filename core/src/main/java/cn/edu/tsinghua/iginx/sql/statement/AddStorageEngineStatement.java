@@ -10,25 +10,25 @@ import java.util.List;
 
 public class AddStorageEngineStatement extends SystemStatement {
 
-private final List<StorageEngine> engines;
+  private final List<StorageEngine> engines;
 
-public AddStorageEngineStatement() {
+  public AddStorageEngineStatement() {
     engines = new ArrayList<>();
     this.statementType = StatementType.ADD_STORAGE_ENGINE;
-}
+  }
 
-public List<StorageEngine> getEngines() {
+  public List<StorageEngine> getEngines() {
     return engines;
-}
+  }
 
-public void setEngines(StorageEngine engine) {
+  public void setEngines(StorageEngine engine) {
     this.engines.add(engine);
-}
+  }
 
-@Override
-public void execute(RequestContext ctx) {
+  @Override
+  public void execute(RequestContext ctx) {
     IginxWorker worker = IginxWorker.getInstance();
     AddStorageEnginesReq req = new AddStorageEnginesReq(ctx.getSessionId(), engines);
     ctx.setResult(new Result(worker.addStorageEngines(req)));
-}
+  }
 }

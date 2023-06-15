@@ -12,33 +12,33 @@ import org.slf4j.LoggerFactory;
 
 public class IginXWriter extends ExportWriter {
 
-private final long sessionId;
+  private final long sessionId;
 
-private final StatementExecutor executor = StatementExecutor.getInstance();
+  private final StatementExecutor executor = StatementExecutor.getInstance();
 
-private final ContextBuilder contextBuilder = ContextBuilder.getInstance();
+  private final ContextBuilder contextBuilder = ContextBuilder.getInstance();
 
-private static final Logger logger = LoggerFactory.getLogger(IginXWriter.class);
+  private static final Logger logger = LoggerFactory.getLogger(IginXWriter.class);
 
-public IginXWriter(long sessionId) {
+  public IginXWriter(long sessionId) {
     this.sessionId = sessionId;
-}
+  }
 
-@Override
-public void write(BatchData batchData) {
+  @Override
+  public void write(BatchData batchData) {
     String insertSQL = buildSQL(batchData);
     logger.info("Insert statement: " + insertSQL);
 
     if (!insertSQL.equals("")) {
-    ExecuteStatementReq req = new ExecuteStatementReq(sessionId, insertSQL);
-    RequestContext context = contextBuilder.build(req);
-    executor.execute(context);
+      ExecuteStatementReq req = new ExecuteStatementReq(sessionId, insertSQL);
+      RequestContext context = contextBuilder.build(req);
+      executor.execute(context);
     } else {
-    logger.error("Fail to execute insert statement.");
+      logger.error("Fail to execute insert statement.");
     }
-}
+  }
 
-private String buildSQL(BatchData batchData) {
+  private String buildSQL(BatchData batchData) {
     StringBuilder builder = new StringBuilder();
 
     // construct paths
@@ -53,28 +53,28 @@ private String buildSQL(BatchData batchData) {
     builder.append(") VALUES");
     long index = getCurrentTimeInNS();
     for (Row row : batchData.getRowList()) {
-    builder.append(" (");
-    builder.append(index).append(",");
-    for (Object value : row.getValues()) {
+      builder.append(" (");
+      builder.append(index).append(",");
+      for (Object value : row.getValues()) {
         builder.append(value + ",");
-    }
-    builder.deleteCharAt(builder.length() - 1);
-    builder.append("),");
-    index++;
+      }
+      builder.deleteCharAt(builder.length() - 1);
+      builder.append("),");
+      index++;
     }
     builder.deleteCharAt(builder.length() - 1).append(";");
     return builder.toString();
-}
+  }
 
-private long getCurrentTimeInNS() {
+  private long getCurrentTimeInNS() {
     Instant now = Instant.now();
     return now.getEpochSecond() * 1_000_000_000L + now.getNano();
-}
+  }
 
-private String reformatPath(String path) {
+  private String reformatPath(String path) {
     if (!path.contains("(") && !path.contains(")")) return path;
     path = path.replaceAll("[{]", "[");
     path = path.replaceAll("[}]", "]");
     return path;
-}
+  }
 }

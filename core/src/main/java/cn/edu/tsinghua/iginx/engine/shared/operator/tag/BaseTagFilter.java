@@ -20,35 +20,35 @@ package cn.edu.tsinghua.iginx.engine.shared.operator.tag;
 
 public class BaseTagFilter implements TagFilter {
 
-private final String tagKey;
+  private final String tagKey;
 
-private final String tagValue;
+  private final String tagValue;
 
-public BaseTagFilter(String tagKey, String tagValue) {
+  public BaseTagFilter(String tagKey, String tagValue) {
     this.tagKey = tagKey;
     this.tagValue = tagValue;
-}
+  }
 
-public String getTagKey() {
+  public String getTagKey() {
     return tagKey;
-}
+  }
 
-public String getTagValue() {
+  public String getTagValue() {
     return tagValue;
-}
+  }
 
-@Override
-public TagFilterType getType() {
+  @Override
+  public TagFilterType getType() {
     return TagFilterType.Base;
-}
+  }
 
-@Override
-public TagFilter copy() {
+  @Override
+  public TagFilter copy() {
     return new BaseTagFilter(tagKey, tagValue);
-}
+  }
 
-@Override
-public String toString() {
+  @Override
+  public String toString() {
     return tagKey + "=\"" + tagValue + "\"";
-}
+  }
 }

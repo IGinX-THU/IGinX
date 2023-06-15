@@ -12,17 +12,17 @@ import java.util.List;
 
 public class ShowEligibleJobStatement extends SystemStatement {
 
-private final JobState jobState;
+  private final JobState jobState;
 
-private final IginxWorker worker = IginxWorker.getInstance();
+  private final IginxWorker worker = IginxWorker.getInstance();
 
-public ShowEligibleJobStatement(JobState jobState) {
+  public ShowEligibleJobStatement(JobState jobState) {
     this.statementType = StatementType.SHOW_ELIGIBLE_JOB;
     this.jobState = jobState;
-}
+  }
 
-@Override
-public void execute(RequestContext ctx) throws ExecutionException {
+  @Override
+  public void execute(RequestContext ctx) throws ExecutionException {
     ShowEligibleJobReq req = new ShowEligibleJobReq(ctx.getSessionId(), jobState);
     ShowEligibleJobResp resp = worker.showEligibleJob(req);
     List<Long> jobIdList = resp.getJobIdList();
@@ -30,5 +30,5 @@ public void execute(RequestContext ctx) throws ExecutionException {
     Result result = new Result(RpcUtils.SUCCESS);
     result.setJobIdList(jobIdList);
     ctx.setResult(result);
-}
+  }
 }

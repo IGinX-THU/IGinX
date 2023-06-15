@@ -70,24 +70,24 @@ import org.junit.Test;
 
 public abstract class AbstractOperatorMemoryExecutorTest {
 
-private static class EmptySource implements Source {
+  private static class EmptySource implements Source {
 
     public static final EmptySource EMPTY_SOURCE = new EmptySource();
 
     @Override
     public SourceType getType() {
-    return null;
+      return null;
     }
 
     @Override
     public Source copy() {
-    return null;
+      return null;
     }
-}
+  }
 
-protected abstract OperatorMemoryExecutor getExecutor();
+  protected abstract OperatorMemoryExecutor getExecutor();
 
-private Table generateTableForUnaryOperator(boolean hasTimestamp) {
+  private Table generateTableForUnaryOperator(boolean hasTimestamp) {
     Header header;
     List<Field> fields =
         Arrays.asList(
@@ -95,65 +95,65 @@ private Table generateTableForUnaryOperator(boolean hasTimestamp) {
             new Field("a.b.c", DataType.INTEGER),
             new Field("a.a.c", DataType.INTEGER));
     if (hasTimestamp) {
-    header = new Header(Field.KEY, fields);
+      header = new Header(Field.KEY, fields);
     } else {
-    header = new Header(fields);
+      header = new Header(fields);
     }
     List<Row> rows = new ArrayList<>();
     for (int i = 0; i < 10; i++) {
-    if (hasTimestamp) {
+      if (hasTimestamp) {
         rows.add(new Row(header, i, new Object[] {i, i + 1, i + 2}));
-    } else {
+      } else {
         rows.add(new Row(header, new Object[] {i, i + 1, i + 2}));
-    }
+      }
     }
     return new Table(header, rows);
-}
+  }
 
-private Table generateTableFromValues(
-    boolean hasTimestamp, List<Field> fields, List<List<Object>> values) {
+  private Table generateTableFromValues(
+      boolean hasTimestamp, List<Field> fields, List<List<Object>> values) {
     Header header;
     if (hasTimestamp) {
-    header = new Header(Field.KEY, fields);
+      header = new Header(Field.KEY, fields);
     } else {
-    header = new Header(fields);
+      header = new Header(fields);
     }
     List<Row> rows = new ArrayList<>();
     for (int i = 0; i < values.size(); i++) {
-    if (hasTimestamp) {
+      if (hasTimestamp) {
         rows.add(new Row(header, i + 1, values.get(i).toArray()));
-    } else {
+      } else {
         rows.add(new Row(header, values.get(i).toArray()));
-    }
+      }
     }
     return new Table(header, rows);
-}
+  }
 
-private void assertStreamEqual(RowStream a, RowStream b) throws PhysicalException {
+  private void assertStreamEqual(RowStream a, RowStream b) throws PhysicalException {
     Header headerA = a.getHeader();
     Header headerB = b.getHeader();
     assertEquals(headerA.getFieldSize(), headerB.getFieldSize());
     for (int i = 0; i < headerA.getFieldSize(); i++) {
-    assertEquals(headerA.getField(i).getName(), headerB.getField(i).getName());
-    assertEquals(headerA.getField(i).getType(), headerB.getField(i).getType());
+      assertEquals(headerA.getField(i).getName(), headerB.getField(i).getName());
+      assertEquals(headerA.getField(i).getType(), headerB.getField(i).getType());
     }
 
     while (a.hasNext() && b.hasNext()) {
-    Row rowA = a.next();
-    Row rowB = b.next();
-    for (int i = 0; i < headerA.getFieldSize(); i++) {
+      Row rowA = a.next();
+      Row rowB = b.next();
+      for (int i = 0; i < headerA.getFieldSize(); i++) {
         assertEquals(rowA.getValue(i), rowB.getValue(i));
-    }
+      }
     }
 
     if (a.hasNext() || b.hasNext()) {
-    // one of the streams has not been consumed.
-    fail();
+      // one of the streams has not been consumed.
+      fail();
     }
-}
+  }
 
-@Test
-public void testCrossJoin() throws PhysicalException {
+  @Test
+  public void testCrossJoin() throws PhysicalException {
     Table tableA =
         generateTableFromValues(
             true,
@@ -173,37 +173,37 @@ public void testCrossJoin() throws PhysicalException {
             Arrays.asList(Arrays.asList(1, 1.1, true), Arrays.asList(3, 3.1, false)));
 
     {
-    tableA.reset();
-    tableB.reset();
+      tableA.reset();
+      tableB.reset();
 
-    CrossJoin crossJoin =
-        new CrossJoin(EmptySource.EMPTY_SOURCE, EmptySource.EMPTY_SOURCE, "a", "b");
+      CrossJoin crossJoin =
+          new CrossJoin(EmptySource.EMPTY_SOURCE, EmptySource.EMPTY_SOURCE, "a", "b");
 
-    Table target =
-        generateTableFromValues(
-            false,
-            Arrays.asList(
-                new Field("a.key", DataType.LONG),
-                new Field("a.a", DataType.INTEGER),
-                new Field("a.b", DataType.DOUBLE),
-                new Field("a.c", DataType.BOOLEAN),
-                new Field("b.key", DataType.LONG),
-                new Field("b.a", DataType.INTEGER),
-                new Field("b.b", DataType.DOUBLE),
-                new Field("b.c", DataType.BOOLEAN)),
-            Arrays.asList(
-                Arrays.asList(1L, 2, 2.1, true, 1L, 1, 1.1, true),
-                Arrays.asList(1L, 2, 2.1, true, 2L, 3, 3.1, false),
-                Arrays.asList(2L, 3, 3.1, false, 1L, 1, 1.1, true),
-                Arrays.asList(2L, 3, 3.1, false, 2L, 3, 3.1, false)));
+      Table target =
+          generateTableFromValues(
+              false,
+              Arrays.asList(
+                  new Field("a.key", DataType.LONG),
+                  new Field("a.a", DataType.INTEGER),
+                  new Field("a.b", DataType.DOUBLE),
+                  new Field("a.c", DataType.BOOLEAN),
+                  new Field("b.key", DataType.LONG),
+                  new Field("b.a", DataType.INTEGER),
+                  new Field("b.b", DataType.DOUBLE),
+                  new Field("b.c", DataType.BOOLEAN)),
+              Arrays.asList(
+                  Arrays.asList(1L, 2, 2.1, true, 1L, 1, 1.1, true),
+                  Arrays.asList(1L, 2, 2.1, true, 2L, 3, 3.1, false),
+                  Arrays.asList(2L, 3, 3.1, false, 1L, 1, 1.1, true),
+                  Arrays.asList(2L, 3, 3.1, false, 2L, 3, 3.1, false)));
 
-    RowStream stream = getExecutor().executeBinaryOperator(crossJoin, tableA, tableB);
-    assertStreamEqual(stream, target);
+      RowStream stream = getExecutor().executeBinaryOperator(crossJoin, tableA, tableB);
+      assertStreamEqual(stream, target);
     }
-}
+  }
 
-@Test
-public void testInnerJoin() throws PhysicalException {
+  @Test
+  public void testInnerJoin() throws PhysicalException {
     Table tableA =
         generateTableFromValues(
             true,
@@ -270,134 +270,134 @@ public void testInnerJoin() throws PhysicalException {
                 Arrays.asList(5L, 5, 5.1, false, 4L, 5, true)));
 
     {
-    // NestedLoopJoin
-    tableA.reset();
-    tableB.reset();
-    target.reset();
+      // NestedLoopJoin
+      tableA.reset();
+      tableB.reset();
+      target.reset();
 
-    InnerJoin innerJoin =
-        new InnerJoin(
-            EmptySource.EMPTY_SOURCE,
-            EmptySource.EMPTY_SOURCE,
-            "a",
-            "b",
-            new PathFilter("a.a", Op.E, "b.k"),
-            Collections.emptyList(),
-            false,
-            JoinAlgType.NestedLoopJoin);
+      InnerJoin innerJoin =
+          new InnerJoin(
+              EmptySource.EMPTY_SOURCE,
+              EmptySource.EMPTY_SOURCE,
+              "a",
+              "b",
+              new PathFilter("a.a", Op.E, "b.k"),
+              Collections.emptyList(),
+              false,
+              JoinAlgType.NestedLoopJoin);
 
-    RowStream stream = getExecutor().executeBinaryOperator(innerJoin, tableA, tableB);
-    assertStreamEqual(stream, target);
+      RowStream stream = getExecutor().executeBinaryOperator(innerJoin, tableA, tableB);
+      assertStreamEqual(stream, target);
     }
 
     {
-    // HashJoin
-    tableA.reset();
-    tableB.reset();
-    target.reset();
+      // HashJoin
+      tableA.reset();
+      tableB.reset();
+      target.reset();
 
-    InnerJoin innerJoin =
-        new InnerJoin(
-            EmptySource.EMPTY_SOURCE,
-            EmptySource.EMPTY_SOURCE,
-            "a",
-            "b",
-            new PathFilter("a.a", Op.E, "b.k"),
-            Collections.emptyList(),
-            false,
-            JoinAlgType.HashJoin);
+      InnerJoin innerJoin =
+          new InnerJoin(
+              EmptySource.EMPTY_SOURCE,
+              EmptySource.EMPTY_SOURCE,
+              "a",
+              "b",
+              new PathFilter("a.a", Op.E, "b.k"),
+              Collections.emptyList(),
+              false,
+              JoinAlgType.HashJoin);
 
-    RowStream stream = getExecutor().executeBinaryOperator(innerJoin, tableA, tableB);
-    assertStreamEqual(stream, target);
+      RowStream stream = getExecutor().executeBinaryOperator(innerJoin, tableA, tableB);
+      assertStreamEqual(stream, target);
     }
 
     {
-    // SortedMergeJoin
-    tableA.reset();
-    tableB.reset();
-    target.reset();
+      // SortedMergeJoin
+      tableA.reset();
+      tableB.reset();
+      target.reset();
 
-    InnerJoin innerJoin =
-        new InnerJoin(
-            EmptySource.EMPTY_SOURCE,
-            EmptySource.EMPTY_SOURCE,
-            "a",
-            "b",
-            new PathFilter("a.a", Op.E, "b.k"),
-            Collections.emptyList(),
-            false,
-            JoinAlgType.SortedMergeJoin);
+      InnerJoin innerJoin =
+          new InnerJoin(
+              EmptySource.EMPTY_SOURCE,
+              EmptySource.EMPTY_SOURCE,
+              "a",
+              "b",
+              new PathFilter("a.a", Op.E, "b.k"),
+              Collections.emptyList(),
+              false,
+              JoinAlgType.SortedMergeJoin);
 
-    RowStream stream = getExecutor().executeBinaryOperator(innerJoin, tableA, tableB);
-    assertStreamEqual(stream, target);
+      RowStream stream = getExecutor().executeBinaryOperator(innerJoin, tableA, tableB);
+      assertStreamEqual(stream, target);
     }
 
     {
-    // using & NestedLoopJoin
-    tableA.reset();
-    tableB.reset();
-    usingTarget.reset();
+      // using & NestedLoopJoin
+      tableA.reset();
+      tableB.reset();
+      usingTarget.reset();
 
-    InnerJoin innerJoin =
-        new InnerJoin(
-            EmptySource.EMPTY_SOURCE,
-            EmptySource.EMPTY_SOURCE,
-            "a",
-            "b",
-            null,
-            Collections.singletonList("b"),
-            false,
-            JoinAlgType.NestedLoopJoin);
+      InnerJoin innerJoin =
+          new InnerJoin(
+              EmptySource.EMPTY_SOURCE,
+              EmptySource.EMPTY_SOURCE,
+              "a",
+              "b",
+              null,
+              Collections.singletonList("b"),
+              false,
+              JoinAlgType.NestedLoopJoin);
 
-    RowStream stream = getExecutor().executeBinaryOperator(innerJoin, tableA, tableB);
-    assertStreamEqual(stream, usingTarget);
+      RowStream stream = getExecutor().executeBinaryOperator(innerJoin, tableA, tableB);
+      assertStreamEqual(stream, usingTarget);
     }
 
     {
-    // using & HashJoin
-    tableA.reset();
-    tableB.reset();
-    usingTarget.reset();
+      // using & HashJoin
+      tableA.reset();
+      tableB.reset();
+      usingTarget.reset();
 
-    InnerJoin innerJoin =
-        new InnerJoin(
-            EmptySource.EMPTY_SOURCE,
-            EmptySource.EMPTY_SOURCE,
-            "a",
-            "b",
-            null,
-            Collections.singletonList("b"),
-            false,
-            JoinAlgType.HashJoin);
+      InnerJoin innerJoin =
+          new InnerJoin(
+              EmptySource.EMPTY_SOURCE,
+              EmptySource.EMPTY_SOURCE,
+              "a",
+              "b",
+              null,
+              Collections.singletonList("b"),
+              false,
+              JoinAlgType.HashJoin);
 
-    RowStream stream = getExecutor().executeBinaryOperator(innerJoin, tableA, tableB);
-    assertStreamEqual(stream, usingTarget);
+      RowStream stream = getExecutor().executeBinaryOperator(innerJoin, tableA, tableB);
+      assertStreamEqual(stream, usingTarget);
     }
 
     {
-    // using & SortedMergeJoin
-    tableA.reset();
-    tableB.reset();
-    usingTarget.reset();
+      // using & SortedMergeJoin
+      tableA.reset();
+      tableB.reset();
+      usingTarget.reset();
 
-    InnerJoin innerJoin =
-        new InnerJoin(
-            EmptySource.EMPTY_SOURCE,
-            EmptySource.EMPTY_SOURCE,
-            "a",
-            "b",
-            null,
-            Collections.singletonList("b"),
-            false,
-            JoinAlgType.SortedMergeJoin);
+      InnerJoin innerJoin =
+          new InnerJoin(
+              EmptySource.EMPTY_SOURCE,
+              EmptySource.EMPTY_SOURCE,
+              "a",
+              "b",
+              null,
+              Collections.singletonList("b"),
+              false,
+              JoinAlgType.SortedMergeJoin);
 
-    RowStream stream = getExecutor().executeBinaryOperator(innerJoin, tableA, tableB);
-    assertStreamEqual(stream, usingTarget);
+      RowStream stream = getExecutor().executeBinaryOperator(innerJoin, tableA, tableB);
+      assertStreamEqual(stream, usingTarget);
     }
-}
+  }
 
-@Test
-public void testOuterJoin() throws PhysicalException {
+  @Test
+  public void testOuterJoin() throws PhysicalException {
     Table tableA =
         generateTableFromValues(
             true,
@@ -505,206 +505,206 @@ public void testOuterJoin() throws PhysicalException {
                 Arrays.asList(null, null, null, null, 8L, 18, 18.1, false)));
 
     {
-    // left & NestedLoopJoin
-    tableA.reset();
-    tableB.reset();
-    leftTarget.reset();
+      // left & NestedLoopJoin
+      tableA.reset();
+      tableB.reset();
+      leftTarget.reset();
 
-    OuterJoin outerJoin =
-        new OuterJoin(
-            EmptySource.EMPTY_SOURCE,
-            EmptySource.EMPTY_SOURCE,
-            "a",
-            "b",
-            OuterJoinType.LEFT,
-            new PathFilter("a.a", Op.E, "b.a"),
-            Collections.emptyList(),
-            false,
-            JoinAlgType.NestedLoopJoin);
+      OuterJoin outerJoin =
+          new OuterJoin(
+              EmptySource.EMPTY_SOURCE,
+              EmptySource.EMPTY_SOURCE,
+              "a",
+              "b",
+              OuterJoinType.LEFT,
+              new PathFilter("a.a", Op.E, "b.a"),
+              Collections.emptyList(),
+              false,
+              JoinAlgType.NestedLoopJoin);
 
-    RowStream stream = getExecutor().executeBinaryOperator(outerJoin, tableA, tableB);
-    assertStreamEqual(stream, leftTarget);
+      RowStream stream = getExecutor().executeBinaryOperator(outerJoin, tableA, tableB);
+      assertStreamEqual(stream, leftTarget);
     }
 
     {
-    // left & HashJoin
-    tableA.reset();
-    tableB.reset();
-    leftTarget.reset();
+      // left & HashJoin
+      tableA.reset();
+      tableB.reset();
+      leftTarget.reset();
 
-    OuterJoin outerJoin =
-        new OuterJoin(
-            EmptySource.EMPTY_SOURCE,
-            EmptySource.EMPTY_SOURCE,
-            "a",
-            "b",
-            OuterJoinType.LEFT,
-            new PathFilter("a.a", Op.E, "b.a"),
-            Collections.emptyList(),
-            false,
-            JoinAlgType.HashJoin);
+      OuterJoin outerJoin =
+          new OuterJoin(
+              EmptySource.EMPTY_SOURCE,
+              EmptySource.EMPTY_SOURCE,
+              "a",
+              "b",
+              OuterJoinType.LEFT,
+              new PathFilter("a.a", Op.E, "b.a"),
+              Collections.emptyList(),
+              false,
+              JoinAlgType.HashJoin);
 
-    RowStream stream = getExecutor().executeBinaryOperator(outerJoin, tableA, tableB);
-    assertStreamEqual(stream, leftTarget);
+      RowStream stream = getExecutor().executeBinaryOperator(outerJoin, tableA, tableB);
+      assertStreamEqual(stream, leftTarget);
     }
 
     {
-    // left & SortedMergeJoin
-    tableA.reset();
-    tableB.reset();
-    leftTarget.reset();
+      // left & SortedMergeJoin
+      tableA.reset();
+      tableB.reset();
+      leftTarget.reset();
 
-    OuterJoin outerJoin =
-        new OuterJoin(
-            EmptySource.EMPTY_SOURCE,
-            EmptySource.EMPTY_SOURCE,
-            "a",
-            "b",
-            OuterJoinType.LEFT,
-            new PathFilter("a.a", Op.E, "b.a"),
-            Collections.emptyList(),
-            false,
-            JoinAlgType.SortedMergeJoin);
+      OuterJoin outerJoin =
+          new OuterJoin(
+              EmptySource.EMPTY_SOURCE,
+              EmptySource.EMPTY_SOURCE,
+              "a",
+              "b",
+              OuterJoinType.LEFT,
+              new PathFilter("a.a", Op.E, "b.a"),
+              Collections.emptyList(),
+              false,
+              JoinAlgType.SortedMergeJoin);
 
-    RowStream stream = getExecutor().executeBinaryOperator(outerJoin, tableA, tableB);
-    assertStreamEqual(stream, leftTarget);
+      RowStream stream = getExecutor().executeBinaryOperator(outerJoin, tableA, tableB);
+      assertStreamEqual(stream, leftTarget);
     }
 
     {
-    // right & NestedLoopJoin
-    tableA.reset();
-    tableB.reset();
-    rightTarget.reset();
+      // right & NestedLoopJoin
+      tableA.reset();
+      tableB.reset();
+      rightTarget.reset();
 
-    OuterJoin outerJoin =
-        new OuterJoin(
-            EmptySource.EMPTY_SOURCE,
-            EmptySource.EMPTY_SOURCE,
-            "a",
-            "b",
-            OuterJoinType.RIGHT,
-            new PathFilter("a.a", Op.E, "b.a"),
-            Collections.emptyList(),
-            false,
-            JoinAlgType.NestedLoopJoin);
+      OuterJoin outerJoin =
+          new OuterJoin(
+              EmptySource.EMPTY_SOURCE,
+              EmptySource.EMPTY_SOURCE,
+              "a",
+              "b",
+              OuterJoinType.RIGHT,
+              new PathFilter("a.a", Op.E, "b.a"),
+              Collections.emptyList(),
+              false,
+              JoinAlgType.NestedLoopJoin);
 
-    RowStream stream = getExecutor().executeBinaryOperator(outerJoin, tableA, tableB);
-    assertStreamEqual(stream, rightTarget);
+      RowStream stream = getExecutor().executeBinaryOperator(outerJoin, tableA, tableB);
+      assertStreamEqual(stream, rightTarget);
     }
 
     {
-    // right & HashJoin
-    tableA.reset();
-    tableB.reset();
-    rightTarget.reset();
+      // right & HashJoin
+      tableA.reset();
+      tableB.reset();
+      rightTarget.reset();
 
-    OuterJoin outerJoin =
-        new OuterJoin(
-            EmptySource.EMPTY_SOURCE,
-            EmptySource.EMPTY_SOURCE,
-            "a",
-            "b",
-            OuterJoinType.RIGHT,
-            new PathFilter("a.a", Op.E, "b.a"),
-            Collections.emptyList(),
-            false,
-            JoinAlgType.HashJoin);
+      OuterJoin outerJoin =
+          new OuterJoin(
+              EmptySource.EMPTY_SOURCE,
+              EmptySource.EMPTY_SOURCE,
+              "a",
+              "b",
+              OuterJoinType.RIGHT,
+              new PathFilter("a.a", Op.E, "b.a"),
+              Collections.emptyList(),
+              false,
+              JoinAlgType.HashJoin);
 
-    RowStream stream = getExecutor().executeBinaryOperator(outerJoin, tableA, tableB);
-    assertStreamEqual(stream, rightTarget);
+      RowStream stream = getExecutor().executeBinaryOperator(outerJoin, tableA, tableB);
+      assertStreamEqual(stream, rightTarget);
     }
 
     {
-    // right & SortedMergeJoin
-    tableA.reset();
-    tableB.reset();
-    rightTarget.reset();
+      // right & SortedMergeJoin
+      tableA.reset();
+      tableB.reset();
+      rightTarget.reset();
 
-    OuterJoin outerJoin =
-        new OuterJoin(
-            EmptySource.EMPTY_SOURCE,
-            EmptySource.EMPTY_SOURCE,
-            "a",
-            "b",
-            OuterJoinType.RIGHT,
-            new PathFilter("a.a", Op.E, "b.a"),
-            Collections.emptyList(),
-            false,
-            JoinAlgType.SortedMergeJoin);
+      OuterJoin outerJoin =
+          new OuterJoin(
+              EmptySource.EMPTY_SOURCE,
+              EmptySource.EMPTY_SOURCE,
+              "a",
+              "b",
+              OuterJoinType.RIGHT,
+              new PathFilter("a.a", Op.E, "b.a"),
+              Collections.emptyList(),
+              false,
+              JoinAlgType.SortedMergeJoin);
 
-    RowStream stream = getExecutor().executeBinaryOperator(outerJoin, tableA, tableB);
-    assertStreamEqual(stream, rightTarget);
+      RowStream stream = getExecutor().executeBinaryOperator(outerJoin, tableA, tableB);
+      assertStreamEqual(stream, rightTarget);
     }
 
     {
-    // full & NestedLoopJoin
-    tableA.reset();
-    tableB.reset();
-    fullTarget.reset();
+      // full & NestedLoopJoin
+      tableA.reset();
+      tableB.reset();
+      fullTarget.reset();
 
-    OuterJoin outerJoin =
-        new OuterJoin(
-            EmptySource.EMPTY_SOURCE,
-            EmptySource.EMPTY_SOURCE,
-            "a",
-            "b",
-            OuterJoinType.FULL,
-            new PathFilter("a.a", Op.E, "b.a"),
-            Collections.emptyList(),
-            false,
-            JoinAlgType.NestedLoopJoin);
+      OuterJoin outerJoin =
+          new OuterJoin(
+              EmptySource.EMPTY_SOURCE,
+              EmptySource.EMPTY_SOURCE,
+              "a",
+              "b",
+              OuterJoinType.FULL,
+              new PathFilter("a.a", Op.E, "b.a"),
+              Collections.emptyList(),
+              false,
+              JoinAlgType.NestedLoopJoin);
 
-    RowStream stream = getExecutor().executeBinaryOperator(outerJoin, tableA, tableB);
-    assertStreamEqual(stream, fullTarget);
+      RowStream stream = getExecutor().executeBinaryOperator(outerJoin, tableA, tableB);
+      assertStreamEqual(stream, fullTarget);
     }
 
     {
-    // full & HashJoin
-    tableA.reset();
-    tableB.reset();
-    fullTarget.reset();
+      // full & HashJoin
+      tableA.reset();
+      tableB.reset();
+      fullTarget.reset();
 
-    OuterJoin outerJoin =
-        new OuterJoin(
-            EmptySource.EMPTY_SOURCE,
-            EmptySource.EMPTY_SOURCE,
-            "a",
-            "b",
-            OuterJoinType.FULL,
-            new PathFilter("a.a", Op.E, "b.a"),
-            Collections.emptyList(),
-            false,
-            JoinAlgType.HashJoin);
+      OuterJoin outerJoin =
+          new OuterJoin(
+              EmptySource.EMPTY_SOURCE,
+              EmptySource.EMPTY_SOURCE,
+              "a",
+              "b",
+              OuterJoinType.FULL,
+              new PathFilter("a.a", Op.E, "b.a"),
+              Collections.emptyList(),
+              false,
+              JoinAlgType.HashJoin);
 
-    RowStream stream = getExecutor().executeBinaryOperator(outerJoin, tableA, tableB);
-    assertStreamEqual(stream, fullTarget);
+      RowStream stream = getExecutor().executeBinaryOperator(outerJoin, tableA, tableB);
+      assertStreamEqual(stream, fullTarget);
     }
 
     {
-    // full & SortedMergeJoin
-    tableA.reset();
-    tableB.reset();
-    fullTarget.reset();
+      // full & SortedMergeJoin
+      tableA.reset();
+      tableB.reset();
+      fullTarget.reset();
 
-    OuterJoin outerJoin =
-        new OuterJoin(
-            EmptySource.EMPTY_SOURCE,
-            EmptySource.EMPTY_SOURCE,
-            "a",
-            "b",
-            OuterJoinType.FULL,
-            new PathFilter("a.a", Op.E, "b.a"),
-            Collections.emptyList(),
-            false,
-            JoinAlgType.SortedMergeJoin);
+      OuterJoin outerJoin =
+          new OuterJoin(
+              EmptySource.EMPTY_SOURCE,
+              EmptySource.EMPTY_SOURCE,
+              "a",
+              "b",
+              OuterJoinType.FULL,
+              new PathFilter("a.a", Op.E, "b.a"),
+              Collections.emptyList(),
+              false,
+              JoinAlgType.SortedMergeJoin);
 
-    RowStream stream = getExecutor().executeBinaryOperator(outerJoin, tableA, tableB);
-    assertStreamEqual(stream, fullTarget);
+      RowStream stream = getExecutor().executeBinaryOperator(outerJoin, tableA, tableB);
+      assertStreamEqual(stream, fullTarget);
     }
-}
+  }
 
-@Test
-public void testNaturalJoin() throws PhysicalException {
+  @Test
+  public void testNaturalJoin() throws PhysicalException {
     Table tableA =
         generateTableFromValues(
             true,
@@ -785,203 +785,203 @@ public void testNaturalJoin() throws PhysicalException {
                 Arrays.asList(null, null, null, 5L, 9, 9.1, true)));
 
     {
-    // inner & NestedLoopJoin
-    tableA.reset();
-    tableB.reset();
-    target.reset();
+      // inner & NestedLoopJoin
+      tableA.reset();
+      tableB.reset();
+      target.reset();
 
-    InnerJoin innerJoin =
-        new InnerJoin(
-            EmptySource.EMPTY_SOURCE,
-            EmptySource.EMPTY_SOURCE,
-            "a",
-            "b",
-            null,
-            Collections.emptyList(),
-            true,
-            JoinAlgType.NestedLoopJoin);
+      InnerJoin innerJoin =
+          new InnerJoin(
+              EmptySource.EMPTY_SOURCE,
+              EmptySource.EMPTY_SOURCE,
+              "a",
+              "b",
+              null,
+              Collections.emptyList(),
+              true,
+              JoinAlgType.NestedLoopJoin);
 
-    RowStream stream = getExecutor().executeBinaryOperator(innerJoin, tableA, tableB);
-    assertStreamEqual(stream, target);
+      RowStream stream = getExecutor().executeBinaryOperator(innerJoin, tableA, tableB);
+      assertStreamEqual(stream, target);
     }
 
     {
-    // inner & HashJoin
-    tableA.reset();
-    tableB.reset();
-    target.reset();
+      // inner & HashJoin
+      tableA.reset();
+      tableB.reset();
+      target.reset();
 
-    InnerJoin innerJoin =
-        new InnerJoin(
-            EmptySource.EMPTY_SOURCE,
-            EmptySource.EMPTY_SOURCE,
-            "a",
-            "b",
-            null,
-            Collections.emptyList(),
-            true,
-            JoinAlgType.HashJoin);
+      InnerJoin innerJoin =
+          new InnerJoin(
+              EmptySource.EMPTY_SOURCE,
+              EmptySource.EMPTY_SOURCE,
+              "a",
+              "b",
+              null,
+              Collections.emptyList(),
+              true,
+              JoinAlgType.HashJoin);
 
-    RowStream stream = getExecutor().executeBinaryOperator(innerJoin, tableA, tableB);
-    assertStreamEqual(stream, target);
+      RowStream stream = getExecutor().executeBinaryOperator(innerJoin, tableA, tableB);
+      assertStreamEqual(stream, target);
     }
 
     {
-    // inner & SortedMergeJoin
-    tableA.reset();
-    tableB.reset();
-    target.reset();
+      // inner & SortedMergeJoin
+      tableA.reset();
+      tableB.reset();
+      target.reset();
 
-    InnerJoin innerJoin =
-        new InnerJoin(
-            EmptySource.EMPTY_SOURCE,
-            EmptySource.EMPTY_SOURCE,
-            "a",
-            "b",
-            null,
-            Collections.emptyList(),
-            true,
-            JoinAlgType.SortedMergeJoin);
+      InnerJoin innerJoin =
+          new InnerJoin(
+              EmptySource.EMPTY_SOURCE,
+              EmptySource.EMPTY_SOURCE,
+              "a",
+              "b",
+              null,
+              Collections.emptyList(),
+              true,
+              JoinAlgType.SortedMergeJoin);
 
-    RowStream stream = getExecutor().executeBinaryOperator(innerJoin, tableA, tableB);
-    assertStreamEqual(stream, target);
+      RowStream stream = getExecutor().executeBinaryOperator(innerJoin, tableA, tableB);
+      assertStreamEqual(stream, target);
     }
 
     {
-    // left & NestedLoopJoin
-    tableA.reset();
-    tableB.reset();
-    leftTarget.reset();
+      // left & NestedLoopJoin
+      tableA.reset();
+      tableB.reset();
+      leftTarget.reset();
 
-    OuterJoin outerJoin =
-        new OuterJoin(
-            EmptySource.EMPTY_SOURCE,
-            EmptySource.EMPTY_SOURCE,
-            "a",
-            "b",
-            OuterJoinType.LEFT,
-            null,
-            Collections.emptyList(),
-            true,
-            JoinAlgType.NestedLoopJoin);
+      OuterJoin outerJoin =
+          new OuterJoin(
+              EmptySource.EMPTY_SOURCE,
+              EmptySource.EMPTY_SOURCE,
+              "a",
+              "b",
+              OuterJoinType.LEFT,
+              null,
+              Collections.emptyList(),
+              true,
+              JoinAlgType.NestedLoopJoin);
 
-    RowStream stream = getExecutor().executeBinaryOperator(outerJoin, tableA, tableB);
-    assertStreamEqual(stream, leftTarget);
+      RowStream stream = getExecutor().executeBinaryOperator(outerJoin, tableA, tableB);
+      assertStreamEqual(stream, leftTarget);
     }
 
     {
-    // left & HashJoin
-    tableA.reset();
-    tableB.reset();
-    leftTarget.reset();
+      // left & HashJoin
+      tableA.reset();
+      tableB.reset();
+      leftTarget.reset();
 
-    OuterJoin outerJoin =
-        new OuterJoin(
-            EmptySource.EMPTY_SOURCE,
-            EmptySource.EMPTY_SOURCE,
-            "a",
-            "b",
-            OuterJoinType.LEFT,
-            null,
-            Collections.emptyList(),
-            true,
-            JoinAlgType.HashJoin);
+      OuterJoin outerJoin =
+          new OuterJoin(
+              EmptySource.EMPTY_SOURCE,
+              EmptySource.EMPTY_SOURCE,
+              "a",
+              "b",
+              OuterJoinType.LEFT,
+              null,
+              Collections.emptyList(),
+              true,
+              JoinAlgType.HashJoin);
 
-    RowStream stream = getExecutor().executeBinaryOperator(outerJoin, tableA, tableB);
-    assertStreamEqual(stream, leftTarget);
+      RowStream stream = getExecutor().executeBinaryOperator(outerJoin, tableA, tableB);
+      assertStreamEqual(stream, leftTarget);
     }
 
     {
-    // left & SortedMergeJoin
-    tableA.reset();
-    tableB.reset();
-    leftTarget.reset();
+      // left & SortedMergeJoin
+      tableA.reset();
+      tableB.reset();
+      leftTarget.reset();
 
-    OuterJoin outerJoin =
-        new OuterJoin(
-            EmptySource.EMPTY_SOURCE,
-            EmptySource.EMPTY_SOURCE,
-            "a",
-            "b",
-            OuterJoinType.LEFT,
-            null,
-            Collections.emptyList(),
-            true,
-            JoinAlgType.SortedMergeJoin);
+      OuterJoin outerJoin =
+          new OuterJoin(
+              EmptySource.EMPTY_SOURCE,
+              EmptySource.EMPTY_SOURCE,
+              "a",
+              "b",
+              OuterJoinType.LEFT,
+              null,
+              Collections.emptyList(),
+              true,
+              JoinAlgType.SortedMergeJoin);
 
-    RowStream stream = getExecutor().executeBinaryOperator(outerJoin, tableA, tableB);
-    assertStreamEqual(stream, leftTarget);
+      RowStream stream = getExecutor().executeBinaryOperator(outerJoin, tableA, tableB);
+      assertStreamEqual(stream, leftTarget);
     }
 
     {
-    // right & NestedLoopJoin
-    tableA.reset();
-    tableB.reset();
-    rightTarget.reset();
+      // right & NestedLoopJoin
+      tableA.reset();
+      tableB.reset();
+      rightTarget.reset();
 
-    OuterJoin outerJoin =
-        new OuterJoin(
-            EmptySource.EMPTY_SOURCE,
-            EmptySource.EMPTY_SOURCE,
-            "a",
-            "b",
-            OuterJoinType.RIGHT,
-            null,
-            Collections.emptyList(),
-            true,
-            JoinAlgType.NestedLoopJoin);
+      OuterJoin outerJoin =
+          new OuterJoin(
+              EmptySource.EMPTY_SOURCE,
+              EmptySource.EMPTY_SOURCE,
+              "a",
+              "b",
+              OuterJoinType.RIGHT,
+              null,
+              Collections.emptyList(),
+              true,
+              JoinAlgType.NestedLoopJoin);
 
-    RowStream stream = getExecutor().executeBinaryOperator(outerJoin, tableA, tableB);
-    assertStreamEqual(stream, rightTarget);
+      RowStream stream = getExecutor().executeBinaryOperator(outerJoin, tableA, tableB);
+      assertStreamEqual(stream, rightTarget);
     }
 
     {
-    // right & HashJoin
-    tableA.reset();
-    tableB.reset();
-    rightTarget.reset();
+      // right & HashJoin
+      tableA.reset();
+      tableB.reset();
+      rightTarget.reset();
 
-    OuterJoin outerJoin =
-        new OuterJoin(
-            EmptySource.EMPTY_SOURCE,
-            EmptySource.EMPTY_SOURCE,
-            "a",
-            "b",
-            OuterJoinType.RIGHT,
-            null,
-            Collections.emptyList(),
-            true,
-            JoinAlgType.HashJoin);
+      OuterJoin outerJoin =
+          new OuterJoin(
+              EmptySource.EMPTY_SOURCE,
+              EmptySource.EMPTY_SOURCE,
+              "a",
+              "b",
+              OuterJoinType.RIGHT,
+              null,
+              Collections.emptyList(),
+              true,
+              JoinAlgType.HashJoin);
 
-    RowStream stream = getExecutor().executeBinaryOperator(outerJoin, tableA, tableB);
-    assertStreamEqual(stream, rightTarget);
+      RowStream stream = getExecutor().executeBinaryOperator(outerJoin, tableA, tableB);
+      assertStreamEqual(stream, rightTarget);
     }
 
     {
-    // right & SortedMergeJoin
-    tableA.reset();
-    tableB.reset();
-    rightTarget.reset();
+      // right & SortedMergeJoin
+      tableA.reset();
+      tableB.reset();
+      rightTarget.reset();
 
-    OuterJoin outerJoin =
-        new OuterJoin(
-            EmptySource.EMPTY_SOURCE,
-            EmptySource.EMPTY_SOURCE,
-            "a",
-            "b",
-            OuterJoinType.RIGHT,
-            null,
-            Collections.emptyList(),
-            true,
-            JoinAlgType.SortedMergeJoin);
+      OuterJoin outerJoin =
+          new OuterJoin(
+              EmptySource.EMPTY_SOURCE,
+              EmptySource.EMPTY_SOURCE,
+              "a",
+              "b",
+              OuterJoinType.RIGHT,
+              null,
+              Collections.emptyList(),
+              true,
+              JoinAlgType.SortedMergeJoin);
 
-    RowStream stream = getExecutor().executeBinaryOperator(outerJoin, tableA, tableB);
-    assertStreamEqual(stream, rightTarget);
+      RowStream stream = getExecutor().executeBinaryOperator(outerJoin, tableA, tableB);
+      assertStreamEqual(stream, rightTarget);
     }
-}
+  }
 
-@Test
-public void testJoinWithTypeCast() throws PhysicalException {
+  @Test
+  public void testJoinWithTypeCast() throws PhysicalException {
     Table tableA =
         generateTableFromValues(
             true,
@@ -1042,134 +1042,134 @@ public void testJoinWithTypeCast() throws PhysicalException {
                 Arrays.asList(4L, 5, 5.0, false, 3L, 5.0, true)));
 
     {
-    // NestedLoopJoin
-    tableA.reset();
-    tableB.reset();
-    targetInner.reset();
+      // NestedLoopJoin
+      tableA.reset();
+      tableB.reset();
+      targetInner.reset();
 
-    InnerJoin innerJoin =
-        new InnerJoin(
-            EmptySource.EMPTY_SOURCE,
-            EmptySource.EMPTY_SOURCE,
-            "a",
-            "b",
-            new PathFilter("a.b", Op.E, "b.b"),
-            Collections.emptyList(),
-            false,
-            JoinAlgType.NestedLoopJoin);
+      InnerJoin innerJoin =
+          new InnerJoin(
+              EmptySource.EMPTY_SOURCE,
+              EmptySource.EMPTY_SOURCE,
+              "a",
+              "b",
+              new PathFilter("a.b", Op.E, "b.b"),
+              Collections.emptyList(),
+              false,
+              JoinAlgType.NestedLoopJoin);
 
-    RowStream stream = getExecutor().executeBinaryOperator(innerJoin, tableA, tableB);
-    assertStreamEqual(stream, targetInner);
+      RowStream stream = getExecutor().executeBinaryOperator(innerJoin, tableA, tableB);
+      assertStreamEqual(stream, targetInner);
     }
 
     {
-    // HashJoin
-    tableA.reset();
-    tableB.reset();
-    targetInner.reset();
+      // HashJoin
+      tableA.reset();
+      tableB.reset();
+      targetInner.reset();
 
-    InnerJoin innerJoin =
-        new InnerJoin(
-            EmptySource.EMPTY_SOURCE,
-            EmptySource.EMPTY_SOURCE,
-            "a",
-            "b",
-            new PathFilter("a.b", Op.E, "b.b"),
-            Collections.emptyList(),
-            false,
-            JoinAlgType.HashJoin);
+      InnerJoin innerJoin =
+          new InnerJoin(
+              EmptySource.EMPTY_SOURCE,
+              EmptySource.EMPTY_SOURCE,
+              "a",
+              "b",
+              new PathFilter("a.b", Op.E, "b.b"),
+              Collections.emptyList(),
+              false,
+              JoinAlgType.HashJoin);
 
-    RowStream stream = getExecutor().executeBinaryOperator(innerJoin, tableA, tableB);
-    assertStreamEqual(stream, targetInner);
+      RowStream stream = getExecutor().executeBinaryOperator(innerJoin, tableA, tableB);
+      assertStreamEqual(stream, targetInner);
     }
 
     {
-    // SortedMergeJoin
-    tableA.reset();
-    tableB.reset();
-    targetInner.reset();
+      // SortedMergeJoin
+      tableA.reset();
+      tableB.reset();
+      targetInner.reset();
 
-    InnerJoin innerJoin =
-        new InnerJoin(
-            EmptySource.EMPTY_SOURCE,
-            EmptySource.EMPTY_SOURCE,
-            "a",
-            "b",
-            new PathFilter("a.b", Op.E, "b.b"),
-            Collections.emptyList(),
-            false,
-            JoinAlgType.SortedMergeJoin);
+      InnerJoin innerJoin =
+          new InnerJoin(
+              EmptySource.EMPTY_SOURCE,
+              EmptySource.EMPTY_SOURCE,
+              "a",
+              "b",
+              new PathFilter("a.b", Op.E, "b.b"),
+              Collections.emptyList(),
+              false,
+              JoinAlgType.SortedMergeJoin);
 
-    RowStream stream = getExecutor().executeBinaryOperator(innerJoin, tableA, tableB);
-    assertStreamEqual(stream, targetInner);
+      RowStream stream = getExecutor().executeBinaryOperator(innerJoin, tableA, tableB);
+      assertStreamEqual(stream, targetInner);
     }
 
     {
-    // NestedLoopJoin
-    tableA.reset();
-    tableB.reset();
-    usingTargetInner.reset();
+      // NestedLoopJoin
+      tableA.reset();
+      tableB.reset();
+      usingTargetInner.reset();
 
-    InnerJoin innerJoin =
-        new InnerJoin(
-            EmptySource.EMPTY_SOURCE,
-            EmptySource.EMPTY_SOURCE,
-            "a",
-            "b",
-            null,
-            Collections.singletonList("b"),
-            false,
-            JoinAlgType.NestedLoopJoin);
+      InnerJoin innerJoin =
+          new InnerJoin(
+              EmptySource.EMPTY_SOURCE,
+              EmptySource.EMPTY_SOURCE,
+              "a",
+              "b",
+              null,
+              Collections.singletonList("b"),
+              false,
+              JoinAlgType.NestedLoopJoin);
 
-    RowStream stream = getExecutor().executeBinaryOperator(innerJoin, tableA, tableB);
-    assertStreamEqual(stream, usingTargetInner);
+      RowStream stream = getExecutor().executeBinaryOperator(innerJoin, tableA, tableB);
+      assertStreamEqual(stream, usingTargetInner);
     }
 
     {
-    // HashJoin
-    tableA.reset();
-    tableB.reset();
-    usingTargetInner.reset();
+      // HashJoin
+      tableA.reset();
+      tableB.reset();
+      usingTargetInner.reset();
 
-    InnerJoin innerJoin =
-        new InnerJoin(
-            EmptySource.EMPTY_SOURCE,
-            EmptySource.EMPTY_SOURCE,
-            "a",
-            "b",
-            null,
-            Collections.singletonList("b"),
-            false,
-            JoinAlgType.HashJoin);
+      InnerJoin innerJoin =
+          new InnerJoin(
+              EmptySource.EMPTY_SOURCE,
+              EmptySource.EMPTY_SOURCE,
+              "a",
+              "b",
+              null,
+              Collections.singletonList("b"),
+              false,
+              JoinAlgType.HashJoin);
 
-    RowStream stream = getExecutor().executeBinaryOperator(innerJoin, tableA, tableB);
-    assertStreamEqual(stream, usingTargetInner);
+      RowStream stream = getExecutor().executeBinaryOperator(innerJoin, tableA, tableB);
+      assertStreamEqual(stream, usingTargetInner);
     }
 
     {
-    // SortedMergeJoin
-    tableA.reset();
-    tableB.reset();
-    usingTargetInner.reset();
+      // SortedMergeJoin
+      tableA.reset();
+      tableB.reset();
+      usingTargetInner.reset();
 
-    InnerJoin innerJoin =
-        new InnerJoin(
-            EmptySource.EMPTY_SOURCE,
-            EmptySource.EMPTY_SOURCE,
-            "a",
-            "b",
-            null,
-            Collections.singletonList("b"),
-            false,
-            JoinAlgType.SortedMergeJoin);
+      InnerJoin innerJoin =
+          new InnerJoin(
+              EmptySource.EMPTY_SOURCE,
+              EmptySource.EMPTY_SOURCE,
+              "a",
+              "b",
+              null,
+              Collections.singletonList("b"),
+              false,
+              JoinAlgType.SortedMergeJoin);
 
-    RowStream stream = getExecutor().executeBinaryOperator(innerJoin, tableA, tableB);
-    assertStreamEqual(stream, usingTargetInner);
+      RowStream stream = getExecutor().executeBinaryOperator(innerJoin, tableA, tableB);
+      assertStreamEqual(stream, usingTargetInner);
     }
-}
+  }
 
-@Test
-public void testSingleJoin() throws PhysicalException {
+  @Test
+  public void testSingleJoin() throws PhysicalException {
     Table tableA =
         generateTableFromValues(
             true,
@@ -1205,71 +1205,71 @@ public void testSingleJoin() throws PhysicalException {
                 Arrays.asList(6, 6.0, false)));
 
     {
-    tableA.reset();
-    tableB.reset();
+      tableA.reset();
+      tableB.reset();
 
-    SingleJoin singleJoin =
-        new SingleJoin(
-            EmptySource.EMPTY_SOURCE,
-            EmptySource.EMPTY_SOURCE,
-            new BoolFilter(true),
-            JoinAlgType.NestedLoopJoin);
+      SingleJoin singleJoin =
+          new SingleJoin(
+              EmptySource.EMPTY_SOURCE,
+              EmptySource.EMPTY_SOURCE,
+              new BoolFilter(true),
+              JoinAlgType.NestedLoopJoin);
 
-    Table target =
-        generateTableFromValues(
-            true,
-            Arrays.asList(
-                new Field("a.a", DataType.INTEGER),
-                new Field("a.b", DataType.DOUBLE),
-                new Field("a.c", DataType.BOOLEAN),
-                new Field("b.b", DataType.INTEGER),
-                new Field("b.e", DataType.BOOLEAN)),
-            Arrays.asList(
-                Arrays.asList(2, 2.0, true, 1, true),
-                Arrays.asList(3, 3.0, false, 1, true),
-                Arrays.asList(4, 4.0, true, 1, true),
-                Arrays.asList(5, 5.0, false, 1, true),
-                Arrays.asList(6, 6.0, true, 1, true)));
+      Table target =
+          generateTableFromValues(
+              true,
+              Arrays.asList(
+                  new Field("a.a", DataType.INTEGER),
+                  new Field("a.b", DataType.DOUBLE),
+                  new Field("a.c", DataType.BOOLEAN),
+                  new Field("b.b", DataType.INTEGER),
+                  new Field("b.e", DataType.BOOLEAN)),
+              Arrays.asList(
+                  Arrays.asList(2, 2.0, true, 1, true),
+                  Arrays.asList(3, 3.0, false, 1, true),
+                  Arrays.asList(4, 4.0, true, 1, true),
+                  Arrays.asList(5, 5.0, false, 1, true),
+                  Arrays.asList(6, 6.0, true, 1, true)));
 
-    RowStream stream = getExecutor().executeBinaryOperator(singleJoin, tableA, tableB);
-    assertStreamEqual(stream, target);
+      RowStream stream = getExecutor().executeBinaryOperator(singleJoin, tableA, tableB);
+      assertStreamEqual(stream, target);
     }
 
     {
-    tableA.reset();
-    tableC.reset();
+      tableA.reset();
+      tableC.reset();
 
-    SingleJoin singleJoin =
-        new SingleJoin(
-            EmptySource.EMPTY_SOURCE,
-            EmptySource.EMPTY_SOURCE,
-            new PathFilter("a.b", Op.E, "c.b"),
-            JoinAlgType.HashJoin);
+      SingleJoin singleJoin =
+          new SingleJoin(
+              EmptySource.EMPTY_SOURCE,
+              EmptySource.EMPTY_SOURCE,
+              new PathFilter("a.b", Op.E, "c.b"),
+              JoinAlgType.HashJoin);
 
-    Table target =
-        generateTableFromValues(
-            true,
-            Arrays.asList(
-                new Field("a.a", DataType.INTEGER),
-                new Field("a.b", DataType.DOUBLE),
-                new Field("a.c", DataType.BOOLEAN),
-                new Field("c.a", DataType.INTEGER),
-                new Field("c.b", DataType.DOUBLE),
-                new Field("c.c", DataType.BOOLEAN)),
-            Arrays.asList(
-                Arrays.asList(2, 2.0, true, 2, 2.0, false),
-                Arrays.asList(3, 3.0, false, 3, 3.0, true),
-                Arrays.asList(4, 4.0, true, 4, 4.0, false),
-                Arrays.asList(5, 5.0, false, 5, 5.0, true),
-                Arrays.asList(6, 6.0, true, 6, 6.0, false)));
+      Table target =
+          generateTableFromValues(
+              true,
+              Arrays.asList(
+                  new Field("a.a", DataType.INTEGER),
+                  new Field("a.b", DataType.DOUBLE),
+                  new Field("a.c", DataType.BOOLEAN),
+                  new Field("c.a", DataType.INTEGER),
+                  new Field("c.b", DataType.DOUBLE),
+                  new Field("c.c", DataType.BOOLEAN)),
+              Arrays.asList(
+                  Arrays.asList(2, 2.0, true, 2, 2.0, false),
+                  Arrays.asList(3, 3.0, false, 3, 3.0, true),
+                  Arrays.asList(4, 4.0, true, 4, 4.0, false),
+                  Arrays.asList(5, 5.0, false, 5, 5.0, true),
+                  Arrays.asList(6, 6.0, true, 6, 6.0, false)));
 
-    RowStream stream = getExecutor().executeBinaryOperator(singleJoin, tableA, tableC);
-    assertStreamEqual(stream, target);
+      RowStream stream = getExecutor().executeBinaryOperator(singleJoin, tableA, tableC);
+      assertStreamEqual(stream, target);
     }
-}
+  }
 
-@Test
-public void testMarkJoin() throws PhysicalException {
+  @Test
+  public void testMarkJoin() throws PhysicalException {
     Table tableA =
         generateTableFromValues(
             true,
@@ -1299,118 +1299,118 @@ public void testMarkJoin() throws PhysicalException {
                 Arrays.asList(5, 5.0, false)));
 
     {
-    tableA.reset();
-    tableB.reset();
+      tableA.reset();
+      tableB.reset();
 
-    MarkJoin markJoin =
-        new MarkJoin(
-            EmptySource.EMPTY_SOURCE,
-            EmptySource.EMPTY_SOURCE,
-            new PathFilter("a.b", Op.L, "b.b"),
-            "&mark0",
-            false,
-            JoinAlgType.NestedLoopJoin);
+      MarkJoin markJoin =
+          new MarkJoin(
+              EmptySource.EMPTY_SOURCE,
+              EmptySource.EMPTY_SOURCE,
+              new PathFilter("a.b", Op.L, "b.b"),
+              "&mark0",
+              false,
+              JoinAlgType.NestedLoopJoin);
 
-    Table target =
-        generateTableFromValues(
-            true,
-            Arrays.asList(
-                new Field("a.a", DataType.INTEGER),
-                new Field("a.b", DataType.DOUBLE),
-                new Field("a.c", DataType.BOOLEAN),
-                new Field("&mark0", DataType.BOOLEAN)),
-            Arrays.asList(
-                Arrays.asList(3, 3.0, true, true),
-                Arrays.asList(4, 4.0, false, true),
-                Arrays.asList(5, 5.0, true, false),
-                Arrays.asList(6, 6.0, false, false),
-                Arrays.asList(7, 7.0, true, false)));
+      Table target =
+          generateTableFromValues(
+              true,
+              Arrays.asList(
+                  new Field("a.a", DataType.INTEGER),
+                  new Field("a.b", DataType.DOUBLE),
+                  new Field("a.c", DataType.BOOLEAN),
+                  new Field("&mark0", DataType.BOOLEAN)),
+              Arrays.asList(
+                  Arrays.asList(3, 3.0, true, true),
+                  Arrays.asList(4, 4.0, false, true),
+                  Arrays.asList(5, 5.0, true, false),
+                  Arrays.asList(6, 6.0, false, false),
+                  Arrays.asList(7, 7.0, true, false)));
 
-    RowStream stream = getExecutor().executeBinaryOperator(markJoin, tableA, tableB);
-    assertStreamEqual(stream, target);
+      RowStream stream = getExecutor().executeBinaryOperator(markJoin, tableA, tableB);
+      assertStreamEqual(stream, target);
     }
 
     {
-    tableA.reset();
-    tableB.reset();
+      tableA.reset();
+      tableB.reset();
 
-    MarkJoin markJoin =
-        new MarkJoin(
-            EmptySource.EMPTY_SOURCE,
-            EmptySource.EMPTY_SOURCE,
-            new PathFilter("a.b", Op.E, "b.b"),
-            "&mark0",
-            false,
-            JoinAlgType.HashJoin);
+      MarkJoin markJoin =
+          new MarkJoin(
+              EmptySource.EMPTY_SOURCE,
+              EmptySource.EMPTY_SOURCE,
+              new PathFilter("a.b", Op.E, "b.b"),
+              "&mark0",
+              false,
+              JoinAlgType.HashJoin);
 
-    Table target =
-        generateTableFromValues(
-            true,
-            Arrays.asList(
-                new Field("a.a", DataType.INTEGER),
-                new Field("a.b", DataType.DOUBLE),
-                new Field("a.c", DataType.BOOLEAN),
-                new Field("&mark0", DataType.BOOLEAN)),
-            Arrays.asList(
-                Arrays.asList(3, 3.0, true, true),
-                Arrays.asList(4, 4.0, false, true),
-                Arrays.asList(5, 5.0, true, true),
-                Arrays.asList(6, 6.0, false, false),
-                Arrays.asList(7, 7.0, true, false)));
+      Table target =
+          generateTableFromValues(
+              true,
+              Arrays.asList(
+                  new Field("a.a", DataType.INTEGER),
+                  new Field("a.b", DataType.DOUBLE),
+                  new Field("a.c", DataType.BOOLEAN),
+                  new Field("&mark0", DataType.BOOLEAN)),
+              Arrays.asList(
+                  Arrays.asList(3, 3.0, true, true),
+                  Arrays.asList(4, 4.0, false, true),
+                  Arrays.asList(5, 5.0, true, true),
+                  Arrays.asList(6, 6.0, false, false),
+                  Arrays.asList(7, 7.0, true, false)));
 
-    RowStream stream = getExecutor().executeBinaryOperator(markJoin, tableA, tableB);
-    assertStreamEqual(stream, target);
+      RowStream stream = getExecutor().executeBinaryOperator(markJoin, tableA, tableB);
+      assertStreamEqual(stream, target);
     }
 
     {
-    tableA.reset();
-    tableB.reset();
+      tableA.reset();
+      tableB.reset();
 
-    MarkJoin markJoin =
-        new MarkJoin(
-            EmptySource.EMPTY_SOURCE,
-            EmptySource.EMPTY_SOURCE,
-            new PathFilter("a.b", Op.E, "b.b"),
-            "&mark0",
-            true,
-            JoinAlgType.HashJoin);
+      MarkJoin markJoin =
+          new MarkJoin(
+              EmptySource.EMPTY_SOURCE,
+              EmptySource.EMPTY_SOURCE,
+              new PathFilter("a.b", Op.E, "b.b"),
+              "&mark0",
+              true,
+              JoinAlgType.HashJoin);
 
-    Table target =
-        generateTableFromValues(
-            true,
-            Arrays.asList(
-                new Field("a.a", DataType.INTEGER),
-                new Field("a.b", DataType.DOUBLE),
-                new Field("a.c", DataType.BOOLEAN),
-                new Field("&mark0", DataType.BOOLEAN)),
-            Arrays.asList(
-                Arrays.asList(3, 3.0, true, false),
-                Arrays.asList(4, 4.0, false, false),
-                Arrays.asList(5, 5.0, true, false),
-                Arrays.asList(6, 6.0, false, true),
-                Arrays.asList(7, 7.0, true, true)));
+      Table target =
+          generateTableFromValues(
+              true,
+              Arrays.asList(
+                  new Field("a.a", DataType.INTEGER),
+                  new Field("a.b", DataType.DOUBLE),
+                  new Field("a.c", DataType.BOOLEAN),
+                  new Field("&mark0", DataType.BOOLEAN)),
+              Arrays.asList(
+                  Arrays.asList(3, 3.0, true, false),
+                  Arrays.asList(4, 4.0, false, false),
+                  Arrays.asList(5, 5.0, true, false),
+                  Arrays.asList(6, 6.0, false, true),
+                  Arrays.asList(7, 7.0, true, true)));
 
-    RowStream stream = getExecutor().executeBinaryOperator(markJoin, tableA, tableB);
-    assertStreamEqual(stream, target);
+      RowStream stream = getExecutor().executeBinaryOperator(markJoin, tableA, tableB);
+      assertStreamEqual(stream, target);
     }
-}
+  }
 
-// for debug
-private Table transformToTable(RowStream stream) throws PhysicalException {
+  // for debug
+  private Table transformToTable(RowStream stream) throws PhysicalException {
     if (stream instanceof Table) {
-    return (Table) stream;
+      return (Table) stream;
     }
     Header header = stream.getHeader();
     List<Row> rows = new ArrayList<>();
     while (stream.hasNext()) {
-    rows.add(stream.next());
+      rows.add(stream.next());
     }
     stream.close();
     return new Table(header, rows);
-}
+  }
 
-@Test
-public void testProjectWithPattern() throws PhysicalException {
+  @Test
+  public void testProjectWithPattern() throws PhysicalException {
     Table table = generateTableForUnaryOperator(true);
     Project project =
         new Project(EmptySource.EMPTY_SOURCE, Collections.singletonList("a.a.*"), null);
@@ -1426,94 +1426,94 @@ public void testProjectWithPattern() throws PhysicalException {
 
     int index = 0;
     while (stream.hasNext()) {
-    Row targetRow = stream.next();
-    Row row = table.getRow(index);
-    assertEquals(row.getKey(), targetRow.getKey());
-    assertEquals(row.getValue(0), targetRow.getValue(0));
-    assertEquals(row.getValue(2), targetRow.getValue(1));
-    index++;
+      Row targetRow = stream.next();
+      Row row = table.getRow(index);
+      assertEquals(row.getKey(), targetRow.getKey());
+      assertEquals(row.getValue(0), targetRow.getValue(0));
+      assertEquals(row.getValue(2), targetRow.getValue(1));
+      index++;
     }
     assertEquals(table.getRowSize(), index);
-}
+  }
 
-@Test
-public void testReorder() throws PhysicalException {
+  @Test
+  public void testReorder() throws PhysicalException {
     Table table = generateTableForUnaryOperator(true);
 
     // without wildcast
     {
-    table.reset();
-    Reorder reorder =
-        new Reorder(EmptySource.EMPTY_SOURCE, Arrays.asList("a.a.b", "a.a.c", "a.b.c"));
-    RowStream stream = getExecutor().executeUnaryOperator(reorder, table);
-    Header targetHeader = stream.getHeader();
-    assertTrue(targetHeader.hasKey());
-    assertEquals(3, targetHeader.getFields().size());
-    assertEquals("a.a.b", targetHeader.getFields().get(0).getFullName());
-    assertEquals(DataType.INTEGER, targetHeader.getFields().get(0).getType());
-    assertEquals("a.a.c", targetHeader.getFields().get(1).getFullName());
-    assertEquals(DataType.INTEGER, targetHeader.getFields().get(1).getType());
-    assertEquals("a.b.c", targetHeader.getFields().get(2).getFullName());
-    assertEquals(DataType.INTEGER, targetHeader.getFields().get(2).getType());
+      table.reset();
+      Reorder reorder =
+          new Reorder(EmptySource.EMPTY_SOURCE, Arrays.asList("a.a.b", "a.a.c", "a.b.c"));
+      RowStream stream = getExecutor().executeUnaryOperator(reorder, table);
+      Header targetHeader = stream.getHeader();
+      assertTrue(targetHeader.hasKey());
+      assertEquals(3, targetHeader.getFields().size());
+      assertEquals("a.a.b", targetHeader.getFields().get(0).getFullName());
+      assertEquals(DataType.INTEGER, targetHeader.getFields().get(0).getType());
+      assertEquals("a.a.c", targetHeader.getFields().get(1).getFullName());
+      assertEquals(DataType.INTEGER, targetHeader.getFields().get(1).getType());
+      assertEquals("a.b.c", targetHeader.getFields().get(2).getFullName());
+      assertEquals(DataType.INTEGER, targetHeader.getFields().get(2).getType());
 
-    int index = 0;
-    while (stream.hasNext()) {
+      int index = 0;
+      while (stream.hasNext()) {
         Row targetRow = stream.next();
         assertEquals(index, targetRow.getKey());
         assertEquals(index, targetRow.getValue(0));
         assertEquals(index + 2, targetRow.getValue(1));
         assertEquals(index + 1, targetRow.getValue(2));
         index++;
-    }
-    assertEquals(table.getRowSize(), index);
+      }
+      assertEquals(table.getRowSize(), index);
     }
 
     // with wildcast 1
     {
-    table.reset();
-    Reorder reorder = new Reorder(EmptySource.EMPTY_SOURCE, Arrays.asList("a.a.*", "a.b.c"));
-    RowStream stream = getExecutor().executeUnaryOperator(reorder, table);
-    Header targetHeader = stream.getHeader();
-    assertTrue(targetHeader.hasKey());
-    assertEquals(3, targetHeader.getFields().size());
-    assertEquals("a.a.b", targetHeader.getFields().get(0).getFullName());
-    assertEquals(DataType.INTEGER, targetHeader.getFields().get(0).getType());
-    assertEquals("a.a.c", targetHeader.getFields().get(1).getFullName());
-    assertEquals(DataType.INTEGER, targetHeader.getFields().get(1).getType());
-    assertEquals("a.b.c", targetHeader.getFields().get(2).getFullName());
-    assertEquals(DataType.INTEGER, targetHeader.getFields().get(2).getType());
+      table.reset();
+      Reorder reorder = new Reorder(EmptySource.EMPTY_SOURCE, Arrays.asList("a.a.*", "a.b.c"));
+      RowStream stream = getExecutor().executeUnaryOperator(reorder, table);
+      Header targetHeader = stream.getHeader();
+      assertTrue(targetHeader.hasKey());
+      assertEquals(3, targetHeader.getFields().size());
+      assertEquals("a.a.b", targetHeader.getFields().get(0).getFullName());
+      assertEquals(DataType.INTEGER, targetHeader.getFields().get(0).getType());
+      assertEquals("a.a.c", targetHeader.getFields().get(1).getFullName());
+      assertEquals(DataType.INTEGER, targetHeader.getFields().get(1).getType());
+      assertEquals("a.b.c", targetHeader.getFields().get(2).getFullName());
+      assertEquals(DataType.INTEGER, targetHeader.getFields().get(2).getType());
 
-    int index = 0;
-    while (stream.hasNext()) {
+      int index = 0;
+      while (stream.hasNext()) {
         Row targetRow = stream.next();
         assertEquals(index, targetRow.getKey());
         assertEquals(index, targetRow.getValue(0));
         assertEquals(index + 2, targetRow.getValue(1));
         assertEquals(index + 1, targetRow.getValue(2));
         index++;
-    }
-    assertEquals(table.getRowSize(), index);
+      }
+      assertEquals(table.getRowSize(), index);
     }
 
     // with wildcast 2
     {
-    table.reset();
-    Reorder reorder = new Reorder(EmptySource.EMPTY_SOURCE, Arrays.asList("a.*", "a.b.c"));
-    RowStream stream = getExecutor().executeUnaryOperator(reorder, table);
-    Header targetHeader = stream.getHeader();
-    assertTrue(targetHeader.hasKey());
-    assertEquals(4, targetHeader.getFields().size());
-    assertEquals("a.a.b", targetHeader.getFields().get(0).getFullName());
-    assertEquals(DataType.INTEGER, targetHeader.getFields().get(0).getType());
-    assertEquals("a.a.c", targetHeader.getFields().get(1).getFullName());
-    assertEquals(DataType.INTEGER, targetHeader.getFields().get(1).getType());
-    assertEquals("a.b.c", targetHeader.getFields().get(2).getFullName());
-    assertEquals(DataType.INTEGER, targetHeader.getFields().get(2).getType());
-    assertEquals("a.b.c", targetHeader.getFields().get(3).getFullName());
-    assertEquals(DataType.INTEGER, targetHeader.getFields().get(3).getType());
+      table.reset();
+      Reorder reorder = new Reorder(EmptySource.EMPTY_SOURCE, Arrays.asList("a.*", "a.b.c"));
+      RowStream stream = getExecutor().executeUnaryOperator(reorder, table);
+      Header targetHeader = stream.getHeader();
+      assertTrue(targetHeader.hasKey());
+      assertEquals(4, targetHeader.getFields().size());
+      assertEquals("a.a.b", targetHeader.getFields().get(0).getFullName());
+      assertEquals(DataType.INTEGER, targetHeader.getFields().get(0).getType());
+      assertEquals("a.a.c", targetHeader.getFields().get(1).getFullName());
+      assertEquals(DataType.INTEGER, targetHeader.getFields().get(1).getType());
+      assertEquals("a.b.c", targetHeader.getFields().get(2).getFullName());
+      assertEquals(DataType.INTEGER, targetHeader.getFields().get(2).getType());
+      assertEquals("a.b.c", targetHeader.getFields().get(3).getFullName());
+      assertEquals(DataType.INTEGER, targetHeader.getFields().get(3).getType());
 
-    int index = 0;
-    while (stream.hasNext()) {
+      int index = 0;
+      while (stream.hasNext()) {
         Row targetRow = stream.next();
         assertEquals(index, targetRow.getKey());
         assertEquals(index, targetRow.getValue(0));
@@ -1521,13 +1521,13 @@ public void testReorder() throws PhysicalException {
         assertEquals(index + 1, targetRow.getValue(2));
         assertEquals(index + 1, targetRow.getValue(3));
         index++;
+      }
+      assertEquals(table.getRowSize(), index);
     }
-    assertEquals(table.getRowSize(), index);
-    }
-}
+  }
 
-@Test
-public void testProjectWithoutPattern() throws PhysicalException {
+  @Test
+  public void testProjectWithoutPattern() throws PhysicalException {
     Table table = generateTableForUnaryOperator(true);
     Project project =
         new Project(EmptySource.EMPTY_SOURCE, Collections.singletonList("a.a.b"), null);
@@ -1541,17 +1541,17 @@ public void testProjectWithoutPattern() throws PhysicalException {
 
     int index = 0;
     while (stream.hasNext()) {
-    Row targetRow = stream.next();
-    Row row = table.getRow(index);
-    assertEquals(row.getKey(), targetRow.getKey());
-    assertEquals(row.getValue(0), targetRow.getValue(0));
-    index++;
+      Row targetRow = stream.next();
+      Row row = table.getRow(index);
+      assertEquals(row.getKey(), targetRow.getKey());
+      assertEquals(row.getValue(0), targetRow.getValue(0));
+      index++;
     }
     assertEquals(table.getRowSize(), index);
-}
+  }
 
-@Test
-public void testProjectWithMixedPattern() throws PhysicalException {
+  @Test
+  public void testProjectWithMixedPattern() throws PhysicalException {
     Table table = generateTableForUnaryOperator(true);
     Project project = new Project(EmptySource.EMPTY_SOURCE, Arrays.asList("a.*.c", "a.a.b"), null);
     RowStream stream = getExecutor().executeUnaryOperator(project, table);
@@ -1560,24 +1560,24 @@ public void testProjectWithMixedPattern() throws PhysicalException {
     assertTrue(targetHeader.hasKey());
     assertEquals(3, targetHeader.getFields().size());
     for (Field field : table.getHeader().getFields()) {
-    assertTrue(targetHeader.getFields().contains(field));
+      assertTrue(targetHeader.getFields().contains(field));
     }
 
     int index = 0;
     while (stream.hasNext()) {
-    Row targetRow = stream.next();
-    Row row = table.getRow(index);
-    assertEquals(row.getKey(), targetRow.getKey());
-    for (int i = 0; i < 3; i++) {
+      Row targetRow = stream.next();
+      Row row = table.getRow(index);
+      assertEquals(row.getKey(), targetRow.getKey());
+      for (int i = 0; i < 3; i++) {
         assertEquals(row.getValue(i), targetRow.getValue(i));
-    }
-    index++;
+      }
+      index++;
     }
     assertEquals(table.getRowSize(), index);
-}
+  }
 
-@Test
-public void testSelectWithTimeFilter() throws PhysicalException {
+  @Test
+  public void testSelectWithTimeFilter() throws PhysicalException {
     Table table = generateTableForUnaryOperator(true);
     Filter filter = new KeyFilter(Op.GE, 5);
     Select select = new Select(EmptySource.EMPTY_SOURCE, filter, null);
@@ -1587,14 +1587,14 @@ public void testSelectWithTimeFilter() throws PhysicalException {
 
     int index = 5;
     while (stream.hasNext()) {
-    assertEquals(table.getRow(index), stream.next());
-    index++;
+      assertEquals(table.getRow(index), stream.next());
+      index++;
     }
     assertEquals(table.getRowSize(), index);
-}
+  }
 
-@Test
-public void testSelectWithValueFilter() throws PhysicalException {
+  @Test
+  public void testSelectWithValueFilter() throws PhysicalException {
     Table table = generateTableForUnaryOperator(true);
     Filter filter = new ValueFilter("a.a.b", Op.NE, new Value(3));
     Select select = new Select(EmptySource.EMPTY_SOURCE, filter, null);
@@ -1604,17 +1604,17 @@ public void testSelectWithValueFilter() throws PhysicalException {
 
     int index = 0;
     while (stream.hasNext()) {
-    assertEquals(table.getRow(index), stream.next());
-    index++;
-    if (index == 3) {
+      assertEquals(table.getRow(index), stream.next());
+      index++;
+      if (index == 3) {
         index++;
-    }
+      }
     }
     assertEquals(table.getRowSize(), index);
-}
+  }
 
-@Test
-public void testSelectWithCompoundFilter() throws PhysicalException {
+  @Test
+  public void testSelectWithCompoundFilter() throws PhysicalException {
     Table table = generateTableForUnaryOperator(true);
     Filter filter =
         new AndFilter(
@@ -1626,17 +1626,17 @@ public void testSelectWithCompoundFilter() throws PhysicalException {
 
     int index = 0;
     while (stream.hasNext()) {
-    assertEquals(table.getRow(index), stream.next());
-    index++;
-    if (index == 3) {
+      assertEquals(table.getRow(index), stream.next());
+      index++;
+      if (index == 3) {
         index++;
-    }
+      }
     }
     assertEquals(6, index);
-}
+  }
 
-@Test
-public void testSortByTimeAsc() throws PhysicalException {
+  @Test
+  public void testSortByTimeAsc() throws PhysicalException {
     Table table = generateTableForUnaryOperator(true);
     Sort sort =
         new Sort(
@@ -1645,16 +1645,16 @@ public void testSortByTimeAsc() throws PhysicalException {
     assertEquals(table.getHeader(), stream.getHeader());
     int index = 0;
     while (stream.hasNext()) {
-    Row targetRow = stream.next();
-    Row row = table.getRow(index);
-    assertEquals(row, targetRow);
-    index++;
+      Row targetRow = stream.next();
+      Row row = table.getRow(index);
+      assertEquals(row, targetRow);
+      index++;
     }
     assertEquals(table.getRowSize(), index);
-}
+  }
 
-@Test
-public void testSortByTimeDesc() throws PhysicalException {
+  @Test
+  public void testSortByTimeDesc() throws PhysicalException {
     Table table = generateTableForUnaryOperator(true);
     Table copyTable = generateTableForUnaryOperator(true);
     Sort sort =
@@ -1664,57 +1664,57 @@ public void testSortByTimeDesc() throws PhysicalException {
     assertEquals(table.getHeader(), stream.getHeader());
     int index = table.getRowSize();
     while (stream.hasNext()) {
-    index--;
-    Row targetRow = stream.next();
-    Row row = table.getRow(index);
-    assertEquals(row, targetRow);
+      index--;
+      Row targetRow = stream.next();
+      Row row = table.getRow(index);
+      assertEquals(row, targetRow);
     }
     assertEquals(0, index);
-}
+  }
 
-@Test
-public void testLimit() throws PhysicalException {
+  @Test
+  public void testLimit() throws PhysicalException {
     Table table = generateTableForUnaryOperator(true);
     Limit limit = new Limit(EmptySource.EMPTY_SOURCE, 5, 2);
     RowStream stream = getExecutor().executeUnaryOperator(limit, table);
     assertEquals(table.getHeader(), stream.getHeader());
     int index = 2;
     while (stream.hasNext()) {
-    Row targetRow = stream.next();
-    Row row = table.getRow(index);
-    assertEquals(row, targetRow);
-    index++;
+      Row targetRow = stream.next();
+      Row row = table.getRow(index);
+      assertEquals(row, targetRow);
+      index++;
     }
     assertEquals(7, index);
-}
+  }
 
-@Test
-public void testLimitWithOutOfRangeA() throws PhysicalException {
+  @Test
+  public void testLimitWithOutOfRangeA() throws PhysicalException {
     Table table = generateTableForUnaryOperator(true);
     Limit limit = new Limit(EmptySource.EMPTY_SOURCE, 100, 2);
     RowStream stream = getExecutor().executeUnaryOperator(limit, table);
     assertEquals(table.getHeader(), stream.getHeader());
     int index = 2;
     while (stream.hasNext()) {
-    Row targetRow = stream.next();
-    Row row = table.getRow(index);
-    assertEquals(row, targetRow);
-    index++;
+      Row targetRow = stream.next();
+      Row row = table.getRow(index);
+      assertEquals(row, targetRow);
+      index++;
     }
     assertEquals(table.getRowSize(), index);
-}
+  }
 
-@Test
-public void testLimitWithOutOfRangeB() throws PhysicalException {
+  @Test
+  public void testLimitWithOutOfRangeB() throws PhysicalException {
     Table table = generateTableForUnaryOperator(true);
     Limit limit = new Limit(EmptySource.EMPTY_SOURCE, 100, 200);
     RowStream stream = getExecutor().executeUnaryOperator(limit, table);
     assertEquals(table.getHeader(), stream.getHeader());
     assertFalse(stream.hasNext());
-}
+  }
 
-@Test
-public void testDownsample() throws PhysicalException {
+  @Test
+  public void testDownsample() throws PhysicalException {
     Table table = generateTableForUnaryOperator(true);
 
     FunctionParams params = new FunctionParams(Collections.singletonList("a.a.b"));
@@ -1736,21 +1736,21 @@ public void testDownsample() throws PhysicalException {
 
     int index = 0;
     while (stream.hasNext()) {
-    Row targetRow = stream.next();
-    int sum = 0;
-    int cnt = 0;
-    while (cnt < 3 && index + cnt < table.getRowSize()) {
+      Row targetRow = stream.next();
+      int sum = 0;
+      int cnt = 0;
+      while (cnt < 3 && index + cnt < table.getRowSize()) {
         sum += (int) table.getRow(index + cnt).getValue("a.a.b");
         cnt++;
-    }
-    assertEquals(sum * 1.0 / cnt, (double) targetRow.getValue(0), 0.01);
-    index += cnt;
+      }
+      assertEquals(sum * 1.0 / cnt, (double) targetRow.getValue(0), 0.01);
+      index += cnt;
     }
     assertEquals(table.getRowSize(), index);
-}
+  }
 
-@Test(expected = InvalidOperatorParameterException.class)
-public void testDownsampleWithoutTimestamp() throws PhysicalException {
+  @Test(expected = InvalidOperatorParameterException.class)
+  public void testDownsampleWithoutTimestamp() throws PhysicalException {
     Table table = generateTableForUnaryOperator(false);
 
     FunctionParams params = new FunctionParams(Collections.singletonList("a.a.b"));
@@ -1764,10 +1764,10 @@ public void testDownsampleWithoutTimestamp() throws PhysicalException {
             new KeyRange(0, 11));
     getExecutor().executeUnaryOperator(downsample, table);
     fail();
-}
+  }
 
-@Test
-public void testMappingTransform() throws PhysicalException {
+  @Test
+  public void testMappingTransform() throws PhysicalException {
     Table table = generateTableForUnaryOperator(false);
 
     FunctionParams params = new FunctionParams(Collections.singletonList("a.a.b"));
@@ -1794,10 +1794,10 @@ public void testMappingTransform() throws PhysicalException {
     assertEquals("a.a.b", targetRow.getAsValue("path").getBinaryVAsString());
     assertEquals("9", targetRow.getAsValue("value").getBinaryVAsString());
     assertFalse(stream.hasNext());
-}
+  }
 
-@Test
-public void testSetTransform() throws PhysicalException {
+  @Test
+  public void testSetTransform() throws PhysicalException {
     Table table = generateTableForUnaryOperator(false);
 
     FunctionParams params = new FunctionParams(Collections.singletonList("a.a.b"));
@@ -1820,11 +1820,11 @@ public void testSetTransform() throws PhysicalException {
     int sum = 0;
     int cnt = 0;
     while (cnt < table.getRowSize()) {
-    sum += (int) table.getRow(cnt).getValue("a.a.b");
-    cnt++;
+      sum += (int) table.getRow(cnt).getValue("a.a.b");
+      cnt++;
     }
     assertEquals(sum * 1.0 / cnt, (double) targetRow.getValue(0), 0.01);
 
     assertFalse(stream.hasNext());
-}
+  }
 }

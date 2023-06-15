@@ -27,23 +27,23 @@ import org.slf4j.LoggerFactory;
 
 public class InsertGenerator extends AbstractGenerator {
 
-private static final Logger logger = LoggerFactory.getLogger(InsertGenerator.class);
-private static final InsertGenerator instance = new InsertGenerator();
-private static final IMetaManager metaManager = DefaultMetaManager.getInstance();
-private final IPolicy policy =
-    PolicyManager.getInstance()
-        .getPolicy(ConfigDescriptor.getInstance().getConfig().getPolicyClassName());
+  private static final Logger logger = LoggerFactory.getLogger(InsertGenerator.class);
+  private static final InsertGenerator instance = new InsertGenerator();
+  private static final IMetaManager metaManager = DefaultMetaManager.getInstance();
+  private final IPolicy policy =
+      PolicyManager.getInstance()
+          .getPolicy(ConfigDescriptor.getInstance().getConfig().getPolicyClassName());
 
-private InsertGenerator() {
+  private InsertGenerator() {
     this.type = GeneratorType.Insert;
-}
+  }
 
-public static InsertGenerator getInstance() {
+  public static InsertGenerator getInstance() {
     return instance;
-}
+  }
 
-@Override
-protected Operator generateRoot(Statement statement) {
+  @Override
+  protected Operator generateRoot(Statement statement) {
     InsertStatement insertStatement = (InsertStatement) statement;
 
     policy.notify(insertStatement);
@@ -58,22 +58,22 @@ protected Operator generateRoot(Statement statement) {
     Map<ColumnsRange, List<FragmentMeta>> fragments =
         metaManager.getFragmentMapByColumnsIntervalAndKeyInterval(tsInterval, keyInterval);
     if (fragments.isEmpty()) {
-    // on startup
-    policy.setNeedReAllocate(false);
-    if (metaManager.hasWritableStorageEngines()) {
+      // on startup
+      policy.setNeedReAllocate(false);
+      if (metaManager.hasWritableStorageEngines()) {
         Pair<List<FragmentMeta>, List<StorageUnitMeta>> fragmentsAndStorageUnits =
             policy.generateInitialFragmentsAndStorageUnits(insertStatement);
         metaManager.createInitialFragmentsAndStorageUnits(
             fragmentsAndStorageUnits.v, fragmentsAndStorageUnits.k);
-    }
-    fragments = metaManager.getFragmentMapByColumnsRange(tsInterval);
+      }
+      fragments = metaManager.getFragmentMapByColumnsRange(tsInterval);
     } else if (policy.isNeedReAllocate()) {
-    // on scale-out or any events requiring reallocation
-    logger.debug("Trig ReAllocate!");
-    Pair<List<FragmentMeta>, List<StorageUnitMeta>> fragmentsAndStorageUnits =
-        policy.generateFragmentsAndStorageUnits(insertStatement);
-    metaManager.createFragmentsAndStorageUnits(
-        fragmentsAndStorageUnits.v, fragmentsAndStorageUnits.k);
+      // on scale-out or any events requiring reallocation
+      logger.debug("Trig ReAllocate!");
+      Pair<List<FragmentMeta>, List<StorageUnitMeta>> fragmentsAndStorageUnits =
+          policy.generateFragmentsAndStorageUnits(insertStatement);
+      metaManager.createFragmentsAndStorageUnits(
+          fragmentsAndStorageUnits.v, fragmentsAndStorageUnits.k);
     }
 
     RawData rawData = insertStatement.getRawData();
@@ -82,18 +82,18 @@ protected Operator generateRoot(Statement statement) {
         (k, v) ->
             v.forEach(
                 fragmentMeta -> {
-                DataView section = getDataSection(fragmentMeta, rawData);
-                if (section != null) {
+                  DataView section = getDataSection(fragmentMeta, rawData);
+                  if (section != null) {
                     insertList.add(new Insert(new FragmentSource(fragmentMeta), section));
-                }
+                  }
                 }));
 
     List<Source> sources = new ArrayList<>();
     insertList.forEach(operator -> sources.add(new OperatorSource(operator)));
     return new CombineNonQuery(sources);
-}
+  }
 
-private DataView getDataSection(FragmentMeta meta, RawData rawData) {
+  private DataView getDataSection(FragmentMeta meta, RawData rawData) {
     KeyInterval keyInterval = meta.getKeyInterval();
     ColumnsRange tsInterval = meta.getColumnsRange();
     List<Long> insertTimes = rawData.getKeys();
@@ -102,7 +102,7 @@ private DataView getDataSection(FragmentMeta meta, RawData rawData) {
     // time overlap doesn't exist.
     if (keyInterval.getStartKey() > insertTimes.get(insertTimes.size() - 1)
         || keyInterval.getEndKey() <= insertTimes.get(0)) {
-    return null;
+      return null;
     }
 
     // path overlap doesn't exist.
@@ -110,7 +110,7 @@ private DataView getDataSection(FragmentMeta meta, RawData rawData) {
         && tsInterval.getStartColumn().compareTo(paths.get(paths.size() - 1)) > 0) return null;
     if (tsInterval.getEndColumn() != null
         && tsInterval.getEndColumn().compareTo(paths.get(0)) <= 0) {
-    return null;
+      return null;
     }
 
     int startKeyIndex = 0;
@@ -121,20 +121,20 @@ private DataView getDataSection(FragmentMeta meta, RawData rawData) {
 
     int startPathIndex = 0;
     if (tsInterval.getStartColumn() != null) {
-    while (tsInterval.getStartColumn().compareTo(paths.get(startPathIndex)) > 0) startPathIndex++;
+      while (tsInterval.getStartColumn().compareTo(paths.get(startPathIndex)) > 0) startPathIndex++;
     }
     int endPathIndex = startPathIndex;
     if (tsInterval.getEndColumn() != null) {
-    while (endPathIndex < paths.size()
-        && tsInterval.getEndColumn().compareTo(paths.get(endPathIndex)) > 0) endPathIndex++;
+      while (endPathIndex < paths.size()
+          && tsInterval.getEndColumn().compareTo(paths.get(endPathIndex)) > 0) endPathIndex++;
     } else {
-    endPathIndex = paths.size();
+      endPathIndex = paths.size();
     }
 
     if (rawData.isRowData()) {
-    return new RowDataView(rawData, startPathIndex, endPathIndex, startKeyIndex, endKeyIndex);
+      return new RowDataView(rawData, startPathIndex, endPathIndex, startKeyIndex, endKeyIndex);
     } else {
-    return new ColumnDataView(rawData, startPathIndex, endPathIndex, startKeyIndex, endKeyIndex);
+      return new ColumnDataView(rawData, startPathIndex, endPathIndex, startKeyIndex, endKeyIndex);
     }
-}
+  }
 }

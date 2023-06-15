@@ -8,57 +8,57 @@ import java.util.stream.Collectors;
 
 public class FilterTransformer {
 
-public static String toString(Filter filter) {
+  public static String toString(Filter filter) {
     if (filter == null) {
-    return "";
+      return "";
     }
     switch (filter.getType()) {
-    case And:
+      case And:
         return toString((AndFilter) filter);
-    case Or:
+      case Or:
         return toString((OrFilter) filter);
-    case Not:
+      case Not:
         return toString((NotFilter) filter);
-    case Value:
+      case Value:
         return toString((ValueFilter) filter);
-    case Key:
+      case Key:
         return toString((KeyFilter) filter);
-    default:
+      default:
         return "";
     }
-}
+  }
 
-private static String toString(AndFilter filter) {
+  private static String toString(AndFilter filter) {
     return filter.getChildren().stream()
         .map(FilterTransformer::toString)
         .collect(Collectors.joining(" and ", "(", ")"));
-}
+  }
 
-private static String toString(OrFilter filter) {
+  private static String toString(OrFilter filter) {
     return filter.getChildren().stream()
         .map(FilterTransformer::toString)
         .collect(Collectors.joining(" or ", "(", ")"));
-}
+  }
 
-private static String toString(NotFilter filter) {
+  private static String toString(NotFilter filter) {
     return "not " + filter.toString();
-}
+  }
 
-private static String toString(KeyFilter filter) {
+  private static String toString(KeyFilter filter) {
     return "time " + Op.op2Str(filter.getOp()) + " " + filter.getValue();
-}
+  }
 
-private static String toString(ValueFilter filter) {
+  private static String toString(ValueFilter filter) {
     if (filter.getOp().equals(Op.LIKE)) {
-    return filter.getPath().replace(IGINX_SEPARATOR, PARQUET_SEPARATOR)
-        + " regexp '"
-        + filter.getValue().getBinaryVAsString()
-        + "'";
+      return filter.getPath().replace(IGINX_SEPARATOR, PARQUET_SEPARATOR)
+          + " regexp '"
+          + filter.getValue().getBinaryVAsString()
+          + "'";
     }
     return filter.getPath().replace(IGINX_SEPARATOR, PARQUET_SEPARATOR)
         + " "
         + Op.op2Str(filter.getOp())
         + " "
         + filter.getValue().getValue();
-}
+  }
 }

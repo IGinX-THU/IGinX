@@ -20,31 +20,31 @@ package cn.edu.tsinghua.iginx.engine.shared.function;
 
 public class FunctionCall {
 
-private final Function function;
+  private final Function function;
 
-private final FunctionParams params;
+  private final FunctionParams params;
 
-public FunctionCall(Function function, FunctionParams params) {
+  public FunctionCall(Function function, FunctionParams params) {
     this.function = function;
     this.params = params;
-}
+  }
 
-public Function getFunction() {
+  public Function getFunction() {
     return function;
-}
+  }
 
-public FunctionParams getParams() {
+  public FunctionParams getParams() {
     return params;
-}
+  }
 
-public FunctionCall copy() {
+  public FunctionCall copy() {
     return new FunctionCall(function, params.copy());
-}
+  }
 
-@Override
-public String toString() {
+  @Override
+  public String toString() {
     return String.format(
         "{Name: %s, FuncType: %s, MappingType: %s}",
         function.getIdentifier(), function.getFunctionType(), function.getMappingType());
-}
+  }
 }

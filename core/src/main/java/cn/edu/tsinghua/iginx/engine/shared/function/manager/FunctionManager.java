@@ -40,34 +40,34 @@ import pemja.core.PythonInterpreterConfig;
 
 public class FunctionManager {
 
-private static final int INTERPRETER_NUM = 5;
+  private static final int INTERPRETER_NUM = 5;
 
-private final Map<String, Function> functions;
+  private final Map<String, Function> functions;
 
-private static final IMetaManager metaManager = DefaultMetaManager.getInstance();
+  private static final IMetaManager metaManager = DefaultMetaManager.getInstance();
 
-private static final Config config = ConfigDescriptor.getInstance().getConfig();
+  private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
-private static final Logger logger = LoggerFactory.getLogger(FunctionManager.class);
+  private static final Logger logger = LoggerFactory.getLogger(FunctionManager.class);
 
-private static final String PY_SUFFIX = ".py";
+  private static final String PY_SUFFIX = ".py";
 
-private static final String PATH =
-    String.join(File.separator, System.getProperty("user.dir"), "python_scripts");
+  private static final String PATH =
+      String.join(File.separator, System.getProperty("user.dir"), "python_scripts");
 
-private FunctionManager() {
+  private FunctionManager() {
     this.functions = new HashMap<>();
     this.initSystemFunctions();
     if (config.isNeedInitBasicUDFFunctions()) {
-    this.initBasicUDFFunctions();
+      this.initBasicUDFFunctions();
     }
-}
+  }
 
-public static FunctionManager getInstance() {
+  public static FunctionManager getInstance() {
     return FunctionManagerHolder.INSTANCE;
-}
+  }
 
-private void initSystemFunctions() {
+  private void initSystemFunctions() {
     registerFunction(Avg.getInstance());
     registerFunction(Count.getInstance());
     registerFunction(FirstValue.getInstance());
@@ -79,86 +79,86 @@ private void initSystemFunctions() {
     registerFunction(Sum.getInstance());
     registerFunction(ArithmeticExpr.getInstance());
     registerFunction(Ratio.getInstance());
-}
+  }
 
-private void initBasicUDFFunctions() {
+  private void initBasicUDFFunctions() {
     List<TransformTaskMeta> metaList = new ArrayList<>();
     List<String> udfList = config.getUdfList();
     for (String udf : udfList) {
-    String[] udfInfo = udf.split(",");
-    if (udfInfo.length != 4) {
+      String[] udfInfo = udf.split(",");
+      if (udfInfo.length != 4) {
         logger.error("udf info len must be 4.");
         continue;
-    }
-    UDFType udfType;
-    switch (udfInfo[0].toLowerCase().trim()) {
+      }
+      UDFType udfType;
+      switch (udfInfo[0].toLowerCase().trim()) {
         case "udaf":
-        udfType = UDFType.UDAF;
-        break;
+          udfType = UDFType.UDAF;
+          break;
         case "udtf":
-        udfType = UDFType.UDTF;
-        break;
+          udfType = UDFType.UDTF;
+          break;
         case "udsf":
-        udfType = UDFType.UDSF;
-        break;
+          udfType = UDFType.UDSF;
+          break;
         case "transform":
-        udfType = UDFType.TRANSFORM;
-        break;
+          udfType = UDFType.TRANSFORM;
+          break;
         default:
-        logger.error("unknown udf type: " + udfInfo[0]);
-        continue;
-    }
-    metaList.add(
-        new TransformTaskMeta(
-            udfInfo[1],
-            udfInfo[2],
-            udfInfo[3],
-            new HashSet<>(Collections.singletonList(config.getIp())),
-            udfType));
+          logger.error("unknown udf type: " + udfInfo[0]);
+          continue;
+      }
+      metaList.add(
+          new TransformTaskMeta(
+              udfInfo[1],
+              udfInfo[2],
+              udfInfo[3],
+              new HashSet<>(Collections.singletonList(config.getIp())),
+              udfType));
     }
 
     for (TransformTaskMeta meta : metaList) {
-    TransformTaskMeta taskMeta = metaManager.getTransformTask(meta.getName());
-    if (taskMeta == null) {
+      TransformTaskMeta taskMeta = metaManager.getTransformTask(meta.getName());
+      if (taskMeta == null) {
         metaManager.addTransformTask(meta);
-    } else if (!taskMeta.getIpSet().contains(config.getIp())) {
+      } else if (!taskMeta.getIpSet().contains(config.getIp())) {
         meta.addIp(config.getIp());
         metaManager.updateTransformTask(meta);
-    }
+      }
 
-    if (!meta.getType().equals(UDFType.TRANSFORM)) {
+      if (!meta.getType().equals(UDFType.TRANSFORM)) {
         loadUDF(meta.getName());
+      }
     }
-    }
-}
+  }
 
-public void registerFunction(Function function) {
+  public void registerFunction(Function function) {
     if (functions.containsKey(function.getIdentifier())) {
-    return;
+      return;
     }
     functions.put(function.getIdentifier(), function);
-}
+  }
 
-public Collection<Function> getFunctions() {
+  public Collection<Function> getFunctions() {
     return functions.values();
-}
+  }
 
-public Function getFunction(String identifier) {
+  public Function getFunction(String identifier) {
     if (functions.containsKey(identifier)) {
-    return functions.get(identifier);
+      return functions.get(identifier);
     }
     return loadUDF(identifier);
-}
+  }
 
-private Function loadUDF(String identifier) {
+  private Function loadUDF(String identifier) {
     // load the udf & put it in cache.
     TransformTaskMeta taskMeta = metaManager.getTransformTask(identifier);
     if (taskMeta == null) {
-    throw new IllegalArgumentException(String.format("UDF %s not registered", identifier));
+      throw new IllegalArgumentException(String.format("UDF %s not registered", identifier));
     }
     if (!taskMeta.getIpSet().contains(config.getIp())) {
-    throw new IllegalArgumentException(
-        String.format("UDF %s not registered in node ip=%s", identifier, config.getIp()));
+      throw new IllegalArgumentException(
+          String.format("UDF %s not registered in node ip=%s", identifier, config.getIp()));
     }
 
     String pythonCMD = config.getPythonCMD();
@@ -172,41 +172,41 @@ private Function loadUDF(String identifier) {
     // init the python udf
     BlockingQueue<PythonInterpreter> queue = new LinkedBlockingQueue<>();
     for (int i = 0; i < INTERPRETER_NUM; i++) {
-    PythonInterpreter interpreter = new PythonInterpreter(config);
-    interpreter.exec(String.format("import %s", moduleName));
-    interpreter.exec(String.format("t = %s.%s()", moduleName, className));
-    queue.add(interpreter);
+      PythonInterpreter interpreter = new PythonInterpreter(config);
+      interpreter.exec(String.format("import %s", moduleName));
+      interpreter.exec(String.format("t = %s.%s()", moduleName, className));
+      queue.add(interpreter);
     }
 
     if (taskMeta.getType().equals(UDFType.UDAF)) {
-    PyUDAF udaf = new PyUDAF(queue, identifier);
-    functions.put(identifier, udaf);
-    return udaf;
+      PyUDAF udaf = new PyUDAF(queue, identifier);
+      functions.put(identifier, udaf);
+      return udaf;
     } else if (taskMeta.getType().equals(UDFType.UDTF)) {
-    PyUDTF udtf = new PyUDTF(queue, identifier);
-    functions.put(identifier, udtf);
-    return udtf;
+      PyUDTF udtf = new PyUDTF(queue, identifier);
+      functions.put(identifier, udtf);
+      return udtf;
     } else if (taskMeta.getType().equals(UDFType.UDSF)) {
-    PyUDSF udsf = new PyUDSF(queue, identifier);
-    functions.put(identifier, udsf);
-    return udsf;
+      PyUDSF udsf = new PyUDSF(queue, identifier);
+      functions.put(identifier, udsf);
+      return udsf;
     } else {
-    while (!queue.isEmpty()) {
+      while (!queue.isEmpty()) {
         queue.poll().close();
+      }
+      throw new IllegalArgumentException(
+          String.format("UDF %s registered in type %s", identifier, taskMeta.getType()));
     }
-    throw new IllegalArgumentException(
-        String.format("UDF %s registered in type %s", identifier, taskMeta.getType()));
-    }
-}
+  }
 
-public boolean hasFunction(String identifier) {
+  public boolean hasFunction(String identifier) {
     return functions.containsKey(identifier);
-}
+  }
 
-private static class FunctionManagerHolder {
+  private static class FunctionManagerHolder {
 
     private static final FunctionManager INSTANCE = new FunctionManager();
 
     private FunctionManagerHolder() {}
-}
+  }
 }

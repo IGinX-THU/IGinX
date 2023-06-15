@@ -4,51 +4,51 @@ import java.util.List;
 
 public class TaskFromYAML {
 
-private String taskType;
-private String dataFlowType;
-private long timeout;
-private String pyTaskName;
-private List<String> sqlList;
+  private String taskType;
+  private String dataFlowType;
+  private long timeout;
+  private String pyTaskName;
+  private List<String> sqlList;
 
-public TaskFromYAML() {}
+  public TaskFromYAML() {}
 
-public String getTaskType() {
+  public String getTaskType() {
     return taskType;
-}
+  }
 
-public void setTaskType(String taskType) {
+  public void setTaskType(String taskType) {
     this.taskType = taskType;
-}
+  }
 
-public String getDataFlowType() {
+  public String getDataFlowType() {
     return dataFlowType;
-}
+  }
 
-public void setDataFlowType(String dataFlowType) {
+  public void setDataFlowType(String dataFlowType) {
     this.dataFlowType = dataFlowType;
-}
+  }
 
-public long getTimeout() {
+  public long getTimeout() {
     return timeout;
-}
+  }
 
-public void setTimeout(long timeout) {
+  public void setTimeout(long timeout) {
     this.timeout = timeout;
-}
+  }
 
-public String getPyTaskName() {
+  public String getPyTaskName() {
     return pyTaskName;
-}
+  }
 
-public void setPyTaskName(String pyTaskName) {
+  public void setPyTaskName(String pyTaskName) {
     this.pyTaskName = pyTaskName;
-}
+  }
 
-public List<String> getSqlList() {
+  public List<String> getSqlList() {
     return sqlList;
-}
+  }
 
-public void setSqlList(List<String> sqlList) {
+  public void setSqlList(List<String> sqlList) {
     this.sqlList = sqlList;
-}
+  }
 }

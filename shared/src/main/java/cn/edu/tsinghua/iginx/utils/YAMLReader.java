@@ -10,21 +10,21 @@ import org.yaml.snakeyaml.constructor.Constructor;
 
 public class YAMLReader {
 
-private final String path;
+  private final String path;
 
-private final Yaml yaml;
+  private final Yaml yaml;
 
-private final File file;
+  private final File file;
 
-private static final Logger logger = LoggerFactory.getLogger(YAMLReader.class);
+  private static final Logger logger = LoggerFactory.getLogger(YAMLReader.class);
 
-public YAMLReader(String path) throws FileNotFoundException {
+  public YAMLReader(String path) throws FileNotFoundException {
     this.path = path;
     this.yaml = new Yaml(new Constructor(JobFromYAML.class));
     this.file = new File(path);
-}
+  }
 
-public String normalize(String conf) {
+  public String normalize(String conf) {
     String taskType = "(?i)taskType";
     String dataFlowType = "(?i)dataFlowType";
     String timeout = "(?i)timeout";
@@ -46,30 +46,30 @@ public String normalize(String conf) {
     conf = conf.replaceAll(exportNameList, "exportNameList");
 
     return conf;
-}
+  }
 
-public String convertToString(String filePath) {
+  public String convertToString(String filePath) {
     String conf = null;
     InputStream in = null;
     try {
-    in = new BufferedInputStream(new FileInputStream(filePath));
-    conf = IOUtils.toString(in, String.valueOf(StandardCharsets.UTF_8));
-    conf = normalize(conf);
+      in = new BufferedInputStream(new FileInputStream(filePath));
+      conf = IOUtils.toString(in, String.valueOf(StandardCharsets.UTF_8));
+      conf = normalize(conf);
     } catch (IOException e) {
-    logger.error(String.format("Fail to find file, path=%s", filePath));
+      logger.error(String.format("Fail to find file, path=%s", filePath));
     } finally {
-    try {
+      try {
         in.close();
-    } catch (IOException e) {
+      } catch (IOException e) {
         logger.error("Fail to close the file, path=%s", filePath);
-    }
+      }
     }
     return conf;
-}
+  }
 
-public JobFromYAML getJobFromYAML() {
+  public JobFromYAML getJobFromYAML() {
     String yamlFile = convertToString(path);
     InputStream result = new ByteArrayInputStream(yamlFile.getBytes(StandardCharsets.UTF_8));
     return yaml.load(result);
-}
+  }
 }

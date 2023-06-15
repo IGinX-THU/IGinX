@@ -15,20 +15,20 @@ import org.slf4j.LoggerFactory;
 
 public class ParquetServer implements Runnable {
 
-private static final Logger logger = LoggerFactory.getLogger(ParquetServer.class);
+  private static final Logger logger = LoggerFactory.getLogger(ParquetServer.class);
 
-private static final Config config = ConfigDescriptor.getInstance().getConfig();
+  private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
-private final int port;
+  private final int port;
 
-private final Executor executor;
+  private final Executor executor;
 
-public ParquetServer(int port, Executor executor) {
+  public ParquetServer(int port, Executor executor) {
     this.port = port;
     this.executor = executor;
-}
+  }
 
-private void startServer() throws TTransportException {
+  private void startServer() throws TTransportException {
     TProcessor processor =
         new ParquetService.Processor<ParquetService.Iface>(new ParquetWorker(executor));
     TServerSocket serverTransport = new TServerSocket(port);
@@ -41,14 +41,14 @@ private void startServer() throws TTransportException {
     TServer server = new TThreadPoolServer(args);
     logger.info("parquet service starts successfully!");
     server.serve();
-}
+  }
 
-@Override
-public void run() {
+  @Override
+  public void run() {
     try {
-    startServer();
+      startServer();
     } catch (TTransportException e) {
-    logger.error("parquet service starts failure.");
+      logger.error("parquet service starts failure.");
     }
-}
+  }
 }

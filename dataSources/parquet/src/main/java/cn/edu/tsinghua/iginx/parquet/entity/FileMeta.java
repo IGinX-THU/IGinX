@@ -16,68 +16,68 @@ import java.util.Map;
 
 public class FileMeta {
 
-private String extraPath;
+  private String extraPath;
 
-private String dataPath;
+  private String dataPath;
 
-private final long startKey;
+  private final long startKey;
 
-private final long endKey;
+  private final long endKey;
 
-private final Map<String, DataType> pathMap;
+  private final Map<String, DataType> pathMap;
 
-private final Map<String, List<KeyRange>> deleteRanges;
+  private final Map<String, List<KeyRange>> deleteRanges;
 
-public FileMeta(long startKey, long endKey, Map<String, DataType> pathMap) {
+  public FileMeta(long startKey, long endKey, Map<String, DataType> pathMap) {
     this.startKey = startKey;
     this.endKey = endKey;
     this.pathMap = pathMap;
     this.deleteRanges = new HashMap<>();
-}
+  }
 
-public FileMeta(
-    String extraPath,
-    String dataPath,
-    long startKey,
-    long endKey,
-    Map<String, DataType> pathMap,
-    Map<String, List<KeyRange>> deleteRanges) {
+  public FileMeta(
+      String extraPath,
+      String dataPath,
+      long startKey,
+      long endKey,
+      Map<String, DataType> pathMap,
+      Map<String, List<KeyRange>> deleteRanges) {
     this.extraPath = extraPath;
     this.dataPath = dataPath;
     this.startKey = startKey;
     this.endKey = endKey;
     this.pathMap = pathMap;
     this.deleteRanges = deleteRanges;
-}
+  }
 
-public void deleteData(List<String> paths, List<KeyRange> keyRanges) throws IOException {
+  public void deleteData(List<String> paths, List<KeyRange> keyRanges) throws IOException {
     if (keyRanges == null || keyRanges.size() == 0) {
-    for (String path : paths) {
+      for (String path : paths) {
         pathMap.remove(path);
         deleteRanges.remove(path);
-    }
+      }
     } else {
-    for (String path : paths) {
+      for (String path : paths) {
         if (deleteRanges.containsKey(path)) {
-        deleteRanges.get(path).addAll(keyRanges);
+          deleteRanges.get(path).addAll(keyRanges);
         } else {
-        deleteRanges.put(path, new ArrayList<>(keyRanges));
+          deleteRanges.put(path, new ArrayList<>(keyRanges));
         }
-    }
+      }
     }
 
     StringBuilder builder = new StringBuilder();
     builder.append(CMD_DELETE).append(" ");
     for (String path : paths) {
-    builder.append(path).append(",");
+      builder.append(path).append(",");
     }
     builder.deleteCharAt(builder.length() - 1);
     builder.append("#");
     if (keyRanges != null) {
-    for (KeyRange keyRange : keyRanges) {
+      for (KeyRange keyRange : keyRanges) {
         builder.append(keyRange.getBeginKey()).append(",").append(keyRange.getEndKey()).append(",");
-    }
-    builder.deleteCharAt(builder.length() - 1);
+      }
+      builder.deleteCharAt(builder.length() - 1);
     }
     builder.append("\n");
 
@@ -89,37 +89,37 @@ public void deleteData(List<String> paths, List<KeyRange> keyRanges) throws IOEx
     osw.flush();
     osw.close();
     fos.close();
-}
+  }
 
-public void setExtraPath(String extraPath) {
+  public void setExtraPath(String extraPath) {
     this.extraPath = extraPath;
-}
+  }
 
-public void setDataPath(String dataPath) {
+  public void setDataPath(String dataPath) {
     this.dataPath = dataPath;
-}
+  }
 
-public String getExtraPath() {
+  public String getExtraPath() {
     return extraPath;
-}
+  }
 
-public String getDataPath() {
+  public String getDataPath() {
     return dataPath;
-}
+  }
 
-public long getStartKey() {
+  public long getStartKey() {
     return startKey;
-}
+  }
 
-public long getEndKey() {
+  public long getEndKey() {
     return endKey;
-}
+  }
 
-public Map<String, DataType> getPathMap() {
+  public Map<String, DataType> getPathMap() {
     return pathMap;
-}
+  }
 
-public Map<String, List<KeyRange>> getDeleteRanges() {
+  public Map<String, List<KeyRange>> getDeleteRanges() {
     return deleteRanges;
-}
+  }
 }

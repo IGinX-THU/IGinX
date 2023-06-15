@@ -9,8 +9,8 @@ import org.junit.Test;
 
 public class BatchTest {
 
-@Test
-public void testBatch() throws SQLException {
+  @Test
+  public void testBatch() throws SQLException {
     List<String> sqlList =
         new ArrayList<>(
             Arrays.asList(
@@ -24,30 +24,30 @@ public void testBatch() throws SQLException {
     IginXStatement statement = new IginXStatement(null, null);
 
     for (String sql : sqlList) {
-    statement.addBatch(sql);
+      statement.addBatch(sql);
     }
     Assert.assertEquals(sqlList, statement.getBatchSQLList());
 
     statement.clearBatch();
     Assert.assertEquals(Collections.emptyList(), statement.getBatchSQLList());
     statement.close();
-}
+  }
 
-/* Batch query is not supported. */
+  /* Batch query is not supported. */
 
-@Test(expected = SQLException.class)
-public void testBatchWithSelect() throws SQLException {
+  @Test(expected = SQLException.class)
+  public void testBatchWithSelect() throws SQLException {
     IginXStatement statement = new IginXStatement(null, null);
     String sql = "SELECT a FROM test.batch WHERE a < 10;";
     statement.addBatch(sql);
     statement.close();
-}
+  }
 
-@Test(expected = SQLException.class)
-public void testBatchWithShow() throws SQLException {
+  @Test(expected = SQLException.class)
+  public void testBatchWithShow() throws SQLException {
     IginXStatement statement = new IginXStatement(null, null);
     String sql = "SHOW REPLICATION;";
     statement.addBatch(sql);
     statement.close();
-}
+  }
 }

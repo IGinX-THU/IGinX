@@ -8,72 +8,72 @@ import java.util.Objects;
 
 public class JoinCondition {
 
-private final JoinType joinType;
-private final Filter filter;
-private final List<String> joinColumns;
-private final String markColumn;
-private final boolean isAntiJoin;
+  private final JoinType joinType;
+  private final Filter filter;
+  private final List<String> joinColumns;
+  private final String markColumn;
+  private final boolean isAntiJoin;
 
-public JoinCondition() {
+  public JoinCondition() {
     this(JoinType.CrossJoin, null, Collections.emptyList());
-}
+  }
 
-public JoinCondition(JoinType joinType, Filter filter) {
+  public JoinCondition(JoinType joinType, Filter filter) {
     this(joinType, filter, Collections.emptyList());
-}
+  }
 
-public JoinCondition(JoinType joinType, Filter filter, List<String> joinColumns) {
+  public JoinCondition(JoinType joinType, Filter filter, List<String> joinColumns) {
     this.joinType = joinType;
     this.filter = filter;
     this.joinColumns = joinColumns;
     this.markColumn = null;
     this.isAntiJoin = false;
-}
+  }
 
-public JoinCondition(JoinType joinType, Filter filter, String markColumn, boolean isAntiJoin) {
+  public JoinCondition(JoinType joinType, Filter filter, String markColumn, boolean isAntiJoin) {
     this.joinType = joinType;
     this.filter = filter;
     this.joinColumns = new ArrayList<>();
     this.markColumn = markColumn;
     this.isAntiJoin = isAntiJoin;
-}
+  }
 
-public JoinType getJoinType() {
+  public JoinType getJoinType() {
     return joinType;
-}
+  }
 
-public Filter getFilter() {
+  public Filter getFilter() {
     return filter;
-}
+  }
 
-public List<String> getJoinColumns() {
+  public List<String> getJoinColumns() {
     return joinColumns;
-}
+  }
 
-public String getMarkColumn() {
+  public String getMarkColumn() {
     return markColumn;
-}
+  }
 
-public boolean isAntiJoin() {
+  public boolean isAntiJoin() {
     return isAntiJoin;
-}
+  }
 
-@Override
-public boolean equals(Object o) {
+  @Override
+  public boolean equals(Object o) {
     if (this == o) {
-    return true;
+      return true;
     }
     if (o == null || getClass() != o.getClass()) {
-    return false;
+      return false;
     }
     JoinCondition joinCondition = (JoinCondition) o;
     return joinType == joinCondition.joinType
         && Objects.equals(filter, joinCondition.filter)
         && Objects.equals(joinColumns, joinCondition.joinColumns);
-}
+  }
 
-@Override
-public int hashCode() {
+  @Override
+  public int hashCode() {
     return Objects.hash(joinType, filter, joinColumns);
-}
+  }
 }

@@ -22,42 +22,42 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 
 public class DataTypeInferenceUtils {
 
-private static boolean isBoolean(String s) {
+  private static boolean isBoolean(String s) {
     return s.equalsIgnoreCase("true") || s.equalsIgnoreCase("false");
-}
+  }
 
-private static boolean isNumber(String s) {
+  private static boolean isNumber(String s) {
     if (s == null || s.equalsIgnoreCase("nan")) {
-    return false;
+      return false;
     }
     try {
-    Double.parseDouble(s);
+      Double.parseDouble(s);
     } catch (NumberFormatException e) {
-    return false;
+      return false;
     }
     return true;
-}
+  }
 
-private static boolean isLong(String s) {
+  private static boolean isLong(String s) {
     return Long.parseLong(s) > (2 << 24);
-}
+  }
 
-public static DataType getInferredDataType(String s) {
+  public static DataType getInferredDataType(String s) {
     if (isBoolean(s)) {
-    return DataType.BOOLEAN;
+      return DataType.BOOLEAN;
     } else if (isNumber(s)) {
-    if (!s.contains(".")) {
+      if (!s.contains(".")) {
         if (isLong(s)) {
-        return DataType.LONG;
+          return DataType.LONG;
         }
         return DataType.INTEGER;
-    } else {
+      } else {
         return DataType.DOUBLE;
-    }
+      }
     } else if (s.equalsIgnoreCase("null")) {
-    return null;
+      return null;
     } else {
-    return DataType.BINARY;
+      return DataType.BINARY;
     }
-}
+  }
 }

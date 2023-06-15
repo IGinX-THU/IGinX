@@ -28,115 +28,115 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ResultMapper {
-@SuppressWarnings("unused")
-private static final Logger logger = LoggerFactory.getLogger(ResultMapper.class);
+  @SuppressWarnings("unused")
+  private static final Logger logger = LoggerFactory.getLogger(ResultMapper.class);
 
-<T> T toPOJO(final IginXRecord record, final Class<T> clazz) {
+  <T> T toPOJO(final IginXRecord record, final Class<T> clazz) {
     Arguments.checkNotNull(record, "record");
     Arguments.checkNotNull(clazz, "clazz");
 
     String measurement = clazz.getName();
     Measurement measurementAnno = clazz.getAnnotation(Measurement.class);
     if (measurementAnno != null) {
-    measurement = measurementAnno.name();
+      measurement = measurementAnno.name();
     }
 
     try {
-    T pojo = clazz.newInstance();
+      T pojo = clazz.newInstance();
 
-    Class<?> currentClazz = clazz;
+      Class<?> currentClazz = clazz;
 
-    while (currentClazz != null) {
+      while (currentClazz != null) {
 
         java.lang.reflect.Field[] fields = currentClazz.getDeclaredFields();
         for (java.lang.reflect.Field field : fields) {
-        Field anno = field.getAnnotation(Field.class);
-        String fieldName = field.getName();
+          Field anno = field.getAnnotation(Field.class);
+          String fieldName = field.getName();
 
-        if (anno != null && anno.timestamp()) {
+          if (anno != null && anno.timestamp()) {
             setFieldValue(pojo, field, record.getKey());
             continue;
-        }
+          }
 
-        if (anno != null && !anno.name().isEmpty()) {
+          if (anno != null && !anno.name().isEmpty()) {
             fieldName = anno.name();
-        }
+          }
 
-        if (!measurement.isEmpty()) {
+          if (!measurement.isEmpty()) {
             fieldName = measurement + "." + fieldName;
-        }
+          }
 
-        Map<String, Object> recordValues = record.getValues();
-        if (recordValues.containsKey(fieldName)) {
+          Map<String, Object> recordValues = record.getValues();
+          if (recordValues.containsKey(fieldName)) {
             Object value = recordValues.get(fieldName);
             setFieldValue(pojo, field, value);
-        }
+          }
         }
 
         currentClazz = currentClazz.getSuperclass();
-    }
+      }
 
-    return pojo;
+      return pojo;
     } catch (Exception e) {
-    throw new IginXException(e);
+      throw new IginXException(e);
     }
-}
+  }
 
-private void setFieldValue(
-    final Object object, final java.lang.reflect.Field field, final Object value) {
+  private void setFieldValue(
+      final Object object, final java.lang.reflect.Field field, final Object value) {
     if (field == null || value == null) {
-    return;
+      return;
     }
     String msg =
         "Class '%s' field '%s' was defined with a different field type and caused a ClassCastException. "
             + "The correct type is '%s' (current field value: '%s').";
 
     try {
-    if (!field.isAccessible()) {
+      if (!field.isAccessible()) {
         field.setAccessible(true);
-    }
-    Class<?> fieldType = field.getType();
+      }
+      Class<?> fieldType = field.getType();
 
-    if (fieldType.equals(value.getClass())) {
+      if (fieldType.equals(value.getClass())) {
         field.set(object, value);
         return;
-    }
-    if (double.class.isAssignableFrom(fieldType)) {
+      }
+      if (double.class.isAssignableFrom(fieldType)) {
         field.setDouble(object, (double) value);
         return;
-    }
-    if (float.class.isAssignableFrom(fieldType)) {
+      }
+      if (float.class.isAssignableFrom(fieldType)) {
         field.setFloat(object, (float) value);
         return;
-    }
-    if (long.class.isAssignableFrom(fieldType)) {
+      }
+      if (long.class.isAssignableFrom(fieldType)) {
         field.setLong(object, (long) value);
         return;
-    }
-    if (int.class.isAssignableFrom(fieldType)) {
+      }
+      if (int.class.isAssignableFrom(fieldType)) {
         field.setInt(object, (int) value);
         return;
-    }
-    if (boolean.class.isAssignableFrom(fieldType)) {
+      }
+      if (boolean.class.isAssignableFrom(fieldType)) {
         field.setBoolean(object, Boolean.parseBoolean(String.valueOf(value)));
         return;
-    }
-    if (byte[].class.isAssignableFrom(fieldType)) {
+      }
+      if (byte[].class.isAssignableFrom(fieldType)) {
         field.set(object, value);
-    }
-    if (String.class.isAssignableFrom(fieldType)) {
+      }
+      if (String.class.isAssignableFrom(fieldType)) {
         field.set(object, new String((byte[]) value));
         return;
-    }
-    field.set(object, value);
+      }
+      field.set(object, value);
     } catch (ClassCastException | IllegalAccessException e) {
-    throw new IginXException(
-        String.format(
-            msg,
-            object.getClass().getName(),
-            field.getName(),
-            value.getClass().getName(),
-            value));
+      throw new IginXException(
+          String.format(
+              msg,
+              object.getClass().getName(),
+              field.getName(),
+              value.getClass().getName(),
+              value));
     }
-}
+  }
 }

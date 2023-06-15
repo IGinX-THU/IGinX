@@ -13,39 +13,39 @@ import pemja.core.PythonInterpreterConfig;
 
 public class PemjaDriver {
 
-private final IMetaManager metaManager = DefaultMetaManager.getInstance();
+  private final IMetaManager metaManager = DefaultMetaManager.getInstance();
 
-private static final Config config = ConfigDescriptor.getInstance().getConfig();
+  private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
-private static final String PATH =
-    String.join(File.separator, System.getProperty("user.dir"), "python_scripts");
+  private static final String PATH =
+      String.join(File.separator, System.getProperty("user.dir"), "python_scripts");
 
-private static final String PY_SUFFIX = ".py";
+  private static final String PY_SUFFIX = ".py";
 
-private static PemjaDriver instance;
+  private static PemjaDriver instance;
 
-private PemjaDriver() {}
+  private PemjaDriver() {}
 
-public static PemjaDriver getInstance() {
+  public static PemjaDriver getInstance() {
     if (instance == null) {
-    synchronized (PemjaDriver.class) {
+      synchronized (PemjaDriver.class) {
         if (instance == null) {
-        instance = new PemjaDriver();
+          instance = new PemjaDriver();
         }
-    }
+      }
     }
     return instance;
-}
+  }
 
-public PemjaWorker createWorker(PythonTask task, Writer writer) {
+  public PemjaWorker createWorker(PythonTask task, Writer writer) {
     String identifier = task.getPyTaskName();
     TransformTaskMeta taskMeta = metaManager.getTransformTask(identifier);
     if (taskMeta == null) {
-    throw new IllegalArgumentException(String.format("UDF %s not registered", identifier));
+      throw new IllegalArgumentException(String.format("UDF %s not registered", identifier));
     }
     if (!taskMeta.getIpSet().contains(config.getIp())) {
-    throw new IllegalArgumentException(
-        String.format("UDF %s not registered in node ip=%s", identifier, config.getIp()));
+      throw new IllegalArgumentException(
+          String.format("UDF %s not registered in node ip=%s", identifier, config.getIp()));
     }
 
     String pythonCMD = config.getPythonCMD();
@@ -62,5 +62,5 @@ public PemjaWorker createWorker(PythonTask task, Writer writer) {
     interpreter.exec(String.format("t = %s.%s()", moduleName, className));
 
     return new PemjaWorker(identifier, interpreter, writer);
-}
+  }
 }
