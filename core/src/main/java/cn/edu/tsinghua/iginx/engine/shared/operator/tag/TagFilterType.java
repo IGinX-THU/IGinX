@@ -19,15 +19,15 @@
 package cn.edu.tsinghua.iginx.engine.shared.operator.tag;
 
 public enum TagFilterType {
-  Base,
+Base,
 
-  And,
+And,
 
-  Or,
+Or,
 
-  BasePrecise,
+BasePrecise,
 
-  Precise,
+Precise,
 
-  WithoutTag,
+WithoutTag,
 }

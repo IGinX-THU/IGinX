@@ -4,8 +4,8 @@ import org.junit.Test;
 
 public class PreparedStatementTest {
 
-  @Test
-  public void testSetParams() {
+@Test
+public void testSetParams() {
     String preSQL =
         "SELECT a, b, c, d FROM root.sg WHERE TIME > ? AND TIME < ? AND a > ? OR b < ? AND c = ? AND d = ?;";
     IginXPreparedStatement ps = new IginXPreparedStatement(null, null, preSQL);
@@ -21,10 +21,10 @@ public class PreparedStatementTest {
     String completeSQL = ps.getCompleteSql();
     Assert.assertEquals(expectedSQL, completeSQL);
     ps.close();
-  }
+}
 
-  @Test
-  public void testSetParamsWithSkipDoubleQuotes() {
+@Test
+public void testSetParamsWithSkipDoubleQuotes() {
     String preSQL =
         "SELECT a, b FROM root.sg WHERE TIME > 10 AND TIME < 25 AND a > ? AND b = \"asda?asd\";";
     IginXPreparedStatement ps = new IginXPreparedStatement(null, null, preSQL);
@@ -35,10 +35,10 @@ public class PreparedStatementTest {
     String completeSQL = ps.getCompleteSql();
     Assert.assertEquals(expectedSQL, completeSQL);
     ps.close();
-  }
+}
 
-  @Test
-  public void testSetParamsWithSkipSingleQuote() {
+@Test
+public void testSetParamsWithSkipSingleQuote() {
     String preSQL =
         "SELECT a, b FROM root.sg WHERE TIME > 10 AND < 25 AND a > ? AND b = \'asda?asd\';";
     IginXPreparedStatement ps = new IginXPreparedStatement(null, null, preSQL);
@@ -49,5 +49,5 @@ public class PreparedStatementTest {
     String completeSQL = ps.getCompleteSql();
     Assert.assertEquals(expectedSQL, completeSQL);
     ps.close();
-  }
+}
 }

@@ -24,50 +24,50 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 
 public class TaskExecuteResult {
 
-  private int affectRows;
+private int affectRows;
 
-  private RowStream rowStream;
+private RowStream rowStream;
 
-  private PhysicalException exception;
+private PhysicalException exception;
 
-  public TaskExecuteResult() {}
+public TaskExecuteResult() {}
 
-  public TaskExecuteResult(RowStream rowStream) {
+public TaskExecuteResult(RowStream rowStream) {
     this(rowStream, null);
     if (rowStream instanceof Table) {
-      Table table = (Table) rowStream;
-      affectRows = table.getRowSize();
+    Table table = (Table) rowStream;
+    affectRows = table.getRowSize();
     }
-  }
+}
 
-  public TaskExecuteResult(PhysicalException exception) {
+public TaskExecuteResult(PhysicalException exception) {
     this(null, exception);
-  }
+}
 
-  public TaskExecuteResult(RowStream rowStream, PhysicalException exception) {
+public TaskExecuteResult(RowStream rowStream, PhysicalException exception) {
     this.rowStream = rowStream;
     this.exception = exception;
-  }
+}
 
-  public RowStream getRowStream() {
+public RowStream getRowStream() {
     RowStream rowStream = this.rowStream;
     this.rowStream = null;
     return rowStream;
-  }
+}
 
-  public void setRowStream(RowStream rowStream) {
+public void setRowStream(RowStream rowStream) {
     this.rowStream = rowStream;
-  }
+}
 
-  public PhysicalException getException() {
+public PhysicalException getException() {
     return exception;
-  }
+}
 
-  public void setException(PhysicalException exception) {
+public void setException(PhysicalException exception) {
     this.exception = exception;
-  }
+}
 
-  public int getAffectRows() {
+public int getAffectRows() {
     return affectRows;
-  }
+}
 }

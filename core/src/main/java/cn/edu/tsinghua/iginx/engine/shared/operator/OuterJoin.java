@@ -10,28 +10,28 @@ import java.util.List;
 
 public class OuterJoin extends AbstractBinaryOperator {
 
-  private final String prefixA;
+private final String prefixA;
 
-  private final String prefixB;
+private final String prefixB;
 
-  private final OuterJoinType outerJoinType;
+private final OuterJoinType outerJoinType;
 
-  private final Filter filter;
+private final Filter filter;
 
-  private final List<String> joinColumns;
+private final List<String> joinColumns;
 
-  private final JoinAlgType joinAlgType;
+private final JoinAlgType joinAlgType;
 
-  private final boolean isNaturalJoin;
+private final boolean isNaturalJoin;
 
-  public OuterJoin(
-      Source sourceA,
-      Source sourceB,
-      String prefixA,
-      String prefixB,
-      OuterJoinType outerJoinType,
-      Filter filter,
-      List<String> joinColumns) {
+public OuterJoin(
+    Source sourceA,
+    Source sourceB,
+    String prefixA,
+    String prefixB,
+    OuterJoinType outerJoinType,
+    Filter filter,
+    List<String> joinColumns) {
     this(
         sourceA,
         sourceB,
@@ -42,62 +42,62 @@ public class OuterJoin extends AbstractBinaryOperator {
         joinColumns,
         false,
         JoinAlgType.HashJoin);
-  }
+}
 
-  public OuterJoin(
-      Source sourceA,
-      Source sourceB,
-      String prefixA,
-      String prefixB,
-      OuterJoinType outerJoinType,
-      Filter filter,
-      List<String> joinColumns,
-      boolean isNaturalJoin,
-      JoinAlgType joinAlgType) {
+public OuterJoin(
+    Source sourceA,
+    Source sourceB,
+    String prefixA,
+    String prefixB,
+    OuterJoinType outerJoinType,
+    Filter filter,
+    List<String> joinColumns,
+    boolean isNaturalJoin,
+    JoinAlgType joinAlgType) {
     super(OperatorType.OuterJoin, sourceA, sourceB);
     this.prefixA = prefixA;
     this.prefixB = prefixB;
     this.outerJoinType = outerJoinType;
     this.filter = filter;
     if (joinColumns != null) {
-      this.joinColumns = joinColumns;
+    this.joinColumns = joinColumns;
     } else {
-      this.joinColumns = new ArrayList<>();
+    this.joinColumns = new ArrayList<>();
     }
     this.joinAlgType = joinAlgType;
     this.isNaturalJoin = isNaturalJoin;
-  }
+}
 
-  public String getPrefixA() {
+public String getPrefixA() {
     return prefixA;
-  }
+}
 
-  public String getPrefixB() {
+public String getPrefixB() {
     return prefixB;
-  }
+}
 
-  public OuterJoinType getOuterJoinType() {
+public OuterJoinType getOuterJoinType() {
     return outerJoinType;
-  }
+}
 
-  public Filter getFilter() {
+public Filter getFilter() {
     return filter;
-  }
+}
 
-  public List<String> getJoinColumns() {
+public List<String> getJoinColumns() {
     return joinColumns;
-  }
+}
 
-  public JoinAlgType getJoinAlgType() {
+public JoinAlgType getJoinAlgType() {
     return joinAlgType;
-  }
+}
 
-  public boolean isNaturalJoin() {
+public boolean isNaturalJoin() {
     return isNaturalJoin;
-  }
+}
 
-  @Override
-  public Operator copy() {
+@Override
+public Operator copy() {
     return new OuterJoin(
         getSourceA().copy(),
         getSourceB().copy(),
@@ -108,25 +108,25 @@ public class OuterJoin extends AbstractBinaryOperator {
         new ArrayList<>(joinColumns),
         isNaturalJoin,
         joinAlgType);
-  }
+}
 
-  @Override
-  public String getInfo() {
+@Override
+public String getInfo() {
     StringBuilder builder = new StringBuilder();
     builder.append("PrefixA: ").append(prefixA);
     builder.append(", PrefixB: ").append(prefixB);
     builder.append(", OuterJoinType: ").append(outerJoinType);
     builder.append(", IsNatural: ").append(isNaturalJoin);
     if (filter != null) {
-      builder.append(", Filter: ").append(filter.toString());
+    builder.append(", Filter: ").append(filter.toString());
     }
     if (joinColumns != null) {
-      builder.append(", JoinColumns: ");
-      for (String col : joinColumns) {
+    builder.append(", JoinColumns: ");
+    for (String col : joinColumns) {
         builder.append(col).append(",");
-      }
-      builder.deleteCharAt(builder.length() - 1);
+    }
+    builder.deleteCharAt(builder.length() - 1);
     }
     return builder.toString();
-  }
+}
 }

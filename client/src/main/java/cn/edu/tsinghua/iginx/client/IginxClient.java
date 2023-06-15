@@ -49,50 +49,50 @@ import org.jline.terminal.TerminalBuilder;
 /** args[]: -h 127.0.0.1 -p 6888 -u root -pw root */
 public class IginxClient {
 
-  private static final String IGINX_CLI_PREFIX = "IGinX> ";
+private static final String IGINX_CLI_PREFIX = "IGinX> ";
 
-  private static final String HOST_ARGS = "h";
-  private static final String HOST_NAME = "host";
+private static final String HOST_ARGS = "h";
+private static final String HOST_NAME = "host";
 
-  private static final String PORT_ARGS = "p";
-  private static final String PORT_NAME = "port";
+private static final String PORT_ARGS = "p";
+private static final String PORT_NAME = "port";
 
-  private static final String USERNAME_ARGS = "u";
-  private static final String USERNAME_NAME = "username";
+private static final String USERNAME_ARGS = "u";
+private static final String USERNAME_NAME = "username";
 
-  private static final String PASSWORD_ARGS = "pw";
-  private static final String PASSWORD_NAME = "password";
+private static final String PASSWORD_ARGS = "pw";
+private static final String PASSWORD_NAME = "password";
 
-  private static final String EXECUTE_ARGS = "e";
-  private static final String EXECUTE_NAME = "execute";
+private static final String EXECUTE_ARGS = "e";
+private static final String EXECUTE_NAME = "execute";
 
-  private static final String HELP_ARGS = "help";
+private static final String HELP_ARGS = "help";
 
-  private static final int MAX_HELP_CONSOLE_WIDTH = 88;
+private static final int MAX_HELP_CONSOLE_WIDTH = 88;
 
-  private static final int MAX_FETCH_SIZE = 1000;
+private static final int MAX_FETCH_SIZE = 1000;
 
-  private static final String SCRIPT_HINT = "./start-cli.sh(start-cli.bat if Windows)";
+private static final String SCRIPT_HINT = "./start-cli.sh(start-cli.bat if Windows)";
 
-  private static final String QUIT_COMMAND = "quit";
-  private static final String EXIT_COMMAND = "exit";
+private static final String QUIT_COMMAND = "quit";
+private static final String EXIT_COMMAND = "exit";
 
-  static String host = "127.0.0.1";
-  static String port = "6888";
-  static String username = "root";
-  static String password = "root";
+static String host = "127.0.0.1";
+static String port = "6888";
+static String username = "root";
+static String password = "root";
 
-  static String execute = "";
+static String execute = "";
 
-  private static int MAX_GETDATA_NUM = 100;
-  private static String timestampPrecision = "";
-  private static final Set<String> legalTimeUnitSet =
-      new HashSet<>(Arrays.asList("week", "day", "hour", "min", "s", "ns", "us", "ns"));
+private static int MAX_GETDATA_NUM = 100;
+private static String timestampPrecision = "";
+private static final Set<String> legalTimeUnitSet =
+    new HashSet<>(Arrays.asList("week", "day", "hour", "min", "s", "ns", "us", "ns"));
 
-  private static CommandLine commandLine;
-  private static Session session;
+private static CommandLine commandLine;
+private static Session session;
 
-  private static Options createOptions() {
+private static Options createOptions() {
     Options options = new Options();
 
     options.addOption(HELP_ARGS, false, "Display help information(optional)");
@@ -103,185 +103,185 @@ public class IginxClient {
     options.addOption(EXECUTE_ARGS, EXECUTE_NAME, true, "Execute (optional)");
 
     return options;
-  }
+}
 
-  private static boolean parseCommandLine(Options options, String[] args, HelpFormatter hf) {
+private static boolean parseCommandLine(Options options, String[] args, HelpFormatter hf) {
     try {
-      CommandLineParser parser = new DefaultParser();
-      commandLine = parser.parse(options, args);
-      if (commandLine.hasOption(HELP_ARGS)) {
+    CommandLineParser parser = new DefaultParser();
+    commandLine = parser.parse(options, args);
+    if (commandLine.hasOption(HELP_ARGS)) {
         hf.printHelp(SCRIPT_HINT, options, true);
         return false;
-      }
+    }
     } catch (ParseException e) {
-      System.out.println(
-          "Require more params input, eg. ./start-cli.sh(start-cli.bat if Windows) "
-              + "-h xxx.xxx.xxx.xxx -p xxxx -u xxx -pw xxx.");
-      System.out.println("For more information, please check the following hint.");
-      hf.printHelp(SCRIPT_HINT, options, true);
-      return false;
+    System.out.println(
+        "Require more params input, eg. ./start-cli.sh(start-cli.bat if Windows) "
+            + "-h xxx.xxx.xxx.xxx -p xxxx -u xxx -pw xxx.");
+    System.out.println("For more information, please check the following hint.");
+    hf.printHelp(SCRIPT_HINT, options, true);
+    return false;
     }
     return true;
-  }
+}
 
-  public static void main(String[] args) {
+public static void main(String[] args) {
     Options options = createOptions();
 
     HelpFormatter hf = new HelpFormatter();
     hf.setWidth(MAX_HELP_CONSOLE_WIDTH);
 
     if (args == null || args.length == 0) {
-      System.out.println(
-          "Require more params input, eg. ./start-cli.sh(start-cli.bat if Windows) "
-              + "-h xxx.xxx.xxx.xxx -p xxxx -u xxx -p xxx.");
-      System.out.println("For more information, please check the following hint.");
-      hf.printHelp(SCRIPT_HINT, options, true);
-      return;
+    System.out.println(
+        "Require more params input, eg. ./start-cli.sh(start-cli.bat if Windows) "
+            + "-h xxx.xxx.xxx.xxx -p xxxx -u xxx -p xxx.");
+    System.out.println("For more information, please check the following hint.");
+    hf.printHelp(SCRIPT_HINT, options, true);
+    return;
     }
 
     if (!parseCommandLine(options, args, hf)) {
-      return;
+    return;
     }
     serve(args);
-  }
+}
 
-  private static String parseArg(String arg, String name, boolean isRequired, String defaultValue) {
+private static String parseArg(String arg, String name, boolean isRequired, String defaultValue) {
     String str = commandLine.getOptionValue(arg);
     if (str == null) {
-      if (isRequired && defaultValue == null) {
+    if (isRequired && defaultValue == null) {
         String msg =
             String.format(
                 "%s Required values for option '%s' not provided", IGINX_CLI_PREFIX, name);
         System.out.println(msg);
         System.out.println("Use -help for more information");
         throw new RuntimeException();
-      }
-      return defaultValue;
+    }
+    return defaultValue;
     }
     return str;
-  }
+}
 
-  private static void serve(String[] args) {
+private static void serve(String[] args) {
     try {
-      Terminal terminal = TerminalBuilder.builder().system(true).build();
+    Terminal terminal = TerminalBuilder.builder().system(true).build();
 
-      LineReader reader =
-          LineReaderBuilder.builder().terminal(terminal).completer(buildIginxCompleter()).build();
+    LineReader reader =
+        LineReaderBuilder.builder().terminal(terminal).completer(buildIginxCompleter()).build();
 
-      host = parseArg(HOST_ARGS, HOST_NAME, false, "127.0.0.1");
-      port = parseArg(PORT_ARGS, PORT_NAME, false, "6888");
-      username = parseArg(USERNAME_ARGS, USERNAME_NAME, false, "root");
-      password = parseArg(PASSWORD_ARGS, PASSWORD_NAME, false, "root");
-      execute = parseArg(EXECUTE_ARGS, EXECUTE_NAME, false, "");
+    host = parseArg(HOST_ARGS, HOST_NAME, false, "127.0.0.1");
+    port = parseArg(PORT_ARGS, PORT_NAME, false, "6888");
+    username = parseArg(USERNAME_ARGS, USERNAME_NAME, false, "root");
+    password = parseArg(PASSWORD_ARGS, PASSWORD_NAME, false, "root");
+    execute = parseArg(EXECUTE_ARGS, EXECUTE_NAME, false, "");
 
-      session = new Session(host, port, username, password);
-      session.openSession();
+    session = new Session(host, port, username, password);
+    session.openSession();
 
-      if (execute.equals("")) {
+    if (execute.equals("")) {
         echoStarting();
         displayLogo("0.6.0-SNAPSHOT");
 
         String command;
         while (true) {
-          command = reader.readLine(IGINX_CLI_PREFIX);
-          boolean continues = processCommand(command);
-          if (!continues) {
+        command = reader.readLine(IGINX_CLI_PREFIX);
+        boolean continues = processCommand(command);
+        if (!continues) {
             break;
-          }
+        }
         }
         System.out.println("Goodbye");
-      } else {
+    } else {
         processCommand(parseExecuteCommand(args));
-      }
-    } catch (UserInterruptException e) {
-      System.out.println("Goodbye");
-    } catch (RuntimeException e) {
-      System.out.println(IGINX_CLI_PREFIX + "Parse Parameter error.");
-      System.out.println(IGINX_CLI_PREFIX + "Use -help for more information");
-    } catch (Exception e) {
-      System.out.println(IGINX_CLI_PREFIX + "exit cli with error " + e.getMessage());
     }
-  }
+    } catch (UserInterruptException e) {
+    System.out.println("Goodbye");
+    } catch (RuntimeException e) {
+    System.out.println(IGINX_CLI_PREFIX + "Parse Parameter error.");
+    System.out.println(IGINX_CLI_PREFIX + "Use -help for more information");
+    } catch (Exception e) {
+    System.out.println(IGINX_CLI_PREFIX + "exit cli with error " + e.getMessage());
+    }
+}
 
-  private static boolean processCommand(String command) {
+private static boolean processCommand(String command) {
     if (command == null || command.trim().equals("")) {
-      return true;
+    return true;
     }
     String[] cmds = command.trim().split(";");
     for (String cmd : cmds) {
-      if (cmd != null && !cmd.trim().equals("")) {
+    if (cmd != null && !cmd.trim().equals("")) {
         OperationResult res = handleInputStatement(cmd);
         switch (res) {
-          case STOP:
+        case STOP:
             return false;
-          case CONTINUE:
+        case CONTINUE:
             continue;
-          default:
+        default:
             break;
         }
-      }
+    }
     }
     return true;
-  }
+}
 
-  private static OperationResult handleInputStatement(String statement) {
+private static OperationResult handleInputStatement(String statement) {
     String trimedStatement = statement.replaceAll(" +", " ").toLowerCase().trim();
 
     if (trimedStatement.equals(EXIT_COMMAND) || trimedStatement.equals(QUIT_COMMAND)) {
-      return OperationResult.STOP;
+    return OperationResult.STOP;
     }
 
     if (isQuery(statement) || isShowTimeSeries(statement)) {
-      processSqlWithStream(statement);
+    processSqlWithStream(statement);
     } else if (isSetTimeUnit(statement)) {
-      processSetTimeUnit(statement);
+    processSetTimeUnit(statement);
     } else {
-      processSql(statement);
+    processSql(statement);
     }
     return OperationResult.DO_NOTHING;
-  }
+}
 
-  private static boolean isQuery(String sql) {
+private static boolean isQuery(String sql) {
     return sql.startsWith("select");
-  }
+}
 
-  private static boolean isShowTimeSeries(String sql) {
+private static boolean isShowTimeSeries(String sql) {
     return sql.contains("show") && sql.contains("time") && sql.contains("series");
-  }
+}
 
-  private static boolean isSetTimeUnit(String sql) {
+private static boolean isSetTimeUnit(String sql) {
     return sql.startsWith("set time unit in");
-  }
+}
 
-  private static void processSetTimeUnit(String sql) {
+private static void processSetTimeUnit(String sql) {
     String[] args = sql.split(" ");
     if (args.length != 5 || !legalTimeUnitSet.contains(args[4])) {
-      System.out.println(
-          "Legal clause: set time unit in xx, " + "xx can be week, day, hour, min, s, ns, us, ns");
-      return;
+    System.out.println(
+        "Legal clause: set time unit in xx, " + "xx can be week, day, hour, min, s, ns, us, ns");
+    return;
     }
     timestampPrecision = args[4];
     System.out.printf("Current time unit: %s\n", timestampPrecision);
-  }
+}
 
-  private static boolean isSetTimeUnit() {
+private static boolean isSetTimeUnit() {
     return !timestampPrecision.equals("");
-  }
+}
 
-  private static void processSql(String sql) {
+private static void processSql(String sql) {
     try {
-      SessionExecuteSqlResult res = session.executeSql(sql);
+    SessionExecuteSqlResult res = session.executeSql(sql);
 
-      String parseErrorMsg = res.getParseErrorMsg();
-      if (parseErrorMsg != null && !parseErrorMsg.equals("")) {
+    String parseErrorMsg = res.getParseErrorMsg();
+    if (parseErrorMsg != null && !parseErrorMsg.equals("")) {
         System.out.println(res.getParseErrorMsg());
         return;
-      }
+    }
 
-      switch (res.getSqlType()) {
+    switch (res.getSqlType()) {
         case Query:
-          res.print(isSetTimeUnit(), timestampPrecision);
-          break;
+        res.print(isSetTimeUnit(), timestampPrecision);
+        break;
         case ShowColumns:
         case ShowClusterInfo:
         case ShowRegisterTask:
@@ -289,120 +289,120 @@ public class IginxClient {
         case ShowConfig:
         case CommitTransformJob:
         case ShowJobStatus:
-          res.print(false, "");
-          break;
+        res.print(false, "");
+        break;
         case GetReplicaNum:
-          System.out.println(res.getReplicaNum());
-          System.out.println("success");
-          break;
+        System.out.println(res.getReplicaNum());
+        System.out.println("success");
+        break;
         case CountPoints:
-          System.out.println(res.getPointsNum());
-          System.out.println("success");
-          break;
+        System.out.println(res.getPointsNum());
+        System.out.println("success");
+        break;
         default:
-          System.out.println("success");
-      }
-    } catch (SessionException | ExecutionException e) {
-      System.out.println(e.getMessage());
-    } catch (Exception e) {
-      System.out.println(
-          "Execute Error: encounter error(s) when executing sql statement, "
-              + "see server log for more details.");
+        System.out.println("success");
     }
-  }
+    } catch (SessionException | ExecutionException e) {
+    System.out.println(e.getMessage());
+    } catch (Exception e) {
+    System.out.println(
+        "Execute Error: encounter error(s) when executing sql statement, "
+            + "see server log for more details.");
+    }
+}
 
-  private static void processSqlWithStream(String sql) {
+private static void processSqlWithStream(String sql) {
     try {
-      QueryDataSet res = session.executeQuery(sql, MAX_FETCH_SIZE);
+    QueryDataSet res = session.executeQuery(sql, MAX_FETCH_SIZE);
 
-      System.out.println("ResultSets:");
+    System.out.println("ResultSets:");
 
-      List<List<String>> cache = cacheResult(res);
-      System.out.print(FormatUtils.formatResult(cache));
+    List<List<String>> cache = cacheResult(res);
+    System.out.print(FormatUtils.formatResult(cache));
 
-      boolean isCanceled = false;
-      int total = cache.size() - 1;
+    boolean isCanceled = false;
+    int total = cache.size() - 1;
 
-      while (res.hasMore()) {
+    while (res.hasMore()) {
         System.out.printf(
             "Reach the max_display_num = %s. Press ENTER to show more, input 'q' to quit.",
             MAX_FETCH_SIZE);
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
         try {
-          if ("".equals(br.readLine())) {
+        if ("".equals(br.readLine())) {
             cache = cacheResult(res);
             System.out.print(FormatUtils.formatResult(cache));
             total += cache.size() - 1;
-          } else {
+        } else {
             isCanceled = true;
             break;
-          }
-        } catch (IOException e) {
-          System.out.println("IO Error: " + e.getMessage());
-          isCanceled = true;
-          break;
         }
-      }
-      if (!isCanceled) {
-        System.out.print(FormatUtils.formatCount(total));
-      }
-    } catch (SessionException | ExecutionException e) {
-      System.out.println(e.getMessage());
-    } catch (Exception e) {
-      System.out.println(
-          "Execute Error: encounter error(s) when executing sql statement, "
-              + "see server log for more details.");
+        } catch (IOException e) {
+        System.out.println("IO Error: " + e.getMessage());
+        isCanceled = true;
+        break;
+        }
     }
-  }
+    if (!isCanceled) {
+        System.out.print(FormatUtils.formatCount(total));
+    }
+    } catch (SessionException | ExecutionException e) {
+    System.out.println(e.getMessage());
+    } catch (Exception e) {
+    System.out.println(
+        "Execute Error: encounter error(s) when executing sql statement, "
+            + "see server log for more details.");
+    }
+}
 
-  private static List<List<String>> cacheResult(QueryDataSet queryDataSet)
-      throws ExecutionException, SessionException {
+private static List<List<String>> cacheResult(QueryDataSet queryDataSet)
+    throws ExecutionException, SessionException {
     boolean hasKey = queryDataSet.getColumnList().get(0).equals(GlobalConstant.KEY_NAME);
     List<List<String>> cache = new ArrayList<>();
     cache.add(new ArrayList<>(queryDataSet.getColumnList()));
 
     int rowIndex = 0;
     while (queryDataSet.hasMore() && rowIndex < MAX_FETCH_SIZE) {
-      List<String> strRow = new ArrayList<>();
-      Object[] nextRow = queryDataSet.nextRow();
-      if (nextRow != null) {
+    List<String> strRow = new ArrayList<>();
+    Object[] nextRow = queryDataSet.nextRow();
+    if (nextRow != null) {
         if (hasKey && isSetTimeUnit()) {
-          strRow.add(
-              FormatUtils.formatTime(
-                  (Long) nextRow[0], FormatUtils.DEFAULT_TIME_FORMAT, timestampPrecision));
-          for (int i = 1; i < nextRow.length; i++) {
+        strRow.add(
+            FormatUtils.formatTime(
+                (Long) nextRow[0], FormatUtils.DEFAULT_TIME_FORMAT, timestampPrecision));
+        for (int i = 1; i < nextRow.length; i++) {
             strRow.add(FormatUtils.valueToString(nextRow[i]));
-          }
+        }
         } else {
-          Arrays.stream(nextRow).forEach(val -> strRow.add(FormatUtils.valueToString(val)));
+        Arrays.stream(nextRow).forEach(val -> strRow.add(FormatUtils.valueToString(val)));
         }
         cache.add(strRow);
         rowIndex++;
-      }
+    }
     }
     return cache;
-  }
+}
 
-  private static String parseExecuteCommand(String[] args) {
+private static String parseExecuteCommand(String[] args) {
     StringBuilder command = new StringBuilder();
     int index = 0;
     for (String arg : args) {
-      index++;
-      if (arg.equals("-" + EXECUTE_ARGS) || arg.equals("-" + EXECUTE_NAME)) {
+    index++;
+    if (arg.equals("-" + EXECUTE_ARGS) || arg.equals("-" + EXECUTE_NAME)) {
         break;
-      }
+    }
     }
     for (int i = index; i < args.length; i++) {
-      if (args[i].startsWith("-")) {
+    if (args[i].startsWith("-")) {
         break;
-      }
-      command.append(args[i]);
-      command.append(" ");
+    }
+    command.append(args[i]);
+    command.append(" ");
     }
     return command.substring(0, command.toString().length() - 1);
-  }
+}
 
-  private static Completer buildIginxCompleter() {
+private static Completer buildIginxCompleter() {
     List<Completer> iginxCompleters = new ArrayList<>();
 
     List<List<String>> withNullCompleters =
@@ -439,43 +439,43 @@ public class IginxClient {
 
     Completer iginxCompleter = new AggregateCompleter(iginxCompleters);
     return iginxCompleter;
-  }
+}
 
-  private static void addSingleCompleters(
-      List<Completer> iginxCompleters, List<String> completers) {
+private static void addSingleCompleters(
+    List<Completer> iginxCompleters, List<String> completers) {
     for (String keyWord : completers) {
-      iginxCompleters.add(new StringsCompleter(keyWord.toLowerCase()));
-      iginxCompleters.add(new StringsCompleter(keyWord.toUpperCase()));
+    iginxCompleters.add(new StringsCompleter(keyWord.toLowerCase()));
+    iginxCompleters.add(new StringsCompleter(keyWord.toUpperCase()));
     }
-  }
+}
 
-  private static void addArgumentCompleters(
-      List<Completer> iginxCompleters, List<List<String>> completers, boolean needNullCompleter) {
+private static void addArgumentCompleters(
+    List<Completer> iginxCompleters, List<List<String>> completers, boolean needNullCompleter) {
     for (List<String> keyWords : completers) {
-      List<Completer> upperCompleters = new ArrayList<>();
-      List<Completer> lowerCompleters = new ArrayList<>();
+    List<Completer> upperCompleters = new ArrayList<>();
+    List<Completer> lowerCompleters = new ArrayList<>();
 
-      for (String keyWord : keyWords) {
+    for (String keyWord : keyWords) {
         upperCompleters.add(new StringsCompleter(keyWord.toUpperCase()));
         lowerCompleters.add(new StringsCompleter(keyWord.toLowerCase()));
-      }
-      if (needNullCompleter) {
+    }
+    if (needNullCompleter) {
         upperCompleters.add(NullCompleter.INSTANCE);
         lowerCompleters.add(NullCompleter.INSTANCE);
-      }
-
-      iginxCompleters.add(new ArgumentCompleter(upperCompleters));
-      iginxCompleters.add(new ArgumentCompleter(lowerCompleters));
     }
-  }
 
-  public static void echoStarting() {
+    iginxCompleters.add(new ArgumentCompleter(upperCompleters));
+    iginxCompleters.add(new ArgumentCompleter(lowerCompleters));
+    }
+}
+
+public static void echoStarting() {
     System.out.println("-----------------------");
     System.out.println("Starting IGinX Client");
     System.out.println("-----------------------");
-  }
+}
 
-  public static void displayLogo(String version) {
+public static void displayLogo(String version) {
     System.out.println(
         "  _____        _        __   __\n"
             + " |_   _|      (_)       \\ \\ / /\n"
@@ -487,11 +487,11 @@ public class IginxClient {
             + "        |___/                       version "
             + version
             + "\n");
-  }
+}
 
-  enum OperationResult {
+enum OperationResult {
     STOP,
     CONTINUE,
     DO_NOTHING,
-  }
+}
 }

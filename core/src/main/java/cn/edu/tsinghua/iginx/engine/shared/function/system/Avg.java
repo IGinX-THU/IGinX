@@ -38,36 +38,36 @@ import java.util.regex.Pattern;
 
 public class Avg implements SetMappingFunction {
 
-  public static final String AVG = "avg";
+public static final String AVG = "avg";
 
-  private static final Avg INSTANCE = new Avg();
+private static final Avg INSTANCE = new Avg();
 
-  private Avg() {}
+private Avg() {}
 
-  public static Avg getInstance() {
+public static Avg getInstance() {
     return INSTANCE;
-  }
+}
 
-  @Override
-  public FunctionType getFunctionType() {
+@Override
+public FunctionType getFunctionType() {
     return FunctionType.System;
-  }
+}
 
-  @Override
-  public MappingType getMappingType() {
+@Override
+public MappingType getMappingType() {
     return MappingType.SetMapping;
-  }
+}
 
-  @Override
-  public String getIdentifier() {
+@Override
+public String getIdentifier() {
     return AVG;
-  }
+}
 
-  @Override
-  public Row transform(RowStream rows, FunctionParams params) throws Exception {
+@Override
+public Row transform(RowStream rows, FunctionParams params) throws Exception {
     List<String> pathParams = params.getPaths();
     if (pathParams == null || pathParams.size() != 1) {
-      throw new IllegalArgumentException("unexpected param type for avg.");
+    throw new IllegalArgumentException("unexpected param type for avg.");
     }
     List<Integer> groupByLevels = params.getLevels();
 
@@ -80,80 +80,80 @@ public class Avg implements SetMappingFunction {
     Map<String, Integer> groupNameIndexMap = new HashMap<>(); // 只有在存在 group by 的时候才奏效
     Map<Integer, Integer> groupOrderIndexMap = new HashMap<>();
     for (int i = 0; i < fields.size(); i++) {
-      Field field = fields.get(i);
-      if (pattern.matcher(field.getFullName()).matches()) {
+    Field field = fields.get(i);
+    if (pattern.matcher(field.getFullName()).matches()) {
         if (groupByLevels == null) {
-          String name = getIdentifier() + "(" + field.getName() + ")";
-          String fullName = getIdentifier() + "(" + field.getFullName() + ")";
-          targetFields.add(new Field(name, fullName, DataType.DOUBLE));
+        String name = getIdentifier() + "(" + field.getName() + ")";
+        String fullName = getIdentifier() + "(" + field.getFullName() + ")";
+        targetFields.add(new Field(name, fullName, DataType.DOUBLE));
         } else {
-          String targetFieldName =
-              getIdentifier()
-                  + "("
-                  + GroupByUtils.transformPath(field.getName(), groupByLevels)
-                  + ")";
-          String targetFieldFullName =
-              getIdentifier()
-                  + "("
-                  + GroupByUtils.transformPath(field.getFullName(), groupByLevels)
-                  + ")";
-          int index = groupNameIndexMap.getOrDefault(targetFieldFullName, -1);
-          if (index != -1) {
+        String targetFieldName =
+            getIdentifier()
+                + "("
+                + GroupByUtils.transformPath(field.getName(), groupByLevels)
+                + ")";
+        String targetFieldFullName =
+            getIdentifier()
+                + "("
+                + GroupByUtils.transformPath(field.getFullName(), groupByLevels)
+                + ")";
+        int index = groupNameIndexMap.getOrDefault(targetFieldFullName, -1);
+        if (index != -1) {
             groupOrderIndexMap.put(i, index);
-          } else {
+        } else {
             groupNameIndexMap.put(targetFieldFullName, targetFields.size());
             groupOrderIndexMap.put(i, targetFields.size());
             targetFields.add(new Field(targetFieldName, targetFieldFullName, DataType.DOUBLE));
-          }
+        }
         }
         indices.add(i);
-      }
+    }
     }
 
     for (Field field : targetFields) {
-      if (!DataTypeUtils.isNumber(field.getType())) {
+    if (!DataTypeUtils.isNumber(field.getType())) {
         throw new IllegalArgumentException("only number can calculate average");
-      }
+    }
     }
 
     double[] targetSums = new double[targetFields.size()];
     long[] counts = new long[targetFields.size()];
     while (rows.hasNext()) {
-      Row row = rows.next();
-      for (int i = 0; i < indices.size(); i++) {
+    Row row = rows.next();
+    for (int i = 0; i < indices.size(); i++) {
         int index = indices.get(i);
         Object value = row.getValue(index);
         if (value == null) {
-          continue;
+        continue;
         }
         int targetIndex = i;
         if (groupByLevels != null) {
-          targetIndex = groupOrderIndexMap.get(index);
+        targetIndex = groupOrderIndexMap.get(index);
         }
         switch (fields.get(index).getType()) {
-          case INTEGER:
+        case INTEGER:
             targetSums[targetIndex] += (int) value;
             break;
-          case LONG:
+        case LONG:
             targetSums[targetIndex] += (long) value;
             break;
-          case FLOAT:
+        case FLOAT:
             targetSums[targetIndex] += (float) value;
             break;
-          case DOUBLE:
+        case DOUBLE:
             targetSums[targetIndex] += (double) value;
             break;
-          default:
+        default:
             throw new IllegalStateException(
                 "Unexpected field type: " + fields.get(index).getType().toString());
         }
         counts[targetIndex]++;
-      }
+    }
     }
     Object[] targetValues = new Object[targetFields.size()];
     for (int i = 0; i < targetValues.length; i++) {
-      targetValues[i] = targetSums[i] / counts[i];
+    targetValues[i] = targetSums[i] / counts[i];
     }
     return new Row(new Header(targetFields), targetValues);
-  }
+}
 }

@@ -6,48 +6,48 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.tag.OrTagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 
 public class TagFilterUtils {
-  @SuppressWarnings("unused")
-  public static String transformToFilterStr(TagFilter filter) {
+@SuppressWarnings("unused")
+public static String transformToFilterStr(TagFilter filter) {
     StringBuilder builder = new StringBuilder();
     transformToFilterStr(filter, builder);
     return builder.toString();
-  }
+}
 
-  private static void transformToFilterStr(TagFilter filter, StringBuilder builder) {
+private static void transformToFilterStr(TagFilter filter, StringBuilder builder) {
     switch (filter.getType()) {
-      case And:
+    case And:
         AndTagFilter andFilter = (AndTagFilter) filter;
         for (int i = 0; i < andFilter.getChildren().size(); i++) {
-          builder.append('(');
-          transformToFilterStr(andFilter.getChildren().get(i), builder);
-          builder.append(')');
-          if (i != andFilter.getChildren().size() - 1) { // 还不是最后一个
+        builder.append('(');
+        transformToFilterStr(andFilter.getChildren().get(i), builder);
+        builder.append(')');
+        if (i != andFilter.getChildren().size() - 1) { // 还不是最后一个
             builder.append(" and ");
-          }
+        }
         }
         break;
-      case Or:
+    case Or:
         OrTagFilter orFilter = (OrTagFilter) filter;
         for (int i = 0; i < orFilter.getChildren().size(); i++) {
-          builder.append('(');
-          transformToFilterStr(orFilter.getChildren().get(i), builder);
-          builder.append(')');
-          if (i != orFilter.getChildren().size() - 1) { // 还不是最后一个
+        builder.append('(');
+        transformToFilterStr(orFilter.getChildren().get(i), builder);
+        builder.append(')');
+        if (i != orFilter.getChildren().size() - 1) { // 还不是最后一个
             builder.append(" or ");
-          }
+        }
         }
         break;
-      case Base:
+    case Base:
         BaseTagFilter baseFilter = (BaseTagFilter) filter;
         builder.append(baseFilter.getTagKey());
         builder.append("=");
         builder.append(baseFilter.getTagValue());
         break;
         // TODO: case label
-      case BasePrecise:
-      case Precise:
-      case WithoutTag:
+    case BasePrecise:
+    case Precise:
+    case WithoutTag:
         break;
     }
-  }
+}
 }

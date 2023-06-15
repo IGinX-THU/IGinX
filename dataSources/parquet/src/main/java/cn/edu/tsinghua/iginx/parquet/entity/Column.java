@@ -6,45 +6,45 @@ import java.util.Map;
 
 public class Column {
 
-  private final String pathName;
+private final String pathName;
 
-  private final String physicalPath;
+private final String physicalPath;
 
-  private final DataType type;
+private final DataType type;
 
-  private final Map<Long, Object> data = new HashMap<>();
+private final Map<Long, Object> data = new HashMap<>();
 
-  public Column(String pathName, String physicalPath, DataType type) {
+public Column(String pathName, String physicalPath, DataType type) {
     this.pathName = pathName;
     this.physicalPath = physicalPath;
     this.type = type;
-  }
+}
 
-  public void putData(long time, Object value) {
+public void putData(long time, Object value) {
     data.put(time, value);
-  }
+}
 
-  public void putBatchData(Map<Long, Object> batchData) {
+public void putBatchData(Map<Long, Object> batchData) {
     data.putAll(batchData);
-  }
+}
 
-  public void removeData(long time) {
+public void removeData(long time) {
     data.remove(time);
-  }
+}
 
-  public String getPathName() {
+public String getPathName() {
     return pathName;
-  }
+}
 
-  public String getPhysicalPath() {
+public String getPhysicalPath() {
     return physicalPath;
-  }
+}
 
-  public DataType getType() {
+public DataType getType() {
     return type;
-  }
+}
 
-  public Map<Long, Object> getData() {
+public Map<Long, Object> getData() {
     return data;
-  }
+}
 }

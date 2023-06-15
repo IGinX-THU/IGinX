@@ -8,44 +8,44 @@ import java.util.List;
 
 public class GroupBy extends AbstractUnaryOperator {
 
-  private final List<String> groupByCols;
+private final List<String> groupByCols;
 
-  private final List<FunctionCall> functionCallList;
+private final List<FunctionCall> functionCallList;
 
-  public GroupBy(Source source, List<String> groupByCols, List<FunctionCall> functionCallList) {
+public GroupBy(Source source, List<String> groupByCols, List<FunctionCall> functionCallList) {
     super(OperatorType.GroupBy, source);
     if (groupByCols == null || groupByCols.isEmpty()) {
-      throw new IllegalArgumentException("groupByCols shouldn't be null");
+    throw new IllegalArgumentException("groupByCols shouldn't be null");
     }
     this.groupByCols = groupByCols;
     this.functionCallList = functionCallList;
-  }
+}
 
-  public List<String> getGroupByCols() {
+public List<String> getGroupByCols() {
     return groupByCols;
-  }
+}
 
-  public List<FunctionCall> getFunctionCallList() {
+public List<FunctionCall> getFunctionCallList() {
     return functionCallList;
-  }
+}
 
-  @Override
-  public Operator copy() {
+@Override
+public Operator copy() {
     return new GroupBy(
         getSource().copy(), new ArrayList<>(groupByCols), new ArrayList<>(functionCallList));
-  }
+}
 
-  @Override
-  public String getInfo() {
+@Override
+public String getInfo() {
     StringBuilder builder = new StringBuilder();
     builder.append("GroupByCols: ").append(String.join(",", groupByCols));
     if (functionCallList != null && !functionCallList.isEmpty()) {
-      builder.append(", FunctionCallList: ");
-      for (FunctionCall functionCall : functionCallList) {
+    builder.append(", FunctionCallList: ");
+    for (FunctionCall functionCall : functionCallList) {
         builder.append(functionCall.toString()).append(",");
-      }
-      builder.deleteCharAt(builder.length() - 1);
+    }
+    builder.deleteCharAt(builder.length() - 1);
     }
     return builder.toString();
-  }
+}
 }

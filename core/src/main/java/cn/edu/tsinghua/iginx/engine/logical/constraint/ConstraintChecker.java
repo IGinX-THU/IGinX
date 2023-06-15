@@ -4,5 +4,5 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 
 public interface ConstraintChecker {
 
-  boolean check(Operator root);
+boolean check(Operator root);
 }

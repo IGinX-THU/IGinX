@@ -16,9 +16,9 @@ import org.antlr.v4.runtime.tree.ParseTree;
 
 public class StatementBuilder {
 
-  private static final Map<StatementType, SqlType> typeMap = new HashMap<>();
+private static final Map<StatementType, SqlType> typeMap = new HashMap<>();
 
-  static {
+static {
     typeMap.put(StatementType.INSERT, SqlType.Insert);
     typeMap.put(StatementType.DELETE, SqlType.Delete);
     typeMap.put(StatementType.SELECT, SqlType.Query);
@@ -41,17 +41,17 @@ public class StatementBuilder {
     typeMap.put(StatementType.COMPACT, SqlType.Compact);
     typeMap.put(StatementType.SET_CONFIG, SqlType.SetConfig);
     typeMap.put(StatementType.SHOW_CONFIG, SqlType.ShowConfig);
-  }
+}
 
-  private static final StatementBuilder instance = new StatementBuilder();
+private static final StatementBuilder instance = new StatementBuilder();
 
-  private StatementBuilder() {}
+private StatementBuilder() {}
 
-  public static StatementBuilder getInstance() {
+public static StatementBuilder getInstance() {
     return instance;
-  }
+}
 
-  public void buildFromSQL(RequestContext ctx) {
+public void buildFromSQL(RequestContext ctx) {
     String sql = ctx.getSql();
     SqlLexer lexer = new SqlLexer(CharStreams.fromString(sql));
     lexer.removeErrorListeners();
@@ -67,5 +67,5 @@ public class StatementBuilder {
     Statement statement = visitor.visit(tree);
     ctx.setStatement(statement);
     ctx.setSqlType(typeMap.get(statement.getType()));
-  }
+}
 }

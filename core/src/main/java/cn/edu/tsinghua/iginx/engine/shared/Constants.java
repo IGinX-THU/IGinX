@@ -20,13 +20,13 @@ package cn.edu.tsinghua.iginx.engine.shared;
 
 public class Constants {
 
-  public static final String KEY = "key";
+public static final String KEY = "key";
 
-  public static final String ORDINAL = "ordinal";
+public static final String ORDINAL = "ordinal";
 
-  public static final String ALL_PATH = "*";
-  public static final String ALL_PATH_SUFFIX = ".*";
+public static final String ALL_PATH = "*";
+public static final String ALL_PATH_SUFFIX = ".*";
 
-  public static final String UDF_CLASS = "t";
-  public static final String UDF_FUNC = "transform";
+public static final String UDF_CLASS = "t";
+public static final String UDF_FUNC = "transform";
 }

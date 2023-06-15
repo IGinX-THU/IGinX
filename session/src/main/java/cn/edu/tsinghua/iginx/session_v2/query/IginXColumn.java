@@ -24,35 +24,35 @@ import java.util.Map;
 
 public class IginXColumn {
 
-  public static final IginXColumn TIME =
-      new IginXColumn("timestamp", Collections.emptyMap(), DataType.LONG);
+public static final IginXColumn TIME =
+    new IginXColumn("timestamp", Collections.emptyMap(), DataType.LONG);
 
-  private final String name;
+private final String name;
 
-  private final Map<String, String> tags;
+private final Map<String, String> tags;
 
-  private final DataType dataType;
+private final DataType dataType;
 
-  public IginXColumn(String name, Map<String, String> tags, DataType dataType) {
+public IginXColumn(String name, Map<String, String> tags, DataType dataType) {
     this.name = name;
     this.tags = tags;
     this.dataType = dataType;
-  }
+}
 
-  public String getName() {
+public String getName() {
     return name;
-  }
+}
 
-  public Map<String, String> getTags() {
+public Map<String, String> getTags() {
     return tags;
-  }
+}
 
-  public DataType getDataType() {
+public DataType getDataType() {
     return dataType;
-  }
+}
 
-  @Override
-  public String toString() {
+@Override
+public String toString() {
     return "IginXColumn{" + "name='" + name + '\'' + ", dataType=" + dataType + '}';
-  }
+}
 }

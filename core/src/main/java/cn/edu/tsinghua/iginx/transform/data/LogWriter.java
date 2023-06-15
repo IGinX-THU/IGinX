@@ -10,27 +10,27 @@ import org.slf4j.LoggerFactory;
 
 public class LogWriter extends ExportWriter {
 
-  private boolean hasWriteHeader;
+private boolean hasWriteHeader;
 
-  private static final Logger logger = LoggerFactory.getLogger(LogWriter.class);
+private static final Logger logger = LoggerFactory.getLogger(LogWriter.class);
 
-  @Override
-  public void write(BatchData batchData) {
+@Override
+public void write(BatchData batchData) {
     if (!hasWriteHeader) {
-      Header header = batchData.getHeader();
-      List<String> headerList = new ArrayList<>();
-      if (header.hasKey()) {
+    Header header = batchData.getHeader();
+    List<String> headerList = new ArrayList<>();
+    if (header.hasKey()) {
         headerList.add(GlobalConstant.KEY_NAME);
-      }
-      header.getFields().forEach(field -> headerList.add(field.getFullName()));
-      logger.info(String.join(",", headerList));
-      hasWriteHeader = true;
+    }
+    header.getFields().forEach(field -> headerList.add(field.getFullName()));
+    logger.info(String.join(",", headerList));
+    hasWriteHeader = true;
     }
 
     List<Row> rowList = batchData.getRowList();
     rowList.forEach(
         row -> {
-          logger.info(row.toCSVTypeString());
+        logger.info(row.toCSVTypeString());
         });
-  }
+}
 }

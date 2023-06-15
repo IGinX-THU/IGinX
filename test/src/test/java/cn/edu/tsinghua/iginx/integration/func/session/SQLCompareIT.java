@@ -27,25 +27,25 @@ import org.slf4j.LoggerFactory;
 
 public class SQLCompareIT {
 
-  private static final Logger logger = LoggerFactory.getLogger(SQLCompareIT.class);
+private static final Logger logger = LoggerFactory.getLogger(SQLCompareIT.class);
 
-  protected static MultiConnection conn;
-  protected static boolean isForSession = true;
-  protected static boolean isForSessionPool = false;
+protected static MultiConnection conn;
+protected static boolean isForSession = true;
+protected static boolean isForSessionPool = false;
 
-  // host info
-  protected static String defaultTestHost = "127.0.0.1";
-  protected static int defaultTestPort = 6888;
-  protected static String defaultTestUser = "root";
-  protected static String defaultTestPass = "root";
+// host info
+protected static String defaultTestHost = "127.0.0.1";
+protected static int defaultTestPort = 6888;
+protected static String defaultTestUser = "root";
+protected static String defaultTestPass = "root";
 
-  private final List<String> insertSQLGroup = new ArrayList<>();
+private final List<String> insertSQLGroup = new ArrayList<>();
 
-  private final List<String> testSQLGroupA = new ArrayList<>();
+private final List<String> testSQLGroupA = new ArrayList<>();
 
-  private final List<String> testSQLGroupB = new ArrayList<>();
+private final List<String> testSQLGroupB = new ArrayList<>();
 
-  public SQLCompareIT() {
+public SQLCompareIT() {
     readFile(
         insertSQLGroup,
         Paths.get("src", "test", "resources", "compare", "insertGroup.txt").toString());
@@ -55,128 +55,128 @@ public class SQLCompareIT {
     readFile(
         testSQLGroupB,
         Paths.get("src", "test", "resources", "compare", "testGroupB.txt").toString());
-  }
+}
 
-  private void readFile(List<String> testSQLGroup, String filename) {
+private void readFile(List<String> testSQLGroup, String filename) {
     try {
-      BufferedReader reader = new BufferedReader(new FileReader(filename));
-      StringBuilder builder = new StringBuilder();
+    BufferedReader reader = new BufferedReader(new FileReader(filename));
+    StringBuilder builder = new StringBuilder();
 
-      String line = reader.readLine();
-      while (line != null) {
+    String line = reader.readLine();
+    while (line != null) {
         builder.append(line);
         line = reader.readLine();
-      }
-      reader.close();
+    }
+    reader.close();
 
-      String fileContent = builder.toString();
-      String[] sqls = fileContent.replaceAll("\\R", "").split(";");
-      for (String sql : sqls) {
+    String fileContent = builder.toString();
+    String[] sqls = fileContent.replaceAll("\\R", "").split(";");
+    for (String sql : sqls) {
         sql = sql.trim() + ";";
         if (!sql.trim().equals("")) {
-          testSQLGroup.add(sql);
+        testSQLGroup.add(sql);
         }
-      }
-    } catch (IOException e) {
-      logger.error("read file failed, filename: {}, cause: {}", filename, e.getMessage());
-      fail();
     }
-  }
+    } catch (IOException e) {
+    logger.error("read file failed, filename: {}, cause: {}", filename, e.getMessage());
+    fail();
+    }
+}
 
-  @BeforeClass
-  public static void setUp() throws SessionException {
+@BeforeClass
+public static void setUp() throws SessionException {
     if (isForSession) {
-      conn =
-          new MultiConnection(
-              new Session(defaultTestHost, defaultTestPort, defaultTestUser, defaultTestPass));
+    conn =
+        new MultiConnection(
+            new Session(defaultTestHost, defaultTestPort, defaultTestUser, defaultTestPass));
     } else if (isForSessionPool) {
-      conn =
-          new MultiConnection(
-              new SessionPool(
-                  new ArrayList<IginxInfo>() {
+    conn =
+        new MultiConnection(
+            new SessionPool(
+                new ArrayList<IginxInfo>() {
                     {
-                      add(
-                          new IginxInfo.Builder()
-                              .host("0.0.0.0")
-                              .port(6888)
-                              .user("root")
-                              .password("root")
-                              .build());
+                    add(
+                        new IginxInfo.Builder()
+                            .host("0.0.0.0")
+                            .port(6888)
+                            .user("root")
+                            .password("root")
+                            .build());
 
-                      add(
-                          new IginxInfo.Builder()
-                              .host("0.0.0.0")
-                              .port(7888)
-                              .user("root")
-                              .password("root")
-                              .build());
+                    add(
+                        new IginxInfo.Builder()
+                            .host("0.0.0.0")
+                            .port(7888)
+                            .user("root")
+                            .password("root")
+                            .build());
                     }
-                  }));
+                }));
     }
     conn.openSession();
-  }
+}
 
-  @AfterClass
-  public static void tearDown() throws SessionException {
+@AfterClass
+public static void tearDown() throws SessionException {
     conn.closeSession();
-  }
+}
 
-  @Before
-  public void insertData() throws ExecutionException, SessionException {
+@Before
+public void insertData() throws ExecutionException, SessionException {
     for (String insertSQL : insertSQLGroup) {
-      SessionExecuteSqlResult res = conn.executeSql(insertSQL);
-      if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
+    SessionExecuteSqlResult res = conn.executeSql(insertSQL);
+    if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
         logger.error("Insert date execute fail. Caused by: {}.", res.getParseErrorMsg());
         fail();
-      }
     }
-  }
+    }
+}
 
-  @After
-  public void clearData() throws SessionException {
+@After
+public void clearData() throws SessionException {
     Controller.clearData(conn);
-  }
+}
 
-  private void executeAndCompare(String sqlA, String sqlB) {
+private void executeAndCompare(String sqlA, String sqlB) {
     String resultA = execute(sqlA);
     String resultB = execute(sqlB);
     assertEquals(resultA, resultB);
-  }
+}
 
-  private String execute(String statement) {
+private String execute(String statement) {
     if (!statement.toLowerCase().startsWith("insert")) {
-      logger.info("Execute Statement: \"{}\"", statement);
+    logger.info("Execute Statement: \"{}\"", statement);
     }
 
     SessionExecuteSqlResult res = null;
     try {
-      res = conn.executeSql(statement);
+    res = conn.executeSql(statement);
     } catch (SessionException | ExecutionException e) {
-      logger.error("Statement: \"{}\" execute fail. Caused by:", statement, e);
-      fail();
+    logger.error("Statement: \"{}\" execute fail. Caused by:", statement, e);
+    fail();
     }
 
     if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-      logger.error(
-          "Statement: \"{}\" execute fail. Caused by: {}.", statement, res.getParseErrorMsg());
-      fail();
-      return "";
+    logger.error(
+        "Statement: \"{}\" execute fail. Caused by: {}.", statement, res.getParseErrorMsg());
+    fail();
+    return "";
     }
 
     return res.getResultInString(false, "");
-  }
+}
 
-  @Test
-  public void compareTest() {
+@Test
+public void compareTest() {
     if (testSQLGroupA.size() != testSQLGroupB.size()) {
-      logger.error("two test groups' size are not equal.");
-      fail();
+    logger.error("two test groups' size are not equal.");
+    fail();
     }
 
     for (int i = 0; i < testSQLGroupA.size(); i++) {
-      String sqlA = testSQLGroupA.get(i);
-      String sqlB = testSQLGroupB.get(i);
-      executeAndCompare(sqlA, sqlB);
+    String sqlA = testSQLGroupA.get(i);
+    String sqlB = testSQLGroupB.get(i);
+    executeAndCompare(sqlA, sqlB);
     }
-  }
+}
 }

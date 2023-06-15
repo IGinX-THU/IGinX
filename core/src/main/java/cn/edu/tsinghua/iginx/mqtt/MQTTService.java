@@ -34,26 +34,26 @@ import org.slf4j.LoggerFactory;
 
 public class MQTTService implements Runnable {
 
-  private static final Logger logger = LoggerFactory.getLogger(MQTTService.class);
+private static final Logger logger = LoggerFactory.getLogger(MQTTService.class);
 
-  private static MQTTService INSTANCE;
+private static MQTTService INSTANCE;
 
-  private final Server server = new Server();
+private final Server server = new Server();
 
-  protected MQTTService() {}
+protected MQTTService() {}
 
-  public static MQTTService getInstance() {
+public static MQTTService getInstance() {
     if (INSTANCE == null) {
-      synchronized (MQTTService.class) {
+    synchronized (MQTTService.class) {
         if (INSTANCE == null) {
-          INSTANCE = new MQTTService();
+        INSTANCE = new MQTTService();
         }
-      }
+    }
     }
     return INSTANCE;
-  }
+}
 
-  public void start() {
+public void start() {
     Config iginxConfig = ConfigDescriptor.getInstance().getConfig();
     IConfig config = createBrokerConfig(iginxConfig);
     List<InterceptHandler> handlers = Lists.newArrayList(new PublishHandler(iginxConfig));
@@ -70,13 +70,13 @@ public class MQTTService implements Runnable {
         .addShutdownHook(
             new Thread(
                 () -> {
-                  logger.info("Stopping IoTDB MQTT service...");
-                  shutdown();
-                  logger.info("IoTDB MQTT service stopped.");
+                logger.info("Stopping IoTDB MQTT service...");
+                shutdown();
+                logger.info("IoTDB MQTT service stopped.");
                 }));
-  }
+}
 
-  private IConfig createBrokerConfig(Config iginxConfig) {
+private IConfig createBrokerConfig(Config iginxConfig) {
     Properties properties = new Properties();
     properties.setProperty(BrokerConstants.HOST_PROPERTY_NAME, iginxConfig.getMqttHost());
     properties.setProperty(
@@ -91,14 +91,14 @@ public class MQTTService implements Runnable {
         BrokerConstants.NETTY_MAX_BYTES_PROPERTY_NAME,
         String.valueOf(iginxConfig.getMqttMaxMessageSize()));
     return new MemoryConfig(properties);
-  }
+}
 
-  @Override
-  public void run() {
+@Override
+public void run() {
     start();
-  }
+}
 
-  public void shutdown() {
+public void shutdown() {
     server.stopServer();
-  }
+}
 }

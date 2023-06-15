@@ -27,120 +27,120 @@ import java.util.Set;
 
 public interface IMetaCache {
 
-  boolean enableFragmentCacheControl();
+boolean enableFragmentCacheControl();
 
-  // 分片相关的缓存读写接口
-  void initFragment(Map<ColumnsRange, List<FragmentMeta>> fragmentListMap);
+// 分片相关的缓存读写接口
+void initFragment(Map<ColumnsRange, List<FragmentMeta>> fragmentListMap);
 
-  void addFragment(FragmentMeta fragmentMeta);
+void addFragment(FragmentMeta fragmentMeta);
 
-  void updateFragment(FragmentMeta fragmentMeta);
+void updateFragment(FragmentMeta fragmentMeta);
 
-  void updateFragmentByColumnsInterval(ColumnsRange columnsInterval, FragmentMeta fragmentMeta);
+void updateFragmentByColumnsInterval(ColumnsRange columnsInterval, FragmentMeta fragmentMeta);
 
-  void deleteFragmentByColumnsInterval(ColumnsRange columnsInterval, FragmentMeta fragmentMeta);
+void deleteFragmentByColumnsInterval(ColumnsRange columnsInterval, FragmentMeta fragmentMeta);
 
-  List<FragmentMeta> getFragmentMapByExactColumnsInterval(ColumnsRange columnsInterval);
+List<FragmentMeta> getFragmentMapByExactColumnsInterval(ColumnsRange columnsInterval);
 
-  Map<ColumnsRange, List<FragmentMeta>> getFragmentMapByColumnsInterval(
-      ColumnsRange columnsInterval);
+Map<ColumnsRange, List<FragmentMeta>> getFragmentMapByColumnsInterval(
+    ColumnsRange columnsInterval);
 
-  List<FragmentMeta> getDummyFragmentsByColumnsInterval(ColumnsRange columnsInterval);
+List<FragmentMeta> getDummyFragmentsByColumnsInterval(ColumnsRange columnsInterval);
 
-  Map<ColumnsRange, FragmentMeta> getLatestFragmentMap();
+Map<ColumnsRange, FragmentMeta> getLatestFragmentMap();
 
-  Map<ColumnsRange, FragmentMeta> getLatestFragmentMapByColumnsInterval(
-      ColumnsRange columnsInterval);
+Map<ColumnsRange, FragmentMeta> getLatestFragmentMapByColumnsInterval(
+    ColumnsRange columnsInterval);
 
-  Map<ColumnsRange, List<FragmentMeta>> getFragmentMapByColumnsIntervalAndKeyInterval(
-      ColumnsRange columnsInterval, KeyInterval keyInterval);
+Map<ColumnsRange, List<FragmentMeta>> getFragmentMapByColumnsIntervalAndKeyInterval(
+    ColumnsRange columnsInterval, KeyInterval keyInterval);
 
-  List<FragmentMeta> getDummyFragmentsByColumnsIntervalAndKeyInterval(
-      ColumnsRange columnsInterval, KeyInterval keyInterval);
+List<FragmentMeta> getDummyFragmentsByColumnsIntervalAndKeyInterval(
+    ColumnsRange columnsInterval, KeyInterval keyInterval);
 
-  List<FragmentMeta> getFragmentListByColumnName(String columnName);
+List<FragmentMeta> getFragmentListByColumnName(String columnName);
 
-  FragmentMeta getLatestFragmentByColumnName(String columnName);
+FragmentMeta getLatestFragmentByColumnName(String columnName);
 
-  List<FragmentMeta> getFragmentListByColumnNameAndKeyInterval(
-      String columnName, KeyInterval keyInterval);
+List<FragmentMeta> getFragmentListByColumnNameAndKeyInterval(
+    String columnName, KeyInterval keyInterval);
 
-  List<FragmentMeta> getFragmentListByStorageUnitId(String storageUnitId);
+List<FragmentMeta> getFragmentListByStorageUnitId(String storageUnitId);
 
-  boolean hasFragment();
+boolean hasFragment();
 
-  long getFragmentMinKey();
+long getFragmentMinKey();
 
-  // 数据单元相关的缓存读写接口
-  boolean hasStorageUnit();
+// 数据单元相关的缓存读写接口
+boolean hasStorageUnit();
 
-  void initStorageUnit(Map<String, StorageUnitMeta> storageUnits);
+void initStorageUnit(Map<String, StorageUnitMeta> storageUnits);
 
-  StorageUnitMeta getStorageUnit(String id);
+StorageUnitMeta getStorageUnit(String id);
 
-  Map<String, StorageUnitMeta> getStorageUnits(Set<String> ids);
+Map<String, StorageUnitMeta> getStorageUnits(Set<String> ids);
 
-  List<StorageUnitMeta> getStorageUnits();
+List<StorageUnitMeta> getStorageUnits();
 
-  void addStorageUnit(StorageUnitMeta storageUnitMeta);
+void addStorageUnit(StorageUnitMeta storageUnitMeta);
 
-  void updateStorageUnit(StorageUnitMeta storageUnitMeta);
+void updateStorageUnit(StorageUnitMeta storageUnitMeta);
 
-  // iginx 相关的缓存读写接口
-  List<IginxMeta> getIginxList();
+// iginx 相关的缓存读写接口
+List<IginxMeta> getIginxList();
 
-  void addIginx(IginxMeta iginxMeta);
+void addIginx(IginxMeta iginxMeta);
 
-  void removeIginx(long id);
+void removeIginx(long id);
 
-  // 数据后端相关的缓存读写接口
-  void addStorageEngine(StorageEngineMeta storageEngineMeta);
+// 数据后端相关的缓存读写接口
+void addStorageEngine(StorageEngineMeta storageEngineMeta);
 
-  // 更新对应节点的元数据信息。如果对应节点的 dummy 元数据被移除，则需要删除相应的 dummy 元数据信息
-  boolean updateStorageEngine(long storageID, StorageEngineMeta storageEngineMeta);
+// 更新对应节点的元数据信息。如果对应节点的 dummy 元数据被移除，则需要删除相应的 dummy 元数据信息
+boolean updateStorageEngine(long storageID, StorageEngineMeta storageEngineMeta);
 
-  List<StorageEngineMeta> getStorageEngineList();
+List<StorageEngineMeta> getStorageEngineList();
 
-  StorageEngineMeta getStorageEngine(long id);
+StorageEngineMeta getStorageEngine(long id);
 
-  List<FragmentMeta> getFragments();
+List<FragmentMeta> getFragments();
 
-  // schemaMapping 相关的缓存读写接口
-  Map<String, Integer> getSchemaMapping(String schema);
+// schemaMapping 相关的缓存读写接口
+Map<String, Integer> getSchemaMapping(String schema);
 
-  int getSchemaMappingItem(String schema, String key);
+int getSchemaMappingItem(String schema, String key);
 
-  void removeSchemaMapping(String schema);
+void removeSchemaMapping(String schema);
 
-  void removeSchemaMappingItem(String schema, String key);
+void removeSchemaMappingItem(String schema, String key);
 
-  void addOrUpdateSchemaMapping(String schema, Map<String, Integer> schemaMapping);
+void addOrUpdateSchemaMapping(String schema, Map<String, Integer> schemaMapping);
 
-  void addOrUpdateSchemaMappingItem(String schema, String key, int value);
+void addOrUpdateSchemaMappingItem(String schema, String key, int value);
 
-  void addOrUpdateUser(UserMeta userMeta);
+void addOrUpdateUser(UserMeta userMeta);
 
-  void removeUser(String username);
+void removeUser(String username);
 
-  List<UserMeta> getUser();
+List<UserMeta> getUser();
 
-  List<UserMeta> getUser(List<String> usernames);
+List<UserMeta> getUser(List<String> usernames);
 
-  void timeSeriesIsUpdated(int node, int version);
+void timeSeriesIsUpdated(int node, int version);
 
-  void saveColumnsData(InsertStatement statement);
+void saveColumnsData(InsertStatement statement);
 
-  List<ColumnCalDO> getMaxValueFromColumns();
+List<ColumnCalDO> getMaxValueFromColumns();
 
-  double getSumFromColumns();
+double getSumFromColumns();
 
-  Map<Integer, Integer> getColumnsVersionMap();
+Map<Integer, Integer> getColumnsVersionMap();
 
-  void addOrUpdateTransformTask(TransformTaskMeta transformTask);
+void addOrUpdateTransformTask(TransformTaskMeta transformTask);
 
-  void dropTransformTask(String name);
+void dropTransformTask(String name);
 
-  TransformTaskMeta getTransformTask(String name);
+TransformTaskMeta getTransformTask(String name);
 
-  List<TransformTaskMeta> getTransformTasks();
+List<TransformTaskMeta> getTransformTasks();
 }

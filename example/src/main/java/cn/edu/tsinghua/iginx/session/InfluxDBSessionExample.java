@@ -28,22 +28,22 @@ import org.apache.commons.lang3.RandomStringUtils;
 
 public class InfluxDBSessionExample {
 
-  private static final String S1 = "sg.d1.s1";
-  private static final String S2 = "sg.d1.s2";
-  private static final String S3 = "sg.d2.s3";
-  private static final String S4 = "sg.d3.s4";
-  private static final long COLUMN_START_TIMESTAMP = 1L;
-  private static final long COLUMN_END_TIMESTAMP = 10000L;
-  private static final long NON_ALIGNED_COLUMN_START_TIMESTAMP = 10001L;
-  private static final long NON_ALIGNED_COLUMN_END_TIMESTAMP = 20000L;
-  private static final long ROW_START_TIMESTAMP = 20001L;
-  private static final long ROW_END_TIMESTAMP = 30000L;
-  private static final long NON_ALIGNED_ROW_START_TIMESTAMP = 30001L;
-  private static final long NON_ALIGNED_ROW_END_TIMESTAMP = 40000L;
-  private static final int INTERVAL = 10;
-  private static Session session;
+private static final String S1 = "sg.d1.s1";
+private static final String S2 = "sg.d1.s2";
+private static final String S3 = "sg.d2.s3";
+private static final String S4 = "sg.d3.s4";
+private static final long COLUMN_START_TIMESTAMP = 1L;
+private static final long COLUMN_END_TIMESTAMP = 10000L;
+private static final long NON_ALIGNED_COLUMN_START_TIMESTAMP = 10001L;
+private static final long NON_ALIGNED_COLUMN_END_TIMESTAMP = 20000L;
+private static final long ROW_START_TIMESTAMP = 20001L;
+private static final long ROW_END_TIMESTAMP = 30000L;
+private static final long NON_ALIGNED_ROW_START_TIMESTAMP = 30001L;
+private static final long NON_ALIGNED_ROW_END_TIMESTAMP = 40000L;
+private static final int INTERVAL = 10;
+private static Session session;
 
-  public static void main(String[] args) throws SessionException, ExecutionException {
+public static void main(String[] args) throws SessionException, ExecutionException {
     session = new Session("127.0.0.1", 6888, "root", "root");
     // 打开 Session
     session.openSession();
@@ -72,9 +72,9 @@ public class InfluxDBSessionExample {
 
     // 关闭 Session
     session.closeSession();
-  }
+}
 
-  private static void insertColumnRecords() throws SessionException, ExecutionException {
+private static void insertColumnRecords() throws SessionException, ExecutionException {
     List<String> paths = new ArrayList<>();
     paths.add(S1);
     paths.add(S2);
@@ -84,34 +84,34 @@ public class InfluxDBSessionExample {
     int size = (int) (COLUMN_END_TIMESTAMP - COLUMN_START_TIMESTAMP + 1);
     long[] timestamps = new long[size];
     for (long i = 0; i < size; i++) {
-      timestamps[(int) i] = i + COLUMN_START_TIMESTAMP;
+    timestamps[(int) i] = i + COLUMN_START_TIMESTAMP;
     }
 
     Object[] valuesList = new Object[4];
     for (long i = 0; i < 4; i++) {
-      Object[] values = new Object[size];
-      for (long j = 0; j < size; j++) {
+    Object[] values = new Object[size];
+    for (long j = 0; j < size; j++) {
         if (i < 2) {
-          values[(int) j] = i + j;
+        values[(int) j] = i + j;
         } else {
-          values[(int) j] = RandomStringUtils.randomAlphanumeric(10).getBytes();
+        values[(int) j] = RandomStringUtils.randomAlphanumeric(10).getBytes();
         }
-      }
-      valuesList[(int) i] = values;
+    }
+    valuesList[(int) i] = values;
     }
 
     List<DataType> dataTypeList = new ArrayList<>();
     for (int i = 0; i < 2; i++) {
-      dataTypeList.add(DataType.LONG);
+    dataTypeList.add(DataType.LONG);
     }
     for (int i = 0; i < 2; i++) {
-      dataTypeList.add(DataType.BINARY);
+    dataTypeList.add(DataType.BINARY);
     }
 
     session.insertColumnRecords(paths, timestamps, valuesList, dataTypeList, null);
-  }
+}
 
-  private static void insertNonAlignedColumnRecords() throws SessionException, ExecutionException {
+private static void insertNonAlignedColumnRecords() throws SessionException, ExecutionException {
     List<String> paths = new ArrayList<>();
     paths.add(S1);
     paths.add(S2);
@@ -121,38 +121,38 @@ public class InfluxDBSessionExample {
     int size = (int) (NON_ALIGNED_COLUMN_END_TIMESTAMP - NON_ALIGNED_COLUMN_START_TIMESTAMP + 1);
     long[] timestamps = new long[size];
     for (long i = 0; i < size; i++) {
-      timestamps[(int) i] = i + NON_ALIGNED_COLUMN_START_TIMESTAMP;
+    timestamps[(int) i] = i + NON_ALIGNED_COLUMN_START_TIMESTAMP;
     }
 
     Object[] valuesList = new Object[4];
     for (long i = 0; i < 4; i++) {
-      Object[] values = new Object[size];
-      for (long j = 0; j < size; j++) {
+    Object[] values = new Object[size];
+    for (long j = 0; j < size; j++) {
         if (j >= size - 50) {
-          values[(int) j] = null;
+        values[(int) j] = null;
         } else {
-          if (i < 2) {
+        if (i < 2) {
             values[(int) j] = i + j;
-          } else {
+        } else {
             values[(int) j] = RandomStringUtils.randomAlphanumeric(10).getBytes();
-          }
         }
-      }
-      valuesList[(int) i] = values;
+        }
+    }
+    valuesList[(int) i] = values;
     }
 
     List<DataType> dataTypeList = new ArrayList<>();
     for (int i = 0; i < 2; i++) {
-      dataTypeList.add(DataType.LONG);
+    dataTypeList.add(DataType.LONG);
     }
     for (int i = 0; i < 2; i++) {
-      dataTypeList.add(DataType.BINARY);
+    dataTypeList.add(DataType.BINARY);
     }
 
     session.insertNonAlignedColumnRecords(paths, timestamps, valuesList, dataTypeList, null);
-  }
+}
 
-  private static void insertRowRecords() throws SessionException, ExecutionException {
+private static void insertRowRecords() throws SessionException, ExecutionException {
     List<String> paths = new ArrayList<>();
     paths.add(S1);
     paths.add(S2);
@@ -163,30 +163,30 @@ public class InfluxDBSessionExample {
     long[] timestamps = new long[size];
     Object[] valuesList = new Object[size];
     for (long i = 0; i < size; i++) {
-      timestamps[(int) i] = ROW_START_TIMESTAMP + i;
-      Object[] values = new Object[4];
-      for (long j = 0; j < 4; j++) {
+    timestamps[(int) i] = ROW_START_TIMESTAMP + i;
+    Object[] values = new Object[4];
+    for (long j = 0; j < 4; j++) {
         if (j < 2) {
-          values[(int) j] = i + j;
+        values[(int) j] = i + j;
         } else {
-          values[(int) j] = RandomStringUtils.randomAlphanumeric(10).getBytes();
+        values[(int) j] = RandomStringUtils.randomAlphanumeric(10).getBytes();
         }
-      }
-      valuesList[(int) i] = values;
+    }
+    valuesList[(int) i] = values;
     }
 
     List<DataType> dataTypeList = new ArrayList<>();
     for (int i = 0; i < 2; i++) {
-      dataTypeList.add(DataType.LONG);
+    dataTypeList.add(DataType.LONG);
     }
     for (int i = 0; i < 2; i++) {
-      dataTypeList.add(DataType.BINARY);
+    dataTypeList.add(DataType.BINARY);
     }
 
     session.insertNonAlignedRowRecords(paths, timestamps, valuesList, dataTypeList, null);
-  }
+}
 
-  private static void insertNonAlignedRowRecords() throws SessionException, ExecutionException {
+private static void insertNonAlignedRowRecords() throws SessionException, ExecutionException {
     List<String> paths = new ArrayList<>();
     paths.add(S1);
     paths.add(S2);
@@ -197,34 +197,34 @@ public class InfluxDBSessionExample {
     long[] timestamps = new long[size];
     Object[] valuesList = new Object[size];
     for (long i = 0; i < size; i++) {
-      timestamps[(int) i] = NON_ALIGNED_ROW_START_TIMESTAMP + i;
-      Object[] values = new Object[4];
-      for (long j = 0; j < 4; j++) {
+    timestamps[(int) i] = NON_ALIGNED_ROW_START_TIMESTAMP + i;
+    Object[] values = new Object[4];
+    for (long j = 0; j < 4; j++) {
         if ((i + j) % 2 == 0) {
-          values[(int) j] = null;
+        values[(int) j] = null;
         } else {
-          if (j < 2) {
+        if (j < 2) {
             values[(int) j] = i + j;
-          } else {
+        } else {
             values[(int) j] = RandomStringUtils.randomAlphanumeric(10).getBytes();
-          }
         }
-      }
-      valuesList[(int) i] = values;
+        }
+    }
+    valuesList[(int) i] = values;
     }
 
     List<DataType> dataTypeList = new ArrayList<>();
     for (int i = 0; i < 2; i++) {
-      dataTypeList.add(DataType.LONG);
+    dataTypeList.add(DataType.LONG);
     }
     for (int i = 0; i < 2; i++) {
-      dataTypeList.add(DataType.BINARY);
+    dataTypeList.add(DataType.BINARY);
     }
 
     session.insertNonAlignedRowRecords(paths, timestamps, valuesList, dataTypeList, null);
-  }
+}
 
-  private static void queryData() throws SessionException, ExecutionException {
+private static void queryData() throws SessionException, ExecutionException {
     List<String> paths = new ArrayList<>();
     paths.add(S1);
     paths.add(S2);
@@ -236,24 +236,24 @@ public class InfluxDBSessionExample {
 
     SessionQueryDataSet dataSet = session.queryData(paths, startKey, endKey);
     dataSet.print();
-  }
+}
 
-  //    private static void valueFilterQuery() throws SessionException, ExecutionException {
-  //        List<String> paths = new ArrayList<>();
-  //        paths.add(S1);
-  //        paths.add(S2);
-  //        paths.add(S3);
-  //        paths.add(S4);
-  //
-  //        long startKey = NON_ALIGNED_COLUMN_END_TIMESTAMP - 100L;
-  //        long endKey = ROW_START_TIMESTAMP + 100L;
-  //        String booleanExpression = S2 + " < " + 9930 + " && " + S1 + " > " + 9910;
-  //        SessionQueryDataSet dataSet = session.valueFilterQuery(paths, startKey, endKey,
-  // booleanExpression);
-  //        dataSet.print();
-  //    }
+//    private static void valueFilterQuery() throws SessionException, ExecutionException {
+//        List<String> paths = new ArrayList<>();
+//        paths.add(S1);
+//        paths.add(S2);
+//        paths.add(S3);
+//        paths.add(S4);
+//
+//        long startKey = NON_ALIGNED_COLUMN_END_TIMESTAMP - 100L;
+//        long endKey = ROW_START_TIMESTAMP + 100L;
+//        String booleanExpression = S2 + " < " + 9930 + " && " + S1 + " > " + 9910;
+//        SessionQueryDataSet dataSet = session.valueFilterQuery(paths, startKey, endKey,
+// booleanExpression);
+//        dataSet.print();
+//    }
 
-  private static void aggregateQuery() throws SessionException, ExecutionException {
+private static void aggregateQuery() throws SessionException, ExecutionException {
     List<String> paths = new ArrayList<>();
     paths.add(S1);
     paths.add(S2);
@@ -295,9 +295,9 @@ public class InfluxDBSessionExample {
 
     // 聚合查询结束
     System.out.println("Aggregate Query Finished.");
-  }
+}
 
-  private static void lastQuery() throws SessionException, ExecutionException {
+private static void lastQuery() throws SessionException, ExecutionException {
     List<String> paths = new ArrayList<>();
     paths.add(S1);
     paths.add(S2);
@@ -306,9 +306,9 @@ public class InfluxDBSessionExample {
 
     SessionQueryDataSet dataSet = session.queryLast(paths, 0L);
     dataSet.print();
-  }
+}
 
-  private static void downsampleQuery() throws SessionException, ExecutionException {
+private static void downsampleQuery() throws SessionException, ExecutionException {
     List<String> paths = new ArrayList<>();
     paths.add(S1);
     paths.add(S2);
@@ -354,9 +354,9 @@ public class InfluxDBSessionExample {
 
     // 降采样查询结束
     System.out.println("Downsample Query Finished.");
-  }
+}
 
-  private static void deleteDataInColumns() throws SessionException, ExecutionException {
+private static void deleteDataInColumns() throws SessionException, ExecutionException {
     List<String> paths = new ArrayList<>();
     paths.add(S1);
     paths.add(S3);
@@ -366,5 +366,5 @@ public class InfluxDBSessionExample {
     long endKey = ROW_START_TIMESTAMP + 50L;
 
     session.deleteDataInColumns(paths, startKey, endKey);
-  }
+}
 }

@@ -8,9 +8,9 @@ import org.slf4j.LoggerFactory;
 
 public class RedisCapacityExpansionIT extends BaseCapacityExpansionIT {
 
-  private static final Logger logger = LoggerFactory.getLogger(RedisCapacityExpansionIT.class);
+private static final Logger logger = LoggerFactory.getLogger(RedisCapacityExpansionIT.class);
 
-  public RedisCapacityExpansionIT() {
+public RedisCapacityExpansionIT() {
     super(redis, null, 6379, 6380, 6381);
-  }
+}
 }

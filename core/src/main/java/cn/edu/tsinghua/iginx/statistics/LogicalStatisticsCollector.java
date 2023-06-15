@@ -10,42 +10,42 @@ import org.slf4j.LoggerFactory;
 public class LogicalStatisticsCollector extends AbstractStageStatisticsCollector
     implements ILogicalStatisticsCollector {
 
-  private static final Logger logger = LoggerFactory.getLogger(LogicalStatisticsCollector.class);
-  private final ReadWriteLock lock = new ReentrantReadWriteLock();
-  private long count = 0;
-  private long span = 0;
+private static final Logger logger = LoggerFactory.getLogger(LogicalStatisticsCollector.class);
+private final ReadWriteLock lock = new ReentrantReadWriteLock();
+private long count = 0;
+private long span = 0;
 
-  @Override
-  protected String getStageName() {
+@Override
+protected String getStageName() {
     return "LogicalStage";
-  }
+}
 
-  @Override
-  protected void processStatistics(Statistics statistics) {
+@Override
+protected void processStatistics(Statistics statistics) {
     lock.writeLock().lock();
     count += 1;
     span += statistics.getEndTime() - statistics.getStartTime();
     lock.writeLock().unlock();
-  }
+}
 
-  @Override
-  public void broadcastStatistics() {
+@Override
+public void broadcastStatistics() {
     lock.readLock().lock();
     logger.info("Logical Stage Statistics Info: ");
     logger.info("\tcount: " + count + ", span: " + span + "μs");
     if (count != 0) {
-      logger.info("\taverage-span: " + (1.0 * span) / count + "μs");
+    logger.info("\taverage-span: " + (1.0 * span) / count + "μs");
     }
     lock.readLock().unlock();
-  }
+}
 
-  @Override
-  public PreLogicalProcessor getPreLogicalProcessor() {
+@Override
+public PreLogicalProcessor getPreLogicalProcessor() {
     return before::apply;
-  }
+}
 
-  @Override
-  public PostLogicalProcessor getPostLogicalProcessor() {
+@Override
+public PostLogicalProcessor getPostLogicalProcessor() {
     return after::apply;
-  }
+}
 }

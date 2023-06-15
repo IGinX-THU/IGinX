@@ -24,30 +24,30 @@ import java.util.concurrent.ConcurrentMap;
 
 public class QueryResourceManager {
 
-  private final ConcurrentMap<Long, RequestContext> queries;
+private final ConcurrentMap<Long, RequestContext> queries;
 
-  private QueryResourceManager() {
+private QueryResourceManager() {
     this.queries = new ConcurrentHashMap<>();
-  }
+}
 
-  public static QueryResourceManager getInstance() {
+public static QueryResourceManager getInstance() {
     return QueryManagerHolder.INSTANCE;
-  }
+}
 
-  public void registerQuery(long queryId, RequestContext context) {
+public void registerQuery(long queryId, RequestContext context) {
     queries.put(queryId, context);
-  }
+}
 
-  public RequestContext getQuery(long queryId) {
+public RequestContext getQuery(long queryId) {
     return queries.get(queryId);
-  }
+}
 
-  public void releaseQuery(long queryId) {
+public void releaseQuery(long queryId) {
     queries.remove(queryId);
-  }
+}
 
-  private static class QueryManagerHolder {
+private static class QueryManagerHolder {
 
     private static final QueryResourceManager INSTANCE = new QueryResourceManager();
-  }
+}
 }

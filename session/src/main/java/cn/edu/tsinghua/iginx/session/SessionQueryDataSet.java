@@ -30,82 +30,82 @@ import java.util.Map;
 
 public class SessionQueryDataSet {
 
-  private final long[] keys;
-  private List<String> paths;
-  private List<Map<String, String>> tagsList;
-  private List<List<Object>> values;
+private final long[] keys;
+private List<String> paths;
+private List<Map<String, String>> tagsList;
+private List<List<Object>> values;
 
-  public SessionQueryDataSet(LastQueryResp resp) {
+public SessionQueryDataSet(LastQueryResp resp) {
     this.paths = resp.getPaths();
     this.tagsList = resp.getTagsList();
     this.keys = getLongArrayFromByteBuffer(resp.queryDataSet.keys);
     this.values =
         getValuesFromBufferAndBitmaps(
             resp.dataTypeList, resp.queryDataSet.valuesList, resp.queryDataSet.bitmapList);
-  }
+}
 
-  public SessionQueryDataSet(ShowColumnsResp resp) {
+public SessionQueryDataSet(ShowColumnsResp resp) {
     this.paths = resp.getPaths();
     this.keys = null;
-  }
+}
 
-  public SessionQueryDataSet(QueryDataResp resp) {
+public SessionQueryDataSet(QueryDataResp resp) {
     this.paths = resp.getPaths();
     this.tagsList = resp.getTagsList();
     this.keys = getLongArrayFromByteBuffer(resp.queryDataSet.keys);
     this.values =
         getValuesFromBufferAndBitmaps(
             resp.dataTypeList, resp.queryDataSet.valuesList, resp.queryDataSet.bitmapList);
-  }
+}
 
-  public SessionQueryDataSet(DownsampleQueryResp resp) {
+public SessionQueryDataSet(DownsampleQueryResp resp) {
     this.paths = resp.getPaths();
     this.tagsList = resp.getTagsList();
     if (resp.queryDataSet != null) {
-      this.keys = getLongArrayFromByteBuffer(resp.queryDataSet.keys);
-      this.values =
-          getValuesFromBufferAndBitmaps(
-              resp.dataTypeList, resp.queryDataSet.valuesList, resp.queryDataSet.bitmapList);
+    this.keys = getLongArrayFromByteBuffer(resp.queryDataSet.keys);
+    this.values =
+        getValuesFromBufferAndBitmaps(
+            resp.dataTypeList, resp.queryDataSet.valuesList, resp.queryDataSet.bitmapList);
     } else {
-      this.keys = new long[0];
-      values = new ArrayList<>();
+    this.keys = new long[0];
+    values = new ArrayList<>();
     }
     if (this.paths == null) {
-      this.paths = new ArrayList<>();
+    this.paths = new ArrayList<>();
     }
-  }
+}
 
-  public List<String> getPaths() {
+public List<String> getPaths() {
     return paths;
-  }
+}
 
-  public long[] getKeys() {
+public long[] getKeys() {
     return keys;
-  }
+}
 
-  public List<List<Object>> getValues() {
+public List<List<Object>> getValues() {
     return values;
-  }
+}
 
-  public void print() {
+public void print() {
     System.out.println("Start to Print ResultSets:");
     System.out.print("Time\t");
     for (int i = 0; i < paths.size(); i++) {
-      System.out.print(paths.get(i) + "\t");
+    System.out.print(paths.get(i) + "\t");
     }
     System.out.println();
 
     for (int i = 0; i < keys.length; i++) {
-      System.out.print(keys[i] + "\t");
-      for (int j = 0; j < paths.size(); j++) {
+    System.out.print(keys[i] + "\t");
+    for (int j = 0; j < paths.size(); j++) {
         if (values.get(i).get(j) instanceof byte[]) {
-          System.out.print(new String((byte[]) values.get(i).get(j)) + "\t");
+        System.out.print(new String((byte[]) values.get(i).get(j)) + "\t");
         } else {
-          System.out.print(values.get(i).get(j) + "\t");
+        System.out.print(values.get(i).get(j) + "\t");
         }
-      }
-      System.out.println();
+    }
+    System.out.println();
     }
     System.out.println("Printing ResultSets Finished.");
-  }
+}
 }

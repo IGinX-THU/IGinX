@@ -9,8 +9,8 @@ import org.junit.Test;
 
 public class ConnectionParamsTest {
 
-  @Test
-  public void testParseURL() throws IginxUrlException {
+@Test
+public void testParseURL() throws IginxUrlException {
     String userName = "root";
     String userPwd = "root";
     String host1 = "localhost";
@@ -34,5 +34,5 @@ public class ConnectionParamsTest {
     assertEquals(params.getPort(), port2);
     assertEquals(params.getUsername(), userName);
     assertEquals(params.getPassword(), userPwd);
-  }
+}
 }

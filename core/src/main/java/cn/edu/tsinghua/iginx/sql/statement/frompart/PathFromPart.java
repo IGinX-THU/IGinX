@@ -4,39 +4,39 @@ import cn.edu.tsinghua.iginx.sql.statement.frompart.join.JoinCondition;
 
 public class PathFromPart implements FromPart {
 
-  private final FromPartType type = FromPartType.PathFromPart;
-  private final String path;
-  private final boolean isJoinPart;
-  private JoinCondition joinCondition;
+private final FromPartType type = FromPartType.PathFromPart;
+private final String path;
+private final boolean isJoinPart;
+private JoinCondition joinCondition;
 
-  public PathFromPart(String path) {
+public PathFromPart(String path) {
     this.path = path;
     this.isJoinPart = false;
-  }
+}
 
-  public PathFromPart(String path, JoinCondition joinCondition) {
+public PathFromPart(String path, JoinCondition joinCondition) {
     this.path = path;
     this.joinCondition = joinCondition;
     this.isJoinPart = true;
-  }
+}
 
-  @Override
-  public FromPartType getType() {
+@Override
+public FromPartType getType() {
     return type;
-  }
+}
 
-  @Override
-  public String getPath() {
+@Override
+public String getPath() {
     return path;
-  }
+}
 
-  @Override
-  public boolean isJoinPart() {
+@Override
+public boolean isJoinPart() {
     return isJoinPart;
-  }
+}
 
-  @Override
-  public JoinCondition getJoinCondition() {
+@Override
+public JoinCondition getJoinCondition() {
     return joinCondition;
-  }
+}
 }

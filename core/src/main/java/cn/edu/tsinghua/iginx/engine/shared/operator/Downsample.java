@@ -26,66 +26,66 @@ import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 
 public class Downsample extends AbstractUnaryOperator {
 
-  private final long precision;
+private final long precision;
 
-  private final long slideDistance;
+private final long slideDistance;
 
-  private final FunctionCall functionCall;
+private final FunctionCall functionCall;
 
-  private final KeyRange keyRange;
+private final KeyRange keyRange;
 
-  public Downsample(
-      Source source,
-      long precision,
-      long slideDistance,
-      FunctionCall functionCall,
-      KeyRange keyRange) {
+public Downsample(
+    Source source,
+    long precision,
+    long slideDistance,
+    FunctionCall functionCall,
+    KeyRange keyRange) {
     super(OperatorType.Downsample, source);
     if (precision <= 0) {
-      throw new IllegalArgumentException("precision should be greater than zero");
+    throw new IllegalArgumentException("precision should be greater than zero");
     }
     if (slideDistance <= 0) {
-      throw new IllegalArgumentException("slide distance should be greater than zero");
+    throw new IllegalArgumentException("slide distance should be greater than zero");
     }
     if (functionCall == null || functionCall.getFunction() == null) {
-      throw new IllegalArgumentException("function shouldn't be null");
+    throw new IllegalArgumentException("function shouldn't be null");
     }
     if (functionCall.getFunction().getMappingType() != MappingType.SetMapping) {
-      throw new IllegalArgumentException("function should be set mapping function");
+    throw new IllegalArgumentException("function should be set mapping function");
     }
     if (keyRange == null) {
-      throw new IllegalArgumentException("timeRange shouldn't be null");
+    throw new IllegalArgumentException("timeRange shouldn't be null");
     }
     this.precision = precision;
     this.slideDistance = slideDistance;
     this.functionCall = functionCall;
     this.keyRange = keyRange;
-  }
+}
 
-  public long getPrecision() {
+public long getPrecision() {
     return precision;
-  }
+}
 
-  public long getSlideDistance() {
+public long getSlideDistance() {
     return slideDistance;
-  }
+}
 
-  public FunctionCall getFunctionCall() {
+public FunctionCall getFunctionCall() {
     return functionCall;
-  }
+}
 
-  public KeyRange getKeyRange() {
+public KeyRange getKeyRange() {
     return keyRange;
-  }
+}
 
-  @Override
-  public Operator copy() {
+@Override
+public Operator copy() {
     return new Downsample(
         getSource().copy(), precision, slideDistance, functionCall.copy(), keyRange.copy());
-  }
+}
 
-  @Override
-  public String getInfo() {
+@Override
+public String getInfo() {
     return "Precision: "
         + precision
         + ", SlideDistance: "
@@ -94,5 +94,5 @@ public class Downsample extends AbstractUnaryOperator {
         + keyRange.toString()
         + ", Func: "
         + functionCall.toString();
-  }
+}
 }

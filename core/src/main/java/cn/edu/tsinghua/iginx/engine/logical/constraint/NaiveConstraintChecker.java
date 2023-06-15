@@ -4,16 +4,16 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 
 public class NaiveConstraintChecker implements ConstraintChecker {
 
-  private static final NaiveConstraintChecker instance = new NaiveConstraintChecker();
+private static final NaiveConstraintChecker instance = new NaiveConstraintChecker();
 
-  private NaiveConstraintChecker() {}
+private NaiveConstraintChecker() {}
 
-  public static NaiveConstraintChecker getInstance() {
+public static NaiveConstraintChecker getInstance() {
     return instance;
-  }
+}
 
-  @Override
-  public boolean check(Operator root) {
+@Override
+public boolean check(Operator root) {
     return true;
-  }
+}
 }

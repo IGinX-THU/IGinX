@@ -23,5 +23,5 @@ import java.util.List;
 
 public interface IPayloadFormatter {
 
-  List<Message> format(ByteBuf payload);
+List<Message> format(ByteBuf payload);
 }

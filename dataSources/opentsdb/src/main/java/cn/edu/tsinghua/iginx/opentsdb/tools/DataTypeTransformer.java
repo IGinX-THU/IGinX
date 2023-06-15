@@ -8,41 +8,41 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 
 public class DataTypeTransformer {
 
-  public static final String DATA_TYPE = "data_type";
+public static final String DATA_TYPE = "data_type";
 
-  public static DataType fromOpenTSDB(String dataType) {
+public static DataType fromOpenTSDB(String dataType) {
     switch (dataType.toLowerCase()) {
-      case "boolean":
+    case "boolean":
         return BOOLEAN;
-      case "integer":
+    case "integer":
         return INTEGER;
-      case "long":
+    case "long":
         return LONG;
-      case "float":
+    case "float":
         return FLOAT;
-      case "double":
+    case "double":
         return DOUBLE;
-      case "binary":
+    case "binary":
         return BINARY;
-      default:
+    default:
         throw new UnsupportedDataTypeException(dataType);
     }
-  }
+}
 
-  public static Object getValue(String dataType, Number data) {
+public static Object getValue(String dataType, Number data) {
     switch (dataType.toLowerCase()) {
-      case "boolean":
+    case "boolean":
         return data.intValue() == 1;
-      case "integer":
+    case "integer":
         return data.intValue();
-      case "long":
+    case "long":
         return data.longValue();
-      case "float":
+    case "float":
         return data.floatValue();
-      case "double":
+    case "double":
         return data.doubleValue();
-      default:
+    default:
         throw new UnsupportedDataTypeException(dataType);
     }
-  }
+}
 }

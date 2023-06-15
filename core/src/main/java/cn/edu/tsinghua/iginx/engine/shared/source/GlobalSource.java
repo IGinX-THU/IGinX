@@ -2,12 +2,12 @@ package cn.edu.tsinghua.iginx.engine.shared.source;
 
 public class GlobalSource extends AbstractSource {
 
-  public GlobalSource() {
+public GlobalSource() {
     super(SourceType.Global);
-  }
+}
 
-  @Override
-  public Source copy() {
+@Override
+public Source copy() {
     return new GlobalSource();
-  }
+}
 }

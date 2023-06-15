@@ -29,64 +29,64 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class UserManager {
-  @SuppressWarnings("unused")
-  private static final Logger logger = LoggerFactory.getLogger(UserManager.class);
+@SuppressWarnings("unused")
+private static final Logger logger = LoggerFactory.getLogger(UserManager.class);
 
-  private static UserManager instance;
+private static UserManager instance;
 
-  private final IMetaManager metaManager;
+private final IMetaManager metaManager;
 
-  private UserManager(IMetaManager metaManager) {
+private UserManager(IMetaManager metaManager) {
     this.metaManager = metaManager;
-  }
+}
 
-  public static UserManager getInstance() {
+public static UserManager getInstance() {
     if (instance == null) {
-      synchronized (UserManager.class) {
+    synchronized (UserManager.class) {
         if (instance == null) {
-          instance = new UserManager(DefaultMetaManager.getInstance());
+        instance = new UserManager(DefaultMetaManager.getInstance());
         }
-      }
+    }
     }
     return instance;
-  }
+}
 
-  public boolean hasUser(String username) {
+public boolean hasUser(String username) {
     UserMeta user = metaManager.getUser(username);
     return user != null;
-  }
+}
 
-  public boolean checkUser(String username, String password) {
+public boolean checkUser(String username, String password) {
     UserMeta user = metaManager.getUser(username);
     return user != null && user.getPassword().equals(password);
-  }
+}
 
-  public boolean addUser(String username, String password, Set<AuthType> auths) {
+public boolean addUser(String username, String password, Set<AuthType> auths) {
     UserMeta user = new UserMeta(username, password, UserType.OrdinaryUser, auths);
     return metaManager.addUser(user);
-  }
+}
 
-  public boolean updateUser(String username, String password, Set<AuthType> auths) {
+public boolean updateUser(String username, String password, Set<AuthType> auths) {
     return metaManager.updateUser(username, password, auths);
-  }
+}
 
-  public boolean deleteUser(String username) {
+public boolean deleteUser(String username) {
     UserMeta user = getUser(username);
     if (user == null || user.getUserType() == UserType.Administrator) {
-      return false;
+    return false;
     }
     return metaManager.removeUser(username);
-  }
+}
 
-  public UserMeta getUser(String username) {
+public UserMeta getUser(String username) {
     return metaManager.getUser(username);
-  }
+}
 
-  public List<UserMeta> getUsers(List<String> usernames) {
+public List<UserMeta> getUsers(List<String> usernames) {
     return metaManager.getUsers(usernames);
-  }
+}
 
-  public List<UserMeta> getUsers() {
+public List<UserMeta> getUsers() {
     return metaManager.getUsers();
-  }
+}
 }

@@ -29,45 +29,45 @@ import java.util.List;
 
 public class SortLazyStream extends UnaryLazyStream {
 
-  private final Sort sort;
+private final Sort sort;
 
-  private final boolean asc;
+private final boolean asc;
 
-  private final List<Row> rows;
+private final List<Row> rows;
 
-  private boolean hasSorted = false;
+private boolean hasSorted = false;
 
-  private int cur = 0;
+private int cur = 0;
 
-  public SortLazyStream(Sort sort, RowStream stream) {
+public SortLazyStream(Sort sort, RowStream stream) {
     super(stream);
     this.sort = sort;
     this.asc = sort.getSortType() == Sort.SortType.ASC;
     this.rows = new ArrayList<>();
-  }
+}
 
-  @Override
-  public Header getHeader() throws PhysicalException {
+@Override
+public Header getHeader() throws PhysicalException {
     return stream.getHeader();
-  }
+}
 
-  @Override
-  public boolean hasNext() throws PhysicalException {
+@Override
+public boolean hasNext() throws PhysicalException {
     if (!hasSorted) {
-      while (stream.hasNext()) {
+    while (stream.hasNext()) {
         rows.add(stream.next());
-      }
-      RowUtils.sortRows(rows, asc, sort.getSortByCols());
-      hasSorted = true;
+    }
+    RowUtils.sortRows(rows, asc, sort.getSortByCols());
+    hasSorted = true;
     }
     return cur < rows.size();
-  }
+}
 
-  @Override
-  public Row next() throws PhysicalException {
+@Override
+public Row next() throws PhysicalException {
     if (!hasNext()) {
-      throw new IllegalStateException("row stream doesn't have more data!");
+    throw new IllegalStateException("row stream doesn't have more data!");
     }
     return rows.get(cur++);
-  }
+}
 }

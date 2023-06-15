@@ -10,18 +10,18 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 
 public class DataTypeTransformer {
 
-  public static DataType fromInfluxDB(String dataType) {
+public static DataType fromInfluxDB(String dataType) {
     switch (dataType) {
-      case "boolean":
+    case "boolean":
         return BOOLEAN;
-      case "long":
+    case "long":
         return LONG;
-      case "double":
+    case "double":
         return DOUBLE;
-      case "string":
+    case "string":
         return BINARY;
-      default:
+    default:
         throw new UnsupportedDataTypeException(dataType);
     }
-  }
+}
 }

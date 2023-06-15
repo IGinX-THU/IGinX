@@ -39,24 +39,24 @@ import org.apache.thrift.TException;
 
 public class ClusterClientImpl extends AbstractFunctionClient implements ClusterClient {
 
-  public ClusterClientImpl(IginXClientImpl iginXClient) {
+public ClusterClientImpl(IginXClientImpl iginXClient) {
     super(iginXClient);
-  }
+}
 
-  @Override
-  public ClusterInfo getClusterInfo() throws IginXException {
+@Override
+public ClusterInfo getClusterInfo() throws IginXException {
     GetClusterInfoReq req = new GetClusterInfoReq(sessionId);
 
     GetClusterInfoResp resp;
     synchronized (iginXClient) {
-      iginXClient.checkIsClosed();
+    iginXClient.checkIsClosed();
 
-      try {
+    try {
         resp = client.getClusterInfo(req);
         RpcUtils.verifySuccess(resp.status);
-      } catch (TException | ExecutionException e) {
+    } catch (TException | ExecutionException e) {
         throw new IginXException("get cluster info failure: ", e);
-      }
+    }
     }
 
     return new ClusterInfo(
@@ -64,16 +64,16 @@ public class ClusterClientImpl extends AbstractFunctionClient implements Cluster
         resp.getStorageEngineInfos(),
         resp.getLocalMetaStorageInfo(),
         resp.getMetaStorageInfos());
-  }
+}
 
-  @Override
-  public void scaleOutStorage(Storage storage) throws IginXException {
+@Override
+public void scaleOutStorage(Storage storage) throws IginXException {
     Arguments.checkNotNull(storage, "storage");
     scaleOutStorages(Collections.singletonList(storage));
-  }
+}
 
-  @Override
-  public void scaleOutStorages(List<Storage> storages) throws IginXException {
+@Override
+public void scaleOutStorages(List<Storage> storages) throws IginXException {
     Arguments.checkNotNull(storages, "storages");
     storages.forEach(storage -> Arguments.checkNotNull(storage, "storage"));
 
@@ -83,35 +83,35 @@ public class ClusterClientImpl extends AbstractFunctionClient implements Cluster
     AddStorageEnginesReq req = new AddStorageEnginesReq(sessionId, storageEngines);
 
     synchronized (iginXClient) {
-      iginXClient.checkIsClosed();
-      try {
+    iginXClient.checkIsClosed();
+    try {
         Status status = client.addStorageEngines(req);
         RpcUtils.verifySuccess(status);
-      } catch (TException | ExecutionException e) {
+    } catch (TException | ExecutionException e) {
         throw new IginXException("scale out storage failure: ", e);
-      }
     }
-  }
+    }
+}
 
-  @Override
-  public int getReplicaNum() throws IginXException {
+@Override
+public int getReplicaNum() throws IginXException {
     GetReplicaNumReq req = new GetReplicaNumReq(sessionId);
 
     GetReplicaNumResp resp;
     synchronized (iginXClient) {
-      iginXClient.checkIsClosed();
-      try {
+    iginXClient.checkIsClosed();
+    try {
         resp = client.getReplicaNum(req);
         RpcUtils.verifySuccess(resp.status);
-      } catch (TException | ExecutionException e) {
+    } catch (TException | ExecutionException e) {
         throw new IginXException("get replica num failure: ", e);
-      }
+    }
     }
     return resp.getReplicaNum();
-  }
+}
 
-  private static StorageEngine toStorageEngine(Storage storage) {
+private static StorageEngine toStorageEngine(Storage storage) {
     return new StorageEngine(
         storage.getIp(), storage.getPort(), storage.getType(), storage.getExtraParams());
-  }
+}
 }

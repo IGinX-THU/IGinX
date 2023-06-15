@@ -16,55 +16,51 @@ import org.junit.Test;
 
 class InfluxDBFilterTransformer {
 
-  public static String toString(Filter filter) {
+public static String toString(Filter filter) {
     switch (filter.getType()) {
-      case And:
+    case And:
         return toString((AndFilter) filter);
-      case Or:
+    case Or:
         return toString((OrFilter) filter);
-      case Not:
+    case Not:
         return toString((NotFilter) filter);
-      case Value:
+    case Value:
         return toString((ValueFilter) filter);
-      case Key:
+    case Key:
         return toString((KeyFilter) filter);
-      default:
+    default:
         return "";
     }
-  }
+}
 
-  private static String toString(AndFilter filter) {
-    return filter
-        .getChildren()
-        .stream()
+private static String toString(AndFilter filter) {
+    return filter.getChildren().stream()
         .map(InfluxDBFilterTransformer::toString)
         .collect(Collectors.joining(" and ", "(", ")"));
-  }
+}
 
-  private static String toString(NotFilter filter) {
+private static String toString(NotFilter filter) {
     return "not " + filter.toString();
-  }
+}
 
-  private static String toString(KeyFilter filter) {
+private static String toString(KeyFilter filter) {
     return "time " + Op.op2Str(filter.getOp()) + " " + filter.getValue();
-  }
+}
 
-  private static String toString(ValueFilter filter) {
+private static String toString(ValueFilter filter) {
     return filter.getPath() + " " + Op.op2Str(filter.getOp()) + " " + filter.getValue().getValue();
-  }
+}
 
-  private static String toString(OrFilter filter) {
-    return filter
-        .getChildren()
-        .stream()
+private static String toString(OrFilter filter) {
+    return filter.getChildren().stream()
         .map(InfluxDBFilterTransformer::toString)
         .collect(Collectors.joining(" or ", "(", ")"));
-  }
+}
 }
 
 public class ExprUtilsTest {
-  @Test
-  public void testRemoveNot() {
+@Test
+public void testRemoveNot() {
     String select = "SELECT a FROM root WHERE !(a != 10);";
     SelectStatement statement = (SelectStatement) TestUtils.buildStatement(select);
     Filter filter = statement.getFilter();
@@ -88,10 +84,10 @@ public class ExprUtilsTest {
     filter = statement.getFilter();
     System.out.println(filter.toString());
     System.out.println(ExprUtils.removeNot(filter).toString());
-  }
+}
 
-  @Test
-  public void testToDNF() {
+@Test
+public void testToDNF() {
     String select = "SELECT a FROM root WHERE a > 5 AND b <= 10 OR c > 7 AND d == 8;";
     SelectStatement statement = (SelectStatement) TestUtils.buildStatement(select);
     Filter filter = statement.getFilter();
@@ -116,10 +112,10 @@ public class ExprUtilsTest {
     filter = statement.getFilter();
     System.out.println(filter.toString());
     System.out.println(ExprUtils.toDNF(filter).toString());
-  }
+}
 
-  @Test
-  public void testToCNF() {
+@Test
+public void testToCNF() {
     String select = "SELECT a FROM root WHERE a > 5 OR b <= 10 AND c > 7 OR d == 8;";
     SelectStatement statement = (SelectStatement) TestUtils.buildStatement(select);
     Filter filter = statement.getFilter();
@@ -152,10 +148,10 @@ public class ExprUtilsTest {
     System.out.println(InfluxDBFilterTransformer.toString(filter));
     System.out.println(ExprUtils.toCNF(filter).toString());
     System.out.println(InfluxDBFilterTransformer.toString(ExprUtils.toCNF(filter)));
-  }
+}
 
-  @Test
-  public void testTimeRange() {
+@Test
+public void testTimeRange() {
     String delete = "DELETE FROM root.a WHERE (key > 5 AND key <= 10) OR (key > 12 AND key < 15);";
     DeleteStatement statement = (DeleteStatement) TestUtils.buildStatement(delete);
     assertEquals(
@@ -185,16 +181,16 @@ public class ExprUtilsTest {
     statement = (DeleteStatement) TestUtils.buildStatement(delete);
     assertEquals(
         Collections.singletonList(new KeyRange(0, Long.MAX_VALUE)), statement.getKeyRanges());
-  }
+}
 
-  @Test(expected = SQLParserException.class)
-  public void testErrDelete() {
+@Test(expected = SQLParserException.class)
+public void testErrDelete() {
     String delete = "DELETE FROM root.a WHERE key < 61 AND key > 616;";
     TestUtils.buildStatement(delete);
-  }
+}
 
-  @Test
-  public void testGetSubFilterFromFragment() {
+@Test
+public void testGetSubFilterFromFragment() {
     // sub1
     String select =
         "SELECT a FROM root WHERE (a > 5 OR d < 15) AND !(e < 27) AND (c < 10 OR b > 2) AND key > 10 AND key <= 100;";
@@ -244,5 +240,5 @@ public class ExprUtilsTest {
         "True",
         ExprUtils.getSubFilterFromFragment(filter, new ColumnsInterval("root.h", "root.z"))
             .toString());
-  }
+}
 }

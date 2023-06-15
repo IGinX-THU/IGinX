@@ -34,33 +34,33 @@ import org.slf4j.LoggerFactory;
 
 public class NewSessionIT {
 
-  protected static final Logger logger = LoggerFactory.getLogger(NewSessionIT.class);
+protected static final Logger logger = LoggerFactory.getLogger(NewSessionIT.class);
 
-  protected static MultiConnection conn;
-  protected static boolean isForSession = true;
-  protected static boolean isForSessionPool = false;
+protected static MultiConnection conn;
+protected static boolean isForSession = true;
+protected static boolean isForSessionPool = false;
 
-  // host info
-  protected static String defaultTestHost = "127.0.0.1";
-  protected static int defaultTestPort = 6888;
-  protected static String defaultTestUser = "root";
-  protected static String defaultTestPass = "root";
+// host info
+protected static String defaultTestHost = "127.0.0.1";
+protected static int defaultTestPort = 6888;
+protected static String defaultTestUser = "root";
+protected static String defaultTestPass = "root";
 
-  private static final long START_KEY = 0L;
+private static final long START_KEY = 0L;
 
-  private static final long END_KEY = 16000L;
+private static final long END_KEY = 16000L;
 
-  private static final double DELTA = 0.0001D;
+private static final double DELTA = 0.0001D;
 
-  private static final TestDataSection baseDataSection = buildBaseDataSection();
+private static final TestDataSection baseDataSection = buildBaseDataSection();
 
-  private static boolean isInfluxdb = false;
+private static boolean isInfluxdb = false;
 
-  private static boolean isAbleToDelete = true;
+private static boolean isAbleToDelete = true;
 
-  public NewSessionIT() {}
+public NewSessionIT() {}
 
-  private static TestDataSection buildBaseDataSection() {
+private static TestDataSection buildBaseDataSection() {
     List<String> paths =
         Arrays.asList(
             "us.d1.s1", "us.d1.s2", "us.d1.s3", "us.d1.s4", "us.d1.s5", "us.d1.s6", "us.d1.s7");
@@ -78,66 +78,66 @@ public class NewSessionIT {
 
     long size = END_KEY - START_KEY;
     for (int i = 0; i < size; i++) {
-      keys.add(START_KEY + i);
-      values.add(
-          Arrays.asList(
-              i % 2 == 0,
-              i,
-              (long) i,
-              i + 0.1f,
-              i + 0.2d,
-              String.valueOf(i).getBytes(),
-              new String(RandomStringUtils.randomAlphanumeric(10).getBytes()).getBytes()));
+    keys.add(START_KEY + i);
+    values.add(
+        Arrays.asList(
+            i % 2 == 0,
+            i,
+            (long) i,
+            i + 0.1f,
+            i + 0.2d,
+            String.valueOf(i).getBytes(),
+            new String(RandomStringUtils.randomAlphanumeric(10).getBytes()).getBytes()));
     }
     return new TestDataSection(keys, types, paths, values);
-  }
+}
 
-  @BeforeClass
-  public static void setUp() throws SessionException {
+@BeforeClass
+public static void setUp() throws SessionException {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     if (DBType.valueOf(conf.getStorageType().toLowerCase()) == DBType.influxdb) {
-      isInfluxdb = true;
+    isInfluxdb = true;
     }
     DBConf dbConf = conf.loadDBConf(conf.getStorageType());
     isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
     if (isForSession) {
-      conn =
-          new MultiConnection(
-              new Session(defaultTestHost, defaultTestPort, defaultTestUser, defaultTestPass));
+    conn =
+        new MultiConnection(
+            new Session(defaultTestHost, defaultTestPort, defaultTestUser, defaultTestPass));
     } else if (isForSessionPool) {
-      conn =
-          new MultiConnection(
-              new SessionPool(
-                  new ArrayList<IginxInfo>() {
+    conn =
+        new MultiConnection(
+            new SessionPool(
+                new ArrayList<IginxInfo>() {
                     {
-                      add(
-                          new IginxInfo.Builder()
-                              .host("0.0.0.0")
-                              .port(6888)
-                              .user("root")
-                              .password("root")
-                              .build());
+                    add(
+                        new IginxInfo.Builder()
+                            .host("0.0.0.0")
+                            .port(6888)
+                            .user("root")
+                            .password("root")
+                            .build());
 
-                      add(
-                          new IginxInfo.Builder()
-                              .host("0.0.0.0")
-                              .port(7888)
-                              .user("root")
-                              .password("root")
-                              .build());
+                    add(
+                        new IginxInfo.Builder()
+                            .host("0.0.0.0")
+                            .port(7888)
+                            .user("root")
+                            .password("root")
+                            .build());
                     }
-                  }));
+                }));
     }
     conn.openSession();
-  }
+}
 
-  @AfterClass
-  public static void tearDown() throws SessionException {
+@AfterClass
+public static void tearDown() throws SessionException {
     conn.closeSession();
-  }
+}
 
-  @Before
-  public void insertBaseData() {
+@Before
+public void insertBaseData() {
     // insert base data using all types of insert API.
     List<InsertAPIType> insertAPITypes =
         Arrays.asList(
@@ -147,250 +147,246 @@ public class NewSessionIT {
             InsertAPIType.NonAlignedColumn);
     long size = (END_KEY - START_KEY) / insertAPITypes.size();
     for (int i = 0; i < insertAPITypes.size(); i++) {
-      long start = i * size, end = start + size;
-      TestDataSection subBaseData = baseDataSection.getSubDataSectionWithKey(start, end);
-      insertData(subBaseData, insertAPITypes.get(i));
+    long start = i * size, end = start + size;
+    TestDataSection subBaseData = baseDataSection.getSubDataSectionWithKey(start, end);
+    insertData(subBaseData, insertAPITypes.get(i));
     }
-  }
+}
 
-  @After
-  public void clearData() throws SessionException {
+@After
+public void clearData() throws SessionException {
     Controller.clearData(conn);
-  }
+}
 
-  private void insertData(TestDataSection data, InsertAPIType type) {
+private void insertData(TestDataSection data, InsertAPIType type) {
     try {
-      switch (type) {
+    switch (type) {
         case Row:
-          conn.insertRowRecords(
-              data.getPaths(),
-              data.getKeys().stream().mapToLong(l -> l).toArray(),
-              data.getValues()
-                  .stream()
-                  .map(innerList -> innerList.toArray(new Object[0]))
-                  .toArray(Object[][]::new),
-              data.getTypes(),
-              data.getTagsList());
+        conn.insertRowRecords(
+            data.getPaths(),
+            data.getKeys().stream().mapToLong(l -> l).toArray(),
+            data.getValues().stream()
+                .map(innerList -> innerList.toArray(new Object[0]))
+                .toArray(Object[][]::new),
+            data.getTypes(),
+            data.getTagsList());
         case NonAlignedRow:
-          conn.insertNonAlignedRowRecords(
-              data.getPaths(),
-              data.getKeys().stream().mapToLong(l -> l).toArray(),
-              data.getValues()
-                  .stream()
-                  .map(innerList -> innerList.toArray(new Object[0]))
-                  .toArray(Object[][]::new),
-              data.getTypes(),
-              data.getTagsList());
+        conn.insertNonAlignedRowRecords(
+            data.getPaths(),
+            data.getKeys().stream().mapToLong(l -> l).toArray(),
+            data.getValues().stream()
+                .map(innerList -> innerList.toArray(new Object[0]))
+                .toArray(Object[][]::new),
+            data.getTypes(),
+            data.getTagsList());
         case Column:
-          conn.insertColumnRecords(
-              data.getPaths(),
-              data.getKeys().stream().mapToLong(l -> l).toArray(),
-              transpose(
-                  data.getValues()
-                      .stream()
-                      .map(innerList -> innerList.toArray(new Object[0]))
-                      .toArray(Object[][]::new)),
-              data.getTypes(),
-              data.getTagsList());
+        conn.insertColumnRecords(
+            data.getPaths(),
+            data.getKeys().stream().mapToLong(l -> l).toArray(),
+            transpose(
+                data.getValues().stream()
+                    .map(innerList -> innerList.toArray(new Object[0]))
+                    .toArray(Object[][]::new)),
+            data.getTypes(),
+            data.getTagsList());
         case NonAlignedColumn:
-          conn.insertNonAlignedColumnRecords(
-              data.getPaths(),
-              data.getKeys().stream().mapToLong(l -> l).toArray(),
-              transpose(
-                  data.getValues()
-                      .stream()
-                      .map(innerList -> innerList.toArray(new Object[0]))
-                      .toArray(Object[][]::new)),
-              data.getTypes(),
-              data.getTagsList());
-      }
-    } catch (SessionException | ExecutionException e) {
-      logger.error("Insert date fail. Caused by: {}.", e.getMessage());
-      fail();
+        conn.insertNonAlignedColumnRecords(
+            data.getPaths(),
+            data.getKeys().stream().mapToLong(l -> l).toArray(),
+            transpose(
+                data.getValues().stream()
+                    .map(innerList -> innerList.toArray(new Object[0]))
+                    .toArray(Object[][]::new)),
+            data.getTypes(),
+            data.getTagsList());
     }
-  }
+    } catch (SessionException | ExecutionException e) {
+    logger.error("Insert date fail. Caused by: {}.", e.getMessage());
+    fail();
+    }
+}
 
-  private Object[][] transpose(Object[][] array) {
+private Object[][] transpose(Object[][] array) {
     int maxLength = 0;
     for (Object[] objects : array) {
-      maxLength = Math.max(maxLength, objects.length);
+    maxLength = Math.max(maxLength, objects.length);
     }
     Object[][] transposed = new Object[maxLength][array.length];
     for (int i = 0; i < array.length; i++) {
-      for (int j = 0; j < array[i].length; j++) {
+    for (int j = 0; j < array[i].length; j++) {
         transposed[j][i] = array[i][j];
-      }
+    }
     }
     return transposed;
-  }
+}
 
-  private void compare(TestDataSection expected, SessionQueryDataSet actual) {
+private void compare(TestDataSection expected, SessionQueryDataSet actual) {
     compareKeys(expected.getKeys(), actual.getKeys());
     comparePaths(expected.getPaths(), actual.getPaths());
     compareValues(expected.getValues(), actual.getValues());
-  }
+}
 
-  private void compare(TestDataSection expected, SessionAggregateQueryDataSet actual) {
+private void compare(TestDataSection expected, SessionAggregateQueryDataSet actual) {
     assertNull(actual.getKeys());
     comparePaths(expected.getPaths(), actual.getPaths());
     compareValues(expected.getValues(), actual.getValues());
-  }
+}
 
-  private void compareKeys(List<Long> expectedKeys, long[] actualKeys) {
+private void compareKeys(List<Long> expectedKeys, long[] actualKeys) {
     assertEquals(expectedKeys.size(), actualKeys.length);
     for (int i = 0; i < expectedKeys.size(); i++) {
-      if (expectedKeys.get(i) == null) {
+    if (expectedKeys.get(i) == null) {
         fail();
-      }
-      long expectedKey = expectedKeys.get(i); // unboxing
-      assertEquals(expectedKey, actualKeys[i]);
     }
-  }
+    long expectedKey = expectedKeys.get(i); // unboxing
+    assertEquals(expectedKey, actualKeys[i]);
+    }
+}
 
-  private void comparePaths(List<String> expectedPaths, List<String> actualPaths) {
+private void comparePaths(List<String> expectedPaths, List<String> actualPaths) {
     assertEquals(expectedPaths.size(), actualPaths.size());
     for (int i = 0; i < expectedPaths.size(); i++) {
-      assertEquals(expectedPaths.get(i), actualPaths.get(i));
+    assertEquals(expectedPaths.get(i), actualPaths.get(i));
     }
-  }
+}
 
-  private void compareValues(List<List<Object>> expectedValues, List<List<Object>> actualValues) {
+private void compareValues(List<List<Object>> expectedValues, List<List<Object>> actualValues) {
     assertEquals(expectedValues.size(), actualValues.size());
     for (int i = 0; i < expectedValues.size(); i++) {
-      List<Object> expectedRowValues = expectedValues.get(i);
-      List<Object> actualRowValues = actualValues.get(i);
-      assertEquals(expectedRowValues.size(), actualRowValues.size());
-      for (int j = 0; j < expectedRowValues.size(); j++) {
+    List<Object> expectedRowValues = expectedValues.get(i);
+    List<Object> actualRowValues = actualValues.get(i);
+    assertEquals(expectedRowValues.size(), actualRowValues.size());
+    for (int j = 0; j < expectedRowValues.size(); j++) {
         compareObjectValue(expectedRowValues.get(j), actualRowValues.get(j));
-      }
     }
-  }
+    }
+}
 
-  private void compareValues(List<List<Object>> expectedValues, Object[] actualValues) {
+private void compareValues(List<List<Object>> expectedValues, Object[] actualValues) {
     assertEquals(1, expectedValues.size());
     List<Object> rowValues = expectedValues.get(0);
     assertEquals(rowValues.size(), actualValues.length);
     for (int i = 0; i < rowValues.size(); i++) {
-      compareObjectValue(rowValues.get(i), actualValues[i]);
+    compareObjectValue(rowValues.get(i), actualValues[i]);
     }
-  }
+}
 
-  private void compareObjectValue(Object expected, Object actual) {
+private void compareObjectValue(Object expected, Object actual) {
     if (expected.getClass() != actual.getClass() && !isInfluxdb) {
-      logger.error(
-          "Inconsistent data types, expected:{}, actual:{}",
-          expected.getClass(),
-          actual.getClass());
-      fail();
+    logger.error(
+        "Inconsistent data types, expected:{}, actual:{}",
+        expected.getClass(),
+        actual.getClass());
+    fail();
     }
     if (expected instanceof Boolean) {
-      boolean expectedVal = (boolean) expected;
-      boolean actualVal = (boolean) actual;
-      assertEquals(expectedVal, actualVal);
+    boolean expectedVal = (boolean) expected;
+    boolean actualVal = (boolean) actual;
+    assertEquals(expectedVal, actualVal);
     } else if (expected instanceof Integer) {
-      if (isInfluxdb) {
+    if (isInfluxdb) {
         long expectedVal = ((Integer) expected).longValue();
         long actualVal = (long) actual;
         assertEquals(expectedVal, actualVal);
         return;
-      }
-      int expectedVal = (int) expected;
-      int actualVal = (int) actual;
-      assertEquals(expectedVal, actualVal);
+    }
+    int expectedVal = (int) expected;
+    int actualVal = (int) actual;
+    assertEquals(expectedVal, actualVal);
     } else if (expected instanceof Long) {
-      long expectedVal = (long) expected;
-      long actualVal = (long) actual;
-      assertEquals(expectedVal, actualVal);
+    long expectedVal = (long) expected;
+    long actualVal = (long) actual;
+    assertEquals(expectedVal, actualVal);
     } else if (expected instanceof Float) {
-      if (isInfluxdb) {
+    if (isInfluxdb) {
         double expectedVal = ((Float) expected).doubleValue();
         double actualVal = (double) actual;
         assertEquals(expectedVal, actualVal, expectedVal * DELTA);
         return;
-      }
-      float expectedVal = (float) expected;
-      float actualVal = (float) actual;
-      assertEquals(expectedVal, actualVal, expectedVal * DELTA);
-    } else if (expected instanceof Double) {
-      double expectedVal = (double) expected;
-      double actualVal = (double) actual;
-      assertEquals(expectedVal, actualVal, expectedVal * DELTA);
-    } else if (expected instanceof byte[]) {
-      String expectedVal = new String((byte[]) expected);
-      String actualVal = new String((byte[]) actual);
-      assertEquals(expectedVal, actualVal);
-    } else {
-      String expectedVal = (String) expected;
-      String actualVal = (String) actual;
-      assertEquals(expectedVal, actualVal);
     }
-  }
+    float expectedVal = (float) expected;
+    float actualVal = (float) actual;
+    assertEquals(expectedVal, actualVal, expectedVal * DELTA);
+    } else if (expected instanceof Double) {
+    double expectedVal = (double) expected;
+    double actualVal = (double) actual;
+    assertEquals(expectedVal, actualVal, expectedVal * DELTA);
+    } else if (expected instanceof byte[]) {
+    String expectedVal = new String((byte[]) expected);
+    String actualVal = new String((byte[]) actual);
+    assertEquals(expectedVal, actualVal);
+    } else {
+    String expectedVal = (String) expected;
+    String actualVal = (String) actual;
+    assertEquals(expectedVal, actualVal);
+    }
+}
 
-  @Test
-  public void testQuery() {
+@Test
+public void testQuery() {
     List<String> paths =
         Arrays.asList(
             "us.d1.s1", "us.d1.s2", "us.d1.s3", "us.d1.s4", "us.d1.s5", "us.d1.s6", "us.d1.s7");
 
     // query first corner of the base data
     try {
-      long start = START_KEY, end = START_KEY + 100;
-      SessionQueryDataSet dataSet = conn.queryData(paths, start, end);
-      compare(baseDataSection.getSubDataSectionWithKey(start, end), dataSet);
+    long start = START_KEY, end = START_KEY + 100;
+    SessionQueryDataSet dataSet = conn.queryData(paths, start, end);
+    compare(baseDataSection.getSubDataSectionWithKey(start, end), dataSet);
     } catch (SessionException | ExecutionException e) {
-      logger.error("execute query data failed.");
-      fail();
+    logger.error("execute query data failed.");
+    fail();
     }
 
     // query middle of the base data
     try {
-      long mid = (START_KEY + END_KEY) / 2;
-      long start = mid - 50, end = mid + 50;
-      SessionQueryDataSet dataSet = conn.queryData(paths, start, end);
-      compare(baseDataSection.getSubDataSectionWithKey(start, end), dataSet);
+    long mid = (START_KEY + END_KEY) / 2;
+    long start = mid - 50, end = mid + 50;
+    SessionQueryDataSet dataSet = conn.queryData(paths, start, end);
+    compare(baseDataSection.getSubDataSectionWithKey(start, end), dataSet);
     } catch (SessionException | ExecutionException e) {
-      logger.error("execute query data failed.");
-      fail();
+    logger.error("execute query data failed.");
+    fail();
     }
 
     // query last corner of the base data
     try {
-      long start = END_KEY - 100, end = END_KEY;
-      SessionQueryDataSet dataSet = conn.queryData(paths, start, end);
-      compare(baseDataSection.getSubDataSectionWithKey(start, end), dataSet);
+    long start = END_KEY - 100, end = END_KEY;
+    SessionQueryDataSet dataSet = conn.queryData(paths, start, end);
+    compare(baseDataSection.getSubDataSectionWithKey(start, end), dataSet);
     } catch (SessionException | ExecutionException e) {
-      logger.error("execute query data failed.");
-      fail();
+    logger.error("execute query data failed.");
+    fail();
     }
-  }
+}
 
-  @Test
-  public void testDeletePaths() {
+@Test
+public void testDeletePaths() {
     // delete single path
     List<String> deleteColumns = Collections.singletonList("us.d1.s2");
     try {
-      conn.deleteColumns(deleteColumns);
-      SessionQueryDataSet dataSet = conn.queryData(deleteColumns, START_KEY, END_KEY);
-      compare(TestDataSection.EMPTY_TEST_DATA_SECTION, dataSet);
+    conn.deleteColumns(deleteColumns);
+    SessionQueryDataSet dataSet = conn.queryData(deleteColumns, START_KEY, END_KEY);
+    compare(TestDataSection.EMPTY_TEST_DATA_SECTION, dataSet);
     } catch (SessionException | ExecutionException e) {
-      logger.error("execute delete columns failed.");
-      fail();
+    logger.error("execute delete columns failed.");
+    fail();
     }
 
     // delete multi paths
     deleteColumns = Arrays.asList("us.d1.s1", "us.d1.s3", "us.d1.s5");
     try {
-      conn.deleteColumns(deleteColumns);
-      SessionQueryDataSet dataSet = conn.queryData(deleteColumns, START_KEY, END_KEY);
-      compare(TestDataSection.EMPTY_TEST_DATA_SECTION, dataSet);
+    conn.deleteColumns(deleteColumns);
+    SessionQueryDataSet dataSet = conn.queryData(deleteColumns, START_KEY, END_KEY);
+    compare(TestDataSection.EMPTY_TEST_DATA_SECTION, dataSet);
     } catch (SessionException | ExecutionException e) {
-      logger.error("execute delete columns failed.");
-      fail();
+    logger.error("execute delete columns failed.");
+    fail();
     }
-  }
+}
 
-  @Test
-  public void testAggregateQuery() {
+@Test
+public void testAggregateQuery() {
     List<String> paths = Arrays.asList("us.d1.s2", "us.d1.s3", "us.d1.s4", "us.d1.s5");
     List<DataType> types =
         Arrays.asList(DataType.INTEGER, DataType.LONG, DataType.FLOAT, DataType.DOUBLE);
@@ -459,19 +455,19 @@ public class NewSessionIT {
                     Arrays.asList("us.d1.s2".getBytes(), "15999".getBytes()))));
 
     for (int i = 0; i < aggregateTypes.size(); i++) {
-      AggregateType type = aggregateTypes.get(i);
-      try {
+    AggregateType type = aggregateTypes.get(i);
+    try {
         SessionAggregateQueryDataSet dataSet = conn.aggregateQuery(paths, START_KEY, END_KEY, type);
         compare(expectedResults.get(i), dataSet);
-      } catch (SessionException | ExecutionException e) {
+    } catch (SessionException | ExecutionException e) {
         logger.error("execute aggregate query failed, AggType={}", type);
         fail();
-      }
     }
-  }
+    }
+}
 
-  @Test
-  public void testDownsampleQuery() {
+@Test
+public void testDownsampleQuery() {
     List<String> paths = Arrays.asList("us.d1.s2", "us.d1.s3", "us.d1.s4", "us.d1.s5");
     List<DataType> types =
         Arrays.asList(DataType.INTEGER, DataType.LONG, DataType.FLOAT, DataType.DOUBLE);
@@ -555,93 +551,93 @@ public class NewSessionIT {
                     Arrays.asList(15999, 15999L, 15999.1f, 15999.2d))));
 
     for (int i = 0; i < aggregateTypes.size(); i++) {
-      AggregateType type = aggregateTypes.get(i);
-      try {
+    AggregateType type = aggregateTypes.get(i);
+    try {
         SessionQueryDataSet dataSet =
             conn.downsampleQuery(paths, START_KEY, END_KEY, type, precision);
         compare(expectedResults.get(i), dataSet);
-      } catch (SessionException | ExecutionException e) {
+    } catch (SessionException | ExecutionException e) {
         logger.error("execute downsample query failed, AggType={}, Precision={}", type, precision);
         fail();
-      }
     }
-  }
+    }
+}
 
-  @Test
-  public void testQueryAfterDelete() {
+@Test
+public void testQueryAfterDelete() {
     if (!isAbleToDelete) return;
     // single path delete data
     try {
-      // first
-      List<String> paths = Collections.singletonList("us.d1.s1");
-      conn.deleteDataInColumns(paths, START_KEY, START_KEY + 100);
-      SessionQueryDataSet actual = conn.queryData(paths, START_KEY, START_KEY + 200);
-      TestDataSection expected =
-          baseDataSection.getSubDataSectionWithPath(paths).getSubDataSectionWithKey(100, 200);
-      compare(expected, actual);
+    // first
+    List<String> paths = Collections.singletonList("us.d1.s1");
+    conn.deleteDataInColumns(paths, START_KEY, START_KEY + 100);
+    SessionQueryDataSet actual = conn.queryData(paths, START_KEY, START_KEY + 200);
+    TestDataSection expected =
+        baseDataSection.getSubDataSectionWithPath(paths).getSubDataSectionWithKey(100, 200);
+    compare(expected, actual);
 
-      // middle
-      long mid = (START_KEY + END_KEY) / 2;
-      conn.deleteDataInColumns(paths, mid - 50, mid + 50);
-      actual = conn.queryData(paths, mid - 100, mid + 100);
-      expected =
-          baseDataSection
-              .getSubDataSectionWithPath(paths)
-              .getSubDataSectionWithKey(mid - 100, mid - 50)
-              .mergeOther(
-                  baseDataSection
-                      .getSubDataSectionWithPath(paths)
-                      .getSubDataSectionWithKey(mid + 50, mid + 100));
-      compare(expected, actual);
+    // middle
+    long mid = (START_KEY + END_KEY) / 2;
+    conn.deleteDataInColumns(paths, mid - 50, mid + 50);
+    actual = conn.queryData(paths, mid - 100, mid + 100);
+    expected =
+        baseDataSection
+            .getSubDataSectionWithPath(paths)
+            .getSubDataSectionWithKey(mid - 100, mid - 50)
+            .mergeOther(
+                baseDataSection
+                    .getSubDataSectionWithPath(paths)
+                    .getSubDataSectionWithKey(mid + 50, mid + 100));
+    compare(expected, actual);
 
-      // last
-      conn.deleteDataInColumns(paths, END_KEY - 100, END_KEY);
-      actual = conn.queryData(paths, END_KEY - 200, END_KEY);
-      expected =
-          baseDataSection
-              .getSubDataSectionWithPath(paths)
-              .getSubDataSectionWithKey(END_KEY - 200, END_KEY - 100);
-      compare(expected, actual);
+    // last
+    conn.deleteDataInColumns(paths, END_KEY - 100, END_KEY);
+    actual = conn.queryData(paths, END_KEY - 200, END_KEY);
+    expected =
+        baseDataSection
+            .getSubDataSectionWithPath(paths)
+            .getSubDataSectionWithKey(END_KEY - 200, END_KEY - 100);
+    compare(expected, actual);
     } catch (SessionException | ExecutionException e) {
-      logger.error("execute delete or query data failed.");
-      fail();
+    logger.error("execute delete or query data failed.");
+    fail();
     }
 
     // multi paths delete data
     try {
-      // first
-      List<String> paths = Arrays.asList("us.d1.s2", "us.d1.s4", "us.d1.s6");
-      conn.deleteDataInColumns(paths, START_KEY, START_KEY + 100);
-      SessionQueryDataSet actual = conn.queryData(paths, START_KEY, START_KEY + 200);
-      TestDataSection expected =
-          baseDataSection.getSubDataSectionWithPath(paths).getSubDataSectionWithKey(100, 200);
-      compare(expected, actual);
+    // first
+    List<String> paths = Arrays.asList("us.d1.s2", "us.d1.s4", "us.d1.s6");
+    conn.deleteDataInColumns(paths, START_KEY, START_KEY + 100);
+    SessionQueryDataSet actual = conn.queryData(paths, START_KEY, START_KEY + 200);
+    TestDataSection expected =
+        baseDataSection.getSubDataSectionWithPath(paths).getSubDataSectionWithKey(100, 200);
+    compare(expected, actual);
 
-      // middle
-      long mid = (START_KEY + END_KEY) / 2;
-      conn.deleteDataInColumns(paths, mid - 50, mid + 50);
-      actual = conn.queryData(paths, mid - 100, mid + 100);
-      expected =
-          baseDataSection
-              .getSubDataSectionWithPath(paths)
-              .getSubDataSectionWithKey(mid - 100, mid - 50)
-              .mergeOther(
-                  baseDataSection
-                      .getSubDataSectionWithPath(paths)
-                      .getSubDataSectionWithKey(mid + 50, mid + 100));
-      compare(expected, actual);
+    // middle
+    long mid = (START_KEY + END_KEY) / 2;
+    conn.deleteDataInColumns(paths, mid - 50, mid + 50);
+    actual = conn.queryData(paths, mid - 100, mid + 100);
+    expected =
+        baseDataSection
+            .getSubDataSectionWithPath(paths)
+            .getSubDataSectionWithKey(mid - 100, mid - 50)
+            .mergeOther(
+                baseDataSection
+                    .getSubDataSectionWithPath(paths)
+                    .getSubDataSectionWithKey(mid + 50, mid + 100));
+    compare(expected, actual);
 
-      // last
-      conn.deleteDataInColumns(paths, END_KEY - 100, END_KEY);
-      actual = conn.queryData(paths, END_KEY - 200, END_KEY);
-      expected =
-          baseDataSection
-              .getSubDataSectionWithPath(paths)
-              .getSubDataSectionWithKey(END_KEY - 200, END_KEY - 100);
-      compare(expected, actual);
+    // last
+    conn.deleteDataInColumns(paths, END_KEY - 100, END_KEY);
+    actual = conn.queryData(paths, END_KEY - 200, END_KEY);
+    expected =
+        baseDataSection
+            .getSubDataSectionWithPath(paths)
+            .getSubDataSectionWithKey(END_KEY - 200, END_KEY - 100);
+    compare(expected, actual);
     } catch (SessionException | ExecutionException e) {
-      logger.error("execute delete or query data failed.");
-      fail();
+    logger.error("execute delete or query data failed.");
+    fail();
     }
-  }
+}
 }

@@ -52,147 +52,147 @@ import org.slf4j.LoggerFactory;
 
 public class IginxWorker implements IService.Iface {
 
-  private static final Logger logger = LoggerFactory.getLogger(IginxWorker.class);
+private static final Logger logger = LoggerFactory.getLogger(IginxWorker.class);
 
-  private static final IginxWorker instance = new IginxWorker();
+private static final IginxWorker instance = new IginxWorker();
 
-  private final IMetaManager metaManager = DefaultMetaManager.getInstance();
+private final IMetaManager metaManager = DefaultMetaManager.getInstance();
 
-  private final UserManager userManager = UserManager.getInstance();
+private final UserManager userManager = UserManager.getInstance();
 
-  private final SessionManager sessionManager = SessionManager.getInstance();
+private final SessionManager sessionManager = SessionManager.getInstance();
 
-  private final QueryResourceManager queryManager = QueryResourceManager.getInstance();
+private final QueryResourceManager queryManager = QueryResourceManager.getInstance();
 
-  private final ContextBuilder contextBuilder = ContextBuilder.getInstance();
+private final ContextBuilder contextBuilder = ContextBuilder.getInstance();
 
-  private final StatementExecutor executor = StatementExecutor.getInstance();
+private final StatementExecutor executor = StatementExecutor.getInstance();
 
-  private static final Config config = ConfigDescriptor.getInstance().getConfig();
+private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
-  public static IginxWorker getInstance() {
+public static IginxWorker getInstance() {
     return instance;
-  }
+}
 
-  @Override
-  public OpenSessionResp openSession(OpenSessionReq req) {
+@Override
+public OpenSessionResp openSession(OpenSessionReq req) {
     String username = req.getUsername();
     String password = req.getPassword();
     if (!userManager.checkUser(username, password)) {
-      OpenSessionResp resp = new OpenSessionResp(RpcUtils.WRONG_USERNAME_OR_PASSWORD);
-      resp.setSessionId(0L);
-      return resp;
+    OpenSessionResp resp = new OpenSessionResp(RpcUtils.WRONG_USERNAME_OR_PASSWORD);
+    resp.setSessionId(0L);
+    return resp;
     }
     long sessionId = sessionManager.openSession(username);
     OpenSessionResp resp = new OpenSessionResp(RpcUtils.SUCCESS);
     resp.setSessionId(sessionId);
     return resp;
-  }
+}
 
-  @Override
-  public Status closeSession(CloseSessionReq req) {
+@Override
+public Status closeSession(CloseSessionReq req) {
     sessionManager.closeSession(req.getSessionId());
     return RpcUtils.SUCCESS;
-  }
+}
 
-  @Override
-  public Status deleteColumns(DeleteColumnsReq req) {
+@Override
+public Status deleteColumns(DeleteColumnsReq req) {
     if (!sessionManager.checkSession(req.getSessionId(), AuthType.Write)) {
-      return RpcUtils.ACCESS_DENY;
+    return RpcUtils.ACCESS_DENY;
     }
     RequestContext ctx = contextBuilder.build(req);
     executor.execute(ctx);
     return ctx.getResult().getStatus();
-  }
+}
 
-  @Override
-  public Status insertColumnRecords(InsertColumnRecordsReq req) {
+@Override
+public Status insertColumnRecords(InsertColumnRecordsReq req) {
     if (!sessionManager.checkSession(req.getSessionId(), AuthType.Write)) {
-      return RpcUtils.ACCESS_DENY;
+    return RpcUtils.ACCESS_DENY;
     }
     if (!StringUtils.allHasMoreThanOneSubPath(req.getPaths())) {
-      logger.error("Insert paths must have more than one sub paths.");
-      return RpcUtils.FAILURE;
+    logger.error("Insert paths must have more than one sub paths.");
+    return RpcUtils.FAILURE;
     }
     RequestContext ctx = contextBuilder.build(req);
     executor.execute(ctx);
     return ctx.getResult().getStatus();
-  }
+}
 
-  @Override
-  public Status insertNonAlignedColumnRecords(InsertNonAlignedColumnRecordsReq req) {
+@Override
+public Status insertNonAlignedColumnRecords(InsertNonAlignedColumnRecordsReq req) {
     if (!sessionManager.checkSession(req.getSessionId(), AuthType.Write)) {
-      return RpcUtils.ACCESS_DENY;
+    return RpcUtils.ACCESS_DENY;
     }
     if (!StringUtils.allHasMoreThanOneSubPath(req.getPaths())) {
-      logger.error("Insert paths must have more than one sub paths.");
-      return RpcUtils.FAILURE;
+    logger.error("Insert paths must have more than one sub paths.");
+    return RpcUtils.FAILURE;
     }
     RequestContext ctx = contextBuilder.build(req);
     executor.execute(ctx);
     return ctx.getResult().getStatus();
-  }
+}
 
-  @Override
-  public Status insertRowRecords(InsertRowRecordsReq req) {
+@Override
+public Status insertRowRecords(InsertRowRecordsReq req) {
     if (!sessionManager.checkSession(req.getSessionId(), AuthType.Write)) {
-      return RpcUtils.ACCESS_DENY;
+    return RpcUtils.ACCESS_DENY;
     }
     if (!StringUtils.allHasMoreThanOneSubPath(req.getPaths())) {
-      logger.error("Insert paths must have more than one sub paths.");
-      return RpcUtils.FAILURE;
+    logger.error("Insert paths must have more than one sub paths.");
+    return RpcUtils.FAILURE;
     }
     RequestContext ctx = contextBuilder.build(req);
     executor.execute(ctx);
     return ctx.getResult().getStatus();
-  }
+}
 
-  @Override
-  public Status insertNonAlignedRowRecords(InsertNonAlignedRowRecordsReq req) {
+@Override
+public Status insertNonAlignedRowRecords(InsertNonAlignedRowRecordsReq req) {
     if (!sessionManager.checkSession(req.getSessionId(), AuthType.Write)) {
-      return RpcUtils.ACCESS_DENY;
+    return RpcUtils.ACCESS_DENY;
     }
     if (!StringUtils.allHasMoreThanOneSubPath(req.getPaths())) {
-      logger.error("Insert paths must have more than one sub paths.");
-      return RpcUtils.FAILURE;
+    logger.error("Insert paths must have more than one sub paths.");
+    return RpcUtils.FAILURE;
     }
     RequestContext ctx = contextBuilder.build(req);
     executor.execute(ctx);
     return ctx.getResult().getStatus();
-  }
+}
 
-  @Override
-  public Status deleteDataInColumns(DeleteDataInColumnsReq req) {
+@Override
+public Status deleteDataInColumns(DeleteDataInColumnsReq req) {
     if (!sessionManager.checkSession(req.getSessionId(), AuthType.Write)) {
-      return RpcUtils.ACCESS_DENY;
+    return RpcUtils.ACCESS_DENY;
     }
     RequestContext ctx = contextBuilder.build(req);
     executor.execute(ctx);
     return ctx.getResult().getStatus();
-  }
+}
 
-  @Override
-  public QueryDataResp queryData(QueryDataReq req) {
+@Override
+public QueryDataResp queryData(QueryDataReq req) {
     if (!sessionManager.checkSession(req.getSessionId(), AuthType.Read)) {
-      return new QueryDataResp(RpcUtils.ACCESS_DENY);
+    return new QueryDataResp(RpcUtils.ACCESS_DENY);
     }
     RequestContext ctx = contextBuilder.build(req);
     executor.execute(ctx);
     return ctx.getResult().getQueryDataResp();
-  }
+}
 
-  @Override
-  public Status removeHistoryDataSource(RemoveHistoryDataSourceReq req) {
+@Override
+public Status removeHistoryDataSource(RemoveHistoryDataSourceReq req) {
     if (!sessionManager.checkSession(req.getSessionId(), AuthType.Cluster)) {
-      return RpcUtils.ACCESS_DENY;
+    return RpcUtils.ACCESS_DENY;
     }
     Status status = RpcUtils.SUCCESS;
     List<RemovedStorageEngineInfo> dummyStorageInfoList = req.getDummyStorageInfoList();
     for (RemovedStorageEngineInfo storageEngineInfo : dummyStorageInfoList) {
-      List<StorageEngineMeta> metaList = metaManager.getStorageEngineList();
-      StorageEngineMeta meta = null;
-      Long dummyStorageId = null;
-      for (StorageEngineMeta metaa : metaList) {
+    List<StorageEngineMeta> metaList = metaManager.getStorageEngineList();
+    StorageEngineMeta meta = null;
+    Long dummyStorageId = null;
+    for (StorageEngineMeta metaa : metaList) {
         String infoIp = storageEngineInfo.getIp(),
             infoSchemaPrefix = storageEngineInfo.getSchemaPrefix(),
             infoDataPrefix = storageEngineInfo.getDataPrefix();
@@ -205,16 +205,16 @@ public class IginxWorker implements IService.Iface {
                 || Objects.equals(infoSchemaPrefix, metaSchemaPrefix)
                     && (infoDataPrefix.length() == 0 && metaDataPrefix == null
                         || Objects.equals(infoDataPrefix, metaDataPrefix)))) {
-          meta = metaa;
-          dummyStorageId = metaa.getId();
+        meta = metaa;
+        dummyStorageId = metaa.getId();
         }
-      }
-      if (meta == null || meta.getDummyFragment() == null || meta.getDummyStorageUnit() == null) {
+    }
+    if (meta == null || meta.getDummyFragment() == null || meta.getDummyStorageUnit() == null) {
         status = RpcUtils.FAILURE;
         status.setMessage("dummy storage engine is not exists.");
         return status;
-      }
-      try {
+    }
+    try {
         // 设置对应的 dummyFragament 为 invalid 状态
         meta.getDummyFragment().setIfValid(false);
         meta.getDummyStorageUnit().setIfValid(false);
@@ -239,97 +239,97 @@ public class IginxWorker implements IService.Iface {
 
         // 更新 zk 上元数据信息，以及 iginx 上元数据信息
         if (!metaManager.updateStorageEngine(dummyStorageId, newMeta)) {
-          status = RpcUtils.FAILURE;
-          status.setMessage("unexpected error during storage update");
-          return status;
+        status = RpcUtils.FAILURE;
+        status.setMessage("unexpected error during storage update");
+        return status;
         }
 
-      } catch (Exception e) {
+    } catch (Exception e) {
         logger.error("unexpected error during storage migration: ", e);
         status = new Status(StatusCode.STATEMENT_EXECUTION_ERROR.getStatusCode());
         status.setMessage(
             "unexpected error during removing history data source: " + e.getMessage());
         return status;
-      }
+    }
     }
     return status;
-  }
+}
 
-  @Override
-  public Status addStorageEngines(AddStorageEnginesReq req) {
+@Override
+public Status addStorageEngines(AddStorageEnginesReq req) {
     if (!sessionManager.checkSession(req.getSessionId(), AuthType.Cluster)) {
-      return RpcUtils.ACCESS_DENY;
+    return RpcUtils.ACCESS_DENY;
     }
     List<StorageEngine> storageEngines = req.getStorageEngines();
     List<StorageEngineMeta> storageEngineMetas = new ArrayList<>();
     List<String> schemaPrefix = new ArrayList<>();
 
     for (StorageEngine storageEngine : storageEngines) {
-      String type = storageEngine.getType();
-      Map<String, String> extraParams = storageEngine.getExtraParams();
-      boolean hasData = Boolean.parseBoolean(extraParams.getOrDefault(Constants.HAS_DATA, "false"));
-      if (type.equals("parquet")) {
+    String type = storageEngine.getType();
+    Map<String, String> extraParams = storageEngine.getExtraParams();
+    boolean hasData = Boolean.parseBoolean(extraParams.getOrDefault(Constants.HAS_DATA, "false"));
+    if (type.equals("parquet")) {
         String dir = extraParams.get("dir");
         if (dir == null || dir.equals("")) {
-          return RpcUtils.FAILURE;
+        return RpcUtils.FAILURE;
         }
         if (extraParams.containsKey(SCHEMA_PREFIX)) {
-          extraParams.put(SCHEMA_PREFIX, extraParams.get(SCHEMA_PREFIX) + "." + dir);
+        extraParams.put(SCHEMA_PREFIX, extraParams.get(SCHEMA_PREFIX) + "." + dir);
         } else {
-          extraParams.put(SCHEMA_PREFIX, dir);
+        extraParams.put(SCHEMA_PREFIX, dir);
         }
-      }
-      String dataPrefix = null;
-      if (hasData && extraParams.containsKey(Constants.DATA_PREFIX)) {
+    }
+    String dataPrefix = null;
+    if (hasData && extraParams.containsKey(Constants.DATA_PREFIX)) {
         dataPrefix = extraParams.get(Constants.DATA_PREFIX);
-      }
-      boolean readOnly =
-          Boolean.parseBoolean(extraParams.getOrDefault(Constants.IS_READ_ONLY, "false"));
-      StorageEngineMeta meta =
-          new StorageEngineMeta(
-              -1,
-              storageEngine.getIp(),
-              storageEngine.getPort(),
-              hasData,
-              dataPrefix,
-              extraParams.get(SCHEMA_PREFIX),
-              readOnly,
-              storageEngine.getExtraParams(),
-              type,
-              metaManager.getIginxId());
-      storageEngineMetas.add(meta);
-      schemaPrefix.add(extraParams.get(SCHEMA_PREFIX)); // get the user defined schema prefix
+    }
+    boolean readOnly =
+        Boolean.parseBoolean(extraParams.getOrDefault(Constants.IS_READ_ONLY, "false"));
+    StorageEngineMeta meta =
+        new StorageEngineMeta(
+            -1,
+            storageEngine.getIp(),
+            storageEngine.getPort(),
+            hasData,
+            dataPrefix,
+            extraParams.get(SCHEMA_PREFIX),
+            readOnly,
+            storageEngine.getExtraParams(),
+            type,
+            metaManager.getIginxId());
+    storageEngineMetas.add(meta);
+    schemaPrefix.add(extraParams.get(SCHEMA_PREFIX)); // get the user defined schema prefix
     }
     Status status = RpcUtils.SUCCESS;
     // 检测是否与已有的存储单元冲突
     List<StorageEngineMeta> currentStorageEngines = metaManager.getStorageEngineList();
     List<StorageEngineMeta> duplicatedStorageEngine = new ArrayList<>();
     for (StorageEngineMeta storageEngine : storageEngineMetas) {
-      for (StorageEngineMeta currentStorageEngine : currentStorageEngines) {
+    for (StorageEngineMeta currentStorageEngine : currentStorageEngines) {
         if (isDuplicated(storageEngine, currentStorageEngine)) {
-          duplicatedStorageEngine.add(storageEngine);
-          break;
+        duplicatedStorageEngine.add(storageEngine);
+        break;
         }
-      }
+    }
     }
     if (!duplicatedStorageEngine.isEmpty()) {
-      storageEngineMetas.removeAll(duplicatedStorageEngine);
-      if (!storageEngines.isEmpty()) {
+    storageEngineMetas.removeAll(duplicatedStorageEngine);
+    if (!storageEngines.isEmpty()) {
         status = new Status(RpcUtils.PARTIAL_SUCCESS.code);
-      } else {
+    } else {
         status = new Status(RpcUtils.FAILURE.code);
-      }
-      status.setMessage("unexpected repeated add");
+    }
+    status.setMessage("unexpected repeated add");
     }
     if (!storageEngineMetas.isEmpty()
         && storageEngineMetas.stream().anyMatch(e -> !e.isReadOnly())) {
-      storageEngineMetas
-          .get(storageEngineMetas.size() - 1)
-          .setNeedReAllocate(true); // 如果这批节点不是只读的话，每一批最后一个是 true，表示需要进行扩容
+    storageEngineMetas
+        .get(storageEngineMetas.size() - 1)
+        .setNeedReAllocate(true); // 如果这批节点不是只读的话，每一批最后一个是 true，表示需要进行扩容
     }
     for (StorageEngineMeta meta : storageEngineMetas) {
-      int index = 0;
-      if (meta.isHasData()) {
+    int index = 0;
+    if (meta.isHasData()) {
         String dataPrefix = meta.getDataPrefix();
         StorageUnitMeta dummyStorageUnit =
             new StorageUnitMeta(StorageUnitMeta.generateDummyStorageUnitID(0), -1);
@@ -341,143 +341,143 @@ public class IginxWorker implements IService.Iface {
             && schemaPrefix.get(index) != null) // set the virtual schema prefix
         schemaPrefixTmp = schemaPrefix.get(index);
         if (dataPrefix == null) {
-          boundary.k.setSchemaPrefix(schemaPrefixTmp);
-          dummyFragment = new FragmentMeta(boundary.k, boundary.v, dummyStorageUnit);
+        boundary.k.setSchemaPrefix(schemaPrefixTmp);
+        dummyFragment = new FragmentMeta(boundary.k, boundary.v, dummyStorageUnit);
         } else {
-          dummyFragment =
-              new FragmentMeta(
-                  new ColumnsPrefixRange(dataPrefix, schemaPrefixTmp),
-                  boundary.v,
-                  dummyStorageUnit);
+        dummyFragment =
+            new FragmentMeta(
+                new ColumnsPrefixRange(dataPrefix, schemaPrefixTmp),
+                boundary.v,
+                dummyStorageUnit);
         }
         dummyFragment.setDummyFragment(true);
         meta.setDummyStorageUnit(dummyStorageUnit);
         meta.setDummyFragment(dummyFragment);
-      }
-      index++;
+    }
+    index++;
     }
     if (!metaManager.addStorageEngines(storageEngineMetas)) {
-      status = RpcUtils.FAILURE;
+    status = RpcUtils.FAILURE;
     }
     for (StorageEngineMeta meta : storageEngineMetas) {
-      PhysicalEngineImpl.getInstance().getStorageManager().addStorage(meta);
+    PhysicalEngineImpl.getInstance().getStorageManager().addStorage(meta);
     }
     return status;
-  }
+}
 
-  private boolean isDuplicated(StorageEngineMeta engine1, StorageEngineMeta engine2) {
+private boolean isDuplicated(StorageEngineMeta engine1, StorageEngineMeta engine2) {
     if (!engine1.getStorageEngine().equals(engine2.getStorageEngine())) {
-      return false;
+    return false;
     }
     return engine1.getIp().equals(engine2.getIp())
         && engine1.getPort() == engine2.getPort()
         && Objects.equals(engine1.getDataPrefix(), engine2.getDataPrefix())
         && Objects.equals(engine1.getSchemaPrefix(), engine2.getSchemaPrefix());
-  }
+}
 
-  @Override
-  public AggregateQueryResp aggregateQuery(AggregateQueryReq req) {
+@Override
+public AggregateQueryResp aggregateQuery(AggregateQueryReq req) {
     if (!sessionManager.checkSession(req.getSessionId(), AuthType.Read)) {
-      return new AggregateQueryResp(RpcUtils.ACCESS_DENY);
+    return new AggregateQueryResp(RpcUtils.ACCESS_DENY);
     }
     RequestContext ctx = contextBuilder.build(req);
     executor.execute(ctx);
     return ctx.getResult().getAggregateQueryResp();
-  }
+}
 
-  @Override
-  public DownsampleQueryResp downsampleQuery(DownsampleQueryReq req) {
+@Override
+public DownsampleQueryResp downsampleQuery(DownsampleQueryReq req) {
     if (!sessionManager.checkSession(req.getSessionId(), AuthType.Read)) {
-      return new DownsampleQueryResp(RpcUtils.ACCESS_DENY);
+    return new DownsampleQueryResp(RpcUtils.ACCESS_DENY);
     }
     RequestContext ctx = contextBuilder.build(req);
     executor.execute(ctx);
     return ctx.getResult().getDownSampleQueryResp();
-  }
+}
 
-  @Override
-  public ShowColumnsResp showColumns(ShowColumnsReq req) {
+@Override
+public ShowColumnsResp showColumns(ShowColumnsReq req) {
     if (!sessionManager.checkSession(req.getSessionId(), AuthType.Read)) {
-      return new ShowColumnsResp(RpcUtils.ACCESS_DENY);
+    return new ShowColumnsResp(RpcUtils.ACCESS_DENY);
     }
     RequestContext ctx = contextBuilder.build(req);
     executor.execute(ctx);
     return ctx.getResult().getShowColumnsResp();
-  }
+}
 
-  @Override
-  public GetReplicaNumResp getReplicaNum(GetReplicaNumReq req) {
+@Override
+public GetReplicaNumResp getReplicaNum(GetReplicaNumReq req) {
     if (!sessionManager.checkSession(req.getSessionId(), AuthType.Read)) {
-      return new GetReplicaNumResp(RpcUtils.ACCESS_DENY);
+    return new GetReplicaNumResp(RpcUtils.ACCESS_DENY);
     }
     GetReplicaNumResp resp = new GetReplicaNumResp(RpcUtils.SUCCESS);
     resp.setReplicaNum(ConfigDescriptor.getInstance().getConfig().getReplicaNum() + 1);
     return resp;
-  }
+}
 
-  @Override
-  public ExecuteSqlResp executeSql(ExecuteSqlReq req) {
+@Override
+public ExecuteSqlResp executeSql(ExecuteSqlReq req) {
     StatementExecutor executor = StatementExecutor.getInstance();
     RequestContext ctx = contextBuilder.build(req);
     executor.execute(ctx);
     return ctx.getResult().getExecuteSqlResp();
-  }
+}
 
-  @Override
-  public LastQueryResp lastQuery(LastQueryReq req) {
+@Override
+public LastQueryResp lastQuery(LastQueryReq req) {
     if (!sessionManager.checkSession(req.getSessionId(), AuthType.Read)) {
-      return new LastQueryResp(RpcUtils.ACCESS_DENY);
+    return new LastQueryResp(RpcUtils.ACCESS_DENY);
     }
 
     RequestContext ctx = contextBuilder.build(req);
     executor.execute(ctx);
     return ctx.getResult().getLastQueryResp();
-  }
+}
 
-  @Override
-  public Status updateUser(UpdateUserReq req) {
+@Override
+public Status updateUser(UpdateUserReq req) {
     if (!sessionManager.checkSession(req.getSessionId(), AuthType.Admin)) {
-      return RpcUtils.ACCESS_DENY;
+    return RpcUtils.ACCESS_DENY;
     }
     if (userManager.updateUser(req.username, req.password, req.auths)) {
-      return RpcUtils.SUCCESS;
+    return RpcUtils.SUCCESS;
     }
     return RpcUtils.FAILURE;
-  }
+}
 
-  @Override
-  public Status addUser(AddUserReq req) {
+@Override
+public Status addUser(AddUserReq req) {
     if (!sessionManager.checkSession(req.getSessionId(), AuthType.Admin)) {
-      return RpcUtils.ACCESS_DENY;
+    return RpcUtils.ACCESS_DENY;
     }
     if (userManager.addUser(req.username, req.password, req.auths)) {
-      return RpcUtils.SUCCESS;
+    return RpcUtils.SUCCESS;
     }
     return RpcUtils.FAILURE;
-  }
+}
 
-  @Override
-  public Status deleteUser(DeleteUserReq req) {
+@Override
+public Status deleteUser(DeleteUserReq req) {
     if (!sessionManager.checkSession(req.getSessionId(), AuthType.Admin)) {
-      return RpcUtils.ACCESS_DENY;
+    return RpcUtils.ACCESS_DENY;
     }
     if (userManager.deleteUser(req.username)) {
-      return RpcUtils.SUCCESS;
+    return RpcUtils.SUCCESS;
     }
     return RpcUtils.FAILURE;
-  }
+}
 
-  @Override
-  public GetUserResp getUser(GetUserReq req) {
+@Override
+public GetUserResp getUser(GetUserReq req) {
     if (!sessionManager.checkSession(req.getSessionId(), AuthType.Read)) {
-      return new GetUserResp(RpcUtils.ACCESS_DENY);
+    return new GetUserResp(RpcUtils.ACCESS_DENY);
     }
     GetUserResp resp = new GetUserResp(RpcUtils.SUCCESS);
     List<UserMeta> users;
     if (req.usernames == null) {
-      users = userManager.getUsers();
+    users = userManager.getUsers();
     } else {
-      users = userManager.getUsers(req.getUsernames());
+    users = userManager.getUsers(req.getUsernames());
     }
     List<String> usernames = users.stream().map(UserMeta::getUsername).collect(Collectors.toList());
     List<UserType> userTypes =
@@ -487,12 +487,12 @@ public class IginxWorker implements IService.Iface {
     resp.setUserTypes(userTypes);
     resp.setAuths(auths);
     return resp;
-  }
+}
 
-  @Override
-  public GetClusterInfoResp getClusterInfo(GetClusterInfoReq req) {
+@Override
+public GetClusterInfoResp getClusterInfo(GetClusterInfoReq req) {
     if (!sessionManager.checkSession(req.getSessionId(), AuthType.Cluster)) {
-      return new GetClusterInfoResp(RpcUtils.ACCESS_DENY);
+    return new GetClusterInfoResp(RpcUtils.ACCESS_DENY);
     }
 
     GetClusterInfoResp resp = new GetClusterInfoResp();
@@ -500,7 +500,7 @@ public class IginxWorker implements IService.Iface {
     // IginX 信息
     List<IginxInfo> iginxInfos = new ArrayList<>();
     for (IginxMeta iginxMeta : metaManager.getIginxList()) {
-      iginxInfos.add(new IginxInfo(iginxMeta.getId(), iginxMeta.getIp(), iginxMeta.getPort()));
+    iginxInfos.add(new IginxInfo(iginxMeta.getId(), iginxMeta.getIp(), iginxMeta.getPort()));
     }
     iginxInfos.sort(Comparator.comparingLong(IginxInfo::getId));
     resp.setIginxInfos(iginxInfos);
@@ -508,19 +508,19 @@ public class IginxWorker implements IService.Iface {
     // 数据库信息
     List<StorageEngineInfo> storageEngineInfos = new ArrayList<>();
     for (StorageEngineMeta storageEngineMeta : metaManager.getStorageEngineList()) {
-      StorageEngineInfo info =
-          new StorageEngineInfo(
-              storageEngineMeta.getId(),
-              storageEngineMeta.getIp(),
-              storageEngineMeta.getPort(),
-              storageEngineMeta.getStorageEngine());
-      info.setSchemaPrefix(
-          storageEngineMeta.getSchemaPrefix() == null
-              ? "null"
-              : storageEngineMeta.getSchemaPrefix());
-      info.setDataPrefix(
-          storageEngineMeta.getDataPrefix() == null ? "null" : storageEngineMeta.getDataPrefix());
-      storageEngineInfos.add(info);
+    StorageEngineInfo info =
+        new StorageEngineInfo(
+            storageEngineMeta.getId(),
+            storageEngineMeta.getIp(),
+            storageEngineMeta.getPort(),
+            storageEngineMeta.getStorageEngine());
+    info.setSchemaPrefix(
+        storageEngineMeta.getSchemaPrefix() == null
+            ? "null"
+            : storageEngineMeta.getSchemaPrefix());
+    info.setDataPrefix(
+        storageEngineMeta.getDataPrefix() == null ? "null" : storageEngineMeta.getDataPrefix());
+    storageEngineInfos.add(info);
     }
     storageEngineInfos.sort(Comparator.comparingLong(StorageEngineInfo::getId));
     resp.setStorageEngineInfos(storageEngineInfos);
@@ -530,133 +530,133 @@ public class IginxWorker implements IService.Iface {
     LocalMetaStorageInfo localMetaStorageInfo = null;
 
     switch (config.getMetaStorage()) {
-      case Constants.ETCD_META:
+    case Constants.ETCD_META:
         metaStorageInfos = new ArrayList<>();
         String[] endPoints = config.getEtcdEndpoints().split(",");
         for (String endPoint : endPoints) {
-          if (endPoint.startsWith("http://")) {
+        if (endPoint.startsWith("http://")) {
             endPoint = endPoint.substring(7);
-          } else if (endPoint.startsWith("https://")) {
+        } else if (endPoint.startsWith("https://")) {
             endPoint = endPoint.substring(8);
-          }
-          String[] ipAndPort = endPoint.split(":", 2);
-          MetaStorageInfo metaStorageInfo =
-              new MetaStorageInfo(
-                  ipAndPort[0], Integer.parseInt(ipAndPort[1]), Constants.ETCD_META);
-          metaStorageInfos.add(metaStorageInfo);
+        }
+        String[] ipAndPort = endPoint.split(":", 2);
+        MetaStorageInfo metaStorageInfo =
+            new MetaStorageInfo(
+                ipAndPort[0], Integer.parseInt(ipAndPort[1]), Constants.ETCD_META);
+        metaStorageInfos.add(metaStorageInfo);
         }
         break;
-      case Constants.ZOOKEEPER_META:
+    case Constants.ZOOKEEPER_META:
         metaStorageInfos = new ArrayList<>();
         String[] zookeepers = config.getZookeeperConnectionString().split(",");
         for (String zookeeper : zookeepers) {
-          String[] ipAndPort = zookeeper.split(":", 2);
-          MetaStorageInfo metaStorageInfo =
-              new MetaStorageInfo(
-                  ipAndPort[0], Integer.parseInt(ipAndPort[1]), Constants.ZOOKEEPER_META);
-          metaStorageInfos.add(metaStorageInfo);
+        String[] ipAndPort = zookeeper.split(":", 2);
+        MetaStorageInfo metaStorageInfo =
+            new MetaStorageInfo(
+                ipAndPort[0], Integer.parseInt(ipAndPort[1]), Constants.ZOOKEEPER_META);
+        metaStorageInfos.add(metaStorageInfo);
         }
         break;
-      default:
+    default:
         logger.error("unexpected meta storage: " + config.getMetaStorage());
     }
 
     if (metaStorageInfos != null && !metaStorageInfos.isEmpty()) {
-      resp.setMetaStorageInfos(metaStorageInfos);
+    resp.setMetaStorageInfos(metaStorageInfos);
     }
     resp.setLocalMetaStorageInfo(localMetaStorageInfo);
     resp.setStatus(RpcUtils.SUCCESS);
     return resp;
-  }
+}
 
-  @Override
-  public ExecuteStatementResp executeStatement(ExecuteStatementReq req) {
+@Override
+public ExecuteStatementResp executeStatement(ExecuteStatementReq req) {
     StatementExecutor executor = StatementExecutor.getInstance();
     RequestContext ctx = contextBuilder.build(req);
     executor.execute(ctx);
     queryManager.registerQuery(ctx.getId(), ctx);
     return ctx.getResult().getExecuteStatementResp(req.getFetchSize());
-  }
+}
 
-  @Override
-  public FetchResultsResp fetchResults(FetchResultsReq req) {
+@Override
+public FetchResultsResp fetchResults(FetchResultsReq req) {
     RequestContext context = queryManager.getQuery(req.queryId);
     if (context == null) {
-      return new FetchResultsResp(RpcUtils.SUCCESS, false);
+    return new FetchResultsResp(RpcUtils.SUCCESS, false);
     }
     return context.getResult().fetch(req.getFetchSize());
-  }
+}
 
-  @Override
-  public Status closeStatement(CloseStatementReq req) {
+@Override
+public Status closeStatement(CloseStatementReq req) {
     queryManager.releaseQuery(req.queryId);
     return RpcUtils.SUCCESS;
-  }
+}
 
-  @Override
-  public CommitTransformJobResp commitTransformJob(CommitTransformJobReq req) {
+@Override
+public CommitTransformJobResp commitTransformJob(CommitTransformJobReq req) {
     TransformJobManager manager = TransformJobManager.getInstance();
     long jobId = manager.commit(req);
 
     CommitTransformJobResp resp = new CommitTransformJobResp();
     if (jobId < 0) {
-      resp.setStatus(RpcUtils.FAILURE);
+    resp.setStatus(RpcUtils.FAILURE);
     } else {
-      resp.setStatus(RpcUtils.SUCCESS);
-      resp.setJobId(jobId);
+    resp.setStatus(RpcUtils.SUCCESS);
+    resp.setJobId(jobId);
     }
     return resp;
-  }
+}
 
-  @Override
-  public QueryTransformJobStatusResp queryTransformJobStatus(QueryTransformJobStatusReq req) {
+@Override
+public QueryTransformJobStatusResp queryTransformJobStatus(QueryTransformJobStatusReq req) {
     TransformJobManager manager = TransformJobManager.getInstance();
     JobState jobState = manager.queryJobState(req.getJobId());
     if (jobState != null) {
-      return new QueryTransformJobStatusResp(RpcUtils.SUCCESS, jobState);
+    return new QueryTransformJobStatusResp(RpcUtils.SUCCESS, jobState);
     } else {
-      return new QueryTransformJobStatusResp(RpcUtils.FAILURE, JobState.JOB_UNKNOWN);
+    return new QueryTransformJobStatusResp(RpcUtils.FAILURE, JobState.JOB_UNKNOWN);
     }
-  }
+}
 
-  @Override
-  public ShowEligibleJobResp showEligibleJob(ShowEligibleJobReq req) {
+@Override
+public ShowEligibleJobResp showEligibleJob(ShowEligibleJobReq req) {
     TransformJobManager manager = TransformJobManager.getInstance();
     List<Long> jobIdList = manager.showEligibleJob(req.getJobState());
     return new ShowEligibleJobResp(RpcUtils.SUCCESS, jobIdList);
-  }
+}
 
-  @Override
-  public Status cancelTransformJob(CancelTransformJobReq req) {
+@Override
+public Status cancelTransformJob(CancelTransformJobReq req) {
     TransformJobManager manager = TransformJobManager.getInstance();
     boolean success = manager.cancel(req.getJobId());
     return success ? RpcUtils.SUCCESS : RpcUtils.FAILURE;
-  }
+}
 
-  @Override
-  public Status registerTask(RegisterTaskReq req) {
+@Override
+public Status registerTask(RegisterTaskReq req) {
     String name = req.getName().trim().toLowerCase();
     String filePath = req.getFilePath();
     String className = req.getClassName();
 
     TransformTaskMeta transformTaskMeta = metaManager.getTransformTask(name);
     if (transformTaskMeta != null && transformTaskMeta.getIpSet().contains(config.getIp())) {
-      logger.error(String.format("Register task %s already exist", transformTaskMeta.toString()));
-      return RpcUtils.FAILURE;
+    logger.error(String.format("Register task %s already exist", transformTaskMeta.toString()));
+    return RpcUtils.FAILURE;
     }
 
     File sourceFile = new File(filePath);
     if (!sourceFile.exists()) {
-      logger.error(String.format("Register file not exist in declared path, path=%s", filePath));
-      return RpcUtils.FAILURE;
+    logger.error(String.format("Register file not exist in declared path, path=%s", filePath));
+    return RpcUtils.FAILURE;
     }
     if (!sourceFile.isFile()) {
-      logger.error("Register file must be a file.");
-      return RpcUtils.FAILURE;
+    logger.error("Register file must be a file.");
+    return RpcUtils.FAILURE;
     }
     if (!sourceFile.getName().endsWith(".py")) {
-      logger.error("Register file must be a python file.");
-      return RpcUtils.FAILURE;
+    logger.error("Register file must be a python file.");
+    return RpcUtils.FAILURE;
     }
 
     String fileName = sourceFile.getName();
@@ -665,50 +665,50 @@ public class IginxWorker implements IService.Iface {
     File destFile = new File(destPath);
 
     if (destFile.exists()) {
-      logger.error(String.format("Register file already exist, fileName=%s", fileName));
-      return RpcUtils.FAILURE;
+    logger.error(String.format("Register file already exist, fileName=%s", fileName));
+    return RpcUtils.FAILURE;
     }
 
     try {
-      Files.copy(sourceFile.toPath(), destFile.toPath());
+    Files.copy(sourceFile.toPath(), destFile.toPath());
     } catch (IOException e) {
-      logger.error(String.format("Fail to copy register file, filePath=%s", filePath), e);
-      return RpcUtils.FAILURE;
+    logger.error(String.format("Fail to copy register file, filePath=%s", filePath), e);
+    return RpcUtils.FAILURE;
     }
 
     if (transformTaskMeta != null) {
-      transformTaskMeta.addIp(config.getIp());
-      metaManager.updateTransformTask(transformTaskMeta);
+    transformTaskMeta.addIp(config.getIp());
+    metaManager.updateTransformTask(transformTaskMeta);
     } else {
-      metaManager.addTransformTask(
-          new TransformTaskMeta(
-              name,
-              className,
-              fileName,
-              new HashSet<>(Collections.singletonList(config.getIp())),
-              req.getType()));
+    metaManager.addTransformTask(
+        new TransformTaskMeta(
+            name,
+            className,
+            fileName,
+            new HashSet<>(Collections.singletonList(config.getIp())),
+            req.getType()));
     }
     return RpcUtils.SUCCESS;
-  }
+}
 
-  @Override
-  public Status dropTask(DropTaskReq req) {
+@Override
+public Status dropTask(DropTaskReq req) {
     String name = req.getName().trim().toLowerCase();
     TransformTaskMeta transformTaskMeta = metaManager.getTransformTask(name);
     if (transformTaskMeta == null) {
-      logger.error("Register task not exist");
-      return RpcUtils.FAILURE;
+    logger.error("Register task not exist");
+    return RpcUtils.FAILURE;
     }
 
     TransformJobManager manager = TransformJobManager.getInstance();
     if (manager.isRegisterTaskRunning(name)) {
-      logger.error("Register task is running");
-      return RpcUtils.FAILURE;
+    logger.error("Register task is running");
+    return RpcUtils.FAILURE;
     }
 
     if (!transformTaskMeta.getIpSet().contains(config.getIp())) {
-      logger.error(String.format("Register task exists in node: %s", config.getIp()));
-      return RpcUtils.FAILURE;
+    logger.error(String.format("Register task exists in node: %s", config.getIp()));
+    return RpcUtils.FAILURE;
     }
 
     String filePath =
@@ -720,44 +720,44 @@ public class IginxWorker implements IService.Iface {
     File file = new File(filePath);
 
     if (!file.exists()) {
-      metaManager.dropTransformTask(name);
-      logger.error(String.format("Register file not exist, path=%s", filePath));
-      return RpcUtils.FAILURE;
+    metaManager.dropTransformTask(name);
+    logger.error(String.format("Register file not exist, path=%s", filePath));
+    return RpcUtils.FAILURE;
     }
 
     if (file.delete()) {
-      metaManager.dropTransformTask(name);
-      logger.info(String.format("Register file has been dropped, path=%s", filePath));
-      return RpcUtils.SUCCESS;
+    metaManager.dropTransformTask(name);
+    logger.info(String.format("Register file has been dropped, path=%s", filePath));
+    return RpcUtils.SUCCESS;
     } else {
-      logger.error(String.format("Fail to delete register file, path=%s", filePath));
-      return RpcUtils.FAILURE;
+    logger.error(String.format("Fail to delete register file, path=%s", filePath));
+    return RpcUtils.FAILURE;
     }
-  }
+}
 
-  @Override
-  public GetRegisterTaskInfoResp getRegisterTaskInfo(GetRegisterTaskInfoReq req) {
+@Override
+public GetRegisterTaskInfoResp getRegisterTaskInfo(GetRegisterTaskInfoReq req) {
     List<TransformTaskMeta> taskMetaList = metaManager.getTransformTasks();
     List<RegisterTaskInfo> taskInfoList = new ArrayList<>();
     for (TransformTaskMeta taskMeta : taskMetaList) {
-      StringJoiner joiner = new StringJoiner(",");
-      taskMeta.getIpSet().forEach(joiner::add);
-      RegisterTaskInfo taskInfo =
-          new RegisterTaskInfo(
-              taskMeta.getName(),
-              taskMeta.getClassName(),
-              taskMeta.getFileName(),
-              joiner.toString(),
-              taskMeta.getType());
-      taskInfoList.add(taskInfo);
+    StringJoiner joiner = new StringJoiner(",");
+    taskMeta.getIpSet().forEach(joiner::add);
+    RegisterTaskInfo taskInfo =
+        new RegisterTaskInfo(
+            taskMeta.getName(),
+            taskMeta.getClassName(),
+            taskMeta.getFileName(),
+            joiner.toString(),
+            taskMeta.getType());
+    taskInfoList.add(taskInfo);
     }
     GetRegisterTaskInfoResp resp = new GetRegisterTaskInfoResp(RpcUtils.SUCCESS);
     resp.setRegisterTaskInfoList(taskInfoList);
     return resp;
-  }
+}
 
-  @Override
-  public CurveMatchResp curveMatch(CurveMatchReq req) throws TException {
+@Override
+public CurveMatchResp curveMatch(CurveMatchReq req) throws TException {
     QueryDataReq queryDataReq =
         new QueryDataReq(req.getSessionId(), req.getPaths(), req.getStartKey(), req.getEndKey());
     RequestContext ctx = contextBuilder.build(queryDataReq);
@@ -765,10 +765,10 @@ public class IginxWorker implements IService.Iface {
     QueryDataResp queryDataResp = ctx.getResult().getQueryDataResp();
 
     for (DataType type : queryDataResp.getDataTypeList()) {
-      if (type.equals(DataType.BINARY) || type.equals(DataType.BOOLEAN)) {
+    if (type.equals(DataType.BINARY) || type.equals(DataType.BOOLEAN)) {
         logger.error(String.format("Unsupported data type: %s", type));
         return new CurveMatchResp(RpcUtils.FAILURE);
-      }
+    }
     }
 
     List<Double> queryList =
@@ -791,102 +791,95 @@ public class IginxWorker implements IService.Iface {
     String globalMatchedPath = "";
 
     for (int i = 0; i < paths.size(); i++) {
-      List<Long> timestamps = new ArrayList<>();
-      List<Double> value = new ArrayList<>();
-      List<Integer> timestampsIndex = new ArrayList<>();
-      int cnt = 0;
-      for (int j = 0; j < queryTimestamps.length; j++) {
+    List<Long> timestamps = new ArrayList<>();
+    List<Double> value = new ArrayList<>();
+    List<Integer> timestampsIndex = new ArrayList<>();
+    int cnt = 0;
+    for (int j = 0; j < queryTimestamps.length; j++) {
         if (values.get(j).get(i) != null) {
-          timestamps.add(queryTimestamps[j]);
-          value.add(ValueUtils.transformToDouble(values.get(j).get(i)));
-          timestampsIndex.add(cnt);
-          cnt++;
+        timestamps.add(queryTimestamps[j]);
+        value.add(ValueUtils.transformToDouble(values.get(j).get(i)));
+        timestampsIndex.add(cnt);
+        cnt++;
         }
-      }
-      List<Double> bestResultList = new CopyOnWriteArrayList<>();
-      List<Long> matchedTimestampList = new CopyOnWriteArrayList<>();
-      Collections.synchronizedList(timestampsIndex)
-          .stream()
-          .parallel()
-          .forEach(
-              item -> {
+    }
+    List<Double> bestResultList = new CopyOnWriteArrayList<>();
+    List<Long> matchedTimestampList = new CopyOnWriteArrayList<>();
+    Collections.synchronizedList(timestampsIndex).stream()
+        .parallel()
+        .forEach(
+            item -> {
                 List<Double> fetchedValueList =
                     CurveMatchUtils.fetch(
                         timestamps, value, item, req.getCurveUnit(), req.getCurveQuerySize());
                 if (fetchedValueList.size() == req.getCurveQuerySize()) {
-                  List<Double> valueList =
-                      CurveMatchUtils.calcShapePattern(
-                          fetchedValueList, true, true, true, 0.1, 0.05);
-                  double result =
-                      CurveMatchUtils.calcDTW(
-                          queryList, valueList, maxWarpingWindow, Double.MAX_VALUE, upper, lower);
-                  bestResultList.add(result);
-                  matchedTimestampList.add(timestamps.get(item));
+                List<Double> valueList =
+                    CurveMatchUtils.calcShapePattern(
+                        fetchedValueList, true, true, true, 0.1, 0.05);
+                double result =
+                    CurveMatchUtils.calcDTW(
+                        queryList, valueList, maxWarpingWindow, Double.MAX_VALUE, upper, lower);
+                bestResultList.add(result);
+                matchedTimestampList.add(timestamps.get(item));
                 }
-              });
-      for (int j = 0; j < bestResultList.size(); j++) {
+            });
+    for (int j = 0; j < bestResultList.size(); j++) {
         if (bestResultList.get(j) < globalBestResult) {
-          globalBestResult = bestResultList.get(j);
-          globalMatchedKey = matchedTimestampList.get(j);
-          globalMatchedPath = paths.get(i);
+        globalBestResult = bestResultList.get(j);
+        globalMatchedKey = matchedTimestampList.get(j);
+        globalMatchedPath = paths.get(i);
         }
-      }
+    }
     }
 
     CurveMatchResp resp = new CurveMatchResp(RpcUtils.SUCCESS);
     resp.setMatchedKey(globalMatchedKey);
     resp.setMatchedPath(globalMatchedPath);
     return resp;
-  }
+}
 
-  @Override
-  public DebugInfoResp debugInfo(DebugInfoReq req) {
+@Override
+public DebugInfoResp debugInfo(DebugInfoReq req) {
     byte[] payload = null;
     boolean parseFailure = false;
     switch (req.payloadType) {
-      case GET_META:
+    case GET_META:
         GetMetaReq getMetaReq;
         try {
-          getMetaReq = JsonUtils.fromJson(req.getPayload(), GetMetaReq.class);
+        getMetaReq = JsonUtils.fromJson(req.getPayload(), GetMetaReq.class);
         } catch (RuntimeException e) {
-          logger.error("parse request failure: ", e);
-          parseFailure = true;
-          break;
+        logger.error("parse request failure: ", e);
+        parseFailure = true;
+        break;
         }
         payload = JsonUtils.toJson(getMeta(getMetaReq));
         break;
-      default:
+    default:
         Status status = new Status(RpcUtils.FAILURE.code);
         status.message = "unknown debug info type";
         return new DebugInfoResp(status);
     }
     if (parseFailure) {
-      Status status = new Status(RpcUtils.FAILURE.code);
-      status.message = "unknown payload for type " + req.payloadType;
-      return new DebugInfoResp(status);
+    Status status = new Status(RpcUtils.FAILURE.code);
+    status.message = "unknown payload for type " + req.payloadType;
+    return new DebugInfoResp(status);
     }
     DebugInfoResp resp = new DebugInfoResp(RpcUtils.SUCCESS);
     resp.setPayload(payload);
     return resp;
-  }
+}
 
-  public GetMetaResp getMeta(GetMetaReq req) {
+public GetMetaResp getMeta(GetMetaReq req) {
     List<Storage> storages =
-        metaManager
-            .getStorageEngineList()
-            .stream()
+        metaManager.getStorageEngineList().stream()
             .map(e -> new Storage(e.getId(), e.getIp(), e.getPort(), e.getStorageEngine()))
             .collect(Collectors.toList());
     List<StorageUnit> units =
-        metaManager
-            .getStorageUnits()
-            .stream()
+        metaManager.getStorageUnits().stream()
             .map(u -> new StorageUnit(u.getId(), u.getMasterId(), u.getStorageEngineId()))
             .collect(Collectors.toList());
     List<Fragment> fragments =
-        metaManager
-            .getFragments()
-            .stream()
+        metaManager.getFragments().stream()
             .map(
                 f ->
                     new Fragment(
@@ -897,5 +890,5 @@ public class IginxWorker implements IService.Iface {
                         f.getColumnsRange().getEndColumn()))
             .collect(Collectors.toList());
     return new GetMetaResp(fragments, storages, units);
-  }
+}
 }

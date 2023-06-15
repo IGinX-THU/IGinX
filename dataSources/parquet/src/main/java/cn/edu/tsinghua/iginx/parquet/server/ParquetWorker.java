@@ -40,28 +40,28 @@ import org.slf4j.LoggerFactory;
 
 public class ParquetWorker implements ParquetService.Iface {
 
-  private static final Logger logger = LoggerFactory.getLogger(ParquetWorker.class);
+private static final Logger logger = LoggerFactory.getLogger(ParquetWorker.class);
 
-  private static final Status SUCCESS = new Status(200, "success");
+private static final Status SUCCESS = new Status(200, "success");
 
-  private static final Status EXEC_PROJECT_FAIL = new Status(401, "execute project fail");
+private static final Status EXEC_PROJECT_FAIL = new Status(401, "execute project fail");
 
-  private static final Status EXEC_INSERT_FAIL = new Status(402, "execute insert fail");
+private static final Status EXEC_INSERT_FAIL = new Status(402, "execute insert fail");
 
-  private static final Status EXEC_DELETE_FAIL = new Status(403, "execute delete fail");
+private static final Status EXEC_DELETE_FAIL = new Status(403, "execute delete fail");
 
-  private static final Status GET_TS_FAIL = new Status(404, "get time series fail");
+private static final Status GET_TS_FAIL = new Status(404, "get time series fail");
 
-  private static final Status GET_BOUNDARY_FAIL = new Status(405, "get boundary of storage fail");
+private static final Status GET_BOUNDARY_FAIL = new Status(405, "get boundary of storage fail");
 
-  private final Executor executor;
+private final Executor executor;
 
-  public ParquetWorker(Executor executor) {
+public ParquetWorker(Executor executor) {
     this.executor = executor;
-  }
+}
 
-  @Override
-  public ProjectResp executeProject(ProjectReq req) throws TException {
+@Override
+public ProjectResp executeProject(ProjectReq req) throws TException {
     TagFilter tagFilter = resolveRawTagFilter(req.getTagFilter());
 
     TaskExecuteResult result =
@@ -75,7 +75,7 @@ public class ParquetWorker implements ParquetService.Iface {
     RowStream rowStream = result.getRowStream();
 
     if (result.getException() != null || rowStream == null) {
-      return new ProjectResp(EXEC_PROJECT_FAIL);
+    return new ProjectResp(EXEC_PROJECT_FAIL);
     }
 
     List<String> names = new ArrayList<>();
@@ -84,62 +84,62 @@ public class ParquetWorker implements ParquetService.Iface {
     List<Map<String, String>> tagsList = new ArrayList<>();
     boolean hasTime;
     try {
-      hasTime = rowStream.getHeader().hasKey();
-      rowStream
-          .getHeader()
-          .getFields()
-          .forEach(
-              field -> {
+    hasTime = rowStream.getHeader().hasKey();
+    rowStream
+        .getHeader()
+        .getFields()
+        .forEach(
+            field -> {
                 names.add(field.getName());
                 types.add(field.getType().toString());
                 dataTypes.add(field.getType());
                 Map<String, String> tags =
                     field.getTags() == null ? new HashMap<>() : field.getTags();
                 tagsList.add(tags);
-              });
+            });
     } catch (PhysicalException e) {
-      logger.error("encounter error when get header from RowStream ", e);
-      return new ProjectResp(EXEC_PROJECT_FAIL);
+    logger.error("encounter error when get header from RowStream ", e);
+    return new ProjectResp(EXEC_PROJECT_FAIL);
     }
     ParquetHeader parquetHeader = new ParquetHeader(names, types, tagsList, hasTime);
 
     List<ParquetRow> parquetRows = new ArrayList<>();
     try {
-      while (rowStream.hasNext()) {
+    while (rowStream.hasNext()) {
         Row row = rowStream.next();
         Object[] rowValues = row.getValues();
         Bitmap bitmap = new Bitmap(rowValues.length);
         for (int j = 0; j < rowValues.length; j++) {
-          if (rowValues[j] != null) {
+        if (rowValues[j] != null) {
             bitmap.mark(j);
-          }
+        }
         }
         ParquetRow parquetRow =
             new ParquetRow(
                 ByteUtils.getRowByteBuffer(rowValues, dataTypes),
                 ByteBuffer.wrap(bitmap.getBytes()));
         if (hasTime) {
-          parquetRow.setKey(row.getKey());
+        parquetRow.setKey(row.getKey());
         }
         parquetRows.add(parquetRow);
-      }
+    }
     } catch (PhysicalException e) {
-      logger.error("encounter error when get result from RowStream ", e);
-      return new ProjectResp(EXEC_PROJECT_FAIL);
+    logger.error("encounter error when get result from RowStream ", e);
+    return new ProjectResp(EXEC_PROJECT_FAIL);
     }
 
     ProjectResp resp = new ProjectResp(SUCCESS);
     resp.setHeader(parquetHeader);
     resp.setRows(parquetRows);
     return resp;
-  }
+}
 
-  @Override
-  public Status executeInsert(InsertReq req) throws TException {
+@Override
+public Status executeInsert(InsertReq req) throws TException {
     ParquetRawData parquetRawData = req.getRawData();
     RawDataType rawDataType = strToRawDataType(parquetRawData.getRawDataType());
     if (rawDataType == null) {
-      return EXEC_INSERT_FAIL;
+    return EXEC_INSERT_FAIL;
     }
 
     List<String> paths = parquetRawData.getPaths();
@@ -150,26 +150,23 @@ public class ParquetWorker implements ParquetService.Iface {
     List<ByteBuffer> bitmapList = parquetRawData.getBitmapList();
     List<DataType> types = new ArrayList<>();
     for (String dataType : parquetRawData.getDataTypeList()) {
-      types.add(DataTypeUtils.strToDataType(dataType));
+    types.add(DataTypeUtils.strToDataType(dataType));
     }
 
     List<Bitmap> bitmaps;
     Object[] values;
     if (rawDataType == RawDataType.Row || rawDataType == RawDataType.NonAlignedRow) {
-      bitmaps =
-          parquetRawData
-              .getBitmapList()
-              .stream()
-              .map(x -> new Bitmap(paths.size(), x.array()))
-              .collect(Collectors.toList());
-      values = ByteUtils.getRowValuesByDataType(valueList, types, bitmapList);
+    bitmaps =
+        parquetRawData.getBitmapList().stream()
+            .map(x -> new Bitmap(paths.size(), x.array()))
+            .collect(Collectors.toList());
+    values = ByteUtils.getRowValuesByDataType(valueList, types, bitmapList);
     } else {
-      bitmaps =
-          bitmapList
-              .stream()
-              .map(x -> new Bitmap(times.size(), x.array()))
-              .collect(Collectors.toList());
-      values = ByteUtils.getColumnValuesByDataType(valueList, types, bitmapList, times.size());
+    bitmaps =
+        bitmapList.stream()
+            .map(x -> new Bitmap(times.size(), x.array()))
+            .collect(Collectors.toList());
+    values = ByteUtils.getColumnValuesByDataType(valueList, types, bitmapList, times.size());
     }
 
     RawData rawData =
@@ -178,132 +175,132 @@ public class ParquetWorker implements ParquetService.Iface {
 
     DataView dataView;
     if (rawDataType == RawDataType.Row || rawDataType == RawDataType.NonAlignedRow) {
-      dataView =
-          new RowDataView(rawData, 0, rawData.getPaths().size(), 0, rawData.getKeys().size());
+    dataView =
+        new RowDataView(rawData, 0, rawData.getPaths().size(), 0, rawData.getKeys().size());
     } else {
-      dataView =
-          new ColumnDataView(rawData, 0, rawData.getPaths().size(), 0, rawData.getKeys().size());
+    dataView =
+        new ColumnDataView(rawData, 0, rawData.getPaths().size(), 0, rawData.getKeys().size());
     }
 
     TaskExecuteResult result = executor.executeInsertTask(dataView, req.getStorageUnit());
     if (result.getException() == null) {
-      return SUCCESS;
+    return SUCCESS;
     } else {
-      return EXEC_INSERT_FAIL;
+    return EXEC_INSERT_FAIL;
     }
-  }
+}
 
-  private RawDataType strToRawDataType(String type) {
+private RawDataType strToRawDataType(String type) {
     switch (type.toLowerCase()) {
-      case "row":
+    case "row":
         return RawDataType.Row;
-      case "nonalignedrow":
+    case "nonalignedrow":
         return RawDataType.NonAlignedRow;
-      case "column":
+    case "column":
         return RawDataType.Column;
-      case "nonalignedcolumn":
+    case "nonalignedcolumn":
         return RawDataType.NonAlignedColumn;
-      default:
+    default:
         return null;
     }
-  }
+}
 
-  @Override
-  public Status executeDelete(DeleteReq req) throws TException {
+@Override
+public Status executeDelete(DeleteReq req) throws TException {
     TagFilter tagFilter = resolveRawTagFilter(req.getTagFilter());
 
     // null timeRanges means delete columns
     List<KeyRange> keyRanges = null;
     if (req.isSetKeyRanges()) {
-      keyRanges = new ArrayList<>();
-      for (ParquetKeyRange range : req.getKeyRanges()) {
+    keyRanges = new ArrayList<>();
+    for (ParquetKeyRange range : req.getKeyRanges()) {
         keyRanges.add(new KeyRange(range.getBeginKey(), range.getEndKey()));
-      }
+    }
     }
 
     TaskExecuteResult result =
         executor.executeDeleteTask(req.getPaths(), keyRanges, tagFilter, req.getStorageUnit());
     if (result.getException() == null) {
-      return SUCCESS;
+    return SUCCESS;
     } else {
-      return EXEC_DELETE_FAIL;
+    return EXEC_DELETE_FAIL;
     }
-  }
+}
 
-  private TagFilter resolveRawTagFilter(RawTagFilter rawTagFilter) {
+private TagFilter resolveRawTagFilter(RawTagFilter rawTagFilter) {
     if (rawTagFilter == null) {
-      return null;
+    return null;
     }
     switch (rawTagFilter.getType()) {
-      case Base:
+    case Base:
         return new BaseTagFilter(rawTagFilter.getKey(), rawTagFilter.getValue());
-      case WithoutTag:
+    case WithoutTag:
         return new WithoutTagFilter();
-      case BasePrecise:
+    case BasePrecise:
         return new BasePreciseTagFilter(rawTagFilter.getTags());
-      case Precise:
+    case Precise:
         {
-          List<BasePreciseTagFilter> children = new ArrayList<>();
-          rawTagFilter
-              .getChildren()
-              .forEach(child -> children.add((BasePreciseTagFilter) resolveRawTagFilter(child)));
-          return new PreciseTagFilter(children);
+        List<BasePreciseTagFilter> children = new ArrayList<>();
+        rawTagFilter
+            .getChildren()
+            .forEach(child -> children.add((BasePreciseTagFilter) resolveRawTagFilter(child)));
+        return new PreciseTagFilter(children);
         }
-      case And:
+    case And:
         {
-          List<TagFilter> children = new ArrayList<>();
-          rawTagFilter.getChildren().forEach(child -> children.add(resolveRawTagFilter(child)));
-          return new AndTagFilter(children);
+        List<TagFilter> children = new ArrayList<>();
+        rawTagFilter.getChildren().forEach(child -> children.add(resolveRawTagFilter(child)));
+        return new AndTagFilter(children);
         }
-      case Or:
+    case Or:
         {
-          List<TagFilter> children = new ArrayList<>();
-          rawTagFilter.getChildren().forEach(child -> children.add(resolveRawTagFilter(child)));
-          return new OrTagFilter(children);
+        List<TagFilter> children = new ArrayList<>();
+        rawTagFilter.getChildren().forEach(child -> children.add(resolveRawTagFilter(child)));
+        return new OrTagFilter(children);
         }
-      default:
+    default:
         {
-          logger.error("unknown tag filter type: {}", rawTagFilter.getType());
-          return null;
+        logger.error("unknown tag filter type: {}", rawTagFilter.getType());
+        return null;
         }
     }
-  }
+}
 
-  @Override
-  public GetColumnsOfStorageUnitResp getColumnsOfStorageUnit(String storageUnit) throws TException {
+@Override
+public GetColumnsOfStorageUnitResp getColumnsOfStorageUnit(String storageUnit) throws TException {
     List<TS> ret = new ArrayList<>();
     try {
-      List<Column> tsList = executor.getColumnsOfStorageUnit(storageUnit);
-      tsList.forEach(
-          timeseries -> {
+    List<Column> tsList = executor.getColumnsOfStorageUnit(storageUnit);
+    tsList.forEach(
+        timeseries -> {
             TS ts = new TS(timeseries.getPath(), timeseries.getDataType().toString());
             if (timeseries.getTags() != null) {
-              ts.setTags(timeseries.getTags());
+            ts.setTags(timeseries.getTags());
             }
             ret.add(ts);
-          });
-      GetColumnsOfStorageUnitResp resp = new GetColumnsOfStorageUnitResp(SUCCESS);
-      resp.setTsList(ret);
-      return resp;
+        });
+    GetColumnsOfStorageUnitResp resp = new GetColumnsOfStorageUnitResp(SUCCESS);
+    resp.setTsList(ret);
+    return resp;
     } catch (PhysicalException e) {
-      logger.error("encounter error when getColumnsOfStorageUnit ", e);
-      return new GetColumnsOfStorageUnitResp(GET_TS_FAIL);
+    logger.error("encounter error when getColumnsOfStorageUnit ", e);
+    return new GetColumnsOfStorageUnitResp(GET_TS_FAIL);
     }
-  }
+}
 
-  @Override
-  public GetStorageBoundaryResp getBoundaryOfStorage() throws TException {
+@Override
+public GetStorageBoundaryResp getBoundaryOfStorage() throws TException {
     try {
-      Pair<ColumnsRange, KeyInterval> pair = executor.getBoundaryOfStorage();
-      GetStorageBoundaryResp resp = new GetStorageBoundaryResp(SUCCESS);
-      resp.setStartKey(pair.getV().getStartKey());
-      resp.setEndKey(pair.getV().getEndKey());
-      resp.setStartColumn(pair.getK().getStartColumn());
-      resp.setEndColumn(pair.getK().getEndColumn());
-      return resp;
+    Pair<ColumnsRange, KeyInterval> pair = executor.getBoundaryOfStorage();
+    GetStorageBoundaryResp resp = new GetStorageBoundaryResp(SUCCESS);
+    resp.setStartKey(pair.getV().getStartKey());
+    resp.setEndKey(pair.getV().getEndKey());
+    resp.setStartColumn(pair.getK().getStartColumn());
+    resp.setEndColumn(pair.getK().getEndColumn());
+    return resp;
     } catch (PhysicalException e) {
-      logger.error("encounter error when getBoundaryOfStorage ", e);
-      return new GetStorageBoundaryResp(GET_BOUNDARY_FAIL);
+    logger.error("encounter error when getBoundaryOfStorage ", e);
+    return new GetStorageBoundaryResp(GET_BOUNDARY_FAIL);
     }
-  }
+}
 }

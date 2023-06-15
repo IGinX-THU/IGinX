@@ -10,25 +10,25 @@ import org.slf4j.LoggerFactory;
 
 public class FileReader {
 
-  private static final Logger logger = LoggerFactory.getLogger(FileReader.class);
+private static final Logger logger = LoggerFactory.getLogger(FileReader.class);
 
-  public static String convertToString(String filePath) {
+public static String convertToString(String filePath) {
     String conf = null;
     InputStream in = null;
     try {
-      in = new BufferedInputStream(Files.newInputStream(Paths.get(filePath)));
-      conf = IOUtils.toString(in, String.valueOf(StandardCharsets.UTF_8)).replace("\n", "");
+    in = new BufferedInputStream(Files.newInputStream(Paths.get(filePath)));
+    conf = IOUtils.toString(in, String.valueOf(StandardCharsets.UTF_8)).replace("\n", "");
     } catch (IOException e) {
-      logger.error(String.format("Fail to find file, path=%s", filePath));
+    logger.error(String.format("Fail to find file, path=%s", filePath));
     } finally {
-      try {
+    try {
         if (in != null) {
-          in.close();
+        in.close();
         }
-      } catch (IOException e) {
+    } catch (IOException e) {
         logger.error("Fail to close the file, path={}", filePath);
-      }
+    }
     }
     return conf;
-  }
+}
 }

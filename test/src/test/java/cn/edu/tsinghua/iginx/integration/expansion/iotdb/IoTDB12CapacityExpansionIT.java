@@ -8,9 +8,9 @@ import org.slf4j.LoggerFactory;
 
 public class IoTDB12CapacityExpansionIT extends BaseCapacityExpansionIT {
 
-  private static final Logger logger = LoggerFactory.getLogger(IoTDB12CapacityExpansionIT.class);
+private static final Logger logger = LoggerFactory.getLogger(IoTDB12CapacityExpansionIT.class);
 
-  public IoTDB12CapacityExpansionIT() {
+public IoTDB12CapacityExpansionIT() {
     super(iotdb12, "username:root, password:root, sessionPoolSize:20", 6667, 6668, 6669);
-  }
+}
 }

@@ -4,71 +4,71 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 
 public class DataTransformer {
 
-  public static String objectValueToString(Object value) {
+public static String objectValueToString(Object value) {
     if (value instanceof byte[]) {
-      return new String((byte[]) value);
+    return new String((byte[]) value);
     } else {
-      return String.valueOf(value);
+    return String.valueOf(value);
     }
-  }
+}
 
-  public static Object strValueToDeterminedType(String value, DataType type) {
+public static Object strValueToDeterminedType(String value, DataType type) {
     if (value == null) {
-      return null;
+    return null;
     }
     switch (type) {
-      case BOOLEAN:
+    case BOOLEAN:
         return Boolean.parseBoolean(value);
-      case INTEGER:
+    case INTEGER:
         return Integer.parseInt(value);
-      case LONG:
+    case LONG:
         return Long.parseLong(value);
-      case FLOAT:
+    case FLOAT:
         return Float.parseFloat(value);
-      case DOUBLE:
+    case DOUBLE:
         return Double.parseDouble(value);
-      case BINARY:
-      default:
+    case BINARY:
+    default:
         return value.getBytes();
     }
-  }
+}
 
-  public static DataType fromStringDataType(String dataType) {
+public static DataType fromStringDataType(String dataType) {
     if (dataType == null) {
-      return null;
+    return null;
     }
     switch (dataType) {
-      case "BOOLEAN":
+    case "BOOLEAN":
         return DataType.BOOLEAN;
-      case "INTEGER":
+    case "INTEGER":
         return DataType.INTEGER;
-      case "LONG":
+    case "LONG":
         return DataType.LONG;
-      case "FLOAT":
+    case "FLOAT":
         return DataType.FLOAT;
-      case "DOUBLE":
+    case "DOUBLE":
         return DataType.DOUBLE;
-      case "BINARY":
-      default:
+    case "BINARY":
+    default:
         return DataType.BINARY;
     }
-  }
+}
 
-  public static String toStringDataType(DataType dataType) {
+public static String toStringDataType(DataType dataType) {
     switch (dataType) {
-      case BOOLEAN:
+    case BOOLEAN:
         return "BOOLEAN";
-      case INTEGER:
+    case INTEGER:
         return "INTEGER";
-      case LONG:
+    case LONG:
         return "LONG";
-      case FLOAT:
+    case FLOAT:
         return "FLOAT";
-      case DOUBLE:
+    case DOUBLE:
         return "DOUBLE";
-      case BINARY:
-      default:
+    case BINARY:
+    default:
         return "BINARY";
     }
-  }
+}
 }

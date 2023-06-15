@@ -22,9 +22,9 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 
 public interface Operator {
 
-  OperatorType getType();
+OperatorType getType();
 
-  Operator copy();
+Operator copy();
 
-  String getInfo();
+String getInfo();
 }

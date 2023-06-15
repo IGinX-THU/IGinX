@@ -27,52 +27,52 @@ import org.slf4j.LoggerFactory;
 
 public class FilterFragmentOptimizer implements Optimizer {
 
-  private static final IMetaManager metaManager = DefaultMetaManager.getInstance();
+private static final IMetaManager metaManager = DefaultMetaManager.getInstance();
 
-  private static final Logger logger = LoggerFactory.getLogger(FilterFragmentOptimizer.class);
+private static final Logger logger = LoggerFactory.getLogger(FilterFragmentOptimizer.class);
 
-  private static FilterFragmentOptimizer instance;
+private static FilterFragmentOptimizer instance;
 
-  private FilterFragmentOptimizer() {}
+private FilterFragmentOptimizer() {}
 
-  public static FilterFragmentOptimizer getInstance() {
+public static FilterFragmentOptimizer getInstance() {
     if (instance == null) {
-      synchronized (FilterFragmentOptimizer.class) {
+    synchronized (FilterFragmentOptimizer.class) {
         if (instance == null) {
-          instance = new FilterFragmentOptimizer();
+        instance = new FilterFragmentOptimizer();
         }
-      }
+    }
     }
     return instance;
-  }
+}
 
-  @Override
-  public Operator optimize(Operator root) {
+@Override
+public Operator optimize(Operator root) {
     // only optimize query
     if (root.getType() == OperatorType.CombineNonQuery
         || root.getType() == OperatorType.ShowTimeSeries) {
-      return root;
+    return root;
     }
 
     List<Select> selectOperatorList = new ArrayList<>();
     OperatorUtils.findSelectOperators(selectOperatorList, root);
 
     if (selectOperatorList.isEmpty()) {
-      logger.info("There is no filter in logical tree.");
-      return root;
+    logger.info("There is no filter in logical tree.");
+    return root;
     }
 
     for (Select selectOperator : selectOperatorList) {
-      filterFragmentByTimeRange(selectOperator);
+    filterFragmentByTimeRange(selectOperator);
     }
     return root;
-  }
+}
 
-  private void filterFragmentByTimeRange(Select selectOperator) {
+private void filterFragmentByTimeRange(Select selectOperator) {
     List<String> pathList = OperatorUtils.findPathList(selectOperator);
     if (pathList.isEmpty()) {
-      logger.error("Can not find paths in select operator.");
-      return;
+    logger.error("Can not find paths in select operator.");
+    return;
     }
 
     ColumnsRange interval = new ColumnsInterval(pathList.get(0), pathList.get(pathList.size() - 1));
@@ -89,51 +89,51 @@ public class FilterFragmentOptimizer implements Optimizer {
     List<Operator> unionList = new ArrayList<>();
     fragments.forEach(
         (k, v) -> {
-          List<Operator> joinList = new ArrayList<>();
-          v.forEach(
-              meta -> {
+        List<Operator> joinList = new ArrayList<>();
+        v.forEach(
+            meta -> {
                 if (hasTimeRangeOverlap(meta, keyRanges)) {
-                  joinList.add(
-                      new Project(
-                          new FragmentSource(meta), pathList, selectOperator.getTagFilter()));
+                joinList.add(
+                    new Project(
+                        new FragmentSource(meta), pathList, selectOperator.getTagFilter()));
                 }
-              });
-          Operator operator = OperatorUtils.joinOperatorsByTime(joinList);
-          if (operator != null) {
+            });
+        Operator operator = OperatorUtils.joinOperatorsByTime(joinList);
+        if (operator != null) {
             unionList.add(operator);
-          }
+        }
         });
 
     Operator root = OperatorUtils.unionOperators(unionList);
     if (!dummyFragments.isEmpty()) {
-      List<Operator> joinList = new ArrayList<>();
-      dummyFragments.forEach(
-          meta -> {
+    List<Operator> joinList = new ArrayList<>();
+    dummyFragments.forEach(
+        meta -> {
             if (meta.isValid() && hasTimeRangeOverlap(meta, keyRanges)) {
-              joinList.add(
-                  new Project(new FragmentSource(meta), pathList, selectOperator.getTagFilter()));
+            joinList.add(
+                new Project(new FragmentSource(meta), pathList, selectOperator.getTagFilter()));
             }
-          });
-      if (root != null) {
+        });
+    if (root != null) {
         joinList.add(root);
-      }
-      root = OperatorUtils.joinOperatorsByTime(joinList);
+    }
+    root = OperatorUtils.joinOperatorsByTime(joinList);
     }
     if (root != null) {
-      selectOperator.setSource(new OperatorSource(root));
+    selectOperator.setSource(new OperatorSource(root));
     }
-  }
+}
 
-  private boolean hasTimeRangeOverlap(FragmentMeta meta, List<KeyRange> keyRanges) {
+private boolean hasTimeRangeOverlap(FragmentMeta meta, List<KeyRange> keyRanges) {
     KeyInterval interval = meta.getKeyInterval();
     for (KeyRange range : keyRanges) {
-      if (interval.getStartKey() > range.getEndKey()
-          || interval.getEndKey() < range.getBeginKey()) {
+    if (interval.getStartKey() > range.getEndKey()
+        || interval.getEndKey() < range.getBeginKey()) {
         // continue
-      } else {
+    } else {
         return true;
-      }
+    }
     }
     return false;
-  }
+}
 }

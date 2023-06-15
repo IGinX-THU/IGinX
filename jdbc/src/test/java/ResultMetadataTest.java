@@ -9,20 +9,20 @@ import org.junit.Test;
 
 public class ResultMetadataTest {
 
-  private ResultSet resultSet;
+private ResultSet resultSet;
 
-  @Before
-  public void before() {
+@Before
+public void before() {
     resultSet = TestUtils.buildMockResultSet();
-  }
+}
 
-  @After
-  public void after() {
+@After
+public void after() {
     resultSet = null;
-  }
+}
 
-  @Test
-  public void testMetaDataColumnName() throws SQLException {
+@Test
+public void testMetaDataColumnName() throws SQLException {
     ResultSetMetaData metaData = resultSet.getMetaData();
     Assert.assertEquals("key", metaData.getColumnName(1));
     Assert.assertEquals("test.result.set.boolean", metaData.getColumnName(2));
@@ -31,10 +31,10 @@ public class ResultMetadataTest {
     Assert.assertEquals("test.result.set.float", metaData.getColumnName(5));
     Assert.assertEquals("test.result.set.double", metaData.getColumnName(6));
     Assert.assertEquals("test.result.set.string", metaData.getColumnName(7));
-  }
+}
 
-  @Test
-  public void testMetaDataColumnType() throws SQLException {
+@Test
+public void testMetaDataColumnType() throws SQLException {
     ResultSetMetaData metaData = resultSet.getMetaData();
     Assert.assertEquals(Types.TIMESTAMP, metaData.getColumnType(1));
     Assert.assertEquals(Types.BOOLEAN, metaData.getColumnType(2));
@@ -43,11 +43,11 @@ public class ResultMetadataTest {
     Assert.assertEquals(Types.FLOAT, metaData.getColumnType(5));
     Assert.assertEquals(Types.DOUBLE, metaData.getColumnType(6));
     Assert.assertEquals(Types.VARCHAR, metaData.getColumnType(7));
-  }
+}
 
-  @Test
-  public void testMetaDataColumnCount() throws SQLException {
+@Test
+public void testMetaDataColumnCount() throws SQLException {
     ResultSetMetaData metaData = resultSet.getMetaData();
     Assert.assertEquals(7, metaData.getColumnCount());
-  }
+}
 }

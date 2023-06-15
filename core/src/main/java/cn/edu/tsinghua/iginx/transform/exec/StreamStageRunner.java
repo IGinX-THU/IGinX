@@ -27,89 +27,89 @@ import org.slf4j.LoggerFactory;
 
 public class StreamStageRunner implements Runner {
 
-  private final StreamStage streamStage;
+private final StreamStage streamStage;
 
-  private final int batchSize;
+private final int batchSize;
 
-  private final Mutex mutex;
+private final Mutex mutex;
 
-  private Writer writer;
+private Writer writer;
 
-  private Reader reader;
+private Reader reader;
 
-  private final List<PemjaWorker> pemjaWorkerList;
+private final List<PemjaWorker> pemjaWorkerList;
 
-  private final PemjaDriver driver = PemjaDriver.getInstance();
+private final PemjaDriver driver = PemjaDriver.getInstance();
 
-  private final StatementExecutor executor = StatementExecutor.getInstance();
+private final StatementExecutor executor = StatementExecutor.getInstance();
 
-  private final ContextBuilder contextBuilder = ContextBuilder.getInstance();
+private final ContextBuilder contextBuilder = ContextBuilder.getInstance();
 
-  private static final Config config = ConfigDescriptor.getInstance().getConfig();
+private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
-  @SuppressWarnings("unused")
-  private static final Logger logger = LoggerFactory.getLogger(StreamStageRunner.class);
+@SuppressWarnings("unused")
+private static final Logger logger = LoggerFactory.getLogger(StreamStageRunner.class);
 
-  public StreamStageRunner(StreamStage stage) {
+public StreamStageRunner(StreamStage stage) {
     this.streamStage = stage;
     this.batchSize = config.getBatchSize();
     this.pemjaWorkerList = new ArrayList<>();
     this.writer = streamStage.getExportWriter();
     this.mutex = ((ExportWriter) writer).getMutex();
-  }
+}
 
-  @Override
-  public void start() throws TransformException {
+@Override
+public void start() throws TransformException {
     if (streamStage.isStartWithIginX()) {
-      IginXTask firstTask = (IginXTask) streamStage.getTaskList().get(0);
-      RowStream rowStream = getRowStream(streamStage.getSessionId(), firstTask.getSqlList());
-      reader = new RowStreamReader(rowStream, batchSize);
+    IginXTask firstTask = (IginXTask) streamStage.getTaskList().get(0);
+    RowStream rowStream = getRowStream(streamStage.getSessionId(), firstTask.getSqlList());
+    reader = new RowStreamReader(rowStream, batchSize);
     } else {
-      CollectionWriter collectionWriter =
-          (CollectionWriter) streamStage.getBeforeStage().getExportWriter();
-      reader = new SplitReader(collectionWriter.getCollectedData(), batchSize);
+    CollectionWriter collectionWriter =
+        (CollectionWriter) streamStage.getBeforeStage().getExportWriter();
+    reader = new SplitReader(collectionWriter.getCollectedData(), batchSize);
     }
 
     List<Task> taskList = streamStage.getTaskList();
     for (int i = taskList.size() - 1; i >= 0; i--) {
-      Task task = taskList.get(i);
-      if (task.isPythonTask()) {
+    Task task = taskList.get(i);
+    if (task.isPythonTask()) {
         PemjaWorker pemjaWorker = driver.createWorker((PythonTask) task, writer);
         pemjaWorkerList.add(0, pemjaWorker);
         writer = new PemjaWriter(pemjaWorker);
-      }
     }
-  }
+    }
+}
 
-  private RowStream getRowStream(long sessionId, List<String> sqlList) {
+private RowStream getRowStream(long sessionId, List<String> sqlList) {
     for (int i = 0; i < sqlList.size() - 1; i++) {
-      ExecuteStatementReq req = new ExecuteStatementReq(sessionId, sqlList.get(i));
-      RequestContext context = contextBuilder.build(req);
-      executor.execute(context);
+    ExecuteStatementReq req = new ExecuteStatementReq(sessionId, sqlList.get(i));
+    RequestContext context = contextBuilder.build(req);
+    executor.execute(context);
     }
 
     ExecuteStatementReq req = new ExecuteStatementReq(sessionId, sqlList.get(sqlList.size() - 1));
     RequestContext context = contextBuilder.build(req);
     executor.execute(context);
     return context.getResult().getResultStream();
-  }
+}
 
-  @Override
-  public void run() throws WriteBatchException {
+@Override
+public void run() throws WriteBatchException {
     while (reader.hasNextBatch()) {
-      mutex.lock();
-      BatchData batchData = reader.loadNextBatch();
-      writer.writeBatch(batchData);
+    mutex.lock();
+    BatchData batchData = reader.loadNextBatch();
+    writer.writeBatch(batchData);
     }
 
     // wait for last batch finished.
     mutex.lock();
-  }
+}
 
-  @Override
-  public void close() {
+@Override
+public void close() {
     if (reader != null) {
-      reader.close();
+    reader.close();
     }
-  }
+}
 }

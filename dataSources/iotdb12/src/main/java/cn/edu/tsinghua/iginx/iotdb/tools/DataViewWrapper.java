@@ -27,64 +27,64 @@ import java.util.TreeMap;
 
 public class DataViewWrapper {
 
-  private final DataView dataView;
+private final DataView dataView;
 
-  private final Map<Integer, String> pathCache;
+private final Map<Integer, String> pathCache;
 
-  public DataViewWrapper(DataView dataView) {
+public DataViewWrapper(DataView dataView) {
     this.dataView = dataView;
     this.pathCache = new HashMap<>();
-  }
+}
 
-  public int getPathNum() {
+public int getPathNum() {
     return dataView.getPathNum();
-  }
+}
 
-  public int getTimeSize() {
+public int getTimeSize() {
     return dataView.getKeySize();
-  }
+}
 
-  public String getPath(int index) {
+public String getPath(int index) {
     if (pathCache.containsKey(index)) {
-      return pathCache.get(index);
+    return pathCache.get(index);
     }
     String path = dataView.getPath(index);
     Map<String, String> tags = dataView.getTags(index);
     path += '.';
     path += TagKVUtils.tagPrefix;
     if (tags != null && !tags.isEmpty()) {
-      TreeMap<String, String> sortedTags = new TreeMap<>(tags);
-      StringBuilder pathBuilder = new StringBuilder();
-      sortedTags.forEach(
-          (tagKey, tagValue) -> {
+    TreeMap<String, String> sortedTags = new TreeMap<>(tags);
+    StringBuilder pathBuilder = new StringBuilder();
+    sortedTags.forEach(
+        (tagKey, tagValue) -> {
             pathBuilder
                 .append('.')
                 .append(TagKVUtils.tagNameAnnotation)
                 .append(tagKey)
                 .append('.')
                 .append(tagValue);
-          });
-      path += pathBuilder.toString();
+        });
+    path += pathBuilder.toString();
     }
     path += '.';
     path += TagKVUtils.tagSuffix;
     pathCache.put(index, path);
     return path;
-  }
+}
 
-  public DataType getDataType(int index) {
+public DataType getDataType(int index) {
     return dataView.getDataType(index);
-  }
+}
 
-  public Long getTimestamp(int index) {
+public Long getTimestamp(int index) {
     return dataView.getKey(index);
-  }
+}
 
-  public Object getValue(int index1, int index2) {
+public Object getValue(int index1, int index2) {
     return dataView.getValue(index1, index2);
-  }
+}
 
-  public BitmapView getBitmapView(int index) {
+public BitmapView getBitmapView(int index) {
     return dataView.getBitmapView(index);
-  }
+}
 }

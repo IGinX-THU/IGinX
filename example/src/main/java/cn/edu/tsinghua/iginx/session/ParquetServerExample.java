@@ -6,12 +6,12 @@ import java.util.Collections;
 
 public class ParquetServerExample {
 
-  private static Session session1;
+private static Session session1;
 
-  private static Session session2;
+private static Session session2;
 
-  /** session1 parquet use local session2 parquet use remote */
-  public static void main(String[] args) throws SessionException, ExecutionException {
+/** session1 parquet use local session2 parquet use remote */
+public static void main(String[] args) throws SessionException, ExecutionException {
     // init
     session1 = new Session("127.0.0.1", 6888, "root", "root");
     session1.openSession();
@@ -82,5 +82,5 @@ public class ParquetServerExample {
 
     session1.closeSession();
     session2.closeSession();
-  }
+}
 }

@@ -6,14 +6,14 @@ import cn.edu.tsinghua.iginx.transform.exception.WriteBatchException;
 
 public class PemjaWriter implements Writer {
 
-  private final PemjaWorker worker;
+private final PemjaWorker worker;
 
-  public PemjaWriter(PemjaWorker worker) {
+public PemjaWriter(PemjaWorker worker) {
     this.worker = worker;
-  }
+}
 
-  @Override
-  public void writeBatch(BatchData batchData) throws WriteBatchException {
+@Override
+public void writeBatch(BatchData batchData) throws WriteBatchException {
     worker.process(batchData);
-  }
+}
 }

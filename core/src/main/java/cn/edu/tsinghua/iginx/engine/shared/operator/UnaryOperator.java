@@ -22,7 +22,7 @@ import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 
 public interface UnaryOperator extends Operator {
 
-  Source getSource();
+Source getSource();
 
-  void setSource(Source source);
+void setSource(Source source);
 }

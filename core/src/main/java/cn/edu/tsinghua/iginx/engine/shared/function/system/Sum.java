@@ -38,36 +38,36 @@ import java.util.regex.Pattern;
 
 public class Sum implements SetMappingFunction {
 
-  public static final String SUM = "sum";
+public static final String SUM = "sum";
 
-  private static final Sum INSTANCE = new Sum();
+private static final Sum INSTANCE = new Sum();
 
-  private Sum() {}
+private Sum() {}
 
-  public static Sum getInstance() {
+public static Sum getInstance() {
     return INSTANCE;
-  }
+}
 
-  @Override
-  public FunctionType getFunctionType() {
+@Override
+public FunctionType getFunctionType() {
     return FunctionType.System;
-  }
+}
 
-  @Override
-  public MappingType getMappingType() {
+@Override
+public MappingType getMappingType() {
     return MappingType.SetMapping;
-  }
+}
 
-  @Override
-  public String getIdentifier() {
+@Override
+public String getIdentifier() {
     return SUM;
-  }
+}
 
-  @Override
-  public Row transform(RowStream rows, FunctionParams params) throws Exception {
+@Override
+public Row transform(RowStream rows, FunctionParams params) throws Exception {
     List<String> pathParams = params.getPaths();
     if (pathParams == null || pathParams.size() != 1) {
-      throw new IllegalArgumentException("unexpected param type for avg.");
+    throw new IllegalArgumentException("unexpected param type for avg.");
     }
     List<Integer> groupByLevels = params.getLevels();
 
@@ -80,85 +80,85 @@ public class Sum implements SetMappingFunction {
     Map<String, Integer> groupNameIndexMap = new HashMap<>(); // 只有在存在 group by 的时候才奏效
     Map<Integer, Integer> groupOrderIndexMap = new HashMap<>();
     for (int i = 0; i < fields.size(); i++) {
-      Field field = fields.get(i);
-      if (pattern.matcher(field.getFullName()).matches()) {
+    Field field = fields.get(i);
+    if (pattern.matcher(field.getFullName()).matches()) {
         if (groupByLevels == null) {
-          String name = getIdentifier() + "(" + field.getName() + ")";
-          String fullName = getIdentifier() + "(" + field.getFullName() + ")";
-          if (DataTypeUtils.isWholeNumber(field.getType())) {
+        String name = getIdentifier() + "(" + field.getName() + ")";
+        String fullName = getIdentifier() + "(" + field.getFullName() + ")";
+        if (DataTypeUtils.isWholeNumber(field.getType())) {
             targetFields.add(new Field(name, fullName, DataType.LONG));
-          } else {
-            targetFields.add(new Field(name, fullName, DataType.DOUBLE));
-          }
         } else {
-          String targetFieldName =
-              getIdentifier()
-                  + "("
-                  + GroupByUtils.transformPath(field.getFullName(), groupByLevels)
-                  + ")";
-          int index = groupNameIndexMap.getOrDefault(targetFieldName, -1);
-          if (index != -1) {
+            targetFields.add(new Field(name, fullName, DataType.DOUBLE));
+        }
+        } else {
+        String targetFieldName =
+            getIdentifier()
+                + "("
+                + GroupByUtils.transformPath(field.getFullName(), groupByLevels)
+                + ")";
+        int index = groupNameIndexMap.getOrDefault(targetFieldName, -1);
+        if (index != -1) {
             groupOrderIndexMap.put(i, index);
-          } else {
+        } else {
             groupNameIndexMap.put(targetFieldName, targetFields.size());
             groupOrderIndexMap.put(i, targetFields.size());
             if (DataTypeUtils.isWholeNumber(field.getType())) {
-              targetFields.add(new Field(targetFieldName, DataType.LONG));
+            targetFields.add(new Field(targetFieldName, DataType.LONG));
             } else {
-              targetFields.add(new Field(targetFieldName, DataType.DOUBLE));
+            targetFields.add(new Field(targetFieldName, DataType.DOUBLE));
             }
-          }
+        }
         }
         indices.add(i);
-      }
+    }
     }
 
     for (Field field : targetFields) {
-      if (!DataTypeUtils.isNumber(field.getType())) {
+    if (!DataTypeUtils.isNumber(field.getType())) {
         throw new IllegalArgumentException("only number can calculate sum");
-      }
+    }
     }
 
     Object[] targetValues = new Object[targetFields.size()];
     for (int i = 0; i < targetFields.size(); i++) {
-      Field targetField = targetFields.get(i);
-      if (targetField.getType() == DataType.LONG) {
+    Field targetField = targetFields.get(i);
+    if (targetField.getType() == DataType.LONG) {
         targetValues[i] = 0L;
-      } else {
+    } else {
         targetValues[i] = 0.0D;
-      }
+    }
     }
     while (rows.hasNext()) {
-      Row row = rows.next();
-      for (int i = 0; i < indices.size(); i++) {
+    Row row = rows.next();
+    for (int i = 0; i < indices.size(); i++) {
         int index = indices.get(i);
         Object value = row.getValue(index);
         if (value == null) {
-          continue;
+        continue;
         }
         int targetIndex = i;
         if (groupByLevels != null) {
-          targetIndex = groupOrderIndexMap.get(index);
+        targetIndex = groupOrderIndexMap.get(index);
         }
         switch (fields.get(index).getType()) {
-          case INTEGER:
+        case INTEGER:
             targetValues[targetIndex] = ((long) targetValues[targetIndex]) + (int) value;
             break;
-          case LONG:
+        case LONG:
             targetValues[targetIndex] = ((long) targetValues[targetIndex]) + (long) value;
             break;
-          case FLOAT:
+        case FLOAT:
             targetValues[targetIndex] = ((double) targetValues[targetIndex]) + (float) value;
             break;
-          case DOUBLE:
+        case DOUBLE:
             targetValues[targetIndex] = ((double) targetValues[targetIndex]) + (double) value;
             break;
-          default:
+        default:
             throw new IllegalStateException(
                 "Unexpected field type: " + fields.get(index).getType().toString());
         }
-      }
+    }
     }
     return new Row(new Header(targetFields), targetValues);
-  }
+}
 }

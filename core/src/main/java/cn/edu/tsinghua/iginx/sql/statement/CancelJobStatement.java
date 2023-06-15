@@ -9,21 +9,21 @@ import cn.edu.tsinghua.iginx.thrift.Status;
 
 public class CancelJobStatement extends SystemStatement {
 
-  private final long jobId;
+private final long jobId;
 
-  private final IginxWorker worker = IginxWorker.getInstance();
+private final IginxWorker worker = IginxWorker.getInstance();
 
-  public CancelJobStatement(long jobId) {
+public CancelJobStatement(long jobId) {
     this.statementType = StatementType.CANCEL_JOB;
     this.jobId = jobId;
-  }
+}
 
-  @Override
-  public void execute(RequestContext ctx) throws ExecutionException {
+@Override
+public void execute(RequestContext ctx) throws ExecutionException {
     CancelTransformJobReq req = new CancelTransformJobReq(ctx.getSessionId(), jobId);
     Status status = worker.cancelTransformJob(req);
 
     Result result = new Result(status);
     ctx.setResult(result);
-  }
+}
 }

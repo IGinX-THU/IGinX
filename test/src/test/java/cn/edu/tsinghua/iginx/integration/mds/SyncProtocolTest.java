@@ -19,10 +19,10 @@ import org.junit.Test;
 
 public abstract class SyncProtocolTest {
 
-  protected abstract SyncProtocol newSyncProtocol(String category);
+protected abstract SyncProtocol newSyncProtocol(String category);
 
-  @Test(timeout = 10000)
-  public void testSingleNodeSingleDecision() throws Exception {
+@Test(timeout = 10000)
+public void testSingleNodeSingleDecision() throws Exception {
     String category = RandomUtils.randomString(10);
     String key = RandomUtils.randomString(5);
     SyncProtocol protocol = newSyncProtocol(category);
@@ -37,24 +37,24 @@ public abstract class SyncProtocolTest {
 
     protocol.registerProposalListener(
         new ProposalListener() {
-          @Override
-          public void onCreate(String proposalKey, SyncProposal syncProposal) {
+        @Override
+        public void onCreate(String proposalKey, SyncProposal syncProposal) {
             assertEquals(key, proposalKey);
             assertArrayEquals(initialContent, syncProposal.getContent());
             assertEquals(id, syncProposal.getProposer());
 
             // vote for itself
             try {
-              protocol.voteFor(proposalKey, new SyncVote(id, voteContent));
+            protocol.voteFor(proposalKey, new SyncVote(id, voteContent));
             } catch (Exception e) {
-              e.printStackTrace();
-              fail("unexpected vote failure");
+            e.printStackTrace();
+            fail("unexpected vote failure");
             }
-          }
+        }
 
-          @Override
-          public void onUpdate(
-              String proposalKey, SyncProposal beforeSyncProposal, SyncProposal afterSyncProposal) {
+        @Override
+        public void onUpdate(
+            String proposalKey, SyncProposal beforeSyncProposal, SyncProposal afterSyncProposal) {
             assertEquals(key, proposalKey);
             assertArrayEquals(initialContent, beforeSyncProposal.getContent());
             assertArrayEquals(finalContent, afterSyncProposal.getContent());
@@ -62,7 +62,7 @@ public abstract class SyncProtocolTest {
             assertEquals(id, afterSyncProposal.getProposer());
 
             latch.countDown();
-          }
+        }
         });
 
     SyncProposal proposal = new SyncProposal(id, initialContent);
@@ -72,8 +72,8 @@ public abstract class SyncProtocolTest {
             key,
             proposal,
             new VoteListener() {
-              @Override
-              public void receive(String voteKey, SyncVote vote) {
+            @Override
+            public void receive(String voteKey, SyncVote vote) {
                 // 确定只能收到来自自己的投票
                 assertEquals(key, voteKey);
                 assertEquals(id, vote.getVoter());
@@ -81,23 +81,23 @@ public abstract class SyncProtocolTest {
 
                 proposal.setContent(finalContent);
                 try {
-                  protocol.endProposal(voteKey, proposal);
+                protocol.endProposal(voteKey, proposal);
                 } catch (Exception e) {
-                  e.printStackTrace();
-                  fail("unexpected end proposal failure");
+                e.printStackTrace();
+                fail("unexpected end proposal failure");
                 }
-              }
+            }
 
-              @Override
-              public void end(String key) {}
+            @Override
+            public void end(String key) {}
             }));
 
     latch.await();
     protocol.close();
-  }
+}
 
-  @Test(timeout = 20000)
-  public void testTwoNodeSingleDecision() throws Exception {
+@Test(timeout = 20000)
+public void testTwoNodeSingleDecision() throws Exception {
     String category = RandomUtils.randomString(10);
     String key = RandomUtils.randomString(5);
 
@@ -112,30 +112,30 @@ public abstract class SyncProtocolTest {
 
     class DecisionThread extends Thread {
 
-      private final long id;
+    private final long id;
 
-      public DecisionThread(long id) {
+    public DecisionThread(long id) {
         this.id = id;
-      }
+    }
 
-      @Override
-      public void run() {
+    @Override
+    public void run() {
         try {
-          SyncProtocol protocol = newSyncProtocol(category);
-          protocol.registerProposalListener(
-              new ProposalListener() {
+        SyncProtocol protocol = newSyncProtocol(category);
+        protocol.registerProposalListener(
+            new ProposalListener() {
                 @Override
                 public void onCreate(String proposalKey, SyncProposal syncProposal) {
-                  assertEquals(key, proposalKey);
-                  assertArrayEquals(initialContent, syncProposal.getContent());
+                assertEquals(key, proposalKey);
+                assertArrayEquals(initialContent, syncProposal.getContent());
 
-                  // vote for proposal
-                  try {
+                // vote for proposal
+                try {
                     protocol.voteFor(proposalKey, new SyncVote(id, voteContents.get(id)));
-                  } catch (Exception e) {
+                } catch (Exception e) {
                     e.printStackTrace();
                     fail("unexpected vote failure");
-                  }
+                }
                 }
 
                 @Override
@@ -143,20 +143,20 @@ public abstract class SyncProtocolTest {
                     String proposalKey,
                     SyncProposal beforeSyncProposal,
                     SyncProposal afterSyncProposal) {
-                  assertEquals(key, proposalKey);
-                  assertArrayEquals(initialContent, beforeSyncProposal.getContent());
-                  assertArrayEquals(finalContent, afterSyncProposal.getContent());
-                  assertEquals(afterSyncProposal.getProposer(), beforeSyncProposal.getProposer());
+                assertEquals(key, proposalKey);
+                assertArrayEquals(initialContent, beforeSyncProposal.getContent());
+                assertArrayEquals(finalContent, afterSyncProposal.getContent());
+                assertEquals(afterSyncProposal.getProposer(), beforeSyncProposal.getProposer());
 
-                  latch.countDown();
+                latch.countDown();
                 }
-              });
+            });
 
-          SyncProposal proposal = new SyncProposal(id, initialContent);
-          if (protocol.startProposal(
-              key,
-              proposal,
-              new VoteListener() {
+        SyncProposal proposal = new SyncProposal(id, initialContent);
+        if (protocol.startProposal(
+            key,
+            proposal,
+            new VoteListener() {
 
                 private final Set<Long> set = new HashSet<>();
 
@@ -164,40 +164,40 @@ public abstract class SyncProtocolTest {
 
                 @Override
                 public void receive(String voteKey, SyncVote vote) {
-                  assertEquals(key, voteKey);
-                  assertArrayEquals(voteContents.get(vote.getVoter()), vote.getContent());
+                assertEquals(key, voteKey);
+                assertArrayEquals(voteContents.get(vote.getVoter()), vote.getContent());
 
-                  lock.lock();
-                  set.add(vote.getVoter());
-                  try {
+                lock.lock();
+                set.add(vote.getVoter());
+                try {
                     if (set.size() == 2) {
-                      proposal.setContent(finalContent);
-                      protocol.endProposal(key, proposal);
+                    proposal.setContent(finalContent);
+                    protocol.endProposal(key, proposal);
                     }
-                  } catch (Exception e) {
+                } catch (Exception e) {
                     e.printStackTrace();
                     fail();
-                  } finally {
+                } finally {
                     lock.unlock();
-                  }
+                }
                 }
 
                 @Override
                 public void end(String key) {
-                  System.out.println("current timestamp: " + System.currentTimeMillis());
-                  System.out.println("end vote for " + key);
+                System.out.println("current timestamp: " + System.currentTimeMillis());
+                System.out.println("end vote for " + key);
                 }
-              })) {
+            })) {
             System.out.println("start protocol success");
-          }
-
-          latch.await();
-          protocol.close();
-        } catch (Exception e) {
-          e.printStackTrace();
-          fail("unexpected exception");
         }
-      }
+
+        latch.await();
+        protocol.close();
+        } catch (Exception e) {
+        e.printStackTrace();
+        fail("unexpected exception");
+        }
+    }
     }
 
     DecisionThread threadA = new DecisionThread(1L);
@@ -206,66 +206,66 @@ public abstract class SyncProtocolTest {
     threadB.start();
     threadA.join();
     threadB.join();
-  }
+}
 
-  @Test(timeout = 30000)
-  public void testMultiNodeSingleDecision() throws Exception {
+@Test(timeout = 30000)
+public void testMultiNodeSingleDecision() throws Exception {
     for (int c = 0; c < 1; c++) { // 随机 3-6个节点，测试10次
-      int N = RandomUtils.randomNumber(2, 4);
+    int N = RandomUtils.randomNumber(2, 4);
 
-      String category = RandomUtils.randomString(10);
-      String key = RandomUtils.randomString(5);
+    String category = RandomUtils.randomString(10);
+    String key = RandomUtils.randomString(5);
 
-      CountDownLatch latch = new CountDownLatch(N);
+    CountDownLatch latch = new CountDownLatch(N);
 
-      byte[] initialContent = RandomUtils.randomString(5).getBytes(StandardCharsets.UTF_8);
-      byte[] finalContent = RandomUtils.randomString(5).getBytes(StandardCharsets.UTF_8);
+    byte[] initialContent = RandomUtils.randomString(5).getBytes(StandardCharsets.UTF_8);
+    byte[] finalContent = RandomUtils.randomString(5).getBytes(StandardCharsets.UTF_8);
 
-      Map<Long, byte[]> voteContents = new ConcurrentHashMap<>();
-      for (long i = 1L; i <= (long) N; i++) {
+    Map<Long, byte[]> voteContents = new ConcurrentHashMap<>();
+    for (long i = 1L; i <= (long) N; i++) {
         voteContents.put(i, String.format("vote%2d", i).getBytes(StandardCharsets.UTF_8));
-      }
+    }
 
-      class DecisionThread extends Thread {
+    class DecisionThread extends Thread {
 
         private final long id;
 
         public DecisionThread(long id) {
-          this.id = id;
+        this.id = id;
         }
 
         @Override
         public void run() {
-          try {
+        try {
             SyncProtocol protocol = newSyncProtocol(category);
             protocol.registerProposalListener(
                 new ProposalListener() {
-                  @Override
-                  public void onCreate(String proposalKey, SyncProposal syncProposal) {
+                @Override
+                public void onCreate(String proposalKey, SyncProposal syncProposal) {
                     assertEquals(key, proposalKey);
                     assertArrayEquals(initialContent, syncProposal.getContent());
 
                     // vote for proposal
                     try {
-                      protocol.voteFor(proposalKey, new SyncVote(id, voteContents.get(id)));
+                    protocol.voteFor(proposalKey, new SyncVote(id, voteContents.get(id)));
                     } catch (Exception e) {
-                      e.printStackTrace();
-                      fail("unexpected vote failure");
+                    e.printStackTrace();
+                    fail("unexpected vote failure");
                     }
-                  }
+                }
 
-                  @Override
-                  public void onUpdate(
-                      String proposalKey,
-                      SyncProposal beforeSyncProposal,
-                      SyncProposal afterSyncProposal) {
+                @Override
+                public void onUpdate(
+                    String proposalKey,
+                    SyncProposal beforeSyncProposal,
+                    SyncProposal afterSyncProposal) {
                     assertEquals(key, proposalKey);
                     assertArrayEquals(initialContent, beforeSyncProposal.getContent());
                     assertArrayEquals(finalContent, afterSyncProposal.getContent());
                     assertEquals(afterSyncProposal.getProposer(), beforeSyncProposal.getProposer());
 
                     latch.countDown();
-                  }
+                }
                 });
 
             SyncProposal proposal = new SyncProposal(id, initialContent);
@@ -274,129 +274,129 @@ public abstract class SyncProtocolTest {
                 proposal,
                 new VoteListener() {
 
-                  private final Set<Long> set = new HashSet<>();
+                private final Set<Long> set = new HashSet<>();
 
-                  private final Lock lock = new ReentrantLock();
+                private final Lock lock = new ReentrantLock();
 
-                  @Override
-                  public void receive(String voteKey, SyncVote vote) {
+                @Override
+                public void receive(String voteKey, SyncVote vote) {
                     assertEquals(key, voteKey);
                     assertArrayEquals(voteContents.get(vote.getVoter()), vote.getContent());
 
                     lock.lock();
                     set.add(vote.getVoter());
                     try {
-                      if (set.size() == N) {
+                    if (set.size() == N) {
                         proposal.setContent(finalContent);
                         protocol.endProposal(key, proposal);
-                      }
-                    } catch (Exception e) {
-                      e.printStackTrace();
-                      fail();
-                    } finally {
-                      lock.unlock();
                     }
-                  }
+                    } catch (Exception e) {
+                    e.printStackTrace();
+                    fail();
+                    } finally {
+                    lock.unlock();
+                    }
+                }
 
-                  @Override
-                  public void end(String key) {
+                @Override
+                public void end(String key) {
                     System.out.println("current timestamp: " + System.currentTimeMillis());
                     System.out.println("end vote for " + key);
-                  }
+                }
                 })) {
-              System.out.println("start protocol success");
+            System.out.println("start protocol success");
             }
 
             latch.await();
             protocol.close();
-          } catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
             fail("unexpected exception");
-          }
         }
-      }
-
-      Thread[] threads = new Thread[N];
-      for (int i = 0; i < N; i++) {
-        threads[i] = new DecisionThread(i + 1);
-      }
-      for (int i = 0; i < N; i++) {
-        threads[i].start();
-      }
-      for (int i = 0; i < N; i++) {
-        threads[i].join();
-      }
+        }
     }
-  }
 
-  @Test(timeout = 30000)
-  public void testMultiNodeSingleDecisionPartialVote() throws Exception {
+    Thread[] threads = new Thread[N];
+    for (int i = 0; i < N; i++) {
+        threads[i] = new DecisionThread(i + 1);
+    }
+    for (int i = 0; i < N; i++) {
+        threads[i].start();
+    }
+    for (int i = 0; i < N; i++) {
+        threads[i].join();
+    }
+    }
+}
+
+@Test(timeout = 30000)
+public void testMultiNodeSingleDecisionPartialVote() throws Exception {
     for (int c = 0; c < 1; c++) { // 随机 2-4 个节点，测试10次
-      int N = RandomUtils.randomNumber(2, 5);
-      int M = RandomUtils.randomNumber(0, N);
-      String category = RandomUtils.randomString(10);
-      String key = RandomUtils.randomString(5);
+    int N = RandomUtils.randomNumber(2, 5);
+    int M = RandomUtils.randomNumber(0, N);
+    String category = RandomUtils.randomString(10);
+    String key = RandomUtils.randomString(5);
 
-      CountDownLatch latch = new CountDownLatch(N);
-      byte[] initialContent = RandomUtils.randomString(5).getBytes(StandardCharsets.UTF_8);
-      byte[] finalSuccessContent = RandomUtils.randomString(5).getBytes(StandardCharsets.UTF_8);
-      byte[] finalFailureContent = RandomUtils.randomString(5).getBytes(StandardCharsets.UTF_8);
+    CountDownLatch latch = new CountDownLatch(N);
+    byte[] initialContent = RandomUtils.randomString(5).getBytes(StandardCharsets.UTF_8);
+    byte[] finalSuccessContent = RandomUtils.randomString(5).getBytes(StandardCharsets.UTF_8);
+    byte[] finalFailureContent = RandomUtils.randomString(5).getBytes(StandardCharsets.UTF_8);
 
-      Map<Long, byte[]> voteContents = new ConcurrentHashMap<>();
-      for (long i = 1L; i <= (long) N; i++) {
+    Map<Long, byte[]> voteContents = new ConcurrentHashMap<>();
+    for (long i = 1L; i <= (long) N; i++) {
         if (i - 1 == M || RandomUtils.randomTest(M * 1.0 / N)) {
-          voteContents.put(i, String.format("vote%2d", i).getBytes(StandardCharsets.UTF_8));
+        voteContents.put(i, String.format("vote%2d", i).getBytes(StandardCharsets.UTF_8));
         }
-      }
+    }
 
-      class DecisionThread extends Thread {
+    class DecisionThread extends Thread {
 
         private final long id;
 
         public DecisionThread(long id) {
-          this.id = id;
+        this.id = id;
         }
 
         @Override
         public void run() {
-          try {
+        try {
             SyncProtocol protocol = newSyncProtocol(category);
             protocol.registerProposalListener(
                 new ProposalListener() {
-                  @Override
-                  public void onCreate(String proposalKey, SyncProposal syncProposal) {
+                @Override
+                public void onCreate(String proposalKey, SyncProposal syncProposal) {
                     assertEquals(key, proposalKey);
                     assertArrayEquals(initialContent, syncProposal.getContent());
 
                     // vote for proposal
                     byte[] voteContent = voteContents.get(id);
                     if (voteContent == null) {
-                      return;
+                    return;
                     }
                     try {
-                      protocol.voteFor(proposalKey, new SyncVote(id, voteContent));
+                    protocol.voteFor(proposalKey, new SyncVote(id, voteContent));
                     } catch (Exception e) {
-                      e.printStackTrace();
-                      fail("unexpected vote failure");
+                    e.printStackTrace();
+                    fail("unexpected vote failure");
                     }
-                  }
+                }
 
-                  @Override
-                  public void onUpdate(
-                      String proposalKey,
-                      SyncProposal beforeSyncProposal,
-                      SyncProposal afterSyncProposal) {
+                @Override
+                public void onUpdate(
+                    String proposalKey,
+                    SyncProposal beforeSyncProposal,
+                    SyncProposal afterSyncProposal) {
                     assertEquals(key, proposalKey);
                     assertArrayEquals(initialContent, beforeSyncProposal.getContent());
                     if (voteContents.size() >= (N + 1) / 2) {
-                      assertArrayEquals(finalSuccessContent, afterSyncProposal.getContent());
+                    assertArrayEquals(finalSuccessContent, afterSyncProposal.getContent());
                     } else {
-                      assertArrayEquals(finalFailureContent, afterSyncProposal.getContent());
+                    assertArrayEquals(finalFailureContent, afterSyncProposal.getContent());
                     }
                     assertEquals(afterSyncProposal.getProposer(), beforeSyncProposal.getProposer());
 
                     latch.countDown();
-                  }
+                }
                 });
 
             SyncProposal proposal = new SyncProposal(id, initialContent);
@@ -405,62 +405,62 @@ public abstract class SyncProtocolTest {
                 proposal,
                 new VoteListener() {
 
-                  private final Set<Long> set = new HashSet<>();
+                private final Set<Long> set = new HashSet<>();
 
-                  private final Lock lock = new ReentrantLock();
+                private final Lock lock = new ReentrantLock();
 
-                  @Override
-                  public void receive(String voteKey, SyncVote vote) {
+                @Override
+                public void receive(String voteKey, SyncVote vote) {
                     assertEquals(key, voteKey);
                     assertArrayEquals(voteContents.get(vote.getVoter()), vote.getContent());
 
                     lock.lock();
                     set.add(vote.getVoter());
                     try {
-                      if (set.size() == voteContents.size()) { // 模拟收到的票不够的情况
+                    if (set.size() == voteContents.size()) { // 模拟收到的票不够的情况
                         if (voteContents.size() >= (N + 1) / 2) {
-                          proposal.setContent(finalSuccessContent);
+                        proposal.setContent(finalSuccessContent);
                         } else {
-                          proposal.setContent(finalFailureContent);
+                        proposal.setContent(finalFailureContent);
                         }
                         protocol.endProposal(key, proposal);
-                      }
-                    } catch (Exception e) {
-                      e.printStackTrace();
-                      fail();
-                    } finally {
-                      lock.unlock();
                     }
-                  }
+                    } catch (Exception e) {
+                    e.printStackTrace();
+                    fail();
+                    } finally {
+                    lock.unlock();
+                    }
+                }
 
-                  @Override
-                  public void end(String key) {
+                @Override
+                public void end(String key) {
                     System.out.println("current timestamp: " + System.currentTimeMillis());
                     System.out.println("end vote for " + key);
-                  }
+                }
                 })) {
-              System.out.println("start protocol success");
+            System.out.println("start protocol success");
             }
 
             latch.await();
             protocol.close();
-          } catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
             fail("unexpected exception");
-          }
         }
-      }
-
-      Thread[] threads = new Thread[N];
-      for (int i = 0; i < N; i++) {
-        threads[i] = new DecisionThread(i + 1);
-      }
-      for (int i = 0; i < N; i++) {
-        threads[i].start();
-      }
-      for (int i = 0; i < N; i++) {
-        threads[i].join();
-      }
+        }
     }
-  }
+
+    Thread[] threads = new Thread[N];
+    for (int i = 0; i < N; i++) {
+        threads[i] = new DecisionThread(i + 1);
+    }
+    for (int i = 0; i < N; i++) {
+        threads[i].start();
+    }
+    for (int i = 0; i < N; i++) {
+        threads[i].join();
+    }
+    }
+}
 }

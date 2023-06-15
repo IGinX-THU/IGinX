@@ -8,8 +8,8 @@ import org.junit.Test;
 
 public class PathUtilsTest {
 
-  @Test
-  public void test() {
+@Test
+public void test() {
     ColumnsRange interval1 = new ColumnsInterval("*", "*");
     ColumnsRange expected1 = new ColumnsInterval(null, null);
     assertEquals(expected1, PathUtils.trimTimeSeriesInterval(interval1));
@@ -29,5 +29,5 @@ public class PathUtilsTest {
     ColumnsInterval interval5 = new ColumnsInterval("a.*.*.c", "b.*.*.*.c");
     ColumnsInterval expected5 = new ColumnsInterval("a.!", "b.~");
     assertEquals(expected5, PathUtils.trimTimeSeriesInterval(interval5));
-  }
+}
 }

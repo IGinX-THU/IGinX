@@ -4,30 +4,30 @@ import org.apache.commons.lang3.RandomStringUtils;
 
 public class ExampleTest {
 
-  private static final long START_TIMESTAMP = 0L;
-  private static final long END_TIMESTAMP = 100L;
-  private static Connection connection;
-  private static Statement statement;
-  private static PreparedStatement preparedStatement;
-  private static String prefix = "us.d2";
+private static final long START_TIMESTAMP = 0L;
+private static final long END_TIMESTAMP = 100L;
+private static Connection connection;
+private static Statement statement;
+private static PreparedStatement preparedStatement;
+private static String prefix = "us.d2";
 
-  private static String S1 = "long";
-  private static String S2 = "double";
-  private static String S3 = "boolean";
-  private static String S4 = "string";
+private static String S1 = "long";
+private static String S2 = "double";
+private static String S3 = "boolean";
+private static String S4 = "string";
 
-  public static void main(String[] args) throws SQLException {
+public static void main(String[] args) throws SQLException {
     // Create connection
     connection = getConnection();
     if (connection == null) {
-      System.out.println("create connection fail.");
-      return;
+    System.out.println("create connection fail.");
+    return;
     }
     // Create statement
     statement = connection.createStatement();
     if (statement == null) {
-      System.out.println("create statement fail.");
-      return;
+    System.out.println("create statement fail.");
+    return;
     }
 
     // Insert use batch
@@ -36,18 +36,18 @@ public class ExampleTest {
     String insertClause =
         "INSERT INTO us.d2 (timestamp, long, double, boolean, string) values (%s, %s, %s, %s, %s);";
     for (int i = 0; i < size; i++) {
-      String sql =
-          String.format(
-              insertClause,
-              START_TIMESTAMP + i, // timestamp
-              i + 1, // long
-              i + 0.5, // double
-              i % 2 == 0, // boolean
-              "\""
-                  + new String(RandomStringUtils.randomAlphanumeric(10).getBytes())
-                  + "\"" // string
-              );
-      statement.addBatch(sql);
+    String sql =
+        String.format(
+            insertClause,
+            START_TIMESTAMP + i, // timestamp
+            i + 1, // long
+            i + 0.5, // double
+            i % 2 == 0, // boolean
+            "\""
+                + new String(RandomStringUtils.randomAlphanumeric(10).getBytes())
+                + "\"" // string
+            );
+    statement.addBatch(sql);
     }
     statement.executeBatch();
     statement.clearBatch();
@@ -99,7 +99,7 @@ public class ExampleTest {
     String timeRangeClause = "SELECT %s FROM %s WHERE time > 50 AND TIME < 100;";
     sql = String.format(timeRangeClause, S1, prefix);
     if (statement.execute(sql)) {
-      resultSet = statement.getResultSet();
+    resultSet = statement.getResultSet();
     }
     System.out.println("sql: " + sql);
     outputResult(resultSet);
@@ -115,7 +115,7 @@ public class ExampleTest {
     String aggregateClause = "SELECT COUNT(%s) FROM %s;";
     sql = String.format(aggregateClause, S4, prefix);
     if (statement.execute(sql)) {
-      resultSet = statement.getResultSet();
+    resultSet = statement.getResultSet();
     }
     System.out.println("sql: " + sql);
     outputResult(resultSet);
@@ -127,8 +127,8 @@ public class ExampleTest {
     String preparedClause = "SELECT %s FROM %s WHERE TIME > ? AND TIME < ? AND %s < ?;";
     preparedStatement = connection.prepareStatement(String.format(preparedClause, S1, prefix, S1));
     if (statement == null) {
-      System.out.println("create statement fail.");
-      return;
+    System.out.println("create statement fail.");
+    return;
     }
     // set params and query
     preparedStatement.setLong(1, 15); // start time
@@ -159,9 +159,9 @@ public class ExampleTest {
 
     // CLose connection
     connection.close();
-  }
+}
 
-  private static Connection getConnection() {
+private static Connection getConnection() {
     String driver = "cn.edu.tsinghua.iginx.jdbc.IginXDriver";
     String url = "jdbc:iginx://127.0.0.1:6888/";
 
@@ -170,35 +170,35 @@ public class ExampleTest {
 
     Connection connection = null;
     try {
-      Class.forName(driver);
-      connection = DriverManager.getConnection(url, username, password);
+    Class.forName(driver);
+    connection = DriverManager.getConnection(url, username, password);
     } catch (ClassNotFoundException | SQLException e) {
-      e.printStackTrace();
+    e.printStackTrace();
     }
     return connection;
-  }
+}
 
-  private static void outputResult(ResultSet resultSet) throws SQLException {
+private static void outputResult(ResultSet resultSet) throws SQLException {
     if (resultSet != null) {
-      System.out.println("--------------------------");
-      final ResultSetMetaData metaData = resultSet.getMetaData();
-      final int columnCount = metaData.getColumnCount();
-      for (int i = 0; i < columnCount; i++) {
+    System.out.println("--------------------------");
+    final ResultSetMetaData metaData = resultSet.getMetaData();
+    final int columnCount = metaData.getColumnCount();
+    for (int i = 0; i < columnCount; i++) {
         System.out.print(metaData.getColumnLabel(i + 1) + " ");
-      }
-      System.out.println();
-      while (resultSet.next()) {
+    }
+    System.out.println();
+    while (resultSet.next()) {
         for (int i = 1; ; i++) {
-          System.out.print(resultSet.getString(i));
-          if (i < columnCount) {
+        System.out.print(resultSet.getString(i));
+        if (i < columnCount) {
             System.out.print(", ");
-          } else {
+        } else {
             System.out.println();
             break;
-          }
         }
-      }
-      System.out.println("--------------------------\n");
+        }
     }
-  }
+    System.out.println("--------------------------\n");
+    }
+}
 }

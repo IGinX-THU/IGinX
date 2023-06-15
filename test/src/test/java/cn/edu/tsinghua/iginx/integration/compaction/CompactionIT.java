@@ -15,60 +15,60 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class CompactionIT {
-  protected static final Logger logger = LoggerFactory.getLogger(CompactionIT.class);
-  // host info
-  protected static String defaultTestHost = "127.0.0.1";
-  protected static int defaultTestPort = 6888;
-  protected static String defaultTestUser = "root";
-  protected static String defaultTestPass = "root";
-  protected static MultiConnection session;
+protected static final Logger logger = LoggerFactory.getLogger(CompactionIT.class);
+// host info
+protected static String defaultTestHost = "127.0.0.1";
+protected static int defaultTestPort = 6888;
+protected static String defaultTestUser = "root";
+protected static String defaultTestPass = "root";
+protected static MultiConnection session;
 
-  @Before
-  public void setUp() {
+@Before
+public void setUp() {
     session =
         new MultiConnection(
             new Session(defaultTestHost, defaultTestPort, defaultTestUser, defaultTestPass));
     try {
-      session.openSession();
-      session.executeSql("SET CONFIG \"enableInstantCompaction\" \"true\"");
-      session.executeSql("SHOW CONFIG \"enableInstantCompaction\"").print(false, "");
+    session.openSession();
+    session.executeSql("SET CONFIG \"enableInstantCompaction\" \"true\"");
+    session.executeSql("SHOW CONFIG \"enableInstantCompaction\"").print(false, "");
     } catch (SessionException | ExecutionException e) {
-      logger.error(e.getMessage());
-      fail();
+    logger.error(e.getMessage());
+    fail();
     }
-  }
+}
 
-  @After
-  public void tearDown() {
+@After
+public void tearDown() {
     try {
-      session.executeSql("SET CONFIG \"enableInstantCompaction\" \"false\"");
-      session.closeSession();
+    session.executeSql("SET CONFIG \"enableInstantCompaction\" \"false\"");
+    session.closeSession();
     } catch (SessionException | ExecutionException e) {
-      logger.error(e.getMessage());
-      fail();
+    logger.error(e.getMessage());
+    fail();
     }
-  }
+}
 
-  @Test
-  public void testCompact() throws ExecutionException, SessionException {
+@Test
+public void testCompact() throws ExecutionException, SessionException {
     String insertStrPrefix = "INSERT INTO us.d1 (key, s1, s2, s3, s4) values ";
 
     StringBuilder builder = new StringBuilder(insertStrPrefix);
 
     for (int i = 0; i < 10; i++) {
-      if (i != 0) {
+    if (i != 0) {
         builder.append(", ");
-      }
-      builder.append("(");
-      builder.append(i).append(", ");
-      builder.append(i).append(", ");
-      builder.append(i + 1).append(", ");
-      builder
-          .append("\"")
-          .append(new String(RandomStringUtils.randomAlphanumeric(10).getBytes()))
-          .append("\", ");
-      builder.append((i + 0.1));
-      builder.append(")");
+    }
+    builder.append("(");
+    builder.append(i).append(", ");
+    builder.append(i).append(", ");
+    builder.append(i + 1).append(", ");
+    builder
+        .append("\"")
+        .append(new String(RandomStringUtils.randomAlphanumeric(10).getBytes()))
+        .append("\", ");
+    builder.append((i + 0.1));
+    builder.append(")");
     }
     builder.append(";");
 
@@ -124,14 +124,14 @@ public class CompactionIT {
 
     // 足够的时间等待清理完成
     try {
-      Thread.sleep(1000);
+    Thread.sleep(1000);
     } catch (InterruptedException e) {
-      e.printStackTrace();
+    e.printStackTrace();
     }
 
     selectSql1Output = session.executeSql(selectSql1).getResultInString(false, "");
     assertEquals(sql1Output, selectSql1Output);
     selectSql2Output = session.executeSql(selectSql2).getResultInString(false, "");
     assertEquals(sql2Output, selectSql2Output);
-  }
+}
 }

@@ -28,39 +28,39 @@ import org.slf4j.LoggerFactory;
 
 public class SQLSessionIT {
 
-  protected static SQLExecutor executor;
+protected static SQLExecutor executor;
 
-  protected static boolean isForSession = true, isForSessionPool = false;
-  protected static int MaxMultiThreadTaskNum = -1;
+protected static boolean isForSession = true, isForSessionPool = false;
+protected static int MaxMultiThreadTaskNum = -1;
 
-  // host info
-  protected static String defaultTestHost = "127.0.0.1";
-  protected static int defaultTestPort = 6888;
-  protected static String defaultTestUser = "root";
-  protected static String defaultTestPass = "root";
+// host info
+protected static String defaultTestHost = "127.0.0.1";
+protected static int defaultTestPort = 6888;
+protected static String defaultTestUser = "root";
+protected static String defaultTestPass = "root";
 
-  protected static final Logger logger = LoggerFactory.getLogger(SQLSessionIT.class);
+protected static final Logger logger = LoggerFactory.getLogger(SQLSessionIT.class);
 
-  protected boolean isAbleToDelete;
+protected boolean isAbleToDelete;
 
-  protected boolean isSupportChinesePath;
+protected boolean isSupportChinesePath;
 
-  protected boolean isSupportNumericalPath;
+protected boolean isSupportNumericalPath;
 
-  protected boolean isSupportSpecialCharacterPath;
+protected boolean isSupportSpecialCharacterPath;
 
-  protected boolean isAbleToShowColumns;
+protected boolean isAbleToShowColumns;
 
-  protected boolean isScaling = false;
+protected boolean isScaling = false;
 
-  private final long startKey = 0L;
+private final long startKey = 0L;
 
-  private final long endKey = 15000L;
+private final long endKey = 15000L;
 
-  protected boolean isAbleToClearData = true;
-  private static final int CONCURRENT_NUM = 5;
+protected boolean isAbleToClearData = true;
+private static final int CONCURRENT_NUM = 5;
 
-  public SQLSessionIT() {
+public SQLSessionIT() {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     DBConf dbConf = conf.loadDBConf(conf.getStorageType());
     this.isScaling = conf.isScaling();
@@ -71,89 +71,89 @@ public class SQLSessionIT {
     this.isSupportNumericalPath = dbConf.getEnumValue(DBConfType.isSupportNumericalPath);
     this.isSupportSpecialCharacterPath =
         dbConf.getEnumValue(DBConfType.isSupportSpecialCharacterPath);
-  }
+}
 
-  @BeforeClass
-  public static void setUp() throws SessionException {
+@BeforeClass
+public static void setUp() throws SessionException {
     MultiConnection session;
     if (isForSession) {
-      session =
-          new MultiConnection(
-              new Session(defaultTestHost, defaultTestPort, defaultTestUser, defaultTestPass));
+    session =
+        new MultiConnection(
+            new Session(defaultTestHost, defaultTestPort, defaultTestUser, defaultTestPass));
     } else if (isForSessionPool) {
-      session =
-          new MultiConnection(
-              new SessionPool(
-                  new ArrayList<IginxInfo>() {
+    session =
+        new MultiConnection(
+            new SessionPool(
+                new ArrayList<IginxInfo>() {
                     {
-                      add(
-                          new IginxInfo.Builder()
-                              .host("0.0.0.0")
-                              .port(6888)
-                              .user("root")
-                              .password("root")
-                              .build());
-                      add(
-                          new IginxInfo.Builder()
-                              .host("0.0.0.0")
-                              .port(7888)
-                              .user("root")
-                              .password("root")
-                              .build());
+                    add(
+                        new IginxInfo.Builder()
+                            .host("0.0.0.0")
+                            .port(6888)
+                            .user("root")
+                            .password("root")
+                            .build());
+                    add(
+                        new IginxInfo.Builder()
+                            .host("0.0.0.0")
+                            .port(7888)
+                            .user("root")
+                            .password("root")
+                            .build());
                     }
-                  }));
+                }));
     } else {
-      logger.error("isForSession=false, isForSessionPool=false");
-      fail();
-      return;
+    logger.error("isForSession=false, isForSessionPool=false");
+    fail();
+    return;
     }
     executor = new SQLExecutor(session);
     executor.open();
-  }
+}
 
-  @AfterClass
-  public static void tearDown() throws SessionException {
+@AfterClass
+public static void tearDown() throws SessionException {
     executor.close();
-  }
+}
 
-  @Before
-  public void insertData() {
+@Before
+public void insertData() {
     String insertStatement = generateDefaultInsertStatementByTimeRange(startKey, endKey);
     executor.execute(insertStatement);
-  }
+}
 
-  private String generateDefaultInsertStatementByTimeRange(long start, long end) {
+private String generateDefaultInsertStatementByTimeRange(long start, long end) {
     String insertStrPrefix = "INSERT INTO us.d1 (key, s1, s2, s3, s4) values ";
 
     StringBuilder builder = new StringBuilder(insertStrPrefix);
 
     int size = (int) (end - start);
     for (int i = 0; i < size; i++) {
-      builder.append(", ");
-      builder.append("(");
-      builder.append(start + i).append(", ");
-      builder.append(i).append(", ");
-      builder.append(i + 1).append(", ");
-      builder
-          .append("\"")
-          .append(new String(RandomStringUtils.randomAlphanumeric(10).getBytes()))
-          .append("\", ");
-      builder.append((i + 0.1));
-      builder.append(")");
+    builder.append(", ");
+    builder.append("(");
+    builder.append(start + i).append(", ");
+    builder.append(i).append(", ");
+    builder.append(i + 1).append(", ");
+    builder
+        .append("\"")
+        .append(new String(RandomStringUtils.randomAlphanumeric(10).getBytes()))
+        .append("\", ");
+    builder.append((i + 0.1));
+    builder.append(")");
     }
     builder.append(";");
 
     return builder.toString();
-  }
+}
 
-  @After
-  public void clearData() {
+@After
+public void clearData() {
     String clearData = "CLEAR DATA;";
     executor.execute(clearData);
-  }
+}
 
-  @Test
-  public void testCountPath() {
+@Test
+public void testCountPath() {
     String statement = "SELECT COUNT(*) FROM us.d1;";
     String expected =
         "ResultSets:\n"
@@ -164,20 +164,20 @@ public class SQLSessionIT {
             + "+---------------+---------------+---------------+---------------+\n"
             + "Total line number = 1\n";
     executor.executeAndCompare(statement, expected);
-  }
+}
 
-  @Test
-  public void testCountPoints() {
+@Test
+public void testCountPoints() {
     if (isScaling) return;
     String statement = "COUNT POINTS;";
     String expected = "Points num: 60000\n";
     executor.executeAndCompare(statement, expected);
-  }
+}
 
-  @Test
-  public void testShowTimeSeries() {
+@Test
+public void testShowTimeSeries() {
     if (!isAbleToShowColumns || isScaling) {
-      return;
+    return;
     }
     String statement = "SHOW COLUMNS us.*;";
     String expected =
@@ -266,17 +266,17 @@ public class SQLSessionIT {
             + "+--------+--------+\n"
             + "Total line number = 2\n";
     executor.executeAndCompare(statement, expected);
-  }
+}
 
-  @Test
-  public void testShowReplicaNum() {
+@Test
+public void testShowReplicaNum() {
     String statement = "SHOW REPLICA NUMBER;";
     String expected = "Replica num: 1\n";
     executor.executeAndCompare(statement, expected);
-  }
+}
 
-  @Test
-  public void testTimeRangeQuery() {
+@Test
+public void testTimeRangeQuery() {
     String statement = "SELECT s1 FROM us.d1 WHERE key > 100 AND key < 120;";
     String expected =
         "ResultSets:\n"
@@ -305,10 +305,10 @@ public class SQLSessionIT {
             + "+---+--------+\n"
             + "Total line number = 19\n";
     executor.executeAndCompare(statement, expected);
-  }
+}
 
-  @Test
-  public void testValueFilter() {
+@Test
+public void testValueFilter() {
     String query = "SELECT s1 FROM us.d1 WHERE key > 0 AND key < 10000 and s1 > 200 and s1 < 210;";
     String expected =
         "ResultSets:\n"
@@ -377,10 +377,10 @@ public class SQLSessionIT {
     builder.append("INSERT INTO us.d2(key, s1) VALUES ");
     int size = (int) (endKey - startKey);
     for (int i = 0; i < size; i++) {
-      builder.append(", (");
-      builder.append(startKey + i).append(", ");
-      builder.append(i + 5);
-      builder.append(")");
+    builder.append(", (");
+    builder.append(startKey + i).append(", ");
+    builder.append(i + 5);
+    builder.append(")");
     }
     builder.append(";");
 
@@ -400,10 +400,10 @@ public class SQLSessionIT {
             + "+---+--------+--------+\n"
             + "Total line number = 4\n";
     executor.executeAndCompare(query, expected);
-  }
+}
 
-  @Test
-  public void testPathFilter() {
+@Test
+public void testPathFilter() {
     String insert =
         "INSERT INTO us.d9(key, a, b) VALUES (1, 1, 9), (2, 2, 8), (3, 3, 7), (4, 4, 6), (5, 5, 5), (6, 6, 4), (7, 7, 3), (8, 8, 2), (9, 9, 1);";
     executor.execute(insert);
@@ -494,10 +494,10 @@ public class SQLSessionIT {
             + "+---+-------+-------+\n"
             + "Total line number = 8\n";
     executor.executeAndCompare(query, expected);
-  }
+}
 
-  @Test
-  public void testLimitAndOffsetQuery() {
+@Test
+public void testLimitAndOffsetQuery() {
     String statement = "SELECT s1 FROM us.d1 WHERE key > 0 AND key < 10000 limit 10;";
     String expected =
         "ResultSets:\n"
@@ -537,10 +537,10 @@ public class SQLSessionIT {
             + "+---+--------+\n"
             + "Total line number = 10\n";
     executor.executeAndCompare(statement, expected);
-  }
+}
 
-  @Test
-  public void testOrderByQuery() {
+@Test
+public void testOrderByQuery() {
     String insert =
         "INSERT INTO us.d2 (key, s1, s2, s3) values "
             + "(1, \"apple\", 871, 232.1), (2, \"peach\", 123, 132.5), (3, \"banana\", 356, 317.8),"
@@ -661,10 +661,10 @@ public class SQLSessionIT {
             + "+---+--------+--------+--------+\n"
             + "Total line number = 9\n";
     executor.executeAndCompare(orderByQuery, expected);
-  }
+}
 
-  @Test
-  public void testRowTransformFunction() {
+@Test
+public void testRowTransformFunction() {
     String insert =
         "INSERT INTO us.d2 (key, s1, s2, s3) values "
             + "(1, \"apple\", 871, 232.1), (2, \"peach\", 123, 132.5), (3, \"banana\", 356, 317.8),"
@@ -706,10 +706,10 @@ public class SQLSessionIT {
             + "+---+-------------------------+\n"
             + "Total line number = 6\n";
     executor.executeAndCompare(statement, expected);
-  }
+}
 
-  @Test
-  public void testFirstLastQuery() {
+@Test
+public void testFirstLastQuery() {
     String statement = "SELECT FIRST(s2) FROM us.d1 WHERE key > 0;";
     String expected =
         "ResultSets:\n"
@@ -837,10 +837,10 @@ public class SQLSessionIT {
             + "+-----+--------+-------+\n"
             + "Total line number = 2\n";
     executor.executeAndCompare(statement, expected);
-  }
+}
 
-  @Test
-  public void testAggregateQuery() {
+@Test
+public void testAggregateQuery() {
     String statement = "SELECT %s(s1), %s(s2) FROM us.d1 WHERE key > 0 AND key < 1000;";
     List<String> funcTypeList =
         Arrays.asList("MAX", "MIN", "FIRST_VALUE", "LAST_VALUE", "SUM", "AVG", "COUNT");
@@ -896,14 +896,14 @@ public class SQLSessionIT {
                 + "+---------------+---------------+\n"
                 + "Total line number = 1\n");
     for (int i = 0; i < funcTypeList.size(); i++) {
-      String type = funcTypeList.get(i);
-      String expected = expectedList.get(i);
-      executor.executeAndCompare(String.format(statement, type, type), expected);
+    String type = funcTypeList.get(i);
+    String expected = expectedList.get(i);
+    executor.executeAndCompare(String.format(statement, type, type), expected);
     }
-  }
+}
 
-  @Test
-  public void testDownSampleQuery() {
+@Test
+public void testDownSampleQuery() {
     String statement = "SELECT %s(s1), %s(s4) FROM us.d1 OVER (RANGE 100 IN (0, 1000));";
     List<String> funcTypeList =
         Arrays.asList("MAX", "MIN", "FIRST_VALUE", "LAST_VALUE", "SUM", "AVG", "COUNT");
@@ -1022,14 +1022,14 @@ public class SQLSessionIT {
                 + "+---+---------------+---------------+\n"
                 + "Total line number = 10\n");
     for (int i = 0; i < funcTypeList.size(); i++) {
-      String type = funcTypeList.get(i);
-      String expected = expectedList.get(i);
-      executor.executeAndCompare(String.format(statement, type, type), expected);
+    String type = funcTypeList.get(i);
+    String expected = expectedList.get(i);
+    executor.executeAndCompare(String.format(statement, type, type), expected);
     }
-  }
+}
 
-  @Test
-  public void testRangeDownSampleQuery() {
+@Test
+public void testRangeDownSampleQuery() {
     String statement =
         "SELECT %s(s1), %s(s4) FROM us.d1 WHERE key > 600 AND s1 <= 900 OVER (RANGE 100 IN (0, 1000));";
     List<String> funcTypeList =
@@ -1100,14 +1100,14 @@ public class SQLSessionIT {
                 + "+---+---------------+---------------+\n"
                 + "Total line number = 3\n");
     for (int i = 0; i < funcTypeList.size(); i++) {
-      String type = funcTypeList.get(i);
-      String expected = expectedList.get(i);
-      executor.executeAndCompare(String.format(statement, type, type), expected);
+    String type = funcTypeList.get(i);
+    String expected = expectedList.get(i);
+    executor.executeAndCompare(String.format(statement, type, type), expected);
     }
-  }
+}
 
-  @Test
-  public void testSlideWindowByTimeQuery() {
+@Test
+public void testSlideWindowByTimeQuery() {
     String statement = "SELECT %s(s1), %s(s4) FROM us.d1 OVER (RANGE 100 IN (0, 1000) STEP 50);";
     List<String> funcTypeList =
         Arrays.asList("MAX", "MIN", "FIRST_VALUE", "LAST_VALUE", "SUM", "AVG", "COUNT");
@@ -1289,14 +1289,14 @@ public class SQLSessionIT {
                 + "+---+---------------+---------------+\n"
                 + "Total line number = 19\n");
     for (int i = 0; i < funcTypeList.size(); i++) {
-      String type = funcTypeList.get(i);
-      String expected = expectedList.get(i);
-      executor.executeAndCompare(String.format(statement, type, type), expected);
+    String type = funcTypeList.get(i);
+    String expected = expectedList.get(i);
+    executor.executeAndCompare(String.format(statement, type, type), expected);
     }
-  }
+}
 
-  @Test
-  public void testRangeSlideWindowByTimeQuery() {
+@Test
+public void testRangeSlideWindowByTimeQuery() {
     String statement =
         "SELECT %s(s1), %s(s4) FROM us.d1 WHERE key > 300 AND s1 <= 600 OVER (RANGE 100 IN (0, 1000) STEP 50);";
     List<String> funcTypeList =
@@ -1395,14 +1395,14 @@ public class SQLSessionIT {
                 + "+---+---------------+---------------+\n"
                 + "Total line number = 7\n");
     for (int i = 0; i < funcTypeList.size(); i++) {
-      String type = funcTypeList.get(i);
-      String expected = expectedList.get(i);
-      executor.executeAndCompare(String.format(statement, type, type), expected);
+    String type = funcTypeList.get(i);
+    String expected = expectedList.get(i);
+    executor.executeAndCompare(String.format(statement, type, type), expected);
     }
-  }
+}
 
-  @Test
-  public void testAggregateWithLevel() {
+@Test
+public void testAggregateWithLevel() {
     String insert =
         "INSERT INTO test(key, a1.b1, a1.b2, a2.b1, a2.b2) VALUES (0, 0, 0, 0, 0), (1, 1, 1, 1, 1),"
             + "(2, NULL, 2, 2, 2), (3, NULL, NULL, 3, 3), (4, NULL, NULL, NULL, 4)";
@@ -1462,12 +1462,12 @@ public class SQLSessionIT {
             + "+-----------+-----------+-------------+-------------+------------------+-----------+\n"
             + "Total line number = 1\n";
     executor.executeAndCompare(statement, expected);
-  }
+}
 
-  @Test
-  public void testDelete() {
+@Test
+public void testDelete() {
     if (!isAbleToDelete) {
-      return;
+    return;
     }
     String delete = "DELETE FROM us.d1.s1 WHERE key > 105 AND key < 115;";
     executor.execute(delete);
@@ -1559,12 +1559,12 @@ public class SQLSessionIT {
             + "+----+--------+--------+\n"
             + "Total line number = 10\n";
     executor.executeAndCompare(queryOverDeleteRange, expected);
-  }
+}
 
-  @Test
-  public void testMultiRangeDelete() {
+@Test
+public void testMultiRangeDelete() {
     if (!isAbleToDelete) {
-      return;
+    return;
     }
     String delete =
         "DELETE FROM us.d1.s1 WHERE key > 105 AND key < 115 OR key >= 120 AND key <= 230;";
@@ -1621,12 +1621,12 @@ public class SQLSessionIT {
             + "+----+--------+--------+\n"
             + "Total line number = 14\n";
     executor.executeAndCompare(queryOverDeleteRange, expected);
-  }
+}
 
-  @Test
-  public void testCrossRangeDelete() {
+@Test
+public void testCrossRangeDelete() {
     if (!isAbleToDelete) {
-      return;
+    return;
     }
     String delete =
         "DELETE FROM us.d1.s1 WHERE key > 205 AND key < 215 OR key >= 210 AND key <= 230;";
@@ -1674,10 +1674,10 @@ public class SQLSessionIT {
             + "+----+--------+--------+\n"
             + "Total line number = 10\n";
     executor.executeAndCompare(queryOverDeleteRange, expected);
-  }
+}
 
-  @Test
-  public void testGroupBy() {
+@Test
+public void testGroupBy() {
     String insert =
         "insert into test(key, a, b, c, d) values (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), (3, 2, 2, 1.1, \"val5\"), (4, 3, 2, 2.1, \"val2\"), (5, 1, 2, 3.1, \"val1\"), (6, 2, 2, 5.1, \"val3\");";
     executor.execute(insert);
@@ -1796,10 +1796,10 @@ public class SQLSessionIT {
             + "+-----------+------+\n"
             + "Total line number = 4\n";
     executor.executeAndCompare(query, expected);
-  }
+}
 
-  @Test
-  public void testGroupByAndHaving() {
+@Test
+public void testGroupByAndHaving() {
     String insert =
         "insert into test(key, a, b, c, d) values (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), (3, 2, 2, 1.1, \"val5\"), (4, 3, 2, 2.1, \"val2\"), (5, 1, 2, 3.1, \"val1\"), (6, 2, 2, 5.1, \"val3\");";
     executor.execute(insert);
@@ -1855,10 +1855,10 @@ public class SQLSessionIT {
             + "+-----------+------+\n"
             + "Total line number = 2\n";
     executor.executeAndCompare(query, expected);
-  }
+}
 
-  @Test
-  public void testJoinWithGroupBy() {
+@Test
+public void testJoinWithGroupBy() {
     String insert =
         "insert into test1(key, a, b, c, d) values (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), (3, 2, 2, 1.1, \"val5\"), (4, 3, 2, 2.1, \"val2\"), (5, 1, 2, 3.1, \"val1\"), (6, 2, 2, 5.1, \"val3\")";
     executor.execute(insert);
@@ -1955,10 +1955,10 @@ public class SQLSessionIT {
             + "+-----+----+\n"
             + "Total line number = 1\n";
     executor.executeAndCompare(query, expected);
-  }
+}
 
-  @Test
-  public void testJoin() {
+@Test
+public void testJoin() {
     String insert =
         "insert into test(key, a.a, a.b, b.a, b.b) values (1, 1, 1.1, 2, 2.1), (2, 3, 3.1, 3, 3.1), (3, 5, 5.1, 4, 4.1), (4, 7, 7.1, 5, 5.1), (5, 9, 9.1, 6, 6.1);";
     executor.execute(insert);
@@ -2146,10 +2146,10 @@ public class SQLSessionIT {
             + "+--------+--------+----------+--------+--------+----------+\n"
             + "Total line number = 25\n";
     executor.executeAndCompare(statement, expected);
-  }
+}
 
-  @Test
-  public void testMultiJoin() {
+@Test
+public void testMultiJoin() {
     String insert =
         "insert into test(key, a.a, a.b) values (1, 1, 1.1), (2, 3, 3.1), (3, 5, 5.1), (4, 7, 7.1), (5, 9, 9.1);";
     executor.execute(insert);
@@ -2239,10 +2239,10 @@ public class SQLSessionIT {
             + "+--------+--------+----------+--------+--------+----------+--------+--------+----------+\n"
             + "Total line number = 8\n";
     executor.executeAndCompare(statement, expected);
-  }
+}
 
-  @Test
-  public void testBasicArithmeticExpr() {
+@Test
+public void testBasicArithmeticExpr() {
     String insert =
         "INSERT INTO us.d3 (key, s1, s2, s3) values "
             + "(1, 1, 6, 1.5), (2, 2, 5, 2.5), (3, 3, 4, 3.5), (4, 4, 3, 4.5), (5, 5, 2, 5.5), (6, 6, 1, 6.5);";
@@ -2327,10 +2327,10 @@ public class SQLSessionIT {
             + "+---+-------------------+-------------------+-------------------+\n"
             + "Total line number = 6\n";
     executor.executeAndCompare(statement, expected);
-  }
+}
 
-  @Test
-  public void testComplexArithmeticExpr() {
+@Test
+public void testComplexArithmeticExpr() {
     String insert =
         "INSERT INTO us.d3 (key, s1, s2, s3) values "
             + "(1, 1, 6, 1.5), (2, 2, 5, 2.5), (3, 3, 4, 3.5), (4, 4, 3, 4.5), (5, 5, 2, 5.5), (6, 6, 1, 6.5);";
@@ -2415,10 +2415,10 @@ public class SQLSessionIT {
             + "+---+------------------------------------------------+\n"
             + "Total line number = 6\n";
     executor.executeAndCompare(statement, expected);
-  }
+}
 
-  @Test
-  public void testAlias() {
+@Test
+public void testAlias() {
     // time series alias
     String statement = "SELECT s1 AS rename_series, s2 FROM us.d1 WHERE s1 >= 1000 AND s1 < 1010;";
     String expected =
@@ -2482,10 +2482,10 @@ public class SQLSessionIT {
             + "+----+-------------------------------+--------------------------+\n"
             + "Total line number = 10\n";
     executor.executeAndCompare(statement, expected);
-  }
+}
 
-  @Test
-  public void testAggregateSubQuery() {
+@Test
+public void testAggregateSubQuery() {
     String statement =
         "SELECT %s_s1 FROM (SELECT %s(s1) AS %s_s1 FROM us.d1 OVER(RANGE 60 IN [1000, 1600)));";
     List<String> funcTypeList =
@@ -2606,14 +2606,14 @@ public class SQLSessionIT {
                 + "+----+-------------+\n"
                 + "Total line number = 10\n");
     for (int i = 0; i < funcTypeList.size(); i++) {
-      String type = funcTypeList.get(i);
-      String expected = expectedList.get(i);
-      executor.executeAndCompare(String.format(statement, type, type, type), expected);
+    String type = funcTypeList.get(i);
+    String expected = expectedList.get(i);
+    executor.executeAndCompare(String.format(statement, type, type, type), expected);
     }
-  }
+}
 
-  @Test
-  public void testValueFilterSubQuery() {
+@Test
+public void testValueFilterSubQuery() {
     String statement =
         "SELECT ts FROM (SELECT s1 AS ts FROM us.d1 WHERE us.d1.s1 >= 1000 AND us.d1.s1 < 1010);";
     String expected =
@@ -2663,10 +2663,10 @@ public class SQLSessionIT {
             + "+----+------+\n"
             + "Total line number = 3\n";
     executor.executeAndCompare(statement, expected);
-  }
+}
 
-  @Test
-  public void testMultiSubQuery() {
+@Test
+public void testMultiSubQuery() {
     String statement =
         "SELECT AVG(s1) AS avg_s1, SUM(s2) AS sum_s2 FROM us.d1 OVER (RANGE 10 IN [1000, 1100));";
     String expected =
@@ -2723,10 +2723,10 @@ public class SQLSessionIT {
             + "+-----------+-----------+\n"
             + "Total line number = 1\n";
     executor.executeAndCompare(statement, expected);
-  }
+}
 
-  @Test
-  public void testFromSubQuery() {
+@Test
+public void testFromSubQuery() {
     String insert = "INSERT INTO test(key, a.a, a.b) VALUES (1, 1, 1.1), (2, 3, 3.1), (3, 7, 7.1);";
     executor.execute(insert);
     insert =
@@ -2858,10 +2858,10 @@ public class SQLSessionIT {
             + "+--------+--------+----------+--------+----------+--------+----------+\n"
             + "Total line number = 12\n";
     executor.executeAndCompare(statement, expected);
-  }
+}
 
-  @Test
-  public void testSelectSubQuery() {
+@Test
+public void testSelectSubQuery() {
     String insert =
         "INSERT INTO test.a(key, a, b, c, d) VALUES (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), "
             + "(3, 2, 2, 1.1, \"val7\"), (4, 3, 2, 2.1, \"val8\"), (5, 1, 2, 3.1, \"val1\"), (6, 2, 2, 5.1, \"val3\");";
@@ -3053,10 +3053,10 @@ public class SQLSessionIT {
             + "+--------+--------+-------------+\n"
             + "Total line number = 4\n";
     executor.executeAndCompare(statement, expected);
-  }
+}
 
-  @Test
-  public void testWhereSubQuery() {
+@Test
+public void testWhereSubQuery() {
     String insert =
         "INSERT INTO test.a(key, a, b, c, d) VALUES (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), "
             + "(3, 2, 2, 1.1, \"val7\"), (4, 3, 2, 2.1, \"val8\"), (5, 1, 2, 3.1, \"val1\"), (6, 2, 2, 5.1, \"val3\");";
@@ -3295,10 +3295,10 @@ public class SQLSessionIT {
             + "+---+--------+--------+--------+--------+\n"
             + "Total line number = 6\n";
     executor.executeAndCompare(statement, expected);
-  }
+}
 
-  @Test
-  public void testWhereSubQueryWithJoin() {
+@Test
+public void testWhereSubQueryWithJoin() {
     String insert =
         "INSERT INTO test.a(key, a, b, c, d) VALUES (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), "
             + "(3, 2, 2, 1.1, \"val7\"), (4, 3, 2, 2.1, \"val8\"), (5, 1, 2, 3.1, \"val1\"), (6, 2, 2, 5.1, \"val3\");";
@@ -3366,10 +3366,10 @@ public class SQLSessionIT {
             + "+--------+--------+--------+--------+----------+--------+--------+--------+--------+----------+\n"
             + "Total line number = 2\n";
     executor.executeAndCompare(statement, expected);
-  }
+}
 
-  @Test
-  public void testHavingSubQuery() {
+@Test
+public void testHavingSubQuery() {
     String insert =
         "INSERT INTO test.a(key, a, b, c, d) VALUES (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), "
             + "(3, 2, 2, 1.1, \"val5\"), (4, 3, 2, 2.1, \"val2\"), (5, 1, 2, 3.1, \"val1\"), (6, 2, 2, 5.1, \"val3\");";
@@ -3413,10 +3413,10 @@ public class SQLSessionIT {
             + "+-------------+--------+\n"
             + "Total line number = 1\n";
     executor.executeAndCompare(statement, expected);
-  }
+}
 
-  @Test
-  public void testMixedSubQuery() {
+@Test
+public void testMixedSubQuery() {
     String insert =
         "INSERT INTO test.a(key, a, b, c, d) VALUES (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), "
             + "(3, 2, 2, 1.1, \"val7\"), (4, 3, 2, 2.1, \"val8\"), (5, 1, 2, 3.1, \"val1\"), (6, 2, 2, 5.1, \"val3\");";
@@ -3525,12 +3525,12 @@ public class SQLSessionIT {
             + "+---+--------+------------------------+\n"
             + "Total line number = 5\n";
     executor.executeAndCompare(statement, expected);
-  }
+}
 
-  @Test
-  public void testDateFormat() {
+@Test
+public void testDateFormat() {
     if (!isAbleToDelete) {
-      return;
+    return;
     }
     String insert = "INSERT INTO us.d2(key, date) VALUES (%s, %s);";
     List<String> dateFormats =
@@ -3549,7 +3549,7 @@ public class SQLSessionIT {
             "2021.08.26T16:15:32.001");
 
     for (int i = 0; i < dateFormats.size(); i++) {
-      executor.execute(String.format(insert, dateFormats.get(i), i));
+    executor.execute(String.format(insert, dateFormats.get(i), i));
     }
 
     String query = "SELECT date FROM us.d2;";
@@ -3630,10 +3630,10 @@ public class SQLSessionIT {
             + "+-------------------+----------+\n"
             + "Total line number = 8\n";
     executor.executeAndCompare(query, expected);
-  }
+}
 
-  @Test
-  public void testInsertWithSubQuery() {
+@Test
+public void testInsertWithSubQuery() {
     String insert =
         "INSERT INTO us.d2(key, s1) VALUES (SELECT s1 FROM us.d1 WHERE s1 >= 1000 AND s1 < 1010);";
     executor.execute(insert);
@@ -3747,12 +3747,12 @@ public class SQLSessionIT {
             + "+---+--------+--------+\n"
             + "Total line number = 1\n";
     executor.executeAndCompare(query, expected);
-  }
+}
 
-  @Test
-  public void testChinesePath() {
+@Test
+public void testChinesePath() {
     if (!isSupportChinesePath) {
-      return;
+    return;
     }
 
     // Chinese path
@@ -3773,12 +3773,12 @@ public class SQLSessionIT {
             + "+---+--------+\n"
             + "Total line number = 5\n";
     executor.executeAndCompare(query, expected);
-  }
+}
 
-  @Test
-  public void testNumericalPath() {
+@Test
+public void testNumericalPath() {
     if (!isSupportNumericalPath) {
-      return;
+    return;
     }
 
     // numerical path
@@ -3800,12 +3800,12 @@ public class SQLSessionIT {
             + "+---+--------------+\n"
             + "Total line number = 5\n";
     executor.executeAndCompare(query, expected);
-  }
+}
 
-  @Test
-  public void testSpecialCharacterPath() {
+@Test
+public void testSpecialCharacterPath() {
     if (!isSupportSpecialCharacterPath) {
-      return;
+    return;
     }
 
     // IGinX SQL 路径中支持的合法字符
@@ -3827,12 +3827,12 @@ public class SQLSessionIT {
             + "+---+-------------------+\n"
             + "Total line number = 5\n";
     executor.executeAndCompare(query, expected);
-  }
+}
 
-  @Test
-  public void testMixSpecialPath() {
+@Test
+public void testMixSpecialPath() {
     if (!isSupportChinesePath || !isSupportNumericalPath || !isSupportSpecialCharacterPath) {
-      return;
+    return;
     }
 
     // mix path
@@ -3854,10 +3854,10 @@ public class SQLSessionIT {
             + "+---+-----------------------------+\n"
             + "Total line number = 5\n";
     executor.executeAndCompare(query, expected);
-  }
+}
 
-  @Test
-  public void testErrorClause() {
+@Test
+public void testErrorClause() {
     String errClause =
         "DELETE FROM us.d1.s1 WHERE key > 105 AND key < 115 AND key >= 120 AND key <= 230;";
     executor.executeAndCompareErrMsg(
@@ -3884,10 +3884,10 @@ public class SQLSessionIT {
     errClause = "SELECT last(s1) FROM us.d1 GROUP BY s2;";
     executor.executeAndCompareErrMsg(
         errClause, "Group by can not use SetToSet and RowToRow functions.");
-  }
+}
 
-  @Test
-  public void testExplain() {
+@Test
+public void testExplain() {
     if (isScaling) return;
     String explain = "explain select max(s2), min(s1) from us.d1;";
     String expected =
@@ -3924,12 +3924,12 @@ public class SQLSessionIT {
 
     explain = "explain physical select s1 from us.d1 where s1 > 10 and s1 < 100;";
     logger.info(executor.execute(explain));
-  }
+}
 
-  @Test
-  public void testDeleteTimeSeries() {
+@Test
+public void testDeleteTimeSeries() {
     if (!isAbleToDelete || isScaling) {
-      return;
+    return;
     }
     String showTimeSeries = "SHOW COLUMNS us.*;";
     String expected =
@@ -3985,10 +3985,10 @@ public class SQLSessionIT {
     String countPoints = "COUNT POINTS";
     expected = "Points num: 0\n";
     executor.executeAndCompare(countPoints, expected);
-  }
+}
 
-  @Test
-  public void testClearData() throws SessionException, ExecutionException {
+@Test
+public void testClearData() throws SessionException, ExecutionException {
     if (!isAbleToClearData || isScaling) return;
     clearData();
 
@@ -3999,20 +3999,20 @@ public class SQLSessionIT {
     String showTimeSeries = "SELECT * FROM *;";
     expected = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
     executor.executeAndCompare(showTimeSeries, expected);
-  }
+}
 
-  @Test
-  public void testConcurrentDeleteSinglePath() {
+@Test
+public void testConcurrentDeleteSinglePath() {
     if (!isAbleToDelete) {
-      return;
+    return;
     }
     String deleteFormat = "DELETE FROM us.d1.s1 WHERE key >= %d AND key < %d;";
     int start = 1000, range = 50;
 
     List<String> deleteStmts = new ArrayList<>();
     for (int i = 0; i < CONCURRENT_NUM; i++) {
-      deleteStmts.add(String.format(deleteFormat, start, start + range));
-      start += range;
+    deleteStmts.add(String.format(deleteFormat, start, start + range));
+    start += range;
     }
     executor.concurrentExecute(deleteStmts);
 
@@ -4045,20 +4045,20 @@ public class SQLSessionIT {
             + "+---------------+\n"
             + "Total line number = 1\n";
     executor.executeAndCompare(query, expected);
-  }
+}
 
-  @Test
-  public void testConcurrentDeleteSinglePathWithOverlap() {
+@Test
+public void testConcurrentDeleteSinglePathWithOverlap() {
     if (!isAbleToDelete) {
-      return;
+    return;
     }
     String deleteFormat = "DELETE FROM * WHERE key >= %d AND key < %d;";
     int start = 1000, range = 70;
 
     List<String> deleteStmts = new ArrayList<>();
     for (int i = 0; i < CONCURRENT_NUM; i++) {
-      deleteStmts.add(String.format(deleteFormat, start, start + range));
-      start += range - 20;
+    deleteStmts.add(String.format(deleteFormat, start, start + range));
+    start += range - 20;
     }
     executor.concurrentExecute(deleteStmts);
 
@@ -4072,20 +4072,20 @@ public class SQLSessionIT {
             + "+---------------+---------------+---------------+---------------+\n"
             + "Total line number = 1\n";
     executor.executeAndCompare(query, expected);
-  }
+}
 
-  @Test
-  public void testConcurrentDeleteMultiPath() {
+@Test
+public void testConcurrentDeleteMultiPath() {
     if (!isAbleToDelete) {
-      return;
+    return;
     }
     String deleteFormat = "DELETE FROM * WHERE key >= %d AND key < %d;";
     int start = 1000, range = 50;
 
     List<String> deleteStmts = new ArrayList<>();
     for (int i = 0; i < CONCURRENT_NUM; i++) {
-      deleteStmts.add(String.format(deleteFormat, start, start + range));
-      start += range;
+    deleteStmts.add(String.format(deleteFormat, start, start + range));
+    start += range;
     }
     executor.concurrentExecute(deleteStmts);
 
@@ -4099,20 +4099,20 @@ public class SQLSessionIT {
             + "+---------------+---------------+---------------+---------------+\n"
             + "Total line number = 1\n";
     executor.executeAndCompare(query, expected);
-  }
+}
 
-  @Test
-  public void testConcurrentDeleteMultiPathWithOverlap() {
+@Test
+public void testConcurrentDeleteMultiPathWithOverlap() {
     if (!isAbleToDelete) {
-      return;
+    return;
     }
     String deleteFormat = "DELETE FROM * WHERE key >= %d AND key < %d;";
     int start = 1000, range = 70;
 
     List<String> deleteStmts = new ArrayList<>();
     for (int i = 0; i < CONCURRENT_NUM; i++) {
-      deleteStmts.add(String.format(deleteFormat, start, start + range));
-      start += range - 20;
+    deleteStmts.add(String.format(deleteFormat, start, start + range));
+    start += range - 20;
     }
     executor.concurrentExecute(deleteStmts);
 
@@ -4126,16 +4126,16 @@ public class SQLSessionIT {
             + "+---------------+---------------+---------------+---------------+\n"
             + "Total line number = 1\n";
     executor.executeAndCompare(query, expected);
-  }
+}
 
-  @Test
-  public void testConcurrentInsert() {
+@Test
+public void testConcurrentInsert() {
     int start = 20000, range = 50;
 
     List<String> insertStmts = new ArrayList<>();
     for (int i = 0; i < CONCURRENT_NUM; i++) {
-      insertStmts.add(generateDefaultInsertStatementByTimeRange(start, start + range));
-      start += range;
+    insertStmts.add(generateDefaultInsertStatementByTimeRange(start, start + range));
+    start += range;
     }
     executor.concurrentExecute(insertStmts);
 
@@ -4149,16 +4149,16 @@ public class SQLSessionIT {
             + "+---------------+---------------+---------------+---------------+\n"
             + "Total line number = 1\n";
     executor.executeAndCompare(query, expected);
-  }
+}
 
-  @Test
-  public void testConcurrentInsertWithOverlap() {
+@Test
+public void testConcurrentInsertWithOverlap() {
     int start = 20000, range = 70;
 
     List<String> insertStmts = new ArrayList<>();
     for (int i = 0; i < CONCURRENT_NUM; i++) {
-      insertStmts.add(generateDefaultInsertStatementByTimeRange(start, start + range));
-      start += range - 20;
+    insertStmts.add(generateDefaultInsertStatementByTimeRange(start, start + range));
+    start += range - 20;
     }
     executor.concurrentExecute(insertStmts);
 
@@ -4172,12 +4172,12 @@ public class SQLSessionIT {
             + "+---------------+---------------+---------------+---------------+\n"
             + "Total line number = 1\n";
     executor.executeAndCompare(query, expected);
-  }
+}
 
-  @Test
-  public void testBaseInfoConcurrentQuery() {
+@Test
+public void testBaseInfoConcurrentQuery() {
     if (isScaling) {
-      return;
+    return;
     }
     List<Pair<String, String>> statementsAndExpectRes =
         Arrays.asList(
@@ -4204,10 +4204,10 @@ public class SQLSessionIT {
                     + "Total line number = 1\n"),
             new Pair<>("COUNT POINTS;", "Points num: 60000\n"));
     executor.concurrentExecuteAndCompare(statementsAndExpectRes);
-  }
+}
 
-  @Test
-  public void testConcurrentQuery() {
+@Test
+public void testConcurrentQuery() {
     String insert =
         "insert into test1(key, a, b, c, d) values (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), (3, 2, 2, 1.1, \"val5\"), (4, 3, 2, 2.1, \"val2\"), (5, 1, 2, 3.1, \"val1\"), (6, 2, 2, 5.1, \"val3\")";
     executor.execute(insert);
@@ -4285,5 +4285,5 @@ public class SQLSessionIT {
                     + "+------------+------------+-------+\n"
                     + "Total line number = 2\n"));
     executor.concurrentExecuteAndCompare(statementsAndExpectRes);
-  }
+}
 }

@@ -8,27 +8,27 @@ import java.util.*;
 
 public class FragmentUtils {
 
-  public static Pair<Map<KeyInterval, List<FragmentMeta>>, List<FragmentMeta>>
-      keyFromColumnsIntervalToKeyInterval(
-          Map<ColumnsRange, List<FragmentMeta>> fragmentMapByColumnsInterval) {
+public static Pair<Map<KeyInterval, List<FragmentMeta>>, List<FragmentMeta>>
+    keyFromColumnsIntervalToKeyInterval(
+        Map<ColumnsRange, List<FragmentMeta>> fragmentMapByColumnsInterval) {
     Map<KeyInterval, List<FragmentMeta>> fragmentMapByKeyInterval = new HashMap<>();
     List<FragmentMeta> dummyFragments = new ArrayList<>();
     fragmentMapByColumnsInterval.forEach(
         (k, v) ->
             v.forEach(
                 fragmentMeta -> {
-                  if (fragmentMeta.isDummyFragment()) {
+                if (fragmentMeta.isDummyFragment()) {
                     dummyFragments.add(fragmentMeta);
                     return;
-                  }
-                  if (fragmentMapByKeyInterval.containsKey(fragmentMeta.getKeyInterval())) {
+                }
+                if (fragmentMapByKeyInterval.containsKey(fragmentMeta.getKeyInterval())) {
                     fragmentMapByKeyInterval.get(fragmentMeta.getKeyInterval()).add(fragmentMeta);
-                  } else {
+                } else {
                     fragmentMapByKeyInterval.put(
                         fragmentMeta.getKeyInterval(),
                         new ArrayList<>(Collections.singletonList(fragmentMeta)));
-                  }
+                }
                 }));
     return new Pair<>(fragmentMapByKeyInterval, dummyFragments);
-  }
+}
 }

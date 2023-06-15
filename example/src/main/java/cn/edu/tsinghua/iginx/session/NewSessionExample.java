@@ -30,7 +30,7 @@ import java.util.Arrays;
 
 public class NewSessionExample {
 
-  public static void main(String[] args) {
+public static void main(String[] args) {
     IginXClient client = IginXClientFactory.create();
     WriteClient writeClient = client.getWriteClient();
     writeClient.writePoint(Point.builder().now().measurement("a.a.a").intValue(2333).build());
@@ -57,9 +57,9 @@ public class NewSessionExample {
     System.out.println("Header:" + table.getHeader());
 
     for (IginXRecord record : table.getRecords()) {
-      System.out.println(record);
+    System.out.println(record);
     }
 
     client.close();
-  }
+}
 }

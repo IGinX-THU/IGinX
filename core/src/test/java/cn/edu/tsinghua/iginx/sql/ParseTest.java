@@ -17,8 +17,8 @@ import org.junit.Test;
 
 public class ParseTest {
 
-  @Test
-  public void testParseInsert() {
+@Test
+public void testParseInsert() {
     String insertStr =
         "INSERT INTO a.b.c (key, status, hardware, num) values (1, NaN, Null, 1627399423055), (2, false, \"v2\", 1627399423056);";
     InsertStatement statement = (InsertStatement) TestUtils.buildStatement(insertStr);
@@ -33,10 +33,10 @@ public class ParseTest {
         "SELECT avg_s1 FROM (SELECT AVG(s1) AS avg_s1 FROM us.d1 OVER (RANGE 100 IN [1000, 1600)) WHERE avg_s1 > 1200;";
     SelectStatement selectStatement = (SelectStatement) TestUtils.buildStatement(insertStr);
     System.out.println();
-  }
+}
 
-  @Test
-  public void testParseInsertWithSubQuery() {
+@Test
+public void testParseInsertWithSubQuery() {
     String insertStr =
         "INSERT INTO test.copy (key, status, hardware, num) values (SELECT status, hardware, num FROM test) TIME_OFFSET = 5;";
     InsertFromSelectStatement statement =
@@ -55,10 +55,10 @@ public class ParseTest {
     assertEquals(pathSet, selectStatement.getPathSet());
 
     assertEquals(5, statement.getKeyOffset());
-  }
+}
 
-  @Test
-  public void testParseSelect() {
+@Test
+public void testParseSelect() {
     String selectStr =
         "SELECT SUM(c), SUM(d), SUM(e), COUNT(f), COUNT(g) FROM a.b WHERE 100 < key and key < 1000 or d == \"abc\" or \"666\" <= c or (e < 10 and not (f < 10)) OVER (RANGE 10 IN [200, 300)) AGG LEVEL = 2, 3;";
     SelectStatement statement = (SelectStatement) TestUtils.buildStatement(selectStr);
@@ -97,10 +97,10 @@ public class ParseTest {
     assertEquals(10, statement.getPrecision());
 
     assertEquals(Arrays.asList(2, 3), statement.getLayers());
-  }
+}
 
-  @Test
-  public void testFilter() {
+@Test
+public void testFilter() {
     String selectStr = "SELECT a FROM root WHERE a > 100;";
     SelectStatement statement = (SelectStatement) TestUtils.buildStatement(selectStr);
     assertEquals(new HashSet<>(Collections.singletonList("root.a")), statement.getPathSet());
@@ -110,10 +110,10 @@ public class ParseTest {
     statement = (SelectStatement) TestUtils.buildStatement(selectStr);
     assertEquals(new HashSet<>(Arrays.asList("root.a", "root.b")), statement.getPathSet());
     assertEquals("root.a > root.b", statement.getFilter().toString());
-  }
+}
 
-  @Test
-  public void testParseGroupBy() {
+@Test
+public void testParseGroupBy() {
     String selectStr = "SELECT MAX(c) FROM a.b OVER (RANGE 10 IN [100, 1000));";
     SelectStatement statement = (SelectStatement) TestUtils.buildStatement(selectStr);
     assertEquals(100, statement.getStartKey());
@@ -126,10 +126,10 @@ public class ParseTest {
         Collections.singletonList("a.b.c"),
         statement.getFuncExpressionMap().get("sum").get(0).getParams());
     assertEquals(Arrays.asList(1, 2), statement.getLayers());
-  }
+}
 
-  @Test
-  public void testParseSpecialClause() {
+@Test
+public void testParseSpecialClause() {
     String limit = "SELECT a FROM test LIMIT 2, 5;";
     SelectStatement statement = (SelectStatement) TestUtils.buildStatement(limit);
     assertEquals(5, statement.getLimit());
@@ -162,28 +162,28 @@ public class ParseTest {
     assertEquals(10L, statement.getPrecision());
     assertEquals(2, statement.getOffset());
     assertEquals(5, statement.getLimit());
-  }
+}
 
-  @Test
-  public void testParseDelete() {
+@Test
+public void testParseDelete() {
     String deleteStr =
         "DELETE FROM a.b.c, a.b.d WHERE key > 1627464728862 AND key < 2022-12-12 16:18:23+1s;";
     DeleteStatement statement = (DeleteStatement) TestUtils.buildStatement(deleteStr);
     List<String> paths = Arrays.asList("a.b.c", "a.b.d");
     assertEquals(paths, statement.getPaths());
-  }
+}
 
-  @Test
-  public void testParseDeleteTimeSeries() {
+@Test
+public void testParseDeleteTimeSeries() {
     String deleteColumnsStr = "DELETE COLUMNS a.b.c, a.b.d;";
     DeleteColumnsStatement statement =
         (DeleteColumnsStatement) TestUtils.buildStatement(deleteColumnsStr);
     List<String> paths = Arrays.asList("a.b.c", "a.b.d");
     assertEquals(paths, statement.getPaths());
-  }
+}
 
-  @Test
-  public void testParseLimitClause() {
+@Test
+public void testParseLimitClause() {
     String selectWithLimit = "SELECT * FROM a.b LIMIT 10";
     String selectWithLimitAndOffset01 = "SELECT * FROM a.b LIMIT 2, 10";
     String selectWithLimitAndOffset02 = "SELECT * FROM a.b LIMIT 10 OFFSET 2";
@@ -204,10 +204,10 @@ public class ParseTest {
     statement = (SelectStatement) TestUtils.buildStatement(selectWithLimitAndOffset03);
     assertEquals(10, statement.getLimit());
     assertEquals(2, statement.getOffset());
-  }
+}
 
-  @Test
-  public void testSubQueryClause() {
+@Test
+public void testSubQueryClause() {
     String selectWithSubQuery = "SELECT res.max_a FROM (SELECT max(a) AS max_a FROM root AS res);";
     SelectStatement statement = (SelectStatement) TestUtils.buildStatement(selectWithSubQuery);
     assertEquals(new HashSet<>(Collections.singletonList("res.max_a")), statement.getPathSet());
@@ -220,18 +220,18 @@ public class ParseTest {
     assertEquals(Collections.singletonList("root.a"), expression.getParams());
     assertEquals("max", expression.getFuncName());
     assertEquals("res.max_a", expression.getAlias());
-  }
+}
 
-  @Test
-  public void testParseShowReplication() {
+@Test
+public void testParseShowReplication() {
     String showReplicationStr = "SHOW REPLICA NUMBER";
     ShowReplicationStatement statement =
         (ShowReplicationStatement) TestUtils.buildStatement(showReplicationStr);
     assertEquals(StatementType.SHOW_REPLICATION, statement.statementType);
-  }
+}
 
-  @Test
-  public void testParseAddStorageEngine() {
+@Test
+public void testParseAddStorageEngine() {
     String addStorageEngineStr =
         "ADD STORAGEENGINE (\"127.0.0.1\", 6667, \"iotdb12\", \"username: root, password: root\"), (\"127.0.0.1\", 6668, \"influxdb\", \"key1: val1, key2: val2\");";
     AddStorageEngineStatement statement =
@@ -251,10 +251,10 @@ public class ParseTest {
 
     assertEquals(engine01, statement.getEngines().get(0));
     assertEquals(engine02, statement.getEngines().get(1));
-  }
+}
 
-  @Test
-  public void testParseTimeWithUnit() {
+@Test
+public void testParseTimeWithUnit() {
     String insertStr =
         "INSERT INTO a.b (key, c) values "
             + "(1, 1), "
@@ -278,10 +278,10 @@ public class ParseTest {
     assertEquals(1000000000L, selectStatement.getStartKey());
     assertEquals(2000000000L, selectStatement.getEndKey());
     assertEquals(10L, selectStatement.getPrecision());
-  }
+}
 
-  @Test
-  public void testJoin() {
+@Test
+public void testJoin() {
     String joinStr = "SELECT * FROM cpu1, cpu2";
     SelectStatement selectStatement = (SelectStatement) TestUtils.buildStatement(joinStr);
 
@@ -377,5 +377,5 @@ public class ParseTest {
     joinCondition = new JoinCondition(JoinType.InnerJoin, null, Collections.singletonList("usage"));
     assertTrue(selectStatement.getFromParts().get(1).isJoinPart());
     assertEquals(joinCondition, selectStatement.getFromParts().get(1).getJoinCondition());
-  }
+}
 }

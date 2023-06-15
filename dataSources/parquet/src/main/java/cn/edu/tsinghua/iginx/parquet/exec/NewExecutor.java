@@ -32,211 +32,211 @@ import org.slf4j.LoggerFactory;
 
 public class NewExecutor implements Executor {
 
-  private static final Logger logger = LoggerFactory.getLogger(NewExecutor.class);
+private static final Logger logger = LoggerFactory.getLogger(NewExecutor.class);
 
-  private final Connection connection;
+private final Connection connection;
 
-  public final String dataDir;
+public final String dataDir;
 
-  private final Map<String, DUManager> duManagerMap = new ConcurrentHashMap<>();
+private final Map<String, DUManager> duManagerMap = new ConcurrentHashMap<>();
 
-  private boolean isClosed = false;
+private boolean isClosed = false;
 
-  public NewExecutor(Connection connection, String dataDir) {
+public NewExecutor(Connection connection, String dataDir) {
     this.connection = connection;
     this.dataDir = dataDir;
 
     Path path = Paths.get(dataDir);
     try {
-      if (Files.exists(path)) {
+    if (Files.exists(path)) {
         recoverFromDisk();
-      } else {
+    } else {
         Files.createDirectory(path);
-      }
+    }
     } catch (IOException e) {
-      logger.error("parquet executor init error, details: {}", e.getMessage());
+    logger.error("parquet executor init error, details: {}", e.getMessage());
     }
 
     Runtime.getRuntime()
         .addShutdownHook(
             new Thread(
                 () -> {
-                  try {
+                try {
                     close();
-                  } catch (PhysicalException e) {
+                } catch (PhysicalException e) {
                     logger.error("Fail to close parquet executor, details: {}", e.getMessage());
-                  }
+                }
                 }));
-  }
+}
 
-  private void recoverFromDisk() throws IOException {
+private void recoverFromDisk() throws IOException {
     File file = new File(dataDir);
     File[] duDirs = file.listFiles();
     if (duDirs != null) {
-      for (File duDir : duDirs) {
+    for (File duDir : duDirs) {
         DUManager duManager = new DUManager(duDir.getName(), dataDir, connection, false);
         duManagerMap.put(duDir.getName(), duManager);
-      }
     }
-  }
+    }
+}
 
-  private DUManager getDUManager(String storageUnit, boolean isDummyStorageUnit)
-      throws IOException {
+private DUManager getDUManager(String storageUnit, boolean isDummyStorageUnit)
+    throws IOException {
     DUManager duManager = duManagerMap.get(storageUnit);
     if (duManager == null) {
-      duManager = new DUManager(storageUnit, dataDir, connection, isDummyStorageUnit);
-      duManagerMap.putIfAbsent(storageUnit, duManager);
-      duManager = duManagerMap.get(storageUnit);
+    duManager = new DUManager(storageUnit, dataDir, connection, isDummyStorageUnit);
+    duManagerMap.putIfAbsent(storageUnit, duManager);
+    duManager = duManagerMap.get(storageUnit);
     }
     return duManager;
-  }
+}
 
-  @Override
-  public TaskExecuteResult executeProjectTask(
-      List<String> paths,
-      TagFilter tagFilter,
-      String filter,
-      String storageUnit,
-      boolean isDummyStorageUnit) {
+@Override
+public TaskExecuteResult executeProjectTask(
+    List<String> paths,
+    TagFilter tagFilter,
+    String filter,
+    String storageUnit,
+    boolean isDummyStorageUnit) {
     DUManager duManager;
     try {
-      duManager = getDUManager(storageUnit, isDummyStorageUnit);
+    duManager = getDUManager(storageUnit, isDummyStorageUnit);
     } catch (IOException e) {
-      return new TaskExecuteResult(null, new PhysicalException("Fail to get du manager ", e));
+    return new TaskExecuteResult(null, new PhysicalException("Fail to get du manager ", e));
     }
 
     try {
-      List<cn.edu.tsinghua.iginx.parquet.entity.Column> columns =
-          duManager.project(paths, tagFilter, filter);
-      RowStream rowStream = new ClearEmptyRowStreamWrapper(new NewQueryRowStream(columns));
-      return new TaskExecuteResult(rowStream, null);
+    List<cn.edu.tsinghua.iginx.parquet.entity.Column> columns =
+        duManager.project(paths, tagFilter, filter);
+    RowStream rowStream = new ClearEmptyRowStreamWrapper(new NewQueryRowStream(columns));
+    return new TaskExecuteResult(rowStream, null);
     } catch (SQLException e) {
-      return new TaskExecuteResult(null, new PhysicalException("Fail to project data ", e));
+    return new TaskExecuteResult(null, new PhysicalException("Fail to project data ", e));
     }
-  }
+}
 
-  @Override
-  public TaskExecuteResult executeInsertTask(DataView dataView, String storageUnit) {
+@Override
+public TaskExecuteResult executeInsertTask(DataView dataView, String storageUnit) {
     DUManager duManager;
     try {
-      duManager = getDUManager(storageUnit, false);
+    duManager = getDUManager(storageUnit, false);
     } catch (IOException e) {
-      return new TaskExecuteResult(null, new PhysicalException("Fail to get du manager ", e));
+    return new TaskExecuteResult(null, new PhysicalException("Fail to get du manager ", e));
     }
 
     try {
-      duManager.insert(dataView);
+    duManager.insert(dataView);
     } catch (SQLException e) {
-      return new TaskExecuteResult(null, new PhysicalException("Fail to insert data ", e));
+    return new TaskExecuteResult(null, new PhysicalException("Fail to insert data ", e));
     }
 
     return new TaskExecuteResult(null, null);
-  }
+}
 
-  @Override
-  public TaskExecuteResult executeDeleteTask(
-      List<String> paths, List<KeyRange> keyRanges, TagFilter tagFilter, String storageUnit) {
+@Override
+public TaskExecuteResult executeDeleteTask(
+    List<String> paths, List<KeyRange> keyRanges, TagFilter tagFilter, String storageUnit) {
     DUManager duManager;
     try {
-      duManager = getDUManager(storageUnit, false);
+    duManager = getDUManager(storageUnit, false);
     } catch (IOException e) {
-      return new TaskExecuteResult(null, new PhysicalException("Fail to get du manager ", e));
+    return new TaskExecuteResult(null, new PhysicalException("Fail to get du manager ", e));
     }
 
     try {
-      duManager.delete(paths, keyRanges, tagFilter);
+    duManager.delete(paths, keyRanges, tagFilter);
     } catch (Exception e) {
-      return new TaskExecuteResult(null, new PhysicalException("Fail to delete data ", e));
+    return new TaskExecuteResult(null, new PhysicalException("Fail to delete data ", e));
     }
 
     return new TaskExecuteResult(null, null);
-  }
+}
 
-  @Override
-  public List<Column> getColumnsOfStorageUnit(String storageUnit) throws PhysicalException {
+@Override
+public List<Column> getColumnsOfStorageUnit(String storageUnit) throws PhysicalException {
     List<Column> ret = new ArrayList<>();
     if (storageUnit.equals("*")) {
-      duManagerMap.forEach(
-          (id, duManager) -> {
+    duManagerMap.forEach(
+        (id, duManager) -> {
             duManager
                 .getPaths()
                 .forEach(
                     (path, type) -> {
-                      Pair<String, Map<String, String>> pair = TagKVUtils.splitFullName(path);
-                      ret.add(new Column(pair.k, type, pair.v));
+                    Pair<String, Map<String, String>> pair = TagKVUtils.splitFullName(path);
+                    ret.add(new Column(pair.k, type, pair.v));
                     });
-          });
+        });
     } else {
-      DUManager duManager;
-      try {
+    DUManager duManager;
+    try {
         duManager = getDUManager(storageUnit, false);
-      } catch (IOException e) {
+    } catch (IOException e) {
         throw new PhysicalException("Fail to get du manager ", e);
-      }
+    }
 
-      duManager
-          .getPaths()
-          .forEach(
-              (path, type) -> {
+    duManager
+        .getPaths()
+        .forEach(
+            (path, type) -> {
                 Pair<String, Map<String, String>> pair = TagKVUtils.splitFullName(path);
                 ret.add(new Column(pair.k, type, pair.v));
-              });
+            });
     }
     return ret;
-  }
+}
 
-  @Override
-  public Pair<ColumnsRange, KeyInterval> getBoundaryOfStorage() throws PhysicalException {
+@Override
+public Pair<ColumnsRange, KeyInterval> getBoundaryOfStorage() throws PhysicalException {
     List<String> paths = new ArrayList<>();
     long start = Long.MAX_VALUE, end = Long.MIN_VALUE;
     for (DUManager duManager : duManagerMap.values()) {
-      duManager
-          .getPaths()
-          .forEach(
-              (path, type) -> {
+    duManager
+        .getPaths()
+        .forEach(
+            (path, type) -> {
                 Pair<String, Map<String, String>> pair = TagKVUtils.splitFullName(path);
                 paths.add(pair.k);
-              });
-      KeyInterval interval = duManager.getTimeInterval();
-      if (interval.getStartKey() < start) {
+            });
+    KeyInterval interval = duManager.getTimeInterval();
+    if (interval.getStartKey() < start) {
         start = interval.getStartKey();
-      }
-      if (interval.getEndKey() > end) {
+    }
+    if (interval.getEndKey() > end) {
         end = interval.getEndKey();
-      }
+    }
     }
     paths.sort(String::compareTo);
     if (paths.size() == 0) {
-      throw new PhysicalTaskExecuteFailureException("no data");
+    throw new PhysicalTaskExecuteFailureException("no data");
     }
     if (start == Long.MAX_VALUE || end == Long.MIN_VALUE) {
-      throw new PhysicalTaskExecuteFailureException("time range error");
+    throw new PhysicalTaskExecuteFailureException("time range error");
     }
     ColumnsRange tsRange =
         new ColumnsInterval(paths.get(0), StringUtils.nextString(paths.get(paths.size() - 1)));
     KeyInterval keyInterval = new KeyInterval(start, end);
     return new Pair<>(tsRange, keyInterval);
-  }
+}
 
-  @Override
-  public void close() throws PhysicalException {
+@Override
+public void close() throws PhysicalException {
     if (isClosed) {
-      return;
+    return;
     }
 
     for (DUManager duManager : duManagerMap.values()) {
-      try {
+    try {
         duManager.flushBeforeExist();
-      } catch (Exception e) {
+    } catch (Exception e) {
         throw new PhysicalException("Flush before exist error, details: {}", e);
-      }
+    }
     }
 
     try {
-      connection.close();
+    connection.close();
     } catch (SQLException e) {
-      throw new PhysicalException("DuckDB connection close error", e);
+    throw new PhysicalException("DuckDB connection close error", e);
     }
     isClosed = true;
-  }
+}
 }

@@ -5,7 +5,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 
 public interface LogicalGenerator {
 
-  GeneratorType getType();
+GeneratorType getType();
 
-  Operator generate(RequestContext ctx);
+Operator generate(RequestContext ctx);
 }

@@ -5,9 +5,9 @@ import cn.edu.tsinghua.iginx.thrift.JobState;
 
 public interface TransformClient {
 
-  long commitTransformJob(final Transform transform);
+long commitTransformJob(final Transform transform);
 
-  JobState queryTransformJobStatus(long jobId);
+JobState queryTransformJobStatus(long jobId);
 
-  void cancelTransformJob(long jobId);
+void cancelTransformJob(long jobId);
 }

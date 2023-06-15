@@ -22,62 +22,62 @@ import java.util.Objects;
 
 public class KeyFilter implements Filter {
 
-  private final FilterType type = FilterType.Key;
+private final FilterType type = FilterType.Key;
 
-  private final long value;
-  private Op op;
+private final long value;
+private Op op;
 
-  public KeyFilter(Op op, long value) {
+public KeyFilter(Op op, long value) {
     this.op = op;
     this.value = value;
-  }
+}
 
-  public void reverseFunc() {
+public void reverseFunc() {
     this.op = Op.getOpposite(op);
-  }
+}
 
-  public Op getOp() {
+public Op getOp() {
     return op;
-  }
+}
 
-  public long getValue() {
+public long getValue() {
     return value;
-  }
+}
 
-  @Override
-  public void accept(FilterVisitor visitor) {
+@Override
+public void accept(FilterVisitor visitor) {
     visitor.visit(this);
-  }
+}
 
-  @Override
-  public FilterType getType() {
+@Override
+public FilterType getType() {
     return type;
-  }
+}
 
-  @Override
-  public Filter copy() {
+@Override
+public Filter copy() {
     return new KeyFilter(op, value);
-  }
+}
 
-  @Override
-  public String toString() {
+@Override
+public String toString() {
     return "key " + Op.op2Str(op) + " " + value;
-  }
+}
 
-  @Override
-  public boolean equals(Object o) {
+@Override
+public boolean equals(Object o) {
     if (this == o) {
-      return true;
+    return true;
     }
     if (o == null || getClass() != o.getClass()) {
-      return false;
+    return false;
     }
     KeyFilter that = (KeyFilter) o;
     return value == that.value && type == that.type && op == that.op;
-  }
+}
 
-  @Override
-  public int hashCode() {
+@Override
+public int hashCode() {
     return Objects.hash(type, value, op);
-  }
+}
 }

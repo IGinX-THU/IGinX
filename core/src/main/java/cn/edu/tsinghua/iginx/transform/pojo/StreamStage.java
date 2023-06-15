@@ -8,50 +8,50 @@ import java.util.List;
 
 public class StreamStage implements Stage {
 
-  private final DataFlowType dataFlowType;
+private final DataFlowType dataFlowType;
 
-  private final long sessionId;
+private final long sessionId;
 
-  private final Stage beforeStage;
+private final Stage beforeStage;
 
-  private final List<Task> taskList;
+private final List<Task> taskList;
 
-  private final ExportWriter exportWriter;
+private final ExportWriter exportWriter;
 
-  private final boolean startWithIginX;
+private final boolean startWithIginX;
 
-  public StreamStage(long sessionId, Stage beforeStage, List<Task> taskList, ExportWriter writer) {
+public StreamStage(long sessionId, Stage beforeStage, List<Task> taskList, ExportWriter writer) {
     this.dataFlowType = DataFlowType.Stream;
     this.sessionId = sessionId;
     this.beforeStage = beforeStage;
     this.taskList = taskList;
     this.exportWriter = writer;
     this.startWithIginX = taskList.get(0).getTaskType().equals(TaskType.IginX);
-  }
+}
 
-  public long getSessionId() {
+public long getSessionId() {
     return sessionId;
-  }
+}
 
-  public Stage getBeforeStage() {
+public Stage getBeforeStage() {
     return beforeStage;
-  }
+}
 
-  public List<Task> getTaskList() {
+public List<Task> getTaskList() {
     return taskList;
-  }
+}
 
-  public boolean isStartWithIginX() {
+public boolean isStartWithIginX() {
     return startWithIginX;
-  }
+}
 
-  @Override
-  public DataFlowType getStageType() {
+@Override
+public DataFlowType getStageType() {
     return dataFlowType;
-  }
+}
 
-  @Override
-  public ExportWriter getExportWriter() {
+@Override
+public ExportWriter getExportWriter() {
     return exportWriter;
-  }
+}
 }

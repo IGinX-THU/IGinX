@@ -13,34 +13,34 @@ import java.io.FileNotFoundException;
 
 public class CommitTransformJobStatement extends SystemStatement {
 
-  private final String path;
+private final String path;
 
-  private final TransformJobManager manager = TransformJobManager.getInstance();
+private final TransformJobManager manager = TransformJobManager.getInstance();
 
-  public CommitTransformJobStatement(String path) {
+public CommitTransformJobStatement(String path) {
     this.statementType = StatementType.COMMIT_TRANSFORM_JOB;
     this.path = path;
-  }
+}
 
-  @Override
-  public void execute(RequestContext ctx) throws ExecutionException {
+@Override
+public void execute(RequestContext ctx) throws ExecutionException {
     try {
-      YAMLReader reader = new YAMLReader(path);
-      JobFromYAML jobFromYAML = reader.getJobFromYAML();
+    YAMLReader reader = new YAMLReader(path);
+    JobFromYAML jobFromYAML = reader.getJobFromYAML();
 
-      long id = SnowFlakeUtils.getInstance().nextId();
-      Job job = new Job(id, ctx.getSessionId(), jobFromYAML);
+    long id = SnowFlakeUtils.getInstance().nextId();
+    Job job = new Job(id, ctx.getSessionId(), jobFromYAML);
 
-      long jobId = manager.commitJob(job);
-      if (jobId < 0) {
+    long jobId = manager.commitJob(job);
+    if (jobId < 0) {
         ctx.setResult(new Result(RpcUtils.FAILURE));
-      } else {
+    } else {
         Result result = new Result(RpcUtils.SUCCESS);
         result.setJobId(jobId);
         ctx.setResult(result);
-      }
-    } catch (FileNotFoundException e) {
-      ctx.setResult(new Result(RpcUtils.FAILURE));
     }
-  }
+    } catch (FileNotFoundException e) {
+    ctx.setResult(new Result(RpcUtils.FAILURE));
+    }
+}
 }

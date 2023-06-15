@@ -6,35 +6,35 @@ import java.util.List;
 
 public class DeleteColumnsStatement extends DataStatement {
 
-  private final List<String> paths;
+private final List<String> paths;
 
-  private TagFilter tagFilter;
+private TagFilter tagFilter;
 
-  public DeleteColumnsStatement() {
+public DeleteColumnsStatement() {
     this.statementType = StatementType.DELETE_COLUMNS;
     this.paths = new ArrayList<>();
     this.tagFilter = null;
-  }
+}
 
-  public DeleteColumnsStatement(List<String> paths) {
+public DeleteColumnsStatement(List<String> paths) {
     this.statementType = StatementType.DELETE_COLUMNS;
     this.paths = paths;
     this.tagFilter = null;
-  }
+}
 
-  public List<String> getPaths() {
+public List<String> getPaths() {
     return paths;
-  }
+}
 
-  public void addPath(String path) {
+public void addPath(String path) {
     this.paths.add(path);
-  }
+}
 
-  public TagFilter getTagFilter() {
+public TagFilter getTagFilter() {
     return tagFilter;
-  }
+}
 
-  public void setTagFilter(TagFilter tagFilter) {
+public void setTagFilter(TagFilter tagFilter) {
     this.tagFilter = tagFilter;
-  }
+}
 }

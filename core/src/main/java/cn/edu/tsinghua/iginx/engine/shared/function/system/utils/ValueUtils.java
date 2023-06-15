@@ -31,146 +31,146 @@ import java.util.regex.Pattern;
 
 public class ValueUtils {
 
-  private static final Set<DataType> numericTypeSet =
-      new HashSet<>(
-          Arrays.asList(DataType.INTEGER, DataType.LONG, DataType.FLOAT, DataType.DOUBLE));
+private static final Set<DataType> numericTypeSet =
+    new HashSet<>(
+        Arrays.asList(DataType.INTEGER, DataType.LONG, DataType.FLOAT, DataType.DOUBLE));
 
-  public static boolean isNumericType(Value value) {
+public static boolean isNumericType(Value value) {
     return numericTypeSet.contains(value.getDataType());
-  }
+}
 
-  public static boolean isNumericType(DataType dataType) {
+public static boolean isNumericType(DataType dataType) {
     return numericTypeSet.contains(dataType);
-  }
+}
 
-  public static Value transformToDouble(Value value) {
+public static Value transformToDouble(Value value) {
     DataType dataType = value.getDataType();
     double dVal;
     switch (dataType) {
-      case INTEGER:
+    case INTEGER:
         dVal = value.getIntV().doubleValue();
         break;
-      case LONG:
+    case LONG:
         dVal = value.getLongV().doubleValue();
         break;
-      case FLOAT:
+    case FLOAT:
         dVal = value.getFloatV().doubleValue();
         break;
-      case DOUBLE:
+    case DOUBLE:
         dVal = value.getDoubleV();
         break;
-      case BOOLEAN:
+    case BOOLEAN:
         dVal = value.getBoolV() ? 1.0D : 0.0D;
         break;
-      case BINARY:
+    case BINARY:
         dVal = Double.parseDouble(value.getBinaryVAsString());
         break;
-      default:
+    default:
         throw new IllegalArgumentException("Unexpected dataType: " + dataType);
     }
     return new Value(DataType.DOUBLE, dVal);
-  }
+}
 
-  public static int compare(Value v1, Value v2) throws PhysicalException {
+public static int compare(Value v1, Value v2) throws PhysicalException {
     DataType dataType1 = v1.getDataType();
     DataType dataType2 = v2.getDataType();
     if (dataType1 != dataType2) {
-      if (numericTypeSet.contains(dataType1) && numericTypeSet.contains(dataType2)) {
+    if (numericTypeSet.contains(dataType1) && numericTypeSet.contains(dataType2)) {
         v1 = transformToDouble(v1);
         v2 = transformToDouble(v2);
-      } else {
+    } else {
         throw new InvalidOperatorParameterException(
             dataType1.toString() + " and " + dataType2.toString() + " can't be compared");
-      }
+    }
     }
     switch (dataType1) {
-      case INTEGER:
+    case INTEGER:
         return Integer.compare(v1.getIntV(), v2.getIntV());
-      case LONG:
+    case LONG:
         return Long.compare(v1.getLongV(), v2.getLongV());
-      case BOOLEAN:
+    case BOOLEAN:
         return Boolean.compare(v1.getBoolV(), v2.getBoolV());
-      case FLOAT:
+    case FLOAT:
         return Float.compare(v1.getFloatV(), v2.getFloatV());
-      case DOUBLE:
+    case DOUBLE:
         return Double.compare(v1.getDoubleV(), v2.getDoubleV());
-      case BINARY:
+    case BINARY:
         return v1.getBinaryVAsString().compareTo(v2.getBinaryVAsString());
     }
     return 0;
-  }
+}
 
-  public static boolean regexCompare(Value value, Value regex) {
+public static boolean regexCompare(Value value, Value regex) {
     if (!value.getDataType().equals(DataType.BINARY)
         || !regex.getDataType().equals(DataType.BINARY)) {
-      // regex can only be compared between strings.
-      return false;
+    // regex can only be compared between strings.
+    return false;
     }
 
     String valueStr = value.getBinaryVAsString();
     String regexStr = regex.getBinaryVAsString();
 
     return Pattern.matches(regexStr, valueStr);
-  }
+}
 
-  public static int compare(Object o1, Object o2, DataType dataType) {
+public static int compare(Object o1, Object o2, DataType dataType) {
     switch (dataType) {
-      case INTEGER:
+    case INTEGER:
         return Integer.compare((Integer) o1, (Integer) o2);
-      case LONG:
+    case LONG:
         return Long.compare((Long) o1, (Long) o2);
-      case BOOLEAN:
+    case BOOLEAN:
         return Boolean.compare((Boolean) o1, (Boolean) o2);
-      case FLOAT:
+    case FLOAT:
         return Float.compare((Float) o1, (Float) o2);
-      case DOUBLE:
+    case DOUBLE:
         return Double.compare((Double) o1, (Double) o2);
-      case BINARY:
+    case BINARY:
         return (new String((byte[]) o1)).compareTo(new String((byte[]) o2));
     }
     return 0;
-  }
+}
 
-  public static int compare(Object o1, Object o2, DataType dataType1, DataType dataType2)
-      throws PhysicalException {
+public static int compare(Object o1, Object o2, DataType dataType1, DataType dataType2)
+    throws PhysicalException {
     if (dataType1 != dataType2) {
-      if (numericTypeSet.contains(dataType1) && numericTypeSet.contains(dataType2)) {
+    if (numericTypeSet.contains(dataType1) && numericTypeSet.contains(dataType2)) {
         Value v1 = ValueUtils.transformToDouble(new Value(dataType1, o1));
         Value v2 = ValueUtils.transformToDouble(new Value(dataType2, o2));
         return compare(v1, v2);
-      } else {
+    } else {
         throw new InvalidOperatorParameterException(
             dataType1.toString() + " and " + dataType2.toString() + " can't be compared");
-      }
-    } else {
-      return compare(o1, o2, dataType1);
     }
-  }
+    } else {
+    return compare(o1, o2, dataType1);
+    }
+}
 
-  public static String toString(Object value, DataType dataType) {
+public static String toString(Object value, DataType dataType) {
     switch (dataType) {
-      case INTEGER:
-      case LONG:
-      case BOOLEAN:
-      case FLOAT:
-      case DOUBLE:
+    case INTEGER:
+    case LONG:
+    case BOOLEAN:
+    case FLOAT:
+    case DOUBLE:
         return value.toString();
-      case BINARY:
+    case BINARY:
         return new String((byte[]) value);
     }
     return "";
-  }
+}
 
-  public static Comparator<Row> firstLastRowComparator() {
+public static Comparator<Row> firstLastRowComparator() {
     return (o1, o2) -> {
-      if (o1.getKey() < o2.getKey()) {
+    if (o1.getKey() < o2.getKey()) {
         return -1;
-      } else if (o1.getKey() > o2.getKey()) {
+    } else if (o1.getKey() > o2.getKey()) {
         return 1;
-      }
-      String s1 = new String((byte[]) o1.getValue(0));
-      String s2 = new String((byte[]) o2.getValue(0));
-      return s1.compareTo(s2);
+    }
+    String s1 = new String((byte[]) o1.getValue(0));
+    String s2 = new String((byte[]) o2.getValue(0));
+    return s1.compareTo(s2);
     };
-  }
+}
 }

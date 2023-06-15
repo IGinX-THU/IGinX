@@ -25,42 +25,42 @@ import java.util.List;
 
 public class Sort extends AbstractUnaryOperator {
 
-  private final List<String> sortByCols;
+private final List<String> sortByCols;
 
-  private final SortType sortType;
+private final SortType sortType;
 
-  public Sort(Source source, List<String> sortByCols, SortType sortType) {
+public Sort(Source source, List<String> sortByCols, SortType sortType) {
     super(OperatorType.Sort, source);
     if (sortByCols == null || sortByCols.isEmpty()) {
-      throw new IllegalArgumentException("sortBy shouldn't be null");
+    throw new IllegalArgumentException("sortBy shouldn't be null");
     }
     if (sortType == null) {
-      throw new IllegalArgumentException("sortType shouldn't be null");
+    throw new IllegalArgumentException("sortType shouldn't be null");
     }
     this.sortByCols = sortByCols;
     this.sortType = sortType;
-  }
+}
 
-  public List<String> getSortByCols() {
+public List<String> getSortByCols() {
     return sortByCols;
-  }
+}
 
-  public SortType getSortType() {
+public SortType getSortType() {
     return sortType;
-  }
+}
 
-  @Override
-  public Operator copy() {
+@Override
+public Operator copy() {
     return new Sort(getSource().copy(), new ArrayList<>(sortByCols), sortType);
-  }
+}
 
-  public enum SortType {
+public enum SortType {
     ASC,
     DESC
-  }
+}
 
-  @Override
-  public String getInfo() {
+@Override
+public String getInfo() {
     return "SortBy: " + String.join(",", sortByCols) + ", SortType: " + sortType;
-  }
+}
 }

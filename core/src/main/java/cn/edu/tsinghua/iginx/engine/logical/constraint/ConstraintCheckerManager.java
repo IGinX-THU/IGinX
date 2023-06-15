@@ -5,29 +5,29 @@ import org.slf4j.LoggerFactory;
 
 public class ConstraintCheckerManager {
 
-  private static final Logger logger = LoggerFactory.getLogger(ConstraintCheckerManager.class);
+private static final Logger logger = LoggerFactory.getLogger(ConstraintCheckerManager.class);
 
-  private static final ConstraintCheckerManager instance = new ConstraintCheckerManager();
+private static final ConstraintCheckerManager instance = new ConstraintCheckerManager();
 
-  private static final String NAIVE = "naive";
+private static final String NAIVE = "naive";
 
-  private ConstraintCheckerManager() {}
+private ConstraintCheckerManager() {}
 
-  public static ConstraintCheckerManager getInstance() {
+public static ConstraintCheckerManager getInstance() {
     return instance;
-  }
+}
 
-  public ConstraintChecker getChecker(String name) {
+public ConstraintChecker getChecker(String name) {
     if (name == null || name.equals("")) {
-      return null;
+    return null;
     }
     logger.info("use {} as constraint checker.", name);
 
     switch (name) {
-      case NAIVE:
+    case NAIVE:
         return NaiveConstraintChecker.getInstance();
-      default:
+    default:
         throw new IllegalArgumentException(String.format("unknown constraint checker: %s", name));
     }
-  }
+}
 }

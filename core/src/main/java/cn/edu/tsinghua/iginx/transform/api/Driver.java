@@ -6,5 +6,5 @@ import cn.edu.tsinghua.iginx.transform.pojo.PythonTask;
 
 public interface Driver {
 
-  IPCWorker createWorker(PythonTask task, Writer writer) throws TransformException;
+IPCWorker createWorker(PythonTask task, Writer writer) throws TransformException;
 }

@@ -4,20 +4,20 @@ import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 
 public class DataArea {
 
-  private final String storageUnit;
+private final String storageUnit;
 
-  private final KeyInterval keyInterval;
+private final KeyInterval keyInterval;
 
-  public DataArea(String storageUnit, KeyInterval keyInterval) {
+public DataArea(String storageUnit, KeyInterval keyInterval) {
     this.storageUnit = storageUnit;
     this.keyInterval = keyInterval;
-  }
+}
 
-  public String getStorageUnit() {
+public String getStorageUnit() {
     return storageUnit;
-  }
+}
 
-  public KeyInterval getKeyInterval() {
+public KeyInterval getKeyInterval() {
     return keyInterval;
-  }
+}
 }

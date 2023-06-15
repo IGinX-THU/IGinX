@@ -30,39 +30,39 @@ import lombok.Data;
 
 @Data
 public class QueryMetric {
-  private String name;
-  private String pathName;
-  private String queryOriPath;
-  private Long limit;
-  private Map<String, List<String>> tags = new TreeMap<>();
-  private List<QueryAggregator> aggregators = new ArrayList<>();
-  private Boolean annotation = false;
-  private Boolean newAnnotation = false;
-  private AnnotationLimit annotationLimit;
-  private AnnotationLimit newAnnotationLimit;
+private String name;
+private String pathName;
+private String queryOriPath;
+private Long limit;
+private Map<String, List<String>> tags = new TreeMap<>();
+private List<QueryAggregator> aggregators = new ArrayList<>();
+private Boolean annotation = false;
+private Boolean newAnnotation = false;
+private AnnotationLimit annotationLimit;
+private AnnotationLimit newAnnotationLimit;
 
-  public void setQueryOriPath(String path) {
+public void setQueryOriPath(String path) {
     queryOriPath = new String(path);
-  }
+}
 
-  public void addTag(String key, String value) {
+public void addTag(String key, String value) {
     tags.computeIfAbsent(key, k -> new ArrayList<>());
     tags.get(key).add(value);
-  }
+}
 
-  public void addAggregator(QueryAggregator qa) {
+public void addAggregator(QueryAggregator qa) {
     aggregators.add(qa);
-  }
+}
 
-  public void addFirstAggregator() {
+public void addFirstAggregator() {
     QueryAggregator qa;
     qa = new QueryAggregatorFirst();
     qa.setDur(TOP_KEY);
     addAggregator(qa);
-  }
+}
 
-  public void addCetagory(String key) {
+public void addCetagory(String key) {
     if (annotationLimit == null) annotationLimit = new AnnotationLimit();
     annotationLimit.addTag(key);
-  }
+}
 }

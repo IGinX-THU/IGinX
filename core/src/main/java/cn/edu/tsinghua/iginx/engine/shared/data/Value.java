@@ -23,181 +23,181 @@ import java.nio.charset.StandardCharsets;
 
 public class Value {
 
-  private final DataType dataType;
+private final DataType dataType;
 
-  private Boolean boolV;
+private Boolean boolV;
 
-  private Integer intV;
+private Integer intV;
 
-  private Long longV;
+private Long longV;
 
-  private Float floatV;
+private Float floatV;
 
-  private Double doubleV;
+private Double doubleV;
 
-  private byte[] binaryV;
+private byte[] binaryV;
 
-  private Object objectV;
+private Object objectV;
 
-  public Value(DataType dataType, Object value) {
+public Value(DataType dataType, Object value) {
     this.dataType = dataType;
     switch (dataType) {
-      case INTEGER:
+    case INTEGER:
         intV = (Integer) value;
         break;
-      case LONG:
+    case LONG:
         longV = (Long) value;
         break;
-      case DOUBLE:
+    case DOUBLE:
         doubleV = (Double) value;
         break;
-      case BINARY:
+    case BINARY:
         binaryV = (byte[]) value;
         break;
-      case BOOLEAN:
+    case BOOLEAN:
         boolV = (Boolean) value;
         break;
-      case FLOAT:
+    case FLOAT:
         floatV = (Float) value;
         break;
-      default:
+    default:
         throw new IllegalArgumentException("unknown data type: " + dataType);
     }
-  }
+}
 
-  public Value(Object v) {
+public Value(Object v) {
     if (v instanceof Boolean) {
-      this.dataType = DataType.BOOLEAN;
-      this.boolV = (Boolean) v;
+    this.dataType = DataType.BOOLEAN;
+    this.boolV = (Boolean) v;
     } else if (v instanceof Integer) {
-      this.dataType = DataType.INTEGER;
-      this.intV = (Integer) v;
+    this.dataType = DataType.INTEGER;
+    this.intV = (Integer) v;
     } else if (v instanceof Long) {
-      this.dataType = DataType.LONG;
-      this.longV = (Long) v;
+    this.dataType = DataType.LONG;
+    this.longV = (Long) v;
     } else if (v instanceof Float) {
-      this.dataType = DataType.FLOAT;
-      this.floatV = (Float) v;
+    this.dataType = DataType.FLOAT;
+    this.floatV = (Float) v;
     } else if (v instanceof Double) {
-      this.dataType = DataType.DOUBLE;
-      this.doubleV = (Double) v;
+    this.dataType = DataType.DOUBLE;
+    this.doubleV = (Double) v;
     } else if (v instanceof byte[]) {
-      this.dataType = DataType.BINARY;
-      this.binaryV = (byte[]) v;
+    this.dataType = DataType.BINARY;
+    this.binaryV = (byte[]) v;
     } else {
-      this.dataType = null;
-      this.objectV = v;
+    this.dataType = null;
+    this.objectV = v;
     }
-  }
+}
 
-  public Value(boolean boolV) {
+public Value(boolean boolV) {
     this.dataType = DataType.BOOLEAN;
     this.boolV = boolV;
-  }
+}
 
-  public Value(int intV) {
+public Value(int intV) {
     this.dataType = DataType.INTEGER;
     this.intV = intV;
-  }
+}
 
-  public Value(long longV) {
+public Value(long longV) {
     this.dataType = DataType.LONG;
     this.longV = longV;
-  }
+}
 
-  public Value(float floatV) {
+public Value(float floatV) {
     this.dataType = DataType.FLOAT;
     this.floatV = floatV;
-  }
+}
 
-  public Value(double doubleV) {
+public Value(double doubleV) {
     this.dataType = DataType.DOUBLE;
     this.doubleV = doubleV;
-  }
+}
 
-  public Value(String binaryV) {
+public Value(String binaryV) {
     this.dataType = DataType.BINARY;
     this.binaryV = binaryV.getBytes(StandardCharsets.UTF_8);
-  }
+}
 
-  public Value(byte[] binaryV) {
+public Value(byte[] binaryV) {
     this.dataType = DataType.BINARY;
     this.binaryV = binaryV;
-  }
+}
 
-  public Object getValue() {
+public Object getValue() {
     if (dataType == null) {
-      return objectV;
+    return objectV;
     }
     switch (dataType) {
-      case BINARY:
+    case BINARY:
         return binaryV;
-      case BOOLEAN:
+    case BOOLEAN:
         return boolV;
-      case INTEGER:
+    case INTEGER:
         return intV;
-      case LONG:
+    case LONG:
         return longV;
-      case DOUBLE:
+    case DOUBLE:
         return doubleV;
-      case FLOAT:
+    case FLOAT:
         return floatV;
-      default:
+    default:
         return null;
     }
-  }
+}
 
-  public DataType getDataType() {
+public DataType getDataType() {
     return dataType;
-  }
+}
 
-  public Boolean getBoolV() {
+public Boolean getBoolV() {
     return boolV;
-  }
+}
 
-  public Integer getIntV() {
+public Integer getIntV() {
     return intV;
-  }
+}
 
-  public Long getLongV() {
+public Long getLongV() {
     return longV;
-  }
+}
 
-  public Float getFloatV() {
+public Float getFloatV() {
     return floatV;
-  }
+}
 
-  public Double getDoubleV() {
+public Double getDoubleV() {
     return doubleV;
-  }
+}
 
-  public byte[] getBinaryV() {
+public byte[] getBinaryV() {
     return binaryV;
-  }
+}
 
-  public String getBinaryVAsString() {
+public String getBinaryVAsString() {
     return new String(binaryV);
-  }
+}
 
-  public boolean isNull() {
+public boolean isNull() {
     switch (dataType) {
-      case INTEGER:
+    case INTEGER:
         return intV == null;
-      case LONG:
+    case LONG:
         return longV == null;
-      case BOOLEAN:
+    case BOOLEAN:
         return boolV == null;
-      case FLOAT:
+    case FLOAT:
         return floatV == null;
-      case DOUBLE:
+    case DOUBLE:
         return doubleV == null;
-      case BINARY:
+    case BINARY:
         return binaryV == null;
     }
     return true;
-  }
+}
 
-  public Value copy() {
+public Value copy() {
     return new Value(this.getValue());
-  }
+}
 }

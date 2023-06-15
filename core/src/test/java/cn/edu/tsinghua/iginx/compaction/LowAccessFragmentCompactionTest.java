@@ -19,17 +19,17 @@ import org.junit.Test;
 
 public class LowAccessFragmentCompactionTest {
 
-  private List<FragmentMeta> fragmentMetaSet = new ArrayList<>();
-  private Map<FragmentMeta, Long> fragmentHeatWriteMap = new HashMap<>();
-  private Map<FragmentMeta, Long> fragmentHeatReadMap = new HashMap<>();
-  private Map<FragmentMeta, Long> fragmentMetaPointsMap = new HashMap<>();
-  private PhysicalEngine physicalEngine = new PhysicalEngineMock();
-  private IMetaManager metaManager = new MetaManagerMock();
-  private LowAccessFragmentCompaction compaction =
-      new LowAccessFragmentCompaction(physicalEngine, metaManager);
+private List<FragmentMeta> fragmentMetaSet = new ArrayList<>();
+private Map<FragmentMeta, Long> fragmentHeatWriteMap = new HashMap<>();
+private Map<FragmentMeta, Long> fragmentHeatReadMap = new HashMap<>();
+private Map<FragmentMeta, Long> fragmentMetaPointsMap = new HashMap<>();
+private PhysicalEngine physicalEngine = new PhysicalEngineMock();
+private IMetaManager metaManager = new MetaManagerMock();
+private LowAccessFragmentCompaction compaction =
+    new LowAccessFragmentCompaction(physicalEngine, metaManager);
 
-  @Before
-  public void setUp() {
+@Before
+public void setUp() {
     SnowFlakeUtils.init(0);
 
     StorageUnitMeta storageUnitMeta1 = new StorageUnitMeta("1", 1);
@@ -56,18 +56,18 @@ public class LowAccessFragmentCompactionTest {
 
     ConfigDescriptor.getInstance().getConfig().setFragmentCompactionReadThreshold(100);
     ConfigDescriptor.getInstance().getConfig().setFragmentCompactionWriteThreshold(100);
-  }
+}
 
-  @Test
-  public void testFragmentSelection() {
+@Test
+public void testFragmentSelection() {
     List<List<FragmentMeta>> toCompactFragmentGroups =
         compaction.judgeCompaction(fragmentMetaSet, fragmentHeatWriteMap, fragmentHeatReadMap);
     assertEquals(toCompactFragmentGroups.size(), 1);
     assertEquals(toCompactFragmentGroups.get(0).size(), 2);
-  }
+}
 
-  @Test
-  public void testFragmentCompact() throws PhysicalException {
+@Test
+public void testFragmentCompact() throws PhysicalException {
     List<List<FragmentMeta>> toCompactFragmentGroups =
         compaction.judgeCompaction(fragmentMetaSet, fragmentHeatWriteMap, fragmentHeatReadMap);
     compaction.executeCompaction(toCompactFragmentGroups, fragmentMetaPointsMap);
@@ -78,5 +78,5 @@ public class LowAccessFragmentCompactionTest {
     assertEquals(fragmentMetas.get(0).getMasterStorageUnit().getStorageEngineId(), 1);
     assertEquals(fragmentMetas.get(0).getKeyInterval().getStartKey(), 0);
     assertEquals(fragmentMetas.get(0).getKeyInterval().getEndKey(), 1000);
-  }
+}
 }

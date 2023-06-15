@@ -27,27 +27,27 @@ import java.util.Collections;
 
 public class EmptyRowStream implements RowStream {
 
-  private final Header header;
+private final Header header;
 
-  public EmptyRowStream() {
+public EmptyRowStream() {
     this.header = new Header(Field.KEY, Collections.emptyList());
-  }
+}
 
-  @Override
-  public Header getHeader() throws PhysicalException {
+@Override
+public Header getHeader() throws PhysicalException {
     return header;
-  }
+}
 
-  @Override
-  public void close() throws PhysicalException {}
+@Override
+public void close() throws PhysicalException {}
 
-  @Override
-  public boolean hasNext() throws PhysicalException {
+@Override
+public boolean hasNext() throws PhysicalException {
     return false;
-  }
+}
 
-  @Override
-  public Row next() throws PhysicalException {
+@Override
+public Row next() throws PhysicalException {
     return null;
-  }
+}
 }

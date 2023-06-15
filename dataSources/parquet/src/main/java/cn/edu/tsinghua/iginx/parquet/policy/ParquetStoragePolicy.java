@@ -7,14 +7,14 @@ import java.util.TreeMap;
 
 public interface ParquetStoragePolicy {
 
-  Pair<Long, List<String>> getLatestPartition(String storageUnit);
+Pair<Long, List<String>> getLatestPartition(String storageUnit);
 
-  TreeMap<Long, List<String>> getAllPartition(String storageUnit);
+TreeMap<Long, List<String>> getAllPartition(String storageUnit);
 
-  FlushType getFlushType(Path outputFilePath, long pointsNum);
+FlushType getFlushType(Path outputFilePath, long pointsNum);
 
-  enum FlushType {
+enum FlushType {
     ORIGIN,
     APPENDIX
-  }
+}
 }

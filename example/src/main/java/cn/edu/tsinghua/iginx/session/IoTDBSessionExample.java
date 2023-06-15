@@ -29,22 +29,22 @@ import org.apache.commons.lang3.RandomStringUtils;
 
 public class IoTDBSessionExample {
 
-  private static final String S1 = "sg.d1.s1";
-  private static final String S2 = "sg.d1.s2";
-  private static final String S3 = "sg.d2.s1";
-  private static final String S4 = "sg.d3.s1";
-  private static final long COLUMN_START_KEY = 1L;
-  private static final long COLUMN_END_KEY = 10000L;
-  private static final long NON_ALIGNED_COLUMN_START_KEY = 10001L;
-  private static final long NON_ALIGNED_COLUMN_END_KEY = 20000L;
-  private static final long ROW_START_KEY = 20001L;
-  private static final long ROW_END_KEY = 30000L;
-  private static final long NON_ALIGNED_ROW_START_KEY = 30001L;
-  private static final long NON_ALIGNED_ROW_END_KEY = 40000L;
-  private static final int INTERVAL = 10;
-  private static Session session;
+private static final String S1 = "sg.d1.s1";
+private static final String S2 = "sg.d1.s2";
+private static final String S3 = "sg.d2.s1";
+private static final String S4 = "sg.d3.s1";
+private static final long COLUMN_START_KEY = 1L;
+private static final long COLUMN_END_KEY = 10000L;
+private static final long NON_ALIGNED_COLUMN_START_KEY = 10001L;
+private static final long NON_ALIGNED_COLUMN_END_KEY = 20000L;
+private static final long ROW_START_KEY = 20001L;
+private static final long ROW_END_KEY = 30000L;
+private static final long NON_ALIGNED_ROW_START_KEY = 30001L;
+private static final long NON_ALIGNED_ROW_END_KEY = 40000L;
+private static final int INTERVAL = 10;
+private static Session session;
 
-  public static void main(String[] args) throws SessionException, ExecutionException {
+public static void main(String[] args) throws SessionException, ExecutionException {
     session = new Session("127.0.0.1", 6888, "root", "root");
     // 打开 Session
     session.openSession();
@@ -78,9 +78,9 @@ public class IoTDBSessionExample {
 
     // 关闭 Session
     session.closeSession();
-  }
+}
 
-  private static void insertColumnRecords() throws SessionException, ExecutionException {
+private static void insertColumnRecords() throws SessionException, ExecutionException {
     List<String> paths = new ArrayList<>();
     paths.add(S1);
     paths.add(S2);
@@ -90,36 +90,36 @@ public class IoTDBSessionExample {
     int size = (int) (COLUMN_END_KEY - COLUMN_START_KEY + 1);
     long[] timestamps = new long[size];
     for (long i = 0; i < size; i++) {
-      timestamps[(int) i] = i + COLUMN_START_KEY;
+    timestamps[(int) i] = i + COLUMN_START_KEY;
     }
 
     Object[] valuesList = new Object[4];
     for (long i = 0; i < 4; i++) {
-      Object[] values = new Object[size];
-      for (long j = 0; j < size; j++) {
+    Object[] values = new Object[size];
+    for (long j = 0; j < size; j++) {
         if (i < 2) {
-          values[(int) j] = i + j;
+        values[(int) j] = i + j;
         } else {
-          values[(int) j] = RandomStringUtils.randomAlphanumeric(10).getBytes();
+        values[(int) j] = RandomStringUtils.randomAlphanumeric(10).getBytes();
         }
-      }
-      valuesList[(int) i] = values;
+    }
+    valuesList[(int) i] = values;
     }
 
     List<DataType> dataTypeList = new ArrayList<>();
     for (int i = 0; i < 2; i++) {
-      dataTypeList.add(DataType.LONG);
+    dataTypeList.add(DataType.LONG);
     }
     for (int i = 0; i < 2; i++) {
-      dataTypeList.add(DataType.BINARY);
+    dataTypeList.add(DataType.BINARY);
     }
 
     System.out.println("insertColumnRecords...");
     session.insertColumnRecords(
         paths, timestamps, valuesList, dataTypeList, null, TimePrecision.NS);
-  }
+}
 
-  private static void insertNonAlignedColumnRecords() throws SessionException, ExecutionException {
+private static void insertNonAlignedColumnRecords() throws SessionException, ExecutionException {
     List<String> paths = new ArrayList<>();
     paths.add(S1);
     paths.add(S2);
@@ -129,40 +129,40 @@ public class IoTDBSessionExample {
     int size = (int) (NON_ALIGNED_COLUMN_END_KEY - NON_ALIGNED_COLUMN_START_KEY + 1);
     long[] timestamps = new long[size];
     for (long i = 0; i < size; i++) {
-      timestamps[(int) i] = i + NON_ALIGNED_COLUMN_START_KEY;
+    timestamps[(int) i] = i + NON_ALIGNED_COLUMN_START_KEY;
     }
 
     Object[] valuesList = new Object[4];
     for (long i = 0; i < 4; i++) {
-      Object[] values = new Object[size];
-      for (long j = 0; j < size; j++) {
+    Object[] values = new Object[size];
+    for (long j = 0; j < size; j++) {
         if (j >= size - 50) {
-          values[(int) j] = null;
+        values[(int) j] = null;
         } else {
-          if (i < 2) {
+        if (i < 2) {
             values[(int) j] = i + j;
-          } else {
+        } else {
             values[(int) j] = RandomStringUtils.randomAlphanumeric(10).getBytes();
-          }
         }
-      }
-      valuesList[(int) i] = values;
+        }
+    }
+    valuesList[(int) i] = values;
     }
 
     List<DataType> dataTypeList = new ArrayList<>();
     for (int i = 0; i < 2; i++) {
-      dataTypeList.add(DataType.LONG);
+    dataTypeList.add(DataType.LONG);
     }
     for (int i = 0; i < 2; i++) {
-      dataTypeList.add(DataType.BINARY);
+    dataTypeList.add(DataType.BINARY);
     }
 
     System.out.println("insertNonAlignedColumnRecords...");
     session.insertNonAlignedColumnRecords(
         paths, timestamps, valuesList, dataTypeList, null, TimePrecision.NS);
-  }
+}
 
-  private static void insertRowRecords() throws SessionException, ExecutionException {
+private static void insertRowRecords() throws SessionException, ExecutionException {
     List<String> paths = new ArrayList<>();
     paths.add(S1);
     paths.add(S2);
@@ -173,31 +173,31 @@ public class IoTDBSessionExample {
     long[] timestamps = new long[size];
     Object[] valuesList = new Object[size];
     for (long i = 0; i < size; i++) {
-      timestamps[(int) i] = ROW_START_KEY + i;
-      Object[] values = new Object[4];
-      for (long j = 0; j < 4; j++) {
+    timestamps[(int) i] = ROW_START_KEY + i;
+    Object[] values = new Object[4];
+    for (long j = 0; j < 4; j++) {
         if (j < 2) {
-          values[(int) j] = i + j;
+        values[(int) j] = i + j;
         } else {
-          values[(int) j] = RandomStringUtils.randomAlphanumeric(10).getBytes();
+        values[(int) j] = RandomStringUtils.randomAlphanumeric(10).getBytes();
         }
-      }
-      valuesList[(int) i] = values;
+    }
+    valuesList[(int) i] = values;
     }
 
     List<DataType> dataTypeList = new ArrayList<>();
     for (int i = 0; i < 2; i++) {
-      dataTypeList.add(DataType.LONG);
+    dataTypeList.add(DataType.LONG);
     }
     for (int i = 0; i < 2; i++) {
-      dataTypeList.add(DataType.BINARY);
+    dataTypeList.add(DataType.BINARY);
     }
 
     System.out.println("insertRowRecords...");
     session.insertRowRecords(paths, timestamps, valuesList, dataTypeList, null, TimePrecision.NS);
-  }
+}
 
-  private static void insertNonAlignedRowRecords() throws SessionException, ExecutionException {
+private static void insertNonAlignedRowRecords() throws SessionException, ExecutionException {
     List<String> paths = new ArrayList<>();
     paths.add(S1);
     paths.add(S2);
@@ -208,41 +208,41 @@ public class IoTDBSessionExample {
     long[] timestamps = new long[size];
     Object[] valuesList = new Object[size];
     for (long i = 0; i < size; i++) {
-      timestamps[(int) i] = NON_ALIGNED_ROW_START_KEY + i;
-      Object[] values = new Object[4];
-      for (long j = 0; j < 4; j++) {
+    timestamps[(int) i] = NON_ALIGNED_ROW_START_KEY + i;
+    Object[] values = new Object[4];
+    for (long j = 0; j < 4; j++) {
         if ((i + j) % 2 == 0) {
-          values[(int) j] = null;
+        values[(int) j] = null;
         } else {
-          if (j < 2) {
+        if (j < 2) {
             values[(int) j] = i + j;
-          } else {
+        } else {
             values[(int) j] = RandomStringUtils.randomAlphanumeric(10).getBytes();
-          }
         }
-      }
-      valuesList[(int) i] = values;
+        }
+    }
+    valuesList[(int) i] = values;
     }
 
     List<DataType> dataTypeList = new ArrayList<>();
     for (int i = 0; i < 2; i++) {
-      dataTypeList.add(DataType.LONG);
+    dataTypeList.add(DataType.LONG);
     }
     for (int i = 0; i < 2; i++) {
-      dataTypeList.add(DataType.BINARY);
+    dataTypeList.add(DataType.BINARY);
     }
 
     System.out.println("insertNonAlignedRowRecords...");
     session.insertNonAlignedRowRecords(
         paths, timestamps, valuesList, dataTypeList, null, TimePrecision.NS);
-  }
+}
 
-  private static void showTimeSeries() throws ExecutionException, SessionException {
+private static void showTimeSeries() throws ExecutionException, SessionException {
     List<Column> columnList = session.showColumns();
     columnList.forEach(column -> System.out.println(column.toString()));
-  }
+}
 
-  private static void queryData() throws SessionException, ExecutionException {
+private static void queryData() throws SessionException, ExecutionException {
     List<String> paths = new ArrayList<>();
     paths.add(S1);
     paths.add(S2);
@@ -254,9 +254,9 @@ public class IoTDBSessionExample {
 
     SessionQueryDataSet dataSet = session.queryData(paths, startKey, endKey);
     dataSet.print();
-  }
+}
 
-  private static void aggregateQuery() throws SessionException, ExecutionException {
+private static void aggregateQuery() throws SessionException, ExecutionException {
     List<String> paths = new ArrayList<>();
     paths.add(S1);
     paths.add(S2);
@@ -298,9 +298,9 @@ public class IoTDBSessionExample {
 
     // 聚合查询结束
     System.out.println("Aggregate Query Finished.");
-  }
+}
 
-  private static void lastQuery() throws SessionException, ExecutionException {
+private static void lastQuery() throws SessionException, ExecutionException {
     List<String> paths = new ArrayList<>();
     paths.add(S1);
     paths.add(S2);
@@ -309,9 +309,9 @@ public class IoTDBSessionExample {
 
     SessionQueryDataSet dataSet = session.queryLast(paths, 0L);
     dataSet.print();
-  }
+}
 
-  private static void downsampleQuery() throws SessionException, ExecutionException {
+private static void downsampleQuery() throws SessionException, ExecutionException {
     List<String> paths = new ArrayList<>();
     paths.add(S1);
     paths.add(S2);
@@ -357,9 +357,9 @@ public class IoTDBSessionExample {
 
     // 降采样查询结束
     System.out.println("Downsample Query Finished.");
-  }
+}
 
-  private static void curveMatch() throws ExecutionException, SessionException {
+private static void curveMatch() throws ExecutionException, SessionException {
     List<String> paths = new ArrayList<>();
     paths.add(S1);
     paths.add(S2);
@@ -371,15 +371,15 @@ public class IoTDBSessionExample {
     int queryNum = 30;
     List<Double> queryList = new ArrayList<>();
     for (int i = 0; i < queryNum; i++) {
-      queryList.add(startKey + bias + i);
+    queryList.add(startKey + bias + i);
     }
     long curveUnit = 1L;
 
     CurveMatchResult result = session.curveMatch(paths, startKey, endKey, queryList, curveUnit);
     System.out.println(result.toString());
-  }
+}
 
-  private static void deleteDataInColumns() throws SessionException, ExecutionException {
+private static void deleteDataInColumns() throws SessionException, ExecutionException {
     List<String> paths = new ArrayList<>();
     paths.add(S1);
     paths.add(S3);
@@ -389,13 +389,13 @@ public class IoTDBSessionExample {
     long endKey = ROW_START_KEY + 50L;
 
     session.deleteDataInColumns(paths, startKey, endKey);
-  }
+}
 
-  public static void showClusterInfo() throws SessionException, ExecutionException {
+public static void showClusterInfo() throws SessionException, ExecutionException {
     ClusterInfo clusterInfo = session.getClusterInfo();
     System.out.println(clusterInfo.getIginxInfos());
     System.out.println(clusterInfo.getStorageEngineInfos());
     System.out.println(clusterInfo.getMetaStorageInfos());
     System.out.println(clusterInfo.getLocalMetaStorageInfo());
-  }
+}
 }

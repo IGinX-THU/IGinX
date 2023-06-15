@@ -59,18 +59,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class PhysicalEngineImpl implements PhysicalEngine {
-  @SuppressWarnings("unused")
-  private static final Logger logger = LoggerFactory.getLogger(PhysicalEngineImpl.class);
+@SuppressWarnings("unused")
+private static final Logger logger = LoggerFactory.getLogger(PhysicalEngineImpl.class);
 
-  private static final PhysicalEngineImpl INSTANCE = new PhysicalEngineImpl();
+private static final PhysicalEngineImpl INSTANCE = new PhysicalEngineImpl();
 
-  private final PhysicalOptimizer optimizer;
+private final PhysicalOptimizer optimizer;
 
-  private final MemoryPhysicalTaskDispatcher memoryTaskExecutor;
+private final MemoryPhysicalTaskDispatcher memoryTaskExecutor;
 
-  private final StoragePhysicalTaskExecutor storageTaskExecutor;
+private final StoragePhysicalTaskExecutor storageTaskExecutor;
 
-  private PhysicalEngineImpl() {
+private PhysicalEngineImpl() {
     optimizer =
         PhysicalOptimizerManager.getInstance()
             .getOptimizer(ConfigDescriptor.getInstance().getConfig().getPhysicalOptimizer());
@@ -78,17 +78,17 @@ public class PhysicalEngineImpl implements PhysicalEngine {
     storageTaskExecutor = StoragePhysicalTaskExecutor.getInstance();
     storageTaskExecutor.init(memoryTaskExecutor, optimizer.getReplicaDispatcher());
     memoryTaskExecutor.startDispatcher();
-  }
+}
 
-  public static PhysicalEngineImpl getInstance() {
+public static PhysicalEngineImpl getInstance() {
     return INSTANCE;
-  }
+}
 
-  @Override
-  public RowStream execute(RequestContext ctx, Operator root) throws PhysicalException {
+@Override
+public RowStream execute(RequestContext ctx, Operator root) throws PhysicalException {
     if (OperatorType.isGlobalOperator(root.getType())) { // 全局任务临时兼容逻辑
-      // 迁移任务单独处理
-      if (root.getType() == OperatorType.Migration) {
+    // 迁移任务单独处理
+    if (root.getType() == OperatorType.Migration) {
         Migration migration = (Migration) root;
         FragmentMeta toMigrateFragment = migration.getFragmentMeta();
         StorageUnitMeta targetStorageUnitMeta = migration.getTargetStorageUnitMeta();
@@ -123,8 +123,8 @@ public class PhysicalEngineImpl implements PhysicalEngine {
             .getFields()
             .forEach(
                 field -> {
-                  selectResultPaths.add(field.getName());
-                  selectResultTypes.add(field.getType());
+                selectResultPaths.add(field.getName());
+                selectResultTypes.add(field.getType());
                 });
 
         List<Long> timestampList = new ArrayList<>();
@@ -134,24 +134,24 @@ public class PhysicalEngineImpl implements PhysicalEngine {
 
         boolean hasTimestamp = selectRowStream.getHeader().hasKey();
         while (selectRowStream.hasNext()) {
-          Row row = selectRowStream.next();
-          Object[] rowValues = row.getValues();
-          valuesList.add(ByteUtils.getRowByteBuffer(rowValues, selectResultTypes));
-          Bitmap bitmap = new Bitmap(rowValues.length);
-          for (int i = 0; i < rowValues.length; i++) {
+        Row row = selectRowStream.next();
+        Object[] rowValues = row.getValues();
+        valuesList.add(ByteUtils.getRowByteBuffer(rowValues, selectResultTypes));
+        Bitmap bitmap = new Bitmap(rowValues.length);
+        for (int i = 0; i < rowValues.length; i++) {
             if (rowValues[i] != null) {
-              bitmap.mark(i);
+            bitmap.mark(i);
             }
-          }
-          bitmapBufferList.add(ByteBuffer.wrap(bitmap.getBytes()));
-          bitmapList.add(bitmap);
-          if (hasTimestamp) {
+        }
+        bitmapBufferList.add(ByteBuffer.wrap(bitmap.getBytes()));
+        bitmapList.add(bitmap);
+        if (hasTimestamp) {
             timestampList.add(row.getKey());
-          }
+        }
 
-          // 按行批量插入数据
-          if (timestampList.size()
-              == ConfigDescriptor.getInstance().getConfig().getMigrationBatchSize()) {
+        // 按行批量插入数据
+        if (timestampList.size()
+            == ConfigDescriptor.getInstance().getConfig().getMigrationBatchSize()) {
             insertDataByBatch(
                 timestampList,
                 valuesList,
@@ -165,7 +165,7 @@ public class PhysicalEngineImpl implements PhysicalEngine {
             valuesList.clear();
             bitmapList.clear();
             bitmapBufferList.clear();
-          }
+        }
         }
         insertDataByBatch(
             timestampList,
@@ -177,14 +177,14 @@ public class PhysicalEngineImpl implements PhysicalEngine {
             selectResultTypes,
             targetStorageUnitMeta.getId());
         return selectResult.getRowStream();
-      } else {
+    } else {
         GlobalPhysicalTask task = new GlobalPhysicalTask(root);
         TaskExecuteResult result = storageTaskExecutor.executeGlobalTask(task);
         if (result.getException() != null) {
-          throw result.getException();
+        throw result.getException();
         }
         return result.getRowStream();
-      }
+    }
     }
     PhysicalTask task = optimizer.optimize(root);
     ctx.setPhysicalTree(task);
@@ -193,21 +193,21 @@ public class PhysicalEngineImpl implements PhysicalEngine {
     storageTaskExecutor.commit(storageTasks);
     TaskExecuteResult result = task.getResult();
     if (result.getException() != null) {
-      throw result.getException();
+    throw result.getException();
     }
     return result.getRowStream();
-  }
+}
 
-  private void insertDataByBatch(
-      List<Long> timestampList,
-      List<ByteBuffer> valuesList,
-      List<Bitmap> bitmapList,
-      List<ByteBuffer> bitmapBufferList,
-      FragmentMeta toMigrateFragment,
-      List<String> selectResultPaths,
-      List<DataType> selectResultTypes,
-      String storageUnitId)
-      throws PhysicalException {
+private void insertDataByBatch(
+    List<Long> timestampList,
+    List<ByteBuffer> valuesList,
+    List<Bitmap> bitmapList,
+    List<ByteBuffer> bitmapBufferList,
+    FragmentMeta toMigrateFragment,
+    List<String> selectResultPaths,
+    List<DataType> selectResultTypes,
+    String storageUnitId)
+    throws PhysicalException {
     // 按行批量插入数据
     RawData rowData =
         new RawData(
@@ -226,38 +226,38 @@ public class PhysicalEngineImpl implements PhysicalEngine {
     storageTaskExecutor.commitWithTargetStorageUnitId(insertPhysicalTask, storageUnitId);
     TaskExecuteResult insertResult = insertPhysicalTask.getResult();
     if (insertResult.getException() != null) {
-      throw insertResult.getException();
+    throw insertResult.getException();
     }
-  }
+}
 
-  private void getStorageTasks(List<StoragePhysicalTask> tasks, PhysicalTask root) {
+private void getStorageTasks(List<StoragePhysicalTask> tasks, PhysicalTask root) {
     if (root == null) {
-      return;
+    return;
     }
     if (root.getType() == TaskType.Storage) {
-      tasks.add((StoragePhysicalTask) root);
+    tasks.add((StoragePhysicalTask) root);
     } else if (root.getType() == TaskType.BinaryMemory) {
-      BinaryMemoryPhysicalTask task = (BinaryMemoryPhysicalTask) root;
-      getStorageTasks(tasks, task.getParentTaskA());
-      getStorageTasks(tasks, task.getParentTaskB());
+    BinaryMemoryPhysicalTask task = (BinaryMemoryPhysicalTask) root;
+    getStorageTasks(tasks, task.getParentTaskA());
+    getStorageTasks(tasks, task.getParentTaskB());
     } else if (root.getType() == TaskType.UnaryMemory) {
-      UnaryMemoryPhysicalTask task = (UnaryMemoryPhysicalTask) root;
-      getStorageTasks(tasks, task.getParentTask());
+    UnaryMemoryPhysicalTask task = (UnaryMemoryPhysicalTask) root;
+    getStorageTasks(tasks, task.getParentTask());
     } else if (root.getType() == TaskType.MultipleMemory) {
-      MultipleMemoryPhysicalTask task = (MultipleMemoryPhysicalTask) root;
-      for (PhysicalTask parentTask : task.getParentTasks()) {
+    MultipleMemoryPhysicalTask task = (MultipleMemoryPhysicalTask) root;
+    for (PhysicalTask parentTask : task.getParentTasks()) {
         getStorageTasks(tasks, parentTask);
-      }
     }
-  }
+    }
+}
 
-  @Override
-  public ConstraintManager getConstraintManager() {
+@Override
+public ConstraintManager getConstraintManager() {
     return optimizer.getConstraintManager();
-  }
+}
 
-  @Override
-  public StorageManager getStorageManager() {
+@Override
+public StorageManager getStorageManager() {
     return storageTaskExecutor.getStorageManager();
-  }
+}
 }

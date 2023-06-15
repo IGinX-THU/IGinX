@@ -25,70 +25,70 @@ import java.util.Objects;
 
 public final class Arguments {
 
-  private Arguments() {}
+private Arguments() {}
 
-  public static void checkUrl(final String url, final String name) throws IllegalArgumentException {
+public static void checkUrl(final String url, final String name) throws IllegalArgumentException {
     checkNonEmpty(url, name);
     // TODO: 检查 url 合法性
-  }
+}
 
-  public static void checkNonEmpty(final String string, final String name)
-      throws IllegalArgumentException {
+public static void checkNonEmpty(final String string, final String name)
+    throws IllegalArgumentException {
     if (string == null || string.isEmpty()) {
-      throw new IllegalArgumentException("Expecting a non-empty string for " + name);
+    throw new IllegalArgumentException("Expecting a non-empty string for " + name);
     }
-  }
+}
 
-  public static void checkNotNull(final Object obj, final String name) throws NullPointerException {
+public static void checkNotNull(final Object obj, final String name) throws NullPointerException {
     Objects.requireNonNull(obj, () -> "Expecting a not null reference for " + name);
-  }
+}
 
-  public static void checkDataType(final Object value, final DataType dataType, final String name)
-      throws IllegalStateException {
+public static void checkDataType(final Object value, final DataType dataType, final String name)
+    throws IllegalStateException {
     switch (dataType) {
-      case INTEGER:
+    case INTEGER:
         if (!(value instanceof Integer)) {
-          throw new IllegalArgumentException("Expecting a integer for " + name);
+        throw new IllegalArgumentException("Expecting a integer for " + name);
         }
         break;
-      case LONG:
+    case LONG:
         if (!(value instanceof Long)) {
-          throw new IllegalArgumentException("Expecting a long for " + name);
+        throw new IllegalArgumentException("Expecting a long for " + name);
         }
         break;
-      case BOOLEAN:
+    case BOOLEAN:
         if (!(value instanceof Boolean)) {
-          throw new IllegalArgumentException("Expecting a boolean for " + name);
+        throw new IllegalArgumentException("Expecting a boolean for " + name);
         }
         break;
-      case FLOAT:
+    case FLOAT:
         if (!(value instanceof Float)) {
-          throw new IllegalArgumentException("Expecting a float for " + name);
+        throw new IllegalArgumentException("Expecting a float for " + name);
         }
         break;
-      case DOUBLE:
+    case DOUBLE:
         if (!(value instanceof Double)) {
-          throw new IllegalArgumentException("Expecting a double for " + name);
+        throw new IllegalArgumentException("Expecting a double for " + name);
         }
         break;
-      case BINARY:
+    case BINARY:
         if (!(value instanceof byte[])) {
-          throw new IllegalArgumentException("Expecting a byte array for " + name);
+        throw new IllegalArgumentException("Expecting a byte array for " + name);
         }
         break;
     }
-  }
+}
 
-  public static <T> void checkListNonEmpty(final List<T> list, final String name) {
+public static <T> void checkListNonEmpty(final List<T> list, final String name) {
     if (list == null || list.isEmpty()) {
-      throw new IllegalArgumentException("Expecting a non-empty list for " + name);
+    throw new IllegalArgumentException("Expecting a non-empty list for " + name);
     }
-  }
+}
 
-  public static void checkTaskType(TaskType expected, TaskType actual) {
+public static void checkTaskType(TaskType expected, TaskType actual) {
     if (actual != null && !expected.equals(actual)) {
-      throw new IllegalArgumentException(
-          "Expecting task type: " + expected + ", actual: " + actual);
+    throw new IllegalArgumentException(
+        "Expecting task type: " + expected + ", actual: " + actual);
     }
-  }
+}
 }
