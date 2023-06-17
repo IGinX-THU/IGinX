@@ -22,6 +22,7 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.NonExecutablePhysicalTask
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
+import cn.edu.tsinghua.iginx.engine.physical.storage.domain.DataArea;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Timeseries;
 import cn.edu.tsinghua.iginx.engine.physical.task.StoragePhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
@@ -39,6 +40,7 @@ import cn.edu.tsinghua.iginx.filesystem.server.FileSystemServer;
 import cn.edu.tsinghua.iginx.filesystem.tools.ConfLoader;
 import cn.edu.tsinghua.iginx.filesystem.tools.FilterTransformer;
 import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
+import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.metadata.entity.TimeInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.TimeSeriesRange;
@@ -84,6 +86,37 @@ public class FileSystem implements IStorage {
         this.executor = new LocalExecutor(root);
 
         executorService.submit(new Thread(new FileSystemServer(meta.getPort(), executor)));
+    }
+
+    @Override
+    public TaskExecuteResult executeProject(Project project, DataArea dataArea) {
+        Filter filter;
+        KeyInterval keyInterval = dataArea.getKeyInterval();
+        filter =
+            new AndFilter(
+                Arrays.asList(
+                    new KeyFilter(
+                        Op.GE, keyInterval.getStartKey()),
+                    new KeyFilter(
+                        Op.L, keyInterval.getEndKey())));
+        return executor.executeProjectTask(
+            project, FilterTransformer.toBinary(filter), dataArea.getStorageUnit(), false);
+    }
+
+    @Override
+    public TaskExecuteResult executeProjectDummy(Project project, DataArea dataArea) {
+        KeyInterval keyInterval = dataArea.getKeyInterval();
+        Filter filter =
+            new AndFilter(
+                Arrays.asList(
+                    new KeyFilter(Op.GE, keyInterval.getStartKey()),
+                    new KeyFilter(Op.L, keyInterval.getEndKey())));
+        return executor.executeProjectTask(
+            project.getPatterns(),
+            project.getTagFilter(),
+            FilterTransformer.toBinary(filter),
+            dataArea.getStorageUnit(),
+            true);
     }
 
     @Override
