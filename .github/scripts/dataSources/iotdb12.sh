@@ -1,7 +1,6 @@
 #!/bin/sh
 port=$1
 set -e
-
 if test -e "apache-iotdb-0.12.6-server-bin.zip"; then
   echo "File already exists, skipping download."
 else
