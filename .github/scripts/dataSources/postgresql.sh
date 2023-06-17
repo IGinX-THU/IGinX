@@ -1,10 +1,6 @@
 #!/bin/sh
-
+port=$1
 set -e
-
-sed -i "s/storageEngineList=127.0.0.1#6667#iotdb12/#storageEngineList=127.0.0.1#6667#iotdb12/g" conf/config.properties
-
-sed -i "s/#storageEngineList=127.0.0.1#5432#postgresql/storageEngineList=127.0.0.1#5432#postgresql/g" conf/config.properties
 
 sh -c "sudo sh -c 'echo \"deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main\" > /etc/apt/sources.list.d/pgdg.list'"
 
@@ -28,40 +24,28 @@ sh -c "sudo su - postgres -c '/usr/lib/postgresql/15/bin/pg_ctl -D /var/lib/post
 
 sh -c "sudo su - postgres -c '/usr/lib/postgresql/15/bin/psql -c \"ALTER USER postgres WITH PASSWORD '\''postgres'\'';\"'"
 
-sh -c "sudo mkdir -p /usr/lib/postgresql2"
-
-sh -c "sudo mkdir -p /usr/lib/postgresql3"
+sh -c "sudo mkdir -p /usr/lib/postgresql2-$port"
 
 sh -c "sudo chmod -R 777 /usr/lib/postgresql/15"
 
-sh -c "sudo chmod -R 777 /usr/lib/postgresql2"
+sh -c "sudo chmod -R 777 /usr/lib/postgresql2-$port"
 
-sh -c "sudo cp -R /usr/lib/postgresql/15 /usr/lib/postgresql2"
+sh -c "sudo cp -R /usr/lib/postgresql/15 /usr/lib/postgresql2-$port"
 
-sh -c "sudo mkdir -p /var/lib/postgresql2/15/main"
+sh -c "sudo mkdir -p /var/lib/postgresql2-$port/15/main"
 
-sh -c "sudo chown -R postgres /var/lib/postgresql2/15/main"
+sh -c "sudo chown -R postgres /var/lib/postgresql2-$port/15/main"
 
-sh -c "sudo chmod -R 777 /var/lib/postgresql2/15/main"
+sh -c "sudo chmod -R 777 /var/lib/postgresql2-$port/15/main"
 
-sh -c "sudo su - postgres -c '/usr/lib/postgresql2/15/bin/initdb -D /var/lib/postgresql2/15/main --auth trust --no-instructions'"
+sh -c "sudo su - postgres -c '/usr/lib/postgresql2-$port/15/bin/initdb -D /var/lib/postgresql2-$port/15/main --auth trust --no-instructions'"
 
-sh -c "sudo su - postgres -c '/usr/lib/postgresql2/15/bin/pg_ctl -D /var/lib/postgresql2/15/main -o \"-F -p 5433\" start'"
+sh -c "sudo su - postgres -c '/usr/lib/postgresql2-$port/15/bin/pg_ctl -D /var/lib/postgresql2-$port/15/main -o \"-F -p $port\" start'"
 
-sh -c "sudo su - postgres -c '/usr/lib/postgresql2/15/bin/psql -c \"ALTER USER postgres WITH PASSWORD '\''postgres'\'';\"'"
+sh -c "sudo su - postgres -c '/usr/lib/postgresql2-$port/15/bin/psql -c \"ALTER USER postgres WITH PASSWORD '\''postgres'\'';\"'"
 
-sh -c "sudo chmod -R 777 /usr/lib/postgresql3"
 
-sh -c "sudo cp -R /usr/lib/postgresql/15 /usr/lib/postgresql3"
 
-sh -c "sudo mkdir -p /var/lib/postgresql3/15/main"
+sed -i "s/storageEngineList=127.0.0.1#6667#iotdb12/#storageEngineList=127.0.0.1#6667#iotdb12/g" conf/config.properties
 
-sh -c "sudo chown -R postgres /var/lib/postgresql3/15/main"
-
-sh -c "sudo chmod -R 777 /var/lib/postgresql3/15/main"
-
-sh -c "sudo su - postgres -c '/usr/lib/postgresql3/15/bin/initdb -D /var/lib/postgresql3/15/main --auth trust --no-instructions'"
-
-sh -c "sudo su - postgres -c '/usr/lib/postgresql3/15/bin/pg_ctl -D /var/lib/postgresql3/15/main -o \"-F -p 5434\" start'"
-
-sh -c "sudo su - postgres -c '/usr/lib/postgresql3/15/bin/psql -c \"ALTER USER postgres WITH PASSWORD '\''postgres'\'';\"'"
+sed -i "s/#storageEngineList=127.0.0.1#5432#postgresql/storageEngineList=127.0.0.1#$port#postgresql/g" conf/config.properties

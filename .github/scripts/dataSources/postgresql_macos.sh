@@ -1,10 +1,6 @@
 #!/bin/sh
-
+port=$1
 set -e
-
-sed -i "" "s/storageEngineList=127.0.0.1#6667#iotdb12/#storageEngineList=127.0.0.1#6667#iotdb12/g" conf/config.properties
-
-sed -i "" "s/#storageEngineList=127.0.0.1#5432#postgresql/storageEngineList=127.0.0.1#5432#postgresql/g" conf/config.properties
 
 sh -c "wget --quiet https://get.enterprisedb.com/postgresql/postgresql-15.2-1-osx-binaries.zip"
 
@@ -38,30 +34,23 @@ sh -c "cd pgsql/bin; sudo -u postgres ./pg_ctl -D /var/lib/postgresql/15/main st
 
 sh -c "cd pgsql/bin; sudo -u postgres psql -c \"ALTER USER postgres WITH PASSWORD 'postgres';\""
 
-sh -c "sudo cp -R pgsql pgsql2"
+sh -c "sudo cp -R pgsql pgsql2-$port"
 
-sh -c "sudo mkdir -p /var/lib/postgresql2/15/main"
+sh -c "sudo mkdir -p /var/lib/postgresql2-$port/15/main"
 
-sh -c "sudo chown -R postgres /var/lib/postgresql2/15/main"
+sh -c "sudo chown -R postgres /var/lib/postgresql2-$port/15/main"
 
-sh -c "sudo chmod -R 777 /var/lib/postgresql2/15/main"
+sh -c "sudo chmod -R 777 /var/lib/postgresql2-$port/15/main"
 
-sh -c "cd pgsql2/bin; sudo -u postgres ./initdb -D /var/lib/postgresql2/15/main --auth trust --no-instructions"
+sh -c "cd pgsql2-$port/bin; sudo -u postgres ./initdb -D /var/lib/postgresql2-$port/15/main --auth trust --no-instructions"
 
-sh -c "cd pgsql2/bin; sudo -u postgres ./pg_ctl -D /var/lib/postgresql2/15/main -o \"-F -p 5433\"  start"
+sh -c "cd pgsql2-$port/bin; sudo -u postgres ./pg_ctl -D /var/lib/postgresql2-$port/15/main -o \"-F -p $port\"  start"
 
-sh -c "cd pgsql2/bin; sudo -u postgres ./psql -c \"ALTER USER postgres WITH PASSWORD 'postgres';\""
+sh -c "cd pgsql2-$port/bin; sudo -u postgres ./psql -c \"ALTER USER postgres WITH PASSWORD 'postgres';\""
 
-sh -c "sudo cp -R pgsql pgsql3"
 
-sh -c "sudo mkdir -p /var/lib/postgresql3/15/main"
 
-sh -c "sudo chown -R postgres /var/lib/postgresql3/15/main"
 
-sh -c "sudo chmod -R 777 /var/lib/postgresql3/15/main"
+sed -i "" "s/storageEngineList=127.0.0.1#6667#iotdb12/#storageEngineList=127.0.0.1#6667#iotdb12/g" conf/config.properties
 
-sh -c "cd pgsql3/bin; sudo -u postgres ./initdb -D /var/lib/postgresql3/15/main --auth trust --no-instructions"
-
-sh -c "cd pgsql3/bin; sudo -u postgres ./pg_ctl -D /var/lib/postgresql3/15/main -o \"-F -p 5434\"  start"
-
-sh -c "cd pgsql3/bin; sudo -u postgres ./psql -c \"ALTER USER postgres WITH PASSWORD 'postgres';\""
+sed -i "" "s/#storageEngineList=127.0.0.1#5432#postgresql/storageEngineList=127.0.0.1#$port#postgresql/g" conf/config.properties
