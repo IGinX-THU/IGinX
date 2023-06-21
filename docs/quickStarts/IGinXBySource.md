@@ -86,6 +86,41 @@ Apache Maven 3.6.1 (d66c9c0b3152b2e69ee9bac180bb8fcc8e6af555; 2019-04-05T03:00:2
 
 如果显示出如上的字样，则表示安装成功。
 
+### Node.js 安装
+
+Node.js是跨平台、轻量级的JavaScript运行环境，项目使用npm管理相关的Node.js包。
+
+1. 访问[官网](https://nodejs.org/en/download)，下载并解压Node.js
+
+```shell
+$ cd ~
+$ wget https://nodejs.org/dist/v18.16.1/node-v18.16.1-linux-x64.tar.xz
+$ tar -zxvf node-v18.16.1-linux-x64.tar.xz
+$ sudo mv -f node-v18.16.1-linux-x64 /usr/local/
+```
+
+2. 设置路径
+
+编辑 ~/.bashrc 文件，在文件末端加入如下两行：
+
+```shell
+export NODEJS_HOME=/usr/local/node-v18.16.1-linux-x64
+export PATH=${PATH}:${NODEJS_HOME}/bin
+```
+
+加载更改后的配置文件：
+
+```shell
+$ source ~/.bashrc
+```
+
+3. 使用 npm -v 判断是否安装成功
+
+```shell
+$ npm -v
+9.5.1
+```
+
 ### ZooKeeper 安装
 
 ZooKeeper 是 Apache 推出的开源的分布式应用程序协调服务。如果您需要部署大于一个 IGinX 实例，则需要安装 ZooKeeper
@@ -139,34 +174,39 @@ $ cd ~
 $ git clone git@github.com:IGinX-THU/IGinX.git
 $ cd IGinX
 $ mvn clean install -Dmaven.test.skip=true
-$ mvn package -pl core -Dmaven.test.skip=true
 ```
 
 显示出如下字样，表示 IGinX 构建成功：
 
 ```shell
+[INFO] ------------------------------------------------------------------------
 [INFO] Reactor Summary for IGinX 0.6.0-SNAPSHOT:
 [INFO]
-[INFO] IGinX .............................................. SUCCESS [  0.252 s]
-[INFO] IGinX Thrift ....................................... SUCCESS [  5.961 s]
-[INFO] IGinX Core ......................................... SUCCESS [  4.383 s]
-[INFO] IGinX IoTDB ........................................ SUCCESS [  0.855 s]
-[INFO] IGinX InfluxDB ..................................... SUCCESS [  0.772 s]
-[INFO] IGinX Client ....................................... SUCCESS [  7.713 s]
-[INFO] IGinX Example ...................................... SUCCESS [  0.677 s]
-[INFO] IGinX Test ......................................... SUCCESS [  0.114 s]
+[INFO] IGinX .............................................. SUCCESS [ 20.674 s]
+[INFO] IGinX Thrift ....................................... SUCCESS [01:18 min]
+[INFO] IGinX Shared ....................................... SUCCESS [  8.101 s]
+[INFO] IGinX Session ...................................... SUCCESS [  3.168 s]
+[INFO] IGinX Antlr ........................................ SUCCESS [ 16.170 s]
+[INFO] IGinX Core ......................................... SUCCESS [03:35 min]
+[INFO] IGinX Client ....................................... SUCCESS [ 11.159 s]
+[INFO] IGinX JDBC ......................................... SUCCESS [  3.426 s]
+[INFO] IGinX IoTDB12 ...................................... SUCCESS [ 31.081 s]
+[INFO] IGinX InfluxDB ..................................... SUCCESS [ 17.516 s]
+[INFO] IGinX OpenTSDB ..................................... SUCCESS [ 11.103 s]
+[INFO] IGinX PostgreSQL ................................... SUCCESS [  4.449 s]
+[INFO] IGinX Parquet ...................................... SUCCESS [01:28 min]
+[INFO] IGinX Redis ........................................ SUCCESS [  9.875 s]
+[INFO] IGinX MongoDB ...................................... SUCCESS [ 10.020 s]
+[INFO] IGinX Example ...................................... SUCCESS [  3.864 s]
+[INFO] IGinX Test ......................................... SUCCESS [  5.490 s]
+[INFO] Zeppelin on IGinX .................................. SUCCESS [ 25.019 s]
+[INFO] IGinX Tools for CSV export ......................... SUCCESS [  2.860 s]
 [INFO] ------------------------------------------------------------------------
 [INFO] BUILD SUCCESS
 [INFO] ------------------------------------------------------------------------
-[INFO] Total time:  20.887 s
-[INFO] Finished at: 2021-07-12T16:01:31+08:00
+[INFO] Total time:  09:25 min
+[INFO] Finished at: 2023-06-20T10:28:24+08:00
 [INFO] ------------------------------------------------------------------------
-```
-
-此外，IGinX 还支持 Docker。使用如下命令即可构建本地 IGinX 镜像：
-
-```shell
-mvn clean package -pl core -DskipTests docker:build
 ```
 
 ## 启动
@@ -191,6 +231,25 @@ $ ./sbin/start-server.sh
 2021-05-27 08:21:07,449 [main] INFO  o.a.i.d.s.UpgradeSevice:76 - Upgrade service stopped
 2021-05-27 08:21:07,449 [main] INFO  o.a.i.db.service.IoTDB:146 - Congratulation, IoTDB is set up successfully. Now, enjoy yourself!
 2021-05-27 08:21:07,450 [main] INFO  o.a.i.db.service.IoTDB:93 - IoTDB has started.
+```
+
+### ZooKeeper
+
+启动IGinX前，需要启动ZooKeeper。
+
+```shell
+$ cd ~
+$ cd apache-zookeeper-3.7.1-bin/
+$ ./bin/zkServer.sh
+```
+
+显示如下字样，表示 ZooKeeper 启动成功：
+
+```shell
+2023-06-21 15:14:27,680 [myid:] - INFO  [ProcessThread(sid:0 cport:2181)::o.a.z.s.PrepRequestProcessor@138] - PrepRequestProcessor (sid:0) started, reconfigEnabled=false
+2023-06-21 15:14:27,680 [myid:] - INFO  [main:o.a.z.s.RequestThrottler@75] - zookeeper.request_throttler.shutdownTimeout = 10000 ms
+2023-06-21 15:14:27,710 [myid:] - INFO  [main:o.a.z.s.ContainerManager@84] - Using checkIntervalMs=60000 maxPerMinute=10000 maxNeverUsedIntervalMs=0
+2023-06-21 15:14:27,712 [myid:] - INFO  [main:o.a.z.a.ZKAuditProvider@42] - ZooKeeper audit is disabled.
 ```
 
 ### IGinX
