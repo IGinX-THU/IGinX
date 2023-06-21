@@ -111,7 +111,7 @@ $ tar -zxvf IGinX-release-v0.5.1-bin.tar.gz
 
 这里以单机启动两个端口分别为 6667 和 7667 的实例为例
 
-修改配置文件 IoTDB_HOME/conf/iotdb-engine.properties
+修改配置文件 IOTDB_HOME/conf/iotdb-engine.properties
 
 ```shell
 rpc_port=6667
@@ -155,7 +155,7 @@ Starting zookeeper ... STARTED
 
 ### 启动多个 IGinX 实例
 
-修改 IginX_HOME/conf/config. Properties，加入启动的两台IoTDB实例。
+修改 IGINX_HOME/conf/config. Properties，加入启动的两台IoTDB实例。
 
 ```shell
 storageEngineList=127.0.0.1#6667#iotdb12#username=root#password=root#sessionPoolSize=20#has_data=false#is_read_only=false,127.0.0.1#7667#iotdb12#username=root#password=root#sessionPoolSize=20#has_data=false#is_read_only=false
@@ -183,7 +183,7 @@ $ ./sbin/start_iginx.sh
 修改 conf/config. Properties
 
 ```shell
-# iginx 绑定的端口
+# IGinX 绑定的端口
 port=7888
 # rest 绑定的端口
 restPort=7666

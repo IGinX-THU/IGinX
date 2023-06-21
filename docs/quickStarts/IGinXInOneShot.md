@@ -250,7 +250,7 @@ $ mvn clean install -DskipTests
 </dependency>
 ```
 
-在访问 iginx 之前，首先需要创建 session，并尝试连接。Session 构造器有 4 个参数，分别是要连接的 IGinX 的 ip，port，以及用于 IGinX 认证的用户名和密码。目前的权鉴系统还在编写中，因此访问后端
+在访问 IGinX 之前，首先需要创建 session，并尝试连接。Session 构造器有 4 个参数，分别是要连接的 IGinX 的 ip，port，以及用于 IGinX 认证的用户名和密码。目前的权鉴系统还在编写中，因此访问后端
 IGinX 的账户名和密码直接填写 root 即可：
 
 ```Java

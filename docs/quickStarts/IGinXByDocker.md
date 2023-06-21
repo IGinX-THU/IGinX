@@ -138,7 +138,7 @@ Server: Docker Engine - Community
 
 ## 编译镜像
 
-目前 IGinX 的 docker 镜像需要手动安装到本地。首先需要下载 Iginx 源码：
+目前 IGinX 的 docker 镜像需要手动安装到本地。首先需要下载 IGinX 源码：
 
 ```shell
 $ cd ~
@@ -148,9 +148,9 @@ $ cd IGinX
 
 随后开始构建 IGinX 镜像：
 
-目前 IGinx 镜像的构建分为两种：
+目前 IGinX 镜像的构建分为两种：
 - oneShot: 可以将包括 ZooKeeper、IGinX 以及 IoTDB 在内所有依赖进行一键打包及运行。
-- onlyIginx: 另一种为单独构建 IGinx 镜像，需要用户在外部手动启动 ZooKeeper 和 IoTDB 节点。
+- onlyIginx: 另一种为单独构建 IGinX 镜像，需要用户在外部手动启动 ZooKeeper 和 IoTDB 节点。
 
 ## oneShot 镜像
 
@@ -192,7 +192,7 @@ $ ./build_and_run_iginx_docker.sh
 
 ## onlyIginx 镜像
 
-注：在开始构建镜像前需要把 IGinx 中的 IoTDB 和 Zookeeper 地址参数进行更改（请勿使用 127.0.0.1 作为 IP 参数）
+注：在开始构建镜像前需要把 IGinX 中的 IoTDB 和 Zookeeper 地址参数进行更改（请勿使用 127.0.0.1 作为 IP 参数）
 
 对于 onlyIginx 镜像，其构建方法如下：
 
@@ -262,7 +262,8 @@ $ cd ${iotdb_path}
 
 ```shell
 $ cd ${iginx_path}/docker/onlyIginx
-$ ./run_iginx_docker.sh 172.40.0.2 10000
+$ ./run_iginx_docker.sh x.x.x.x 10000
+# x.x.x.x 为用户自己的网络ip地址
 ```
 
-该命令会将本地的 10000 接口暴露出来，作为与 IGinX 集群的通讯接口。通过地址 172.40.0.2:8086 即可开始访问 IGinx
+该命令会将本地的 10000 接口暴露出来，作为与 IGinX 集群的通讯接口。通过地址 x.x.x.x:10000 即可开始访问 IGinX

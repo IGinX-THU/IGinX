@@ -240,16 +240,15 @@ $ ./sbin/start-server.sh
 ```shell
 $ cd ~
 $ cd apache-zookeeper-3.7.1-bin/
-$ ./bin/zkServer.sh
+$ ./bin/zkServer.sh start
 ```
 
-显示如下字样，表示 ZooKeeper 启动成功：
+显示出如下字样，表示 ZooKeeper 启动成功
 
 ```shell
-2023-06-21 15:14:27,680 [myid:] - INFO  [ProcessThread(sid:0 cport:2181)::o.a.z.s.PrepRequestProcessor@138] - PrepRequestProcessor (sid:0) started, reconfigEnabled=false
-2023-06-21 15:14:27,680 [myid:] - INFO  [main:o.a.z.s.RequestThrottler@75] - zookeeper.request_throttler.shutdownTimeout = 10000 ms
-2023-06-21 15:14:27,710 [myid:] - INFO  [main:o.a.z.s.ContainerManager@84] - Using checkIntervalMs=60000 maxPerMinute=10000 maxNeverUsedIntervalMs=0
-2023-06-21 15:14:27,712 [myid:] - INFO  [main:o.a.z.a.ZKAuditProvider@42] - ZooKeeper audit is disabled.
+ZooKeeper JMX enabled by default
+Using config: /home/root/apache-zookeeper-3.7.1-bin/bin/../conf/zoo.cfg
+Starting zookeeper ... STARTED
 ```
 
 ### IGinX
@@ -445,7 +444,7 @@ $ mvn clean install -DskipTests
 </dependency>
 ```
 
-在访问 iginx 之前，首先需要创建 session，并尝试连接。Session 构造器有 4 个参数，分别是要连接的 IGinX 的 ip，port，以及用于 IGinX 认证的用户名和密码。目前的权鉴系统还在编写中，因此访问后端
+在访问 IGinX 之前，首先需要创建 session，并尝试连接。Session 构造器有 4 个参数，分别是要连接的 IGinX 的 ip，port，以及用于 IGinX 认证的用户名和密码。目前的权鉴系统还在编写中，因此访问后端
 IGinX 的账户名和密码直接填写 root 即可：
 
 ```Java
