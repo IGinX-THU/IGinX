@@ -155,10 +155,10 @@ Starting zookeeper ... STARTED
 
 ### 启动多个 IGinX 实例
 
-修改 IginX_HOME/conf/config. Properties，加入启动的两台IoTDB实例
+修改 IginX_HOME/conf/config. Properties，加入启动的两台IoTDB实例。
 
 ```shell
-storageEngineList=127.0.0.1#6667#iotdb#username=root#password=root#sessionPoolSize=100#dataDir=/path/to/your/data/,127.0.0.1#6688#iotdb#username=root#password=root#sessionPoolSize=100#dataDir=/path/to/your/data/
+storageEngineList=127.0.0.1#6667#iotdb12#username=root#password=root#sessionPoolSize=20#has_data=false#is_read_only=false,127.0.0.1#7667#iotdb12#username=root#password=root#sessionPoolSize=20#has_data=false#is_read_only=false
 
 #存储方式选择 ZooKeeper
 metaStorage=zookeeper 
@@ -166,7 +166,7 @@ metaStorage=zookeeper
 # 提供ZooKeeper端口
 zookeeperConnectionString=127.0.0.1:2181
 
-#注释掉file、etcd相关配置
+#注释掉file、etcd相关配置，若没有相关配置，则忽视
 #fileDataDir=meta
 #etcdEndpoints=http://localhost:2379
 ```
