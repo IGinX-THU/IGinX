@@ -462,7 +462,7 @@ public class OpenTSDBStorage implements IStorage {
       throw new PhysicalTaskExecuteFailureException("no data!");
     }
     ColumnsRange tsInterval =
-        new ColumnsInterval(paths.get(0), StringUtils.nextString(paths.get(paths.size() - 1)));
+        new ColumnsRange(paths.get(0), StringUtils.nextString(paths.get(paths.size() - 1)));
 
     long minTime = 0, maxTime = Long.MAX_VALUE - 1;
     Query.Builder builder = Query.begin(0L).end(Long.MAX_VALUE).msResolution();

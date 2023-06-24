@@ -1788,7 +1788,7 @@ public class ETCDMetaStorage implements IMetaStorage {
       keyValues.add(kv);
     }
     for (Map.Entry<String, List<KeyValue>> entry : timeSeriesRangeListMap.entrySet()) {
-      ColumnsRange columnsRange = ColumnsInterval.fromString(entry.getKey());
+      ColumnsRange columnsRange = ColumnsRange.fromString(entry.getKey());
       List<FragmentMeta> fragmentMetas = cache.getFragmentMapByExactColumnsInterval(columnsRange);
       for (KeyValue kv : entry.getValue()) {
         String[] tuples = kv.getKey().toString().split("/");
@@ -1805,7 +1805,7 @@ public class ETCDMetaStorage implements IMetaStorage {
   }
 
   @Override
-  public void deleteFragmentPoints(ColumnsInterval columnsInterval, KeyInterval keyInterval)
+  public void deleteFragmentPoints(ColumnsRange columnsInterval, KeyInterval keyInterval)
       throws Exception {
     try {
       client
@@ -1926,7 +1926,7 @@ public class ETCDMetaStorage implements IMetaStorage {
       }
     }
     for (Map.Entry<String, List<KeyValue>> entry : timeSeriesWriteRangeListMap.entrySet()) {
-      ColumnsRange columnsRange = ColumnsInterval.fromString(entry.getKey());
+      ColumnsRange columnsRange = ColumnsRange.fromString(entry.getKey());
       Map<ColumnsRange, List<FragmentMeta>> fragmentMapOfTimeSeriesInterval =
           cache.getFragmentMapByColumnsInterval(columnsRange);
       List<FragmentMeta> fragmentMetas = fragmentMapOfTimeSeriesInterval.get(columnsRange);
@@ -1945,7 +1945,7 @@ public class ETCDMetaStorage implements IMetaStorage {
       }
     }
     for (Map.Entry<String, List<KeyValue>> entry : timeSeriesReadRangeListMap.entrySet()) {
-      ColumnsRange columnsRange = ColumnsInterval.fromString(entry.getKey());
+      ColumnsRange columnsRange = ColumnsRange.fromString(entry.getKey());
       Map<ColumnsRange, List<FragmentMeta>> fragmentMapOfTimeSeriesInterval =
           cache.getFragmentMapByColumnsInterval(columnsRange);
       List<FragmentMeta> fragmentMetas = fragmentMapOfTimeSeriesInterval.get(columnsRange);

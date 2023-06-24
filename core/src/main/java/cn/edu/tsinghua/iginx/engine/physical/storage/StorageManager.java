@@ -19,7 +19,6 @@
 package cn.edu.tsinghua.iginx.engine.physical.storage;
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
-import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsRange;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
@@ -92,7 +91,7 @@ public class StorageManager {
         logger.error("release session pool failure!");
       }
     }
-    return new Pair<>(new ColumnsInterval(null, null), new KeyInterval(0, Long.MAX_VALUE));
+    return new Pair<>(new ColumnsRange(null, null), new KeyInterval(0, Long.MAX_VALUE));
   }
 
   private boolean initStorage(StorageEngineMeta meta) {

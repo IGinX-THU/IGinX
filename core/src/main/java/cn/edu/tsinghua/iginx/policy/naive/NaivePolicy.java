@@ -205,7 +205,7 @@ public class NaivePolicy implements IPolicy {
       storageUnitList.add(storageUnit);
       fragmentMetaList.add(
           new FragmentMeta(prefixes[i], prefixes[i + 1], 0, Long.MAX_VALUE, masterId));
-      fragmentMap.put(new ColumnsInterval(prefixes[i], prefixes[i + 1]), fragmentMetaList);
+      fragmentMap.put(new ColumnsRange(prefixes[i], prefixes[i + 1]), fragmentMetaList);
     }
 
     fragmentMetaList = new ArrayList<>();
@@ -221,7 +221,7 @@ public class NaivePolicy implements IPolicy {
     }
     storageUnitList.add(storageUnit);
     fragmentMetaList.add(new FragmentMeta(null, prefixes[0], 0, Long.MAX_VALUE, masterId));
-    fragmentMap.put(new ColumnsInterval(null, prefixes[0]), fragmentMetaList);
+    fragmentMap.put(new ColumnsRange(null, prefixes[0]), fragmentMetaList);
 
     fragmentMetaList = new ArrayList<>();
     masterId = RandomStringUtils.randomAlphanumeric(16);
@@ -245,7 +245,7 @@ public class NaivePolicy implements IPolicy {
             Long.MAX_VALUE,
             masterId));
     fragmentMap.put(
-        new ColumnsInterval(prefixes[clients.length * instancesNumPerClient - 1], null),
+        new ColumnsRange(prefixes[clients.length * instancesNumPerClient - 1], null),
         fragmentMetaList);
 
     return new Pair<>(fragmentMap, storageUnitList);

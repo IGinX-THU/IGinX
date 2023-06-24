@@ -15,7 +15,6 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.BitmapView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
-import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsRange;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.parquet.entity.ParquetQueryRowStream;
@@ -730,10 +729,10 @@ public class LocalExecutor implements Executor {
 
     if (!pathTreeSet.isEmpty()) {
       return new Pair<>(
-          new ColumnsInterval(pathTreeSet.first(), pathTreeSet.last()),
+          new ColumnsRange(pathTreeSet.first(), pathTreeSet.last()),
           new KeyInterval(startKey, endKey));
     } else {
-      return new Pair<>(new ColumnsInterval(null, null), new KeyInterval(startKey, endKey));
+      return new Pair<>(new ColumnsRange(null, null), new KeyInterval(startKey, endKey));
     }
   }
 

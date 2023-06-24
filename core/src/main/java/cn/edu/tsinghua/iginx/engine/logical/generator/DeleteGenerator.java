@@ -51,7 +51,7 @@ public class DeleteGenerator extends AbstractGenerator {
     List<String> pathList =
         SortUtils.mergeAndSortPaths(new ArrayList<>(deleteStatement.getPaths()));
 
-    ColumnsRange interval = new ColumnsInterval(pathList.get(0), pathList.get(pathList.size() - 1));
+    ColumnsRange interval = new ColumnsRange(pathList.get(0), pathList.get(pathList.size() - 1));
 
     Map<ColumnsRange, List<FragmentMeta>> fragments =
         metaManager.getFragmentMapByColumnsRange(interval);

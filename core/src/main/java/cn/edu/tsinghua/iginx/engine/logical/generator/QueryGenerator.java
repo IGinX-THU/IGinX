@@ -45,7 +45,6 @@ import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
-import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsRange;
 import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
@@ -420,8 +419,7 @@ public class QueryGenerator extends AbstractGenerator {
         SortUtils.mergeAndSortPaths(new ArrayList<>(selectStatement.getPathSet()));
     TagFilter tagFilter = selectStatement.getTagFilter();
 
-    ColumnsInterval interval =
-        new ColumnsInterval(pathList.get(0), pathList.get(pathList.size() - 1));
+    ColumnsRange interval = new ColumnsRange(pathList.get(0), pathList.get(pathList.size() - 1));
 
     Pair<Map<KeyInterval, List<FragmentMeta>>, List<FragmentMeta>> pair =
         getFragmentsByTSInterval(selectStatement, interval);
@@ -446,7 +444,7 @@ public class QueryGenerator extends AbstractGenerator {
               } else {
                 String prefix = fromPart.getPath() + ALL_PATH_SUFFIX;
                 Pair<Map<KeyInterval, List<FragmentMeta>>, List<FragmentMeta>> pair =
-                    getFragmentsByTSInterval(selectStatement, new ColumnsInterval(prefix, prefix));
+                    getFragmentsByTSInterval(selectStatement, new ColumnsRange(prefix, prefix));
                 Map<KeyInterval, List<FragmentMeta>> fragments = pair.k;
                 List<FragmentMeta> dummyFragments = pair.v;
                 joinList.add(
@@ -606,7 +604,7 @@ public class QueryGenerator extends AbstractGenerator {
                           new Project(
                               new FragmentSource(meta),
                               pathMatchPrefix(
-                                  pathList, meta.getColumnsRange().getColumn(), schemaPrefix),
+                                  pathList, meta.getColumnsRange().getStartColumn(), schemaPrefix),
                               tagFilter)),
                       schemaPrefix));
             }
@@ -620,7 +618,7 @@ public class QueryGenerator extends AbstractGenerator {
   }
 
   private Pair<Map<KeyInterval, List<FragmentMeta>>, List<FragmentMeta>> getFragmentsByTSInterval(
-      SelectStatement selectStatement, ColumnsInterval interval) {
+      SelectStatement selectStatement, ColumnsRange interval) {
     Map<ColumnsRange, List<FragmentMeta>> fragmentsByColumnsRange =
         metaManager.getFragmentMapByColumnsRange(PathUtils.trimTimeSeriesInterval(interval), true);
     if (!metaManager.hasFragment()) {

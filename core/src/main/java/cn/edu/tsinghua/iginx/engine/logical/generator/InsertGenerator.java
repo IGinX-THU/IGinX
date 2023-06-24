@@ -50,8 +50,7 @@ public class InsertGenerator extends AbstractGenerator {
 
     List<String> pathList = new ArrayList<>(insertStatement.getPaths());
 
-    ColumnsRange tsInterval =
-        new ColumnsInterval(pathList.get(0), pathList.get(pathList.size() - 1));
+    ColumnsRange tsInterval = new ColumnsRange(pathList.get(0), pathList.get(pathList.size() - 1));
     KeyInterval keyInterval =
         new KeyInterval(insertStatement.getStartKey(), insertStatement.getEndKey() + 1);
 

@@ -1789,7 +1789,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
     if (this.client.checkExists().forPath(STATISTICS_FRAGMENT_POINTS_PREFIX) != null) {
       List<String> children = client.getChildren().forPath(STATISTICS_FRAGMENT_POINTS_PREFIX);
       for (String child : children) {
-        ColumnsRange columnsRange = ColumnsInterval.fromString(child);
+        ColumnsRange columnsRange = ColumnsRange.fromString(child);
         List<FragmentMeta> fragmentMetas = cache.getFragmentMapByExactColumnsInterval(columnsRange);
 
         List<String> timeIntervals =
@@ -1815,7 +1815,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
   }
 
   @Override
-  public void deleteFragmentPoints(ColumnsInterval columnsInterval, KeyInterval keyInterval)
+  public void deleteFragmentPoints(ColumnsRange columnsInterval, KeyInterval keyInterval)
       throws Exception {
     String path =
         STATISTICS_FRAGMENT_POINTS_PREFIX
@@ -2001,7 +2001,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
     if (this.client.checkExists().forPath(STATISTICS_FRAGMENT_HEAT_PREFIX_WRITE) != null) {
       List<String> children = client.getChildren().forPath(STATISTICS_FRAGMENT_HEAT_PREFIX_WRITE);
       for (String child : children) {
-        ColumnsRange columnsRange = ColumnsInterval.fromString(child);
+        ColumnsRange columnsRange = ColumnsRange.fromString(child);
         Map<ColumnsRange, List<FragmentMeta>> fragmentMapOfTimeSeriesInterval =
             cache.getFragmentMapByColumnsInterval(columnsRange);
         List<FragmentMeta> fragmentMetas = fragmentMapOfTimeSeriesInterval.get(columnsRange);
@@ -2035,7 +2035,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
     if (this.client.checkExists().forPath(STATISTICS_FRAGMENT_HEAT_PREFIX_READ) != null) {
       List<String> children = client.getChildren().forPath(STATISTICS_FRAGMENT_HEAT_PREFIX_READ);
       for (String child : children) {
-        ColumnsRange columnsRange = ColumnsInterval.fromString(child);
+        ColumnsRange columnsRange = ColumnsRange.fromString(child);
         Map<ColumnsRange, List<FragmentMeta>> fragmentMapOfTimeSeriesInterval =
             cache.getFragmentMapByColumnsInterval(columnsRange);
         List<FragmentMeta> fragmentMetas = fragmentMapOfTimeSeriesInterval.get(columnsRange);

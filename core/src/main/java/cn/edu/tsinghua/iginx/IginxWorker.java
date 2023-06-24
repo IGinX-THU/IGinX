@@ -346,9 +346,7 @@ public class IginxWorker implements IService.Iface {
         } else {
           dummyFragment =
               new FragmentMeta(
-                  new ColumnsPrefixRange(dataPrefix, schemaPrefixTmp),
-                  boundary.v,
-                  dummyStorageUnit);
+                  new ColumnsRange(dataPrefix, schemaPrefixTmp), boundary.v, dummyStorageUnit);
         }
         dummyFragment.setDummyFragment(true);
         meta.setDummyStorageUnit(dummyStorageUnit);

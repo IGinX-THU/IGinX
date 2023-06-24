@@ -124,10 +124,10 @@ public class HistoricalPolicy implements IPolicy {
     Collections.sort(prefixList);
     int prefixNum = prefixList.size();
     prefixList.add(null);
-    columnsIntervalList.add(new ColumnsInterval(null, prefixList.get(0)));
+    columnsIntervalList.add(new ColumnsRange(null, prefixList.get(0)));
     for (int i = 0; i < expectedStorageUnitNum; i++) {
       columnsIntervalList.add(
-          new ColumnsInterval(
+          new ColumnsRange(
               prefixList.get(i * prefixNum / expectedStorageUnitNum),
               prefixList.get((i + 1) * prefixNum / expectedStorageUnitNum)));
     }

@@ -176,9 +176,9 @@ public class IoTDBStorage implements IStorage {
           throw new PhysicalTaskExecuteFailureException("no data!");
         }
         tsInterval =
-            new ColumnsInterval(paths.get(0), StringUtils.nextString(paths.get(paths.size() - 1)));
+            new ColumnsRange(paths.get(0), StringUtils.nextString(paths.get(paths.size() - 1)));
       } else {
-        tsInterval = new ColumnsInterval(dataPrefix, StringUtils.nextString(dataPrefix));
+        tsInterval = new ColumnsRange(dataPrefix, StringUtils.nextString(dataPrefix));
       }
     } catch (IoTDBConnectionException | StatementExecutionException e) {
       throw new PhysicalTaskExecuteFailureException("get time series failure: ", e);

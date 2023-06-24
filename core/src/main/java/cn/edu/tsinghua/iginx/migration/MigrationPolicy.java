@@ -197,8 +197,8 @@ public abstract class MigrationPolicy {
 
       // 开始实际切分片
       double currAverageLoad = totalLoad * 1.0 / fakedFragmentMetaLoads.size();
-      ColumnsInterval sourceTsInterval =
-          new ColumnsInterval(
+      ColumnsRange sourceTsInterval =
+          new ColumnsRange(
               fragmentMeta.getColumnsRange().getStartColumn(),
               fragmentMeta.getColumnsRange().getEndColumn());
       for (int i = 0; i < fakedFragmentMetas.size(); i++) {
@@ -280,8 +280,8 @@ public abstract class MigrationPolicy {
       logger.info("start to add new fragment");
       String middleTimeseries = new ArrayList<>(pathSet).get(pathSet.size() / 2);
       logger.info("timeseries split middleTimeseries=" + middleTimeseries);
-      ColumnsInterval sourceTsInterval =
-          new ColumnsInterval(
+      ColumnsRange sourceTsInterval =
+          new ColumnsRange(
               fragmentMeta.getColumnsRange().getStartColumn(),
               fragmentMeta.getColumnsRange().getEndColumn());
       FragmentMeta newFragment =
@@ -325,8 +325,8 @@ public abstract class MigrationPolicy {
         }
       }
 
-      ColumnsInterval sourceTsInterval =
-          new ColumnsInterval(
+      ColumnsRange sourceTsInterval =
+          new ColumnsRange(
               fragmentMeta.getColumnsRange().getStartColumn(),
               fragmentMeta.getColumnsRange().getEndColumn());
       FragmentMeta newFragment =

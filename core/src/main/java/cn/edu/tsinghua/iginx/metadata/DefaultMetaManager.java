@@ -543,7 +543,7 @@ public class DefaultMetaManager implements IMetaManager {
         }
       }
     }
-    return new Pair<>(new ColumnsInterval(startPath, endPath), new KeyInterval(startKey, endKey));
+    return new Pair<>(new ColumnsRange(startPath, endPath), new KeyInterval(startKey, endKey));
   }
 
   @Override
@@ -870,7 +870,7 @@ public class DefaultMetaManager implements IMetaManager {
     try {
       storage.lockFragment();
       ColumnsRange sourceTsInterval =
-          new ColumnsInterval(
+          new ColumnsRange(
               fragmentMeta.getColumnsRange().getStartColumn(),
               fragmentMeta.getColumnsRange().getEndColumn());
       cache.deleteFragmentByColumnsInterval(fragmentMeta.getColumnsRange(), fragmentMeta);
@@ -1246,7 +1246,7 @@ public class DefaultMetaManager implements IMetaManager {
         } else {
           dummyFragment =
               new FragmentMeta(
-                  new ColumnsInterval(dataPrefix, StringUtils.nextString(dataPrefix)),
+                  new ColumnsRange(dataPrefix, StringUtils.nextString(dataPrefix)),
                   boundary.v,
                   dummyStorageUnit);
         }
