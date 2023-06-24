@@ -143,11 +143,6 @@ public final class ColumnsRange implements Comparable<ColumnsRange> {
     // judge if is the dummy node && it will have specific prefix
     String startTimeSeries = realColumn(this.startColumn);
     String endTimeSeries = realColumn(this.endColumn);
-    if (colRange.getStartColumn() == null
-        || endTimeSeries == null && colRange.getEndColumn() == null
-        || startTimeSeries == null) {
-      return true;
-    }
     boolean isContainEnd =
         colRange.getEndColumn() == null
             || StringUtils.compare(colRange.getEndColumn(), startTimeSeries, true) >= 0;
@@ -159,7 +154,8 @@ public final class ColumnsRange implements Comparable<ColumnsRange> {
       isContainBeg = true;
     }
 
-    return isContainBeg && isContainEnd;
+    return (colRange.getStartColumn() == null || endTimeSeries == null || isContainBeg)
+        && (isContainEnd || colRange.getEndColumn() == null || startTimeSeries == null);
   }
 
   public ColumnsRange getIntersect(ColumnsRange colRange) {
