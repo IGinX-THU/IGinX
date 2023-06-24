@@ -18,7 +18,6 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.tag.BaseTagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.OrTagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.PreciseTagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
-import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsRange;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.parquet.thrift.DeleteReq;
@@ -362,7 +361,7 @@ public class RemoteExecutor implements Executor {
         try {
             GetStorageBoundryResp resp = client.getBoundaryOfStorage();
             return new Pair<>(
-                    new ColumnsInterval(resp.getStartTimeSeries(), resp.getEndTimeSeries()),
+                    new ColumnsRange(resp.getStartTimeSeries(), resp.getEndTimeSeries()),
                     new KeyInterval(resp.getStartTime(), resp.getEndTime()));
         } catch (TException e) {
             throw new PhysicalException("encounter error when getBoundaryOfStorage ", e);

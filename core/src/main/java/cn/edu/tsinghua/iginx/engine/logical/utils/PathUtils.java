@@ -1,6 +1,5 @@
 package cn.edu.tsinghua.iginx.engine.logical.utils;
 
-import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsRange;
 
 public class PathUtils {
@@ -29,6 +28,6 @@ public class PathUtils {
             }
         }
 
-        return new ColumnsInterval(startPath, endPath);
+        return new ColumnsRange(startPath, endPath);
     }
 }

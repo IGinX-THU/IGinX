@@ -13,7 +13,6 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
-import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsRange;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
@@ -348,14 +347,14 @@ public class RedisStorage implements IStorage {
 
         ColumnsRange tsInterval;
         if (prefix != null) {
-            tsInterval = new ColumnsInterval(prefix, StringUtils.nextString(prefix));
+            tsInterval = new ColumnsRange(prefix, StringUtils.nextString(prefix));
         } else {
             if (!paths.isEmpty()) {
                 tsInterval =
-                        new ColumnsInterval(
+                        new ColumnsRange(
                                 paths.get(0), StringUtils.nextString(paths.get(paths.size() - 1)));
             } else {
-                tsInterval = new ColumnsInterval(null, null);
+                tsInterval = new ColumnsRange(null, null);
             }
         }
         long minTime = 0, maxTime = Long.MIN_VALUE;

@@ -568,7 +568,7 @@ public class PostgreSQLStorage implements IStorage {
         }
         paths.sort(String::compareTo);
         return new Pair<>(
-                new ColumnsInterval(paths.get(0), paths.get(paths.size() - 1)),
+                new ColumnsRange(paths.get(0), paths.get(paths.size() - 1)),
                 new KeyInterval(minKey, maxKey + 1));
     }
 
@@ -1083,7 +1083,7 @@ public class PostgreSQLStorage implements IStorage {
             }
             statement.append(";");
 
-//            logger.info("[Insert] execute insert: {}", statement);
+            //            logger.info("[Insert] execute insert: {}", statement);
             stmt.addBatch(statement.toString());
         }
         stmt.executeBatch();

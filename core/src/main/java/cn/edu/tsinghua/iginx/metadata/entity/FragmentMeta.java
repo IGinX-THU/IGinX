@@ -62,7 +62,7 @@ public final class FragmentMeta {
 
     public FragmentMeta(String startPrefix, String endPrefix, long startKey, long endKey) {
         this.keyInterval = new KeyInterval(startKey, endKey);
-        this.columnsRange = new ColumnsInterval(startPrefix, endPrefix);
+        this.columnsRange = new ColumnsRange(startPrefix, endPrefix);
     }
 
     public FragmentMeta(
@@ -72,7 +72,7 @@ public final class FragmentMeta {
             long endKey,
             String fakeStorageUnitId) {
         this.keyInterval = new KeyInterval(startKey, endKey);
-        this.columnsRange = new ColumnsInterval(startPrefix, endPrefix);
+        this.columnsRange = new ColumnsRange(startPrefix, endPrefix);
         this.fakeStorageUnitId = fakeStorageUnitId;
     }
 
@@ -90,7 +90,7 @@ public final class FragmentMeta {
             long endKey,
             StorageUnitMeta masterStorageUnit) {
         this.keyInterval = new KeyInterval(startKey, endKey);
-        this.columnsRange = new ColumnsInterval(startPrefix, endPrefix);
+        this.columnsRange = new ColumnsRange(startPrefix, endPrefix);
         this.masterStorageUnit = masterStorageUnit;
         this.masterStorageUnitId = masterStorageUnit.getMasterId();
     }

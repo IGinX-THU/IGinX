@@ -9,7 +9,6 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.ClearEmptyRowStreamWrapper;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
-import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsRange;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.parquet.entity.NewQueryRowStream;
@@ -218,8 +217,7 @@ public class NewExecutor implements Executor {
             throw new PhysicalTaskExecuteFailureException("time range error");
         }
         ColumnsRange tsRange =
-                new ColumnsInterval(
-                        paths.get(0), StringUtils.nextString(paths.get(paths.size() - 1)));
+                new ColumnsRange(paths.get(0), StringUtils.nextString(paths.get(paths.size() - 1)));
         KeyInterval keyInterval = new KeyInterval(start, end);
         return new Pair<>(tsRange, keyInterval);
     }
