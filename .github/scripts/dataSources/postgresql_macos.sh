@@ -2,7 +2,7 @@
 port=$1
 set -e
 
-if test -e "postgresql-15.2-1-osx-binaries.zip"; then
+if test -e "pgsql"; then
   echo "File already exists, skipping download."
 else
   sh -c "wget --quiet https://get.enterprisedb.com/postgresql/postgresql-15.2-1-osx-binaries.zip"
