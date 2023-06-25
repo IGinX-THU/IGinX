@@ -38,6 +38,8 @@ public final class ColumnsRange implements Comparable<ColumnsRange> {
   // 右边界是否为闭
   private boolean isClosed;
 
+  private final String FORMAT = "%s.*";
+
   public ColumnsRange(String startColumn, String endColumn, boolean isClosed) {
     this.startColumn = startColumn;
     this.endColumn = endColumn;
@@ -45,8 +47,8 @@ public final class ColumnsRange implements Comparable<ColumnsRange> {
   }
 
   public ColumnsRange(String column, boolean isClosed) {
-    this.startColumn = column;
-    this.endColumn = column;
+    this.startColumn = String.format(FORMAT,column);
+    this.endColumn = String.format(FORMAT,column);
     this.isClosed = isClosed;
   }
 
