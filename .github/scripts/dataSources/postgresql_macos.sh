@@ -2,37 +2,41 @@
 port=$1
 set -e
 
-sh -c "wget --quiet https://get.enterprisedb.com/postgresql/postgresql-15.2-1-osx-binaries.zip"
+if test -e "postgresql-15.2-1-osx-binaries.zip"; then
+  echo "File already exists, skipping download."
+else
+  sh -c "wget --quiet https://get.enterprisedb.com/postgresql/postgresql-15.2-1-osx-binaries.zip"
 
-sh -c "sudo unzip -q postgresql-15.2-1-osx-binaries.zip"
+  sh -c "sudo unzip -q postgresql-15.2-1-osx-binaries.zip"
 
-sh -c "sudo dscl . -create /Users/postgres"
+  sh -c "sudo dscl . -create /Users/postgres"
 
-sh -c "sudo dscl . -create /Users/postgres UserShell /bin/bash"
+  sh -c "sudo dscl . -create /Users/postgres UserShell /bin/bash"
 
-sh -c "sudo dscl . -create /Users/postgres RealName \"PostgreSQL\""
+  sh -c "sudo dscl . -create /Users/postgres RealName \"PostgreSQL\""
 
-sh -c "sudo dscl . -create /Users/postgres UniqueID 666"
+  sh -c "sudo dscl . -create /Users/postgres UniqueID 666"
 
-sh -c "sudo dscl . -create /Users/postgres PrimaryGroupID 20"
+  sh -c "sudo dscl . -create /Users/postgres PrimaryGroupID 20"
 
-sh -c "sudo dscl . -create /Users/postgres NFSHomeDirectory /Users/postgres"
+  sh -c "sudo dscl . -create /Users/postgres NFSHomeDirectory /Users/postgres"
 
-sh -c "sudo dscl . -passwd /Users/postgres postgres"
+  sh -c "sudo dscl . -passwd /Users/postgres postgres"
 
-sh -c "sudo dscl . -append /Groups/admin GroupMembership postgres"
+  sh -c "sudo dscl . -append /Groups/admin GroupMembership postgres"
 
-sh -c "sudo mkdir -p /var/lib/postgresql/15/main"
+  sh -c "sudo mkdir -p /var/lib/postgresql/15/main"
 
-sh -c "sudo chown -R postgres /var/lib/postgresql/15/main"
+  sh -c "sudo chown -R postgres /var/lib/postgresql/15/main"
 
-sh -c "sudo chmod -R 777 /var/lib/postgresql/15/main"
+  sh -c "sudo chmod -R 777 /var/lib/postgresql/15/main"
 
-sh -c "cd pgsql/bin; sudo -u postgres ./initdb -D /var/lib/postgresql/15/main --auth trust --no-instructions"
+  sh -c "cd pgsql/bin; sudo -u postgres ./initdb -D /var/lib/postgresql/15/main --auth trust --no-instructions"
 
-sh -c "cd pgsql/bin; sudo -u postgres ./pg_ctl -D /var/lib/postgresql/15/main start"
+  sh -c "cd pgsql/bin; sudo -u postgres ./pg_ctl -D /var/lib/postgresql/15/main start"
 
-sh -c "cd pgsql/bin; sudo -u postgres psql -c \"ALTER USER postgres WITH PASSWORD 'postgres';\""
+  sh -c "cd pgsql/bin; sudo -u postgres psql -c \"ALTER USER postgres WITH PASSWORD 'postgres';\""
+fi
 
 sh -c "sudo cp -R pgsql pgsql2-$port"
 

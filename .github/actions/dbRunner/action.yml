@@ -131,11 +131,11 @@ runs:
               if [ "$RUNNER_OS" == "Linux" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/postgresql.sh"
                 "${GITHUB_WORKSPACE}/.github/scripts/dataSources/postgresql.sh" 5434
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/postgresql.sh" 5432
+                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/postgresql.sh" 5433
               elif [ "$RUNNER_OS" == "macOS" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/postgresql_macos.sh"
                 "${GITHUB_WORKSPACE}/.github/scripts/dataSources/postgresql_macos.sh" 5434
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/postgresql_macos.sh" 5432
+                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/postgresql_macos.sh" 5433
               else
                 echo "$RUNNER_OS is not supported"
                 exit 1
