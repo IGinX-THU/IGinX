@@ -25,4 +25,4 @@ sh -c "sudo sed -i 's/# wal_buffer_size=16777216/wal_buffer_size=167772160/g' ap
 
 sh -c "sudo sed -i 's/6667/$port/g' apache-iotdb2-0.12.6-server-bin-$port/conf/iotdb-engine.properties"
 
-sudo sh -c "cd $port/apache-iotdb2-0.12.6-server-bin/; nohup sbin/start-server.sh &"
+sudo sh -c "cd apache-iotdb2-0.12.6-server-bin-$port/; nohup sbin/start-server.sh &"
