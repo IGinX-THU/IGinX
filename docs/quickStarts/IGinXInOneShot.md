@@ -78,6 +78,26 @@ You can now test IGinX. Have fun!~
 =====================================
 ```
 
+若在Windows系统环境下出现找不到文件路径问题，则需要使用文本编辑器修改根目录下的`runIginxOn1Host.bat`
+
+```shell
+#./runIginxOn1Host.bat
+# line 2
+start "zookeeper" /d "include/apache-zookeeper-3.7.0-bin/" bin\zkServer.cmd
+# ↓ 改为
+start "zookeeper" /d "include\apache-zookeeper-3.7.0-bin\" bin\zkServer.cmd
+
+# line 5
+start "iotdb" /d "include/apache-iotdb-0.12.6/sbin" start-server.bat
+# ↓ 改为
+start "iotdb" /d "include\apache-iotdb-0.12.6\sbin" start-server.bat
+
+# line 9
+start "iginx" /d "./sbin" start_iginx.bat
+# ↓ 改为
+start "iginx" /d ".\sbin" start_iginx.bat
+```
+
 ## 访问 IGinX
 
 ### RESTful 接口

@@ -125,7 +125,7 @@ $ npm -v
 
 ZooKeeper 是 Apache 推出的开源的分布式应用程序协调服务。如果您需要部署大于一个 IGinX 实例，则需要安装 ZooKeeper
 
-ZooKeeper 是 Apache 推出的开源的分布式应用程序协调服务。具体安装方式如下：
+具体安装方式如下：
 
 1. 访问[官网](https://zookeeper.apache.org/releases.html)下载并解压 ZooKeeper
 

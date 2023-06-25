@@ -85,6 +85,70 @@ Apache Maven 3.6.1 (d66c9c0b3152b2e69ee9bac180bb8fcc8e6af555; 2019-04-05T03:00:2
 
 If the words above are displayed, that means the installation was successful.
 
+### Node.js Installation
+
+The project requires Node.js installation. If you already have it installed on your device, **skip this part**.
+
+1. Download Node.js package from [here](https://nodejs.org/en/download).
+
+```shell
+$ cd ~
+$ wget https://nodejs.org/dist/v18.16.1/node-v18.16.1-linux-x64.tar.xz
+$ tar -zxvf node-v18.16.1-linux-x64.tar.xz
+$ sudo mv -f node-v18.16.1-linux-x64 /usr/local/
+```
+
+2. Add environment variable.
+
+Attach code below to file `~/.bashrc`
+
+```shell
+export NODEJS_HOME=/usr/local/node-v18.16.1-linux-x64
+export PATH=${PATH}:${NODEJS_HOME}/bin
+```
+
+Load file `~/.bashrc` to apply changes.
+
+```shell
+$ source ~/.bashrc
+```
+
+Confirm the Installation by testing `npm` command
+
+```shell
+$ npm -v
+9.5.1
+```
+
+### ZooKeeper Installation
+
+ZooKeeper enables highly reliable distributed coordination. In IGinX, ZooKeeper makes it possible to have more than one IGinX instances deployed.
+
+1. Download ZooKeeper package from [here](https://zookeeper.apache.org/releases.html).
+
+```shell
+$ cd ~
+$ wget https://dlcdn.apache.org/zookeeper/zookeeper-3.7.1/apache-zookeeper-3.7.1-bin.tar.gz
+$ tar -zxvf apache-zookeeper-3.7.1-bin.tar.gz
+```
+
+2. Modify config.
+
+```shell
+$ cd apache-zookeeper-3.7.1-bin/
+$ mkdir data
+$ cp conf/zoo_sample.cfg conf/zoo.cfg
+```
+
+Modify file`conf/zoo.cfg`.
+
+```shell
+# Original conf/zoo.cfg
+dataDir=/tmp/zookeeper
+# ↓ change to
+dataDir=data
+```
+
 ### IoTDB Installation
 
 IoTDB is Apache's Apache IoT native database with high performance for data management and analysis, deployable on the edge and the cloud.
@@ -110,37 +174,40 @@ $ cd ~
 $ git clone git@github.com:IGinX-THU/IGinX.git
 $ cd IGinX
 $ mvn clean install -Dmaven.test.skip=true
-$ mvn package -pl core -Dmaven.test.skip=true
 ```
 
 The following words are displayed, indicating that the IGinX build is successful:
 
 ```shell
+[INFO] ------------------------------------------------------------------------
 [INFO] Reactor Summary for IGinX 0.6.0-SNAPSHOT:
 [INFO]
-[INFO] IGinX .............................................. SUCCESS [  0.252 s]
-[INFO] IGinX Thrift ....................................... SUCCESS [  5.961 s]
-[INFO] IGinX Core ......................................... SUCCESS [  4.383 s]
-[INFO] IGinX IoTDB ........................................ SUCCESS [  0.855 s]
-[INFO] IGinX InfluxDB ..................................... SUCCESS [  0.772 s]
-[INFO] IGinX Client ....................................... SUCCESS [  7.713 s]
-[INFO] IGinX Example ...................................... SUCCESS [  0.677 s]
-[INFO] IGinX Test ......................................... SUCCESS [  0.114 s]
+[INFO] IGinX .............................................. SUCCESS [ 20.674 s]
+[INFO] IGinX Thrift ....................................... SUCCESS [01:18 min]
+[INFO] IGinX Shared ....................................... SUCCESS [  8.101 s]
+[INFO] IGinX Session ...................................... SUCCESS [  3.168 s]
+[INFO] IGinX Antlr ........................................ SUCCESS [ 16.170 s]
+[INFO] IGinX Core ......................................... SUCCESS [03:35 min]
+[INFO] IGinX Client ....................................... SUCCESS [ 11.159 s]
+[INFO] IGinX JDBC ......................................... SUCCESS [  3.426 s]
+[INFO] IGinX IoTDB12 ...................................... SUCCESS [ 31.081 s]
+[INFO] IGinX InfluxDB ..................................... SUCCESS [ 17.516 s]
+[INFO] IGinX OpenTSDB ..................................... SUCCESS [ 11.103 s]
+[INFO] IGinX PostgreSQL ................................... SUCCESS [  4.449 s]
+[INFO] IGinX Parquet ...................................... SUCCESS [01:28 min]
+[INFO] IGinX Redis ........................................ SUCCESS [  9.875 s]
+[INFO] IGinX MongoDB ...................................... SUCCESS [ 10.020 s]
+[INFO] IGinX Example ...................................... SUCCESS [  3.864 s]
+[INFO] IGinX Test ......................................... SUCCESS [  5.490 s]
+[INFO] Zeppelin on IGinX .................................. SUCCESS [ 25.019 s]
+[INFO] IGinX Tools for CSV export ......................... SUCCESS [  2.860 s]
 [INFO] ------------------------------------------------------------------------
 [INFO] BUILD SUCCESS
 [INFO] ------------------------------------------------------------------------
-[INFO] Total time:  20.887 s
-[INFO] Finished at: 2021-07-12T16:01:31+08:00
+[INFO] Total time:  09:25 min
+[INFO] Finished at: 2023-06-20T10:28:24+08:00
 [INFO] ------------------------------------------------------------------------
 ```
-
-Additionally, IGinX supports Docker. Use the following command to build a local IGinX image:
-
-```shell
-mvn clean package -pl core -DskipTests docker:build
-```
-
-This may not work, which is not an immediate issue because you don't need Docker for IGinX installation.
 
 ## Launch
 
@@ -164,6 +231,24 @@ The following display of words means the IoTDB installation was successful：
 2021-05-27 08:21:07,449 [main] INFO  o.a.i.d.s.UpgradeSevice:76 - Upgrade service stopped
 2021-05-27 08:21:07,449 [main] INFO  o.a.i.db.service.IoTDB:146 - Congratulation, IoTDB is set up successfully. Now, enjoy yourself!
 2021-05-27 08:21:07,450 [main] INFO  o.a.i.db.service.IoTDB:93 - IoTDB has started.
+```
+
+### ZooKeeper
+
+Then, launch ZooKeeper.
+
+```shell
+$ cd ~
+$ cd apache-zookeeper-3.7.1-bin/
+$ ./bin/zkServer.sh start
+```
+
+You will see messages as below if ZooKeeper is successfully started.
+
+```shell
+ZooKeeper JMX enabled by default
+Using config: /home/root/apache-zookeeper-3.7.1-bin/bin/../conf/zoo.cfg
+Starting zookeeper ... STARTED
 ```
 
 ### IGinX
