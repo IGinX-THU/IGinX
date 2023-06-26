@@ -41,7 +41,7 @@ public class SQLExecutor {
     if (statement.toLowerCase().startsWith("insert")) {
       logger.info("Execute Insert Statement.");
     } else {
-      logger.info("Execute Statement: \"{}\"", statement);
+//      logger.info("Execute Statement: \"{}\"", statement);
     }
 
     SessionExecuteSqlResult res = null;
