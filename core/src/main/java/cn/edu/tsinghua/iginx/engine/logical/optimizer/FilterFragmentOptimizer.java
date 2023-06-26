@@ -74,9 +74,10 @@ public class FilterFragmentOptimizer implements Optimizer {
       return;
     }
 
-    ColumnsRange interval = new ColumnsRange(pathList.get(0), pathList.get(pathList.size() - 1));
+    ColumnsRange columnsRange =
+        new ColumnsRange(pathList.get(0), pathList.get(pathList.size() - 1));
     Map<ColumnsRange, List<FragmentMeta>> fragmentsByColumnsInterval =
-        metaManager.getFragmentMapByColumnsRange(interval, true);
+        metaManager.getFragmentMapByColumnsRange(columnsRange, true);
     Pair<Map<KeyInterval, List<FragmentMeta>>, List<FragmentMeta>> pair =
         keyFromColumnsIntervalToKeyInterval(fragmentsByColumnsInterval);
     Map<KeyInterval, List<FragmentMeta>> fragments = pair.k;

@@ -1805,7 +1805,7 @@ public class ETCDMetaStorage implements IMetaStorage {
   }
 
   @Override
-  public void deleteFragmentPoints(ColumnsRange columnsInterval, KeyInterval keyInterval)
+  public void deleteFragmentPoints(ColumnsRange columnsRange, KeyInterval keyInterval)
       throws Exception {
     try {
       client
@@ -1814,7 +1814,7 @@ public class ETCDMetaStorage implements IMetaStorage {
               ByteSequence.from(
                   (STATISTICS_FRAGMENT_POINTS_PREFIX
                           + "/"
-                          + columnsInterval.toString()
+                          + columnsRange.toString()
                           + "/"
                           + keyInterval.toString())
                       .getBytes()))

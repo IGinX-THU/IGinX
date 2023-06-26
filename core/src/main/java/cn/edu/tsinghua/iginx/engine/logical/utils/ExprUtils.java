@@ -438,34 +438,36 @@ public class ExprUtils {
     return new KeyRange(begin, end);
   }
 
-  public static Filter getSubFilterFromFragment(Filter filter, ColumnsRange interval) {
+  public static Filter getSubFilterFromFragment(Filter filter, ColumnsRange columnsRange) {
     Filter filterWithoutNot = removeNot(filter);
-    Filter filterWithTrue = setTrue(filterWithoutNot, interval);
+    Filter filterWithTrue = setTrue(filterWithoutNot, columnsRange);
     return mergeTrue(filterWithTrue);
   }
 
-  private static Filter setTrue(Filter filter, ColumnsRange interval) {
+  private static Filter setTrue(Filter filter, ColumnsRange columnsRange) {
     switch (filter.getType()) {
       case Or:
         List<Filter> orChildren = ((OrFilter) filter).getChildren();
         for (int i = 0; i < orChildren.size(); i++) {
-          Filter childFilter = setTrue(orChildren.get(i), interval);
+          Filter childFilter = setTrue(orChildren.get(i), columnsRange);
           orChildren.set(i, childFilter);
         }
         return new OrFilter(orChildren);
       case And:
         List<Filter> andChildren = ((AndFilter) filter).getChildren();
         for (int i = 0; i < andChildren.size(); i++) {
-          Filter childFilter = setTrue(andChildren.get(i), interval);
+          Filter childFilter = setTrue(andChildren.get(i), columnsRange);
           andChildren.set(i, childFilter);
         }
         return new AndFilter(andChildren);
       case Value:
         String path = ((ValueFilter) filter).getPath();
-        if (interval.getStartColumn() != null && interval.getStartColumn().compareTo(path) > 0) {
+        if (columnsRange.getStartColumn() != null
+            && columnsRange.getStartColumn().compareTo(path) > 0) {
           return new BoolFilter(true);
         }
-        if (interval.getEndColumn() != null && interval.getEndColumn().compareTo(path) <= 0) {
+        if (columnsRange.getEndColumn() != null
+            && columnsRange.getEndColumn().compareTo(path) <= 0) {
           return new BoolFilter(true);
         }
         return filter;

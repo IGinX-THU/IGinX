@@ -339,16 +339,14 @@ public class IginxWorker implements IService.Iface {
         String schemaPrefixTmp = null;
         if (index < schemaPrefix.size()
             && schemaPrefix.get(index) != null) // set the virtual schema prefix
-          schemaPrefixTmp = schemaPrefix.get(index);
+        schemaPrefixTmp = schemaPrefix.get(index);
         if (dataPrefix == null) {
           boundary.k.setSchemaPrefix(schemaPrefixTmp);
           dummyFragment = new FragmentMeta(boundary.k, boundary.v, dummyStorageUnit);
         } else {
-          ColumnsRange columnsRange = new ColumnsRange(dataPrefix,true);
+          ColumnsRange columnsRange = new ColumnsRange(dataPrefix);
           columnsRange.setSchemaPrefix(schemaPrefixTmp);
-          dummyFragment =
-              new FragmentMeta(
-                  columnsRange, boundary.v, dummyStorageUnit);
+          dummyFragment = new FragmentMeta(columnsRange, boundary.v, dummyStorageUnit);
         }
         dummyFragment.setDummyFragment(true);
         meta.setDummyStorageUnit(dummyStorageUnit);

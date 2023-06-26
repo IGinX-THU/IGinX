@@ -419,10 +419,11 @@ public class QueryGenerator extends AbstractGenerator {
         SortUtils.mergeAndSortPaths(new ArrayList<>(selectStatement.getPathSet()));
     TagFilter tagFilter = selectStatement.getTagFilter();
 
-    ColumnsRange interval = new ColumnsRange(pathList.get(0), pathList.get(pathList.size() - 1));
+    ColumnsRange columnsRange =
+        new ColumnsRange(pathList.get(0), pathList.get(pathList.size() - 1));
 
     Pair<Map<KeyInterval, List<FragmentMeta>>, List<FragmentMeta>> pair =
-        getFragmentsByTSInterval(selectStatement, interval);
+        getFragmentsByTSInterval(selectStatement, columnsRange);
     Map<KeyInterval, List<FragmentMeta>> fragments = pair.k;
     List<FragmentMeta> dummyFragments = pair.v;
 
@@ -618,9 +619,10 @@ public class QueryGenerator extends AbstractGenerator {
   }
 
   private Pair<Map<KeyInterval, List<FragmentMeta>>, List<FragmentMeta>> getFragmentsByTSInterval(
-      SelectStatement selectStatement, ColumnsRange interval) {
+      SelectStatement selectStatement, ColumnsRange columnsRange) {
     Map<ColumnsRange, List<FragmentMeta>> fragmentsByColumnsRange =
-        metaManager.getFragmentMapByColumnsRange(PathUtils.trimTimeSeriesInterval(interval), true);
+        metaManager.getFragmentMapByColumnsRange(
+            PathUtils.trimTimeSeriesInterval(columnsRange), true);
     if (!metaManager.hasFragment()) {
       if (metaManager.hasWritableStorageEngines()) {
         // on startup
@@ -629,7 +631,7 @@ public class QueryGenerator extends AbstractGenerator {
         metaManager.createInitialFragmentsAndStorageUnits(
             fragmentsAndStorageUnits.v, fragmentsAndStorageUnits.k);
       }
-      fragmentsByColumnsRange = metaManager.getFragmentMapByColumnsRange(interval, true);
+      fragmentsByColumnsRange = metaManager.getFragmentMapByColumnsRange(columnsRange, true);
     }
     return keyFromColumnsIntervalToKeyInterval(fragmentsByColumnsRange);
   }

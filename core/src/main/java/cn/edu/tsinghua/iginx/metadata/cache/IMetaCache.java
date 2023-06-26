@@ -36,27 +36,25 @@ public interface IMetaCache {
 
   void updateFragment(FragmentMeta fragmentMeta);
 
-  void updateFragmentByColumnsInterval(ColumnsRange columnsInterval, FragmentMeta fragmentMeta);
+  void updateFragmentByColumnsInterval(ColumnsRange columnsRange, FragmentMeta fragmentMeta);
 
-  void deleteFragmentByColumnsInterval(ColumnsRange columnsInterval, FragmentMeta fragmentMeta);
+  void deleteFragmentByColumnsInterval(ColumnsRange columnsRange, FragmentMeta fragmentMeta);
 
-  List<FragmentMeta> getFragmentMapByExactColumnsInterval(ColumnsRange columnsInterval);
+  List<FragmentMeta> getFragmentMapByExactColumnsInterval(ColumnsRange columnsRange);
 
-  Map<ColumnsRange, List<FragmentMeta>> getFragmentMapByColumnsInterval(
-      ColumnsRange columnsInterval);
+  Map<ColumnsRange, List<FragmentMeta>> getFragmentMapByColumnsInterval(ColumnsRange columnsRange);
 
-  List<FragmentMeta> getDummyFragmentsByColumnsInterval(ColumnsRange columnsInterval);
+  List<FragmentMeta> getDummyFragmentsByColumnsInterval(ColumnsRange columnsRange);
 
   Map<ColumnsRange, FragmentMeta> getLatestFragmentMap();
 
-  Map<ColumnsRange, FragmentMeta> getLatestFragmentMapByColumnsInterval(
-      ColumnsRange columnsInterval);
+  Map<ColumnsRange, FragmentMeta> getLatestFragmentMapByColumnsInterval(ColumnsRange columnsRange);
 
   Map<ColumnsRange, List<FragmentMeta>> getFragmentMapByColumnsIntervalAndKeyInterval(
-      ColumnsRange columnsInterval, KeyInterval keyInterval);
+      ColumnsRange columnsRange, KeyInterval keyInterval);
 
   List<FragmentMeta> getDummyFragmentsByColumnsIntervalAndKeyInterval(
-      ColumnsRange columnsInterval, KeyInterval keyInterval);
+      ColumnsRange columnsRange, KeyInterval keyInterval);
 
   List<FragmentMeta> getFragmentListByColumnName(String columnName);
 

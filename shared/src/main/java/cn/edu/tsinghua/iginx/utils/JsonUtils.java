@@ -7,7 +7,7 @@ import java.util.Map;
 public class JsonUtils {
 
   public static byte[] toJson(Object o) {
-    return JSON.toJSONString(o).getBytes();
+    return JSON.toJSONBytes(o);
   }
 
   public static <T> T fromJson(byte[] data, Class<T> clazz) {

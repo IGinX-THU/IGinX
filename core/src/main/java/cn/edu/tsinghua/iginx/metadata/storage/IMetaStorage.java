@@ -156,7 +156,7 @@ public interface IMetaStorage {
 
   Map<FragmentMeta, Long> loadFragmentPoints(IMetaCache cache) throws Exception;
 
-  void deleteFragmentPoints(ColumnsRange columnsInterval, KeyInterval keyInterval) throws Exception;
+  void deleteFragmentPoints(ColumnsRange columnsRange, KeyInterval keyInterval) throws Exception;
 
   void updateFragmentPoints(FragmentMeta fragmentMeta, long points) throws Exception;
 
