@@ -20,7 +20,7 @@ jobs:
                 java: [8]
                 python-version: ["3.7.16"]
                 os: [macos-latest]
-                DB-name: ["IoTDB12", "InfluxDB", "PostgreSQL"]
+                DB-name: ["IoTDB12", "InfluxDB", "PostgreSQL", "Redis"]
                 # 移除了"Redis"，因为在macos上的测试老是不过，后面再加上
         runs-on: ${{ matrix.os }}
         steps:
