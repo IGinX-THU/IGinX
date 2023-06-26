@@ -46,17 +46,17 @@ public class Config {
 
   private int asyncExecuteThreadPool = 20;
 
-  private int replicaNum = 1;
+  private int replicaNum = 0;
 
   private TimePrecision timePrecision = TimePrecision.NS;
 
   private String databaseClassNames =
-      "iotdb=cn.edu.tsinghua.iginx.iotdb.IoTDBPlanExecutor,influxdb=cn.edu.tsinghua.iginx.influxdb.InfluxDBPlanExecutor,parquet=cn.edu.tsinghua.iginx.parquet.parquetStorage";
+      "iotdb12=cn.edu.tsinghua.iginx.iotdb.IoTDBStorage,influxdb=cn.edu.tsinghua.iginx.influxdb.InfluxDBStorage,parquet=cn.edu.tsinghua.iginx.parquet.ParquetStorage,postgresql=cn.edu.tsinghua.iginx.postgresql.PostgreSQLStorage,mongodb=cn.edu.tsinghua.iginx.mongodb.MongoDBStorage,redis=cn.edu.tsinghua.iginx.redis.RedisStorage";
   // ,opentsdb=cn.edu.tsinghua.iginx.opentsdb.OpenTSDBStorage,timescaledb=cn.edu.tsinghua.iginx.timescaledb.TimescaleDBStorage,postgresql=cn.edu.tsinghua.iginx.postgresql.PostgreSQLStorage
 
-  private String policyClassName = "cn.edu.tsinghua.iginx.policy.naive.NativePolicy";
+  private String policyClassName = "cn.edu.tsinghua.iginx.policy.naive.NaivePolicy";
 
-  private boolean enableMonitor = true;
+  private boolean enableMonitor = false;
 
   private int loadBalanceCheckInterval = 3;
 
