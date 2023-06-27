@@ -20,6 +20,7 @@ package cn.edu.tsinghua.iginx.metadata.entity;
 
 import static cn.edu.tsinghua.iginx.utils.StringUtils.isContainSpecialChar;
 
+import cn.edu.tsinghua.iginx.engine.logical.utils.PathUtils;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.util.Objects;
 import org.slf4j.Logger;
@@ -38,7 +39,8 @@ public final class ColumnsRange implements Comparable<ColumnsRange> {
   // 右边界是否为闭
   private boolean isClosed;
 
-  private final String FORMAT = "%s.*";
+  private final String START_FORMAT = "%s" + PathUtils.MIN_CHAR;
+  private final String END_FORMAT = "%s" + PathUtils.MAX_CHAR;
 
   public ColumnsRange(String startColumn, String endColumn, boolean isClosed) {
     this.startColumn = startColumn;
@@ -47,8 +49,8 @@ public final class ColumnsRange implements Comparable<ColumnsRange> {
   }
 
   public ColumnsRange(String column) {
-    this.startColumn = String.format(FORMAT, column);
-    this.endColumn = String.format(FORMAT, column);
+    this.startColumn = String.format(START_FORMAT, column);
+    this.endColumn = String.format(END_FORMAT, column);
     this.isClosed = true;
   }
 
@@ -70,7 +72,9 @@ public final class ColumnsRange implements Comparable<ColumnsRange> {
   }
 
   private String realColumn(String column) {
-    if (column != null && schemaPrefix != null) return this.schemaPrefix + "." + column;
+    if (column != null && schemaPrefix != null) {
+      return this.schemaPrefix + "." + column;
+    }
     return column;
   }
 
@@ -113,8 +117,12 @@ public final class ColumnsRange implements Comparable<ColumnsRange> {
 
   @Override
   public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
     ColumnsRange that = (ColumnsRange) o;
     return Objects.equals(this.startColumn, that.getStartColumn())
         && Objects.equals(this.endColumn, that.getEndColumn());
@@ -127,100 +135,94 @@ public final class ColumnsRange implements Comparable<ColumnsRange> {
 
   public boolean isContain(String colName) {
     // judge if is the dummy node && it will have specific prefix
-    String startColumns = realColumn(this.startColumn);
-    String endColumns = realColumn(this.endColumn);
-    boolean isContainBeg = colName != null && StringUtils.compare(colName, startColumns, true) >= 0;
+    String realStartColumn = realColumn(this.startColumn);
+    String realEndColumn = realColumn(this.endColumn);
+    boolean isContainBeg = false;
     boolean isContainEnd = false;
     if (colName != null) {
-      int res = StringUtils.compare(colName, endColumns, false);
+      int res = StringUtils.compare(colName, realEndColumn, false);
+      isContainBeg = StringUtils.compare(colName, realStartColumn, true) >= 0;
       isContainEnd = this.isClosed ? res <= 0 : res < 0;
     }
 
-    return (startColumns == null || isContainBeg) && (endColumns == null || isContainEnd);
-  }
-
-  public boolean isCompletelyBefore(String colName) {
-    // judge if is the dummy node && it will have specific prefix
-    String endColumns = realColumn(this.endColumn);
-
-    return endColumns != null && colName != null && endColumns.compareTo(colName) <= 0;
+    return (realStartColumn == null || isContainBeg) && (realEndColumn == null || isContainEnd);
   }
 
   public boolean isIntersect(ColumnsRange colRange) {
     // judge if is the dummy node && it will have specific prefix
-    String startColumns = realColumn(this.startColumn);
-    String endColumns = realColumn(this.endColumn);
-    boolean isContainEnd =
-        colRange.getEndColumn() == null
-            || StringUtils.compare(colRange.getEndColumn(), startColumns, true) >= 0;
-    boolean isContainBeg;
-    if (colRange.getStartColumn() != null) {
-      int res = StringUtils.compare(colRange.getStartColumn(), endColumns, false);
+    String realStartColumn = realColumn(this.startColumn);
+    String realEndColumn = realColumn(this.endColumn);
+    boolean isContainEnd = true;
+    boolean isContainBeg = true;
+    if (colRange.getEndColumn() != null && realStartColumn != null) {
+      int res = StringUtils.compare(colRange.getEndColumn(), realStartColumn, true);
+      isContainEnd = colRange.isClosed ? res >= 0 : res > 0;
+    }
+    if (colRange.getStartColumn() != null && realEndColumn != null) {
+      int res = StringUtils.compare(colRange.getStartColumn(), realEndColumn, false);
       isContainBeg = this.isClosed ? res <= 0 : res < 0;
-    } else {
-      isContainBeg = true;
     }
 
-    return (colRange.getStartColumn() == null || endColumns == null || isContainBeg)
-        && (isContainEnd || colRange.getEndColumn() == null || startColumns == null);
+    return isContainBeg && isContainEnd;
   }
 
-  public ColumnsRange getIntersect(ColumnsRange colRange) {
-    if (!isIntersect(colRange)) {
-      return null;
-    }
-    // judge if is the dummy node && it will have specific prefix
-    String startColumns = realColumn(this.startColumn);
-    String endColumns = realColumn(this.endColumn);
+  // TODO: 如果后续有需要，根据isClosed变量进行修改
 
-    String start =
-        startColumns == null
-            ? colRange.getStartColumn()
-            : colRange.getStartColumn() == null
-                ? startColumns
-                : StringUtils.compare(colRange.getStartColumn(), startColumns, true) < 0
-                    ? startColumns
-                    : colRange.getStartColumn();
-    String end =
-        endColumns == null
-            ? colRange.getEndColumn()
-            : colRange.getEndColumn() == null
-                ? endColumns
-                : StringUtils.compare(colRange.getEndColumn(), endColumns, false) < 0
-                    ? colRange.getEndColumn()
-                    : endColumns;
-    return new ColumnsRange(start, end);
-  }
+  //  public ColumnsRange getIntersect(ColumnsRange colRange) {
+  //    if (!isIntersect(colRange)) {
+  //      return null;
+  //    }
+  //    // judge if is the dummy node && it will have specific prefix
+  //    String realStartColumn = realColumn(this.startColumn);
+  //    String realEndColumn = realColumn(this.endColumn);
+  //
+  //    String start =
+  //        realStartColumn == null
+  //            ? colRange.getStartColumn()
+  //            : colRange.getStartColumn() == null
+  //                ? realStartColumn
+  //                : StringUtils.compare(colRange.getStartColumn(), realStartColumn, true) < 0
+  //                    ? realStartColumn
+  //                    : colRange.getStartColumn();
+  //    String end =
+  //        realEndColumn == null
+  //            ? colRange.getEndColumn()
+  //            : colRange.getEndColumn() == null
+  //                ? realEndColumn
+  //                : StringUtils.compare(colRange.getEndColumn(), realEndColumn, false) < 0
+  //                    ? colRange.getEndColumn()
+  //                    : realEndColumn;
+  //    return new ColumnsRange(start, end);
+  //  }
 
   public boolean isCompletelyAfter(ColumnsRange colRange) {
     // judge if is the dummy node && it will have specific prefix
-    String startColumns = realColumn(this.startColumn);
-    if (colRange.getEndColumn() == null || startColumns == null) {
+    String realStartColumn = realColumn(this.startColumn);
+    if (colRange.getEndColumn() == null || realStartColumn == null) {
       return false;
     }
-    int isAfter = StringUtils.compare(colRange.getEndColumn(), startColumns, true);
-
-    return isAfter < 0;
+    int res = StringUtils.compare(colRange.getEndColumn(), realStartColumn, true);
+    return colRange.isClosed ? res < 0 : res <= 0;
   }
 
   public boolean isAfter(String colName) {
     // judge if is the dummy node && it will have specific prefix
-    String startColumns = realColumn(this.startColumn);
+    String realStartColumn = realColumn(this.startColumn);
 
-    return startColumns != null && StringUtils.compare(colName, startColumns, true) < 0;
+    return realStartColumn != null && StringUtils.compare(colName, realStartColumn, true) < 0;
   }
 
   @Override
   public int compareTo(ColumnsRange o) {
     // judge if is the dummy node && it will have specific prefix
-    String startColumns = realColumn(this.startColumn);
-    String endColumns = realColumn(this.endColumn);
+    String realStartColumn = realColumn(this.startColumn);
+    String realEndColumn = realColumn(this.endColumn);
 
-    int value = compareTo(startColumns, o.getStartColumn());
+    int value = compareTo(realStartColumn, o.getStartColumn());
     if (value != 0) {
       return value;
     }
-    return compareTo(endColumns, o.getEndColumn());
+    return compareTo(realEndColumn, o.getEndColumn());
   }
 
   // Strange function: it should not work on the implementation of ColumnsPrefixRange
@@ -234,10 +236,12 @@ public final class ColumnsRange implements Comparable<ColumnsRange> {
       return new ColumnsRange(
           parts[0].equals("null") ? null : parts[0], parts[1].equals("null") ? null : parts[1]);
     } else {
-      if (str.contains(".*") && str.indexOf(".*") == str.length() - 2)
+      if (str.contains(".*") && str.indexOf(".*") == str.length() - 2) {
         str = str.substring(0, str.length() - 2);
-      if (!isContainSpecialChar(str)) return new ColumnsRange(str);
-      else {
+      }
+      if (!isContainSpecialChar(str)) {
+        return new ColumnsRange(str);
+      } else {
         logger.error("Input string {} in invalid format of ColumnsPrefixRange ", str);
         throw new IllegalArgumentException("Input invalid string format in ColumnsRange");
       }
