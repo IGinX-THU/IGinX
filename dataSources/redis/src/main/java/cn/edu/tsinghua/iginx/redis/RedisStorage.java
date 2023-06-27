@@ -34,6 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.JedisPoolConfig;
 
 public class RedisStorage implements IStorage {
 
@@ -57,6 +58,10 @@ public class RedisStorage implements IStorage {
 
   private static final String SUFFIX_VALUE = ".value";
 
+  private static final String TIMEOUT = "timeout";
+
+  private static final int DEFAULT_TIMEOUT = 5000;
+
   private final StorageEngineMeta meta;
 
   private final JedisPool jedisPool;
@@ -70,7 +75,10 @@ public class RedisStorage implements IStorage {
   }
 
   private JedisPool createJedisPool() {
-    return new JedisPool(meta.getIp(), meta.getPort());
+    Map<String, String> extraParams = meta.getExtraParams();
+    int timeout =
+        Integer.parseInt(extraParams.getOrDefault(TIMEOUT, String.valueOf(DEFAULT_TIMEOUT)));
+    return new JedisPool(new JedisPoolConfig(), meta.getIp(), meta.getPort(), timeout);
   }
 
   @Override

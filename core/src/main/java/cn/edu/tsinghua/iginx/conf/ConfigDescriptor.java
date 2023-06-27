@@ -75,16 +75,16 @@ public class ConfigDescriptor {
       config.setDatabaseClassNames(
           properties.getProperty(
               "databaseClassNames",
-              "iotdb=cn.edu.tsinghua.iginx.iotdb.IoTDBPlanExecutor,influxdb=cn.edu.tsinghua.iginx.influxdb.InfluxDBPlanExecutor,parquet=cn.edu.tsinghua.iginx.parquet.parquetStorage,mongodb=cn.edu.tsinghua.iginx.mongodb.MongoDBStorage,postgresql=cn.edu.tsinghua.iginx.postgresql.PostgreSQLStorage"));
-      // ,opentsdb=cn.edu.tsinghua.iginx.opentsdb.OpenTSDBStorage,timescaledb=cn.edu.tsinghua.iginx.timescaledb.TimescaleDBStorage,postgresql=cn.edu.tsinghua.iginx.postgresql.PostgreSQLStorage
+              "iotdb12=cn.edu.tsinghua.iginx.iotdb.IoTDBStorage,influxdb=cn.edu.tsinghua.iginx.influxdb.InfluxDBStorage,parquet=cn.edu.tsinghua.iginx.parquet.ParquetStorage,postgresql=cn.edu.tsinghua.iginx.postgresql.PostgreSQLStorage,mongodb=cn.edu.tsinghua.iginx.mongodb.MongoDBStorage,redis=cn.edu.tsinghua.iginx.redis.RedisStorage"));
+      // ,opentsdb=cn.edu.tsinghua.iginx.opentsdb.OpenTSDBStorage,timescaledb=cn.edu.tsinghua.iginx.timescaledb.TimescaleDBStorage
 
       config.setPolicyClassName(
           properties.getProperty(
-              "policyClassName", "cn.edu.tsinghua.iginx.policy.naive.NativePolicy"));
+              "policyClassName", "cn.edu.tsinghua.iginx.policy.naive.NaivePolicy"));
       config.setMigrationBatchSize(
           Integer.parseInt(properties.getProperty("migrationBatchSize", "100")));
       config.setEnableMonitor(
-          Boolean.parseBoolean(properties.getProperty("enableMonitor", "true")));
+          Boolean.parseBoolean(properties.getProperty("enableMonitor", "false")));
       config.setLoadBalanceCheckInterval(
           Integer.parseInt(properties.getProperty("loadBalanceCheckInterval", "10")));
       config.setEnableFragmentCompaction(
