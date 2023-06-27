@@ -79,6 +79,26 @@ You can now test IGinX. Have fun!~
 =========================================
 ```
 
+If you encounter `file not found` error on Windows OS, try modify file `./runIginxOn1Host.bat`.
+
+```shell
+#./runIginxOn1Host.bat
+# line 2
+start "zookeeper" /d "include/apache-zookeeper-3.7.0-bin/" bin\zkServer.cmd
+# ↓ change to
+start "zookeeper" /d "include\apache-zookeeper-3.7.0-bin\" bin\zkServer.cmd
+
+# line 5
+start "iotdb" /d "include/apache-iotdb-0.12.6/sbin" start-server.bat
+# ↓ change to
+start "iotdb" /d "include\apache-iotdb-0.12.6\sbin" start-server.bat
+
+# line 9
+start "iginx" /d "./sbin" start_iginx.bat
+# ↓ change to
+start "iginx" /d ".\sbin" start_iginx.bat
+```
+
 ## Using IGinX
 
 ### RESTful interface
@@ -256,7 +276,7 @@ Specifically, when using it, you only need to introduce the following dependenci
 </dependency>
 ```
 
-Before accessing Iginx, you first need to create a session and try to connect. The Session constructor has 4 parameters, which are the ip and port IGinX will to connect to, and the username and password for IGinX authentication. The current authentication system is still being written, so the account name and password to access the backend IGinX can directly fill in root:
+Before accessing IGinX, you first need to create a session and try to connect. The Session constructor has 4 parameters, which are the ip and port IGinX will to connect to, and the username and password for IGinX authentication. The current authentication system is still being written, so the account name and password to access the backend IGinX can directly fill in root:
 
 ```Java
 Session session = new Session("127.0.0.1", 6888, "root", "root");
