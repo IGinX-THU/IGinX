@@ -55,19 +55,22 @@ public class LocalExecutor implements Executor {
 
     @Override
     public TaskExecuteResult executeProjectTask(
-            Project project, byte[] filter, String storageUnit, boolean isDummyStorageUnit) {
-        List<String> series = project.getPatterns();
-        TagFilter tagFilter = project.getTagFilter();
+        List<String> paths,
+        TagFilter tagFilter,
+        String filter,
+        String storageUnit,
+        boolean isDummyStorageUnit) {
+        try {
         Filter filterEntity = FilterTransformer.toFilter(filter);
         if (isDummyStorageUnit) {
             if (tagFilter != null) {
                 logger.warn("dummy storage query should contain no tag filter");
                 return new TaskExecuteResult(new FileSystemHistoryQueryRowStream());
             }
-            return executeDummyProjectTask(series, filterEntity);
+            return executeDummyProjectTask(paths, filterEntity);
         }
 
-        return executeQueryTask(storageUnit, series, tagFilter, filterEntity);
+        return executeQueryTask(storageUnit, paths, tagFilter, filterEntity);
     }
 
     public TaskExecuteResult executeQueryTask(
