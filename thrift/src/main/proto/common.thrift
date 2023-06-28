@@ -1,7 +1,8 @@
+include "rpc.thrift"
 namespace java cn.edu.tsinghua.iginx.common.thrift
 
 struct Status {
-    1: required 32 code
+    1: required i32 code
     2: required string message
 }
 
@@ -14,6 +15,37 @@ enum TagFilterType {
     WithoutTag,
 }
 
+enum FilterType {
+    Key,
+    Value,
+    Path,
+    Bool,
+    And,
+    Or,
+    Not,
+}
+
+enum Op {
+    GE,
+    G,
+    LE,
+    L,
+    E,
+    NE,
+    LIKE,
+    UNKNOW,
+}
+
+struct Value {
+    1: required rpc.DataType dataType
+    2: optional bool boolV
+    3: optional i32 intV
+    4: optional i64 longV
+    5: optional double floatV
+    6: optional double doubleV
+    7: optional binary binaryV
+}
+
 struct RawTagFilter {
     1: required TagFilterType type
     2: optional string key
@@ -22,31 +54,18 @@ struct RawTagFilter {
     5: optional list<RawTagFilter> children
 }
 
-struct FileDataHeader {
-    1: required list<string> names
-    2: required list<string> types
-    3: required list<map<string, string>> tagsList
-    4: required bool hasTime
+struct ProjectReq {
+    1: required string storageUnit
+    2: required bool isDummyStorageUnit
+    3: required list<string> paths
+    4: optional RawTagFilter tagFilter
+    5: optional string filter
 }
 
-struct FileDataRow {
-    1: optional i64 timestamp
-    2: required binary rowValues
-    3: required binary bitmap
-}
-
-struct ProjectResp {
+struct GetStorageBoundryResp {
     1: required Status status
-    2: optional FileDataHeader header
-    3: optional list<FileDataRow> rows
-}
-
-struct FileDataRawData {
-    1: required list<string> paths
-    2: required list<map<string, string>> tagsList
-    3: required binary timestamps
-    4: required list<binary> valuesList
-    5: required list<binary> bitmapList
-    6: required list<string> dataTypeList
-    7: required string rawDataType
+    2: optional i64 startTime
+    3: optional i64 endTime
+    4: optional string startTimeSeries
+    5: optional string endTimeSeries
 }

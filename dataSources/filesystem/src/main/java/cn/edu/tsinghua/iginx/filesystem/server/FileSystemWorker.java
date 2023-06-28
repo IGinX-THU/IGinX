@@ -1,24 +1,21 @@
 package cn.edu.tsinghua.iginx.filesystem.server;
 
+import cn.edu.tsinghua.iginx.common.thrift.GetStorageBoundryResp;
+import cn.edu.tsinghua.iginx.common.thrift.ProjectReq;
+import cn.edu.tsinghua.iginx.common.thrift.RawTagFilter;
+import cn.edu.tsinghua.iginx.common.thrift.Status;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Timeseries;
+import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
-import cn.edu.tsinghua.iginx.engine.shared.TimeRange;
+import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.*;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.*;
-import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
-import cn.edu.tsinghua.iginx.engine.shared.source.Source;
-import cn.edu.tsinghua.iginx.engine.shared.source.SourceType;
 import cn.edu.tsinghua.iginx.filesystem.exec.Executor;
 import cn.edu.tsinghua.iginx.filesystem.thrift.*;
-import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
-import cn.edu.tsinghua.iginx.metadata.entity.TimeInterval;
-import cn.edu.tsinghua.iginx.metadata.entity.TimeSeriesRange;
+import cn.edu.tsinghua.iginx.metadata.entity.ColumnsRange;
+import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.ByteUtils;
@@ -53,37 +50,16 @@ public class FileSystemWorker implements FileSystemService.Iface {
         this.executor = executor;
     }
 
-    private static final class EmptySource implements Source {
-
-        public static final EmptySource EMPTY_SOURCE = new EmptySource();
-
-        @Override
-        public SourceType getType() {
-            return null;
-        }
-
-        @Override
-        public Source copy() {
-            return null;
-        }
-    }
-
-    private static final class EmptyFragmentSource extends FragmentSource {
-
-        public static final EmptyFragmentSource EMPTY_SOURCE = new EmptyFragmentSource();
-
-        public EmptyFragmentSource() {
-            super(new FragmentMeta((TimeSeriesRange) null, (TimeInterval) null, (String) null));
-        }
-    }
-
     @Override
     public ProjectResp executeProject(ProjectReq req) throws TException {
         TagFilter tagFilter = resolveRawTagFilter(req.getTagFilter());
-        Project project = new Project(EmptySource.EMPTY_SOURCE, req.getPaths(), tagFilter);
         TaskExecuteResult result =
                 executor.executeProjectTask(
-                        project, req.getFilter(), req.getStorageUnit(), req.isDummyStorageUnit);
+                        req.getPaths(),
+                        tagFilter,
+                        req.getFilter(),
+                        req.getStorageUnit(),
+                        req.isDummyStorageUnit);
 
         RowStream rowStream = result.getRowStream();
 
@@ -207,8 +183,7 @@ public class FileSystemWorker implements FileSystemService.Iface {
                             rawData, 0, rawData.getPaths().size(), 0, rawData.getKeys().size());
         }
 
-        Insert insert = new Insert(EmptyFragmentSource.EMPTY_SOURCE, dataView);
-        TaskExecuteResult result = executor.executeInsertTask(insert, req.getStorageUnit());
+        TaskExecuteResult result = executor.executeInsertTask(dataView, req.getStorageUnit());
         if (result.getException() == null) {
             return SUCCESS;
         } else {
@@ -221,17 +196,17 @@ public class FileSystemWorker implements FileSystemService.Iface {
         TagFilter tagFilter = resolveRawTagFilter(req.getTagFilter());
 
         // null timeRanges means delete time series
-        List<TimeRange> timeRanges = null;
+        List<KeyRange> keyRanges = null;
         if (req.isSetTimeRanges()) {
-            timeRanges = new ArrayList<>();
+            keyRanges = new ArrayList<>();
             for (FileSystemTimeRange range : req.getTimeRanges()) {
-                timeRanges.add(new TimeRange(range.getBeginTime(), range.getEndTime()));
+                keyRanges.add(new KeyRange(range.getBeginTime(), range.getEndTime()));
             }
         }
 
-        Delete delete =
-                new Delete(EmptyFragmentSource.EMPTY_SOURCE, timeRanges, req.getPaths(), tagFilter);
-        TaskExecuteResult result = executor.executeDeleteTask(delete, req.getStorageUnit());
+        TaskExecuteResult result =
+                executor.executeDeleteTask(
+                        req.getPaths(), keyRanges, tagFilter, req.getStorageUnit());
         if (result.getException() == null) {
             return SUCCESS;
         } else {
@@ -244,7 +219,7 @@ public class FileSystemWorker implements FileSystemService.Iface {
             throws TException {
         List<PathSet> ret = new ArrayList<>();
         try {
-            List<Timeseries> tsList = executor.getTimeSeriesOfStorageUnit(storageUnit);
+            List<Column> tsList = executor.getColumnOfStorageUnit(storageUnit);
             tsList.forEach(
                     timeseries -> {
                         PathSet pathSet =
@@ -267,12 +242,12 @@ public class FileSystemWorker implements FileSystemService.Iface {
     @Override
     public GetStorageBoundryResp getBoundaryOfStorage(String prefix) throws TException {
         try {
-            Pair<TimeSeriesRange, TimeInterval> pair = executor.getBoundaryOfStorage(prefix);
+            Pair<ColumnsRange, KeyInterval> pair = executor.getBoundaryOfStorage(prefix);
             GetStorageBoundryResp resp = new GetStorageBoundryResp(SUCCESS);
-            resp.setStartTime(pair.getV().getStartTime());
-            resp.setEndTime(pair.getV().getEndTime());
-            resp.setStartTimeSeries(pair.getK().getStartTimeSeries());
-            resp.setEndTimeSeries(pair.getK().getEndTimeSeries());
+            resp.setStartTime(pair.getV().getStartKey());
+            resp.setEndTime(pair.getV().getEndKey());
+            resp.setStartTimeSeries(pair.getK().getStartColumn());
+            resp.setEndTimeSeries(pair.getK().getEndColumn());
             return resp;
         } catch (PhysicalException e) {
             logger.error("encounter error when getBoundaryOfStorage ", e);

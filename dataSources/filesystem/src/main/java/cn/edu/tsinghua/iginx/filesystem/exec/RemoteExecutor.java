@@ -1,10 +1,12 @@
 package cn.edu.tsinghua.iginx.filesystem.exec;
 
+import cn.edu.tsinghua.iginx.common.thrift.*;
+import cn.edu.tsinghua.iginx.common.thrift.TagFilterType;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
-import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Timeseries;
+import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
-import cn.edu.tsinghua.iginx.engine.shared.TimeRange;
+import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
@@ -12,15 +14,11 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.BitmapView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.RawDataType;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.*;
 import cn.edu.tsinghua.iginx.filesystem.thrift.*;
-import cn.edu.tsinghua.iginx.filesystem.thrift.TagFilterType;
-import cn.edu.tsinghua.iginx.metadata.entity.TimeInterval;
-import cn.edu.tsinghua.iginx.metadata.entity.TimeSeriesInterval;
-import cn.edu.tsinghua.iginx.metadata.entity.TimeSeriesRange;
+import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
+import cn.edu.tsinghua.iginx.metadata.entity.ColumnsRange;
+import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.ByteUtils;
@@ -32,7 +30,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.transport.TSocket;
@@ -61,10 +58,14 @@ public class RemoteExecutor implements Executor {
 
     @Override
     public TaskExecuteResult executeProjectTask(
-            Project project, byte[] filter, String storageUnit, boolean isDummyStorageUnit) {
-        ProjectReq req = new ProjectReq(storageUnit, isDummyStorageUnit, project.getPatterns());
-        if (project.getTagFilter() != null) {
-            req.setTagFilter(constructRawTagFilter(project.getTagFilter()));
+            List<String> paths,
+            TagFilter tagFilter,
+            String filter,
+            String storageUnit,
+            boolean isDummyStorageUnit) {
+        ProjectReq req = new ProjectReq(storageUnit, isDummyStorageUnit, paths);
+        if (tagFilter != null) {
+            req.setTagFilter(constructRawTagFilter(tagFilter));
         }
         if (filter != null && !filter.equals("")) {
             req.setFilter(filter);
@@ -129,10 +130,9 @@ public class RemoteExecutor implements Executor {
     }
 
     @Override
-    public TaskExecuteResult executeInsertTask(Insert insert, String storageUnit) {
+    public TaskExecuteResult executeInsertTask(DataView dataView, String storageUnit) {
         List<String> paths = new ArrayList<>();
         List<String> types = new ArrayList<>();
-        DataView dataView = insert.getData();
         List<Map<String, String>> tagsList = new ArrayList<>();
         for (int i = 0; i < dataView.getPathNum(); i++) {
             paths.add(dataView.getPath(i));
@@ -140,8 +140,8 @@ public class RemoteExecutor implements Executor {
             tagsList.add(dataView.getTags(i) == null ? new HashMap<>() : dataView.getTags(i));
         }
 
-        long[] times = new long[dataView.getTimeSize()];
-        for (int i = 0; i < dataView.getTimeSize(); i++) {
+        long[] times = new long[dataView.getKeySize()];
+        for (int i = 0; i < dataView.getKeySize(); i++) {
             times[i] = dataView.getKey(i);
         }
 
@@ -178,24 +178,22 @@ public class RemoteExecutor implements Executor {
     }
 
     @Override
-    public TaskExecuteResult executeDeleteTask(Delete delete, String storageUnit) {
-        List<String> paths = delete.getPatterns();
-        List<TimeRange> timeRanges = delete.getTimeRanges();
-        TagFilter tagFilter = delete.getTagFilter();
+    public TaskExecuteResult executeDeleteTask(
+            List<String> paths, List<KeyRange> keyRanges, TagFilter tagFilter, String storageUnit) {
         DeleteReq req = new DeleteReq(storageUnit, paths);
         if (tagFilter != null) {
             req.setTagFilter(constructRawTagFilter(tagFilter));
         }
-        if (timeRanges != null) {
+        if (keyRanges != null) {
             List<FileSystemTimeRange> fileSystemTimeRange = new ArrayList<>();
-            timeRanges.forEach(
+            keyRanges.forEach(
                     timeRange ->
                             fileSystemTimeRange.add(
                                     new FileSystemTimeRange(
-                                            timeRange.getBeginTime(),
-                                            timeRange.isIncludeBeginTime(),
-                                            timeRange.getEndTime(),
-                                            timeRange.isIncludeEndTime())));
+                                            timeRange.getBeginKey(),
+                                            timeRange.isIncludeBeginKey(),
+                                            timeRange.getEndKey(),
+                                            timeRange.isIncludeEndKey())));
             req.setTimeRanges(fileSystemTimeRange);
         }
 
@@ -213,16 +211,15 @@ public class RemoteExecutor implements Executor {
     }
 
     @Override
-    public List<Timeseries> getTimeSeriesOfStorageUnit(String storageUnit)
-            throws PhysicalException {
+    public List<Column> getColumnOfStorageUnit(String storageUnit) throws PhysicalException {
         try {
             GetTimeSeriesOfStorageUnitResp resp = client.getTimeSeriesOfStorageUnit(storageUnit);
-            List<Timeseries> timeSeriesList = new ArrayList<>();
+            List<Column> timeSeriesList = new ArrayList<>();
             resp.getPathList()
                     .forEach(
                             ts ->
                                     timeSeriesList.add(
-                                            new Timeseries(
+                                            new Column(
                                                     ts.getPath(),
                                                     DataTypeUtils.strToDataType(ts.getDataType()),
                                                     ts.getTags())));
@@ -233,13 +230,13 @@ public class RemoteExecutor implements Executor {
     }
 
     @Override
-    public Pair<TimeSeriesRange, TimeInterval> getBoundaryOfStorage(String prefix)
+    public Pair<ColumnsRange, KeyInterval> getBoundaryOfStorage(String prefix)
             throws PhysicalException {
         try {
             GetStorageBoundryResp resp = client.getBoundaryOfStorage(prefix);
             return new Pair<>(
-                    new TimeSeriesInterval(resp.getStartTimeSeries(), resp.getEndTimeSeries()),
-                    new TimeInterval(resp.getStartTime(), resp.getEndTime()));
+                    new ColumnsInterval(resp.getStartTimeSeries(), resp.getEndTimeSeries()),
+                    new KeyInterval(resp.getStartTime(), resp.getEndTime()));
         } catch (TException e) {
             throw new PhysicalException("encounter error when getBoundaryOfStorage ", e);
         }
@@ -253,7 +250,7 @@ public class RemoteExecutor implements Executor {
     }
 
     private RawTagFilter constructRawTagFilter(TagFilter tagFilter) {
-        RawTagFilter filter  = null;
+        RawTagFilter filter = null;
         switch (tagFilter.getType()) {
             case Base:
                 {
@@ -261,7 +258,7 @@ public class RemoteExecutor implements Executor {
                     filter = new RawTagFilter(TagFilterType.Base);
                     filter.setKey(baseTagFilter.getTagKey());
                     filter.setValue(baseTagFilter.getTagValue());
-                   break;
+                    break;
                 }
             case WithoutTag:
                 {
@@ -279,30 +276,36 @@ public class RemoteExecutor implements Executor {
                 {
                     PreciseTagFilter preciseTagFilter = (PreciseTagFilter) tagFilter;
                     filter = new RawTagFilter(TagFilterType.Precise);
-                    filter.setChildren(preciseTagFilter.getChildren()
-                        .stream()
-                        .map(this::constructRawTagFilter)
-                        .collect(Collectors.toList()));
+                    filter.setChildren(
+                            preciseTagFilter
+                                    .getChildren()
+                                    .stream()
+                                    .map(this::constructRawTagFilter)
+                                    .collect(Collectors.toList()));
                     break;
                 }
             case And:
                 {
                     AndTagFilter andTagFilter = (AndTagFilter) tagFilter;
                     filter = new RawTagFilter(TagFilterType.And);
-                    filter.setChildren(andTagFilter.getChildren()
-                        .stream()
-                        .map(this::constructRawTagFilter)
-                        .collect(Collectors.toList()));
+                    filter.setChildren(
+                            andTagFilter
+                                    .getChildren()
+                                    .stream()
+                                    .map(this::constructRawTagFilter)
+                                    .collect(Collectors.toList()));
                     break;
                 }
             case Or:
                 {
                     OrTagFilter orTagFilter = (OrTagFilter) tagFilter;
                     filter = new RawTagFilter(TagFilterType.Or);
-                    filter.setChildren(orTagFilter.getChildren()
-                        .stream()
-                        .map(this::constructRawTagFilter)
-                        .collect(Collectors.toList()));
+                    filter.setChildren(
+                            orTagFilter
+                                    .getChildren()
+                                    .stream()
+                                    .map(this::constructRawTagFilter)
+                                    .collect(Collectors.toList()));
                     break;
                 }
             default:
@@ -320,10 +323,10 @@ public class RemoteExecutor implements Executor {
         for (int i = 0; i < dataView.getPathNum(); i++) {
             DataType dataType = dataView.getDataType(i);
             BitmapView bitmapView = dataView.getBitmapView(i);
-            Object[] values = new Object[dataView.getTimeSize()];
+            Object[] values = new Object[dataView.getKeySize()];
 
             int index = 0;
-            for (int j = 0; j < dataView.getTimeSize(); j++) {
+            for (int j = 0; j < dataView.getKeySize(); j++) {
                 if (bitmapView.get(j)) {
                     values[j] = dataView.getValue(i, index);
                     index++;
@@ -346,7 +349,7 @@ public class RemoteExecutor implements Executor {
             dataTypeList.add(dataView.getDataType(i));
         }
 
-        for (int i = 0; i < dataView.getTimeSize(); i++) {
+        for (int i = 0; i < dataView.getKeySize(); i++) {
             BitmapView bitmapView = dataView.getBitmapView(i);
             Object[] values = new Object[dataView.getPathNum()];
 

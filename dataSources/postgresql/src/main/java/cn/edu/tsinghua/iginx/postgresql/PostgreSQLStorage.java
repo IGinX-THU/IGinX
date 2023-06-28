@@ -1083,7 +1083,7 @@ public class PostgreSQLStorage implements IStorage {
             }
             statement.append(";");
 
-//            logger.info("[Insert] execute insert: {}", statement);
+            //            logger.info("[Insert] execute insert: {}", statement);
             stmt.addBatch(statement.toString());
         }
         stmt.executeBatch();

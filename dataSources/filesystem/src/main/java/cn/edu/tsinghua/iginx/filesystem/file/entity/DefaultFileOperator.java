@@ -19,7 +19,6 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.*;
 import java.util.concurrent.*;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,7 +69,7 @@ public class DefaultFileOperator implements IFileOperator {
         int index = 0;
         int batchSize = BUFFER_SIZE;
         boolean ifNeedMultithread = file.length() / (BUFFER_SIZE) > 5;
-        if(ifNeedMultithread){
+        if (ifNeedMultithread) {
             executorService = Executors.newCachedThreadPool();
         }
 
@@ -80,18 +79,20 @@ public class DefaultFileOperator implements IFileOperator {
                 long finalReadPos = readPos;
                 int finalIndex = index;
                 if (ifNeedMultithread) {
-                    futures.add(executorService.submit(() -> {
-                        readBatch(raf, batchSize, finalReadPos, finalIndex, res);
-                        return null;
-                    }));
-                }else{
+                    futures.add(
+                            executorService.submit(
+                                    () -> {
+                                        readBatch(raf, batchSize, finalReadPos, finalIndex, res);
+                                        return null;
+                                    }));
+                } else {
                     readBatch(raf, batchSize, finalReadPos, finalIndex, res);
                 }
                 index++;
                 readPos += BUFFER_SIZE;
             }
         } finally {
-            if(executorService!=null){
+            if (executorService != null) {
                 executorService.shutdown();
             }
         }
@@ -107,7 +108,9 @@ public class DefaultFileOperator implements IFileOperator {
         return res;
     }
 
-    public final void readBatch(RandomAccessFile raf, int batchSize, long readPos, int index, List<byte[]> res) throws IOException {
+    public final void readBatch(
+            RandomAccessFile raf, int batchSize, long readPos, int index, List<byte[]> res)
+            throws IOException {
         try {
             byte[] buffer = MemoryPool.allocate(batchSize); // 一次读取1MB
             raf.seek(readPos);
@@ -147,7 +150,7 @@ public class DefaultFileOperator implements IFileOperator {
     }
 
     public List<Record> readIginxFileByKey(File file, long begin, long end, Charset charset)
-            throws IOException{
+            throws IOException {
         Map<String, String> fileInfo = readIginxMetaInfo(file);
         List<Record> res = new ArrayList<>();
         long key;
@@ -528,7 +531,9 @@ public class DefaultFileOperator implements IFileOperator {
                 writer.write(String.valueOf(fileMeta.getDataType().getValue()));
                 writer.write("\n");
                 writer.write(
-                        fileMeta.getTag() == null ? "{}" : new String(JsonUtils.toJson(fileMeta.getTag())));
+                        fileMeta.getTag() == null
+                                ? "{}"
+                                : new String(JsonUtils.toJson(fileMeta.getTag())));
                 writer.write("\n");
                 for (int i = 0; i < FileMeta.iginxFileMetaIndex - 3; i++) {
                     writer.write("\n");
@@ -603,8 +608,7 @@ public class DefaultFileOperator implements IFileOperator {
     public List<File> listFiles(File file, String prefix) {
         FileFilter readFileFilter = null;
         if (prefix != null) {
-            readFileFilter =
-                file1 -> file1.getName().startsWith(prefix);
+            readFileFilter = file1 -> file1.getName().startsWith(prefix);
         }
 
         File[] files = null;

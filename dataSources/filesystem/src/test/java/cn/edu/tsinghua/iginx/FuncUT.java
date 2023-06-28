@@ -1,7 +1,6 @@
 package cn.edu.tsinghua.iginx;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Timeseries;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
@@ -18,10 +17,7 @@ import cn.edu.tsinghua.iginx.filesystem.query.FSResultTable;
 import cn.edu.tsinghua.iginx.filesystem.tools.ConfLoader;
 import cn.edu.tsinghua.iginx.filesystem.tools.FilterTransformer;
 import cn.edu.tsinghua.iginx.filesystem.wrapper.Record;
-import cn.edu.tsinghua.iginx.metadata.entity.TimeInterval;
-import cn.edu.tsinghua.iginx.metadata.entity.TimeSeriesRange;
 import cn.edu.tsinghua.iginx.utils.JsonUtils;
-import cn.edu.tsinghua.iginx.utils.Pair;
 import com.bpodgursky.jbool_expressions.Expression;
 import com.bpodgursky.jbool_expressions.parsers.ExprParser;
 import com.bpodgursky.jbool_expressions.rules.RuleSet;
@@ -190,26 +186,6 @@ public class FuncUT {
     }
 
     @Test
-    public void testGetTimeSeriesOfStorageUnit() throws IOException, PhysicalException {
-        LocalExecutor localExecutor = new LocalExecutor();
-        List<Timeseries> pathList = localExecutor.getTimeSeriesOfStorageUnit("unit0000");
-        for (Timeseries timeseries : pathList) {
-            System.out.println(timeseries.getPath());
-            System.out.println(timeseries.getTags());
-        }
-    }
-
-    @Test
-    public void testGetBoundaryOfStorage() throws IOException, PhysicalException {
-        LocalExecutor localExecutor = new LocalExecutor();
-        Pair<TimeSeriesRange, TimeInterval> res = localExecutor.getBoundaryOfStorage(null);
-        System.out.println(res.k.getStartTimeSeries());
-        System.out.println(res.k.getEndTimeSeries());
-        System.out.println(res.v.getStartTime());
-        System.out.println(res.v.getEndTime());
-    }
-
-    @Test
     public void testFilterTransformer() {
         Filter keyFilter1 = new KeyFilter(Op.GE, 1000);
         Filter keyFilter2 = new KeyFilter(Op.LE, 2000);
@@ -219,7 +195,7 @@ public class FuncUT {
 
         Filter andFilter = new AndFilter(child);
 
-        byte[] res = FilterTransformer.toBinary(andFilter);
+        String res = FilterTransformer.toString(andFilter);
 
         System.out.println(new String(res));
 

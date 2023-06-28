@@ -3,7 +3,6 @@ package cn.edu.tsinghua.iginx.filesystem.file.property;
 import java.io.File;
 
 public enum FileType {
-
     IGINX_FILE,
     NORMAL_FILE,
     UNKNOWN_FILE,

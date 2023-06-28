@@ -223,7 +223,7 @@ public class FileSystemService {
         return getValWithFilter(files, fts);
     }
 
-    // read the part of the file
+    // TODO:返回空值
     public static List<Record> readFile(File file, long begin, long end) throws IOException {
         return doReadFile(file, begin, end);
     }
@@ -279,7 +279,7 @@ public class FileSystemService {
             throws IOException {
         for (int i = 0; i < files.size(); i++) {
             Exception e = writeFile(files.get(i), values.get(i), tagList.get(i));
-            if (e!=null){
+            if (e != null) {
                 return e;
             }
         }

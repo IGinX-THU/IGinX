@@ -18,21 +18,17 @@
  */
 package cn.edu.tsinghua.iginx.filesystem;
 
-import cn.edu.tsinghua.iginx.engine.physical.exception.NonExecutablePhysicalTaskException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.DataArea;
-import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Timeseries;
-import cn.edu.tsinghua.iginx.engine.physical.task.StoragePhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
-import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.filesystem.exec.Executor;
 import cn.edu.tsinghua.iginx.filesystem.exec.LocalExecutor;
 import cn.edu.tsinghua.iginx.filesystem.exec.RemoteExecutor;
@@ -41,17 +37,13 @@ import cn.edu.tsinghua.iginx.filesystem.server.FileSystemServer;
 import cn.edu.tsinghua.iginx.filesystem.tools.ConfLoader;
 import cn.edu.tsinghua.iginx.filesystem.tools.FilterTransformer;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsRange;
-import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
-import cn.edu.tsinghua.iginx.metadata.entity.TimeInterval;
-import cn.edu.tsinghua.iginx.metadata.entity.TimeSeriesRange;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,7 +53,7 @@ public class FileSystem implements IStorage {
     public static final int MAXFILESIZE = 100_000_000;
     private static final Logger logger = LoggerFactory.getLogger(FileSystem.class);
     private final StorageEngineMeta meta;
-    ExecutorService executorService = Executors.newFixedThreadPool(1);//为了更好的管理线程
+    ExecutorService executorService = Executors.newFixedThreadPool(1); // 为了更好的管理线程
     private Executor executor;
     private String root = ConfLoader.getRootPath();
 
@@ -95,34 +87,32 @@ public class FileSystem implements IStorage {
         Filter filter;
         KeyInterval keyInterval = dataArea.getKeyInterval();
         filter =
-            new AndFilter(
-                Arrays.asList(
-                    new KeyFilter(
-                        Op.GE, keyInterval.getStartKey()),
-                    new KeyFilter(
-                        Op.L, keyInterval.getEndKey())));
+                new AndFilter(
+                        Arrays.asList(
+                                new KeyFilter(Op.GE, keyInterval.getStartKey()),
+                                new KeyFilter(Op.L, keyInterval.getEndKey())));
         return executor.executeProjectTask(
-            project.getPatterns(),
-            project.getTagFilter(),
-            FilterTransformer.toBinary(filter),
-            dataArea.getStorageUnit(),
-            false);
+                project.getPatterns(),
+                project.getTagFilter(),
+                FilterTransformer.toString(filter),
+                dataArea.getStorageUnit(),
+                false);
     }
 
     @Override
     public TaskExecuteResult executeProjectDummy(Project project, DataArea dataArea) {
         KeyInterval keyInterval = dataArea.getKeyInterval();
         Filter filter =
-            new AndFilter(
-                Arrays.asList(
-                    new KeyFilter(Op.GE, keyInterval.getStartKey()),
-                    new KeyFilter(Op.L, keyInterval.getEndKey())));
+                new AndFilter(
+                        Arrays.asList(
+                                new KeyFilter(Op.GE, keyInterval.getStartKey()),
+                                new KeyFilter(Op.L, keyInterval.getEndKey())));
         return executor.executeProjectTask(
-            project.getPatterns(),
-            project.getTagFilter(),
-            FilterTransformer.toBinary(filter),
-            dataArea.getStorageUnit(),
-            true);
+                project.getPatterns(),
+                project.getTagFilter(),
+                FilterTransformer.toString(filter),
+                dataArea.getStorageUnit(),
+                true);
     }
 
     @Override
@@ -132,33 +122,33 @@ public class FileSystem implements IStorage {
 
     @Override
     public TaskExecuteResult executeProjectWithSelect(
-        Project project, Select select, DataArea dataArea) {
+            Project project, Select select, DataArea dataArea) {
         return executor.executeProjectTask(
-            project.getPatterns(),
-            project.getTagFilter(),
-            FilterTransformer.toBinary(select.getFilter()),
-            dataArea.getStorageUnit(),
-            false);
+                project.getPatterns(),
+                project.getTagFilter(),
+                FilterTransformer.toString(select.getFilter()),
+                dataArea.getStorageUnit(),
+                false);
     }
 
     @Override
     public TaskExecuteResult executeProjectDummyWithSelect(
-        Project project, Select select, DataArea dataArea) {
+            Project project, Select select, DataArea dataArea) {
         return executor.executeProjectTask(
-            project.getPatterns(),
-            project.getTagFilter(),
-            FilterTransformer.toBinary(select.getFilter()),
-            dataArea.getStorageUnit(),
-            true);
+                project.getPatterns(),
+                project.getTagFilter(),
+                FilterTransformer.toString(select.getFilter()),
+                dataArea.getStorageUnit(),
+                true);
     }
 
     @Override
     public TaskExecuteResult executeDelete(Delete delete, DataArea dataArea) {
         return executor.executeDeleteTask(
-            delete.getPatterns(),
-            delete.getKeyRanges(),
-            delete.getTagFilter(),
-            dataArea.getStorageUnit());
+                delete.getPatterns(),
+                delete.getKeyRanges(),
+                delete.getTagFilter(),
+                dataArea.getStorageUnit());
     }
 
     @Override
@@ -168,12 +158,12 @@ public class FileSystem implements IStorage {
 
     @Override
     public List<Column> getColumns() throws PhysicalException {
-        return executor.getColumnsRangesOfStorageUnit("*");
+        return executor.getColumnOfStorageUnit("*");
     }
 
     @Override
     public Pair<ColumnsRange, KeyInterval> getBoundaryOfStorage(String prefix)
-        throws PhysicalException {
+            throws PhysicalException {
         return executor.getBoundaryOfStorage(prefix);
     }
 

@@ -1,5 +1,9 @@
 package cn.edu.tsinghua.iginx.parquet.server;
 
+import cn.edu.tsinghua.iginx.common.thrift.GetStorageBoundryResp;
+import cn.edu.tsinghua.iginx.common.thrift.ProjectReq;
+import cn.edu.tsinghua.iginx.common.thrift.RawTagFilter;
+import cn.edu.tsinghua.iginx.common.thrift.Status;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
@@ -22,7 +26,6 @@ import cn.edu.tsinghua.iginx.metadata.entity.ColumnsRange;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.parquet.exec.Executor;
 import cn.edu.tsinghua.iginx.parquet.thrift.DeleteReq;
-import cn.edu.tsinghua.iginx.parquet.thrift.GetStorageBoundryResp;
 import cn.edu.tsinghua.iginx.parquet.thrift.GetTimeSeriesOfStorageUnitResp;
 import cn.edu.tsinghua.iginx.parquet.thrift.InsertReq;
 import cn.edu.tsinghua.iginx.parquet.thrift.ParquetHeader;
@@ -30,10 +33,7 @@ import cn.edu.tsinghua.iginx.parquet.thrift.ParquetRawData;
 import cn.edu.tsinghua.iginx.parquet.thrift.ParquetRow;
 import cn.edu.tsinghua.iginx.parquet.thrift.ParquetService;
 import cn.edu.tsinghua.iginx.parquet.thrift.ParquetTimeRange;
-import cn.edu.tsinghua.iginx.parquet.thrift.ProjectReq;
 import cn.edu.tsinghua.iginx.parquet.thrift.ProjectResp;
-import cn.edu.tsinghua.iginx.parquet.thrift.RawTagFilter;
-import cn.edu.tsinghua.iginx.parquet.thrift.Status;
 import cn.edu.tsinghua.iginx.parquet.thrift.TS;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Bitmap;

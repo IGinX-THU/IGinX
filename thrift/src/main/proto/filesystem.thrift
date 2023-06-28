@@ -1,34 +1,5 @@
+include "common.thrift"
 namespace java cn.edu.tsinghua.iginx.filesystem.thrift
-
-struct Status {
-    1: required i32 code
-    2: required string message
-}
-
-enum TagFilterType {
-    Base,
-    And,
-    Or,
-    BasePrecise,
-    Precise,
-    WithoutTag,
-}
-
-struct RawTagFilter {
-    1: required TagFilterType type
-    2: optional string key
-    3: optional string value
-    4: optional map<string, string> tags
-    5: optional list<RawTagFilter> children
-}
-
-struct ProjectReq {
-    1: required string storageUnit
-    2: required bool isDummyStorageUnit
-    3: required list<string> paths
-    4: optional RawTagFilter tagFilter
-    5: optional binary filter
-}
 
 struct FileDataHeader {
     1: required list<string> names
@@ -44,7 +15,7 @@ struct FileDataRow {
 }
 
 struct ProjectResp {
-    1: required Status status
+    1: required common.Status status
     2: optional FileDataHeader header
     3: optional list<FileDataRow> rows
 }
@@ -74,16 +45,8 @@ struct FileSystemTimeRange {
 struct DeleteReq {
     1: required string storageUnit
     2: required list<string> paths
-    3: optional RawTagFilter tagFilter
+    3: optional common.RawTagFilter tagFilter
     4: optional list<FileSystemTimeRange> timeRanges
-}
-
-struct GetStorageBoundryResp {
-    1: required Status status
-    2: optional i64 startTime
-    3: optional i64 endTime
-    4: optional string startTimeSeries
-    5: optional string endTimeSeries
 }
 
 struct PathSet {
@@ -93,20 +56,20 @@ struct PathSet {
 }
 
 struct GetTimeSeriesOfStorageUnitResp {
-    1: required Status status
+    1: required common.Status status
     2: optional list<PathSet> PathList
 }
 
 service FileSystemService {
 
-    ProjectResp executeProject(1: ProjectReq req);
+    ProjectResp executeProject(1: common.ProjectReq req);
 
-    Status executeInsert(1: InsertReq req);
+    common.Status executeInsert(1: InsertReq req);
 
-    Status executeDelete(1: DeleteReq req);
+    common.Status executeDelete(1: DeleteReq req);
 
     GetTimeSeriesOfStorageUnitResp getTimeSeriesOfStorageUnit(1: string storageUnit);
 
-    GetStorageBoundryResp getBoundaryOfStorage(1: string prefix);
+    common.GetStorageBoundryResp getBoundaryOfStorage(1: string prefix);
 
 }

@@ -3,64 +3,21 @@ package cn.edu.tsinghua.iginx.filesystem.tools;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.utils.JsonUtils;
 import com.google.common.collect.BiMap;
-import java.util.*;
 
 public class FilterTransformer {
     private static int index = 0;
     private static int deep = 0;
     private static String prefix = "A";
 
-    public static byte[] toBinary(Filter filter) {
+    public static String toString(Filter filter) {
         if (filter == null) {
             return null;
         }
-        byte[] res = JsonUtils.toJson(filter);
-
-        Stack<Filter> S = new Stack<>();
-        S.push(filter);
-        Integer index = 0;
-        AndFilter andFilter = null;
-        OrFilter orFilter = null;
-        List<Filter> childs = null;
-        while (!S.empty()) {
-            boolean isLeafFilter = true;
-            Filter tmpFilter = S.pop();
-            if (!FilterType.isLeafFilter(tmpFilter.getType())) {
-                switch (filter.getType()) {
-                    case And:
-                        andFilter = (AndFilter) filter;
-                        childs = andFilter.getChildren();
-                        isLeafFilter = false;
-                        break;
-                    case Or:
-                        orFilter = (OrFilter) filter;
-                        childs = orFilter.getChildren();
-                        isLeafFilter = false;
-                        break;
-                }
-            }
-            StringBuilder tmpRes = new StringBuilder(new String(res));
-            index = tmpRes.indexOf("{", index);
-            res = addType(res, FilterType.getFilterClassName(tmpFilter.getType()), index++);
-            if (isLeafFilter) {
-                continue;
-            }
-            Collections.reverse(childs);
-            if (andFilter != null) {
-                S.addAll(childs);
-            } else if (orFilter != null) {
-                S.addAll(childs);
-            }
-        }
-        return res;
+        return new String(JsonUtils.toJson(filter));
     }
 
-    private static byte[] addType(byte[] data, String typeName, Integer index) {
-        return JsonUtils.addType("{", typeName, data, index);
-    }
-
-    public static Filter toFilter(byte[] filter) {
-        return JsonUtils.fromJson(filter, Filter.class);
+    public static Filter toFilter(String filter) {
+        return JsonUtils.fromJson(filter.getBytes(), Filter.class);
     }
 
     public static String toString(Filter filter, BiMap<String, String> vals) {
