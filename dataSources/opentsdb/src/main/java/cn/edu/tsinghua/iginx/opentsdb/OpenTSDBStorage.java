@@ -454,15 +454,15 @@ public class OpenTSDBStorage implements IStorage {
   }
 
   @Override
-  public Pair<ColumnsRange, KeyInterval> getBoundaryOfStorage(String prefix)
+  public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String prefix)
       throws PhysicalException {
     List<String> paths = getPurePath();
     paths.sort(String::compareTo);
     if (paths.isEmpty()) {
       throw new PhysicalTaskExecuteFailureException("no data!");
     }
-    ColumnsRange tsInterval =
-        new ColumnsRange(paths.get(0), StringUtils.nextString(paths.get(paths.size() - 1)));
+    ColumnsInterval tsInterval =
+        new ColumnsInterval(paths.get(0), StringUtils.nextString(paths.get(paths.size() - 1)));
 
     long minTime = 0, maxTime = Long.MAX_VALUE - 1;
     Query.Builder builder = Query.begin(0L).end(Long.MAX_VALUE).msResolution();

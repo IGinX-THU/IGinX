@@ -64,19 +64,19 @@ public interface IMetaStorage {
 
   void registerStorageUnitChangeHook(StorageUnitChangeHook hook);
 
-  Map<ColumnsRange, List<FragmentMeta>> loadFragment() throws MetaStorageException;
+  Map<ColumnsInterval, List<FragmentMeta>> loadFragment() throws MetaStorageException;
 
   void lockFragment() throws MetaStorageException;
 
   List<FragmentMeta> getFragmentListByColumnNameAndKeyInterval(
       String tsName, KeyInterval keyInterval);
 
-  Map<ColumnsRange, List<FragmentMeta>> getFragmentMapByColumnsIntervalAndKeyInterval(
-      ColumnsRange columnsRange, KeyInterval keyInterval);
+  Map<ColumnsInterval, List<FragmentMeta>> getFragmentMapByColumnsIntervalAndKeyInterval(
+      ColumnsInterval columnsInterval, KeyInterval keyInterval);
 
   void updateFragment(FragmentMeta fragmentMeta) throws MetaStorageException;
 
-  void updateFragmentByColumnsRange(ColumnsRange columnsRange, FragmentMeta fragmentMeta)
+  void updateFragmentByColumnsRange(ColumnsInterval columnsInterval, FragmentMeta fragmentMeta)
       throws MetaStorageException;
 
   void removeFragment(FragmentMeta fragmentMeta) throws MetaStorageException;
@@ -156,7 +156,8 @@ public interface IMetaStorage {
 
   Map<FragmentMeta, Long> loadFragmentPoints(IMetaCache cache) throws Exception;
 
-  void deleteFragmentPoints(ColumnsRange columnsRange, KeyInterval keyInterval) throws Exception;
+  void deleteFragmentPoints(ColumnsInterval columnsInterval, KeyInterval keyInterval)
+      throws Exception;
 
   void updateFragmentPoints(FragmentMeta fragmentMeta, long points) throws Exception;
 

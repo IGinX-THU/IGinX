@@ -14,7 +14,7 @@ import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
-import cn.edu.tsinghua.iginx.metadata.entity.ColumnsRange;
+import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.utils.Pair;
@@ -74,10 +74,10 @@ public class FilterFragmentOptimizer implements Optimizer {
       return;
     }
 
-    ColumnsRange columnsRange =
-        new ColumnsRange(pathList.get(0), pathList.get(pathList.size() - 1));
-    Map<ColumnsRange, List<FragmentMeta>> fragmentsByColumnsInterval =
-        metaManager.getFragmentMapByColumnsRange(columnsRange, true);
+    ColumnsInterval columnsInterval =
+        new ColumnsInterval(pathList.get(0), pathList.get(pathList.size() - 1));
+    Map<ColumnsInterval, List<FragmentMeta>> fragmentsByColumnsInterval =
+        metaManager.getFragmentMapByColumnsRange(columnsInterval, true);
     Pair<Map<KeyInterval, List<FragmentMeta>>, List<FragmentMeta>> pair =
         keyFromColumnsIntervalToKeyInterval(fragmentsByColumnsInterval);
     Map<KeyInterval, List<FragmentMeta>> fragments = pair.k;

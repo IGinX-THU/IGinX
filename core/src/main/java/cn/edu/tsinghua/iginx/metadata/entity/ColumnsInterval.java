@@ -26,9 +26,9 @@ import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class ColumnsRange implements Comparable<ColumnsRange> {
+public final class ColumnsInterval implements Comparable<ColumnsInterval> {
 
-  public static final Logger logger = LoggerFactory.getLogger(ColumnsRange.class);
+  public static final Logger logger = LoggerFactory.getLogger(ColumnsInterval.class);
 
   private String startColumn;
 
@@ -42,19 +42,19 @@ public final class ColumnsRange implements Comparable<ColumnsRange> {
   private final String START_FORMAT = "%s" + PathUtils.MIN_CHAR;
   private final String END_FORMAT = "%s" + PathUtils.MAX_CHAR;
 
-  public ColumnsRange(String startColumn, String endColumn, boolean isClosed) {
+  public ColumnsInterval(String startColumn, String endColumn, boolean isClosed) {
     this.startColumn = startColumn;
     this.endColumn = endColumn;
     this.isClosed = isClosed;
   }
 
-  public ColumnsRange(String column) {
+  public ColumnsInterval(String column) {
     this.startColumn = String.format(START_FORMAT, column);
     this.endColumn = String.format(END_FORMAT, column);
     this.isClosed = true;
   }
 
-  public ColumnsRange(String startColumn, String endColumn) {
+  public ColumnsInterval(String startColumn, String endColumn) {
     this(startColumn, endColumn, false);
   }
 
@@ -123,7 +123,7 @@ public final class ColumnsRange implements Comparable<ColumnsRange> {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    ColumnsRange that = (ColumnsRange) o;
+    ColumnsInterval that = (ColumnsInterval) o;
     return Objects.equals(this.startColumn, that.getStartColumn())
         && Objects.equals(this.endColumn, that.getEndColumn());
   }
@@ -148,7 +148,7 @@ public final class ColumnsRange implements Comparable<ColumnsRange> {
     return (realStartColumn == null || isContainBeg) && (realEndColumn == null || isContainEnd);
   }
 
-  public boolean isIntersect(ColumnsRange colRange) {
+  public boolean isIntersect(ColumnsInterval colRange) {
     // judge if is the dummy node && it will have specific prefix
     String realStartColumn = realColumn(this.startColumn);
     String realEndColumn = realColumn(this.endColumn);
@@ -168,7 +168,7 @@ public final class ColumnsRange implements Comparable<ColumnsRange> {
 
   // TODO: 如果后续有需要，根据isClosed变量进行修改
 
-  //  public ColumnsRange getIntersect(ColumnsRange colRange) {
+  //  public ColumnsInterval getIntersect(ColumnsInterval colRange) {
   //    if (!isIntersect(colRange)) {
   //      return null;
   //    }
@@ -192,10 +192,10 @@ public final class ColumnsRange implements Comparable<ColumnsRange> {
   //                : StringUtils.compare(colRange.getEndColumn(), realEndColumn, false) < 0
   //                    ? colRange.getEndColumn()
   //                    : realEndColumn;
-  //    return new ColumnsRange(start, end);
+  //    return new ColumnsInterval(start, end);
   //  }
 
-  public boolean isCompletelyAfter(ColumnsRange colRange) {
+  public boolean isCompletelyAfter(ColumnsInterval colRange) {
     // judge if is the dummy node && it will have specific prefix
     String realStartColumn = realColumn(this.startColumn);
     if (colRange.getEndColumn() == null || realStartColumn == null) {
@@ -213,7 +213,7 @@ public final class ColumnsRange implements Comparable<ColumnsRange> {
   }
 
   @Override
-  public int compareTo(ColumnsRange o) {
+  public int compareTo(ColumnsInterval o) {
     // judge if is the dummy node && it will have specific prefix
     String realStartColumn = realColumn(this.startColumn);
     String realEndColumn = realColumn(this.endColumn);
@@ -226,24 +226,24 @@ public final class ColumnsRange implements Comparable<ColumnsRange> {
   }
 
   // Strange function: it should not work on the implementation of ColumnsPrefixRange
-  public static ColumnsRange fromString(String str) throws IllegalArgumentException {
+  public static ColumnsInterval fromString(String str) throws IllegalArgumentException {
     if (str.contains("-") && !isContainSpecialChar(str)) {
       String[] parts = str.split("-");
       if (parts.length != 2) {
-        logger.error("Input string {} in invalid format of ColumnsRange ", str);
-        throw new IllegalArgumentException("Input invalid string format in ColumnsRange");
+        logger.error("Input string {} in invalid format of ColumnsInterval ", str);
+        throw new IllegalArgumentException("Input invalid string format in ColumnsInterval");
       }
-      return new ColumnsRange(
+      return new ColumnsInterval(
           parts[0].equals("null") ? null : parts[0], parts[1].equals("null") ? null : parts[1]);
     } else {
       if (str.contains(".*") && str.indexOf(".*") == str.length() - 2) {
         str = str.substring(0, str.length() - 2);
       }
       if (!isContainSpecialChar(str)) {
-        return new ColumnsRange(str);
+        return new ColumnsInterval(str);
       } else {
         logger.error("Input string {} in invalid format of ColumnsPrefixRange ", str);
-        throw new IllegalArgumentException("Input invalid string format in ColumnsRange");
+        throw new IllegalArgumentException("Input invalid string format in ColumnsInterval");
       }
     }
   }

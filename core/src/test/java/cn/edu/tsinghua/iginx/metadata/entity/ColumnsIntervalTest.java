@@ -11,82 +11,82 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ColumnsRangeTest {
-  public static final Logger logger = LoggerFactory.getLogger(ColumnsRangeTest.class);
-  private ColumnsRange columnsRange;
+public class ColumnsIntervalTest {
+  public static final Logger logger = LoggerFactory.getLogger(ColumnsIntervalTest.class);
+  private ColumnsInterval columnsInterval;
   private String[] arrayName = {"null", "a.a", "b.b", "c.c", "d.d", "null"};
 
   @Before
   public void setUp() {
-    columnsRange = new ColumnsRange("col1", "col5", true);
+    columnsInterval = new ColumnsInterval("col1", "col5", true);
   }
 
   @Test
   public void testGetStartColumn() {
-    assertEquals("col1", columnsRange.getStartColumn());
+    assertEquals("col1", columnsInterval.getStartColumn());
   }
 
   @Test
   public void testSetStartColumn() {
-    columnsRange.setStartColumn("col2");
-    assertEquals("col2", columnsRange.getStartColumn());
+    columnsInterval.setStartColumn("col2");
+    assertEquals("col2", columnsInterval.getStartColumn());
   }
 
   @Test
   public void testGetEndColumn() {
-    assertEquals("col5", columnsRange.getEndColumn());
+    assertEquals("col5", columnsInterval.getEndColumn());
   }
 
   @Test
   public void testSetEndColumn() {
-    columnsRange.setEndColumn("col6");
-    assertEquals("col6", columnsRange.getEndColumn());
+    columnsInterval.setEndColumn("col6");
+    assertEquals("col6", columnsInterval.getEndColumn());
   }
 
   @Test
   public void testIsClosed() {
-    assertTrue(columnsRange.isClosed());
+    assertTrue(columnsInterval.isClosed());
   }
 
   @Test
   public void testSetClosed() {
-    columnsRange.setClosed(false);
-    assertFalse(columnsRange.isClosed());
+    columnsInterval.setClosed(false);
+    assertFalse(columnsInterval.isClosed());
   }
 
   @Test
   public void testToString() {
-    assertEquals("col1-col5", columnsRange.toString());
+    assertEquals("col1-col5", columnsInterval.toString());
   }
 
   @Test
   public void testSetSchemaPrefix() {
-    columnsRange.setSchemaPrefix("schema");
-    assertEquals("schema", columnsRange.getSchemaPrefix());
+    columnsInterval.setSchemaPrefix("schema");
+    assertEquals("schema", columnsInterval.getSchemaPrefix());
   }
 
   @Test
   public void testEquals() {
-    ColumnsRange other = new ColumnsRange("col1", "col5", true);
-    assertTrue(columnsRange.equals(other));
+    ColumnsInterval other = new ColumnsInterval("col1", "col5", true);
+    assertTrue(columnsInterval.equals(other));
   }
 
   @Test
   public void testHashCode() {
-    ColumnsRange other = new ColumnsRange("col1", "col5", true);
-    assertEquals(columnsRange.hashCode(), other.hashCode());
+    ColumnsInterval other = new ColumnsInterval("col1", "col5", true);
+    assertEquals(columnsInterval.hashCode(), other.hashCode());
   }
 
   @Test
   public void testCompareTo() {
-    ColumnsRange other = new ColumnsRange("col1", "col5", true);
-    assertEquals(0, columnsRange.compareTo(other));
+    ColumnsInterval other = new ColumnsInterval("col1", "col5", true);
+    assertEquals(0, columnsInterval.compareTo(other));
 
-    other = new ColumnsRange("col2", "col6", true);
-    assertEquals(-1, columnsRange.compareTo(other));
+    other = new ColumnsInterval("col2", "col6", true);
+    assertEquals(-1, columnsInterval.compareTo(other));
 
-    other = new ColumnsRange("col0", "col4", false);
-    assertEquals(1, columnsRange.compareTo(other));
+    other = new ColumnsInterval("col0", "col4", false);
+    assertEquals(1, columnsInterval.compareTo(other));
   }
 
   @Test
@@ -97,8 +97,8 @@ public class ColumnsRangeTest {
         Interval intervalA = intervals.get(i);
         Interval intervalB = intervals.get(j);
         boolean res = testIsCompletelyAfter(intervalA, intervalB);
-        ColumnsRange ca = getColumnRangeFromInterval(intervalA);
-        ColumnsRange cb = getColumnRangeFromInterval(intervalB);
+        ColumnsInterval ca = getColumnRangeFromInterval(intervalA);
+        ColumnsInterval cb = getColumnRangeFromInterval(intervalB);
         if (res != ca.isCompletelyAfter(cb)) {
           logger.error(
               "expect {} but was {}, with {}, {} ",
@@ -120,8 +120,8 @@ public class ColumnsRangeTest {
         Interval intervalA = intervals.get(i);
         Interval intervalB = intervals.get(j);
         boolean res = testIsIntersect(intervalA, intervalB);
-        ColumnsRange ca = getColumnRangeFromInterval(intervalA);
-        ColumnsRange cb = getColumnRangeFromInterval(intervalB);
+        ColumnsInterval ca = getColumnRangeFromInterval(intervalA);
+        ColumnsInterval cb = getColumnRangeFromInterval(intervalB);
         if (res != ca.isIntersect(cb)) {
           logger.error(
               "expect {} but was {}, with {}, {} ",
@@ -144,7 +144,7 @@ public class ColumnsRangeTest {
       for (int j = 1; j < list.size() - 1; j++) {
         Interval intervalA = intervals.get(i);
         boolean res = testIsContain(intervalA, list.get(j));
-        ColumnsRange ca = getColumnRangeFromInterval(intervalA);
+        ColumnsInterval ca = getColumnRangeFromInterval(intervalA);
         if (res != ca.isContain(arrayName[j])) {
           logger.error(
               "expect {} but was {}, with {}, {} ",
@@ -158,11 +158,11 @@ public class ColumnsRangeTest {
     }
   }
 
-  private ColumnsRange getColumnRangeFromInterval(Interval interval) {
+  private ColumnsInterval getColumnRangeFromInterval(Interval interval) {
     int start = interval.start;
     int end = interval.end;
     boolean isClosed = interval.isClosed;
-    return new ColumnsRange(getNameFromIndex(start), getNameFromIndex(end), isClosed);
+    return new ColumnsInterval(getNameFromIndex(start), getNameFromIndex(end), isClosed);
   }
 
   private String getNameFromIndex(int index) {

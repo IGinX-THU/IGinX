@@ -18,7 +18,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.tag.BaseTagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.OrTagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.PreciseTagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
-import cn.edu.tsinghua.iginx.metadata.entity.ColumnsRange;
+import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.parquet.thrift.*;
 import cn.edu.tsinghua.iginx.parquet.thrift.ParquetService.Client;
@@ -334,11 +334,11 @@ public class RemoteExecutor implements Executor {
   }
 
   @Override
-  public Pair<ColumnsRange, KeyInterval> getBoundaryOfStorage() throws PhysicalException {
+  public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage() throws PhysicalException {
     try {
       GetStorageBoundaryResp resp = client.getBoundaryOfStorage();
       return new Pair<>(
-          new ColumnsRange(resp.getStartColumn(), resp.getEndColumn()),
+          new ColumnsInterval(resp.getStartColumn(), resp.getEndColumn()),
           new KeyInterval(resp.getStartKey(), resp.getEndKey()));
     } catch (TException e) {
       throw new PhysicalException("encounter error when getBoundaryOfStorage ", e);

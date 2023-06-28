@@ -1,6 +1,6 @@
 package cn.edu.tsinghua.iginx.engine.logical.utils;
 
-import cn.edu.tsinghua.iginx.metadata.entity.ColumnsRange;
+import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 
 public class PathUtils {
 
@@ -9,7 +9,7 @@ public class PathUtils {
   public static final Character MIN_CHAR = '!';
   public static final Character MAX_CHAR = '~';
 
-  public static ColumnsRange trimTimeSeriesInterval(ColumnsRange tsInterval) {
+  public static ColumnsInterval trimTimeSeriesInterval(ColumnsInterval tsInterval) {
     String startPath = tsInterval.getStartColumn();
     if (startPath.contains(STAR)) {
       if (startPath.startsWith(STAR)) {
@@ -28,6 +28,6 @@ public class PathUtils {
       }
     }
 
-    return new ColumnsRange(startPath, endPath);
+    return new ColumnsInterval(startPath, endPath);
   }
 }

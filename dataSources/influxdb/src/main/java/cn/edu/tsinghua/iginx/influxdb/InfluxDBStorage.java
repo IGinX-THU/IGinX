@@ -161,19 +161,19 @@ public class InfluxDBStorage implements IStorage {
   }
 
   @Override
-  public Pair<ColumnsRange, KeyInterval> getBoundaryOfStorage(String dataPrefix)
+  public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String dataPrefix)
       throws PhysicalException {
     List<String> bucketNames = new ArrayList<>(historyBucketMap.keySet());
     bucketNames.sort(String::compareTo);
     if (bucketNames.size() == 0) {
       throw new PhysicalTaskExecuteFailureException("no data!");
     }
-    ColumnsRange tsInterval = null;
+    ColumnsInterval tsInterval = null;
     if (dataPrefix == null)
       tsInterval =
-          new ColumnsRange(
+          new ColumnsInterval(
               bucketNames.get(0), StringUtils.nextString(bucketNames.get(bucketNames.size() - 1)));
-    else tsInterval = new ColumnsRange(dataPrefix, StringUtils.nextString(dataPrefix));
+    else tsInterval = new ColumnsInterval(dataPrefix, StringUtils.nextString(dataPrefix));
     long minTime = Long.MAX_VALUE, maxTime = 0;
 
     String measurementPrefix = MEASUREMENTALL, fieldPrefix = FIELDALL;

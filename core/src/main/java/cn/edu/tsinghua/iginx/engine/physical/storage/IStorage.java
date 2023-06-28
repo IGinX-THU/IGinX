@@ -26,7 +26,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
-import cn.edu.tsinghua.iginx.metadata.entity.ColumnsRange;
+import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.List;
@@ -58,10 +58,10 @@ public interface IStorage {
   List<Column> getColumns() throws PhysicalException;
 
   /** 获取指定前缀的数据边界 */
-  Pair<ColumnsRange, KeyInterval> getBoundaryOfStorage(String prefix) throws PhysicalException;
+  Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String prefix) throws PhysicalException;
 
   /** 获取数据边界 */
-  default Pair<ColumnsRange, KeyInterval> getBoundaryOfStorage() throws PhysicalException {
+  default Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage() throws PhysicalException {
     return getBoundaryOfStorage(null);
   }
 

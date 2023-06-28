@@ -769,7 +769,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
     try {
       List<String> columnsRangeNames = this.client.getChildren().forPath(FRAGMENT_NODE_PREFIX);
       for (String columnsRangeName : columnsRangeNames) {
-        ColumnsRange fragmentTimeSeries = ColumnsRange.fromString(columnsRangeName);
+        ColumnsInterval fragmentTimeSeries = ColumnsInterval.fromString(columnsRangeName);
         if (fragmentTimeSeries.isContain(tsName)) {
           List<FragmentMeta> fragments = new ArrayList<>();
           List<String> timeIntervalNames =
@@ -799,14 +799,14 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
   }
 
   @Override
-  public Map<ColumnsRange, List<FragmentMeta>> getFragmentMapByColumnsIntervalAndKeyInterval(
-      ColumnsRange columnsRange, KeyInterval keyInterval) {
+  public Map<ColumnsInterval, List<FragmentMeta>> getFragmentMapByColumnsIntervalAndKeyInterval(
+      ColumnsInterval columnsInterval, KeyInterval keyInterval) {
     try {
       List<String> columnsRangeNames = this.client.getChildren().forPath(FRAGMENT_NODE_PREFIX);
-      Map<ColumnsRange, List<FragmentMeta>> fragmentMap = new HashMap<>();
+      Map<ColumnsInterval, List<FragmentMeta>> fragmentMap = new HashMap<>();
       for (String columnsRangeName : columnsRangeNames) {
-        ColumnsRange fragmentTimeSeries = ColumnsRange.fromString(columnsRangeName);
-        if (fragmentTimeSeries.isIntersect(columnsRange)) {
+        ColumnsInterval fragmentTimeSeries = ColumnsInterval.fromString(columnsRangeName);
+        if (fragmentTimeSeries.isIntersect(columnsInterval)) {
           List<FragmentMeta> fragments = new ArrayList<>();
           List<String> timeIntervalNames =
               this.client.getChildren().forPath(FRAGMENT_NODE_PREFIX + "/" + columnsRangeName);
@@ -830,22 +830,22 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
       }
       return fragmentMap;
     } catch (Exception e) {
-      logger.error("get error when query fragment by columnsRange and timeInterval");
+      logger.error("get error when query fragment by columnsInterval and timeInterval");
     }
     return new HashMap<>();
   }
 
   @Override
-  public Map<ColumnsRange, List<FragmentMeta>> loadFragment() throws MetaStorageException {
+  public Map<ColumnsInterval, List<FragmentMeta>> loadFragment() throws MetaStorageException {
     try {
-      Map<ColumnsRange, List<FragmentMeta>> fragmentListMap = new HashMap<>();
+      Map<ColumnsInterval, List<FragmentMeta>> fragmentListMap = new HashMap<>();
       if (this.client.checkExists().forPath(FRAGMENT_NODE_PREFIX) == null) {
         // 当前还没有数据，创建父节点，然后不需要解析数据
         this.client.create().withMode(CreateMode.PERSISTENT).forPath(FRAGMENT_NODE_PREFIX);
       } else {
         List<String> columnsRangeNames = this.client.getChildren().forPath(FRAGMENT_NODE_PREFIX);
         for (String columnsRangeName : columnsRangeNames) {
-          ColumnsRange fragmentTimeSeries = ColumnsRange.fromString(columnsRangeName);
+          ColumnsInterval fragmentTimeSeries = ColumnsInterval.fromString(columnsRangeName);
           List<FragmentMeta> fragmentMetaList = new ArrayList<>();
           List<String> timeIntervalNames =
               this.client.getChildren().forPath(FRAGMENT_NODE_PREFIX + "/" + columnsRangeName);
@@ -1010,21 +1010,23 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
   }
 
   @Override
-  public void updateFragmentByColumnsRange(ColumnsRange columnsRange, FragmentMeta fragmentMeta)
-      throws MetaStorageException {
+  public void updateFragmentByColumnsRange(
+      ColumnsInterval columnsInterval, FragmentMeta fragmentMeta) throws MetaStorageException {
     try {
       this.client
           .delete()
           .forPath(
               FRAGMENT_NODE_PREFIX
                   + "/"
-                  + columnsRange.toString()
+                  + columnsInterval.toString()
                   + "/"
                   + fragmentMeta.getKeyInterval().toString());
       List<String> timeIntervalNames =
-          this.client.getChildren().forPath(FRAGMENT_NODE_PREFIX + "/" + columnsRange.toString());
+          this.client
+              .getChildren()
+              .forPath(FRAGMENT_NODE_PREFIX + "/" + columnsInterval.toString());
       if (timeIntervalNames.isEmpty()) {
-        this.client.delete().forPath(FRAGMENT_NODE_PREFIX + "/" + columnsRange.toString());
+        this.client.delete().forPath(FRAGMENT_NODE_PREFIX + "/" + columnsInterval.toString());
       }
       this.client
           .create()
@@ -1789,8 +1791,9 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
     if (this.client.checkExists().forPath(STATISTICS_FRAGMENT_POINTS_PREFIX) != null) {
       List<String> children = client.getChildren().forPath(STATISTICS_FRAGMENT_POINTS_PREFIX);
       for (String child : children) {
-        ColumnsRange columnsRange = ColumnsRange.fromString(child);
-        List<FragmentMeta> fragmentMetas = cache.getFragmentMapByExactColumnsInterval(columnsRange);
+        ColumnsInterval columnsInterval = ColumnsInterval.fromString(child);
+        List<FragmentMeta> fragmentMetas =
+            cache.getFragmentMapByExactColumnsInterval(columnsInterval);
 
         List<String> timeIntervals =
             client.getChildren().forPath(STATISTICS_FRAGMENT_POINTS_PREFIX + "/" + child);
@@ -1815,12 +1818,12 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
   }
 
   @Override
-  public void deleteFragmentPoints(ColumnsRange columnsRange, KeyInterval keyInterval)
+  public void deleteFragmentPoints(ColumnsInterval columnsInterval, KeyInterval keyInterval)
       throws Exception {
     String path =
         STATISTICS_FRAGMENT_POINTS_PREFIX
             + "/"
-            + columnsRange.toString()
+            + columnsInterval.toString()
             + "/"
             + keyInterval.toString();
     if (this.client.checkExists().forPath(path) != null) {
@@ -2001,10 +2004,10 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
     if (this.client.checkExists().forPath(STATISTICS_FRAGMENT_HEAT_PREFIX_WRITE) != null) {
       List<String> children = client.getChildren().forPath(STATISTICS_FRAGMENT_HEAT_PREFIX_WRITE);
       for (String child : children) {
-        ColumnsRange columnsRange = ColumnsRange.fromString(child);
-        Map<ColumnsRange, List<FragmentMeta>> fragmentMapOfTimeSeriesInterval =
-            cache.getFragmentMapByColumnsInterval(columnsRange);
-        List<FragmentMeta> fragmentMetas = fragmentMapOfTimeSeriesInterval.get(columnsRange);
+        ColumnsInterval columnsInterval = ColumnsInterval.fromString(child);
+        Map<ColumnsInterval, List<FragmentMeta>> fragmentMapOfTimeSeriesInterval =
+            cache.getFragmentMapByColumnsInterval(columnsInterval);
+        List<FragmentMeta> fragmentMetas = fragmentMapOfTimeSeriesInterval.get(columnsInterval);
 
         if (fragmentMetas != null) {
           List<String> timeIntervals =
@@ -2035,10 +2038,10 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
     if (this.client.checkExists().forPath(STATISTICS_FRAGMENT_HEAT_PREFIX_READ) != null) {
       List<String> children = client.getChildren().forPath(STATISTICS_FRAGMENT_HEAT_PREFIX_READ);
       for (String child : children) {
-        ColumnsRange columnsRange = ColumnsRange.fromString(child);
-        Map<ColumnsRange, List<FragmentMeta>> fragmentMapOfTimeSeriesInterval =
-            cache.getFragmentMapByColumnsInterval(columnsRange);
-        List<FragmentMeta> fragmentMetas = fragmentMapOfTimeSeriesInterval.get(columnsRange);
+        ColumnsInterval columnsInterval = ColumnsInterval.fromString(child);
+        Map<ColumnsInterval, List<FragmentMeta>> fragmentMapOfTimeSeriesInterval =
+            cache.getFragmentMapByColumnsInterval(columnsInterval);
+        List<FragmentMeta> fragmentMetas = fragmentMapOfTimeSeriesInterval.get(columnsInterval);
 
         if (fragmentMetas != null) {
           List<String> timeIntervals =

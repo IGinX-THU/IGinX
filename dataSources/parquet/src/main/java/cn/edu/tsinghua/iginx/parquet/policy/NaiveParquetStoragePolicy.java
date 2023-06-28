@@ -4,7 +4,7 @@ import static cn.edu.tsinghua.iginx.parquet.tools.Constant.COLUMN_KEY;
 
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
-import cn.edu.tsinghua.iginx.metadata.entity.ColumnsRange;
+import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.io.File;
@@ -83,7 +83,7 @@ public class NaiveParquetStoragePolicy implements ParquetStoragePolicy {
     long startTime = Long.parseLong(maxTimeDir.getName());
     File[] pathPartition = maxTimeDir.listFiles();
     if (pathPartition == null || pathPartition.length == 0) {
-      Pair<ColumnsRange, KeyInterval> duBoundary =
+      Pair<ColumnsInterval, KeyInterval> duBoundary =
           metaManager.getBoundaryOfStorageUnit(storageUnit);
       return new Pair<>(startTime, Collections.singletonList(duBoundary.getK().getStartColumn()));
     } else {
@@ -113,7 +113,8 @@ public class NaiveParquetStoragePolicy implements ParquetStoragePolicy {
 
   private Pair<Long, List<String>> initDataPartition(String storageUnit) {
     lock.writeLock().lock();
-    Pair<ColumnsRange, KeyInterval> duBoundary = metaManager.getBoundaryOfStorageUnit(storageUnit);
+    Pair<ColumnsInterval, KeyInterval> duBoundary =
+        metaManager.getBoundaryOfStorageUnit(storageUnit);
     long latestStartTime = duBoundary.getV().getStartKey();
     createDir(Paths.get(dataDir, storageUnit, String.valueOf(latestStartTime)));
     lock.writeLock().unlock();
@@ -127,7 +128,8 @@ public class NaiveParquetStoragePolicy implements ParquetStoragePolicy {
     lock.writeLock().lock();
     long latestStartTime = getLatestTime(storageUnit) + 1;
     createDir(Paths.get(dataDir, storageUnit, String.valueOf(latestStartTime)));
-    Pair<ColumnsRange, KeyInterval> duBoundary = metaManager.getBoundaryOfStorageUnit(storageUnit);
+    Pair<ColumnsInterval, KeyInterval> duBoundary =
+        metaManager.getBoundaryOfStorageUnit(storageUnit);
     String startPath = duBoundary.getK().getStartColumn();
     lock.writeLock().unlock();
 
@@ -172,13 +174,13 @@ public class NaiveParquetStoragePolicy implements ParquetStoragePolicy {
             collectInMap(res, startTime, startPath);
           }
         } else {
-          Pair<ColumnsRange, KeyInterval> duBoundary =
+          Pair<ColumnsInterval, KeyInterval> duBoundary =
               metaManager.getBoundaryOfStorageUnit(storageUnit);
           collectInMap(res, startTime, duBoundary.getK().getStartColumn());
         }
       }
     } else {
-      Pair<ColumnsRange, KeyInterval> duBoundary =
+      Pair<ColumnsInterval, KeyInterval> duBoundary =
           metaManager.getBoundaryOfStorageUnit(storageUnit);
       collectInMap(res, duBoundary.getV().getStartKey(), duBoundary.getK().getStartColumn());
     }

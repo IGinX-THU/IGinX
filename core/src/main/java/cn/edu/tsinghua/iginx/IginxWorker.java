@@ -333,7 +333,7 @@ public class IginxWorker implements IService.Iface {
         String dataPrefix = meta.getDataPrefix();
         StorageUnitMeta dummyStorageUnit =
             new StorageUnitMeta(StorageUnitMeta.generateDummyStorageUnitID(0), -1);
-        Pair<ColumnsRange, KeyInterval> boundary =
+        Pair<ColumnsInterval, KeyInterval> boundary =
             StorageManager.getBoundaryOfStorage(meta, dataPrefix);
         FragmentMeta dummyFragment;
         String schemaPrefixTmp = null;
@@ -344,9 +344,9 @@ public class IginxWorker implements IService.Iface {
           boundary.k.setSchemaPrefix(schemaPrefixTmp);
           dummyFragment = new FragmentMeta(boundary.k, boundary.v, dummyStorageUnit);
         } else {
-          ColumnsRange columnsRange = new ColumnsRange(dataPrefix);
-          columnsRange.setSchemaPrefix(schemaPrefixTmp);
-          dummyFragment = new FragmentMeta(columnsRange, boundary.v, dummyStorageUnit);
+          ColumnsInterval columnsInterval = new ColumnsInterval(dataPrefix);
+          columnsInterval.setSchemaPrefix(schemaPrefixTmp);
+          dummyFragment = new FragmentMeta(columnsInterval, boundary.v, dummyStorageUnit);
         }
         dummyFragment.setDummyFragment(true);
         meta.setDummyStorageUnit(dummyStorageUnit);

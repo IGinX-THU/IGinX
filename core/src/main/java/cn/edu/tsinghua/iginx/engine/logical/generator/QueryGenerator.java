@@ -45,7 +45,7 @@ import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
-import cn.edu.tsinghua.iginx.metadata.entity.ColumnsRange;
+import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageUnitMeta;
@@ -419,11 +419,11 @@ public class QueryGenerator extends AbstractGenerator {
         SortUtils.mergeAndSortPaths(new ArrayList<>(selectStatement.getPathSet()));
     TagFilter tagFilter = selectStatement.getTagFilter();
 
-    ColumnsRange columnsRange =
-        new ColumnsRange(pathList.get(0), pathList.get(pathList.size() - 1));
+    ColumnsInterval columnsInterval =
+        new ColumnsInterval(pathList.get(0), pathList.get(pathList.size() - 1));
 
     Pair<Map<KeyInterval, List<FragmentMeta>>, List<FragmentMeta>> pair =
-        getFragmentsByTSInterval(selectStatement, columnsRange);
+        getFragmentsByTSInterval(selectStatement, columnsInterval);
     Map<KeyInterval, List<FragmentMeta>> fragments = pair.k;
     List<FragmentMeta> dummyFragments = pair.v;
 
@@ -445,7 +445,7 @@ public class QueryGenerator extends AbstractGenerator {
               } else {
                 String prefix = fromPart.getPath() + ALL_PATH_SUFFIX;
                 Pair<Map<KeyInterval, List<FragmentMeta>>, List<FragmentMeta>> pair =
-                    getFragmentsByTSInterval(selectStatement, new ColumnsRange(prefix, prefix));
+                    getFragmentsByTSInterval(selectStatement, new ColumnsInterval(prefix, prefix));
                 Map<KeyInterval, List<FragmentMeta>> fragments = pair.k;
                 List<FragmentMeta> dummyFragments = pair.v;
                 joinList.add(
@@ -619,10 +619,10 @@ public class QueryGenerator extends AbstractGenerator {
   }
 
   private Pair<Map<KeyInterval, List<FragmentMeta>>, List<FragmentMeta>> getFragmentsByTSInterval(
-      SelectStatement selectStatement, ColumnsRange columnsRange) {
-    Map<ColumnsRange, List<FragmentMeta>> fragmentsByColumnsRange =
+      SelectStatement selectStatement, ColumnsInterval columnsInterval) {
+    Map<ColumnsInterval, List<FragmentMeta>> fragmentsByColumnsRange =
         metaManager.getFragmentMapByColumnsRange(
-            PathUtils.trimTimeSeriesInterval(columnsRange), true);
+            PathUtils.trimTimeSeriesInterval(columnsInterval), true);
     if (!metaManager.hasFragment()) {
       if (metaManager.hasWritableStorageEngines()) {
         // on startup
@@ -631,7 +631,7 @@ public class QueryGenerator extends AbstractGenerator {
         metaManager.createInitialFragmentsAndStorageUnits(
             fragmentsAndStorageUnits.v, fragmentsAndStorageUnits.k);
       }
-      fragmentsByColumnsRange = metaManager.getFragmentMapByColumnsRange(columnsRange, true);
+      fragmentsByColumnsRange = metaManager.getFragmentMapByColumnsRange(columnsInterval, true);
     }
     return keyFromColumnsIntervalToKeyInterval(fragmentsByColumnsRange);
   }

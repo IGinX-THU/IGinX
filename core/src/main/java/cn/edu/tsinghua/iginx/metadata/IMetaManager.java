@@ -67,34 +67,36 @@ public interface IMetaManager {
   List<FragmentMeta> getFragmentsByStorageUnit(String storageUnitId);
 
   /** 获取某个du的序列和key范围 */
-  Pair<ColumnsRange, KeyInterval> getBoundaryOfStorageUnit(String storageUnitId);
+  Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorageUnit(String storageUnitId);
 
   /** 获取某个列区间的所有分片，不会返回虚拟堆叠分片 */
-  Map<ColumnsRange, List<FragmentMeta>> getFragmentMapByColumnsRange(ColumnsRange columnsRange);
+  Map<ColumnsInterval, List<FragmentMeta>> getFragmentMapByColumnsRange(
+      ColumnsInterval columnsInterval);
 
   /** 获取某个列区间的所有分片，根据参数决定是否返回虚拟堆叠分片 */
-  Map<ColumnsRange, List<FragmentMeta>> getFragmentMapByColumnsRange(
-      ColumnsRange columnsRange, boolean withDummyFragment);
+  Map<ColumnsInterval, List<FragmentMeta>> getFragmentMapByColumnsRange(
+      ColumnsInterval columnsInterval, boolean withDummyFragment);
 
   /** 查询某个列区间是否有虚拟堆叠分片 */
-  boolean hasDummyFragment(ColumnsRange columnsRange);
+  boolean hasDummyFragment(ColumnsInterval columnsInterval);
 
   /** 集群中是否存在可写的存储引擎 */
   boolean hasWritableStorageEngines();
 
   /** 获取某个key区间的所有最新的分片（这些分片一定也都是未终结的分片） */
-  Map<ColumnsRange, FragmentMeta> getLatestFragmentMapByColumnsRange(ColumnsRange columnsRange);
+  Map<ColumnsInterval, FragmentMeta> getLatestFragmentMapByColumnsRange(
+      ColumnsInterval columnsInterval);
 
   /** 获取全部最新的分片，不会返回虚拟堆叠分片 */
-  Map<ColumnsRange, FragmentMeta> getLatestFragmentMap();
+  Map<ColumnsInterval, FragmentMeta> getLatestFragmentMap();
 
   /** 获取某个列区间在某个时间区间的所有分片，不会返回虚拟堆叠分片。 */
-  Map<ColumnsRange, List<FragmentMeta>> getFragmentMapByColumnsIntervalAndKeyInterval(
-      ColumnsRange columnsRange, KeyInterval keyInterval);
+  Map<ColumnsInterval, List<FragmentMeta>> getFragmentMapByColumnsIntervalAndKeyInterval(
+      ColumnsInterval columnsInterval, KeyInterval keyInterval);
 
   /** 获取某个列区间在某个key区间的所有分片，根据参数决定是否返回虚拟堆叠分片 */
-  Map<ColumnsRange, List<FragmentMeta>> getFragmentMapByColumnsIntervalAndKeyInterval(
-      ColumnsRange columnsRange, KeyInterval keyInterval, boolean withDummyFragment);
+  Map<ColumnsInterval, List<FragmentMeta>> getFragmentMapByColumnsIntervalAndKeyInterval(
+      ColumnsInterval columnsInterval, KeyInterval keyInterval, boolean withDummyFragment);
 
   /** 获取某个列的所有分片（按照key排序），会返回虚拟堆叠分片 */
   List<FragmentMeta> getFragmentListByColumnName(String colName);
@@ -230,7 +232,7 @@ public interface IMetaManager {
 
   void endFragmentByColumnsRange(FragmentMeta fragmentMeta, String endColumn);
 
-  void updateFragmentByColumnsRange(ColumnsRange columnsRange, FragmentMeta fragmentMeta);
+  void updateFragmentByColumnsRange(ColumnsInterval columnsInterval, FragmentMeta fragmentMeta);
 
   void updateMaxActiveEndKey(long endKey);
 

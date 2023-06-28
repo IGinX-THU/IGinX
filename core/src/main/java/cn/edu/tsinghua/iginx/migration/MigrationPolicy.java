@@ -197,8 +197,8 @@ public abstract class MigrationPolicy {
 
       // 开始实际切分片
       double currAverageLoad = totalLoad * 1.0 / fakedFragmentMetaLoads.size();
-      ColumnsRange sourceTsInterval =
-          new ColumnsRange(
+      ColumnsInterval sourceTsInterval =
+          new ColumnsInterval(
               fragmentMeta.getColumnsRange().getStartColumn(),
               fragmentMeta.getColumnsRange().getEndColumn());
       for (int i = 0; i < fakedFragmentMetas.size(); i++) {
@@ -280,8 +280,8 @@ public abstract class MigrationPolicy {
       logger.info("start to add new fragment");
       String middleTimeseries = new ArrayList<>(pathSet).get(pathSet.size() / 2);
       logger.info("timeseries split middleTimeseries=" + middleTimeseries);
-      ColumnsRange sourceTsInterval =
-          new ColumnsRange(
+      ColumnsInterval sourceTsInterval =
+          new ColumnsInterval(
               fragmentMeta.getColumnsRange().getStartColumn(),
               fragmentMeta.getColumnsRange().getEndColumn());
       FragmentMeta newFragment =
@@ -325,8 +325,8 @@ public abstract class MigrationPolicy {
         }
       }
 
-      ColumnsRange sourceTsInterval =
-          new ColumnsRange(
+      ColumnsInterval sourceTsInterval =
+          new ColumnsInterval(
               fragmentMeta.getColumnsRange().getStartColumn(),
               fragmentMeta.getColumnsRange().getEndColumn());
       FragmentMeta newFragment =
@@ -566,7 +566,7 @@ public abstract class MigrationPolicy {
               targetStorageId,
               MigrationExecuteType.RESHARD_TIME));
       // [startTime, +∞) & (startPath, endPath)
-      ColumnsRange tsInterval = fragmentMeta.getColumnsRange();
+      ColumnsInterval tsInterval = fragmentMeta.getColumnsRange();
       KeyInterval keyInterval = fragmentMeta.getKeyInterval();
       List<Long> storageEngineList = new ArrayList<>();
       storageEngineList.add(targetStorageId);

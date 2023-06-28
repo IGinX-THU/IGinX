@@ -9,7 +9,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.ClearEmptyRowStreamWrapper;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
-import cn.edu.tsinghua.iginx.metadata.entity.ColumnsRange;
+import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.parquet.entity.NewQueryRowStream;
 import cn.edu.tsinghua.iginx.parquet.tools.TagKVUtils;
@@ -185,7 +185,7 @@ public class NewExecutor implements Executor {
   }
 
   @Override
-  public Pair<ColumnsRange, KeyInterval> getBoundaryOfStorage() throws PhysicalException {
+  public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage() throws PhysicalException {
     List<String> paths = new ArrayList<>();
     long start = Long.MAX_VALUE, end = Long.MIN_VALUE;
     for (DUManager duManager : duManagerMap.values()) {
@@ -211,8 +211,8 @@ public class NewExecutor implements Executor {
     if (start == Long.MAX_VALUE || end == Long.MIN_VALUE) {
       throw new PhysicalTaskExecuteFailureException("time range error");
     }
-    ColumnsRange tsRange =
-        new ColumnsRange(paths.get(0), StringUtils.nextString(paths.get(paths.size() - 1)));
+    ColumnsInterval tsRange =
+        new ColumnsInterval(paths.get(0), StringUtils.nextString(paths.get(paths.size() - 1)));
     KeyInterval keyInterval = new KeyInterval(start, end);
     return new Pair<>(tsRange, keyInterval);
   }

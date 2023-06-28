@@ -50,11 +50,14 @@ public class InsertGenerator extends AbstractGenerator {
 
     List<String> pathList = new ArrayList<>(insertStatement.getPaths());
 
-    ColumnsRange tsInterval = new ColumnsRange(pathList.get(0), pathList.get(pathList.size() - 1));
+    // 需要判断，左右边界相同，如果相同，需要设置为闭区间！
+    String start = pathList.get(0);
+    String end = pathList.get(pathList.size() - 1);
+    ColumnsInterval tsInterval = new ColumnsInterval(start, end, start.equals(end) ? true : false);
     KeyInterval keyInterval =
         new KeyInterval(insertStatement.getStartKey(), insertStatement.getEndKey() + 1);
 
-    Map<ColumnsRange, List<FragmentMeta>> fragments =
+    Map<ColumnsInterval, List<FragmentMeta>> fragments =
         metaManager.getFragmentMapByColumnsIntervalAndKeyInterval(tsInterval, keyInterval);
     if (fragments.isEmpty()) {
       // on startup
@@ -94,7 +97,7 @@ public class InsertGenerator extends AbstractGenerator {
 
   private DataView getDataSection(FragmentMeta meta, RawData rawData) {
     KeyInterval keyInterval = meta.getKeyInterval();
-    ColumnsRange tsInterval = meta.getColumnsRange();
+    ColumnsInterval tsInterval = meta.getColumnsRange();
     List<Long> insertTimes = rawData.getKeys();
     List<String> paths = rawData.getPaths();
 

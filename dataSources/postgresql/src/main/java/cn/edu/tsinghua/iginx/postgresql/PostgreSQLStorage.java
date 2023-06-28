@@ -476,9 +476,9 @@ public class PostgreSQLStorage implements IStorage {
   }
 
   @Override
-  public Pair<ColumnsRange, KeyInterval> getBoundaryOfStorage(String dataPrefix)
+  public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String dataPrefix)
       throws PhysicalException {
-    ColumnsRange columnsRange;
+    ColumnsInterval columnsInterval;
     long minKey = Long.MAX_VALUE;
     long maxKey = 0;
     List<String> paths = new ArrayList<>();
@@ -545,9 +545,9 @@ public class PostgreSQLStorage implements IStorage {
     paths.sort(String::compareTo);
 
     if (dataPrefix != null) {
-      columnsRange = new ColumnsRange(dataPrefix, StringUtils.nextString(dataPrefix));
+      columnsInterval = new ColumnsInterval(dataPrefix, StringUtils.nextString(dataPrefix));
     } else {
-      columnsRange = new ColumnsRange(paths.get(0), paths.get(paths.size() - 1));
+      columnsInterval = new ColumnsInterval(paths.get(0), paths.get(paths.size() - 1));
     }
 
     if (minKey == Long.MAX_VALUE) {
@@ -557,7 +557,7 @@ public class PostgreSQLStorage implements IStorage {
       maxKey = Long.MAX_VALUE - 1;
     }
 
-    return new Pair<>(columnsRange, new KeyInterval(minKey, maxKey + 1));
+    return new Pair<>(columnsInterval, new KeyInterval(minKey, maxKey + 1));
   }
 
   private Map<String, String> splitAndMergeQueryPatterns(

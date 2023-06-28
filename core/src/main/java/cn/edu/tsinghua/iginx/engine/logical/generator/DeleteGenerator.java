@@ -51,11 +51,11 @@ public class DeleteGenerator extends AbstractGenerator {
     List<String> pathList =
         SortUtils.mergeAndSortPaths(new ArrayList<>(deleteStatement.getPaths()));
 
-    ColumnsRange columnsRange =
-        new ColumnsRange(pathList.get(0), pathList.get(pathList.size() - 1));
+    ColumnsInterval columnsInterval =
+        new ColumnsInterval(pathList.get(0), pathList.get(pathList.size() - 1));
 
-    Map<ColumnsRange, List<FragmentMeta>> fragments =
-        metaManager.getFragmentMapByColumnsRange(columnsRange);
+    Map<ColumnsInterval, List<FragmentMeta>> fragments =
+        metaManager.getFragmentMapByColumnsRange(columnsInterval);
     if (fragments.isEmpty()) {
       if (metaManager.hasWritableStorageEngines()) {
         // on startup
@@ -64,10 +64,10 @@ public class DeleteGenerator extends AbstractGenerator {
         metaManager.createInitialFragmentsAndStorageUnits(
             fragmentsAndStorageUnits.v, fragmentsAndStorageUnits.k);
       }
-      fragments = metaManager.getFragmentMapByColumnsRange(columnsRange);
+      fragments = metaManager.getFragmentMapByColumnsRange(columnsInterval);
     }
 
-    if (metaManager.hasDummyFragment(columnsRange)) {
+    if (metaManager.hasDummyFragment(columnsInterval)) {
       deleteStatement.setInvolveDummyData(true);
     }
 

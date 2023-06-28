@@ -1039,9 +1039,9 @@ public class ETCDMetaStorage implements IMetaStorage {
   }
 
   @Override
-  public Map<ColumnsRange, List<FragmentMeta>> loadFragment() throws MetaStorageException {
+  public Map<ColumnsInterval, List<FragmentMeta>> loadFragment() throws MetaStorageException {
     try {
-      Map<ColumnsRange, List<FragmentMeta>> fragmentsMap = new HashMap<>();
+      Map<ColumnsInterval, List<FragmentMeta>> fragmentsMap = new HashMap<>();
       GetResponse response =
           this.client
               .getKVClient()
@@ -1111,10 +1111,10 @@ public class ETCDMetaStorage implements IMetaStorage {
   }
 
   @Override
-  public Map<ColumnsRange, List<FragmentMeta>> getFragmentMapByColumnsIntervalAndKeyInterval(
-      ColumnsRange columnsRange, KeyInterval keyInterval) {
+  public Map<ColumnsInterval, List<FragmentMeta>> getFragmentMapByColumnsIntervalAndKeyInterval(
+      ColumnsInterval columnsInterval, KeyInterval keyInterval) {
     try {
-      Map<ColumnsRange, List<FragmentMeta>> fragmentsMap = new HashMap<>();
+      Map<ColumnsInterval, List<FragmentMeta>> fragmentsMap = new HashMap<>();
       GetResponse response =
           this.client
               .getKVClient()
@@ -1127,7 +1127,7 @@ public class ETCDMetaStorage implements IMetaStorage {
       for (KeyValue kv : response.getKvs()) {
         FragmentMeta fragment = JsonUtils.fromJson(kv.getValue().getBytes(), FragmentMeta.class);
         if (fragment.getKeyInterval().isIntersect(keyInterval)
-            && fragment.getColumnsRange().isIntersect(columnsRange)) {
+            && fragment.getColumnsRange().isIntersect(columnsInterval)) {
           fragmentsMap
               .computeIfAbsent(fragment.getColumnsRange(), e -> new ArrayList<>())
               .add(fragment);
@@ -1170,15 +1170,15 @@ public class ETCDMetaStorage implements IMetaStorage {
   }
 
   @Override
-  public void updateFragmentByColumnsRange(ColumnsRange columnsRange, FragmentMeta fragmentMeta)
-      throws MetaStorageException {
+  public void updateFragmentByColumnsRange(
+      ColumnsInterval columnsInterval, FragmentMeta fragmentMeta) throws MetaStorageException {
     try {
       client
           .getKVClient()
           .delete(
               ByteSequence.from(
                   (FRAGMENT_PREFIX
-                          + columnsRange.toString()
+                          + columnsInterval.toString()
                           + "/"
                           + fragmentMeta.getKeyInterval().toString())
                       .getBytes()));
@@ -1186,16 +1186,17 @@ public class ETCDMetaStorage implements IMetaStorage {
           this.client
               .getKVClient()
               .get(
-                  ByteSequence.from((FRAGMENT_PREFIX + columnsRange.toString()).getBytes()),
+                  ByteSequence.from((FRAGMENT_PREFIX + columnsInterval.toString()).getBytes()),
                   GetOption.newBuilder()
                       .withPrefix(
-                          ByteSequence.from((FRAGMENT_PREFIX + columnsRange.toString()).getBytes()))
+                          ByteSequence.from(
+                              (FRAGMENT_PREFIX + columnsInterval.toString()).getBytes()))
                       .build())
               .get();
       if (response.getKvs().isEmpty()) {
         client
             .getKVClient()
-            .delete(ByteSequence.from((FRAGMENT_PREFIX + columnsRange.toString()).getBytes()));
+            .delete(ByteSequence.from((FRAGMENT_PREFIX + columnsInterval.toString()).getBytes()));
       }
       client
           .getKVClient()
@@ -1788,8 +1789,9 @@ public class ETCDMetaStorage implements IMetaStorage {
       keyValues.add(kv);
     }
     for (Map.Entry<String, List<KeyValue>> entry : timeSeriesRangeListMap.entrySet()) {
-      ColumnsRange columnsRange = ColumnsRange.fromString(entry.getKey());
-      List<FragmentMeta> fragmentMetas = cache.getFragmentMapByExactColumnsInterval(columnsRange);
+      ColumnsInterval columnsInterval = ColumnsInterval.fromString(entry.getKey());
+      List<FragmentMeta> fragmentMetas =
+          cache.getFragmentMapByExactColumnsInterval(columnsInterval);
       for (KeyValue kv : entry.getValue()) {
         String[] tuples = kv.getKey().toString().split("/");
         long startTime = Long.parseLong(tuples[tuples.length - 1]);
@@ -1805,7 +1807,7 @@ public class ETCDMetaStorage implements IMetaStorage {
   }
 
   @Override
-  public void deleteFragmentPoints(ColumnsRange columnsRange, KeyInterval keyInterval)
+  public void deleteFragmentPoints(ColumnsInterval columnsInterval, KeyInterval keyInterval)
       throws Exception {
     try {
       client
@@ -1814,7 +1816,7 @@ public class ETCDMetaStorage implements IMetaStorage {
               ByteSequence.from(
                   (STATISTICS_FRAGMENT_POINTS_PREFIX
                           + "/"
-                          + columnsRange.toString()
+                          + columnsInterval.toString()
                           + "/"
                           + keyInterval.toString())
                       .getBytes()))
@@ -1926,10 +1928,10 @@ public class ETCDMetaStorage implements IMetaStorage {
       }
     }
     for (Map.Entry<String, List<KeyValue>> entry : timeSeriesWriteRangeListMap.entrySet()) {
-      ColumnsRange columnsRange = ColumnsRange.fromString(entry.getKey());
-      Map<ColumnsRange, List<FragmentMeta>> fragmentMapOfTimeSeriesInterval =
-          cache.getFragmentMapByColumnsInterval(columnsRange);
-      List<FragmentMeta> fragmentMetas = fragmentMapOfTimeSeriesInterval.get(columnsRange);
+      ColumnsInterval columnsInterval = ColumnsInterval.fromString(entry.getKey());
+      Map<ColumnsInterval, List<FragmentMeta>> fragmentMapOfTimeSeriesInterval =
+          cache.getFragmentMapByColumnsInterval(columnsInterval);
+      List<FragmentMeta> fragmentMetas = fragmentMapOfTimeSeriesInterval.get(columnsInterval);
 
       if (fragmentMetas != null) {
         for (KeyValue kv : entry.getValue()) {
@@ -1945,10 +1947,10 @@ public class ETCDMetaStorage implements IMetaStorage {
       }
     }
     for (Map.Entry<String, List<KeyValue>> entry : timeSeriesReadRangeListMap.entrySet()) {
-      ColumnsRange columnsRange = ColumnsRange.fromString(entry.getKey());
-      Map<ColumnsRange, List<FragmentMeta>> fragmentMapOfTimeSeriesInterval =
-          cache.getFragmentMapByColumnsInterval(columnsRange);
-      List<FragmentMeta> fragmentMetas = fragmentMapOfTimeSeriesInterval.get(columnsRange);
+      ColumnsInterval columnsInterval = ColumnsInterval.fromString(entry.getKey());
+      Map<ColumnsInterval, List<FragmentMeta>> fragmentMapOfTimeSeriesInterval =
+          cache.getFragmentMapByColumnsInterval(columnsInterval);
+      List<FragmentMeta> fragmentMetas = fragmentMapOfTimeSeriesInterval.get(columnsInterval);
 
       if (fragmentMetas != null) {
         for (KeyValue kv : entry.getValue()) {

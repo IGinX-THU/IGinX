@@ -3,7 +3,7 @@ package cn.edu.tsinghua.iginx.engine.logical.utils;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.exceptions.SQLParserException;
-import cn.edu.tsinghua.iginx.metadata.entity.ColumnsRange;
+import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -438,36 +438,36 @@ public class ExprUtils {
     return new KeyRange(begin, end);
   }
 
-  public static Filter getSubFilterFromFragment(Filter filter, ColumnsRange columnsRange) {
+  public static Filter getSubFilterFromFragment(Filter filter, ColumnsInterval columnsInterval) {
     Filter filterWithoutNot = removeNot(filter);
-    Filter filterWithTrue = setTrue(filterWithoutNot, columnsRange);
+    Filter filterWithTrue = setTrue(filterWithoutNot, columnsInterval);
     return mergeTrue(filterWithTrue);
   }
 
-  private static Filter setTrue(Filter filter, ColumnsRange columnsRange) {
+  private static Filter setTrue(Filter filter, ColumnsInterval columnsInterval) {
     switch (filter.getType()) {
       case Or:
         List<Filter> orChildren = ((OrFilter) filter).getChildren();
         for (int i = 0; i < orChildren.size(); i++) {
-          Filter childFilter = setTrue(orChildren.get(i), columnsRange);
+          Filter childFilter = setTrue(orChildren.get(i), columnsInterval);
           orChildren.set(i, childFilter);
         }
         return new OrFilter(orChildren);
       case And:
         List<Filter> andChildren = ((AndFilter) filter).getChildren();
         for (int i = 0; i < andChildren.size(); i++) {
-          Filter childFilter = setTrue(andChildren.get(i), columnsRange);
+          Filter childFilter = setTrue(andChildren.get(i), columnsInterval);
           andChildren.set(i, childFilter);
         }
         return new AndFilter(andChildren);
       case Value:
         String path = ((ValueFilter) filter).getPath();
-        if (columnsRange.getStartColumn() != null
-            && columnsRange.getStartColumn().compareTo(path) > 0) {
+        if (columnsInterval.getStartColumn() != null
+            && columnsInterval.getStartColumn().compareTo(path) > 0) {
           return new BoolFilter(true);
         }
-        if (columnsRange.getEndColumn() != null
-            && columnsRange.getEndColumn().compareTo(path) <= 0) {
+        if (columnsInterval.getEndColumn() != null
+            && columnsInterval.getEndColumn().compareTo(path) <= 0) {
           return new BoolFilter(true);
         }
         return filter;
