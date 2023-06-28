@@ -55,7 +55,7 @@ public class DeleteGenerator extends AbstractGenerator {
         new ColumnsInterval(pathList.get(0), pathList.get(pathList.size() - 1));
 
     Map<ColumnsInterval, List<FragmentMeta>> fragments =
-        metaManager.getFragmentMapByColumnsRange(columnsInterval);
+        metaManager.getFragmentMapByColumnsInterval(columnsInterval);
     if (fragments.isEmpty()) {
       if (metaManager.hasWritableStorageEngines()) {
         // on startup
@@ -64,7 +64,7 @@ public class DeleteGenerator extends AbstractGenerator {
         metaManager.createInitialFragmentsAndStorageUnits(
             fragmentsAndStorageUnits.v, fragmentsAndStorageUnits.k);
       }
-      fragments = metaManager.getFragmentMapByColumnsRange(columnsInterval);
+      fragments = metaManager.getFragmentMapByColumnsInterval(columnsInterval);
     }
 
     if (metaManager.hasDummyFragment(columnsInterval)) {

@@ -124,7 +124,7 @@ public final class FragmentMeta {
     return keyInterval;
   }
 
-  public ColumnsInterval getColumnsRange() {
+  public ColumnsInterval getColumnsInterval() {
     return columnsInterval;
   }
 

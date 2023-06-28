@@ -18,6 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.metadata.storage.etcd;
 
+import static cn.edu.tsinghua.iginx.metadata.utils.ColumnsIntervalUtils.fromString;
 import static cn.edu.tsinghua.iginx.metadata.utils.ReshardStatus.*;
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
@@ -1054,7 +1055,7 @@ public class ETCDMetaStorage implements IMetaStorage {
       for (KeyValue kv : response.getKvs()) {
         FragmentMeta fragment = JsonUtils.fromJson(kv.getValue().getBytes(), FragmentMeta.class);
         fragmentsMap
-            .computeIfAbsent(fragment.getColumnsRange(), e -> new ArrayList<>())
+            .computeIfAbsent(fragment.getColumnsInterval(), e -> new ArrayList<>())
             .add(fragment);
       }
       return fragmentsMap;
@@ -1078,7 +1079,7 @@ public class ETCDMetaStorage implements IMetaStorage {
 
   @Override
   public List<FragmentMeta> getFragmentListByColumnNameAndKeyInterval(
-      String tsName, KeyInterval keyInterval) {
+      String columnName, KeyInterval keyInterval) {
     try {
       List<FragmentMeta> fragments = new ArrayList<>();
       GetResponse response =
@@ -1093,7 +1094,7 @@ public class ETCDMetaStorage implements IMetaStorage {
       for (KeyValue kv : response.getKvs()) {
         FragmentMeta fragment = JsonUtils.fromJson(kv.getValue().getBytes(), FragmentMeta.class);
         if (fragment.getKeyInterval().isIntersect(keyInterval)
-            && fragment.getColumnsRange().isContain(tsName)) {
+            && fragment.getColumnsInterval().isContain(columnName)) {
           fragments.add(fragment);
         }
       }
@@ -1127,9 +1128,9 @@ public class ETCDMetaStorage implements IMetaStorage {
       for (KeyValue kv : response.getKvs()) {
         FragmentMeta fragment = JsonUtils.fromJson(kv.getValue().getBytes(), FragmentMeta.class);
         if (fragment.getKeyInterval().isIntersect(keyInterval)
-            && fragment.getColumnsRange().isIntersect(columnsInterval)) {
+            && fragment.getColumnsInterval().isIntersect(columnsInterval)) {
           fragmentsMap
-              .computeIfAbsent(fragment.getColumnsRange(), e -> new ArrayList<>())
+              .computeIfAbsent(fragment.getColumnsInterval(), e -> new ArrayList<>())
               .add(fragment);
         }
       }
@@ -1158,7 +1159,7 @@ public class ETCDMetaStorage implements IMetaStorage {
           .put(
               ByteSequence.from(
                   (FRAGMENT_PREFIX
-                          + fragmentMeta.getColumnsRange().toString()
+                          + fragmentMeta.getColumnsInterval().toString()
                           + "/"
                           + fragmentMeta.getKeyInterval().toString())
                       .getBytes()),
@@ -1170,7 +1171,7 @@ public class ETCDMetaStorage implements IMetaStorage {
   }
 
   @Override
-  public void updateFragmentByColumnsRange(
+  public void updateFragmentByColumnsInterval(
       ColumnsInterval columnsInterval, FragmentMeta fragmentMeta) throws MetaStorageException {
     try {
       client
@@ -1203,7 +1204,7 @@ public class ETCDMetaStorage implements IMetaStorage {
           .put(
               ByteSequence.from(
                   (FRAGMENT_PREFIX
-                          + fragmentMeta.getColumnsRange().toString()
+                          + fragmentMeta.getColumnsInterval().toString()
                           + "/"
                           + fragmentMeta.getKeyInterval().toString())
                       .getBytes()),
@@ -1222,7 +1223,7 @@ public class ETCDMetaStorage implements IMetaStorage {
           .delete(
               ByteSequence.from(
                   (FRAGMENT_PREFIX
-                          + fragmentMeta.getColumnsRange().toString()
+                          + fragmentMeta.getColumnsInterval().toString()
                           + "/"
                           + fragmentMeta.getKeyInterval().toString())
                       .getBytes()));
@@ -1233,7 +1234,7 @@ public class ETCDMetaStorage implements IMetaStorage {
               ByteSequence.from(
                   (STATISTICS_FRAGMENT_REQUESTS_PREFIX_WRITE
                           + "/"
-                          + fragmentMeta.getColumnsRange().toString()
+                          + fragmentMeta.getColumnsInterval().toString()
                           + "/"
                           + fragmentMeta.getKeyInterval().toString())
                       .getBytes()));
@@ -1243,7 +1244,7 @@ public class ETCDMetaStorage implements IMetaStorage {
               ByteSequence.from(
                   (STATISTICS_FRAGMENT_REQUESTS_PREFIX_READ
                           + "/"
-                          + fragmentMeta.getColumnsRange().toString()
+                          + fragmentMeta.getColumnsInterval().toString()
                           + "/"
                           + fragmentMeta.getKeyInterval().toString())
                       .getBytes()));
@@ -1253,7 +1254,7 @@ public class ETCDMetaStorage implements IMetaStorage {
               ByteSequence.from(
                   (STATISTICS_FRAGMENT_POINTS_PREFIX
                           + "/"
-                          + fragmentMeta.getColumnsRange().toString()
+                          + fragmentMeta.getColumnsInterval().toString()
                           + "/"
                           + fragmentMeta.getKeyInterval().toString())
                       .getBytes()));
@@ -1598,13 +1599,13 @@ public class ETCDMetaStorage implements IMetaStorage {
         String requestsPath =
             STATISTICS_FRAGMENT_REQUESTS_PREFIX_WRITE
                 + "/"
-                + writeRequestsEntry.getKey().getColumnsRange().toString()
+                + writeRequestsEntry.getKey().getColumnsInterval().toString()
                 + "/"
                 + writeRequestsEntry.getKey().getKeyInterval().toString();
         String pointsPath =
             STATISTICS_FRAGMENT_POINTS_PREFIX
                 + "/"
-                + writeRequestsEntry.getKey().getColumnsRange().toString()
+                + writeRequestsEntry.getKey().getColumnsInterval().toString()
                 + "/"
                 + writeRequestsEntry.getKey().getKeyInterval().toString();
         GetResponse response =
@@ -1647,7 +1648,7 @@ public class ETCDMetaStorage implements IMetaStorage {
       String path =
           STATISTICS_FRAGMENT_REQUESTS_PREFIX_READ
               + "/"
-              + readRequestsEntry.getKey().getColumnsRange().toString()
+              + readRequestsEntry.getKey().getColumnsInterval().toString()
               + "/"
               + readRequestsEntry.getKey().getKeyInterval().toString();
       GetResponse response = client.getKVClient().get(ByteSequence.from(path.getBytes())).get();
@@ -1789,7 +1790,7 @@ public class ETCDMetaStorage implements IMetaStorage {
       keyValues.add(kv);
     }
     for (Map.Entry<String, List<KeyValue>> entry : timeSeriesRangeListMap.entrySet()) {
-      ColumnsInterval columnsInterval = ColumnsInterval.fromString(entry.getKey());
+      ColumnsInterval columnsInterval = fromString(entry.getKey());
       List<FragmentMeta> fragmentMetas =
           cache.getFragmentMapByExactColumnsInterval(columnsInterval);
       for (KeyValue kv : entry.getValue()) {
@@ -1831,7 +1832,7 @@ public class ETCDMetaStorage implements IMetaStorage {
     String path =
         STATISTICS_FRAGMENT_POINTS_PREFIX
             + "/"
-            + fragmentMeta.getColumnsRange().toString()
+            + fragmentMeta.getColumnsInterval().toString()
             + "/"
             + fragmentMeta.getKeyInterval().toString();
     client
@@ -1848,7 +1849,7 @@ public class ETCDMetaStorage implements IMetaStorage {
       String path =
           STATISTICS_FRAGMENT_HEAT_PREFIX_WRITE
               + "/"
-              + writeHotspotEntry.getKey().getColumnsRange().toString()
+              + writeHotspotEntry.getKey().getColumnsInterval().toString()
               + "/"
               + writeHotspotEntry.getKey().getKeyInterval().toString();
       GetResponse response = client.getKVClient().get(ByteSequence.from(path.getBytes())).get();
@@ -1871,7 +1872,7 @@ public class ETCDMetaStorage implements IMetaStorage {
       String path =
           STATISTICS_FRAGMENT_HEAT_PREFIX_READ
               + "/"
-              + readHotspotEntry.getKey().getColumnsRange().toString()
+              + readHotspotEntry.getKey().getColumnsInterval().toString()
               + "/"
               + readHotspotEntry.getKey().getKeyInterval().toString();
       GetResponse response = client.getKVClient().get(ByteSequence.from(path.getBytes())).get();
@@ -1928,7 +1929,7 @@ public class ETCDMetaStorage implements IMetaStorage {
       }
     }
     for (Map.Entry<String, List<KeyValue>> entry : timeSeriesWriteRangeListMap.entrySet()) {
-      ColumnsInterval columnsInterval = ColumnsInterval.fromString(entry.getKey());
+      ColumnsInterval columnsInterval = fromString(entry.getKey());
       Map<ColumnsInterval, List<FragmentMeta>> fragmentMapOfTimeSeriesInterval =
           cache.getFragmentMapByColumnsInterval(columnsInterval);
       List<FragmentMeta> fragmentMetas = fragmentMapOfTimeSeriesInterval.get(columnsInterval);
@@ -1947,7 +1948,7 @@ public class ETCDMetaStorage implements IMetaStorage {
       }
     }
     for (Map.Entry<String, List<KeyValue>> entry : timeSeriesReadRangeListMap.entrySet()) {
-      ColumnsInterval columnsInterval = ColumnsInterval.fromString(entry.getKey());
+      ColumnsInterval columnsInterval = fromString(entry.getKey());
       Map<ColumnsInterval, List<FragmentMeta>> fragmentMapOfTimeSeriesInterval =
           cache.getFragmentMapByColumnsInterval(columnsInterval);
       List<FragmentMeta> fragmentMetas = fragmentMapOfTimeSeriesInterval.get(columnsInterval);

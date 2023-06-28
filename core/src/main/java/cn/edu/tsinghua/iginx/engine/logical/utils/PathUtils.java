@@ -9,8 +9,8 @@ public class PathUtils {
   public static final Character MIN_CHAR = '!';
   public static final Character MAX_CHAR = '~';
 
-  public static ColumnsInterval trimTimeSeriesInterval(ColumnsInterval tsInterval) {
-    String startPath = tsInterval.getStartColumn();
+  public static ColumnsInterval trimColumnsInterval(ColumnsInterval columnsInterval) {
+    String startPath = columnsInterval.getStartColumn();
     if (startPath.contains(STAR)) {
       if (startPath.startsWith(STAR)) {
         startPath = null;
@@ -19,7 +19,7 @@ public class PathUtils {
       }
     }
 
-    String endPath = tsInterval.getEndColumn();
+    String endPath = columnsInterval.getEndColumn();
     if (endPath.contains(STAR)) {
       if (endPath.startsWith(STAR)) {
         endPath = null;

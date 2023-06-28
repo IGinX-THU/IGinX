@@ -334,15 +334,15 @@ public class RedisStorage implements IStorage {
     List<String> paths = getKeysByPattern(STAR);
     paths.sort(String::compareTo);
 
-    ColumnsInterval tsInterval;
+    ColumnsInterval columnsInterval;
     if (prefix != null) {
-      tsInterval = new ColumnsInterval(prefix, StringUtils.nextString(prefix));
+      columnsInterval = new ColumnsInterval(prefix, StringUtils.nextString(prefix));
     } else {
       if (!paths.isEmpty()) {
-        tsInterval =
+        columnsInterval =
             new ColumnsInterval(paths.get(0), StringUtils.nextString(paths.get(paths.size() - 1)));
       } else {
-        tsInterval = new ColumnsInterval(null, null);
+        columnsInterval = new ColumnsInterval(null, null);
       }
     }
     long minTime = 0, maxTime = Long.MIN_VALUE;
@@ -376,7 +376,7 @@ public class RedisStorage implements IStorage {
       maxTime = Long.MAX_VALUE - 1;
     }
     KeyInterval keyInterval = new KeyInterval(minTime, maxTime + 1);
-    return new Pair<>(tsInterval, keyInterval);
+    return new Pair<>(columnsInterval, keyInterval);
   }
 
   private List<String> getKeysByPattern(String pattern) {

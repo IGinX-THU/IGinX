@@ -461,7 +461,7 @@ public class OpenTSDBStorage implements IStorage {
     if (paths.isEmpty()) {
       throw new PhysicalTaskExecuteFailureException("no data!");
     }
-    ColumnsInterval tsInterval =
+    ColumnsInterval columnsInterval =
         new ColumnsInterval(paths.get(0), StringUtils.nextString(paths.get(paths.size() - 1)));
 
     long minTime = 0, maxTime = Long.MAX_VALUE - 1;
@@ -486,7 +486,7 @@ public class OpenTSDBStorage implements IStorage {
           "encounter error when query data in opentsdb: ", e);
     }
     KeyInterval keyInterval = new KeyInterval(minTime, maxTime + 1);
-    return new Pair<>(tsInterval, keyInterval);
+    return new Pair<>(columnsInterval, keyInterval);
   }
 
   @Override

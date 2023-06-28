@@ -423,7 +423,7 @@ public class QueryGenerator extends AbstractGenerator {
         new ColumnsInterval(pathList.get(0), pathList.get(pathList.size() - 1));
 
     Pair<Map<KeyInterval, List<FragmentMeta>>, List<FragmentMeta>> pair =
-        getFragmentsByTSInterval(selectStatement, columnsInterval);
+        getFragmentsByColumnsInterval(selectStatement, columnsInterval);
     Map<KeyInterval, List<FragmentMeta>> fragments = pair.k;
     List<FragmentMeta> dummyFragments = pair.v;
 
@@ -445,7 +445,8 @@ public class QueryGenerator extends AbstractGenerator {
               } else {
                 String prefix = fromPart.getPath() + ALL_PATH_SUFFIX;
                 Pair<Map<KeyInterval, List<FragmentMeta>>, List<FragmentMeta>> pair =
-                    getFragmentsByTSInterval(selectStatement, new ColumnsInterval(prefix, prefix));
+                    getFragmentsByColumnsInterval(
+                        selectStatement, new ColumnsInterval(prefix, prefix));
                 Map<KeyInterval, List<FragmentMeta>> fragments = pair.k;
                 List<FragmentMeta> dummyFragments = pair.v;
                 joinList.add(
@@ -598,14 +599,16 @@ public class QueryGenerator extends AbstractGenerator {
       dummyFragments.forEach(
           meta -> {
             if (meta.isValid()) {
-              String schemaPrefix = meta.getColumnsRange().getSchemaPrefix();
+              String schemaPrefix = meta.getColumnsInterval().getSchemaPrefix();
               joinList.add(
                   new AddSchemaPrefix(
                       new OperatorSource(
                           new Project(
                               new FragmentSource(meta),
                               pathMatchPrefix(
-                                  pathList, meta.getColumnsRange().getStartColumn(), schemaPrefix),
+                                  pathList,
+                                  meta.getColumnsInterval().getStartColumn(),
+                                  schemaPrefix),
                               tagFilter)),
                       schemaPrefix));
             }
@@ -618,11 +621,12 @@ public class QueryGenerator extends AbstractGenerator {
     return operator;
   }
 
-  private Pair<Map<KeyInterval, List<FragmentMeta>>, List<FragmentMeta>> getFragmentsByTSInterval(
-      SelectStatement selectStatement, ColumnsInterval columnsInterval) {
-    Map<ColumnsInterval, List<FragmentMeta>> fragmentsByColumnsRange =
-        metaManager.getFragmentMapByColumnsRange(
-            PathUtils.trimTimeSeriesInterval(columnsInterval), true);
+  private Pair<Map<KeyInterval, List<FragmentMeta>>, List<FragmentMeta>>
+      getFragmentsByColumnsInterval(
+          SelectStatement selectStatement, ColumnsInterval columnsInterval) {
+    Map<ColumnsInterval, List<FragmentMeta>> fragmentsByColumnsInterval =
+        metaManager.getFragmentMapByColumnsInterval(
+            PathUtils.trimColumnsInterval(columnsInterval), true);
     if (!metaManager.hasFragment()) {
       if (metaManager.hasWritableStorageEngines()) {
         // on startup
@@ -631,9 +635,10 @@ public class QueryGenerator extends AbstractGenerator {
         metaManager.createInitialFragmentsAndStorageUnits(
             fragmentsAndStorageUnits.v, fragmentsAndStorageUnits.k);
       }
-      fragmentsByColumnsRange = metaManager.getFragmentMapByColumnsRange(columnsInterval, true);
+      fragmentsByColumnsInterval =
+          metaManager.getFragmentMapByColumnsInterval(columnsInterval, true);
     }
-    return keyFromColumnsIntervalToKeyInterval(fragmentsByColumnsRange);
+    return keyFromColumnsIntervalToKeyInterval(fragmentsByColumnsInterval);
   }
 
   // 筛选出满足 dataPrefix前缀，并且去除 schemaPrefix

@@ -884,8 +884,8 @@ public class IginxWorker implements IService.Iface {
                         f.getMasterStorageUnitId(),
                         f.getKeyInterval().getStartKey(),
                         f.getKeyInterval().getEndKey(),
-                        f.getColumnsRange().getStartColumn(),
-                        f.getColumnsRange().getEndColumn()))
+                        f.getColumnsInterval().getStartColumn(),
+                        f.getColumnsInterval().getEndColumn()))
             .collect(Collectors.toList());
     return new GetMetaResp(fragments, storages, units);
   }

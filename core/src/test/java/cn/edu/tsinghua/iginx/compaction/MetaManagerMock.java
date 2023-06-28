@@ -88,13 +88,13 @@ public class MetaManagerMock implements IMetaManager {
   }
 
   @Override
-  public Map<ColumnsInterval, List<FragmentMeta>> getFragmentMapByColumnsRange(
+  public Map<ColumnsInterval, List<FragmentMeta>> getFragmentMapByColumnsInterval(
       ColumnsInterval columnsInterval) {
     return null;
   }
 
   @Override
-  public Map<ColumnsInterval, List<FragmentMeta>> getFragmentMapByColumnsRange(
+  public Map<ColumnsInterval, List<FragmentMeta>> getFragmentMapByColumnsInterval(
       ColumnsInterval columnsInterval, boolean withDummyFragment) {
     return null;
   }
@@ -110,7 +110,7 @@ public class MetaManagerMock implements IMetaManager {
   }
 
   @Override
-  public Map<ColumnsInterval, FragmentMeta> getLatestFragmentMapByColumnsRange(
+  public Map<ColumnsInterval, FragmentMeta> getLatestFragmentMapByColumnsInterval(
       ColumnsInterval columnsInterval) {
     return null;
   }
@@ -323,10 +323,10 @@ public class MetaManagerMock implements IMetaManager {
   }
 
   @Override
-  public void endFragmentByColumnsRange(FragmentMeta fragmentMeta, String endColumn) {}
+  public void endFragmentByColumnsInterval(FragmentMeta fragmentMeta, String endColumn) {}
 
   @Override
-  public void updateFragmentByColumnsRange(
+  public void updateFragmentByColumnsInterval(
       ColumnsInterval columnsInterval, FragmentMeta fragmentMeta) {}
 
   @Override

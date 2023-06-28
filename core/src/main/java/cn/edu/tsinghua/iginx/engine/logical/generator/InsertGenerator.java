@@ -50,15 +50,13 @@ public class InsertGenerator extends AbstractGenerator {
 
     List<String> pathList = new ArrayList<>(insertStatement.getPaths());
 
-    // 需要判断，左右边界相同，如果相同，需要设置为闭区间！
-    String start = pathList.get(0);
-    String end = pathList.get(pathList.size() - 1);
-    ColumnsInterval tsInterval = new ColumnsInterval(start, end, start.equals(end) ? true : false);
+    ColumnsInterval columnsInterval =
+        new ColumnsInterval(pathList.get(0), pathList.get(pathList.size() - 1));
     KeyInterval keyInterval =
         new KeyInterval(insertStatement.getStartKey(), insertStatement.getEndKey() + 1);
 
     Map<ColumnsInterval, List<FragmentMeta>> fragments =
-        metaManager.getFragmentMapByColumnsIntervalAndKeyInterval(tsInterval, keyInterval);
+        metaManager.getFragmentMapByColumnsIntervalAndKeyInterval(columnsInterval, keyInterval);
     if (fragments.isEmpty()) {
       // on startup
       policy.setNeedReAllocate(false);
@@ -68,7 +66,7 @@ public class InsertGenerator extends AbstractGenerator {
         metaManager.createInitialFragmentsAndStorageUnits(
             fragmentsAndStorageUnits.v, fragmentsAndStorageUnits.k);
       }
-      fragments = metaManager.getFragmentMapByColumnsRange(tsInterval);
+      fragments = metaManager.getFragmentMapByColumnsInterval(columnsInterval);
     } else if (policy.isNeedReAllocate()) {
       // on scale-out or any events requiring reallocation
       logger.debug("Trig ReAllocate!");
@@ -97,7 +95,7 @@ public class InsertGenerator extends AbstractGenerator {
 
   private DataView getDataSection(FragmentMeta meta, RawData rawData) {
     KeyInterval keyInterval = meta.getKeyInterval();
-    ColumnsInterval tsInterval = meta.getColumnsRange();
+    ColumnsInterval columnsInterval = meta.getColumnsInterval();
     List<Long> insertTimes = rawData.getKeys();
     List<String> paths = rawData.getPaths();
 
@@ -108,10 +106,10 @@ public class InsertGenerator extends AbstractGenerator {
     }
 
     // path overlap doesn't exist.
-    if (tsInterval.getStartColumn() != null
-        && tsInterval.getStartColumn().compareTo(paths.get(paths.size() - 1)) > 0) return null;
-    if (tsInterval.getEndColumn() != null
-        && tsInterval.getEndColumn().compareTo(paths.get(0)) <= 0) {
+    if (columnsInterval.getStartColumn() != null
+        && columnsInterval.getStartColumn().compareTo(paths.get(paths.size() - 1)) > 0) return null;
+    if (columnsInterval.getEndColumn() != null
+        && columnsInterval.getEndColumn().compareTo(paths.get(0)) <= 0) {
       return null;
     }
 
@@ -122,13 +120,14 @@ public class InsertGenerator extends AbstractGenerator {
         && keyInterval.getEndKey() > insertTimes.get(endKeyIndex)) endKeyIndex++;
 
     int startPathIndex = 0;
-    if (tsInterval.getStartColumn() != null) {
-      while (tsInterval.getStartColumn().compareTo(paths.get(startPathIndex)) > 0) startPathIndex++;
+    if (columnsInterval.getStartColumn() != null) {
+      while (columnsInterval.getStartColumn().compareTo(paths.get(startPathIndex)) > 0)
+        startPathIndex++;
     }
     int endPathIndex = startPathIndex;
-    if (tsInterval.getEndColumn() != null) {
+    if (columnsInterval.getEndColumn() != null) {
       while (endPathIndex < paths.size()
-          && tsInterval.getEndColumn().compareTo(paths.get(endPathIndex)) > 0) endPathIndex++;
+          && columnsInterval.getEndColumn().compareTo(paths.get(endPathIndex)) > 0) endPathIndex++;
     } else {
       endPathIndex = paths.size();
     }

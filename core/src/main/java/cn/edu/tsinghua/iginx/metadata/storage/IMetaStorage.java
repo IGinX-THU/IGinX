@@ -69,14 +69,14 @@ public interface IMetaStorage {
   void lockFragment() throws MetaStorageException;
 
   List<FragmentMeta> getFragmentListByColumnNameAndKeyInterval(
-      String tsName, KeyInterval keyInterval);
+      String columnName, KeyInterval keyInterval);
 
   Map<ColumnsInterval, List<FragmentMeta>> getFragmentMapByColumnsIntervalAndKeyInterval(
       ColumnsInterval columnsInterval, KeyInterval keyInterval);
 
   void updateFragment(FragmentMeta fragmentMeta) throws MetaStorageException;
 
-  void updateFragmentByColumnsRange(ColumnsInterval columnsInterval, FragmentMeta fragmentMeta)
+  void updateFragmentByColumnsInterval(ColumnsInterval columnsInterval, FragmentMeta fragmentMeta)
       throws MetaStorageException;
 
   void removeFragment(FragmentMeta fragmentMeta) throws MetaStorageException;

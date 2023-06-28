@@ -28,33 +28,12 @@ import cn.edu.tsinghua.iginx.engine.physical.storage.execute.StoragePhysicalTask
 import cn.edu.tsinghua.iginx.engine.physical.task.*;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.constraint.ConstraintManager;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
-import cn.edu.tsinghua.iginx.engine.shared.data.write.RawData;
-import cn.edu.tsinghua.iginx.engine.shared.data.write.RawDataType;
-import cn.edu.tsinghua.iginx.engine.shared.data.write.RowDataView;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Migration;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
-import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
-import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
-import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
-import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
-import cn.edu.tsinghua.iginx.metadata.entity.StorageUnitMeta;
 import cn.edu.tsinghua.iginx.migration.MigrationPhysicalExecutor;
-import cn.edu.tsinghua.iginx.thrift.DataType;
-import cn.edu.tsinghua.iginx.utils.Bitmap;
-import cn.edu.tsinghua.iginx.utils.ByteUtils;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -90,7 +69,8 @@ public class PhysicalEngineImpl implements PhysicalEngine {
     if (OperatorType.isGlobalOperator(root.getType())) { // 全局任务临时兼容逻辑
       // 迁移任务单独处理
       if (root.getType() == OperatorType.Migration) {
-        return MigrationPhysicalExecutor.getInstance().execute((Migration) root, storageTaskExecutor);
+        return MigrationPhysicalExecutor.getInstance()
+            .execute((Migration) root, storageTaskExecutor);
       } else {
         GlobalPhysicalTask task = new GlobalPhysicalTask(root);
         TaskExecuteResult result = storageTaskExecutor.executeGlobalTask(task);

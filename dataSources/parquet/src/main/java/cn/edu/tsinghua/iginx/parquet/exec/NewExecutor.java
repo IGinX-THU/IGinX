@@ -211,10 +211,10 @@ public class NewExecutor implements Executor {
     if (start == Long.MAX_VALUE || end == Long.MIN_VALUE) {
       throw new PhysicalTaskExecuteFailureException("time range error");
     }
-    ColumnsInterval tsRange =
+    ColumnsInterval columnsInterval =
         new ColumnsInterval(paths.get(0), StringUtils.nextString(paths.get(paths.size() - 1)));
     KeyInterval keyInterval = new KeyInterval(start, end);
-    return new Pair<>(tsRange, keyInterval);
+    return new Pair<>(columnsInterval, keyInterval);
   }
 
   @Override
