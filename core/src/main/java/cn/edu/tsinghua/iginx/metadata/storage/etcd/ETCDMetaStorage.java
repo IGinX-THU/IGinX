@@ -1106,7 +1106,7 @@ public class ETCDMetaStorage implements IMetaStorage {
           });
       return fragments;
     } catch (ExecutionException | InterruptedException e) {
-      logger.error("got error when get fragments by tsName and timeInterval: ", e);
+      logger.error("got error when get fragments by columnName and keyInterval: ", e);
     }
     return new ArrayList<>();
   }
@@ -1146,7 +1146,7 @@ public class ETCDMetaStorage implements IMetaStorage {
                       }));
       return fragmentsMap;
     } catch (ExecutionException | InterruptedException e) {
-      logger.error("got error when get fragments by tsName and timeInterval: ", e);
+      logger.error("got error when get fragments by columnName and keyInterval: ", e);
     }
     return new HashMap<>();
   }

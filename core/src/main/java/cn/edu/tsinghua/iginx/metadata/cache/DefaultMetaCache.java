@@ -164,14 +164,15 @@ public class DefaultMetaCache implements IMetaCache {
   }
 
   private static List<Pair<ColumnsInterval, List<FragmentMeta>>> searchFragmentSeriesList(
-      List<Pair<ColumnsInterval, List<FragmentMeta>>> fragmentSeriesList, String tsName) {
+      List<Pair<ColumnsInterval, List<FragmentMeta>>> fragmentSeriesList, String columnName) {
     List<Pair<ColumnsInterval, List<FragmentMeta>>> resultList = new ArrayList<>();
     if (fragmentSeriesList.isEmpty()) {
       return resultList;
     }
     int index = 0;
-    while (index < fragmentSeriesList.size() && !fragmentSeriesList.get(index).k.isAfter(tsName)) {
-      if (fragmentSeriesList.get(index).k.isContain(tsName)) {
+    while (index < fragmentSeriesList.size()
+        && !fragmentSeriesList.get(index).k.isAfter(columnName)) {
+      if (fragmentSeriesList.get(index).k.isContain(columnName)) {
         resultList.add(fragmentSeriesList.get(index));
       }
       index++;
@@ -448,11 +449,11 @@ public class DefaultMetaCache implements IMetaCache {
   }
 
   @Override
-  public List<FragmentMeta> getFragmentListByColumnName(String tsName) {
+  public List<FragmentMeta> getFragmentListByColumnName(String columnName) {
     List<FragmentMeta> resultList;
     fragmentLock.readLock().lock();
     resultList =
-        searchFragmentSeriesList(sortedFragmentMetaLists, tsName).stream()
+        searchFragmentSeriesList(sortedFragmentMetaLists, columnName).stream()
             .map(e -> e.v)
             .flatMap(List::stream)
             .sorted(
@@ -471,11 +472,11 @@ public class DefaultMetaCache implements IMetaCache {
   }
 
   @Override
-  public FragmentMeta getLatestFragmentByColumnName(String tsName) {
+  public FragmentMeta getLatestFragmentByColumnName(String columnName) {
     FragmentMeta result;
     fragmentLock.readLock().lock();
     result =
-        searchFragmentSeriesList(sortedFragmentMetaLists, tsName).stream()
+        searchFragmentSeriesList(sortedFragmentMetaLists, columnName).stream()
             .map(e -> e.v)
             .flatMap(List::stream)
             .filter(e -> e.getKeyInterval().getEndKey() == Long.MAX_VALUE)
@@ -502,11 +503,11 @@ public class DefaultMetaCache implements IMetaCache {
 
   @Override
   public List<FragmentMeta> getFragmentListByColumnNameAndKeyInterval(
-      String tsName, KeyInterval keyInterval) {
+      String columnName, KeyInterval keyInterval) {
     List<FragmentMeta> resultList;
     fragmentLock.readLock().lock();
     List<FragmentMeta> fragmentMetas =
-        searchFragmentSeriesList(sortedFragmentMetaLists, tsName).stream()
+        searchFragmentSeriesList(sortedFragmentMetaLists, columnName).stream()
             .map(e -> e.v)
             .flatMap(List::stream)
             .sorted(Comparator.comparingLong(o -> o.getKeyInterval().getStartKey()))
