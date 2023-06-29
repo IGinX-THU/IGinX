@@ -174,7 +174,7 @@ public class InfluxDBStorage implements IStorage {
           new ColumnsInterval(
               bucketNames.get(0), StringUtils.nextString(bucketNames.get(bucketNames.size() - 1)));
     } else {
-      columnsInterval = new ColumnsInterval(dataPrefix, StringUtils.nextString(dataPrefix));
+      columnsInterval = new ColumnsInterval(dataPrefix);
     }
     long minTime = Long.MAX_VALUE, maxTime = 0;
 

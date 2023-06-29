@@ -545,9 +545,10 @@ public class PostgreSQLStorage implements IStorage {
     paths.sort(String::compareTo);
 
     if (dataPrefix != null) {
-      columnsInterval = new ColumnsInterval(dataPrefix, StringUtils.nextString(dataPrefix));
+      columnsInterval = new ColumnsInterval(dataPrefix);
     } else {
-      columnsInterval = new ColumnsInterval(paths.get(0), paths.get(paths.size() - 1));
+      columnsInterval =
+          new ColumnsInterval(paths.get(0), StringUtils.nextString(paths.get(paths.size() - 1)));
     }
 
     if (minKey == Long.MAX_VALUE) {

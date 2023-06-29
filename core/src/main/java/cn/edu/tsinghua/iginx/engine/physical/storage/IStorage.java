@@ -60,11 +60,6 @@ public interface IStorage {
   /** 获取指定前缀的数据边界 */
   Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String prefix) throws PhysicalException;
 
-  /** 获取数据边界 */
-  default Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage() throws PhysicalException {
-    return getBoundaryOfStorage(null);
-  }
-
   /** 释放底层连接 */
   void release() throws PhysicalException;
 }

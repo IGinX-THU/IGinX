@@ -10,24 +10,29 @@ public class PathUtils {
   public static final Character MAX_CHAR = '~';
 
   public static ColumnsInterval trimColumnsInterval(ColumnsInterval columnsInterval) {
-    String startPath = columnsInterval.getStartColumn();
-    if (startPath.contains(STAR)) {
-      if (startPath.startsWith(STAR)) {
-        startPath = null;
+    String startColumn = columnsInterval.getStartColumn();
+    if (startColumn.contains(STAR)) {
+      if (startColumn.startsWith(STAR)) {
+        startColumn = null;
       } else {
-        startPath = startPath.substring(0, startPath.indexOf(STAR)) + MIN_CHAR;
+        startColumn = startColumn.substring(0, startColumn.indexOf(STAR)) + MIN_CHAR;
       }
     }
 
-    String endPath = columnsInterval.getEndColumn();
-    if (endPath.contains(STAR)) {
-      if (endPath.startsWith(STAR)) {
-        endPath = null;
+    String endColumn = columnsInterval.getEndColumn();
+    if (endColumn.contains(STAR)) {
+      if (endColumn.startsWith(STAR)) {
+        endColumn = null;
       } else {
-        endPath = endPath.substring(0, endPath.indexOf(STAR)) + MAX_CHAR;
+        endColumn = endColumn.substring(0, endColumn.indexOf(STAR)) + MAX_CHAR;
       }
     }
 
-    return new ColumnsInterval(startPath, endPath);
+    if (startColumn != null && startColumn.equals(endColumn)) {
+      startColumn += MIN_CHAR;
+      endColumn += MAX_CHAR;
+    }
+
+    return new ColumnsInterval(startColumn, endColumn);
   }
 }

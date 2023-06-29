@@ -1247,10 +1247,7 @@ public class DefaultMetaManager implements IMetaManager {
           dummyFragment = new FragmentMeta(boundary.k, boundary.v, dummyStorageUnit);
         } else {
           dummyFragment =
-              new FragmentMeta(
-                  new ColumnsInterval(dataPrefix, StringUtils.nextString(dataPrefix)),
-                  boundary.v,
-                  dummyStorageUnit);
+              new FragmentMeta(new ColumnsInterval(dataPrefix), boundary.v, dummyStorageUnit);
         }
         dummyFragment.setDummyFragment(true);
         storage.setDummyStorageUnit(dummyStorageUnit);

@@ -18,15 +18,12 @@
  */
 package cn.edu.tsinghua.iginx.metadata.entity;
 
-import cn.edu.tsinghua.iginx.engine.logical.utils.PathUtils;
+import static cn.edu.tsinghua.iginx.engine.logical.utils.PathUtils.trimColumnsInterval;
+
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.util.Objects;
 
 public final class ColumnsInterval implements Comparable<ColumnsInterval> {
-
-  private static final String START_FORMAT = "%s" + PathUtils.MIN_CHAR;
-
-  private static final String END_FORMAT = "%s" + PathUtils.MAX_CHAR;
 
   private String startColumn;
 
@@ -40,8 +37,10 @@ public final class ColumnsInterval implements Comparable<ColumnsInterval> {
   }
 
   public ColumnsInterval(String column) {
-    this.startColumn = String.format(START_FORMAT, column);
-    this.endColumn = String.format(END_FORMAT, column);
+    ColumnsInterval trimmedColumnsInterval =
+        trimColumnsInterval(new ColumnsInterval(column, column));
+    this.startColumn = trimmedColumnsInterval.startColumn;
+    this.endColumn = trimmedColumnsInterval.endColumn;
   }
 
   private String realColumn(String column) {

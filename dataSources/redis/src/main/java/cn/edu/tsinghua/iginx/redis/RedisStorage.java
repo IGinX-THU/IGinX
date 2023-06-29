@@ -336,7 +336,7 @@ public class RedisStorage implements IStorage {
 
     ColumnsInterval columnsInterval;
     if (prefix != null) {
-      columnsInterval = new ColumnsInterval(prefix, StringUtils.nextString(prefix));
+      columnsInterval = new ColumnsInterval(prefix);
     } else {
       if (!paths.isEmpty()) {
         columnsInterval =
