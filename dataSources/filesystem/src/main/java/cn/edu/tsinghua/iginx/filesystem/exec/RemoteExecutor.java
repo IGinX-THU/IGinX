@@ -39,332 +39,316 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class RemoteExecutor implements Executor {
-    private static final Logger logger = LoggerFactory.getLogger(RemoteExecutor.class);
+  private static final Logger logger = LoggerFactory.getLogger(RemoteExecutor.class);
 
-    private static final int SUCCESS_CODE = 200;
+  private static final int SUCCESS_CODE = 200;
 
-    private final TTransport transport;
+  private final TTransport transport;
 
-    private final FileSystemService.Iface client;
+  private final FileSystemService.Iface client;
 
-    public RemoteExecutor(String ip, int port) throws TTransportException {
-        this.transport = new TSocket(ip, port);
-        if (!transport.isOpen()) {
-            transport.open();
-        }
-
-        this.client = new FileSystemService.Client(new TBinaryProtocol(transport));
+  public RemoteExecutor(String ip, int port) throws TTransportException {
+    this.transport = new TSocket(ip, port);
+    if (!transport.isOpen()) {
+      transport.open();
     }
 
-    @Override
-    public TaskExecuteResult executeProjectTask(
-            List<String> paths,
-            TagFilter tagFilter,
-            String filter,
-            String storageUnit,
-            boolean isDummyStorageUnit) {
-        ProjectReq req = new ProjectReq(storageUnit, isDummyStorageUnit, paths);
-        if (tagFilter != null) {
-            req.setTagFilter(constructRawTagFilter(tagFilter));
-        }
-        if (filter != null && !filter.equals("")) {
-            req.setFilter(filter);
-        }
-        try {
-            ProjectResp resp = client.executeProject(req);
-            if (resp.getStatus().code == SUCCESS_CODE) {
-                FileDataHeader fileDataHeader = resp.getHeader();
-                List<DataType> dataTypes = new ArrayList<>();
-                List<Field> fields = new ArrayList<>();
-                for (int i = 0; i < fileDataHeader.getNamesSize(); i++) {
-                    DataType dataType =
-                            DataTypeUtils.strToDataType(fileDataHeader.getTypes().get(i));
-                    dataTypes.add(dataType);
-                    fields.add(
-                            new Field(
-                                    fileDataHeader.getNames().get(i),
-                                    dataType,
-                                    fileDataHeader.getTagsList().get(i)));
-                }
-                Header header =
-                        fileDataHeader.hasTime ? new Header(Field.KEY, fields) : new Header(fields);
+    this.client = new FileSystemService.Client(new TBinaryProtocol(transport));
+  }
 
-                List<Row> rowList = new ArrayList<>();
-                resp.getRows()
-                        .forEach(
-                                fileDataRow -> {
-                                    Object[] values = new Object[dataTypes.size()];
-                                    Bitmap bitmap =
-                                            new Bitmap(dataTypes.size(), fileDataRow.getBitmap());
-                                    ByteBuffer valuesBuffer =
-                                            ByteBuffer.wrap(fileDataRow.getRowValues());
-                                    for (int i = 0; i < dataTypes.size(); i++) {
-                                        if (bitmap.get(i)) {
-                                            values[i] =
-                                                    ByteUtils.getValueFromByteBufferByDataType(
-                                                            valuesBuffer, dataTypes.get(i));
-                                        } else {
-                                            values[i] = null;
-                                        }
-                                    }
-
-                                    if (fileDataRow.isSetTimestamp()) {
-                                        rowList.add(
-                                                new Row(
-                                                        header,
-                                                        fileDataRow.getTimestamp(),
-                                                        values));
-                                    } else {
-                                        rowList.add(new Row(header, values));
-                                    }
-                                });
-                RowStream rowStream = new Table(header, rowList);
-                return new TaskExecuteResult(rowStream, null);
-            } else {
-                return new TaskExecuteResult(
-                        null, new PhysicalException("execute remote project task error"));
-            }
-        } catch (TException e) {
-            return new TaskExecuteResult(null, new PhysicalException(e));
+  @Override
+  public TaskExecuteResult executeProjectTask(
+      List<String> paths,
+      TagFilter tagFilter,
+      String filter,
+      String storageUnit,
+      boolean isDummyStorageUnit) {
+    ProjectReq req = new ProjectReq(storageUnit, isDummyStorageUnit, paths);
+    if (tagFilter != null) {
+      req.setTagFilter(constructRawTagFilter(tagFilter));
+    }
+    if (filter != null && !filter.equals("")) {
+      req.setFilter(filter);
+    }
+    try {
+      ProjectResp resp = client.executeProject(req);
+      if (resp.getStatus().code == SUCCESS_CODE) {
+        FileDataHeader fileDataHeader = resp.getHeader();
+        List<DataType> dataTypes = new ArrayList<>();
+        List<Field> fields = new ArrayList<>();
+        for (int i = 0; i < fileDataHeader.getNamesSize(); i++) {
+          DataType dataType = DataTypeUtils.strToDataType(fileDataHeader.getTypes().get(i));
+          dataTypes.add(dataType);
+          fields.add(
+              new Field(
+                  fileDataHeader.getNames().get(i), dataType, fileDataHeader.getTagsList().get(i)));
         }
+        Header header = fileDataHeader.hasTime ? new Header(Field.KEY, fields) : new Header(fields);
+
+        List<Row> rowList = new ArrayList<>();
+        resp.getRows()
+            .forEach(
+                fileDataRow -> {
+                  Object[] values = new Object[dataTypes.size()];
+                  Bitmap bitmap = new Bitmap(dataTypes.size(), fileDataRow.getBitmap());
+                  ByteBuffer valuesBuffer = ByteBuffer.wrap(fileDataRow.getRowValues());
+                  for (int i = 0; i < dataTypes.size(); i++) {
+                    if (bitmap.get(i)) {
+                      values[i] =
+                          ByteUtils.getValueFromByteBufferByDataType(
+                              valuesBuffer, dataTypes.get(i));
+                    } else {
+                      values[i] = null;
+                    }
+                  }
+
+                  if (fileDataRow.isSetTimestamp()) {
+                    rowList.add(new Row(header, fileDataRow.getTimestamp(), values));
+                  } else {
+                    rowList.add(new Row(header, values));
+                  }
+                });
+        RowStream rowStream = new Table(header, rowList);
+        return new TaskExecuteResult(rowStream, null);
+      } else {
+        return new TaskExecuteResult(
+            null, new PhysicalException("execute remote project task error"));
+      }
+    } catch (TException e) {
+      return new TaskExecuteResult(null, new PhysicalException(e));
+    }
+  }
+
+  @Override
+  public TaskExecuteResult executeInsertTask(DataView dataView, String storageUnit) {
+    List<String> paths = new ArrayList<>();
+    List<String> types = new ArrayList<>();
+    List<Map<String, String>> tagsList = new ArrayList<>();
+    for (int i = 0; i < dataView.getPathNum(); i++) {
+      paths.add(dataView.getPath(i));
+      types.add(dataView.getDataType(i).toString());
+      tagsList.add(dataView.getTags(i) == null ? new HashMap<>() : dataView.getTags(i));
     }
 
-    @Override
-    public TaskExecuteResult executeInsertTask(DataView dataView, String storageUnit) {
-        List<String> paths = new ArrayList<>();
-        List<String> types = new ArrayList<>();
-        List<Map<String, String>> tagsList = new ArrayList<>();
-        for (int i = 0; i < dataView.getPathNum(); i++) {
-            paths.add(dataView.getPath(i));
-            types.add(dataView.getDataType(i).toString());
-            tagsList.add(dataView.getTags(i) == null ? new HashMap<>() : dataView.getTags(i));
-        }
+    long[] times = new long[dataView.getKeySize()];
+    for (int i = 0; i < dataView.getKeySize(); i++) {
+      times[i] = dataView.getKey(i);
+    }
 
-        long[] times = new long[dataView.getKeySize()];
-        for (int i = 0; i < dataView.getKeySize(); i++) {
-            times[i] = dataView.getKey(i);
-        }
+    Pair<List<ByteBuffer>, List<ByteBuffer>> pair;
+    if (dataView.getRawDataType() == RawDataType.Row
+        || dataView.getRawDataType() == RawDataType.NonAlignedRow) {
+      pair = compressRowData(dataView);
+    } else {
+      pair = compressColData(dataView);
+    }
 
-        Pair<List<ByteBuffer>, List<ByteBuffer>> pair;
-        if (dataView.getRawDataType() == RawDataType.Row
-                || dataView.getRawDataType() == RawDataType.NonAlignedRow) {
-            pair = compressRowData(dataView);
+    FileDataRawData fileDataRawData =
+        new FileDataRawData(
+            paths,
+            tagsList,
+            ByteBuffer.wrap(ByteUtils.getByteArrayFromLongArray(times)),
+            pair.getK(),
+            pair.getV(),
+            types,
+            dataView.getRawDataType().toString());
+
+    InsertReq req = new InsertReq(storageUnit, fileDataRawData);
+    try {
+      Status status = client.executeInsert(req);
+      if (status.code == SUCCESS_CODE) {
+        return new TaskExecuteResult(null, null);
+      } else {
+        return new TaskExecuteResult(
+            null, new PhysicalException("execute remote insert task error"));
+      }
+    } catch (TException e) {
+      return new TaskExecuteResult(null, new PhysicalException(e));
+    }
+  }
+
+  @Override
+  public TaskExecuteResult executeDeleteTask(
+      List<String> paths, List<KeyRange> keyRanges, TagFilter tagFilter, String storageUnit) {
+    DeleteReq req = new DeleteReq(storageUnit, paths);
+    if (tagFilter != null) {
+      req.setTagFilter(constructRawTagFilter(tagFilter));
+    }
+    if (keyRanges != null) {
+      List<FileSystemTimeRange> fileSystemTimeRange = new ArrayList<>();
+      keyRanges.forEach(
+          timeRange ->
+              fileSystemTimeRange.add(
+                  new FileSystemTimeRange(
+                      timeRange.getBeginKey(),
+                      timeRange.isIncludeBeginKey(),
+                      timeRange.getEndKey(),
+                      timeRange.isIncludeEndKey())));
+      req.setTimeRanges(fileSystemTimeRange);
+    }
+
+    try {
+      Status status = client.executeDelete(req);
+      if (status.code == SUCCESS_CODE) {
+        return new TaskExecuteResult(null, null);
+      } else {
+        return new TaskExecuteResult(
+            null, new PhysicalException("execute remote delete task error"));
+      }
+    } catch (TException e) {
+      return new TaskExecuteResult(null, new PhysicalException(e));
+    }
+  }
+
+  @Override
+  public List<Column> getColumnOfStorageUnit(String storageUnit) throws PhysicalException {
+    try {
+      GetTimeSeriesOfStorageUnitResp resp = client.getTimeSeriesOfStorageUnit(storageUnit);
+      List<Column> timeSeriesList = new ArrayList<>();
+      resp.getPathList()
+          .forEach(
+              ts ->
+                  timeSeriesList.add(
+                      new Column(
+                          ts.getPath(),
+                          DataTypeUtils.strToDataType(ts.getDataType()),
+                          ts.getTags())));
+      return timeSeriesList;
+    } catch (TException e) {
+      throw new PhysicalException("encounter error when getTimeSeriesOfStorageUnit ", e);
+    }
+  }
+
+  @Override
+  public Pair<ColumnsRange, KeyInterval> getBoundaryOfStorage(String prefix)
+      throws PhysicalException {
+    try {
+      GetStorageBoundaryResp resp = client.getBoundaryOfStorage(prefix);
+      return new Pair<>(
+          new ColumnsInterval(resp.getStartColumn(), resp.getEndColumn()),
+          new KeyInterval(resp.getStartKey(), resp.getEndKey()));
+    } catch (TException e) {
+      throw new PhysicalException("encounter error when getBoundaryOfStorage ", e);
+    }
+  }
+
+  @Override
+  public void close() throws PhysicalException {
+    if (transport != null && transport.isOpen()) {
+      transport.close();
+    }
+  }
+
+  private RawTagFilter constructRawTagFilter(TagFilter tagFilter) {
+    RawTagFilter filter = null;
+    switch (tagFilter.getType()) {
+      case Base:
+        {
+          BaseTagFilter baseTagFilter = (BaseTagFilter) tagFilter;
+          filter = new RawTagFilter(TagFilterType.Base);
+          filter.setKey(baseTagFilter.getTagKey());
+          filter.setValue(baseTagFilter.getTagValue());
+          break;
+        }
+      case WithoutTag:
+        {
+          filter = new RawTagFilter(TagFilterType.WithoutTag);
+          break;
+        }
+      case BasePrecise:
+        {
+          BasePreciseTagFilter basePreciseTagFilter = (BasePreciseTagFilter) tagFilter;
+          filter = new RawTagFilter(TagFilterType.BasePrecise);
+          filter.setTags(basePreciseTagFilter.getTags());
+          break;
+        }
+      case Precise:
+        {
+          PreciseTagFilter preciseTagFilter = (PreciseTagFilter) tagFilter;
+          filter = new RawTagFilter(TagFilterType.Precise);
+          filter.setChildren(
+              preciseTagFilter.getChildren().stream()
+                  .map(this::constructRawTagFilter)
+                  .collect(Collectors.toList()));
+          break;
+        }
+      case And:
+        {
+          AndTagFilter andTagFilter = (AndTagFilter) tagFilter;
+          filter = new RawTagFilter(TagFilterType.And);
+          filter.setChildren(
+              andTagFilter.getChildren().stream()
+                  .map(this::constructRawTagFilter)
+                  .collect(Collectors.toList()));
+          break;
+        }
+      case Or:
+        {
+          OrTagFilter orTagFilter = (OrTagFilter) tagFilter;
+          filter = new RawTagFilter(TagFilterType.Or);
+          filter.setChildren(
+              orTagFilter.getChildren().stream()
+                  .map(this::constructRawTagFilter)
+                  .collect(Collectors.toList()));
+          break;
+        }
+      default:
+        {
+          logger.error("unknown tag filter type: {}", tagFilter.getType());
+        }
+    }
+    return filter;
+  }
+
+  private Pair<List<ByteBuffer>, List<ByteBuffer>> compressColData(DataView dataView) {
+    List<ByteBuffer> valueBufferList = new ArrayList<>();
+    List<ByteBuffer> bitmapBufferList = new ArrayList<>();
+
+    for (int i = 0; i < dataView.getPathNum(); i++) {
+      DataType dataType = dataView.getDataType(i);
+      BitmapView bitmapView = dataView.getBitmapView(i);
+      Object[] values = new Object[dataView.getKeySize()];
+
+      int index = 0;
+      for (int j = 0; j < dataView.getKeySize(); j++) {
+        if (bitmapView.get(j)) {
+          values[j] = dataView.getValue(i, index);
+          index++;
         } else {
-            pair = compressColData(dataView);
+          values[j] = null;
         }
+      }
+      valueBufferList.add(ByteUtils.getColumnByteBuffer(values, dataType));
+      bitmapBufferList.add(ByteBuffer.wrap(bitmapView.getBitmap().getBytes()));
+    }
+    return new Pair<>(valueBufferList, bitmapBufferList);
+  }
 
-        FileDataRawData fileDataRawData =
-                new FileDataRawData(
-                        paths,
-                        tagsList,
-                        ByteBuffer.wrap(ByteUtils.getByteArrayFromLongArray(times)),
-                        pair.getK(),
-                        pair.getV(),
-                        types,
-                        dataView.getRawDataType().toString());
+  private Pair<List<ByteBuffer>, List<ByteBuffer>> compressRowData(DataView dataView) {
+    List<ByteBuffer> valueBufferList = new ArrayList<>();
+    List<ByteBuffer> bitmapBufferList = new ArrayList<>();
 
-        InsertReq req = new InsertReq(storageUnit, fileDataRawData);
-        try {
-            Status status = client.executeInsert(req);
-            if (status.code == SUCCESS_CODE) {
-                return new TaskExecuteResult(null, null);
-            } else {
-                return new TaskExecuteResult(
-                        null, new PhysicalException("execute remote insert task error"));
-            }
-        } catch (TException e) {
-            return new TaskExecuteResult(null, new PhysicalException(e));
-        }
+    List<DataType> dataTypeList = new ArrayList<>();
+    for (int i = 0; i < dataView.getPathNum(); i++) {
+      dataTypeList.add(dataView.getDataType(i));
     }
 
-    @Override
-    public TaskExecuteResult executeDeleteTask(
-            List<String> paths, List<KeyRange> keyRanges, TagFilter tagFilter, String storageUnit) {
-        DeleteReq req = new DeleteReq(storageUnit, paths);
-        if (tagFilter != null) {
-            req.setTagFilter(constructRawTagFilter(tagFilter));
-        }
-        if (keyRanges != null) {
-            List<FileSystemTimeRange> fileSystemTimeRange = new ArrayList<>();
-            keyRanges.forEach(
-                    timeRange ->
-                            fileSystemTimeRange.add(
-                                    new FileSystemTimeRange(
-                                            timeRange.getBeginKey(),
-                                            timeRange.isIncludeBeginKey(),
-                                            timeRange.getEndKey(),
-                                            timeRange.isIncludeEndKey())));
-            req.setTimeRanges(fileSystemTimeRange);
-        }
+    for (int i = 0; i < dataView.getKeySize(); i++) {
+      BitmapView bitmapView = dataView.getBitmapView(i);
+      Object[] values = new Object[dataView.getPathNum()];
 
-        try {
-            Status status = client.executeDelete(req);
-            if (status.code == SUCCESS_CODE) {
-                return new TaskExecuteResult(null, null);
-            } else {
-                return new TaskExecuteResult(
-                        null, new PhysicalException("execute remote delete task error"));
-            }
-        } catch (TException e) {
-            return new TaskExecuteResult(null, new PhysicalException(e));
+      int index = 0;
+      for (int j = 0; j < dataView.getPathNum(); j++) {
+        if (bitmapView.get(j)) {
+          values[j] = dataView.getValue(i, index);
+          index++;
+        } else {
+          values[j] = null;
         }
+      }
+      valueBufferList.add(ByteUtils.getRowByteBuffer(values, dataTypeList));
+      bitmapBufferList.add(ByteBuffer.wrap(bitmapView.getBitmap().getBytes()));
     }
-
-    @Override
-    public List<Column> getColumnOfStorageUnit(String storageUnit) throws PhysicalException {
-        try {
-            GetTimeSeriesOfStorageUnitResp resp = client.getTimeSeriesOfStorageUnit(storageUnit);
-            List<Column> timeSeriesList = new ArrayList<>();
-            resp.getPathList()
-                    .forEach(
-                            ts ->
-                                    timeSeriesList.add(
-                                            new Column(
-                                                    ts.getPath(),
-                                                    DataTypeUtils.strToDataType(ts.getDataType()),
-                                                    ts.getTags())));
-            return timeSeriesList;
-        } catch (TException e) {
-            throw new PhysicalException("encounter error when getTimeSeriesOfStorageUnit ", e);
-        }
-    }
-
-    @Override
-    public Pair<ColumnsRange, KeyInterval> getBoundaryOfStorage(String prefix)
-            throws PhysicalException {
-        try {
-            GetStorageBoundryResp resp = client.getBoundaryOfStorage(prefix);
-            return new Pair<>(
-                    new ColumnsInterval(resp.getStartTimeSeries(), resp.getEndTimeSeries()),
-                    new KeyInterval(resp.getStartTime(), resp.getEndTime()));
-        } catch (TException e) {
-            throw new PhysicalException("encounter error when getBoundaryOfStorage ", e);
-        }
-    }
-
-    @Override
-    public void close() throws PhysicalException {
-        if (transport != null && transport.isOpen()) {
-            transport.close();
-        }
-    }
-
-    private RawTagFilter constructRawTagFilter(TagFilter tagFilter) {
-        RawTagFilter filter = null;
-        switch (tagFilter.getType()) {
-            case Base:
-                {
-                    BaseTagFilter baseTagFilter = (BaseTagFilter) tagFilter;
-                    filter = new RawTagFilter(TagFilterType.Base);
-                    filter.setKey(baseTagFilter.getTagKey());
-                    filter.setValue(baseTagFilter.getTagValue());
-                    break;
-                }
-            case WithoutTag:
-                {
-                    filter = new RawTagFilter(TagFilterType.WithoutTag);
-                    break;
-                }
-            case BasePrecise:
-                {
-                    BasePreciseTagFilter basePreciseTagFilter = (BasePreciseTagFilter) tagFilter;
-                    filter = new RawTagFilter(TagFilterType.BasePrecise);
-                    filter.setTags(basePreciseTagFilter.getTags());
-                    break;
-                }
-            case Precise:
-                {
-                    PreciseTagFilter preciseTagFilter = (PreciseTagFilter) tagFilter;
-                    filter = new RawTagFilter(TagFilterType.Precise);
-                    filter.setChildren(
-                            preciseTagFilter
-                                    .getChildren()
-                                    .stream()
-                                    .map(this::constructRawTagFilter)
-                                    .collect(Collectors.toList()));
-                    break;
-                }
-            case And:
-                {
-                    AndTagFilter andTagFilter = (AndTagFilter) tagFilter;
-                    filter = new RawTagFilter(TagFilterType.And);
-                    filter.setChildren(
-                            andTagFilter
-                                    .getChildren()
-                                    .stream()
-                                    .map(this::constructRawTagFilter)
-                                    .collect(Collectors.toList()));
-                    break;
-                }
-            case Or:
-                {
-                    OrTagFilter orTagFilter = (OrTagFilter) tagFilter;
-                    filter = new RawTagFilter(TagFilterType.Or);
-                    filter.setChildren(
-                            orTagFilter
-                                    .getChildren()
-                                    .stream()
-                                    .map(this::constructRawTagFilter)
-                                    .collect(Collectors.toList()));
-                    break;
-                }
-            default:
-                {
-                    logger.error("unknown tag filter type: {}", tagFilter.getType());
-                }
-        }
-        return filter;
-    }
-
-    private Pair<List<ByteBuffer>, List<ByteBuffer>> compressColData(DataView dataView) {
-        List<ByteBuffer> valueBufferList = new ArrayList<>();
-        List<ByteBuffer> bitmapBufferList = new ArrayList<>();
-
-        for (int i = 0; i < dataView.getPathNum(); i++) {
-            DataType dataType = dataView.getDataType(i);
-            BitmapView bitmapView = dataView.getBitmapView(i);
-            Object[] values = new Object[dataView.getKeySize()];
-
-            int index = 0;
-            for (int j = 0; j < dataView.getKeySize(); j++) {
-                if (bitmapView.get(j)) {
-                    values[j] = dataView.getValue(i, index);
-                    index++;
-                } else {
-                    values[j] = null;
-                }
-            }
-            valueBufferList.add(ByteUtils.getColumnByteBuffer(values, dataType));
-            bitmapBufferList.add(ByteBuffer.wrap(bitmapView.getBitmap().getBytes()));
-        }
-        return new Pair<>(valueBufferList, bitmapBufferList);
-    }
-
-    private Pair<List<ByteBuffer>, List<ByteBuffer>> compressRowData(DataView dataView) {
-        List<ByteBuffer> valueBufferList = new ArrayList<>();
-        List<ByteBuffer> bitmapBufferList = new ArrayList<>();
-
-        List<DataType> dataTypeList = new ArrayList<>();
-        for (int i = 0; i < dataView.getPathNum(); i++) {
-            dataTypeList.add(dataView.getDataType(i));
-        }
-
-        for (int i = 0; i < dataView.getKeySize(); i++) {
-            BitmapView bitmapView = dataView.getBitmapView(i);
-            Object[] values = new Object[dataView.getPathNum()];
-
-            int index = 0;
-            for (int j = 0; j < dataView.getPathNum(); j++) {
-                if (bitmapView.get(j)) {
-                    values[j] = dataView.getValue(i, index);
-                    index++;
-                } else {
-                    values[j] = null;
-                }
-            }
-            valueBufferList.add(ByteUtils.getRowByteBuffer(values, dataTypeList));
-            bitmapBufferList.add(ByteBuffer.wrap(bitmapView.getBitmap().getBytes()));
-        }
-        return new Pair<>(valueBufferList, bitmapBufferList);
-    }
+    return new Pair<>(valueBufferList, bitmapBufferList);
+  }
 }

@@ -62,10 +62,10 @@ struct ProjectReq {
     5: optional string filter
 }
 
-struct GetStorageBoundryResp {
+struct GetStorageBoundaryResp {
     1: required Status status
-    2: optional i64 startTime
-    3: optional i64 endTime
-    4: optional string startTimeSeries
-    5: optional string endTimeSeries
+    2: optional i64 startKey
+    3: optional i64 endKey
+    4: optional string startColumn
+    5: optional string endColumn
 }

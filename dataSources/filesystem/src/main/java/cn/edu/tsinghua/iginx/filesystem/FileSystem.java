@@ -49,127 +49,126 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class FileSystem implements IStorage {
-    private static final String STORAGE_ENGINE = "filesystem";
-    public static final int MAXFILESIZE = 100_000_000;
-    private static final Logger logger = LoggerFactory.getLogger(FileSystem.class);
-    private final StorageEngineMeta meta;
-    ExecutorService executorService = Executors.newFixedThreadPool(1); // 为了更好的管理线程
-    private Executor executor;
-    private String root = ConfLoader.getRootPath();
+  private static final String STORAGE_ENGINE = "filesystem";
+  public static final int MAXFILESIZE = 100_000_000;
+  private static final Logger logger = LoggerFactory.getLogger(FileSystem.class);
+  private final StorageEngineMeta meta;
+  ExecutorService executorService = Executors.newFixedThreadPool(1); // 为了更好的管理线程
+  private Executor executor;
+  private String root = ConfLoader.getRootPath();
 
-    public FileSystem(StorageEngineMeta meta)
-            throws StorageInitializationException, TTransportException {
-        if (!meta.getStorageEngine().equals(STORAGE_ENGINE)) {
-            throw new StorageInitializationException(
-                    "unexpected database: " + meta.getStorageEngine());
-        }
-
-        boolean isLocal = ConfLoader.ifLocalFileSystem();
-        if (isLocal) {
-            initLocalExecutor(meta);
-        } else {
-            executor = new RemoteExecutor(meta.getIp(), meta.getPort());
-        }
-        this.meta = meta;
+  public FileSystem(StorageEngineMeta meta)
+      throws StorageInitializationException, TTransportException {
+    if (!meta.getStorageEngine().equals(STORAGE_ENGINE)) {
+      throw new StorageInitializationException("unexpected database: " + meta.getStorageEngine());
     }
 
-    private void initLocalExecutor(StorageEngineMeta meta) {
-        String argRoot = meta.getExtraParams().get("dir");
-        root = argRoot == null ? root : FilePath.getRootFromArg(argRoot);
-
-        this.executor = new LocalExecutor(root);
-
-        executorService.submit(new Thread(new FileSystemServer(meta.getPort(), executor)));
+    boolean isLocal = ConfLoader.ifLocalFileSystem();
+    if (isLocal) {
+      initLocalExecutor(meta);
+    } else {
+      executor = new RemoteExecutor(meta.getIp(), meta.getPort());
     }
+    this.meta = meta;
+  }
 
-    @Override
-    public TaskExecuteResult executeProject(Project project, DataArea dataArea) {
-        Filter filter;
-        KeyInterval keyInterval = dataArea.getKeyInterval();
-        filter =
-                new AndFilter(
-                        Arrays.asList(
-                                new KeyFilter(Op.GE, keyInterval.getStartKey()),
-                                new KeyFilter(Op.L, keyInterval.getEndKey())));
-        return executor.executeProjectTask(
-                project.getPatterns(),
-                project.getTagFilter(),
-                FilterTransformer.toString(filter),
-                dataArea.getStorageUnit(),
-                false);
-    }
+  private void initLocalExecutor(StorageEngineMeta meta) {
+    String argRoot = meta.getExtraParams().get("dir");
+    root = argRoot == null ? root : FilePath.getRootFromArg(argRoot);
 
-    @Override
-    public TaskExecuteResult executeProjectDummy(Project project, DataArea dataArea) {
-        KeyInterval keyInterval = dataArea.getKeyInterval();
-        Filter filter =
-                new AndFilter(
-                        Arrays.asList(
-                                new KeyFilter(Op.GE, keyInterval.getStartKey()),
-                                new KeyFilter(Op.L, keyInterval.getEndKey())));
-        return executor.executeProjectTask(
-                project.getPatterns(),
-                project.getTagFilter(),
-                FilterTransformer.toString(filter),
-                dataArea.getStorageUnit(),
-                true);
-    }
+    this.executor = new LocalExecutor(root);
 
-    @Override
-    public boolean isSupportProjectWithSelect() {
-        return true;
-    }
+    executorService.submit(new Thread(new FileSystemServer(meta.getPort(), executor)));
+  }
 
-    @Override
-    public TaskExecuteResult executeProjectWithSelect(
-            Project project, Select select, DataArea dataArea) {
-        return executor.executeProjectTask(
-                project.getPatterns(),
-                project.getTagFilter(),
-                FilterTransformer.toString(select.getFilter()),
-                dataArea.getStorageUnit(),
-                false);
-    }
+  @Override
+  public TaskExecuteResult executeProject(Project project, DataArea dataArea) {
+    Filter filter;
+    KeyInterval keyInterval = dataArea.getKeyInterval();
+    filter =
+        new AndFilter(
+            Arrays.asList(
+                new KeyFilter(Op.GE, keyInterval.getStartKey()),
+                new KeyFilter(Op.L, keyInterval.getEndKey())));
+    return executor.executeProjectTask(
+        project.getPatterns(),
+        project.getTagFilter(),
+        FilterTransformer.toString(filter),
+        dataArea.getStorageUnit(),
+        false);
+  }
 
-    @Override
-    public TaskExecuteResult executeProjectDummyWithSelect(
-            Project project, Select select, DataArea dataArea) {
-        return executor.executeProjectTask(
-                project.getPatterns(),
-                project.getTagFilter(),
-                FilterTransformer.toString(select.getFilter()),
-                dataArea.getStorageUnit(),
-                true);
-    }
+  @Override
+  public TaskExecuteResult executeProjectDummy(Project project, DataArea dataArea) {
+    KeyInterval keyInterval = dataArea.getKeyInterval();
+    Filter filter =
+        new AndFilter(
+            Arrays.asList(
+                new KeyFilter(Op.GE, keyInterval.getStartKey()),
+                new KeyFilter(Op.L, keyInterval.getEndKey())));
+    return executor.executeProjectTask(
+        project.getPatterns(),
+        project.getTagFilter(),
+        FilterTransformer.toString(filter),
+        dataArea.getStorageUnit(),
+        true);
+  }
 
-    @Override
-    public TaskExecuteResult executeDelete(Delete delete, DataArea dataArea) {
-        return executor.executeDeleteTask(
-                delete.getPatterns(),
-                delete.getKeyRanges(),
-                delete.getTagFilter(),
-                dataArea.getStorageUnit());
-    }
+  @Override
+  public boolean isSupportProjectWithSelect() {
+    return true;
+  }
 
-    @Override
-    public TaskExecuteResult executeInsert(Insert insert, DataArea dataArea) {
-        return executor.executeInsertTask(insert.getData(), dataArea.getStorageUnit());
-    }
+  @Override
+  public TaskExecuteResult executeProjectWithSelect(
+      Project project, Select select, DataArea dataArea) {
+    return executor.executeProjectTask(
+        project.getPatterns(),
+        project.getTagFilter(),
+        FilterTransformer.toString(select.getFilter()),
+        dataArea.getStorageUnit(),
+        false);
+  }
 
-    @Override
-    public List<Column> getColumns() throws PhysicalException {
-        return executor.getColumnOfStorageUnit("*");
-    }
+  @Override
+  public TaskExecuteResult executeProjectDummyWithSelect(
+      Project project, Select select, DataArea dataArea) {
+    return executor.executeProjectTask(
+        project.getPatterns(),
+        project.getTagFilter(),
+        FilterTransformer.toString(select.getFilter()),
+        dataArea.getStorageUnit(),
+        true);
+  }
 
-    @Override
-    public Pair<ColumnsRange, KeyInterval> getBoundaryOfStorage(String prefix)
-            throws PhysicalException {
-        return executor.getBoundaryOfStorage(prefix);
-    }
+  @Override
+  public TaskExecuteResult executeDelete(Delete delete, DataArea dataArea) {
+    return executor.executeDeleteTask(
+        delete.getPatterns(),
+        delete.getKeyRanges(),
+        delete.getTagFilter(),
+        dataArea.getStorageUnit());
+  }
 
-    @Override
-    public void release() throws PhysicalException {
-        executor.close();
-        executorService.shutdown();
-    }
+  @Override
+  public TaskExecuteResult executeInsert(Insert insert, DataArea dataArea) {
+    return executor.executeInsertTask(insert.getData(), dataArea.getStorageUnit());
+  }
+
+  @Override
+  public List<Column> getColumns() throws PhysicalException {
+    return executor.getColumnOfStorageUnit("*");
+  }
+
+  @Override
+  public Pair<ColumnsRange, KeyInterval> getBoundaryOfStorage(String prefix)
+      throws PhysicalException {
+    return executor.getBoundaryOfStorage(prefix);
+  }
+
+  @Override
+  public void release() throws PhysicalException {
+    executor.close();
+    executorService.shutdown();
+  }
 }

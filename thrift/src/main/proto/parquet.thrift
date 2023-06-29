@@ -46,7 +46,7 @@ struct DeleteReq {
     1: required string storageUnit
     2: required list<string> paths
     3: optional common.RawTagFilter tagFilter
-    4: optional list<ParquetTimeRange> timeRanges
+    4: optional list<ParquetKeyRange> keyRanges
 }
 
 struct TS {
@@ -55,7 +55,7 @@ struct TS {
     3: optional map<string, string> tags
 }
 
-struct GetTimeSeriesOfStorageUnitResp {
+struct GetColumnsOfStorageUnitResp {
     1: required common.Status status
     2: optional list<TS> tsList
 }
@@ -70,6 +70,6 @@ service ParquetService {
 
     GetColumnsOfStorageUnitResp getColumnsOfStorageUnit(1: string storageUnit);
 
-    common.GetStorageBoundryResp getBoundaryOfStorage();
+    common.GetStorageBoundaryResp getBoundaryOfStorage();
 
 }

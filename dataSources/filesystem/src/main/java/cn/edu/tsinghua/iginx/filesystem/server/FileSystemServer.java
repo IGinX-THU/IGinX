@@ -14,41 +14,40 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class FileSystemServer implements Runnable {
-    private static final Logger logger = LoggerFactory.getLogger(FileSystemServer.class);
+  private static final Logger logger = LoggerFactory.getLogger(FileSystemServer.class);
 
-    private static final Config config = ConfigDescriptor.getInstance().getConfig();
+  private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
-    private final int port;
+  private final int port;
 
-    private final Executor executor;
+  private final Executor executor;
 
-    public FileSystemServer(int port, Executor executor) {
-        this.port = port;
-        this.executor = executor;
+  public FileSystemServer(int port, Executor executor) {
+    this.port = port;
+    this.executor = executor;
+  }
+
+  private void startServer() throws TTransportException {
+    TProcessor processor =
+        new FileSystemService.Processor<FileSystemService.Iface>(new FileSystemWorker(executor));
+    TServerSocket serverTransport = new TServerSocket(port);
+    TThreadPoolServer.Args args =
+        new TThreadPoolServer.Args(serverTransport)
+            .processor(processor)
+            .minWorkerThreads(config.getMinThriftWorkerThreadNum())
+            .maxWorkerThreads(config.getMaxThriftWrokerThreadNum());
+    args.protocolFactory(new TBinaryProtocol.Factory());
+    TServer server = new TThreadPoolServer(args);
+    logger.info("Filesystem service starts successfully!");
+    server.serve();
+  }
+
+  @Override
+  public void run() {
+    try {
+      startServer();
+    } catch (TTransportException e) {
+      logger.error("FileSystem service starts failure.");
     }
-
-    private void startServer() throws TTransportException {
-        TProcessor processor =
-                new FileSystemService.Processor<FileSystemService.Iface>(
-                        new FileSystemWorker(executor));
-        TServerSocket serverTransport = new TServerSocket(port);
-        TThreadPoolServer.Args args =
-                new TThreadPoolServer.Args(serverTransport)
-                        .processor(processor)
-                        .minWorkerThreads(config.getMinThriftWorkerThreadNum())
-                        .maxWorkerThreads(config.getMaxThriftWrokerThreadNum());
-        args.protocolFactory(new TBinaryProtocol.Factory());
-        TServer server = new TThreadPoolServer(args);
-        logger.info("Filesystem service starts successfully!");
-        server.serve();
-    }
-
-    @Override
-    public void run() {
-        try {
-            startServer();
-        } catch (TTransportException e) {
-            logger.error("FileSystem service starts failure.");
-        }
-    }
+  }
 }

@@ -70,6 +70,6 @@ service FileSystemService {
 
     GetTimeSeriesOfStorageUnitResp getTimeSeriesOfStorageUnit(1: string storageUnit);
 
-    common.GetStorageBoundryResp getBoundaryOfStorage(1: string prefix);
+    common.GetStorageBoundaryResp getBoundaryOfStorage(1: string prefix);
 
 }
