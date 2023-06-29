@@ -22,56 +22,37 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 
 public class DataTypeUtils {
 
-    public static boolean isNumber(DataType dataType) {
-        return dataType == DataType.INTEGER
-                || dataType == DataType.LONG
-                || dataType == DataType.FLOAT
-                || dataType == DataType.DOUBLE;
-    }
+  public static boolean isNumber(DataType dataType) {
+    return dataType == DataType.INTEGER
+        || dataType == DataType.LONG
+        || dataType == DataType.FLOAT
+        || dataType == DataType.DOUBLE;
+  }
 
-    public static boolean isFloatingNumber(DataType dataType) {
-        return dataType == DataType.FLOAT || dataType == DataType.DOUBLE;
-    }
+  public static boolean isFloatingNumber(DataType dataType) {
+    return dataType == DataType.FLOAT || dataType == DataType.DOUBLE;
+  }
 
-    public static boolean isWholeNumber(DataType dataType) {
-        return dataType == DataType.INTEGER || dataType == DataType.LONG;
-    }
+  public static boolean isWholeNumber(DataType dataType) {
+    return dataType == DataType.INTEGER || dataType == DataType.LONG;
+  }
 
-    public static DataType strToDataType(String type) {
-        switch (type.toLowerCase()) {
-            case "boolean":
-                return DataType.BOOLEAN;
-            case "integer":
-                return DataType.INTEGER;
-            case "long":
-                return DataType.LONG;
-            case "float":
-                return DataType.FLOAT;
-            case "double":
-                return DataType.DOUBLE;
-            case "binary":
-                return DataType.BINARY;
-            default:
-                return null;
-        }
+  public static DataType strToDataType(String type) {
+    switch (type.toLowerCase()) {
+      case "boolean":
+        return DataType.BOOLEAN;
+      case "integer":
+        return DataType.INTEGER;
+      case "long":
+        return DataType.LONG;
+      case "float":
+        return DataType.FLOAT;
+      case "double":
+        return DataType.DOUBLE;
+      case "binary":
+        return DataType.BINARY;
+      default:
+        return null;
     }
-
-    public static Object parseStringByDataTyp(String val, DataType type) {
-        switch (type) {
-            case BOOLEAN:
-                return Boolean.parseBoolean(val);
-            case LONG:
-                return Long.parseLong(val);
-            case DOUBLE:
-                return Double.parseDouble(val);
-            case BINARY:
-                return val.getBytes();
-            case INTEGER:
-                return Integer.parseInt(val);
-            case FLOAT:
-                return Float.parseFloat(val);
-            default:
-                return val;
-        }
-    }
+  }
 }
