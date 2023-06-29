@@ -97,13 +97,13 @@ public class StringUtils {
   }
 
   public static List<String> splitAround(String expr, int left, int right, String separator) {
-      List<String> res = new ArrayList<>();
-      List<String> part =
-              new ArrayList<>(Arrays.asList(expr.substring(left, right).split(separator)));
-      for (String p : part) {
-          res.add(p.trim());
-      }
-      return res;
+    List<String> res = new ArrayList<>();
+    List<String> part =
+        new ArrayList<>(Arrays.asList(expr.substring(left, right).split(separator)));
+    for (String p : part) {
+      res.add(p.trim());
+    }
+    return res;
   }
 
   public static String reformatPath(String path) {

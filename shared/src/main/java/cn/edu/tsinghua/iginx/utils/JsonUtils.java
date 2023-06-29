@@ -16,15 +16,16 @@ public class JsonUtils {
     return JSON.parseObject(data, clazz);
   }
 
-    public static Map<String, String> transformToSS(String content) {
-        if (content == null || content.equals("{}")) {
-            return null;
-        }
-        Map<String, Object> rawMap = JSON.parseObject(content);
-        Map<String, String> ret = new HashMap<>();
-        rawMap.forEach((key, value) -> ret.put(key, (String) value));
-        return ret;
+  public static Map<String, String> transformToSS(String content) {
+    if (content == null || content.equals("{}")) {
+      return null;
     }
+    Map<String, Object> rawMap = JSON.parseObject(content);
+    Map<String, String> ret = new HashMap<>();
+    rawMap.forEach((key, value) -> ret.put(key, (String) value));
+    return ret;
+  }
+
   public static Map<String, Integer> transform(String content) {
     Map<String, Object> rawMap = JSON.parseObject(content);
     Map<String, Integer> ret = new HashMap<>();

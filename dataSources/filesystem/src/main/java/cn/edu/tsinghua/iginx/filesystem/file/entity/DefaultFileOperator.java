@@ -23,617 +23,602 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class DefaultFileOperator implements IFileOperator {
-    private final int IGINX_FILE_PRE_READ_LEN = 8192;
-    private static final Logger logger = LoggerFactory.getLogger(DefaultFileOperator.class);
-    private final int BUFFER_SIZE = MemoryPool.getBlockSize();
+  private final int IGINX_FILE_PRE_READ_LEN = 8192;
+  private static final Logger logger = LoggerFactory.getLogger(DefaultFileOperator.class);
+  private final int BUFFER_SIZE = MemoryPool.getBlockSize();
 
-    @Override
-    public List<Record> readNormalFile(File file, long begin, long end, Charset charset)
-            throws IOException {
-        List<Record> res = new ArrayList<>();
-        List<byte[]> valList = readNormalFileByByte(file, begin, end);
-        int key = 0;
-        for (byte[] val : valList) {
-            res.add(new Record(key++, val));
-        }
-        return res;
+  @Override
+  public List<Record> readNormalFile(File file, long begin, long end, Charset charset)
+      throws IOException {
+    List<Record> res = new ArrayList<>();
+    List<byte[]> valList = readNormalFileByByte(file, begin, end);
+    int key = 0;
+    for (byte[] val : valList) {
+      res.add(new Record(key++, val));
+    }
+    return res;
+  }
+
+  /**
+   * Reads a range of bytes from a large file efficiently.
+   *
+   * @param file The file to read from.
+   * @param begin The starting byte position.
+   * @param end The ending byte position.
+   * @return An array of bytes containing the read data.
+   * @throws IOException If there is an error reading the file.
+   */
+  public List<byte[]> readNormalFileByByte(File file, long begin, long end) throws IOException {
+    if (file == null || !file.exists() || !file.isFile()) {
+      throw new IllegalArgumentException("Invalid file.");
+    }
+    if (begin < 0 || end < begin) {
+      throw new IllegalArgumentException("Invalid byte range.");
+    }
+    if (end > file.length()) {
+      end = file.length() - 1;
+    }
+    ExecutorService executorService = null;
+    List<Future<Void>> futures = new ArrayList<>();
+    List<byte[]> res = new ArrayList<>();
+    int round = (int) (end % BUFFER_SIZE == 0 ? end / BUFFER_SIZE : end / BUFFER_SIZE + 1);
+    for (int i = 0; i < round; i++) {
+      res.add(new byte[0]);
+    }
+    long readPos = begin;
+    int index = 0;
+    int batchSize = BUFFER_SIZE;
+    boolean ifNeedMultithread = file.length() / (BUFFER_SIZE) > 5;
+    if (ifNeedMultithread) {
+      executorService = Executors.newCachedThreadPool();
     }
 
-    /**
-     * Reads a range of bytes from a large file efficiently.
-     *
-     * @param file The file to read from.
-     * @param begin The starting byte position.
-     * @param end The ending byte position.
-     * @return An array of bytes containing the read data.
-     * @throws IOException If there is an error reading the file.
-     */
-    public List<byte[]> readNormalFileByByte(File file, long begin, long end) throws IOException {
-        if (file == null || !file.exists() || !file.isFile()) {
-            throw new IllegalArgumentException("Invalid file.");
-        }
-        if (begin < 0 || end < begin) {
-            throw new IllegalArgumentException("Invalid byte range.");
-        }
-        if (end > file.length()) {
-            end = file.length() - 1;
-        }
-        ExecutorService executorService = null;
-        List<Future<Void>> futures = new ArrayList<>();
-        List<byte[]> res = new ArrayList<>();
-        int round = (int) (end % BUFFER_SIZE == 0 ? end / BUFFER_SIZE : end / BUFFER_SIZE + 1);
-        for (int i = 0; i < round; i++) {
-            res.add(new byte[0]);
-        }
-        long readPos = begin;
-        int index = 0;
-        int batchSize = BUFFER_SIZE;
-        boolean ifNeedMultithread = file.length() / (BUFFER_SIZE) > 5;
+    // Move the file pointer to the starting position
+    try (RandomAccessFile raf = new RandomAccessFile(file, "r")) {
+      while (readPos < end) {
+        long finalReadPos = readPos;
+        int finalIndex = index;
         if (ifNeedMultithread) {
-            executorService = Executors.newCachedThreadPool();
-        }
-
-        // Move the file pointer to the starting position
-        try (RandomAccessFile raf = new RandomAccessFile(file, "r")) {
-            while (readPos < end) {
-                long finalReadPos = readPos;
-                int finalIndex = index;
-                if (ifNeedMultithread) {
-                    futures.add(
-                            executorService.submit(
-                                    () -> {
-                                        readBatch(raf, batchSize, finalReadPos, finalIndex, res);
-                                        return null;
-                                    }));
-                } else {
+          futures.add(
+              executorService.submit(
+                  () -> {
                     readBatch(raf, batchSize, finalReadPos, finalIndex, res);
-                }
-                index++;
-                readPos += BUFFER_SIZE;
-            }
-        } finally {
-            if (executorService != null) {
-                executorService.shutdown();
-            }
+                    return null;
+                  }));
+        } else {
+          readBatch(raf, batchSize, finalReadPos, finalIndex, res);
         }
-
-        for (Future<Void> future : futures) {
-            try {
-                future.get();
-            } catch (InterruptedException | ExecutionException e) {
-                logger.error("Exception thrown by task: " + e.getMessage());
-                throw new RuntimeException(e);
-            }
-        }
-        return res;
+        index++;
+        readPos += BUFFER_SIZE;
+      }
+    } finally {
+      if (executorService != null) {
+        executorService.shutdown();
+      }
     }
 
-    public final void readBatch(
-            RandomAccessFile raf, int batchSize, long readPos, int index, List<byte[]> res)
-            throws IOException {
-        try {
-            byte[] buffer = MemoryPool.allocate(batchSize); // 一次读取1MB
-            raf.seek(readPos);
-            // Read the specified range of bytes from the file
-            int len = raf.read(buffer);
-            if (len < 0) {
-                logger.error("reach the end of the file with len {}", len);
-                return;
-            }
-            if (len != batchSize) {
-                byte[] subBuffer;
-                subBuffer = Arrays.copyOf(buffer, len);
-                res.set(index, subBuffer);
-            } else {
-                res.set(index, buffer);
-            }
-        } catch (IOException e) {
-            throw new IOException(e);
-        }
+    for (Future<Void> future : futures) {
+      try {
+        future.get();
+      } catch (InterruptedException | ExecutionException e) {
+        logger.error("Exception thrown by task: " + e.getMessage());
+        throw new RuntimeException(e);
+      }
+    }
+    return res;
+  }
+
+  public final void readBatch(
+      RandomAccessFile raf, int batchSize, long readPos, int index, List<byte[]> res)
+      throws IOException {
+    try {
+      byte[] buffer = MemoryPool.allocate(batchSize); // 一次读取1MB
+      raf.seek(readPos);
+      // Read the specified range of bytes from the file
+      int len = raf.read(buffer);
+      if (len < 0) {
+        logger.error("reach the end of the file with len {}", len);
+        return;
+      }
+      if (len != batchSize) {
+        byte[] subBuffer;
+        subBuffer = Arrays.copyOf(buffer, len);
+        res.set(index, subBuffer);
+      } else {
+        res.set(index, buffer);
+      }
+    } catch (IOException e) {
+      throw new IOException(e);
+    }
+  }
+
+  private Map<String, String> readIginxMetaInfo(File file) throws IOException {
+    Map<String, String> result = new HashMap<>();
+    BufferedReader reader = new BufferedReader(new FileReader(file));
+    String line;
+    int lineCount = 0;
+    while ((line = reader.readLine()) != null) {
+      if (lineCount == 0) {
+        result.put("series", line);
+      } else if (lineCount == 1) {
+        result.put("type", line);
+      }
+      lineCount++;
+    }
+    reader.close();
+    return result;
+  }
+
+  public List<Record> readIginxFileByKey(File file, long begin, long end, Charset charset)
+      throws IOException {
+    Map<String, String> fileInfo = readIginxMetaInfo(file);
+    List<Record> res = new ArrayList<>();
+    long key;
+    if (begin == -1 && end == -1) {
+      begin = 0;
+      end = Long.MAX_VALUE;
+    }
+    if (begin < 0 || end < 0 || (begin > end)) {
+      throw new IllegalArgumentException(
+          "Read information outside the boundary with BEGIN " + begin + " and END " + end);
     }
 
-    private Map<String, String> readIginxMetaInfo(File file) throws IOException {
-        Map<String, String> result = new HashMap<>();
-        BufferedReader reader = new BufferedReader(new FileReader(file));
+    try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+      String line;
+      long currentLine = 0;
+      while ((line = reader.readLine()) != null) {
+        currentLine++;
+        if (currentLine <= FileMeta.iginxFileMetaIndex) {
+          continue;
+        }
+        String[] kv = line.split(",", 2);
+        key = Long.parseLong(kv[0]);
+        if (key >= begin && key <= end) {
+          DataType dataType = DataType.findByValue(Integer.parseInt(fileInfo.get("type")));
+          res.add(
+              new Record(
+                  Long.parseLong(kv[0]),
+                  dataType,
+                  DataTypeUtils.parseStringByDataTyp(kv[1], dataType)));
+        }
+      }
+    }
+    return res;
+  }
+
+  public List<Record> readDir(File file) throws IOException {
+    return new ArrayList<>();
+  }
+
+  @Override
+  public List<Record> readIGinXFileByKey(File file, long begin, long end, Charset charset)
+      throws IOException {
+    return readIginxFileByKey(file, begin, end, charset);
+  }
+
+  private String convertObjectToString(Object obj, DataType type) {
+    if (obj == null) {
+      return null;
+    }
+
+    if (type == null) {
+      type = BINARY;
+    }
+
+    String strValue = null;
+    try {
+      switch (type) {
+        case BINARY:
+          strValue = new String((byte[]) obj);
+          break;
+        case INTEGER:
+          strValue = Integer.toString((int) obj);
+          break;
+        case DOUBLE:
+          strValue = Double.toString((double) obj);
+          break;
+        case FLOAT:
+          strValue = Float.toString((float) obj);
+          break;
+        case BOOLEAN:
+          strValue = Boolean.toString((boolean) obj);
+          break;
+        case LONG:
+          strValue = Long.toString((long) obj);
+          break;
+        default:
+          strValue = null;
+          break;
+      }
+    } catch (Exception e) {
+      strValue = null;
+    }
+
+    return strValue;
+  }
+
+  private final String recordToString(Record record) {
+    return record.getKey() + "," + convertObjectToString(record.getRawData(), record.getDataType());
+  }
+
+  private Exception appendValToIginxFile(File file, List<Record> valList, int begin, int end)
+      throws IOException {
+    if (begin == -1) begin = 0;
+    if (end == -1) end = valList.size();
+    try (BufferedWriter writer = new BufferedWriter(new FileWriter(file, true))) {
+      for (int i = begin; i < end; i++) {
+        writer.write(recordToString(valList.get(i)));
+        writer.write("\n");
+      }
+    }
+    return null;
+  }
+
+  private Exception appendValToIginxFile(File file, List<Record> valList) throws IOException {
+    return appendValToIginxFile(file, valList, -1, -1);
+  }
+
+  private String getLastValOfIginxFile(File file) throws IOException {
+    String res = new String();
+    int stepLen = IGINX_FILE_PRE_READ_LEN; // 8 KB
+    if (ifIginxFileEmpty(file)) {
+      return res;
+    }
+    // 一定包含数值
+    if (file.exists() && file.length() > 0) {
+      try (RandomAccessFile raf = new RandomAccessFile(file, "r")) {
+        raf.seek(Math.max(file.length() - stepLen, 0));
+        byte[] buffer = new byte[stepLen];
+        int n = raf.read(buffer);
+        String lastLine = new String();
+        while (n != -1) {
+          String data = new String(buffer, 0, n);
+          String[] lines;
+          lastLine += data;
+          if (!lastLine.contains("\n")
+              || lastLine.indexOf("\n") == lastLine.lastIndexOf("\n")) { // 是否确切包含了最后一行
+            raf.seek(Math.max(raf.getFilePointer() - stepLen, 0));
+            n = raf.read(buffer);
+            continue;
+          }
+          lines = lastLine.split("\\r*\\n");
+          return lines[lines.length - 1];
+        }
+      }
+    }
+    return res;
+  }
+
+  // return -1表示空
+  private long getIginxFileMaxKey(File file) throws IOException {
+    String lastLine = getLastValOfIginxFile(file);
+    return Long.parseLong(lastLine.split(",", 2)[0]);
+  }
+
+  boolean ifIginxFileEmpty(File file) throws IOException {
+    if (FileType.getFileType(file) != FileType.IGINX_FILE) {
+      logger.error("not a iginx file!");
+      return true;
+    }
+
+    boolean flag = true;
+    try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+      int lines = 0;
+      while (reader.readLine() != null) {
+        lines++;
+        if (lines > FileMeta.iginxFileMetaIndex) {
+          flag = false;
+          break;
+        }
+      }
+      return flag;
+    } catch (IOException e) {
+      throw new IOException("Cannot get file: " + file.getAbsolutePath());
+    }
+  }
+
+  private void replaceFile(File file, File tempFile) throws IOException {
+    if (!tempFile.exists()) {
+      throw new IOException("Temp file does not exist.");
+    }
+    if (!file.exists()) {
+      throw new IOException("Original file does not exist.");
+    }
+    Files.move(tempFile.toPath(), file.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+  }
+
+  @Override
+  public Exception writeIGinXFile(File file, List<Record> valList) throws IOException {
+    int BUFFER_SIZE = 8192; // 8 KB
+    if (file.exists() && file.isDirectory()) {
+      throw new IOException("Cannot write to directory: " + file.getAbsolutePath());
+    }
+
+    if (!file.exists()) {
+      throw new IOException("Cannot write to file that not exist: " + file.getAbsolutePath());
+    }
+
+    if (ifIginxFileEmpty(file)) {
+      return appendValToIginxFile(file, valList);
+    }
+
+    // Check if valList can be directly appended to the end of the file
+    if (file.exists() && file.length() > 0) {
+      long lastKey = getIginxFileMaxKey(file);
+      if (lastKey < valList.get(0).getKey()) {
+        return appendValToIginxFile(file, valList);
+      }
+    }
+
+    // Create temporary file
+    File tempFile = new File(file.getParentFile(), file.getName() + ".tmp");
+    BufferedWriter writer = null;
+    try (RandomAccessFile raf = new RandomAccessFile(file, "r")) {
+      writer = new BufferedWriter(new FileWriter(tempFile));
+      int valIndex = 0, maxLen = valList.size();
+      long minKey = Math.min(valList.get(0).getKey(), Long.MAX_VALUE);
+      long currentLine = 0L;
+      BufferedReader reader = null;
+      try {
+        reader = new BufferedReader(new FileReader(file));
         String line;
-        int lineCount = 0;
         while ((line = reader.readLine()) != null) {
-            if (lineCount == 0) {
-                result.put("series", line);
-            } else if (lineCount == 1) {
-                result.put("type", line);
+          currentLine++;
+          if (currentLine <= FileMeta.iginxFileMetaIndex) {
+            writer.write(line);
+            writer.write("\n");
+            continue;
+          }
+          String[] kv = line.split(",", 2);
+          long key = Long.parseLong(kv[0]);
+          boolean isCovered = false;
+          while (key >= minKey && valIndex < maxLen) {
+            if (key == minKey) isCovered = true;
+            Record record = valList.get(valIndex++);
+            writer.write(recordToString(record));
+            writer.write("\n");
+            if (valIndex < maxLen) {
+              minKey = valList.get(valIndex).getKey();
+            } else if (valIndex >= maxLen) {
+              break;
             }
-            lineCount++;
+          }
+          if (!isCovered) {
+            writer.write(line);
+            writer.write("\n");
+          }
         }
-        reader.close();
-        return result;
-    }
-
-    public List<Record> readIginxFileByKey(File file, long begin, long end, Charset charset)
-            throws IOException {
-        Map<String, String> fileInfo = readIginxMetaInfo(file);
-        List<Record> res = new ArrayList<>();
-        long key;
-        if (begin == -1 && end == -1) {
-            begin = 0;
-            end = Long.MAX_VALUE;
-        }
-        if (begin < 0 || end < 0 || (begin > end)) {
-            throw new IllegalArgumentException(
-                    "Read information outside the boundary with BEGIN "
-                            + begin
-                            + " and END "
-                            + end);
+        writer.close();
+        if (valIndex < maxLen) {
+          appendValToIginxFile(tempFile, valList, valIndex, -1);
         }
 
-        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
-            String line;
-            long currentLine = 0;
-            while ((line = reader.readLine()) != null) {
-                currentLine++;
-                if (currentLine <= FileMeta.iginxFileMetaIndex) {
-                    continue;
-                }
-                String[] kv = line.split(",", 2);
-                key = Long.parseLong(kv[0]);
-                if (key >= begin && key <= end) {
-                    DataType dataType =
-                            DataType.findByValue(Integer.parseInt(fileInfo.get("type")));
-                    res.add(
-                            new Record(
-                                    Long.parseLong(kv[0]),
-                                    dataType,
-                                    DataTypeUtils.parseStringByDataTyp(kv[1], dataType)));
-                }
-            }
+      } finally {
+        if (reader != null) {
+          try {
+            reader.close();
+          } catch (IOException e) {
+            e.printStackTrace();
+          }
         }
-        return res;
-    }
-
-    public List<Record> readDir(File file) throws IOException {
-        return new ArrayList<>();
-    }
-
-    @Override
-    public List<Record> readIGinXFileByKey(File file, long begin, long end, Charset charset)
-            throws IOException {
-        return readIginxFileByKey(file, begin, end, charset);
-    }
-
-    private String convertObjectToString(Object obj, DataType type) {
-        if (obj == null) {
-            return null;
-        }
-
-        if (type == null) {
-            type = BINARY;
-        }
-
-        String strValue = null;
+      }
+    } finally {
+      if (writer != null) {
         try {
-            switch (type) {
-                case BINARY:
-                    strValue = new String((byte[]) obj);
-                    break;
-                case INTEGER:
-                    strValue = Integer.toString((int) obj);
-                    break;
-                case DOUBLE:
-                    strValue = Double.toString((double) obj);
-                    break;
-                case FLOAT:
-                    strValue = Float.toString((float) obj);
-                    break;
-                case BOOLEAN:
-                    strValue = Boolean.toString((boolean) obj);
-                    break;
-                case LONG:
-                    strValue = Long.toString((long) obj);
-                    break;
-                default:
-                    strValue = null;
-                    break;
-            }
-        } catch (Exception e) {
-            strValue = null;
-        }
-
-        return strValue;
-    }
-
-    private final String recordToString(Record record) {
-        return record.getKey()
-                + ","
-                + convertObjectToString(record.getRawData(), record.getDataType());
-    }
-
-    private Exception appendValToIginxFile(File file, List<Record> valList, int begin, int end)
-            throws IOException {
-        if (begin == -1) begin = 0;
-        if (end == -1) end = valList.size();
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(file, true))) {
-            for (int i = begin; i < end; i++) {
-                writer.write(recordToString(valList.get(i)));
-                writer.write("\n");
-            }
-        }
-        return null;
-    }
-
-    private Exception appendValToIginxFile(File file, List<Record> valList) throws IOException {
-        return appendValToIginxFile(file, valList, -1, -1);
-    }
-
-    private String getLastValOfIginxFile(File file) throws IOException {
-        String res = new String();
-        int stepLen = IGINX_FILE_PRE_READ_LEN; // 8 KB
-        if (ifIginxFileEmpty(file)) {
-            return res;
-        }
-        // 一定包含数值
-        if (file.exists() && file.length() > 0) {
-            try (RandomAccessFile raf = new RandomAccessFile(file, "r")) {
-                raf.seek(Math.max(file.length() - stepLen, 0));
-                byte[] buffer = new byte[stepLen];
-                int n = raf.read(buffer);
-                String lastLine = new String();
-                while (n != -1) {
-                    String data = new String(buffer, 0, n);
-                    String[] lines;
-                    lastLine += data;
-                    if (!lastLine.contains("\n")
-                            || lastLine.indexOf("\n")
-                                    == lastLine.lastIndexOf("\n")) { // 是否确切包含了最后一行
-                        raf.seek(Math.max(raf.getFilePointer() - stepLen, 0));
-                        n = raf.read(buffer);
-                        continue;
-                    }
-                    lines = lastLine.split("\\r*\\n");
-                    return lines[lines.length - 1];
-                }
-            }
-        }
-        return res;
-    }
-
-    // return -1表示空
-    private long getIginxFileMaxKey(File file) throws IOException {
-        String lastLine = getLastValOfIginxFile(file);
-        return Long.parseLong(lastLine.split(",", 2)[0]);
-    }
-
-    boolean ifIginxFileEmpty(File file) throws IOException {
-        if (FileType.getFileType(file) != FileType.IGINX_FILE) {
-            logger.error("not a iginx file!");
-            return true;
-        }
-
-        boolean flag = true;
-        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
-            int lines = 0;
-            while (reader.readLine() != null) {
-                lines++;
-                if (lines > FileMeta.iginxFileMetaIndex) {
-                    flag = false;
-                    break;
-                }
-            }
-            return flag;
+          writer.close();
         } catch (IOException e) {
-            throw new IOException("Cannot get file: " + file.getAbsolutePath());
+          e.printStackTrace();
         }
+      }
+    }
+    replaceFile(file, tempFile);
+    return null;
+  }
+
+  public Exception textFileWriter(File file, byte[] bytes, boolean append) throws IOException {
+    // 使用Java NIO将字节数组写入文件
+    Path path = file.toPath();
+    ByteBuffer buffer = ByteBuffer.wrap(bytes);
+
+    // 创建OpenOption选项数组
+    StandardOpenOption[] options;
+    if (append) {
+      options =
+          new StandardOpenOption[] {
+            StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.APPEND
+          };
+    } else {
+      options =
+          new StandardOpenOption[] {
+            StandardOpenOption.CREATE,
+            StandardOpenOption.WRITE,
+            StandardOpenOption.TRUNCATE_EXISTING
+          };
     }
 
-    private void replaceFile(File file, File tempFile) throws IOException {
-        if (!tempFile.exists()) {
-            throw new IOException("Temp file does not exist.");
+    // 使用OpenOption选项数组写入文件
+    Files.write(path, buffer.array(), options);
+    return null;
+  }
+
+  public Exception trimFile(File file, long begin, long end) throws IOException {
+    // Create temporary file
+    File tempFile = new File(file.getParentFile(), file.getName() + ".tmp");
+    BufferedWriter writer = null;
+    try (RandomAccessFile raf = new RandomAccessFile(file, "r")) {
+      writer = new BufferedWriter(new FileWriter(tempFile));
+      long currentLine = 0L;
+      BufferedReader reader = null;
+      try {
+        reader = new BufferedReader(new FileReader(file));
+        String line;
+        while ((line = reader.readLine()) != null) {
+          currentLine++;
+          if (currentLine <= FileMeta.iginxFileMetaIndex) {
+            writer.write(line);
+            writer.write("\n");
+            continue;
+          }
+          String[] kv = line.split(",", 2);
+          long key = Long.parseLong(kv[0]);
+          if (key >= begin && key <= end) {
+            continue;
+          }
+          writer.write(line);
+          writer.write("\n");
         }
-        if (!file.exists()) {
-            throw new IOException("Original file does not exist.");
+      } finally {
+        if (reader != null) {
+          try {
+            reader.close();
+          } catch (IOException e) {
+            e.printStackTrace();
+          }
         }
-        Files.move(
-                tempFile.toPath(),
-                file.toPath(),
-                java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-    }
-
-    @Override
-    public Exception writeIGinXFile(File file, List<Record> valList) throws IOException {
-        int BUFFER_SIZE = 8192; // 8 KB
-        if (file.exists() && file.isDirectory()) {
-            throw new IOException("Cannot write to directory: " + file.getAbsolutePath());
-        }
-
-        if (!file.exists()) {
-            throw new IOException("Cannot write to file that not exist: " + file.getAbsolutePath());
-        }
-
-        if (ifIginxFileEmpty(file)) {
-            return appendValToIginxFile(file, valList);
-        }
-
-        // Check if valList can be directly appended to the end of the file
-        if (file.exists() && file.length() > 0) {
-            long lastKey = getIginxFileMaxKey(file);
-            if (lastKey < valList.get(0).getKey()) {
-                return appendValToIginxFile(file, valList);
-            }
-        }
-
-        // Create temporary file
-        File tempFile = new File(file.getParentFile(), file.getName() + ".tmp");
-        BufferedWriter writer = null;
-        try (RandomAccessFile raf = new RandomAccessFile(file, "r")) {
-            writer = new BufferedWriter(new FileWriter(tempFile));
-            int valIndex = 0, maxLen = valList.size();
-            long minKey = Math.min(valList.get(0).getKey(), Long.MAX_VALUE);
-            long currentLine = 0L;
-            BufferedReader reader = null;
-            try {
-                reader = new BufferedReader(new FileReader(file));
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    currentLine++;
-                    if (currentLine <= FileMeta.iginxFileMetaIndex) {
-                        writer.write(line);
-                        writer.write("\n");
-                        continue;
-                    }
-                    String[] kv = line.split(",", 2);
-                    long key = Long.parseLong(kv[0]);
-                    boolean isCovered = false;
-                    while (key >= minKey && valIndex < maxLen) {
-                        if (key == minKey) isCovered = true;
-                        Record record = valList.get(valIndex++);
-                        writer.write(recordToString(record));
-                        writer.write("\n");
-                        if (valIndex < maxLen) {
-                            minKey = valList.get(valIndex).getKey();
-                        } else if (valIndex >= maxLen) {
-                            break;
-                        }
-                    }
-                    if (!isCovered) {
-                        writer.write(line);
-                        writer.write("\n");
-                    }
-                }
-                writer.close();
-                if (valIndex < maxLen) {
-                    appendValToIginxFile(tempFile, valList, valIndex, -1);
-                }
-
-            } finally {
-                if (reader != null) {
-                    try {
-                        reader.close();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-        } finally {
-            if (writer != null) {
-                try {
-                    writer.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-        replaceFile(file, tempFile);
-        return null;
-    }
-
-    public Exception textFileWriter(File file, byte[] bytes, boolean append) throws IOException {
-        // 使用Java NIO将字节数组写入文件
-        Path path = file.toPath();
-        ByteBuffer buffer = ByteBuffer.wrap(bytes);
-
-        // 创建OpenOption选项数组
-        StandardOpenOption[] options;
-        if (append) {
-            options =
-                    new StandardOpenOption[] {
-                        StandardOpenOption.CREATE,
-                        StandardOpenOption.WRITE,
-                        StandardOpenOption.APPEND
-                    };
-        } else {
-            options =
-                    new StandardOpenOption[] {
-                        StandardOpenOption.CREATE,
-                        StandardOpenOption.WRITE,
-                        StandardOpenOption.TRUNCATE_EXISTING
-                    };
-        }
-
-        // 使用OpenOption选项数组写入文件
-        Files.write(path, buffer.array(), options);
-        return null;
-    }
-
-    public Exception trimFile(File file, long begin, long end) throws IOException {
-        // Create temporary file
-        File tempFile = new File(file.getParentFile(), file.getName() + ".tmp");
-        BufferedWriter writer = null;
-        try (RandomAccessFile raf = new RandomAccessFile(file, "r")) {
-            writer = new BufferedWriter(new FileWriter(tempFile));
-            long currentLine = 0L;
-            BufferedReader reader = null;
-            try {
-                reader = new BufferedReader(new FileReader(file));
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    currentLine++;
-                    if (currentLine <= FileMeta.iginxFileMetaIndex) {
-                        writer.write(line);
-                        writer.write("\n");
-                        continue;
-                    }
-                    String[] kv = line.split(",", 2);
-                    long key = Long.parseLong(kv[0]);
-                    if (key >= begin && key <= end) {
-                        continue;
-                    }
-                    writer.write(line);
-                    writer.write("\n");
-                }
-            } finally {
-                if (reader != null) {
-                    try {
-                        reader.close();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-        } finally {
-            if (writer != null) {
-                try {
-                    writer.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-        replaceFile(file, tempFile);
-        return null;
-    }
-
-    public boolean delete(File file) {
-        if (!Files.exists(Paths.get(file.getPath()))) {
-            logger.error("No file to delete: {}", file.getAbsolutePath());
-            return false;
-        }
-        if (!file.delete()) {
-            logger.error("Failed to delete file: {}", file.getAbsolutePath());
-            return false;
-        }
-        return true;
-    }
-
-    @Override
-    public File create(File file, FileMeta fileMeta) throws IOException {
-        Path csvPath = Paths.get(file.getPath());
-
+      }
+    } finally {
+      if (writer != null) {
         try {
-            if (!Files.exists(csvPath)) {
-                file.getParentFile().mkdirs();
-                Files.createFile(csvPath);
-            } else {
-                return file;
-            }
-
-            try (BufferedWriter writer = new BufferedWriter(new FileWriter(csvPath.toFile()))) {
-                writer.write(String.valueOf(fileMeta.isDir()));
-                writer.write("\n");
-                writer.write(String.valueOf(fileMeta.getDataType().getValue()));
-                writer.write("\n");
-                writer.write(
-                        fileMeta.getTag() == null
-                                ? "{}"
-                                : new String(JsonUtils.toJson(fileMeta.getTag())));
-                writer.write("\n");
-                for (int i = 0; i < FileMeta.iginxFileMetaIndex - 3; i++) {
-                    writer.write("\n");
-                }
-            }
-
+          writer.close();
         } catch (IOException e) {
-            throw new IOException("Cannot create file: " + file.getAbsolutePath());
+          e.printStackTrace();
         }
+      }
+    }
+    replaceFile(file, tempFile);
+    return null;
+  }
+
+  public boolean delete(File file) {
+    if (!Files.exists(Paths.get(file.getPath()))) {
+      logger.error("No file to delete: {}", file.getAbsolutePath());
+      return false;
+    }
+    if (!file.delete()) {
+      logger.error("Failed to delete file: {}", file.getAbsolutePath());
+      return false;
+    }
+    return true;
+  }
+
+  @Override
+  public File create(File file, FileMeta fileMeta) throws IOException {
+    Path csvPath = Paths.get(file.getPath());
+
+    try {
+      if (!Files.exists(csvPath)) {
+        file.getParentFile().mkdirs();
+        Files.createFile(csvPath);
+      } else {
         return file;
-    }
+      }
 
-    public boolean mkdir(File file) {
-        return file.mkdir();
-    }
-
-    public boolean isDirectory(File file) {
-        return file.isDirectory();
-    }
-
-    @Override
-    public FileMeta getFileMeta(File file) throws IOException {
-        Path csvPath = Paths.get(file.getPath());
-        FileMeta fileMeta = new FileMeta();
-        if (file.isDirectory()) return fileMeta;
-
-        try {
-            if (!Files.exists(csvPath)) {
-                logger.error("Cannot get file meta because not exist");
-                throw new IOException(
-                        "Cannot get file meta because not exist: " + file.getAbsolutePath());
-            }
-
-            try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
-                int index = 1;
-                String line;
-                while ((line = reader.readLine()) != null && index <= FileMeta.iginxFileMetaIndex) {
-                    switch (index) {
-                        case FileMeta.isDirIndex:
-                            fileMeta.setDir(Boolean.parseBoolean(line));
-                            break;
-                        case FileMeta.tagKVIndex:
-                            fileMeta.setTag(JsonUtils.transformToSS(line));
-                            break;
-                        case FileMeta.dataTypeIndex:
-                            fileMeta.setDataType(DataType.findByValue(Integer.parseInt(line)));
-                            break;
-                        default:
-                            break;
-                    }
-                    index++;
-                }
-            }
-        } catch (IOException e) {
-            throw new IOException("Cannot get file meta : " + file.getAbsolutePath());
+      try (BufferedWriter writer = new BufferedWriter(new FileWriter(csvPath.toFile()))) {
+        writer.write(String.valueOf(fileMeta.isDir()));
+        writer.write("\n");
+        writer.write(String.valueOf(fileMeta.getDataType().getValue()));
+        writer.write("\n");
+        writer.write(
+            fileMeta.getTag() == null ? "{}" : new String(JsonUtils.toJson(fileMeta.getTag())));
+        writer.write("\n");
+        for (int i = 0; i < FileMeta.iginxFileMetaIndex - 3; i++) {
+          writer.write("\n");
         }
-        return fileMeta;
-    }
+      }
 
-    @Override
-    public Boolean ifFileExists(File file) {
-        Path path = Paths.get(file.getPath());
-        return Files.exists(path);
+    } catch (IOException e) {
+      throw new IOException("Cannot create file: " + file.getAbsolutePath());
     }
+    return file;
+  }
 
-    @Override
-    public List<File> listFiles(File file) {
-        return listFiles(file, null);
-    }
+  public boolean mkdir(File file) {
+    return file.mkdir();
+  }
 
-    @Override
-    public List<File> listFiles(File file, String prefix) {
-        FileFilter readFileFilter = null;
-        if (prefix != null) {
-            readFileFilter = file1 -> file1.getName().startsWith(prefix);
+  public boolean isDirectory(File file) {
+    return file.isDirectory();
+  }
+
+  @Override
+  public FileMeta getFileMeta(File file) throws IOException {
+    Path csvPath = Paths.get(file.getPath());
+    FileMeta fileMeta = new FileMeta();
+    if (file.isDirectory()) return fileMeta;
+
+    try {
+      if (!Files.exists(csvPath)) {
+        logger.error("Cannot get file meta because not exist");
+        throw new IOException("Cannot get file meta because not exist: " + file.getAbsolutePath());
+      }
+
+      try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+        int index = 1;
+        String line;
+        while ((line = reader.readLine()) != null && index <= FileMeta.iginxFileMetaIndex) {
+          switch (index) {
+            case FileMeta.isDirIndex:
+              fileMeta.setDir(Boolean.parseBoolean(line));
+              break;
+            case FileMeta.tagKVIndex:
+              fileMeta.setTag(JsonUtils.transformToSS(line));
+              break;
+            case FileMeta.dataTypeIndex:
+              fileMeta.setDataType(DataType.findByValue(Integer.parseInt(line)));
+              break;
+            default:
+              break;
+          }
+          index++;
         }
+      }
+    } catch (IOException e) {
+      throw new IOException("Cannot get file meta : " + file.getAbsolutePath());
+    }
+    return fileMeta;
+  }
 
-        File[] files = null;
-        if (file.isDirectory()) {
-            files = file.listFiles(readFileFilter);
-        } else {
-            files = file.getParentFile().listFiles(readFileFilter);
-        }
-        return files == null || files.length == 0 ? null : Arrays.asList(files);
+  @Override
+  public Boolean ifFileExists(File file) {
+    Path path = Paths.get(file.getPath());
+    return Files.exists(path);
+  }
+
+  @Override
+  public List<File> listFiles(File file) {
+    return listFiles(file, null);
+  }
+
+  @Override
+  public List<File> listFiles(File file, String prefix) {
+    FileFilter readFileFilter = null;
+    if (prefix != null) {
+      readFileFilter = file1 -> file1.getName().startsWith(prefix);
     }
 
-    public long length(File file) throws IOException {
-        if (FileType.getFileType(file) == FileType.IGINX_FILE) {
-            return getIginxFileMaxKey(file);
-        } else {
-            return file.length();
-        }
+    File[] files = null;
+    if (file.isDirectory()) {
+      files = file.listFiles(readFileFilter);
+    } else {
+      files = file.getParentFile().listFiles(readFileFilter);
     }
+    return files == null || files.length == 0 ? null : Arrays.asList(files);
+  }
 
-    public boolean ifFilesEqual(File... file) {
-        for (int i = 1; i < file.length; i++) {
-            if (!file[i].getAbsolutePath().equals(file[i - 1].getAbsolutePath())) {
-                return false;
-            }
-        }
-        return true;
+  public long length(File file) throws IOException {
+    if (FileType.getFileType(file) == FileType.IGINX_FILE) {
+      return getIginxFileMaxKey(file);
+    } else {
+      return file.length();
     }
+  }
+
+  public boolean ifFilesEqual(File... file) {
+    for (int i = 1; i < file.length; i++) {
+      if (!file[i].getAbsolutePath().equals(file[i - 1].getAbsolutePath())) {
+        return false;
+      }
+    }
+    return true;
+  }
 }
