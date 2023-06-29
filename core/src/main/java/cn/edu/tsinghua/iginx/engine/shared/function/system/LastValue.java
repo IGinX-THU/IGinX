@@ -33,63 +33,63 @@ import java.util.regex.Pattern;
 
 public class LastValue implements SetMappingFunction {
 
-    public static final String LAST_VALUE = "last_value";
+  public static final String LAST_VALUE = "last_value";
 
-    private static final LastValue INSTANCE = new LastValue();
+  private static final LastValue INSTANCE = new LastValue();
 
-    private LastValue() {}
+  private LastValue() {}
 
-    public static LastValue getInstance() {
-        return INSTANCE;
+  public static LastValue getInstance() {
+    return INSTANCE;
+  }
+
+  @Override
+  public FunctionType getFunctionType() {
+    return FunctionType.System;
+  }
+
+  @Override
+  public MappingType getMappingType() {
+    return MappingType.SetMapping;
+  }
+
+  @Override
+  public String getIdentifier() {
+    return LAST_VALUE;
+  }
+
+  @Override
+  public Row transform(RowStream rows, FunctionParams params) throws Exception {
+    List<String> pathParams = params.getPaths();
+    if (pathParams == null || pathParams.size() != 1) {
+      throw new IllegalArgumentException("unexpected param type for avg.");
     }
 
-    @Override
-    public FunctionType getFunctionType() {
-        return FunctionType.System;
+    String target = pathParams.get(0);
+    List<Field> fields = rows.getHeader().getFields();
+    Pattern pattern = Pattern.compile(StringUtils.reformatPath(target) + ".*");
+    List<Field> targetFields = new ArrayList<>();
+    List<Integer> indices = new ArrayList<>();
+    for (int i = 0; i < fields.size(); i++) {
+      Field field = fields.get(i);
+      if (pattern.matcher(field.getFullName()).matches()) {
+        String name = getIdentifier() + "(" + field.getName() + ")";
+        String fullName = getIdentifier() + "(" + field.getFullName() + ")";
+        targetFields.add(new Field(name, fullName, field.getType()));
+        indices.add(i);
+      }
     }
-
-    @Override
-    public MappingType getMappingType() {
-        return MappingType.SetMapping;
-    }
-
-    @Override
-    public String getIdentifier() {
-        return LAST_VALUE;
-    }
-
-    @Override
-    public Row transform(RowStream rows, FunctionParams params) throws Exception {
-        List<String> pathParams = params.getPaths();
-        if (pathParams == null || pathParams.size() != 1) {
-            throw new IllegalArgumentException("unexpected param type for avg.");
+    Object[] targetValues = new Object[targetFields.size()];
+    while (rows.hasNext()) {
+      Row row = rows.next();
+      for (int i = 0; i < indices.size(); i++) {
+        Object value = row.getValue(indices.get(i));
+        if (value == null) {
+          continue;
         }
-
-        String target = pathParams.get(0);
-        List<Field> fields = rows.getHeader().getFields();
-        Pattern pattern = Pattern.compile(StringUtils.reformatPath(target) + ".*");
-        List<Field> targetFields = new ArrayList<>();
-        List<Integer> indices = new ArrayList<>();
-        for (int i = 0; i < fields.size(); i++) {
-            Field field = fields.get(i);
-            if (pattern.matcher(field.getFullName()).matches()) {
-                String name = getIdentifier() + "(" + field.getName() + ")";
-                String fullName = getIdentifier() + "(" + field.getFullName() + ")";
-                targetFields.add(new Field(name, fullName, field.getType()));
-                indices.add(i);
-            }
-        }
-        Object[] targetValues = new Object[targetFields.size()];
-        while (rows.hasNext()) {
-            Row row = rows.next();
-            for (int i = 0; i < indices.size(); i++) {
-                Object value = row.getValue(indices.get(i));
-                if (value == null) {
-                    continue;
-                }
-                targetValues[i] = value;
-            }
-        }
-        return new Row(new Header(targetFields), targetValues);
+        targetValues[i] = value;
+      }
     }
+    return new Row(new Header(targetFields), targetValues);
+  }
 }

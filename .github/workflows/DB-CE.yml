@@ -13,14 +13,14 @@ concurrency:
 
 jobs:
     DB-CE:
-        timeout-minutes: 60
+        timeout-minutes: 90
         strategy:
             fail-fast: false
             matrix:
                 java: [8]
-                python-version: ["3.7"]
+                python-version: ["3.7.16"]
                 os: [ubuntu-latest, macos-latest]
-                DB-name: ["IoTDB12", "InfluxDB", "Redis", "PostgreSQL"]
+                DB-name: ["IoTDB12", "InfluxDB", "PostgreSQL", "Redis"]
         runs-on: ${{ matrix.os }}
         steps:
             - uses: actions/checkout@v2
@@ -95,6 +95,20 @@ jobs:
                   mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriNoDataExpHasData -DfailIfNoTests=false -P passFormat
                   mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P passFormat
 
+            # 测试只读节点===============================================
+            - name: Prepare CapExp environment for testReadOnly
+              uses: ./.github/actions/capacityExpansionUnionTest
+              with:
+                  version: ${VERSION}
+                  DB-name: ${{ matrix.DB-name }}
+                  Test-Way: oriHasDataExpHasData
+                  Read-Only: true
+
+            - name: Run testReadOnly
+              run: |
+                  mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#testReadOnly -DfailIfNoTests=false -P passFormat
+                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P passFormat
+
             - name: Show IGinX log
               if: always()
               shell: bash
@@ -111,7 +125,7 @@ jobs:
             fail-fast: false
             matrix:
                 java: [8]
-                python-version: ["3.7"]
+                python-version: ["3.7.16"]
                 os: [ubuntu-latest, macos-latest]
         runs-on: ${{ matrix.os }}
         steps:

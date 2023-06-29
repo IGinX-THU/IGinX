@@ -7,53 +7,83 @@ import org.junit.Test;
 
 public abstract class BaseHistoryDataGenerator {
 
-    protected int portOri;
+  public int oriPort;
 
-    public static final List<String> PATH_LIST_ORI =
-            Arrays.asList("mn.wf01.wt01.status", "mn.wf01.wt01.temperature");
+  public static final List<String> ORI_PATH_LIST =
+      Arrays.asList("mn.wf01.wt01.status", "mn.wf01.wt01.temperature");
 
-    public static final List<DataType> DATA_TYPE_LIST_ORI =
-            Arrays.asList(DataType.BOOLEAN, DataType.DOUBLE);
+  public static final List<DataType> ORI_DATA_TYPE_LIST =
+      Arrays.asList(DataType.BOOLEAN, DataType.DOUBLE);
 
-    public static final List<List<Object>> VALUES_LIST_ORI =
-            Arrays.asList(Arrays.asList(true, 15.27), Arrays.asList(false, 20.71));
+  public static final List<List<Object>> ORI_VALUES_LIST =
+      Arrays.asList(Arrays.asList(true, 15.27), Arrays.asList(false, 20.71));
 
-    protected int portExp;
+  public int expPort;
 
-    public static final List<String> PATH_LIST_EXP =
-            Arrays.asList("mn.wf03.wt01.status", "mn.wf03.wt01.temperature");
+  public static final List<String> EXP_PATH_LIST =
+      Arrays.asList("mn.wf03.wt01.status", "mn.wf03.wt01.temperature");
 
-    public static final List<DataType> DATA_TYPE_LIST_EXP =
-            Arrays.asList(DataType.BOOLEAN, DataType.DOUBLE);
+  public static final List<DataType> EXP_DATA_TYPE_LIST =
+      Arrays.asList(DataType.BOOLEAN, DataType.DOUBLE);
 
-    public static final List<List<Object>> VALUES_LIST_EXP =
-            Arrays.asList(Arrays.asList(true, 66.23), Arrays.asList(false, 77.71));
+  public static final List<List<Object>> EXP_VALUES_LIST =
+      Arrays.asList(Arrays.asList(true, 66.23), Arrays.asList(false, 77.71));
 
-    public BaseHistoryDataGenerator() {}
+  public int readOnlyPort;
 
-    @Test
-    public void oriHasDataExpHasData() {
-        writeHistoryDataToOri();
-        writeHistoryDataToExp();
-    }
+  public static final List<String> READ_ONLY_PATH_LIST =
+      Arrays.asList("mn.wf05.wt01.status", "mn.wf05.wt01.temperature");
 
-    @Test
-    public void oriHasDataExpNoData() {
-        writeHistoryDataToOri();
-    }
+  public static final List<DataType> READ_ONLY_DATA_TYPE_LIST =
+      Arrays.asList(DataType.BOOLEAN, DataType.DOUBLE);
 
-    @Test
-    public void oriNoDataExpHasData() {
-        writeHistoryDataToExp();
-    }
+  public static final List<List<Object>> READ_ONLY_VALUES_LIST =
+      Arrays.asList(Arrays.asList(false, 100.01), Arrays.asList(true, 99.99));
 
-    @Test
-    public void oriNoDataExpNoData() {}
+  public BaseHistoryDataGenerator() {}
 
-    public abstract void writeHistoryDataToOri();
+  @Test
+  public void oriHasDataExpHasData() {
+    writeHistoryDataToOri();
+    writeHistoryDataToExp();
+    writeHistoryDataToReadOnly();
+  }
 
-    public abstract void writeHistoryDataToExp();
+  @Test
+  public void oriHasDataExpNoData() {
+    writeHistoryDataToOri();
+  }
 
-    @Test
-    public abstract void clearHistoryData();
+  @Test
+  public void oriNoDataExpHasData() {
+    writeHistoryDataToExp();
+  }
+
+  @Test
+  public void oriNoDataExpNoData() {}
+
+  public void writeHistoryDataToOri() {
+    writeHistoryData(oriPort, ORI_PATH_LIST, ORI_DATA_TYPE_LIST, ORI_VALUES_LIST);
+  }
+
+  public void writeHistoryDataToExp() {
+    writeHistoryData(expPort, EXP_PATH_LIST, EXP_DATA_TYPE_LIST, EXP_VALUES_LIST);
+  }
+
+  public void writeHistoryDataToReadOnly() {
+    writeHistoryData(
+        readOnlyPort, READ_ONLY_PATH_LIST, READ_ONLY_DATA_TYPE_LIST, READ_ONLY_VALUES_LIST);
+  }
+
+  public abstract void writeHistoryData(
+      int port, List<String> pathList, List<DataType> dataTypeList, List<List<Object>> valuesList);
+
+  @Test
+  public void clearHistoryData() {
+    clearHistoryDataForGivenPort(oriPort);
+    clearHistoryDataForGivenPort(expPort);
+    clearHistoryDataForGivenPort(readOnlyPort);
+  }
+
+  public abstract void clearHistoryDataForGivenPort(int port);
 }

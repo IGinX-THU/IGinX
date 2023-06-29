@@ -66,416 +66,317 @@ import org.slf4j.LoggerFactory;
 
 public class StoragePhysicalTaskExecutor {
 
-    private static final Logger logger = LoggerFactory.getLogger(StoragePhysicalTaskExecutor.class);
+  private static final Logger logger = LoggerFactory.getLogger(StoragePhysicalTaskExecutor.class);
 
-    private static final StoragePhysicalTaskExecutor INSTANCE = new StoragePhysicalTaskExecutor();
+  private static final StoragePhysicalTaskExecutor INSTANCE = new StoragePhysicalTaskExecutor();
 
-    private final IMetaManager metaManager = DefaultMetaManager.getInstance();
+  private final IMetaManager metaManager = DefaultMetaManager.getInstance();
 
-    private final StorageManager storageManager =
-            new StorageManager(metaManager.getStorageEngineList());
+  private final StorageManager storageManager =
+      new StorageManager(metaManager.getStorageEngineList());
 
-    private final Map<String, StoragePhysicalTaskQueue> storageTaskQueues =
-            new ConcurrentHashMap<>();
+  private final Map<String, StoragePhysicalTaskQueue> storageTaskQueues = new ConcurrentHashMap<>();
 
-    private final Map<String, ExecutorService> dispatchers = new ConcurrentHashMap<>();
+  private final Map<String, ExecutorService> dispatchers = new ConcurrentHashMap<>();
 
-    private ReplicaDispatcher replicaDispatcher;
+  private ReplicaDispatcher replicaDispatcher;
 
-    private MemoryPhysicalTaskDispatcher memoryTaskExecutor;
+  private MemoryPhysicalTaskDispatcher memoryTaskExecutor;
 
-    private final int maxCachedPhysicalTaskPerStorage =
-            ConfigDescriptor.getInstance().getConfig().getMaxCachedPhysicalTaskPerStorage();
+  private final int maxCachedPhysicalTaskPerStorage =
+      ConfigDescriptor.getInstance().getConfig().getMaxCachedPhysicalTaskPerStorage();
 
-    private StoragePhysicalTaskExecutor() {
-        StorageUnitHook storageUnitHook =
-                (before, after) -> {
-                    if (before == null && after != null) { // 新增加 du，处理这种事件，其他事件暂时不处理
-                        logger.info("new storage unit " + after.getId() + " come!");
-                        String id = after.getId();
-                        boolean isDummy = after.isDummy();
-                        if (storageTaskQueues.containsKey(id)) {
-                            return;
-                        }
-                        storageTaskQueues.put(id, new StoragePhysicalTaskQueue());
-                        // 为拥有该分片的存储创建一个调度线程，用于调度任务执行
-                        ExecutorService dispatcher = Executors.newSingleThreadExecutor();
-                        long storageId = after.getStorageEngineId();
-                        dispatchers.put(id, dispatcher);
-                        dispatcher.submit(
-                                () -> {
-                                    try {
-                                        StoragePhysicalTaskQueue taskQueue =
-                                                storageTaskQueues.get(id);
-                                        Pair<IStorage, ThreadPoolExecutor> p =
-                                                storageManager.getStorage(storageId);
-                                        while (p == null) {
-                                            p = storageManager.getStorage(storageId);
-                                            logger.info("spinning for IStorage!");
-                                            try {
-                                                Thread.sleep(5);
-                                            } catch (InterruptedException e) {
-                                                logger.error("encounter error when spinning: ", e);
-                                            }
-                                        }
-                                        Pair<IStorage, ThreadPoolExecutor> pair = p;
-                                        while (true) {
-                                            StoragePhysicalTask task = taskQueue.getTask();
-                                            task.setStorageUnit(id);
-                                            task.setDummyStorageUnit(isDummy);
-                                            if (pair.v.getQueue().size()
-                                                    > maxCachedPhysicalTaskPerStorage) {
-                                                task.setResult(
-                                                        new TaskExecuteResult(
-                                                                new TooManyPhysicalTasksException(
-                                                                        storageId)));
-                                                continue;
-                                            }
-                                            pair.v.submit(
-                                                    () -> {
-                                                        TaskExecuteResult result = null;
-                                                        long taskId = System.nanoTime();
-                                                        long startTime = System.currentTimeMillis();
-                                                        try {
-                                                            List<Operator> operators =
-                                                                    task.getOperators();
-                                                            if (operators.size() < 1) {
-                                                                result =
-                                                                        new TaskExecuteResult(
-                                                                                new NonExecutablePhysicalTaskException(
-                                                                                        "storage physical task should have one more operators"));
-                                                                return;
-                                                            }
-
-                                                            Operator op = operators.get(0);
-                                                            String storageUnit =
-                                                                    task.getStorageUnit();
-                                                            FragmentMeta fragmentMeta =
-                                                                    task.getTargetFragment();
-                                                            boolean isDummyStorageUnit =
-                                                                    task.isDummyStorageUnit();
-                                                            DataArea dataArea =
-                                                                    new DataArea(
-                                                                            storageUnit,
-                                                                            fragmentMeta
-                                                                                    .getKeyInterval());
-
-                                                            switch (op.getType()) {
-                                                                case Project:
-                                                                    boolean needSelectPushDown =
-                                                                            pair.k
-                                                                                            .isSupportProjectWithSelect()
-                                                                                    && operators
-                                                                                                    .size()
-                                                                                            == 2
-                                                                                    && operators
-                                                                                                    .get(
-                                                                                                            1)
-                                                                                                    .getType()
-                                                                                            == OperatorType
-                                                                                                    .Select;
-                                                                    if (isDummyStorageUnit) {
-                                                                        if (needSelectPushDown) {
-                                                                            result =
-                                                                                    pair.k
-                                                                                            .executeProjectDummyWithSelect(
-                                                                                                    (Project)
-                                                                                                            op,
-                                                                                                    (Select)
-                                                                                                            operators
-                                                                                                                    .get(
-                                                                                                                            1),
-                                                                                                    dataArea);
-                                                                        } else {
-                                                                            result =
-                                                                                    pair.k
-                                                                                            .executeProjectDummy(
-                                                                                                    (Project)
-                                                                                                            op,
-                                                                                                    dataArea);
-                                                                        }
-                                                                    } else {
-                                                                        if (needSelectPushDown) {
-                                                                            result =
-                                                                                    pair.k
-                                                                                            .executeProjectWithSelect(
-                                                                                                    (Project)
-                                                                                                            op,
-                                                                                                    (Select)
-                                                                                                            operators
-                                                                                                                    .get(
-                                                                                                                            1),
-                                                                                                    dataArea);
-                                                                        } else {
-                                                                            result =
-                                                                                    pair.k
-                                                                                            .executeProject(
-                                                                                                    (Project)
-                                                                                                            op,
-                                                                                                    dataArea);
-                                                                        }
-                                                                    }
-                                                                    break;
-                                                                case Insert:
-                                                                    result =
-                                                                            pair.k.executeInsert(
-                                                                                    (Insert) op,
-                                                                                    dataArea);
-                                                                    break;
-                                                                case Delete:
-                                                                    result =
-                                                                            pair.k.executeDelete(
-                                                                                    (Delete) op,
-                                                                                    dataArea);
-                                                                    break;
-                                                                default:
-                                                                    result =
-                                                                            new TaskExecuteResult(
-                                                                                    new NonExecutablePhysicalTaskException(
-                                                                                            "unsupported physical task"));
-                                                            }
-                                                        } catch (Exception e) {
-                                                            logger.error(
-                                                                    "execute task error: " + e);
-                                                            result =
-                                                                    new TaskExecuteResult(
-                                                                            new PhysicalException(
-                                                                                    e));
-                                                        }
-                                                        try {
-                                                            HotSpotMonitor.getInstance()
-                                                                    .recordAfter(
-                                                                            taskId,
-                                                                            task
-                                                                                    .getTargetFragment(),
-                                                                            task.getOperators()
-                                                                                    .get(0)
-                                                                                    .getType());
-                                                            RequestsMonitor.getInstance()
-                                                                    .record(
-                                                                            task
-                                                                                    .getTargetFragment(),
-                                                                            task.getOperators()
-                                                                                    .get(0));
-                                                        } catch (Exception e) {
-                                                            logger.error("Monitor catch error:", e);
-                                                        }
-                                                        long span =
-                                                                System.currentTimeMillis()
-                                                                        - startTime;
-                                                        task.setSpan(span);
-                                                        task.setResult(result);
-                                                        if (task.getFollowerTask() != null
-                                                                && task
-                                                                        .isSync()) { // 只有同步任务才会影响后续任务的执行
-                                                            MemoryPhysicalTask followerTask =
-                                                                    (MemoryPhysicalTask)
-                                                                            task.getFollowerTask();
-                                                            boolean isFollowerTaskReady =
-                                                                    followerTask
-                                                                            .notifyParentReady();
-                                                            if (isFollowerTaskReady) {
-                                                                memoryTaskExecutor.addMemoryTask(
-                                                                        followerTask);
-                                                            }
-                                                        }
-                                                        if (task.isNeedBroadcasting()) { // 需要传播
-                                                            if (result.getException() != null) {
-                                                                logger.error(
-                                                                        "task "
-                                                                                + task
-                                                                                + " will not broadcasting to replicas for the sake of exception: "
-                                                                                + result
-                                                                                        .getException());
-                                                                task.setResult(
-                                                                        new TaskExecuteResult(
-                                                                                result
-                                                                                        .getException()));
-                                                            } else {
-                                                                StorageUnitMeta masterStorageUnit =
-                                                                        task.getTargetFragment()
-                                                                                .getMasterStorageUnit();
-                                                                List<String> replicaIds =
-                                                                        masterStorageUnit
-                                                                                .getReplicas()
-                                                                                .stream()
-                                                                                .map(
-                                                                                        StorageUnitMeta
-                                                                                                ::getId)
-                                                                                .collect(
-                                                                                        Collectors
-                                                                                                .toList());
-                                                                replicaIds.add(
-                                                                        masterStorageUnit.getId());
-                                                                for (String replicaId :
-                                                                        replicaIds) {
-                                                                    if (replicaId.equals(
-                                                                            task
-                                                                                    .getStorageUnit())) {
-                                                                        continue;
-                                                                    }
-                                                                    StoragePhysicalTask
-                                                                            replicaTask =
-                                                                                    new StoragePhysicalTask(
-                                                                                            task
-                                                                                                    .getOperators(),
-                                                                                            false,
-                                                                                            false);
-                                                                    storageTaskQueues
-                                                                            .get(replicaId)
-                                                                            .addTask(replicaTask);
-                                                                    logger.info(
-                                                                            "broadcasting task "
-                                                                                    + task
-                                                                                    + " to "
-                                                                                    + replicaId);
-                                                                }
-                                                            }
-                                                        }
-                                                    });
-                                        }
-                                    } catch (Exception e) {
-                                        logger.error(
-                                                "unexpected exception during dispatcher memory task, please contact developer to check: ",
-                                                e);
-                                    }
-                                });
-                        logger.info("process for new storage unit finished!");
-                    }
-                };
-        StorageEngineChangeHook storageEngineChangeHook =
-                (before, after) -> {
-                    if (before == null && after != null) { // 新增加存储，处理这种事件，其他事件暂时不处理
-                        if (after.getCreatedBy() != metaManager.getIginxId()) {
-                            storageManager.addStorage(after);
-                        }
-                    }
-                };
-        metaManager.registerStorageEngineChangeHook(storageEngineChangeHook);
-        metaManager.registerStorageUnitHook(storageUnitHook);
-        List<StorageEngineMeta> storages = metaManager.getStorageEngineList();
-        for (StorageEngineMeta storage : storages) {
-            if (storage.isHasData()) {
-                storageUnitHook.onChange(null, storage.getDummyStorageUnit());
+  private StoragePhysicalTaskExecutor() {
+    StorageUnitHook storageUnitHook =
+        (before, after) -> {
+          if (before == null && after != null) { // 新增加 du，处理这种事件，其他事件暂时不处理
+            logger.info("new storage unit " + after.getId() + " come!");
+            String id = after.getId();
+            boolean isDummy = after.isDummy();
+            if (storageTaskQueues.containsKey(id)) {
+              return;
             }
-        }
-    }
-
-    public static StoragePhysicalTaskExecutor getInstance() {
-        return INSTANCE;
-    }
-
-    public void commit(StoragePhysicalTask task) {
-        commit(Collections.singletonList(task));
-    }
-
-    public void commitWithTargetStorageUnitId(StoragePhysicalTask task, String storageUnitId) {
-        storageTaskQueues.get(storageUnitId).addTask(task);
-    }
-
-    public TaskExecuteResult executeGlobalTask(GlobalPhysicalTask task) {
-        List<StorageEngineMeta> storageList = metaManager.getStorageEngineList();
-        switch (task.getOperator().getType()) {
-            case ShowTimeSeries:
-                Set<Column> columnSet = new HashSet<>();
-                for (StorageEngineMeta storage : storageList) {
-                    long id = storage.getId();
-                    Pair<IStorage, ThreadPoolExecutor> pair = storageManager.getStorage(id);
-                    if (pair == null) {
+            storageTaskQueues.put(id, new StoragePhysicalTaskQueue());
+            // 为拥有该分片的存储创建一个调度线程，用于调度任务执行
+            ExecutorService dispatcher = Executors.newSingleThreadExecutor();
+            long storageId = after.getStorageEngineId();
+            dispatchers.put(id, dispatcher);
+            dispatcher.submit(
+                () -> {
+                  try {
+                    StoragePhysicalTaskQueue taskQueue = storageTaskQueues.get(id);
+                    Pair<IStorage, ThreadPoolExecutor> p = storageManager.getStorage(storageId);
+                    while (p == null) {
+                      p = storageManager.getStorage(storageId);
+                      logger.info("spinning for IStorage!");
+                      try {
+                        Thread.sleep(5);
+                      } catch (InterruptedException e) {
+                        logger.error("encounter error when spinning: ", e);
+                      }
+                    }
+                    Pair<IStorage, ThreadPoolExecutor> pair = p;
+                    while (true) {
+                      StoragePhysicalTask task = taskQueue.getTask();
+                      task.setStorageUnit(id);
+                      task.setDummyStorageUnit(isDummy);
+                      if (pair.v.getQueue().size() > maxCachedPhysicalTaskPerStorage) {
+                        task.setResult(
+                            new TaskExecuteResult(new TooManyPhysicalTasksException(storageId)));
                         continue;
-                    }
-                    try {
-                        List<Column> columnList = pair.k.getColumns();
-                        // fix the schemaPrefix
-                        String schemaPrefix = storage.getSchemaPrefix();
-                        if (schemaPrefix != null) {
-                            for (Column column : columnList) {
-                                column.setPath(schemaPrefix + "." + column.getPath());
+                      }
+                      pair.v.submit(
+                          () -> {
+                            TaskExecuteResult result = null;
+                            long taskId = System.nanoTime();
+                            long startTime = System.currentTimeMillis();
+                            try {
+                              List<Operator> operators = task.getOperators();
+                              if (operators.size() < 1) {
+                                result =
+                                    new TaskExecuteResult(
+                                        new NonExecutablePhysicalTaskException(
+                                            "storage physical task should have one more operators"));
+                                return;
+                              }
+
+                              Operator op = operators.get(0);
+                              String storageUnit = task.getStorageUnit();
+                              FragmentMeta fragmentMeta = task.getTargetFragment();
+                              boolean isDummyStorageUnit = task.isDummyStorageUnit();
+                              DataArea dataArea =
+                                  new DataArea(storageUnit, fragmentMeta.getKeyInterval());
+
+                              switch (op.getType()) {
+                                case Project:
+                                  boolean needSelectPushDown =
+                                      pair.k.isSupportProjectWithSelect()
+                                          && operators.size() == 2
+                                          && operators.get(1).getType() == OperatorType.Select;
+                                  if (isDummyStorageUnit) {
+                                    if (needSelectPushDown) {
+                                      result =
+                                          pair.k.executeProjectDummyWithSelect(
+                                              (Project) op, (Select) operators.get(1), dataArea);
+                                    } else {
+                                      result = pair.k.executeProjectDummy((Project) op, dataArea);
+                                    }
+                                  } else {
+                                    if (needSelectPushDown) {
+                                      result =
+                                          pair.k.executeProjectWithSelect(
+                                              (Project) op, (Select) operators.get(1), dataArea);
+                                    } else {
+                                      result = pair.k.executeProject((Project) op, dataArea);
+                                    }
+                                  }
+                                  break;
+                                case Insert:
+                                  result = pair.k.executeInsert((Insert) op, dataArea);
+                                  break;
+                                case Delete:
+                                  result = pair.k.executeDelete((Delete) op, dataArea);
+                                  break;
+                                default:
+                                  result =
+                                      new TaskExecuteResult(
+                                          new NonExecutablePhysicalTaskException(
+                                              "unsupported physical task"));
+                              }
+                            } catch (Exception e) {
+                              logger.error("execute task error: " + e);
+                              result = new TaskExecuteResult(new PhysicalException(e));
                             }
-                        }
-                        columnSet.addAll(columnList);
-                    } catch (PhysicalException e) {
-                        return new TaskExecuteResult(e);
-                    }
-                }
-
-                ShowTimeSeries operator = (ShowTimeSeries) task.getOperator();
-                Set<String> pathRegexSet = operator.getPathRegexSet();
-                TagFilter tagFilter = operator.getTagFilter();
-
-                TreeSet<Column> tsSetAfterFilter =
-                        new TreeSet<>(Comparator.comparing(Column::getPhysicalPath));
-                for (Column column : columnSet) {
-                    boolean isTarget = true;
-                    if (!pathRegexSet.isEmpty()) {
-                        isTarget = false;
-                        for (String pathRegex : pathRegexSet) {
-                            if (Pattern.matches(
-                                    StringUtils.reformatPath(pathRegex), column.getPath())) {
-                                isTarget = true;
-                                break;
+                            try {
+                              HotSpotMonitor.getInstance()
+                                  .recordAfter(
+                                      taskId,
+                                      task.getTargetFragment(),
+                                      task.getOperators().get(0).getType());
+                              RequestsMonitor.getInstance()
+                                  .record(task.getTargetFragment(), task.getOperators().get(0));
+                            } catch (Exception e) {
+                              logger.error("Monitor catch error:", e);
                             }
-                        }
+                            long span = System.currentTimeMillis() - startTime;
+                            task.setSpan(span);
+                            task.setResult(result);
+                            if (task.getFollowerTask() != null
+                                && task.isSync()) { // 只有同步任务才会影响后续任务的执行
+                              MemoryPhysicalTask followerTask =
+                                  (MemoryPhysicalTask) task.getFollowerTask();
+                              boolean isFollowerTaskReady = followerTask.notifyParentReady();
+                              if (isFollowerTaskReady) {
+                                memoryTaskExecutor.addMemoryTask(followerTask);
+                              }
+                            }
+                            if (task.isNeedBroadcasting()) { // 需要传播
+                              if (result.getException() != null) {
+                                logger.error(
+                                    "task "
+                                        + task
+                                        + " will not broadcasting to replicas for the sake of exception: "
+                                        + result.getException());
+                                task.setResult(new TaskExecuteResult(result.getException()));
+                              } else {
+                                StorageUnitMeta masterStorageUnit =
+                                    task.getTargetFragment().getMasterStorageUnit();
+                                List<String> replicaIds =
+                                    masterStorageUnit.getReplicas().stream()
+                                        .map(StorageUnitMeta::getId)
+                                        .collect(Collectors.toList());
+                                replicaIds.add(masterStorageUnit.getId());
+                                for (String replicaId : replicaIds) {
+                                  if (replicaId.equals(task.getStorageUnit())) {
+                                    continue;
+                                  }
+                                  StoragePhysicalTask replicaTask =
+                                      new StoragePhysicalTask(task.getOperators(), false, false);
+                                  storageTaskQueues.get(replicaId).addTask(replicaTask);
+                                  logger.info("broadcasting task " + task + " to " + replicaId);
+                                }
+                              }
+                            }
+                          });
                     }
-                    if (tagFilter != null) {
-                        if (!TagKVUtils.match(column.getTags(), tagFilter)) {
-                            isTarget = false;
-                        }
-                    }
-                    if (isTarget) {
-                        tsSetAfterFilter.add(column);
-                    }
-                }
-
-                int limit = operator.getLimit();
-                int offset = operator.getOffset();
-                if (limit == Integer.MAX_VALUE && offset == 0) {
-                    return new TaskExecuteResult(Column.toRowStream(tsSetAfterFilter));
-                } else {
-                    // only need part of data.
-                    List<Column> tsList = new ArrayList<>();
-                    int cur = 0, size = tsSetAfterFilter.size();
-                    for (Iterator<Column> iter = tsSetAfterFilter.iterator();
-                            iter.hasNext();
-                            cur++) {
-                        if (cur >= size || cur - offset >= limit) {
-                            break;
-                        }
-                        Column ts = iter.next();
-                        if (cur >= offset) {
-                            tsList.add(ts);
-                        }
-                    }
-                    return new TaskExecuteResult(Column.toRowStream(tsList));
-                }
-            default:
-                return new TaskExecuteResult(
-                        new UnexpectedOperatorException(
-                                "unknown op: " + task.getOperator().getType()));
-        }
-    }
-
-    public void commit(List<StoragePhysicalTask> tasks) {
-        for (StoragePhysicalTask task : tasks) {
-            if (replicaDispatcher == null) {
-                storageTaskQueues
-                        .get(task.getTargetFragment().getMasterStorageUnitId())
-                        .addTask(task); // 默认情况下，异步写备，查询只查主
-            } else {
-                storageTaskQueues
-                        .get(replicaDispatcher.chooseReplica(task))
-                        .addTask(task); // 在优化策略提供了选择器的情况下，利用选择器提供的结果
+                  } catch (Exception e) {
+                    logger.error(
+                        "unexpected exception during dispatcher memory task, please contact developer to check: ",
+                        e);
+                  }
+                });
+            logger.info("process for new storage unit finished!");
+          }
+        };
+    StorageEngineChangeHook storageEngineChangeHook =
+        (before, after) -> {
+          if (before == null && after != null) { // 新增加存储，处理这种事件，其他事件暂时不处理
+            if (after.getCreatedBy() != metaManager.getIginxId()) {
+              storageManager.addStorage(after);
             }
+          }
+        };
+    metaManager.registerStorageEngineChangeHook(storageEngineChangeHook);
+    metaManager.registerStorageUnitHook(storageUnitHook);
+    List<StorageEngineMeta> storages = metaManager.getStorageEngineList();
+    for (StorageEngineMeta storage : storages) {
+      if (storage.isHasData()) {
+        storageUnitHook.onChange(null, storage.getDummyStorageUnit());
+      }
+    }
+  }
+
+  public static StoragePhysicalTaskExecutor getInstance() {
+    return INSTANCE;
+  }
+
+  public void commit(StoragePhysicalTask task) {
+    commit(Collections.singletonList(task));
+  }
+
+  public void commitWithTargetStorageUnitId(StoragePhysicalTask task, String storageUnitId) {
+    storageTaskQueues.get(storageUnitId).addTask(task);
+  }
+
+  public TaskExecuteResult executeGlobalTask(GlobalPhysicalTask task) {
+    List<StorageEngineMeta> storageList = metaManager.getStorageEngineList();
+    switch (task.getOperator().getType()) {
+      case ShowTimeSeries:
+        Set<Column> columnSet = new HashSet<>();
+        for (StorageEngineMeta storage : storageList) {
+          long id = storage.getId();
+          Pair<IStorage, ThreadPoolExecutor> pair = storageManager.getStorage(id);
+          if (pair == null) {
+            continue;
+          }
+          try {
+            List<Column> columnList = pair.k.getColumns();
+            // fix the schemaPrefix
+            String schemaPrefix = storage.getSchemaPrefix();
+            if (schemaPrefix != null) {
+              for (Column column : columnList) {
+                column.setPath(schemaPrefix + "." + column.getPath());
+              }
+            }
+            columnSet.addAll(columnList);
+          } catch (PhysicalException e) {
+            return new TaskExecuteResult(e);
+          }
         }
-    }
 
-    public void init(
-            MemoryPhysicalTaskDispatcher memoryTaskExecutor, ReplicaDispatcher replicaDispatcher) {
-        this.memoryTaskExecutor = memoryTaskExecutor;
-        this.replicaDispatcher = replicaDispatcher;
-    }
+        ShowTimeSeries operator = (ShowTimeSeries) task.getOperator();
+        Set<String> pathRegexSet = operator.getPathRegexSet();
+        TagFilter tagFilter = operator.getTagFilter();
 
-    public StorageManager getStorageManager() {
-        return storageManager;
+        TreeSet<Column> tsSetAfterFilter =
+            new TreeSet<>(Comparator.comparing(Column::getPhysicalPath));
+        for (Column column : columnSet) {
+          boolean isTarget = true;
+          if (!pathRegexSet.isEmpty()) {
+            isTarget = false;
+            for (String pathRegex : pathRegexSet) {
+              if (Pattern.matches(StringUtils.reformatPath(pathRegex), column.getPath())) {
+                isTarget = true;
+                break;
+              }
+            }
+          }
+          if (tagFilter != null) {
+            if (!TagKVUtils.match(column.getTags(), tagFilter)) {
+              isTarget = false;
+            }
+          }
+          if (isTarget) {
+            tsSetAfterFilter.add(column);
+          }
+        }
+
+        int limit = operator.getLimit();
+        int offset = operator.getOffset();
+        if (limit == Integer.MAX_VALUE && offset == 0) {
+          return new TaskExecuteResult(Column.toRowStream(tsSetAfterFilter));
+        } else {
+          // only need part of data.
+          List<Column> tsList = new ArrayList<>();
+          int cur = 0, size = tsSetAfterFilter.size();
+          for (Iterator<Column> iter = tsSetAfterFilter.iterator(); iter.hasNext(); cur++) {
+            if (cur >= size || cur - offset >= limit) {
+              break;
+            }
+            Column ts = iter.next();
+            if (cur >= offset) {
+              tsList.add(ts);
+            }
+          }
+          return new TaskExecuteResult(Column.toRowStream(tsList));
+        }
+      default:
+        return new TaskExecuteResult(
+            new UnexpectedOperatorException("unknown op: " + task.getOperator().getType()));
     }
+  }
+
+  public void commit(List<StoragePhysicalTask> tasks) {
+    for (StoragePhysicalTask task : tasks) {
+      if (replicaDispatcher == null) {
+        storageTaskQueues
+            .get(task.getTargetFragment().getMasterStorageUnitId())
+            .addTask(task); // 默认情况下，异步写备，查询只查主
+      } else {
+        storageTaskQueues
+            .get(replicaDispatcher.chooseReplica(task))
+            .addTask(task); // 在优化策略提供了选择器的情况下，利用选择器提供的结果
+      }
+    }
+  }
+
+  public void init(
+      MemoryPhysicalTaskDispatcher memoryTaskExecutor, ReplicaDispatcher replicaDispatcher) {
+    this.memoryTaskExecutor = memoryTaskExecutor;
+    this.replicaDispatcher = replicaDispatcher;
+  }
+
+  public StorageManager getStorageManager() {
+    return storageManager;
+  }
 }

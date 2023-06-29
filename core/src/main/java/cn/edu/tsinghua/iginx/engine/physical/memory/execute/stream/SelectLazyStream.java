@@ -19,55 +19,58 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
+import java.util.ArrayList;
+import java.util.List;
 
 public class SelectLazyStream extends UnaryLazyStream {
 
-    private final Select select;
+  private final Select select;
 
-    private Row nextRow = null;
+  private static final int BATCH_SIZE = 1000;
 
-    public SelectLazyStream(Select select, RowStream stream) {
-        super(stream);
-        this.select = select;
+  private int cacheIndex = 0;
+
+  private List<Row> nextBatchCache = new ArrayList<>();
+
+  public SelectLazyStream(Select select, RowStream stream) {
+    super(stream);
+    this.select = select;
+  }
+
+  @Override
+  public Header getHeader() throws PhysicalException {
+    return stream.getHeader();
+  }
+
+  @Override
+  public boolean hasNext() throws PhysicalException {
+    if (cacheIndex >= nextBatchCache.size()) {
+      calculateNextBatch();
     }
+    return cacheIndex < nextBatchCache.size();
+  }
 
-    @Override
-    public Header getHeader() throws PhysicalException {
-        return stream.getHeader();
+  private void calculateNextBatch() throws PhysicalException {
+    int rowCnt = 0;
+    List<Row> rows = new ArrayList<>();
+    while (stream.hasNext() && rowCnt < BATCH_SIZE) {
+      rows.add(stream.next());
+      rowCnt++;
     }
+    nextBatchCache = RowUtils.cacheFilterResult(rows, select.getFilter());
+    cacheIndex = 0;
+  }
 
-    @Override
-    public boolean hasNext() throws PhysicalException {
-        if (nextRow == null) {
-            nextRow = calculateNext();
-        }
-        return nextRow != null;
+  @Override
+  public Row next() throws PhysicalException {
+    if (!hasNext()) {
+      throw new IllegalStateException("row stream doesn't have more data!");
     }
-
-    private Row calculateNext() throws PhysicalException {
-        Filter filter = select.getFilter();
-        while (stream.hasNext()) {
-            Row row = stream.next();
-            if (FilterUtils.validate(filter, row)) {
-                return row;
-            }
-        }
-        return null;
-    }
-
-    @Override
-    public Row next() throws PhysicalException {
-        if (!hasNext()) {
-            throw new IllegalStateException("row stream doesn't have more data!");
-        }
-        Row row = nextRow;
-        nextRow = null;
-        return row;
-    }
+    return nextBatchCache.get(cacheIndex++);
+  }
 }

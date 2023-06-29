@@ -107,7 +107,7 @@ Here is an example of starting one or two IGinX instances and two IoTDB instance
 
 Here is an example of starting two instances with ports 6667 and 7667 on a single machine.
 
-Modify the configuration file IoTDB_HOME/conf/iotdb-engine.properties
+Modify the configuration file IOTDB_HOME/conf/iotdb-engine.properties
 
 ```shell
 rpc_port=6667
@@ -151,10 +151,10 @@ Starting zookeeper ... STARTED
 
 ### Start multiple IGinX instances
 
-Modify IGinX_HOME/conf/config.Properties to join the two IoTDB instances that already started
+Modify IGINX_HOME/conf/config.Properties to join the two IoTDB instances that already started
 
 ```shell
-storageEngineList=127.0.0.1#6667#iotdb#username=root#password=root#sessionPoolSize=100#dataDir=/path/to/your/data/,127.0.0.1#6688#iotdb#username=root#password=root# sessionPoolSize=100#dataDir=/path/to/your/data/
+storageEngineList=127.0.0.1#6667#iotdb12#username=root#password=root#sessionPoolSize=20#has_data=false#is_read_only=false,127.0.0.1#7667#iotdb12#username=root#password=root#sessionPoolSize=20#has_data=false#is_read_only=false
 
 #Storage method selection ZooKeeper
 metaStorage=zookeeper
@@ -162,7 +162,7 @@ metaStorage=zookeeper
 # Provide ZooKeeper port
 zookeeperConnectionString=127.0.0.1:2181
 
-# Comment out file, etcd related configuration
+# Comment out file, etcd related configuration, ignore it if not found
 # fileDataDir=meta
 # etcdEndpoints=http://localhost:2379
 ```
@@ -179,7 +179,7 @@ $ ./sbin/start_iginx.sh
 Modify conf/config.Properties
 
 ```shell
-# iginx binding port
+# IGinX binding port
 port=7888
 # rest bind port
 restPort=7666

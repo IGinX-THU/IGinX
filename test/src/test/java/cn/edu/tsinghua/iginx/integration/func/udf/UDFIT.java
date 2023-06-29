@@ -43,219 +43,217 @@ import org.slf4j.LoggerFactory;
 
 public class UDFIT {
 
-    private static final double delta = 0.01d;
+  private static final double delta = 0.01d;
 
-    private static final Logger logger = LoggerFactory.getLogger(UDFIT.class);
+  private static final Logger logger = LoggerFactory.getLogger(UDFIT.class);
 
-    private static Session session;
+  private static Session session;
 
-    @BeforeClass
-    public static void setUp() throws SessionException {
-        session = new Session("127.0.0.1", 6888, "root", "root");
-        session.openSession();
+  @BeforeClass
+  public static void setUp() throws SessionException {
+    session = new Session("127.0.0.1", 6888, "root", "root");
+    session.openSession();
+  }
+
+  @AfterClass
+  public static void tearDown() throws SessionException {
+    session.closeSession();
+  }
+
+  @Before
+  public void insertData() throws ExecutionException, SessionException {
+    String insertStrPrefix = "INSERT INTO us.d1 (key, s1, s2, s3, s4) values ";
+
+    long startKey = 0L;
+    long endKey = 15000L;
+
+    StringBuilder builder = new StringBuilder(insertStrPrefix);
+
+    int size = (int) (endKey - startKey);
+    for (int i = 0; i < size; i++) {
+      builder.append(", ");
+      builder.append("(");
+      builder.append(startKey + i).append(", ");
+      builder.append(i).append(", ");
+      builder.append(i + 1).append(", ");
+      builder
+          .append("\"")
+          .append(new String(RandomStringUtils.randomAlphanumeric(10).getBytes()))
+          .append("\", ");
+      builder.append((i + 0.1));
+      builder.append(")");
+    }
+    builder.append(";");
+
+    String insertStatement = builder.toString();
+
+    SessionExecuteSqlResult res = session.executeSql(insertStatement);
+    if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
+      logger.error("Insert date execute fail. Caused by: {}.", res.getParseErrorMsg());
+      fail();
+    }
+  }
+
+  @After
+  public void clearData() {
+    Controller.clearData(session);
+  }
+
+  private SessionExecuteSqlResult execute(String statement) {
+    logger.info("Execute Statement: \"{}\"", statement);
+
+    SessionExecuteSqlResult res = null;
+    try {
+      res = session.executeSql(statement);
+    } catch (SessionException | ExecutionException e) {
+      logger.error("Statement: \"{}\" execute fail. Caused by:", statement, e);
+      fail();
     }
 
-    @AfterClass
-    public static void tearDown() throws SessionException {
-        session.closeSession();
+    if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
+      logger.error(
+          "Statement: \"{}\" execute fail. Caused by: {}.", statement, res.getParseErrorMsg());
+      fail();
     }
 
-    @Before
-    public void insertData() throws ExecutionException, SessionException {
-        String insertStrPrefix = "INSERT INTO us.d1 (key, s1, s2, s3, s4) values ";
+    return res;
+  }
 
-        long startTimestamp = 0L;
-        long endTimestamp = 15000L;
+  @Test
+  public void baseTests() {
+    String showRegisterUDF = "SHOW REGISTER PYTHON TASK;";
+    String udtfSQLFormat = "SELECT %s(s1) FROM us.d1 WHERE key < 200;";
+    String udafSQLFormat = "SELECT %s(s1) FROM us.d1 OVER (RANGE 50 IN [0, 200));";
+    String udsfSQLFormat = "SELECT %s(s1) FROM us.d1 WHERE key < 50;";
 
-        StringBuilder builder = new StringBuilder(insertStrPrefix);
+    SessionExecuteSqlResult ret = execute(showRegisterUDF);
 
-        int size = (int) (endTimestamp - startTimestamp);
-        for (int i = 0; i < size; i++) {
-            builder.append(", ");
-            builder.append("(");
-            builder.append(startTimestamp + i).append(", ");
-            builder.append(i).append(", ");
-            builder.append(i + 1).append(", ");
-            builder.append("\"")
-                    .append(new String(RandomStringUtils.randomAlphanumeric(10).getBytes()))
-                    .append("\", ");
-            builder.append((i + 0.1));
-            builder.append(")");
-        }
-        builder.append(";");
-
-        String insertStatement = builder.toString();
-
-        SessionExecuteSqlResult res = session.executeSql(insertStatement);
-        if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-            logger.error("Insert date execute fail. Caused by: {}.", res.getParseErrorMsg());
-            fail();
-        }
+    List<RegisterTaskInfo> registerUDFs = ret.getRegisterTaskInfos();
+    for (RegisterTaskInfo info : registerUDFs) {
+      // execute udf
+      if (info.getType().equals(UDFType.UDTF)) {
+        execute(String.format(udtfSQLFormat, info.getName()));
+      } else if (info.getType().equals(UDFType.UDAF)) {
+        execute(String.format(udafSQLFormat, info.getName()));
+      } else if (info.getType().equals(UDFType.UDSF)) {
+        execute(String.format(udsfSQLFormat, info.getName()));
+      }
     }
+  }
 
-    @After
-    public void clearData() {
-        Controller.clearData(session);
+  @Test
+  public void testCOS() {
+    String statement = "SELECT COS(s1) FROM us.d1 WHERE s1 < 10;";
+
+    SessionExecuteSqlResult ret = execute(statement);
+    assertEquals(Collections.singletonList("cos(us.d1.s1)"), ret.getPaths());
+    assertArrayEquals(new long[] {0L, 1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L, 9L}, ret.getKeys());
+
+    List<Double> expectedValues =
+        Arrays.asList(
+            1.0,
+            0.5403023058681398,
+            -0.4161468365471424,
+            -0.9899924966004454,
+            -0.6536436208636119,
+            0.2836621854632263,
+            0.9601702866503661,
+            0.7539022543433046,
+            -0.14550003380861354,
+            -0.9111302618846769);
+    for (int i = 0; i < ret.getValues().size(); i++) {
+      assertEquals(1, ret.getValues().get(i).size());
+      double expected = expectedValues.get(i);
+      double actual = (double) ret.getValues().get(i).get(0);
+      assertEquals(expected, actual, delta);
     }
+  }
 
-    private SessionExecuteSqlResult execute(String statement) {
-        logger.info("Execute Statement: \"{}\"", statement);
+  @Test
+  public void testConcurrentCos() {
+    String insert =
+        "INSERT INTO test(key, s1, s2) VALUES (1, 2, 3), (2, 3, 1), (3, 4, 3), (4, 9, 7), (5, 3, 6), (6, 6, 4);";
+    execute(insert);
 
-        SessionExecuteSqlResult res = null;
-        try {
-            res = session.executeSql(statement);
-        } catch (SessionException | ExecutionException e) {
-            logger.error("Statement: \"{}\" execute fail. Caused by:", statement, e);
-            fail();
-        }
+    String query = "SELECT * FROM (SELECT COS(s1) FROM test), (SELECT COS(s2) FROM test) LIMIT 10;";
+    SessionExecuteSqlResult ret = execute(query);
+    assertEquals(4, ret.getPaths().size());
 
-        if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-            logger.error(
-                    "Statement: \"{}\" execute fail. Caused by: {}.",
-                    statement,
-                    res.getParseErrorMsg());
-            fail();
-        }
+    List<Double> cosS1ExpectedValues =
+        Arrays.asList(
+            -0.4161468365471424,
+            -0.4161468365471424,
+            -0.4161468365471424,
+            -0.4161468365471424,
+            -0.4161468365471424,
+            -0.4161468365471424,
+            -0.9899924966004454,
+            -0.9899924966004454,
+            -0.9899924966004454,
+            -0.9899924966004454);
+    List<Double> cosS2ExpectedValues =
+        Arrays.asList(
+            -0.9899924966004454,
+            0.5403023058681398,
+            -0.9899924966004454,
+            0.7539022543433046,
+            0.9601702866503661,
+            -0.6536436208636119,
+            -0.9899924966004454,
+            0.5403023058681398,
+            -0.9899924966004454,
+            0.7539022543433046);
 
-        return res;
+    for (int i = 0; i < ret.getValues().size(); i++) {
+      assertEquals(4, ret.getValues().get(i).size());
+      double expected = cosS1ExpectedValues.get(i);
+      double actual = (double) ret.getValues().get(i).get(0);
+      assertEquals(expected, actual, delta);
+
+      expected = cosS2ExpectedValues.get(i);
+      actual = (double) ret.getValues().get(i).get(1);
+      assertEquals(expected, actual, delta);
     }
+  }
 
-    @Test
-    public void baseTests() {
-        String showRegisterUDF = "SHOW REGISTER PYTHON TASK;";
-        String udtfSQLFormat = "SELECT %s(s1) FROM us.d1 WHERE key < 200;";
-        String udafSQLFormat = "SELECT %s(s1) FROM us.d1 OVER (RANGE 50 IN [0, 200));";
-        String udsfSQLFormat = "SELECT %s(s1) FROM us.d1 WHERE key < 50;";
+  @Test
+  public void testMultiParams() {
+    String insert =
+        "INSERT INTO test(key, s1, s2, s3) VALUES (1, 2, 3, 2), (2, 3, 1, 3), (3, 4, 3, 1), (4, 9, 7, 5), (5, 3, 6, 2), (6, 6, 4, 2);";
+    execute(insert);
 
-        SessionExecuteSqlResult ret = execute(showRegisterUDF);
+    String query = "SELECT multiply(s1, s2) FROM test;";
+    SessionExecuteSqlResult ret = execute(query);
+    String expected =
+        "ResultSets:\n"
+            + "+---+--------------------------+\n"
+            + "|key|multiply(test.s1, test.s2)|\n"
+            + "+---+--------------------------+\n"
+            + "|  1|                       6.0|\n"
+            + "|  2|                       3.0|\n"
+            + "|  3|                      12.0|\n"
+            + "|  4|                      63.0|\n"
+            + "|  5|                      18.0|\n"
+            + "|  6|                      24.0|\n"
+            + "+---+--------------------------+\n"
+            + "Total line number = 6\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
 
-        List<RegisterTaskInfo> registerUDFs = ret.getRegisterTaskInfos();
-        for (RegisterTaskInfo info : registerUDFs) {
-            // execute udf
-            if (info.getType().equals(UDFType.UDTF)) {
-                execute(String.format(udtfSQLFormat, info.getName()));
-            } else if (info.getType().equals(UDFType.UDAF)) {
-                execute(String.format(udafSQLFormat, info.getName()));
-            } else if (info.getType().equals(UDFType.UDSF)) {
-                execute(String.format(udsfSQLFormat, info.getName()));
-            }
-        }
-    }
-
-    @Test
-    public void testCOS() {
-        String statement = "SELECT COS(s1) FROM us.d1 WHERE s1 < 10;";
-
-        SessionExecuteSqlResult ret = execute(statement);
-        assertEquals(Collections.singletonList("cos(us.d1.s1)"), ret.getPaths());
-        assertArrayEquals(new long[] {0L, 1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L, 9L}, ret.getKeys());
-
-        List<Double> expectedValues =
-                Arrays.asList(
-                        1.0,
-                        0.5403023058681398,
-                        -0.4161468365471424,
-                        -0.9899924966004454,
-                        -0.6536436208636119,
-                        0.2836621854632263,
-                        0.9601702866503661,
-                        0.7539022543433046,
-                        -0.14550003380861354,
-                        -0.9111302618846769);
-        for (int i = 0; i < ret.getValues().size(); i++) {
-            assertEquals(1, ret.getValues().get(i).size());
-            double expected = expectedValues.get(i);
-            double actual = (double) ret.getValues().get(i).get(0);
-            assertEquals(expected, actual, delta);
-        }
-    }
-
-    @Test
-    public void testConcurrentCos() {
-        String insert =
-                "INSERT INTO test(key, s1, s2) VALUES (1, 2, 3), (2, 3, 1), (3, 4, 3), (4, 9, 7), (5, 3, 6), (6, 6, 4);";
-        execute(insert);
-
-        String query =
-                "SELECT * FROM (SELECT COS(s1) FROM test), (SELECT COS(s2) FROM test) LIMIT 10;";
-        SessionExecuteSqlResult ret = execute(query);
-        assertEquals(4, ret.getPaths().size());
-
-        List<Double> cosS1ExpectedValues =
-                Arrays.asList(
-                        -0.4161468365471424,
-                        -0.4161468365471424,
-                        -0.4161468365471424,
-                        -0.4161468365471424,
-                        -0.4161468365471424,
-                        -0.4161468365471424,
-                        -0.9899924966004454,
-                        -0.9899924966004454,
-                        -0.9899924966004454,
-                        -0.9899924966004454);
-        List<Double> cosS2ExpectedValues =
-                Arrays.asList(
-                        -0.9899924966004454,
-                        0.5403023058681398,
-                        -0.9899924966004454,
-                        0.7539022543433046,
-                        0.9601702866503661,
-                        -0.6536436208636119,
-                        -0.9899924966004454,
-                        0.5403023058681398,
-                        -0.9899924966004454,
-                        0.7539022543433046);
-
-        for (int i = 0; i < ret.getValues().size(); i++) {
-            assertEquals(4, ret.getValues().get(i).size());
-            double expected = cosS1ExpectedValues.get(i);
-            double actual = (double) ret.getValues().get(i).get(0);
-            assertEquals(expected, actual, delta);
-
-            expected = cosS2ExpectedValues.get(i);
-            actual = (double) ret.getValues().get(i).get(1);
-            assertEquals(expected, actual, delta);
-        }
-    }
-
-    @Test
-    public void testMultiParams() {
-        String insert =
-                "INSERT INTO test(key, s1, s2, s3) VALUES (1, 2, 3, 2), (2, 3, 1, 3), (3, 4, 3, 1), (4, 9, 7, 5), (5, 3, 6, 2), (6, 6, 4, 2);";
-        execute(insert);
-
-        String query = "SELECT multiply(s1, s2) FROM test;";
-        SessionExecuteSqlResult ret = execute(query);
-        String expected =
-                "ResultSets:\n"
-                        + "+---+--------------------------+\n"
-                        + "|key|multiply(test.s1, test.s2)|\n"
-                        + "+---+--------------------------+\n"
-                        + "|  1|                       6.0|\n"
-                        + "|  2|                       3.0|\n"
-                        + "|  3|                      12.0|\n"
-                        + "|  4|                      63.0|\n"
-                        + "|  5|                      18.0|\n"
-                        + "|  6|                      24.0|\n"
-                        + "+---+--------------------------+\n"
-                        + "Total line number = 6\n";
-        assertEquals(expected, ret.getResultInString(false, ""));
-
-        query = "SELECT multiply(s1, s2, s3) FROM test;";
-        ret = execute(query);
-        expected =
-                "ResultSets:\n"
-                        + "+---+-----------------------------------+\n"
-                        + "|key|multiply(test.s1, test.s2, test.s3)|\n"
-                        + "+---+-----------------------------------+\n"
-                        + "|  1|                               12.0|\n"
-                        + "|  2|                                9.0|\n"
-                        + "|  3|                               12.0|\n"
-                        + "|  4|                              315.0|\n"
-                        + "|  5|                               36.0|\n"
-                        + "|  6|                               48.0|\n"
-                        + "+---+-----------------------------------+\n"
-                        + "Total line number = 6\n";
-        assertEquals(expected, ret.getResultInString(false, ""));
-    }
+    query = "SELECT multiply(s1, s2, s3) FROM test;";
+    ret = execute(query);
+    expected =
+        "ResultSets:\n"
+            + "+---+-----------------------------------+\n"
+            + "|key|multiply(test.s1, test.s2, test.s3)|\n"
+            + "+---+-----------------------------------+\n"
+            + "|  1|                               12.0|\n"
+            + "|  2|                                9.0|\n"
+            + "|  3|                               12.0|\n"
+            + "|  4|                              315.0|\n"
+            + "|  5|                               36.0|\n"
+            + "|  6|                               48.0|\n"
+            + "+---+-----------------------------------+\n"
+            + "Total line number = 6\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+  }
 }

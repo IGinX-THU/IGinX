@@ -12,38 +12,40 @@ import java.util.Map;
 
 public abstract class AbstractGenerator implements LogicalGenerator {
 
-    protected GeneratorType type;
+  protected GeneratorType type;
 
-    private final List<Optimizer> optimizerList = new ArrayList<>();
-    private static final Map<GeneratorType, StatementType> typeMap = new HashMap<>();
+  private final List<Optimizer> optimizerList = new ArrayList<>();
+  private static final Map<GeneratorType, StatementType> typeMap = new HashMap<>();
 
-    static {
-        typeMap.put(GeneratorType.Query, StatementType.SELECT);
-        typeMap.put(GeneratorType.Insert, StatementType.INSERT);
-        typeMap.put(GeneratorType.Delete, StatementType.DELETE);
-        typeMap.put(GeneratorType.ShowTimeSeries, StatementType.SHOW_COLUMNS);
+  static {
+    typeMap.put(GeneratorType.Query, StatementType.SELECT);
+    typeMap.put(GeneratorType.Insert, StatementType.INSERT);
+    typeMap.put(GeneratorType.Delete, StatementType.DELETE);
+    typeMap.put(GeneratorType.ShowTimeSeries, StatementType.SHOW_COLUMNS);
+  }
+
+  public void registerOptimizer(Optimizer optimizer) {
+    if (optimizer != null) optimizerList.add(optimizer);
+  }
+
+  @Override
+  public GeneratorType getType() {
+    return type;
+  }
+
+  @Override
+  public Operator generate(RequestContext ctx) {
+    Statement statement = ctx.getStatement();
+    if (statement == null) return null;
+    if (statement.getType() != typeMap.get(type)) return null;
+    Operator root = generateRoot(statement);
+    if (root != null) {
+      for (Optimizer optimizer : optimizerList) {
+        root = optimizer.optimize(root);
+      }
     }
+    return root;
+  }
 
-    public void registerOptimizer(Optimizer optimizer) {
-        if (optimizer != null) optimizerList.add(optimizer);
-    }
-
-    @Override
-    public GeneratorType getType() {
-        return type;
-    }
-
-    @Override
-    public Operator generate(RequestContext ctx) {
-        Statement statement = ctx.getStatement();
-        if (statement == null) return null;
-        if (statement.getType() != typeMap.get(type)) return null;
-        Operator root = generateRoot(statement);
-        for (Optimizer optimizer : optimizerList) {
-            root = optimizer.optimize(root);
-        }
-        return root;
-    }
-
-    protected abstract Operator generateRoot(Statement statement);
+  protected abstract Operator generateRoot(Statement statement);
 }

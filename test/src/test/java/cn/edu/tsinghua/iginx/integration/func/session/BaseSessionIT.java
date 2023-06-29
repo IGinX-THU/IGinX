@@ -21,148 +21,139 @@ import org.slf4j.LoggerFactory;
 
 public abstract class BaseSessionIT {
 
-    private static final Logger logger = LoggerFactory.getLogger(BaseSessionIT.class);
+  private static final Logger logger = LoggerFactory.getLogger(BaseSessionIT.class);
 
-    // parameters to be flexibly configured by inheritance
-    protected static MultiConnection session;
+  // parameters to be flexibly configured by inheritance
+  protected static MultiConnection session;
 
-    // host info
-    protected String defaultTestHost = "127.0.0.1";
-    protected int defaultTestPort = 6888;
-    protected String defaultTestUser = "root";
-    protected String defaultTestPass = "root";
+  // host info
+  protected String defaultTestHost = "127.0.0.1";
+  protected int defaultTestPort = 6888;
+  protected String defaultTestUser = "root";
+  protected String defaultTestPass = "root";
 
-    protected boolean isAbleToDelete;
+  protected boolean isAbleToDelete;
 
-    protected static final double delta = 1e-7;
-    protected static final long TIME_PERIOD = 100000L;
-    protected static final long START_TIME = 1000L;
-    protected static final long END_TIME = START_TIME + TIME_PERIOD - 1;
-    // params for partialDelete
-    protected long delStartTime = START_TIME + TIME_PERIOD / 5;
-    protected long delEndTime = START_TIME + TIME_PERIOD / 10 * 9;
-    protected long delTimePeriod = delEndTime - delStartTime;
-    protected double deleteAvg =
-            ((START_TIME + END_TIME) * TIME_PERIOD / 2.0
-                            - (delStartTime + delEndTime - 1) * delTimePeriod / 2.0)
-                    / (TIME_PERIOD - delTimePeriod);
+  protected static final double delta = 1e-7;
+  protected static final long KEY_PERIOD = 100000L;
+  protected static final long START_KEY = 1000L;
+  protected static final long END_KEY = START_KEY + KEY_PERIOD - 1;
+  // params for partialDelete
+  protected long delStartKey = START_KEY + KEY_PERIOD / 5;
+  protected long delEndKey = START_KEY + KEY_PERIOD / 10 * 9;
+  protected long delKeyPeriod = delEndKey - delStartKey;
+  protected double deleteAvg =
+      ((START_KEY + END_KEY) * KEY_PERIOD / 2.0
+              - (delStartKey + delEndKey - 1) * delKeyPeriod / 2.0)
+          / (KEY_PERIOD - delKeyPeriod);
 
-    protected int currPath = 0;
+  protected int currPath = 0;
 
-    protected BaseSessionIT() {
-        ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
-        DBConf dbConf = conf.loadDBConf(conf.getStorageType());
-        this.isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
+  protected BaseSessionIT() {
+    ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
+    DBConf dbConf = conf.loadDBConf(conf.getStorageType());
+    this.isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
+  }
+
+  @Before
+  public void setUp() {
+    try {
+      session =
+          new MultiConnection(
+              new Session(defaultTestHost, defaultTestPort, defaultTestUser, defaultTestPass));
+      session.openSession();
+    } catch (Exception e) {
+      logger.error(e.getMessage());
+    }
+  }
+
+  @After
+  public void tearDown() {
+    try {
+      clearData();
+      session.closeSession();
+    } catch (SessionException e) {
+      logger.error(e.getMessage());
+    }
+  }
+
+  protected void clearData() throws SessionException {
+    if (session.isClosed()) {
+      session =
+          new MultiConnection(
+              new Session(defaultTestHost, defaultTestPort, defaultTestUser, defaultTestPass));
+      session.openSession();
     }
 
-    @Before
-    public void setUp() {
-        try {
-            session =
-                    new MultiConnection(
-                            new Session(
-                                    defaultTestHost,
-                                    defaultTestPort,
-                                    defaultTestUser,
-                                    defaultTestPass));
-            session.openSession();
-        } catch (Exception e) {
-            logger.error(e.getMessage());
-        }
+    Controller.clearData(session);
+  }
+
+  protected int getPathNum(String path) {
+    if (path.contains("(") && path.contains(")")) {
+      path = path.substring(path.indexOf("(") + 1, path.indexOf(")"));
     }
 
-    @After
-    public void tearDown() {
-        try {
-            clearData();
-            session.closeSession();
-        } catch (SessionException e) {
-            logger.error(e.getMessage());
-        }
+    String pattern = "^sg1\\.d(\\d+)\\.s(\\d+)$";
+    Pattern p = Pattern.compile(pattern);
+    Matcher m = p.matcher(path);
+    if (m.find()) {
+      int d = Integer.parseInt(m.group(1));
+      int s = Integer.parseInt(m.group(2));
+      if (d == s) {
+        return d;
+      } else {
+        return -1;
+      }
+    } else {
+      return -1;
+    }
+  }
+
+  protected List<String> getPaths(int startPosition, int len) {
+    List<String> paths = new ArrayList<>();
+    for (int i = startPosition; i < startPosition + len; i++) {
+      paths.add("sg1.d" + i + ".s" + i);
+    }
+    return paths;
+  }
+
+  protected void insertNumRecords(List<String> insertPaths)
+      throws SessionException, ExecutionException {
+    int pathLen = insertPaths.size();
+    long[] keys = new long[(int) KEY_PERIOD];
+    for (long i = 0; i < KEY_PERIOD; i++) {
+      keys[(int) i] = i + START_KEY;
     }
 
-    protected void clearData() throws SessionException {
-        if (session.isClosed()) {
-            session =
-                    new MultiConnection(
-                            new Session(
-                                    defaultTestHost,
-                                    defaultTestPort,
-                                    defaultTestUser,
-                                    defaultTestPass));
-            session.openSession();
-        }
-
-        Controller.clearData(session);
+    Object[] valuesList = new Object[pathLen];
+    for (int i = 0; i < pathLen; i++) {
+      int pathNum = getPathNum(insertPaths.get(i));
+      Object[] values = new Object[(int) KEY_PERIOD];
+      for (long j = 0; j < KEY_PERIOD; j++) {
+        values[(int) j] = pathNum + j + START_KEY;
+      }
+      valuesList[i] = values;
     }
 
-    protected int getPathNum(String path) {
-        if (path.contains("(") && path.contains(")")) {
-            path = path.substring(path.indexOf("(") + 1, path.indexOf(")"));
-        }
-
-        String pattern = "^sg1\\.d(\\d+)\\.s(\\d+)$";
-        Pattern p = Pattern.compile(pattern);
-        Matcher m = p.matcher(path);
-        if (m.find()) {
-            int d = Integer.parseInt(m.group(1));
-            int s = Integer.parseInt(m.group(2));
-            if (d == s) {
-                return d;
-            } else {
-                return -1;
-            }
-        } else {
-            return -1;
-        }
+    List<DataType> dataTypeList = new ArrayList<>();
+    for (int i = 0; i < pathLen; i++) {
+      dataTypeList.add(DataType.LONG);
     }
+    session.insertNonAlignedColumnRecords(insertPaths, keys, valuesList, dataTypeList, null);
+  }
 
-    protected List<String> getPaths(int startPosition, int len) {
-        List<String> paths = new ArrayList<>();
-        for (int i = startPosition; i < startPosition + len; i++) {
-            paths.add("sg1.d" + i + ".s" + i);
-        }
-        return paths;
+  protected double changeResultToDouble(Object rawResult) {
+    double result = 0;
+    if (rawResult instanceof java.lang.Long) {
+      result = (double) ((long) rawResult);
+    } else {
+      try {
+        result = (double) rawResult;
+      } catch (Exception e) {
+        logger.error(e.getMessage());
+        fail();
+      }
     }
-
-    protected void insertNumRecords(List<String> insertPaths)
-            throws SessionException, ExecutionException {
-        int pathLen = insertPaths.size();
-        long[] timestamps = new long[(int) TIME_PERIOD];
-        for (long i = 0; i < TIME_PERIOD; i++) {
-            timestamps[(int) i] = i + START_TIME;
-        }
-
-        Object[] valuesList = new Object[pathLen];
-        for (int i = 0; i < pathLen; i++) {
-            int pathNum = getPathNum(insertPaths.get(i));
-            Object[] values = new Object[(int) TIME_PERIOD];
-            for (long j = 0; j < TIME_PERIOD; j++) {
-                values[(int) j] = pathNum + j + START_TIME;
-            }
-            valuesList[i] = values;
-        }
-
-        List<DataType> dataTypeList = new ArrayList<>();
-        for (int i = 0; i < pathLen; i++) {
-            dataTypeList.add(DataType.LONG);
-        }
-        session.insertNonAlignedColumnRecords(
-                insertPaths, timestamps, valuesList, dataTypeList, null);
-    }
-
-    protected double changeResultToDouble(Object rawResult) {
-        double result = 0;
-        if (rawResult instanceof java.lang.Long) {
-            result = (double) ((long) rawResult);
-        } else {
-            try {
-                result = (double) rawResult;
-            } catch (Exception e) {
-                logger.error(e.getMessage());
-                fail();
-            }
-        }
-        return result;
-    }
+    return result;
+  }
 }

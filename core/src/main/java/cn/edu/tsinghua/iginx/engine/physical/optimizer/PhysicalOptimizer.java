@@ -26,11 +26,11 @@ import java.util.Collection;
 
 public interface PhysicalOptimizer {
 
-    PhysicalTask optimize(Operator root);
+  PhysicalTask optimize(Operator root);
 
-    ConstraintManager getConstraintManager();
+  ConstraintManager getConstraintManager();
 
-    ReplicaDispatcher getReplicaDispatcher();
+  ReplicaDispatcher getReplicaDispatcher();
 
-    void setRules(Collection<Rule> rules);
+  void setRules(Collection<Rule> rules);
 }
