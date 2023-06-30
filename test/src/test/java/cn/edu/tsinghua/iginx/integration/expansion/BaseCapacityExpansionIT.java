@@ -63,7 +63,7 @@ public abstract class BaseCapacityExpansionIT {
         statement.append(", ");
         statement.append(extraParams);
       }
-      if (dataPrefix != null ) {
+      if (dataPrefix != null) {
         statement.append(", data_prefix:");
         statement.append(dataPrefix);
       }
@@ -319,57 +319,66 @@ public abstract class BaseCapacityExpansionIT {
   private void testAddAndRemoveStorageEngineWithPrefix() {
     addStorageEngine(expPort, true, true, "mn", "p1");
     addStorageEngine(expPort, true, true, "mn", "p2");
-    addStorageEngine(expPort, true, true, "mn",null);
-    addStorageEngine(expPort, true, true, null,"p3");
+    addStorageEngine(expPort, true, true, "mn", null);
+    addStorageEngine(expPort, true, true, null, "p3");
 
     List<List<Object>> valuesList = BaseHistoryDataGenerator.EXP_VALUES_LIST;
 
+    // 添加节点 dataPrefix = mn && schemaPrefix = p1 后查询
     String statement = "select * from p1.mn";
     List<String> pathList = Arrays.asList("p1.mn.wf03.wt01.status", "p1.mn.wf03.wt01.temperature");
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
+    // 添加节点 dataPrefix = mn && schemaPrefix = p2 后查询
     statement = "select * from p2.mn";
     pathList = Arrays.asList("p2.mn.wf03.wt01.status", "p2.mn.wf03.wt01.temperature");
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
+    // 添加节点 dataPrefix = mn && schemaPrefix = null 后查询
     statement = "select * from mn";
     pathList = Arrays.asList("mn.wf03.wt01.status", "mn.wf03.wt01.temperature");
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
+    // 添加节点 dataPrefix = null && schemaPrefix = p3 后查询
     statement = "select * from p3.mn";
     pathList = Arrays.asList("p3.mn.wf03.wt01.status", "p3.mn.wf03.wt01.temperature");
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
-    // 测试移除节点,通过session接口移除节点
+    // 通过 session 接口测试移除节点
     List<RemovedStorageEngineInfo> removedStorageEngineList = new ArrayList<>();
     removedStorageEngineList.add(new RemovedStorageEngineInfo("127.0.0.1", expPort, "p2", "mn"));
+    removedStorageEngineList.add(new RemovedStorageEngineInfo("127.0.0.1", expPort, "p3", ""));
     try {
       session.removeHistoryDataSource(removedStorageEngineList);
     } catch (ExecutionException | SessionException e) {
       logger.error("remove history data source through session api error: {}", e.getMessage());
     }
+    // 移除节点 dataPrefix = mn && schemaPrefix = p2 后再查询
     statement = "select * from p2.mn";
     String expect =
         "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
-
-    // 通过sql语句测试移除节点
-    try {
-      session.executeSql(
-          "remove historydataresource (\"127.0.0.1\", " + expPort + ", \"p1\", \"mn\")");
-    } catch (ExecutionException | SessionException e) {
-      logger.error("remove history data source through sql error: {}", e.getMessage());
-    }
-    statement = "select * from p1.mn";
+    // 移除节点 dataPrefix = null && schemaPrefix = p3 后再查询
+    statement = "select * from p3";
     expect = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
 
-    removedStorageEngineList.add(new RemovedStorageEngineInfo("127.0.0.1", expPort, "p3", ""));
-    removedStorageEngineList.add(new RemovedStorageEngineInfo("127.0.0.1", expPort, "", "mn"));
+    // 通过 sql 语句测试移除节点
     try {
-      session.removeHistoryDataSource(removedStorageEngineList);
+      session.executeSql(
+          "remove historydataresource (\"127.0.0.1\", " + expPort + ", \"p1\", \"mn\")");
+      session.executeSql(
+          "remove historydataresource (\"127.0.0.1\", " + expPort + ", \"\", \"mn\")");
     } catch (ExecutionException | SessionException e) {
-      logger.error("remove history data source through session api error: {}", e.getMessage());
+      logger.error("remove history data source through sql error: {}", e.getMessage());
     }
+    // 移除节点 dataPrefix = mn && schemaPrefix = p1 后再查询
+    statement = "select * from p1.mn";
+    expect = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
+    SQLTestTools.executeAndCompare(session, statement, expect);
+    // 移除节点 dataPrefix = mn && schemaPrefix = null 后再查询
+    statement = "select * from mn";
+    expect = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
+    SQLTestTools.executeAndCompare(session, statement, expect);
   }
 }
