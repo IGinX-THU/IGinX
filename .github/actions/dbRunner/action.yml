@@ -5,10 +5,6 @@ inputs:
         description: "DB name"
         required: false
         default: IoTDB12
-    Port:
-        description: "DB port"
-        required: false
-        default: noport
 
 runs:
     using: "composite" # Mandatory parameter
@@ -19,10 +15,10 @@ runs:
           run: |
               if [ "$RUNNER_OS" == "Linux" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/influxdb.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/influxdb.sh" 8088 8087 8086
+                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/influxdb.sh" 8088 8087
               elif [ "$RUNNER_OS" == "macOS" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/influxdb_macos.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/influxdb_macos.sh" 8088 8087 8086
+                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/influxdb_macos.sh" 8088 8087
               else
                 echo "$RUNNER_OS is not supported"
                 exit 1
@@ -49,10 +45,10 @@ runs:
           run: |
               if [ "$RUNNER_OS" == "Linux" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/parquet.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/parquet.sh" 6667
+                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/parquet.sh"
               elif [ "$RUNNER_OS" == "macOS" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/parquet_macos.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/parquet_macos.sh" 6667
+                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/parquet_macos.sh"
               else
                 echo "$RUNNER_OS is not supported"
                 exit 1
@@ -64,25 +60,10 @@ runs:
           run: |
               if [ "$RUNNER_OS" == "Linux" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mongodb.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mongodb.sh" 27017
+                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mongodb.sh"
               elif [ "$RUNNER_OS" == "macOS" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mongodb_macos.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mongodb_macos.sh" 27017
-              else
-                echo "$RUNNER_OS is not supported"
-                exit 1
-              fi
-
-        - if: inputs.DB-name=='FileSystem'
-          name: Run DB
-          shell: bash
-          run: |
-              if [ "$RUNNER_OS" == "Linux" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/filesystem.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/filesystem.sh" ${{ inputs.Port }}
-              elif [ "$RUNNER_OS" == "macOS" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/filesystem_macos.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/filesystem_macos.sh" ${{ inputs.Port }}
+                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mongodb_macos.sh"
               else
                 echo "$RUNNER_OS is not supported"
                 exit 1
@@ -94,10 +75,10 @@ runs:
           run: |
               if [ "$RUNNER_OS" == "Linux" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/redis.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/redis.sh" 6381 6380 6379 
+                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/redis.sh" 6381 6380 6379
               elif [ "$RUNNER_OS" == "macOS" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/redis_macos.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/redis_macos.sh" 6381 6380 6379 
+                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/redis_macos.sh" 6381 6380 6379
               else
                 echo "$RUNNER_OS is not supported"
                 exit 1
@@ -124,10 +105,10 @@ runs:
           run: |
               if [ "$RUNNER_OS" == "Linux" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/postgresql.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/postgresql.sh" 5434 5433
+                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/postgresql.sh" 5434 5433 5432
               elif [ "$RUNNER_OS" == "macOS" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/postgresql_macos.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/postgresql_macos.sh" 5434 5433
+                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/postgresql_macos.sh" 5434 5433 5432
               else
                 echo "$RUNNER_OS is not supported"
                 exit 1
