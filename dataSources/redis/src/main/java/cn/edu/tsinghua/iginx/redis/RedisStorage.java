@@ -334,6 +334,10 @@ public class RedisStorage implements IStorage {
     List<String> paths = getKeysByPattern(STAR);
     paths.sort(String::compareTo);
 
+    if (paths.isEmpty()) {
+      throw new PhysicalTaskExecuteFailureException("no data!");
+    }
+
     ColumnsInterval columnsInterval;
     if (prefix != null) {
       columnsInterval = new ColumnsInterval(prefix);
