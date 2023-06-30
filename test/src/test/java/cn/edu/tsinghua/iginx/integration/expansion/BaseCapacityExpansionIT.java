@@ -63,9 +63,11 @@ public abstract class BaseCapacityExpansionIT {
         statement.append(", ");
         statement.append(extraParams);
       }
-      if (dataPrefix != null && schemaPrefix != null) {
+      if (dataPrefix != null ) {
         statement.append(", data_prefix:");
         statement.append(dataPrefix);
+      }
+      if (schemaPrefix != null) {
         statement.append(", schema_prefix:");
         statement.append(schemaPrefix);
       }
@@ -317,17 +319,28 @@ public abstract class BaseCapacityExpansionIT {
   private void testAddAndRemoveStorageEngineWithPrefix() {
     addStorageEngine(expPort, true, true, "mn", "p1");
     addStorageEngine(expPort, true, true, "mn", "p2");
+    addStorageEngine(expPort, true, true, "mn",null);
+    addStorageEngine(expPort, true, true, null,"p3");
+
+    List<List<Object>> valuesList = BaseHistoryDataGenerator.EXP_VALUES_LIST;
 
     String statement = "select * from p1.mn";
     List<String> pathList = Arrays.asList("p1.mn.wf03.wt01.status", "p1.mn.wf03.wt01.temperature");
-
-    List<List<Object>> valuesList = BaseHistoryDataGenerator.EXP_VALUES_LIST;
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
     statement = "select * from p2.mn";
     pathList = Arrays.asList("p2.mn.wf03.wt01.status", "p2.mn.wf03.wt01.temperature");
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
+    statement = "select * from mn";
+    pathList = Arrays.asList("mn.wf03.wt01.status", "mn.wf03.wt01.temperature");
+    SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
+
+    statement = "select * from p3.mn";
+    pathList = Arrays.asList("p3.mn.wf03.wt01.status", "p3.mn.wf03.wt01.temperature");
+    SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
+
+    // 测试移除节点,通过session接口移除节点
     List<RemovedStorageEngineInfo> removedStorageEngineList = new ArrayList<>();
     removedStorageEngineList.add(new RemovedStorageEngineInfo("127.0.0.1", expPort, "p2", "mn"));
     try {
@@ -340,6 +353,7 @@ public abstract class BaseCapacityExpansionIT {
         "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
 
+    // 通过sql语句测试移除节点
     try {
       session.executeSql(
           "remove historydataresource (\"127.0.0.1\", " + expPort + ", \"p1\", \"mn\")");
@@ -349,5 +363,13 @@ public abstract class BaseCapacityExpansionIT {
     statement = "select * from p1.mn";
     expect = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
+
+    removedStorageEngineList.add(new RemovedStorageEngineInfo("127.0.0.1", expPort, "p3", ""));
+    removedStorageEngineList.add(new RemovedStorageEngineInfo("127.0.0.1", expPort, "", "mn"));
+    try {
+      session.removeHistoryDataSource(removedStorageEngineList);
+    } catch (ExecutionException | SessionException e) {
+      logger.error("remove history data source through session api error: {}", e.getMessage());
+    }
   }
 }
