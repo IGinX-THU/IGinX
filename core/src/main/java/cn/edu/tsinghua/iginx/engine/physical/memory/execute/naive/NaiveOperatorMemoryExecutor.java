@@ -530,9 +530,18 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     Header headerB = tableB.getHeader();
     // 检查 field，暂时不需要
     for (Field field : headerA.getFields()) {
-      if (headerB.indexOf(field) != -1) { // 二者的 field 存在交集
+      Field relatedField = headerB.getFieldByName(field.getFullName());
+      if (relatedField != null) {
+        if (relatedField.getType() != field.getType()) {
+          throw new PhysicalException(
+              "path "
+                  + field.getFullName()
+                  + " has two different types: "
+                  + field.getType()
+                  + ", "
+                  + relatedField.getType());
+        }
         hasIntersect = true;
-        break;
       }
     }
     if (hasIntersect) {
