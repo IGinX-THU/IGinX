@@ -605,10 +605,7 @@ public class QueryGenerator extends AbstractGenerator {
                       new OperatorSource(
                           new Project(
                               new FragmentSource(meta),
-                              pathMatchPrefix(
-                                  pathList,
-                                  meta.getColumnsInterval().getStartColumn(),
-                                  schemaPrefix),
+                              pathMatchPrefix(pathList, meta.getColumnsInterval(), schemaPrefix),
                               tagFilter)),
                       schemaPrefix));
             }
@@ -641,47 +638,27 @@ public class QueryGenerator extends AbstractGenerator {
     return keyFromColumnsIntervalToKeyInterval(fragmentsByColumnsInterval);
   }
 
-  // 筛选出满足 dataPrefix前缀，并且去除 schemaPrefix
-  private List<String> pathMatchPrefix(List<String> pathList, String prefix, String schemaPrefix) {
-    if (prefix == null && schemaPrefix == null) return pathList;
+  // 筛选出在 columnsInterval 范围内的 path 列表，返回去除 schemaPrefix 后的结果
+  private List<String> pathMatchPrefix(
+      List<String> pathList, ColumnsInterval columnsInterval, String schemaPrefix) {
     List<String> ans = new ArrayList<>();
 
-    if (prefix == null) { // deal with the schemaPrefix
-      for (String path : pathList) {
-        if (path.equals("*.*") || path.equals("*")) {
-          ans.add(path);
-        } else if (path.indexOf(schemaPrefix) == 0) {
-          path = path.substring(schemaPrefix.length() + 1);
-          ans.add(path);
-        }
-      }
-      return ans;
-    }
-    //        if (schemaPrefix != null) prefix = schemaPrefix + "." + prefix;
-
     for (String path : pathList) {
-      if (schemaPrefix != null && path.indexOf(schemaPrefix) == 0) {
-        path = path.substring(schemaPrefix.length() + 1);
-      }
       if (path.equals("*.*") || path.equals("*")) {
-        ans.add(prefix + ".*");
-      } else if (path.charAt(path.length() - 1) == '*' && path.length() != 1) { // 通配符匹配，例如 a.b.*
-        String queryPrefix = path.substring(0, path.length() - 2) + ".(.*)";
-        if (prefix.matches(queryPrefix)) {
-          ans.add(path);
+        ans.add(path);
+        continue;
+      }
+      if (schemaPrefix != null) {
+        if (!path.startsWith(schemaPrefix)) {
           continue;
         }
-        queryPrefix = prefix + ".(.*)";
-        if (path.matches(queryPrefix)) {
-          ans.add(path);
-        }
-      } else if (!path.contains("*")) { // 例如 a.b.f 这样确切的路径信息
-        String queryPrefix = prefix + ".(.*)";
-        if (path.matches(queryPrefix)) {
-          ans.add(path);
-        }
+        path = path.substring(schemaPrefix.length() + 1);
+      }
+      if (columnsInterval.isContain(path)) {
+        ans.add(path);
       }
     }
+
     return ans;
   }
 }

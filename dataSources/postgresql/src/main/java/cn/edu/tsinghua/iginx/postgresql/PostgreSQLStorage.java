@@ -544,6 +544,10 @@ public class PostgreSQLStorage implements IStorage {
     }
     paths.sort(String::compareTo);
 
+    if (paths.isEmpty()) {
+      throw new PhysicalTaskExecuteFailureException("no data!");
+    }
+
     if (dataPrefix != null) {
       columnsInterval = new ColumnsInterval(dataPrefix);
     } else {
