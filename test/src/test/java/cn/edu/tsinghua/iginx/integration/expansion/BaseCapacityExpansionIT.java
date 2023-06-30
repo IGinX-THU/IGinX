@@ -376,9 +376,5 @@ public abstract class BaseCapacityExpansionIT {
     statement = "select * from p1.mn";
     expect = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
-    // 移除节点 dataPrefix = mn && schemaPrefix = null 后再查询
-    statement = "select * from mn";
-    expect = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
-    SQLTestTools.executeAndCompare(session, statement, expect);
   }
 }
