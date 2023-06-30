@@ -26,6 +26,12 @@ sh -c "sudo dscl . -passwd /Users/postgres postgres"
 
 sh -c "sudo dscl . -append /Groups/admin GroupMembership postgres"
 
+sh -c "sudo mkdir -p /var/lib/postgresql/15/main"
+
+sh -c "sudo chown -R postgres /var/lib/postgresql/15/main"
+
+sh -c "sudo chmod -R 777 /var/lib/postgresql/15/main"
+
 for port in "$@"
 do
   sh -c "sudo cp -R pgsql pgsql-$port"

@@ -16,10 +16,17 @@ sh -c "sudo apt-get -y install postgresql-15"
 
 sh -c "sudo rm -rf /var/lib/postgresql/15/main"
 
+sh -c "sudo mkdir -p /var/lib/postgresql/15/main"
+
+sh -c "sudo chown -R postgres /var/lib/postgresql/15/main"
+
+sh -c "sudo chmod -R 777 /var/lib/postgresql/15/main"
+
 sh -c "sudo chmod -R 777 /usr/lib/postgresql/15"
 
 for port in "$@"
 do
+
   sh -c "sudo mkdir -p /usr/lib/postgresql-$port"
 
   sh -c "sudo chmod -R 777 /usr/lib/postgresql-$port"
@@ -37,5 +44,4 @@ do
   sh -c "sudo su - postgres -c '/usr/lib/postgresql-$port/15/bin/pg_ctl -D /var/lib/postgresql-$port/15/main -o \"-F -p $port\" start'"
 
   sh -c "sudo su - postgres -c '/usr/lib/postgresql-$port/15/bin/psql -c \"ALTER USER postgres WITH PASSWORD '\''postgres'\'';\"'"
-
 done
