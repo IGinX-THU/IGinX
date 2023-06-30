@@ -644,6 +644,7 @@ public class QueryGenerator extends AbstractGenerator {
     List<String> ans = new ArrayList<>();
 
     for (String path : pathList) {
+      String pathWithoutPrefix = path;
       if (path.equals("*.*") || path.equals("*")) {
         ans.add(path);
         continue;
@@ -652,10 +653,10 @@ public class QueryGenerator extends AbstractGenerator {
         if (!path.startsWith(schemaPrefix)) {
           continue;
         }
-        path = path.substring(schemaPrefix.length() + 1);
+        pathWithoutPrefix = path.substring(schemaPrefix.length() + 1);
       }
       if (columnsInterval.isContain(path)) {
-        ans.add(path);
+        ans.add(pathWithoutPrefix);
       }
     }
 
