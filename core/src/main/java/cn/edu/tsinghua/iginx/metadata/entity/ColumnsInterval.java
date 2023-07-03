@@ -37,6 +37,9 @@ public final class ColumnsInterval implements Comparable<ColumnsInterval> {
   }
 
   public ColumnsInterval(String column) {
+    if (StringUtils.isContainRegex(column)) {
+      throw new IllegalArgumentException("not support the regex in prefix");
+    }
     ColumnsInterval trimmedColumnsInterval =
         trimColumnsInterval(new ColumnsInterval(column, column));
     this.startColumn = trimmedColumnsInterval.startColumn;

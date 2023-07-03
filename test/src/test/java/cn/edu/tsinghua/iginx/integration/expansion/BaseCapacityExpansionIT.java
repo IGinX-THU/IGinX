@@ -1,5 +1,7 @@
 package cn.edu.tsinghua.iginx.integration.expansion;
 
+import static org.junit.Assert.fail;
+
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
@@ -41,7 +43,7 @@ public abstract class BaseCapacityExpansionIT {
     this.readOnlyPort = readOnlyPort;
   }
 
-  protected void addStorageEngine(
+  protected String addStorageEngine(
       int port, boolean hasData, boolean isReadOnly, String dataPrefix, String schemaPrefix) {
     try {
       StringBuilder statement = new StringBuilder();
@@ -75,6 +77,7 @@ public abstract class BaseCapacityExpansionIT {
 
       logger.info("Execute Statement: \"{}\"", statement);
       session.executeSql(statement.toString());
+      return null;
     } catch (ExecutionException | SessionException e) {
       logger.error(
           "add storage engine {} port {} hasData {} isReadOnly {} dataPrefix {} schemaPrefix {} failure: {}",
@@ -85,6 +88,7 @@ public abstract class BaseCapacityExpansionIT {
           dataPrefix,
           schemaPrefix,
           e.getMessage());
+      return e.getMessage();
     }
   }
 
@@ -320,7 +324,14 @@ public abstract class BaseCapacityExpansionIT {
     addStorageEngine(expPort, true, true, "mn", "p1");
     addStorageEngine(expPort, true, true, "mn", "p2");
     addStorageEngine(expPort, true, true, "mn", null);
+
+    // 如果是重复添加，则报错
+    String res = addStorageEngine(expPort, true, true, "mn", null);
+    if (!res.contains("unexpected repeated add")) {
+      fail();
+    }
     addStorageEngine(expPort, true, true, null, "p3");
+    addStorageEngine(expPort, true, true, "mn.wf03", "p3");
 
     List<List<Object>> valuesList = BaseHistoryDataGenerator.EXP_VALUES_LIST;
 
@@ -359,12 +370,13 @@ public abstract class BaseCapacityExpansionIT {
         "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
     // 移除节点 dataPrefix = null && schemaPrefix = p3 后再查询
-    statement = "select * from p3";
-    expect = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
-    SQLTestTools.executeAndCompare(session, statement, expect);
+    statement = "select * from p3.mn.wf03";
+    SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
     // 通过 sql 语句测试移除节点
     try {
+      session.executeSql(
+          "remove historydataresource (\"127.0.0.1\", " + expPort + ", \"p3\", \"mn.wf03\")");
       session.executeSql(
           "remove historydataresource (\"127.0.0.1\", " + expPort + ", \"p1\", \"mn\")");
       session.executeSql(
@@ -376,5 +388,16 @@ public abstract class BaseCapacityExpansionIT {
     statement = "select * from p1.mn";
     expect = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
+
+    try {
+      session.executeSql(
+          "remove historydataresource (\"127.0.0.1\", " + expPort + ", \"p1\", \"mn\")");
+    } catch (ExecutionException | SessionException e) {
+      if (!e.getMessage().contains("dummy storage engine is not exists.")) {
+        logger.error(
+            "'remove history data' should throw error when remove the node that not exist");
+        fail();
+      }
+    }
   }
 }

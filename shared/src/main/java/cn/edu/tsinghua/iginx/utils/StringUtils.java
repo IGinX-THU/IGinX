@@ -114,9 +114,23 @@ public class StringUtils {
   }
 
   public static boolean isContainSpecialChar(String str) {
-    String regEx = "[~!@#$%&()+=|{}':;',<>?~]|\r|\n|\t|[\u2E80\u2E81\u2E82\u2E83\u2E84\u2E85]";
+    String regEx = "[!&()+=|';,<>?]\n|\t|[\u2E80\u2E81\u2E82\u2E83\u2E84\u2E85]";
     Pattern p = Pattern.compile(regEx);
     Matcher m = p.matcher(str);
     return m.find();
+  }
+
+  // 是否包含除IGinX认同的合法字符之外的，正则表达式字符
+  public static boolean isContainRegex(String str) {
+    if (str == null) {
+      return false;
+    }
+    String specialChars = "[]()|+?*";
+    for (int i = 0; i < specialChars.length(); i++) {
+      if (str.contains(String.valueOf(specialChars.charAt(i)))) {
+        return true;
+      }
+    }
+    return false;
   }
 }
