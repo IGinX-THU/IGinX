@@ -32,36 +32,19 @@ sh -c "sudo chown -R postgres /var/lib/postgresql/15/main"
 
 sh -c "sudo chmod -R 777 /var/lib/postgresql/15/main"
 
-sh -c "cd pgsql/bin; sudo -u postgres ./initdb -D /var/lib/postgresql/15/main --auth trust --no-instructions"
+for port in "$@"
+do
+  sh -c "sudo cp -R pgsql pgsql-$port"
 
-sh -c "cd pgsql/bin; sudo -u postgres ./pg_ctl -D /var/lib/postgresql/15/main start"
+  sh -c "sudo mkdir -p /var/lib/postgresql-$port/15/main"
 
-sh -c "cd pgsql/bin; sudo -u postgres psql -c \"ALTER USER postgres WITH PASSWORD 'postgres';\""
+  sh -c "sudo chown -R postgres /var/lib/postgresql-$port/15/main"
 
-sh -c "sudo cp -R pgsql pgsql2"
+  sh -c "sudo chmod -R 777 /var/lib/postgresql-$port/15/main"
 
-sh -c "sudo mkdir -p /var/lib/postgresql2/15/main"
+  sh -c "cd pgsql-$port/bin; sudo -u postgres ./initdb -D /var/lib/postgresql-$port/15/main --auth trust --no-instructions"
 
-sh -c "sudo chown -R postgres /var/lib/postgresql2/15/main"
+  sh -c "cd pgsql-$port/bin; sudo -u postgres ./pg_ctl -D /var/lib/postgresql-$port/15/main -o \"-F -p $port\"  start"
 
-sh -c "sudo chmod -R 777 /var/lib/postgresql2/15/main"
-
-sh -c "cd pgsql2/bin; sudo -u postgres ./initdb -D /var/lib/postgresql2/15/main --auth trust --no-instructions"
-
-sh -c "cd pgsql2/bin; sudo -u postgres ./pg_ctl -D /var/lib/postgresql2/15/main -o \"-F -p 5433\"  start"
-
-sh -c "cd pgsql2/bin; sudo -u postgres ./psql -c \"ALTER USER postgres WITH PASSWORD 'postgres';\""
-
-sh -c "sudo cp -R pgsql pgsql3"
-
-sh -c "sudo mkdir -p /var/lib/postgresql3/15/main"
-
-sh -c "sudo chown -R postgres /var/lib/postgresql3/15/main"
-
-sh -c "sudo chmod -R 777 /var/lib/postgresql3/15/main"
-
-sh -c "cd pgsql3/bin; sudo -u postgres ./initdb -D /var/lib/postgresql3/15/main --auth trust --no-instructions"
-
-sh -c "cd pgsql3/bin; sudo -u postgres ./pg_ctl -D /var/lib/postgresql3/15/main -o \"-F -p 5434\"  start"
-
-sh -c "cd pgsql3/bin; sudo -u postgres ./psql -c \"ALTER USER postgres WITH PASSWORD 'postgres';\""
+  sh -c "cd pgsql-$port/bin; sudo -u postgres ./psql -c \"ALTER USER postgres WITH PASSWORD 'postgres';\""
+done
