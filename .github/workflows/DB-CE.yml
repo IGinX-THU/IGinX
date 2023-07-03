@@ -18,10 +18,9 @@ jobs:
             fail-fast: false
             matrix:
                 java: [8]
-                python-version: ["3.7"]
+                python-version: ["3.7.16"]
                 os: [ubuntu-latest, macos-latest]
-                DB-name: ["IoTDB12", "InfluxDB", "PostgreSQL"]
-                # 移除了"Redis"，因为在macos上的测试老是不过，后面再加上
+                DB-name: ["IoTDB12", "InfluxDB", "PostgreSQL", "Redis"]
         runs-on: ${{ matrix.os }}
         steps:
             - uses: actions/checkout@v2
@@ -126,7 +125,7 @@ jobs:
             fail-fast: false
             matrix:
                 java: [8]
-                python-version: ["3.7"]
+                python-version: ["3.7.16"]
                 os: [ubuntu-latest, macos-latest]
         runs-on: ${{ matrix.os }}
         steps:

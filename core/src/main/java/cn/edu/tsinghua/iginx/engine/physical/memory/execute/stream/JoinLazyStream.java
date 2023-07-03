@@ -78,7 +78,17 @@ public class JoinLazyStream extends BinaryLazyStream {
     Header headerA = streamA.getHeader();
     Header headerB = streamB.getHeader();
     for (Field field : headerA.getFields()) {
-      if (headerB.indexOf(field) != -1) { // 二者的 field 存在交集
+      Field relatedField = headerB.getFieldByName(field.getFullName());
+      if (relatedField != null) {
+        if (relatedField.getType() != field.getType()) {
+          throw new PhysicalException(
+              "path "
+                  + field.getFullName()
+                  + " has two different types: "
+                  + field.getType()
+                  + ", "
+                  + relatedField.getType());
+        }
         hasIntersect = true;
       }
     }
