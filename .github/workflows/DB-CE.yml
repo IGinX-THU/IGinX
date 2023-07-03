@@ -202,7 +202,7 @@ jobs:
             - name: Run DB
               uses: ./.github/actions/dbRunner
               with:
-                  version: ${{matrix.DB-name}}
+                  DB-name: ${{matrix.DB-name}}
 
             - name: Install IginX with Maven
               shell: bash
