@@ -60,6 +60,14 @@ public final class Header {
     return fields.get(index);
   }
 
+  public Field getFieldByName(String name) {
+    int index = indexMap.getOrDefault(name, -1);
+    if (index == -1) {
+      return null;
+    }
+    return fields.get(index);
+  }
+
   public int getFieldSize() {
     return fields.size();
   }

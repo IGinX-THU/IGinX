@@ -48,6 +48,7 @@ import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageUnitMeta;
+import cn.edu.tsinghua.iginx.migration.MigrationPhysicalExecutor;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.ByteUtils;
@@ -89,94 +90,7 @@ public class PhysicalEngineImpl implements PhysicalEngine {
     if (OperatorType.isGlobalOperator(root.getType())) { // 全局任务临时兼容逻辑
       // 迁移任务单独处理
       if (root.getType() == OperatorType.Migration) {
-        Migration migration = (Migration) root;
-        FragmentMeta toMigrateFragment = migration.getFragmentMeta();
-        StorageUnitMeta targetStorageUnitMeta = migration.getTargetStorageUnitMeta();
-        KeyInterval keyInterval = toMigrateFragment.getKeyInterval();
-        List<String> paths = migration.getPaths();
-
-        // 查询分区数据
-        List<Operator> projectOperators = new ArrayList<>();
-        Project project = new Project(new FragmentSource(toMigrateFragment), paths, null);
-        projectOperators.add(project);
-        StoragePhysicalTask projectPhysicalTask = new StoragePhysicalTask(projectOperators);
-
-        List<Operator> selectOperators = new ArrayList<>();
-        List<Filter> selectTimeFilters = new ArrayList<>();
-        selectTimeFilters.add(new KeyFilter(Op.GE, keyInterval.getStartKey()));
-        selectTimeFilters.add(new KeyFilter(Op.L, keyInterval.getEndKey()));
-        selectOperators.add(
-            new Select(new OperatorSource(project), new AndFilter(selectTimeFilters), null));
-        MemoryPhysicalTask selectPhysicalTask =
-            new UnaryMemoryPhysicalTask(selectOperators, projectPhysicalTask);
-        projectPhysicalTask.setFollowerTask(selectPhysicalTask);
-
-        storageTaskExecutor.commit(projectPhysicalTask);
-
-        TaskExecuteResult selectResult = selectPhysicalTask.getResult();
-        RowStream selectRowStream = selectResult.getRowStream();
-
-        List<String> selectResultPaths = new ArrayList<>();
-        List<DataType> selectResultTypes = new ArrayList<>();
-        selectRowStream
-            .getHeader()
-            .getFields()
-            .forEach(
-                field -> {
-                  selectResultPaths.add(field.getName());
-                  selectResultTypes.add(field.getType());
-                });
-
-        List<Long> timestampList = new ArrayList<>();
-        List<ByteBuffer> valuesList = new ArrayList<>();
-        List<Bitmap> bitmapList = new ArrayList<>();
-        List<ByteBuffer> bitmapBufferList = new ArrayList<>();
-
-        boolean hasTimestamp = selectRowStream.getHeader().hasKey();
-        while (selectRowStream.hasNext()) {
-          Row row = selectRowStream.next();
-          Object[] rowValues = row.getValues();
-          valuesList.add(ByteUtils.getRowByteBuffer(rowValues, selectResultTypes));
-          Bitmap bitmap = new Bitmap(rowValues.length);
-          for (int i = 0; i < rowValues.length; i++) {
-            if (rowValues[i] != null) {
-              bitmap.mark(i);
-            }
-          }
-          bitmapBufferList.add(ByteBuffer.wrap(bitmap.getBytes()));
-          bitmapList.add(bitmap);
-          if (hasTimestamp) {
-            timestampList.add(row.getKey());
-          }
-
-          // 按行批量插入数据
-          if (timestampList.size()
-              == ConfigDescriptor.getInstance().getConfig().getMigrationBatchSize()) {
-            insertDataByBatch(
-                timestampList,
-                valuesList,
-                bitmapList,
-                bitmapBufferList,
-                toMigrateFragment,
-                selectResultPaths,
-                selectResultTypes,
-                targetStorageUnitMeta.getId());
-            timestampList.clear();
-            valuesList.clear();
-            bitmapList.clear();
-            bitmapBufferList.clear();
-          }
-        }
-        insertDataByBatch(
-            timestampList,
-            valuesList,
-            bitmapList,
-            bitmapBufferList,
-            toMigrateFragment,
-            selectResultPaths,
-            selectResultTypes,
-            targetStorageUnitMeta.getId());
-        return selectResult.getRowStream();
+        return MigrationPhysicalExecutor.getInstance().execute((Migration) root, storageTaskExecutor);
       } else {
         GlobalPhysicalTask task = new GlobalPhysicalTask(root);
         TaskExecuteResult result = storageTaskExecutor.executeGlobalTask(task);
@@ -196,38 +110,6 @@ public class PhysicalEngineImpl implements PhysicalEngine {
       throw result.getException();
     }
     return result.getRowStream();
-  }
-
-  private void insertDataByBatch(
-      List<Long> timestampList,
-      List<ByteBuffer> valuesList,
-      List<Bitmap> bitmapList,
-      List<ByteBuffer> bitmapBufferList,
-      FragmentMeta toMigrateFragment,
-      List<String> selectResultPaths,
-      List<DataType> selectResultTypes,
-      String storageUnitId)
-      throws PhysicalException {
-    // 按行批量插入数据
-    RawData rowData =
-        new RawData(
-            selectResultPaths,
-            Collections.emptyList(),
-            timestampList,
-            ByteUtils.getRowValuesByDataType(valuesList, selectResultTypes, bitmapBufferList),
-            selectResultTypes,
-            bitmapList,
-            RawDataType.NonAlignedRow);
-    RowDataView rowDataView =
-        new RowDataView(rowData, 0, selectResultPaths.size(), 0, timestampList.size());
-    List<Operator> insertOperators = new ArrayList<>();
-    insertOperators.add(new Insert(new FragmentSource(toMigrateFragment), rowDataView));
-    StoragePhysicalTask insertPhysicalTask = new StoragePhysicalTask(insertOperators);
-    storageTaskExecutor.commitWithTargetStorageUnitId(insertPhysicalTask, storageUnitId);
-    TaskExecuteResult insertResult = insertPhysicalTask.getResult();
-    if (insertResult.getException() != null) {
-      throw insertResult.getException();
-    }
   }
 
   private void getStorageTasks(List<StoragePhysicalTask> tasks, PhysicalTask root) {

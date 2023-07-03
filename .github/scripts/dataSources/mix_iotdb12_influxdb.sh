@@ -6,7 +6,7 @@ sh -c "chmod +x .github/scripts/dataSources/iotdb12.sh"
 
 sh -c "chmod +x .github/scripts/dataSources/influxdb.sh"
 
-sh -c ".github/scripts/dataSources/iotdb12.sh"
+sh -c ".github/scripts/dataSources/iotdb12.sh 6667"
 
 sh -c ".github/scripts/dataSources/influxdb.sh"
 

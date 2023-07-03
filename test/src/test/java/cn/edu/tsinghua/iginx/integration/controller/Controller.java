@@ -39,22 +39,7 @@ public class Controller {
   private List<StorageEngineMeta> storageEngineMetas = new ArrayList<>();
 
   public static void clearData(Session session) {
-    SessionExecuteSqlResult res = null;
-    try {
-      res = session.executeSql(CLEAR_DATA);
-    } catch (SessionException | ExecutionException e) {
-      if (e.toString().trim().equals(CLEAR_DATA_EXCEPTION)) {
-        logger.warn(CLEAR_DATA_WARNING);
-      } else {
-        logger.error(CLEAR_DATA_ERROR, CLEAR_DATA, e.getMessage());
-        fail();
-      }
-    }
-
-    if (res != null && res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-      logger.error(CLEAR_DATA_ERROR, CLEAR_DATA, res.getParseErrorMsg());
-      fail();
-    }
+    clearData(new MultiConnection(session));
   }
 
   public static void clearData(MultiConnection session) {
@@ -65,7 +50,7 @@ public class Controller {
       if (e.toString().trim().equals(CLEAR_DATA_EXCEPTION)) {
         logger.warn(CLEAR_DATA_WARNING);
       } else {
-        logger.error(CLEAR_DATA_ERROR, CLEAR_DATA, e.toString());
+        logger.error(CLEAR_DATA_ERROR, CLEAR_DATA, e.getMessage());
         fail();
       }
     }
