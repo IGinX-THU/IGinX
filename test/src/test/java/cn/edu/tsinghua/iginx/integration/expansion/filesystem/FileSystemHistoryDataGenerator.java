@@ -17,9 +17,9 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class FileSystemHistoryDataGeneratorTest extends BaseHistoryDataGenerator {
+public class FileSystemHistoryDataGenerator {
   private static final Logger logger =
-      LoggerFactory.getLogger(FileSystemHistoryDataGeneratorTest.class);
+      LoggerFactory.getLogger(FileSystemHistoryDataGenerator.class);
   private String root = "../dataSources/filesystem/src/test/java/cn/edu/tsinghua/iginx/storage/";
 
   @Test
@@ -49,7 +49,6 @@ public class FileSystemHistoryDataGeneratorTest extends BaseHistoryDataGenerator
     }
   }
 
-  @Override
   public void writeHistoryDataToB() throws Exception {
     //        session.executeNonQueryStatement(
     //            "INSERT INTO root.ln.wf03.wt01(timestamp,status) values(77,true);");
@@ -88,7 +87,6 @@ public class FileSystemHistoryDataGeneratorTest extends BaseHistoryDataGenerator
     fileOperator.writeIGinXFile(file, val);
   }
 
-  @Override
   public void writeHistoryDataToA() throws Exception {
     File file1 = new File(root + "ln/wf01/wt01/status.iginx0");
     FileMeta fileMeta1 = new FileMeta(DataType.BOOLEAN, null);
@@ -114,7 +112,6 @@ public class FileSystemHistoryDataGeneratorTest extends BaseHistoryDataGenerator
         });
   }
 
-  @Override
   public void clearData() {
     deleteDirectory(root);
   }

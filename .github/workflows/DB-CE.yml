@@ -225,6 +225,6 @@ jobs:
 
             - name: FileSystem IT
               run: |
-                  mvn test -q -Dtest=FileSystemHistoryDataGeneratorTest#writeHistoryData -DfailIfNoTests=false -P passFormat
-                  mvn test -q -Dtest=FileSystemHistoryDataCapacityExpansion -DfailIfNoTests=false -P passFormat
+                  mvn test -q -Dtest=FileSystemHistoryDataGenerator#writeHistoryData -DfailIfNoTests=false -P passFormat
+                  mvn test -q -Dtest=FileSystemHistoryCapacityExpansionIT -DfailIfNoTests=false -P passFormat
                   mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P passFormat

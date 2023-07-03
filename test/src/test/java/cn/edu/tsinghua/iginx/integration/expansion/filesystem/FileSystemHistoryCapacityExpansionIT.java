@@ -13,9 +13,9 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class FileSystemHistoryDataCapacityExpansion {
+public class FileSystemHistoryCapacityExpansionIT {
   private static final Logger logger =
-      LoggerFactory.getLogger(FileSystemHistoryDataCapacityExpansion.class);
+      LoggerFactory.getLogger(FileSystemHistoryCapacityExpansionIT.class);
 
   protected static Session session;
   protected static SessionPool sessionPool;
