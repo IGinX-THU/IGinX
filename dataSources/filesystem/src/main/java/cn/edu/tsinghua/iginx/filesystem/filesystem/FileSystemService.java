@@ -9,6 +9,7 @@ import cn.edu.tsinghua.iginx.filesystem.file.property.FileMeta;
 import cn.edu.tsinghua.iginx.filesystem.file.property.FilePath;
 import cn.edu.tsinghua.iginx.filesystem.file.property.FileType;
 import cn.edu.tsinghua.iginx.filesystem.query.FSResultTable;
+import cn.edu.tsinghua.iginx.filesystem.thrift.FSFilter;
 import cn.edu.tsinghua.iginx.filesystem.tools.ConfLoader;
 import cn.edu.tsinghua.iginx.filesystem.tools.FilterTransformer;
 import cn.edu.tsinghua.iginx.filesystem.tools.TagKVUtils;
@@ -44,7 +45,7 @@ public class FileSystemService {
     FilePath.setSeparator(System.getProperty("file.separator"));
   }
 
-  public static List<FSResultTable> readFile(File file, Filter filter) throws IOException {
+  public static List<FSResultTable> readFile(File file, FSFilter filter) throws IOException {
     return readFile(file, null, filter);
   }
 
@@ -115,7 +116,7 @@ public class FileSystemService {
   }
 
   private static List<Pair<Pair<Long, Long>, List<Triplet<String, Op, Object>>>> parseFilter(
-      Filter filter) {
+      FSFilter filter) {
     List<Pair<Pair<Long, Long>, List<Triplet<String, Op, Object>>>> res = new ArrayList<>();
 
     BiMap<String, String> vals = HashBiMap.create();
@@ -203,7 +204,7 @@ public class FileSystemService {
     return res;
   }
 
-  public static List<FSResultTable> readFile(File file, TagFilter tagFilter, Filter filter)
+  public static List<FSResultTable> readFile(File file, TagFilter tagFilter, FSFilter filter)
       throws IOException {
     List<File> files = getFilesWithTagFilter(file, tagFilter);
     if (files == null) {

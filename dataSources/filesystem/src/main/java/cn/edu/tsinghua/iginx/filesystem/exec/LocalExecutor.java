@@ -20,6 +20,7 @@ import cn.edu.tsinghua.iginx.filesystem.filesystem.FileSystemService;
 import cn.edu.tsinghua.iginx.filesystem.query.FSResultTable;
 import cn.edu.tsinghua.iginx.filesystem.query.FileSystemHistoryQueryRowStream;
 import cn.edu.tsinghua.iginx.filesystem.query.FileSystemQueryRowStream;
+import cn.edu.tsinghua.iginx.filesystem.thrift.FSFilter;
 import cn.edu.tsinghua.iginx.filesystem.tools.FilterTransformer;
 import cn.edu.tsinghua.iginx.filesystem.wrapper.Record;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
@@ -54,19 +55,18 @@ public class LocalExecutor implements Executor {
   public TaskExecuteResult executeProjectTask(
       List<String> paths,
       TagFilter tagFilter,
-      String filter,
+      FSFilter filter,
       String storageUnit,
       boolean isDummyStorageUnit) {
-    Filter filterEntity = FilterTransformer.toFilter(filter);
     if (isDummyStorageUnit) {
       if (tagFilter != null) {
         logger.warn("dummy storage query should contain no tag filter");
         return new TaskExecuteResult(new FileSystemHistoryQueryRowStream());
       }
-      return executeDummyProjectTask(paths, filterEntity);
+      return executeDummyProjectTask(paths, filter);
     }
 
-    return executeQueryTask(storageUnit, paths, tagFilter, filterEntity);
+    return executeQueryTask(storageUnit, paths, tagFilter, filter);
   }
 
   public TaskExecuteResult executeQueryTask(
@@ -92,7 +92,7 @@ public class LocalExecutor implements Executor {
     }
   }
 
-  private TaskExecuteResult executeDummyProjectTask(List<String> series, Filter filter) {
+  private TaskExecuteResult executeDummyProjectTask(List<String> series, FSFilter filter) {
     try {
       List<FSResultTable> result = new ArrayList<>();
       logger.info("[Query] execute query file: " + series);

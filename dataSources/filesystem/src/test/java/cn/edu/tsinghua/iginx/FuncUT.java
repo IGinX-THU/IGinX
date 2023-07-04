@@ -195,12 +195,6 @@ public class FuncUT {
 
     Filter andFilter = new AndFilter(child);
 
-    String res = FilterTransformer.toString(andFilter);
-
-    System.out.println(new String(res));
-
-    Filter filter = FilterTransformer.toFilter(res);
-    System.out.println(filter);
   }
 
   @Test

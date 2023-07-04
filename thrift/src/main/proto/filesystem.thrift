@@ -1,6 +1,18 @@
 include "common.thrift"
 namespace java cn.edu.tsinghua.iginx.filesystem.thrift
 
+struct FSFilter {
+    1: required common.FilterType type
+    2: optional list<FSFilter> children
+    3: optional bool isTrue
+    4: optional i64 keyValue
+    5: optional common.Op op
+    6: optional string pathA
+    7: optional string pathB
+    8: optional string path
+    9: optional common.Value value
+}
+
 struct FileDataHeader {
     1: required list<string> names
     2: required list<string> types
