@@ -54,14 +54,6 @@ struct RawTagFilter {
     5: optional list<RawTagFilter> children
 }
 
-struct ProjectReq {
-    1: required string storageUnit
-    2: required bool isDummyStorageUnit
-    3: required list<string> paths
-    4: optional RawTagFilter tagFilter
-    5: optional string filter
-}
-
 struct GetStorageBoundaryResp {
     1: required Status status
     2: optional i64 startKey

@@ -8,8 +8,7 @@ import java.util.Map;
 public class JsonUtils {
 
   public static byte[] toJson(Object o) {
-    String tmp = JSON.toJSONString(o, Feature.WriteClassName);
-    return tmp.getBytes();
+    return JSON.toJSONBytes(o);
   }
 
   public static <T> T fromJson(byte[] data, Class<T> clazz) {

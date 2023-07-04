@@ -14,6 +14,14 @@ struct ParquetRow {
     3: required binary bitmap
 }
 
+struct ProjectReq {
+    1: required string storageUnit
+    2: required bool isDummyStorageUnit
+    3: required list<string> paths
+    4: optional common.RawTagFilter tagFilter
+    5: optional string filter
+}
+
 struct ProjectResp {
     1: required common.Status status
     2: optional ParquetHeader header
@@ -62,7 +70,7 @@ struct GetColumnsOfStorageUnitResp {
 
 service ParquetService {
 
-    ProjectResp executeProject(1: common.ProjectReq req);
+    ProjectResp executeProject(1: ProjectReq req);
 
     common.Status executeInsert(1: InsertReq req);
 

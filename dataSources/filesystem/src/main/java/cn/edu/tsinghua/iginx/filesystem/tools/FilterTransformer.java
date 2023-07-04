@@ -38,7 +38,7 @@ public class FilterTransformer {
   private static FSFilter toFSFilter(AndFilter filter) {
     FSFilter fsFilter = new FSFilter(cn.edu.tsinghua.iginx.common.thrift.FilterType.And);
     for (Filter f : filter.getChildren()){
-      fsFilter.children.add(toFSFilter(f));
+      fsFilter.addToChildren(toFSFilter(f));
     }
     return fsFilter;
   }
@@ -46,14 +46,14 @@ public class FilterTransformer {
   private static FSFilter toFSFilter(OrFilter filter) {
     FSFilter fsFilter = new FSFilter(cn.edu.tsinghua.iginx.common.thrift.FilterType.Or);
     for (Filter f : filter.getChildren()){
-      fsFilter.children.add(toFSFilter(f));
+      fsFilter.addToChildren(toFSFilter(f));
     }
     return fsFilter;
   }
 
   private static FSFilter toFSFilter(NotFilter filter) {
     FSFilter fsFilter = new FSFilter(cn.edu.tsinghua.iginx.common.thrift.FilterType.Not);
-    fsFilter.children.add(toFSFilter(filter.getChild()));
+    fsFilter.addToChildren(toFSFilter(filter.getChild()));
     return fsFilter;
   }
 
@@ -161,7 +161,7 @@ public class FilterTransformer {
   }
 
   private static String toKeyString(FSFilter filter, BiMap<String, String> vals) {
-    String val = "key" + " " + fsOp2Str(filter.getOp()) + " " + filter.getValue();
+    String val = "key" + " " + fsOp2Str(filter.getOp()) + " " + filter.getKeyValue();
     if (!vals.containsValue(val)) vals.put(prefix + (index++), val);
     refreshIndex();
     return vals.inverse().get(val);
@@ -170,7 +170,7 @@ public class FilterTransformer {
   private static String toValueString(FSFilter filter, BiMap<String, String> vals) {
     String val;
     if (filter.getOp().equals(cn.edu.tsinghua.iginx.common.thrift.Op.LIKE)) {
-      val = filter.getPath() + " like " + filter.getValue().getBinaryVAsString();
+      val = filter.getPath() + " like " + filter.getValue().binaryV.toString();
     } else {
       val =
           filter.getPath()

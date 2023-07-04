@@ -70,14 +70,14 @@ public class LocalExecutor implements Executor {
   }
 
   public TaskExecuteResult executeQueryTask(
-      String storageUnit, List<String> series, TagFilter tagFilter, Filter filter) {
+      String storageUnit, List<String> series, TagFilter tagFilter, FSFilter filter) {
     try {
       List<FSResultTable> result = new ArrayList<>();
       logger.info("[Query] execute query file: " + series);
       for (String path : series) {
+        File file = new File(FilePath.toIginxPath(root, storageUnit, path));
         result.addAll(
-            FileSystemService.readFile(
-                new File(FilePath.toIginxPath(root, storageUnit, path)), tagFilter, filter));
+            FileSystemService.readFile(file, tagFilter, filter));
       }
       RowStream rowStream = new FileSystemQueryRowStream(result, storageUnit, root);
       return new TaskExecuteResult(rowStream);
