@@ -1,42 +1,41 @@
-# IGinX Installation and Use Manual (By Docker)
+# IGinX 安装使用教程（Docker运行）
 
-IGinX is an open source polystore system. A polystore system provides an integrated data management service over a set of one or more potentially heterogeneous database/storage engines, serving heterogeneous workloads.
+IGinX是清华大学“清华数为”大数据软件栈的“大数据总线”，面向解决用户在大数据场景下“管数烦、用数难”的问题而研发。它的特色包括“负载均衡弹性好、异构关联全局化、数据使用不搬家、Python集成便利大、SQL输入实时查”。
 
-Currently, IGinX directly supports big data service over relational database PostgreSQL, time series databases InfluxDB/IoTDB/TimescaleDB/OpenTSDB, and Parquet data files.
+IGinX支持用户一体化管理已存储在不同系统中的数据资产，也支持用户统一读写、查询、关联特定系统中的数据。目前，IGinX支持一体化管理包括关系数据库PostgreSQL、时序数据库InfluxDB/IotDB/TimescaleDB/OpenTSDB、大数据文件Parquet集合等存储的数据。
 
-## Environment Installation
+## 环境安装
 
-### Java Installation
+### Java 安装
 
-Since ZooKeeper, IGinX and IoTDB are all developed using Java, Java needs to be installed first. If a running environment of JDK >= 1.8 has been installed locally, **skip this step entirely**.
+由于 ZooKeeper、IGinX 以及 IoTDB 都是使用 Java 开发的，因此首先需要安装 Java。如果本地已经安装了 JDK>=1.8 的运行环境，**直接跳过此步骤**。
 
-1. First, visit the [official Java website](https://www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html) to download the JDK package for your current system.
-
-2. Installation
+1. 首先访问 [Java官方网站](https://www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html)下载适用于当前系统的 JDK 包。
+2. 安装
 
 ```shell
 $ cd ~/Downloads
-$ tar -zxf jdk-8u181-linux-x64.gz # unzip files
+$ tar -zxf jdk-8u181-linux-x64.gz # 解压文件
 $ mkdir /opt/jdk
 $ mv jdk-1.8.0_181 /opt/jdk/
 ```
 
-3. Set the path
+3. 设置路径
 
-Edit the ~/.bashrc file and add the following two lines at the end of the file:
+编辑 ~/.bashrc 文件，在文件末端加入如下的两行：
 
 ```shell
 export JAVA_HOME = /usr/jdk/jdk-1.8.0_181
 export PATH=$PATH:$JAVA_HOME/bin
 ```
 
-Load the file with the changed configuration (into shell scripts):
+加载更改后的配置文件：
 
 ```shell
 $ source ~/.bashrc
 ```
 
-4. Use java -version to determine whether JDK installed successfully.
+4. 使用 java -version 判断 JDK 是否安装成功
 
 ```shell
 $ java -version
@@ -45,124 +44,124 @@ Java(TM) SE Runtime Environment (build 1.8.0_181-b13)
 Java HotSpot(TM) 64-Bit Server VM (build 25.181-b13, mixed mode)
 ```
 
-If the words above are displayed, it means the installation was successful.
+如果显示出如上的字样，则表示安装成功。
 
-### Maven Installation
+### Maven 安装
 
-Maven is a build automation tool used primarily to build and managa Java projects. If you need to compile from the source code, you also need to install a Maven environment >= 3.6. Otherwise, **skip this step entirely**.
+Maven 是 Java 项目管理和自动构建工具，如果您需要从源码进行编译，还需要安装 Maven >= 3.6 的环境，否则，**直接跳过此步骤**。
 
-1. Visit the [official website](http://maven.apache.org/download.cgi)to download and unzip Maven
+1. 访问[官网](http://maven.apache.org/download.cgi)下载并解压 Maven
 
-```shell
+```
 $ wget http://mirrors.hust.edu.cn/apache/maven/maven-3/3.3.9/binaries/apache-maven-3.3.9-bin.tar.gz
 $ tar -xvf  apache-maven-3.3.9-bin.tar.gz
 $ sudo mv -f apache-maven-3.3.9 /usr/local/
 ```
 
-2. Set the path
+2. 设置路径
 
-Edit the ~/.bashrc file and add the following two lines at the end of the file:
+编辑 ~/.bashrc 文件，在文件末端加入如下的两行：
 
 ```shell
 export MAVEN_HOME=/usr/local/apache-maven-3.3.9
 export PATH=${PATH}:${MAVEN_HOME}/bin
 ```
 
-Load the file with the changed configuration (into shell scripts):
+加载更改后的配置文件：
 
 ```shell
 $ source ~/.bashrc
 ```
 
-3. Type mvn -v to determine whether Maven installed successfully.
+3. 使用 mvn -v 判断 Maven 是否安装成功
 
 ```shell
 $ mvn -v
 Apache Maven 3.6.1 (d66c9c0b3152b2e69ee9bac180bb8fcc8e6af555; 2019-04-05T03:00:29+08:00)
 ```
 
-If the words above are displayed, that means the installation was successful.
+如果显示出如上的字样，则表示安装成功。
 
-### Docker installation
+### Docker 安装
 
-Docker provides an official installation script that allows users to automatically install it by entering the command:
+docker 官方提供了安装脚本，允许用户使用命令自动安装：
 
 ```shell
 $ curl -fsSL https://get.docker.com | bash -s docker --mirror Aliyun
 ```
 
-You can also use the internal daocloud one-click installation command:
+也可以使用国内 daocloud 一键安装命令：
 
 ```shell
 $ curl -sSL https://get.daocloud.io/docker | sh
 ```
 
-Run this command to start the docker engine and check the docker version:
+运行命令即可启动 docker engine，并查看 docker 版本：
 
 ```shell
 $ systemctl start docker
 $ docker version
 ```
 
-If the words above are displayed, it means the installation was successful:
+显示出如下字样，表示 docker 安装成功：
 
 ```shell
 Client: Docker Engine - Community
- Version: 20.10.8
- API version: 1.41
- Go version: go1.16.6
- Git commit: 3967b7d
- Built: Fri Jul 30 19:55:49 2021
- OS/Arch: linux/amd64
- Context: default
- Experimental: true
+ Version:           20.10.8
+ API version:       1.41
+ Go version:        go1.16.6
+ Git commit:        3967b7d
+ Built:             Fri Jul 30 19:55:49 2021
+ OS/Arch:           linux/amd64
+ Context:           default
+ Experimental:      true
 
 Server: Docker Engine - Community
  Engine:
-  Version: 20.10.8
-  API version: 1.41 (minimum version 1.12)
-  Go version: go1.16.6
-  Git commit: 75249d8
-  Built: Fri Jul 30 19:54:13 2021
-  OS/Arch: linux/amd64
-  Experimental: false
+  Version:          20.10.8
+  API version:      1.41 (minimum version 1.12)
+  Go version:       go1.16.6
+  Git commit:       75249d8
+  Built:            Fri Jul 30 19:54:13 2021
+  OS/Arch:          linux/amd64
+  Experimental:     false
  containerd:
-  Version: 1.4.9
-  GitCommit: e25210fe30a0a703442421b0f60afac609f950a3
+  Version:          1.4.9
+  GitCommit:        e25210fe30a0a703442421b0f60afac609f950a3
  runc:
-  Version: 1.0.1
-  GitCommit: v1.0.1-0-g4144b63
+  Version:          1.0.1
+  GitCommit:        v1.0.1-0-g4144b63
  docker-init:
-  Version: 0.19.0
-  GitCommit: de40ad0
+  Version:          0.19.0
+  GitCommit:        de40ad0
 ```
 
-## Compile the Image
+## 编译镜像
 
-Currently, the docker image of IGinX needs to be manually installed locally. First, you need to download the IGinX source code:
+目前 IGinX 的 docker 镜像需要手动安装到本地。首先需要下载 IGinX 源码：
 
 ```shell
 $ cd ~
-$ git clone git@github.com:IGinX-THU/IGinX.git # Pull the latest IGinX code
+$ git clone git@github.com:IGinX-THU/IGinX.git # 拉取最新的 IGinX 代码
 $ cd IGinX
 ```
 
-Then start building the IGinX image:
+随后开始构建 IGinX 镜像：
 
-Currently, there are two types of IGinX image construction:
-- oneShot: All dependencies including ZooKeeper, IGinX and IoTDB can be packaged and run with one shot.
-- onlyIginx: Another way is to build the IGinX image separately, requiring the user to manually start the ZooKeeper and IoTDB nodes externally.
+目前 IGinX 镜像的构建分为两种：
+- oneShot: 可以将包括 ZooKeeper、IGinX 以及 IoTDB 在内所有依赖进行一键打包及运行。
+- onlyIginx: 另一种为单独构建 IGinX 镜像，需要用户在外部手动启动 ZooKeeper 和 IoTDB 节点。
 
-## oneShot
+## oneShot 镜像
 
-Then use the following command to build and run the IGinX image:
+对于 oneShot 镜像，其构建方法并运行如下：
 
 ```shell
 $ cd docker/oneShot
 $ ./build_and_run_iginx_docker.sh
 ```
 
-The following words are displayed to indicate that the image was built and run successfully:
+显示出如下的字样表示镜像构建成功并且成功启动：
 
 ```shell
 [+] Building 729.6s (12/12) FINISHED
@@ -191,18 +190,18 @@ The following words are displayed to indicate that the image was built and run s
 ✔ Container iginx1     Started
 ```
 
-## onlyIginx
+## onlyIginx 镜像
 
-**Warning: Before starting to build the IGinX image, you need to modify the network address parameters in IGinX. All "127.0.0.1" should be replaced by "host.docker.internal" to enable the IGinX container to communicate with ZooKeeper, database services that run on host machine.**
+**注：在开始构建镜像前需要把 IGinX 配置的网络地址参数进行更改，将`conf/config.properties`中所有的“127.0.0.1”更改为“host.docker.internal”，以便IGinX镜像与宿主机的ZooKeeper和数据库进程进行通信**
 
-Use the following command to build the IGinX image:
+对于 onlyIginx 镜像，其构建方法如下：
 
 ```shell
 $ cd docker/onlyIginx
 $ ./build_iginx_docker.sh
 ```
 
-The following words are displayed to indicate that the image was built successfully:
+显示出如下的字样表示镜像构建成功：
 
 ```shell
 [+] Building 887.9s (12/12) FINISHED
@@ -238,35 +237,28 @@ The following words are displayed to indicate that the image was built successfu
 => => naming to docker.io/library/iginx:0.6.0
 ```
 
-Then start to run the image.
-Considering that IGinX and ZooKeeper communicates through network, it is necessary to establish a Docker network bridge to allow them to be interconnected through the network. Here we create a network bridge called docker-cluster-iginx:
+接下来开始运行镜像
+考虑到 IGinX 和ZooKeeper、数据库服务之间通过网络进行通讯，因此需要建立 Docker 网络，允许其通过网络互联。在这里我们创建一个名为 docker-cluster-iginx 的 bridge 网络：
 
 ```shell
 $ docker network create -d bridge --attachable --subnet 172.40.0.0/16 docker-cluster-iginx
-# 172.40.0.0 refers to the bridge's ip. You can customize it if necessary. The ip address usually starts with 172.
+# 172.40.0.0 是该网桥的ip，用户可以自定义，一般以172开头
 ```
 
-Now start Zookeeper:
+然后启动 Zookeeper：
 
 ```shell
 $ cd ${zookeeper_path}
 $ ./bin/zkServer.sh start
 ```
 
-And then start an IoTDB instance:
-
-```shell
-$ cd ${iotdb_path}
-# ./sbin/start-server.sh
-```
-
-Finally, start IGinX to complete the startup of the entire system:
+最后启动 IGinX即可完成整个系统的启动：
 
 ```shell
 $ cd ${iginx_path}/docker/onlyIginx
 $ ./run_iginx_docker.sh x.x.x.x 10000
-# x.x.x.x is the ip address IGinX container would use. It should be accessable to docker-cluster-iginx. You can use 172.40.0.2 for example. Note that 172.40.0.1 is the gateway and cannot be used here.
-# 10000 refers to the port on host that can be used to access IGinX service. You can customize it if preferred.
+# x.x.x.x 为用户赋予该IGinX容器的ip地址，需要在docker-cluster-iginx网桥的ip范围内，例如172.40.0.2，不可以使用默认网关172.40.0.1
+# 10000为IGinX容器映射到宿主机的端口，用户可以根据自己的主机情况自定义
 ```
 
-This command will expose the localhost port 10000 as the communication interface with the IGinX cluster. You can start accessing IGinX through 127.0.0.1:10000.
+该命令会将本地的 10000 接口暴露出来，作为与 IGinX 集群的通讯接口。在宿主机上通过地址 127.0.0.1:10000 即可开始访问 IGinX。
