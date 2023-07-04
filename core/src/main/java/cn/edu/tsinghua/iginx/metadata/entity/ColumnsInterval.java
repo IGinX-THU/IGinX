@@ -18,7 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.metadata.entity;
 
-import static cn.edu.tsinghua.iginx.engine.logical.utils.PathUtils.trimColumnsInterval;
+import static cn.edu.tsinghua.iginx.engine.logical.utils.PathUtils.addSuffix;
 
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.util.Objects;
@@ -40,10 +40,9 @@ public final class ColumnsInterval implements Comparable<ColumnsInterval> {
     if (StringUtils.isContainRegex(column)) {
       throw new IllegalArgumentException("not support the regex in prefix");
     }
-    ColumnsInterval trimmedColumnsInterval =
-        trimColumnsInterval(new ColumnsInterval(column, column));
-    this.startColumn = trimmedColumnsInterval.startColumn;
-    this.endColumn = trimmedColumnsInterval.endColumn;
+    ColumnsInterval columnsInterval = addSuffix(new ColumnsInterval(column, column));
+    this.startColumn = columnsInterval.startColumn;
+    this.endColumn = columnsInterval.endColumn;
   }
 
   private String realColumn(String column) {

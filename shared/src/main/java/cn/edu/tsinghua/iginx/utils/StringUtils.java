@@ -125,9 +125,9 @@ public class StringUtils {
     if (str == null) {
       return false;
     }
-    String specialChars = "[]()|+?*";
-    for (int i = 0; i < specialChars.length(); i++) {
-      if (str.contains(String.valueOf(specialChars.charAt(i)))) {
+    String[] regEx = {"[", "]", "(", ")", "|", "+", "?", "*"};
+    for (int i = 0; i < regEx.length; i++) {
+      if (str.contains(regEx[i])) {
         return true;
       }
     }

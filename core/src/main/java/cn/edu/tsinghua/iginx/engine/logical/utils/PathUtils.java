@@ -28,11 +28,12 @@ public class PathUtils {
       }
     }
 
-    if (startColumn != null && startColumn.equals(endColumn)) {
-      startColumn += MIN_CHAR;
-      endColumn += MAX_CHAR;
-    }
-
     return new ColumnsInterval(startColumn, endColumn);
+  }
+
+  public static ColumnsInterval addSuffix(ColumnsInterval columnsInterval) {
+    String startColumn = columnsInterval.getStartColumn();
+    String endColumn = columnsInterval.getEndColumn();
+    return new ColumnsInterval(startColumn + MAX_CHAR, endColumn + MAX_CHAR);
   }
 }
