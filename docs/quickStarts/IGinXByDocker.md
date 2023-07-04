@@ -192,7 +192,7 @@ $ ./build_and_run_iginx_docker.sh
 
 ## onlyIginx 镜像
 
-注：在开始构建镜像前需要把 IGinX 中的 IoTDB 和 Zookeeper 地址参数进行更改（请勿使用 127.0.0.1 作为 IP 参数）
+**注：在开始构建镜像前需要把 IGinX 配置的网络地址参数进行更改，将`conf/config.properties`中所有的“127.0.0.1”更改为“host.docker.internal”，以便IGinX容器与宿主机的ZooKeeper服务和数据库进程进行通信**
 
 对于 onlyIginx 镜像，其构建方法如下：
 
@@ -238,10 +238,11 @@ $ ./build_iginx_docker.sh
 ```
 
 接下来开始运行镜像
-考虑到 IGinX 和 IoTDB 之前通过网络进行通讯，因此需要建立 Docker 网络，允许其通过网络互联。在这里我们创建一个名为 docker-cluster-iginx 的 bridge 网络：
+考虑到 IGinX 和ZooKeeper、数据库服务之间通过网络进行通讯，因此需要建立 Docker 网络，允许其通过网络互联。在这里我们创建一个名为 docker-cluster-iginx 的 bridge 网络：
 
 ```shell
 $ docker network create -d bridge --attachable --subnet 172.40.0.0/16 docker-cluster-iginx
+# 172.40.0.0 是该网桥的ip，用户可以自定义，一般以172开头
 ```
 
 然后启动 Zookeeper：
@@ -263,7 +264,8 @@ $ cd ${iotdb_path}
 ```shell
 $ cd ${iginx_path}/docker/onlyIginx
 $ ./run_iginx_docker.sh x.x.x.x 10000
-# x.x.x.x 为用户自己的网络ip地址
+# x.x.x.x 为用户赋予该IGinX容器的ip地址，需要在docker-cluster-iginx网桥的ip范围内，例如172.40.0.2，不可以使用默认网关172.40.0.1
+# 10000为IGinX容器映射到宿主机的端口，用户可以根据自己的主机情况自定义
 ```
 
-该命令会将本地的 10000 接口暴露出来，作为与 IGinX 集群的通讯接口。通过地址 x.x.x.x:10000 即可开始访问 IGinX
+该命令会将本地的 10000 接口暴露出来，作为与 IGinX 集群的通讯接口。在宿主机上通过地址 127.0.0.1:10000 即可开始访问 IGinX。

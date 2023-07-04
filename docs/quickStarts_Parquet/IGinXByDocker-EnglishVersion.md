@@ -243,7 +243,7 @@ Considering that IGinX and ZooKeeper communicates through network, it is necessa
 
 ```shell
 $ docker network create -d bridge --attachable --subnet 172.40.0.0/16 docker-cluster-iginx
-# 172.40.0.0 refers to the bridge's ip. You can customize it if necessary. The ip address usually starts with 172.
+# 172.40.0.0 refers to the network bridge's ip. You can customize it if necessary. The ip address usually starts with 172.
 ```
 
 Now start Zookeeper:
@@ -251,13 +251,6 @@ Now start Zookeeper:
 ```shell
 $ cd ${zookeeper_path}
 $ ./bin/zkServer.sh start
-```
-
-And then start an IoTDB instance:
-
-```shell
-$ cd ${iotdb_path}
-# ./sbin/start-server.sh
 ```
 
 Finally, start IGinX to complete the startup of the entire system:
@@ -269,4 +262,4 @@ $ ./run_iginx_docker.sh x.x.x.x 10000
 # 10000 refers to the port on host that can be used to access IGinX service. You can customize it if preferred.
 ```
 
-This command will expose the localhost port 10000 as the communication interface with the IGinX cluster. You can start accessing IGinX through 127.0.0.1:10000.
+This command will expose the host's port 10000 as the communication interface with the IGinX cluster. You can start accessing IGinX through 127.0.0.1:10000.
