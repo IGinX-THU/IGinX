@@ -34,6 +34,6 @@ public class PathUtils {
   public static ColumnsInterval addSuffix(ColumnsInterval columnsInterval) {
     String startColumn = columnsInterval.getStartColumn();
     String endColumn = columnsInterval.getEndColumn();
-    return new ColumnsInterval(startColumn + MAX_CHAR, endColumn + MAX_CHAR);
+    return new ColumnsInterval(startColumn + MIN_CHAR, endColumn + MAX_CHAR);
   }
 }
