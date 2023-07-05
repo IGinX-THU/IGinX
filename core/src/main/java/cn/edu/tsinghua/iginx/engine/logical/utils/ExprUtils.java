@@ -476,7 +476,7 @@ public class ExprUtils {
     }
   }
 
-  private static Filter mergeTrue(Filter filter) {
+  public static Filter mergeTrue(Filter filter) {
     switch (filter.getType()) {
       case Or:
         List<Filter> orChildren = ((OrFilter) filter).getChildren();

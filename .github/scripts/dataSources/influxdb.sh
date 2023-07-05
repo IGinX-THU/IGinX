@@ -8,7 +8,7 @@ sh -c "tar -zxf influxdb2-2.0.7-linux-amd64.tar.gz"
 
 sh -c "ls influxdb2-2.0.7-linux-amd64"
 
-sudo sh -c "cd influxdb2-2.0.7-linux-amd64/; nohup ./influxd run --bolt-path=~/.influxdbv2/influxd.bolt --engine-path=~/.influxdbv2/engine --http-bind-address=:8086 --query-memory-bytes=20971520 &"
+sudo sh -c "cd influxdb2-2.0.7-linux-amd64/; nohup ./influxd run --bolt-path=~/.influxdbv2/influxd.bolt --engine-path=~/.influxdbv2/engine --http-bind-address=:8086 --query-memory-bytes=300971520 &"
 
 sh -c "sleep 30"
 
@@ -22,7 +22,9 @@ sed -i "s/storageEngineList=127.0.0.1#6667/#storageEngineList=127.0.0.1#6667/g" 
 
 sed -i "s/#storageEngineList=127.0.0.1#8086/storageEngineList=127.0.0.1#8086/g" conf/config.properties
 
-sed -i "s/enablePushDown=true/enablePushDown=false/g" conf/config.properties
+sed -i "s/enablePushDown=false/enablePushDown=true/g" conf/config.properties
+
+sed -i "s/queryOptimizer=remove_not,filter_fragment/queryOptimizer=remove_not,filter_fragment,filter_push_down/g" conf/config.properties
 
 for port in "$@"
 do
