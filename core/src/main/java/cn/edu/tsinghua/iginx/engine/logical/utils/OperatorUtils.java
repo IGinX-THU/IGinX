@@ -112,7 +112,6 @@ public class OperatorUtils {
   public static void findSelectOperators(List<Select> selectOperatorList, Operator operator) {
     if (operator.getType() == OperatorType.Select) {
       selectOperatorList.add((Select) operator);
-      return;
     }
 
     // dfs to find select operator.

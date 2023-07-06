@@ -8,6 +8,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class ExprUtils {
 
@@ -444,6 +446,59 @@ public class ExprUtils {
     return mergeTrue(filterWithTrue);
   }
 
+  /**
+   * 判断filter的path是否是聚合函数或UDF函数
+   */
+  private static boolean isFunction(String path){
+    String pattern = "[^!&()+=|'%`;,<>?\\t\\n\u2E80\u2E81\u2E82\u2E83\u2E84\u2E85\\x00-\\x1F\\x7F\\[\\]\\-*\\s]\\(.+\\)";
+    Matcher matcher = Pattern.compile(pattern).matcher(path);
+    return matcher.find();
+  }
+
+  /**
+   * 判断filter的path是否在当前的ColumnsRange中
+   */
+  private static boolean columnRangeContainPath(ColumnsInterval interval, String path) {
+    if ((interval.getStartColumn() == null || interval.getStartColumn().compareTo(path) <= 0)
+            && (interval.getEndColumn() == null || interval.getEndColumn().compareTo(path) > 0)) {
+      return true;
+    }else if(!path.contains("*")){
+        return false;
+    }
+
+    // 对带*通配符的path进行处理
+    String pathPrefix = path.substring(0, path.indexOf("*"));
+    String startColumnPrefix = interval.getStartColumn() == null ? "" : interval.getStartColumn();
+    startColumnPrefix = startColumnPrefix.length() <= pathPrefix.length() ?
+            startColumnPrefix : startColumnPrefix.substring(0, pathPrefix.length());
+    String endColumnPrefix = interval.getEndColumn() == null ? "" : interval.getEndColumn();
+    endColumnPrefix = endColumnPrefix.length() <= pathPrefix.length() ?
+            endColumnPrefix : endColumnPrefix.substring(0, pathPrefix.length());
+    if ((startColumnPrefix.isEmpty() || startColumnPrefix.compareTo(pathPrefix) <= 0)
+    && (endColumnPrefix.isEmpty() || endColumnPrefix.compareTo(pathPrefix) > 0)){
+      return true;
+    }
+
+    String endColumnSuffix = interval.getEndColumn() == null ? "" : interval.getEndColumn();
+    endColumnSuffix = endColumnSuffix.length() <= pathPrefix.length() ?
+            "" : endColumnSuffix.substring(pathPrefix.length());
+    boolean endColumnSuffixIsAllSharp = endColumnSuffix.matches("^#+$");
+
+    String startColumn = interval.getStartColumn() == null ? "" : interval.getStartColumn();
+    String endColumn = interval.getEndColumn() == null ? "" : interval.getEndColumn();
+    String endColumnCutStartColumn = endColumn.length() <= startColumn.length() ?
+            "" : endColumn.substring(startColumn.length());
+    boolean endColumnCutStartColumnIsAllSharp = endColumnCutStartColumn.matches("^#+$");
+    if (!endColumnSuffix.isEmpty()
+            && endColumnPrefix.compareTo(pathPrefix) == 0
+            && !endColumnSuffixIsAllSharp
+            && (endColumn.startsWith(startColumn) || !endColumnCutStartColumnIsAllSharp)){
+      return true;
+    }
+
+    return false;
+  }
+
   private static Filter setTrue(Filter filter, ColumnsInterval columnsInterval) {
     switch (filter.getType()) {
       case Or:
@@ -462,12 +517,21 @@ public class ExprUtils {
         return new AndFilter(andChildren);
       case Value:
         String path = ((ValueFilter) filter).getPath();
-        if (columnsInterval.getStartColumn() != null
-            && columnsInterval.getStartColumn().compareTo(path) > 0) {
+        if (isFunction(path)){
           return new BoolFilter(true);
         }
-        if (columnsInterval.getEndColumn() != null
-            && columnsInterval.getEndColumn().compareTo(path) <= 0) {
+        if (!columnRangeContainPath(columnsInterval, path)) {
+          return new BoolFilter(true);
+        }
+        return filter;
+      case Path:
+        String pathA = ((PathFilter)filter).getPathA();
+        String pathB = ((PathFilter)filter).getPathB();
+        // 如果filter中含有聚合函数，忽略，设置为true
+        if (isFunction(pathA) || isFunction(pathB)) {
+          return new BoolFilter(true);
+        }
+        if (!columnRangeContainPath(columnsInterval, pathA) || !columnRangeContainPath(columnsInterval, pathB)) {
           return new BoolFilter(true);
         }
         return filter;
@@ -515,5 +579,104 @@ public class ExprUtils {
       default:
         return filter;
     }
+  }
+
+  /**
+   * 去除filter中不符合Project的Pattern的Path，这部分无法下推
+   */
+  public static Filter removePathByPatterns(Filter filter, List<String> patterns){
+    Filter newFilter = removePath(filter, patterns);
+    return mergeTrue(newFilter);
+  }
+
+  private static boolean isInPatterns(String path, List<String> patterns) {
+    for (String pattern : patterns) {
+      String regexPattern = pattern;
+      regexPattern = regexPattern.replace(".", "\\.");
+      regexPattern = regexPattern.replace("*", ".*");
+      regexPattern = "^" + regexPattern + "$";
+      if (path.matches(regexPattern)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private static Filter removePath(Filter filter, List<String> patterns) {
+    switch (filter.getType()) {
+      case Or:
+        List<Filter> orChildren = ((OrFilter) filter).getChildren();
+        for (Filter orChild : orChildren) {
+          Filter newFilter = removePath(orChild, patterns);
+          orChildren.set(orChildren.indexOf(orChild), newFilter);
+        }
+        break;
+      case And:
+        List<Filter> andChildren = ((AndFilter) filter).getChildren();
+        for (Filter andChild : andChildren) {
+          Filter newFilter = removePath(andChild, patterns);
+          andChildren.set(andChildren.indexOf(andChild), newFilter);
+        }
+        break;
+      case Value:
+        String path = ((ValueFilter) filter).getPath();
+        if (!isInPatterns(path, patterns)) {
+          return new BoolFilter(true);
+        }
+        return filter;
+      case Path:
+        String pathA = ((PathFilter) filter).getPathA();
+        String pathB = ((PathFilter) filter).getPathB();
+        if (!isInPatterns(pathA, patterns) || !isInPatterns(pathB, patterns)) {
+          return new BoolFilter(true);
+        }
+        return filter;
+      default:
+        return filter;
+    }
+    return filter;
+  }
+
+  /**
+   * 合并两个filter,并且去除重复的Filter
+   */
+  public static Filter mergeFilter(Filter filter1, Filter filter2) {
+    if (filter1 == null) {
+      return filter2;
+    }
+    if (filter2 == null) {
+      return filter1;
+    }
+
+    // filter有重复的情况
+    List<Filter> andChildren1 = new ArrayList<>();
+    List<Filter> andChildren2 = new ArrayList<>();
+
+    if (filter1.getType() == FilterType.And) {
+      andChildren1.addAll(((AndFilter) filter1).getChildren());
+    } else {
+      andChildren1.add(filter1);
+    }
+    if (filter2.getType() == FilterType.And) {
+      andChildren2.addAll(((AndFilter) filter2).getChildren());
+    } else {
+      andChildren2.add(filter2);
+    }
+
+    List<Filter> andChildren = new ArrayList<>(andChildren1);
+    for (Filter child2 : andChildren2) {
+      boolean isExist = false;
+      for (Filter child1 : andChildren1) {
+        if (child1.toString().equals(child2.toString())) {
+          isExist = true;
+          break;
+        }
+      }
+      if (!isExist) {
+        andChildren.add(child2);
+      }
+    }
+
+    return new AndFilter(andChildren);
   }
 }
