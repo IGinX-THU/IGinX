@@ -55,8 +55,8 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
   public void writeHistoryData(
       int port, List<String> pathList, List<DataType> dataTypeList, List<List<Object>> valuesList) {
     try {
-      Connection conn = connect(port, true, null);
-      if (conn == null) {
+      Connection connection = connect(port, true, null);
+      if (connection == null) {
         logger.error("cannot connect to 127.0.0.1:{}!", port);
         return;
       }
@@ -80,16 +80,15 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
       for (Map.Entry<String, Map<String, List<Integer>>> entry :
           databaseToTablesToColumnIndexes.entrySet()) {
         String databaseName = entry.getKey();
-        Statement stmt = conn.createStatement();
+        Statement stmt = connection.createStatement();
         try {
           stmt.execute(String.format(CREATE_DATABASE_STATEMENT, databaseName));
         } catch (SQLException e) {
           logger.info("database {} exists!", databaseName);
         }
         stmt.close();
-        conn.close();
 
-        conn = connect(port, false, databaseName);
+        Connection conn = connect(port, false, databaseName);
         stmt = conn.createStatement();
         for (Map.Entry<String, List<Integer>> item : entry.getValue().entrySet()) {
           String tableName = item.getKey();
@@ -126,10 +125,12 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
         stmt.close();
         conn.close();
       }
+      connection.close();
 
       logger.info("write data to 127.0.0.1:{} success!", port);
     } catch (RuntimeException | SQLException e) {
       logger.error("write data to 127.0.0.1:{} failure: {}", port, e.getMessage());
+      e.printStackTrace();
     }
   }
 
