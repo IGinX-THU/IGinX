@@ -26,6 +26,9 @@ import java.util.regex.Pattern;
 public class StringUtils {
 
   public static final Character MIN_CHAR = '!';
+  private static final String SPECIAL_CHAR_SET =
+      "[!&()+=|'%`;,<>?\n\t][\u2E80\u2E81\u2E82\u2E83\u2E84\u2E85][\\x00-\\x1F\\x7F]";
+  private static final String[] REGEX = {"[", "]", "(", ")", "|", "+", "?", "*", "-"};
 
   /**
    * @param ts 时间序列(可能等于/含有*，不可能为null)
@@ -114,7 +117,7 @@ public class StringUtils {
   }
 
   public static boolean isContainSpecialChar(String str) {
-    String regEx = "[!&()+=|';,<>?]\n|\t|[\u2E80\u2E81\u2E82\u2E83\u2E84\u2E85]";
+    String regEx = SPECIAL_CHAR_SET;
     Pattern p = Pattern.compile(regEx);
     Matcher m = p.matcher(str);
     return m.find();
@@ -125,9 +128,8 @@ public class StringUtils {
     if (str == null) {
       return false;
     }
-    String[] regEx = {"[", "]", "(", ")", "|", "+", "?", "*"};
-    for (int i = 0; i < regEx.length; i++) {
-      if (str.contains(regEx[i])) {
+    for (int i = 0; i < REGEX.length; i++) {
+      if (str.contains(REGEX[i])) {
         return true;
       }
     }

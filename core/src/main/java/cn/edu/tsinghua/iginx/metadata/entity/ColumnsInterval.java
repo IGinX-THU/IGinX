@@ -36,8 +36,19 @@ public final class ColumnsInterval implements Comparable<ColumnsInterval> {
     this.endColumn = endColumn;
   }
 
+  private boolean isValid(String prefix) {
+    if (prefix == null
+        || prefix.contains("..")
+        || prefix.length() != 0 && prefix.charAt(0) == '.') {
+      return false;
+    }
+    return true;
+  }
+
   public ColumnsInterval(String column) {
-    if (StringUtils.isContainRegex(column)) {
+    if (StringUtils.isContainRegex(column)
+        || !isValid(column)
+        || StringUtils.isContainSpecialChar(column)) {
       throw new IllegalArgumentException("not support the regex in prefix");
     }
     ColumnsInterval columnsInterval = addSuffix(new ColumnsInterval(column, column));
