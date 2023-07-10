@@ -73,8 +73,8 @@ public class LowAccessFragmentCompactionTest {
     compaction.executeCompaction(toCompactFragmentGroups, fragmentMetaPointsMap);
     List<FragmentMeta> fragmentMetas = metaManager.getFragments();
     assertEquals(fragmentMetas.size(), 1);
-    assertEquals(fragmentMetas.get(0).getColumnsRange().getStartColumn(), "root.z.a");
-    assertNull(fragmentMetas.get(0).getColumnsRange().getEndColumn());
+    assertEquals(fragmentMetas.get(0).getColumnsInterval().getStartColumn(), "root.z.a");
+    assertNull(fragmentMetas.get(0).getColumnsInterval().getEndColumn());
     assertEquals(fragmentMetas.get(0).getMasterStorageUnit().getStorageEngineId(), 1);
     assertEquals(fragmentMetas.get(0).getKeyInterval().getStartKey(), 0);
     assertEquals(fragmentMetas.get(0).getKeyInterval().getEndKey(), 1000);

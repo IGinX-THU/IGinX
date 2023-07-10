@@ -34,14 +34,14 @@ public abstract class Compaction {
         (o1, o2) -> {
           // 先按照时间维度排序，再按照时间序列维度排序
           if (o1.getKeyInterval().getStartKey() == o2.getKeyInterval().getStartKey()) {
-            if (o1.getColumnsRange().getStartColumn() == null) {
+            if (o1.getColumnsInterval().getStartColumn() == null) {
               return -1;
-            } else if (o2.getColumnsRange().getStartColumn() == null) {
+            } else if (o2.getColumnsInterval().getStartColumn() == null) {
               return 1;
             } else {
-              return o1.getColumnsRange()
+              return o1.getColumnsInterval()
                   .getStartColumn()
-                  .compareTo(o2.getColumnsRange().getStartColumn());
+                  .compareTo(o2.getColumnsInterval().getStartColumn());
             }
           } else {
             // 所有分片在时间维度上是统一的，因此只需要根据起始时间排序即可
@@ -76,44 +76,44 @@ public abstract class Compaction {
   }
 
   private boolean isNext(FragmentMeta firstFragment, FragmentMeta secondFragment) {
-    if (firstFragment.getColumnsRange().getEndColumn() == null
-        || secondFragment.getColumnsRange().getStartColumn() == null) {
+    if (firstFragment.getColumnsInterval().getEndColumn() == null
+        || secondFragment.getColumnsInterval().getStartColumn() == null) {
       return false;
     } else {
       return firstFragment.getKeyInterval().equals(secondFragment.getKeyInterval())
           && firstFragment
-              .getColumnsRange()
+              .getColumnsInterval()
               .getEndColumn()
-              .equals(secondFragment.getColumnsRange().getStartColumn());
+              .equals(secondFragment.getColumnsInterval().getStartColumn());
     }
   }
 
   protected void compactFragmentGroupToTargetStorageUnit(
       List<FragmentMeta> fragmentGroup, StorageUnitMeta targetStorageUnit, long totalPoints)
       throws PhysicalException {
-    String startTimeseries = fragmentGroup.get(0).getColumnsRange().getStartColumn();
-    String endTimeseries = fragmentGroup.get(0).getColumnsRange().getEndColumn();
+    String startTimeseries = fragmentGroup.get(0).getColumnsInterval().getStartColumn();
+    String endTimeseries = fragmentGroup.get(0).getColumnsInterval().getEndColumn();
     long startTime = fragmentGroup.get(0).getKeyInterval().getStartKey();
     long endTime = fragmentGroup.get(0).getKeyInterval().getEndKey();
 
     for (FragmentMeta fragmentMeta : fragmentGroup) {
       // 找到新分片空间
-      if (startTimeseries == null || fragmentMeta.getColumnsRange().getStartColumn() == null) {
+      if (startTimeseries == null || fragmentMeta.getColumnsInterval().getStartColumn() == null) {
         startTimeseries = null;
       } else {
         startTimeseries =
-            startTimeseries.compareTo(fragmentMeta.getColumnsRange().getStartColumn()) > 0
-                ? fragmentMeta.getColumnsRange().getStartColumn()
+            startTimeseries.compareTo(fragmentMeta.getColumnsInterval().getStartColumn()) > 0
+                ? fragmentMeta.getColumnsInterval().getStartColumn()
                 : startTimeseries;
       }
 
-      if (endTimeseries == null || fragmentMeta.getColumnsRange().getEndColumn() == null) {
+      if (endTimeseries == null || fragmentMeta.getColumnsInterval().getEndColumn() == null) {
         endTimeseries = null;
       } else {
         endTimeseries =
-            endTimeseries.compareTo(fragmentMeta.getColumnsRange().getEndColumn()) > 0
+            endTimeseries.compareTo(fragmentMeta.getColumnsInterval().getEndColumn()) > 0
                 ? endTimeseries
-                : fragmentMeta.getColumnsRange().getEndColumn();
+                : fragmentMeta.getColumnsInterval().getEndColumn();
       }
 
       String storageUnitId = fragmentMeta.getMasterStorageUnitId();
@@ -130,7 +130,7 @@ public abstract class Compaction {
           if (timeSeries.contains("{") && timeSeries.contains("}")) {
             timeSeries = timeSeries.split("\\{")[0];
           }
-          if (fragmentMeta.getColumnsRange().isContain(timeSeries)) {
+          if (fragmentMeta.getColumnsInterval().isContain(timeSeries)) {
             pathSet.add(timeSeries);
           }
         }

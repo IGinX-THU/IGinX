@@ -6,7 +6,7 @@ import cn.edu.tsinghua.iginx.exceptions.UnsupportedDataTypeException;
 import cn.edu.tsinghua.iginx.mongodb.MongoDBStorage;
 import cn.edu.tsinghua.iginx.mongodb.query.entity.MongoDBSchema;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson2.JSONObject;
 import java.util.*;
 import org.bson.Document;
 

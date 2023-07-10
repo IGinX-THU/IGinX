@@ -26,7 +26,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
-import cn.edu.tsinghua.iginx.metadata.entity.ColumnsRange;
+import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
@@ -36,7 +36,7 @@ import cn.edu.tsinghua.iginx.mongodb.tools.DataUtils;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson2.JSONObject;
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.client.*;
@@ -537,7 +537,7 @@ public class MongoDBStorage implements IStorage {
   }
 
   @Override
-  public Pair<ColumnsRange, KeyInterval> getBoundaryOfStorage(String prefix) {
+  public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String prefix) {
     // TODO DOESN'T NEED TO IMPLEMENT
     return null;
   }

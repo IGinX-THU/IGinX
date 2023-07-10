@@ -57,9 +57,9 @@ public class MigrationTask {
         + SEPARATOR
         + fragmentMeta.getKeyInterval().getEndKey()
         + SEPARATOR
-        + fragmentMeta.getColumnsRange().getStartColumn()
+        + fragmentMeta.getColumnsInterval().getStartColumn()
         + SEPARATOR
-        + fragmentMeta.getColumnsRange().getEndColumn()
+        + fragmentMeta.getColumnsInterval().getEndColumn()
         + SEPARATOR
         + fragmentMeta.getMasterStorageUnitId()
         + SEPARATOR

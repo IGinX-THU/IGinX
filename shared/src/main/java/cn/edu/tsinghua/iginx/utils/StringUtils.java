@@ -25,6 +25,11 @@ import java.util.regex.Pattern;
 
 public class StringUtils {
 
+  public static final Character MIN_CHAR = '!';
+  private static final String SPECIAL_CHAR_SET =
+      "[!&()+=|'%`;,<>?\n\t][\u2E80\u2E81\u2E82\u2E83\u2E84\u2E85][\\x00-\\x1F\\x7F]";
+  private static final String[] REGEX = {"[", "]", "(", ")", "|", "+", "?", "*", "-"};
+
   /**
    * @param ts 时间序列(可能等于/含有*，不可能为null)
    * @param border 分片的开始/结束边界(不可能等于/含有*，可能为null)
@@ -69,7 +74,7 @@ public class StringUtils {
   }
 
   public static String nextString(String str) {
-    return str.substring(0, str.length() - 1) + (char) (str.charAt(str.length() - 1) + 1);
+    return str + MIN_CHAR;
   }
 
   public static boolean allHasMoreThanOneSubPath(List<String> pathList) {
@@ -112,9 +117,22 @@ public class StringUtils {
   }
 
   public static boolean isContainSpecialChar(String str) {
-    String regEx = "[~!@#$%&()+=|{}':;',<>?~]|\r|\n|\t|[\u2E80\u2E81\u2E82\u2E83\u2E84\u2E85]";
+    String regEx = SPECIAL_CHAR_SET;
     Pattern p = Pattern.compile(regEx);
     Matcher m = p.matcher(str);
     return m.find();
+  }
+
+  // 是否包含除IGinX认同的合法字符之外的，正则表达式字符
+  public static boolean isContainRegex(String str) {
+    if (str == null) {
+      return false;
+    }
+    for (int i = 0; i < REGEX.length; i++) {
+      if (str.contains(REGEX[i])) {
+        return true;
+      }
+    }
+    return false;
   }
 }
