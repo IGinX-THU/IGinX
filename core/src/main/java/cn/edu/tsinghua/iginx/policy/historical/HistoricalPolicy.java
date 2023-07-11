@@ -113,7 +113,7 @@ public class HistoricalPolicy implements IPolicy {
         ConfigDescriptor.getInstance().getConfig().getExpectedStorageUnitNum();
 
     List<String> prefixList = new ArrayList<>();
-    List<ColumnsRange> columnsIntervalList = new ArrayList<>();
+    List<ColumnsInterval> columnsIntervalList = new ArrayList<>();
     for (String historicalPrefix : historicalPrefixList) {
       for (String suffix : suffixList) {
         if (!prefixList.contains(historicalPrefix + suffix)) {

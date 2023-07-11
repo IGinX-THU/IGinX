@@ -516,11 +516,11 @@ public class DefaultMetaManager implements IMetaManager {
   }
 
   @Override
-  public Pair<ColumnsRange, KeyInterval> getBoundaryOfStorageUnit(String storageUnitId) {
+  public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorageUnit(String storageUnitId) {
     List<FragmentMeta> fragmentMetaList = cache.getFragmentListByStorageUnitId(storageUnitId);
 
-    String startPath = fragmentMetaList.get(0).getColumnsRange().getStartColumn();
-    String endPath = fragmentMetaList.get(0).getColumnsRange().getEndColumn();
+    String startPath = fragmentMetaList.get(0).getColumnsInterval().getStartColumn();
+    String endPath = fragmentMetaList.get(0).getColumnsInterval().getEndColumn();
     long startKey = fragmentMetaList.get(0).getKeyInterval().getStartKey();
     long endKey = fragmentMetaList.get(0).getKeyInterval().getEndKey();
 
@@ -533,13 +533,13 @@ public class DefaultMetaManager implements IMetaManager {
         endKey = meta.getKeyInterval().getEndKey();
       }
       if (startPath != null) {
-        if (StringUtils.compare(startPath, meta.getColumnsRange().getStartColumn(), true) > 0) {
-          startPath = meta.getColumnsRange().getStartColumn();
+        if (StringUtils.compare(startPath, meta.getColumnsInterval().getStartColumn(), true) > 0) {
+          startPath = meta.getColumnsInterval().getStartColumn();
         }
       }
       if (endPath != null) {
-        if (StringUtils.compare(endPath, meta.getColumnsRange().getEndColumn(), false) < 0) {
-          endPath = meta.getColumnsRange().getEndColumn();
+        if (StringUtils.compare(endPath, meta.getColumnsInterval().getEndColumn(), false) < 0) {
+          endPath = meta.getColumnsInterval().getEndColumn();
         }
       }
     }
@@ -547,23 +547,23 @@ public class DefaultMetaManager implements IMetaManager {
   }
 
   @Override
-  public Map<ColumnsRange, List<FragmentMeta>> getFragmentMapByColumnsRange(
-      ColumnsRange columnsRange) {
-    return getFragmentMapByColumnsRange(columnsRange, false);
+  public Map<ColumnsInterval, List<FragmentMeta>> getFragmentMapByColumnsInterval(
+      ColumnsInterval columnsInterval) {
+    return getFragmentMapByColumnsInterval(columnsInterval, false);
   }
 
   @Override
-  public Map<ColumnsRange, List<FragmentMeta>> getFragmentMapByColumnsRange(
-      ColumnsRange columnsRange, boolean withDummyFragment) {
-    Map<ColumnsRange, List<FragmentMeta>> fragmentsMap;
+  public Map<ColumnsInterval, List<FragmentMeta>> getFragmentMapByColumnsInterval(
+      ColumnsInterval columnsInterval, boolean withDummyFragment) {
+    Map<ColumnsInterval, List<FragmentMeta>> fragmentsMap;
     if (cache.enableFragmentCacheControl() && cache.getFragmentMinKey() > 0L) { // 最老的分片被逐出去了
       KeyInterval beforeKeyInterval = new KeyInterval(0L, cache.getFragmentMinKey());
       fragmentsMap =
-          storage.getFragmentMapByColumnsIntervalAndKeyInterval(columnsRange, beforeKeyInterval);
+          storage.getFragmentMapByColumnsIntervalAndKeyInterval(columnsInterval, beforeKeyInterval);
       updateStorageUnitReference(fragmentsMap);
-      Map<ColumnsRange, List<FragmentMeta>> recentFragmentsMap =
-          cache.getFragmentMapByColumnsInterval(columnsRange);
-      for (ColumnsRange ts : recentFragmentsMap.keySet()) {
+      Map<ColumnsInterval, List<FragmentMeta>> recentFragmentsMap =
+          cache.getFragmentMapByColumnsInterval(columnsInterval);
+      for (ColumnsInterval ts : recentFragmentsMap.keySet()) {
         List<FragmentMeta> fragments = recentFragmentsMap.get(ts);
         if (fragmentsMap.containsKey(ts)) {
           fragmentsMap.get(ts).addAll(fragments);
@@ -572,18 +572,18 @@ public class DefaultMetaManager implements IMetaManager {
         }
       }
     } else {
-      fragmentsMap = cache.getFragmentMapByColumnsInterval(columnsRange);
+      fragmentsMap = cache.getFragmentMapByColumnsInterval(columnsInterval);
     }
     if (withDummyFragment) {
-      List<FragmentMeta> fragmentList = cache.getDummyFragmentsByColumnsInterval(columnsRange);
+      List<FragmentMeta> fragmentList = cache.getDummyFragmentsByColumnsInterval(columnsInterval);
       mergeToFragmentMap(fragmentsMap, fragmentList);
     }
     return fragmentsMap;
   }
 
   @Override
-  public boolean hasDummyFragment(ColumnsRange columnsRange) {
-    List<FragmentMeta> fragmentList = cache.getDummyFragmentsByColumnsInterval(columnsRange);
+  public boolean hasDummyFragment(ColumnsInterval columnsInterval) {
+    List<FragmentMeta> fragmentList = cache.getDummyFragmentsByColumnsInterval(columnsInterval);
     return !fragmentList.isEmpty();
   }
 
@@ -593,36 +593,36 @@ public class DefaultMetaManager implements IMetaManager {
   }
 
   @Override
-  public Map<ColumnsRange, FragmentMeta> getLatestFragmentMapByColumnsRange(
-      ColumnsRange columnsRange) {
-    return cache.getLatestFragmentMapByColumnsInterval(columnsRange);
+  public Map<ColumnsInterval, FragmentMeta> getLatestFragmentMapByColumnsInterval(
+      ColumnsInterval columnsInterval) {
+    return cache.getLatestFragmentMapByColumnsInterval(columnsInterval);
   }
 
   @Override
-  public Map<ColumnsRange, FragmentMeta> getLatestFragmentMap() {
+  public Map<ColumnsInterval, FragmentMeta> getLatestFragmentMap() {
     return cache.getLatestFragmentMap();
   }
 
   @Override
-  public Map<ColumnsRange, List<FragmentMeta>> getFragmentMapByColumnsIntervalAndKeyInterval(
-      ColumnsRange columnsRange, KeyInterval keyInterval) {
-    return getFragmentMapByColumnsIntervalAndKeyInterval(columnsRange, keyInterval, false);
+  public Map<ColumnsInterval, List<FragmentMeta>> getFragmentMapByColumnsIntervalAndKeyInterval(
+      ColumnsInterval columnsInterval, KeyInterval keyInterval) {
+    return getFragmentMapByColumnsIntervalAndKeyInterval(columnsInterval, keyInterval, false);
   }
 
   @Override
-  public Map<ColumnsRange, List<FragmentMeta>> getFragmentMapByColumnsIntervalAndKeyInterval(
-      ColumnsRange columnsRange, KeyInterval keyInterval, boolean withDummyFragment) {
-    Map<ColumnsRange, List<FragmentMeta>> fragmentsMap;
+  public Map<ColumnsInterval, List<FragmentMeta>> getFragmentMapByColumnsIntervalAndKeyInterval(
+      ColumnsInterval columnsInterval, KeyInterval keyInterval, boolean withDummyFragment) {
+    Map<ColumnsInterval, List<FragmentMeta>> fragmentsMap;
     if (cache.enableFragmentCacheControl()
         && keyInterval.getStartKey() < cache.getFragmentMinKey()) {
       KeyInterval beforeKeyInterval =
           new KeyInterval(keyInterval.getStartKey(), cache.getFragmentMinKey());
       fragmentsMap =
-          storage.getFragmentMapByColumnsIntervalAndKeyInterval(columnsRange, beforeKeyInterval);
+          storage.getFragmentMapByColumnsIntervalAndKeyInterval(columnsInterval, beforeKeyInterval);
       updateStorageUnitReference(fragmentsMap);
-      Map<ColumnsRange, List<FragmentMeta>> recentFragmentsMap =
-          cache.getFragmentMapByColumnsIntervalAndKeyInterval(columnsRange, keyInterval);
-      for (ColumnsRange ts : recentFragmentsMap.keySet()) {
+      Map<ColumnsInterval, List<FragmentMeta>> recentFragmentsMap =
+          cache.getFragmentMapByColumnsIntervalAndKeyInterval(columnsInterval, keyInterval);
+      for (ColumnsInterval ts : recentFragmentsMap.keySet()) {
         List<FragmentMeta> fragments = recentFragmentsMap.get(ts);
         if (fragmentsMap.containsKey(ts)) {
           fragmentsMap.get(ts).addAll(fragments);
@@ -631,24 +631,25 @@ public class DefaultMetaManager implements IMetaManager {
         }
       }
     } else {
-      fragmentsMap = cache.getFragmentMapByColumnsIntervalAndKeyInterval(columnsRange, keyInterval);
+      fragmentsMap =
+          cache.getFragmentMapByColumnsIntervalAndKeyInterval(columnsInterval, keyInterval);
     }
     if (withDummyFragment) {
       List<FragmentMeta> fragmentList =
-          cache.getDummyFragmentsByColumnsIntervalAndKeyInterval(columnsRange, keyInterval);
+          cache.getDummyFragmentsByColumnsIntervalAndKeyInterval(columnsInterval, keyInterval);
       mergeToFragmentMap(fragmentsMap, fragmentList);
     }
     return fragmentsMap;
   }
 
   private void mergeToFragmentMap(
-      Map<ColumnsRange, List<FragmentMeta>> fragmentsMap, List<FragmentMeta> fragmentList) {
+      Map<ColumnsInterval, List<FragmentMeta>> fragmentsMap, List<FragmentMeta> fragmentList) {
     for (FragmentMeta fragment : fragmentList) {
-      ColumnsRange tsInterval = fragment.getColumnsRange();
-      if (!fragmentsMap.containsKey(tsInterval)) {
-        fragmentsMap.put(tsInterval, new ArrayList<>());
+      ColumnsInterval columnsInterval = fragment.getColumnsInterval();
+      if (!fragmentsMap.containsKey(columnsInterval)) {
+        fragmentsMap.put(columnsInterval, new ArrayList<>());
       }
-      List<FragmentMeta> currentFragmentList = fragmentsMap.get(tsInterval);
+      List<FragmentMeta> currentFragmentList = fragmentsMap.get(columnsInterval);
       int index = 0;
       while (index < currentFragmentList.size()) {
         if (currentFragmentList.get(index).getKeyInterval().getStartKey()
@@ -733,7 +734,7 @@ public class DefaultMetaManager implements IMetaManager {
         }
       }
 
-      Map<ColumnsRange, FragmentMeta> latestFragments = getLatestFragmentMap();
+      Map<ColumnsInterval, FragmentMeta> latestFragments = getLatestFragmentMap();
       for (FragmentMeta originalFragmentMeta : latestFragments.values()) {
         FragmentMeta fragmentMeta =
             originalFragmentMeta.endFragmentMeta(fragments.get(0).getKeyInterval().getStartKey());
@@ -801,7 +802,7 @@ public class DefaultMetaManager implements IMetaManager {
       }
 
       // 结束旧分片
-      cache.deleteFragmentByColumnsInterval(fragment.getColumnsRange(), fragment);
+      cache.deleteFragmentByColumnsInterval(fragment.getColumnsInterval(), fragment);
       fragment = fragment.endFragmentMeta(toAddFragment.getKeyInterval().getStartKey());
       cache.addFragment(fragment);
       fragment.setUpdatedBy(id);
@@ -835,7 +836,7 @@ public class DefaultMetaManager implements IMetaManager {
   public void removeFragment(FragmentMeta fragmentMeta) {
     try {
       storage.lockFragment();
-      cache.deleteFragmentByColumnsInterval(fragmentMeta.getColumnsRange(), fragmentMeta);
+      cache.deleteFragmentByColumnsInterval(fragmentMeta.getColumnsInterval(), fragmentMeta);
       storage.removeFragment(fragmentMeta);
     } catch (MetaStorageException e) {
       logger.error("remove fragment error: ", e);
@@ -866,17 +867,17 @@ public class DefaultMetaManager implements IMetaManager {
   }
 
   @Override
-  public void endFragmentByColumnsRange(FragmentMeta fragmentMeta, String endColumn) {
+  public void endFragmentByColumnsInterval(FragmentMeta fragmentMeta, String endColumn) {
     try {
       storage.lockFragment();
-      ColumnsRange sourceTsInterval =
+      ColumnsInterval sourceColumnsInterval =
           new ColumnsInterval(
-              fragmentMeta.getColumnsRange().getStartColumn(),
-              fragmentMeta.getColumnsRange().getEndColumn());
-      cache.deleteFragmentByColumnsInterval(fragmentMeta.getColumnsRange(), fragmentMeta);
-      fragmentMeta.getColumnsRange().setEndColumn(endColumn);
+              fragmentMeta.getColumnsInterval().getStartColumn(),
+              fragmentMeta.getColumnsInterval().getEndColumn());
+      cache.deleteFragmentByColumnsInterval(fragmentMeta.getColumnsInterval(), fragmentMeta);
+      fragmentMeta.getColumnsInterval().setEndColumn(endColumn);
       cache.addFragment(fragmentMeta);
-      storage.updateFragmentByColumnsRange(sourceTsInterval, fragmentMeta);
+      storage.updateFragmentByColumnsInterval(sourceColumnsInterval, fragmentMeta);
     } catch (MetaStorageException e) {
       logger.error("end fragment by time series interval error: ", e);
     } finally {
@@ -889,11 +890,12 @@ public class DefaultMetaManager implements IMetaManager {
   }
 
   @Override
-  public void updateFragmentByColumnsRange(ColumnsRange columnsRange, FragmentMeta fragmentMeta) {
+  public void updateFragmentByColumnsInterval(
+      ColumnsInterval columnsInterval, FragmentMeta fragmentMeta) {
     try {
       storage.lockFragment();
-      cache.updateFragmentByColumnsInterval(columnsRange, fragmentMeta);
-      storage.updateFragmentByColumnsRange(columnsRange, fragmentMeta);
+      cache.updateFragmentByColumnsInterval(columnsInterval, fragmentMeta);
+      storage.updateFragmentByColumnsInterval(columnsInterval, fragmentMeta);
     } catch (Exception e) {
       logger.error("update fragment error: ", e);
     } finally {
@@ -931,8 +933,8 @@ public class DefaultMetaManager implements IMetaManager {
           logger.error("fragments which have the same start key should also have the same end key");
           return;
         }
-        String startColumn = fragment.getColumnsRange().getStartColumn();
-        String endColumn = fragment.getColumnsRange().getEndColumn();
+        String startColumn = fragment.getColumnsInterval().getStartColumn();
+        String endColumn = fragment.getColumnsInterval().getEndColumn();
         borders.put(startColumn, borders.getOrDefault(startColumn, 0) - 1);
         borders.put(endColumn, borders.getOrDefault(endColumn, 0) + 1);
       }
@@ -993,8 +995,8 @@ public class DefaultMetaManager implements IMetaManager {
         logger.error("new fragments created at the same key should have the same start key");
         return;
       }
-      String startTs = fragment.getColumnsRange().getStartColumn();
-      String endTs = fragment.getColumnsRange().getEndColumn();
+      String startTs = fragment.getColumnsInterval().getStartColumn();
+      String endTs = fragment.getColumnsInterval().getEndColumn();
       borders.put(startTs, borders.getOrDefault(startTs, 0) - 1);
       borders.put(endTs, borders.getOrDefault(endTs, 0) + 1);
     }
@@ -1027,7 +1029,7 @@ public class DefaultMetaManager implements IMetaManager {
       // 查看一下服务器上是不是已经有了
       Map<String, StorageUnitMeta> globalStorageUnits = storage.loadStorageUnit();
       if (globalStorageUnits != null && !globalStorageUnits.isEmpty()) { // 服务器上已经有人创建过了，本地只需要加载
-        Map<ColumnsRange, List<FragmentMeta>> globalFragmentMap = storage.loadFragment();
+        Map<ColumnsInterval, List<FragmentMeta>> globalFragmentMap = storage.loadFragment();
         newStorageUnits.addAll(globalStorageUnits.values());
         newStorageUnits.sort(Comparator.comparing(StorageUnitMeta::getId));
         logger.warn("server has created storage unit, just need to load.");
@@ -1239,16 +1241,13 @@ public class DefaultMetaManager implements IMetaManager {
       if (hasData) {
         StorageUnitMeta dummyStorageUnit =
             new StorageUnitMeta(StorageUnitMeta.generateDummyStorageUnitID(i), i);
-        Pair<ColumnsRange, KeyInterval> boundary = StorageManager.getBoundaryOfStorage(storage);
+        Pair<ColumnsInterval, KeyInterval> boundary = StorageManager.getBoundaryOfStorage(storage);
         FragmentMeta dummyFragment;
         if (dataPrefix == null) {
           dummyFragment = new FragmentMeta(boundary.k, boundary.v, dummyStorageUnit);
         } else {
           dummyFragment =
-              new FragmentMeta(
-                  new ColumnsInterval(dataPrefix, StringUtils.nextString(dataPrefix)),
-                  boundary.v,
-                  dummyStorageUnit);
+              new FragmentMeta(new ColumnsInterval(dataPrefix), boundary.v, dummyStorageUnit);
         }
         dummyFragment.setDummyFragment(true);
         storage.setDummyStorageUnit(dummyStorageUnit);
@@ -1327,7 +1326,7 @@ public class DefaultMetaManager implements IMetaManager {
     return users.get(0);
   }
 
-  protected void updateStorageUnitReference(Map<ColumnsRange, List<FragmentMeta>> fragmentsMap) {
+  protected void updateStorageUnitReference(Map<ColumnsInterval, List<FragmentMeta>> fragmentsMap) {
     for (List<FragmentMeta> fragments : fragmentsMap.values()) {
       for (FragmentMeta fragment : fragments) {
         fragment.setMasterStorageUnit(cache.getStorageUnit(fragment.getMasterStorageUnitId()));

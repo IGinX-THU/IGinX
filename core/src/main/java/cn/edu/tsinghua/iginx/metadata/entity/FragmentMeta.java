@@ -42,7 +42,7 @@ public final class FragmentMeta {
 
   private final KeyInterval keyInterval;
 
-  private final ColumnsRange columnsRange;
+  private final ColumnsInterval columnsInterval;
 
   private long createdBy;
 
@@ -62,20 +62,20 @@ public final class FragmentMeta {
 
   public FragmentMeta(String startPrefix, String endPrefix, long startKey, long endKey) {
     this.keyInterval = new KeyInterval(startKey, endKey);
-    this.columnsRange = new ColumnsInterval(startPrefix, endPrefix);
+    this.columnsInterval = new ColumnsInterval(startPrefix, endPrefix);
   }
 
   public FragmentMeta(
       String startPrefix, String endPrefix, long startKey, long endKey, String fakeStorageUnitId) {
     this.keyInterval = new KeyInterval(startKey, endKey);
-    this.columnsRange = new ColumnsInterval(startPrefix, endPrefix);
+    this.columnsInterval = new ColumnsInterval(startPrefix, endPrefix);
     this.fakeStorageUnitId = fakeStorageUnitId;
   }
 
   public FragmentMeta(
-      ColumnsRange columnsRange, KeyInterval keyInterval, String fakeStorageUnitId) {
+      ColumnsInterval columnsInterval, KeyInterval keyInterval, String fakeStorageUnitId) {
     this.keyInterval = keyInterval;
-    this.columnsRange = columnsRange;
+    this.columnsInterval = columnsInterval;
     this.fakeStorageUnitId = fakeStorageUnitId;
   }
 
@@ -86,22 +86,22 @@ public final class FragmentMeta {
       long endKey,
       StorageUnitMeta masterStorageUnit) {
     this.keyInterval = new KeyInterval(startKey, endKey);
-    this.columnsRange = new ColumnsInterval(startPrefix, endPrefix);
+    this.columnsInterval = new ColumnsInterval(startPrefix, endPrefix);
     this.masterStorageUnit = masterStorageUnit;
     this.masterStorageUnitId = masterStorageUnit.getMasterId();
   }
 
   public FragmentMeta(
-      ColumnsRange columnsRange, KeyInterval keyInterval, StorageUnitMeta masterStorageUnit) {
+      ColumnsInterval columnsInterval, KeyInterval keyInterval, StorageUnitMeta masterStorageUnit) {
     this.keyInterval = keyInterval;
-    this.columnsRange = columnsRange;
+    this.columnsInterval = columnsInterval;
     this.masterStorageUnit = masterStorageUnit;
     this.masterStorageUnitId = masterStorageUnit.getMasterId();
   }
 
   public FragmentMeta(
       KeyInterval keyInterval,
-      ColumnsRange columnsRange,
+      ColumnsInterval columnsInterval,
       long createdBy,
       long updatedBy,
       String masterStorageUnitId,
@@ -110,7 +110,7 @@ public final class FragmentMeta {
       boolean initialFragment,
       boolean dummyFragment) {
     this.keyInterval = keyInterval;
-    this.columnsRange = columnsRange;
+    this.columnsInterval = columnsInterval;
     this.createdBy = createdBy;
     this.updatedBy = updatedBy;
     this.masterStorageUnitId = masterStorageUnitId;
@@ -124,15 +124,15 @@ public final class FragmentMeta {
     return keyInterval;
   }
 
-  public ColumnsRange getColumnsRange() {
-    return columnsRange;
+  public ColumnsInterval getColumnsInterval() {
+    return columnsInterval;
   }
 
   public FragmentMeta endFragmentMeta(long endKey) {
     FragmentMeta fragment =
         new FragmentMeta(
-            columnsRange.getStartColumn(),
-            columnsRange.getEndColumn(),
+            columnsInterval.getStartColumn(),
+            columnsInterval.getEndColumn(),
             keyInterval.getStartKey(),
             endKey);
     fragment.setMasterStorageUnit(masterStorageUnit);
@@ -196,8 +196,8 @@ public final class FragmentMeta {
     return "FragmentMeta{"
         + "keyInterval="
         + keyInterval
-        + ", columnsRange="
-        + columnsRange
+        + ", columnsInterval="
+        + columnsInterval
         + ", createdBy="
         + createdBy
         + ", updatedBy="
@@ -216,12 +216,12 @@ public final class FragmentMeta {
     if (o == null || getClass() != o.getClass()) return false;
     FragmentMeta that = (FragmentMeta) o;
     return Objects.equals(keyInterval, that.keyInterval)
-        && Objects.equals(columnsRange, that.columnsRange);
+        && Objects.equals(columnsInterval, that.columnsInterval);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(keyInterval, columnsRange);
+    return Objects.hash(keyInterval, columnsInterval);
   }
 
   public boolean isInitialFragment() {

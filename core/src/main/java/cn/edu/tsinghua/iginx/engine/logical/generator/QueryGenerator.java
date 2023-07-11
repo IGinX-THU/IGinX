@@ -46,7 +46,6 @@ import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
-import cn.edu.tsinghua.iginx.metadata.entity.ColumnsRange;
 import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageUnitMeta;
@@ -420,11 +419,11 @@ public class QueryGenerator extends AbstractGenerator {
         SortUtils.mergeAndSortPaths(new ArrayList<>(selectStatement.getPathSet()));
     TagFilter tagFilter = selectStatement.getTagFilter();
 
-    ColumnsInterval interval =
+    ColumnsInterval columnsInterval =
         new ColumnsInterval(pathList.get(0), pathList.get(pathList.size() - 1));
 
     Pair<Map<KeyInterval, List<FragmentMeta>>, List<FragmentMeta>> pair =
-        getFragmentsByTSInterval(selectStatement, interval);
+        getFragmentsByColumnsInterval(selectStatement, columnsInterval);
     Map<KeyInterval, List<FragmentMeta>> fragments = pair.k;
     List<FragmentMeta> dummyFragments = pair.v;
 
@@ -446,7 +445,8 @@ public class QueryGenerator extends AbstractGenerator {
               } else {
                 String prefix = fromPart.getPath() + ALL_PATH_SUFFIX;
                 Pair<Map<KeyInterval, List<FragmentMeta>>, List<FragmentMeta>> pair =
-                    getFragmentsByTSInterval(selectStatement, new ColumnsInterval(prefix, prefix));
+                    getFragmentsByColumnsInterval(
+                        selectStatement, new ColumnsInterval(prefix, prefix));
                 Map<KeyInterval, List<FragmentMeta>> fragments = pair.k;
                 List<FragmentMeta> dummyFragments = pair.v;
                 joinList.add(
@@ -599,14 +599,13 @@ public class QueryGenerator extends AbstractGenerator {
       dummyFragments.forEach(
           meta -> {
             if (meta.isValid()) {
-              String schemaPrefix = meta.getColumnsRange().getSchemaPrefix();
+              String schemaPrefix = meta.getColumnsInterval().getSchemaPrefix();
               joinList.add(
                   new AddSchemaPrefix(
                       new OperatorSource(
                           new Project(
                               new FragmentSource(meta),
-                              pathMatchPrefix(
-                                  pathList, meta.getColumnsRange().getColumn(), schemaPrefix),
+                              pathMatchPrefix(pathList, meta.getColumnsInterval(), schemaPrefix),
                               tagFilter)),
                       schemaPrefix));
             }
@@ -619,10 +618,12 @@ public class QueryGenerator extends AbstractGenerator {
     return operator;
   }
 
-  private Pair<Map<KeyInterval, List<FragmentMeta>>, List<FragmentMeta>> getFragmentsByTSInterval(
-      SelectStatement selectStatement, ColumnsInterval interval) {
-    Map<ColumnsRange, List<FragmentMeta>> fragmentsByColumnsRange =
-        metaManager.getFragmentMapByColumnsRange(PathUtils.trimTimeSeriesInterval(interval), true);
+  private Pair<Map<KeyInterval, List<FragmentMeta>>, List<FragmentMeta>>
+      getFragmentsByColumnsInterval(
+          SelectStatement selectStatement, ColumnsInterval columnsInterval) {
+    Map<ColumnsInterval, List<FragmentMeta>> fragmentsByColumnsInterval =
+        metaManager.getFragmentMapByColumnsInterval(
+            PathUtils.trimColumnsInterval(columnsInterval), true);
     if (!metaManager.hasFragment()) {
       if (metaManager.hasWritableStorageEngines()) {
         // on startup
@@ -631,52 +632,34 @@ public class QueryGenerator extends AbstractGenerator {
         metaManager.createInitialFragmentsAndStorageUnits(
             fragmentsAndStorageUnits.v, fragmentsAndStorageUnits.k);
       }
-      fragmentsByColumnsRange = metaManager.getFragmentMapByColumnsRange(interval, true);
+      fragmentsByColumnsInterval =
+          metaManager.getFragmentMapByColumnsInterval(columnsInterval, true);
     }
-    return keyFromColumnsIntervalToKeyInterval(fragmentsByColumnsRange);
+    return keyFromColumnsIntervalToKeyInterval(fragmentsByColumnsInterval);
   }
 
-  // 筛选出满足 dataPrefix前缀，并且去除 schemaPrefix
-  private List<String> pathMatchPrefix(List<String> pathList, String prefix, String schemaPrefix) {
-    if (prefix == null && schemaPrefix == null) return pathList;
+  // 筛选出在 columnsInterval 范围内的 path 列表，返回去除 schemaPrefix 后的结果
+  private List<String> pathMatchPrefix(
+      List<String> pathList, ColumnsInterval columnsInterval, String schemaPrefix) {
     List<String> ans = new ArrayList<>();
 
-    if (prefix == null) { // deal with the schemaPrefix
-      for (String path : pathList) {
-        if (path.equals("*.*") || path.equals("*")) {
-          ans.add(path);
-        } else if (path.indexOf(schemaPrefix) == 0) {
-          path = path.substring(schemaPrefix.length() + 1);
-          ans.add(path);
-        }
-      }
-      return ans;
-    }
-    //        if (schemaPrefix != null) prefix = schemaPrefix + "." + prefix;
-
     for (String path : pathList) {
-      if (schemaPrefix != null && path.indexOf(schemaPrefix) == 0) {
-        path = path.substring(schemaPrefix.length() + 1);
-      }
+      String pathWithoutPrefix = path;
       if (path.equals("*.*") || path.equals("*")) {
-        ans.add(prefix + ".*");
-      } else if (path.charAt(path.length() - 1) == '*' && path.length() != 1) { // 通配符匹配，例如 a.b.*
-        String queryPrefix = path.substring(0, path.length() - 2) + ".(.*)";
-        if (prefix.matches(queryPrefix)) {
-          ans.add(path);
+        ans.add(path);
+        continue;
+      }
+      if (schemaPrefix != null) {
+        if (!path.startsWith(schemaPrefix)) {
           continue;
         }
-        queryPrefix = prefix + ".(.*)";
-        if (path.matches(queryPrefix)) {
-          ans.add(path);
-        }
-      } else if (!path.contains("*")) { // 例如 a.b.f 这样确切的路径信息
-        String queryPrefix = prefix + ".(.*)";
-        if (path.matches(queryPrefix)) {
-          ans.add(path);
-        }
+        pathWithoutPrefix = path.substring(schemaPrefix.length() + 1);
+      }
+      if (columnsInterval.isContain(path)) {
+        ans.add(pathWithoutPrefix);
       }
     }
+
     return ans;
   }
 }

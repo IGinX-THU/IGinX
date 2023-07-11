@@ -231,7 +231,7 @@ public class IginxClient {
       return OperationResult.STOP;
     }
 
-    if (isQuery(statement) || isShowTimeSeries(statement)) {
+    if (isQuery(statement) || isShowColumns(statement)) {
       processSqlWithStream(statement);
     } else if (isSetTimeUnit(statement)) {
       processSetTimeUnit(statement);
@@ -245,8 +245,8 @@ public class IginxClient {
     return sql.startsWith("select");
   }
 
-  private static boolean isShowTimeSeries(String sql) {
-    return sql.contains("show") && sql.contains("time") && sql.contains("series");
+  private static boolean isShowColumns(String sql) {
+    return sql.contains("show") && sql.contains("columns");
   }
 
   private static boolean isSetTimeUnit(String sql) {

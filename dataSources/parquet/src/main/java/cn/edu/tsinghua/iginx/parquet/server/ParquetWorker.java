@@ -21,7 +21,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.tag.OrTagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.PreciseTagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.WithoutTagFilter;
-import cn.edu.tsinghua.iginx.metadata.entity.ColumnsRange;
+import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.parquet.exec.Executor;
 import cn.edu.tsinghua.iginx.parquet.thrift.*;
@@ -294,7 +294,7 @@ public class ParquetWorker implements ParquetService.Iface {
   @Override
   public GetStorageBoundaryResp getBoundaryOfStorage() throws TException {
     try {
-      Pair<ColumnsRange, KeyInterval> pair = executor.getBoundaryOfStorage();
+      Pair<ColumnsInterval, KeyInterval> pair = executor.getBoundaryOfStorage();
       GetStorageBoundaryResp resp = new GetStorageBoundaryResp(SUCCESS);
       resp.setStartKey(pair.getV().getStartKey());
       resp.setEndKey(pair.getV().getEndKey());

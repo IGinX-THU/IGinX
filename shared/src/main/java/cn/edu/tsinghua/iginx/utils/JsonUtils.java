@@ -1,15 +1,13 @@
 package cn.edu.tsinghua.iginx.utils;
 
 import com.alibaba.fastjson2.JSON;
-import com.alibaba.fastjson2.JSONWriter;
 import java.util.HashMap;
 import java.util.Map;
 
 public class JsonUtils {
 
   public static byte[] toJson(Object o) {
-    String tmp = JSON.toJSONString(o, JSONWriter.Feature.WriteClassName);
-    return tmp.getBytes();
+    return JSON.toJSONBytes(o);
   }
 
   public static byte[] toJsonWithoutClassName(Object o) {

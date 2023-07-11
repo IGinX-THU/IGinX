@@ -14,22 +14,13 @@ sh -c "echo ========================="
 
 sh -c "ls apache-iotdb-0.12.6-server-bin"
 
-sh -c "sudo sed -i 's/# wal_buffer_size=16777216/wal_buffer_size=167772160/g' apache-iotdb-0.12.6-server-bin/conf/iotdb-engine.properties"
+for port in "$@"
+do
+  sh -c "sudo cp -r apache-iotdb-0.12.6-server-bin/ apache-iotdb-0.12.6-server-bin-$port"
 
-sh -c "sudo cp -r apache-iotdb-0.12.6-server-bin/ apache-iotdb2-0.12.6-server-bin"
+  sh -c "sudo sed -i 's/# wal_buffer_size=16777216/wal_buffer_size=167772160/g' apache-iotdb-0.12.6-server-bin-$port/conf/iotdb-engine.properties"
 
-sh -c "sudo sed -i 's/# wal_buffer_size=16777216/wal_buffer_size=167772160/g' apache-iotdb2-0.12.6-server-bin/conf/iotdb-engine.properties"
+  sh -c "sudo sed -i 's/6667/$port/g' apache-iotdb-0.12.6-server-bin-$port/conf/iotdb-engine.properties"
 
-sh -c "sudo sed -i 's/6667/6668/g' apache-iotdb2-0.12.6-server-bin/conf/iotdb-engine.properties"
-
-sh -c "sudo cp -r apache-iotdb-0.12.6-server-bin/ apache-iotdb3-0.12.6-server-bin"
-
-sh -c "sudo sed -i 's/# wal_buffer_size=16777216/wal_buffer_size=167772160/g' apache-iotdb3-0.12.6-server-bin/conf/iotdb-engine.properties"
-
-sh -c "sudo sed -i 's/6667/6669/g' apache-iotdb3-0.12.6-server-bin/conf/iotdb-engine.properties"
-
-sudo sh -c "cd apache-iotdb-0.12.6-server-bin/; nohup sbin/start-server.sh &"
-
-sudo sh -c "cd apache-iotdb2-0.12.6-server-bin/; nohup sbin/start-server.sh &"
-
-sudo sh -c "cd apache-iotdb3-0.12.6-server-bin/; nohup sbin/start-server.sh &"
+  sudo sh -c "cd apache-iotdb-0.12.6-server-bin-$port/; nohup sbin/start-server.sh &"
+done

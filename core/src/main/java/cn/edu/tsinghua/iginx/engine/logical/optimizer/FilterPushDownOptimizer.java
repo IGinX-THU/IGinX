@@ -82,7 +82,7 @@ public class FilterPushDownOptimizer implements Optimizer {
       if (cache.containsKey(fragmentMeta.getMasterStorageUnitId())) {
         subFilter = cache.get(fragmentMeta.getMasterStorageUnitId()).copy();
       } else {
-        subFilter = ExprUtils.getSubFilterFromFragment(filter, fragmentMeta.getColumnsRange());
+        subFilter = ExprUtils.getSubFilterFromFragment(filter, fragmentMeta.getColumnsInterval());
         cache.put(fragmentMeta.getMasterStorageUnitId(), subFilter);
       }
       if (subFilter.getType() == FilterType.Bool && ((BoolFilter) subFilter).isTrue()) {
