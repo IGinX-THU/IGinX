@@ -13,7 +13,6 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.filesystem.exec.LocalExecutor;
 import cn.edu.tsinghua.iginx.filesystem.file.property.FilePath;
 import cn.edu.tsinghua.iginx.filesystem.filesystem.FileSystemService;
-import cn.edu.tsinghua.iginx.filesystem.query.FSResultTable;
 import cn.edu.tsinghua.iginx.filesystem.tools.ConfLoader;
 import cn.edu.tsinghua.iginx.filesystem.tools.FilterTransformer;
 import cn.edu.tsinghua.iginx.filesystem.wrapper.Record;
@@ -72,14 +71,14 @@ public class FuncUT {
               }
             });
 
-//    List<FSResultTable> res =
-//        fileSystem.readFile(
-//            new File(FilePath.toIginxPath(root, "unit0000", path)), filter, andFilter);
-//    for (FSResultTable record : res) {
-//      for (Record tmp : record.getVal()) {
-//        System.out.println(tmp.getRawData());
-//      }
-//    }
+    //    List<FSResultTable> res =
+    //        fileSystem.readFile(
+    //            new File(FilePath.toIginxPath(root, "unit0000", path)), filter, andFilter);
+    //    for (FSResultTable record : res) {
+    //      for (Record tmp : record.getVal()) {
+    //        System.out.println(tmp.getRawData());
+    //      }
+    //    }
   }
 
   @Test
@@ -105,14 +104,14 @@ public class FuncUT {
               }
             });
 
-//    List<FSResultTable> res =
-//        fileSystem.readFile(
-//            new File(FilePath.toIginxPath(root, "unit0000", path)), null, andFilter);
-//    for (FSResultTable record : res) {
-//      for (Record tmp : record.getVal()) {
-//        System.out.println(tmp.getRawData());
-//      }
-//    }
+    //    List<FSResultTable> res =
+    //        fileSystem.readFile(
+    //            new File(FilePath.toIginxPath(root, "unit0000", path)), null, andFilter);
+    //    for (FSResultTable record : res) {
+    //      for (Record tmp : record.getVal()) {
+    //        System.out.println(tmp.getRawData());
+    //      }
+    //    }
   }
 
   @Test
@@ -148,7 +147,7 @@ public class FuncUT {
         };
 
     //        String storageUnit, List<String> series, TagFilter tagFilter, Filter filter
-//    res = local.executeQueryTask("unit0000", series, filter, andFilter);
+    //    res = local.executeQueryTask("unit0000", series, filter, andFilter);
 
     RowStream rowStream = res.getRowStream();
     while (rowStream.hasNext()) {
@@ -194,7 +193,6 @@ public class FuncUT {
     child.add(keyFilter2);
 
     Filter andFilter = new AndFilter(child);
-
   }
 
   @Test
@@ -226,9 +224,9 @@ public class FuncUT {
     Filter filter = new AndFilter(child);
     FilterTransformer filterTransformer = new FilterTransformer();
     BiMap<String, String> vals = HashBiMap.create();
-//    String res = FilterTransformer.toString(filter, vals);
-//    Expression<String> nonStandard = ExprParser.parse(res);
-//    System.out.println(nonStandard.toString());
+    //    String res = FilterTransformer.toString(filter, vals);
+    //    Expression<String> nonStandard = ExprParser.parse(res);
+    //    System.out.println(nonStandard.toString());
     System.out.println(vals);
     com.bpodgursky.jbool_expressions.Expression<String> expr =
         ExprParser.parse("( ( (! C) | C) & b2 & a1)");

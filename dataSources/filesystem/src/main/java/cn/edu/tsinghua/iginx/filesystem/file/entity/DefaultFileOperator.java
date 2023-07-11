@@ -19,6 +19,8 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,36 +63,42 @@ public class DefaultFileOperator implements IFileOperator {
     ExecutorService executorService = null;
     List<Future<Void>> futures = new ArrayList<>();
     List<byte[]> res = new ArrayList<>();
-    int round = (int) (end % BUFFER_SIZE == 0 ? end / BUFFER_SIZE : end / BUFFER_SIZE + 1);
+    long size = end - begin;
+    int round = (int) (size % BUFFER_SIZE == 0 ? size / BUFFER_SIZE : size / BUFFER_SIZE + 1);
     for (int i = 0; i < round; i++) {
       res.add(new byte[0]);
     }
-    long readPos = begin;
-    int index = 0;
+    AtomicLong readPos = new AtomicLong(begin);
+    AtomicInteger index = new AtomicInteger();
     int batchSize = BUFFER_SIZE;
     boolean ifNeedMultithread = file.length() / (BUFFER_SIZE) > 5;
     if (ifNeedMultithread) {
       executorService = Executors.newCachedThreadPool();
     }
-
     // Move the file pointer to the starting position
-    try (RandomAccessFile raf = new RandomAccessFile(file, "r")) {
-      while (readPos < end) {
-        long finalReadPos = readPos;
-        int finalIndex = index;
+    try {
+      while (readPos.get() < end) {
+        long finalReadPos = readPos.get();
+        int finalIndex = index.get();
         if (ifNeedMultithread) {
           futures.add(
               executorService.submit(
                   () -> {
-                    readBatch(raf, batchSize, finalReadPos, finalIndex, res);
+                    readBatch(file, batchSize, finalReadPos, finalIndex, res);
                     return null;
                   }));
         } else {
-          readBatch(raf, batchSize, finalReadPos, finalIndex, res);
+          readBatch(file, batchSize, finalReadPos, finalIndex, res);
         }
-        index++;
-        readPos += BUFFER_SIZE;
+        index.getAndIncrement();
+        readPos.addAndGet(BUFFER_SIZE);
       }
+      executorService.shutdown();
+      if (!executorService.awaitTermination(10, TimeUnit.SECONDS)) {
+        executorService.shutdownNow();
+      }
+    } catch (InterruptedException e) {
+      throw new RuntimeException(e);
     } finally {
       if (executorService != null) {
         executorService.shutdown();
@@ -108,16 +116,14 @@ public class DefaultFileOperator implements IFileOperator {
     return res;
   }
 
-  public final void readBatch(
-      RandomAccessFile raf, int batchSize, long readPos, int index, List<byte[]> res)
+  public final void readBatch(File file, int batchSize, long readPos, int index, List<byte[]> res)
       throws IOException {
-    try {
+    try (RandomAccessFile raf = new RandomAccessFile(file, "r")) {
       byte[] buffer = MemoryPool.allocate(batchSize); // 一次读取1MB
       raf.seek(readPos);
-      // Read the specified range of bytes from the file
       int len = raf.read(buffer);
       if (len < 0) {
-        logger.error("reach the end of the file with len {}", len);
+        logger.info("reach the end of the file with len {}", len);
         return;
       }
       if (len != batchSize) {
@@ -128,6 +134,8 @@ public class DefaultFileOperator implements IFileOperator {
         res.set(index, buffer);
       }
     } catch (IOException e) {
+      logger.error(
+          "readBatch fail because {} with readPos:{} and index:{}", e.getMessage(), readPos, index);
       throw new IOException(e);
     }
   }
@@ -519,7 +527,9 @@ public class DefaultFileOperator implements IFileOperator {
         writer.write(String.valueOf(fileMeta.getDataType().getValue()));
         writer.write("\n");
         writer.write(
-            fileMeta.getTag() == null ? "{}" : new String(JsonUtils.toJsonWithoutClassName(fileMeta.getTag())));
+            fileMeta.getTag() == null
+                ? "{}"
+                : new String(JsonUtils.toJsonWithoutClassName(fileMeta.getTag())));
         writer.write("\n");
         for (int i = 0; i < FileMeta.iginxFileMetaIndex - 3; i++) {
           writer.write("\n");

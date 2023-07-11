@@ -12,10 +12,10 @@ public abstract class BaseHistoryDataGenerator {
   public static final List<String> ORI_PATH_LIST =
       Arrays.asList("mn.wf01.wt01.status", "mn.wf01.wt01.temperature");
 
-  public static final List<DataType> ORI_DATA_TYPE_LIST =
+  public static List<DataType> ORI_DATA_TYPE_LIST =
       Arrays.asList(DataType.BOOLEAN, DataType.DOUBLE);
 
-  public static final List<List<Object>> ORI_VALUES_LIST =
+  public static List<List<Object>> ORI_VALUES_LIST =
       Arrays.asList(Arrays.asList(true, 15.27), Arrays.asList(false, 20.71));
 
   public int expPort;
@@ -23,21 +23,21 @@ public abstract class BaseHistoryDataGenerator {
   public static final List<String> EXP_PATH_LIST =
       Arrays.asList("mn.wf03.wt01.status", "mn.wf03.wt01.temperature");
 
-  public static final List<DataType> EXP_DATA_TYPE_LIST =
+  public static List<DataType> EXP_DATA_TYPE_LIST =
       Arrays.asList(DataType.BOOLEAN, DataType.DOUBLE);
 
-  public static final List<List<Object>> EXP_VALUES_LIST =
+  public static List<List<Object>> EXP_VALUES_LIST =
       Arrays.asList(Arrays.asList(true, 66.23), Arrays.asList(false, 77.71));
 
   public int readOnlyPort;
 
-  public static final List<String> READ_ONLY_PATH_LIST =
+  public static List<String> READ_ONLY_PATH_LIST =
       Arrays.asList("mn.wf05.wt01.status", "mn.wf05.wt01.temperature");
 
-  public static final List<DataType> READ_ONLY_DATA_TYPE_LIST =
+  public static List<DataType> READ_ONLY_DATA_TYPE_LIST =
       Arrays.asList(DataType.BOOLEAN, DataType.DOUBLE);
 
-  public static final List<List<Object>> READ_ONLY_VALUES_LIST =
+  public static List<List<Object>> READ_ONLY_VALUES_LIST =
       Arrays.asList(Arrays.asList(false, 100.01), Arrays.asList(true, 99.99));
 
   public BaseHistoryDataGenerator() {}

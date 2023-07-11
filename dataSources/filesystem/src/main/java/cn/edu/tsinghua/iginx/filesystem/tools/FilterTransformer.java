@@ -3,10 +3,8 @@ package cn.edu.tsinghua.iginx.filesystem.tools;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.filesystem.thrift.FSFilter;
-import cn.edu.tsinghua.iginx.utils.JsonUtils;
 import com.google.common.collect.BiMap;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class FilterTransformer {
   private static int index = 0;
@@ -37,7 +35,7 @@ public class FilterTransformer {
 
   private static FSFilter toFSFilter(AndFilter filter) {
     FSFilter fsFilter = new FSFilter(cn.edu.tsinghua.iginx.common.thrift.FilterType.And);
-    for (Filter f : filter.getChildren()){
+    for (Filter f : filter.getChildren()) {
       fsFilter.addToChildren(toFSFilter(f));
     }
     return fsFilter;
@@ -45,7 +43,7 @@ public class FilterTransformer {
 
   private static FSFilter toFSFilter(OrFilter filter) {
     FSFilter fsFilter = new FSFilter(cn.edu.tsinghua.iginx.common.thrift.FilterType.Or);
-    for (Filter f : filter.getChildren()){
+    for (Filter f : filter.getChildren()) {
       fsFilter.addToChildren(toFSFilter(f));
     }
     return fsFilter;
@@ -79,28 +77,29 @@ public class FilterTransformer {
   }
 
   private static cn.edu.tsinghua.iginx.common.thrift.Op toFSOp(Op op) {
-    switch (op){
+    switch (op) {
       case L:
-        return  cn.edu.tsinghua.iginx.common.thrift.Op.L;
+        return cn.edu.tsinghua.iginx.common.thrift.Op.L;
       case LE:
-        return  cn.edu.tsinghua.iginx.common.thrift.Op.L;
+        return cn.edu.tsinghua.iginx.common.thrift.Op.L;
       case LIKE:
-        return  cn.edu.tsinghua.iginx.common.thrift.Op.LIKE;
+        return cn.edu.tsinghua.iginx.common.thrift.Op.LIKE;
       case NE:
-        return  cn.edu.tsinghua.iginx.common.thrift.Op.NE;
+        return cn.edu.tsinghua.iginx.common.thrift.Op.NE;
       case GE:
-        return  cn.edu.tsinghua.iginx.common.thrift.Op.GE;
+        return cn.edu.tsinghua.iginx.common.thrift.Op.GE;
       case G:
-        return  cn.edu.tsinghua.iginx.common.thrift.Op.G;
+        return cn.edu.tsinghua.iginx.common.thrift.Op.G;
       default:
         return cn.edu.tsinghua.iginx.common.thrift.Op.UNKNOW;
     }
   }
 
   private static cn.edu.tsinghua.iginx.common.thrift.Value toFSValue(Value value) {
-    cn.edu.tsinghua.iginx.common.thrift.Value fsValue = new cn.edu.tsinghua.iginx.common.thrift.Value();
+    cn.edu.tsinghua.iginx.common.thrift.Value fsValue =
+        new cn.edu.tsinghua.iginx.common.thrift.Value();
     fsValue.setDataType(value.getDataType());
-    switch (value.getDataType()){
+    switch (value.getDataType()) {
       case FLOAT:
         fsValue.setFloatV(value.getFloatV());
         break;
@@ -119,7 +118,6 @@ public class FilterTransformer {
     }
     return fsValue;
   }
-
 
   // 用于表达式求值
   public static String toString(FSFilter filter, BiMap<String, String> vals) {
@@ -172,12 +170,7 @@ public class FilterTransformer {
     if (filter.getOp().equals(cn.edu.tsinghua.iginx.common.thrift.Op.LIKE)) {
       val = filter.getPath() + " like " + filter.getValue().binaryV.toString();
     } else {
-      val =
-          filter.getPath()
-              + " "
-              + fsOp2Str(filter.getOp())
-              + " "
-              + filter.getValue();
+      val = filter.getPath() + " " + fsOp2Str(filter.getOp()) + " " + filter.getValue();
     }
     if (!vals.containsValue(val)) vals.put(prefix + (index++), val);
     refreshIndex();

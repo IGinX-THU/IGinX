@@ -12,7 +12,6 @@ import cn.edu.tsinghua.iginx.engine.shared.data.write.BitmapView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.ColumnDataView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.RowDataView;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.filesystem.file.property.FileMeta;
 import cn.edu.tsinghua.iginx.filesystem.file.property.FilePath;
@@ -21,7 +20,6 @@ import cn.edu.tsinghua.iginx.filesystem.query.FSResultTable;
 import cn.edu.tsinghua.iginx.filesystem.query.FileSystemHistoryQueryRowStream;
 import cn.edu.tsinghua.iginx.filesystem.query.FileSystemQueryRowStream;
 import cn.edu.tsinghua.iginx.filesystem.thrift.FSFilter;
-import cn.edu.tsinghua.iginx.filesystem.tools.FilterTransformer;
 import cn.edu.tsinghua.iginx.filesystem.wrapper.Record;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsRange;
@@ -76,8 +74,7 @@ public class LocalExecutor implements Executor {
       logger.info("[Query] execute query file: " + series);
       for (String path : series) {
         File file = new File(FilePath.toIginxPath(root, storageUnit, path));
-        result.addAll(
-            FileSystemService.readFile(file, tagFilter, filter));
+        result.addAll(FileSystemService.readFile(file, tagFilter, filter));
       }
       RowStream rowStream = new FileSystemQueryRowStream(result, storageUnit, root);
       return new TaskExecuteResult(rowStream);

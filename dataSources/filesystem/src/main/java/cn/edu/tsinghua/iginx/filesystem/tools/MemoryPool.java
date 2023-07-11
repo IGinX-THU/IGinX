@@ -15,11 +15,10 @@ public class MemoryPool {
 
   static {
     poolSize = 1024 * 1024 * 100;
-    blockSize = 10;
+    blockSize = 1024 * 1024;
     maxNumberOfBlocks = poolSize / blockSize;
     numberOfBlocks = new AtomicInteger(poolSize / blockSize);
     freeBlocks = new ConcurrentLinkedQueue<>();
-
     for (int i = 0; i < numberOfBlocks.get(); i++) {
       freeBlocks.add(new byte[blockSize]);
     }

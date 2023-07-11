@@ -1,119 +1,51 @@
 package cn.edu.tsinghua.iginx.integration.expansion.filesystem;
 
-import cn.edu.tsinghua.iginx.filesystem.file.IFileOperator;
-import cn.edu.tsinghua.iginx.filesystem.file.entity.DefaultFileOperator;
-import cn.edu.tsinghua.iginx.filesystem.file.property.FileMeta;
-import cn.edu.tsinghua.iginx.filesystem.wrapper.Record;
+import cn.edu.tsinghua.iginx.filesystem.file.property.FilePath;
+import cn.edu.tsinghua.iginx.filesystem.tools.ConfLoader;
+import cn.edu.tsinghua.iginx.filesystem.tools.MemoryPool;
 import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.SecureRandom;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
-import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class FileSystemHistoryDataGenerator {
+public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
   private static final Logger logger =
       LoggerFactory.getLogger(FileSystemHistoryDataGenerator.class);
-  private String root = "../dataSources/filesystem/src/test/java/cn/edu/tsinghua/iginx/storage/";
+  // 对应port 4860
+  public static String root1 = ConfLoader.getRootPath();
+  // 对应port 4861
+  public static String root2 =
+      ConfLoader.getRootPath() + "root2" + System.getProperty("file.separator");
+  public static String root3 =
+      ConfLoader.getRootPath() + "root3" + System.getProperty("file.separator");
 
-  @Test
-  public void writeHistoryData() throws Exception {
-    File file1 = new File(root + "file/cpu_usage");
-    writeToFile(file1, "123");
-
-    File file2 = new File(root + "file/engine");
-    writeToFile(file2, "456");
-
-    File file3 = new File(root + "file/status");
-    writeToFile(file3, "789");
-  }
-
-  public void writeToFile(File file, String str) throws Exception {
-    try {
-      if (!file.exists()) {
-        file.getParentFile().mkdirs();
-        Files.createFile(Paths.get(file.getAbsolutePath()));
-      }
-      FileWriter writer = new FileWriter(file);
-      writer.write(str);
-      writer.close();
-    } catch (IOException e) {
-      e.printStackTrace();
-      throw new Exception("系统找不到指定的路径: " + file.getAbsolutePath());
-    }
-  }
-
-  public void writeHistoryDataToB() throws Exception {
-    //        session.executeNonQueryStatement(
-    //            "INSERT INTO root.ln.wf03.wt01(timestamp,status) values(77,true);");
-    //        session.executeNonQueryStatement(
-    //            "INSERT INTO root.ln.wf03.wt01(timestamp,status,temperature)
-    // values(200,false,77.71);");
-    File file1 = new File(root + "ln/wf03/wt01/status.iginx0");
-    FileMeta fileMeta1 = new FileMeta(DataType.BOOLEAN, null);
-    writeData(
-        file1,
-        fileMeta1,
-        new ArrayList<Record>() {
-          {
-            add(new Record(77, true));
-            add(new Record(200, false));
-          }
-        });
-
-    File file2 = new File(root + "ln/wf03/wt01/temperature.iginx0");
-    FileMeta fileMeta2 = new FileMeta(DataType.DOUBLE, null);
-    writeData(
-        file2,
-        fileMeta2,
-        new ArrayList<Record>() {
-          {
-            add(new Record(200, 77.71));
-          }
-        });
-  }
-
-  public void writeData(File file, FileMeta fileMeta, List<Record> val) throws Exception {
-    IFileOperator fileOperator = new DefaultFileOperator();
-    if (fileOperator.ifFileExists(file)) {
-      fileOperator.create(file, fileMeta);
-    }
-    fileOperator.writeIGinXFile(file, val);
-  }
-
-  public void writeHistoryDataToA() throws Exception {
-    File file1 = new File(root + "ln/wf01/wt01/status.iginx0");
-    FileMeta fileMeta1 = new FileMeta(DataType.BOOLEAN, null);
-    writeData(
-        file1,
-        fileMeta1,
-        new ArrayList<Record>() {
-          {
-            add(new Record(100, true));
-            add(new Record(200, false));
-          }
-        });
-
-    File file2 = new File(root + "ln/wf01/wt01/temperature.iginx0");
-    FileMeta fileMeta2 = new FileMeta(DataType.DOUBLE, null);
-    writeData(
-        file2,
-        fileMeta2,
-        new ArrayList<Record>() {
-          {
-            add(new Record(200, 20.71));
-          }
-        });
-  }
-
-  public void clearData() {
-    deleteDirectory(root);
+  public FileSystemHistoryDataGenerator() {
+    this.oriPort = 4860;
+    this.expPort = 4861;
+    this.readOnlyPort = 4862;
+    EXP_DATA_TYPE_LIST = Arrays.asList(DataType.BINARY, DataType.BINARY);
+    EXP_VALUES_LIST =
+        Arrays.asList(
+            Arrays.asList(createValueRandom(), createValueRandom()),
+            Arrays.asList(createValueRandom(), createValueRandom()));
+    ORI_DATA_TYPE_LIST = Arrays.asList(DataType.BINARY, DataType.BINARY);
+    ORI_VALUES_LIST =
+        Arrays.asList(
+            Arrays.asList(createValueRandom(), createValueRandom()),
+            Arrays.asList(createValueRandom(), createValueRandom()));
+    READ_ONLY_DATA_TYPE_LIST = Arrays.asList(DataType.BINARY, DataType.BINARY);
+    READ_ONLY_VALUES_LIST =
+        Arrays.asList(
+            Arrays.asList(createValueRandom(), createValueRandom()),
+            Arrays.asList(createValueRandom(), createValueRandom()));
   }
 
   public void deleteDirectory(String path) {
@@ -134,5 +66,82 @@ public class FileSystemHistoryDataGenerator {
       }
     }
     directory.delete();
+  }
+
+  @Override
+  public void writeHistoryData(
+      int port, List<String> pathList, List<DataType> dataTypeList, List<List<Object>> valuesList) {
+    String root = getRootFromPort(port);
+    // 创建文件
+    List<File> files = getFileList(pathList, root);
+    // 将数据写入
+    writeValuesToFile(valuesList, files);
+  }
+
+  @Override
+  public void clearHistoryDataForGivenPort(int port) {
+    String root = null;
+
+    deleteDirectory(root);
+  }
+
+  public String getRootFromPort(int port) {
+    String root = null;
+    if (port == oriPort) {
+      root = root1;
+    } else if (port == expPort) {
+      root = root2;
+    } else {
+      root = root3;
+    }
+    return root;
+  }
+
+  public byte[] createValueRandom() {
+    int N = MemoryPool.getBlockSize();
+    byte[] b = new byte[N];
+    SecureRandom random = new SecureRandom();
+    random.nextBytes(b);
+    return b;
+  }
+
+  public List<File> getFileList(List<String> pathList, String root) {
+    List<File> res = new ArrayList<>();
+    // 创建历史文件
+    for (String path : pathList) {
+      File file = new File(FilePath.toIginxPath(root, null, path));
+      res.add(file);
+      Path filePath = Paths.get(file.getPath());
+      try {
+        if (!Files.exists(filePath)) {
+          file.getParentFile().mkdirs();
+          Files.createFile(filePath);
+        }
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+    }
+    return res;
+  }
+
+  public void writeValuesToFile(List<List<Object>> valuesList, List<File> files) {
+    if (valuesList.size() != files.size()) {
+      throw new IllegalArgumentException("Number of values lists and files don't match");
+    }
+
+    int numFiles = files.size();
+    for (int i = 0; i < numFiles; i++) {
+      List<Object> values = valuesList.get(i);
+      File file = files.get(i);
+
+      try (OutputStream out = Files.newOutputStream(file.toPath())) {
+        for (Object value : values) {
+          String valueStr = value.toString();
+          out.write(valueStr.getBytes());
+        }
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
   }
 }

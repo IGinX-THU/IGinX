@@ -1,6 +1,5 @@
 package cn.edu.tsinghua.iginx.filesystem.filesystem;
 
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.filesystem.file.IFileOperator;

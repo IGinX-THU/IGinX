@@ -50,7 +50,7 @@ public class FileSystemHistoryQueryRowStream implements RowStream {
       fields.add(field);
     }
 
-    this.indices = new int[this.rowData.size()][1024 * 2];
+    this.indices = new int[this.rowData.size()][1024 * 100];
     this.round = new int[this.rowData.size()];
     this.header = new Header(time, fields);
     for (int i = 0; i < this.rowData.size(); i++) {
@@ -102,10 +102,9 @@ public class FileSystemHistoryQueryRowStream implements RowStream {
       }
       byte[] val = (byte[]) records.get(index).getRawData();
       if (index == timestamp) {
-        int len = Math.min(batch, val.length - indices[i][index]);
         Object value = val;
         values[i] = value;
-        indices[i][index] += batch;
+        indices[i][index] += val.length;
         if (indices[i][index] >= val.length) {
           round[i]++;
           if (round[i] == records.size()) hasMoreRecords--;
