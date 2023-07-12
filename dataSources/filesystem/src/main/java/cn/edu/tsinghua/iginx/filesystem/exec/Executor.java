@@ -7,7 +7,7 @@ import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.filesystem.thrift.FSFilter;
-import cn.edu.tsinghua.iginx.metadata.entity.ColumnsRange;
+import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.List;
@@ -28,7 +28,7 @@ public interface Executor {
 
   List<Column> getColumnOfStorageUnit(String storageUnit) throws PhysicalException;
 
-  Pair<ColumnsRange, KeyInterval> getBoundaryOfStorage(String prefix) throws PhysicalException;
+  Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String prefix) throws PhysicalException;
 
   void close() throws PhysicalException;
 }

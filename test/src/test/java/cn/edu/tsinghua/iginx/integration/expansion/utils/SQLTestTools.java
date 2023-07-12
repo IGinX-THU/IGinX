@@ -17,7 +17,7 @@ public class SQLTestTools {
 
   public static void executeAndCompare(Session session, String statement, String exceptOutput) {
     String actualOutput = execute(session, statement);
-    assertEquals(exceptOutput, actualOutput);
+    compareStirngValue(exceptOutput, actualOutput);
   }
 
   private static String execute(Session session, String statement) {
@@ -48,7 +48,14 @@ public class SQLTestTools {
             .map(
                 row -> {
                   List<String> strValues = new ArrayList<>();
-                  row.forEach(val -> strValues.add(String.valueOf(val)));
+                    row.forEach(
+                        val -> {
+                            if (val instanceof byte[]) {
+                                strValues.add(new String((byte[]) val));
+                            } else {
+                                strValues.add(String.valueOf(val));
+                            }
+                        });
                   return strValues;
                 })
             .collect(Collectors.toSet());
@@ -76,6 +83,14 @@ public class SQLTestTools {
     }
   }
 
+  private static void compareStirngValue(
+      String expectedValue, String actualValue) {
+      if (!actualValue.equals(expectedValue)) {
+          logger.error("actual values is {} and it should be {}", actualValue, expectedValue);
+          fail();
+      }
+  }
+
   public static void executeAndCompare(
       Session session,
       String statement,
@@ -85,9 +100,11 @@ public class SQLTestTools {
       SessionExecuteSqlResult res = session.executeSql(statement);
       List<String> pathList = res.getPaths();
       List<List<Object>> actualValuesList = res.getValues();
+        logger.info("check the pathList {}",pathList);
+      logger.info("check the valueList {}",actualValuesList);
 
       for (int i = 0; i < pathListAns.size(); i++) {
-        assertEquals(pathListAns.get(i), pathList.get(i));
+        compareStirngValue(pathListAns.get(i), pathList.get(i));
       }
 
       compareValuesList(expectedValuesList, actualValuesList);

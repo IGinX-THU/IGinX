@@ -22,7 +22,6 @@ import cn.edu.tsinghua.iginx.filesystem.query.FileSystemQueryRowStream;
 import cn.edu.tsinghua.iginx.filesystem.thrift.FSFilter;
 import cn.edu.tsinghua.iginx.filesystem.wrapper.Record;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
-import cn.edu.tsinghua.iginx.metadata.entity.ColumnsRange;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
@@ -92,7 +91,7 @@ public class LocalExecutor implements Executor {
   private TaskExecuteResult executeDummyProjectTask(List<String> series, FSFilter filter) {
     try {
       List<FSResultTable> result = new ArrayList<>();
-      logger.info("[Query] execute query file: " + series);
+      logger.info("[Query] execute dummy query file: " + series);
       for (String path : series) {
         result.addAll(
             FileSystemService.readFile(new File(FilePath.toNormalFilePath(root, path)), filter));
@@ -262,7 +261,7 @@ public class LocalExecutor implements Executor {
   }
 
   @Override
-  public Pair<ColumnsRange, KeyInterval> getBoundaryOfStorage(String prefix)
+  public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String prefix)
       throws PhysicalException {
     File directory = new File(FilePath.toNormalFilePath(root, prefix));
 
@@ -277,8 +276,8 @@ public class LocalExecutor implements Executor {
           new ColumnsInterval(
               FilePath.convertAbsolutePathToSeries(
                   root, minPathFile.getAbsolutePath(), minPathFile.getName(), null),
-              FilePath.convertAbsolutePathToSeries(
-                  root, maxPathFile.getAbsolutePath(), maxPathFile.getName(), null));
+              StringUtils.nextString(FilePath.convertAbsolutePathToSeries(
+                  root, maxPathFile.getAbsolutePath(), maxPathFile.getName(), null)));
     else tsInterval = new ColumnsInterval(prefix, StringUtils.nextString(prefix));
 
     // 对于pb级的文件系统，遍历是不可能的，直接接入

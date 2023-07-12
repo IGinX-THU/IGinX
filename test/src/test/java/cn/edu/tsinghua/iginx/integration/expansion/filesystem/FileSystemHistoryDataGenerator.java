@@ -9,43 +9,46 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Random;
+
+import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
   private static final Logger logger =
       LoggerFactory.getLogger(FileSystemHistoryDataGenerator.class);
+  public static String rootTest = "../dataSources/filesystem/src/test/java/cn/edu/tsinghua/iginx/";
+  public static String rootAct = "dataSources/filesystem/src/test/java/cn/edu/tsinghua/iginx/";
   // 对应port 4860
-  public static String root1 = ConfLoader.getRootPath();
+  public static String root1 = "storage/";
   // 对应port 4861
-  public static String root2 =
-      ConfLoader.getRootPath() + "root2" + System.getProperty("file.separator");
-  public static String root3 =
-      ConfLoader.getRootPath() + "root3" + System.getProperty("file.separator");
+  public static String root2 = "storage2/";
+  public static String root3 = "storage3/";
 
   public FileSystemHistoryDataGenerator() {
     this.oriPort = 4860;
     this.expPort = 4861;
     this.readOnlyPort = 4862;
     EXP_DATA_TYPE_LIST = Arrays.asList(DataType.BINARY, DataType.BINARY);
+    byte[] value1 = createValueRandom(1),
+        value2 = createValueRandom(2);
     EXP_VALUES_LIST =
         Arrays.asList(
-            Arrays.asList(createValueRandom(), createValueRandom()),
-            Arrays.asList(createValueRandom(), createValueRandom()));
+            Arrays.asList(value1),Arrays.asList(value2));
     ORI_DATA_TYPE_LIST = Arrays.asList(DataType.BINARY, DataType.BINARY);
     ORI_VALUES_LIST =
         Arrays.asList(
-            Arrays.asList(createValueRandom(), createValueRandom()),
-            Arrays.asList(createValueRandom(), createValueRandom()));
+            Arrays.asList(value1),Arrays.asList(value2));
     READ_ONLY_DATA_TYPE_LIST = Arrays.asList(DataType.BINARY, DataType.BINARY);
     READ_ONLY_VALUES_LIST =
         Arrays.asList(
-            Arrays.asList(createValueRandom(), createValueRandom()),
-            Arrays.asList(createValueRandom(), createValueRandom()));
+            Arrays.asList(value1),Arrays.asList(value2));
   }
 
   public void deleteDirectory(String path) {
@@ -80,42 +83,37 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   @Override
   public void clearHistoryDataForGivenPort(int port) {
-    String root = null;
-
+    String root = getRootFromPort(port);
     deleteDirectory(root);
   }
 
   public String getRootFromPort(int port) {
     String root = null;
     if (port == oriPort) {
-      root = root1;
+      root = rootTest + root1;
     } else if (port == expPort) {
-      root = root2;
+      root = rootTest + root2;
     } else {
-      root = root3;
+      root = rootTest + root3;
     }
     return root;
   }
 
-  public byte[] createValueRandom() {
-    int N = MemoryPool.getBlockSize();
-    byte[] b = new byte[N];
-    SecureRandom random = new SecureRandom();
-    random.nextBytes(b);
-    return b;
-  }
+
 
   public List<File> getFileList(List<String> pathList, String root) {
     List<File> res = new ArrayList<>();
     // 创建历史文件
     for (String path : pathList) {
-      File file = new File(FilePath.toIginxPath(root, null, path));
+      String realFilePath = root + path.replace('.','/');
+      File file = new File(realFilePath);
       res.add(file);
       Path filePath = Paths.get(file.getPath());
       try {
         if (!Files.exists(filePath)) {
           file.getParentFile().mkdirs();
           Files.createFile(filePath);
+          logger.info("create the file {}", file.getAbsolutePath());
         }
       } catch (IOException e) {
         throw new RuntimeException(e);
@@ -134,14 +132,26 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
       List<Object> values = valuesList.get(i);
       File file = files.get(i);
 
-      try (OutputStream out = Files.newOutputStream(file.toPath())) {
+      try (OutputStream out = Files.newOutputStream(file.toPath(), StandardOpenOption.APPEND)) {
         for (Object value : values) {
-          String valueStr = value.toString();
-          out.write(valueStr.getBytes());
+          if (value instanceof byte[]) {
+            out.write((byte[])value);
+          }
         }
       } catch (IOException e) {
         e.printStackTrace();
       }
     }
+  }
+
+  public static byte[] createValueRandom(int seed) {
+    int N = 10;
+    byte[] b = new byte[N];
+//    Random random = new Random(seed);
+//    random.nextBytes(b);
+    for(int i=0;i<b.length;i++) {
+      b[i]=100;
+    }
+    return b;
   }
 }

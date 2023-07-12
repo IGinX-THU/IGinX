@@ -34,9 +34,10 @@ public class DefaultFileOperator implements IFileOperator {
       throws IOException {
     List<Record> res = new ArrayList<>();
     List<byte[]> valList = readNormalFileByByte(file, begin, end);
-    int key = 0;
+    long key = begin;
     for (byte[] val : valList) {
-      res.add(new Record(key++, val));
+      res.add(new Record(key, val));
+      key+=val.length;
     }
     return res;
   }
@@ -93,9 +94,11 @@ public class DefaultFileOperator implements IFileOperator {
         index.getAndIncrement();
         readPos.addAndGet(BUFFER_SIZE);
       }
-      executorService.shutdown();
-      if (!executorService.awaitTermination(10, TimeUnit.SECONDS)) {
-        executorService.shutdownNow();
+      if (executorService != null) {
+        executorService.shutdown();
+        if (!executorService.awaitTermination(10, TimeUnit.SECONDS)) {
+          executorService.shutdownNow();
+        }
       }
     } catch (InterruptedException e) {
       throw new RuntimeException(e);
