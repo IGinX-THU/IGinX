@@ -19,33 +19,41 @@ jobs:
             fail-fast: false
             matrix:
                 java: [8]
-                python-version: ["3.7"]
+                python-version: ["3.7.16"]
                 os: [ubuntu-latest, macos-latest]
         runs-on: ${{ matrix.os }}
         steps:
             - uses: actions/checkout@v2
-            - name: Environmet Dependence
+            - name: Environment dependence
               uses: ./.github/actions/dependence
               with:
                   python-version: ${{ matrix.python-version }}
                   java: ${{ matrix.java }}
+
             - name: Run ZooKeeper
               uses: ./.github/actions/zookeeperRunner
+
             - name: Run DB
               uses: ./.github/actions/dbRunner
               with:
-                  version: "Mix-IoTDB12-InfluxDB"
+                  DB-name: "Mix-IoTDB12-InfluxDB"
 
-            - name: Install IginX with Maven
+            - name: Install IGinX with Maven
               shell: bash
               run: |
-                  mvn clean package -DskipTests -P passFormat
+                  mvn clean package -DskipTests -P passFormat -q
 
-            - name: Start IginX
+            - name: Start IGinX
               uses: ./.github/actions/iginxRunner
 
             - name: TestMixCluster
               if: always()
               shell: bash
               run: |
-                  mvn test -q -Dtest=MixClusterShowTimeseriesRegressionTest -DfailIfNoTests=false -P passFormat
+                  mvn test -q -Dtest=MixClusterShowColumnsRegressionTest -DfailIfNoTests=false -P passFormat
+
+            - name: Show IGinX log
+              if: always()
+              shell: bash
+              run: |
+                  cat iginx.log

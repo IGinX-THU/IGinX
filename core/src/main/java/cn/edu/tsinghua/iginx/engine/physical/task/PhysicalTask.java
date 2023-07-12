@@ -23,17 +23,17 @@ import java.util.List;
 
 public interface PhysicalTask extends Measurable {
 
-    TaskType getType();
+  TaskType getType();
 
-    List<Operator> getOperators();
+  List<Operator> getOperators();
 
-    TaskExecuteResult getResult();
+  TaskExecuteResult getResult();
 
-    void setResult(TaskExecuteResult result);
+  void setResult(TaskExecuteResult result);
 
-    PhysicalTask getFollowerTask();
+  PhysicalTask getFollowerTask();
 
-    void setFollowerTask(PhysicalTask task);
+  void setFollowerTask(PhysicalTask task);
 
-    String getInfo();
+  String getInfo();
 }

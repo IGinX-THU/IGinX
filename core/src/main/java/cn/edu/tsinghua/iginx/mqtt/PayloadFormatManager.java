@@ -26,42 +26,42 @@ import org.slf4j.LoggerFactory;
 
 public class PayloadFormatManager {
 
-    private static final Logger logger = LoggerFactory.getLogger(PayloadFormatManager.class);
+  private static final Logger logger = LoggerFactory.getLogger(PayloadFormatManager.class);
 
-    private static final PayloadFormatManager instance = new PayloadFormatManager();
+  private static final PayloadFormatManager instance = new PayloadFormatManager();
 
-    private final Map<String, IPayloadFormatter> formatters;
+  private final Map<String, IPayloadFormatter> formatters;
 
-    private PayloadFormatManager() {
-        this.formatters = new HashMap<>();
-    }
+  private PayloadFormatManager() {
+    this.formatters = new HashMap<>();
+  }
 
-    public static PayloadFormatManager getInstance() {
-        return instance;
-    }
+  public static PayloadFormatManager getInstance() {
+    return instance;
+  }
 
-    public IPayloadFormatter getFormatter(String formatterClassName) {
-        IPayloadFormatter formatter;
-        synchronized (formatters) {
-            formatter = formatters.get(formatterClassName);
-            if (formatter == null) {
-                try {
-                    Class<? extends IPayloadFormatter> clazz =
-                            this.getClass()
-                                    .getClassLoader()
-                                    .loadClass(formatterClassName)
-                                    .asSubclass(IPayloadFormatter.class);
-                    formatter = clazz.getConstructor().newInstance();
-                    formatters.put(formatterClassName, formatter);
-                } catch (ClassNotFoundException
-                        | InstantiationException
-                        | IllegalAccessException
-                        | NoSuchMethodException
-                        | InvocationTargetException e) {
-                    logger.error(e.getMessage());
-                }
-            }
+  public IPayloadFormatter getFormatter(String formatterClassName) {
+    IPayloadFormatter formatter;
+    synchronized (formatters) {
+      formatter = formatters.get(formatterClassName);
+      if (formatter == null) {
+        try {
+          Class<? extends IPayloadFormatter> clazz =
+              this.getClass()
+                  .getClassLoader()
+                  .loadClass(formatterClassName)
+                  .asSubclass(IPayloadFormatter.class);
+          formatter = clazz.getConstructor().newInstance();
+          formatters.put(formatterClassName, formatter);
+        } catch (ClassNotFoundException
+            | InstantiationException
+            | IllegalAccessException
+            | NoSuchMethodException
+            | InvocationTargetException e) {
+          logger.error(e.getMessage());
         }
-        return formatter;
+      }
     }
+    return formatter;
+  }
 }

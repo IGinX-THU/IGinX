@@ -44,285 +44,276 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class WriteClientImpl extends AbstractFunctionClient implements WriteClient {
-    @SuppressWarnings("unused")
-    private static final Logger logger = LoggerFactory.getLogger(WriteClientImpl.class);
+  @SuppressWarnings("unused")
+  private static final Logger logger = LoggerFactory.getLogger(WriteClientImpl.class);
 
-    private final MeasurementMapper measurementMapper;
+  private final MeasurementMapper measurementMapper;
 
-    public WriteClientImpl(IginXClientImpl iginXClient, MeasurementMapper measurementMapper) {
-        super(iginXClient);
-        this.measurementMapper = measurementMapper;
+  public WriteClientImpl(IginXClientImpl iginXClient, MeasurementMapper measurementMapper) {
+    super(iginXClient);
+    this.measurementMapper = measurementMapper;
+  }
+
+  @Override
+  public void writePoint(Point point) {
+    writePoints(Collections.singletonList(point), null);
+  }
+
+  @Override
+  public void writePoint(Point point, TimePrecision timePrecision) {
+    writePoints(Collections.singletonList(point), timePrecision);
+  }
+
+  @Override
+  public void writePoints(List<Point> points) {
+    writePoints(points, null);
+  }
+
+  @Override
+  public void writePoints(List<Point> points, TimePrecision timePrecision) {
+    SortedMap<String, DataType> measurementMap = new TreeMap<>();
+    Set<Long> timestampSet = new HashSet<>();
+    for (Point point : points) {
+      String measurement = point.getFullName();
+      DataType dataType = point.getDataType();
+      if (measurementMap.getOrDefault(measurement, dataType) != dataType) {
+        throw new IllegalArgumentException(
+            "measurement " + measurement + " has multi data type, which is invalid.");
+      }
+      measurementMap.putIfAbsent(measurement, dataType);
+      timestampSet.add(point.getKey());
+    }
+    List<String> measurements = new ArrayList<>();
+    List<DataType> dataTypeList = new ArrayList<>();
+    Map<String, Integer> measurementIndexMap = new HashMap<>();
+    int index = 0;
+    for (String measurement : measurementMap.keySet()) {
+      measurementIndexMap.put(measurement, index);
+      index++;
+      measurements.add(measurement);
+      dataTypeList.add(measurementMap.get(measurement));
     }
 
-    @Override
-    public void writePoint(Point point) {
-        writePoints(Collections.singletonList(point), null);
+    long[] timestamps = timestampSet.stream().sorted().mapToLong(e -> e).toArray();
+    Map<Long, Integer> timestampIndexMap = new HashMap<>();
+    for (int i = 0; i < timestamps.length; i++) {
+      timestampIndexMap.put(timestamps[i], i);
     }
 
-    @Override
-    public void writePoint(Point point, TimePrecision timePrecision) {
-        writePoints(Collections.singletonList(point), timePrecision);
+    Object[][] valuesList = new Object[measurements.size()][];
+    for (int i = 0; i < valuesList.length; i++) {
+      valuesList[i] = new Object[timestamps.length];
     }
-
-    @Override
-    public void writePoints(List<Point> points) {
-        writePoints(points, null);
+    for (Point point : points) {
+      String measurement = point.getFullName();
+      long timestamp = point.getKey();
+      int measurementIndex = measurementIndexMap.get(measurement);
+      int timestampIndex = timestampIndexMap.get(timestamp);
+      valuesList[measurementIndex][timestampIndex] = point.getValue();
     }
+    List<Map<String, String>> tagsList = new ArrayList<>();
+    for (int i = 0; i < measurements.size(); i++) {
+      String measurement = measurements.get(i);
+      Pair<String, Map<String, String>> pair = TagKVUtils.fromFullName(measurement);
+      measurements.set(i, pair.k);
+      tagsList.add(pair.v);
+    }
+    writeColumnData(measurements, timestamps, valuesList, dataTypeList, tagsList, timePrecision);
+  }
 
-    @Override
-    public void writePoints(List<Point> points, TimePrecision timePrecision) {
-        SortedMap<String, DataType> measurementMap = new TreeMap<>();
-        Set<Long> timestampSet = new HashSet<>();
-        for (Point point : points) {
-            String measurement = point.getFullName();
-            DataType dataType = point.getDataType();
-            if (measurementMap.getOrDefault(measurement, dataType) != dataType) {
-                throw new IllegalArgumentException(
-                        "measurement " + measurement + " has multi data type, which is invalid.");
-            }
-            measurementMap.putIfAbsent(measurement, dataType);
-            timestampSet.add(point.getKey());
+  @Override
+  public void writeRecord(Record record) {
+    writeRecords(Collections.singletonList(record), null);
+  }
+
+  @Override
+  public void writeRecord(Record record, TimePrecision timePrecision) {
+    writeRecords(Collections.singletonList(record), timePrecision);
+  }
+
+  @Override
+  public void writeRecords(List<Record> records) {
+    writeRecords(records, null);
+  }
+
+  @Override
+  public void writeRecords(List<Record> records, TimePrecision timePrecision) {
+    SortedMap<String, DataType> measurementMap = new TreeMap<>();
+    for (Record record : records) {
+      for (int index = 0; index < record.getLength(); index++) {
+        String measurement = record.getFullName(index);
+        DataType dataType = record.getDataType(index);
+        if (measurementMap.getOrDefault(measurement, dataType) != dataType) {
+          throw new IllegalArgumentException(
+              "measurement " + measurement + " has multi data type, which is invalid.");
         }
-        List<String> measurements = new ArrayList<>();
-        List<DataType> dataTypeList = new ArrayList<>();
-        Map<String, Integer> measurementIndexMap = new HashMap<>();
-        int index = 0;
-        for (String measurement : measurementMap.keySet()) {
-            measurementIndexMap.put(measurement, index);
-            index++;
-            measurements.add(measurement);
-            dataTypeList.add(measurementMap.get(measurement));
-        }
-
-        long[] timestamps = timestampSet.stream().sorted().mapToLong(e -> e).toArray();
-        Map<Long, Integer> timestampIndexMap = new HashMap<>();
-        for (int i = 0; i < timestamps.length; i++) {
-            timestampIndexMap.put(timestamps[i], i);
-        }
-
-        Object[][] valuesList = new Object[measurements.size()][];
-        for (int i = 0; i < valuesList.length; i++) {
-            valuesList[i] = new Object[timestamps.length];
-        }
-        for (Point point : points) {
-            String measurement = point.getFullName();
-            long timestamp = point.getKey();
-            int measurementIndex = measurementIndexMap.get(measurement);
-            int timestampIndex = timestampIndexMap.get(timestamp);
-            valuesList[measurementIndex][timestampIndex] = point.getValue();
-        }
-        List<Map<String, String>> tagsList = new ArrayList<>();
-        for (int i = 0; i < measurements.size(); i++) {
-            String measurement = measurements.get(i);
-            Pair<String, Map<String, String>> pair = TagKVUtils.fromFullName(measurement);
-            measurements.set(i, pair.k);
-            tagsList.add(pair.v);
-        }
-        writeColumnData(
-                measurements, timestamps, valuesList, dataTypeList, tagsList, timePrecision);
+        measurementMap.putIfAbsent(measurement, dataType);
+      }
     }
 
-    @Override
-    public void writeRecord(Record record) {
-        writeRecords(Collections.singletonList(record), null);
+    List<String> measurements = new ArrayList<>();
+    List<DataType> dataTypeList = new ArrayList<>();
+    Map<String, Integer> measurementIndexMap = new HashMap<>(); // measurement 对应的 index
+    int index = 0;
+    for (String measurement : measurementMap.keySet()) {
+      measurementIndexMap.put(measurement, index);
+      index++;
+      measurements.add(measurement);
+      dataTypeList.add(measurementMap.get(measurement));
     }
 
-    @Override
-    public void writeRecord(Record record, TimePrecision timePrecision) {
-        writeRecords(Collections.singletonList(record), timePrecision);
+    SortedMap<Long, Object[]> valuesMap = new TreeMap<>();
+    for (Record record : records) {
+      long timestamp = record.getKey();
+      Object[] values = valuesMap.getOrDefault(timestamp, new Object[measurements.size()]);
+      for (int i = 0; i < record.getValues().size(); i++) {
+        String measurement = record.getFullName(i);
+        int measurementIndex = measurementIndexMap.get(measurement);
+        values[measurementIndex] = record.getValue(i);
+      }
+      valuesMap.put(timestamp, values);
     }
 
-    @Override
-    public void writeRecords(List<Record> records) {
-        writeRecords(records, null);
+    long[] timestamps = new long[valuesMap.size()];
+    Object[][] valuesList = new Object[valuesMap.size()][];
+    index = 0;
+    for (Map.Entry<Long, Object[]> entry : valuesMap.entrySet()) {
+      timestamps[index] = entry.getKey();
+      valuesList[index] = entry.getValue();
+      index++;
     }
+    List<Map<String, String>> tagsList = new ArrayList<>();
+    for (int i = 0; i < measurements.size(); i++) {
+      String measurement = measurements.get(i);
+      Pair<String, Map<String, String>> pair = TagKVUtils.fromFullName(measurement);
+      measurements.set(i, pair.k);
+      tagsList.add(pair.v);
+    }
+    writeRowData(measurements, timestamps, valuesList, dataTypeList, tagsList, timePrecision);
+  }
 
-    @Override
-    public void writeRecords(List<Record> records, TimePrecision timePrecision) {
-        SortedMap<String, DataType> measurementMap = new TreeMap<>();
-        for (Record record : records) {
-            for (int index = 0; index < record.getLength(); index++) {
-                String measurement = record.getFullName(index);
-                DataType dataType = record.getDataType(index);
-                if (measurementMap.getOrDefault(measurement, dataType) != dataType) {
-                    throw new IllegalArgumentException(
-                            "measurement "
-                                    + measurement
-                                    + " has multi data type, which is invalid.");
-                }
-                measurementMap.putIfAbsent(measurement, dataType);
-            }
+  @Override
+  public <M> void writeMeasurement(M measurement) {
+    writeMeasurements(Collections.singletonList(measurement), null);
+  }
+
+  @Override
+  public <M> void writeMeasurement(M measurement, TimePrecision timePrecision) {
+    writeMeasurements(Collections.singletonList(measurement), timePrecision);
+  }
+
+  @Override
+  public <M> void writeMeasurements(List<M> measurements) {
+    writeRecords(
+        measurements.stream().map(measurementMapper::toRecord).collect(Collectors.toList()), null);
+  }
+
+  @Override
+  public <M> void writeMeasurements(List<M> measurements, TimePrecision timePrecision) {
+    writeRecords(
+        measurements.stream().map(measurementMapper::toRecord).collect(Collectors.toList()),
+        timePrecision);
+  }
+
+  @Override
+  public void writeTable(Table table) {
+    writeTable(table, null);
+  }
+
+  @Override
+  public void writeTable(Table table, TimePrecision timePrecision) {
+    long[] timestamps = new long[table.getLength()];
+    Object[][] valuesList = new Object[table.getLength()][];
+    for (int i = 0; i < table.getLength(); i++) {
+      timestamps[i] = table.getKey(i);
+      valuesList[i] = table.getValues(i);
+    }
+    List<String> measurements = table.getMeasurements();
+    List<Map<String, String>> tagsList = table.getTagsList();
+    writeRowData(
+        measurements, timestamps, valuesList, table.getDataTypes(), tagsList, timePrecision);
+  }
+
+  private void writeColumnData(
+      List<String> paths,
+      long[] timestamps,
+      Object[][] valuesList,
+      List<DataType> dataTypeList,
+      List<Map<String, String>> tagsList,
+      TimePrecision timePrecision) {
+    List<ByteBuffer> valueBufferList = new ArrayList<>();
+    List<ByteBuffer> bitmapBufferList = new ArrayList<>();
+    for (int i = 0; i < valuesList.length; i++) {
+      Object[] values = valuesList[i];
+      valueBufferList.add(ByteUtils.getColumnByteBuffer(values, dataTypeList.get(i)));
+      Bitmap bitmap = new Bitmap(values.length);
+      for (int j = 0; j < values.length; j++) {
+        if (values[j] != null) {
+          bitmap.mark(j);
         }
-
-        List<String> measurements = new ArrayList<>();
-        List<DataType> dataTypeList = new ArrayList<>();
-        Map<String, Integer> measurementIndexMap = new HashMap<>(); // measurement 对应的 index
-        int index = 0;
-        for (String measurement : measurementMap.keySet()) {
-            measurementIndexMap.put(measurement, index);
-            index++;
-            measurements.add(measurement);
-            dataTypeList.add(measurementMap.get(measurement));
-        }
-
-        SortedMap<Long, Object[]> valuesMap = new TreeMap<>();
-        for (Record record : records) {
-            long timestamp = record.getKey();
-            Object[] values = valuesMap.getOrDefault(timestamp, new Object[measurements.size()]);
-            for (int i = 0; i < record.getValues().size(); i++) {
-                String measurement = record.getFullName(i);
-                int measurementIndex = measurementIndexMap.get(measurement);
-                values[measurementIndex] = record.getValue(i);
-            }
-            valuesMap.put(timestamp, values);
-        }
-
-        long[] timestamps = new long[valuesMap.size()];
-        Object[][] valuesList = new Object[valuesMap.size()][];
-        index = 0;
-        for (Map.Entry<Long, Object[]> entry : valuesMap.entrySet()) {
-            timestamps[index] = entry.getKey();
-            valuesList[index] = entry.getValue();
-            index++;
-        }
-        List<Map<String, String>> tagsList = new ArrayList<>();
-        for (int i = 0; i < measurements.size(); i++) {
-            String measurement = measurements.get(i);
-            Pair<String, Map<String, String>> pair = TagKVUtils.fromFullName(measurement);
-            measurements.set(i, pair.k);
-            tagsList.add(pair.v);
-        }
-        writeRowData(measurements, timestamps, valuesList, dataTypeList, tagsList, timePrecision);
+      }
+      bitmapBufferList.add(ByteBuffer.wrap(bitmap.getBytes()));
     }
 
-    @Override
-    public <M> void writeMeasurement(M measurement) {
-        writeMeasurements(Collections.singletonList(measurement), null);
-    }
+    InsertNonAlignedColumnRecordsReq req = new InsertNonAlignedColumnRecordsReq();
+    req.setSessionId(sessionId);
+    req.setPaths(paths);
+    req.setKeys(getByteArrayFromLongArray(timestamps));
+    req.setValuesList(valueBufferList);
+    req.setBitmapList(bitmapBufferList);
+    req.setDataTypeList(dataTypeList);
+    req.setTagsList(tagsList);
+    req.setTimePrecision(timePrecision);
 
-    @Override
-    public <M> void writeMeasurement(M measurement, TimePrecision timePrecision) {
-        writeMeasurements(Collections.singletonList(measurement), timePrecision);
+    synchronized (iginXClient) {
+      iginXClient.checkIsClosed();
+      try {
+        Status status = client.insertNonAlignedColumnRecords(req);
+        RpcUtils.verifySuccess(status);
+      } catch (TException | ExecutionException e) {
+        throw new IginXException("insert data failure: ", e);
+      }
     }
+  }
 
-    @Override
-    public <M> void writeMeasurements(List<M> measurements) {
-        writeRecords(
-                measurements.stream().map(measurementMapper::toRecord).collect(Collectors.toList()),
-                null);
-    }
-
-    @Override
-    public <M> void writeMeasurements(List<M> measurements, TimePrecision timePrecision) {
-        writeRecords(
-                measurements.stream().map(measurementMapper::toRecord).collect(Collectors.toList()),
-                timePrecision);
-    }
-
-    @Override
-    public void writeTable(Table table) {
-        writeTable(table, null);
-    }
-
-    @Override
-    public void writeTable(Table table, TimePrecision timePrecision) {
-        long[] timestamps = new long[table.getLength()];
-        Object[][] valuesList = new Object[table.getLength()][];
-        for (int i = 0; i < table.getLength(); i++) {
-            timestamps[i] = table.getKey(i);
-            valuesList[i] = table.getValues(i);
+  private void writeRowData(
+      List<String> paths,
+      long[] timestamps,
+      Object[][] valuesList,
+      List<DataType> dataTypeList,
+      List<Map<String, String>> tagsList,
+      TimePrecision timePrecision) {
+    List<ByteBuffer> valueBufferList = new ArrayList<>();
+    List<ByteBuffer> bitmapBufferList = new ArrayList<>();
+    for (Object[] values : valuesList) {
+      valueBufferList.add(ByteUtils.getRowByteBuffer(values, dataTypeList));
+      Bitmap bitmap = new Bitmap(values.length);
+      for (int j = 0; j < values.length; j++) {
+        if (values[j] != null) {
+          bitmap.mark(j);
         }
-        List<String> measurements = table.getMeasurements();
-        List<Map<String, String>> tagsList = table.getTagsList();
-        writeRowData(
-                measurements,
-                timestamps,
-                valuesList,
-                table.getDataTypes(),
-                tagsList,
-                timePrecision);
+      }
+      bitmapBufferList.add(ByteBuffer.wrap(bitmap.getBytes()));
     }
 
-    private void writeColumnData(
-            List<String> paths,
-            long[] timestamps,
-            Object[][] valuesList,
-            List<DataType> dataTypeList,
-            List<Map<String, String>> tagsList,
-            TimePrecision timePrecision) {
-        List<ByteBuffer> valueBufferList = new ArrayList<>();
-        List<ByteBuffer> bitmapBufferList = new ArrayList<>();
-        for (int i = 0; i < valuesList.length; i++) {
-            Object[] values = valuesList[i];
-            valueBufferList.add(ByteUtils.getColumnByteBuffer(values, dataTypeList.get(i)));
-            Bitmap bitmap = new Bitmap(values.length);
-            for (int j = 0; j < values.length; j++) {
-                if (values[j] != null) {
-                    bitmap.mark(j);
-                }
-            }
-            bitmapBufferList.add(ByteBuffer.wrap(bitmap.getBytes()));
-        }
+    InsertNonAlignedRowRecordsReq req = new InsertNonAlignedRowRecordsReq();
+    req.setSessionId(sessionId);
+    req.setPaths(paths);
+    req.setKeys(getByteArrayFromLongArray(timestamps));
+    req.setValuesList(valueBufferList);
+    req.setBitmapList(bitmapBufferList);
+    req.setDataTypeList(dataTypeList);
+    req.setTagsList(tagsList);
+    req.setTimePrecision(timePrecision);
 
-        InsertNonAlignedColumnRecordsReq req = new InsertNonAlignedColumnRecordsReq();
-        req.setSessionId(sessionId);
-        req.setPaths(paths);
-        req.setTimestamps(getByteArrayFromLongArray(timestamps));
-        req.setValuesList(valueBufferList);
-        req.setBitmapList(bitmapBufferList);
-        req.setDataTypeList(dataTypeList);
-        req.setTagsList(tagsList);
-        req.setTimePrecision(timePrecision);
-
-        synchronized (iginXClient) {
-            iginXClient.checkIsClosed();
-            try {
-                Status status = client.insertNonAlignedColumnRecords(req);
-                RpcUtils.verifySuccess(status);
-            } catch (TException | ExecutionException e) {
-                throw new IginXException("insert data failure: ", e);
-            }
-        }
+    synchronized (iginXClient) {
+      iginXClient.checkIsClosed();
+      try {
+        Status status = client.insertNonAlignedRowRecords(req);
+        RpcUtils.verifySuccess(status);
+      } catch (TException | ExecutionException e) {
+        throw new IginXException("insert data failure: ", e);
+      }
     }
-
-    private void writeRowData(
-            List<String> paths,
-            long[] timestamps,
-            Object[][] valuesList,
-            List<DataType> dataTypeList,
-            List<Map<String, String>> tagsList,
-            TimePrecision timePrecision) {
-        List<ByteBuffer> valueBufferList = new ArrayList<>();
-        List<ByteBuffer> bitmapBufferList = new ArrayList<>();
-        for (Object[] values : valuesList) {
-            valueBufferList.add(ByteUtils.getRowByteBuffer(values, dataTypeList));
-            Bitmap bitmap = new Bitmap(values.length);
-            for (int j = 0; j < values.length; j++) {
-                if (values[j] != null) {
-                    bitmap.mark(j);
-                }
-            }
-            bitmapBufferList.add(ByteBuffer.wrap(bitmap.getBytes()));
-        }
-
-        InsertNonAlignedRowRecordsReq req = new InsertNonAlignedRowRecordsReq();
-        req.setSessionId(sessionId);
-        req.setPaths(paths);
-        req.setTimestamps(getByteArrayFromLongArray(timestamps));
-        req.setValuesList(valueBufferList);
-        req.setBitmapList(bitmapBufferList);
-        req.setDataTypeList(dataTypeList);
-        req.setTagsList(tagsList);
-        req.setTimePrecision(timePrecision);
-
-        synchronized (iginXClient) {
-            iginXClient.checkIsClosed();
-            try {
-                Status status = client.insertNonAlignedRowRecords(req);
-                RpcUtils.verifySuccess(status);
-            } catch (TException | ExecutionException e) {
-                throw new IginXException("insert data failure: ", e);
-            }
-        }
-    }
+  }
 }

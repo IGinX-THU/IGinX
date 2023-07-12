@@ -8,38 +8,38 @@ import java.util.List;
 
 public class CrossJoin extends AbstractJoinOperator {
 
-    public CrossJoin(Source sourceA, Source sourceB, String prefixA, String prefixB) {
-        this(sourceA, sourceB, prefixA, prefixB, new ArrayList<>());
-    }
+  public CrossJoin(Source sourceA, Source sourceB, String prefixA, String prefixB) {
+    this(sourceA, sourceB, prefixA, prefixB, new ArrayList<>());
+  }
 
-    public CrossJoin(
-            Source sourceA,
-            Source sourceB,
-            String prefixA,
-            String prefixB,
-            List<String> extraJoinPrefix) {
-        super(
-                OperatorType.CrossJoin,
-                sourceA,
-                sourceB,
-                prefixA,
-                prefixB,
-                JoinAlgType.NestedLoopJoin,
-                extraJoinPrefix);
-    }
+  public CrossJoin(
+      Source sourceA,
+      Source sourceB,
+      String prefixA,
+      String prefixB,
+      List<String> extraJoinPrefix) {
+    super(
+        OperatorType.CrossJoin,
+        sourceA,
+        sourceB,
+        prefixA,
+        prefixB,
+        JoinAlgType.NestedLoopJoin,
+        extraJoinPrefix);
+  }
 
-    @Override
-    public Operator copy() {
-        return new CrossJoin(
-                getSourceA().copy(),
-                getSourceB().copy(),
-                getPrefixA(),
-                getPrefixB(),
-                new ArrayList<>(getExtraJoinPrefix()));
-    }
+  @Override
+  public Operator copy() {
+    return new CrossJoin(
+        getSourceA().copy(),
+        getSourceB().copy(),
+        getPrefixA(),
+        getPrefixB(),
+        new ArrayList<>(getExtraJoinPrefix()));
+  }
 
-    @Override
-    public String getInfo() {
-        return "PrefixA: " + getPrefixA() + ", PrefixB: " + getPrefixB();
-    }
+  @Override
+  public String getInfo() {
+    return "PrefixA: " + getPrefixA() + ", PrefixB: " + getPrefixB();
+  }
 }

@@ -1,7 +1,7 @@
 package cn.edu.tsinghua.iginx.engine.logical.generator;
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
-import cn.edu.tsinghua.iginx.engine.shared.TimeRange;
+import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.operator.CombineNonQuery;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
@@ -25,93 +25,89 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class DeleteGenerator extends AbstractGenerator {
-    @SuppressWarnings("unused")
-    private static final Logger logger = LoggerFactory.getLogger(InsertGenerator.class);
+  @SuppressWarnings("unused")
+  private static final Logger logger = LoggerFactory.getLogger(DeleteGenerator.class);
 
-    private static final DeleteGenerator instance = new DeleteGenerator();
-    private static final IMetaManager metaManager = DefaultMetaManager.getInstance();
-    private final IPolicy policy =
-            PolicyManager.getInstance()
-                    .getPolicy(ConfigDescriptor.getInstance().getConfig().getPolicyClassName());
+  private static final DeleteGenerator instance = new DeleteGenerator();
+  private static final IMetaManager metaManager = DefaultMetaManager.getInstance();
+  private final IPolicy policy =
+      PolicyManager.getInstance()
+          .getPolicy(ConfigDescriptor.getInstance().getConfig().getPolicyClassName());
 
-    private DeleteGenerator() {
-        this.type = GeneratorType.Delete;
+  private DeleteGenerator() {
+    this.type = GeneratorType.Delete;
+  }
+
+  public static DeleteGenerator getInstance() {
+    return instance;
+  }
+
+  @Override
+  protected Operator generateRoot(Statement statement) {
+    DeleteStatement deleteStatement = (DeleteStatement) statement;
+
+    policy.notify(deleteStatement);
+
+    List<String> pathList =
+        SortUtils.mergeAndSortPaths(new ArrayList<>(deleteStatement.getPaths()));
+
+    ColumnsInterval columnsInterval =
+        new ColumnsInterval(pathList.get(0), pathList.get(pathList.size() - 1));
+
+    Map<ColumnsInterval, List<FragmentMeta>> fragments =
+        metaManager.getFragmentMapByColumnsInterval(columnsInterval);
+    if (fragments.isEmpty()) {
+      if (metaManager.hasWritableStorageEngines()) {
+        // on startup
+        Pair<List<FragmentMeta>, List<StorageUnitMeta>> fragmentsAndStorageUnits =
+            policy.generateInitialFragmentsAndStorageUnits(deleteStatement);
+        metaManager.createInitialFragmentsAndStorageUnits(
+            fragmentsAndStorageUnits.v, fragmentsAndStorageUnits.k);
+      }
+      fragments = metaManager.getFragmentMapByColumnsInterval(columnsInterval);
     }
 
-    public static DeleteGenerator getInstance() {
-        return instance;
+    if (metaManager.hasDummyFragment(columnsInterval)) {
+      deleteStatement.setInvolveDummyData(true);
     }
 
-    @Override
-    protected Operator generateRoot(Statement statement) {
-        DeleteStatement deleteStatement = (DeleteStatement) statement;
+    TagFilter tagFilter = deleteStatement.getTagFilter();
 
-        policy.notify(deleteStatement);
+    List<Delete> deleteList = new ArrayList<>();
+    fragments.forEach(
+        (k, v) ->
+            v.forEach(
+                fragmentMeta -> {
+                  KeyInterval keyInterval = fragmentMeta.getKeyInterval();
+                  if (deleteStatement.isDeleteAll()) {
+                    deleteList.add(
+                        new Delete(new FragmentSource(fragmentMeta), null, pathList, tagFilter));
+                  } else {
+                    List<KeyRange> overlapKeyRange =
+                        getOverlapTimeRange(keyInterval, deleteStatement.getKeyRanges());
+                    if (!overlapKeyRange.isEmpty()) {
+                      deleteList.add(
+                          new Delete(
+                              new FragmentSource(fragmentMeta),
+                              overlapKeyRange,
+                              pathList,
+                              tagFilter));
+                    }
+                  }
+                }));
 
-        List<String> pathList =
-                SortUtils.mergeAndSortPaths(new ArrayList<>(deleteStatement.getPaths()));
+    List<Source> sources = new ArrayList<>();
+    deleteList.forEach(operator -> sources.add(new OperatorSource(operator)));
+    return new CombineNonQuery(sources);
+  }
 
-        TimeSeriesRange interval =
-                new TimeSeriesInterval(pathList.get(0), pathList.get(pathList.size() - 1));
-
-        Map<TimeSeriesRange, List<FragmentMeta>> fragments =
-                metaManager.getFragmentMapByTimeSeriesInterval(interval);
-        if (fragments.isEmpty()) {
-            // on startup
-            Pair<List<FragmentMeta>, List<StorageUnitMeta>> fragmentsAndStorageUnits =
-                    policy.generateInitialFragmentsAndStorageUnits(deleteStatement);
-            metaManager.createInitialFragmentsAndStorageUnits(
-                    fragmentsAndStorageUnits.v, fragmentsAndStorageUnits.k);
-            fragments = metaManager.getFragmentMapByTimeSeriesInterval(interval);
-        }
-
-        if (metaManager.hasDummyFragment(interval)) {
-            deleteStatement.setInvolveDummyData(true);
-        }
-
-        TagFilter tagFilter = deleteStatement.getTagFilter();
-
-        List<Delete> deleteList = new ArrayList<>();
-        fragments.forEach(
-                (k, v) ->
-                        v.forEach(
-                                fragmentMeta -> {
-                                    TimeInterval timeInterval = fragmentMeta.getTimeInterval();
-                                    if (deleteStatement.isDeleteAll()) {
-                                        deleteList.add(
-                                                new Delete(
-                                                        new FragmentSource(fragmentMeta),
-                                                        null,
-                                                        pathList,
-                                                        tagFilter));
-                                    } else {
-                                        List<TimeRange> overlapTimeRange =
-                                                getOverlapTimeRange(
-                                                        timeInterval,
-                                                        deleteStatement.getTimeRanges());
-                                        if (!overlapTimeRange.isEmpty()) {
-                                            deleteList.add(
-                                                    new Delete(
-                                                            new FragmentSource(fragmentMeta),
-                                                            overlapTimeRange,
-                                                            pathList,
-                                                            tagFilter));
-                                        }
-                                    }
-                                }));
-
-        List<Source> sources = new ArrayList<>();
-        deleteList.forEach(operator -> sources.add(new OperatorSource(operator)));
-        return new CombineNonQuery(sources);
+  private List<KeyRange> getOverlapTimeRange(KeyInterval interval, List<KeyRange> keyRanges) {
+    List<KeyRange> res = new ArrayList<>();
+    for (KeyRange range : keyRanges) {
+      if (interval.getStartKey() > range.getEndKey() || interval.getEndKey() < range.getBeginKey())
+        continue;
+      res.add(range);
     }
-
-    private List<TimeRange> getOverlapTimeRange(TimeInterval interval, List<TimeRange> timeRanges) {
-        List<TimeRange> res = new ArrayList<>();
-        for (TimeRange range : timeRanges) {
-            if (interval.getStartTime() > range.getEndTime()
-                    || interval.getEndTime() < range.getBeginTime()) continue;
-            res.add(range);
-        }
-        return res;
-    }
+    return res;
+  }
 }

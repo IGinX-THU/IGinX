@@ -24,15 +24,15 @@ import java.util.List;
 
 public interface UsersClient {
 
-    void addUser(final User user) throws IginXException;
+  void addUser(final User user) throws IginXException;
 
-    void updateUser(final User user) throws IginXException;
+  void updateUser(final User user) throws IginXException;
 
-    void updateUserPassword(final String username, final String newPassword);
+  void updateUserPassword(final String username, final String newPassword);
 
-    void removeUser(final String username) throws IginXException;
+  void removeUser(final String username) throws IginXException;
 
-    User findUserByName(final String username) throws IginXException;
+  User findUserByName(final String username) throws IginXException;
 
-    List<User> findUsers() throws IginXException;
+  List<User> findUsers() throws IginXException;
 }

@@ -12,48 +12,48 @@ import org.slf4j.LoggerFactory;
 
 public class RemoveNotOptimizer implements Optimizer {
 
-    private static final Logger logger = LoggerFactory.getLogger(RemoveNotOptimizer.class);
+  private static final Logger logger = LoggerFactory.getLogger(RemoveNotOptimizer.class);
 
-    private static RemoveNotOptimizer instance;
+  private static RemoveNotOptimizer instance;
 
-    private RemoveNotOptimizer() {}
+  private RemoveNotOptimizer() {}
 
-    public static RemoveNotOptimizer getInstance() {
+  public static RemoveNotOptimizer getInstance() {
+    if (instance == null) {
+      synchronized (FilterFragmentOptimizer.class) {
         if (instance == null) {
-            synchronized (FilterFragmentOptimizer.class) {
-                if (instance == null) {
-                    instance = new RemoveNotOptimizer();
-                }
-            }
+          instance = new RemoveNotOptimizer();
         }
-        return instance;
+      }
+    }
+    return instance;
+  }
+
+  @Override
+  public Operator optimize(Operator root) {
+    // only optimize query
+    if (root.getType() == OperatorType.CombineNonQuery
+        || root.getType() == OperatorType.ShowTimeSeries) {
+      return root;
     }
 
-    @Override
-    public Operator optimize(Operator root) {
-        // only optimize query
-        if (root.getType() == OperatorType.CombineNonQuery
-                || root.getType() == OperatorType.ShowTimeSeries) {
-            return root;
-        }
+    List<Select> selectOperatorList = new ArrayList<>();
+    OperatorUtils.findSelectOperators(selectOperatorList, root);
 
-        List<Select> selectOperatorList = new ArrayList<>();
-        OperatorUtils.findSelectOperators(selectOperatorList, root);
-
-        if (selectOperatorList.isEmpty()) {
-            logger.info("There is no filter in logical tree.");
-            return root;
-        }
-
-        for (Select selectOperator : selectOperatorList) {
-            removeNot(selectOperator);
-        }
-        return root;
+    if (selectOperatorList.isEmpty()) {
+      logger.info("There is no filter in logical tree.");
+      return root;
     }
 
-    private void removeNot(Select selectOperator) {
-        // remove not filter.
-        Filter filter = ExprUtils.removeNot(selectOperator.getFilter());
-        selectOperator.setFilter(filter);
+    for (Select selectOperator : selectOperatorList) {
+      removeNot(selectOperator);
     }
+    return root;
+  }
+
+  private void removeNot(Select selectOperator) {
+    // remove not filter.
+    Filter filter = ExprUtils.removeNot(selectOperator.getFilter());
+    selectOperator.setFilter(filter);
+  }
 }

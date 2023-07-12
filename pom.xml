@@ -20,9 +20,9 @@
         <module>dataSources/iotdb12</module>
         <module>dataSources/influxdb</module>
         <module>dataSources/opentsdb</module>
-        <!--module>dataSources/timescaledb</module-->
         <module>dataSources/postgresql</module>
         <module>dataSources/parquet</module>
+        <module>dataSources/redis</module>
         <module>dataSources/mongodb</module>
         <module>example</module>
         <module>test</module>
@@ -86,20 +86,12 @@
                             <java>
                                 <toggleOffOn/>
                                 <importOrder/>
-                                <!--removeUnusedImports/>
-								<palantirJavaFormat>
-									<version>1.1.0</version>
-								</palantirJavaFormat>
-								<formatAnnotations/-->
+                                <removeUnusedImports/>
+                                <trimTrailingWhitespace/>
                                 <googleJavaFormat>
-                                    <version>1.6</version>
-                                    <style>AOSP</style>
-                                    <!-- or GOOGLE(optional) -->
+                                    <version>1.7</version>
+                                    <style>GOOGLE</style>
                                 </googleJavaFormat>
-                                <indent>
-                                    <spaces>true</spaces>
-                                    <spacesPerTab>4</spacesPerTab>
-                                </indent>
                             </java>
                             <python>
                                 <includes>

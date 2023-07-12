@@ -18,16 +18,16 @@ jobs:
             fail-fast: false
             matrix:
                 java: [8]
-                python-version: ["3.7"]
+                python-version: ["3.7.16"]
                 os: [ubuntu-latest, macos-latest]
         runs-on: ${{ matrix.os }}
         steps:
             - uses: actions/checkout@v2
-            - name: Environmet Dependence
+            - name: Environment dependence
               uses: ./.github/actions/dependence
               with:
                   python-version: ${{ matrix.python-version }}
                   java: ${{ matrix.java }}
 
             - name: Test with Maven
-              run: mvn clean package -pl core -am -P passFormat
+              run: mvn clean package -pl core -am -P passFormat -q

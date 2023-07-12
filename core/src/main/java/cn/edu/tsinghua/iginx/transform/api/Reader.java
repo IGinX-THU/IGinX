@@ -4,9 +4,9 @@ import cn.edu.tsinghua.iginx.transform.data.BatchData;
 
 public interface Reader {
 
-    boolean hasNextBatch();
+  boolean hasNextBatch();
 
-    BatchData loadNextBatch();
+  BatchData loadNextBatch();
 
-    void close();
+  void close();
 }

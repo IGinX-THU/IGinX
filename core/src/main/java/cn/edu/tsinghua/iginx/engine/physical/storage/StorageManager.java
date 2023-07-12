@@ -19,10 +19,9 @@
 package cn.edu.tsinghua.iginx.engine.physical.storage;
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
+import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
+import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
-import cn.edu.tsinghua.iginx.metadata.entity.TimeInterval;
-import cn.edu.tsinghua.iginx.metadata.entity.TimeSeriesInterval;
-import cn.edu.tsinghua.iginx.metadata.entity.TimeSeriesRange;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.io.IOException;
 import java.util.List;
@@ -36,142 +35,137 @@ import org.slf4j.LoggerFactory;
 
 public class StorageManager {
 
-    private static final Logger logger = LoggerFactory.getLogger(StorageManager.class);
+  private static final Logger logger = LoggerFactory.getLogger(StorageManager.class);
 
-    private static final Map<String, ClassLoader> classLoaders = new ConcurrentHashMap<>();
+  private static final Map<String, ClassLoader> classLoaders = new ConcurrentHashMap<>();
 
-    private static boolean hasInitLoaders = false;
+  private static boolean hasInitLoaders = false;
 
-    private static final Map<String, String> drivers = new ConcurrentHashMap<>();
+  private static final Map<String, String> drivers = new ConcurrentHashMap<>();
 
-    private static final Map<Long, Pair<IStorage, ThreadPoolExecutor>> storageMap =
-            new ConcurrentHashMap<>();
+  private static final Map<Long, Pair<IStorage, ThreadPoolExecutor>> storageMap =
+      new ConcurrentHashMap<>();
 
-    public StorageManager(List<StorageEngineMeta> metaList) {
-        initClassLoaderAndDrivers();
-        for (StorageEngineMeta meta : metaList) {
-            if (!initStorage(meta)) {
-                System.exit(-1);
-            }
+  public StorageManager(List<StorageEngineMeta> metaList) {
+    initClassLoaderAndDrivers();
+    for (StorageEngineMeta meta : metaList) {
+      if (!initStorage(meta)) {
+        System.exit(-1);
+      }
+    }
+  }
+
+  public static Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(StorageEngineMeta meta) {
+    return getBoundaryOfStorage(meta, null);
+  }
+
+  public static Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(
+      StorageEngineMeta meta, String dataPrefix) {
+    initClassLoaderAndDrivers();
+    String engine = meta.getStorageEngine();
+    String driver = drivers.get(engine);
+    long id = meta.getId();
+    boolean needRelease = false;
+    IStorage storage = null;
+    try {
+      if (storageMap.containsKey(id)) {
+        storage = storageMap.get(id).k;
+      } else {
+        ClassLoader loader = classLoaders.get(engine);
+        storage =
+            (IStorage)
+                loader.loadClass(driver).getConstructor(StorageEngineMeta.class).newInstance(meta);
+        needRelease = true;
+      }
+      return storage.getBoundaryOfStorage(dataPrefix);
+    } catch (ClassNotFoundException e) {
+      logger.error("load class {} for engine {} failure: {}", driver, engine, e);
+    } catch (Exception e) {
+      logger.error("unexpected error when process engine {}: {}", engine, e);
+    } finally {
+      try {
+        if (needRelease) {
+          storage.release();
         }
+      } catch (Exception e) {
+        logger.error("release session pool failure!");
+      }
     }
+    return new Pair<>(new ColumnsInterval(null, null), new KeyInterval(0, Long.MAX_VALUE));
+  }
 
-    public static Pair<TimeSeriesRange, TimeInterval> getBoundaryOfStorage(StorageEngineMeta meta) {
-        return getBoundaryOfStorage(meta, null);
+  private boolean initStorage(StorageEngineMeta meta) {
+    String engine = meta.getStorageEngine();
+    String driver = drivers.get(engine);
+    long id = meta.getId();
+    try {
+      if (!storageMap.containsKey(id)) {
+        ClassLoader loader = classLoaders.get(engine);
+        IStorage storage =
+            (IStorage)
+                loader.loadClass(driver).getConstructor(StorageEngineMeta.class).newInstance(meta);
+        // 启动一个派发线程池
+        ThreadPoolExecutor dispatcher =
+            new ThreadPoolExecutor(
+                ConfigDescriptor.getInstance()
+                    .getConfig()
+                    .getPhysicalTaskThreadPoolSizePerStorage(),
+                Integer.MAX_VALUE,
+                60L,
+                TimeUnit.SECONDS,
+                new SynchronousQueue<>());
+        storageMap.put(meta.getId(), new Pair<>(storage, dispatcher));
+      }
+    } catch (ClassNotFoundException e) {
+      logger.error("load class {} for engine {} failure: {}", driver, engine, e);
+      return false;
+    } catch (Exception e) {
+      logger.error("unexpected error when process engine {}: {}", engine, e);
+      return false;
     }
+    return true;
+  }
 
-    public static Pair<TimeSeriesRange, TimeInterval> getBoundaryOfStorage(
-            StorageEngineMeta meta, String dataPrefix) {
-        initClassLoaderAndDrivers();
-        String engine = meta.getStorageEngine();
-        String driver = drivers.get(engine);
-        long id = meta.getId();
-        boolean needRelease = false;
-        IStorage storage = null;
-        try {
-            if (storageMap.containsKey(id)) {
-                storage = storageMap.get(id).k;
-            } else {
-                ClassLoader loader = classLoaders.get(engine);
-                storage =
-                        (IStorage)
-                                loader.loadClass(driver)
-                                        .getConstructor(StorageEngineMeta.class)
-                                        .newInstance(meta);
-                needRelease = true;
-            }
-            return storage.getBoundaryOfStorage(dataPrefix);
-        } catch (ClassNotFoundException e) {
-            logger.error("load class {} for engine {} failure: {}", driver, engine, e);
-        } catch (Exception e) {
-            logger.error("unexpected error when process engine {}: {}", engine, e);
-        } finally {
-            try {
-                if (needRelease) {
-                    storage.release();
-                }
-            } catch (Exception e) {
-                logger.error("release session pool failure!");
-            }
-        }
-        return new Pair<>(new TimeSeriesInterval(null, null), new TimeInterval(0, Long.MAX_VALUE));
+  private static void initClassLoaderAndDrivers() {
+    if (hasInitLoaders) {
+      return;
     }
+    String[] parts = ConfigDescriptor.getInstance().getConfig().getDatabaseClassNames().split(",");
+    for (String part : parts) {
+      String[] kAndV = part.split("=");
+      if (kAndV.length != 2) {
+        logger.error("unexpected database class names: {}", part);
+        System.exit(-1);
+      }
+      String storage = kAndV[0];
+      String driver = kAndV[1];
+      try {
+        ClassLoader classLoader = new StorageEngineClassLoader(storage);
+        classLoaders.put(storage, classLoader);
+        drivers.put(storage, driver);
+      } catch (IOException e) {
+        logger.error("encounter error when init class loader for {}: {}", storage, e);
+        System.exit(-1);
+      }
+    }
+    hasInitLoaders = true;
+  }
 
-    private boolean initStorage(StorageEngineMeta meta) {
-        String engine = meta.getStorageEngine();
-        String driver = drivers.get(engine);
-        long id = meta.getId();
-        try {
-            if (!storageMap.containsKey(id)) {
-                ClassLoader loader = classLoaders.get(engine);
-                IStorage storage =
-                        (IStorage)
-                                loader.loadClass(driver)
-                                        .getConstructor(StorageEngineMeta.class)
-                                        .newInstance(meta);
-                // 启动一个派发线程池
-                ThreadPoolExecutor dispatcher =
-                        new ThreadPoolExecutor(
-                                ConfigDescriptor.getInstance()
-                                        .getConfig()
-                                        .getPhysicalTaskThreadPoolSizePerStorage(),
-                                Integer.MAX_VALUE,
-                                60L,
-                                TimeUnit.SECONDS,
-                                new SynchronousQueue<>());
-                storageMap.put(meta.getId(), new Pair<>(storage, dispatcher));
-            }
-        } catch (ClassNotFoundException e) {
-            logger.error("load class {} for engine {} failure: {}", driver, engine, e);
-            return false;
-        } catch (Exception e) {
-            logger.error("unexpected error when process engine {}: {}", engine, e);
-            return false;
-        }
-        return true;
-    }
+  public Map<Long, Pair<IStorage, ThreadPoolExecutor>> getStorageMap() {
+    return storageMap;
+  }
 
-    private static void initClassLoaderAndDrivers() {
-        if (hasInitLoaders) {
-            return;
-        }
-        String[] parts =
-                ConfigDescriptor.getInstance().getConfig().getDatabaseClassNames().split(",");
-        for (String part : parts) {
-            String[] kAndV = part.split("=");
-            if (kAndV.length != 2) {
-                logger.error("unexpected database class names: {}", part);
-                System.exit(-1);
-            }
-            String storage = kAndV[0];
-            String driver = kAndV[1];
-            try {
-                ClassLoader classLoader = new StorageEngineClassLoader(storage);
-                classLoaders.put(storage, classLoader);
-                drivers.put(storage, driver);
-            } catch (IOException e) {
-                logger.error("encounter error when init class loader for {}: {}", storage, e);
-                System.exit(-1);
-            }
-        }
-        hasInitLoaders = true;
-    }
+  public Pair<IStorage, ThreadPoolExecutor> getStorage(long id) {
+    return storageMap.get(id);
+  }
 
-    public Map<Long, Pair<IStorage, ThreadPoolExecutor>> getStorageMap() {
-        return storageMap;
+  public boolean addStorage(StorageEngineMeta meta) {
+    if (!initStorage(meta)) {
+      logger.error("add storage " + meta + " failure!");
+      return false;
+    } else {
+      logger.info("add storage " + meta + " success.");
     }
-
-    public Pair<IStorage, ThreadPoolExecutor> getStorage(long id) {
-        return storageMap.get(id);
-    }
-
-    public boolean addStorage(StorageEngineMeta meta) {
-        if (!initStorage(meta)) {
-            logger.error("add storage " + meta + " failure!");
-            return false;
-        } else {
-            logger.info("add storage " + meta + " success.");
-        }
-        return true;
-    }
+    return true;
+  }
 }

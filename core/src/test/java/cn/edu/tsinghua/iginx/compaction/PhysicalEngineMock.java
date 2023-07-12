@@ -10,18 +10,18 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 
 public class PhysicalEngineMock implements PhysicalEngine {
 
-    @Override
-    public RowStream execute(RequestContext ctx, Operator root) throws PhysicalException {
-        return null;
-    }
+  @Override
+  public RowStream execute(RequestContext ctx, Operator root) throws PhysicalException {
+    return null;
+  }
 
-    @Override
-    public ConstraintManager getConstraintManager() {
-        return null;
-    }
+  @Override
+  public ConstraintManager getConstraintManager() {
+    return null;
+  }
 
-    @Override
-    public StorageManager getStorageManager() {
-        return null;
-    }
+  @Override
+  public StorageManager getStorageManager() {
+    return null;
+  }
 }

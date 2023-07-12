@@ -78,6 +78,26 @@ You can now test IGinX. Have fun!~
 =====================================
 ```
 
+若在Windows系统环境下出现找不到文件路径问题，则需要使用文本编辑器修改根目录下的`runIginxOn1Host.bat`
+
+```shell
+#./runIginxOn1Host.bat
+# line 2
+start "zookeeper" /d "include/apache-zookeeper-3.7.0-bin/" bin\zkServer.cmd
+# ↓ 改为
+start "zookeeper" /d "include\apache-zookeeper-3.7.0-bin\" bin\zkServer.cmd
+
+# line 5
+start "iotdb" /d "include/apache-iotdb-0.12.6/sbin" start-server.bat
+# ↓ 改为
+start "iotdb" /d "include\apache-iotdb-0.12.6\sbin" start-server.bat
+
+# line 9
+start "iginx" /d "./sbin" start_iginx.bat
+# ↓ 改为
+start "iginx" /d ".\sbin" start_iginx.bat
+```
+
 ## 访问 IGinX
 
 ### RESTful 接口
@@ -250,7 +270,7 @@ $ mvn clean install -DskipTests
 </dependency>
 ```
 
-在访问 iginx 之前，首先需要创建 session，并尝试连接。Session 构造器有 4 个参数，分别是要连接的 IGinX 的 ip，port，以及用于 IGinX 认证的用户名和密码。目前的权鉴系统还在编写中，因此访问后端
+在访问 IGinX 之前，首先需要创建 session，并尝试连接。Session 构造器有 4 个参数，分别是要连接的 IGinX 的 ip，port，以及用于 IGinX 认证的用户名和密码。目前的权鉴系统还在编写中，因此访问后端
 IGinX 的账户名和密码直接填写 root 即可：
 
 ```Java

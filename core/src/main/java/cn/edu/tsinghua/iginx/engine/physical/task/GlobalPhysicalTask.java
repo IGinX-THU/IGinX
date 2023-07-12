@@ -23,11 +23,11 @@ import java.util.Collections;
 
 public class GlobalPhysicalTask extends AbstractPhysicalTask {
 
-    public GlobalPhysicalTask(Operator operator) {
-        super(TaskType.Global, Collections.singletonList(operator));
-    }
+  public GlobalPhysicalTask(Operator operator) {
+    super(TaskType.Global, Collections.singletonList(operator));
+  }
 
-    public Operator getOperator() {
-        return getOperators().get(0);
-    }
+  public Operator getOperator() {
+    return getOperators().get(0);
+  }
 }

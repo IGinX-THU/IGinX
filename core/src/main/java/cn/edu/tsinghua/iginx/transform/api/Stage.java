@@ -5,7 +5,7 @@ import cn.edu.tsinghua.iginx.transform.data.ExportWriter;
 
 public interface Stage {
 
-    DataFlowType getStageType();
+  DataFlowType getStageType();
 
-    ExportWriter getExportWriter();
+  ExportWriter getExportWriter();
 }

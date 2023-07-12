@@ -5,17 +5,17 @@ import java.util.List;
 
 public interface FromPart {
 
-    FromPartType getType();
+  FromPartType getType();
 
-    boolean hasSinglePrefix();
+  boolean hasSinglePrefix();
 
-    List<String> getPatterns();
+  List<String> getPatterns();
 
-    String getPrefix();
+  String getPrefix();
 
-    boolean isJoinPart();
+  boolean isJoinPart();
 
-    JoinCondition getJoinCondition();
+  JoinCondition getJoinCondition();
 
-    List<String> getFreeVariables();
+  List<String> getFreeVariables();
 }

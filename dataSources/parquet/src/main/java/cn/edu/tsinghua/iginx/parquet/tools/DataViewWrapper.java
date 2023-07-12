@@ -9,72 +9,72 @@ import java.util.Map;
 
 public class DataViewWrapper {
 
-    private final DataView dataView;
+  private final DataView dataView;
 
-    private final Map<Integer, String> pathCache;
+  private final Map<Integer, String> pathCache;
 
-    public DataViewWrapper(DataView dataView) {
-        this.dataView = dataView;
-        this.pathCache = new HashMap<>();
+  public DataViewWrapper(DataView dataView) {
+    this.dataView = dataView;
+    this.pathCache = new HashMap<>();
+  }
+
+  public int getPathNum() {
+    return dataView.getPathNum();
+  }
+
+  public int getKeySize() {
+    return dataView.getKeySize();
+  }
+
+  public String getPath(int index) {
+    if (pathCache.containsKey(index)) {
+      return pathCache.get(index);
     }
+    String path = dataView.getPath(index);
+    Map<String, String> tags = dataView.getTags(index);
+    path = TagKVUtils.toFullName(path, tags);
+    pathCache.put(index, path);
+    return path;
+  }
 
-    public int getPathNum() {
-        return dataView.getPathNum();
-    }
+  public DataType getDataType(int index) {
+    return dataView.getDataType(index);
+  }
 
-    public int getTimeSize() {
-        return dataView.getTimeSize();
-    }
+  public Long getKey(int index) {
+    return dataView.getKey(index);
+  }
 
-    public String getPath(int index) {
-        if (pathCache.containsKey(index)) {
-            return pathCache.get(index);
-        }
-        String path = dataView.getPath(index);
-        Map<String, String> tags = dataView.getTags(index);
-        path = TagKVUtils.toFullName(path, tags);
-        pathCache.put(index, path);
-        return path;
-    }
+  public Object getValue(int index1, int index2) {
+    return dataView.getValue(index1, index2);
+  }
 
-    public DataType getDataType(int index) {
-        return dataView.getDataType(index);
-    }
+  public BitmapView getBitmapView(int index) {
+    return dataView.getBitmapView(index);
+  }
 
-    public Long getTimestamp(int index) {
-        return dataView.getKey(index);
-    }
+  public RawDataType getRawDataType() {
+    return dataView.getRawDataType();
+  }
 
-    public Object getValue(int index1, int index2) {
-        return dataView.getValue(index1, index2);
+  public int getPathIndex(String path) {
+    for (int i = 0; i < getPathNum(); i++) {
+      if (getPath(i).equals(path)) {
+        return i;
+      }
     }
+    return -1;
+  }
 
-    public BitmapView getBitmapView(int index) {
-        return dataView.getBitmapView(index);
-    }
+  public int getKeyIndex(long key) {
+    return dataView.getKeyIndex(key);
+  }
 
-    public RawDataType getRawDataType() {
-        return dataView.getRawDataType();
-    }
+  public long getMinKey() {
+    return getKey(0);
+  }
 
-    public int getPathIndex(String path) {
-        for (int i = 0; i < getPathNum(); i++) {
-            if (getPath(i).equals(path)) {
-                return i;
-            }
-        }
-        return -1;
-    }
-
-    public int getTimestampIndex(long timestamp) {
-        return dataView.getKeyIndex(timestamp);
-    }
-
-    public long getMinTime() {
-        return getTimestamp(0);
-    }
-
-    public long getMaxTime() {
-        return getTimestamp(getTimeSize() - 1);
-    }
+  public long getMaxKey() {
+    return getKey(getKeySize() - 1);
+  }
 }

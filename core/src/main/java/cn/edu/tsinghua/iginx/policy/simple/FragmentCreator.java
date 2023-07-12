@@ -14,91 +14,83 @@ import org.slf4j.LoggerFactory;
 
 public class FragmentCreator {
 
-    private static Timer timer = new Timer();
+  private static Timer timer = new Timer();
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(FragmentCreator.class);
-    private final IMetaManager iMetaManager;
-    private static final Config config = ConfigDescriptor.getInstance().getConfig();
-    private final SimplePolicy policy;
+  private static final Logger logger = LoggerFactory.getLogger(FragmentCreator.class);
+  private final IMetaManager iMetaManager;
+  private static final Config config = ConfigDescriptor.getInstance().getConfig();
+  private final SimplePolicy policy;
 
-    public FragmentCreator(SimplePolicy policy, IMetaManager iMetaManager) {
-        this.policy = policy;
-        this.iMetaManager = iMetaManager;
-        init(config.getReAllocatePeriod());
+  public FragmentCreator(SimplePolicy policy, IMetaManager iMetaManager) {
+    this.policy = policy;
+    this.iMetaManager = iMetaManager;
+    init(config.getReAllocatePeriod());
+  }
+
+  public boolean waitforUpdate(int version) {
+    int retry = config.getRetryCount();
+    while (retry > 0) {
+      Map<Integer, Integer> timeseriesVersionMap = iMetaManager.getColumnsVersionMap();
+      Set<Integer> idSet =
+          iMetaManager.getIginxList().stream()
+              .map(IginxMeta::getId)
+              .map(Long::intValue)
+              .collect(Collectors.toSet());
+      if (version
+          <= timeseriesVersionMap.entrySet().stream()
+              .filter(e -> idSet.contains(e.getKey()))
+              .map(Map.Entry::getValue)
+              .min(Integer::compareTo)
+              .orElse(Integer.MAX_VALUE)) {
+        return true;
+      }
+      logger.info(
+          "retry, remain: {}, version:{}, minversion: {}",
+          retry,
+          version,
+          timeseriesVersionMap.values().stream().min(Integer::compareTo).orElse(Integer.MAX_VALUE));
+      try {
+        Thread.sleep(config.getRetryWait());
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      }
+      retry--;
     }
+    return false;
+  }
 
-    public boolean waitforUpdate(int version) {
-        int retry = config.getRetryCount();
-        while (retry > 0) {
-            Map<Integer, Integer> timeseriesVersionMap = iMetaManager.getTimeseriesVersionMap();
-            Set<Integer> idSet =
-                    iMetaManager
-                            .getIginxList()
-                            .stream()
-                            .map(IginxMeta::getId)
-                            .map(Long::intValue)
-                            .collect(Collectors.toSet());
-            if (version
-                    <= timeseriesVersionMap
-                            .entrySet()
-                            .stream()
-                            .filter(e -> idSet.contains(e.getKey()))
-                            .map(Map.Entry::getValue)
-                            .min(Integer::compareTo)
-                            .orElse(Integer.MAX_VALUE)) {
-                return true;
-            }
-            LOGGER.info(
-                    "retry, remain: {}, version:{}, minversion: {}",
-                    retry,
-                    version,
-                    timeseriesVersionMap
-                            .values()
-                            .stream()
-                            .min(Integer::compareTo)
-                            .orElse(Integer.MAX_VALUE));
+  public void createFragment() throws Exception {
+    logger.info("start CreateFragment");
+    if (iMetaManager.election()) {
+      int version = iMetaManager.updateVersion();
+      if (version > 0) {
+        if (!waitforUpdate(version)) {
+          logger.error("update failed");
+          return;
+        }
+        if (!policy.checkSuccess(iMetaManager.getColumnsData())) {
+          policy.setNeedReAllocate(true);
+          logger.info("set ReAllocate true");
+        }
+      }
+    }
+    logger.info("end CreateFragment");
+  }
+
+  public void init(int length) {
+    timer.schedule(
+        new TimerTask() {
+          @Override
+          public void run() {
             try {
-                Thread.sleep(config.getRetryWait());
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+              createFragment();
+            } catch (Exception e) {
+              logger.error("Error occurs when create fragment", e);
+              e.printStackTrace();
             }
-            retry--;
-        }
-        return false;
-    }
-
-    public void createFragment() throws Exception {
-        LOGGER.info("start CreateFragment");
-        if (iMetaManager.election()) {
-            int version = iMetaManager.updateVersion();
-            if (version > 0) {
-                if (!waitforUpdate(version)) {
-                    LOGGER.error("update failed");
-                    return;
-                }
-                if (!policy.checkSuccess(iMetaManager.getTimeseriesData())) {
-                    policy.setNeedReAllocate(true);
-                    LOGGER.info("set ReAllocate true");
-                }
-            }
-        }
-        LOGGER.info("end CreateFragment");
-    }
-
-    public void init(int length) {
-        timer.schedule(
-                new TimerTask() {
-                    @Override
-                    public void run() {
-                        try {
-                            createFragment();
-                        } catch (Exception e) {
-                            LOGGER.error("Error occurs when create fragment", e);
-                            e.printStackTrace();
-                        }
-                    }
-                },
-                length,
-                length);
-    }
+          }
+        },
+        length,
+        length);
+  }
 }

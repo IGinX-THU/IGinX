@@ -49,8 +49,8 @@ enum SqlType {
     AddStorageEngines,
     CountPoints,
     ClearData,
-    DeleteTimeSeries,
-    ShowTimeSeries,
+    DeleteColumns,
+    ShowColumns,
     ShowClusterInfo,
     ShowRegisterTask,
     RegisterTask,
@@ -60,6 +60,8 @@ enum SqlType {
     CancelJob,
     ShowEligibleJob,
     RemoveHistoryDataResource,
+    SetConfig,
+    ShowConfig,
     Compact
 }
 
@@ -150,7 +152,7 @@ struct DeleteColumnsReq {
 struct InsertColumnRecordsReq {
     1: required i64 sessionId
     2: required list<string> paths
-    3: required binary timestamps
+    3: required binary keys
     4: required list<binary> valuesList
     5: required list<binary> bitmapList
     6: required list<DataType> dataTypeList
@@ -161,7 +163,7 @@ struct InsertColumnRecordsReq {
 struct InsertNonAlignedColumnRecordsReq {
     1: required i64 sessionId
     2: required list<string> paths
-    3: required binary timestamps
+    3: required binary keys
     4: required list<binary> valuesList
     5: required list<binary> bitmapList
     6: required list<DataType> dataTypeList
@@ -172,7 +174,7 @@ struct InsertNonAlignedColumnRecordsReq {
 struct InsertRowRecordsReq {
     1: required i64 sessionId
     2: required list<string> paths
-    3: required binary timestamps
+    3: required binary keys
     4: required list<binary> valuesList
     5: required list<binary> bitmapList
     6: required list<DataType> dataTypeList
@@ -183,7 +185,7 @@ struct InsertRowRecordsReq {
 struct InsertNonAlignedRowRecordsReq {
     1: required i64 sessionId
     2: required list<string> paths
-    3: required binary timestamps
+    3: required binary keys
     4: required list<binary> valuesList
     5: required list<binary> bitmapList
     6: required list<DataType> dataTypeList
@@ -194,14 +196,14 @@ struct InsertNonAlignedRowRecordsReq {
 struct DeleteDataInColumnsReq {
     1: required i64 sessionId
     2: required list<string> paths
-    3: required i64 startTime
-    4: required i64 endTime
+    3: required i64 startKey
+    4: required i64 endKey
     5: optional map<string, list<string>> tagsList
     6: optional TimePrecision timePrecision
 }
 
 struct QueryDataSet {
-    1: required binary timestamps
+    1: required binary keys
     2: required list<binary> valuesList
     3: required list<binary> bitmapList
 }
@@ -209,8 +211,8 @@ struct QueryDataSet {
 struct QueryDataReq {
     1: required i64 sessionId
     2: required list<string> paths
-    3: required i64 startTime
-    4: required i64 endTime
+    3: required i64 startKey
+    4: required i64 endKey
     5: optional map<string, list<string>> tagsList
     6: optional TimePrecision timePrecision
 }
@@ -238,8 +240,8 @@ struct StorageEngine {
 struct AggregateQueryReq {
     1: required i64 sessionId
     2: required list<string> paths
-    3: required i64 startTime
-    4: required i64 endTime
+    3: required i64 startKey
+    4: required i64 endKey
     5: required AggregateType aggregateType
     6: optional map<string, list<string>> tagsList
     7: optional TimePrecision timePrecision
@@ -250,14 +252,14 @@ struct AggregateQueryResp {
     2: optional list<string> paths
     3: optional list<map<string, string>> tagsList
     4: optional list<DataType> dataTypeList
-    5: optional binary timestamps
+    5: optional binary keys
     6: optional binary valuesList
 }
 
 struct LastQueryReq {
     1: required i64 sessionId
     2: required list<string> paths
-    3: required i64 startTime
+    3: required i64 startKey
     4: optional map<string, list<string>> tagsList
     5: optional TimePrecision timePrecision
 }
@@ -273,8 +275,8 @@ struct LastQueryResp {
 struct DownsampleQueryReq {
     1: required i64 sessionId
     2: required list<string> paths
-    3: required i64 startTime
-    4: required i64 endTime
+    3: required i64 startKey
+    4: required i64 endKey
     5: required AggregateType aggregateType
     6: required i64 precision
     7: optional map<string, list<string>> tagsList
@@ -322,7 +324,7 @@ struct ExecuteSqlResp {
     4: optional list<map<string, string>> tagsList
     5: optional list<DataType> dataTypeList
     6: optional QueryDataSet queryDataSet
-    7: optional binary timestamps
+    7: optional binary keys
     8: optional binary valuesList
     9: optional i32 replicaNum
     10: optional i64 pointsNum;
@@ -340,6 +342,7 @@ struct ExecuteSqlResp {
     22: optional i64 jobId
     23: optional JobState jobState
     24: optional list<i64> jobIdList
+    25: optional string configValue
 }
 
 struct UpdateUserReq {
@@ -528,8 +531,8 @@ struct GetRegisterTaskInfoResp {
 struct CurveMatchReq {
     1: required i64 sessionId
     2: required list<string> paths
-    3: required i64 startTime
-    4: required i64 endTime
+    3: required i64 startKey
+    4: required i64 endKey
     5: required list<double> curveQuery
     6: required i64 curveUnit
 }
@@ -537,7 +540,7 @@ struct CurveMatchReq {
 struct CurveMatchResp {
     1: required Status status
     2: optional string matchedPath
-    3: optional i64 matchedTimestamp
+    3: optional i64 matchedKey
 }
 
 enum DebugInfoType {
@@ -550,8 +553,8 @@ struct GetMetaReq {
 
 struct Fragment {
     1: required string storageUnitId
-    2: required i64 startTime
-    3: required i64 endTime
+    2: required i64 startKey
+    3: required i64 endKey
     4: required string startTs
     5: required string endTs
 }
