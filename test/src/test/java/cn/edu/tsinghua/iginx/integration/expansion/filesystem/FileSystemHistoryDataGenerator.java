@@ -110,7 +110,8 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
     List<File> res = new ArrayList<>();
     // 创建历史文件
     for (String path : pathList) {
-      File file = new File(FilePath.toIginxPath(root, null, path));
+      String realFilePath = root + path.replace('.','/');
+      File file = new File(realFilePath);
       res.add(file);
       Path filePath = Paths.get(file.getPath());
       try {
