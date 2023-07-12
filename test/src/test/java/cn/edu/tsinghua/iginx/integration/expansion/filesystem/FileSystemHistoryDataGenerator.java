@@ -19,13 +19,15 @@ import org.slf4j.LoggerFactory;
 public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
   private static final Logger logger =
       LoggerFactory.getLogger(FileSystemHistoryDataGenerator.class);
+  private static String rootOri = "dataSources/filesystem/src/test/java/cn/edu/tsinghua/iginx/storage/";
   // 对应port 4860
-  public static String root1 = ConfLoader.getRootPath();
+  public static String root1 =
+      rootOri + "root1" + System.getProperty("file.separator");
   // 对应port 4861
   public static String root2 =
-      ConfLoader.getRootPath() + "root2" + System.getProperty("file.separator");
+      rootOri + "root2" + System.getProperty("file.separator");
   public static String root3 =
-      ConfLoader.getRootPath() + "root3" + System.getProperty("file.separator");
+      rootOri + "root3" + System.getProperty("file.separator");
 
   public FileSystemHistoryDataGenerator() {
     this.oriPort = 4860;

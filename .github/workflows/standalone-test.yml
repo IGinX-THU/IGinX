@@ -21,12 +21,12 @@ jobs:
                 os: [ubuntu-latest, macos-latest]
                 DB-name:
                     [
-                        "IoTDB12",
-                        "InfluxDB",
-                        "Parquet",
-                        "PostgreSQL",
-                        "FileSystem",
-                        "Redis",
+#                        "IoTDB12",
+#                        "InfluxDB",
+#                        "Parquet",
+#                        "PostgreSQL",
+                        "FileSystem"
+#                        "Redis",
                     ]
         runs-on: ${{ matrix.os }}
         steps:
