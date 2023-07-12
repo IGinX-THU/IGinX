@@ -39,7 +39,8 @@ public class HashSingleJoinLazyStream extends BinaryLazyStream {
   private void initialize() throws PhysicalException {
     this.header = HeaderUtils.constructNewHead(streamA.getHeader(), streamB.getHeader(), true);
     Pair<String, String> joinPath =
-        FilterUtils.getJoinPathFromFilter(singleJoin.getFilter(), streamA.getHeader(), streamB.getHeader());
+        FilterUtils.getJoinPathFromFilter(
+            singleJoin.getFilter(), streamA.getHeader(), streamB.getHeader());
     this.joinPathA = joinPath.k;
     String joinPathB = joinPath.v;
 

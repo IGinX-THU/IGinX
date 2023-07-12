@@ -234,20 +234,15 @@ public class OperatorUtils {
       case RowTransform:
         RowTransform rowTransform = (RowTransform) operatorB;
         apply.setSourceB(rowTransform.getSource());
-        List<FunctionCall> functionCallList =
-            new ArrayList<>(rowTransform.getFunctionCallList());
+        List<FunctionCall> functionCallList = new ArrayList<>(rowTransform.getFunctionCallList());
         for (String correlatedVariable : correlatedVariables) {
-          FunctionParams params =
-              new FunctionParams(new BaseExpression(correlatedVariable));
+          FunctionParams params = new FunctionParams(new BaseExpression(correlatedVariable));
           functionCallList.add(
-              new FunctionCall(
-                  FunctionManager.getInstance().getFunction(ARITHMETIC_EXPR),
-                  params));
+              new FunctionCall(FunctionManager.getInstance().getFunction(ARITHMETIC_EXPR), params));
         }
         root =
             new RowTransform(
-                new OperatorSource(pushDownApply(apply, correlatedVariables)),
-                functionCallList);
+                new OperatorSource(pushDownApply(apply, correlatedVariables)), functionCallList);
         break;
       case SetTransform:
         SetTransform setTransform = (SetTransform) operatorB;
@@ -300,23 +295,19 @@ public class OperatorUtils {
         break;
       case CrossJoin:
         CrossJoin crossJoin = (CrossJoin) operatorB;
-        Operator operatorACrossJoin =
-            ((OperatorSource) crossJoin.getSourceA()).getOperator();
-        Operator operatorBCrossJoin =
-            ((OperatorSource) crossJoin.getSourceB()).getOperator();
+        Operator operatorACrossJoin = ((OperatorSource) crossJoin.getSourceA()).getOperator();
+        Operator operatorBCrossJoin = ((OperatorSource) crossJoin.getSourceB()).getOperator();
         aCorrelatedWithRoot = hasPaths(operatorACrossJoin, correlatedVariables);
         bCorrelatedWithRoot = hasPaths(operatorBCrossJoin, correlatedVariables);
         if (!aCorrelatedWithRoot && bCorrelatedWithRoot) {
           apply.setSourceB(crossJoin.getSourceB());
           apply.setPrefixB(crossJoin.getPrefixB());
-          crossJoin.setSourceB(
-              new OperatorSource(pushDownApply(apply, correlatedVariables)));
+          crossJoin.setSourceB(new OperatorSource(pushDownApply(apply, correlatedVariables)));
           root = crossJoin;
         } else if (aCorrelatedWithRoot && !bCorrelatedWithRoot) {
           apply.setSourceB(crossJoin.getSourceA());
           apply.setPrefixB(crossJoin.getPrefixA());
-          crossJoin.setSourceA(
-              new OperatorSource(pushDownApply(apply, correlatedVariables)));
+          crossJoin.setSourceA(new OperatorSource(pushDownApply(apply, correlatedVariables)));
           root = crossJoin;
         } else if (aCorrelatedWithRoot) {
           AbstractJoinOperator applyCopy = (AbstractJoinOperator) apply.copy();
@@ -327,8 +318,7 @@ public class OperatorUtils {
           root =
               new InnerJoin(
                   new OperatorSource(pushDownApply(apply, correlatedVariables)),
-                  new OperatorSource(
-                      pushDownApply(applyCopy, correlatedVariables)),
+                  new OperatorSource(pushDownApply(applyCopy, correlatedVariables)),
                   null,
                   null,
                   new BoolFilter(true),
@@ -340,32 +330,26 @@ public class OperatorUtils {
         break;
       case InnerJoin:
         InnerJoin innerJoin = (InnerJoin) operatorB;
-        Operator operatorAInnerJoin =
-            ((OperatorSource) innerJoin.getSourceA()).getOperator();
-        Operator operatorBInnerJoin =
-            ((OperatorSource) innerJoin.getSourceB()).getOperator();
+        Operator operatorAInnerJoin = ((OperatorSource) innerJoin.getSourceA()).getOperator();
+        Operator operatorBInnerJoin = ((OperatorSource) innerJoin.getSourceB()).getOperator();
         aCorrelatedWithRoot = hasPaths(operatorAInnerJoin, correlatedVariables);
         bCorrelatedWithRoot = hasPaths(operatorBInnerJoin, correlatedVariables);
         if (!aCorrelatedWithRoot && bCorrelatedWithRoot) {
           apply.setSourceB(innerJoin.getSourceB());
           apply.setPrefixB(innerJoin.getPrefixB());
-          innerJoin.setSourceB(
-              new OperatorSource(pushDownApply(apply, correlatedVariables)));
+          innerJoin.setSourceB(new OperatorSource(pushDownApply(apply, correlatedVariables)));
         } else if (aCorrelatedWithRoot && !bCorrelatedWithRoot) {
           apply.setSourceB(innerJoin.getSourceA());
           apply.setPrefixB(innerJoin.getPrefixA());
-          innerJoin.setSourceA(
-              new OperatorSource(pushDownApply(apply, correlatedVariables)));
+          innerJoin.setSourceA(new OperatorSource(pushDownApply(apply, correlatedVariables)));
         } else if (aCorrelatedWithRoot) {
           AbstractJoinOperator applyCopy = (AbstractJoinOperator) apply.copy();
           apply.setSourceB(innerJoin.getSourceA());
           apply.setPrefixB(innerJoin.getPrefixA());
           applyCopy.setSourceB(innerJoin.getSourceB());
           applyCopy.setPrefixB(innerJoin.getPrefixB());
-          innerJoin.setSourceA(
-              new OperatorSource(pushDownApply(apply, correlatedVariables)));
-          innerJoin.setSourceB(
-              new OperatorSource(pushDownApply(applyCopy, correlatedVariables)));
+          innerJoin.setSourceA(new OperatorSource(pushDownApply(apply, correlatedVariables)));
+          innerJoin.setSourceB(new OperatorSource(pushDownApply(applyCopy, correlatedVariables)));
           innerJoin.setJoinAlgType(JoinAlgType.HashJoin);
           innerJoin.setExtraJoinPrefix(correlatedVariables);
         }
@@ -373,33 +357,26 @@ public class OperatorUtils {
         break;
       case OuterJoin:
         OuterJoin outerJoin = (OuterJoin) operatorB;
-        Operator operatorAOuterJoin =
-            ((OperatorSource) outerJoin.getSourceA()).getOperator();
-        Operator operatorBOuterJoin =
-            ((OperatorSource) outerJoin.getSourceB()).getOperator();
+        Operator operatorAOuterJoin = ((OperatorSource) outerJoin.getSourceA()).getOperator();
+        Operator operatorBOuterJoin = ((OperatorSource) outerJoin.getSourceB()).getOperator();
         aCorrelatedWithRoot = hasPaths(operatorAOuterJoin, correlatedVariables);
         bCorrelatedWithRoot = hasPaths(operatorBOuterJoin, correlatedVariables);
         if (outerJoin.getOuterJoinType() == OuterJoinType.LEFT && !bCorrelatedWithRoot) {
           apply.setSourceB(outerJoin.getSourceA());
           apply.setPrefixB(outerJoin.getPrefixA());
-          outerJoin.setSourceA(
-              new OperatorSource(pushDownApply(apply, correlatedVariables)));
-        } else if (outerJoin.getOuterJoinType() == OuterJoinType.RIGHT
-            && !aCorrelatedWithRoot) {
+          outerJoin.setSourceA(new OperatorSource(pushDownApply(apply, correlatedVariables)));
+        } else if (outerJoin.getOuterJoinType() == OuterJoinType.RIGHT && !aCorrelatedWithRoot) {
           apply.setSourceB(outerJoin.getSourceB());
           apply.setPrefixB(outerJoin.getPrefixB());
-          outerJoin.setSourceB(
-              new OperatorSource(pushDownApply(apply, correlatedVariables)));
+          outerJoin.setSourceB(new OperatorSource(pushDownApply(apply, correlatedVariables)));
         } else {
           AbstractJoinOperator applyCopy = (AbstractJoinOperator) apply.copy();
           apply.setSourceB(outerJoin.getSourceA());
           apply.setPrefixB(outerJoin.getPrefixA());
           applyCopy.setSourceB(outerJoin.getSourceB());
           applyCopy.setPrefixB(outerJoin.getPrefixB());
-          outerJoin.setSourceA(
-              new OperatorSource(pushDownApply(apply, correlatedVariables)));
-          outerJoin.setSourceB(
-              new OperatorSource(pushDownApply(applyCopy, correlatedVariables)));
+          outerJoin.setSourceA(new OperatorSource(pushDownApply(apply, correlatedVariables)));
+          outerJoin.setSourceB(new OperatorSource(pushDownApply(applyCopy, correlatedVariables)));
           outerJoin.setJoinAlgType(JoinAlgType.HashJoin);
           outerJoin.setExtraJoinPrefix(correlatedVariables);
         }
@@ -407,24 +384,20 @@ public class OperatorUtils {
         break;
       case SingleJoin:
         SingleJoin singleJoin = (SingleJoin) operatorB;
-        Operator operatorBSingleJoin =
-            ((OperatorSource) singleJoin.getSourceB()).getOperator();
+        Operator operatorBSingleJoin = ((OperatorSource) singleJoin.getSourceB()).getOperator();
         bCorrelatedWithRoot = hasPaths(operatorBSingleJoin, correlatedVariables);
         if (!bCorrelatedWithRoot) {
           apply.setSourceB(singleJoin.getSourceA());
           apply.setPrefixB(null);
-          singleJoin.setSourceA(
-              new OperatorSource(pushDownApply(apply, correlatedVariables)));
+          singleJoin.setSourceA(new OperatorSource(pushDownApply(apply, correlatedVariables)));
         } else {
           AbstractJoinOperator applyCopy = (AbstractJoinOperator) apply.copy();
           apply.setSourceB(singleJoin.getSourceA());
           apply.setPrefixB(null);
           applyCopy.setSourceB(singleJoin.getSourceB());
           applyCopy.setPrefixB(null);
-          singleJoin.setSourceA(
-              new OperatorSource(pushDownApply(apply, correlatedVariables)));
-          singleJoin.setSourceB(
-              new OperatorSource(pushDownApply(applyCopy, correlatedVariables)));
+          singleJoin.setSourceA(new OperatorSource(pushDownApply(apply, correlatedVariables)));
+          singleJoin.setSourceB(new OperatorSource(pushDownApply(applyCopy, correlatedVariables)));
           singleJoin.setJoinAlgType(JoinAlgType.HashJoin);
           singleJoin.setExtraJoinPrefix(correlatedVariables);
         }
@@ -437,18 +410,15 @@ public class OperatorUtils {
         if (!bCorrelatedWithRoot) {
           apply.setSourceB(markJoin.getSourceA());
           apply.setPrefixB(null);
-          markJoin.setSourceA(
-              new OperatorSource(pushDownApply(apply, correlatedVariables)));
+          markJoin.setSourceA(new OperatorSource(pushDownApply(apply, correlatedVariables)));
         } else {
           AbstractJoinOperator applyCopy = (AbstractJoinOperator) apply.copy();
           apply.setSourceB(markJoin.getSourceA());
           apply.setPrefixB(null);
           applyCopy.setSourceB(markJoin.getSourceB());
           applyCopy.setPrefixB(null);
-          markJoin.setSourceA(
-              new OperatorSource(pushDownApply(apply, correlatedVariables)));
-          markJoin.setSourceB(
-              new OperatorSource(pushDownApply(applyCopy, correlatedVariables)));
+          markJoin.setSourceA(new OperatorSource(pushDownApply(apply, correlatedVariables)));
+          markJoin.setSourceB(new OperatorSource(pushDownApply(applyCopy, correlatedVariables)));
           markJoin.setJoinAlgType(JoinAlgType.HashJoin);
           markJoin.setExtraJoinPrefix(correlatedVariables);
         }

@@ -3040,8 +3040,7 @@ public class SQLSessionIT {
             + "Total line number = 6\n";
     executor.executeAndCompare(statement, expected);
 
-    statement =
-        "SELECT a, a * (SELECT SUM(a) FROM test.b WHERE test.a.a < test.b.a) FROM test.a;";
+    statement = "SELECT a, a * (SELECT SUM(a) FROM test.b WHERE test.a.a < test.b.a) FROM test.a;";
     expected =
         "ResultSets:\n"
             + "+---+--------+------------------------+\n"
@@ -3147,8 +3146,7 @@ public class SQLSessionIT {
             + "Total line number = 6\n";
     executor.executeAndCompare(statement, expected);
 
-    statement =
-        "SELECT a, 1 + (SELECT AVG(a) FROM test.b WHERE test.a.a < test.b.a) FROM test.a;";
+    statement = "SELECT a, 1 + (SELECT AVG(a) FROM test.b WHERE test.a.a < test.b.a) FROM test.a;";
     expected =
         "ResultSets:\n"
             + "+---+--------+-----------------+\n"
@@ -3428,8 +3426,7 @@ public class SQLSessionIT {
             + "Total line number = 4\n";
     executor.executeAndCompare(statement, expected);
 
-    statement =
-        "SELECT * FROM test.a WHERE d IN (SELECT d FROM test.b WHERE test.b.a = test.a.a);";
+    statement = "SELECT * FROM test.a WHERE d IN (SELECT d FROM test.b WHERE test.b.a = test.a.a);";
     expected =
         "ResultSets:\n"
             + "+---+--------+--------+--------+--------+\n"

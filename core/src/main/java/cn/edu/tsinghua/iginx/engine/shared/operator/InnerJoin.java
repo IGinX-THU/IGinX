@@ -78,14 +78,7 @@ public class InnerJoin extends AbstractJoinOperator {
       boolean isNaturalJoin,
       JoinAlgType joinAlgType,
       List<String> extraJoinPrefix) {
-    super(
-        OperatorType.InnerJoin,
-        sourceA,
-        sourceB,
-        prefixA,
-        prefixB,
-        joinAlgType,
-        extraJoinPrefix);
+    super(OperatorType.InnerJoin, sourceA, sourceB, prefixA, prefixB, joinAlgType, extraJoinPrefix);
     this.filter = filter;
     if (joinColumns != null) {
       this.joinColumns = joinColumns;

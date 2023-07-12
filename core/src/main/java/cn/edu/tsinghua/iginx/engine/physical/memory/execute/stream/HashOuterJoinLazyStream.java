@@ -87,17 +87,14 @@ public class HashOuterJoinLazyStream extends BinaryLazyStream {
     }
 
     // 检查连接列名是否合法
-    checkJoinColumns(
-        joinColumns, headerA, headerB, outerJoin.getPrefixA(), outerJoin.getPrefixB());
+    checkJoinColumns(joinColumns, headerA, headerB, outerJoin.getPrefixA(), outerJoin.getPrefixB());
 
     // 检查左右两表需要进行额外连接的path
     this.extraJoinPaths = new ArrayList<>();
     if (!outerJoin.getExtraJoinPrefix().isEmpty()) {
       extraJoinPaths =
           getSamePathWithSpecificPrefix(
-              streamA.getHeader(),
-              streamB.getHeader(),
-              outerJoin.getExtraJoinPrefix());
+              streamA.getHeader(), streamB.getHeader(), outerJoin.getExtraJoinPrefix());
     }
 
     // 计算建立和访问哈希表所用的path
@@ -176,7 +173,9 @@ public class HashOuterJoinLazyStream extends BinaryLazyStream {
       anotherRowSize -= extraJoinPaths.size();
 
       for (Row halfRow : unmatchedStreamARows) {
-        Row unmatchedRow = RowUtils.constructUnmatchedRow(header, halfRow, outerJoin.getPrefixA(), anotherRowSize, true);
+        Row unmatchedRow =
+            RowUtils.constructUnmatchedRow(
+                header, halfRow, outerJoin.getPrefixA(), anotherRowSize, true);
         cache.add(unmatchedRow);
       }
     }
@@ -193,11 +192,8 @@ public class HashOuterJoinLazyStream extends BinaryLazyStream {
           List<Row> unmatchedRows = streamBHashMap.get(hash);
           for (Row halfRow : unmatchedRows) {
             Row unmatchedRow =
-                RowUtils.constructUnmatchedRow(header,
-                    halfRow,
-                    outerJoin.getPrefixB(),
-                    anotherRowSize,
-                    false);
+                RowUtils.constructUnmatchedRow(
+                    header, halfRow, outerJoin.getPrefixB(), anotherRowSize, false);
             cache.add(unmatchedRow);
           }
         }

@@ -113,8 +113,7 @@ public class QueryGenerator extends AbstractGenerator {
       } else {
         policy.notify(selectStatement);
         root = filterAndMergeFragments(selectStatement);
-        PathFromPart pathFromPart =
-            (PathFromPart) selectStatement.getFromParts().get(0);
+        PathFromPart pathFromPart = (PathFromPart) selectStatement.getFromParts().get(0);
         if (pathFromPart.hasAlias()) {
           Map<String, String> map = new HashMap<>();
           map.put(
@@ -160,8 +159,7 @@ public class QueryGenerator extends AbstractGenerator {
         List<String> correlatedVariables = new ArrayList<>();
         // 判断右子树中的自由变量是否来自左子树，如果是，记为关联变量
         for (String freeVariable : freeVariables) {
-          if (selectStatement.hasAttribute(
-              freeVariable, selectStatement.getFromParts().size())) {
+          if (selectStatement.hasAttribute(freeVariable, selectStatement.getFromParts().size())) {
             correlatedVariables.add(freeVariable);
           }
         }
@@ -196,8 +194,7 @@ public class QueryGenerator extends AbstractGenerator {
           List<String> correlatedVariables = new ArrayList<>();
           // 判断右子树中的自由变量是否来自左子树，如果是，记为关联变量
           for (String freeVariable : freeVariables) {
-            if (selectStatement.hasAttribute(
-                freeVariable, selectStatement.getFromParts().size())) {
+            if (selectStatement.hasAttribute(freeVariable, selectStatement.getFromParts().size())) {
               correlatedVariables.add(freeVariable);
             }
           }
@@ -367,8 +364,7 @@ public class QueryGenerator extends AbstractGenerator {
         List<String> correlatedVariables = new ArrayList<>();
         // 判断右子树中的自由变量是否来自左子树，如果是，记为关联变量
         for (String freeVariable : freeVariables) {
-          if (selectStatement.hasAttribute(
-              freeVariable, selectStatement.getFromParts().size())) {
+          if (selectStatement.hasAttribute(freeVariable, selectStatement.getFromParts().size())) {
             correlatedVariables.add(freeVariable);
           }
         }
@@ -412,9 +408,7 @@ public class QueryGenerator extends AbstractGenerator {
     // 子查询不生成Reorder算子
     if (!selectStatement.isSubQuery()) {
       if (selectStatement.getLayers().isEmpty()) {
-        if (selectStatement
-            .getQueryType()
-            .equals(SelectStatement.QueryType.LastFirstQuery)) {
+        if (selectStatement.getQueryType().equals(SelectStatement.QueryType.LastFirstQuery)) {
           root = new Reorder(new OperatorSource(root), Arrays.asList("path", "value"));
         } else {
           List<String> order = new ArrayList<>();
@@ -436,12 +430,7 @@ public class QueryGenerator extends AbstractGenerator {
                   String colName = expression.getColumnName();
                   colName =
                       colName.replaceFirst(
-                          selectStatement
-                              .getFromParts()
-                              .get(0)
-                              .getPrefix()
-                              + DOT,
-                          "");
+                          selectStatement.getFromParts().get(0).getPrefix() + DOT, "");
                   order.add(colName);
                 });
         root = new Reorder(new OperatorSource(root), order);

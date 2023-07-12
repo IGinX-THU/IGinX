@@ -149,11 +149,7 @@ public class SortedMergeInnerJoinLazyStream extends BinaryLazyStream {
         if (innerJoin.getFilter() != null) {
           Row row =
               RowUtils.constructNewRow(
-                  header,
-                  nextA,
-                  rowB,
-                  innerJoin.getPrefixA(),
-                  innerJoin.getPrefixB());
+                  header, nextA, rowB, innerJoin.getPrefixA(), innerJoin.getPrefixB());
           if (FilterUtils.validate(innerJoin.getFilter(), row)) {
             cache.addLast(row);
           }

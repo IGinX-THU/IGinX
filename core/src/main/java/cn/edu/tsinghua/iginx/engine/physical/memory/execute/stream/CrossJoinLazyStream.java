@@ -88,7 +88,9 @@ public class CrossJoinLazyStream extends BinaryLazyStream {
       curStreamBIndex++;
     }
 
-    Row nextRow = RowUtils.constructNewRow(header, nextA, nextB, crossJoin.getPrefixA(), crossJoin.getPrefixB());
+    Row nextRow =
+        RowUtils.constructNewRow(
+            header, nextA, nextB, crossJoin.getPrefixA(), crossJoin.getPrefixB());
     nextB = null;
     return nextRow;
   }

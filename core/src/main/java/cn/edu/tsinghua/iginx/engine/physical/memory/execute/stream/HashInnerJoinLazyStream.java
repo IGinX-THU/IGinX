@@ -66,17 +66,14 @@ public class HashInnerJoinLazyStream extends BinaryLazyStream {
           joinColumns, headerA, headerB, innerJoin.getPrefixA(), innerJoin.getPrefixB());
     }
     // 检查连接列名是否合法
-    checkJoinColumns(
-        joinColumns, headerA, headerB, innerJoin.getPrefixA(), innerJoin.getPrefixB());
+    checkJoinColumns(joinColumns, headerA, headerB, innerJoin.getPrefixA(), innerJoin.getPrefixB());
 
     // 检查左右两表需要进行额外连接的path
     this.extraJoinPaths = new ArrayList<>();
     if (!innerJoin.getExtraJoinPrefix().isEmpty()) {
       this.extraJoinPaths =
           getSamePathWithSpecificPrefix(
-              streamA.getHeader(),
-              streamB.getHeader(),
-              innerJoin.getExtraJoinPrefix());
+              streamA.getHeader(), streamB.getHeader(), innerJoin.getExtraJoinPrefix());
     }
     // 计算建立和访问哈希表所用的path
     Pair<String, String> pair =
@@ -165,9 +162,9 @@ public class HashInnerJoinLazyStream extends BinaryLazyStream {
 
     if (streamBHashMap.containsKey(hash)) {
       for (Row rowB : streamBHashMap.get(hash)) {
-        if (!equalOnSpecificPaths(rowA, rowB, extraJoinPaths)) {
+        if (!RowUtils.equalOnSpecificPaths(rowA, rowB, extraJoinPaths)) {
           continue;
-        } else if (!equalOnSpecificPaths(
+        } else if (!RowUtils.equalOnSpecificPaths(
             rowA, rowB, innerJoin.getPrefixA(), innerJoin.getPrefixB(), joinColumns)) {
           continue;
         }

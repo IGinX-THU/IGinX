@@ -401,10 +401,9 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
               // 如果列名在ignorePatterns中，对该列不执行rename
               for (String ignorePattern : ignorePatterns) {
                 if (ignorePattern.endsWith(ALL_PATH_SUFFIX)) {
-                  if (field.getName()
-                      .startsWith(
-                          ignorePattern.substring(
-                              0, ignorePattern.length() - 1))) {
+                  if (field
+                      .getName()
+                      .startsWith(ignorePattern.substring(0, ignorePattern.length() - 1))) {
                     fields.add(field);
                     return;
                   }
@@ -736,11 +735,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
       for (Row rowB : tableB.getRows()) {
         Row joinedRow =
             RowUtils.constructNewRow(
-                newHeader,
-                rowA,
-                rowB,
-                crossJoin.getPrefixA(),
-                crossJoin.getPrefixB());
+                newHeader, rowA, rowB, crossJoin.getPrefixA(), crossJoin.getPrefixB());
         transformedRows.add(joinedRow);
       }
     }
@@ -907,18 +902,14 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
           if (!equalOnSpecificPaths(rowA, rowB, extraJoinPaths)) {
             continue;
           } else if (!equalOnSpecificPaths(
-              rowA,
-              rowB,
-              innerJoin.getPrefixA(),
-              innerJoin.getPrefixB(),
-              joinColumns)) {
+              rowA, rowB, innerJoin.getPrefixA(), innerJoin.getPrefixB(), joinColumns)) {
             continue;
           }
           Row joinedRow =
               RowUtils.constructNewRow(
-                      newHeader,
-                      rowA,
-                      rowB,
+                  newHeader,
+                  rowA,
+                  rowB,
                   innerJoin.getPrefixA(),
                   innerJoin.getPrefixB(),
                   true,
@@ -1021,11 +1012,13 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
                 joinColumnsA,
                 joinColumnsB);
         if (flagAEqualB == 0) {
-          Row joinedRow = RowUtils.constructNewRow(newHeader,
-              rowsA.get(indexA),
-              rowsB.get(indexB),
-              innerJoin.getPrefixA(),
-              innerJoin.getPrefixB());
+          Row joinedRow =
+              RowUtils.constructNewRow(
+                  newHeader,
+                  rowsA.get(indexA),
+                  rowsB.get(indexB),
+                  innerJoin.getPrefixA(),
+                  innerJoin.getPrefixB());
           if (FilterUtils.validate(filter, joinedRow)) {
             transformedRows.add(joinedRow);
           }
@@ -1260,36 +1253,34 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     }
     if (outerType == OuterJoinType.FULL || outerType == OuterJoinType.LEFT) {
       int anotherRowSize =
-          tableB.getHeader().hasKey() && outerJoin.getPrefixB() != null ? rowsB.get(0).getValues().length + 1 : rowsB.get(0).getValues().length;
+          tableB.getHeader().hasKey() && outerJoin.getPrefixB() != null
+              ? rowsB.get(0).getValues().length + 1
+              : rowsB.get(0).getValues().length;
       anotherRowSize -= joinColumns.size();
       anotherRowSize -= extraJoinPaths.size();
 
       for (int i = 0; i < rowsA.size(); i++) {
         if (!bitmapA.get(i)) {
           Row unmatchedRow =
-              RowUtils.constructUnmatchedRow(newHeader,
-                  rowsA.get(i),
-                  outerJoin.getPrefixA(),
-                  anotherRowSize,
-                  true);
+              RowUtils.constructUnmatchedRow(
+                  newHeader, rowsA.get(i), outerJoin.getPrefixA(), anotherRowSize, true);
           transformedRows.add(unmatchedRow);
         }
       }
     }
     if (outerType == OuterJoinType.FULL || outerType == OuterJoinType.RIGHT) {
       int anotherRowSize =
-          tableA.getHeader().hasKey() && outerJoin.getPrefixA() != null ? rowsA.get(0).getValues().length + 1 : rowsA.get(0).getValues().length;
+          tableA.getHeader().hasKey() && outerJoin.getPrefixA() != null
+              ? rowsA.get(0).getValues().length + 1
+              : rowsA.get(0).getValues().length;
       anotherRowSize -= joinColumns.size();
       anotherRowSize -= extraJoinPaths.size();
 
       for (int i = 0; i < rowsB.size(); i++) {
         if (!bitmapB.get(i)) {
           Row unmatchedRow =
-              RowUtils.constructUnmatchedRow(newHeader,
-                  rowsB.get(i),
-                  outerJoin.getPrefixB(),
-                  anotherRowSize,
-                  false);
+              RowUtils.constructUnmatchedRow(
+                  newHeader, rowsB.get(i), outerJoin.getPrefixB(), anotherRowSize, false);
           transformedRows.add(unmatchedRow);
         }
       }
@@ -1393,8 +1384,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         List<Integer> hashIndexB = indexOfRowBHashMap.get(hash);
         for (int i = 0; i < hashRowsB.size(); i++) {
           int indexB = hashIndexB.get(i);
-          if (!equalOnSpecificPaths(
-              rowsA.get(indexA), hashRowsB.get(i), extraJoinPaths)) {
+          if (!equalOnSpecificPaths(rowsA.get(indexA), hashRowsB.get(i), extraJoinPaths)) {
             continue;
           } else if (!equalOnSpecificPaths(
               rowsA.get(indexA),
@@ -1431,36 +1421,34 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     }
     if (outerType == OuterJoinType.FULL || outerType == OuterJoinType.LEFT) {
       int anotherRowSize =
-          tableB.getHeader().hasKey() && outerJoin.getPrefixB() != null ? rowsB.get(0).getValues().length + 1 : rowsB.get(0).getValues().length;
+          tableB.getHeader().hasKey() && outerJoin.getPrefixB() != null
+              ? rowsB.get(0).getValues().length + 1
+              : rowsB.get(0).getValues().length;
       anotherRowSize -= joinColumns.size();
       anotherRowSize -= extraJoinPaths.size();
 
       for (int i = 0; i < rowsA.size(); i++) {
         if (!bitmapA.get(i)) {
           Row unMatchedRow =
-              RowUtils.constructUnmatchedRow(newHeader,
-                  rowsA.get(i),
-                  outerJoin.getPrefixA(),
-                  anotherRowSize,
-                  true);
+              RowUtils.constructUnmatchedRow(
+                  newHeader, rowsA.get(i), outerJoin.getPrefixA(), anotherRowSize, true);
           transformedRows.add(unMatchedRow);
         }
       }
     }
     if (outerType == OuterJoinType.FULL || outerType == OuterJoinType.RIGHT) {
       int anotherRowSize =
-          tableA.getHeader().hasKey() && outerJoin.getPrefixA() != null ? rowsA.get(0).getValues().length + 1 : rowsA.get(0).getValues().length;
+          tableA.getHeader().hasKey() && outerJoin.getPrefixA() != null
+              ? rowsA.get(0).getValues().length + 1
+              : rowsA.get(0).getValues().length;
       anotherRowSize -= joinColumns.size();
       anotherRowSize -= extraJoinPaths.size();
 
       for (int i = 0; i < rowsB.size(); i++) {
         if (!bitmapB.get(i)) {
           Row unMatchedRow =
-              RowUtils.constructUnmatchedRow(newHeader,
-                  rowsB.get(i),
-                  outerJoin.getPrefixB(),
-                  anotherRowSize,
-                  false);
+              RowUtils.constructUnmatchedRow(
+                  newHeader, rowsB.get(i), outerJoin.getPrefixB(), anotherRowSize, false);
           transformedRows.add(unMatchedRow);
         }
       }
@@ -1569,11 +1557,13 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
                 joinColumnsA,
                 joinColumnsB);
         if (flagAEqualB == 0) {
-          Row joinedRow = RowUtils.constructNewRow(newHeader,
-              rowsA.get(indexA),
-              rowsB.get(indexB),
-              outerJoin.getPrefixA(),
-              outerJoin.getPrefixB());
+          Row joinedRow =
+              RowUtils.constructNewRow(
+                  newHeader,
+                  rowsA.get(indexA),
+                  rowsB.get(indexB),
+                  outerJoin.getPrefixA(),
+                  outerJoin.getPrefixB());
           if (FilterUtils.validate(filter, joinedRow)) {
             if (!bitmapA.get(indexA)) {
               bitmapA.mark(indexA);
@@ -1745,11 +1735,8 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
       for (int i = 0; i < rowsA.size(); i++) {
         if (!bitmapA.get(i)) {
           Row unMatchedRow =
-              RowUtils.constructUnmatchedRow(newHeader,
-                  rowsA.get(i),
-                  outerJoin.getPrefixA(),
-                  anotherRowSize,
-                  true);
+              RowUtils.constructUnmatchedRow(
+                  newHeader, rowsA.get(i), outerJoin.getPrefixA(), anotherRowSize, true);
           transformedRows.add(unMatchedRow);
         }
       }
@@ -1763,11 +1750,8 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
       for (int i = 0; i < rowsB.size(); i++) {
         if (!bitmapB.get(i)) {
           Row unMatchedRow =
-              RowUtils.constructUnmatchedRow(newHeader,
-                  rowsB.get(i),
-                  outerJoin.getPrefixB(),
-                  anotherRowSize,
-                  false);
+              RowUtils.constructUnmatchedRow(
+                  newHeader, rowsB.get(i), outerJoin.getPrefixB(), anotherRowSize, false);
           transformedRows.add(unMatchedRow);
         }
       }
@@ -1795,9 +1779,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     if (!singleJoin.getExtraJoinPrefix().isEmpty()) {
       extraJoinPaths =
           getSamePathWithSpecificPrefix(
-              tableA.getHeader(),
-              tableB.getHeader(),
-              singleJoin.getExtraJoinPrefix());
+              tableA.getHeader(), tableB.getHeader(), singleJoin.getExtraJoinPrefix());
     }
 
     Header newHeader =
@@ -1820,15 +1802,15 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
           }
         }
         if (matched) {
-          throw new PhysicalException(
-              "the return value of sub-query has more than one rows");
+          throw new PhysicalException("the return value of sub-query has more than one rows");
         }
         matched = true;
         transformedRows.add(joinedRow);
       }
       if (!matched) {
-        Row unmatchedRow = RowUtils.constructUnmatchedRow(
-            newHeader, rowA, singleJoin.getPrefixA(), anotherRowSize, true);
+        Row unmatchedRow =
+            RowUtils.constructUnmatchedRow(
+                newHeader, rowA, singleJoin.getPrefixA(), anotherRowSize, true);
         transformedRows.add(unmatchedRow);
       }
     }
@@ -1842,9 +1824,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     if (!singleJoin.getExtraJoinPrefix().isEmpty()) {
       extraJoinPaths =
           getSamePathWithSpecificPrefix(
-              tableA.getHeader(),
-              tableB.getHeader(),
-              singleJoin.getExtraJoinPrefix());
+              tableA.getHeader(), tableB.getHeader(), singleJoin.getExtraJoinPrefix());
     }
 
     // 计算建立和访问哈希表所用的path
@@ -1893,16 +1873,16 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
             }
           }
           if (matched) {
-            throw new PhysicalException(
-                "the return value of sub-query has more than one rows");
+            throw new PhysicalException("the return value of sub-query has more than one rows");
           }
           matched = true;
           transformedRows.add(joinedRow);
         }
       }
       if (!matched) {
-        Row unmatchedRow = RowUtils.constructUnmatchedRow(
-            newHeader, rowA, singleJoin.getPrefixA(), anotherRowSize, true);
+        Row unmatchedRow =
+            RowUtils.constructUnmatchedRow(
+                newHeader, rowA, singleJoin.getPrefixA(), anotherRowSize, true);
         transformedRows.add(unmatchedRow);
       }
     }
@@ -1952,8 +1932,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
           }
         }
         Row returnRow =
-            RowUtils.constructNewRowWithMark(
-                targetHeader, rowA, !markJoin.isAntiJoin());
+            RowUtils.constructNewRowWithMark(targetHeader, rowA, !markJoin.isAntiJoin());
         transformedRows.add(returnRow);
         continue tableScan;
       }
@@ -2019,15 +1998,12 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
               continue;
             }
           }
-          Row returnRow =
-              RowUtils.constructNewRowWithMark(
-                  newHeader, rowA, !markJoin.isAntiJoin());
+          Row returnRow = RowUtils.constructNewRowWithMark(newHeader, rowA, !markJoin.isAntiJoin());
           transformedRows.add(returnRow);
           continue tableScan;
         }
       }
-      Row unmatchedRow =
-          RowUtils.constructNewRowWithMark(newHeader, rowA, markJoin.isAntiJoin());
+      Row unmatchedRow = RowUtils.constructNewRowWithMark(newHeader, rowA, markJoin.isAntiJoin());
       transformedRows.add(unmatchedRow);
     }
     return new Table(newHeader, transformedRows);

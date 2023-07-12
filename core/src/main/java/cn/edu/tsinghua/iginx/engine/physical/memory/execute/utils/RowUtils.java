@@ -125,11 +125,7 @@ public class RowUtils {
   }
 
   public static void checkJoinColumns(
-      List<String> joinColumns,
-      Header headerA,
-      Header headerB,
-      String prefixA,
-      String prefixB)
+      List<String> joinColumns, Header headerA, Header headerB, String prefixA, String prefixB)
       throws InvalidOperatorParameterException {
     for (String joinColumn : joinColumns) {
       if (headerA.indexOf(prefixA + DOT + joinColumn) == -1) {
@@ -238,7 +234,7 @@ public class RowUtils {
   }
 
   public static Row constructUnmatchedRow(
-      Header header, Row halfRow, String prefix,int anotherRowSize, boolean putLeft) {
+      Header header, Row halfRow, String prefix, int anotherRowSize, boolean putLeft) {
 
     int size = halfRow.getValues().length + anotherRowSize;
     if (halfRow.getHeader().hasKey() && prefix != null) {
@@ -294,7 +290,8 @@ public class RowUtils {
         : new Row(header, valuesJoin);
   }
 
-  public static Row constructNewRow(Header header, Row rowA, Row rowB, String prefixA, String prefixB) {
+  public static Row constructNewRow(
+      Header header, Row rowA, Row rowB, String prefixA, String prefixB) {
     Object[] valuesA = rowA.getValues();
     Object[] valuesB = rowB.getValues();
 
@@ -338,9 +335,7 @@ public class RowUtils {
     int size = valuesA.length + valuesB.length - joinColumns.size() - extraJoinPaths.size();
     int rowAStartIndex = 0;
     int rowBStartIndex =
-        cutRight
-            ? valuesA.length
-            : valuesA.length - joinColumns.size() - extraJoinPaths.size();
+        cutRight ? valuesA.length : valuesA.length - joinColumns.size() - extraJoinPaths.size();
     if (rowA.getHeader().hasKey() && prefixA != null) {
       size++;
       rowAStartIndex++;
@@ -492,12 +487,13 @@ public class RowUtils {
   public static List<String> getSamePathWithSpecificPrefix(
       Header headerA, Header headerB, List<String> prefixList) {
     List<String> res = new ArrayList<>();
-    headerA.getFields()
+    headerA
+        .getFields()
         .forEach(
             fieldA -> {
               if (headerB.indexOf(fieldA.getName()) != -1) {
                 for (String prefix : prefixList) {
-                  if (prefix.endsWith(ALL_PATH_SUFFIX)) {
+                  if (prefix.endsWith(Constants.ALL_PATH_SUFFIX)) {
                     prefix = prefix.substring(0, prefix.length() - 2);
                   }
                   if (fieldA.getName().startsWith(prefix)) {

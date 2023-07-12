@@ -85,9 +85,7 @@ public class NestedLoopOuterJoinLazyStream extends BinaryLazyStream {
     if (!outerJoin.getExtraJoinPrefix().isEmpty()) {
       extraJoinPaths =
           RowUtils.getSamePathWithSpecificPrefix(
-              streamA.getHeader(),
-              streamB.getHeader(),
-              outerJoin.getExtraJoinPrefix());
+              streamA.getHeader(), streamB.getHeader(), outerJoin.getExtraJoinPrefix());
     }
 
     this.cutRight = !outerJoin.getOuterJoinType().equals(OuterJoinType.RIGHT);
@@ -119,7 +117,9 @@ public class NestedLoopOuterJoinLazyStream extends BinaryLazyStream {
       anotherRowSize -= extraJoinPaths.size();
 
       for (Row halfRow : unmatchedStreamARows) {
-        Row unmatchedRow = RowUtils.constructUnmatchedRow(header, halfRow, outerJoin.getPrefixA(), anotherRowSize, true);
+        Row unmatchedRow =
+            RowUtils.constructUnmatchedRow(
+                header, halfRow, outerJoin.getPrefixA(), anotherRowSize, true);
         lastPart.add(unmatchedRow);
       }
     }
@@ -134,11 +134,8 @@ public class NestedLoopOuterJoinLazyStream extends BinaryLazyStream {
       for (int i = 0; i < streamBCache.size(); i++) {
         if (!matchedStreamBRowIndexSet.contains(i)) {
           Row unmatchedRow =
-              RowUtils.constructUnmatchedRow(header,
-                  streamBCache.get(i),
-                  outerJoin.getPrefixB(),
-                  anotherRowSize,
-                  false);
+              RowUtils.constructUnmatchedRow(
+                  header, streamBCache.get(i), outerJoin.getPrefixB(), anotherRowSize, false);
           lastPart.add(unmatchedRow);
         }
       }

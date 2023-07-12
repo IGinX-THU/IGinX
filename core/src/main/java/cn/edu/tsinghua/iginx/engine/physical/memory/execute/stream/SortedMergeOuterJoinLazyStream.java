@@ -184,7 +184,9 @@ public class SortedMergeOuterJoinLazyStream extends BinaryLazyStream {
         anotherRowSize -= 1;
       }
       for (Row halfRow : unmatchedStreamARows) {
-        Row unmatchedRow = RowUtils.constructUnmatchedRow(header, halfRow, outerJoin.getPrefixA(), anotherRowSize, true);
+        Row unmatchedRow =
+            RowUtils.constructUnmatchedRow(
+                header, halfRow, outerJoin.getPrefixA(), anotherRowSize, true);
         cache.add(unmatchedRow);
       }
     }
@@ -197,7 +199,9 @@ public class SortedMergeOuterJoinLazyStream extends BinaryLazyStream {
         anotherRowSize -= 1;
       }
       for (Row halfRow : unmatchedStreamBRows) {
-        Row unmatchedRow = RowUtils.constructUnmatchedRow(header, halfRow, outerJoin.getPrefixB(), anotherRowSize, false);
+        Row unmatchedRow =
+            RowUtils.constructUnmatchedRow(
+                header, halfRow, outerJoin.getPrefixB(), anotherRowSize, false);
         cache.add(unmatchedRow);
       }
     }
@@ -241,11 +245,7 @@ public class SortedMergeOuterJoinLazyStream extends BinaryLazyStream {
         if (outerJoin.getFilter() != null) {
           Row row =
               RowUtils.constructNewRow(
-                  header,
-                  nextA,
-                  rowB,
-                  outerJoin.getPrefixA(),
-                  outerJoin.getPrefixB());
+                  header, nextA, rowB, outerJoin.getPrefixA(), outerJoin.getPrefixB());
           if (FilterUtils.validate(outerJoin.getFilter(), row)) {
             cache.addLast(row);
           }
@@ -296,6 +296,7 @@ public class SortedMergeOuterJoinLazyStream extends BinaryLazyStream {
     }
     return !sameValueStreamBRows.isEmpty();
   }
+
   @Override
   public Row next() throws PhysicalException {
     if (!hasNext()) {

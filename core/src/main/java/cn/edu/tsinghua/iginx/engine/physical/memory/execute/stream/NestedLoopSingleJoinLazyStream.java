@@ -50,7 +50,9 @@ public class NestedLoopSingleJoinLazyStream extends BinaryLazyStream {
     }
     int anotherRowSize = streamB.getHeader().getFieldSize();
     for (Row halfRow : unmatchedStreamARows) {
-      Row unmatchedRow = RowUtils.constructUnmatchedRow(header, halfRow, singleJoin.getPrefixA(), anotherRowSize, true);
+      Row unmatchedRow =
+          RowUtils.constructUnmatchedRow(
+              header, halfRow, singleJoin.getPrefixA(), anotherRowSize, true);
       lastPart.add(unmatchedRow);
     }
     this.lastPartHasInitialized = true;

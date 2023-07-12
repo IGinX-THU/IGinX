@@ -12,7 +12,8 @@ public enum JoinType {
   // NaturalJoin[10,20)
   InnerNaturalJoin(10),
   LeftNaturalJoin,
-  RightNaturalJoin,;
+  RightNaturalJoin,
+  ;
 
   private int value;
 

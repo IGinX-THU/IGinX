@@ -73,14 +73,7 @@ public class OuterJoin extends AbstractJoinOperator {
       boolean isNaturalJoin,
       JoinAlgType joinAlgType,
       List<String> extraJoinPrefix) {
-    super(
-        OperatorType.OuterJoin,
-        sourceA,
-        sourceB,
-        prefixA,
-        prefixB,
-        joinAlgType,
-        extraJoinPrefix);
+    super(OperatorType.OuterJoin, sourceA, sourceB, prefixA, prefixB, joinAlgType, extraJoinPrefix);
     this.outerJoinType = outerJoinType;
     this.filter = filter;
     if (joinColumns != null) {
@@ -112,7 +105,8 @@ public class OuterJoin extends AbstractJoinOperator {
   }
 
   public void reChooseJoinAlg() {
-    setJoinAlgType(JoinAlgType.chooseJoinAlg(filter, isNaturalJoin, joinColumns, getExtraJoinPrefix()));
+    setJoinAlgType(
+        JoinAlgType.chooseJoinAlg(filter, isNaturalJoin, joinColumns, getExtraJoinPrefix()));
   }
 
   @Override

@@ -223,6 +223,7 @@ public class FilterUtils {
       throw new InvalidOperatorParameterException("invalid hash join path filter input.");
     }
   }
+
   public static List<String> getAllPathsFromFilter(Filter filter) {
     if (filter == null) {
       return new ArrayList<>();
@@ -231,9 +232,7 @@ public class FilterUtils {
     switch (filter.getType()) {
       case And:
         AndFilter andFilter = (AndFilter) filter;
-        andFilter
-            .getChildren()
-            .forEach(child -> paths.addAll(getAllPathsFromFilter(child)));
+        andFilter.getChildren().forEach(child -> paths.addAll(getAllPathsFromFilter(child)));
         break;
       case Or:
         OrFilter orFilter = (OrFilter) filter;
