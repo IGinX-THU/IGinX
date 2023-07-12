@@ -82,8 +82,7 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   @Override
   public void clearHistoryDataForGivenPort(int port) {
-    String root = null;
-
+    String root = getRootFromPort(port);
     deleteDirectory(root);
   }
 
