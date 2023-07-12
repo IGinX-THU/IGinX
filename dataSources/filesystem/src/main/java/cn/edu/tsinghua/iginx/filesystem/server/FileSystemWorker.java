@@ -13,7 +13,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.write.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.*;
 import cn.edu.tsinghua.iginx.filesystem.exec.Executor;
 import cn.edu.tsinghua.iginx.filesystem.thrift.*;
-import cn.edu.tsinghua.iginx.metadata.entity.ColumnsRange;
+import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Bitmap;
@@ -227,7 +227,7 @@ public class FileSystemWorker implements FileSystemService.Iface {
   @Override
   public GetStorageBoundaryResp getBoundaryOfStorage(String prefix) throws TException {
     try {
-      Pair<ColumnsRange, KeyInterval> pair = executor.getBoundaryOfStorage(prefix);
+      Pair<ColumnsInterval, KeyInterval> pair = executor.getBoundaryOfStorage(prefix);
       GetStorageBoundaryResp resp = new GetStorageBoundaryResp(SUCCESS);
       resp.setStartKey(pair.getV().getStartKey());
       resp.setEndKey(pair.getV().getEndKey());
