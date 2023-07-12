@@ -24,7 +24,7 @@ public class FileSystemHistoryCapacityExpansionIT extends BaseCapacityExpansionI
   }
 
   @Override
-  protected void addStorageEngine(
+  protected String addStorageEngine(
       int port, boolean hasData, boolean isReadOnly, String dataPrefix, String schemaPrefix) {
     try {
       StringBuilder statement = new StringBuilder();
@@ -68,6 +68,7 @@ public class FileSystemHistoryCapacityExpansionIT extends BaseCapacityExpansionI
           getRootFromPort(port),
           e.getMessage());
     }
+    return dataPrefix;
   }
 
   public String getRootFromPort(int port) {
