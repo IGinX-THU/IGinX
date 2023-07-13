@@ -100,12 +100,4 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
     }
     return root;
   }
-
-  public byte[] createValueRandom() {
-    int N = MemoryPool.getBlockSize();
-    byte[] b = new byte[N];
-    SecureRandom random = new SecureRandom();
-    random.nextBytes(b);
-    return b;
-  }
 }
