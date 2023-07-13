@@ -22,10 +22,6 @@ sed -i "s/storageEngineList=127.0.0.1#6667/#storageEngineList=127.0.0.1#6667/g" 
 
 sed -i "s/#storageEngineList=127.0.0.1#8086/storageEngineList=127.0.0.1#8086/g" conf/config.properties
 
-sed -i "s/enablePushDown=false/enablePushDown=true/g" conf/config.properties
-
-sed -i "s/queryOptimizer=remove_not,filter_fragment/queryOptimizer=remove_not,filter_fragment,filter_push_down/g" conf/config.properties
-
 for port in "$@"
 do
   sh -c "sudo cp -r influxdb2-2.0.7-linux-amd64/ influxdb2-2.0.7-linux-amd64-$port/"
