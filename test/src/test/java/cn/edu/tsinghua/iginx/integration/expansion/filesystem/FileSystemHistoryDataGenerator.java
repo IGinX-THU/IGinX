@@ -120,6 +120,7 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
         if (!Files.exists(filePath)) {
           file.getParentFile().mkdirs();
           Files.createFile(filePath);
+          logger.info("create the file {}", file.getAbsolutePath());
         }
       } catch (IOException e) {
         throw new RuntimeException(e);
