@@ -263,7 +263,7 @@ public class RowUtils {
   }
 
   public static Row constructNewRow(Header header, Row rowA, Row rowB, boolean remainKeyA) {
-    return constructNewRow(header, rowA, rowB, remainKeyA, new ArrayList<>());
+    return constructNewRow(header, rowA, rowB, remainKeyA, Collections.emptyList());
   }
 
   public static Row constructNewRow(
@@ -302,7 +302,7 @@ public class RowUtils {
       rowAStartIndex++;
       rowBStartIndex++;
     }
-    if (rowB.getHeader().hasKey() && prefixA != null) {
+    if (rowB.getHeader().hasKey() && prefixB != null) {
       size++;
       rowBStartIndex++;
     }
