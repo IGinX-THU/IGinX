@@ -21,7 +21,7 @@ import org.slf4j.LoggerFactory;
 public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
   private static final Logger logger =
       LoggerFactory.getLogger(FileSystemHistoryDataGenerator.class);
-  private static String rootOri = "dataSources/filesystem/src/test/java/cn/edu/tsinghua/iginx/";
+  private static String rootOri = "../dataSources/filesystem/src/test/java/cn/edu/tsinghua/iginx/";
   // 对应port 4860
   public static String root1 =
       rootOri + "storage/";
