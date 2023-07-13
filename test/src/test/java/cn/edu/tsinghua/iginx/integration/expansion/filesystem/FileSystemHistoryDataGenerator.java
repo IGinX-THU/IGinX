@@ -13,6 +13,8 @@ import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
+import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,12 +24,12 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
   private static String rootOri = "dataSources/filesystem/src/test/java/cn/edu/tsinghua/iginx/storage/";
   // 对应port 4860
   public static String root1 =
-      rootOri + "root1" + System.getProperty("file.separator");
+      rootOri + "root1" + "/";
   // 对应port 4861
   public static String root2 =
-      rootOri + "root2" + System.getProperty("file.separator");
+      rootOri + "root2" + "/";
   public static String root3 =
-      rootOri + "root3" + System.getProperty("file.separator");
+      rootOri + "root3" + "/";
 
   public FileSystemHistoryDataGenerator() {
     this.oriPort = 4860;
@@ -138,8 +140,9 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
 
       try (OutputStream out = Files.newOutputStream(file.toPath())) {
         for (Object value : values) {
-          String valueStr = value.toString();
-          out.write(valueStr.getBytes());
+          if (value instanceof byte[]) {
+            out.write((byte[])value);
+          }
         }
       } catch (IOException e) {
         e.printStackTrace();
