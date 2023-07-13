@@ -20,8 +20,6 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
   private static final Logger logger =
       LoggerFactory.getLogger(FileSystemCapacityExpansionIT.class);
 
-  protected static Session session;
-
   public FileSystemCapacityExpansionIT() {
     super(filesystem, "username:root, password:root, sessionPoolSize:20", 4860, 4861, 4862);
     EXP_DATA_TYPE_LIST = Arrays.asList(DataType.BINARY, DataType.BINARY);
