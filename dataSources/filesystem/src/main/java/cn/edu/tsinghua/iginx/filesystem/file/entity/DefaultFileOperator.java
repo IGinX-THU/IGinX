@@ -94,9 +94,11 @@ public class DefaultFileOperator implements IFileOperator {
         index.getAndIncrement();
         readPos.addAndGet(BUFFER_SIZE);
       }
-      executorService.shutdown();
-      if (!executorService.awaitTermination(10, TimeUnit.SECONDS)) {
-        executorService.shutdownNow();
+      if (executorService != null) {
+        executorService.shutdown();
+        if (!executorService.awaitTermination(10, TimeUnit.SECONDS)) {
+          executorService.shutdownNow();
+        }
       }
     } catch (InterruptedException e) {
       throw new RuntimeException(e);
