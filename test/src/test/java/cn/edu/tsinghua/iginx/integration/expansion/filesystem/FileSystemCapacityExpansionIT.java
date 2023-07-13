@@ -11,15 +11,15 @@ import cn.edu.tsinghua.iginx.session.Session;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class FileSystemHistoryCapacityExpansionIT extends BaseCapacityExpansionIT {
+public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
   private static final Logger logger =
-      LoggerFactory.getLogger(FileSystemHistoryCapacityExpansionIT.class);
+      LoggerFactory.getLogger(FileSystemCapacityExpansionIT.class);
 
   protected static Session session;
   protected static SessionPool sessionPool;
   protected String ENGINE_TYPE;
 
-  public FileSystemHistoryCapacityExpansionIT() {
+  public FileSystemCapacityExpansionIT() {
     super(filesystem, "username:root, password:root, sessionPoolSize:20", 4860, 4861, 4862);
   }
 
