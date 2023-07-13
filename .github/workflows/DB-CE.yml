@@ -57,6 +57,14 @@ jobs:
                   DB-name: ${{ matrix.DB-name }}
                   Test-Way: oriHasDataExpHasData
 
+            - name: tmp list the file
+              shell: bash
+              run: |
+                  ls dataSources/filesystem/src/test/java/cn/edu/tsinghua/iginx/storage/ 
+                  ls ./dataSources/filesystem/src/test/java/cn/edu/tsinghua/iginx/storage/ 
+                  ls ./dataSources/filesystem/src/test/java/cn/edu/tsinghua/iginx/storage2/ 
+                  ls ./dataSources/filesystem/src/test/java/cn/edu/tsinghua/iginx/storage3/ 
+
             - name: oriHasDataExpHasData IT
               run: |
                   mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriHasDataExpHasData -DfailIfNoTests=false -P passFormat
