@@ -35,21 +35,6 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
     this.oriPort = 4860;
     this.expPort = 4861;
     this.readOnlyPort = 4862;
-    EXP_DATA_TYPE_LIST = Arrays.asList(DataType.BINARY, DataType.BINARY);
-    EXP_VALUES_LIST =
-        Arrays.asList(
-            Arrays.asList(createValueRandom(), createValueRandom()),
-            Arrays.asList(createValueRandom(), createValueRandom()));
-    ORI_DATA_TYPE_LIST = Arrays.asList(DataType.BINARY, DataType.BINARY);
-    ORI_VALUES_LIST =
-        Arrays.asList(
-            Arrays.asList(createValueRandom(), createValueRandom()),
-            Arrays.asList(createValueRandom(), createValueRandom()));
-    READ_ONLY_DATA_TYPE_LIST = Arrays.asList(DataType.BINARY, DataType.BINARY);
-    READ_ONLY_VALUES_LIST =
-        Arrays.asList(
-            Arrays.asList(createValueRandom(), createValueRandom()),
-            Arrays.asList(createValueRandom(), createValueRandom()));
   }
 
   public void deleteDirectory(String path) {
@@ -100,13 +85,7 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
     return root;
   }
 
-  public byte[] createValueRandom() {
-    int N = MemoryPool.getBlockSize();
-    byte[] b = new byte[N];
-    SecureRandom random = new SecureRandom();
-    random.nextBytes(b);
-    return b;
-  }
+
 
   public List<File> getFileList(List<String> pathList, String root) {
     List<File> res = new ArrayList<>();
