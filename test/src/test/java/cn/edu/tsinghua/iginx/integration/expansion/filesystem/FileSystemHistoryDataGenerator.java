@@ -9,6 +9,7 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -136,7 +137,7 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
       List<Object> values = valuesList.get(i);
       File file = files.get(i);
 
-      try (OutputStream out = Files.newOutputStream(file.toPath())) {
+      try (OutputStream out = Files.newOutputStream(file.toPath(), StandardOpenOption.APPEND)) {
         for (Object value : values) {
           if (value instanceof byte[]) {
             out.write((byte[])value);
