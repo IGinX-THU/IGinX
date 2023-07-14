@@ -91,7 +91,7 @@ public class LocalExecutor implements Executor {
   private TaskExecuteResult executeDummyProjectTask(List<String> series, FSFilter filter) {
     try {
       List<FSResultTable> result = new ArrayList<>();
-      logger.info("[Query] execute query file: " + series);
+      logger.info("[Query] execute dummy query file: " + series);
       for (String path : series) {
         result.addAll(
             FileSystemService.readFile(new File(FilePath.toNormalFilePath(root, path)), filter));
@@ -276,8 +276,8 @@ public class LocalExecutor implements Executor {
           new ColumnsInterval(
               FilePath.convertAbsolutePathToSeries(
                   root, minPathFile.getAbsolutePath(), minPathFile.getName(), null),
-              FilePath.convertAbsolutePathToSeries(
-                  root, maxPathFile.getAbsolutePath(), maxPathFile.getName(), null));
+              StringUtils.nextString(FilePath.convertAbsolutePathToSeries(
+                  root, maxPathFile.getAbsolutePath(), maxPathFile.getName(), null)));
     else tsInterval = new ColumnsInterval(prefix, StringUtils.nextString(prefix));
 
     // 对于pb级的文件系统，遍历是不可能的，直接接入
