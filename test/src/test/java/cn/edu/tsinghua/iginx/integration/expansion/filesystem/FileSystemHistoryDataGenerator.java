@@ -37,23 +37,18 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
     this.readOnlyPort = 4862;
     EXP_DATA_TYPE_LIST = Arrays.asList(DataType.BINARY, DataType.BINARY);
     byte[] value1 = createValueRandom(1),
-        value2 = createValueRandom(2),
-        value3 = createValueRandom(3),
-        value4 = createValueRandom(4);
+        value2 = createValueRandom(2);
     EXP_VALUES_LIST =
         Arrays.asList(
-            Arrays.asList(value1, value2),
-            Arrays.asList(value3, value4));
+            Arrays.asList(value1, value2));
     ORI_DATA_TYPE_LIST = Arrays.asList(DataType.BINARY, DataType.BINARY);
     ORI_VALUES_LIST =
         Arrays.asList(
-            Arrays.asList(value1, value2),
-            Arrays.asList(value3, value4));
+            Arrays.asList(value1, value2));
     READ_ONLY_DATA_TYPE_LIST = Arrays.asList(DataType.BINARY, DataType.BINARY);
     READ_ONLY_VALUES_LIST =
         Arrays.asList(
-            Arrays.asList(value1, value2),
-            Arrays.asList(value3, value4));
+            Arrays.asList(value1, value2));
   }
 
   public void deleteDirectory(String path) {
