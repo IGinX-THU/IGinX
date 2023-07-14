@@ -60,10 +60,8 @@ jobs:
             - name: tmp list the file
               shell: bash
               run: |
-                  ls dataSources/filesystem/src/test/java/cn/edu/tsinghua/iginx/storage/ 
-                  ls ./dataSources/filesystem/src/test/java/cn/edu/tsinghua/iginx/storage/ 
-                  ls ./dataSources/filesystem/src/test/java/cn/edu/tsinghua/iginx/storage2/ 
-                  ls ./dataSources/filesystem/src/test/java/cn/edu/tsinghua/iginx/storage3/ 
+                  cat dataSources/filesystem/src/test/java/cn/edu/tsinghua/iginx/storage/mn/wf01/wt01/status
+                  cat dataSources/filesystem/src/test/java/cn/edu/tsinghua/iginx/storage/mn/wf01/wt01/temperature
 
             - name: oriHasDataExpHasData IT
               run: |
