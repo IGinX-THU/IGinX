@@ -206,18 +206,7 @@ public abstract class BaseCapacityExpansionIT {
     String statement = "select * from mn";
     List<String> pathList = BaseHistoryDataGenerator.ORI_PATH_LIST;
     List<List<Object>> valuesList = BaseHistoryDataGenerator.ORI_VALUES_LIST;
-//    SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
-
-    statement = "select count(*) from mn.wf01";
-    String expect =
-        "ResultSets:\n"
-            + "+--------------------------+-------------------------------+\n"
-            + "|count(mn.wf01.wt01.status)|count(mn.wf01.wt01.temperature)|\n"
-            + "+--------------------------+-------------------------------+\n"
-            + "|                         2|                              2|\n"
-            + "+--------------------------+-------------------------------+\n"
-            + "Total line number = 1\n";
-    SQLTestTools.executeAndCompare(session, statement, expect);
+    SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
   }
 
   private void testQueryHistoryDataExpHasData() {
