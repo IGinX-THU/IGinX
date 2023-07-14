@@ -100,6 +100,8 @@ public class SQLTestTools {
       SessionExecuteSqlResult res = session.executeSql(statement);
       List<String> pathList = res.getPaths();
       List<List<Object>> actualValuesList = res.getValues();
+        logger.info("check the pathList {}",pathList);
+      logger.info("check the valueList {}",actualValuesList);
 
       for (int i = 0; i < pathListAns.size(); i++) {
         compareStirngValue(pathListAns.get(i), pathList.get(i));
