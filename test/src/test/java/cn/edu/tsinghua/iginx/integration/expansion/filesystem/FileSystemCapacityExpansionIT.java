@@ -90,11 +90,11 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
   public String getRootFromPort(int port) {
     String root = null;
     if (port == oriPort) {
-      root = root1;
+      root = rootAct + root1;
     } else if (port == expPort) {
-      root = root2;
+      root = rootAct + root2;
     } else {
-      root = root3;
+      root = rootAct + root3;
     }
     return root;
   }

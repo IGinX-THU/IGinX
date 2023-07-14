@@ -22,15 +22,13 @@ import org.slf4j.LoggerFactory;
 public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
   private static final Logger logger =
       LoggerFactory.getLogger(FileSystemHistoryDataGenerator.class);
-  private static String rootOri = "../dataSources/filesystem/src/test/java/cn/edu/tsinghua/iginx/";
+  public static String rootTest = "../dataSources/filesystem/src/test/java/cn/edu/tsinghua/iginx/";
+  public static String rootAct = "dataSources/filesystem/src/test/java/cn/edu/tsinghua/iginx/";
   // 对应port 4860
-  public static String root1 =
-      rootOri + "storage/";
+  public static String root1 = "storage/";
   // 对应port 4861
-  public static String root2 =
-      rootOri + "storage2/";
-  public static String root3 =
-      rootOri + "storage3/";
+  public static String root2 = "storage2/";
+  public static String root3 = "storage3/";
 
   public FileSystemHistoryDataGenerator() {
     this.oriPort = 4860;
@@ -92,11 +90,11 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
   public String getRootFromPort(int port) {
     String root = null;
     if (port == oriPort) {
-      root = root1;
+      root = rootTest + root1;
     } else if (port == expPort) {
-      root = root2;
+      root = rootTest + root2;
     } else {
-      root = root3;
+      root = rootTest + root3;
     }
     return root;
   }
