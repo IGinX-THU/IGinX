@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import java.security.SecureRandom;
 import java.util.Arrays;
+import java.util.List;
 
 public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
   private static final Logger logger =
@@ -23,20 +24,28 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
   public FileSystemCapacityExpansionIT() {
     super(filesystem, "username:root, password:root, sessionPoolSize:20", 4860, 4861, 4862);
     EXP_DATA_TYPE_LIST = Arrays.asList(DataType.BINARY, DataType.BINARY);
+    byte[] value1 = createValueRandom(1),
+        value2 = createValueRandom(2),
+        value3 = createValueRandom(3),
+        value4 = createValueRandom(4);
     EXP_VALUES_LIST =
         Arrays.asList(
-            Arrays.asList(createValueRandom(), createValueRandom()),
-            Arrays.asList(createValueRandom(), createValueRandom()));
+            Arrays.asList(value1, value2),
+            Arrays.asList(value3, value4));
     ORI_DATA_TYPE_LIST = Arrays.asList(DataType.BINARY, DataType.BINARY);
     ORI_VALUES_LIST =
         Arrays.asList(
-            Arrays.asList(createValueRandom(), createValueRandom()),
-            Arrays.asList(createValueRandom(), createValueRandom()));
+            Arrays.asList(value1, value2),
+            Arrays.asList(value3, value4));
     READ_ONLY_DATA_TYPE_LIST = Arrays.asList(DataType.BINARY, DataType.BINARY);
     READ_ONLY_VALUES_LIST =
         Arrays.asList(
-            Arrays.asList(createValueRandom(), createValueRandom()),
-            Arrays.asList(createValueRandom(), createValueRandom()));
+            Arrays.asList(value1, value2),
+            Arrays.asList(value3, value4));
+    EXP_VALUES_LIST1 =
+        Arrays.asList(Arrays.asList(value1), Arrays.asList(value3));
+    EXP_VALUES_LIST2 =
+        Arrays.asList(Arrays.asList(value2), Arrays.asList(value4));
   }
 
   @Override
