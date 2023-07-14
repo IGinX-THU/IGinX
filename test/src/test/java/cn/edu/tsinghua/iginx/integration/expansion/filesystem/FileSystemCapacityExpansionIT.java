@@ -76,6 +76,7 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
 
       logger.info("Execute Statement: \"{}\"", statement);
       session.executeSql(statement.toString());
+      return null;
     } catch (ExecutionException | SessionException e) {
       logger.error(
           "add storage engine {} port {} hasData {} isReadOnly {} dataPrefix {} schemaPrefix {} dir {} failure: {}",
@@ -87,8 +88,8 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
           schemaPrefix,
           getRootFromPort(port),
           e.getMessage());
+      return e.getMessage();
     }
-    return dataPrefix;
   }
 
   public String getRootFromPort(int port) {

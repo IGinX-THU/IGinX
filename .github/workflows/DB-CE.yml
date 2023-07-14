@@ -22,10 +22,10 @@ jobs:
                 os: [ubuntu-latest, macos-latest]
                 DB-name: [
                   "FileSystem",
-#                  "IoTDB12",
-#                  "InfluxDB",
-#                  "PostgreSQL",
-#                  "Redis"
+                  "IoTDB12",
+                  "InfluxDB",
+                  "PostgreSQL",
+                  "Redis"
                 ]
         runs-on: ${{ matrix.os }}
         steps:
