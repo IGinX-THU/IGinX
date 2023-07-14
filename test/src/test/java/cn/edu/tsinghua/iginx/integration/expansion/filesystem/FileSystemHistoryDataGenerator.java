@@ -150,7 +150,7 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
   }
 
   public static byte[] createValueRandom(int seed) {
-    int N = 10;
+    int N = MemoryPool.getBlockSize();
     byte[] b = new byte[N];
     Random random = new Random(seed);
     random.nextBytes(b);
