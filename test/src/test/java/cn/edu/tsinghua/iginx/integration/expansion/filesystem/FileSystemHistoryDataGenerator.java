@@ -40,15 +40,15 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
         value2 = createValueRandom(2);
     EXP_VALUES_LIST =
         Arrays.asList(
-            Arrays.asList(value1, value2));
+            Arrays.asList(value1),Arrays.asList(value2));
     ORI_DATA_TYPE_LIST = Arrays.asList(DataType.BINARY, DataType.BINARY);
     ORI_VALUES_LIST =
         Arrays.asList(
-            Arrays.asList(value1, value2));
+            Arrays.asList(value1),Arrays.asList(value2));
     READ_ONLY_DATA_TYPE_LIST = Arrays.asList(DataType.BINARY, DataType.BINARY);
     READ_ONLY_VALUES_LIST =
         Arrays.asList(
-            Arrays.asList(value1, value2));
+            Arrays.asList(value1),Arrays.asList(value2));
   }
 
   public void deleteDirectory(String path) {
