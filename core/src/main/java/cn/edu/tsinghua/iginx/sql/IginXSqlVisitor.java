@@ -274,10 +274,6 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     if (ctx.specialClause() != null) {
       parseSpecialClause(ctx.specialClause(), selectStatement);
     }
-    // parse as clause
-    if (ctx.asClause() != null) {
-      parseAsClause(ctx.asClause(), selectStatement);
-    }
 
     // Step 2. decide the query type according to the information.
     selectStatement.checkQueryType();
@@ -400,48 +396,44 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       SelectStatement subStatement = new SelectStatement();
       subStatement.setIsSubQuery(true);
       parseQueryClause(ctx.tableReference().subquery().queryClause(), subStatement);
-      if (ctx.tableReference().asClause() != null) {
-        parseAsClause(ctx.tableReference().asClause(), subStatement);
-      }
       // 计算子查询的自由变量
       subStatement.initFreeVariables();
-      selectStatement.setGlobalAlias(subStatement.getGlobalAlias());
-      fromParts.add(new SubQueryFromPart(subStatement));
+
+      if (ctx.tableReference().asClause() != null) {
+        String alias = ctx.tableReference().asClause().ID().getText();
+        selectStatement.setGlobalAlias(alias);
+        fromParts.add(new SubQueryFromPart(subStatement, alias));
+      } else {
+        selectStatement.setGlobalAlias(subStatement.getGlobalAlias());
+        fromParts.add(new SubQueryFromPart(subStatement));
+      }
     }
 
     if (ctx.joinPart() != null && !ctx.joinPart().isEmpty()) {
       selectStatement.setHasJoinParts(true);
 
       for (JoinPartContext joinPartContext : ctx.joinPart()) {
-        String pathPrefix, alias = null;
+        String pathPrefix;
+        String alias = "";
+        if (joinPartContext.tableReference().asClause() != null) {
+          alias = joinPartContext.tableReference().asClause().ID().getText();
+        }
         SelectStatement subStatement = new SelectStatement();
         if (joinPartContext.tableReference().path() != null) {
           pathPrefix = joinPartContext.tableReference().path().getText();
-          if (joinPartContext.tableReference().asClause() != null) {
-            alias = joinPartContext.tableReference().asClause().ID().getText();
-          }
           subStatement = null;
         } else {
           subStatement.setIsSubQuery(true);
           parseQueryClause(joinPartContext.tableReference().subquery().queryClause(), subStatement);
-          if (joinPartContext.tableReference().asClause() != null) {
-            parseAsClause(joinPartContext.tableReference().asClause(), subStatement);
-          }
           // 计算子查询的自由变量
           subStatement.initFreeVariables();
           pathPrefix = subStatement.getGlobalAlias();
         }
         if (joinPartContext.join() == null) { // cross join
           if (subStatement == null) {
-            if (alias != null) {
-              fromParts.add(new PathFromPart(pathPrefix, new JoinCondition(), alias));
-            } else {
-              fromParts.add(new PathFromPart(pathPrefix, new JoinCondition()));
-            }
+            fromParts.add(new PathFromPart(pathPrefix, new JoinCondition(), alias));
           } else {
-            SubQueryFromPart subQueryFromPart =
-                new SubQueryFromPart(subStatement, new JoinCondition());
-            fromParts.add(subQueryFromPart);
+            fromParts.add(new SubQueryFromPart(subStatement, new JoinCondition(), alias));
           }
           continue;
         }
@@ -462,16 +454,12 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         }
 
         if (subStatement == null) {
-          if (alias != null) {
-            fromParts.add(
-                new PathFromPart(pathPrefix, new JoinCondition(joinType, filter, columns), alias));
-          } else {
-            fromParts.add(
-                new PathFromPart(pathPrefix, new JoinCondition(joinType, filter, columns)));
-          }
+          fromParts.add(
+              new PathFromPart(pathPrefix, new JoinCondition(joinType, filter, columns), alias));
         } else {
           fromParts.add(
-              new SubQueryFromPart(subStatement, new JoinCondition(joinType, filter, columns)));
+              new SubQueryFromPart(
+                  subStatement, new JoinCondition(joinType, filter, columns), alias));
         }
       }
     }

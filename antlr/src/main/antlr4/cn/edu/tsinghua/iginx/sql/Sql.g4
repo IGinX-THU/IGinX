@@ -29,7 +29,7 @@ statement
    ;
 
 queryClause
-   : selectClause fromClause whereClause? withClause? specialClause? asClause?
+   : selectClause fromClause whereClause? withClause? specialClause?
    ;
 
 selectClause

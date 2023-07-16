@@ -7,6 +7,8 @@ import static cn.edu.tsinghua.iginx.engine.shared.function.system.ArithmeticExpr
 import static cn.edu.tsinghua.iginx.engine.shared.operator.type.JoinAlgType.chooseJoinAlg;
 import static cn.edu.tsinghua.iginx.metadata.utils.FragmentUtils.keyFromColumnsIntervalToKeyInterval;
 import static cn.edu.tsinghua.iginx.sql.SQLConstant.DOT;
+import static cn.edu.tsinghua.iginx.sql.SQLConstant.L_PARENTHESES;
+import static cn.edu.tsinghua.iginx.sql.SQLConstant.R_PARENTHESES;
 import static cn.edu.tsinghua.iginx.sql.statement.frompart.join.JoinType.isNaturalJoin;
 
 import cn.edu.tsinghua.iginx.conf.Config;
@@ -472,7 +474,38 @@ public class QueryGenerator extends AbstractGenerator {
             fromPart -> {
               if (fromPart.getType() == FromPartType.SubQueryFromPart) {
                 SubQueryFromPart subQueryFromPart = (SubQueryFromPart) fromPart;
-                joinList.add(generateRoot(subQueryFromPart.getSubQuery()));
+                Operator root = generateRoot(subQueryFromPart.getSubQuery());
+                // 子查询重命名
+                if (subQueryFromPart.hasAlias()) {
+                  Map<String, String> map = new HashMap<>();
+                  selectStatement
+                      .getExpressions()
+                      .forEach(
+                          expression -> {
+                            if (expression.hasAlias()) {
+                              map.put(
+                                  expression.getAlias(),
+                                  subQueryFromPart.getAlias() + DOT + expression.getAlias());
+                            } else {
+                              if (expression.getType().equals(Expression.ExpressionType.Binary)
+                                  || expression.getType().equals(Expression.ExpressionType.Unary)) {
+                                map.put(
+                                    expression.getColumnName(),
+                                    subQueryFromPart.getAlias()
+                                        + DOT
+                                        + L_PARENTHESES
+                                        + expression.getColumnName()
+                                        + R_PARENTHESES);
+                              } else {
+                                map.put(
+                                    expression.getColumnName(),
+                                    subQueryFromPart.getAlias() + DOT + expression.getColumnName());
+                              }
+                            }
+                          });
+                  root = new Rename(new OperatorSource(root), map);
+                }
+                joinList.add(root);
               } else {
                 PathFromPart pathFromPart = (PathFromPart) fromPart;
                 String prefix = pathFromPart.getOriginPath() + ALL_PATH_SUFFIX;
@@ -484,6 +517,7 @@ public class QueryGenerator extends AbstractGenerator {
                 Operator root =
                     mergeRawData(
                         fragments, dummyFragments, Collections.singletonList(prefix), tagFilter);
+                // from的序列的前缀重命名
                 if (pathFromPart.hasAlias()) {
                   Map<String, String> map = new HashMap<>();
                   map.put(

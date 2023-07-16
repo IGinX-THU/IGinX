@@ -14,7 +14,7 @@ public class PathFromPart implements FromPart {
   private final String alias;
 
   public PathFromPart(String path) {
-    this(path, path);
+    this(path, "");
   }
 
   public PathFromPart(String path, String alias) {
@@ -43,7 +43,7 @@ public class PathFromPart implements FromPart {
   }
 
   public boolean hasAlias() {
-    return !alias.equals(path);
+    return alias != null && !alias.equals("");
   }
 
   @Override

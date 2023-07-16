@@ -12,18 +12,37 @@ public class SubQueryFromPart implements FromPart {
   private final List<String> patterns;
   private final boolean isJoinPart;
   private JoinCondition joinCondition;
+  private final String alias;
 
   public SubQueryFromPart(SelectStatement subQuery) {
+    this(subQuery, "");
+  }
+
+  public SubQueryFromPart(SelectStatement subQuery, String alias) {
     this.subQuery = subQuery;
     this.patterns = subQuery.calculatePrefixSet();
     this.isJoinPart = false;
+    this.alias = alias;
   }
 
   public SubQueryFromPart(SelectStatement subQuery, JoinCondition joinCondition) {
+    this(subQuery, joinCondition, "");
+  }
+
+  public SubQueryFromPart(SelectStatement subQuery, JoinCondition joinCondition, String alias) {
     this.subQuery = subQuery;
     this.patterns = subQuery.calculatePrefixSet();
     this.isJoinPart = true;
     this.joinCondition = joinCondition;
+    this.alias = alias;
+  }
+
+  public String getAlias() {
+    return alias;
+  }
+
+  public boolean hasAlias() {
+    return alias != null && !alias.equals("");
   }
 
   @Override
