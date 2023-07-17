@@ -36,7 +36,7 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
     READ_ONLY_DATA_TYPE_LIST = Arrays.asList(DataType.BINARY, DataType.BINARY);
     READ_ONLY_VALUES_LIST =
         Arrays.asList(
-            Arrays.asList(value1),Arrays.asList(value2));
+            Arrays.asList(value1, value2));
     EXP_VALUES_LIST1 =
         Arrays.asList(Arrays.asList(value1));
     EXP_VALUES_LIST2 =
