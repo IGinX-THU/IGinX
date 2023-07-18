@@ -199,7 +199,10 @@ Use the following command to build the IGinX image:
 
 ```shell
 $ cd docker/onlyIginx
-$ ./build_iginx_docker.sh
+$ ./build_iginx_docker.sh -p 6888 -d 6667 -d 7667
+# -p expose port in container for IGinX service
+# -d expose port for parquet services, has to set none or all, depend on the config file
+# User can provice no -p or -d params. The default values will be read from /conf/config.properties
 ```
 
 The following words are displayed to indicate that the image was built successfully:
@@ -239,27 +242,23 @@ The following words are displayed to indicate that the image was built successfu
 ```
 
 Then start to run the image.
-Considering that IGinX and ZooKeeper communicates through network, it is necessary to establish a Docker network bridge to allow them to be interconnected through the network. Here we create a network bridge called docker-cluster-iginx:
 
-```shell
-$ docker network create -d bridge --attachable --subnet 172.40.0.0/16 docker-cluster-iginx
-# 172.40.0.0 refers to the network bridge's ip. You can customize it if necessary. The ip address usually starts with 172.
-```
-
-Now start Zookeeper:
+Start Zookeeper first:
 
 ```shell
 $ cd ${zookeeper_path}
 $ ./bin/zkServer.sh start
 ```
 
-Finally, start IGinX to complete the startup of the entire system:
+Then, start IGinX to complete the startup of the entire system:
 
 ```shell
 $ cd ${iginx_path}/docker/onlyIginx
-$ ./run_iginx_docker.sh x.x.x.x 10000
-# x.x.x.x is the ip address IGinX container would use. It should be accessable to docker-cluster-iginx. You can use 172.40.0.2 for example. Note that 172.40.0.1 is the gateway and cannot be used here.
-# 10000 refers to the port on host that can be used to access IGinX service. You can customize it if preferred.
+$ ./run_iginx_docker.sh -n iginx0 -h 192.168.34.225 -p 10000 -o my-net
+# -n container name
+# -h host ip
+# -p host port to cast
+# -o [optional] use my-net as container network. Default value is bridge
 ```
 
 This command will expose the host's port 10000 as the communication interface with the IGinX cluster. You can start accessing IGinX through 127.0.0.1:10000.

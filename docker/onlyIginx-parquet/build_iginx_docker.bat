@@ -5,7 +5,7 @@ rem list: arg list from command palette
 set "list=%*"
 
 rem paramslist: -p iginx port 		flag=1
-rem 			-pp parquet port 	flag=2
+rem 			-d parquet port 	flag=2
 set /A "flag=0"
 set /A "count=0"
 set "port=-1"
@@ -15,7 +15,7 @@ for %%p in (%list%) do (
     if "%%p"=="-p" (
       set /A "flag=1"
     )
-    if "%%p"=="-pp" (
+    if "%%p"=="-d" (
       set /A "flag=2"
     )
   ) else (

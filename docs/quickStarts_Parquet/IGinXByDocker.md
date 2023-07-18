@@ -198,7 +198,10 @@ $ ./build_and_run_iginx_docker.sh
 
 ```shell
 $ cd docker/onlyIginx
-$ ./build_iginx_docker.sh
+$ ./build_iginx_docker.sh -p 6888 -d 6667 -d 7667
+# -p 指定IGinX服务暴露端口
+# -d 指定parquet服务暴露端口，参数数量可以为0或等于配置文件内指定的数量，不可只指定一部分
+# 两个参数均可缺省，缺省时直接读取配置文件
 ```
 
 显示出如下的字样表示镜像构建成功：
@@ -250,9 +253,11 @@ $ ./bin/zkServer.sh start
 
 ```shell
 $ cd ${iginx_path}/docker/onlyIginx
-$ ./run_iginx_docker.sh iginx0 10000
-# iginx0 为用户赋予该IGinX容器的名字，可以自定义
-# 10000为IGinX容器映射到宿主机的端口，用户可以根据自己的主机情况自定义
+$ ./run_iginx_docker.sh -n iginx0 -h 192.168.34.225 -p 10000 -o my-net
+# -n 该IGinX容器的名字
+# -h 宿主机的ip地址
+# -p 10000为IGinX容器映射到宿主机的端口，用户可以根据自己的主机情况自定义
+# -o 【可缺省】指定使用的网络，缺省时默认为bridge
 ```
 
 该命令会将本地的 10000 接口暴露出来，作为与 IGinX 集群的通讯接口。在宿主机上通过地址 127.0.0.1:10000 即可开始访问 IGinX。
