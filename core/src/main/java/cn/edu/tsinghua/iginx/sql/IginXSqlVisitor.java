@@ -1096,10 +1096,10 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         && !statement.isSubQuery()
         && statement.getFromParts().get(0).getType() == FromPartType.PathFromPart) {
       PathFromPart pathFromPart = (PathFromPart) statement.getFromParts().get(0);
-      pathA = pathFromPart.getPrefix() + SQLConstant.DOT + pathA;
       originPathA = pathFromPart.getOriginPrefix() + SQLConstant.DOT + pathA;
-      pathB = pathFromPart.getPrefix() + SQLConstant.DOT + pathB;
+      pathA = pathFromPart.getPrefix() + SQLConstant.DOT + pathA;
       originPathB = pathFromPart.getOriginPrefix() + SQLConstant.DOT + pathB;
+      pathB = pathFromPart.getPrefix() + SQLConstant.DOT + pathB;
     }
     if (!statement.isFreeVariable(pathA)) {
       statement.setPathSet(originPathA);

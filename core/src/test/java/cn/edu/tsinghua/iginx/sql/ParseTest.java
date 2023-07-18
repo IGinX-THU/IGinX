@@ -230,7 +230,7 @@ public class ParseTest {
     SelectStatement subStatement = subQueryFromPart.getSubQuery();
 
     FuncExpression expression = subStatement.getFuncExpressionMap().get("max").get(0);
-    assertEquals(Collections.singletonList("root.a"), expression.getParams());
+    assertEquals(Collections.singletonList("res.a"), expression.getParams());
     assertEquals("max", expression.getFuncName());
     assertEquals("res.max_a", expression.getAlias());
   }

@@ -418,12 +418,12 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
               for (String oldName : aliasMap.keySet()) {
                 if (Objects.equals(oldName, "*") && aliasMap.get(oldName).endsWith(".*")) {
                   String newPrefix = aliasMap.get(oldName).replace("*", "");
-                  alias = newPrefix + field.getFullName();
+                  alias = newPrefix + field.getName();
                 } else if (oldName.endsWith(".*") && aliasMap.get(oldName).endsWith(".*")) {
                   String oldPrefix = oldName.replace(".*", "");
                   String newPrefix = aliasMap.get(oldName).replace(".*", "");
-                  if (field.getFullName().startsWith(oldPrefix)) {
-                    alias = field.getFullName().replaceFirst(oldPrefix, newPrefix);
+                  if (field.getName().startsWith(oldPrefix)) {
+                    alias = field.getName().replaceFirst(oldPrefix, newPrefix);
                   }
                   break;
                 } else if (oldName.equals(field.getFullName())) {

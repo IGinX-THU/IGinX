@@ -18,7 +18,6 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.InnerJoin;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -150,15 +149,7 @@ public class HashInnerJoinLazyStream extends BinaryLazyStream {
     if (value == null) {
       return;
     }
-    if (needTypeCast) {
-      value = ValueUtils.transformToDouble(value);
-    }
-    int hash;
-    if (value.getDataType() == DataType.BINARY) {
-      hash = Arrays.hashCode(value.getBinaryV());
-    } else {
-      hash = value.getValue().hashCode();
-    }
+    int hash = getHash(value, needTypeCast);
 
     if (streamBHashMap.containsKey(hash)) {
       for (Row rowB : streamBHashMap.get(hash)) {
@@ -182,8 +173,8 @@ public class HashInnerJoinLazyStream extends BinaryLazyStream {
           if (!FilterUtils.validate(innerJoin.getFilter(), joinedRow)) {
             continue;
           }
-          cache.addLast(joinedRow);
         }
+        cache.addLast(joinedRow);
       }
     }
   }

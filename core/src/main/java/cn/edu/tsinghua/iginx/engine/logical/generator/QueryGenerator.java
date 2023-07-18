@@ -116,12 +116,15 @@ public class QueryGenerator extends AbstractGenerator {
       } else {
         policy.notify(selectStatement);
         root = filterAndMergeFragments(selectStatement);
-        PathFromPart pathFromPart = (PathFromPart) selectStatement.getFromParts().get(0);
-        if (pathFromPart.hasAlias()) {
-          Map<String, String> map =
-              selectStatement.getFromPathAliasMap(
-                  pathFromPart.getOriginPrefix(), pathFromPart.getAlias());
-          root = new Rename(new OperatorSource(root), map);
+        if (!selectStatement.getFromParts().isEmpty()
+            && selectStatement.getFromParts().get(0).getType() == FromPartType.PathFromPart) {
+          PathFromPart pathFromPart = (PathFromPart) selectStatement.getFromParts().get(0);
+          if (pathFromPart.hasAlias()) {
+            Map<String, String> map =
+                selectStatement.getFromPathAliasMap(
+                    pathFromPart.getOriginPrefix(), pathFromPart.getAlias());
+            root = new Rename(new OperatorSource(root), map);
+          }
         }
       }
     }

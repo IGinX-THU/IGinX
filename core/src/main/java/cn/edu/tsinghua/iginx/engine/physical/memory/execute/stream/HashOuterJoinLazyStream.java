@@ -75,6 +75,7 @@ public class HashOuterJoinLazyStream extends BinaryLazyStream {
     OuterJoinType outerJoinType = outerJoin.getOuterJoinType();
     Header headerA = streamA.getHeader();
     Header headerB = streamB.getHeader();
+    this.joinColumns = new ArrayList<>(outerJoin.getJoinColumns());
 
     // 计算自然连接的连接列名
     if (outerJoin.isNaturalJoin()) {
@@ -259,8 +260,8 @@ public class HashOuterJoinLazyStream extends BinaryLazyStream {
           if (!FilterUtils.validate(outerJoin.getFilter(), joinedRow)) {
             continue;
           }
-          cache.addLast(joinedRow);
         }
+        cache.addLast(joinedRow);
       }
       matchedStreamBRowHashSet.add(hash);
     } else {

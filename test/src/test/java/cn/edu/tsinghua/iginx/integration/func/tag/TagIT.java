@@ -1162,16 +1162,28 @@ public class TagIT {
     statement = "SELECT s FROM ah.hr02 AS result_set;";
     expected =
         "ResultSets:\n"
-            + "+---+--------------------+---------------------------+\n"
-            + "|key|result_set.ah.hr02.s|result_set.ah.hr02.s{t1=v1}|\n"
-            + "+---+--------------------+---------------------------+\n"
-            + "|100|                true|                       null|\n"
-            + "|400|                null|                      false|\n"
-            + "+---+--------------------+---------------------------+\n"
+            + "+---+------------+-------------------+\n"
+            + "|key|result_set.s|result_set.s{t1=v1}|\n"
+            + "+---+------------+-------------------+\n"
+            + "|100|        true|               null|\n"
+            + "|400|        null|              false|\n"
+            + "+---+------------+-------------------+\n"
             + "Total line number = 2\n";
     executeAndCompare(statement, expected);
 
     statement = "SELECT s AS ts FROM ah.hr02 AS result_set;";
+    expected =
+        "ResultSets:\n"
+            + "+---+----+---------+\n"
+            + "|key|  ts|ts{t1=v1}|\n"
+            + "+---+----+---------+\n"
+            + "|100|true|     null|\n"
+            + "|400|null|    false|\n"
+            + "+---+----+---------+\n"
+            + "Total line number = 2\n";
+    executeAndCompare(statement, expected);
+
+    statement = "SELECT * FROM (SELECT s AS ts FROM ah.hr02) AS result_set;";
     expected =
         "ResultSets:\n"
             + "+---+-------------+--------------------+\n"

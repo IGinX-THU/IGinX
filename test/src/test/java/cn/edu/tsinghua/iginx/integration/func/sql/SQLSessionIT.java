@@ -2441,24 +2441,25 @@ public class SQLSessionIT {
     executor.executeAndCompare(statement, expected);
 
     // time series alias with arithmetic expression
-    statement = "SELECT s1+s2 AS rename_sum, s2-s1 AS rename_diff FROM us.d1 WHERE s1 >= 1000 AND s1 < 1010;";
+    statement =
+        "SELECT s1+s2 AS rename_sum, s2-s1 AS rename_diff FROM us.d1 WHERE s1 >= 1000 AND s1 < 1010;";
     expected =
-        "ResultSets:\n" +
-            "+----+----------+-----------+\n" +
-            "| key|rename_sum|rename_diff|\n" +
-            "+----+----------+-----------+\n" +
-            "|1000|      2001|          1|\n" +
-            "|1001|      2003|          1|\n" +
-            "|1002|      2005|          1|\n" +
-            "|1003|      2007|          1|\n" +
-            "|1004|      2009|          1|\n" +
-            "|1005|      2011|          1|\n" +
-            "|1006|      2013|          1|\n" +
-            "|1007|      2015|          1|\n" +
-            "|1008|      2017|          1|\n" +
-            "|1009|      2019|          1|\n" +
-            "+----+----------+-----------+\n" +
-            "Total line number = 10\n";
+        "ResultSets:\n"
+            + "+----+----------+-----------+\n"
+            + "| key|rename_sum|rename_diff|\n"
+            + "+----+----------+-----------+\n"
+            + "|1000|      2001|          1|\n"
+            + "|1001|      2003|          1|\n"
+            + "|1002|      2005|          1|\n"
+            + "|1003|      2007|          1|\n"
+            + "|1004|      2009|          1|\n"
+            + "|1005|      2011|          1|\n"
+            + "|1006|      2013|          1|\n"
+            + "|1007|      2015|          1|\n"
+            + "|1008|      2017|          1|\n"
+            + "|1009|      2019|          1|\n"
+            + "+----+----------+-----------+\n"
+            + "Total line number = 10\n";
     executor.executeAndCompare(statement, expected);
 
     // path alias
