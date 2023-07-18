@@ -145,8 +145,13 @@ if not defined line goto enginReadError
 :loop
 @REM for every engine
 for /f "tokens=1* delims=," %%a in ("!line!") do (
-	@REM find the second param(port)
-	for /f "tokens=2 delims=#" %%i in ("%%a") do set "engineCast=!engineCast!-p %%i:%%i "
+	@REM find the second param(port), only cast local database port
+	for /f "tokens=1,2 delims=#" %%i in ("%%a") do (
+    set tmp=%%i
+    if "%tmp:~-20%"=="host.docker.internal" (
+      set "engineCast=!engineCast!-p %%j:%%j " 
+    )
+  )
 	set line=%%b
 )
 if defined line goto :loop
