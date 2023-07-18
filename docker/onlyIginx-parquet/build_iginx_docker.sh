@@ -48,11 +48,27 @@ configFile="../../conf/config.properties"
 if (( ${parquetPortsCount} != 0 )); then
   engineListStr=$(sed -n "/^storageEngineList=/p" ${configFile})
   engineListArr=($(echo ${engineListStr} | tr "," "\n"))
+  engineListStr=""
   if (( ${parquetPortsCount} != ${#engineListArr[*]} )); then
     echo "Error: You should set all ${#engineListArr[*]} parquet ports or none."
     echo "${usageHint}"
     exit 1
   fi
+
+  # re-build engineListStr because directly operating engineListStr will cause bug
+  declare -i count=0
+  for engine in ${engineListArr[@]}; do
+    oldPort=$(awk -F'#' '{print $2}' <<< ${engine})
+    newPort=${parquetPorts[count]}
+    # echo ${count} ${engine} ${oldPort} ${newPort}
+    engine=${engine/"#${oldPort}#"/"#${newPort}#"}
+    count+=1
+    engineListStr+="${engine},"
+  done
+  engineListStr=${engineListStr:0:-1}
+  # echo ${engineListStr}
+  sed -i "s/$(sed -n "/^storageEngineList=/p" ${configFile})/${engineListStr}/g" ${configFile}
+  
 fi
 
 # change iginx ports
@@ -67,6 +83,6 @@ sed -i "s/$(sed -n "/^enableEnvParameter=/p" ${configFile})/enableEnvParameter=t
 # change host address
 sed -i "s/127.0.0.1/host.docker.internal/g" ${configFile}
 
-command="docker build --network=host --file Dockerfile-iginx -t iginx:0.6.1 ../.."
+command="docker build --network=host --file Dockerfile-iginx -t iginx:0.6.0 ../.."
 echo "RUNNING ${command}"
 ${command}
