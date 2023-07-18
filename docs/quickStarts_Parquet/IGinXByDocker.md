@@ -237,27 +237,21 @@ $ ./build_iginx_docker.sh
 => => naming to docker.io/library/iginx:0.6.0
 ```
 
-接下来开始运行镜像
-考虑到 IGinX 和ZooKeeper、数据库服务之间通过网络进行通讯，因此需要建立 Docker 网络，允许其通过网络互联。在这里我们创建一个名为 docker-cluster-iginx 的 bridge 网络：
+接下来运行镜像，创建IGinX容器。
 
-```shell
-$ docker network create -d bridge --attachable --subnet 172.40.0.0/16 docker-cluster-iginx
-# 172.40.0.0 是该网桥的ip，用户可以自定义，一般以172开头
-```
-
-然后启动 Zookeeper：
+首先启动 Zookeeper：
 
 ```shell
 $ cd ${zookeeper_path}
 $ ./bin/zkServer.sh start
 ```
 
-最后启动 IGinX即可完成整个系统的启动：
+然后启动 IGinX即可完成整个系统的启动：
 
 ```shell
 $ cd ${iginx_path}/docker/onlyIginx
-$ ./run_iginx_docker.sh x.x.x.x 10000
-# x.x.x.x 为用户赋予该IGinX容器的ip地址，需要在docker-cluster-iginx网桥的ip范围内，例如172.40.0.2，不可以使用默认网关172.40.0.1
+$ ./run_iginx_docker.sh iginx0 10000
+# iginx0 为用户赋予该IGinX容器的名字，可以自定义
 # 10000为IGinX容器映射到宿主机的端口，用户可以根据自己的主机情况自定义
 ```
 

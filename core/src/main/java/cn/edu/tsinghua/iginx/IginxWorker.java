@@ -491,8 +491,11 @@ public class IginxWorker implements IService.Iface {
 
     // IginX 信息
     List<IginxInfo> iginxInfos = new ArrayList<>();
+    // if starts in Docker, host_iginx_port will be given as env, representing host port to access IGinX service
+    String iginxPort = System.getenv("host_iginx_port");
     for (IginxMeta iginxMeta : metaManager.getIginxList()) {
-      iginxInfos.add(new IginxInfo(iginxMeta.getId(), iginxMeta.getIp(), iginxMeta.getPort()));
+      int thisIginxPort = iginxPort != null ? Integer.parseInt(iginxPort) : iginxMeta.getPort();
+      iginxInfos.add(new IginxInfo(iginxMeta.getId(), iginxMeta.getIp(), thisIginxPort));
     }
     iginxInfos.sort(Comparator.comparingLong(IginxInfo::getId));
     resp.setIginxInfos(iginxInfos);
@@ -503,7 +506,7 @@ public class IginxWorker implements IService.Iface {
       StorageEngineInfo info =
           new StorageEngineInfo(
               storageEngineMeta.getId(),
-              storageEngineMeta.getIp(),
+              storageEngineMeta.getIp().equals("host.docker.internal") ? System.getenv("ip") : storageEngineMeta.getIp(),
               storageEngineMeta.getPort(),
               storageEngineMeta.getStorageEngine());
       info.setSchemaPrefix(
@@ -534,7 +537,8 @@ public class IginxWorker implements IService.Iface {
           String[] ipAndPort = endPoint.split(":", 2);
           MetaStorageInfo metaStorageInfo =
               new MetaStorageInfo(
-                  ipAndPort[0], Integer.parseInt(ipAndPort[1]), Constants.ETCD_META);
+                      ipAndPort[0].equals("host.docker.internal") ? System.getenv("ip") : ipAndPort[0],
+                      Integer.parseInt(ipAndPort[1]), Constants.ETCD_META);
           metaStorageInfos.add(metaStorageInfo);
         }
         break;
@@ -545,7 +549,8 @@ public class IginxWorker implements IService.Iface {
           String[] ipAndPort = zookeeper.split(":", 2);
           MetaStorageInfo metaStorageInfo =
               new MetaStorageInfo(
-                  ipAndPort[0], Integer.parseInt(ipAndPort[1]), Constants.ZOOKEEPER_META);
+                  ipAndPort[0].equals("host.docker.internal") ? System.getenv("ip") : ipAndPort[0],
+                      Integer.parseInt(ipAndPort[1]), Constants.ZOOKEEPER_META);
           metaStorageInfos.add(metaStorageInfo);
         }
         break;
