@@ -232,7 +232,7 @@ public class ParseTest {
     FuncExpression expression = subStatement.getFuncExpressionMap().get("max").get(0);
     assertEquals(Collections.singletonList("res.a"), expression.getParams());
     assertEquals("max", expression.getFuncName());
-    assertEquals("res.max_a", expression.getAlias());
+    assertEquals("max_a", expression.getAlias());
   }
 
   @Test
