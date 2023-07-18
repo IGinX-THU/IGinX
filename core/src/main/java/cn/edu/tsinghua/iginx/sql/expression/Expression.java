@@ -10,6 +10,8 @@ public interface Expression {
 
   String getAlias();
 
+  void setAlias(String alias);
+
   enum ExpressionType {
     Bracket,
     Binary,

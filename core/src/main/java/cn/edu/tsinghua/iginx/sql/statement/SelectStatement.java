@@ -1,5 +1,10 @@
 package cn.edu.tsinghua.iginx.sql.statement;
 
+import static cn.edu.tsinghua.iginx.engine.shared.Constants.ALL_PATH_SUFFIX;
+import static cn.edu.tsinghua.iginx.sql.SQLConstant.DOT;
+import static cn.edu.tsinghua.iginx.sql.SQLConstant.L_PARENTHESES;
+import static cn.edu.tsinghua.iginx.sql.SQLConstant.R_PARENTHESES;
+
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils;
 import cn.edu.tsinghua.iginx.engine.shared.Constants;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils;
@@ -542,22 +547,38 @@ public class SelectStatement extends DataStatement {
     this.needPhysicalExplain = needPhysicalExplain;
   }
 
-  public Map<String, String> getAliasMap() {
+  public Map<String, String> getSelectAliasMap() {
     Map<String, String> aliasMap = new HashMap<>();
-    this.funcExpressionMap.forEach(
-        (k, v) ->
-            v.forEach(
-                expression -> {
-                  if (expression.hasAlias()) {
-                    String oldName = expression.getColumnName();
-                    aliasMap.put(oldName, expression.getAlias());
-                  }
-                }));
-    this.baseExpressionList.forEach(
-        expr -> {
-          if (expr.hasAlias()) {
-            String oldName = expr.getColumnName();
-            aliasMap.put(oldName, expr.getAlias());
+    this.expressions.forEach(
+        expression -> {
+          if (expression.hasAlias()) {
+            aliasMap.put(expression.getColumnName(), expression.getAlias());
+          }
+        });
+    return aliasMap;
+  }
+
+  public Map<String, String> getFromPathAliasMap(String originPrefix, String alias) {
+    Map<String, String> aliasMap = new HashMap<>();
+    aliasMap.put(originPrefix + ALL_PATH_SUFFIX, alias + ALL_PATH_SUFFIX);
+    return aliasMap;
+  }
+
+  public Map<String, String> getSubQueryAliasMap(String alias) {
+    Map<String, String> aliasMap = new HashMap<>();
+    expressions.forEach(
+        expression -> {
+          if (expression.hasAlias()) {
+            aliasMap.put(expression.getAlias(), alias + DOT + expression.getAlias());
+          } else {
+            if (expression.getType().equals(Expression.ExpressionType.Binary)
+                || expression.getType().equals(Expression.ExpressionType.Unary)) {
+              aliasMap.put(
+                  expression.getColumnName(),
+                  alias + DOT + L_PARENTHESES + expression.getColumnName() + R_PARENTHESES);
+            } else {
+              aliasMap.put(expression.getColumnName(), alias + DOT + expression.getColumnName());
+            }
           }
         });
     return aliasMap;

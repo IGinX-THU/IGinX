@@ -426,6 +426,9 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
                     alias = field.getFullName().replaceFirst(oldPrefix, newPrefix);
                   }
                   break;
+                } else if (oldName.equals(field.getFullName())) {
+                  alias = aliasMap.get(oldName);
+                  break;
                 } else {
                   Pattern pattern = Pattern.compile(StringUtils.reformatColumnName(oldName) + ".*");
                   if (pattern.matcher(field.getFullName()).matches()) {

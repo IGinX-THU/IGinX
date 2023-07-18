@@ -7,8 +7,6 @@ import static cn.edu.tsinghua.iginx.engine.shared.function.system.ArithmeticExpr
 import static cn.edu.tsinghua.iginx.engine.shared.operator.type.JoinAlgType.chooseJoinAlg;
 import static cn.edu.tsinghua.iginx.metadata.utils.FragmentUtils.keyFromColumnsIntervalToKeyInterval;
 import static cn.edu.tsinghua.iginx.sql.SQLConstant.DOT;
-import static cn.edu.tsinghua.iginx.sql.SQLConstant.L_PARENTHESES;
-import static cn.edu.tsinghua.iginx.sql.SQLConstant.R_PARENTHESES;
 import static cn.edu.tsinghua.iginx.sql.statement.frompart.join.JoinType.isNaturalJoin;
 
 import cn.edu.tsinghua.iginx.conf.Config;
@@ -68,7 +66,6 @@ import cn.edu.tsinghua.iginx.utils.SortUtils;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -112,15 +109,18 @@ public class QueryGenerator extends AbstractGenerator {
           && selectStatement.getFromParts().get(0).getType() == FromPartType.SubQueryFromPart) {
         SubQueryFromPart fromPart = (SubQueryFromPart) selectStatement.getFromParts().get(0);
         root = generateRoot(fromPart.getSubQuery());
+        if (fromPart.hasAlias()) {
+          Map<String, String> map = fromPart.getSubQuery().getSubQueryAliasMap(fromPart.getAlias());
+          root = new Rename(new OperatorSource(root), map);
+        }
       } else {
         policy.notify(selectStatement);
         root = filterAndMergeFragments(selectStatement);
         PathFromPart pathFromPart = (PathFromPart) selectStatement.getFromParts().get(0);
         if (pathFromPart.hasAlias()) {
-          Map<String, String> map = new HashMap<>();
-          map.put(
-              pathFromPart.getOriginPath() + ALL_PATH_SUFFIX,
-              pathFromPart.getAlias() + ALL_PATH_SUFFIX);
+          Map<String, String> map =
+              selectStatement.getFromPathAliasMap(
+                  pathFromPart.getOriginPrefix(), pathFromPart.getAlias());
           root = new Rename(new OperatorSource(root), map);
         }
       }
@@ -439,7 +439,7 @@ public class QueryGenerator extends AbstractGenerator {
       }
     }
 
-    Map<String, String> aliasMap = selectStatement.getAliasMap();
+    Map<String, String> aliasMap = selectStatement.getSelectAliasMap();
     if (!aliasMap.isEmpty()) {
       root = new Rename(new OperatorSource(root), aliasMap);
     }
@@ -477,38 +477,16 @@ public class QueryGenerator extends AbstractGenerator {
                 Operator root = generateRoot(subQueryFromPart.getSubQuery());
                 // 子查询重命名
                 if (subQueryFromPart.hasAlias()) {
-                  Map<String, String> map = new HashMap<>();
-                  selectStatement
-                      .getExpressions()
-                      .forEach(
-                          expression -> {
-                            if (expression.hasAlias()) {
-                              map.put(
-                                  expression.getAlias(),
-                                  subQueryFromPart.getAlias() + DOT + expression.getAlias());
-                            } else {
-                              if (expression.getType().equals(Expression.ExpressionType.Binary)
-                                  || expression.getType().equals(Expression.ExpressionType.Unary)) {
-                                map.put(
-                                    expression.getColumnName(),
-                                    subQueryFromPart.getAlias()
-                                        + DOT
-                                        + L_PARENTHESES
-                                        + expression.getColumnName()
-                                        + R_PARENTHESES);
-                              } else {
-                                map.put(
-                                    expression.getColumnName(),
-                                    subQueryFromPart.getAlias() + DOT + expression.getColumnName());
-                              }
-                            }
-                          });
+                  Map<String, String> map =
+                      subQueryFromPart
+                          .getSubQuery()
+                          .getSubQueryAliasMap(subQueryFromPart.getAlias());
                   root = new Rename(new OperatorSource(root), map);
                 }
                 joinList.add(root);
               } else {
                 PathFromPart pathFromPart = (PathFromPart) fromPart;
-                String prefix = pathFromPart.getOriginPath() + ALL_PATH_SUFFIX;
+                String prefix = pathFromPart.getOriginPrefix() + ALL_PATH_SUFFIX;
                 Pair<Map<KeyInterval, List<FragmentMeta>>, List<FragmentMeta>> pair =
                     getFragmentsByColumnsInterval(
                         selectStatement, new ColumnsInterval(prefix, prefix));
@@ -519,10 +497,9 @@ public class QueryGenerator extends AbstractGenerator {
                         fragments, dummyFragments, Collections.singletonList(prefix), tagFilter);
                 // from的序列的前缀重命名
                 if (pathFromPart.hasAlias()) {
-                  Map<String, String> map = new HashMap<>();
-                  map.put(
-                      pathFromPart.getOriginPath() + ALL_PATH_SUFFIX,
-                      pathFromPart.getAlias() + ALL_PATH_SUFFIX);
+                  Map<String, String> map =
+                      selectStatement.getFromPathAliasMap(
+                          pathFromPart.getOriginPrefix(), pathFromPart.getAlias());
                   root = new Rename(new OperatorSource(root), map);
                 }
                 joinList.add(root);

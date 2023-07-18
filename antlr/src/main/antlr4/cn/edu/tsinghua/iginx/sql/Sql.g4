@@ -33,14 +33,18 @@ queryClause
    ;
 
 selectClause
-   : SELECT expression (COMMA expression)*
+   : SELECT selectSublist (COMMA selectSublist)*
+   ;
+
+selectSublist
+   : expression asClause?
    ;
 
 expression
    : LR_BRACKET inBracketExpr = expression RR_BRACKET
    | constant
-   | functionName LR_BRACKET path (COMMA path)* RR_BRACKET asClause?
-   | path asClause?
+   | functionName LR_BRACKET path (COMMA path)* RR_BRACKET
+   | path
    | (PLUS | MINUS) expr = expression
    | leftExpr = expression (STAR | DIV | MOD) rightExpr = expression
    | leftExpr = expression (PLUS | MINUS) rightExpr = expression

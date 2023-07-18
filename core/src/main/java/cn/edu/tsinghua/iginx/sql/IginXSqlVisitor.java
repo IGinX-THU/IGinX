@@ -30,7 +30,6 @@ import cn.edu.tsinghua.iginx.sql.SqlParser.AggLenContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.AndExpressionContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.AndPreciseExpressionContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.AndTagExpressionContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.AsClauseContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.CancelJobStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.ClearDataStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.CommitTransformJobStatementContext;
@@ -65,6 +64,7 @@ import cn.edu.tsinghua.iginx.sql.SqlParser.RegisterTaskStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.RemoveHistoryDataResourceStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.SelectClauseContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.SelectStatementContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.SelectSublistContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.SetConfigStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.ShowClusterInfoStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.ShowColumnsStatementContext;
@@ -582,16 +582,22 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   }
 
   private void parseSelectPaths(SelectClauseContext ctx, SelectStatement selectStatement) {
-    List<ExpressionContext> expressions = ctx.expression();
+    List<SelectSublistContext> selectList = ctx.selectSublist();
 
-    for (ExpressionContext expr : expressions) {
-      List<Expression> ret = parseExpression(expr, selectStatement);
+    for (SelectSublistContext select : selectList) {
+      List<Expression> ret = parseExpression(select.expression(), selectStatement);
+      if (select.expression().subquery() != null && select.asClause() != null) {
+        throw new SQLParserException("Select Subquery doesn't support AS clause.");
+      }
+      if (ret.size() == 1 && select.asClause() != null) {
+        ret.get(0).setAlias(select.asClause().ID().getText());
+      }
       ret.forEach(
           expression -> {
             if (expression.getType().equals(ExpressionType.Constant)) {
               // 当select一个不包含在表达式的常量时，这个常量会被看成selectedPath
               String selectedPath = ((ConstantExpression) expression).getValue().toString();
-              selectStatement.setExpression(parseBaseExpression(selectedPath, "", selectStatement));
+              selectStatement.setExpression(parseBaseExpression(selectedPath, selectStatement));
             } else {
               selectStatement.setExpression(expression);
             }
@@ -669,11 +675,6 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   private Expression parseFuncExpression(ExpressionContext ctx, SelectStatement selectStatement) {
     String funcName = ctx.functionName().getText();
 
-    String alias = "";
-    if (ctx.asClause() != null) {
-      alias = ctx.asClause().ID().getText();
-    }
-
     List<String> params = new ArrayList<>();
     for (PathContext pathContext : ctx.path()) {
       params.add(pathContext.getText());
@@ -690,34 +691,29 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       }
       params = newParams;
     }
-    FuncExpression expression = new FuncExpression(funcName, params, alias);
+    FuncExpression expression = new FuncExpression(funcName, params);
     selectStatement.setSelectedFuncsAndPaths(funcName, expression);
     return expression;
   }
 
   private Expression parseBaseExpression(ExpressionContext ctx, SelectStatement selectStatement) {
-    String alias = "";
-    if (ctx.asClause() != null) {
-      alias = ctx.asClause().ID().getText();
-    }
     String selectedPath = ctx.path(0).getText();
-    return parseBaseExpression(selectedPath, alias, selectStatement);
+    return parseBaseExpression(selectedPath, selectStatement);
   }
 
-  private Expression parseBaseExpression(
-      String selectedPath, String alias, SelectStatement selectStatement) {
+  private Expression parseBaseExpression(String selectedPath, SelectStatement selectStatement) {
     // 如果查询语句中FROM子句只有一个部分且FROM一个前缀，则SELECT子句中的path只用写出后缀
     if (!selectStatement.hasJoinParts()
         && selectStatement.getFromParts().get(0).getType() == FromPartType.PathFromPart) {
       PathFromPart pathFromPart = (PathFromPart) selectStatement.getFromParts().get(0);
       String fullPath = pathFromPart.getPrefix() + SQLConstant.DOT + selectedPath;
-      String originFullPath = pathFromPart.getOriginPath() + SQLConstant.DOT + selectedPath;
-      BaseExpression expression = new BaseExpression(fullPath, alias);
+      String originFullPath = pathFromPart.getOriginPrefix() + SQLConstant.DOT + selectedPath;
+      BaseExpression expression = new BaseExpression(fullPath);
       selectStatement.addBaseExpression(expression);
       selectStatement.setPathSet(originFullPath);
       return expression;
     } else {
-      BaseExpression expression = new BaseExpression(selectedPath, alias);
+      BaseExpression expression = new BaseExpression(selectedPath);
       selectStatement.setSelectedPaths(expression);
       return expression;
     }
@@ -819,7 +815,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
                   && selectStatement.getFromParts().get(0).getType() == FromPartType.PathFromPart) {
                 PathFromPart pathFromPart = (PathFromPart) selectStatement.getFromParts().get(0);
                 path = pathFromPart.getPrefix() + SQLConstant.DOT + pathContext.getText();
-                originPath = pathFromPart.getOriginPath() + SQLConstant.DOT + pathContext.getText();
+                originPath =
+                    pathFromPart.getOriginPrefix() + SQLConstant.DOT + pathContext.getText();
               } else {
                 path = pathContext.getText();
                 originPath = pathContext.getText();
@@ -891,37 +888,6 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     if (ctx.DESC() != null) {
       selectStatement.setAscending(false);
     }
-  }
-
-  private void parseAsClause(AsClauseContext ctx, SelectStatement selectStatement) {
-    String aliasPrefix = ctx.ID().getText();
-    selectStatement.setGlobalAlias(aliasPrefix);
-    selectStatement
-        .getFuncExpressionMap()
-        .forEach(
-            (k, v) ->
-                v.forEach(
-                    expression -> {
-                      String alias = expression.getAlias();
-                      if (alias.equals("")) {
-                        alias = aliasPrefix + SQLConstant.DOT + expression.getColumnName();
-                      } else {
-                        alias = aliasPrefix + SQLConstant.DOT + alias;
-                      }
-                      expression.setAlias(alias);
-                    }));
-    selectStatement
-        .getBaseExpressionList()
-        .forEach(
-            expression -> {
-              String alias = expression.getAlias();
-              if (alias.equals("")) {
-                alias = aliasPrefix + SQLConstant.DOT + expression.getColumnName();
-              } else {
-                alias = aliasPrefix + SQLConstant.DOT + alias;
-              }
-              expression.setAlias(alias);
-            });
   }
 
   private long parseAggLen(AggLenContext ctx) {
@@ -1083,7 +1049,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         && statement.getFromParts().get(0).getType() == FromPartType.PathFromPart) {
       PathFromPart pathFromPart = (PathFromPart) statement.getFromParts().get(0);
       path = pathFromPart.getPrefix() + SQLConstant.DOT + path;
-      originPath = pathFromPart.getOriginPath() + SQLConstant.DOT + originPath;
+      originPath = pathFromPart.getOriginPrefix() + SQLConstant.DOT + originPath;
     }
     if (!statement.isFreeVariable(path)) {
       statement.setPathSet(originPath);
@@ -1131,9 +1097,9 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         && statement.getFromParts().get(0).getType() == FromPartType.PathFromPart) {
       PathFromPart pathFromPart = (PathFromPart) statement.getFromParts().get(0);
       pathA = pathFromPart.getPrefix() + SQLConstant.DOT + pathA;
-      originPathA = pathFromPart.getOriginPath() + SQLConstant.DOT + pathA;
+      originPathA = pathFromPart.getOriginPrefix() + SQLConstant.DOT + pathA;
       pathB = pathFromPart.getPrefix() + SQLConstant.DOT + pathB;
-      originPathB = pathFromPart.getOriginPath() + SQLConstant.DOT + pathB;
+      originPathB = pathFromPart.getOriginPrefix() + SQLConstant.DOT + pathB;
     }
     if (!statement.isFreeVariable(pathA)) {
       statement.setPathSet(originPathA);

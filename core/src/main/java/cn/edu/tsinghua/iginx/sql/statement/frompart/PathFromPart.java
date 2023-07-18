@@ -34,7 +34,7 @@ public class PathFromPart implements FromPart {
     this.alias = alias;
   }
 
-  public String getOriginPath() {
+  public String getOriginPrefix() {
     return path;
   }
 
@@ -63,7 +63,7 @@ public class PathFromPart implements FromPart {
 
   @Override
   public String getPrefix() {
-    return alias;
+    return hasAlias() ? alias : path;
   }
 
   @Override

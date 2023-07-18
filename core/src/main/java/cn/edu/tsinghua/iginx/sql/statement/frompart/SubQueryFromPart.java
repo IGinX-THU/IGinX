@@ -62,6 +62,9 @@ public class SubQueryFromPart implements FromPart {
 
   @Override
   public String getPrefix() {
+    if (hasAlias()) {
+      return alias;
+    }
     // 如果子查询没有一个公共的前缀，返回null
     if (hasSinglePrefix()) {
       if (patterns.get(0).endsWith(Constants.ALL_PATH_SUFFIX)) {

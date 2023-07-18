@@ -18,14 +18,6 @@ public class BaseExpression implements Expression {
     return pathName;
   }
 
-  public String getAlias() {
-    return alias;
-  }
-
-  public void setAlias(String alias) {
-    this.alias = alias;
-  }
-
   @Override
   public String getColumnName() {
     return pathName;
@@ -36,7 +28,18 @@ public class BaseExpression implements Expression {
     return ExpressionType.Base;
   }
 
+  @Override
   public boolean hasAlias() {
     return alias != null && !alias.equals("");
+  }
+
+  @Override
+  public String getAlias() {
+    return alias;
+  }
+
+  @Override
+  public void setAlias(String alias) {
+    this.alias = alias;
   }
 }
