@@ -67,9 +67,8 @@ public class HashMarkJoinLazyStream extends BinaryLazyStream {
       } else {
         hash = value.getValue().hashCode();
       }
-      List<Row> rows = streamBHashMap.getOrDefault(hash, new ArrayList<>());
+      List<Row> rows = streamBHashMap.computeIfAbsent(hash, k -> new ArrayList<>());
       rows.add(rowB);
-      streamBHashMap.putIfAbsent(hash, rows);
     }
     this.hasInitialized = true;
   }

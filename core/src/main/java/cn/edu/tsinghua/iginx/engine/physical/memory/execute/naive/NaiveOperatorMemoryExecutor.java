@@ -1352,12 +1352,10 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         continue;
       }
       int hash = getHash(value, needTypeCast);
-      List<Row> l = rowsBHashMap.getOrDefault(hash, new ArrayList<>());
-      List<Integer> il = indexOfRowBHashMap.getOrDefault(hash, new ArrayList<>());
+      List<Row> l = rowsBHashMap.computeIfAbsent(hash, k -> new ArrayList<>());
+      List<Integer> il = indexOfRowBHashMap.computeIfAbsent(hash, k -> new ArrayList<>());
       l.add(rowsB.get(indexB));
       il.add(indexB);
-      rowsBHashMap.putIfAbsent(hash, l);
-      indexOfRowBHashMap.putIfAbsent(hash, il);
     }
 
     boolean cutRight = !outerJoin.getOuterJoinType().equals(OuterJoinType.RIGHT);

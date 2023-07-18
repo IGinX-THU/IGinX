@@ -24,7 +24,7 @@ public class PathFromPart implements FromPart {
   }
 
   public PathFromPart(String path, JoinCondition joinCondition) {
-    this(path, joinCondition, path);
+    this(path, joinCondition, "");
   }
 
   public PathFromPart(String path, JoinCondition joinCondition, String alias) {

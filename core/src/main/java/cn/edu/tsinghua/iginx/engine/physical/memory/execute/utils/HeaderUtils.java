@@ -16,6 +16,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -28,7 +29,7 @@ public class HeaderUtils {
   }
 
   public static Header constructNewHead(Header headerA, Header headerB, boolean remainKeyA) {
-    return constructNewHead(headerA, headerB, remainKeyA, new ArrayList<>());
+    return constructNewHead(headerA, headerB, remainKeyA, Collections.emptyList());
   }
 
   public static Header constructNewHead(

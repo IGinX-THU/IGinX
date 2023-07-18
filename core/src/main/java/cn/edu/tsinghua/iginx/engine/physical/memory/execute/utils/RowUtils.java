@@ -163,9 +163,8 @@ public class RowUtils {
       }
       int hash = getHash(value, needTypeCast);
 
-      List<Row> l = hashMap.getOrDefault(hash, new ArrayList<>());
+      List<Row> l = hashMap.computeIfAbsent(hash, k -> new ArrayList<>());
       l.add(row);
-      hashMap.putIfAbsent(hash, l);
     }
     return hashMap;
   }

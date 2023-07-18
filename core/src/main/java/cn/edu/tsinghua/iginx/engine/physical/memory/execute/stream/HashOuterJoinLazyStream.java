@@ -138,9 +138,8 @@ public class HashOuterJoinLazyStream extends BinaryLazyStream {
         value = ValueUtils.transformToDouble(value);
       }
       int hash = getHash(value, needTypeCast);
-      List<Row> rows = streamBHashMap.getOrDefault(hash, new ArrayList<>());
+      List<Row> rows = streamBHashMap.computeIfAbsent(hash, k -> new ArrayList<>());
       rows.add(rowB);
-      streamBHashMap.putIfAbsent(hash, rows);
       if (rows.size() == 1) {
         streamBHashPutOrder.add(hash);
       }
