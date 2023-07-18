@@ -262,7 +262,6 @@ public class IginxWorker implements IService.Iface {
     }
     List<StorageEngine> storageEngines = req.getStorageEngines();
     List<StorageEngineMeta> storageEngineMetas = new ArrayList<>();
-    List<String> schemaPrefix = new ArrayList<>();
 
     for (StorageEngine storageEngine : storageEngines) {
       String type = storageEngine.getType();
@@ -298,7 +297,6 @@ public class IginxWorker implements IService.Iface {
               type,
               metaManager.getIginxId());
       storageEngineMetas.add(meta);
-      schemaPrefix.add(extraParams.get(SCHEMA_PREFIX)); // get the user defined schema prefix
     }
     Status status = RpcUtils.SUCCESS;
     // 检测是否与已有的存储单元冲突
@@ -328,33 +326,27 @@ public class IginxWorker implements IService.Iface {
           .setNeedReAllocate(true); // 如果这批节点不是只读的话，每一批最后一个是 true，表示需要进行扩容
     }
     for (StorageEngineMeta meta : storageEngineMetas) {
-      int index = 0;
       if (meta.isHasData()) {
         String dataPrefix = meta.getDataPrefix();
+        String schemaPrefix = meta.getSchemaPrefix();
         StorageUnitMeta dummyStorageUnit =
             new StorageUnitMeta(StorageUnitMeta.generateDummyStorageUnitID(0), -1);
-        Pair<ColumnsRange, KeyInterval> boundary =
+        Pair<ColumnsInterval, KeyInterval> boundary =
             StorageManager.getBoundaryOfStorage(meta, dataPrefix);
         FragmentMeta dummyFragment;
-        String schemaPrefixTmp = null;
-        if (index < schemaPrefix.size()
-            && schemaPrefix.get(index) != null) // set the virtual schema prefix
-        schemaPrefixTmp = schemaPrefix.get(index);
+
         if (dataPrefix == null) {
-          boundary.k.setSchemaPrefix(schemaPrefixTmp);
+          boundary.k.setSchemaPrefix(schemaPrefix);
           dummyFragment = new FragmentMeta(boundary.k, boundary.v, dummyStorageUnit);
         } else {
-          dummyFragment =
-              new FragmentMeta(
-                  new ColumnsPrefixRange(dataPrefix, schemaPrefixTmp),
-                  boundary.v,
-                  dummyStorageUnit);
+          ColumnsInterval columnsInterval = new ColumnsInterval(dataPrefix);
+          columnsInterval.setSchemaPrefix(schemaPrefix);
+          dummyFragment = new FragmentMeta(columnsInterval, boundary.v, dummyStorageUnit);
         }
         dummyFragment.setDummyFragment(true);
         meta.setDummyStorageUnit(dummyStorageUnit);
         meta.setDummyFragment(dummyFragment);
       }
-      index++;
     }
     if (!metaManager.addStorageEngines(storageEngineMetas)) {
       status = RpcUtils.FAILURE;
@@ -886,8 +878,8 @@ public class IginxWorker implements IService.Iface {
                         f.getMasterStorageUnitId(),
                         f.getKeyInterval().getStartKey(),
                         f.getKeyInterval().getEndKey(),
-                        f.getColumnsRange().getStartColumn(),
-                        f.getColumnsRange().getEndColumn()))
+                        f.getColumnsInterval().getStartColumn(),
+                        f.getColumnsInterval().getEndColumn()))
             .collect(Collectors.toList());
     return new GetMetaResp(fragments, storages, units);
   }

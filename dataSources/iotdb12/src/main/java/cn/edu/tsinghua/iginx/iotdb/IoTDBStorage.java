@@ -149,14 +149,14 @@ public class IoTDBStorage implements IStorage {
   }
 
   @Override
-  public Pair<ColumnsRange, KeyInterval> getBoundaryOfStorage(String dataPrefix)
+  public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String dataPrefix)
       throws PhysicalException {
     SessionDataSetWrapper dataSet;
     RowRecord record;
 
     // 获取序列范围
     List<String> paths = new ArrayList<>();
-    ColumnsRange tsInterval;
+    ColumnsInterval columnsInterval;
     try {
       if (dataPrefix == null || dataPrefix.isEmpty()) {
         dataSet = sessionPool.executeQueryStatement(SHOW_TIMESERIES);
@@ -175,10 +175,10 @@ public class IoTDBStorage implements IStorage {
         if (paths.isEmpty()) {
           throw new PhysicalTaskExecuteFailureException("no data!");
         }
-        tsInterval =
+        columnsInterval =
             new ColumnsInterval(paths.get(0), StringUtils.nextString(paths.get(paths.size() - 1)));
       } else {
-        tsInterval = new ColumnsInterval(dataPrefix, StringUtils.nextString(dataPrefix));
+        columnsInterval = new ColumnsInterval(dataPrefix);
       }
     } catch (IoTDBConnectionException | StatementExecutionException e) {
       throw new PhysicalTaskExecuteFailureException("get time series failure: ", e);
@@ -217,7 +217,7 @@ public class IoTDBStorage implements IStorage {
     }
     KeyInterval keyInterval = new KeyInterval(minTime, maxTime + 1);
 
-    return new Pair<>(tsInterval, keyInterval);
+    return new Pair<>(columnsInterval, keyInterval);
   }
 
   @Override

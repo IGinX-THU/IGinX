@@ -72,9 +72,9 @@ public class TestUtils {
         + fragment.getKeyInterval().getEndKey()
         + "), "
         + "ts["
-        + fragment.getColumnsRange().getStartColumn()
+        + fragment.getColumnsInterval().getStartColumn()
         + ", "
-        + fragment.getColumnsRange().getEndColumn()
+        + fragment.getColumnsInterval().getEndColumn()
         + ")";
   }
 }

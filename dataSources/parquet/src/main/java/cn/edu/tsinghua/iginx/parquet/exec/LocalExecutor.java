@@ -16,7 +16,6 @@ import cn.edu.tsinghua.iginx.engine.shared.data.write.BitmapView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
-import cn.edu.tsinghua.iginx.metadata.entity.ColumnsRange;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.parquet.entity.ParquetQueryRowStream;
 import cn.edu.tsinghua.iginx.parquet.entity.WritePlan;
@@ -709,7 +708,7 @@ public class LocalExecutor implements Executor {
   }
 
   @Override
-  public Pair<ColumnsRange, KeyInterval> getBoundaryOfStorage() throws PhysicalException {
+  public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage() throws PhysicalException {
     File rootDir = new File(dataDir);
     List<String> parquetFiles = new ArrayList<>();
     findParquetFiles(parquetFiles, rootDir);

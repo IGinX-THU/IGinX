@@ -83,24 +83,24 @@ public class MetaManagerMock implements IMetaManager {
   }
 
   @Override
-  public Pair<ColumnsRange, KeyInterval> getBoundaryOfStorageUnit(String storageUnitId) {
+  public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorageUnit(String storageUnitId) {
     return null;
   }
 
   @Override
-  public Map<ColumnsRange, List<FragmentMeta>> getFragmentMapByColumnsRange(
-      ColumnsRange columnsRange) {
+  public Map<ColumnsInterval, List<FragmentMeta>> getFragmentMapByColumnsInterval(
+      ColumnsInterval columnsInterval) {
     return null;
   }
 
   @Override
-  public Map<ColumnsRange, List<FragmentMeta>> getFragmentMapByColumnsRange(
-      ColumnsRange columnsRange, boolean withDummyFragment) {
+  public Map<ColumnsInterval, List<FragmentMeta>> getFragmentMapByColumnsInterval(
+      ColumnsInterval columnsInterval, boolean withDummyFragment) {
     return null;
   }
 
   @Override
-  public boolean hasDummyFragment(ColumnsRange columnsRange) {
+  public boolean hasDummyFragment(ColumnsInterval columnsInterval) {
     return false;
   }
 
@@ -110,25 +110,25 @@ public class MetaManagerMock implements IMetaManager {
   }
 
   @Override
-  public Map<ColumnsRange, FragmentMeta> getLatestFragmentMapByColumnsRange(
-      ColumnsRange columnsRange) {
+  public Map<ColumnsInterval, FragmentMeta> getLatestFragmentMapByColumnsInterval(
+      ColumnsInterval columnsInterval) {
     return null;
   }
 
   @Override
-  public Map<ColumnsRange, FragmentMeta> getLatestFragmentMap() {
+  public Map<ColumnsInterval, FragmentMeta> getLatestFragmentMap() {
     return null;
   }
 
   @Override
-  public Map<ColumnsRange, List<FragmentMeta>> getFragmentMapByColumnsIntervalAndKeyInterval(
-      ColumnsRange columnsRange, KeyInterval keyInterval) {
+  public Map<ColumnsInterval, List<FragmentMeta>> getFragmentMapByColumnsIntervalAndKeyInterval(
+      ColumnsInterval columnsInterval, KeyInterval keyInterval) {
     return null;
   }
 
   @Override
-  public Map<ColumnsRange, List<FragmentMeta>> getFragmentMapByColumnsIntervalAndKeyInterval(
-      ColumnsRange columnsRange, KeyInterval keyInterval, boolean withDummyFragment) {
+  public Map<ColumnsInterval, List<FragmentMeta>> getFragmentMapByColumnsIntervalAndKeyInterval(
+      ColumnsInterval columnsInterval, KeyInterval keyInterval, boolean withDummyFragment) {
     return null;
   }
 
@@ -323,10 +323,11 @@ public class MetaManagerMock implements IMetaManager {
   }
 
   @Override
-  public void endFragmentByColumnsRange(FragmentMeta fragmentMeta, String endColumn) {}
+  public void endFragmentByColumnsInterval(FragmentMeta fragmentMeta, String endColumn) {}
 
   @Override
-  public void updateFragmentByColumnsRange(ColumnsRange columnsRange, FragmentMeta fragmentMeta) {}
+  public void updateFragmentByColumnsInterval(
+      ColumnsInterval columnsInterval, FragmentMeta fragmentMeta) {}
 
   @Override
   public void updateMaxActiveEndKey(long endKey) {}

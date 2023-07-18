@@ -30,33 +30,33 @@ public interface IMetaCache {
   boolean enableFragmentCacheControl();
 
   // 分片相关的缓存读写接口
-  void initFragment(Map<ColumnsRange, List<FragmentMeta>> fragmentListMap);
+  void initFragment(Map<ColumnsInterval, List<FragmentMeta>> fragmentListMap);
 
   void addFragment(FragmentMeta fragmentMeta);
 
   void updateFragment(FragmentMeta fragmentMeta);
 
-  void updateFragmentByColumnsInterval(ColumnsRange columnsInterval, FragmentMeta fragmentMeta);
+  void updateFragmentByColumnsInterval(ColumnsInterval columnsInterval, FragmentMeta fragmentMeta);
 
-  void deleteFragmentByColumnsInterval(ColumnsRange columnsInterval, FragmentMeta fragmentMeta);
+  void deleteFragmentByColumnsInterval(ColumnsInterval columnsInterval, FragmentMeta fragmentMeta);
 
-  List<FragmentMeta> getFragmentMapByExactColumnsInterval(ColumnsRange columnsInterval);
+  List<FragmentMeta> getFragmentMapByExactColumnsInterval(ColumnsInterval columnsInterval);
 
-  Map<ColumnsRange, List<FragmentMeta>> getFragmentMapByColumnsInterval(
-      ColumnsRange columnsInterval);
+  Map<ColumnsInterval, List<FragmentMeta>> getFragmentMapByColumnsInterval(
+      ColumnsInterval columnsInterval);
 
-  List<FragmentMeta> getDummyFragmentsByColumnsInterval(ColumnsRange columnsInterval);
+  List<FragmentMeta> getDummyFragmentsByColumnsInterval(ColumnsInterval columnsInterval);
 
-  Map<ColumnsRange, FragmentMeta> getLatestFragmentMap();
+  Map<ColumnsInterval, FragmentMeta> getLatestFragmentMap();
 
-  Map<ColumnsRange, FragmentMeta> getLatestFragmentMapByColumnsInterval(
-      ColumnsRange columnsInterval);
+  Map<ColumnsInterval, FragmentMeta> getLatestFragmentMapByColumnsInterval(
+      ColumnsInterval columnsInterval);
 
-  Map<ColumnsRange, List<FragmentMeta>> getFragmentMapByColumnsIntervalAndKeyInterval(
-      ColumnsRange columnsInterval, KeyInterval keyInterval);
+  Map<ColumnsInterval, List<FragmentMeta>> getFragmentMapByColumnsIntervalAndKeyInterval(
+      ColumnsInterval columnsInterval, KeyInterval keyInterval);
 
   List<FragmentMeta> getDummyFragmentsByColumnsIntervalAndKeyInterval(
-      ColumnsRange columnsInterval, KeyInterval keyInterval);
+      ColumnsInterval columnsInterval, KeyInterval keyInterval);
 
   List<FragmentMeta> getFragmentListByColumnName(String columnName);
 

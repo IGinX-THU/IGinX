@@ -1,6 +1,6 @@
 package cn.edu.tsinghua.iginx.metadata.utils;
 
-import cn.edu.tsinghua.iginx.metadata.entity.ColumnsRange;
+import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.utils.Pair;
@@ -10,7 +10,7 @@ public class FragmentUtils {
 
   public static Pair<Map<KeyInterval, List<FragmentMeta>>, List<FragmentMeta>>
       keyFromColumnsIntervalToKeyInterval(
-          Map<ColumnsRange, List<FragmentMeta>> fragmentMapByColumnsInterval) {
+          Map<ColumnsInterval, List<FragmentMeta>> fragmentMapByColumnsInterval) {
     Map<KeyInterval, List<FragmentMeta>> fragmentMapByKeyInterval = new HashMap<>();
     List<FragmentMeta> dummyFragments = new ArrayList<>();
     fragmentMapByColumnsInterval.forEach(

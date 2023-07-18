@@ -66,7 +66,7 @@ public class SimplePolicy implements IPolicy {
     KeyInterval keyInterval = Utils.getKeyIntervalFromDataStatement(statement);
 
     if (ConfigDescriptor.getInstance().getConfig().getClients().indexOf(",") > 0) {
-      Pair<Map<ColumnsRange, List<FragmentMeta>>, List<StorageUnitMeta>> pair =
+      Pair<Map<ColumnsInterval, List<FragmentMeta>>, List<StorageUnitMeta>> pair =
           generateInitialFragmentsAndStorageUnitsByClients(paths, keyInterval);
       return new Pair<>(
           pair.k.values().stream().flatMap(List::stream).collect(Collectors.toList()), pair.v);
@@ -79,10 +79,10 @@ public class SimplePolicy implements IPolicy {
    * This storage unit initialization method is used when clients are provided, such as in TPCx-IoT
    * tests
    */
-  public Pair<Map<ColumnsRange, List<FragmentMeta>>, List<StorageUnitMeta>>
+  public Pair<Map<ColumnsInterval, List<FragmentMeta>>, List<StorageUnitMeta>>
       generateInitialFragmentsAndStorageUnitsByClients(
           List<String> paths, KeyInterval keyInterval) {
-    Map<ColumnsRange, List<FragmentMeta>> fragmentMap = new HashMap<>();
+    Map<ColumnsInterval, List<FragmentMeta>> fragmentMap = new HashMap<>();
     List<StorageUnitMeta> storageUnitList = new ArrayList<>();
 
     List<StorageEngineMeta> storageEngineList = iMetaManager.getWritableStorageEngineList();
@@ -415,13 +415,13 @@ public class SimplePolicy implements IPolicy {
   }
 
   public boolean checkSuccess(Map<String, Double> columnsData) {
-    Map<ColumnsRange, FragmentMeta> latestFragments = iMetaManager.getLatestFragmentMap();
-    Map<ColumnsRange, Double> fragmentValue =
+    Map<ColumnsInterval, FragmentMeta> latestFragments = iMetaManager.getLatestFragmentMap();
+    Map<ColumnsInterval, Double> fragmentValue =
         latestFragments.keySet().stream()
             .collect(Collectors.toMap(Function.identity(), e1 -> 0.0, (e1, e2) -> e1));
     columnsData.forEach(
         (key, value) -> {
-          for (Map.Entry<ColumnsRange, Double> entry : fragmentValue.entrySet()) {
+          for (Map.Entry<ColumnsInterval, Double> entry : fragmentValue.entrySet()) {
             if (entry.getKey().isContain(key)) {
               fragmentValue.put(entry.getKey(), value + entry.getValue());
             }

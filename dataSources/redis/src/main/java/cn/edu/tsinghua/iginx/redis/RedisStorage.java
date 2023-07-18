@@ -14,7 +14,6 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
-import cn.edu.tsinghua.iginx.metadata.entity.ColumnsRange;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.redis.entity.RedisQueryRowStream;
@@ -330,20 +329,24 @@ public class RedisStorage implements IStorage {
   }
 
   @Override
-  public Pair<ColumnsRange, KeyInterval> getBoundaryOfStorage(String prefix)
+  public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String prefix)
       throws PhysicalException {
     List<String> paths = getKeysByPattern(STAR);
     paths.sort(String::compareTo);
 
-    ColumnsRange tsInterval;
+    if (paths.isEmpty()) {
+      throw new PhysicalTaskExecuteFailureException("no data!");
+    }
+
+    ColumnsInterval columnsInterval;
     if (prefix != null) {
-      tsInterval = new ColumnsInterval(prefix, StringUtils.nextString(prefix));
+      columnsInterval = new ColumnsInterval(prefix);
     } else {
       if (!paths.isEmpty()) {
-        tsInterval =
+        columnsInterval =
             new ColumnsInterval(paths.get(0), StringUtils.nextString(paths.get(paths.size() - 1)));
       } else {
-        tsInterval = new ColumnsInterval(null, null);
+        columnsInterval = new ColumnsInterval(null, null);
       }
     }
     long minTime = 0, maxTime = Long.MIN_VALUE;
@@ -377,7 +380,7 @@ public class RedisStorage implements IStorage {
       maxTime = Long.MAX_VALUE - 1;
     }
     KeyInterval keyInterval = new KeyInterval(minTime, maxTime + 1);
-    return new Pair<>(tsInterval, keyInterval);
+    return new Pair<>(columnsInterval, keyInterval);
   }
 
   private List<String> getKeysByPattern(String pattern) {

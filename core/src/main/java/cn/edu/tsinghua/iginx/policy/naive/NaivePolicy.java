@@ -67,7 +67,7 @@ public class NaivePolicy implements IPolicy {
     KeyInterval keyInterval = Utils.getKeyIntervalFromDataStatement(statement);
 
     if (ConfigDescriptor.getInstance().getConfig().getClients().indexOf(",") > 0) {
-      Pair<Map<ColumnsRange, List<FragmentMeta>>, List<StorageUnitMeta>> pair =
+      Pair<Map<ColumnsInterval, List<FragmentMeta>>, List<StorageUnitMeta>> pair =
           generateInitialFragmentsAndStorageUnitsByClients(paths, keyInterval);
       return new Pair<>(
           pair.k.values().stream().flatMap(List::stream).collect(Collectors.toList()), pair.v);
@@ -157,10 +157,10 @@ public class NaivePolicy implements IPolicy {
    * This storage unit initialization method is used when clients are provided, such as in TPCx-IoT
    * tests
    */
-  private Pair<Map<ColumnsRange, List<FragmentMeta>>, List<StorageUnitMeta>>
+  private Pair<Map<ColumnsInterval, List<FragmentMeta>>, List<StorageUnitMeta>>
       generateInitialFragmentsAndStorageUnitsByClients(
           List<String> paths, KeyInterval keyInterval) {
-    Map<ColumnsRange, List<FragmentMeta>> fragmentMap = new HashMap<>();
+    Map<ColumnsInterval, List<FragmentMeta>> fragmentMap = new HashMap<>();
     List<StorageUnitMeta> storageUnitList = new ArrayList<>();
 
     List<StorageEngineMeta> storageEngineList = iMetaManager.getWritableStorageEngineList();
