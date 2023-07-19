@@ -9,6 +9,8 @@ import java.util.Map;
 
 public class DataViewWrapper {
 
+  private static final double SAME_SCORE = 0.0;
+
   private final DataView dataView;
 
   private final Map<Integer, String> pathCache;
@@ -53,10 +55,10 @@ public class DataViewWrapper {
     return dataView.getBitmapView(index);
   }
 
-  public Pair<Map<String, String>, Map<String, Double>> getPathData(int index) {
-    Map<String, String> values = new HashMap<>();
-    Map<String, Double> scores = new HashMap<>();
-    Pair<Map<String, String>, Map<String, Double>> ret = new Pair<>(values, scores);
+  public Pair<Map<byte[], byte[]>, Map<byte[], Double>> getPathData(int index) {
+    Map<byte[], byte[]> values = new HashMap<>();
+    Map<byte[], Double> scores = new HashMap<>();
+    Pair<Map<byte[], byte[]>, Map<byte[], Double>> ret = new Pair<>(values, scores);
 
     if (dataView.isRowData()) {
       for (int i = 0; i < dataView.getKeySize(); i++) {
@@ -68,11 +70,10 @@ public class DataViewWrapper {
               nonNullCnt++;
             }
           }
-          String key = String.valueOf(dataView.getKey(i));
-          double score = dataView.getKey(i);
-          String value = DataTransformer.objectValueToString(dataView.getValue(i, nonNullCnt));
+          byte[] key = DataCoder.encode(dataView.getKey(i));
+          byte[] value= DataCoder.encode(DataTransformer.objectValueToString(dataView.getValue(i, nonNullCnt)));
           values.put(key, value);
-          scores.put(key, score);
+          scores.put(key, SAME_SCORE);
         }
       }
     } else {
@@ -80,19 +81,15 @@ public class DataViewWrapper {
       BitmapView bitmapView = dataView.getBitmapView(index);
       for (int i = 0; i < dataView.getKeySize(); i++) {
         if (bitmapView.get(i)) {
-          String key = String.valueOf(dataView.getKey(i));
-          double score = dataView.getKey(i);
-          String value = DataTransformer.objectValueToString(dataView.getValue(index, nonNullCnt));
+          byte[] key = DataCoder.encode(dataView.getKey(i));
+          byte[] value= DataCoder.encode(DataTransformer.objectValueToString(dataView.getValue(index, nonNullCnt)));
           values.put(key, value);
-          scores.put(key, score);
+          scores.put(key, SAME_SCORE);
           nonNullCnt++;
         }
       }
     }
-    // redis will move key if value is empty.
-    // so we set sentinel here.
-    values.put("-1", "0");
-    scores.put("-1", 0.0);
+
     return ret;
   }
 }

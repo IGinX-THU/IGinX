@@ -30,17 +30,14 @@ public class RedisQueryRowStream implements RowStream {
   public RedisQueryRowStream(List<Column> columns) {
     this.columns = columns;
 
-    Set<String> timeSet = new TreeSet<>();
+    Set<Long> timeSet = new TreeSet<>();
     List<Field> fields = new ArrayList<>();
     for (Column column : columns) {
       Pair<String, Map<String, String>> pair = TagKVUtils.splitFullName(column.getPathName());
       fields.add(new Field(pair.getK(), column.getType(), pair.getV()));
       timeSet.addAll(column.getData().keySet());
     }
-    this.times =
-        timeSet.stream().map(Long::parseLong).filter(num -> num >= 0).collect(Collectors.toList());
-    Collections.sort(times);
-
+    this.times = new ArrayList<>(timeSet);
     this.header = new Header(Field.KEY, fields);
   }
 
@@ -68,15 +65,15 @@ public class RedisQueryRowStream implements RowStream {
       throw new PhysicalException("no more data");
     }
 
-    String time = String.valueOf(times.get(cur));
+    long timestamp = times.get(cur);
     cur++;
 
     Object[] values = new Object[columns.size()];
     for (int i = 0; i < columns.size(); i++) {
-      String strVal = columns.get(i).getData().get(time);
+      String strVal = columns.get(i).getData().get(timestamp);
       DataType type = columns.get(i).getType();
       values[i] = DataTransformer.strValueToDeterminedType(strVal, type);
     }
-    return new Row(header, Long.parseLong(time), values);
+    return new Row(header, timestamp, values);
   }
 }
