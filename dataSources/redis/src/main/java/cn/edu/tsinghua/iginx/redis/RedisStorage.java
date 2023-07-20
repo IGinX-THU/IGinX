@@ -12,6 +12,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
@@ -20,14 +21,17 @@ import cn.edu.tsinghua.iginx.redis.entity.RedisQueryRowStream;
 import cn.edu.tsinghua.iginx.redis.tools.DataCoder;
 import cn.edu.tsinghua.iginx.redis.tools.DataTransformer;
 import cn.edu.tsinghua.iginx.redis.tools.DataViewWrapper;
+import cn.edu.tsinghua.iginx.redis.tools.FilterUtils;
 import cn.edu.tsinghua.iginx.redis.tools.TagKVUtils;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -36,6 +40,7 @@ import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
+import redis.clients.jedis.exceptions.JedisDataException;
 
 public class RedisStorage implements IStorage {
 
@@ -90,19 +95,131 @@ public class RedisStorage implements IStorage {
 
   @Override
   public boolean isSupportProjectWithSelect() {
-    return false;
+    return true;
   }
 
   @Override
   public TaskExecuteResult executeProjectWithSelect(
       Project project, Select select, DataArea dataArea) {
-    return null;
+    String storageUnit = dataArea.getStorageUnit();
+    List<String> queryPaths;
+    try {
+      queryPaths = determinePathList(storageUnit, project.getPatterns(), project.getTagFilter());
+    } catch (PhysicalException e) {
+      logger.error("encounter error when delete path: " + e.getMessage());
+      return new TaskExecuteResult(
+          new PhysicalTaskExecuteFailureException("execute delete path task in redis failure", e));
+    }
+
+    Filter filter = select.getFilter();
+    List<Pair<Long,Long>> keyRanges = FilterUtils.keyRangesFrom(filter);
+
+    List<cn.edu.tsinghua.iginx.redis.entity.Column> columns = new ArrayList<>();
+    try (Jedis jedis = jedisPool.getResource()) {
+      for (String queryPath : queryPaths) {
+        DataType type = DataTransformer.fromStringDataType(jedis.hget(KEY_DATA_TYPE, queryPath));
+        if (type != null) {
+          byte[] hashKey = DataCoder.encode(String.format(KEY_FORMAT_HASH_VALUES, storageUnit, queryPath));
+          Map<Long, String> colData = new HashMap<>();
+          if(keyRanges == null){
+            Map<byte[], byte[]> allData = jedis.hgetAll(hashKey);
+            colData = allData.entrySet().stream().collect(
+                Collectors.toMap(
+                    e -> DataCoder.decodeToLong(e.getKey()),
+                    e -> DataCoder.decodeToString(e.getValue())));
+          }else if(!keyRanges.isEmpty()){
+            byte[] zSetKey = DataCoder.encode(String.format(KEY_FORMAT_ZSET_KEYS, storageUnit, queryPath));
+            List<byte[]> keys = new ArrayList<>();
+            for(Pair<Long,Long> keyRange:keyRanges){
+              byte[] beginKeyRange = concat(CLOSED_SIGN,DataCoder.encode(keyRange.getK()));
+              byte[] endKeyRange = concat(CLOSED_SIGN,DataCoder.encode(keyRange.getV()));
+              keys.addAll(jedis.zrangeByLex(zSetKey, beginKeyRange, endKeyRange));
+            }
+
+            if(!keys.isEmpty()){
+              List<byte[]> values = jedis.hmget(hashKey,keys.toArray(new byte[0][0]));
+              ListIterator<byte[]> keyIter = keys.listIterator();
+              ListIterator<byte[]> valueIter = values.listIterator();
+              while (keyIter.hasNext()){
+                byte[] rawKey=keyIter.next();
+                byte[] rawValue = valueIter.next();
+                long key = DataCoder.decodeToLong(rawKey);
+                String value = DataCoder.decodeToString(rawValue);
+                colData.put(key,value);
+              }
+            }
+          }
+
+          cn.edu.tsinghua.iginx.redis.entity.Column column =
+              new cn.edu.tsinghua.iginx.redis.entity.Column(queryPath, type, colData);
+          columns.add(column);
+        }
+      }
+    } catch (Exception e) {
+      return new TaskExecuteResult(
+          new PhysicalTaskExecuteFailureException("execute query path task in redis failure", e));
+    }
+
+    return new TaskExecuteResult(new RedisQueryRowStream(columns,filter), null);
   }
 
   @Override
   public TaskExecuteResult executeProjectDummyWithSelect(
       Project project, Select select, DataArea dataArea) {
-    return null;
+    List<String> patterns = project.getPatterns();
+    Set<String> queryPaths = new HashSet<>();
+    for (String pattern : patterns) {
+      if (pattern.contains(STAR)) {
+        queryPaths.addAll(getKeysByPattern(pattern));
+      } else {
+        queryPaths.add(pattern);
+      }
+    }
+
+    List<cn.edu.tsinghua.iginx.redis.entity.Column> columns = new ArrayList<>();
+    try (Jedis jedis = jedisPool.getResource()) {
+      for (String queryPath : queryPaths) {
+        String type = jedis.type(queryPath);
+        switch (type) {
+          case "string":
+            String value = jedis.get(queryPath);
+            columns.add(new cn.edu.tsinghua.iginx.redis.entity.Column(queryPath, value));
+            break;
+          case "list":
+            List<String> listValues = jedis.lrange(queryPath, 0, -1);
+            columns.add(new cn.edu.tsinghua.iginx.redis.entity.Column(queryPath, listValues));
+            break;
+          case "set":
+            Set<String> setValues = jedis.smembers(queryPath);
+            columns.add(new cn.edu.tsinghua.iginx.redis.entity.Column(queryPath, setValues));
+            break;
+          case "zset":
+            List<String> zSetValues = jedis.zrange(queryPath, 0, -1);
+            columns.add(new cn.edu.tsinghua.iginx.redis.entity.Column(queryPath, zSetValues));
+            break;
+          case "hash":
+            Map<String, String> hashValues = jedis.hgetAll(queryPath);
+            columns.add(
+                new cn.edu.tsinghua.iginx.redis.entity.Column(
+                    queryPath + SUFFIX_KEY, hashValues.keySet()));
+            columns.add(
+                new cn.edu.tsinghua.iginx.redis.entity.Column(
+                    queryPath + SUFFIX_VALUE, new ArrayList<>(hashValues.values())));
+            break;
+          case "none":
+            logger.warn("key {} not exists", queryPath);
+          default:
+            logger.warn("unknown key type, type={}", type);
+        }
+      }
+    } catch (Exception e) {
+      return new TaskExecuteResult(
+          new PhysicalTaskExecuteFailureException(
+              "execute query history task in redis failure", e));
+    }
+
+    Filter filter = select.getFilter();
+    return new TaskExecuteResult(new RedisQueryRowStream(columns,filter), null);
   }
 
   @Override
