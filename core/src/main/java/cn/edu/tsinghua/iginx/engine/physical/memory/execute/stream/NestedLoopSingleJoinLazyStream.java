@@ -2,6 +2,7 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.HeaderUtils;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
@@ -39,7 +40,7 @@ public class NestedLoopSingleJoinLazyStream extends BinaryLazyStream {
     if (hasInitialized) {
       return;
     }
-    this.header = RowUtils.constructNewHead(streamA.getHeader(), streamB.getHeader(), true);
+    this.header = HeaderUtils.constructNewHead(streamA.getHeader(), streamB.getHeader(), true);
     this.hasInitialized = true;
   }
 
@@ -49,7 +50,9 @@ public class NestedLoopSingleJoinLazyStream extends BinaryLazyStream {
     }
     int anotherRowSize = streamB.getHeader().getFieldSize();
     for (Row halfRow : unmatchedStreamARows) {
-      Row unmatchedRow = RowUtils.constructUnmatchedRow(header, halfRow, anotherRowSize, true);
+      Row unmatchedRow =
+          RowUtils.constructUnmatchedRow(
+              header, halfRow, singleJoin.getPrefixA(), anotherRowSize, true);
       lastPart.add(unmatchedRow);
     }
     this.lastPartHasInitialized = true;

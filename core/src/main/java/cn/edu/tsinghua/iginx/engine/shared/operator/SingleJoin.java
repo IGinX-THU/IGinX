@@ -1,36 +1,65 @@
 package cn.edu.tsinghua.iginx.engine.shared.operator;
 
+import static cn.edu.tsinghua.iginx.engine.shared.operator.type.JoinAlgType.chooseJoinAlg;
+
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.JoinAlgType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
+import java.util.ArrayList;
+import java.util.List;
 
-public class SingleJoin extends AbstractBinaryOperator {
+public class SingleJoin extends AbstractJoinOperator {
 
-  private final Filter filter;
-  private final JoinAlgType joinAlgType;
+  private Filter filter;
 
   public SingleJoin(Source sourceA, Source sourceB, Filter filter, JoinAlgType joinAlgType) {
-    super(OperatorType.SingleJoin, sourceA, sourceB);
+    this(sourceA, sourceB, filter, joinAlgType, new ArrayList<>());
+  }
+
+  public SingleJoin(
+      Source sourceA,
+      Source sourceB,
+      Filter filter,
+      JoinAlgType joinAlgType,
+      List<String> extraJoinPrefix) {
+    super(OperatorType.SingleJoin, sourceA, sourceB, null, null, joinAlgType, extraJoinPrefix);
     this.filter = filter;
-    this.joinAlgType = joinAlgType;
   }
 
   public Filter getFilter() {
     return filter;
   }
 
-  public JoinAlgType getJoinAlgType() {
-    return joinAlgType;
+  public void setFilter(Filter filter) {
+    this.filter = filter;
+  }
+
+  public void reChooseJoinAlg() {
+    setJoinAlgType(chooseJoinAlg(filter, false, new ArrayList<>(), getExtraJoinPrefix()));
   }
 
   @Override
   public Operator copy() {
-    return new SingleJoin(getSourceA().copy(), getSourceB().copy(), filter.copy(), joinAlgType);
+    return new SingleJoin(
+        getSourceA().copy(),
+        getSourceB().copy(),
+        filter.copy(),
+        getJoinAlgType(),
+        new ArrayList<>(getExtraJoinPrefix()));
   }
 
   @Override
   public String getInfo() {
-    return "Filter: " + filter.toString();
+    StringBuilder builder = new StringBuilder();
+    builder.append("Filter: ").append(filter.toString());
+    if (getExtraJoinPrefix() != null && !getExtraJoinPrefix().isEmpty()) {
+      builder.append(", ExtraJoinPrefix: ");
+      for (String col : getExtraJoinPrefix()) {
+        builder.append(col).append(",");
+      }
+      builder.deleteCharAt(builder.length() - 1);
+    }
+    return builder.toString();
   }
 }

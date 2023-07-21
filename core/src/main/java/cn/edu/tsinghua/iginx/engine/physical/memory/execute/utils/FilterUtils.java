@@ -36,7 +36,10 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.ValueFilter;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class FilterUtils {
 
@@ -182,8 +185,10 @@ public class FilterUtils {
         for (Filter childFilter : andFilter.getChildren()) {
           l.addAll(getJoinColumnsFromFilter(childFilter));
         }
+        break;
       case Path:
         l.add(getJoinColumnFromPathFilter((PathFilter) filter));
+        break;
       default:
         break;
     }
@@ -216,6 +221,91 @@ public class FilterUtils {
       return new Pair<>(pathFilter.getPathB(), pathFilter.getPathA());
     } else {
       throw new InvalidOperatorParameterException("invalid hash join path filter input.");
+    }
+  }
+
+  public static List<String> getAllPathsFromFilter(Filter filter) {
+    if (filter == null) {
+      return new ArrayList<>();
+    }
+    Set<String> paths = new HashSet<>();
+    switch (filter.getType()) {
+      case And:
+        AndFilter andFilter = (AndFilter) filter;
+        andFilter.getChildren().forEach(child -> paths.addAll(getAllPathsFromFilter(child)));
+        break;
+      case Or:
+        OrFilter orFilter = (OrFilter) filter;
+        orFilter.getChildren().forEach(child -> paths.addAll(getAllPathsFromFilter(child)));
+        break;
+      case Value:
+        ValueFilter valueFilter = (ValueFilter) filter;
+        paths.add(valueFilter.getPath());
+        break;
+      case Path:
+        PathFilter pathFilter = (PathFilter) filter;
+        paths.add(pathFilter.getPathA());
+        paths.add(pathFilter.getPathB());
+      default:
+        break;
+    }
+    return new ArrayList<>(paths);
+  }
+
+  public static boolean canUseHashJoin(Filter filter) {
+    if (filter == null) {
+      return false;
+    }
+    switch (filter.getType()) {
+      case Or:
+        OrFilter orFilter = (OrFilter) filter;
+        if (orFilter.getChildren().size() == 1) {
+          return canUseHashJoin(orFilter.getChildren().get(0));
+        } else {
+          return false;
+        }
+      case And:
+        AndFilter andFilter = (AndFilter) filter;
+        for (Filter child : andFilter.getChildren()) {
+          if (canUseHashJoin(child)) {
+            return true;
+          }
+        }
+        return false;
+      case Not:
+        NotFilter notFilter = (NotFilter) filter;
+        return canUseHashJoin(notFilter.getChild());
+      case Path:
+        PathFilter pathFilter = (PathFilter) filter;
+        return pathFilter.getOp().equals(Op.E);
+      case Key:
+      case Value:
+      case Bool:
+        return false;
+      default:
+        throw new RuntimeException("Unexpected filter type: " + filter.getType());
+    }
+  }
+
+  public static Filter combineTwoFilter(Filter baseFilter, Filter additionFilter) {
+    if (baseFilter == null) {
+      return additionFilter;
+    } else if (baseFilter.getType().equals(FilterType.Bool)) {
+      BoolFilter boolFilter = (BoolFilter) baseFilter;
+      if (boolFilter.isTrue()) {
+        return additionFilter;
+      } else {
+        return baseFilter;
+      }
+    } else if (baseFilter.getType().equals(FilterType.And)) {
+      AndFilter andFilter = (AndFilter) baseFilter;
+      List<Filter> filterList = new ArrayList<>(andFilter.getChildren());
+      filterList.add(additionFilter);
+      return new AndFilter(filterList);
+    } else {
+      List<Filter> filterList = new ArrayList<>(Collections.singletonList(baseFilter));
+      filterList.add(additionFilter);
+      return new AndFilter(filterList);
     }
   }
 }

@@ -3,6 +3,7 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream;
 import cn.edu.tsinghua.iginx.engine.physical.exception.InvalidOperatorParameterException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.HeaderUtils;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
@@ -103,11 +104,11 @@ public class SortedMergeInnerJoinLazyStream extends BinaryLazyStream {
 
     if (filter != null) { // Join condition: on
       this.header =
-          RowUtils.constructNewHead(
+          HeaderUtils.constructNewHead(
               headerA, headerB, innerJoin.getPrefixA(), innerJoin.getPrefixB());
     } else { // Join condition: natural or using
       this.header =
-          RowUtils.constructNewHead(
+          HeaderUtils.constructNewHead(
                   headerA,
                   headerB,
                   innerJoin.getPrefixA(),
@@ -146,7 +147,9 @@ public class SortedMergeInnerJoinLazyStream extends BinaryLazyStream {
     } else {
       for (Row rowB : sameValueStreamBRows) {
         if (innerJoin.getFilter() != null) {
-          Row row = RowUtils.constructNewRow(header, nextA, rowB);
+          Row row =
+              RowUtils.constructNewRow(
+                  header, nextA, rowB, innerJoin.getPrefixA(), innerJoin.getPrefixB());
           if (FilterUtils.validate(innerJoin.getFilter(), row)) {
             cache.addLast(row);
           }
