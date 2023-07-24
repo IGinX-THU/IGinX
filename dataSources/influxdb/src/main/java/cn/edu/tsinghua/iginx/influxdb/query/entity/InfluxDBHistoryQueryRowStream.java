@@ -21,19 +21,28 @@ package cn.edu.tsinghua.iginx.influxdb.query.entity;
 import static cn.edu.tsinghua.iginx.influxdb.tools.TimeUtils.instantToNs;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.physical.exception.RowFetchException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.influxdb.tools.SchemaTransformer;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.influxdb.query.FluxRecord;
 import com.influxdb.query.FluxTable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 public class InfluxDBHistoryQueryRowStream implements RowStream {
+
+  private static final Logger logger = LoggerFactory.getLogger(InfluxDBQueryRowStream.class);
 
   private final List<Map.Entry<String, List<FluxTable>>> bucketQueryResults;
 
@@ -45,9 +54,16 @@ public class InfluxDBHistoryQueryRowStream implements RowStream {
 
   private int size;
 
+  private boolean hasCachedRow = false;
+
+  private Row cachedRow = null;
+
+  private Filter filter = null;
+
   public InfluxDBHistoryQueryRowStream(
-      Map<String, List<FluxTable>> bucketQueryResults, List<String> patterns) {
+      Map<String, List<FluxTable>> bucketQueryResults, List<String> patterns, Filter filter) {
     this.bucketQueryResults = new ArrayList<>(bucketQueryResults.entrySet());
+    this.filter = filter;
     this.indexList = new ArrayList<>();
     List<Field> fields = new ArrayList<>();
     for (int i = 0; i < bucketQueryResults.size(); i++) {
@@ -76,11 +92,28 @@ public class InfluxDBHistoryQueryRowStream implements RowStream {
 
   @Override
   public boolean hasNext() throws PhysicalException {
-    return this.hasMoreRecords != 0;
+    if(this.hasMoreRecords == 0){
+      return false;
+    }
+
+    try {
+      if (!hasCachedRow) {
+        cacheOneRow();
+      }
+    } catch (SQLException | PhysicalException e) {
+      logger.error(e.getMessage());
+    }
+
+    return cachedRow != null;
   }
 
-  @Override
-  public Row next() throws PhysicalException {
+  private void cacheOneRow() throws SQLException, PhysicalException {
+    if(this.hasMoreRecords == 0){
+      cachedRow = null;
+      hasCachedRow = false;
+      return;
+    }
+
     long timestamp = Long.MAX_VALUE;
     for (int i = 0; i < this.bucketQueryResults.size(); i++) {
       int[] indices = indexList.get(i);
@@ -97,7 +130,8 @@ public class InfluxDBHistoryQueryRowStream implements RowStream {
       }
     }
     if (timestamp == Long.MAX_VALUE) {
-      return null;
+      cachedRow = null;
+      hasCachedRow = false;
     }
     Object[] values = new Object[size];
     int ptr = 0;
@@ -129,6 +163,29 @@ public class InfluxDBHistoryQueryRowStream implements RowStream {
         }
       }
     }
-    return new Row(header, timestamp, values);
+    Row row = new Row(header, timestamp, values);
+    if (filter == null || FilterUtils.validate(filter, row)){
+      cachedRow = row;
+      hasCachedRow = true;
+    }else{
+      cacheOneRow();
+    }
+  }
+
+  @Override
+  public Row next() throws PhysicalException {
+    try {
+      Row row;
+      if (!hasCachedRow) {
+        cacheOneRow();
+      }
+      row = cachedRow;
+      hasCachedRow = false;
+      cachedRow = null;
+      return row;
+    } catch (SQLException | PhysicalException e) {
+      logger.error(e.getMessage());
+      throw new RowFetchException(e);
+    }
   }
 }
