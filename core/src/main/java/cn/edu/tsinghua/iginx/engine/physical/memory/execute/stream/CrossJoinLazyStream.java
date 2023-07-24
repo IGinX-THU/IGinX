@@ -1,6 +1,7 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.HeaderUtils;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
@@ -36,7 +37,7 @@ public class CrossJoinLazyStream extends BinaryLazyStream {
       return;
     }
     this.header =
-        RowUtils.constructNewHead(
+        HeaderUtils.constructNewHead(
             streamA.getHeader(),
             streamB.getHeader(),
             crossJoin.getPrefixA(),
@@ -87,7 +88,9 @@ public class CrossJoinLazyStream extends BinaryLazyStream {
       curStreamBIndex++;
     }
 
-    Row nextRow = RowUtils.constructNewRow(header, nextA, nextB);
+    Row nextRow =
+        RowUtils.constructNewRow(
+            header, nextA, nextB, crossJoin.getPrefixA(), crossJoin.getPrefixB());
     nextB = null;
     return nextRow;
   }

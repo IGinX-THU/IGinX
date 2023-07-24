@@ -30,17 +30,18 @@ public enum OperatorType {
   ShowTimeSeries(20),
   Migration,
 
-  // BinaryOperator[30,39]
+  // BinaryOperator[30,49]
   Join(30),
   Union,
-  InnerJoin,
+  // JoinOperator[40,49]
+  InnerJoin(40),
   OuterJoin,
   CrossJoin,
   SingleJoin,
   MarkJoin,
 
-  // isUnaryOperator >= 40
-  Binary(40),
+  // isUnaryOperator >= 50
+  Binary(50),
   Unary,
   Delete,
   Insert,
@@ -56,7 +57,8 @@ public enum OperatorType {
   Rename,
   Reorder,
   AddSchemaPrefix,
-  GroupBy;
+  GroupBy,
+  Distinct;
 
   private int value;
 
@@ -79,11 +81,15 @@ public enum OperatorType {
   }
 
   public static boolean isBinaryOperator(OperatorType op) {
-    return op.value >= 30 && op.value <= 39;
+    return op.value >= 30 && op.value <= 49;
   }
 
   public static boolean isUnaryOperator(OperatorType op) {
-    return op.value >= 40;
+    return op.value >= 50;
+  }
+
+  public static boolean isJoinOperator(OperatorType op) {
+    return op.value >= 40 && op.value <= 49;
   }
 
   public static boolean isMultipleOperator(OperatorType op) {

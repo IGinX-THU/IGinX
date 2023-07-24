@@ -119,10 +119,25 @@ goto okClasspath
 @REM -----------------------------------------------------------------------------
 :okClasspath
 
-@REM set DRIVER=
-@REM setx DRIVER "%IGINX_HOME%\driver"
+set PARAMETERS=%*
 
-"%JAVA_HOME%\bin\java" %JAVA_OPTS% %HEAP_OPTS% -cp %CLASSPATH% %MAIN_CLASS%
+@REM set default parameters
+set h_parameter=-h 127.0.0.1
+set p_parameter=-p 6888
+set u_parameter=-u root
+set pw_parameter=-pw root
+set tf_parameter=-tf ""
+
+@REM Added parameters when default parameters are missing
+echo %PARAMETERS% | findstr /c:"-pw ">nul && (set PARAMETERS=%PARAMETERS%) || (set PARAMETERS=%pw_parameter% %PARAMETERS%)
+echo %PARAMETERS% | findstr /c:"-u ">nul && (set PARAMETERS=%PARAMETERS%) || (set PARAMETERS=%u_parameter% %PARAMETERS%)
+echo %PARAMETERS% | findstr /c:"-p ">nul && (set PARAMETERS=%PARAMETERS%) || (set PARAMETERS=%p_parameter% %PARAMETERS%)
+echo %PARAMETERS% | findstr /c:"-h ">nul && (set PARAMETERS=%PARAMETERS%) || (set PARAMETERS=%h_parameter% %PARAMETERS%)
+echo %PARAMETERS% | findstr /c:"-tf ">nul && (set PARAMETERS=%PARAMETERS%) || (set PARAMETERS=%tf_parameter% %PARAMETERS%)
+
+echo %PARAMETERS%
+
+"%JAVA_HOME%\bin\java" %JAVA_OPTS% %HEAP_OPTS% -cp %CLASSPATH% %MAIN_CLASS% %PARAMETERS%
 
 @REM reg delete "HKEY_CURRENT_USER\Environment" /v "DRIVER" /f
 @REM set DRIVER=

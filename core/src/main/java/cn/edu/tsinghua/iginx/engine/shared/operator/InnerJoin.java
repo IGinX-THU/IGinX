@@ -1,5 +1,7 @@
 package cn.edu.tsinghua.iginx.engine.shared.operator;
 
+import static cn.edu.tsinghua.iginx.engine.shared.operator.type.JoinAlgType.chooseJoinAlg;
+
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.JoinAlgType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
@@ -7,17 +9,11 @@ import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import java.util.ArrayList;
 import java.util.List;
 
-public class InnerJoin extends AbstractBinaryOperator {
+public class InnerJoin extends AbstractJoinOperator {
 
-  private final String prefixA;
-
-  private final String prefixB;
-
-  private final Filter filter;
+  private Filter filter;
 
   private final List<String> joinColumns;
-
-  private final JoinAlgType joinAlgType;
 
   private final boolean isNaturalJoin;
 
@@ -47,7 +43,8 @@ public class InnerJoin extends AbstractBinaryOperator {
         filter,
         joinColumns,
         isNaturalJoin,
-        JoinAlgType.HashJoin);
+        JoinAlgType.HashJoin,
+        new ArrayList<>());
   }
 
   public InnerJoin(
@@ -59,25 +56,36 @@ public class InnerJoin extends AbstractBinaryOperator {
       List<String> joinColumns,
       boolean isNaturalJoin,
       JoinAlgType joinAlgType) {
-    super(OperatorType.InnerJoin, sourceA, sourceB);
-    this.prefixA = prefixA;
-    this.prefixB = prefixB;
+    this(
+        sourceA,
+        sourceB,
+        prefixA,
+        prefixB,
+        filter,
+        joinColumns,
+        isNaturalJoin,
+        joinAlgType,
+        new ArrayList<>());
+  }
+
+  public InnerJoin(
+      Source sourceA,
+      Source sourceB,
+      String prefixA,
+      String prefixB,
+      Filter filter,
+      List<String> joinColumns,
+      boolean isNaturalJoin,
+      JoinAlgType joinAlgType,
+      List<String> extraJoinPrefix) {
+    super(OperatorType.InnerJoin, sourceA, sourceB, prefixA, prefixB, joinAlgType, extraJoinPrefix);
     this.filter = filter;
     if (joinColumns != null) {
       this.joinColumns = joinColumns;
     } else {
       this.joinColumns = new ArrayList<>();
     }
-    this.joinAlgType = joinAlgType;
     this.isNaturalJoin = isNaturalJoin;
-  }
-
-  public String getPrefixA() {
-    return prefixA;
-  }
-
-  public String getPrefixB() {
-    return prefixB;
   }
 
   public Filter getFilter() {
@@ -88,12 +96,16 @@ public class InnerJoin extends AbstractBinaryOperator {
     return joinColumns;
   }
 
-  public JoinAlgType getJoinAlgType() {
-    return joinAlgType;
-  }
-
   public boolean isNaturalJoin() {
     return isNaturalJoin;
+  }
+
+  public void setFilter(Filter filter) {
+    this.filter = filter;
+  }
+
+  public void reChooseJoinAlg() {
+    setJoinAlgType(chooseJoinAlg(filter, isNaturalJoin, joinColumns, getExtraJoinPrefix()));
   }
 
   @Override
@@ -101,26 +113,34 @@ public class InnerJoin extends AbstractBinaryOperator {
     return new InnerJoin(
         getSourceA().copy(),
         getSourceB().copy(),
-        prefixA,
-        prefixB,
+        getPrefixA(),
+        getPrefixB(),
         filter.copy(),
         new ArrayList<>(joinColumns),
         isNaturalJoin,
-        joinAlgType);
+        getJoinAlgType(),
+        new ArrayList<>(getExtraJoinPrefix()));
   }
 
   @Override
   public String getInfo() {
     StringBuilder builder = new StringBuilder();
-    builder.append("PrefixA: ").append(prefixA);
-    builder.append(", PrefixB: ").append(prefixB);
+    builder.append("PrefixA: ").append(getPrefixA());
+    builder.append(", PrefixB: ").append(getPrefixB());
     builder.append(", IsNatural: ").append(isNaturalJoin);
     if (filter != null) {
-      builder.append(", Filter: ").append(filter.toString());
+      builder.append(", Filter: ").append(filter);
     }
-    if (joinColumns != null) {
+    if (joinColumns != null && !joinColumns.isEmpty()) {
       builder.append(", JoinColumns: ");
       for (String col : joinColumns) {
+        builder.append(col).append(",");
+      }
+      builder.deleteCharAt(builder.length() - 1);
+    }
+    if (getExtraJoinPrefix() != null && !getExtraJoinPrefix().isEmpty()) {
+      builder.append(", ExtraJoinPrefix: ");
+      for (String col : getExtraJoinPrefix()) {
         builder.append(col).append(",");
       }
       builder.deleteCharAt(builder.length() - 1);
