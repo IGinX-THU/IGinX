@@ -8,7 +8,7 @@ Currently, IGinX directly supports big data service over relational database Pos
 
 ### Java Installation
 
-Since ZooKeeper, IGinX and IoTDB are all developed using Java, Java needs to be installed first. If a running environment of JDK >= 1.8 has been installed locally, **skip this step entirely**.
+Since ZooKeeper, IGinX are all developed using Java, Java needs to be installed first. If a running environment of JDK >= 1.8 has been installed locally, **skip this step entirely**.
 
 1. First, visit the [official Java website](https://www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html) to download the JDK package for your current system.
 
@@ -150,12 +150,29 @@ $ cd IGinX
 Then start building the IGinX image:
 
 Currently, there are two types of IGinX image construction:
-- oneShot: All dependencies including ZooKeeper, IGinX and IoTDB can be packaged and run with one shot.
-- onlyIginx: Another way is to build the IGinX image separately, requiring the user to manually start the ZooKeeper and IoTDB nodes externally.
+- oneShot: All dependencies including ZooKeeper, IGinX can be packaged and run with one shot.
+- onlyIginx: Another way is to build the IGinX image separately, requiring the user to manually start the ZooKeeper service externally.
 
 ## oneShot
 
-Then use the following command to build and run the IGinX image:
+In this method, ZooKeeper and IGinX run as 2 separate containers with a custom network bridge which enables IGinX to communicate with ZooKeeper.
+
+Before building the image, the params in `conf/config.properties` need to be changed. The IP address for ZooKeeper should be changed to the hostnames of ZooKeeper container. Otherwise, IGinX will not be able to access it.
+
+```properties
+# ZooKeeper:zkServer
+zookeeperConnectionString=zkServer:2181
+```
+
+Hostname for Zookeeper container can be changed in `$IGINX_HOME/docker/oneShot-parquet/docker-compose.yaml`：
+
+```yaml
+services:
+  zookeeper:
+    hostname: "custom_zookeeper_hostname"
+```
+
+Then use the following command to build image and run:
 
 ```shell
 $ cd docker/oneShot
@@ -165,31 +182,32 @@ $ ./build_and_run_iginx_docker.sh
 The following words are displayed to indicate that the image was built and run successfully:
 
 ```shell
-[+] Building 729.6s (12/12) FINISHED
-=> [iginx internal] load .dockerignore                                                                                   0.0s
-=> => transferring context: 2B                                                                                           0.0s
-=> [iginx internal] load build definition from Dockerfile                                                                0.0st
-=> => transferring dockerfile: 384B                                                                                      0.0s
-=> [iginx internal] load metadata for docker.io/library/maven:3-amazoncorretto-8                                         5.5s2
-=> [iginx internal] load metadata for docker.io/library/amazoncorretto:8                                                 5.6s
-=> CACHED [iginx stage-1 1/2] FROM docker.io/library/amazoncorretto:8@sha256:f9290c74c5587f1e651bd4f0b783f8342aba347d84  0.0s
-=> [iginx internal] load build context                                                                                   0.8s
-=> => transferring context: 1.64MB                                                                                       0.8s/
-=> CACHED [iginx builder 1/4] FROM docker.io/library/maven:3-amazoncorretto-8@sha256:c9d6016fad9c479b874f270a80d80f8913  0.0s
-=> [iginx builder 2/4] COPY . /root/IGinX                                                                                1.0s
-=> [iginx builder 3/4] WORKDIR /root/IGinX                                                                               0.1s
-=> [iginx builder 4/4] RUN --mount=type=cache,target=/root/.m2 mvn clean package -pl core,dataSources/iotdb12 -am -Dm  721.4s
-=> [iginx stage-1 2/2] COPY --from=builder /root/IGinX/core/target/iginx-core-dev /root/IGinX                            0.1s
-=> [iginx] exporting to image                                                                                            0.4s
-=> => exporting layers                                                                                                   0.3s
-=> => writing image sha256:3e83d7c3510bd41f9e0404bef932e1c7f48bed869dccac3ba070cbc2b29b966c                              0.0s
-=> => naming to docker.io/library/oneshot-iginx                                                                          0.0s
-[+] Running 4/4
-✔ Network oneshot_net  Created                                                                                           0.6s
-✔ Container iotdb      Started                                                                                           1.6s
-✔ Container zookeeper  Started                                                                                           1.6s
-✔ Container iginx1     Started
+[+] Building 18.2s (12/12) FINISHED
+ => [iginx internal] load build definition from Dockerfile                                                         0.0s
+ => => transferring dockerfile: 387B                                                                               0.0s
+ => [iginx internal] load .dockerignore                                                                            0.0s
+ => => transferring context: 2B                                                                                    0.0s
+ => [iginx internal] load metadata for docker.io/library/amazoncorretto:8                                          1.0s
+ => [iginx internal] load metadata for docker.io/library/maven:3-amazoncorretto-8                                  1.1s
+ => [iginx internal] load build context                                                                            0.3s
+ => => transferring context: 465.28kB                                                                              0.2s
+ => CACHED [iginx stage-1 1/2] FROM docker.io/library/amazoncorretto:8@sha256:39679cbf42bf0ac2f8de74aa2e87f162eb1  0.0s
+ => [iginx builder 1/4] FROM docker.io/library/maven:3-amazoncorretto-8@sha256:8891ab4c3fe9beb924af0595eef2389d24  0.0s
+ => CACHED [iginx builder 2/4] COPY . /root/IGinX                                                                  0.0s
+ => CACHED [iginx builder 3/4] WORKDIR /root/IGinX                                                                 0.0s
+ => [iginx builder 4/4] RUN --mount=type=cache,target=/root/.m2 mvn clean package -pl core,dataSources/parquet -  15.8s
+ => [iginx stage-1 2/2] COPY --from=builder /root/IGinX/core/target/iginx-core-dev /root/IGinX                     0.2s
+ => [iginx] exporting to image                                                                                     0.4s
+ => => exporting layers                                                                                            0.4s
+ => => writing image sha256:3754b479bb230728b9b25194248f8dff1348ba87bd5925ddc91cc32fcdc5a0ee                       0.0s
+ => => naming to docker.io/library/oneshot-parquet-iginx                                                           0.0s
+[+] Running 3/3
+ ✔ Network oneshot-parquet_net  Created                                                                            0.6s
+ ✔ Container zookeeper          Started                                                                            1.0s
+ ✔ Container iginx1             Started
 ```
+
+After this step, 127.0.0.1:10001 will be accessable for IGinX service.
 
 ## onlyIginx
 
@@ -202,7 +220,7 @@ $ cd docker/onlyIginx
 $ ./build_iginx_docker.sh -p 6888 -d 6667 -d 7667
 # -p expose port in container for IGinX service
 # -d expose port for parquet services, has to set none or all, depend on the config file
-# User can provice no -p or -d params. The default values will be read from /conf/config.properties
+# Both params can be ignored. Script will read default value from conf/config.properties
 ```
 
 The following words are displayed to indicate that the image was built successfully:
@@ -254,11 +272,10 @@ Then, start IGinX to complete the startup of the entire system:
 
 ```shell
 $ cd ${iginx_path}/docker/onlyIginx
-$ ./run_iginx_docker.sh -n iginx0 -h 192.168.34.225 -p 10000 -o my-net
+$ ./run_iginx_docker.sh -n iginx0 -h 192.168.34.225 -p 10001
 # -n container name
 # -h host ip
 # -p host port to cast
-# -o [optional] use my-net as container network. Default value is bridge
 ```
 
-This command will expose the host's port 10000 as the communication interface with the IGinX cluster. You can start accessing IGinX through 127.0.0.1:10000.
+This command will expose the host's port 10001 as the communication interface with the IGinX cluster. You can start accessing IGinX through 127.0.0.1:10001.

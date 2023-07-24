@@ -110,66 +110,73 @@ set engineCast=
 set port=
 set confPath=..\..\conf\config.properties
 
-@REM DisableDelayedExpansion in case there is ! in file
 @REM find exposed iginx port
-setlocal EnableExtensions DisableDelayedExpansion
-for /f "tokens=* delims=" %%i in (%confpath%) do (
-	set line=%%i
-  setlocal EnableDelayedExpansion
-  set linehead=!line:~0,5!
-  if "!linehead!"=="port=" (
-  	for /f "tokens=2 delims== " %%k in ("!line!") do set port=%%k
-    goto endFindIginxPort
-  )
-  endlocal
-)
-:endFindIginxPort
-
-@REM DisableDelayedExpansion in case there is ! in file
-@REM find storageEngineList in config and stored in line
-setlocal EnableExtensions DisableDelayedExpansion
-for /f "tokens=* delims=" %%i in (%confpath%) do (
-	set line=%%i
-  setlocal EnableDelayedExpansion
-  set linehead=!line:~0,18!
-  if "!linehead!"=="storageEngineList=" (
-    goto processPorts
-  )
-  endlocal
+for /f "tokens=2 delims== " %%a in ('findstr /b "port=" %confpath%') do (
+	set "port=%%a"
 )
 
-setlocal EnableDelayedExpansion
+@REM find storageEngineList in config and stored value in line
+for /f "tokens=1,* delims== " %%a in ('findstr /b "storageEngineList=" %confpath%') do (
+	set "line=%%b"
+  goto processEngineList
+)
 
-:processPorts
-if not defined line goto enginReadError
-:loop
+@REM cast every LOCAL parquet port to same port on host
+:processEngineList
+if not defined line goto engineReadError
+:EngineListLoop
 @REM for every engine
 for /f "tokens=1* delims=," %%a in ("!line!") do (
-	@REM find the second param(port), only cast local database port
-	for /f "tokens=1,2 delims=#" %%i in ("%%a") do (
-    set tmp=%%i
-    if "%tmp:~-20%"=="host.docker.internal" (
-      set "engineCast=!engineCast!-p %%j:%%j " 
-    )
-  )
+  set "engine=%%a"
+  call :processEngine !engine! || goto engineReadError
 	set line=%%b
 )
-if defined line goto :loop
+if defined line goto :EngineListLoop
+goto :endprocessEngine
+
+
+@REM check if this engine is local with given "isLocal" param. only cast port when engine is local
+:processEngine
+if not defined engine exit /b 1
+set "thisEngine=!engine!"
+set "thisEngineCpy=!engine!"
+@REM try to find "#isLocal=true#" in config string
+@REM if there is, will jump to :endEngineLoop and add port cast to engineCast
+@REM if there is not, will exit to where it's called after reading of config string reach end
+:EngineLoop
+for /f "tokens=1,* delims=# " %%g in ("!thisEngineCpy!") do (
+  if "%%g" == "isLocal=true" goto :endEngineLoop
+  set "thisEngineCpy=%%h"
+)
+if defined thisEngineCpy goto :EngineLoop
+exit /b
+:endEngineLoop
+for /f "tokens=1,2 delims=#" %%i in ("%thisEngine%") do set "engineCast=!engineCast!-p %%j:%%j "
+exit /b
+:endprocessEngine
+
+@REM find local iginx ip
+for /f "tokens=2 delims== " %%a in ('findstr /b "ip=" %confpath%') do (
+	set "localIPConfig=--ip=%%a "
+)
 
 :RUN
 
+@REM if runs in a specified network(swarm), network ip should be given to container
+@REM if not, let docker give random ip
 if "!network!" neq "null" (
   set "network=--net=!network! "
 ) else (
-  set network=
+  set "network="
+  set "localIPConfig="
 )
 
-set command=docker run --name="%name%" !network!--privileged -dit -e ip=%hostip% -e host_iginx_port=%hostPort% -p %hostPort%:!port! !engineCast!iginx:0.6.0
+set command=docker run --name="%name%" !network!!localIPConfig!--privileged -dit -e ip=%hostip% -e host_iginx_port=%hostPort% -p %hostPort%:!port! !engineCast!iginx:0.6.0
 echo %command%
 %command%
 
 exit /b 0
 
-:enginReadError
-echo Read config file failed
+:engineReadError
+echo Read database config failed.
 exit /b 1

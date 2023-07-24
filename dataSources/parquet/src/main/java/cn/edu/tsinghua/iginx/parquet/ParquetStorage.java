@@ -49,7 +49,8 @@ public class ParquetStorage implements IStorage {
   private Executor executor;
 
   public ParquetStorage(StorageEngineMeta meta) throws StorageInitializationException {
-    boolean isLocal = config.isLocalParquetStorage();
+    Map<String, String> extraParams = meta.getExtraParams();
+    boolean isLocal = extraParams.get("isLocal").equals("true");
     if (isLocal) {
       initLocalStorage(meta);
     } else {

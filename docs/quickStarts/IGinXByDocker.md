@@ -154,7 +154,28 @@ $ cd IGinX
 
 ## oneShot 镜像
 
-对于 oneShot 镜像，其构建方法并运行如下：
+oneShot方法中，将ZooKeeper、IoTDB、IGinX分别打包为镜像运行，并创建一个网络以便服务之间进行通信。
+
+在打包之前，需要修改`conf/config.properties`文件，修改IGinX中有关Zookeeper和IoTDB的参数设置，将用于访问两个服务的ip地址改为服务的hostname，否则IGinX将无法访问Zookeeper和IoTDB服务。
+
+```properties
+# IoTDB:iotdb12
+# ZooKeeper:zkServer
+storageEngineList=iotdb12#6667#iotdb12#username=root#password=root#sessionPoolSize=20#has_data=false#is_read_only=false
+zookeeperConnectionString=zkServer:2181
+```
+
+Zookeeper和IoTDB服务的hostname可以在`$IGINX_HOME/docker/oneShot/docker-compose.yaml`中进行自定义：
+
+```yaml
+services:
+  zookeeper:
+    hostname: "custom_zookeeper_hostname"
+  iotdb:
+    hostname: "custom_IoTDB_hostname"
+```
+
+修改完成后，运行以下命令进行镜像的构建和运行：
 
 ```shell
 $ cd docker/oneShot
@@ -189,6 +210,8 @@ $ ./build_and_run_iginx_docker.sh
 ✔ Container zookeeper  Started                                                                                           1.6s
 ✔ Container iginx1     Started
 ```
+
+开启容器后，可以通过127.0.0.1:10001访问IGinX服务。
 
 ## onlyIginx 镜像
 
@@ -263,9 +286,9 @@ $ cd ${iotdb_path}
 
 ```shell
 $ cd ${iginx_path}/docker/onlyIginx
-$ ./run_iginx_docker.sh x.x.x.x 10000
+$ ./run_iginx_docker.sh x.x.x.x 10001
 # x.x.x.x 为用户赋予该IGinX容器的ip地址，需要在docker-cluster-iginx网桥的ip范围内，例如172.40.0.2，不可以使用默认网关172.40.0.1
-# 10000为IGinX容器映射到宿主机的端口，用户可以根据自己的主机情况自定义
+# 10001为IGinX容器映射到宿主机的端口，用户可以根据自己的主机情况自定义
 ```
 
-该命令会将本地的 10000 接口暴露出来，作为与 IGinX 集群的通讯接口。在宿主机上通过地址 127.0.0.1:10000 即可开始访问 IGinX。
+该命令会将本地的 10001 接口暴露出来，作为与 IGinX 集群的通讯接口。在宿主机上通过地址 127.0.0.1:10001 即可开始访问 IGinX。

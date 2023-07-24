@@ -155,7 +155,28 @@ Currently, there are two types of IGinX image construction:
 
 ## oneShot
 
-Then use the following command to build and run the IGinX image:
+In this method, ZooKeeper, IoTDB and IGinX run as 3 separate containers with a custom network bridge which enables these three containers to communicate with each other.
+
+Before building the image, the params in `conf/config.properties` need to be changed. The IP address for ZooKeeper and IoTDB should be changed to the hostnames of those containers. Otherwise, IGinX will not be able to access them.
+
+```properties
+# IoTDB:iotdb12
+# ZooKeeper:zkServer
+storageEngineList=iotdb12#6667#iotdb12#username=root#password=root#sessionPoolSize=20#has_data=false#is_read_only=false
+zookeeperConnectionString=zkServer:2181
+```
+
+Hostnames for Zookeeper and IoTDB containers can be changed in `$IGINX_HOME/docker/oneShot/docker-compose.yaml`：
+
+```yaml
+services:
+  zookeeper:
+    hostname: "custom_zookeeper_hostname"
+  iotdb:
+    hostname: "custom_IoTDB_hostname"
+```
+
+Then use the following command to build image and run:
 
 ```shell
 $ cd docker/oneShot
@@ -190,6 +211,8 @@ The following words are displayed to indicate that the image was built and run s
 ✔ Container zookeeper  Started                                                                                           1.6s
 ✔ Container iginx1     Started
 ```
+
+After this step, 127.0.0.1:10001 will be accessable for IGinX service.
 
 ## onlyIginx
 
