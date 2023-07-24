@@ -21,6 +21,7 @@ package cn.edu.tsinghua.iginx.influxdb;
 import static cn.edu.tsinghua.iginx.influxdb.tools.TimeUtils.instantToNs;
 import static com.influxdb.client.domain.WritePrecision.NS;
 
+import cn.edu.tsinghua.iginx.engine.logical.utils.ExprUtils;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
@@ -37,11 +38,13 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilterType;
 import cn.edu.tsinghua.iginx.influxdb.query.entity.InfluxDBHistoryQueryRowStream;
 import cn.edu.tsinghua.iginx.influxdb.query.entity.InfluxDBQueryRowStream;
 import cn.edu.tsinghua.iginx.influxdb.query.entity.InfluxDBSchema;
+import cn.edu.tsinghua.iginx.influxdb.tools.FilterTransformer;
 import cn.edu.tsinghua.iginx.influxdb.tools.SchemaTransformer;
 import cn.edu.tsinghua.iginx.influxdb.tools.TagFilterUtils;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
@@ -58,11 +61,13 @@ import com.influxdb.client.write.Point;
 import com.influxdb.query.FluxColumn;
 import com.influxdb.query.FluxRecord;
 import com.influxdb.query.FluxTable;
+
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import okhttp3.OkHttpClient;
 import org.slf4j.Logger;
@@ -297,19 +302,64 @@ public class InfluxDBStorage implements IStorage {
 
   @Override
   public boolean isSupportProjectWithSelect() {
-    return false;
+    return true;
   }
 
   @Override
   public TaskExecuteResult executeProjectWithSelect(
       Project project, Select select, DataArea dataArea) {
-    return null;
+    String storageUnit = dataArea.getStorageUnit();
+    KeyInterval keyInterval = dataArea.getKeyInterval();
+    Filter filter = select.getFilter();
+
+    if (client.getBucketsApi().findBucketByName(storageUnit) == null) {
+      logger.warn("storage engine {} doesn't exist", storageUnit);
+      return new TaskExecuteResult(
+          new InfluxDBQueryRowStream(Collections.emptyList(), project, filter));
+    }
+
+    String statement =
+        generateQueryStatement(
+            storageUnit,
+            project.getPatterns(),
+            project.getTagFilter(),
+            filter,
+            keyInterval.getStartKey(),
+            keyInterval.getEndKey());
+
+    List<FluxTable> tables = client.getQueryApi().query(statement, organization.getId());
+    InfluxDBQueryRowStream rowStream = new InfluxDBQueryRowStream(tables, project, filter);
+    return new TaskExecuteResult(rowStream);
   }
 
   @Override
   public TaskExecuteResult executeProjectDummyWithSelect(
       Project project, Select select, DataArea dataArea) {
-    return null;
+    KeyInterval keyInterval = dataArea.getKeyInterval();
+    Map<String, String> bucketQueries = new HashMap<>();
+    TagFilter tagFilter = project.getTagFilter();
+    Filter filter = select.getFilter();
+    getBucketQueriesForExecuteDummy(project, bucketQueries, tagFilter);
+
+    Map<String, List<FluxTable>> bucketQueryResults = new HashMap<>();
+    for (String bucket : bucketQueries.keySet()) {
+      String statement =
+          generateQueryStatement(
+              bucket,
+              project.getPatterns(),
+              project.getTagFilter(),
+              filter,
+              keyInterval.getStartKey(),
+              keyInterval.getEndKey());
+
+      logger.info("execute query: " + statement);
+      bucketQueryResults.put(
+          bucket, client.getQueryApi().query(statement, organization.getId()));
+    }
+
+    InfluxDBHistoryQueryRowStream rowStream =
+        new InfluxDBHistoryQueryRowStream(bucketQueryResults, project.getPatterns(), filter);
+    return new TaskExecuteResult(rowStream);
   }
 
   @Override
@@ -319,7 +369,7 @@ public class InfluxDBStorage implements IStorage {
 
     if (client.getBucketsApi().findBucketByName(storageUnit) == null) {
       logger.warn("storage engine {} doesn't exist", storageUnit);
-      return new TaskExecuteResult(new InfluxDBQueryRowStream(Collections.emptyList(), project));
+      return new TaskExecuteResult(new InfluxDBQueryRowStream(Collections.emptyList(), project, null));
     }
 
     String statement =
@@ -327,10 +377,11 @@ public class InfluxDBStorage implements IStorage {
             storageUnit,
             project.getPatterns(),
             project.getTagFilter(),
+            null,
             keyInterval.getStartKey(),
             keyInterval.getEndKey());
     List<FluxTable> tables = client.getQueryApi().query(statement, organization.getId());
-    InfluxDBQueryRowStream rowStream = new InfluxDBQueryRowStream(tables, project);
+    InfluxDBQueryRowStream rowStream = new InfluxDBQueryRowStream(tables, project, null);
     return new TaskExecuteResult(rowStream);
   }
 
@@ -339,24 +390,7 @@ public class InfluxDBStorage implements IStorage {
     KeyInterval keyInterval = dataArea.getKeyInterval();
     Map<String, String> bucketQueries = new HashMap<>();
     TagFilter tagFilter = project.getTagFilter();
-    for (String pattern : project.getPatterns()) {
-      Pair<String, String> pair = SchemaTransformer.processPatternForQuery(pattern, tagFilter);
-      String bucketName = pair.k;
-      String query = pair.v;
-
-      if (client.getBucketsApi().findBucketByName(bucketName) == null) {
-        logger.warn("storage engine {} doesn't exist", bucketName);
-        continue;
-      }
-
-      String fullQuery = "";
-      if (bucketQueries.containsKey(bucketName)) {
-        fullQuery = bucketQueries.get(bucketName);
-        fullQuery += " or ";
-      }
-      fullQuery += query;
-      bucketQueries.put(bucketName, fullQuery);
-    }
+    getBucketQueriesForExecuteDummy(project, bucketQueries, tagFilter);
 
     long startKey = keyInterval.getStartKey();
     long endKey = keyInterval.getEndKey();
@@ -371,17 +405,78 @@ public class InfluxDBStorage implements IStorage {
         statement += String.format(" |> filter(fn: (r) => %s)", bucketQueries.get(bucket));
       }
       logger.info("execute query: " + statement);
-      bucketQueryResults.put(bucket, client.getQueryApi().query(statement, organization.getId()));
+      bucketQueryResults.put(
+          bucket, client.getQueryApi().query(statement, organization.getId()));
     }
 
     InfluxDBHistoryQueryRowStream rowStream =
-        new InfluxDBHistoryQueryRowStream(bucketQueryResults, project.getPatterns());
+        new InfluxDBHistoryQueryRowStream(bucketQueryResults, project.getPatterns(), null);
     return new TaskExecuteResult(rowStream);
   }
 
-  private static String generateQueryStatement(
-      String bucketName, List<String> paths, TagFilter tagFilter, long startKey, long endKey) {
-    String statement = String.format(QUERY_DATA, bucketName, startKey, endKey);
+  private void getBucketQueriesForExecuteDummy(Project project, Map<String, String> bucketQueries, TagFilter tagFilter) {
+    for (String pattern : project.getPatterns()) {
+      Pair<String, String> pair =
+          SchemaTransformer.processPatternForQuery(pattern, tagFilter);
+      String bucketName = pair.k;
+      String query = pair.v;
+      List<String> bucketNameList = new ArrayList<>();
+
+
+      if (bucketName.equals("*")){
+        // 通配符需要特殊判断，InfluxDB无法在bucket name上使用正则表达式匹配，并且仅查询type为user的bucket
+        List<Bucket> buckets = client.getBucketsApi().findBucketsByOrg(organization);
+        for (Bucket bucket : buckets){
+          if (bucket.getType() == Bucket.TypeEnum.USER){
+            bucketNameList.add(bucket.getName());
+          }
+        }
+      } else if (client.getBucketsApi().findBucketByName(bucketName) == null) {
+        logger.warn("storage engine {} doesn't exist", bucketName);
+        continue;
+      }else{
+        bucketNameList.add(bucketName);
+      }
+
+      for(String bucket : bucketNameList){
+        String fullQuery = "";
+        if (bucketQueries.containsKey(bucket)) {
+          fullQuery = bucketQueries.get(bucket);
+          fullQuery += " or ";
+        }
+        fullQuery += query;
+        bucketQueries.put(bucket, fullQuery);
+      }
+    }
+  }
+
+  /**
+   * 将字符串中的正则表达式特殊字符转义
+   */
+  private String replaceRegexChar(String str){
+    return str.replace("\\", "\\\\")
+        .replace("$", "\\$")
+        .replace("^", "\\^")
+        .replace(".", "\\.")
+        .replace("+", "\\+")
+        .replace("?", "\\?")
+        .replace("(", "\\(")
+        .replace(")", "\\)")
+        .replace("[", "\\[")
+        .replace("]", "\\]")
+        .replace("{", "\\{")
+        .replace("}", "\\}")
+        .replace("|", "\\|");
+  }
+
+  private String generateQueryStatement(
+      String bucketName,
+      List<String> paths,
+      TagFilter tagFilter,
+      Filter filter,
+      long startTime,
+      long endTime) {
+    String statement = String.format(QUERY_DATA, bucketName, startTime, endTime);
     if (paths.size() != 1 || !paths.get(0).equals("*")) {
       StringBuilder filterStr = new StringBuilder(" |> filter(fn: (r) => ");
       filterStr.append('('); // make the or statement together
@@ -393,14 +488,24 @@ public class InfluxDBStorage implements IStorage {
         }
         filterStr.append('(');
 
+        String measurement = schema.getMeasurement();
+        if (measurement.contains("*")) {
+          measurement = replaceRegexChar(measurement);
+          measurement = measurement.replace("*", ".+");
+        }
         filterStr.append(
-            schema.getMeasurement().equals("*")
-                ? "r._measurement =~ /.*/"
-                : "r._measurement == \"" + schema.getMeasurement() + "\"");
+            schema.getMeasurement().contains("*")
+                ? "r._measurement =~ /" + measurement + "/"
+                : "r._measurement == \"" + measurement + "\"");
+
+
+        String field = schema.getField();
+        field = replaceRegexChar(field);
+        field = field.replace("*", ".+");
         filterStr.append(" and ");
         filterStr
             .append("r._field =~ /")
-            .append(InfluxDBSchema.transformField(schema.getField()))
+            .append(field)
             .append("/");
 
         Map<String, String> tags = schema.getTags();
@@ -442,8 +547,359 @@ public class InfluxDBStorage implements IStorage {
       statement += filterStr;
     }
 
+    if (filter != null){
+      boolean patternHasMeasurementWildCards = false;
+      for(String path: paths){
+        if (path.startsWith("*")){
+          patternHasMeasurementWildCards = true;
+          break;
+        }
+      }
+
+      Map<String, List<String>> measurementToFieldsMap = getMeasurementToFields(bucketName);
+      if (filterHasMeasurementWildCards(filter) || patternHasMeasurementWildCards){
+        String prefix = statement;
+        StringBuilder statementBuilder = new StringBuilder();
+        int index = 0;
+        for (Map.Entry<String, List<String>> entry : measurementToFieldsMap.entrySet()){
+          String measurement = entry.getKey();
+          String pivotStr =
+                  " |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")"
+                          + generateFilterStatement(bucketName, measurement, filter, measurementToFieldsMap);
+          statementBuilder.append("t").append(index).append(" = ")
+                  .append(prefix.replace("r._measurement =~ /.+/", "r._measurement =~ /" + measurement + "/"))
+                  .append(pivotStr).append("\n");
+          index++;
+        }
+        if(index != 1) {
+          statementBuilder.append("union(tables: [");
+          for (int i = 0; i < index; i++) {
+            statementBuilder.append("t").append(i);
+            if (i != index - 1) {
+              statementBuilder.append(", ");
+            }
+          }
+          statementBuilder.append("])");
+        }else{
+          statementBuilder.delete(0, 5); // 删掉开头的"t0 = "
+        }
+        statement = statementBuilder.toString();
+
+      }else {
+        String pivotStr =
+                " |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")"
+                        + generateFilterStatement(bucketName, null, filter, measurementToFieldsMap);
+
+        statement += pivotStr;
+      }
+    }
+
     logger.info("generate query: " + statement);
     return statement;
+  }
+
+  private Filter setTrueByMeasurement(Filter filter, String measurementName){
+    switch(filter.getType()){
+      case And:
+        List<Filter> andChildren = ((AndFilter)filter).getChildren();
+        andChildren.replaceAll(child -> setTrueByMeasurement(child, measurementName));
+        return new AndFilter(andChildren);
+      case Or:
+        List<Filter> orChildren = ((OrFilter)filter).getChildren();
+        orChildren.replaceAll(child -> setTrueByMeasurement(child, measurementName));
+        return new OrFilter(orChildren);
+      case Not:
+        return new NotFilter(setTrueByMeasurement(((NotFilter)filter).getChild(), measurementName));
+      case Value:
+        String path = ((ValueFilter)filter).getPath();
+        InfluxDBSchema schema = new InfluxDBSchema(path);
+        if (!schema.getMeasurement().equals(measurementName)) {
+          return new BoolFilter(true);
+        }
+        break;
+      case Path:
+        String pathA = ((PathFilter)filter).getPathA();
+        String pathB = ((PathFilter)filter).getPathB();
+        InfluxDBSchema schemaA = new InfluxDBSchema(pathA);
+        InfluxDBSchema schemaB = new InfluxDBSchema(pathB);
+        if (!schemaA.getMeasurement().equals(measurementName) || !schemaB.getMeasurement().equals(measurementName)) {
+          return new BoolFilter(true);
+        }
+      default:
+        break;
+    }
+    return filter;
+  }
+
+  private boolean filterHasMeasurementWildCards(Filter filter){
+    boolean res = false;
+    switch(filter.getType()){
+      case And:
+        for(Filter child: ((AndFilter)filter).getChildren()){
+          res = filterHasMeasurementWildCards(child);
+          if(res){
+            break;
+          }
+        }
+        break;
+      case Or:
+        for(Filter child: ((OrFilter)filter).getChildren()){
+          res = filterHasMeasurementWildCards(child);
+          if(res){
+            break;
+          }
+        }
+        break;
+      case Not:
+        res = filterHasMeasurementWildCards(((NotFilter)filter).getChild());
+        break;
+      case Value:
+        if(((ValueFilter)filter).getPath().startsWith("*")){
+          res = true;
+        }
+        break;
+      case Path:
+        if(((PathFilter)filter).getPathA().startsWith("*") || ((PathFilter)filter).getPathB().startsWith("*")){
+          res = true;
+        }
+        break;
+      default:
+        break;
+    }
+    return res;
+  }
+
+  /**
+   * 获取给定Filter中所有带有通配符 * 的path，将其填入参数中的map中。
+   */
+  private void getAllPathFromFilterWithWildCards(Filter filter, Map<String, List<String>> map){
+    if (filter == null){
+      return;
+    }
+
+    switch (filter.getType()) {
+      case And:
+        if (filter instanceof AndFilter) {
+          ((AndFilter) filter).getChildren()
+              .forEach(child -> getAllPathFromFilterWithWildCards(child, map));
+        }
+      case Or:
+        if (filter instanceof OrFilter) {
+          ((OrFilter)filter).getChildren()
+              .forEach(child -> getAllPathFromFilterWithWildCards(child, map));
+        }
+      case Not:
+        if (filter instanceof NotFilter) {
+          getAllPathFromFilterWithWildCards(((NotFilter)filter).getChild(), map);
+        }
+      case Value:
+        if (filter instanceof ValueFilter) {
+          String path = ((ValueFilter)filter).getPath();
+            if (path.contains("*") && !map.containsKey(path)) {
+              map.put(path, null);
+            }
+        }
+      case Path:
+        if (filter instanceof PathFilter) {
+          String pathA = ((PathFilter)filter).getPathA();
+          String pathB = ((PathFilter)filter).getPathB();
+          if (pathA.contains("*") && !map.containsKey(pathA)) {
+            map.put(pathA, null);
+          }
+          if (pathB.contains("*") && !map.containsKey(pathB)) {
+            map.put(pathB, null);
+          }
+        }
+      case Key:
+      default:
+        return;
+    }
+  }
+
+  private Filter generateFilterByWildCardEntry(Filter filter, Map.Entry<String, List<String>> entry){
+    String wildcardsPath = entry.getKey();
+    InfluxDBSchema schema = new InfluxDBSchema(wildcardsPath);
+    String measurement = schema.getMeasurement();
+
+    List<String> matchedPaths = entry.getValue();
+
+    switch (filter.getType()){
+      case And:
+        List<Filter> andChildren = new ArrayList<>(((AndFilter)filter).getChildren());
+        for(Filter child : andChildren){
+          Filter newChild = generateFilterByWildCardEntry(child, entry);
+          andChildren.set(andChildren.indexOf(child), newChild);
+        }
+        return new AndFilter(andChildren);
+      case Or:
+        List<Filter> orChildren = new ArrayList<>( ((OrFilter)filter).getChildren());
+        for(Filter child : orChildren){
+          Filter newChild = generateFilterByWildCardEntry(child, entry);
+          orChildren.set(orChildren.indexOf(child), newChild);
+        }
+        return new OrFilter(orChildren);
+      case Not:
+        Filter notChild = ((NotFilter)filter).getChild();
+        return generateFilterByWildCardEntry(notChild, entry);
+      case Value:
+        ValueFilter valueFilter = (ValueFilter)filter;
+        if(valueFilter.getPath().equals(wildcardsPath)){
+          if(matchedPaths == null){
+            return new BoolFilter(true);
+          }
+
+          List<Filter> newValueChildren = new ArrayList<>();
+          for(String matchedPath : matchedPaths){
+            ValueFilter newValueFilter = new ValueFilter(measurement + "." +matchedPath, valueFilter.getOp(), valueFilter.getValue());
+            newValueChildren.add(newValueFilter);
+          }
+          if (newValueChildren.size() == 1) {
+            return newValueChildren.get(0);
+          }
+          return new AndFilter(newValueChildren);
+        }
+        break;
+      case Path:
+        PathFilter pathFilter = (PathFilter)filter;
+        String pathA = pathFilter.getPathA();
+        String pathB = pathFilter.getPathB();
+        if(pathA.equals(wildcardsPath)){
+          if(matchedPaths == null){
+            return new BoolFilter(true);
+          }
+
+          List<Filter> newValueChildren = new ArrayList<>();
+          for(String matchedPath : matchedPaths){
+            PathFilter newPathFilter = new PathFilter(measurement + "." +matchedPath, pathFilter.getOp(), pathB);
+            newValueChildren.add(newPathFilter);
+          }
+          if(newValueChildren.size() == 1){
+            return newValueChildren.get(0);
+          }
+          return new AndFilter(newValueChildren);
+        }
+
+        if (pathB.equals(wildcardsPath)) {
+          if(matchedPaths == null){
+            return new BoolFilter(true);
+          }
+
+          // 如果filter已经不是PathFilter了，说明在PathA时已经被修改成了AndFilter,需要继续调用函数递归
+          if(filter.getType() != FilterType.Path){
+            generateFilterByWildCardEntry(pathFilter, entry);
+          }else{
+            List<Filter> newValueChildren = new ArrayList<>();
+            for(String matchedPath : matchedPaths){
+              PathFilter newPathFilter = new PathFilter(pathA, pathFilter.getOp(), measurement + "." +matchedPath);
+              newValueChildren.add(newPathFilter);
+            }
+            if(newValueChildren.size() == 1){
+              return newValueChildren.get(0);
+            }
+            return new AndFilter(newValueChildren);
+          }
+        }
+        break;
+      case Key:
+      default:
+        break;
+    }
+    return filter;
+  }
+
+  private String generateFilterStatement(String bucketName, String measurementName, Filter filter, Map<String,List<String>> measurementToFieldsMap) {
+    if (filter == null) {
+      return "";
+    }
+
+    String noWildCardStatement = " |> filter(fn: (r) => " + FilterTransformer.toString(filter) + ")";
+
+    // 检查语句中是否存在*通配符，如果存在需要手动解析
+    if(filter.toString().contains("*")){
+      Map<String, List<String>> fieldMap = new HashMap<>();
+      getAllPathFromFilterWithWildCards(filter, fieldMap);
+
+      if(fieldMap.isEmpty()){
+        return noWildCardStatement;
+      }
+
+      for (Map.Entry<String, List<String>> mtfEntry : measurementToFieldsMap.entrySet()) {
+        if(measurementName != null && !measurementName.equals(mtfEntry.getKey())){
+          continue;
+        }
+        String tableMeasurement = mtfEntry.getKey();
+        List<String> tableFields = mtfEntry.getValue();
+        for (String tableField: tableFields) {
+          for (Map.Entry<String, List<String>> entry : fieldMap.entrySet()) {
+            String path = entry.getKey();
+            InfluxDBSchema schema = new InfluxDBSchema(path);
+            String measurement = schema.getMeasurement();
+            String field = schema.getField();
+            if (measurement.equals(tableMeasurement) || measurement.equals("*")) {
+              List<String> fields = entry.getValue();
+              String fieldRegex = "^" + field.replace(".", "\\.").replace("*", ".*") + "$";
+              if (Pattern.matches(fieldRegex, tableField)) {
+                if (fields == null) {
+                  fields = new ArrayList<>();
+                }
+                fields.add(tableField);
+                entry.setValue(fields);
+              }
+            }
+          }
+        }
+      }
+
+      // 根据通配符对应的字段生成filter语句
+      Filter matchFilter = filter.copy();
+      for (Map.Entry<String, List<String>> entry: fieldMap.entrySet()){
+        matchFilter = generateFilterByWildCardEntry(matchFilter, entry);
+      }
+
+      if(measurementName != null) {
+        matchFilter = setTrueByMeasurement(matchFilter, measurementName);
+      }
+
+      ExprUtils.mergeTrue(matchFilter);
+
+      if(matchFilter.getType() == FilterType.Bool){
+        return "";
+      }
+
+      return " |> filter(fn: (r) => " +
+              FilterTransformer.toString(matchFilter) +
+              ")";
+    }
+
+    // 没有通配符则直接返回正常拼接的语句
+    return noWildCardStatement;
+  }
+
+  private Map<String, List<String>> getMeasurementToFields(String bucketName) {
+    // 获取所有通配符对应的字段
+    String getFirstRowStatement = "from(bucket: \""
+            + bucketName
+            + "\") |> range(start: 0)"
+            + "|> filter(fn: (r) => r._measurement =~ /.+/) |> first() ";
+
+    List<FluxTable> firstTableList = client.getQueryApi().query(getFirstRowStatement, organization.getId());
+
+    Map<String, List<String>> measurementToFieldsMap = new HashMap<>();
+    for (FluxTable table: firstTableList){
+      String tableMeasurement = table.getRecords().get(0).getValueByKey("_measurement").toString();
+      String tableField = table.getRecords().get(0).getValueByKey("_field").toString();
+
+      List<String> fields;
+      if (measurementToFieldsMap.containsKey(tableMeasurement)) {
+        fields = measurementToFieldsMap.get(tableMeasurement);
+      } else {
+        fields = new ArrayList<>();
+      }
+      fields.add(tableField);
+      measurementToFieldsMap.put(tableMeasurement, fields);
+    }
+
+    return measurementToFieldsMap;
   }
 
   @Override
