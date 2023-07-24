@@ -1,9 +1,8 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream;
 
-import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.constructNewHead;
-
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.HeaderUtils;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
@@ -41,8 +40,8 @@ public class NestedLoopMarkJoinLazyStream extends BinaryLazyStream {
     if (hasInitialized) {
       return;
     }
-    this.targetHeader = constructNewHead(streamA.getHeader(), markJoin.getMarkColumn());
-    this.joinHeader = RowUtils.constructNewHead(streamA.getHeader(), streamB.getHeader(), true);
+    this.targetHeader = HeaderUtils.constructNewHead(streamA.getHeader(), markJoin.getMarkColumn());
+    this.joinHeader = HeaderUtils.constructNewHead(streamA.getHeader(), streamB.getHeader(), true);
     this.hasInitialized = true;
   }
 

@@ -119,10 +119,29 @@ goto okClasspath
 @REM -----------------------------------------------------------------------------
 :okClasspath
 
-@REM set DRIVER=
-@REM setx DRIVER "%IGINX_HOME%\driver"
+set PARAMETERS=%*
 
-"%JAVA_HOME%\bin\java" %JAVA_OPTS% %HEAP_OPTS% -cp %CLASSPATH% %MAIN_CLASS%
+@REM set default parameters
+set d_parameter=-d .
+set h_parameter=-h 127.0.0.1
+set p_parameter=-p 6888
+set u_parameter=-u root
+set pw_parameter=-pw root
+set tf_parameter=-tf timestamp
+set tp_parameter=-tp ms
+
+@REM Added parameters when default parameters are missing
+echo %PARAMETERS% | findstr /c:"-d ">nul && (set PARAMETERS=%PARAMETERS%) || (set PARAMETERS=%d_parameter% %PARAMETERS%)
+echo %PARAMETERS% | findstr /c:"-pw ">nul && (set PARAMETERS=%PARAMETERS%) || (set PARAMETERS=%pw_parameter% %PARAMETERS%)
+echo %PARAMETERS% | findstr /c:"-u ">nul && (set PARAMETERS=%PARAMETERS%) || (set PARAMETERS=%u_parameter% %PARAMETERS%)
+echo %PARAMETERS% | findstr /c:"-p ">nul && (set PARAMETERS=%PARAMETERS%) || (set PARAMETERS=%p_parameter% %PARAMETERS%)
+echo %PARAMETERS% | findstr /c:"-h ">nul && (set PARAMETERS=%PARAMETERS%) || (set PARAMETERS=%h_parameter% %PARAMETERS%)
+echo %PARAMETERS% | findstr /c:"-tf ">nul && (set PARAMETERS=%PARAMETERS%) || (set PARAMETERS=%tf_parameter% %PARAMETERS%)
+echo %PARAMETERS% | findstr /c:"-tp ">nul && (set PARAMETERS=%PARAMETERS%) || (set PARAMETERS=%tp_parameter% %PARAMETERS%)
+
+echo %PARAMETERS%
+
+"%JAVA_HOME%\bin\java" %JAVA_OPTS% %HEAP_OPTS% -cp %CLASSPATH% %MAIN_CLASS% %PARAMETERS%
 
 @REM reg delete "HKEY_CURRENT_USER\Environment" /v "DRIVER" /f
 @REM set DRIVER=

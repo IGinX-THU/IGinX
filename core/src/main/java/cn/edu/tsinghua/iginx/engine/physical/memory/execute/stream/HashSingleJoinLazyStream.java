@@ -1,8 +1,8 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream;
 
-import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils.getJoinPathFromFilter;
-
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.HeaderUtils;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
@@ -37,9 +37,10 @@ public class HashSingleJoinLazyStream extends BinaryLazyStream {
   }
 
   private void initialize() throws PhysicalException {
-    this.header = RowUtils.constructNewHead(streamA.getHeader(), streamB.getHeader(), true);
+    this.header = HeaderUtils.constructNewHead(streamA.getHeader(), streamB.getHeader(), true);
     Pair<String, String> joinPath =
-        getJoinPathFromFilter(singleJoin.getFilter(), streamA.getHeader(), streamB.getHeader());
+        FilterUtils.getJoinPathFromFilter(
+            singleJoin.getFilter(), streamA.getHeader(), streamB.getHeader());
     this.joinPathA = joinPath.k;
     String joinPathB = joinPath.v;
 
@@ -66,9 +67,8 @@ public class HashSingleJoinLazyStream extends BinaryLazyStream {
       } else {
         hash = value.getValue().hashCode();
       }
-      List<Row> rows = streamBHashMap.getOrDefault(hash, new ArrayList<>());
+      List<Row> rows = streamBHashMap.computeIfAbsent(hash, k -> new ArrayList<>());
       rows.add(rowB);
-      streamBHashMap.putIfAbsent(hash, rows);
     }
 
     this.hasInitialized = true;
@@ -120,7 +120,9 @@ public class HashSingleJoinLazyStream extends BinaryLazyStream {
       }
     } else {
       int anotherRowSize = streamB.getHeader().getFieldSize();
-      Row unmatchedRow = RowUtils.constructUnmatchedRow(header, rowA, anotherRowSize, true);
+      Row unmatchedRow =
+          RowUtils.constructUnmatchedRow(
+              header, rowA, singleJoin.getPrefixA(), anotherRowSize, true);
       cache.add(unmatchedRow);
     }
   }

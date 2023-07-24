@@ -1,9 +1,13 @@
 package cn.edu.tsinghua.iginx.engine.logical.generator;
 
+import static cn.edu.tsinghua.iginx.engine.logical.utils.OperatorUtils.translateApply;
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.ALL_PATH_SUFFIX;
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.ORDINAL;
 import static cn.edu.tsinghua.iginx.engine.shared.function.system.ArithmeticExpr.ARITHMETIC_EXPR;
+import static cn.edu.tsinghua.iginx.engine.shared.operator.type.JoinAlgType.chooseJoinAlg;
 import static cn.edu.tsinghua.iginx.metadata.utils.FragmentUtils.keyFromColumnsIntervalToKeyInterval;
+import static cn.edu.tsinghua.iginx.sql.SQLConstant.DOT;
+import static cn.edu.tsinghua.iginx.sql.statement.frompart.join.JoinType.isNaturalJoin;
 
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
@@ -34,9 +38,6 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.SetTransform;
 import cn.edu.tsinghua.iginx.engine.shared.operator.SingleJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Sort;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.FilterType;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.FuncType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.JoinAlgType;
@@ -51,12 +52,12 @@ import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageUnitMeta;
 import cn.edu.tsinghua.iginx.policy.IPolicy;
 import cn.edu.tsinghua.iginx.policy.PolicyManager;
-import cn.edu.tsinghua.iginx.sql.SQLConstant;
 import cn.edu.tsinghua.iginx.sql.expression.Expression;
 import cn.edu.tsinghua.iginx.sql.statement.SelectStatement;
 import cn.edu.tsinghua.iginx.sql.statement.SelectStatement.QueryType;
 import cn.edu.tsinghua.iginx.sql.statement.Statement;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.FromPartType;
+import cn.edu.tsinghua.iginx.sql.statement.frompart.PathFromPart;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.SubQueryFromPart;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.join.JoinCondition;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.join.JoinType;
@@ -108,9 +109,23 @@ public class QueryGenerator extends AbstractGenerator {
           && selectStatement.getFromParts().get(0).getType() == FromPartType.SubQueryFromPart) {
         SubQueryFromPart fromPart = (SubQueryFromPart) selectStatement.getFromParts().get(0);
         root = generateRoot(fromPart.getSubQuery());
+        if (fromPart.hasAlias()) {
+          Map<String, String> map = fromPart.getSubQuery().getSubQueryAliasMap(fromPart.getAlias());
+          root = new Rename(new OperatorSource(root), map);
+        }
       } else {
         policy.notify(selectStatement);
         root = filterAndMergeFragments(selectStatement);
+        if (!selectStatement.getFromParts().isEmpty()
+            && selectStatement.getFromParts().get(0).getType() == FromPartType.PathFromPart) {
+          PathFromPart pathFromPart = (PathFromPart) selectStatement.getFromParts().get(0);
+          if (pathFromPart.hasAlias()) {
+            Map<String, String> map =
+                selectStatement.getFromPathAliasMap(
+                    pathFromPart.getOriginPrefix(), pathFromPart.getAlias());
+            root = new Rename(new OperatorSource(root), map);
+          }
+        }
       }
     }
 
@@ -129,13 +144,7 @@ public class QueryGenerator extends AbstractGenerator {
         Filter filter = whereSubQueryPart.getJoinCondition().getFilter();
         String markColumn = whereSubQueryPart.getJoinCondition().getMarkColumn();
         boolean isAntiJoin = whereSubQueryPart.getJoinCondition().isAntiJoin();
-        JoinAlgType joinAlgType = JoinAlgType.NestedLoopJoin;
-        if (filter.getType().equals(FilterType.Path)) {
-          PathFilter pathFilter = (PathFilter) filter;
-          if (pathFilter.getOp().equals(Op.E)) {
-            joinAlgType = JoinAlgType.HashJoin;
-          }
-        }
+        JoinAlgType joinAlgType = chooseJoinAlg(filter);
 
         if (whereSubQueryPart.getJoinCondition().getJoinType() == JoinType.MarkJoin) {
           root =
@@ -150,6 +159,18 @@ public class QueryGenerator extends AbstractGenerator {
           root =
               new SingleJoin(
                   new OperatorSource(root), new OperatorSource(right), filter, joinAlgType);
+        }
+        List<String> freeVariables = whereSubQueryParts.get(i).getFreeVariables();
+        List<String> correlatedVariables = new ArrayList<>();
+        // 判断右子树中的自由变量是否来自左子树，如果是，记为关联变量
+        for (String freeVariable : freeVariables) {
+          if (selectStatement.hasAttribute(freeVariable, selectStatement.getFromParts().size())) {
+            correlatedVariables.add(freeVariable);
+          }
+        }
+        // 如果右子树中存在关联变量，则将apply算子下推
+        if (!correlatedVariables.isEmpty()) {
+          root = translateApply(root, correlatedVariables);
         }
       }
     }
@@ -169,24 +190,30 @@ public class QueryGenerator extends AbstractGenerator {
           Operator right = generateRoot(selectSubQueryParts.get(i).getSubQuery());
 
           Filter filter = selectSubQueryParts.get(i).getJoinCondition().getFilter();
-          JoinAlgType joinAlgType = JoinAlgType.NestedLoopJoin;
-          if (filter.getType().equals(FilterType.Path)) {
-            PathFilter pathFilter = (PathFilter) filter;
-            if (pathFilter.getOp().equals(Op.E)) {
-              joinAlgType = JoinAlgType.HashJoin;
-            }
-          }
+          JoinAlgType joinAlgType = chooseJoinAlg(filter);
 
           root =
               new SingleJoin(
                   new OperatorSource(root), new OperatorSource(right), filter, joinAlgType);
+          List<String> freeVariables = selectSubQueryParts.get(i).getFreeVariables();
+          List<String> correlatedVariables = new ArrayList<>();
+          // 判断右子树中的自由变量是否来自左子树，如果是，记为关联变量
+          for (String freeVariable : freeVariables) {
+            if (selectStatement.hasAttribute(freeVariable, selectStatement.getFromParts().size())) {
+              correlatedVariables.add(freeVariable);
+            }
+          }
+          // 如果存在关联变量，则将apply算子下推
+          if (!correlatedVariables.isEmpty()) {
+            root = translateApply(root, correlatedVariables);
+          }
         }
       }
     }
 
     List<Operator> queryList = new ArrayList<>();
     if (selectStatement.getQueryType() == QueryType.GroupByQuery) {
-      // Downsample Query
+      // GroupBy Query
       List<FunctionCall> functionCallList = new ArrayList<>();
       selectStatement
           .getFuncExpressionMap()
@@ -322,13 +349,7 @@ public class QueryGenerator extends AbstractGenerator {
         Filter filter = havingSubQueryPart.getJoinCondition().getFilter();
         String markColumn = havingSubQueryPart.getJoinCondition().getMarkColumn();
         boolean isAntiJoin = havingSubQueryPart.getJoinCondition().isAntiJoin();
-        JoinAlgType joinAlgType = JoinAlgType.NestedLoopJoin;
-        if (filter.getType().equals(FilterType.Path)) {
-          PathFilter pathFilter = (PathFilter) filter;
-          if (pathFilter.getOp().equals(Op.E)) {
-            joinAlgType = JoinAlgType.HashJoin;
-          }
-        }
+        JoinAlgType joinAlgType = chooseJoinAlg(filter);
 
         if (havingSubQueryPart.getJoinCondition().getJoinType() == JoinType.MarkJoin) {
           root =
@@ -343,6 +364,18 @@ public class QueryGenerator extends AbstractGenerator {
           root =
               new SingleJoin(
                   new OperatorSource(root), new OperatorSource(right), filter, joinAlgType);
+        }
+        List<String> freeVariables = havingSubQueryParts.get(i).getFreeVariables();
+        List<String> correlatedVariables = new ArrayList<>();
+        // 判断右子树中的自由变量是否来自左子树，如果是，记为关联变量
+        for (String freeVariable : freeVariables) {
+          if (selectStatement.hasAttribute(freeVariable, selectStatement.getFromParts().size())) {
+            correlatedVariables.add(freeVariable);
+          }
+        }
+        // 如果右子树中存在关联变量，则将apply算子下推
+        if (!correlatedVariables.isEmpty()) {
+          root = translateApply(root, correlatedVariables);
         }
       }
     }
@@ -377,9 +410,22 @@ public class QueryGenerator extends AbstractGenerator {
               (int) selectStatement.getOffset());
     }
 
-    if (selectStatement.getLayers().isEmpty()) {
-      if (selectStatement.getQueryType().equals(SelectStatement.QueryType.LastFirstQuery)) {
-        root = new Reorder(new OperatorSource(root), Arrays.asList("path", "value"));
+    // 子查询不生成Reorder算子
+    if (!selectStatement.isSubQuery()) {
+      if (selectStatement.getLayers().isEmpty()) {
+        if (selectStatement.getQueryType().equals(SelectStatement.QueryType.LastFirstQuery)) {
+          root = new Reorder(new OperatorSource(root), Arrays.asList("path", "value"));
+        } else {
+          List<String> order = new ArrayList<>();
+          selectStatement
+              .getExpressions()
+              .forEach(
+                  expression -> {
+                    String colName = expression.getColumnName();
+                    order.add(colName);
+                  });
+          root = new Reorder(new OperatorSource(root), order);
+        }
       } else {
         List<String> order = new ArrayList<>();
         selectStatement
@@ -387,26 +433,16 @@ public class QueryGenerator extends AbstractGenerator {
             .forEach(
                 expression -> {
                   String colName = expression.getColumnName();
+                  colName =
+                      colName.replaceFirst(
+                          selectStatement.getFromParts().get(0).getPrefix() + DOT, "");
                   order.add(colName);
                 });
         root = new Reorder(new OperatorSource(root), order);
       }
-    } else {
-      List<String> order = new ArrayList<>();
-      selectStatement
-          .getExpressions()
-          .forEach(
-              expression -> {
-                String colName = expression.getColumnName();
-                colName =
-                    colName.replaceFirst(
-                        selectStatement.getFromParts().get(0).getPath() + SQLConstant.DOT, "");
-                order.add(colName);
-              });
-      root = new Reorder(new OperatorSource(root), order);
     }
 
-    Map<String, String> aliasMap = selectStatement.getAliasMap();
+    Map<String, String> aliasMap = selectStatement.getSelectAliasMap();
     if (!aliasMap.isEmpty()) {
       root = new Rename(new OperatorSource(root), aliasMap);
     }
@@ -441,41 +477,61 @@ public class QueryGenerator extends AbstractGenerator {
             fromPart -> {
               if (fromPart.getType() == FromPartType.SubQueryFromPart) {
                 SubQueryFromPart subQueryFromPart = (SubQueryFromPart) fromPart;
-                joinList.add(generateRoot(subQueryFromPart.getSubQuery()));
+                Operator root = generateRoot(subQueryFromPart.getSubQuery());
+                // 子查询重命名
+                if (subQueryFromPart.hasAlias()) {
+                  Map<String, String> map =
+                      subQueryFromPart
+                          .getSubQuery()
+                          .getSubQueryAliasMap(subQueryFromPart.getAlias());
+                  root = new Rename(new OperatorSource(root), map);
+                }
+                joinList.add(root);
               } else {
-                String prefix = fromPart.getPath() + ALL_PATH_SUFFIX;
+                PathFromPart pathFromPart = (PathFromPart) fromPart;
+                String prefix = pathFromPart.getOriginPrefix() + ALL_PATH_SUFFIX;
                 Pair<Map<KeyInterval, List<FragmentMeta>>, List<FragmentMeta>> pair =
                     getFragmentsByColumnsInterval(
                         selectStatement, new ColumnsInterval(prefix, prefix));
                 Map<KeyInterval, List<FragmentMeta>> fragments = pair.k;
                 List<FragmentMeta> dummyFragments = pair.v;
-                joinList.add(
+                Operator root =
                     mergeRawData(
-                        fragments, dummyFragments, Collections.singletonList(prefix), tagFilter));
+                        fragments, dummyFragments, Collections.singletonList(prefix), tagFilter);
+                // from的序列的前缀重命名
+                if (pathFromPart.hasAlias()) {
+                  Map<String, String> map =
+                      selectStatement.getFromPathAliasMap(
+                          pathFromPart.getOriginPrefix(), pathFromPart.getAlias());
+                  root = new Rename(new OperatorSource(root), map);
+                }
+                joinList.add(root);
               }
             });
     // 2. merge by declare
     Operator left = joinList.get(0);
-    String prefixA = selectStatement.getGlobalAlias();
+    String prefixA = selectStatement.getFromParts().get(0).getPrefix();
     for (int i = 1; i < joinList.size(); i++) {
       JoinCondition joinCondition = selectStatement.getFromParts().get(i).getJoinCondition();
       Operator right = joinList.get(i);
 
-      String prefixB = selectStatement.getFromParts().get(i).getPath();
+      String prefixB = selectStatement.getFromParts().get(i).getPrefix();
 
-      JoinAlgType joinAlgType = JoinAlgType.NestedLoopJoin;
       Filter filter = joinCondition.getFilter();
-      if (filter != null && filter.getType().equals(FilterType.Path)) {
-        PathFilter pathFilter = (PathFilter) filter;
-        if (pathFilter.getOp() == Op.E) {
-          joinAlgType = JoinAlgType.HashJoin;
+      List<String> joinColumns = joinCondition.getJoinColumns();
+      boolean isNaturalJoin = isNaturalJoin(joinCondition.getJoinType());
+      if (joinColumns == null) {
+        joinColumns = new ArrayList<>();
+      }
+
+      if (!joinColumns.isEmpty() || isNaturalJoin) {
+        if (prefixA == null || prefixB == null) {
+          throw new RuntimeException(
+              "A natural join or a join with USING should have two public prefix");
         }
       }
 
-      List<String> joinColumns = joinCondition.getJoinColumns();
-      if (joinColumns != null && joinColumns.size() == 1) {
-        joinAlgType = JoinAlgType.HashJoin;
-      }
+      JoinAlgType joinAlgType = chooseJoinAlg(filter, isNaturalJoin, joinColumns);
 
       switch (joinCondition.getJoinType()) {
         case CrossJoin:
@@ -483,17 +539,6 @@ public class QueryGenerator extends AbstractGenerator {
               new CrossJoin(new OperatorSource(left), new OperatorSource(right), prefixA, prefixB);
           break;
         case InnerJoin:
-          left =
-              new InnerJoin(
-                  new OperatorSource(left),
-                  new OperatorSource(right),
-                  prefixA,
-                  prefixB,
-                  filter,
-                  joinColumns,
-                  false,
-                  joinAlgType);
-          break;
         case InnerNaturalJoin:
           left =
               new InnerJoin(
@@ -503,9 +548,10 @@ public class QueryGenerator extends AbstractGenerator {
                   prefixB,
                   filter,
                   joinColumns,
-                  true,
+                  isNaturalJoin,
                   joinAlgType);
           break;
+        case LeftOuterJoin:
         case LeftNaturalJoin:
           left =
               new OuterJoin(
@@ -516,20 +562,22 @@ public class QueryGenerator extends AbstractGenerator {
                   OuterJoinType.LEFT,
                   filter,
                   joinColumns,
-                  true,
+                  isNaturalJoin,
                   joinAlgType);
           break;
+        case RightOuterJoin:
         case RightNaturalJoin:
-          new OuterJoin(
-              new OperatorSource(left),
-              new OperatorSource(right),
-              prefixA,
-              prefixB,
-              OuterJoinType.RIGHT,
-              filter,
-              joinColumns,
-              true,
-              joinAlgType);
+          left =
+              new OuterJoin(
+                  new OperatorSource(left),
+                  new OperatorSource(right),
+                  prefixA,
+                  prefixB,
+                  OuterJoinType.RIGHT,
+                  filter,
+                  joinColumns,
+                  isNaturalJoin,
+                  joinAlgType);
           break;
         case FullOuterJoin:
           left =
@@ -541,37 +589,24 @@ public class QueryGenerator extends AbstractGenerator {
                   OuterJoinType.FULL,
                   filter,
                   joinColumns,
-                  false,
-                  joinAlgType);
-          break;
-        case LeftOuterJoin:
-          left =
-              new OuterJoin(
-                  new OperatorSource(left),
-                  new OperatorSource(right),
-                  prefixA,
-                  prefixB,
-                  OuterJoinType.LEFT,
-                  filter,
-                  joinColumns,
-                  false,
-                  joinAlgType);
-          break;
-        case RightOuterJoin:
-          left =
-              new OuterJoin(
-                  new OperatorSource(left),
-                  new OperatorSource(right),
-                  prefixA,
-                  prefixB,
-                  OuterJoinType.RIGHT,
-                  filter,
-                  joinColumns,
-                  false,
+                  isNaturalJoin,
                   joinAlgType);
           break;
         default:
           break;
+      }
+
+      List<String> freeVariables = selectStatement.getFromParts().get(i).getFreeVariables();
+      List<String> correlatedVariables = new ArrayList<>();
+      // 判断右子树中的自由变量是否来自左子树，如果是，记为关联变量
+      for (String freeVariable : freeVariables) {
+        if (selectStatement.hasAttribute(freeVariable, i)) {
+          correlatedVariables.add(freeVariable);
+        }
+      }
+      // 如果右子树中存在关联变量，则将apply算子下推
+      if (!correlatedVariables.isEmpty()) {
+        left = translateApply(left, correlatedVariables);
       }
 
       prefixA = prefixB;

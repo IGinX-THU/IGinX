@@ -161,6 +161,17 @@ public class ValueUtils {
     return "";
   }
 
+  public static int getHash(Value value, boolean needTypeCast) {
+    if (needTypeCast) {
+      value = ValueUtils.transformToDouble(value);
+    }
+    if (value.getDataType() == DataType.BINARY) {
+      return Arrays.hashCode(value.getBinaryV());
+    } else {
+      return value.getValue().hashCode();
+    }
+  }
+
   public static Comparator<Row> firstLastRowComparator() {
     return (o1, o2) -> {
       if (o1.getKey() < o2.getKey()) {
