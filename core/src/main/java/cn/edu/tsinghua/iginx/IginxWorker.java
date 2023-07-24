@@ -538,7 +538,8 @@ public class IginxWorker implements IService.Iface {
           MetaStorageInfo metaStorageInfo =
               new MetaStorageInfo(
                       ipAndPort[0].equals("host.docker.internal") ? System.getenv("ip") : ipAndPort[0],
-                      Integer.parseInt(ipAndPort[1]), Constants.ETCD_META);
+                      Integer.parseInt(ipAndPort[1]),
+                      Constants.ETCD_META);
           metaStorageInfos.add(metaStorageInfo);
         }
         break;
@@ -550,7 +551,8 @@ public class IginxWorker implements IService.Iface {
           MetaStorageInfo metaStorageInfo =
               new MetaStorageInfo(
                   ipAndPort[0].equals("host.docker.internal") ? System.getenv("ip") : ipAndPort[0],
-                      Integer.parseInt(ipAndPort[1]), Constants.ZOOKEEPER_META);
+                      Integer.parseInt(ipAndPort[1]),
+                      Constants.ZOOKEEPER_META);
           metaStorageInfos.add(metaStorageInfo);
         }
         break;

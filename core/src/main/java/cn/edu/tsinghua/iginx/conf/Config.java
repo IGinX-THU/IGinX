@@ -190,8 +190,6 @@ public class Config {
 
   /////////////
 
-  private boolean isLocalParquetStorage = true;
-
   private int parallelFilterThreshold = 10000;
 
   private int parallelGroupByRowsThreshold = 10000;
@@ -806,14 +804,6 @@ public class Config {
 
   public void setMaxThriftWrokerThreadNum(int maxThriftWrokerThreadNum) {
     this.maxThriftWrokerThreadNum = maxThriftWrokerThreadNum;
-  }
-
-  public boolean isLocalParquetStorage() {
-    return isLocalParquetStorage;
-  }
-
-  public void setLocalParquetStorage(boolean localParquetStorage) {
-    isLocalParquetStorage = localParquetStorage;
   }
 
   public int getParallelFilterThreshold() {
