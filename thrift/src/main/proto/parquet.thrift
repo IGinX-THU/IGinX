@@ -1,5 +1,34 @@
-include "common.thrift"
 namespace java cn.edu.tsinghua.iginx.parquet.thrift
+
+struct Status {
+    1: required i32 code
+    2: required string message
+}
+
+enum TagFilterType {
+    Base,
+    And,
+    Or,
+    BasePrecise,
+    Precise,
+    WithoutTag,
+}
+
+struct RawTagFilter {
+    1: required TagFilterType type
+    2: optional string key
+    3: optional string value
+    4: optional map<string, string> tags
+    5: optional list<RawTagFilter> children
+}
+
+struct ProjectReq {
+    1: required string storageUnit
+    2: required bool isDummyStorageUnit
+    3: required list<string> paths
+    4: optional RawTagFilter tagFilter
+    5: optional string filter
+}
 
 struct ParquetHeader {
     1: required list<string> names
@@ -14,16 +43,8 @@ struct ParquetRow {
     3: required binary bitmap
 }
 
-struct ProjectReq {
-    1: required string storageUnit
-    2: required bool isDummyStorageUnit
-    3: required list<string> paths
-    4: optional common.RawTagFilter tagFilter
-    5: optional string filter
-}
-
 struct ProjectResp {
-    1: required common.Status status
+    1: required Status status
     2: optional ParquetHeader header
     3: optional list<ParquetRow> rows
 }
@@ -53,8 +74,16 @@ struct ParquetKeyRange {
 struct DeleteReq {
     1: required string storageUnit
     2: required list<string> paths
-    3: optional common.RawTagFilter tagFilter
+    3: optional RawTagFilter tagFilter
     4: optional list<ParquetKeyRange> keyRanges
+}
+
+struct GetStorageBoundaryResp {
+    1: required Status status
+    2: optional i64 startKey
+    3: optional i64 endKey
+    4: optional string startColumn
+    5: optional string endColumn
 }
 
 struct TS {
@@ -64,7 +93,7 @@ struct TS {
 }
 
 struct GetColumnsOfStorageUnitResp {
-    1: required common.Status status
+    1: required Status status
     2: optional list<TS> tsList
 }
 
@@ -72,12 +101,12 @@ service ParquetService {
 
     ProjectResp executeProject(1: ProjectReq req);
 
-    common.Status executeInsert(1: InsertReq req);
+    Status executeInsert(1: InsertReq req);
 
-    common.Status executeDelete(1: DeleteReq req);
+    Status executeDelete(1: DeleteReq req);
 
     GetColumnsOfStorageUnitResp getColumnsOfStorageUnit(1: string storageUnit);
 
-    common.GetStorageBoundaryResp getBoundaryOfStorage();
+    GetStorageBoundaryResp getBoundaryOfStorage();
 
 }

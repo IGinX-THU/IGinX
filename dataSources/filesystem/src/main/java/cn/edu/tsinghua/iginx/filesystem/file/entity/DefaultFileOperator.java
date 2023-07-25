@@ -532,7 +532,7 @@ public class DefaultFileOperator implements IFileOperator {
         writer.write(
             fileMeta.getTag() == null
                 ? "{}"
-                : new String(JsonUtils.toJsonWithoutClassName(fileMeta.getTag())));
+                : new String(JsonUtils.toJson(fileMeta.getTag())));
         writer.write("\n");
         for (int i = 0; i < FileMeta.iginxFileMetaIndex - 3; i++) {
           writer.write("\n");

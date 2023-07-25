@@ -11,6 +11,7 @@ import cn.edu.tsinghua.iginx.filesystem.query.FSResultTable;
 import cn.edu.tsinghua.iginx.filesystem.thrift.FSFilter;
 import cn.edu.tsinghua.iginx.filesystem.tools.ConfLoader;
 import cn.edu.tsinghua.iginx.filesystem.tools.FilterTransformer;
+import cn.edu.tsinghua.iginx.filesystem.tools.KVCache;
 import cn.edu.tsinghua.iginx.filesystem.tools.TagKVUtils;
 import cn.edu.tsinghua.iginx.filesystem.wrapper.Record;
 import cn.edu.tsinghua.iginx.thrift.DataType;
@@ -25,9 +26,13 @@ import java.io.*;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.stream.Collectors;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import oshi.util.tuples.Triplet;
+
+import static cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op.*;
 
 /*
  * 缓存，索引以及优化策略都在这里执行
@@ -48,57 +53,109 @@ public class FileSystemService {
     return readFile(file, null, filter);
   }
 
-  public static List<List<String>> expressionToParts(String expr) {
-    List<List<String>> result = new ArrayList<>();
-    int start = 0, left = 0, right = 0;
-    for (int i = 0; i < expr.length(); i++) {
-      char c = expr.charAt(i);
-      if (c == '(') {
-        left++;
-        right = expr.indexOf(")", left);
-      }
-
-      if (c == '|') {
-        result.add(StringUtils.splitAround(expr, left + 1, right, "&"));
-        start = i;
-      }
-    }
-    if (start < expr.length()) {
-      if (expr.contains("(")) {
-        left = expr.indexOf("(", start);
-        right = expr.indexOf(")", left);
-        result.add(StringUtils.splitAround(expr, left + 1, right, "&"));
+  public static List<List<String>> expressionToParts(String expression) {
+    List<List<String>> parts = new ArrayList<>();
+    String[] terms = expression.split("\\|");
+    for (String term : terms) {
+      term = term.trim().replace("(", "").replace(")", "");
+      if (term.contains("&")) {
+        parts.add(Arrays.stream(term.split("&"))
+            .map(String::trim)
+            .collect(Collectors.toList()));
       } else {
-        List<String> part = new ArrayList<>(Collections.singleton(expr));
-        result.add(part);
+        parts.add(Arrays.asList(term));
       }
     }
-    return result;
+    return parts;
   }
 
-  private static Pair<Long, Long> parseKey(List<String> part, BiMap<String, String> vals) {
-    Long minTime = Long.MAX_VALUE, maxTime = 0L;
+//  public static List<List<String>> expressionToParts(String expr) {
+//    List<List<String>> result = new ArrayList<>();
+//    int start = 0, left = 0, right = 0;
+//    for (int i = 0; i < expr.length(); i++) {
+//      char c = expr.charAt(i);
+//      if (c == '(') {
+//        left++;
+//        right = expr.indexOf(")", left);
+//      }
+//
+//      if (c == '|') {
+//        result.add(StringUtils.splitAround(expr, left + 1, right, "&"));
+//        start = i;
+//      }
+//    }
+//    if (start < expr.length()) {
+//      if (expr.contains("(")) {
+//        left = expr.indexOf("(", start);
+//        right = expr.indexOf(")", left);
+//        result.add(StringUtils.splitAround(expr, left + 1, right, "&"));
+//      } else {
+//        List<String> part = new ArrayList<>(Collections.singleton(expr));
+//        result.add(part);
+//      }
+//    }
+//    return result;
+//  }
+
+  private static class PairComparator implements Comparator<Pair<Long, Op>> {
+    @Override
+    public int compare(Pair<Long, Op> p1, Pair<Long, Op> p2) {
+      return Long.compare(p1.getK(), p2.getK());
+    }
+  }
+
+  // 全部返回为左右闭区间
+  private static List<Pair<Long,Long>> parseKey(List<String> part, BiMap<String, String> vals) {
+    PriorityQueue<Pair<Long, Op>> queue = new PriorityQueue<>(new PairComparator());
+    List<Pair<Long,Long>> res = new ArrayList<>();
+    Long minTime = 0L, maxTime = Long.MAX_VALUE;
+    Pair<Long,Op> point =null;
     for (String p : part) {
       String val = vals.get(p);
       if (val.contains("key")) {
         String[] parts = val.split(" ");
         String op = parts[1];
-        switch (Op.str2Op(op)) {
-          case L:
-          case LE:
-            maxTime = Math.max(maxTime, Long.parseLong(parts[2]));
-            break;
-          case GE:
-          case G:
-            minTime = Math.min(minTime, Long.parseLong(parts[2]));
-            break;
-          default:
-            break;
+        Long key = Long.parseLong(parts[2]);
+        if (Op.str2Op(op)==NE){
+          queue.add(new Pair<>(key,L));
+          queue.add(new Pair<>(key,G));
+        } else {
+          point = new Pair<>(key,Op.str2Op(op));
         }
       }
+      queue.add(point);
     }
-    return new Pair<>(
-        minTime == Long.MAX_VALUE ? 0 : minTime, maxTime == 0 ? Long.MAX_VALUE : maxTime);
+    while(!queue.isEmpty()) {
+     point = queue.poll();
+      Long key = point.getK();
+      switch (point.getV()) {
+        case L:
+          res.add(new Pair<>(minTime,key-1>=0?key-1:0));
+          minTime = 0L;
+          maxTime = Long.MAX_VALUE;
+          break;
+        case LE:
+          res.add(new Pair<>(minTime,key));
+          minTime = 0L;
+          maxTime = Long.MAX_VALUE;
+          break;
+        case GE:
+          minTime = key;
+          break;
+        case G:
+          minTime = key+1;
+          break;
+        case E:
+          res.add(new Pair<>(key,key));
+          minTime = 0L;
+          maxTime = Long.MAX_VALUE;
+          break;
+        case NE:
+        default:
+          break;
+      }
+    }
+    return res;
   }
 
   private static List<Triplet<String, Op, Object>> parseVal(
@@ -114,23 +171,47 @@ public class FileSystemService {
     return res;
   }
 
-  private static List<Pair<Pair<Long, Long>, List<Triplet<String, Op, Object>>>> parseFilter(
-      FSFilter filter) {
-    List<Pair<Pair<Long, Long>, List<Triplet<String, Op, Object>>>> res = new ArrayList<>();
-
-    BiMap<String, String> vals = HashBiMap.create();
+  private static List<List<String>> getDNFExpre (FSFilter filter,BiMap<String, String> vals) {
+    Object res = KVCache.getV(filter);
+    if (res instanceof List<?>) {
+      return (List<List<String>>) res;
+    }
     String filterExp = FilterTransformer.toString(filter, vals);
     Expression<String> nonStandard = ExprParser.parse(filterExp);
-    Expression<String> sopForm = RuleSet.toDNF(nonStandard);
+    Expression<String> expre = RuleSet.toDNF(nonStandard);
+    return expressionToParts(expre.toString());
+  }
 
-    List<List<String>> parts = expressionToParts(sopForm.toString());
+  private static List<List<Pair<Long,Long>>> parseKeyFilter (FSFilter filter) {
+    List<List<Pair<Long,Long>>> res = new ArrayList<>();
+    BiMap<String, String> vals = HashBiMap.create();
+    List<List<String>> parts = getDNFExpre(filter,vals);
+    List<Pair<Long,Long>> keyRanges = new ArrayList<>();
     for (List<String> l : parts) {
-      Pair<Long, Long> keys = parseKey(l, vals);
-      List<Triplet<String, Op, Object>> valFilter = parseVal(l, vals);
-      res.add(new Pair<>(keys, valFilter));
+      res.add(parseKey(l, vals));
     }
     return res;
   }
+
+//  private static List<Pair<Pair<Long, Long>, List<Triplet<String, Op, Object>>>> parseValueFilter(
+//      FSFilter filter) {
+//    List<Pair<Pair<Long, Long>, List<Triplet<String, Op, Object>>>> res = new ArrayList<>();
+//
+//
+//    BiMap<String, String> vals = HashBiMap.create();
+//    String filterExp = FilterTransformer.toString(filter, vals);
+//    Expression<String> nonStandard = ExprParser.parse(filterExp);
+//    Expression<String> sopForm = RuleSet.toDNF(nonStandard);
+//
+//    // 获得DNF范式，每个List中的元素都是&&表达式连接
+//    List<List<String>> parts = expressionToParts(sopForm.toString());
+//    for (List<String> l : parts) {
+//      keyRanges = parseKey(l, vals);
+//      List<Triplet<String, Op, Object>> valFilter = parseVal(l, vals);
+//      res.add(new Pair<>(keyRanges, valFilter));
+//    }
+//    return res;
+//  }
 
   public static int compareObjects(DataType dataType, Object a, Object b) {
     switch (dataType) {
@@ -158,6 +239,7 @@ public class FileSystemService {
       for (Pair<Pair<Long, Long>, List<Triplet<String, Op, Object>>> ft : filters) {
         long startTime = ft.k.k, endTime = ft.k.v;
         List<Record> val = new ArrayList<>(), valf = new ArrayList<>();
+
         val = doReadFile(f, startTime, endTime); // do read file here
 
         if (FileType.getFileType(f) == FileType.IGINX_FILE) {
@@ -210,9 +292,10 @@ public class FileSystemService {
       return new ArrayList<>();
     }
 
-    List<Pair<Pair<Long, Long>, List<Triplet<String, Op, Object>>>> fts = parseFilter(filter);
+//    List<Pair<Pair<Long, Long>, List<Triplet<String, Op, Object>>>> fts = parseFilter(filter);
 
-    return getValWithFilter(files, fts);
+//    return getValWithFilter(files, fts);
+    return null;
   }
 
   // TODO:返回空值
