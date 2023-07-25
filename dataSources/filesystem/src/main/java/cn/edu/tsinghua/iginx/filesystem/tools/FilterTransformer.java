@@ -1,10 +1,14 @@
 package cn.edu.tsinghua.iginx.filesystem.tools;
 
-import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.filesystem.thrift.FSFilter;
+import cn.edu.tsinghua.iginx.filesystem.thrift.FilterType;
+import cn.edu.tsinghua.iginx.filesystem.thrift.Op;
+import cn.edu.tsinghua.iginx.filesystem.thrift.Value;
 import com.google.common.collect.BiMap;
 import java.util.*;
+
+import static cn.edu.tsinghua.iginx.filesystem.thrift.FilterType.Or;
 
 public class FilterTransformer {
   private static int index = 0;
@@ -34,7 +38,7 @@ public class FilterTransformer {
   }
 
   private static FSFilter toFSFilter(AndFilter filter) {
-    FSFilter fsFilter = new FSFilter(cn.edu.tsinghua.iginx.common.thrift.FilterType.And);
+    FSFilter fsFilter = new FSFilter(FilterType.And);
     for (Filter f : filter.getChildren()) {
       fsFilter.addToChildren(toFSFilter(f));
     }
@@ -42,7 +46,7 @@ public class FilterTransformer {
   }
 
   private static FSFilter toFSFilter(OrFilter filter) {
-    FSFilter fsFilter = new FSFilter(cn.edu.tsinghua.iginx.common.thrift.FilterType.Or);
+    FSFilter fsFilter = new FSFilter(Or);
     for (Filter f : filter.getChildren()) {
       fsFilter.addToChildren(toFSFilter(f));
     }
@@ -50,20 +54,20 @@ public class FilterTransformer {
   }
 
   private static FSFilter toFSFilter(NotFilter filter) {
-    FSFilter fsFilter = new FSFilter(cn.edu.tsinghua.iginx.common.thrift.FilterType.Not);
+    FSFilter fsFilter = new FSFilter(FilterType.Not);
     fsFilter.addToChildren(toFSFilter(filter.getChild()));
     return fsFilter;
   }
 
   private static FSFilter toFSFilter(KeyFilter filter) {
-    FSFilter fsFilter = new FSFilter(cn.edu.tsinghua.iginx.common.thrift.FilterType.Key);
+    FSFilter fsFilter = new FSFilter(FilterType.Key);
     fsFilter.setOp(toFSOp(filter.getOp()));
     fsFilter.setKeyValue(filter.getValue());
     return fsFilter;
   }
 
   private static FSFilter toFSFilter(ValueFilter filter) {
-    FSFilter fsFilter = new FSFilter(cn.edu.tsinghua.iginx.common.thrift.FilterType.Value);
+    FSFilter fsFilter = new FSFilter(FilterType.Value);
     fsFilter.setValue(toFSValue(filter.getValue()));
     fsFilter.setPath(filter.getPath());
     fsFilter.setOp(toFSOp(filter.getOp()));
@@ -71,33 +75,32 @@ public class FilterTransformer {
   }
 
   private static FSFilter toFSFilter(BoolFilter filter) {
-    FSFilter fsFilter = new FSFilter(cn.edu.tsinghua.iginx.common.thrift.FilterType.Bool);
+    FSFilter fsFilter = new FSFilter(FilterType.Bool);
     fsFilter.setIsTrue(filter.isTrue());
     return fsFilter;
   }
 
-  private static cn.edu.tsinghua.iginx.common.thrift.Op toFSOp(Op op) {
+  private static Op toFSOp( cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op op) {
     switch (op) {
       case L:
-        return cn.edu.tsinghua.iginx.common.thrift.Op.L;
+        return Op.L;
       case LE:
-        return cn.edu.tsinghua.iginx.common.thrift.Op.L;
+        return Op.L;
       case LIKE:
-        return cn.edu.tsinghua.iginx.common.thrift.Op.LIKE;
+        return Op.LIKE;
       case NE:
-        return cn.edu.tsinghua.iginx.common.thrift.Op.NE;
+        return Op.NE;
       case GE:
-        return cn.edu.tsinghua.iginx.common.thrift.Op.GE;
+        return Op.GE;
       case G:
-        return cn.edu.tsinghua.iginx.common.thrift.Op.G;
+        return Op.G;
       default:
-        return cn.edu.tsinghua.iginx.common.thrift.Op.UNKNOW;
+        return Op.UNKNOW;
     }
   }
 
-  private static cn.edu.tsinghua.iginx.common.thrift.Value toFSValue(Value value) {
-    cn.edu.tsinghua.iginx.common.thrift.Value fsValue =
-        new cn.edu.tsinghua.iginx.common.thrift.Value();
+  private static Value toFSValue(cn.edu.tsinghua.iginx.engine.shared.data.Value value) {
+    Value fsValue = new Value();
     fsValue.setDataType(value.getDataType());
     switch (value.getDataType()) {
       case FLOAT:
@@ -167,7 +170,7 @@ public class FilterTransformer {
 
   private static String toValueString(FSFilter filter, BiMap<String, String> vals) {
     String val;
-    if (filter.getOp().equals(cn.edu.tsinghua.iginx.common.thrift.Op.LIKE)) {
+    if (filter.getOp().equals(Op.LIKE)) {
       val = filter.getPath() + " like " + filter.getValue().binaryV.toString();
     } else {
       val = filter.getPath() + " " + fsOp2Str(filter.getOp()) + " " + filter.getValue();
@@ -189,7 +192,7 @@ public class FilterTransformer {
     return res;
   }
 
-  private static String fsOp2Str(cn.edu.tsinghua.iginx.common.thrift.Op op) {
+  private static String fsOp2Str(Op op) {
     switch (op) {
       case GE:
         return ">=";

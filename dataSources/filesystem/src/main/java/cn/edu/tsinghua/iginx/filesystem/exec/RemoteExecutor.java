@@ -1,7 +1,5 @@
 package cn.edu.tsinghua.iginx.filesystem.exec;
 
-import cn.edu.tsinghua.iginx.common.thrift.*;
-import cn.edu.tsinghua.iginx.common.thrift.TagFilterType;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
@@ -17,6 +15,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.write.RawDataType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.*;
 import cn.edu.tsinghua.iginx.filesystem.thrift.*;
 import cn.edu.tsinghua.iginx.filesystem.thrift.ProjectReq;
+import cn.edu.tsinghua.iginx.filesystem.thrift.TagFilterType;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.thrift.DataType;
