@@ -82,7 +82,7 @@ public class LocalExecutor implements Executor {
           String.format(
               "read file error, storageUnit %s, series(%s), tagFilter(%s), filter(%s)",
               storageUnit, series, tagFilter, filter));
-      logger.error(e.getMessage());
+      e.printStackTrace();
       return new TaskExecuteResult(
           new PhysicalTaskExecuteFailureException("execute project task in fileSystem failure", e));
     }
