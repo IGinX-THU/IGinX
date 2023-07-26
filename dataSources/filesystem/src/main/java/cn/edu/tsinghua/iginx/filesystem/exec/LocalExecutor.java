@@ -19,7 +19,6 @@ import cn.edu.tsinghua.iginx.filesystem.filesystem.FileSystemService;
 import cn.edu.tsinghua.iginx.filesystem.query.FSResultTable;
 import cn.edu.tsinghua.iginx.filesystem.query.FileSystemHistoryQueryRowStream;
 import cn.edu.tsinghua.iginx.filesystem.query.FileSystemQueryRowStream;
-import cn.edu.tsinghua.iginx.filesystem.thrift.FSFilter;
 import cn.edu.tsinghua.iginx.filesystem.wrapper.Record;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
@@ -52,7 +51,7 @@ public class LocalExecutor implements Executor {
   public TaskExecuteResult executeProjectTask(
       List<String> paths,
       TagFilter tagFilter,
-      FSFilter filter,
+      String filter,
       String storageUnit,
       boolean isDummyStorageUnit) {
     if (isDummyStorageUnit) {
@@ -67,7 +66,7 @@ public class LocalExecutor implements Executor {
   }
 
   public TaskExecuteResult executeQueryTask(
-      String storageUnit, List<String> series, TagFilter tagFilter, FSFilter filter) {
+      String storageUnit, List<String> series, TagFilter tagFilter, String filter) {
     try {
       List<FSResultTable> result = new ArrayList<>();
       logger.info("[Query] execute query file: " + series);
@@ -88,7 +87,7 @@ public class LocalExecutor implements Executor {
     }
   }
 
-  private TaskExecuteResult executeDummyProjectTask(List<String> series, FSFilter filter) {
+  private TaskExecuteResult executeDummyProjectTask(List<String> series, String filter) {
     try {
       List<FSResultTable> result = new ArrayList<>();
       logger.info("[Query] execute dummy query file: " + series);

@@ -17,7 +17,7 @@ public interface Executor {
   TaskExecuteResult executeProjectTask(
       List<String> paths,
       TagFilter tagFilter,
-      FSFilter filter,
+      String filter,
       String storageUnit,
       boolean isDummyStorageUnit);
 

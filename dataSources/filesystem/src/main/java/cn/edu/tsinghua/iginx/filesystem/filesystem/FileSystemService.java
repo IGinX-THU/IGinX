@@ -1,5 +1,6 @@
 package cn.edu.tsinghua.iginx.filesystem.filesystem;
 
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.filesystem.file.IFileOperator;
@@ -8,7 +9,6 @@ import cn.edu.tsinghua.iginx.filesystem.file.property.FileMeta;
 import cn.edu.tsinghua.iginx.filesystem.file.property.FilePath;
 import cn.edu.tsinghua.iginx.filesystem.file.property.FileType;
 import cn.edu.tsinghua.iginx.filesystem.query.FSResultTable;
-import cn.edu.tsinghua.iginx.filesystem.thrift.FSFilter;
 import cn.edu.tsinghua.iginx.filesystem.tools.ConfLoader;
 import cn.edu.tsinghua.iginx.filesystem.tools.FilterTransformer;
 import cn.edu.tsinghua.iginx.filesystem.tools.KVCache;
@@ -49,7 +49,7 @@ public class FileSystemService {
     FilePath.setSeparator(System.getProperty("file.separator"));
   }
 
-  public static List<FSResultTable> readFile(File file, FSFilter filter) throws IOException {
+  public static List<FSResultTable> readFile(File file, Filter filter) throws IOException {
     return readFile(file, null, filter);
   }
 
@@ -174,7 +174,7 @@ public class FileSystemService {
     return res;
   }
 
-  private static List<List<String>> getDNFExpre (FSFilter filter,BiMap<String, String> vals) {
+  private static List<List<String>> getDNFExpre (Filter filter,BiMap<String, String> vals) {
     Object res = KVCache.getV(filter);
     if (res instanceof List<?>) {
       return (List<List<String>>) res;
@@ -185,7 +185,7 @@ public class FileSystemService {
     return expressionToParts(expre.toString());
   }
 
-  private static List<List<Pair<Long,Long>>> parseKeyFilter (FSFilter filter) {
+  private static List<List<Pair<Long,Long>>> parseKeyFilter (Filter filter) {
     List<List<Pair<Long,Long>>> res = new ArrayList<>();
     BiMap<String, String> vals = HashBiMap.create();
     List<List<String>> parts = getDNFExpre(filter,vals);
@@ -289,7 +289,7 @@ public class FileSystemService {
     return res;
   }
 
-  public static List<FSResultTable> readFile(File file, TagFilter tagFilter, FSFilter filter)
+  public static List<FSResultTable> readFile(File file, TagFilter tagFilter, Filter filter)
       throws IOException {
     //首先通过tag和file，找到所有有关的文件列表
     List<File> files = getFilesWithTagFilter(file, tagFilter);
