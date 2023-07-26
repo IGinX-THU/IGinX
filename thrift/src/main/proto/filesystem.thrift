@@ -1,3 +1,4 @@
+include "rpc.thrift"
 namespace java cn.edu.tsinghua.iginx.filesystem.thrift
 
 struct Status {

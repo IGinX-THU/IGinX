@@ -1,8 +1,6 @@
 package cn.edu.tsinghua.iginx.filesystem.tools;
 
-import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
-import cn.edu.tsinghua.iginx.filesystem.thrift.FSFilter;
 import cn.edu.tsinghua.iginx.utils.JsonUtils;
 import com.google.common.collect.BiMap;
 import java.util.*;

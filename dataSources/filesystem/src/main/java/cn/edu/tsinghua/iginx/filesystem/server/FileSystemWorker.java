@@ -1,8 +1,5 @@
 package cn.edu.tsinghua.iginx.filesystem.server;
 
-import cn.edu.tsinghua.iginx.common.thrift.GetStorageBoundaryResp;
-import cn.edu.tsinghua.iginx.common.thrift.RawTagFilter;
-import cn.edu.tsinghua.iginx.common.thrift.Status;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;

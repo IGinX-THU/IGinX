@@ -61,7 +61,7 @@ public class FileSystem implements IStorage {
   private String root = ConfLoader.getRootPath();
 
   public FileSystem(StorageEngineMeta meta)
-      throws StorageInitializationException, TTransportException {
+          throws StorageInitializationException, TTransportException {
     if (!meta.getStorageEngine().equals(STORAGE_ENGINE)) {
       throw new StorageInitializationException("unexpected database: " + meta.getStorageEngine());
     }
