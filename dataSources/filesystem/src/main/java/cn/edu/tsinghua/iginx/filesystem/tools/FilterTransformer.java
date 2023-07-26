@@ -3,6 +3,7 @@ package cn.edu.tsinghua.iginx.filesystem.tools;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.filesystem.thrift.FSFilter;
+import cn.edu.tsinghua.iginx.utils.JsonUtils;
 import com.google.common.collect.BiMap;
 import java.util.*;
 
@@ -10,6 +11,17 @@ public class FilterTransformer {
   private static int index = 0;
   private static int deep = 0;
   private static String prefix = "A";
+
+  public static String toString(Filter filter) {
+    if (filter == null) {
+      return null;
+    }
+    return new String(JsonUtils.toJsonWithClassName(filter));
+  }
+
+  public static Filter toFilter(String filter) {
+    return JsonUtils.fromJson(filter.getBytes(), Filter.class);
+  }
 
   public static FSFilter toFSFilter(Filter filter) {
     if (filter == null) {

@@ -108,7 +108,7 @@ public class FileSystemService {
   private static List<Pair<Long,Long>> parseKey(List<String> part, BiMap<String, String> vals) {
     PriorityQueue<Pair<Long, Op>> queue = new PriorityQueue<>(new PairComparator());
     List<Pair<Long,Long>> res = new ArrayList<>();
-    Long minTime = 0L, maxTime = Long.MAX_VALUE;
+    Long minTime = -1L, maxTime = Long.MAX_VALUE;
     Pair<Long,Op> point =null;
     for (String p : part) {
       String val = vals.get(p);
@@ -131,12 +131,12 @@ public class FileSystemService {
       switch (point.getV()) {
         case L:
           res.add(new Pair<>(minTime,key-1>=0?key-1:0));
-          minTime = 0L;
+          minTime = -1L;
           maxTime = Long.MAX_VALUE;
           break;
         case LE:
           res.add(new Pair<>(minTime,key));
-          minTime = 0L;
+          minTime = -1L;
           maxTime = Long.MAX_VALUE;
           break;
         case GE:
@@ -147,13 +147,16 @@ public class FileSystemService {
           break;
         case E:
           res.add(new Pair<>(key,key));
-          minTime = 0L;
+          minTime = -1L;
           maxTime = Long.MAX_VALUE;
           break;
         case NE:
         default:
           break;
       }
+    }
+    if (minTime!=-1L) {
+      res.add(new Pair<>(minTime,maxTime));
     }
     return res;
   }
@@ -231,6 +234,7 @@ public class FileSystemService {
     }
   }
 
+  // 获取经过Filter后的val值
   public static List<FSResultTable> getValWithFilter(
       List<File> files, List<Pair<Pair<Long, Long>, List<Triplet<String, Op, Object>>>> filters)
       throws IOException {
@@ -287,6 +291,7 @@ public class FileSystemService {
 
   public static List<FSResultTable> readFile(File file, TagFilter tagFilter, FSFilter filter)
       throws IOException {
+    //首先通过tag和file，找到所有有关的文件列表
     List<File> files = getFilesWithTagFilter(file, tagFilter);
     if (files == null) {
       return new ArrayList<>();
@@ -303,6 +308,7 @@ public class FileSystemService {
     return doReadFile(file, begin, end);
   }
 
+  // 执行读文件，返回文件内容
   private static List<Record> doReadFile(File file, long begin, long end) throws IOException {
     List<Record> res = new ArrayList<>();
     switch (FileType.getFileType(file)) {
@@ -332,9 +338,13 @@ public class FileSystemService {
   public static Exception writeFile(File file, List<Record> value, Map<String, String> tag)
       throws IOException {
     File tmpFile;
+    // 判断是否已经创建了对应的文件
     tmpFile = getFileWithTag(file, tag);
+    // 如果是首次写入该序列
     if (tmpFile == null) {
+      // 判断该文件的后缀id
       file = determineFileId(file, tag);
+      // 创建该文件
       file = createIginxFile(file, value.get(0).getDataType(), tag);
     } else {
       file = tmpFile;
@@ -383,6 +393,7 @@ public class FileSystemService {
         return new IOException("Failed to delete file: " + file.getAbsolutePath());
       }
       File parent = file.getParentFile();
+      // 如果父文件夹空，则连带删除父文件夹
       while (parent != null && parent.isDirectory() && fileOperator.listFiles(parent) == null) {
         if (!fileOperator.delete(parent)) {
           return new IOException("Failed to delete file: " + file.getAbsolutePath());
@@ -434,6 +445,7 @@ public class FileSystemService {
     return fileOperator.ifFileExists(file);
   }
 
+  // 获取文件id，例如 a.iginx5，则其id就是5
   private static int getFileID(File file, Map<String, String> tag) throws IOException {
     List<File> files = getAssociatedFiles(file);
 

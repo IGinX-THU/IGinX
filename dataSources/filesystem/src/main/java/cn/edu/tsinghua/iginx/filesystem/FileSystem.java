@@ -40,6 +40,9 @@ import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.utils.Pair;
+
+import java.net.InetAddress;
+import java.net.NetworkInterface;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -63,13 +66,30 @@ public class FileSystem implements IStorage {
       throw new StorageInitializationException("unexpected database: " + meta.getStorageEngine());
     }
 
-    boolean isLocal = ConfLoader.ifLocalFileSystem();
+    boolean isLocal = isLocalIPAddress(meta.getIp());
     if (isLocal) {
       initLocalExecutor(meta);
     } else {
       executor = new RemoteExecutor(meta.getIp(), meta.getPort());
     }
     this.meta = meta;
+  }
+
+  public static boolean isLocalIPAddress(String ip) {
+    try {
+      InetAddress address = InetAddress.getByName(ip);
+      if (address.isAnyLocalAddress() || address.isLoopbackAddress()) {
+        return true;
+      }
+      NetworkInterface ni = NetworkInterface.getByInetAddress(address);
+      if (ni != null && ni.isVirtual()) {
+        return true;
+      }
+      InetAddress local = InetAddress.getLocalHost();
+      return local.equals(address);
+    } catch (Exception e) {
+      return false;
+    }
   }
 
   private void initLocalExecutor(StorageEngineMeta meta) {

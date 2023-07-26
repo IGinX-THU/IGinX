@@ -108,6 +108,7 @@ public class DefaultFileOperator implements IFileOperator {
       }
     }
 
+    // 判断是否在读取文件时出错
     for (Future<Void> future : futures) {
       try {
         future.get();
@@ -119,6 +120,7 @@ public class DefaultFileOperator implements IFileOperator {
     return res;
   }
 
+  // batchSize是读取的大小，readPos是开始读取的位置，index是该结果应该放在res中的第几个位置上
   public final void readBatch(File file, int batchSize, long readPos, int index, List<byte[]> res)
       throws IOException {
     try (RandomAccessFile raf = new RandomAccessFile(file, "r")) {
@@ -143,6 +145,7 @@ public class DefaultFileOperator implements IFileOperator {
     }
   }
 
+  // 获取iginx文件的meat信息，包括tag，以及存储的数据类型
   private Map<String, String> readIginxMetaInfo(File file) throws IOException {
     Map<String, String> result = new HashMap<>();
     BufferedReader reader = new BufferedReader(new FileReader(file));
@@ -252,6 +255,7 @@ public class DefaultFileOperator implements IFileOperator {
     return record.getKey() + "," + convertObjectToString(record.getRawData(), record.getDataType());
   }
 
+  // 直接将数据append到文件
   private Exception appendValToIginxFile(File file, List<Record> valList, int begin, int end)
       throws IOException {
     if (begin == -1) begin = 0;
@@ -269,6 +273,7 @@ public class DefaultFileOperator implements IFileOperator {
     return appendValToIginxFile(file, valList, -1, -1);
   }
 
+  // 获取iginx文件中最后一行数据
   private String getLastValOfIginxFile(File file) throws IOException {
     String res = new String();
     int stepLen = IGINX_FILE_PRE_READ_LEN; // 8 KB
@@ -349,6 +354,7 @@ public class DefaultFileOperator implements IFileOperator {
       throw new IOException("Cannot write to file that not exist: " + file.getAbsolutePath());
     }
 
+    // 如果是一个空文件，即没有内容，则直接添加数据
     if (ifIginxFileEmpty(file)) {
       return appendValToIginxFile(file, valList);
     }
@@ -452,6 +458,7 @@ public class DefaultFileOperator implements IFileOperator {
     return null;
   }
 
+  // 删除对应key范围内的数据
   public Exception trimFile(File file, long begin, long end) throws IOException {
     // Create temporary file
     File tempFile = new File(file.getParentFile(), file.getName() + ".tmp");
