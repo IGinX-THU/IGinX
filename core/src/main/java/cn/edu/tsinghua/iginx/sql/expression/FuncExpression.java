@@ -26,14 +26,6 @@ public class FuncExpression implements Expression {
     return params;
   }
 
-  public String getAlias() {
-    return alias;
-  }
-
-  public void setAlias(String alias) {
-    this.alias = alias;
-  }
-
   @Override
   public String getColumnName() {
     return funcName.toLowerCase() + "(" + String.join(", ", params) + ")";
@@ -46,5 +38,15 @@ public class FuncExpression implements Expression {
 
   public boolean hasAlias() {
     return alias != null && !alias.equals("");
+  }
+
+  @Override
+  public String getAlias() {
+    return alias;
+  }
+
+  @Override
+  public void setAlias(String alias) {
+    this.alias = alias;
   }
 }

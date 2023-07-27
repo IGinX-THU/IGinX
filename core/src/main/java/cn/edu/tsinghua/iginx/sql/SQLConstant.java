@@ -8,6 +8,8 @@ public class SQLConstant {
   public static final String COLON = ":";
   public static final String LBRACE = "{";
   public static final String RBRACE = "}";
+  public static final String L_PARENTHESES = "(";
+  public static final String R_PARENTHESES = ")";
   public static final String QUOTE = "\"";
   public static final String DOUBLE_QUOTES = "\"\"";
 

@@ -18,16 +18,17 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils;
 
-import static cn.edu.tsinghua.iginx.thrift.DataType.BOOLEAN;
+import static cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils.getHash;
+import static cn.edu.tsinghua.iginx.sql.SQLConstant.DOT;
 
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
-import cn.edu.tsinghua.iginx.constant.GlobalConstant;
 import cn.edu.tsinghua.iginx.engine.physical.exception.InvalidOperatorParameterException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
 import cn.edu.tsinghua.iginx.engine.shared.Constants;
+import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
@@ -38,14 +39,12 @@ import cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils;
 import cn.edu.tsinghua.iginx.engine.shared.operator.GroupBy;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
@@ -102,6 +101,72 @@ public class RowUtils {
     Header newHeader =
         columnList.get(0).getHeader().hasKey() ? new Header(Field.KEY, fields) : new Header(fields);
     return new Row(newHeader, columnList.get(0).getKey(), valuesCombine.toArray());
+  }
+
+  public static boolean isEqualRow(Row row1, Row row2, boolean compareKey)
+      throws PhysicalException {
+    if (!row1.getHeader().equals(row2.getHeader())) {
+      return false;
+    }
+    if (compareKey) {
+      if (row1.getKey() != row2.getKey()) {
+        return false;
+      }
+    }
+    List<Field> fields = row1.getHeader().getFields();
+    for (Field field : fields) {
+      Value value1 = row1.getAsValue(field.getName());
+      Value value2 = row2.getAsValue(field.getName());
+      if (ValueUtils.compare(value1, value2) != 0) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  public static void checkJoinColumns(
+      List<String> joinColumns, Header headerA, Header headerB, String prefixA, String prefixB)
+      throws InvalidOperatorParameterException {
+    for (String joinColumn : joinColumns) {
+      if (headerA.indexOf(prefixA + DOT + joinColumn) == -1) {
+        throw new InvalidOperatorParameterException(
+            "TableA has no path: " + prefixA + DOT + joinColumn);
+      }
+      if (headerB.indexOf(prefixB + DOT + joinColumn) == -1) {
+        throw new InvalidOperatorParameterException(
+            "TableB has no path: " + prefixB + DOT + joinColumn);
+      }
+    }
+  }
+
+  public static boolean checkNeedTypeCast(
+      List<Row> rowsA, List<Row> rowsB, String joinPathA, String joinPathB) {
+    if (!rowsA.isEmpty() && !rowsB.isEmpty()) {
+      Value valueA = rowsA.get(0).getAsValue(joinPathA);
+      Value valueB = rowsB.get(0).getAsValue(joinPathB);
+      if (valueA.getDataType() != valueB.getDataType()) {
+        if (ValueUtils.isNumericType(valueA) && ValueUtils.isNumericType(valueB)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  public static HashMap<Integer, List<Row>> establishHashMap(
+      List<Row> rows, String joinPath, boolean needTypeCast) {
+    HashMap<Integer, List<Row>> hashMap = new HashMap<>();
+    for (Row row : rows) {
+      Value value = row.getAsValue(joinPath);
+      if (value == null) {
+        continue;
+      }
+      int hash = getHash(value, needTypeCast);
+
+      List<Row> l = hashMap.computeIfAbsent(hash, k -> new ArrayList<>());
+      l.add(row);
+    }
+    return hashMap;
   }
 
   /**
@@ -167,95 +232,17 @@ public class RowUtils {
     return 0;
   }
 
-  public static Header constructNewHead(Header header, String markColumn) {
-    List<Field> fields = new ArrayList<>(header.getFields());
-    fields.add(new Field(markColumn, BOOLEAN));
-    return header.hasKey() ? new Header(Field.KEY, fields) : new Header(fields);
-  }
-
-  public static Header constructNewHead(Header headerA, Header headerB, boolean remainKeyA) {
-    List<Field> fields = new ArrayList<>();
-    fields.addAll(headerA.getFields());
-    fields.addAll(headerB.getFields());
-    return remainKeyA && headerA.hasKey() ? new Header(Field.KEY, fields) : new Header(fields);
-  }
-
-  public static Header constructNewHead(
-      Header headerA, Header headerB, String prefixA, String prefixB) {
-    List<Field> fields = new ArrayList<>();
-    if (headerA.hasKey()) {
-      fields.add(new Field(prefixA + "." + GlobalConstant.KEY_NAME, DataType.LONG));
-    }
-    fields.addAll(headerA.getFields());
-    if (headerB.hasKey()) {
-      fields.add(new Field(prefixB + "." + GlobalConstant.KEY_NAME, DataType.LONG));
-    }
-    fields.addAll(headerB.getFields());
-    return new Header(fields);
-  }
-
-  public static Pair<int[], Header> constructNewHead(
-      Header headerA,
-      Header headerB,
-      String prefixA,
-      String prefixB,
-      List<String> joinColumns,
-      boolean cutRight) {
-    List<Field> fieldsA = headerA.getFields();
-    List<Field> fieldsB = headerB.getFields();
-    int[] indexOfJoinColumnsInTable = new int[joinColumns.size()];
-
-    List<Field> fields = new ArrayList<>();
-    if (headerA.hasKey()) {
-      fields.add(new Field(prefixA + "." + GlobalConstant.KEY_NAME, DataType.LONG));
-    }
-    if (cutRight) {
-      fields.addAll(fieldsA);
-      if (headerB.hasKey()) {
-        fields.add(new Field(prefixB + "." + GlobalConstant.KEY_NAME, DataType.LONG));
-      }
-      int i = 0;
-      flag:
-      for (Field fieldB : fieldsB) {
-        for (String joinColumn : joinColumns) {
-          if (Objects.equals(fieldB.getName(), prefixB + '.' + joinColumn)) {
-            indexOfJoinColumnsInTable[i++] = headerB.indexOf(fieldB);
-            continue flag;
-          }
-        }
-        fields.add(fieldB);
-      }
-    } else {
-      int i = 0;
-      flag:
-      for (Field fieldA : fieldsA) {
-        for (String joinColumn : joinColumns) {
-          if (Objects.equals(fieldA.getName(), prefixA + '.' + joinColumn)) {
-            indexOfJoinColumnsInTable[i++] = headerA.indexOf(fieldA);
-            continue flag;
-          }
-        }
-        fields.add(fieldA);
-      }
-      if (headerB.hasKey()) {
-        fields.add(new Field(prefixB + "." + GlobalConstant.KEY_NAME, DataType.LONG));
-      }
-      fields.addAll(fieldsB);
-    }
-    return new Pair<>(indexOfJoinColumnsInTable, new Header(fields));
-  }
-
   public static Row constructUnmatchedRow(
-      Header header, Row halfRow, int anotherRowSize, boolean putLeft) {
+      Header header, Row halfRow, String prefix, int anotherRowSize, boolean putLeft) {
 
     int size = halfRow.getValues().length + anotherRowSize;
-    if (halfRow.getHeader().hasKey()) {
+    if (halfRow.getHeader().hasKey() && prefix != null) {
       size++;
     }
     Object[] valuesJoin = new Object[size];
 
     if (putLeft) {
-      if (halfRow.getHeader().hasKey()) {
+      if (halfRow.getHeader().hasKey() && prefix != null) {
         valuesJoin[0] = halfRow.getKey();
         System.arraycopy(halfRow.getValues(), 0, valuesJoin, 1, halfRow.getValues().length);
       } else {
@@ -275,6 +262,11 @@ public class RowUtils {
   }
 
   public static Row constructNewRow(Header header, Row rowA, Row rowB, boolean remainKeyA) {
+    return constructNewRow(header, rowA, rowB, remainKeyA, Collections.emptyList());
+  }
+
+  public static Row constructNewRow(
+      Header header, Row rowA, Row rowB, boolean remainKeyA, List<String> extraJoinPaths) {
     Object[] valuesA = rowA.getValues();
     Object[] valuesB = rowB.getValues();
 
@@ -284,24 +276,32 @@ public class RowUtils {
     Object[] valuesJoin = new Object[size];
 
     System.arraycopy(valuesA, 0, valuesJoin, rowAStartIndex, valuesA.length);
-    System.arraycopy(valuesB, 0, valuesJoin, rowBStartIndex, valuesB.length);
+    int currentIndex = rowBStartIndex;
+    for (int i = 0; i < valuesB.length; i++) {
+      String path = rowB.getHeader().getField(i).getName();
+      if (!extraJoinPaths.contains(path)) {
+        valuesJoin[currentIndex] = valuesB[i];
+        currentIndex++;
+      }
+    }
     return remainKeyA && rowA.getHeader().hasKey()
         ? new Row(header, rowA.getKey(), valuesJoin)
         : new Row(header, valuesJoin);
   }
 
-  public static Row constructNewRow(Header header, Row rowA, Row rowB) {
+  public static Row constructNewRow(
+      Header header, Row rowA, Row rowB, String prefixA, String prefixB) {
     Object[] valuesA = rowA.getValues();
     Object[] valuesB = rowB.getValues();
 
     int size = valuesA.length + valuesB.length;
     int rowAStartIndex = 0, rowBStartIndex = valuesA.length;
-    if (rowA.getHeader().hasKey()) {
+    if (rowA.getHeader().hasKey() && prefixA != null) {
       size++;
       rowAStartIndex++;
       rowBStartIndex++;
     }
-    if (rowB.getHeader().hasKey()) {
+    if (rowB.getHeader().hasKey() && prefixB != null) {
       size++;
       rowBStartIndex++;
     }
@@ -316,6 +316,79 @@ public class RowUtils {
     }
     System.arraycopy(valuesA, 0, valuesJoin, rowAStartIndex, valuesA.length);
     System.arraycopy(valuesB, 0, valuesJoin, rowBStartIndex, valuesB.length);
+    return new Row(header, valuesJoin);
+  }
+
+  public static Row constructNewRow(
+      Header header,
+      Row rowA,
+      Row rowB,
+      String prefixA,
+      String prefixB,
+      boolean cutRight,
+      List<String> joinColumns,
+      List<String> extraJoinPaths) {
+    Object[] valuesA = rowA.getValues();
+    Object[] valuesB = rowB.getValues();
+
+    int size = valuesA.length + valuesB.length - joinColumns.size() - extraJoinPaths.size();
+    int rowAStartIndex = 0;
+    int rowBStartIndex =
+        cutRight ? valuesA.length : valuesA.length - joinColumns.size() - extraJoinPaths.size();
+    if (rowA.getHeader().hasKey() && prefixA != null) {
+      size++;
+      rowAStartIndex++;
+      rowBStartIndex++;
+    }
+    if (rowB.getHeader().hasKey() && prefixB != null) {
+      size++;
+      rowBStartIndex++;
+    }
+
+    Object[] valuesJoin = new Object[size];
+    List<String> joinPathB = new ArrayList<>();
+    List<String> joinPathA = new ArrayList<>();
+    joinColumns.forEach(
+        joinColumn -> {
+          joinPathA.add(prefixA + DOT + joinColumn);
+          joinPathB.add(prefixB + DOT + joinColumn);
+        });
+
+    if (rowA.getHeader().hasKey() && prefixA != null) {
+      valuesJoin[0] = rowA.getKey();
+    }
+    if (rowB.getHeader().hasKey() && prefixB != null) {
+      valuesJoin[rowBStartIndex - 1] = rowB.getKey();
+    }
+
+    if (cutRight) {
+      System.arraycopy(valuesA, 0, valuesJoin, rowAStartIndex, valuesA.length);
+      int currentIndex = rowBStartIndex;
+      for (int i = 0; i < valuesB.length; i++) {
+        String path = rowB.getHeader().getField(i).getName();
+        if (extraJoinPaths.contains(path)) {
+          continue;
+        } else if (joinPathB.contains(path)) {
+          continue;
+        }
+        valuesJoin[currentIndex] = valuesB[i];
+        currentIndex++;
+      }
+    } else {
+      int currentIndex = rowAStartIndex;
+      for (int i = 0; i < valuesA.length; i++) {
+        String path = rowA.getHeader().getField(i).getName();
+        if (extraJoinPaths.contains(path)) {
+          continue;
+        } else if (joinPathA.contains(path)) {
+          continue;
+        }
+        valuesJoin[currentIndex] = valuesA[i];
+        currentIndex++;
+      }
+      System.arraycopy(valuesB, 0, valuesJoin, rowBStartIndex, valuesB.length);
+    }
+
     return new Row(header, valuesJoin);
   }
 
@@ -408,6 +481,55 @@ public class RowUtils {
     if (joinColumns.isEmpty()) {
       throw new PhysicalException("natural join has no matching columns");
     }
+  }
+
+  public static List<String> getSamePathWithSpecificPrefix(
+      Header headerA, Header headerB, List<String> prefixList) {
+    List<String> res = new ArrayList<>();
+    headerA
+        .getFields()
+        .forEach(
+            fieldA -> {
+              if (headerB.indexOf(fieldA.getName()) != -1) {
+                for (String prefix : prefixList) {
+                  if (prefix.endsWith(Constants.ALL_PATH_SUFFIX)) {
+                    prefix = prefix.substring(0, prefix.length() - 2);
+                  }
+                  if (fieldA.getName().startsWith(prefix)) {
+                    res.add(fieldA.getName());
+                  }
+                }
+              }
+            });
+    return res;
+  }
+
+  public static boolean equalOnSpecificPaths(Row rowA, Row rowB, List<String> pathList)
+      throws PhysicalException {
+    for (String path : pathList) {
+      Value valueA = rowA.getAsValue(path);
+      Value valueB = rowB.getAsValue(path);
+      if (ValueUtils.compare(valueA, valueB) != 0) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  public static boolean equalOnSpecificPaths(
+      Row rowA, Row rowB, String prefixA, String prefixB, List<String> joinColumns)
+      throws PhysicalException {
+    if (joinColumns == null) {
+      joinColumns = new ArrayList<>();
+    }
+    for (String joinColumn : joinColumns) {
+      Value valueA = rowA.getAsValue(prefixA + DOT + joinColumn);
+      Value valueB = rowB.getAsValue(prefixB + DOT + joinColumn);
+      if (ValueUtils.compare(valueA, valueB) != 0) {
+        return false;
+      }
+    }
+    return true;
   }
 
   public static List<Row> cacheGroupByResult(GroupBy groupBy, Table table)

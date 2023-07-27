@@ -1,8 +1,13 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream;
 
-import cn.edu.tsinghua.iginx.engine.physical.exception.InvalidOperatorParameterException;
+import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.HeaderUtils.calculateHashJoinPath;
+import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.checkJoinColumns;
+import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.getSamePathWithSpecificPrefix;
+import static cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils.getHash;
+
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.HeaderUtils;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
@@ -10,14 +15,9 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils;
 import cn.edu.tsinghua.iginx.engine.shared.operator.InnerJoin;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.FilterType;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -37,9 +37,13 @@ public class HashInnerJoinLazyStream extends BinaryLazyStream {
 
   private boolean hasInitialized = false;
 
-  private String joinColumnA;
+  private String joinPathA;
 
-  private String joinColumnB;
+  private String joinPathB;
+
+  private List<String> joinColumns;
+
+  private List<String> extraJoinPaths;
 
   private boolean needTypeCast = false;
 
@@ -51,54 +55,40 @@ public class HashInnerJoinLazyStream extends BinaryLazyStream {
   }
 
   private void initialize() throws PhysicalException {
-    Filter filter = innerJoin.getFilter();
-
     Header headerA = streamA.getHeader();
     Header headerB = streamB.getHeader();
+    this.joinColumns = new ArrayList<>(innerJoin.getJoinColumns());
 
-    List<String> joinColumns = new ArrayList<>(innerJoin.getJoinColumns());
+    // 计算自然连接的连接列名
     if (innerJoin.isNaturalJoin()) {
       RowUtils.fillNaturalJoinColumns(
           joinColumns, headerA, headerB, innerJoin.getPrefixA(), innerJoin.getPrefixB());
     }
-    if ((filter == null && joinColumns.isEmpty()) || (filter != null && !joinColumns.isEmpty())) {
-      throw new InvalidOperatorParameterException(
-          "using(or natural) and on operator cannot be used at the same time");
-    }
+    // 检查连接列名是否合法
+    checkJoinColumns(joinColumns, headerA, headerB, innerJoin.getPrefixA(), innerJoin.getPrefixB());
 
-    if (filter != null) {
-      if (!filter.getType().equals(FilterType.Path)) {
-        throw new InvalidOperatorParameterException("hash join only support one path filter yet.");
-      }
-      Pair<String, String> p = FilterUtils.getJoinColumnFromPathFilter((PathFilter) filter);
-      if (p == null) {
-        throw new InvalidOperatorParameterException(
-            "hash join only support equal path filter yet.");
-      }
-      if (headerA.indexOf(p.k) != -1 && headerB.indexOf(p.v) != -1) {
-        this.joinColumnA = p.k.replaceFirst(innerJoin.getPrefixA() + '.', "");
-        this.joinColumnB = p.v.replaceFirst(innerJoin.getPrefixB() + ".", "");
-      } else if (headerA.indexOf(p.v) != -1 && headerB.indexOf(p.k) != -1) {
-        this.joinColumnA = p.v.replaceFirst(innerJoin.getPrefixA() + '.', "");
-        this.joinColumnB = p.k.replaceFirst(innerJoin.getPrefixB() + ".", "");
-      } else {
-        throw new InvalidOperatorParameterException("invalid hash join path filter input.");
-      }
-    } else {
-      if (joinColumns.size() != 1) {
-        throw new InvalidOperatorParameterException(
-            "hash join only support the number of join column is one yet.");
-      }
-      if (headerA.indexOf(innerJoin.getPrefixA() + '.' + joinColumns.get(0)) != -1
-          && headerB.indexOf(innerJoin.getPrefixB() + '.' + joinColumns.get(0)) != -1) {
-        this.joinColumnA = this.joinColumnB = joinColumns.get(0);
-      } else {
-        throw new InvalidOperatorParameterException("invalid hash join column input.");
-      }
+    // 检查左右两表需要进行额外连接的path
+    this.extraJoinPaths = new ArrayList<>();
+    if (!innerJoin.getExtraJoinPrefix().isEmpty()) {
+      this.extraJoinPaths =
+          getSamePathWithSpecificPrefix(
+              streamA.getHeader(), streamB.getHeader(), innerJoin.getExtraJoinPrefix());
     }
-    this.index = headerB.indexOf(innerJoin.getPrefixB() + '.' + joinColumnB);
+    // 计算建立和访问哈希表所用的path
+    Pair<String, String> pair =
+        calculateHashJoinPath(
+            streamA.getHeader(),
+            streamB.getHeader(),
+            innerJoin.getPrefixA(),
+            innerJoin.getPrefixB(),
+            innerJoin.getFilter(),
+            joinColumns,
+            extraJoinPaths);
+    this.joinPathA = pair.k;
+    this.joinPathB = pair.v;
 
-    int indexA = headerA.indexOf(innerJoin.getPrefixA() + '.' + joinColumnA);
+    this.index = headerB.indexOf(joinPathB);
+    int indexA = headerA.indexOf(joinPathA);
     DataType dataTypeA = headerA.getField(indexA).getType();
     DataType dataTypeB = headerB.getField(index).getType();
     if (ValueUtils.isNumericType(dataTypeA) && ValueUtils.isNumericType(dataTypeB)) {
@@ -107,39 +97,27 @@ public class HashInnerJoinLazyStream extends BinaryLazyStream {
 
     while (streamB.hasNext()) {
       Row rowB = streamB.next();
-      Value value = rowB.getAsValue(innerJoin.getPrefixB() + '.' + joinColumnB);
+      Value value = rowB.getAsValue(joinPathB);
       if (value == null) {
         continue;
       }
       if (needTypeCast) {
         value = ValueUtils.transformToDouble(value);
       }
-      int hash;
-      if (value.getDataType() == DataType.BINARY) {
-        hash = Arrays.hashCode(value.getBinaryV());
-      } else {
-        hash = value.getValue().hashCode();
-      }
-      List<Row> rows = streamBHashMap.getOrDefault(hash, new ArrayList<>());
+      int hash = getHash(value, needTypeCast);
+      List<Row> rows = streamBHashMap.computeIfAbsent(hash, k -> new ArrayList<>());
       rows.add(rowB);
-      streamBHashMap.putIfAbsent(hash, rows);
     }
 
-    if (filter != null) { // Join condition: on
-      this.header =
-          RowUtils.constructNewHead(
-              headerA, headerB, innerJoin.getPrefixA(), innerJoin.getPrefixB());
-    } else { // Join condition: natural or using
-      this.header =
-          RowUtils.constructNewHead(
-                  headerA,
-                  headerB,
-                  innerJoin.getPrefixA(),
-                  innerJoin.getPrefixB(),
-                  Collections.singletonList(joinColumnB),
-                  true)
-              .getV();
-    }
+    this.header =
+        HeaderUtils.constructNewHead(
+            headerA,
+            headerB,
+            innerJoin.getPrefixA(),
+            innerJoin.getPrefixB(),
+            true,
+            joinColumns,
+            extraJoinPaths);
 
     this.hasInitialized = true;
   }
@@ -166,32 +144,36 @@ public class HashInnerJoinLazyStream extends BinaryLazyStream {
   private void tryMatch() throws PhysicalException {
     Row rowA = streamA.next();
 
-    Value value = rowA.getAsValue(innerJoin.getPrefixA() + '.' + joinColumnA);
+    Value value = rowA.getAsValue(joinPathA);
     if (value == null) {
       return;
     }
-    if (needTypeCast) {
-      value = ValueUtils.transformToDouble(value);
-    }
-    int hash;
-    if (value.getDataType() == DataType.BINARY) {
-      hash = Arrays.hashCode(value.getBinaryV());
-    } else {
-      hash = value.getValue().hashCode();
-    }
+    int hash = getHash(value, needTypeCast);
 
     if (streamBHashMap.containsKey(hash)) {
-      List<Row> rowsB = streamBHashMap.get(hash);
-      for (Row rowB : rowsB) {
-        if (innerJoin.getFilter() != null) {
-          Row row = RowUtils.constructNewRow(header, rowA, rowB);
-          if (FilterUtils.validate(innerJoin.getFilter(), row)) {
-            cache.addLast(row);
-          }
-        } else {
-          Row row = RowUtils.constructNewRow(header, rowA, rowB, new int[] {index}, true);
-          cache.addLast(row);
+      for (Row rowB : streamBHashMap.get(hash)) {
+        if (!RowUtils.equalOnSpecificPaths(rowA, rowB, extraJoinPaths)) {
+          continue;
+        } else if (!RowUtils.equalOnSpecificPaths(
+            rowA, rowB, innerJoin.getPrefixA(), innerJoin.getPrefixB(), joinColumns)) {
+          continue;
         }
+        Row joinedRow =
+            RowUtils.constructNewRow(
+                header,
+                rowA,
+                rowB,
+                innerJoin.getPrefixA(),
+                innerJoin.getPrefixB(),
+                true,
+                joinColumns,
+                extraJoinPaths);
+        if (innerJoin.getFilter() != null) {
+          if (!FilterUtils.validate(innerJoin.getFilter(), joinedRow)) {
+            continue;
+          }
+        }
+        cache.addLast(joinedRow);
       }
     }
   }

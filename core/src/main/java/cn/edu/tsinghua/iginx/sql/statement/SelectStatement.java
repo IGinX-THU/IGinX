@@ -1,6 +1,14 @@
 package cn.edu.tsinghua.iginx.sql.statement;
 
+import static cn.edu.tsinghua.iginx.engine.shared.Constants.ALL_PATH_SUFFIX;
+import static cn.edu.tsinghua.iginx.sql.SQLConstant.DOT;
+import static cn.edu.tsinghua.iginx.sql.SQLConstant.L_PARENTHESES;
+import static cn.edu.tsinghua.iginx.sql.SQLConstant.R_PARENTHESES;
+
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils;
+import cn.edu.tsinghua.iginx.engine.shared.Constants;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils;
+import cn.edu.tsinghua.iginx.engine.shared.operator.MarkJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
@@ -52,6 +60,7 @@ public class SelectStatement extends DataStatement {
   private final List<String> groupByPaths;
   private final List<SubQueryFromPart> havingSubQueryParts;
   private final List<String> orderByPaths;
+  private List<String> freeVariables;
   private Filter filter;
   private Filter havingFilter;
   private TagFilter tagFilter;
@@ -311,6 +320,10 @@ public class SelectStatement extends DataStatement {
     return baseExpressionList;
   }
 
+  public void addBaseExpression(BaseExpression baseExpression) {
+    this.baseExpressionList.add(baseExpression);
+  }
+
   public void setSelectedPaths(BaseExpression baseExpression) {
     this.setSelectedPaths(baseExpression, true);
   }
@@ -534,22 +547,38 @@ public class SelectStatement extends DataStatement {
     this.needPhysicalExplain = needPhysicalExplain;
   }
 
-  public Map<String, String> getAliasMap() {
+  public Map<String, String> getSelectAliasMap() {
     Map<String, String> aliasMap = new HashMap<>();
-    this.funcExpressionMap.forEach(
-        (k, v) ->
-            v.forEach(
-                expression -> {
-                  if (expression.hasAlias()) {
-                    String oldName = expression.getColumnName();
-                    aliasMap.put(oldName, expression.getAlias());
-                  }
-                }));
-    this.baseExpressionList.forEach(
-        expr -> {
-          if (expr.hasAlias()) {
-            String oldName = expr.getColumnName();
-            aliasMap.put(oldName, expr.getAlias());
+    this.expressions.forEach(
+        expression -> {
+          if (expression.hasAlias()) {
+            aliasMap.put(expression.getColumnName(), expression.getAlias());
+          }
+        });
+    return aliasMap;
+  }
+
+  public Map<String, String> getFromPathAliasMap(String originPrefix, String alias) {
+    Map<String, String> aliasMap = new HashMap<>();
+    aliasMap.put(originPrefix + ALL_PATH_SUFFIX, alias + ALL_PATH_SUFFIX);
+    return aliasMap;
+  }
+
+  public Map<String, String> getSubQueryAliasMap(String alias) {
+    Map<String, String> aliasMap = new HashMap<>();
+    expressions.forEach(
+        expression -> {
+          if (expression.hasAlias()) {
+            aliasMap.put(expression.getAlias(), alias + DOT + expression.getAlias());
+          } else {
+            if (expression.getType().equals(Expression.ExpressionType.Binary)
+                || expression.getType().equals(Expression.ExpressionType.Unary)) {
+              aliasMap.put(
+                  expression.getColumnName(),
+                  alias + DOT + L_PARENTHESES + expression.getColumnName() + R_PARENTHESES);
+            } else {
+              aliasMap.put(expression.getColumnName(), alias + DOT + expression.getColumnName());
+            }
           }
         });
     return aliasMap;
@@ -560,6 +589,86 @@ public class SelectStatement extends DataStatement {
       if (!expression.getType().equals(ExpressionType.Base)
           && !expression.getType().equals(ExpressionType.Function)) {
         return true;
+      }
+    }
+    return false;
+  }
+
+  public List<String> getFreeVariables() {
+    return freeVariables;
+  }
+
+  public void addFreeVariable(String freeVariable) {
+    if (freeVariables == null) {
+      this.freeVariables = new ArrayList<>();
+    }
+    this.freeVariables.add(freeVariable);
+  }
+
+  public List<String> calculatePrefixSet() {
+    if (globalAlias != null) {
+      return new ArrayList<>(Collections.singleton(globalAlias + Constants.ALL_PATH_SUFFIX));
+    }
+    Set<String> prefixSet = new HashSet<>();
+    fromParts.forEach(
+        fromPart -> {
+          prefixSet.addAll(fromPart.getPatterns());
+        });
+    expressions.forEach(
+        expression -> {
+          if (expression.hasAlias()) {
+            prefixSet.add(expression.getAlias());
+          } else if (!expression.getType().equals(ExpressionType.Base)) {
+            prefixSet.add(expression.getColumnName());
+          }
+        });
+    return new ArrayList<>(prefixSet);
+  }
+
+  public void initFreeVariables() {
+    Set<String> set = new HashSet<>();
+    List<String> allVariables = FilterUtils.getAllPathsFromFilter(filter);
+    allVariables.addAll(FilterUtils.getAllPathsFromFilter(havingFilter));
+    for (FromPart fromPart : fromParts) {
+      allVariables.addAll(fromPart.getFreeVariables());
+    }
+    for (SubQueryFromPart whereSubQueryPart : whereSubQueryParts) {
+      allVariables.addAll(whereSubQueryPart.getSubQuery().getFreeVariables());
+    }
+    for (SubQueryFromPart havingSubQueryPart : havingSubQueryParts) {
+      allVariables.addAll(havingSubQueryPart.getSubQuery().getFreeVariables());
+    }
+    for (SubQueryFromPart selectSubQueryPart : selectSubQueryParts) {
+      allVariables.addAll(selectSubQueryPart.getSubQuery().getFreeVariables());
+    }
+    allVariables.forEach(
+        variable -> {
+          if (isFreeVariable(variable)) {
+            set.add(variable);
+          }
+        });
+    freeVariables = new ArrayList<>(set);
+  }
+
+  public boolean isFreeVariable(String path) {
+    return !hasAttribute(path, fromParts.size());
+  }
+
+  public boolean hasAttribute(String path, int endIndexOfFromPart) {
+    if (endIndexOfFromPart > fromParts.size()) {
+      throw new RuntimeException("index: " + endIndexOfFromPart + " overflow");
+    }
+    if (path.startsWith(MarkJoin.MARK_PREFIX)) {
+      return true;
+    }
+    for (int i = 0; i < endIndexOfFromPart; i++) {
+      for (String pattern : fromParts.get(i).getPatterns()) {
+        if (pattern.endsWith(Constants.ALL_PATH_SUFFIX)) {
+          pattern = pattern.substring(0, pattern.length() - 1);
+        }
+        if (path.startsWith(pattern)) {
+          return true;
+        }
       }
     }
     return false;

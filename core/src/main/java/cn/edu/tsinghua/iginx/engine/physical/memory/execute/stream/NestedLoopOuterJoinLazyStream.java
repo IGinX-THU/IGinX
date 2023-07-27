@@ -1,17 +1,14 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream;
 
-import cn.edu.tsinghua.iginx.engine.physical.exception.InvalidOperatorParameterException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.HeaderUtils;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
-import cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils;
 import cn.edu.tsinghua.iginx.engine.shared.operator.OuterJoin;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OuterJoinType;
-import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -30,6 +27,10 @@ public class NestedLoopOuterJoinLazyStream extends BinaryLazyStream {
   private final List<Row> lastPart; // 后面多出未被匹配的结果行
 
   private List<String> joinColumns;
+
+  private List<String> extraJoinPaths;
+
+  private boolean cutRight;
 
   private int[] indexOfJoinColumnsInTable;
 
@@ -61,49 +62,44 @@ public class NestedLoopOuterJoinLazyStream extends BinaryLazyStream {
   }
 
   private void initialize() throws PhysicalException {
-    Filter filter = outerJoin.getFilter();
-
     Header headerA = streamA.getHeader();
     Header headerB = streamB.getHeader();
-
     joinColumns = new ArrayList<>(outerJoin.getJoinColumns());
+
+    // 计算自然连接的连接列名
     if (outerJoin.isNaturalJoin()) {
       RowUtils.fillNaturalJoinColumns(
-          joinColumns, headerA, headerB, outerJoin.getPrefixA(), outerJoin.getPrefixB());
-    }
-    if ((filter == null && joinColumns.isEmpty()) || (filter != null && !joinColumns.isEmpty())) {
-      throw new InvalidOperatorParameterException(
-          "using(or natural) and on operator cannot be used at the same time");
+          joinColumns,
+          streamA.getHeader(),
+          streamB.getHeader(),
+          outerJoin.getPrefixA(),
+          outerJoin.getPrefixB());
     }
 
-    if (filter != null) { // Join condition: on
-      this.header =
-          RowUtils.constructNewHead(
-              headerA, headerB, outerJoin.getPrefixA(), outerJoin.getPrefixB());
-    } else { // Join condition: natural or using
-      Pair<int[], Header> pair;
-      if (outerJoin.getOuterJoinType() == OuterJoinType.RIGHT) {
-        pair =
-            RowUtils.constructNewHead(
-                headerA,
-                headerB,
-                outerJoin.getPrefixA(),
-                outerJoin.getPrefixB(),
-                joinColumns,
-                false);
-      } else {
-        pair =
-            RowUtils.constructNewHead(
-                headerA,
-                headerB,
-                outerJoin.getPrefixA(),
-                outerJoin.getPrefixB(),
-                joinColumns,
-                true);
-      }
-      this.indexOfJoinColumnsInTable = pair.getK();
-      this.header = pair.getV();
+    // 检查连接列名是否合法
+    RowUtils.checkJoinColumns(
+        joinColumns, headerA, headerB, outerJoin.getPrefixA(), outerJoin.getPrefixB());
+
+    // 检查左右两表需要进行额外连接的path
+    this.extraJoinPaths = new ArrayList<>();
+    if (!outerJoin.getExtraJoinPrefix().isEmpty()) {
+      extraJoinPaths =
+          RowUtils.getSamePathWithSpecificPrefix(
+              streamA.getHeader(), streamB.getHeader(), outerJoin.getExtraJoinPrefix());
     }
+
+    this.cutRight = !outerJoin.getOuterJoinType().equals(OuterJoinType.RIGHT);
+    // 计算连接之后的header
+    this.header =
+        HeaderUtils.constructNewHead(
+            streamA.getHeader(),
+            streamB.getHeader(),
+            outerJoin.getPrefixA(),
+            outerJoin.getPrefixB(),
+            cutRight,
+            joinColumns,
+            extraJoinPaths);
+
     this.hasInitialized = true;
   }
 
@@ -114,20 +110,22 @@ public class NestedLoopOuterJoinLazyStream extends BinaryLazyStream {
     OuterJoinType outerType = outerJoin.getOuterJoinType();
     if (outerType == OuterJoinType.FULL || outerType == OuterJoinType.LEFT) {
       int anotherRowSize =
-          streamB.getHeader().hasKey()
+          streamB.getHeader().hasKey() && outerJoin.getPrefixB() != null
               ? streamB.getHeader().getFieldSize() + 1
               : streamB.getHeader().getFieldSize();
-      if (outerJoin.getFilter() == null) {
-        anotherRowSize -= joinColumns.size();
-      }
+      anotherRowSize -= joinColumns.size();
+      anotherRowSize -= extraJoinPaths.size();
+
       for (Row halfRow : unmatchedStreamARows) {
-        Row unmatchedRow = RowUtils.constructUnmatchedRow(header, halfRow, anotherRowSize, true);
+        Row unmatchedRow =
+            RowUtils.constructUnmatchedRow(
+                header, halfRow, outerJoin.getPrefixA(), anotherRowSize, true);
         lastPart.add(unmatchedRow);
       }
     }
     if (outerType == OuterJoinType.FULL || outerType == OuterJoinType.RIGHT) {
       int anotherRowSize =
-          streamA.getHeader().hasKey()
+          streamA.getHeader().hasKey() && outerJoin.getPrefixA() != null
               ? streamA.getHeader().getFieldSize() + 1
               : streamA.getHeader().getFieldSize();
       if (outerJoin.getFilter() == null) {
@@ -136,7 +134,8 @@ public class NestedLoopOuterJoinLazyStream extends BinaryLazyStream {
       for (int i = 0; i < streamBCache.size(); i++) {
         if (!matchedStreamBRowIndexSet.contains(i)) {
           Row unmatchedRow =
-              RowUtils.constructUnmatchedRow(header, streamBCache.get(i), anotherRowSize, false);
+              RowUtils.constructUnmatchedRow(
+                  header, streamBCache.get(i), outerJoin.getPrefixB(), anotherRowSize, false);
           lastPart.add(unmatchedRow);
         }
       }
@@ -215,38 +214,34 @@ public class NestedLoopOuterJoinLazyStream extends BinaryLazyStream {
       curStreamBIndex++;
     }
 
-    if (outerJoin.getFilter() != null) { // Join condition: on
-      Row row = RowUtils.constructNewRow(header, nextA, nextB);
+    if (!RowUtils.equalOnSpecificPaths(nextA, nextB, extraJoinPaths)) {
       nextB = null;
-      if (FilterUtils.validate(outerJoin.getFilter(), row)) { // matched
-        this.curNextAHasMatched = true;
-        this.matchedStreamBRowIndexSet.add(curStreamBIndex - 1);
-        return row;
-      } else {
+      return null;
+    } else if (!RowUtils.equalOnSpecificPaths(
+        nextA, nextB, outerJoin.getPrefixA(), outerJoin.getPrefixB(), joinColumns)) {
+      nextB = null;
+      return null;
+    }
+    Row joinedRow =
+        RowUtils.constructNewRow(
+            header,
+            nextA,
+            nextB,
+            outerJoin.getPrefixA(),
+            outerJoin.getPrefixB(),
+            cutRight,
+            joinColumns,
+            extraJoinPaths);
+    if (outerJoin.getFilter() != null) {
+      if (!FilterUtils.validate(outerJoin.getFilter(), joinedRow)) {
+        nextB = null;
         return null;
       }
-    } else { // Join condition: natural or using
-      for (String joinColumn : joinColumns) {
-        if (ValueUtils.compare(
-                nextA.getAsValue(outerJoin.getPrefixA() + '.' + joinColumn),
-                nextB.getAsValue(outerJoin.getPrefixB() + '.' + joinColumn))
-            != 0) {
-          nextB = null;
-          return null;
-        }
-      }
-      // matched
-      this.curNextAHasMatched = true;
-      this.matchedStreamBRowIndexSet.add(curStreamBIndex - 1);
-      Row row;
-      if (outerJoin.getOuterJoinType() == OuterJoinType.RIGHT) {
-        row = RowUtils.constructNewRow(header, nextA, nextB, indexOfJoinColumnsInTable, false);
-      } else {
-        row = RowUtils.constructNewRow(header, nextA, nextB, indexOfJoinColumnsInTable, true);
-      }
-      nextB = null;
-      return row;
     }
+    nextB = null;
+    this.curNextAHasMatched = true;
+    this.matchedStreamBRowIndexSet.add(curStreamBIndex - 1);
+    return joinedRow;
   }
 
   @Override
@@ -254,7 +249,6 @@ public class NestedLoopOuterJoinLazyStream extends BinaryLazyStream {
     if (!hasNext()) {
       throw new IllegalStateException("row stream doesn't have more data!");
     }
-
     Row ret = nextRow;
     nextRow = null;
     return ret;

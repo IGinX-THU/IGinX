@@ -1,7 +1,7 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream;
 
 import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils.getJoinPathFromFilter;
-import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.constructNewHead;
+import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.HeaderUtils.constructNewHead;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils;
@@ -67,9 +67,8 @@ public class HashMarkJoinLazyStream extends BinaryLazyStream {
       } else {
         hash = value.getValue().hashCode();
       }
-      List<Row> rows = streamBHashMap.getOrDefault(hash, new ArrayList<>());
+      List<Row> rows = streamBHashMap.computeIfAbsent(hash, k -> new ArrayList<>());
       rows.add(rowB);
-      streamBHashMap.putIfAbsent(hash, rows);
     }
     this.hasInitialized = true;
   }
