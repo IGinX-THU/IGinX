@@ -3848,6 +3848,48 @@ public class SQLSessionIT {
   }
 
   @Test
+  public void testUnion() {
+    String insert = "INSERT INTO test(key, a.a, a.b) VALUES (1, 1, 1.1), (2, 3, 3.1), (3, 4, 7.1);";
+    executor.execute(insert);
+    insert =
+        "INSERT INTO test(key, b.a, b.b) VALUES (1, 1, \"aaa\"), (3, 4, \"ccc\"), (5, 6, \"eee\");";
+    executor.execute(insert);
+    insert =
+        "INSERT INTO test(key, c.a, c.b) VALUES (2, \"eee\", 1), (3, \"aaa\", 2), (4, \"bbb\", 3);";
+    executor.execute(insert);
+
+    String statement = "SELECT a FROM test.a UNION ALL SELECT a FROM test.b;";
+    String expected =
+        "ResultSets:\n" +
+            "+---+--------+\n" +
+            "|key|test.a.a|\n" +
+            "+---+--------+\n" +
+            "|  1|       1|\n" +
+            "|  2|       3|\n" +
+            "|  3|       4|\n" +
+            "|  1|       1|\n" +
+            "|  3|       4|\n" +
+            "|  5|       6|\n" +
+            "+---+--------+\n" +
+            "Total line number = 6\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "SELECT a FROM test.a UNION SELECT a FROM test.b;";
+    expected =
+        "ResultSets:\n" +
+            "+---+--------+\n" +
+            "|key|test.a.a|\n" +
+            "+---+--------+\n" +
+            "|  1|       1|\n" +
+            "|  2|       3|\n" +
+            "|  3|       4|\n" +
+            "|  5|       6|\n" +
+            "+---+--------+\n" +
+            "Total line number = 4\n";
+    executor.executeAndCompare(statement, expected);
+  }
+
+  @Test
   public void testDateFormat() {
     if (!isAbleToDelete) {
       return;

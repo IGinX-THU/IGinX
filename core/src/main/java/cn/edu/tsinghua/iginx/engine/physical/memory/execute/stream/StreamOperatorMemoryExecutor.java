@@ -83,8 +83,8 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
         return executeSingleJoin((SingleJoin) operator, streamA, streamB);
       case MarkJoin:
         return executeMarkJoin((MarkJoin) operator, streamA, streamB);
-      case Union:
-        return executeUnion((Union) operator, streamA, streamB);
+      case PathUnion:
+        return executePathUnion((PathUnion) operator, streamA, streamB);
       default:
         throw new UnexpectedOperatorException("unknown unary operator: " + operator.getType());
     }
@@ -265,8 +265,8 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
     return new HashMarkJoinLazyStream(markJoin, streamA, streamB);
   }
 
-  private RowStream executeUnion(Union union, RowStream streamA, RowStream streamB) {
-    return new UnionLazyStream(union, streamA, streamB);
+  private RowStream executePathUnion(PathUnion union, RowStream streamA, RowStream streamB) {
+    return new PathUnionLazyStream(union, streamA, streamB);
   }
 
   private static class StreamOperatorMemoryExecutorHolder {

@@ -3,12 +3,12 @@ package cn.edu.tsinghua.iginx.engine.shared.operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 
-public class Union extends AbstractBinaryOperator {
+public class Except extends AbstractBinaryOperator {
 
   private final boolean isDistinct;
 
-  public Union(Source sourceA, Source sourceB, boolean isDistinct) {
-    super(OperatorType.Union, sourceA, sourceB);
+  public Except(Source sourceA, Source sourceB, boolean isDistinct) {
+    super(OperatorType.Except, sourceA, sourceB);
     this.isDistinct = isDistinct;
   }
 
@@ -18,7 +18,7 @@ public class Union extends AbstractBinaryOperator {
 
   @Override
   public Operator copy() {
-    return new Union(getSourceA().copy(), getSourceB().copy(), isDistinct);
+    return new Except(getSourceA().copy(), getSourceB().copy(), isDistinct);
   }
 
   @Override

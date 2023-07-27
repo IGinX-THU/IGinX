@@ -1,4 +1,4 @@
-package cn.edu.tsinghua.iginx.sql.statement;
+package cn.edu.tsinghua.iginx.sql.statement.selectstatement;
 
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.ALL_PATH_SUFFIX;
 import static cn.edu.tsinghua.iginx.sql.SQLConstant.DOT;
@@ -18,8 +18,8 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.type.FuncType;
 import cn.edu.tsinghua.iginx.exceptions.SQLParserException;
 import cn.edu.tsinghua.iginx.sql.expression.BaseExpression;
 import cn.edu.tsinghua.iginx.sql.expression.Expression;
-import cn.edu.tsinghua.iginx.sql.expression.Expression.ExpressionType;
 import cn.edu.tsinghua.iginx.sql.expression.FuncExpression;
+import cn.edu.tsinghua.iginx.sql.statement.StatementType;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.FromPart;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.SubQueryFromPart;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
@@ -32,22 +32,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class SelectStatement extends DataStatement {
-
-  public static int markJoinCount = 0;
-
+public class UnarySelectStatement extends SelectStatement {
   private QueryType queryType;
-
-  private boolean needLogicalExplain = false;
-  private boolean needPhysicalExplain = false;
 
   private boolean hasFunc;
   private boolean hasJoinParts = false;
   private boolean hasValueFilter;
   private boolean hasDownsample;
   private boolean hasGroupBy;
-  private boolean ascending;
-  private boolean isSubQuery = false;
 
   private final List<Expression> expressions;
   private final Map<String, List<FuncExpression>> funcExpressionMap;
@@ -59,24 +51,23 @@ public class SelectStatement extends DataStatement {
   private final List<SubQueryFromPart> whereSubQueryParts;
   private final List<String> groupByPaths;
   private final List<SubQueryFromPart> havingSubQueryParts;
-  private final List<String> orderByPaths;
-  private List<String> freeVariables;
   private Filter filter;
   private Filter havingFilter;
   private TagFilter tagFilter;
   private long precision;
   private long startKey;
   private long endKey;
-  private int limit;
-  private int offset;
   private long slideDistance;
   private List<Integer> layers;
-  private String globalAlias;
 
-  public SelectStatement() {
-    this.statementType = StatementType.SELECT;
+  public UnarySelectStatement() {
+    this(false);
+  }
+
+  public UnarySelectStatement(boolean isSubQuery) {
+    super(isSubQuery);
+    this.selectStatementType = SelectStatementType.UNARY;
     this.queryType = QueryType.Unknown;
-    this.ascending = true;
     this.expressions = new ArrayList<>();
     this.funcExpressionMap = new HashMap<>();
     this.baseExpressionList = new ArrayList<>();
@@ -87,14 +78,13 @@ public class SelectStatement extends DataStatement {
     this.whereSubQueryParts = new ArrayList<>();
     this.groupByPaths = new ArrayList<>();
     this.havingSubQueryParts = new ArrayList<>();
-    this.orderByPaths = new ArrayList<>();
-    this.limit = Integer.MAX_VALUE;
-    this.offset = 0;
     this.layers = new ArrayList<>();
   }
 
   // simple query
-  public SelectStatement(List<String> paths, long startKey, long endKey) {
+  public UnarySelectStatement(List<String> paths, long startKey, long endKey) {
+    super(false);
+    this.selectStatementType = SelectStatementType.UNARY;
     this.queryType = QueryType.SimpleQuery;
 
     this.pathSet = new HashSet<>();
@@ -106,7 +96,6 @@ public class SelectStatement extends DataStatement {
     this.whereSubQueryParts = new ArrayList<>();
     this.groupByPaths = new ArrayList<>();
     this.havingSubQueryParts = new ArrayList<>();
-    this.orderByPaths = new ArrayList<>();
     this.funcTypeSet = new HashSet<>();
 
     paths.forEach(
@@ -122,8 +111,10 @@ public class SelectStatement extends DataStatement {
   }
 
   // aggregate query
-  public SelectStatement(
+  public UnarySelectStatement(
       List<String> paths, long startKey, long endKey, AggregateType aggregateType) {
+    super(false);
+    this.selectStatementType = SelectStatementType.UNARY;
     if (aggregateType == AggregateType.LAST || aggregateType == AggregateType.FIRST) {
       this.queryType = QueryType.LastFirstQuery;
     } else {
@@ -139,7 +130,6 @@ public class SelectStatement extends DataStatement {
     this.whereSubQueryParts = new ArrayList<>();
     this.groupByPaths = new ArrayList<>();
     this.havingSubQueryParts = new ArrayList<>();
-    this.orderByPaths = new ArrayList<>();
     this.funcTypeSet = new HashSet<>();
 
     String func = aggregateType.toString().toLowerCase();
@@ -157,19 +147,21 @@ public class SelectStatement extends DataStatement {
   }
 
   // downSample query
-  public SelectStatement(
+  public UnarySelectStatement(
       List<String> paths, long startKey, long endKey, AggregateType aggregateType, long precision) {
     this(paths, startKey, endKey, aggregateType, precision, precision);
   }
 
   // downsample with slide window query
-  public SelectStatement(
+  public UnarySelectStatement(
       List<String> paths,
       long startKey,
       long endKey,
       AggregateType aggregateType,
       long precision,
       long slideDistance) {
+    super(false);
+    this.selectStatementType = SelectStatementType.UNARY;
     this.queryType = QueryType.DownSampleQuery;
 
     this.pathSet = new HashSet<>();
@@ -181,7 +173,6 @@ public class SelectStatement extends DataStatement {
     this.whereSubQueryParts = new ArrayList<>();
     this.groupByPaths = new ArrayList<>();
     this.havingSubQueryParts = new ArrayList<>();
-    this.orderByPaths = new ArrayList<>();
     this.funcTypeSet = new HashSet<>();
 
     String func = aggregateType.toString().toLowerCase();
@@ -206,6 +197,7 @@ public class SelectStatement extends DataStatement {
 
   private void setFromSession(long startKey, long endKey) {
     this.statementType = StatementType.SELECT;
+    this.selectStatementType = SelectStatementType.UNARY;
 
     this.ascending = true;
     this.limit = Integer.MAX_VALUE;
@@ -288,28 +280,12 @@ public class SelectStatement extends DataStatement {
     this.hasGroupBy = hasGroupBy;
   }
 
-  public boolean isAscending() {
-    return ascending;
-  }
-
-  public void setAscending(boolean ascending) {
-    this.ascending = ascending;
-  }
-
   public boolean hasJoinParts() {
     return hasJoinParts;
   }
 
   public void setHasJoinParts(boolean hasJoinParts) {
     this.hasJoinParts = hasJoinParts;
-  }
-
-  public boolean isSubQuery() {
-    return isSubQuery;
-  }
-
-  public void setIsSubQuery(boolean isSubQuery) {
-    this.isSubQuery = isSubQuery;
   }
 
   public Map<String, List<FuncExpression>> getFuncExpressionMap() {
@@ -367,6 +343,7 @@ public class SelectStatement extends DataStatement {
     return funcTypeSet;
   }
 
+  @Override
   public Set<String> getPathSet() {
     return pathSet;
   }
@@ -417,10 +394,6 @@ public class SelectStatement extends DataStatement {
 
   public List<String> getGroupByPaths() {
     return groupByPaths;
-  }
-
-  public List<String> getOrderByPaths() {
-    return orderByPaths;
   }
 
   public void setOrderByPath(String orderByPath) {
@@ -491,22 +464,6 @@ public class SelectStatement extends DataStatement {
     this.queryType = queryType;
   }
 
-  public long getLimit() {
-    return limit;
-  }
-
-  public void setLimit(int limit) {
-    this.limit = limit;
-  }
-
-  public long getOffset() {
-    return offset;
-  }
-
-  public void setOffset(int offset) {
-    this.offset = offset;
-  }
-
   public List<Integer> getLayers() {
     return layers;
   }
@@ -515,36 +472,13 @@ public class SelectStatement extends DataStatement {
     this.layers.add(layer);
   }
 
-  public String getGlobalAlias() {
-    return globalAlias;
-  }
-
-  public void setGlobalAlias(String alias) {
-    this.globalAlias = alias;
-  }
-
+  @Override
   public List<Expression> getExpressions() {
     return expressions;
   }
 
   public void setExpression(Expression expression) {
     expressions.add(expression);
-  }
-
-  public boolean isNeedLogicalExplain() {
-    return needLogicalExplain;
-  }
-
-  public void setNeedLogicalExplain(boolean needLogicalExplain) {
-    this.needLogicalExplain = needLogicalExplain;
-  }
-
-  public boolean isNeedPhysicalExplain() {
-    return needPhysicalExplain;
-  }
-
-  public void setNeedPhysicalExplain(boolean needPhysicalExplain) {
-    this.needPhysicalExplain = needPhysicalExplain;
   }
 
   public Map<String, String> getSelectAliasMap() {
@@ -564,6 +498,7 @@ public class SelectStatement extends DataStatement {
     return aliasMap;
   }
 
+  @Override
   public Map<String, String> getSubQueryAliasMap(String alias) {
     Map<String, String> aliasMap = new HashMap<>();
     expressions.forEach(
@@ -586,25 +521,15 @@ public class SelectStatement extends DataStatement {
 
   public boolean needRowTransform() {
     for (Expression expression : expressions) {
-      if (!expression.getType().equals(ExpressionType.Base)
-          && !expression.getType().equals(ExpressionType.Function)) {
+      if (!expression.getType().equals(Expression.ExpressionType.Base)
+          && !expression.getType().equals(Expression.ExpressionType.Function)) {
         return true;
       }
     }
     return false;
   }
 
-  public List<String> getFreeVariables() {
-    return freeVariables;
-  }
-
-  public void addFreeVariable(String freeVariable) {
-    if (freeVariables == null) {
-      this.freeVariables = new ArrayList<>();
-    }
-    this.freeVariables.add(freeVariable);
-  }
-
+  @Override
   public List<String> calculatePrefixSet() {
     if (globalAlias != null) {
       return new ArrayList<>(Collections.singleton(globalAlias + Constants.ALL_PATH_SUFFIX));
@@ -618,14 +543,18 @@ public class SelectStatement extends DataStatement {
         expression -> {
           if (expression.hasAlias()) {
             prefixSet.add(expression.getAlias());
-          } else if (!expression.getType().equals(ExpressionType.Base)) {
+          } else if (!expression.getType().equals(Expression.ExpressionType.Base)) {
             prefixSet.add(expression.getColumnName());
           }
         });
     return new ArrayList<>(prefixSet);
   }
 
+  @Override
   public void initFreeVariables() {
+    if (freeVariables != null) {
+      return;
+    }
     Set<String> set = new HashSet<>();
     List<String> allVariables = FilterUtils.getAllPathsFromFilter(filter);
     allVariables.addAll(FilterUtils.getAllPathsFromFilter(havingFilter));

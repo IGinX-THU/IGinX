@@ -1,10 +1,12 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils;
 
+import static cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils.isNumericType;
 import static cn.edu.tsinghua.iginx.sql.SQLConstant.DOT;
 import static cn.edu.tsinghua.iginx.thrift.DataType.BOOLEAN;
 
 import cn.edu.tsinghua.iginx.constant.GlobalConstant;
 import cn.edu.tsinghua.iginx.engine.physical.exception.InvalidOperatorParameterException;
+import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
@@ -269,5 +271,39 @@ public class HeaderUtils {
         throw new RuntimeException("Unexpected filter type: " + filter.getType());
     }
     return null;
+  }
+
+  public static void checkHeadersComparable(Header headerA, Header headerB)
+      throws PhysicalException {
+    // 检查是否同时有或没有key列
+    if (headerA.hasKey() ^ headerB.hasKey()) {
+      throw new InvalidOperatorParameterException(
+          "Row stream to be union, except or intersect must have key or have not key at the same time.");
+    }
+
+    // 检查fields数量是否相等
+    if (headerA.getFieldSize() != headerB.getFieldSize()) {
+      throw new InvalidOperatorParameterException(
+          "Row stream to be union, except or intersect must have the same number of fields.");
+    }
+
+    // 没有key列时，fields不能为空
+    if (!headerA.hasKey() && headerA.getFieldSize() < 1) {
+      throw new InvalidOperatorParameterException(
+          "Row stream with no key to be union, except or intersect must have more than one field.");
+    }
+
+    // 检查对应位置的field是否可比较
+    int size = headerA.getFieldSize();
+    DataType typeA, typeB;
+    for (int index = 0; index < size; index++) {
+      typeA = headerA.getField(index).getType();
+      typeB = headerB.getField(index).getType();
+      boolean comparable = isNumericType(typeA) && isNumericType(typeB) || typeA.equals(typeB);
+      if (!comparable) {
+        throw new InvalidOperatorParameterException(
+            "Field type " + typeA + " and type " + typeB + " are incomparable.");
+      }
+    }
   }
 }

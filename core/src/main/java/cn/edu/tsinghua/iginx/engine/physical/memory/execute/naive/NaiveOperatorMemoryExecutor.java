@@ -19,6 +19,7 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.naive;
 
 import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.HeaderUtils.calculateHashJoinPath;
+import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.HeaderUtils.checkHeadersComparable;
 import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.HeaderUtils.constructNewHead;
 import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.checkJoinColumns;
 import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.checkNeedTypeCast;
@@ -27,6 +28,7 @@ import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtil
 import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.establishHashMap;
 import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.getSamePathWithSpecificPrefix;
 import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.isEqualRow;
+import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.isValueEqualRow;
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.ALL_PATH_SUFFIX;
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.KEY;
 import static cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils.getHash;
@@ -57,13 +59,16 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.BinaryOperator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.CrossJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Distinct;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Downsample;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Except;
 import cn.edu.tsinghua.iginx.engine.shared.operator.GroupBy;
 import cn.edu.tsinghua.iginx.engine.shared.operator.InnerJoin;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Intersect;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Join;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Limit;
 import cn.edu.tsinghua.iginx.engine.shared.operator.MappingTransform;
 import cn.edu.tsinghua.iginx.engine.shared.operator.MarkJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.OuterJoin;
+import cn.edu.tsinghua.iginx.engine.shared.operator.PathUnion;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Rename;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Reorder;
@@ -164,10 +169,19 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
       case MarkJoin:
         return executeMarkJoin(
             (MarkJoin) operator, transformToTable(streamA), transformToTable(streamB));
+      case PathUnion:
+        return executePathUnion(
+            (PathUnion) operator, transformToTable(streamA), transformToTable(streamB));
       case Union:
         return executeUnion((Union) operator, transformToTable(streamA), transformToTable(streamB));
+      case Except:
+        return executeExcept(
+            (Except) operator, transformToTable(streamA), transformToTable(streamB));
+      case Intersect:
+        return executeIntersect(
+            (Intersect) operator, transformToTable(streamA), transformToTable(streamB));
       default:
-        throw new UnexpectedOperatorException("unknown unary operator: " + operator.getType());
+        throw new UnexpectedOperatorException("unknown binary operator: " + operator.getType());
     }
   }
 
@@ -1917,11 +1931,8 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     Header joinHeader = constructNewHead(tableA.getHeader(), tableB.getHeader(), true);
 
     List<Row> transformedRows = new ArrayList<>();
-    Filter filter = markJoin.getFilter();
-    boolean matched;
     tableScan:
     for (Row rowA : tableA.getRows()) {
-      matched = false;
       for (Row rowB : tableB.getRows()) {
         if (!equalOnSpecificPaths(rowA, rowB, extraJoinPaths)) {
           continue;
@@ -2131,21 +2142,22 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     }
   }
 
-  private RowStream executeUnion(Union union, Table tableA, Table tableB) throws PhysicalException {
+  private RowStream executePathUnion(PathUnion union, Table tableA, Table tableB)
+      throws PhysicalException {
     // 检查时间是否一致
     Header headerA = tableA.getHeader();
     Header headerB = tableB.getHeader();
     if (headerA.hasKey() ^ headerB.hasKey()) {
       throw new InvalidOperatorParameterException("row stream to be union must have same fields");
     }
-    boolean hasTimestamp = headerA.hasKey();
+    boolean hasKey = headerA.hasKey();
     Set<Field> targetFieldSet = new HashSet<>();
     targetFieldSet.addAll(headerA.getFields());
     targetFieldSet.addAll(headerB.getFields());
     List<Field> targetFields = new ArrayList<>(targetFieldSet);
     Header targetHeader;
     List<Row> rows = new ArrayList<>();
-    if (!hasTimestamp) {
+    if (!hasKey) {
       targetHeader = new Header(targetFields);
       for (Row row : tableA.getRows()) {
         rows.add(RowUtils.transform(row, targetHeader));
@@ -2175,6 +2187,88 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
       }
     }
     return new Table(targetHeader, rows);
+  }
+
+  private RowStream executeUnion(Union union, Table tableA, Table tableB) throws PhysicalException {
+    // 检查输入两表的header是否可比较
+    checkHeadersComparable(tableA.getHeader(), tableB.getHeader());
+
+    // 判断是否去重
+    if (union.isDistinct()) {
+      return executeUnionDistinct(tableA, tableB);
+    } else {
+      return executeUnionAll(tableA, tableB);
+    }
+  }
+
+  private RowStream executeUnionAll(Table tableA, Table tableB) {
+    boolean hasKey = tableA.getHeader().hasKey();
+    Header targetHeader =
+        hasKey
+            ? new Header(Field.KEY, tableA.getHeader().getFields())
+            : new Header(tableA.getHeader().getFields());
+
+    List<Row> targetRows = tableA.getRows();
+    for (Row rowB : tableB.getRows()) {
+      if (hasKey) {
+        targetRows.add(new Row(targetHeader, rowB.getKey(), rowB.getValues()));
+      } else {
+        targetRows.add(new Row(targetHeader, rowB.getValues()));
+      }
+    }
+
+    return new Table(targetHeader, targetRows);
+  }
+
+  private RowStream executeUnionDistinct(Table tableA, Table tableB) throws PhysicalException {
+    boolean hasKey = tableA.getHeader().hasKey();
+    Header targetHeader =
+        hasKey
+            ? new Header(Field.KEY, tableA.getHeader().getFields())
+            : new Header(tableA.getHeader().getFields());
+
+    long hash;
+    HashMap<Long, List<Row>> hashMap = new HashMap<>();
+    if (hasKey) {
+      for (Row rowA : tableA.getRows()) {
+        hash = Objects.hash(rowA.getKey());
+        List<Row> l = hashMap.computeIfAbsent(hash, k -> new ArrayList<>());
+        l.add(rowA);
+      }
+
+      tableScan:
+      for (Row rowB : tableB.getRows()) {
+        hash = Objects.hash(rowB.getKey());
+        List<Row> l = hashMap.computeIfAbsent(hash, k -> new ArrayList<>());
+        for (Row rowExist : l) {
+          if (isValueEqualRow(rowExist, rowB, true)) {
+            continue tableScan;
+          }
+        }
+        l.add(new Row(targetHeader, rowB.getKey(), rowB.getValues()));
+      }
+    }
+
+    List<Row> targetRows = new ArrayList<>();
+    hashMap.values().forEach(targetRows::addAll);
+
+    return new Table(targetHeader, targetRows);
+  }
+
+  private RowStream executeExcept(Except except, Table tableA, Table tableB)
+      throws PhysicalException {
+    // 检查输入两表的header是否可比较
+    checkHeadersComparable(tableA.getHeader(), tableB.getHeader());
+
+    return null;
+  }
+
+  private RowStream executeIntersect(Intersect intersect, Table tableA, Table tableB)
+      throws PhysicalException {
+    // 检查输入两表的header是否可比较
+    checkHeadersComparable(tableA.getHeader(), tableB.getHeader());
+
+    return null;
   }
 
   private static class NaiveOperatorMemoryExecutorHolder {

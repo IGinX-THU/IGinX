@@ -1,8 +1,8 @@
 package cn.edu.tsinghua.iginx.sql.statement.frompart;
 
 import cn.edu.tsinghua.iginx.engine.shared.Constants;
-import cn.edu.tsinghua.iginx.sql.statement.SelectStatement;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.join.JoinCondition;
+import cn.edu.tsinghua.iginx.sql.statement.selectstatement.SelectStatement;
 import java.util.List;
 
 public class SubQueryFromPart implements FromPart {

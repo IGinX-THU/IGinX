@@ -22,8 +22,10 @@ import cn.edu.tsinghua.iginx.engine.shared.function.manager.FunctionManager;
 import cn.edu.tsinghua.iginx.engine.shared.operator.AddSchemaPrefix;
 import cn.edu.tsinghua.iginx.engine.shared.operator.CrossJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Downsample;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Except;
 import cn.edu.tsinghua.iginx.engine.shared.operator.GroupBy;
 import cn.edu.tsinghua.iginx.engine.shared.operator.InnerJoin;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Intersect;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Limit;
 import cn.edu.tsinghua.iginx.engine.shared.operator.MappingTransform;
 import cn.edu.tsinghua.iginx.engine.shared.operator.MarkJoin;
@@ -37,6 +39,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
 import cn.edu.tsinghua.iginx.engine.shared.operator.SetTransform;
 import cn.edu.tsinghua.iginx.engine.shared.operator.SingleJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Sort;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Union;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.FuncType;
@@ -53,14 +56,16 @@ import cn.edu.tsinghua.iginx.metadata.entity.StorageUnitMeta;
 import cn.edu.tsinghua.iginx.policy.IPolicy;
 import cn.edu.tsinghua.iginx.policy.PolicyManager;
 import cn.edu.tsinghua.iginx.sql.expression.Expression;
-import cn.edu.tsinghua.iginx.sql.statement.SelectStatement;
-import cn.edu.tsinghua.iginx.sql.statement.SelectStatement.QueryType;
 import cn.edu.tsinghua.iginx.sql.statement.Statement;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.FromPartType;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.PathFromPart;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.SubQueryFromPart;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.join.JoinCondition;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.join.JoinType;
+import cn.edu.tsinghua.iginx.sql.statement.selectstatement.BinarySelectStatement;
+import cn.edu.tsinghua.iginx.sql.statement.selectstatement.SelectStatement;
+import cn.edu.tsinghua.iginx.sql.statement.selectstatement.UnarySelectStatement;
+import cn.edu.tsinghua.iginx.sql.statement.selectstatement.UnarySelectStatement.QueryType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.SortUtils;
 import java.util.ArrayList;
@@ -100,7 +105,61 @@ public class QueryGenerator extends AbstractGenerator {
   @Override
   protected Operator generateRoot(Statement statement) {
     SelectStatement selectStatement = (SelectStatement) statement;
+    if (selectStatement.getSelectType() == SelectStatement.SelectStatementType.UNARY) {
+      return generateRoot((UnarySelectStatement) selectStatement);
+    } else if (selectStatement.getSelectType() == SelectStatement.SelectStatementType.BINARY) {
+      return generateRoot((BinarySelectStatement) selectStatement);
+    } else {
+      throw new RuntimeException(
+          "Unknown select statement type: " + selectStatement.getSelectType());
+    }
+  }
 
+  private Operator generateRoot(BinarySelectStatement selectStatement) {
+    Operator root;
+    Operator left = generateRoot(selectStatement.getLeftQuery());
+    Operator right = generateRoot(selectStatement.getRightQuery());
+    switch (selectStatement.getSetOperator()) {
+      case Union:
+        root =
+            new Union(
+                new OperatorSource(left), new OperatorSource(right), selectStatement.isDistinct());
+        break;
+      case Except:
+        root =
+            new Except(
+                new OperatorSource(left), new OperatorSource(right), selectStatement.isDistinct());
+        break;
+      case Intersect:
+        root =
+            new Intersect(
+                new OperatorSource(left), new OperatorSource(right), selectStatement.isDistinct());
+        break;
+      default:
+        throw new RuntimeException(
+            "Unknown set operator type: " + selectStatement.getSetOperator());
+    }
+
+    if (!selectStatement.getOrderByPaths().isEmpty()) {
+      root =
+          new Sort(
+              new OperatorSource(root),
+              selectStatement.getOrderByPaths(),
+              selectStatement.isAscending() ? Sort.SortType.ASC : Sort.SortType.DESC);
+    }
+
+    if (selectStatement.getLimit() != Integer.MAX_VALUE || selectStatement.getOffset() != 0) {
+      root =
+          new Limit(
+              new OperatorSource(root),
+              (int) selectStatement.getLimit(),
+              (int) selectStatement.getOffset());
+    }
+
+    return root;
+  }
+
+  private Operator generateRoot(UnarySelectStatement selectStatement) {
     Operator root;
     if (selectStatement.hasJoinParts()) {
       root = filterAndMergeFragmentsWithJoin(selectStatement);
@@ -231,7 +290,7 @@ public class QueryGenerator extends AbstractGenerator {
       queryList.add(
           new GroupBy(
               new OperatorSource(root), selectStatement.getGroupByPaths(), functionCallList));
-    } else if (selectStatement.getQueryType() == SelectStatement.QueryType.DownSampleQuery) {
+    } else if (selectStatement.getQueryType() == QueryType.DownSampleQuery) {
       // DownSample Query
       Operator finalRoot = root;
       selectStatement
@@ -256,7 +315,7 @@ public class QueryGenerator extends AbstractGenerator {
                                 new KeyRange(
                                     selectStatement.getStartKey(), selectStatement.getEndKey())));
                       }));
-    } else if (selectStatement.getQueryType() == SelectStatement.QueryType.AggregateQuery) {
+    } else if (selectStatement.getQueryType() == QueryType.AggregateQuery) {
       // Aggregate Query
       Operator finalRoot = root;
       selectStatement
@@ -301,7 +360,7 @@ public class QueryGenerator extends AbstractGenerator {
                         Collections.singletonList(expression.getPathName()),
                         tagFilter));
               });
-    } else if (selectStatement.getQueryType() == SelectStatement.QueryType.LastFirstQuery) {
+    } else if (selectStatement.getQueryType() == QueryType.LastFirstQuery) {
       Operator finalRoot = root;
       selectStatement
           .getFuncExpressionMap()
@@ -326,9 +385,9 @@ public class QueryGenerator extends AbstractGenerator {
           new Project(new OperatorSource(root), new ArrayList<>(selectedPath), tagFilter));
     }
 
-    if (selectStatement.getQueryType() == SelectStatement.QueryType.LastFirstQuery) {
+    if (selectStatement.getQueryType() == QueryType.LastFirstQuery) {
       root = OperatorUtils.unionOperators(queryList);
-    } else if (selectStatement.getQueryType() == SelectStatement.QueryType.DownSampleQuery) {
+    } else if (selectStatement.getQueryType() == QueryType.DownSampleQuery) {
       root = OperatorUtils.joinOperatorsByTime(queryList);
     } else {
       if (selectStatement.getFuncTypeSet().contains(FuncType.Udtf)) {
@@ -413,7 +472,7 @@ public class QueryGenerator extends AbstractGenerator {
     // 子查询不生成Reorder算子
     if (!selectStatement.isSubQuery()) {
       if (selectStatement.getLayers().isEmpty()) {
-        if (selectStatement.getQueryType().equals(SelectStatement.QueryType.LastFirstQuery)) {
+        if (selectStatement.getQueryType().equals(QueryType.LastFirstQuery)) {
           root = new Reorder(new OperatorSource(root), Arrays.asList("path", "value"));
         } else {
           List<String> order = new ArrayList<>();
@@ -450,7 +509,7 @@ public class QueryGenerator extends AbstractGenerator {
     return root;
   }
 
-  private Operator filterAndMergeFragments(SelectStatement selectStatement) {
+  private Operator filterAndMergeFragments(UnarySelectStatement selectStatement) {
     List<String> pathList =
         SortUtils.mergeAndSortPaths(new ArrayList<>(selectStatement.getPathSet()));
     TagFilter tagFilter = selectStatement.getTagFilter();
@@ -466,7 +525,7 @@ public class QueryGenerator extends AbstractGenerator {
     return mergeRawData(fragments, dummyFragments, pathList, tagFilter);
   }
 
-  private Operator filterAndMergeFragmentsWithJoin(SelectStatement selectStatement) {
+  private Operator filterAndMergeFragmentsWithJoin(UnarySelectStatement selectStatement) {
     TagFilter tagFilter = selectStatement.getTagFilter();
 
     List<Operator> joinList = new ArrayList<>();
