@@ -96,7 +96,7 @@ public class FileSystemHistoryQueryRowStream implements RowStream {
     return currRow;
   }
 
-  private Row getNext() throws PhysicalException {
+  public Row getNext() throws PhysicalException {
     long timestamp = Long.MAX_VALUE;
     for (int i = 0; i < this.rowData.size(); i++) {
       int index = round[i];
@@ -104,7 +104,7 @@ public class FileSystemHistoryQueryRowStream implements RowStream {
       if (index == records.size()) { // 数据已经消费完毕了
         continue;
       }
-      timestamp = Math.min(index, timestamp);
+      timestamp = Math.min(records.get(index).getKey(), timestamp);
     }
     if (timestamp == Long.MAX_VALUE) {
       return null;
@@ -117,7 +117,7 @@ public class FileSystemHistoryQueryRowStream implements RowStream {
         continue;
       }
       byte[] val = (byte[]) records.get(index).getRawData();
-      if (index == timestamp) {
+      if (records.get(index).getKey() == timestamp) {
         Object value = val;
         values[i] = value;
         indices[i][index] += val.length;
