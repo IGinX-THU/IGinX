@@ -251,6 +251,9 @@ public class ExprUtils {
   }
 
   public static Filter removeNot(Filter filter) {
+    if(filter==null) {
+      return null;
+    }
     FilterType type = filter.getType();
     switch (type) {
       case Key:

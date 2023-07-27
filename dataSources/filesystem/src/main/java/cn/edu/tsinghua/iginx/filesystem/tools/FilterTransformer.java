@@ -15,9 +15,9 @@ import static cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op.*;
 import static cn.edu.tsinghua.iginx.filesystem.thrift.FilterType.*;
 
 public class FilterTransformer {
-  private static int index = 0;
-  private static int deep = 0;
-  private static String prefix = "A";
+//  private static int index = 0;
+//  private static int deep = 0;
+//  private static String prefix = "A";
 
   public static String toString(Filter filter) {
     if (filter == null) {
@@ -48,6 +48,8 @@ public class FilterTransformer {
         return toFSFilter((KeyFilter) filter);
       case Bool:
         return toFSFilter((BoolFilter) filter);
+      case Path:
+        return toFSFilter((PathFilter) filter);
       default:
         return null;
     }
@@ -58,6 +60,14 @@ public class FilterTransformer {
     for (Filter f : filter.getChildren()) {
       fsFilter.addToChildren(toFSFilter(f));
     }
+    return fsFilter;
+  }
+
+  private static FSFilter toFSFilter(PathFilter filter) {
+    FSFilter fsFilter = new FSFilter(Path);
+    fsFilter.setPathA(filter.getPathA());
+    fsFilter.setPathB(filter.getPathB());
+    fsFilter.setOp(toFSOp(filter.getOp()));
     return fsFilter;
   }
 
@@ -101,11 +111,13 @@ public class FilterTransformer {
       case L:
         return Op.L;
       case LE:
-        return Op.L;
+        return Op.LE;
       case LIKE:
         return Op.LIKE;
       case NE:
         return Op.NE;
+      case E:
+        return Op.E;
       case GE:
         return Op.GE;
       case G:
@@ -123,7 +135,7 @@ public class FilterTransformer {
         fsValue.setFloatV(value.getFloatV());
         break;
       case INTEGER:
-        fsValue.setLongV(value.getLongV());
+        fsValue.setIntV(value.getIntV());
         break;
       case BINARY:
         fsValue.setBinaryV(value.getBinaryV());
@@ -133,6 +145,9 @@ public class FilterTransformer {
         break;
       case DOUBLE:
         fsValue.setDoubleV(value.getDoubleV());
+        break;
+      case LONG:
+        fsValue.setLongV(value.getLongV());
         break;
     }
     return fsValue;
@@ -162,6 +177,8 @@ public class FilterTransformer {
         return toKeyFilter(filter);
       case Bool:
         return toBoolFilter( filter);
+      case Path:
+        return toPathFilter( filter);
       default:
         return null;
     }
@@ -173,6 +190,10 @@ public class FilterTransformer {
       filters.add(toFilter(f));
     }
     return new AndFilter(filters);
+  }
+
+  private static Filter toPathFilter(FSFilter filter) {
+    return new PathFilter(filter.getPathA(),toOp(filter.getOp()),filter.getPathB());
   }
 
   private static Filter toOrFilter(FSFilter filter) {
@@ -209,6 +230,8 @@ public class FilterTransformer {
         return LIKE;
       case NE:
         return NE;
+      case E:
+        return E;
       case GE:
         return GE;
       case G:
@@ -225,7 +248,7 @@ public class FilterTransformer {
         myValue = new cn.edu.tsinghua.iginx.engine.shared.data.Value(value.getFloatV());
         break;
       case INTEGER:
-        myValue = new cn.edu.tsinghua.iginx.engine.shared.data.Value(value.getLongV());
+        myValue = new cn.edu.tsinghua.iginx.engine.shared.data.Value(value.getIntV());
         break;
       case BINARY:
         myValue = new cn.edu.tsinghua.iginx.engine.shared.data.Value(value.getBinaryV());
@@ -235,6 +258,9 @@ public class FilterTransformer {
         break;
       case DOUBLE:
         myValue = new cn.edu.tsinghua.iginx.engine.shared.data.Value(value.getDoubleV());
+        break;
+      case LONG:
+        myValue = new cn.edu.tsinghua.iginx.engine.shared.data.Value(value.getLongV());
         break;
     }
     return myValue;

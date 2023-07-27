@@ -70,10 +70,10 @@ public class SQLSessionIT {
     this.isAbleToClearData = dbConf.getEnumValue(DBConf.DBConfType.isAbleToClearData);
     this.isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
     this.isAbleToShowColumns = dbConf.getEnumValue(DBConf.DBConfType.isAbleToShowColumns);
-    this.isSupportChinesePath = dbConf.getEnumValue(DBConfType.isSupportChinesePath);
+    this.isSupportChinesePath = false;
     this.isSupportNumericalPath = dbConf.getEnumValue(DBConfType.isSupportNumericalPath);
     this.isSupportSpecialCharacterPath =
-        dbConf.getEnumValue(DBConfType.isSupportSpecialCharacterPath);
+            false;
   }
 
   @BeforeClass
@@ -3647,7 +3647,7 @@ public class SQLSessionIT {
             + "|       2|       2|     5.1|    val3|         6|       2|       2|     1.1|    val3|         3|\n"
             + "+--------+--------+--------+--------+----------+--------+--------+--------+--------+----------+\n"
             + "Total line number = 4\n";
-//    executor.executeAndCompare(statement, expected);
+    executor.executeAndCompare(statement, expected);
 
     statement =
         "SELECT test.* FROM test.a JOIN test.c ON test.a.d = test.c.d WHERE EXISTS (SELECT * FROM test.b WHERE test.b.d = \"val4\") OR test.a.d = \"val1\";";

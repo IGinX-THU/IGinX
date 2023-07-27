@@ -110,6 +110,9 @@ public class FilterUtils {
       throws PhysicalException {
     String path = valueFilter.getPath();
     Value targetValue = valueFilter.getValue();
+    if(targetValue==null) {
+      return false;
+    }
     if (targetValue.isNull()) { // targetValue是空值，则认为不可比较
       return false;
     }

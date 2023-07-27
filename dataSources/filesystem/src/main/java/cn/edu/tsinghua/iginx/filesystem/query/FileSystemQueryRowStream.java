@@ -112,6 +112,9 @@ public class FileSystemQueryRowStream implements RowStream {
   private Row calculateNext() throws PhysicalException {
     Row row = getNext();
     while (row!=null) {
+      if(row.getKey()==600) {
+        int a = 0;
+      }
       if(filter == null || FilterUtils.validate(filter, row)) {
         return row;
       }
