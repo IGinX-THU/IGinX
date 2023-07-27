@@ -1,10 +1,12 @@
 package cn.edu.tsinghua.iginx.filesystem.query;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.filesystem.file.property.FilePath;
 import cn.edu.tsinghua.iginx.filesystem.tools.MemoryPool;
 import cn.edu.tsinghua.iginx.filesystem.wrapper.Record;
@@ -19,13 +21,14 @@ public class FileSystemHistoryQueryRowStream implements RowStream {
   private final int[] round;
   private int batch = 10;
   private int hasMoreRecords = 0;
+  private Filter filter;
+  private Row nextRow = null;
 
   public FileSystemHistoryQueryRowStream() {
     Field time = Field.KEY;
     List<Field> fields = new ArrayList<>();
 
     this.rowData = new ArrayList<>();
-    ;
     this.indices = new int[0][1024 * 1024 + 100];
     this.round = new int[0];
     this.header = new Header(time, fields);
@@ -35,10 +38,11 @@ public class FileSystemHistoryQueryRowStream implements RowStream {
   }
 
   // may fix it ，可能可以不用传pathMap
-  public FileSystemHistoryQueryRowStream(List<FSResultTable> result, String root) {
+  public FileSystemHistoryQueryRowStream(List<FSResultTable> result, String root, Filter filter) {
     Field time = Field.KEY;
     List<Field> fields = new ArrayList<>();
 
+    this.filter=filter;
     this.rowData = result;
 
     String series;
@@ -76,11 +80,23 @@ public class FileSystemHistoryQueryRowStream implements RowStream {
 
   @Override
   public boolean hasNext() throws PhysicalException {
-    return this.hasMoreRecords != 0;
+    if(nextRow == null && hasMoreRecords != 0){
+      nextRow=calculateNext();
+    }
+    return nextRow != null;
   }
 
   @Override
   public Row next() throws PhysicalException {
+    if (!hasNext()) {
+      throw new PhysicalException("no more data");
+    }
+    Row currRow = nextRow;
+    nextRow = calculateNext();
+    return currRow;
+  }
+
+  private Row getNext() throws PhysicalException {
     long timestamp = Long.MAX_VALUE;
     for (int i = 0; i < this.rowData.size(); i++) {
       int index = round[i];
@@ -112,5 +128,16 @@ public class FileSystemHistoryQueryRowStream implements RowStream {
       }
     }
     return new Row(header, timestamp, values);
+  }
+
+  private Row calculateNext() throws PhysicalException {
+    Row row = getNext();
+    while (row!=null) {
+      if(filter == null || FilterUtils.validate(filter, row)) {
+        return row;
+      }
+      row = getNext();
+    }
+    return null;
   }
 }

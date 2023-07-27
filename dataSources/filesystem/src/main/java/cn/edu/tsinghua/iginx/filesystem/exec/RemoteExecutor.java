@@ -59,7 +59,7 @@ public class RemoteExecutor implements Executor {
   public TaskExecuteResult executeProjectTask(
       List<String> paths,
       TagFilter tagFilter,
-      String filter,
+      FSFilter filter,
       String storageUnit,
       boolean isDummyStorageUnit) {
     ProjectReq req = new ProjectReq(storageUnit, isDummyStorageUnit, paths);

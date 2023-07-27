@@ -1,10 +1,13 @@
 package cn.edu.tsinghua.iginx.filesystem.query;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
+import cn.edu.tsinghua.iginx.filesystem.FileSystem;
 import cn.edu.tsinghua.iginx.filesystem.file.property.FilePath;
 import cn.edu.tsinghua.iginx.filesystem.wrapper.Record;
 import java.io.File;
@@ -16,11 +19,14 @@ public class FileSystemQueryRowStream implements RowStream {
   private final List<FSResultTable> rowData;
   private final int[] indices;
   private int hasMoreRecords = 0;
+  private Filter filter;
+  private Row nextRow = null;
 
-  public FileSystemQueryRowStream(List<FSResultTable> result, String storageUnit, String root) {
+  public FileSystemQueryRowStream(List<FSResultTable> result, String storageUnit, String root, Filter filter) {
     Field time = Field.KEY;
     List<Field> fields = new ArrayList<>();
 
+    this.filter=filter;
     this.rowData = result;
 
     String series;
@@ -52,11 +58,24 @@ public class FileSystemQueryRowStream implements RowStream {
 
   @Override
   public boolean hasNext() throws PhysicalException {
-    return this.hasMoreRecords != 0;
+    if(nextRow == null && hasMoreRecords != 0){
+      nextRow=calculateNext();
+    }
+    return nextRow != null;
   }
 
   @Override
   public Row next() throws PhysicalException {
+    if (!hasNext()) {
+      throw new PhysicalException("no more data");
+    }
+    Row currRow = nextRow;
+    nextRow = calculateNext();
+    return currRow;
+  }
+
+
+  private Row getNext() throws PhysicalException {
     long timestamp = Long.MAX_VALUE;
     for (int i = 0; i < this.rowData.size(); i++) {
       int index = indices[i];
@@ -88,5 +107,16 @@ public class FileSystemQueryRowStream implements RowStream {
       }
     }
     return new Row(header, timestamp, values);
+  }
+
+  private Row calculateNext() throws PhysicalException {
+    Row row = getNext();
+    while (row!=null) {
+      if(filter == null || FilterUtils.validate(filter, row)) {
+        return row;
+      }
+      row = getNext();
+    }
+    return null;
   }
 }

@@ -113,7 +113,7 @@ public class FileSystem implements IStorage {
     return executor.executeProjectTask(
         project.getPatterns(),
         project.getTagFilter(),
-        FilterTransformer.toString(filter),
+        FilterTransformer.toFSFilter(filter),
         dataArea.getStorageUnit(),
         false);
   }
@@ -129,7 +129,7 @@ public class FileSystem implements IStorage {
     return executor.executeProjectTask(
         project.getPatterns(),
         project.getTagFilter(),
-        FilterTransformer.toString(filter),
+        FilterTransformer.toFSFilter(filter),
         dataArea.getStorageUnit(),
         true);
   }
@@ -145,7 +145,7 @@ public class FileSystem implements IStorage {
     return executor.executeProjectTask(
         project.getPatterns(),
         project.getTagFilter(),
-        FilterTransformer.toString(select.getFilter()),
+        FilterTransformer.toFSFilter(select.getFilter()),
         dataArea.getStorageUnit(),
         false);
   }
@@ -156,7 +156,7 @@ public class FileSystem implements IStorage {
     return executor.executeProjectTask(
         project.getPatterns(),
         project.getTagFilter(),
-        FilterTransformer.toString(select.getFilter()),
+        FilterTransformer.toFSFilter(select.getFilter()),
         dataArea.getStorageUnit(),
         true);
   }

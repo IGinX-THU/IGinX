@@ -92,7 +92,7 @@ struct ProjectReq {
     2: required bool isDummyStorageUnit
     3: required list<string> paths
     4: optional RawTagFilter tagFilter
-    5: optional string filter
+    5: optional FSFilter filter
 }
 
 struct ProjectResp {

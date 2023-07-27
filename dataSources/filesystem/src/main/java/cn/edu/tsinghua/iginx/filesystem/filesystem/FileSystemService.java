@@ -1,6 +1,8 @@
 package cn.edu.tsinghua.iginx.filesystem.filesystem;
 
+import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.filesystem.file.IFileOperator;
@@ -32,6 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import oshi.util.tuples.Triplet;
 
+import static cn.edu.tsinghua.iginx.engine.logical.utils.ExprUtils.getKeyRangesFromFilter;
 import static cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op.*;
 
 /*
@@ -53,21 +56,21 @@ public class FileSystemService {
     return readFile(file, null, filter);
   }
 
-  public static List<List<String>> expressionToParts(String expression) {
-    List<List<String>> parts = new ArrayList<>();
-    String[] terms = expression.split("\\|");
-    for (String term : terms) {
-      term = term.trim().replace("(", "").replace(")", "");
-      if (term.contains("&")) {
-        parts.add(Arrays.stream(term.split("&"))
-            .map(String::trim)
-            .collect(Collectors.toList()));
-      } else {
-        parts.add(Arrays.asList(term));
-      }
-    }
-    return parts;
-  }
+//  public static List<List<String>> expressionToParts(String expression) {
+//    List<List<String>> parts = new ArrayList<>();
+//    String[] terms = expression.split("\\|");
+//    for (String term : terms) {
+//      term = term.trim().replace("(", "").replace(")", "");
+//      if (term.contains("&")) {
+//        parts.add(Arrays.stream(term.split("&"))
+//            .map(String::trim)
+//            .collect(Collectors.toList()));
+//      } else {
+//        parts.add(Arrays.asList(term));
+//      }
+//    }
+//    return parts;
+//  }
 
 //  public static List<List<String>> expressionToParts(String expr) {
 //    List<List<String>> result = new ArrayList<>();
@@ -97,104 +100,104 @@ public class FileSystemService {
 //    return result;
 //  }
 
-  private static class PairComparator implements Comparator<Pair<Long, Op>> {
-    @Override
-    public int compare(Pair<Long, Op> p1, Pair<Long, Op> p2) {
-      return Long.compare(p1.getK(), p2.getK());
-    }
-  }
+//  private static class PairComparator implements Comparator<Pair<Long, Op>> {
+//    @Override
+//    public int compare(Pair<Long, Op> p1, Pair<Long, Op> p2) {
+//      return Long.compare(p1.getK(), p2.getK());
+//    }
+//  }
 
   // 全部返回为左右闭区间
-  private static List<Pair<Long,Long>> parseKey(List<String> part, BiMap<String, String> vals) {
-    PriorityQueue<Pair<Long, Op>> queue = new PriorityQueue<>(new PairComparator());
-    List<Pair<Long,Long>> res = new ArrayList<>();
-    Long minTime = -1L, maxTime = Long.MAX_VALUE;
-    Pair<Long,Op> point =null;
-    for (String p : part) {
-      String val = vals.get(p);
-      if (val.contains("key")) {
-        String[] parts = val.split(" ");
-        String op = parts[1];
-        Long key = Long.parseLong(parts[2]);
-        if (Op.str2Op(op)==NE){
-          queue.add(new Pair<>(key,L));
-          queue.add(new Pair<>(key,G));
-        } else {
-          point = new Pair<>(key,Op.str2Op(op));
-        }
-      }
-      queue.add(point);
-    }
-    while(!queue.isEmpty()) {
-     point = queue.poll();
-      Long key = point.getK();
-      switch (point.getV()) {
-        case L:
-          res.add(new Pair<>(minTime,key-1>=0?key-1:0));
-          minTime = -1L;
-          maxTime = Long.MAX_VALUE;
-          break;
-        case LE:
-          res.add(new Pair<>(minTime,key));
-          minTime = -1L;
-          maxTime = Long.MAX_VALUE;
-          break;
-        case GE:
-          minTime = key;
-          break;
-        case G:
-          minTime = key+1;
-          break;
-        case E:
-          res.add(new Pair<>(key,key));
-          minTime = -1L;
-          maxTime = Long.MAX_VALUE;
-          break;
-        case NE:
-        default:
-          break;
-      }
-    }
-    if (minTime!=-1L) {
-      res.add(new Pair<>(minTime,maxTime));
-    }
-    return res;
-  }
+//  private static List<Pair<Long,Long>> parseKey(List<String> part, BiMap<String, String> vals) {
+//    PriorityQueue<Pair<Long, Op>> queue = new PriorityQueue<>(new PairComparator());
+//    List<Pair<Long,Long>> res = new ArrayList<>();
+//    Long minTime = -1L, maxTime = Long.MAX_VALUE;
+//    Pair<Long,Op> point =null;
+//    for (String p : part) {
+//      String val = vals.get(p);
+//      if (val.contains("key")) {
+//        String[] parts = val.split(" ");
+//        String op = parts[1];
+//        Long key = Long.parseLong(parts[2]);
+//        if (Op.str2Op(op)==NE){
+//          queue.add(new Pair<>(key,L));
+//          queue.add(new Pair<>(key,G));
+//        } else {
+//          point = new Pair<>(key,Op.str2Op(op));
+//        }
+//      }
+//      queue.add(point);
+//    }
+//    while(!queue.isEmpty()) {
+//     point = queue.poll();
+//      Long key = point.getK();
+//      switch (point.getV()) {
+//        case L:
+//          res.add(new Pair<>(minTime,key-1>=0?key-1:0));
+//          minTime = -1L;
+//          maxTime = Long.MAX_VALUE;
+//          break;
+//        case LE:
+//          res.add(new Pair<>(minTime,key));
+//          minTime = -1L;
+//          maxTime = Long.MAX_VALUE;
+//          break;
+//        case GE:
+//          minTime = key;
+//          break;
+//        case G:
+//          minTime = key+1;
+//          break;
+//        case E:
+//          res.add(new Pair<>(key,key));
+//          minTime = -1L;
+//          maxTime = Long.MAX_VALUE;
+//          break;
+//        case NE:
+//        default:
+//          break;
+//      }
+//    }
+//    if (minTime!=-1L) {
+//      res.add(new Pair<>(minTime,maxTime));
+//    }
+//    return res;
+//  }
 
-  private static List<Triplet<String, Op, Object>> parseVal(
-      List<String> part, BiMap<String, String> vals) {
-    List<Triplet<String, Op, Object>> res = new ArrayList<>();
-    for (String p : part) {
-      String val = vals.get(p);
-      if (!val.contains("key")) {
-        String[] parts = val.split(" ");
-        res.add(new Triplet<>(parts[0], Op.str2Op(parts[1]), parts[2]));
-      }
-    }
-    return res;
-  }
+//  private static List<Triplet<String, Op, Object>> parseVal(
+//      List<String> part, BiMap<String, String> vals) {
+//    List<Triplet<String, Op, Object>> res = new ArrayList<>();
+//    for (String p : part) {
+//      String val = vals.get(p);
+//      if (!val.contains("key")) {
+//        String[] parts = val.split(" ");
+//        res.add(new Triplet<>(parts[0], Op.str2Op(parts[1]), parts[2]));
+//      }
+//    }
+//    return res;
+//  }
 
-  private static List<List<String>> getDNFExpre (Filter filter,BiMap<String, String> vals) {
-    Object res = KVCache.getV(filter);
-    if (res instanceof List<?>) {
-      return (List<List<String>>) res;
-    }
-    String filterExp = FilterTransformer.toString(filter, vals);
-    Expression<String> nonStandard = ExprParser.parse(filterExp);
-    Expression<String> expre = RuleSet.toDNF(nonStandard);
-    return expressionToParts(expre.toString());
-  }
+//  private static List<List<String>> getDNFExpre (Filter filter,BiMap<String, String> vals) {
+//    Object res = KVCache.getV(filter);
+//    if (res instanceof List<?>) {
+//      return (List<List<String>>) res;
+//    }
+//    String filterExp = FilterTransformer.toString(filter, vals);
+//    Expression<String> nonStandard = ExprParser.parse(filterExp);
+//    Expression<String> expre = RuleSet.toDNF(nonStandard);
+//    return expressionToParts(expre.toString());
+//  }
 
-  private static List<List<Pair<Long,Long>>> parseKeyFilter (Filter filter) {
-    List<List<Pair<Long,Long>>> res = new ArrayList<>();
-    BiMap<String, String> vals = HashBiMap.create();
-    List<List<String>> parts = getDNFExpre(filter,vals);
-    List<Pair<Long,Long>> keyRanges = new ArrayList<>();
-    for (List<String> l : parts) {
-      res.add(parseKey(l, vals));
-    }
-    return res;
-  }
+//  private static List<Pair<Long,Long>> parseKeyFilter (Filter filter) {
+//    List<Pair<Long,Long>> res = new ArrayList<>();
+//    BiMap<String, String> vals = HashBiMap.create();
+//    List<List<String>> parts = getDNFExpre(filter,vals);
+//    List<Pair<Long,Long>> keyRanges = new ArrayList<>();
+//    for (List<String> l : parts) {
+//      res.addAll(parseKey(l, vals));
+//    }
+//    return res;
+//  }
 
 //  private static List<Pair<Pair<Long, Long>, List<Triplet<String, Op, Object>>>> parseValueFilter(
 //      FSFilter filter) {
@@ -234,56 +237,24 @@ public class FileSystemService {
     }
   }
 
-  // 获取经过Filter后的val值
+  // 获取经过keyFilter后的val值
   public static List<FSResultTable> getValWithFilter(
-      List<File> files, List<Pair<Pair<Long, Long>, List<Triplet<String, Op, Object>>>> filters)
+          List<File> files, List<KeyRange> keyRanges, Filter filter)
       throws IOException {
     List<FSResultTable> res = new ArrayList<>();
+
     for (File f : files) {
-      for (Pair<Pair<Long, Long>, List<Triplet<String, Op, Object>>> ft : filters) {
-        long startTime = ft.k.k, endTime = ft.k.v;
-        List<Record> val = new ArrayList<>(), valf = new ArrayList<>();
-
-        val = doReadFile(f, startTime, endTime); // do read file here
-
-        if (FileType.getFileType(f) == FileType.IGINX_FILE) {
-          List<Triplet<String, Op, Object>> valFilters = ft.v;
-          if (valFilters.size() == 0) valf = val;
-          for (Triplet<String, Op, Object> valFilter : valFilters) {
-            if (f.getAbsolutePath()
-                .contains(valFilter.getA().replaceAll(".", FilePath.getSEPARATOR()))) {
-              for (Record record : val) {
-                Object data = record.getRawData();
-                Object dataf = valFilter.getC();
-                boolean flag = false;
-                int comRes = compareObjects(record.getDataType(), data, dataf);
-                switch (valFilter.getB()) {
-                  case L:
-                    if (comRes < 0) flag = true;
-                    break;
-                  case LE:
-                    if (comRes <= 0) flag = true;
-                  case G:
-                    if (comRes > 0) flag = true;
-                  case GE:
-                    if (comRes >= 0) flag = true;
-                  case LIKE:
-                    String s = new String((byte[]) data), format = new String((byte[]) dataf);
-                    if (s.matches(format)) flag = true;
-                  case NE:
-                    if (comRes != 0) flag = true;
-                }
-                if (flag) valf.add(new Record(record.getKey(), record.getDataType(), data));
-              }
-              val = valf;
-            }
-          }
-
-          FileMeta fileMeta = fileOperator.getFileMeta(f);
-          res.add(new FSResultTable(f, valf, fileMeta.getDataType(), fileMeta.getTag()));
-        } else {
-          res.add(new FSResultTable(f, val, DataType.BINARY, null));
-        }
+      List<Record> val = new ArrayList<>();
+      for(KeyRange keyRange : keyRanges) {
+        long startTime = keyRange.getActualBeginKey(), endTime = keyRange.getActualEndKey();
+        // 能直接添加的依据是，keyrange是递增的
+        val.addAll(doReadFile(f, startTime, endTime)); // do read file here
+      }
+      if (FileType.getFileType(f) == FileType.IGINX_FILE) {
+        FileMeta fileMeta = fileOperator.getFileMeta(f);
+        res.add(new FSResultTable(f, val, fileMeta.getDataType(), fileMeta.getTag()));
+      } else {
+        res.add(new FSResultTable(f, val, DataType.BINARY, null));
       }
     }
     return res;
@@ -297,10 +268,11 @@ public class FileSystemService {
       return new ArrayList<>();
     }
 
-//    List<Pair<Pair<Long, Long>, List<Triplet<String, Op, Object>>>> fts = parseFilter(filter);
-
-//    return getValWithFilter(files, fts);
-    return null;
+    List<KeyRange> keyRanges = getKeyRangesFromFilter(filter);
+    if (keyRanges.size()==0) {
+      keyRanges.add(new KeyRange(0,Long.MAX_VALUE));
+    }
+    return getValWithFilter(files, keyRanges, filter);
   }
 
   // TODO:返回空值

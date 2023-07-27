@@ -17,6 +17,10 @@ import cn.edu.tsinghua.iginx.filesystem.tools.ConfLoader;
 import cn.edu.tsinghua.iginx.filesystem.tools.FilterTransformer;
 import cn.edu.tsinghua.iginx.filesystem.wrapper.Record;
 import cn.edu.tsinghua.iginx.utils.JsonUtils;
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONB;
+import com.alibaba.fastjson2.JSONWriter;
+import com.alibaba.fastjson2.annotation.JSONType;
 import com.bpodgursky.jbool_expressions.Expression;
 import com.bpodgursky.jbool_expressions.parsers.ExprParser;
 import com.bpodgursky.jbool_expressions.rules.RuleSet;
@@ -26,10 +30,11 @@ import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import org.apache.commons.jexl3.*;
+import org.junit.Assert;
 import org.junit.Test;
 
 public class FuncUT {
-  private String root = ConfLoader.getRootPath();
+  private String root = null;
 
   @Test
   public void testCreateFile() throws IOException, PhysicalException {
@@ -243,5 +248,38 @@ public class FuncUT {
   @Test
   public void testGetRoot() {
     System.out.println(ConfLoader.getRootPath());
+  }
+
+  @JSONType(seeAlso={Dog.class, Cat.class})
+  public static interface Animal {
+  }
+
+//  @JSONType(typeName = "dog")
+  public static class Dog implements Animal {
+    public String dogName;
+  }
+
+//  @JSONType(typeName = "cat")
+  public static class Cat implements Animal {
+    public String catName;
+  }
+
+  @Test
+  public void tt() {
+    Filter andFilter =
+            new AndFilter(
+                    new ArrayList<Filter>() {
+                      {
+                        add(new KeyFilter(Op.L, 600));
+                        add(new KeyFilter(Op.GE, 4));
+                      }
+                    });
+
+
+    byte[] bytes = JSONB.toBytes(andFilter, JSONWriter.Feature.WriteClassName);
+
+    Filter filter = JSONB.parseObject(bytes, Filter.class);
+
+    filter.toString();
   }
 }

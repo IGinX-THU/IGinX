@@ -12,6 +12,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.write.BitmapView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.ColumnDataView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.RowDataView;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.filesystem.file.property.FileMeta;
 import cn.edu.tsinghua.iginx.filesystem.file.property.FilePath;
@@ -19,6 +20,8 @@ import cn.edu.tsinghua.iginx.filesystem.filesystem.FileSystemService;
 import cn.edu.tsinghua.iginx.filesystem.query.FSResultTable;
 import cn.edu.tsinghua.iginx.filesystem.query.FileSystemHistoryQueryRowStream;
 import cn.edu.tsinghua.iginx.filesystem.query.FileSystemQueryRowStream;
+import cn.edu.tsinghua.iginx.filesystem.thrift.FSFilter;
+import cn.edu.tsinghua.iginx.filesystem.tools.FilterTransformer;
 import cn.edu.tsinghua.iginx.filesystem.wrapper.Record;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
@@ -51,7 +54,7 @@ public class LocalExecutor implements Executor {
   public TaskExecuteResult executeProjectTask(
       List<String> paths,
       TagFilter tagFilter,
-      String filter,
+      FSFilter filter,
       String storageUnit,
       boolean isDummyStorageUnit) {
     if (isDummyStorageUnit) {
@@ -66,15 +69,16 @@ public class LocalExecutor implements Executor {
   }
 
   public TaskExecuteResult executeQueryTask(
-      String storageUnit, List<String> series, TagFilter tagFilter, String filter) {
+      String storageUnit, List<String> series, TagFilter tagFilter, FSFilter filter) {
     try {
       List<FSResultTable> result = new ArrayList<>();
       logger.info("[Query] execute query file: " + series);
+      Filter f = FilterTransformer.toFilter(filter);
       for (String path : series) {
         File file = new File(FilePath.toIginxPath(root, storageUnit, path));
-        result.addAll(FileSystemService.readFile(file, tagFilter, filter));
+        result.addAll(Objects.requireNonNull(FileSystemService.readFile(file, tagFilter, f)));
       }
-      RowStream rowStream = new FileSystemQueryRowStream(result, storageUnit, root);
+      RowStream rowStream = new FileSystemQueryRowStream(result, storageUnit, root, f);
       return new TaskExecuteResult(rowStream);
     } catch (Exception e) {
       logger.error(
@@ -87,15 +91,16 @@ public class LocalExecutor implements Executor {
     }
   }
 
-  private TaskExecuteResult executeDummyProjectTask(List<String> series, String filter) {
+  private TaskExecuteResult executeDummyProjectTask(List<String> series, FSFilter filter) {
     try {
       List<FSResultTable> result = new ArrayList<>();
       logger.info("[Query] execute dummy query file: " + series);
+      Filter f = FilterTransformer.toFilter(filter);
       for (String path : series) {
         result.addAll(
-            FileSystemService.readFile(new File(FilePath.toNormalFilePath(root, path)), filter));
+            FileSystemService.readFile(new File(FilePath.toNormalFilePath(root, path)), f));
       }
-      RowStream rowStream = new FileSystemHistoryQueryRowStream(result, root);
+      RowStream rowStream = new FileSystemHistoryQueryRowStream(result, root, f);
       return new TaskExecuteResult(rowStream);
     } catch (Exception e) {
       logger.error(e.getMessage());

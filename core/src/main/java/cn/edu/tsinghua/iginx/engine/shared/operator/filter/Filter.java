@@ -18,6 +18,9 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.operator.filter;
 
+import com.alibaba.fastjson2.annotation.JSONType;
+
+@JSONType(seeAlso={AndFilter.class, OrFilter.class, BoolFilter.class, KeyFilter.class, NotFilter.class, PathFilter.class, ValueFilter.class})
 public interface Filter {
 
   void accept(FilterVisitor visitor);

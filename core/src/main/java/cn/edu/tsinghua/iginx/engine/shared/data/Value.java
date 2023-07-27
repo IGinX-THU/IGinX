@@ -176,7 +176,10 @@ public class Value {
   }
 
   public String getBinaryVAsString() {
-    return new String(binaryV);
+    if (binaryV!=null) {
+      return new String(binaryV);
+    }
+    return null;
   }
 
   public boolean isNull() {
