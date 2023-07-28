@@ -32,13 +32,12 @@ import cn.edu.tsinghua.iginx.influxdb.tools.SchemaTransformer;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.influxdb.query.FluxRecord;
 import com.influxdb.query.FluxTable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class InfluxDBHistoryQueryRowStream implements RowStream {
 
@@ -92,7 +91,7 @@ public class InfluxDBHistoryQueryRowStream implements RowStream {
 
   @Override
   public boolean hasNext() throws PhysicalException {
-    if(this.hasMoreRecords == 0){
+    if (this.hasMoreRecords == 0) {
       return false;
     }
 
@@ -108,7 +107,7 @@ public class InfluxDBHistoryQueryRowStream implements RowStream {
   }
 
   private void cacheOneRow() throws SQLException, PhysicalException {
-    if(this.hasMoreRecords == 0){
+    if (this.hasMoreRecords == 0) {
       cachedRow = null;
       hasCachedRow = false;
       return;
@@ -164,10 +163,10 @@ public class InfluxDBHistoryQueryRowStream implements RowStream {
       }
     }
     Row row = new Row(header, timestamp, values);
-    if (filter == null || FilterUtils.validate(filter, row)){
+    if (filter == null || FilterUtils.validate(filter, row)) {
       cachedRow = row;
       hasCachedRow = true;
-    }else{
+    } else {
       cacheOneRow();
     }
   }
