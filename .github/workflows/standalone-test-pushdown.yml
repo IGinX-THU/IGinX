@@ -19,8 +19,7 @@ jobs:
                 java: [8]
                 python-version: ["3.7"]
                 os: [ubuntu-latest, macos-latest]
-                DB-name:
-                    ["InfluxDB"]
+                DB-name: ["InfluxDB"]
         runs-on: ${{ matrix.os }}
         steps:
             - uses: actions/checkout@v2
@@ -41,13 +40,13 @@ jobs:
             - name: Install IGinX with Maven
               shell: bash
               run: |
-                  mvn clean package -DskipTests -P passFormat -q
+                  mvn clean package -DskipTests -P-format -q
 
             - name: Change IGinX config
               uses: ./.github/actions/confWriter
               with:
                   DB-name: ${{ matrix.DB-name }}
-                  Push-Down: 'true'
+                  Push-Down: "true"
 
             - name: Start IGinX
               uses: ./.github/actions/iginxRunner
@@ -57,7 +56,7 @@ jobs:
               shell: bash
               run: |
                   chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/test_union.sh"
-                  mvn test -q -Dtest=Controller -DfailIfNoTests=false -P passFormat
+                  mvn test -q -Dtest=Controller -DfailIfNoTests=false -P-format
 
             - name: Show test result
               if: always()

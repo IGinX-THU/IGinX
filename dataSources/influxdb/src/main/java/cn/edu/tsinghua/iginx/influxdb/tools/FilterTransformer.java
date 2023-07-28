@@ -24,11 +24,10 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.NotFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.OrFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.ValueFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.ValueFilter;
 import cn.edu.tsinghua.iginx.influxdb.query.entity.InfluxDBSchema;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-
 import java.util.stream.Collectors;
 
 public class FilterTransformer {
@@ -56,8 +55,7 @@ public class FilterTransformer {
   }
 
   private static String toString(AndFilter filter) {
-    return filter.getChildren()
-        .stream()
+    return filter.getChildren().stream()
         .map(FilterTransformer::toString)
         .collect(Collectors.joining(" and ", "(", ")"));
   }
@@ -74,9 +72,10 @@ public class FilterTransformer {
     // path 获取的是 table.field，需要删掉.前面的table名。
     InfluxDBSchema schema = new InfluxDBSchema(filter.getPath());
     String path = schema.getField();
-    String value = filter.getValue().getDataType() == DataType.BINARY ?
-        "\"" + filter.getValue().getBinaryVAsString() + "\"" :
-        filter.getValue().getValue().toString();
+    String value =
+        filter.getValue().getDataType() == DataType.BINARY
+            ? "\"" + filter.getValue().getBinaryVAsString() + "\""
+            : filter.getValue().getValue().toString();
 
     if (filter.getOp().equals(Op.LIKE)) {
       return "r[\""
@@ -87,17 +86,11 @@ public class FilterTransformer {
           + "$/"; // SQL的正则匹配需要全部匹配，但InfluxDB可以部分匹配，所以需要在最后加上$以保证匹配全部字符串。
     }
 
-    return "r[\""
-        + path
-        + "\"] "
-        + Op.op2Str(filter.getOp())
-        + " "
-        + value;
+    return "r[\"" + path + "\"] " + Op.op2Str(filter.getOp()) + " " + value;
   }
 
   private static String toString(OrFilter filter) {
-    return filter.getChildren()
-        .stream()
+    return filter.getChildren().stream()
         .map(FilterTransformer::toString)
         .collect(Collectors.joining(" or ", "(", ")"));
   }
@@ -109,12 +102,6 @@ public class FilterTransformer {
     String pathA = schemaA.getField();
     String pathB = schemaB.getField();
 
-    return "r[\""
-        + pathA
-        + "\"] "
-        + Op.op2Str(filter.getOp())
-        + " r[\""
-        + pathB
-        + "\"]";
+    return "r[\"" + pathA + "\"] " + Op.op2Str(filter.getOp()) + " r[\"" + pathB + "\"]";
   }
 }
