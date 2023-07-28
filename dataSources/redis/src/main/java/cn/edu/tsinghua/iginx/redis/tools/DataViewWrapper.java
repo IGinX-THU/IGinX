@@ -71,7 +71,9 @@ public class DataViewWrapper {
             }
           }
           byte[] key = DataCoder.encode(dataView.getKey(i));
-          byte[] value= DataCoder.encode(DataTransformer.objectValueToString(dataView.getValue(i, nonNullCnt)));
+          byte[] value =
+              DataCoder.encode(
+                  DataTransformer.objectValueToString(dataView.getValue(i, nonNullCnt)));
           values.put(key, value);
           scores.put(key, SAME_SCORE);
         }
@@ -82,7 +84,9 @@ public class DataViewWrapper {
       for (int i = 0; i < dataView.getKeySize(); i++) {
         if (bitmapView.get(i)) {
           byte[] key = DataCoder.encode(dataView.getKey(i));
-          byte[] value= DataCoder.encode(DataTransformer.objectValueToString(dataView.getValue(index, nonNullCnt)));
+          byte[] value =
+              DataCoder.encode(
+                  DataTransformer.objectValueToString(dataView.getValue(index, nonNullCnt)));
           values.put(key, value);
           scores.put(key, SAME_SCORE);
           nonNullCnt++;

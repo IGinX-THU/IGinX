@@ -34,5 +34,4 @@ public class DataCoder {
   public static String decodeToString(byte[] bytes) {
     return redis.clients.jedis.util.SafeEncoder.encode(bytes);
   }
-
 }

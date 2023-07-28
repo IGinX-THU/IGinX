@@ -74,8 +74,8 @@ public class FilterUtils {
         } else if (value == Long.MAX_VALUE) {
           return Collections.singletonList(new Pair<>(Long.MIN_VALUE, value - 1));
         } else {
-          return Arrays.asList(new Pair<>(Long.MIN_VALUE, value - 1),
-              new Pair<>(value, Long.MAX_VALUE));
+          return Arrays.asList(
+              new Pair<>(Long.MIN_VALUE, value - 1), new Pair<>(value, Long.MAX_VALUE));
         }
       default:
         return FULL_RANGES;
@@ -100,8 +100,8 @@ public class FilterUtils {
     return result;
   }
 
-  private static List<Pair<Long, Long>> intersectionSortedRanges(List<Pair<Long, Long>> xRanges,
-      List<Pair<Long, Long>> yRanges) {
+  private static List<Pair<Long, Long>> intersectionSortedRanges(
+      List<Pair<Long, Long>> xRanges, List<Pair<Long, Long>> yRanges) {
     List<Pair<Long, Long>> result = new ArrayList<>();
 
     ListIterator<Pair<Long, Long>> xRangeItr = xRanges.listIterator();
@@ -159,5 +159,4 @@ public class FilterUtils {
     }
     return result;
   }
-
 }

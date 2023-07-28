@@ -65,8 +65,8 @@ public class RedisQueryRowStream implements RowStream {
 
   @Override
   public boolean hasNext() throws PhysicalException {
-    if(nextRow == null && cur < times.size() ){
-      nextRow=calculateNext();
+    if (nextRow == null && cur < times.size()) {
+      nextRow = calculateNext();
     }
     return nextRow != null;
   }
@@ -95,9 +95,8 @@ public class RedisQueryRowStream implements RowStream {
       }
 
       Row row = new Row(header, timestamp, values);
-      if(filter == null || FilterUtils.validate(filter, row))
-        return row;
-      }
+      if (filter == null || FilterUtils.validate(filter, row)) return row;
+    }
 
     return null;
   }
