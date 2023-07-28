@@ -34,15 +34,14 @@ import cn.edu.tsinghua.iginx.influxdb.tools.TagFilterUtils;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.influxdb.query.FluxRecord;
 import com.influxdb.query.FluxTable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class InfluxDBQueryRowStream implements RowStream {
 
@@ -80,9 +79,9 @@ public class InfluxDBQueryRowStream implements RowStream {
     List<Field> fields = new ArrayList<>();
     for (FluxTable table : this.tables) {
       this.tableFieldIndex.add(fields.size());
-      if(!isPivotFluxTable(table)) {
+      if (!isPivotFluxTable(table)) {
         getDataFromFluxTable(project, filterList, fields, table);
-      }else{
+      } else {
         getDataFromPivotFluxTable(project, filterList, fields, table);
       }
     }
@@ -99,7 +98,8 @@ public class InfluxDBQueryRowStream implements RowStream {
         && table.getColumns().get(6).isGroup());
   }
 
-  private void getDataFromFluxTable(Project project, List<Boolean> filterList, List<Field> fields, FluxTable table) {
+  private void getDataFromFluxTable(
+      Project project, List<Boolean> filterList, List<Field> fields, FluxTable table) {
     Map<String, String> tags = new HashMap<>();
     String path;
     if (table.getRecords().get(0).getValueByKey("t") == null) {
@@ -135,12 +135,13 @@ public class InfluxDBQueryRowStream implements RowStream {
     fields.add(new Field(path, dataType, tags));
   }
 
-  private void getDataFromPivotFluxTable(Project project, List<Boolean> filterList, List<Field> fields, FluxTable table) {
+  private void getDataFromPivotFluxTable(
+      Project project, List<Boolean> filterList, List<Field> fields, FluxTable table) {
     Map<String, String> tags = new HashMap<>();
     // 获取tag
     // pivot连接后的表中，tag和column会并列排放，且顺序无规律，唯一的区别在于tag的isGroup为true，而column的isGroup为false
     for (int i = 6; i < table.getColumns().size(); i++) {
-      if(table.getColumns().get(i).isGroup()) {
+      if (table.getColumns().get(i).isGroup()) {
         String key = table.getColumns().get(i).getLabel();
         String val = (String) table.getRecords().get(0).getValueByKey(key);
         tags.put(key, val);
@@ -158,12 +159,14 @@ public class InfluxDBQueryRowStream implements RowStream {
 
     // 获取fields
     for (int i = 6; i < table.getColumns().size(); i++) {
-      if(!table.getColumns().get(i).isGroup()) {
+      if (!table.getColumns().get(i).isGroup()) {
         // 获取path
         String path;
         if (table.getRecords().get(0).getValueByKey("t") == null) {
           path =
-              table.getRecords().get(0).getMeasurement() + "." + table.getColumns().get(i).getLabel();
+              table.getRecords().get(0).getMeasurement()
+                  + "."
+                  + table.getColumns().get(i).getLabel();
         } else {
           path =
               table.getRecords().get(0).getMeasurement()
@@ -174,16 +177,11 @@ public class InfluxDBQueryRowStream implements RowStream {
         }
 
         // 获取dataType
-        DataType dataType =
-            fromInfluxDB(
-                table.getColumns()
-                    .get(i)
-                    .getDataType());
+        DataType dataType = fromInfluxDB(table.getColumns().get(i).getDataType());
 
         fields.add(new Field(path, dataType, tags));
       }
     }
-
   }
 
   @Override
@@ -198,7 +196,7 @@ public class InfluxDBQueryRowStream implements RowStream {
 
   @Override
   public boolean hasNext() throws PhysicalException {
-    if(this.hasMoreRecords == 0){
+    if (this.hasMoreRecords == 0) {
       return false;
     }
 
@@ -214,7 +212,7 @@ public class InfluxDBQueryRowStream implements RowStream {
   }
 
   private void cacheOneRow() throws SQLException, PhysicalException {
-    if(this.hasMoreRecords == 0){
+    if (this.hasMoreRecords == 0) {
       cachedRow = null;
       hasCachedRow = false;
       return;
@@ -253,18 +251,18 @@ public class InfluxDBQueryRowStream implements RowStream {
       FluxRecord record = records.get(index);
 
       if (instantToNs(record.getTime()) == timestamp) {
-        if(!isPivotFluxTable(this.tables.get(i))) {
+        if (!isPivotFluxTable(this.tables.get(i))) {
           DataType dataType = header.getField(i).getType();
           Object value = record.getValue();
           if (dataType == DataType.BINARY) {
             value = ((String) value).getBytes();
           }
           values[this.tableFieldIndex.get(i)] = value;
-        }else {
+        } else {
           int tableFieldIndex = this.tableFieldIndex.get(i);
-          for(int j = 6; j < table.getColumns().size(); j++) {
+          for (int j = 6; j < table.getColumns().size(); j++) {
             // 仅取column，column的isGroup为false，tag的isGroup为true。
-            if(!table.getColumns().get(j).isGroup()) {
+            if (!table.getColumns().get(j).isGroup()) {
               DataType dataType = fromInfluxDB(table.getColumns().get(j).getDataType());
               Object value = record.getValueByIndex(j);
               if (value != null && dataType == DataType.BINARY) {
@@ -283,10 +281,10 @@ public class InfluxDBQueryRowStream implements RowStream {
     }
     Row row = new Row(header, timestamp, values);
     // 这里filter如果是null, 则不过滤，直接返回。
-    if(filter == null || FilterUtils.validate(filter, row)){
-        cachedRow = row;
-        hasCachedRow = true;
-    } else{
+    if (filter == null || FilterUtils.validate(filter, row)) {
+      cachedRow = row;
+      hasCachedRow = true;
+    } else {
       // 如果不满足过滤条件，继续缓存下一行，直到满足过滤条件。
       // 如果一直不满足，则会在最后一次调用时，因为hasMoreRecords为0，而返回null。
       cacheOneRow();
