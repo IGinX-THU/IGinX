@@ -119,6 +119,7 @@ public class QueryGenerator extends AbstractGenerator {
     Operator root;
     Operator left = generateRoot(selectStatement.getLeftQuery());
     Operator right = generateRoot(selectStatement.getRightQuery());
+
     switch (selectStatement.getSetOperator()) {
       case Union:
         root =
@@ -193,7 +194,7 @@ public class QueryGenerator extends AbstractGenerator {
     }
 
     // 处理where子查询
-    if (selectStatement.getWhereSubQueryParts().size() > 0) {
+    if (!selectStatement.getWhereSubQueryParts().isEmpty()) {
       int sizeWhereSubQueryParts = selectStatement.getWhereSubQueryParts().size();
       List<SubQueryFromPart> whereSubQueryParts = selectStatement.getWhereSubQueryParts();
       for (int i = 0; i < sizeWhereSubQueryParts; i++) {
@@ -241,7 +242,7 @@ public class QueryGenerator extends AbstractGenerator {
     }
 
     // 处理select子查询
-    if (selectStatement.getSelectSubQueryParts().size() > 0) {
+    if (!selectStatement.getSelectSubQueryParts().isEmpty()) {
       int sizeSelectSubQuery = selectStatement.getSelectSubQueryParts().size();
       List<SubQueryFromPart> selectSubQueryParts = selectStatement.getSelectSubQueryParts();
       for (int i = 0; i < sizeSelectSubQuery; i++) {
@@ -398,7 +399,7 @@ public class QueryGenerator extends AbstractGenerator {
     }
 
     // 处理having子查询
-    if (selectStatement.getHavingSubQueryParts().size() > 0) {
+    if (!selectStatement.getHavingSubQueryParts().isEmpty()) {
       int sizeHavingSubQueryParts = selectStatement.getHavingSubQueryParts().size();
       List<SubQueryFromPart> havingSubQueryParts = selectStatement.getHavingSubQueryParts();
       for (int i = 0; i < sizeHavingSubQueryParts; i++) {

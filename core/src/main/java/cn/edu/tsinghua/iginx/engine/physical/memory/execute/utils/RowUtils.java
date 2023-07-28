@@ -111,7 +111,8 @@ public class RowUtils {
     return isValueEqualRow(row1, row2, compareKey);
   }
 
-  public static boolean isValueEqualRow(Row row1, Row row2, boolean compareKey) throws PhysicalException {
+  public static boolean isValueEqualRow(Row row1, Row row2, boolean compareKey)
+      throws PhysicalException {
     if (compareKey) {
       if (row1.getKey() != row2.getKey()) {
         return false;

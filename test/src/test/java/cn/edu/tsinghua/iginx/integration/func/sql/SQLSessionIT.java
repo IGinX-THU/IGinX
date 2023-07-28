@@ -3848,44 +3848,69 @@ public class SQLSessionIT {
   }
 
   @Test
-  public void testUnion() {
-    String insert = "INSERT INTO test(key, a.a, a.b) VALUES (1, 1, 1.1), (2, 3, 3.1), (3, 4, 7.1);";
+  public void testSetOperators() {
+    String insert =
+        "INSERT INTO test(key, a.a, a.b, a.c) VALUES (1, 1, \"aaa\", true), (2, 1, \"eee\", false), (3, 4, \"ccc\", true), (5, 6, \"eee\", false);";
     executor.execute(insert);
     insert =
-        "INSERT INTO test(key, b.a, b.b) VALUES (1, 1, \"aaa\"), (3, 4, \"ccc\"), (5, 6, \"eee\");";
-    executor.execute(insert);
-    insert =
-        "INSERT INTO test(key, c.a, c.b) VALUES (2, \"eee\", 1), (3, \"aaa\", 2), (4, \"bbb\", 3);";
+        "INSERT INTO test(key, b.a, b.b, b.c) VALUES (2, \"eee\", 1, true), (3, \"ccc\", 4, true), (5, \"eee\", 6, false);";
     executor.execute(insert);
 
-    String statement = "SELECT a FROM test.a UNION ALL SELECT a FROM test.b;";
+    String statement =
+        "SELECT a, b, c FROM test.a UNION ALL SELECT b, a, c FROM test.b ORDER BY KEY;";
     String expected =
-        "ResultSets:\n" +
-            "+---+--------+\n" +
-            "|key|test.a.a|\n" +
-            "+---+--------+\n" +
-            "|  1|       1|\n" +
-            "|  2|       3|\n" +
-            "|  3|       4|\n" +
-            "|  1|       1|\n" +
-            "|  3|       4|\n" +
-            "|  5|       6|\n" +
-            "+---+--------+\n" +
-            "Total line number = 6\n";
+        "ResultSets:\n"
+            + "+---+--------+--------+--------+\n"
+            + "|key|test.a.a|test.a.b|test.a.c|\n"
+            + "+---+--------+--------+--------+\n"
+            + "|  1|       1|     aaa|    true|\n"
+            + "|  2|       1|     eee|   false|\n"
+            + "|  2|       1|     eee|    true|\n"
+            + "|  3|       4|     ccc|    true|\n"
+            + "|  3|       4|     ccc|    true|\n"
+            + "|  5|       6|     eee|   false|\n"
+            + "|  5|       6|     eee|   false|\n"
+            + "+---+--------+--------+--------+\n"
+            + "Total line number = 7\n";
     executor.executeAndCompare(statement, expected);
 
-    statement = "SELECT a FROM test.a UNION SELECT a FROM test.b;";
+    statement = "SELECT a, b, c FROM test.a UNION SELECT b, a, c FROM test.b ORDER BY KEY;";
     expected =
-        "ResultSets:\n" +
-            "+---+--------+\n" +
-            "|key|test.a.a|\n" +
-            "+---+--------+\n" +
-            "|  1|       1|\n" +
-            "|  2|       3|\n" +
-            "|  3|       4|\n" +
-            "|  5|       6|\n" +
-            "+---+--------+\n" +
-            "Total line number = 4\n";
+        "ResultSets:\n"
+            + "+---+--------+--------+--------+\n"
+            + "|key|test.a.a|test.a.b|test.a.c|\n"
+            + "+---+--------+--------+--------+\n"
+            + "|  1|       1|     aaa|    true|\n"
+            + "|  2|       1|     eee|   false|\n"
+            + "|  2|       1|     eee|    true|\n"
+            + "|  3|       4|     ccc|    true|\n"
+            + "|  5|       6|     eee|   false|\n"
+            + "+---+--------+--------+--------+\n"
+            + "Total line number = 5\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "SELECT a, b, c FROM test.a EXCEPT SELECT b, a, c FROM test.b ORDER BY KEY;";
+    expected =
+        "ResultSets:\n"
+            + "+---+--------+--------+--------+\n"
+            + "|key|test.a.a|test.a.b|test.a.c|\n"
+            + "+---+--------+--------+--------+\n"
+            + "|  1|       1|     aaa|    true|\n"
+            + "|  2|       1|     eee|   false|\n"
+            + "+---+--------+--------+--------+\n"
+            + "Total line number = 2\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "SELECT a, b, c FROM test.a INTERSECT SELECT b, a, c FROM test.b ORDER BY KEY;";
+    expected =
+        "ResultSets:\n"
+            + "+---+--------+--------+--------+\n"
+            + "|key|test.a.a|test.a.b|test.a.c|\n"
+            + "+---+--------+--------+--------+\n"
+            + "|  3|       4|     ccc|    true|\n"
+            + "|  5|       6|     eee|   false|\n"
+            + "+---+--------+--------+--------+\n"
+            + "Total line number = 2\n";
     executor.executeAndCompare(statement, expected);
   }
 

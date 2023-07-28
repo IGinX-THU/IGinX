@@ -480,7 +480,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
           subStatement =
               parseQueryClause(joinPartContext.tableReference().subquery().queryClause(), true);
           if (joinPartContext.tableReference().subquery().orderByClause() != null) {
-            parseOrderByClause(joinPartContext.tableReference().subquery().orderByClause(), subStatement);
+            parseOrderByClause(
+                joinPartContext.tableReference().subquery().orderByClause(), subStatement);
           }
           if (joinPartContext.tableReference().subquery().limitClause() != null) {
             Pair<Integer, Integer> limitAndOffset =
