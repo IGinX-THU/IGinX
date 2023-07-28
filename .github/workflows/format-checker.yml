@@ -11,6 +11,5 @@ jobs:
               with:
                   args: "--skip-javadoc-formatting --dry-run --set-exit-if-changed"
                   skip-commit: true
-                  version: 1.6
             - name: Print diffs
               run: git --no-pager diff --exit-code
