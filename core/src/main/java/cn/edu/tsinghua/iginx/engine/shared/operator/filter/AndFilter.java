@@ -23,6 +23,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import com.alibaba.fastjson2.annotation.JSONType;
+
 public class AndFilter implements Filter {
 
   private final FilterType type = FilterType.And;
