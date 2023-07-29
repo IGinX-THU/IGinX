@@ -35,15 +35,15 @@ import org.slf4j.LoggerFactory;
 
 public class Iginx {
 
- 			 private static final Logger logger = LoggerFactory.getLogger(Iginx.class);
+  private static final Logger logger = LoggerFactory.getLogger(Iginx.class);
 
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
-  			public static void main(String[] args) throws Exception {
+  public static void main(String[] args) throws Exception {
     if (config.isEnableRestService()) {
       new Thread(new RestServer()).start();
     }
-    			if (config.isEnableMQTT()) {
+    if (config.isEnableMQTT()) {
       new Thread(MQTTService.getInstance()).start();
     }
     if (config.isEnableMonitor()) {
