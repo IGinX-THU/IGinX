@@ -12,23 +12,29 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.redis.entity.RedisQueryRowStream;
+import cn.edu.tsinghua.iginx.redis.tools.DataCoder;
 import cn.edu.tsinghua.iginx.redis.tools.DataTransformer;
 import cn.edu.tsinghua.iginx.redis.tools.DataViewWrapper;
+import cn.edu.tsinghua.iginx.redis.tools.FilterUtils;
 import cn.edu.tsinghua.iginx.redis.tools.TagKVUtils;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
@@ -46,6 +52,12 @@ public class RedisStorage implements IStorage {
   private static final String KEY_FORMAT_HASH_VALUES = "values:%s:%s";
 
   private static final String KEY_FORMAT_ZSET_KEYS = "keys:%s:%s";
+
+  private static final String KEY_FORMAT_STRING_PATH = "path:%s:%s";
+
+  private static final String EMTPY_STRING = "";
+
+  private static final byte CLOSED_SIGN = (byte) '[';
 
   private static final String KEY_SPLIT = ":";
 
@@ -82,19 +94,135 @@ public class RedisStorage implements IStorage {
 
   @Override
   public boolean isSupportProjectWithSelect() {
-    return false;
+    return true;
   }
 
   @Override
   public TaskExecuteResult executeProjectWithSelect(
       Project project, Select select, DataArea dataArea) {
-    return null;
+    String storageUnit = dataArea.getStorageUnit();
+    List<String> queryPaths;
+    try {
+      queryPaths = determinePathList(storageUnit, project.getPatterns(), project.getTagFilter());
+    } catch (PhysicalException e) {
+      logger.error("encounter error when delete path: " + e.getMessage());
+      return new TaskExecuteResult(
+          new PhysicalTaskExecuteFailureException("execute delete path task in redis failure", e));
+    }
+
+    Filter filter = select.getFilter();
+    List<Pair<Long, Long>> keyRanges = FilterUtils.keyRangesFrom(filter);
+
+    List<cn.edu.tsinghua.iginx.redis.entity.Column> columns = new ArrayList<>();
+    try (Jedis jedis = jedisPool.getResource()) {
+      for (String queryPath : queryPaths) {
+        DataType type = DataTransformer.fromStringDataType(jedis.hget(KEY_DATA_TYPE, queryPath));
+        if (type != null) {
+          byte[] hashKey =
+              DataCoder.encode(String.format(KEY_FORMAT_HASH_VALUES, storageUnit, queryPath));
+          Map<Long, String> colData = new HashMap<>();
+          if (keyRanges == null) {
+            Map<byte[], byte[]> allData = jedis.hgetAll(hashKey);
+            colData =
+                allData.entrySet().stream()
+                    .collect(
+                        Collectors.toMap(
+                            e -> DataCoder.decodeToLong(e.getKey()),
+                            e -> DataCoder.decodeToString(e.getValue())));
+          } else if (!keyRanges.isEmpty()) {
+            byte[] zSetKey =
+                DataCoder.encode(String.format(KEY_FORMAT_ZSET_KEYS, storageUnit, queryPath));
+            List<byte[]> keys = new ArrayList<>();
+            for (Pair<Long, Long> keyRange : keyRanges) {
+              byte[] beginKeyRange = concat(CLOSED_SIGN, DataCoder.encode(keyRange.getK()));
+              byte[] endKeyRange = concat(CLOSED_SIGN, DataCoder.encode(keyRange.getV()));
+              keys.addAll(jedis.zrangeByLex(zSetKey, beginKeyRange, endKeyRange));
+            }
+
+            if (!keys.isEmpty()) {
+              List<byte[]> values = jedis.hmget(hashKey, keys.toArray(new byte[0][0]));
+              ListIterator<byte[]> keyIter = keys.listIterator();
+              ListIterator<byte[]> valueIter = values.listIterator();
+              while (keyIter.hasNext()) {
+                byte[] rawKey = keyIter.next();
+                byte[] rawValue = valueIter.next();
+                long key = DataCoder.decodeToLong(rawKey);
+                String value = DataCoder.decodeToString(rawValue);
+                colData.put(key, value);
+              }
+            }
+          }
+
+          cn.edu.tsinghua.iginx.redis.entity.Column column =
+              new cn.edu.tsinghua.iginx.redis.entity.Column(queryPath, type, colData);
+          columns.add(column);
+        }
+      }
+    } catch (Exception e) {
+      return new TaskExecuteResult(
+          new PhysicalTaskExecuteFailureException("execute query path task in redis failure", e));
+    }
+
+    return new TaskExecuteResult(new RedisQueryRowStream(columns, filter), null);
   }
 
   @Override
   public TaskExecuteResult executeProjectDummyWithSelect(
       Project project, Select select, DataArea dataArea) {
-    return null;
+    List<String> patterns = project.getPatterns();
+    Set<String> queryPaths = new HashSet<>();
+    for (String pattern : patterns) {
+      if (pattern.contains(STAR)) {
+        queryPaths.addAll(getKeysByPattern(pattern));
+      } else {
+        queryPaths.add(pattern);
+      }
+    }
+
+    List<cn.edu.tsinghua.iginx.redis.entity.Column> columns = new ArrayList<>();
+    try (Jedis jedis = jedisPool.getResource()) {
+      for (String queryPath : queryPaths) {
+        String type = jedis.type(queryPath);
+        switch (type) {
+          case "string":
+            String value = jedis.get(queryPath);
+            columns.add(new cn.edu.tsinghua.iginx.redis.entity.Column(queryPath, value));
+            break;
+          case "list":
+            List<String> listValues = jedis.lrange(queryPath, 0, -1);
+            columns.add(new cn.edu.tsinghua.iginx.redis.entity.Column(queryPath, listValues));
+            break;
+          case "set":
+            Set<String> setValues = jedis.smembers(queryPath);
+            columns.add(new cn.edu.tsinghua.iginx.redis.entity.Column(queryPath, setValues));
+            break;
+          case "zset":
+            List<String> zSetValues = jedis.zrange(queryPath, 0, -1);
+            columns.add(new cn.edu.tsinghua.iginx.redis.entity.Column(queryPath, zSetValues));
+            break;
+          case "hash":
+            Map<String, String> hashValues = jedis.hgetAll(queryPath);
+            columns.add(
+                new cn.edu.tsinghua.iginx.redis.entity.Column(
+                    queryPath + SUFFIX_KEY, hashValues.keySet()));
+            columns.add(
+                new cn.edu.tsinghua.iginx.redis.entity.Column(
+                    queryPath + SUFFIX_VALUE, new ArrayList<>(hashValues.values())));
+            break;
+          case "none":
+            logger.warn("key {} not exists", queryPath);
+          default:
+            logger.warn("unknown key type, type={}", type);
+        }
+      }
+    } catch (Exception e) {
+      return new TaskExecuteResult(
+          new PhysicalTaskExecuteFailureException(
+              "execute query history task in redis failure", e));
+    }
+
+    Filter filter = select.getFilter();
+    return new TaskExecuteResult(new RedisQueryRowStream(columns, filter), null);
   }
 
   @Override
@@ -114,8 +242,15 @@ public class RedisStorage implements IStorage {
       for (String queryPath : queryPaths) {
         DataType type = DataTransformer.fromStringDataType(jedis.hget(KEY_DATA_TYPE, queryPath));
         if (type != null) {
-          Map<String, String> colData =
-              jedis.hgetAll(String.format(KEY_FORMAT_HASH_VALUES, storageUnit, queryPath));
+          byte[] hashKey =
+              DataCoder.encode(String.format(KEY_FORMAT_HASH_VALUES, storageUnit, queryPath));
+          Map<byte[], byte[]> allData = jedis.hgetAll(hashKey);
+          Map<Long, String> colData =
+              allData.entrySet().stream()
+                  .collect(
+                      Collectors.toMap(
+                          e -> DataCoder.decodeToLong(e.getKey()),
+                          e -> DataCoder.decodeToString(e.getValue())));
           cn.edu.tsinghua.iginx.redis.entity.Column column =
               new cn.edu.tsinghua.iginx.redis.entity.Column(queryPath, type, colData);
           columns.add(column);
@@ -204,11 +339,12 @@ public class RedisStorage implements IStorage {
       // 没有传任何 time range, 删除全部数据
       try (Jedis jedis = jedisPool.getResource()) {
         int size = deletedPaths.size();
-        String[] deletedPathArray = new String[size * 2];
+        String[] deletedPathArray = new String[size * 3];
         for (int i = 0; i < size; i++) {
           String path = deletedPaths.get(i);
           deletedPathArray[i] = String.format(KEY_FORMAT_HASH_VALUES, storageUnit, path);
           deletedPathArray[i + size] = String.format(KEY_FORMAT_ZSET_KEYS, storageUnit, path);
+          deletedPathArray[i + 2 * size] = String.format(KEY_FORMAT_STRING_PATH, storageUnit, path);
         }
         jedis.del(deletedPathArray);
         jedis.hdel(KEY_DATA_TYPE, deletedPaths.toArray(new String[0]));
@@ -222,19 +358,18 @@ public class RedisStorage implements IStorage {
       try (Jedis jedis = jedisPool.getResource()) {
         for (String path : deletedPaths) {
           for (KeyRange keyRange : delete.getKeyRanges()) {
-            List<String> keys =
-                jedis.zrangeByScore(
-                    String.format(KEY_FORMAT_ZSET_KEYS, storageUnit, path),
-                    keyRange.getActualBeginKey(),
-                    keyRange.getActualEndKey());
+            byte[] zSetKey =
+                DataCoder.encode(String.format(KEY_FORMAT_ZSET_KEYS, storageUnit, path));
+            byte[] beginKeyRange =
+                concat(CLOSED_SIGN, DataCoder.encode(keyRange.getActualBeginKey()));
+            byte[] endKeyRange = concat(CLOSED_SIGN, DataCoder.encode(keyRange.getActualEndKey()));
+
+            List<byte[]> keys = jedis.zrangeByLex(zSetKey, beginKeyRange, endKeyRange);
             if (!keys.isEmpty()) {
-              jedis.hdel(
-                  String.format(KEY_FORMAT_HASH_VALUES, storageUnit, path),
-                  keys.toArray(new String[0]));
-              jedis.zremrangeByScore(
-                  String.format(KEY_FORMAT_ZSET_KEYS, storageUnit, path),
-                  keyRange.getActualBeginKey(),
-                  keyRange.getActualEndKey());
+              byte[] hashKey =
+                  DataCoder.encode(String.format(KEY_FORMAT_HASH_VALUES, storageUnit, path));
+              jedis.hdel(hashKey, keys.toArray(new byte[0][0]));
+              jedis.zremrangeByLex(zSetKey, beginKeyRange, endKeyRange);
             }
           }
         }
@@ -253,7 +388,7 @@ public class RedisStorage implements IStorage {
     List<String> paths = new ArrayList<>();
     try (Jedis jedis = jedisPool.getResource()) {
       for (String pattern : patterns) {
-        String queryPattern = String.format(KEY_FORMAT_ZSET_KEYS, storageUnit, pattern);
+        String queryPattern = String.format(KEY_FORMAT_STRING_PATH, storageUnit, pattern);
         queryPattern += TAG_SUFFIX;
         Set<String> set = jedis.keys(queryPattern);
         set.forEach(
@@ -290,19 +425,20 @@ public class RedisStorage implements IStorage {
       String path = data.getPath(i);
       String type = DataTransformer.toStringDataType(data.getDataType(i));
 
-      Pair<Map<String, String>, Map<String, Double>> pair = data.getPathData(i);
+      Pair<Map<byte[], byte[]>, Map<byte[], Double>> pair = data.getPathData(i);
 
-      Map<String, String> values = pair.getK();
-      Map<String, Double> scores = pair.getV();
+      Map<byte[], byte[]> values = pair.getK();
+      Map<byte[], Double> scores = pair.getV();
 
       try (Jedis jedis = jedisPool.getResource()) {
-        String hashKey = String.format(KEY_FORMAT_HASH_VALUES, storageUnit, path);
+        byte[] hashKey = DataCoder.encode(String.format(KEY_FORMAT_HASH_VALUES, storageUnit, path));
         jedis.hset(hashKey, values);
 
-        String zSetKey = String.format(KEY_FORMAT_ZSET_KEYS, storageUnit, path);
+        byte[] zSetKey = DataCoder.encode(String.format(KEY_FORMAT_ZSET_KEYS, storageUnit, path));
         jedis.zadd(zSetKey, scores);
 
         jedis.hset(KEY_DATA_TYPE, path, type);
+        jedis.set(String.format(KEY_FORMAT_STRING_PATH, storageUnit, path), EMTPY_STRING);
       } catch (Exception e) {
         return new TaskExecuteResult(new PhysicalException("execute insert in redis error", e));
       }
@@ -392,6 +528,13 @@ public class RedisStorage implements IStorage {
       logger.error("get keys error, cause by: ", e);
     }
     return paths;
+  }
+
+  private static byte[] concat(byte prefix, byte[] arr) {
+    byte[] ret = new byte[1 + arr.length];
+    ret[0] = prefix;
+    System.arraycopy(arr, 0, ret, 1, arr.length);
+    return ret;
   }
 
   @Override
