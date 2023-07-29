@@ -22,7 +22,6 @@ import com.alibaba.fastjson2.annotation.JSONType;
 
 import java.util.Objects;
 
-@JSONType(typeName = "KeyF")
 public class KeyFilter implements Filter {
 
   private final FilterType type = FilterType.Key;

@@ -22,7 +22,6 @@ import com.alibaba.fastjson2.annotation.JSONType;
 
 import java.util.Objects;
 
-@JSONType(typeName = "NotF")
 public class NotFilter implements Filter {
 
   private final FilterType type = FilterType.Not;

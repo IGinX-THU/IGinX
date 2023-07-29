@@ -24,7 +24,6 @@ import com.alibaba.fastjson2.annotation.JSONType;
 
 import java.util.Objects;
 
-@JSONType(typeName = "ValueF")
 public class ValueFilter implements Filter {
 
   private final FilterType type = FilterType.Value;

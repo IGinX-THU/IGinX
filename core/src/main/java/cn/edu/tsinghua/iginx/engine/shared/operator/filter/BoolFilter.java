@@ -5,7 +5,6 @@ import com.alibaba.fastjson2.annotation.JSONType;
 import java.util.Objects;
 
 // only use for calculate sub filter for now.
-@JSONType(typeName = "BoolFilter")
 public class BoolFilter implements Filter {
 
   private final FilterType type = FilterType.Bool;

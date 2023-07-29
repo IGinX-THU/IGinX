@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-@JSONType(typeName = "OrF")
 public class OrFilter implements Filter {
 
   private final FilterType type = FilterType.Or;
