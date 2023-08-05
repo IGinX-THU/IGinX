@@ -24,7 +24,31 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.UnexpectedOperatorExcepti
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.OperatorMemoryExecutor;
 import cn.edu.tsinghua.iginx.engine.shared.Constants;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
-import cn.edu.tsinghua.iginx.engine.shared.operator.*;
+import cn.edu.tsinghua.iginx.engine.shared.operator.AddSchemaPrefix;
+import cn.edu.tsinghua.iginx.engine.shared.operator.BinaryOperator;
+import cn.edu.tsinghua.iginx.engine.shared.operator.CrossJoin;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Downsample;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Except;
+import cn.edu.tsinghua.iginx.engine.shared.operator.GroupBy;
+import cn.edu.tsinghua.iginx.engine.shared.operator.InnerJoin;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Intersect;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Join;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Limit;
+import cn.edu.tsinghua.iginx.engine.shared.operator.MappingTransform;
+import cn.edu.tsinghua.iginx.engine.shared.operator.MarkJoin;
+import cn.edu.tsinghua.iginx.engine.shared.operator.OuterJoin;
+import cn.edu.tsinghua.iginx.engine.shared.operator.PathUnion;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Rename;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Reorder;
+import cn.edu.tsinghua.iginx.engine.shared.operator.RowTransform;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
+import cn.edu.tsinghua.iginx.engine.shared.operator.SetTransform;
+import cn.edu.tsinghua.iginx.engine.shared.operator.SingleJoin;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Sort;
+import cn.edu.tsinghua.iginx.engine.shared.operator.UnaryOperator;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Union;
+import java.util.List;
 
 public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
 
@@ -85,8 +109,14 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
         return executeMarkJoin((MarkJoin) operator, streamA, streamB);
       case PathUnion:
         return executePathUnion((PathUnion) operator, streamA, streamB);
+      case Union:
+        return executeUnion((Union) operator, streamA, streamB);
+      case Except:
+        return executeExcept((Except) operator, streamA, streamB);
+      case Intersect:
+        return executeIntersect((Intersect) operator, streamA, streamB);
       default:
-        throw new UnexpectedOperatorException("unknown unary operator: " + operator.getType());
+        throw new UnexpectedOperatorException("unknown binary operator: " + operator.getType());
     }
   }
 
@@ -132,7 +162,11 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
   }
 
   private RowStream executeReorder(Reorder reorder, RowStream stream) {
-    return new ReorderLazyStream(reorder, stream);
+    return new ReorderLazyStream(reorder.getPatterns(), stream);
+  }
+
+  private RowStream executeReorder(List<String> patterns, RowStream stream) {
+    return new ReorderLazyStream(patterns, stream);
   }
 
   private RowStream executeAddSchemaPrefix(AddSchemaPrefix addSchemaPrefix, RowStream stream) {
@@ -267,6 +301,31 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
 
   private RowStream executePathUnion(PathUnion union, RowStream streamA, RowStream streamB) {
     return new PathUnionLazyStream(union, streamA, streamB);
+  }
+
+  private RowStream executeUnion(Union union, RowStream streamA, RowStream streamB) {
+    streamA = executeReorder(union.getLeftOrder(), streamA);
+    streamB = executeReorder(union.getRightOrder(), streamB);
+
+    if (union.isDistinct()) {
+      return new UnionDistinctLazyStream(streamA, streamB);
+    } else {
+      return new UnionAllLazyStream(streamA, streamB);
+    }
+  }
+
+  private RowStream executeExcept(Except except, RowStream streamA, RowStream streamB) {
+    streamA = executeReorder(except.getLeftOrder(), streamA);
+    streamB = executeReorder(except.getRightOrder(), streamB);
+
+    return new ExceptLazyStream(except, streamA, streamB);
+  }
+
+  private RowStream executeIntersect(Intersect intersect, RowStream streamA, RowStream streamB) {
+    streamA = executeReorder(intersect.getLeftOrder(), streamA);
+    streamB = executeReorder(intersect.getRightOrder(), streamB);
+
+    return new IntersectLazyStream(intersect, streamA, streamB);
   }
 
   private static class StreamOperatorMemoryExecutorHolder {

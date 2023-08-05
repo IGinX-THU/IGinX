@@ -521,7 +521,10 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
   }
 
   private RowStream executeReorder(Reorder reorder, Table table) throws PhysicalException {
-    List<String> patterns = reorder.getPatterns();
+    return executeReorder(reorder.getPatterns(), table);
+  }
+
+  private RowStream executeReorder(List<String> patterns, Table table) throws PhysicalException {
     Header header = table.getHeader();
     List<Field> targetFields = new ArrayList<>();
     Map<Integer, Integer> reorderMap = new HashMap<>();
@@ -2190,8 +2193,13 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
   }
 
   private RowStream executeUnion(Union union, Table tableA, Table tableB) throws PhysicalException {
+    // 将左右两表的列Reorder
+    tableA = transformToTable(executeReorder(union.getLeftOrder(), tableA));
+    tableB = transformToTable(executeReorder(union.getRightOrder(), tableB));
+
     // 检查输入两表的header是否可比较
     checkHeadersComparable(tableA.getHeader(), tableB.getHeader());
+
     // 判断是否去重
     if (union.isDistinct()) {
       return executeUnionDistinct(tableA, tableB);
@@ -2218,28 +2226,67 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     boolean hasKey = tableA.getHeader().hasKey();
     Header targetHeader = tableA.getHeader();
 
-    long hash;
-    HashMap<Long, List<Row>> hashMap = new HashMap<>();
-    if (hasKey) {
-      for (Row rowA : tableA.getRows()) {
+    if (tableA.getHeader().getFields().isEmpty() || tableB.getHeader().getFields().isEmpty()) {
+      throw new InvalidOperatorParameterException(
+          "row stream to be union must have non-empty fields");
+    }
+
+    // 检查是否需要类型转换
+    boolean needTypeCast =
+        checkNeedTypeCast(
+            tableA.getRows(),
+            tableB.getRows(),
+            tableA.getHeader().getField(0).getName(),
+            tableB.getHeader().getField(0).getName());
+
+    int hash;
+    HashMap<Integer, List<Row>> hashMap = new HashMap<>();
+    // 扫描左表建立哈希表
+    tableAScan:
+    for (Row rowA : tableA.getRows()) {
+      if (hasKey) {
         hash = Objects.hash(rowA.getKey());
-        List<Row> l = hashMap.computeIfAbsent(hash, k -> new ArrayList<>());
-        l.add(rowA);
-      }
-
-      tableScan:
-      for (Row rowB : tableB.getRows()) {
-        hash = Objects.hash(rowB.getKey());
-        List<Row> rowsExist = hashMap.computeIfAbsent(hash, k -> new ArrayList<>());
-        for (Row rowExist : rowsExist) {
-          if (isValueEqualRow(rowExist, rowB, true)) {
-            continue tableScan;
-          }
+      } else {
+        Value value = rowA.getAsValue(0);
+        if (value == null) {
+          continue;
         }
-        rowsExist.add(new Row(targetHeader, rowB.getKey(), rowB.getValues()));
+        hash = getHash(value, needTypeCast);
       }
-    } else {
+      List<Row> rowsExist = hashMap.computeIfAbsent(hash, k -> new ArrayList<>());
+      // 去重
+      for (Row rowExist : rowsExist) {
+        if (isValueEqualRow(rowExist, rowA, hasKey)) {
+          continue tableAScan;
+        }
+      }
+      rowsExist.add(rowA);
+    }
 
+    // 扫描右表
+    tableBScan:
+    for (Row rowB : tableB.getRows()) {
+      if (hasKey) {
+        hash = Objects.hash(rowB.getKey());
+      } else {
+        Value value = rowB.getAsValue(0);
+        if (value == null) {
+          continue;
+        }
+        hash = getHash(value, needTypeCast);
+      }
+      List<Row> rowsExist = hashMap.computeIfAbsent(hash, k -> new ArrayList<>());
+      // 去重
+      for (Row rowExist : rowsExist) {
+        if (isValueEqualRow(rowExist, rowB, hasKey)) {
+          continue tableBScan;
+        }
+      }
+      if (hasKey) {
+        rowsExist.add(new Row(targetHeader, rowB.getKey(), rowB.getValues()));
+      } else {
+        rowsExist.add(new Row(targetHeader, rowB.getValues()));
+      }
     }
 
     List<Row> targetRows = new ArrayList<>();
@@ -2249,167 +2296,165 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
 
   private RowStream executeExcept(Except except, Table tableA, Table tableB)
       throws PhysicalException {
+    // 将左右两表的列Reorder
+    tableA = transformToTable(executeReorder(except.getLeftOrder(), tableA));
+    tableB = transformToTable(executeReorder(except.getRightOrder(), tableB));
+
     // 检查输入两表的header是否可比较
     checkHeadersComparable(tableA.getHeader(), tableB.getHeader());
-    // 判断是否去重
-    if (except.isDistinct()) {
-      return executeExceptDistinct(tableA, tableB);
-    } else {
-      return executeExceptAll(tableA, tableB);
+
+    if (tableA.getHeader().getFields().isEmpty() || tableB.getHeader().getFields().isEmpty()) {
+      throw new InvalidOperatorParameterException(
+          "row stream to be except must have non-empty fields");
     }
-  }
 
-  private RowStream executeExceptDistinct(Table tableA, Table tableB) throws PhysicalException {
+    // 检查是否需要类型转换
+    boolean needTypeCast =
+        checkNeedTypeCast(
+            tableA.getRows(),
+            tableB.getRows(),
+            tableA.getHeader().getField(0).getName(),
+            tableB.getHeader().getField(0).getName());
+
+    boolean isDistinct = except.isDistinct();
     boolean hasKey = tableA.getHeader().hasKey();
-    Header targetHeader = tableA.getHeader();
+    int hash;
+    List<Row> targetRows = new ArrayList<>();
+    HashMap<Integer, List<Row>> ret = new HashMap<>();
+    HashMap<Integer, List<Row>> rowsBMap = new HashMap<>();
 
-    long hash;
-    HashMap<Long, List<Row>> ret = new HashMap<>();
-    HashMap<Long, List<Row>> rowsBMap = new HashMap<>();
-    if (hasKey) {
-      for (Row rowB : tableB.getRows()) {
+    // 扫描右表建立哈希表
+    for (Row rowB : tableB.getRows()) {
+      if (hasKey) {
         hash = Objects.hash(rowB.getKey());
-        List<Row> l = rowsBMap.computeIfAbsent(hash, k -> new ArrayList<>());
-        l.add(rowB);
+      } else {
+        Value value = rowB.getAsValue(0);
+        if (value == null) {
+          continue;
+        }
+        hash = getHash(value, needTypeCast);
+      }
+      List<Row> rowsBExist = rowsBMap.computeIfAbsent(hash, k -> new ArrayList<>());
+      rowsBExist.add(rowB);
+    }
+
+    // 扫描左表
+    tableAScan:
+    for (Row rowA : tableA.getRows()) {
+      if (hasKey) {
+        hash = Objects.hash(rowA.getKey());
+      } else {
+        Value value = rowA.getAsValue(0);
+        if (value == null) {
+          continue;
+        }
+        hash = getHash(value, needTypeCast);
       }
 
-      tableScan:
-      for (Row rowA : tableA.getRows()) {
-        hash = Objects.hash(rowA.getKey());
-        List<Row> rowsB = rowsBMap.computeIfAbsent(hash, k -> new ArrayList<>());
-        List<Row> rowsExist = ret.computeIfAbsent(hash, k -> new ArrayList<>());
-        for (Row rowB : rowsB) {
-          if (isValueEqualRow(rowA, rowB, true)) {
-            continue tableScan;
-          }
+      // 筛去左表和右表的公共部分
+      List<Row> rowsB = rowsBMap.computeIfAbsent(hash, k -> new ArrayList<>());
+      for (Row rowB : rowsB) {
+        if (isValueEqualRow(rowA, rowB, hasKey)) {
+          continue tableAScan;
         }
+      }
+
+      // 去重
+      if (isDistinct) {
+        List<Row> rowsExist = ret.computeIfAbsent(hash, k -> new ArrayList<>());
         for (Row rowExist : rowsExist) {
-          if (isValueEqualRow(rowA, rowExist, true)) {
-            continue tableScan;
+          if (isValueEqualRow(rowA, rowExist, hasKey)) {
+            continue tableAScan;
           }
         }
         rowsExist.add(rowA);
       }
-    } else {
-
+      targetRows.add(rowA);
     }
 
-    List<Row> targetRows = new ArrayList<>();
-    ret.values().forEach(targetRows::addAll);
-    return new Table(targetHeader, targetRows);
-  }
-
-  private RowStream executeExceptAll(Table tableA, Table tableB) throws PhysicalException {
-    boolean hasKey = tableA.getHeader().hasKey();
     Header targetHeader = tableA.getHeader();
-
-    long hash;
-    List<Row> targetRows = new ArrayList<>();
-    HashMap<Long, List<Row>> rowsBMap = new HashMap<>();
-    if (hasKey) {
-      for (Row rowB : tableB.getRows()) {
-        hash = Objects.hash(rowB.getKey());
-        List<Row> l = rowsBMap.computeIfAbsent(hash, k -> new ArrayList<>());
-        l.add(rowB);
-      }
-
-      tableScan:
-      for (Row rowA : tableA.getRows()) {
-        hash = Objects.hash(rowA.getKey());
-        List<Row> rowsB = rowsBMap.computeIfAbsent(hash, k -> new ArrayList<>());
-        for (Row rowB : rowsB) {
-          if (isValueEqualRow(rowA, rowB, true)) {
-            continue tableScan;
-          }
-        }
-        targetRows.add(rowA);
-      }
-    } else {
-
-    }
     return new Table(targetHeader, targetRows);
   }
 
   private RowStream executeIntersect(Intersect intersect, Table tableA, Table tableB)
       throws PhysicalException {
+    // 将左右两表的列reorder
+    tableA = transformToTable(executeReorder(intersect.getLeftOrder(), tableA));
+    tableB = transformToTable(executeReorder(intersect.getRightOrder(), tableB));
+
     // 检查输入两表的header是否可比较
     checkHeadersComparable(tableA.getHeader(), tableB.getHeader());
-    // 判断是否去重
-    if (intersect.isDistinct()) {
-      return executeIntersectDistinct(tableA, tableB);
-    } else {
-      return executeIntersectAll(tableA, tableB);
-    }
-  }
 
-  private RowStream executeIntersectDistinct(Table tableA, Table tableB) throws PhysicalException {
+    if (tableA.getHeader().getFields().isEmpty() || tableB.getHeader().getFields().isEmpty()) {
+      throw new InvalidOperatorParameterException(
+          "row stream to be intersect must have non-empty fields");
+    }
+
+    // 检查是否需要类型转换
+    boolean needTypeCast =
+        checkNeedTypeCast(
+            tableA.getRows(),
+            tableB.getRows(),
+            tableA.getHeader().getField(0).getName(),
+            tableB.getHeader().getField(0).getName());
+
+    boolean isDistinct = intersect.isDistinct();
     boolean hasKey = tableA.getHeader().hasKey();
-    Header targetHeader = tableA.getHeader();
+    int hash;
+    HashMap<Integer, List<Row>> ret = new HashMap<>();
+    HashMap<Integer, List<Row>> rowsBMap = new HashMap<>();
 
-    long hash;
-    HashMap<Long, List<Row>> ret = new HashMap<>();
-    HashMap<Long, List<Row>> rowsBMap = new HashMap<>();
-    if (hasKey) {
-      for (Row rowB : tableB.getRows()) {
+    // 扫描右表建立哈希表
+    for (Row rowB : tableB.getRows()) {
+      if (hasKey) {
         hash = Objects.hash(rowB.getKey());
-        List<Row> l = rowsBMap.computeIfAbsent(hash, k -> new ArrayList<>());
-        l.add(rowB);
-      }
-
-      tableScan:
-      for (Row rowA : tableA.getRows()) {
-        hash = Objects.hash(rowA.getKey());
-        List<Row> rowsB = rowsBMap.computeIfAbsent(hash, k -> new ArrayList<>());
-        List<Row> rowsExist = ret.computeIfAbsent(hash, k -> new ArrayList<>());
-        for (Row rowExist : rowsExist) {
-          if (isValueEqualRow(rowA, rowExist, true)) {
-            continue tableScan;
-          }
+      } else {
+        Value value = rowB.getAsValue(0);
+        if (value == null) {
+          continue;
         }
-        for (Row rowB : rowsB) {
-          if (isValueEqualRow(rowA, rowB, true)) {
-            rowsExist.add(rowA);
-            continue tableScan;
-          }
-        }
+        hash = getHash(value, needTypeCast);
       }
-    } else {
-
+      List<Row> rowsBExist = rowsBMap.computeIfAbsent(hash, k -> new ArrayList<>());
+      rowsBExist.add(rowB);
     }
 
+    // 扫描左表
+    tableAScan:
+    for (Row rowA : tableA.getRows()) {
+      if (hasKey) {
+        hash = Objects.hash(rowA.getKey());
+      } else {
+        Value value = rowA.getAsValue(0);
+        if (value == null) {
+          continue;
+        }
+        hash = getHash(value, needTypeCast);
+      }
+      List<Row> rowsB = rowsBMap.computeIfAbsent(hash, k -> new ArrayList<>());
+      List<Row> rowsExist = ret.computeIfAbsent(hash, k -> new ArrayList<>());
+
+      // 去重
+      if (isDistinct) {
+        for (Row rowExist : rowsExist) {
+          if (isValueEqualRow(rowA, rowExist, hasKey)) {
+            continue tableAScan;
+          }
+        }
+      }
+
+      // 保留左表和右表的公共部分
+      for (Row rowB : rowsB) {
+        if (isValueEqualRow(rowA, rowB, hasKey)) {
+          rowsExist.add(rowA);
+          continue tableAScan;
+        }
+      }
+    }
+
+    Header targetHeader = tableA.getHeader();
     List<Row> targetRows = new ArrayList<>();
     ret.values().forEach(targetRows::addAll);
-    return new Table(targetHeader, targetRows);
-  }
-
-  private RowStream executeIntersectAll(Table tableA, Table tableB) throws PhysicalException {
-    boolean hasKey = tableA.getHeader().hasKey();
-    Header targetHeader = tableA.getHeader();
-
-    long hash;
-    List<Row> targetRows = new ArrayList<>();
-    HashMap<Long, List<Row>> rowsBMap = new HashMap<>();
-    if (hasKey) {
-      for (Row rowB : tableB.getRows()) {
-        hash = Objects.hash(rowB.getKey());
-        List<Row> l = rowsBMap.computeIfAbsent(hash, k -> new ArrayList<>());
-        l.add(rowB);
-      }
-
-      tableScan:
-      for (Row rowA : tableA.getRows()) {
-        hash = Objects.hash(rowA.getKey());
-        List<Row> rowsB = rowsBMap.computeIfAbsent(hash, k -> new ArrayList<>());
-        for (Row rowB : rowsB) {
-          if (isValueEqualRow(rowA, rowB, true)) {
-            targetRows.add(rowA);
-            continue tableScan;
-          }
-        }
-      }
-    } else {
-
-    }
     return new Table(targetHeader, targetRows);
   }
 

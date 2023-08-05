@@ -302,7 +302,15 @@ public class HeaderUtils {
       boolean comparable = isNumericType(typeA) && isNumericType(typeB) || typeA.equals(typeB);
       if (!comparable) {
         throw new InvalidOperatorParameterException(
-            "Field type " + typeA + " and type " + typeB + " are incomparable.");
+            "Field "
+                + headerA.getField(index).getName()
+                + "("
+                + typeA
+                + ") and field "
+                + headerB.getField(index).getName()
+                + "("
+                + typeB
+                + ") are incomparable.");
       }
     }
   }

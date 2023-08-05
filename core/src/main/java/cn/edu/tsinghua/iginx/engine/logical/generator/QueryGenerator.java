@@ -120,21 +120,55 @@ public class QueryGenerator extends AbstractGenerator {
     Operator left = generateRoot(selectStatement.getLeftQuery());
     Operator right = generateRoot(selectStatement.getRightQuery());
 
+    List<String> leftOrder = new ArrayList<>();
+    selectStatement
+        .getLeftQuery()
+        .getExpressions()
+        .forEach(
+            expression -> {
+              String order =
+                  expression.hasAlias() ? expression.getAlias() : expression.getColumnName();
+              leftOrder.add(order);
+            });
+
+    List<String> rightOrder = new ArrayList<>();
+    selectStatement
+        .getRightQuery()
+        .getExpressions()
+        .forEach(
+            expression -> {
+              String order =
+                  expression.hasAlias() ? expression.getAlias() : expression.getColumnName();
+              rightOrder.add(order);
+            });
+
     switch (selectStatement.getSetOperator()) {
       case Union:
         root =
             new Union(
-                new OperatorSource(left), new OperatorSource(right), selectStatement.isDistinct());
+                new OperatorSource(left),
+                new OperatorSource(right),
+                leftOrder,
+                rightOrder,
+                selectStatement.isDistinct());
         break;
       case Except:
         root =
             new Except(
-                new OperatorSource(left), new OperatorSource(right), selectStatement.isDistinct());
+                new OperatorSource(left),
+                new OperatorSource(right),
+                leftOrder,
+                rightOrder,
+                selectStatement.isDistinct());
         break;
       case Intersect:
         root =
             new Intersect(
-                new OperatorSource(left), new OperatorSource(right), selectStatement.isDistinct());
+                new OperatorSource(left),
+                new OperatorSource(right),
+                leftOrder,
+                rightOrder,
+                selectStatement.isDistinct());
         break;
       default:
         throw new RuntimeException(
