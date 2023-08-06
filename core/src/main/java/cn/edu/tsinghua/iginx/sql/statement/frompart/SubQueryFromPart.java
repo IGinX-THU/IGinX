@@ -2,7 +2,9 @@ package cn.edu.tsinghua.iginx.sql.statement.frompart;
 
 import cn.edu.tsinghua.iginx.engine.shared.Constants;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.join.JoinCondition;
+import cn.edu.tsinghua.iginx.sql.statement.selectstatement.BinarySelectStatement;
 import cn.edu.tsinghua.iginx.sql.statement.selectstatement.SelectStatement;
+import cn.edu.tsinghua.iginx.sql.statement.selectstatement.UnarySelectStatement;
 import java.util.List;
 
 public class SubQueryFromPart implements FromPart {
@@ -52,7 +54,19 @@ public class SubQueryFromPart implements FromPart {
 
   @Override
   public boolean hasSinglePrefix() {
-    return patterns.size() == 1;
+    if (hasAlias()) {
+      return true;
+    }
+
+    SelectStatement s = subQuery;
+    while (s.getSelectType().equals(SelectStatement.SelectStatementType.BINARY)) {
+      s = ((BinarySelectStatement) s).getLeftQuery();
+    }
+
+    if (((UnarySelectStatement) s).getFromParts().size() > 1) {
+      return false;
+    }
+    return ((UnarySelectStatement) s).getFromParts().get(0).hasSinglePrefix();
   }
 
   @Override
@@ -67,14 +81,13 @@ public class SubQueryFromPart implements FromPart {
     }
     // 如果子查询没有一个公共的前缀，返回null
     if (hasSinglePrefix()) {
-      if (patterns.get(0).endsWith(Constants.ALL_PATH_SUFFIX)) {
-        return patterns.get(0).substring(0, patterns.get(0).length() - 2);
-      } else {
-        return patterns.get(0);
+      for (String pattern : patterns) {
+        if (pattern.endsWith(Constants.ALL_PATH_SUFFIX)) {
+          return pattern.substring(0, pattern.length() - 2);
+        }
       }
-    } else {
-      return null;
     }
+    return null;
   }
 
   @Override
