@@ -4273,8 +4273,7 @@ public class SQLSessionIT {
         errClause, "Group by can not use SetToSet and RowToRow functions.");
 
     errClause = "select * from test.a join test.b where a > 0;";
-    executor.executeAndCompareErrMsg(
-        errClause, "Unexpected paths' name: [a].");
+    executor.executeAndCompareErrMsg(errClause, "Unexpected paths' name: [a].");
   }
 
   @Test

@@ -602,7 +602,8 @@ public class UnarySelectStatement extends SelectStatement {
     set.forEach(
         variable -> {
           for (Expression expression : expressions) {
-            if (!expression.getType().equals(Expression.ExpressionType.Base) && variable.equals(expression.getColumnName())) {
+            if (!expression.getType().equals(Expression.ExpressionType.Base)
+                && variable.equals(expression.getColumnName())) {
               toBeRemove.add(variable);
             }
           }
