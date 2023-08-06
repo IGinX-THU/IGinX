@@ -294,7 +294,8 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
       for (Row row : rows) {
         long rowTimestamp = row.getKey();
         for (long i = 0; i < n; i++) {
-          if (rowTimestamp - timestamps.get(i) >= 0 && rowTimestamp - timestamps.get(i) < precision) {
+          if (rowTimestamp - timestamps.get(i) >= 0
+              && rowTimestamp - timestamps.get(i) < precision) {
             groups.compute(timestamps.get(i), (k, v) -> v == null ? new ArrayList<>() : v).add(row);
           }
         }
