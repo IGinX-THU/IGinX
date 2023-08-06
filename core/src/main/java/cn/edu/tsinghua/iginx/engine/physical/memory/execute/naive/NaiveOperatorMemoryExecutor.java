@@ -277,7 +277,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     long precision = downsample.getPrecision();
     long slideDistance = downsample.getSlideDistance();
     // startKey + (n - 1) * slideDistance + precision - 1 >= endKey
-    int n = (int) (Math.ceil((double) (endKey - bias - precision + 1) / slideDistance) + 1);
+    long n = (int) (Math.ceil((double) (endKey - bias - precision + 1) / slideDistance) + 1);
     TreeMap<Long, List<Row>> groups = new TreeMap<>();
     SetMappingFunction function = (SetMappingFunction) downsample.getFunctionCall().getFunction();
     FunctionParams params = downsample.getFunctionCall().getParams();
@@ -287,15 +287,15 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         groups.compute(timestamp, (k, v) -> v == null ? new ArrayList<>() : v).add(row);
       }
     } else {
-      long[] timestamps = new long[n];
-      for (int i = 0; i < n; i++) {
-        timestamps[i] = bias + i * slideDistance;
+      HashMap<Long, Long> timestamps = new HashMap<>();
+      for (long i = 0; i < n; i++) {
+        timestamps.put(i, bias + i * slideDistance);
       }
       for (Row row : rows) {
         long rowTimestamp = row.getKey();
-        for (int i = 0; i < n; i++) {
-          if (rowTimestamp - timestamps[i] >= 0 && rowTimestamp - timestamps[i] < precision) {
-            groups.compute(timestamps[i], (k, v) -> v == null ? new ArrayList<>() : v).add(row);
+        for (long i = 0; i < n; i++) {
+          if (rowTimestamp - timestamps.get(i) >= 0 && rowTimestamp - timestamps.get(i) < precision) {
+            groups.compute(timestamps.get(i), (k, v) -> v == null ? new ArrayList<>() : v).add(row);
           }
         }
       }
