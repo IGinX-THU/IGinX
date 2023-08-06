@@ -4271,6 +4271,10 @@ public class SQLSessionIT {
     errClause = "SELECT last(s1) FROM us.d1 GROUP BY s2;";
     executor.executeAndCompareErrMsg(
         errClause, "Group by can not use SetToSet and RowToRow functions.");
+
+    errClause = "select * from test.a join test.b where a > 0;";
+    executor.executeAndCompareErrMsg(
+        errClause, "Unexpected paths' name: [a].");
   }
 
   @Test

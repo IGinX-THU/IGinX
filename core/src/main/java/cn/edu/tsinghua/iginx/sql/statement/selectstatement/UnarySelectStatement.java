@@ -531,9 +531,6 @@ public class UnarySelectStatement extends SelectStatement {
 
   @Override
   public List<String> calculatePrefixSet() {
-    if (globalAlias != null) {
-      return new ArrayList<>(Collections.singleton(globalAlias + Constants.ALL_PATH_SUFFIX));
-    }
     Set<String> prefixSet = new HashSet<>();
     fromParts.forEach(
         fromPart -> {
@@ -556,26 +553,62 @@ public class UnarySelectStatement extends SelectStatement {
       return;
     }
     Set<String> set = new HashSet<>();
-    List<String> allVariables = FilterUtils.getAllPathsFromFilter(filter);
-    allVariables.addAll(FilterUtils.getAllPathsFromFilter(havingFilter));
     for (FromPart fromPart : fromParts) {
-      allVariables.addAll(fromPart.getFreeVariables());
+      set.addAll(fromPart.getFreeVariables());
     }
     for (SubQueryFromPart whereSubQueryPart : whereSubQueryParts) {
-      allVariables.addAll(whereSubQueryPart.getSubQuery().getFreeVariables());
+      set.addAll(whereSubQueryPart.getSubQuery().getFreeVariables());
     }
     for (SubQueryFromPart havingSubQueryPart : havingSubQueryParts) {
-      allVariables.addAll(havingSubQueryPart.getSubQuery().getFreeVariables());
+      set.addAll(havingSubQueryPart.getSubQuery().getFreeVariables());
     }
     for (SubQueryFromPart selectSubQueryPart : selectSubQueryParts) {
-      allVariables.addAll(selectSubQueryPart.getSubQuery().getFreeVariables());
+      set.addAll(selectSubQueryPart.getSubQuery().getFreeVariables());
     }
-    allVariables.forEach(
+    List<String> toBeRemove = new ArrayList<>();
+    set.forEach(
         variable -> {
-          if (isFreeVariable(variable)) {
-            set.add(variable);
+          if (!isFreeVariable(variable)) {
+            toBeRemove.add(variable);
           }
         });
+    toBeRemove.forEach(set::remove);
+
+    toBeRemove.clear();
+    set.addAll(FilterUtils.getAllPathsFromFilter(filter));
+    set.forEach(
+        variable -> {
+          if (hasAttributeInWhereSubQuery(variable)) {
+            toBeRemove.add(variable);
+          } else if (!isFreeVariable(variable)) {
+            toBeRemove.add(variable);
+          }
+        });
+    toBeRemove.forEach(set::remove);
+
+    toBeRemove.clear();
+    set.addAll(FilterUtils.getAllPathsFromFilter(havingFilter));
+    set.forEach(
+        variable -> {
+          if (hasAttributeInHavingSubQuery(variable)) {
+            toBeRemove.add(variable);
+          } else if (!isFreeVariable(variable)) {
+            toBeRemove.add(variable);
+          }
+        });
+    toBeRemove.forEach(set::remove);
+
+    toBeRemove.clear();
+    set.forEach(
+        variable -> {
+          for (Expression expression : expressions) {
+            if (!expression.getType().equals(Expression.ExpressionType.Base) && variable.equals(expression.getColumnName())) {
+              toBeRemove.add(variable);
+            }
+          }
+        });
+    toBeRemove.forEach(set::remove);
+
     freeVariables = new ArrayList<>(set);
   }
 
@@ -592,6 +625,40 @@ public class UnarySelectStatement extends SelectStatement {
     }
     for (int i = 0; i < endIndexOfFromPart; i++) {
       for (String pattern : fromParts.get(i).getPatterns()) {
+        if (pattern.endsWith(Constants.ALL_PATH_SUFFIX)) {
+          pattern = pattern.substring(0, pattern.length() - 1);
+        }
+        if (path.startsWith(pattern)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  public boolean hasAttributeInWhereSubQuery(String path) {
+    if (path.startsWith(MarkJoin.MARK_PREFIX)) {
+      return true;
+    }
+    for (SubQueryFromPart whereSubQueryPart : whereSubQueryParts) {
+      for (String pattern : whereSubQueryPart.getPatterns()) {
+        if (pattern.endsWith(Constants.ALL_PATH_SUFFIX)) {
+          pattern = pattern.substring(0, pattern.length() - 1);
+        }
+        if (path.startsWith(pattern)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  public boolean hasAttributeInHavingSubQuery(String path) {
+    if (path.startsWith(MarkJoin.MARK_PREFIX)) {
+      return true;
+    }
+    for (SubQueryFromPart havingSubQueryPart : havingSubQueryParts) {
+      for (String pattern : havingSubQueryPart.getPatterns()) {
         if (pattern.endsWith(Constants.ALL_PATH_SUFFIX)) {
           pattern = pattern.substring(0, pattern.length() - 1);
         }

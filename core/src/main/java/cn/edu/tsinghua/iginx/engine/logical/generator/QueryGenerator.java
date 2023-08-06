@@ -75,6 +75,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import jdk.nashorn.internal.runtime.regexp.joni.exception.SyntaxException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -486,6 +487,14 @@ public class QueryGenerator extends AbstractGenerator {
             new FunctionCall(functionManager.getFunction(ARITHMETIC_EXPR), params));
       }
       root = new RowTransform(new OperatorSource(root), functionCallList);
+    }
+
+    if (!selectStatement.isSubQuery()) {
+      selectStatement.initFreeVariables();
+      List<String> freeVariables = selectStatement.getFreeVariables();
+      if (!freeVariables.isEmpty()) {
+        throw new SyntaxException("Unexpected paths' name: " + freeVariables + ".");
+      }
     }
 
     if (!selectStatement.getOrderByPaths().isEmpty()) {

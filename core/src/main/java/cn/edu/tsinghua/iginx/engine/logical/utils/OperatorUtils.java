@@ -423,6 +423,10 @@ public class OperatorUtils {
         }
         root = markJoin;
         break;
+      case Union:
+      case Except:
+      case Intersect:
+        throw new RuntimeException("Correlated subquery is not supported to use set operator yet.");
       default:
         throw new RuntimeException("Unexpected operator type: " + operatorB.getType());
     }
