@@ -176,7 +176,7 @@ public class UDFIT {
     execute(insert);
 
     String query =
-        "SELECT * FROM (SELECT COS(s1) FROM test) AS t1, (SELECT COS(s2) FROM test) AS t2 LIMIT 10;";
+        "SELECT * FROM (SELECT COS(s1) AS cos_s1 FROM test) AS t1, (SELECT COS(s2) AS cos_s2 FROM test) AS t2 LIMIT 10;";
     SessionExecuteSqlResult ret = execute(query);
     assertEquals(4, ret.getPaths().size());
 
