@@ -5,6 +5,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Reorder;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.util.ArrayList;
@@ -16,7 +17,7 @@ import java.util.regex.Pattern;
 
 public class ReorderLazyStream extends UnaryLazyStream {
 
-  private final List<String> patterns;
+  private final Reorder reorder;
 
   private Header header;
 
@@ -24,9 +25,9 @@ public class ReorderLazyStream extends UnaryLazyStream {
 
   private Row nextRow = null;
 
-  public ReorderLazyStream(List<String> patterns, RowStream stream) {
+  public ReorderLazyStream(Reorder reorder, RowStream stream) {
     super(stream);
-    this.patterns = patterns;
+    this.reorder = reorder;
   }
 
   @Override
@@ -36,7 +37,7 @@ public class ReorderLazyStream extends UnaryLazyStream {
       List<Field> targetFields = new ArrayList<>();
       this.reorderMap = new HashMap<>();
 
-      for (String pattern : patterns) {
+      for (String pattern : reorder.getPatterns()) {
         List<Pair<Field, Integer>> matchedFields = new ArrayList<>();
         if (StringUtils.isPattern(pattern)) {
           for (int i = 0; i < header.getFields().size(); i++) {

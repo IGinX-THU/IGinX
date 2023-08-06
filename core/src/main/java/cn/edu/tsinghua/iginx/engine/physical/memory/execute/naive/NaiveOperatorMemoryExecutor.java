@@ -82,6 +82,8 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.UnaryOperator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Union;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OuterJoinType;
+import cn.edu.tsinghua.iginx.engine.shared.source.Source;
+import cn.edu.tsinghua.iginx.engine.shared.source.SourceType;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.Pair;
@@ -521,15 +523,11 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
   }
 
   private RowStream executeReorder(Reorder reorder, Table table) throws PhysicalException {
-    return executeReorder(reorder.getPatterns(), table);
-  }
-
-  private RowStream executeReorder(List<String> patterns, Table table) throws PhysicalException {
     Header header = table.getHeader();
     List<Field> targetFields = new ArrayList<>();
     Map<Integer, Integer> reorderMap = new HashMap<>();
 
-    for (String pattern : patterns) {
+    for (String pattern : reorder.getPatterns()) {
       List<Pair<Field, Integer>> matchedFields = new ArrayList<>();
       if (StringUtils.isPattern(pattern)) {
         for (int i = 0; i < header.getFields().size(); i++) {
@@ -2194,8 +2192,10 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
 
   private RowStream executeUnion(Union union, Table tableA, Table tableB) throws PhysicalException {
     // 将左右两表的列Reorder
-    tableA = transformToTable(executeReorder(union.getLeftOrder(), tableA));
-    tableB = transformToTable(executeReorder(union.getRightOrder(), tableB));
+    Reorder reorderA = new Reorder(EmptySource.EMPTY_SOURCE, union.getLeftOrder());
+    Reorder reorderB = new Reorder(EmptySource.EMPTY_SOURCE, union.getRightOrder());
+    tableA = transformToTable(executeReorder(reorderA, tableA));
+    tableB = transformToTable(executeReorder(reorderB, tableB));
 
     // 检查输入两表的header是否可比较
     checkHeadersComparable(tableA.getHeader(), tableB.getHeader());
@@ -2240,6 +2240,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
             tableB.getHeader().getField(0).getName());
 
     int hash;
+    List<Row> targetRows = new ArrayList<>();
     HashMap<Integer, List<Row>> hashMap = new HashMap<>();
     // 扫描左表建立哈希表
     tableAScan:
@@ -2261,6 +2262,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         }
       }
       rowsExist.add(rowA);
+      targetRows.add(rowA);
     }
 
     // 扫描右表
@@ -2275,30 +2277,33 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         }
         hash = getHash(value, needTypeCast);
       }
-      List<Row> rowsExist = hashMap.computeIfAbsent(hash, k -> new ArrayList<>());
+
       // 去重
+      List<Row> rowsExist = hashMap.computeIfAbsent(hash, k -> new ArrayList<>());
       for (Row rowExist : rowsExist) {
         if (isValueEqualRow(rowExist, rowB, hasKey)) {
           continue tableBScan;
         }
       }
-      if (hasKey) {
-        rowsExist.add(new Row(targetHeader, rowB.getKey(), rowB.getValues()));
-      } else {
-        rowsExist.add(new Row(targetHeader, rowB.getValues()));
-      }
+
+      Row row =
+          hasKey
+              ? new Row(targetHeader, rowB.getKey(), rowB.getValues())
+              : new Row(targetHeader, rowB.getValues());
+      rowsExist.add(row);
+      targetRows.add(row);
     }
 
-    List<Row> targetRows = new ArrayList<>();
-    hashMap.values().forEach(targetRows::addAll);
     return new Table(targetHeader, targetRows);
   }
 
   private RowStream executeExcept(Except except, Table tableA, Table tableB)
       throws PhysicalException {
     // 将左右两表的列Reorder
-    tableA = transformToTable(executeReorder(except.getLeftOrder(), tableA));
-    tableB = transformToTable(executeReorder(except.getRightOrder(), tableB));
+    Reorder reorderA = new Reorder(EmptySource.EMPTY_SOURCE, except.getLeftOrder());
+    Reorder reorderB = new Reorder(EmptySource.EMPTY_SOURCE, except.getRightOrder());
+    tableA = transformToTable(executeReorder(reorderA, tableA));
+    tableB = transformToTable(executeReorder(reorderB, tableB));
 
     // 检查输入两表的header是否可比较
     checkHeadersComparable(tableA.getHeader(), tableB.getHeader());
@@ -2320,7 +2325,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     boolean hasKey = tableA.getHeader().hasKey();
     int hash;
     List<Row> targetRows = new ArrayList<>();
-    HashMap<Integer, List<Row>> ret = new HashMap<>();
+    HashMap<Integer, List<Row>> res = new HashMap<>();
     HashMap<Integer, List<Row>> rowsBMap = new HashMap<>();
 
     // 扫描右表建立哈希表
@@ -2361,7 +2366,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
 
       // 去重
       if (isDistinct) {
-        List<Row> rowsExist = ret.computeIfAbsent(hash, k -> new ArrayList<>());
+        List<Row> rowsExist = res.computeIfAbsent(hash, k -> new ArrayList<>());
         for (Row rowExist : rowsExist) {
           if (isValueEqualRow(rowA, rowExist, hasKey)) {
             continue tableAScan;
@@ -2379,8 +2384,10 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
   private RowStream executeIntersect(Intersect intersect, Table tableA, Table tableB)
       throws PhysicalException {
     // 将左右两表的列reorder
-    tableA = transformToTable(executeReorder(intersect.getLeftOrder(), tableA));
-    tableB = transformToTable(executeReorder(intersect.getRightOrder(), tableB));
+    Reorder reorderA = new Reorder(EmptySource.EMPTY_SOURCE, intersect.getLeftOrder());
+    Reorder reorderB = new Reorder(EmptySource.EMPTY_SOURCE, intersect.getRightOrder());
+    tableA = transformToTable(executeReorder(reorderA, tableA));
+    tableB = transformToTable(executeReorder(reorderB, tableB));
 
     // 检查输入两表的header是否可比较
     checkHeadersComparable(tableA.getHeader(), tableB.getHeader());
@@ -2401,6 +2408,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     boolean isDistinct = intersect.isDistinct();
     boolean hasKey = tableA.getHeader().hasKey();
     int hash;
+    List<Row> targetRows = new ArrayList<>();
     HashMap<Integer, List<Row>> ret = new HashMap<>();
     HashMap<Integer, List<Row>> rowsBMap = new HashMap<>();
 
@@ -2447,14 +2455,13 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
       for (Row rowB : rowsB) {
         if (isValueEqualRow(rowA, rowB, hasKey)) {
           rowsExist.add(rowA);
+          targetRows.add(rowA);
           continue tableAScan;
         }
       }
     }
 
     Header targetHeader = tableA.getHeader();
-    List<Row> targetRows = new ArrayList<>();
-    ret.values().forEach(targetRows::addAll);
     return new Table(targetHeader, targetRows);
   }
 
@@ -2463,5 +2470,20 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     private static final NaiveOperatorMemoryExecutor INSTANCE = new NaiveOperatorMemoryExecutor();
 
     private NaiveOperatorMemoryExecutorHolder() {}
+  }
+
+  private static class EmptySource implements Source {
+
+    public static final EmptySource EMPTY_SOURCE = new EmptySource();
+
+    @Override
+    public SourceType getType() {
+      return null;
+    }
+
+    @Override
+    public Source copy() {
+      return null;
+    }
   }
 }

@@ -39,7 +39,9 @@ import cn.edu.tsinghua.iginx.engine.shared.function.system.Last;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Max;
 import cn.edu.tsinghua.iginx.engine.shared.operator.CrossJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Downsample;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Except;
 import cn.edu.tsinghua.iginx.engine.shared.operator.InnerJoin;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Intersect;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Limit;
 import cn.edu.tsinghua.iginx.engine.shared.operator.MappingTransform;
 import cn.edu.tsinghua.iginx.engine.shared.operator.MarkJoin;
@@ -50,6 +52,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
 import cn.edu.tsinghua.iginx.engine.shared.operator.SetTransform;
 import cn.edu.tsinghua.iginx.engine.shared.operator.SingleJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Sort;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Union;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.BoolFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
@@ -111,16 +114,16 @@ public abstract class AbstractOperatorMemoryExecutorTest {
   }
 
   private Table generateTableFromValues(
-      boolean hasTimestamp, List<Field> fields, List<List<Object>> values) {
+      boolean hasKey, List<Field> fields, List<List<Object>> values) {
     Header header;
-    if (hasTimestamp) {
+    if (hasKey) {
       header = new Header(Field.KEY, fields);
     } else {
       header = new Header(fields);
     }
     List<Row> rows = new ArrayList<>();
     for (int i = 0; i < values.size(); i++) {
-      if (hasTimestamp) {
+      if (hasKey) {
         rows.add(new Row(header, i + 1, values.get(i).toArray()));
       } else {
         rows.add(new Row(header, values.get(i).toArray()));
@@ -1391,6 +1394,544 @@ public abstract class AbstractOperatorMemoryExecutorTest {
                   Arrays.asList(7, 7.0, true, true)));
 
       RowStream stream = getExecutor().executeBinaryOperator(markJoin, tableA, tableB);
+      assertStreamEqual(stream, target);
+    }
+  }
+
+  @Test
+  public void testUnion() throws PhysicalException {
+    Table tableAHasKey =
+        generateTableFromValues(
+            true,
+            Arrays.asList(
+                new Field("a.a", DataType.DOUBLE),
+                new Field("a.b", DataType.INTEGER),
+                new Field("a.c", DataType.BOOLEAN)),
+            Arrays.asList(
+                Arrays.asList(3.0, 3, true),
+                Arrays.asList(4.0, 4, false),
+                Arrays.asList(5.0, 5, true),
+                Arrays.asList(6.0, 6, false),
+                Arrays.asList(7.0, 7, true)));
+
+    Table tableBHasKey =
+        generateTableFromValues(
+            true,
+            Arrays.asList(
+                new Field("b.a", DataType.INTEGER),
+                new Field("b.b", DataType.BOOLEAN),
+                new Field("b.c", DataType.DOUBLE)),
+            Arrays.asList(
+                Arrays.asList(3, true, 3.0),
+                Arrays.asList(4, true, 4.0),
+                Arrays.asList(1, false, 1.0),
+                Arrays.asList(2, true, 2.0),
+                Arrays.asList(5, true, 5.0)));
+
+    Table tableAHasNoKey =
+        generateTableFromValues(
+            false,
+            Arrays.asList(
+                new Field("a.a", DataType.DOUBLE),
+                new Field("a.b", DataType.INTEGER),
+                new Field("a.c", DataType.BOOLEAN)),
+            Arrays.asList(
+                Arrays.asList(3.0, 3, true),
+                Arrays.asList(4.0, 4, false),
+                Arrays.asList(5.0, 5, true),
+                Arrays.asList(6.0, 6, false),
+                Arrays.asList(7.0, 7, true)));
+
+    Table tableBHasNoKey =
+        generateTableFromValues(
+            false,
+            Arrays.asList(
+                new Field("b.a", DataType.INTEGER),
+                new Field("b.b", DataType.BOOLEAN),
+                new Field("b.c", DataType.DOUBLE)),
+            Arrays.asList(
+                Arrays.asList(3, true, 3.0),
+                Arrays.asList(4, true, 4.0),
+                Arrays.asList(1, false, 1.0),
+                Arrays.asList(2, true, 2.0),
+                Arrays.asList(5, true, 5.0)));
+
+    {
+      tableAHasKey.reset();
+      tableBHasKey.reset();
+
+      Union union =
+          new Union(
+              EmptySource.EMPTY_SOURCE,
+              EmptySource.EMPTY_SOURCE,
+              Arrays.asList("a.a", "a.b", "a.c"),
+              Arrays.asList("b.a", "b.c", "b.b"),
+              false);
+
+      Table target =
+          generateTableFromValues(
+              true,
+              Arrays.asList(
+                  new Field("a.a", DataType.DOUBLE),
+                  new Field("a.b", DataType.INTEGER),
+                  new Field("a.c", DataType.BOOLEAN)),
+              Arrays.asList(
+                  Arrays.asList(3.0, 3, true),
+                  Arrays.asList(4.0, 4, false),
+                  Arrays.asList(5.0, 5, true),
+                  Arrays.asList(6.0, 6, false),
+                  Arrays.asList(7.0, 7, true),
+                  Arrays.asList(3, 3.0, true),
+                  Arrays.asList(4, 4.0, true),
+                  Arrays.asList(1, 1.0, false),
+                  Arrays.asList(2, 2.0, true),
+                  Arrays.asList(5, 5.0, true)));
+
+      RowStream stream = getExecutor().executeBinaryOperator(union, tableAHasKey, tableBHasKey);
+      assertStreamEqual(stream, target);
+    }
+
+    {
+      tableAHasKey.reset();
+      tableBHasKey.reset();
+
+      Union union =
+          new Union(
+              EmptySource.EMPTY_SOURCE,
+              EmptySource.EMPTY_SOURCE,
+              Arrays.asList("a.a", "a.b", "a.c"),
+              Arrays.asList("b.a", "b.c", "b.b"),
+              true);
+
+      Table target =
+          generateTableFromValues(
+              true,
+              Arrays.asList(
+                  new Field("a.a", DataType.DOUBLE),
+                  new Field("a.b", DataType.INTEGER),
+                  new Field("a.c", DataType.BOOLEAN)),
+              Arrays.asList(
+                  Arrays.asList(3.0, 3, true),
+                  Arrays.asList(4.0, 4, false),
+                  Arrays.asList(5.0, 5, true),
+                  Arrays.asList(6.0, 6, false),
+                  Arrays.asList(7.0, 7, true),
+                  Arrays.asList(4, 4.0, true),
+                  Arrays.asList(1, 1.0, false),
+                  Arrays.asList(2, 2.0, true),
+                  Arrays.asList(5, 5.0, true)));
+
+      RowStream stream = getExecutor().executeBinaryOperator(union, tableAHasKey, tableBHasKey);
+      assertStreamEqual(stream, target);
+    }
+
+    {
+      tableAHasNoKey.reset();
+      tableBHasNoKey.reset();
+
+      Union union =
+          new Union(
+              EmptySource.EMPTY_SOURCE,
+              EmptySource.EMPTY_SOURCE,
+              Arrays.asList("a.a", "a.b", "a.c"),
+              Arrays.asList("b.a", "b.c", "b.b"),
+              false);
+
+      Table target =
+          generateTableFromValues(
+              false,
+              Arrays.asList(
+                  new Field("a.a", DataType.DOUBLE),
+                  new Field("a.b", DataType.INTEGER),
+                  new Field("a.c", DataType.BOOLEAN)),
+              Arrays.asList(
+                  Arrays.asList(3.0, 3, true),
+                  Arrays.asList(4.0, 4, false),
+                  Arrays.asList(5.0, 5, true),
+                  Arrays.asList(6.0, 6, false),
+                  Arrays.asList(7.0, 7, true),
+                  Arrays.asList(3, 3.0, true),
+                  Arrays.asList(4, 4.0, true),
+                  Arrays.asList(1, 1.0, false),
+                  Arrays.asList(2, 2.0, true),
+                  Arrays.asList(5, 5.0, true)));
+
+      RowStream stream = getExecutor().executeBinaryOperator(union, tableAHasNoKey, tableBHasNoKey);
+      assertStreamEqual(stream, target);
+    }
+
+    {
+      tableAHasNoKey.reset();
+      tableBHasNoKey.reset();
+
+      Union union =
+          new Union(
+              EmptySource.EMPTY_SOURCE,
+              EmptySource.EMPTY_SOURCE,
+              Arrays.asList("a.a", "a.b", "a.c"),
+              Arrays.asList("b.a", "b.c", "b.b"),
+              true);
+
+      Table target =
+          generateTableFromValues(
+              false,
+              Arrays.asList(
+                  new Field("a.a", DataType.DOUBLE),
+                  new Field("a.b", DataType.INTEGER),
+                  new Field("a.c", DataType.BOOLEAN)),
+              Arrays.asList(
+                  Arrays.asList(3.0, 3, true),
+                  Arrays.asList(4.0, 4, false),
+                  Arrays.asList(5.0, 5, true),
+                  Arrays.asList(6.0, 6, false),
+                  Arrays.asList(7.0, 7, true),
+                  Arrays.asList(4, 4.0, true),
+                  Arrays.asList(1, 1.0, false),
+                  Arrays.asList(2, 2.0, true)));
+
+      RowStream stream = getExecutor().executeBinaryOperator(union, tableAHasNoKey, tableBHasNoKey);
+      assertStreamEqual(stream, target);
+    }
+  }
+
+  @Test
+  public void testExcept() throws PhysicalException {
+    Table tableAHasKey =
+        generateTableFromValues(
+            true,
+            Arrays.asList(
+                new Field("a.a", DataType.DOUBLE),
+                new Field("a.b", DataType.INTEGER),
+                new Field("a.c", DataType.BOOLEAN)),
+            Arrays.asList(
+                Arrays.asList(4.0, 4, false),
+                Arrays.asList(5.0, 5, true),
+                Arrays.asList(6.0, 6, false),
+                Arrays.asList(6.0, 6, false),
+                Arrays.asList(3.0, 3, true)));
+
+    Table tableBHasKey =
+        generateTableFromValues(
+            true,
+            Arrays.asList(
+                new Field("b.a", DataType.INTEGER),
+                new Field("b.b", DataType.BOOLEAN),
+                new Field("b.c", DataType.DOUBLE)),
+            Arrays.asList(
+                Arrays.asList(4, true, 4.0),
+                Arrays.asList(1, false, 1.0),
+                Arrays.asList(2, true, 2.0),
+                Arrays.asList(5, true, 5.0),
+                Arrays.asList(3, true, 3.0)));
+
+    Table tableAHasNoKey =
+        generateTableFromValues(
+            false,
+            Arrays.asList(
+                new Field("a.a", DataType.DOUBLE),
+                new Field("a.b", DataType.INTEGER),
+                new Field("a.c", DataType.BOOLEAN)),
+            Arrays.asList(
+                Arrays.asList(3.0, 3, true),
+                Arrays.asList(4.0, 4, false),
+                Arrays.asList(5.0, 5, true),
+                Arrays.asList(6.0, 6, false),
+                Arrays.asList(6.0, 6, false)));
+
+    Table tableBHasNoKey =
+        generateTableFromValues(
+            false,
+            Arrays.asList(
+                new Field("b.a", DataType.INTEGER),
+                new Field("b.b", DataType.BOOLEAN),
+                new Field("b.c", DataType.DOUBLE)),
+            Arrays.asList(
+                Arrays.asList(3, true, 3.0),
+                Arrays.asList(4, true, 4.0),
+                Arrays.asList(1, false, 1.0),
+                Arrays.asList(2, true, 2.0),
+                Arrays.asList(5, true, 5.0)));
+
+    {
+      tableAHasKey.reset();
+      tableBHasKey.reset();
+
+      Except except =
+          new Except(
+              EmptySource.EMPTY_SOURCE,
+              EmptySource.EMPTY_SOURCE,
+              Arrays.asList("a.a", "a.b", "a.c"),
+              Arrays.asList("b.a", "b.c", "b.b"),
+              false);
+
+      Table target =
+          generateTableFromValues(
+              true,
+              Arrays.asList(
+                  new Field("a.a", DataType.DOUBLE),
+                  new Field("a.b", DataType.INTEGER),
+                  new Field("a.c", DataType.BOOLEAN)),
+              Arrays.asList(
+                  Arrays.asList(4.0, 4, false),
+                  Arrays.asList(5.0, 5, true),
+                  Arrays.asList(6.0, 6, false),
+                  Arrays.asList(6.0, 6, false)));
+
+      RowStream stream = getExecutor().executeBinaryOperator(except, tableAHasKey, tableBHasKey);
+      assertStreamEqual(stream, target);
+    }
+
+    {
+      tableAHasKey.reset();
+      tableBHasKey.reset();
+
+      Except except =
+          new Except(
+              EmptySource.EMPTY_SOURCE,
+              EmptySource.EMPTY_SOURCE,
+              Arrays.asList("a.a", "a.b", "a.c"),
+              Arrays.asList("b.a", "b.c", "b.b"),
+              true);
+
+      Table target =
+          generateTableFromValues(
+              true,
+              Arrays.asList(
+                  new Field("a.a", DataType.DOUBLE),
+                  new Field("a.b", DataType.INTEGER),
+                  new Field("a.c", DataType.BOOLEAN)),
+              Arrays.asList(
+                  Arrays.asList(4.0, 4, false),
+                  Arrays.asList(5.0, 5, true),
+                  Arrays.asList(6.0, 6, false),
+                  Arrays.asList(6.0, 6, false)));
+
+      RowStream stream = getExecutor().executeBinaryOperator(except, tableAHasKey, tableBHasKey);
+      assertStreamEqual(stream, target);
+    }
+
+    {
+      tableAHasNoKey.reset();
+      tableBHasNoKey.reset();
+
+      Except except =
+          new Except(
+              EmptySource.EMPTY_SOURCE,
+              EmptySource.EMPTY_SOURCE,
+              Arrays.asList("a.a", "a.b", "a.c"),
+              Arrays.asList("b.a", "b.c", "b.b"),
+              false);
+
+      Table target =
+          generateTableFromValues(
+              false,
+              Arrays.asList(
+                  new Field("a.a", DataType.DOUBLE),
+                  new Field("a.b", DataType.INTEGER),
+                  new Field("a.c", DataType.BOOLEAN)),
+              Arrays.asList(
+                  Arrays.asList(4.0, 4, false),
+                  Arrays.asList(6.0, 6, false),
+                  Arrays.asList(6.0, 6, false)));
+
+      RowStream stream =
+          getExecutor().executeBinaryOperator(except, tableAHasNoKey, tableBHasNoKey);
+      assertStreamEqual(stream, target);
+    }
+
+    {
+      tableAHasNoKey.reset();
+      tableBHasNoKey.reset();
+
+      Except except =
+          new Except(
+              EmptySource.EMPTY_SOURCE,
+              EmptySource.EMPTY_SOURCE,
+              Arrays.asList("a.a", "a.b", "a.c"),
+              Arrays.asList("b.a", "b.c", "b.b"),
+              true);
+
+      Table target =
+          generateTableFromValues(
+              false,
+              Arrays.asList(
+                  new Field("a.a", DataType.DOUBLE),
+                  new Field("a.b", DataType.INTEGER),
+                  new Field("a.c", DataType.BOOLEAN)),
+              Arrays.asList(Arrays.asList(4.0, 4, false), Arrays.asList(6.0, 6, false)));
+
+      RowStream stream =
+          getExecutor().executeBinaryOperator(except, tableAHasNoKey, tableBHasNoKey);
+      assertStreamEqual(stream, target);
+    }
+  }
+
+  @Test
+  public void testIntersect() throws PhysicalException {
+    Table tableAHasKey =
+        generateTableFromValues(
+            true,
+            Arrays.asList(
+                new Field("a.a", DataType.DOUBLE),
+                new Field("a.b", DataType.INTEGER),
+                new Field("a.c", DataType.BOOLEAN)),
+            Arrays.asList(
+                Arrays.asList(3.0, 3, true),
+                Arrays.asList(4.0, 4, false),
+                Arrays.asList(5.0, 5, true),
+                Arrays.asList(6.0, 6, false),
+                Arrays.asList(3.0, 3, true)));
+
+    Table tableBHasKey =
+        generateTableFromValues(
+            true,
+            Arrays.asList(
+                new Field("b.a", DataType.INTEGER),
+                new Field("b.b", DataType.BOOLEAN),
+                new Field("b.c", DataType.DOUBLE)),
+            Arrays.asList(
+                Arrays.asList(3, true, 3.0),
+                Arrays.asList(4, true, 4.0),
+                Arrays.asList(5, true, 5.0),
+                Arrays.asList(1, false, 1.0),
+                Arrays.asList(3, true, 3.0)));
+
+    Table tableAHasNoKey =
+        generateTableFromValues(
+            false,
+            Arrays.asList(
+                new Field("a.a", DataType.DOUBLE),
+                new Field("a.b", DataType.INTEGER),
+                new Field("a.c", DataType.BOOLEAN)),
+            Arrays.asList(
+                Arrays.asList(3.0, 3, true),
+                Arrays.asList(4.0, 4, false),
+                Arrays.asList(5.0, 5, true),
+                Arrays.asList(6.0, 6, false),
+                Arrays.asList(3.0, 3, true)));
+
+    Table tableBHasNoKey =
+        generateTableFromValues(
+            false,
+            Arrays.asList(
+                new Field("b.a", DataType.INTEGER),
+                new Field("b.b", DataType.BOOLEAN),
+                new Field("b.c", DataType.DOUBLE)),
+            Arrays.asList(
+                Arrays.asList(3, true, 3.0),
+                Arrays.asList(4, true, 4.0),
+                Arrays.asList(1, false, 1.0),
+                Arrays.asList(2, true, 2.0),
+                Arrays.asList(5, true, 5.0)));
+
+    {
+      tableAHasKey.reset();
+      tableBHasKey.reset();
+
+      Intersect intersect =
+          new Intersect(
+              EmptySource.EMPTY_SOURCE,
+              EmptySource.EMPTY_SOURCE,
+              Arrays.asList("a.a", "a.b", "a.c"),
+              Arrays.asList("b.a", "b.c", "b.b"),
+              false);
+
+      Table target =
+          generateTableFromValues(
+              true,
+              Arrays.asList(
+                  new Field("a.a", DataType.DOUBLE),
+                  new Field("a.b", DataType.INTEGER),
+                  new Field("a.c", DataType.BOOLEAN)),
+              Arrays.asList(
+                  Arrays.asList(3.0, 3, true),
+                  Arrays.asList(5.0, 5, true),
+                  Arrays.asList(3.0, 3, true)));
+
+      RowStream stream = getExecutor().executeBinaryOperator(intersect, tableAHasKey, tableBHasKey);
+      assertStreamEqual(stream, target);
+    }
+
+    {
+      tableAHasKey.reset();
+      tableBHasKey.reset();
+
+      Intersect intersect =
+          new Intersect(
+              EmptySource.EMPTY_SOURCE,
+              EmptySource.EMPTY_SOURCE,
+              Arrays.asList("a.a", "a.b", "a.c"),
+              Arrays.asList("b.a", "b.c", "b.b"),
+              true);
+
+      Table target =
+          generateTableFromValues(
+              true,
+              Arrays.asList(
+                  new Field("a.a", DataType.DOUBLE),
+                  new Field("a.b", DataType.INTEGER),
+                  new Field("a.c", DataType.BOOLEAN)),
+              Arrays.asList(
+                  Arrays.asList(3.0, 3, true),
+                  Arrays.asList(5.0, 5, true),
+                  Arrays.asList(3.0, 3, true)));
+
+      RowStream stream = getExecutor().executeBinaryOperator(intersect, tableAHasKey, tableBHasKey);
+      assertStreamEqual(stream, target);
+    }
+
+    {
+      tableAHasNoKey.reset();
+      tableBHasNoKey.reset();
+
+      Intersect intersect =
+          new Intersect(
+              EmptySource.EMPTY_SOURCE,
+              EmptySource.EMPTY_SOURCE,
+              Arrays.asList("a.a", "a.b", "a.c"),
+              Arrays.asList("b.a", "b.c", "b.b"),
+              false);
+
+      Table target =
+          generateTableFromValues(
+              false,
+              Arrays.asList(
+                  new Field("a.a", DataType.DOUBLE),
+                  new Field("a.b", DataType.INTEGER),
+                  new Field("a.c", DataType.BOOLEAN)),
+              Arrays.asList(
+                  Arrays.asList(3.0, 3, true),
+                  Arrays.asList(5.0, 5, true),
+                  Arrays.asList(3.0, 3, true)));
+
+      RowStream stream =
+          getExecutor().executeBinaryOperator(intersect, tableAHasNoKey, tableBHasNoKey);
+      assertStreamEqual(stream, target);
+    }
+
+    {
+      tableAHasNoKey.reset();
+      tableBHasNoKey.reset();
+
+      Intersect intersect =
+          new Intersect(
+              EmptySource.EMPTY_SOURCE,
+              EmptySource.EMPTY_SOURCE,
+              Arrays.asList("a.a", "a.b", "a.c"),
+              Arrays.asList("b.a", "b.c", "b.b"),
+              true);
+
+      Table target =
+          generateTableFromValues(
+              false,
+              Arrays.asList(
+                  new Field("a.a", DataType.DOUBLE),
+                  new Field("a.b", DataType.INTEGER),
+                  new Field("a.c", DataType.BOOLEAN)),
+              Arrays.asList(Arrays.asList(3.0, 3, true), Arrays.asList(5.0, 5, true)));
+
+      RowStream stream =
+          getExecutor().executeBinaryOperator(intersect, tableAHasNoKey, tableBHasNoKey);
       assertStreamEqual(stream, target);
     }
   }

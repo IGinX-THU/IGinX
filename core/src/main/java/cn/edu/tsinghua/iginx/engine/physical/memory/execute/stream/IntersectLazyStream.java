@@ -64,6 +64,10 @@ public class IntersectLazyStream extends BinaryLazyStream {
       this.needTypeCast = true;
     }
 
+    this.header = streamA.getHeader();
+    this.isDistinct = intersect.isDistinct();
+    this.hasKey = header.hasKey();
+
     // 扫描右表建立哈希表
     int hash;
     while (streamB.hasNext()) {
@@ -81,9 +85,6 @@ public class IntersectLazyStream extends BinaryLazyStream {
       rowsBExist.add(rowB);
     }
 
-    this.header = streamA.getHeader();
-    this.isDistinct = intersect.isDistinct();
-    this.hasKey = header.hasKey();
     this.hasInitialized = true;
   }
 

@@ -48,7 +48,8 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.SingleJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Sort;
 import cn.edu.tsinghua.iginx.engine.shared.operator.UnaryOperator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Union;
-import java.util.List;
+import cn.edu.tsinghua.iginx.engine.shared.source.Source;
+import cn.edu.tsinghua.iginx.engine.shared.source.SourceType;
 
 public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
 
@@ -162,11 +163,7 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
   }
 
   private RowStream executeReorder(Reorder reorder, RowStream stream) {
-    return new ReorderLazyStream(reorder.getPatterns(), stream);
-  }
-
-  private RowStream executeReorder(List<String> patterns, RowStream stream) {
-    return new ReorderLazyStream(patterns, stream);
+    return new ReorderLazyStream(reorder, stream);
   }
 
   private RowStream executeAddSchemaPrefix(AddSchemaPrefix addSchemaPrefix, RowStream stream) {
@@ -304,8 +301,10 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
   }
 
   private RowStream executeUnion(Union union, RowStream streamA, RowStream streamB) {
-    streamA = executeReorder(union.getLeftOrder(), streamA);
-    streamB = executeReorder(union.getRightOrder(), streamB);
+    Reorder reorderA = new Reorder(EmptySource.EMPTY_SOURCE, union.getLeftOrder());
+    Reorder reorderB = new Reorder(EmptySource.EMPTY_SOURCE, union.getRightOrder());
+    streamA = executeReorder(reorderA, streamA);
+    streamB = executeReorder(reorderB, streamB);
 
     if (union.isDistinct()) {
       return new UnionDistinctLazyStream(streamA, streamB);
@@ -315,15 +314,19 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
   }
 
   private RowStream executeExcept(Except except, RowStream streamA, RowStream streamB) {
-    streamA = executeReorder(except.getLeftOrder(), streamA);
-    streamB = executeReorder(except.getRightOrder(), streamB);
+    Reorder reorderA = new Reorder(EmptySource.EMPTY_SOURCE, except.getLeftOrder());
+    Reorder reorderB = new Reorder(EmptySource.EMPTY_SOURCE, except.getRightOrder());
+    streamA = executeReorder(reorderA, streamA);
+    streamB = executeReorder(reorderB, streamB);
 
     return new ExceptLazyStream(except, streamA, streamB);
   }
 
   private RowStream executeIntersect(Intersect intersect, RowStream streamA, RowStream streamB) {
-    streamA = executeReorder(intersect.getLeftOrder(), streamA);
-    streamB = executeReorder(intersect.getRightOrder(), streamB);
+    Reorder reorderA = new Reorder(EmptySource.EMPTY_SOURCE, intersect.getLeftOrder());
+    Reorder reorderB = new Reorder(EmptySource.EMPTY_SOURCE, intersect.getRightOrder());
+    streamA = executeReorder(reorderA, streamA);
+    streamB = executeReorder(reorderB, streamB);
 
     return new IntersectLazyStream(intersect, streamA, streamB);
   }
@@ -333,5 +336,20 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
     private static final StreamOperatorMemoryExecutor INSTANCE = new StreamOperatorMemoryExecutor();
 
     private StreamOperatorMemoryExecutorHolder() {}
+  }
+
+  private static class EmptySource implements Source {
+
+    public static final EmptySource EMPTY_SOURCE = new EmptySource();
+
+    @Override
+    public SourceType getType() {
+      return null;
+    }
+
+    @Override
+    public Source copy() {
+      return null;
+    }
   }
 }
