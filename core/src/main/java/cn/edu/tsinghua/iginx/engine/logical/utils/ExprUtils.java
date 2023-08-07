@@ -251,9 +251,6 @@ public class ExprUtils {
   }
 
   public static Filter removeNot(Filter filter) {
-    if(filter==null) {
-      return null;
-    }
     FilterType type = filter.getType();
     switch (type) {
       case Key:
@@ -449,53 +446,56 @@ public class ExprUtils {
     return mergeTrue(filterWithTrue);
   }
 
-  /**
-   * 判断filter的path是否是聚合函数或UDF函数
-   */
-  private static boolean isFunction(String path){
-    String pattern = "[^!&()+=|'%`;,<>?\\t\\n\u2E80\u2E81\u2E82\u2E83\u2E84\u2E85\\x00-\\x1F\\x7F\\[\\]\\-*\\s]\\(.+\\)";
+  /** 判断filter的path是否是聚合函数或UDF函数 */
+  private static boolean isFunction(String path) {
+    String pattern =
+        "[^!&()+=|'%`;,<>?\\t\\n\u2E80\u2E81\u2E82\u2E83\u2E84\u2E85\\x00-\\x1F\\x7F\\[\\]\\-*\\s]\\(.+\\)";
     Matcher matcher = Pattern.compile(pattern).matcher(path);
     return matcher.find();
   }
 
-  /**
-   * 判断filter的path是否在当前的ColumnsRange中
-   */
+  /** 判断filter的path是否在当前的ColumnsRange中 */
   private static boolean columnRangeContainPath(ColumnsInterval interval, String path) {
     if ((interval.getStartColumn() == null || interval.getStartColumn().compareTo(path) <= 0)
-            && (interval.getEndColumn() == null || interval.getEndColumn().compareTo(path) > 0)) {
+        && (interval.getEndColumn() == null || interval.getEndColumn().compareTo(path) > 0)) {
       return true;
-    }else if(!path.contains("*")){
-        return false;
+    } else if (!path.contains("*")) {
+      return false;
     }
 
     // 对带*通配符的path进行处理
     String pathPrefix = path.substring(0, path.indexOf("*"));
     String startColumnPrefix = interval.getStartColumn() == null ? "" : interval.getStartColumn();
-    startColumnPrefix = startColumnPrefix.length() <= pathPrefix.length() ?
-            startColumnPrefix : startColumnPrefix.substring(0, pathPrefix.length());
+    startColumnPrefix =
+        startColumnPrefix.length() <= pathPrefix.length()
+            ? startColumnPrefix
+            : startColumnPrefix.substring(0, pathPrefix.length());
     String endColumnPrefix = interval.getEndColumn() == null ? "" : interval.getEndColumn();
-    endColumnPrefix = endColumnPrefix.length() <= pathPrefix.length() ?
-            endColumnPrefix : endColumnPrefix.substring(0, pathPrefix.length());
+    endColumnPrefix =
+        endColumnPrefix.length() <= pathPrefix.length()
+            ? endColumnPrefix
+            : endColumnPrefix.substring(0, pathPrefix.length());
     if ((startColumnPrefix.isEmpty() || startColumnPrefix.compareTo(pathPrefix) <= 0)
-    && (endColumnPrefix.isEmpty() || endColumnPrefix.compareTo(pathPrefix) > 0)){
+        && (endColumnPrefix.isEmpty() || endColumnPrefix.compareTo(pathPrefix) > 0)) {
       return true;
     }
 
     String endColumnSuffix = interval.getEndColumn() == null ? "" : interval.getEndColumn();
-    endColumnSuffix = endColumnSuffix.length() <= pathPrefix.length() ?
-            "" : endColumnSuffix.substring(pathPrefix.length());
+    endColumnSuffix =
+        endColumnSuffix.length() <= pathPrefix.length()
+            ? ""
+            : endColumnSuffix.substring(pathPrefix.length());
     boolean endColumnSuffixIsAllSharp = endColumnSuffix.matches("^#+$");
 
     String startColumn = interval.getStartColumn() == null ? "" : interval.getStartColumn();
     String endColumn = interval.getEndColumn() == null ? "" : interval.getEndColumn();
-    String endColumnCutStartColumn = endColumn.length() <= startColumn.length() ?
-            "" : endColumn.substring(startColumn.length());
+    String endColumnCutStartColumn =
+        endColumn.length() <= startColumn.length() ? "" : endColumn.substring(startColumn.length());
     boolean endColumnCutStartColumnIsAllSharp = endColumnCutStartColumn.matches("^#+$");
     if (!endColumnSuffix.isEmpty()
-            && endColumnPrefix.compareTo(pathPrefix) == 0
-            && !endColumnSuffixIsAllSharp
-            && (endColumn.startsWith(startColumn) || !endColumnCutStartColumnIsAllSharp)){
+        && endColumnPrefix.compareTo(pathPrefix) == 0
+        && !endColumnSuffixIsAllSharp
+        && (endColumn.startsWith(startColumn) || !endColumnCutStartColumnIsAllSharp)) {
       return true;
     }
 
@@ -520,7 +520,7 @@ public class ExprUtils {
         return new AndFilter(andChildren);
       case Value:
         String path = ((ValueFilter) filter).getPath();
-        if (isFunction(path)){
+        if (isFunction(path)) {
           return new BoolFilter(true);
         }
         if (!columnRangeContainPath(columnsInterval, path)) {
@@ -528,13 +528,14 @@ public class ExprUtils {
         }
         return filter;
       case Path:
-        String pathA = ((PathFilter)filter).getPathA();
-        String pathB = ((PathFilter)filter).getPathB();
+        String pathA = ((PathFilter) filter).getPathA();
+        String pathB = ((PathFilter) filter).getPathB();
         // 如果filter中含有聚合函数，忽略，设置为true
         if (isFunction(pathA) || isFunction(pathB)) {
           return new BoolFilter(true);
         }
-        if (!columnRangeContainPath(columnsInterval, pathA) || !columnRangeContainPath(columnsInterval, pathB)) {
+        if (!columnRangeContainPath(columnsInterval, pathA)
+            || !columnRangeContainPath(columnsInterval, pathB)) {
           return new BoolFilter(true);
         }
         return filter;
@@ -584,10 +585,8 @@ public class ExprUtils {
     }
   }
 
-  /**
-   * 去除filter中不符合Project的Pattern的Path，这部分无法下推
-   */
-  public static Filter removePathByPatterns(Filter filter, List<String> patterns){
+  /** 去除filter中不符合Project的Pattern的Path，这部分无法下推 */
+  public static Filter removePathByPatterns(Filter filter, List<String> patterns) {
     Filter newFilter = removePath(filter, patterns);
     return mergeTrue(newFilter);
   }
@@ -640,9 +639,7 @@ public class ExprUtils {
     return filter;
   }
 
-  /**
-   * 合并两个filter,并且去除重复的Filter
-   */
+  /** 合并两个filter,并且去除重复的Filter */
   public static Filter mergeFilter(Filter filter1, Filter filter2) {
     if (filter1 == null) {
       return filter2;
