@@ -9,8 +9,7 @@ import org.slf4j.LoggerFactory;
 public class ConfLoader {
   private static final Logger logger = LoggerFactory.getLogger(ConfLoader.class);
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
-  private static final String confPath =
-      "conf/config.properties";
+  private static final String confPath = "conf/config.properties";
 
   public static String getRootPath() {
     String rowRootPath = config.getMountedDirectory();

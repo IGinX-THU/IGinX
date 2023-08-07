@@ -204,7 +204,9 @@ public class ConfigDescriptor {
       config.setLocalParquetStorage(
           Boolean.parseBoolean(properties.getProperty("isLocalParquetStorage", "true")));
       config.setMountedDirectory(
-              properties.getProperty("mountedDirectory", "dataSources/filesystem/src/test/java/cn/edu/tsinghua/iginx/storage/"));
+          properties.getProperty(
+              "mountedDirectory",
+              "dataSources/filesystem/src/test/java/cn/edu/tsinghua/iginx/storage/"));
       config.setMinThriftWorkerThreadNum(
           Integer.parseInt(properties.getProperty("minThriftWorkerThreadNum", "20")));
       config.setMaxThriftWrokerThreadNum(

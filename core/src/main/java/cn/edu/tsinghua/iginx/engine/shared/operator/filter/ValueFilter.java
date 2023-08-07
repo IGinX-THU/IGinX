@@ -20,7 +20,6 @@ package cn.edu.tsinghua.iginx.engine.shared.operator.filter;
 
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-
 import java.util.Objects;
 
 public class ValueFilter implements Filter {

@@ -10,7 +10,6 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.filesystem.file.property.FilePath;
 import cn.edu.tsinghua.iginx.filesystem.tools.MemoryPool;
 import cn.edu.tsinghua.iginx.filesystem.wrapper.Record;
-
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -43,7 +42,7 @@ public class FileSystemHistoryQueryRowStream implements RowStream {
     Field time = Field.KEY;
     List<Field> fields = new ArrayList<>();
 
-    this.filter=filter;
+    this.filter = filter;
     this.rowData = result;
 
     String series;
@@ -81,8 +80,8 @@ public class FileSystemHistoryQueryRowStream implements RowStream {
 
   @Override
   public boolean hasNext() throws PhysicalException {
-    if(nextRow == null && hasMoreRecords != 0){
-      nextRow=calculateNext();
+    if (nextRow == null && hasMoreRecords != 0) {
+      nextRow = calculateNext();
     }
     return nextRow != null;
   }
@@ -133,8 +132,8 @@ public class FileSystemHistoryQueryRowStream implements RowStream {
 
   private Row calculateNext() throws PhysicalException {
     Row row = getNext();
-    while (row!=null) {
-      if(filter == null || FilterUtils.validate(filter, row)) {
+    while (row != null) {
+      if (filter == null || FilterUtils.validate(filter, row)) {
         return row;
       }
       row = getNext();

@@ -176,7 +176,7 @@ public class Value {
   }
 
   public String getBinaryVAsString() {
-    if (binaryV!=null) {
+    if (binaryV != null) {
       return new String(binaryV);
     }
     return null;

@@ -40,7 +40,6 @@ import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.utils.Pair;
-
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.util.Arrays;
@@ -61,7 +60,7 @@ public class FileSystem implements IStorage {
   private String root = ConfLoader.getRootPath();
 
   public FileSystem(StorageEngineMeta meta)
-          throws StorageInitializationException, TTransportException {
+      throws StorageInitializationException, TTransportException {
     if (!meta.getStorageEngine().equals(STORAGE_ENGINE)) {
       throw new StorageInitializationException("unexpected database: " + meta.getStorageEngine());
     }

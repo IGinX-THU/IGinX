@@ -18,8 +18,6 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.operator.filter;
 
-import com.alibaba.fastjson2.annotation.JSONType;
-
 public interface Filter {
 
   void accept(FilterVisitor visitor);

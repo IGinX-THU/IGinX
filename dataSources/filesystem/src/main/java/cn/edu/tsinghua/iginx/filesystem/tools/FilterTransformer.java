@@ -1,23 +1,20 @@
 package cn.edu.tsinghua.iginx.filesystem.tools;
 
+import static cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op.*;
+import static cn.edu.tsinghua.iginx.filesystem.thrift.FilterType.*;
+
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.filesystem.thrift.FSFilter;
 import cn.edu.tsinghua.iginx.filesystem.thrift.Op;
 import cn.edu.tsinghua.iginx.filesystem.thrift.Value;
-import cn.edu.tsinghua.iginx.utils.JsonUtils;
 import com.alibaba.fastjson2.JSONB;
-import com.alibaba.fastjson2.JSONReader;
 import com.alibaba.fastjson2.JSONWriter;
-import com.google.common.collect.BiMap;
 import java.util.*;
 
-import static cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op.*;
-import static cn.edu.tsinghua.iginx.filesystem.thrift.FilterType.*;
-
 public class FilterTransformer {
-//  private static int index = 0;
-//  private static int deep = 0;
-//  private static String prefix = "A";
+  //  private static int index = 0;
+  //  private static int deep = 0;
+  //  private static String prefix = "A";
 
   public static String toString(Filter filter) {
     if (filter == null) {
@@ -28,7 +25,7 @@ public class FilterTransformer {
 
   public static Filter toFilter(String filter) {
     return JSONB.parseObject(filter.getBytes(), Filter.class);
-//    return null;
+    //    return null;
   }
 
   public static FSFilter toFSFilter(Filter filter) {
@@ -127,7 +124,8 @@ public class FilterTransformer {
     }
   }
 
-  private static cn.edu.tsinghua.iginx.filesystem.thrift.Value toFSValue(cn.edu.tsinghua.iginx.engine.shared.data.Value value) {
+  private static cn.edu.tsinghua.iginx.filesystem.thrift.Value toFSValue(
+      cn.edu.tsinghua.iginx.engine.shared.data.Value value) {
     Value fsValue = new Value();
     fsValue.setDataType(value.getDataType());
     switch (value.getDataType()) {
@@ -153,13 +151,6 @@ public class FilterTransformer {
     return fsValue;
   }
 
-
-
-
-
-
-
-
   public static Filter toFilter(FSFilter filter) {
     if (filter == null) {
       return null;
@@ -170,15 +161,15 @@ public class FilterTransformer {
       case Or:
         return toOrFilter(filter);
       case Not:
-        return toNotFilter( filter);
+        return toNotFilter(filter);
       case Value:
-        return toValueFilter( filter);
+        return toValueFilter(filter);
       case Key:
         return toKeyFilter(filter);
       case Bool:
-        return toBoolFilter( filter);
+        return toBoolFilter(filter);
       case Path:
-        return toPathFilter( filter);
+        return toPathFilter(filter);
       default:
         return null;
     }
@@ -193,7 +184,7 @@ public class FilterTransformer {
   }
 
   private static Filter toPathFilter(FSFilter filter) {
-    return new PathFilter(filter.getPathA(),toOp(filter.getOp()),filter.getPathB());
+    return new PathFilter(filter.getPathA(), toOp(filter.getOp()), filter.getPathB());
   }
 
   private static Filter toOrFilter(FSFilter filter) {
@@ -209,11 +200,11 @@ public class FilterTransformer {
   }
 
   private static Filter toKeyFilter(FSFilter filter) {
-    return new KeyFilter(toOp(filter.getOp()),filter.getKeyValue());
+    return new KeyFilter(toOp(filter.getOp()), filter.getKeyValue());
   }
 
   private static Filter toValueFilter(FSFilter filter) {
-    return new ValueFilter(filter.getPath(),toOp(filter.getOp()),toValue(filter.getValue()));
+    return new ValueFilter(filter.getPath(), toOp(filter.getOp()), toValue(filter.getValue()));
   }
 
   private static Filter toBoolFilter(FSFilter filter) {
@@ -266,81 +257,80 @@ public class FilterTransformer {
     return myValue;
   }
 
-
   // 用于表达式求值
-//  public static String toString(Filter filter, BiMap<String, String> vals) {
-//    if (filter == null) {
-//      return "";
-//    }
-//    deep++;
-//    switch (filter.getType()) {
-//      case And:
-//        return toAndString((AndFilter) filter, vals);
-//      case Or:
-//        return toOrString((OrFilter) filter, vals);
-//      case Not:
-//        return toNotString((NotFilter) filter, vals);
-//      case Value:
-//        return toValueString((ValueFilter) filter, vals);
-//      case Key:
-//        return toKeyString((KeyFilter) filter, vals);
-//      default:
-//        return "";
-//    }
-//  }
-//
-//  private static String toAndString(AndFilter filter, BiMap<String, String> vals) {
-//    String res = "(";
-//    for (Filter f : filter.getChildren()) {
-//      res += toString(f, vals);
-//      res += "&";
-//    }
-//    if (res.length() != 1) res = res.substring(0, res.length() - 1);
-//    res += ")";
-//    refreshIndex();
-//    return res;
-//  }
-//
-//  private static String toNotString(NotFilter filter, BiMap<String, String> vals) {
-//    refreshIndex();
-//    return "!" + toString(filter.getChild(), vals);
-//  }
-//
-//  private static String toKeyString(KeyFilter filter, BiMap<String, String> vals) {
-//    String val = "key" + " " + op2Str(filter.getOp())+ " " + filter.getValue();
-//    if (!vals.containsValue(val)) vals.put(prefix + (index++), val);
-//    refreshIndex();
-//    return vals.inverse().get(val);
-//  }
-//
-//  private static String toValueString(ValueFilter filter, BiMap<String, String> vals) {
-//    String val;
-//    if (filter.getOp().equals(LIKE)) {
-//      val = filter.getPath() + " like " + filter.getValue().getBinaryVAsString();
-//    } else {
-//      val = filter.getPath() + " " + op2Str(filter.getOp()) + " " + filter.getValue();
-//    }
-//    if (!vals.containsValue(val)) vals.put(prefix + (index++), val);
-//    refreshIndex();
-//    return vals.inverse().get(val);
-//  }
-//
-//  private static String toOrString(OrFilter filter, BiMap<String, String> vals) {
-//    String res = "(";
-//    for (Filter f : filter.getChildren()) {
-//      res += toString(f, vals);
-//      res += "|";
-//    }
-//    if (res.length() != 1) res = res.substring(0, res.length() - 1);
-//    res += ")";
-//    refreshIndex();
-//    return res;
-//  }
-//
-//  private static final void refreshIndex() {
-//    deep--;
-//    if (deep == 0) {
-//      index = 0;
-//    }
-//  }
+  //  public static String toString(Filter filter, BiMap<String, String> vals) {
+  //    if (filter == null) {
+  //      return "";
+  //    }
+  //    deep++;
+  //    switch (filter.getType()) {
+  //      case And:
+  //        return toAndString((AndFilter) filter, vals);
+  //      case Or:
+  //        return toOrString((OrFilter) filter, vals);
+  //      case Not:
+  //        return toNotString((NotFilter) filter, vals);
+  //      case Value:
+  //        return toValueString((ValueFilter) filter, vals);
+  //      case Key:
+  //        return toKeyString((KeyFilter) filter, vals);
+  //      default:
+  //        return "";
+  //    }
+  //  }
+  //
+  //  private static String toAndString(AndFilter filter, BiMap<String, String> vals) {
+  //    String res = "(";
+  //    for (Filter f : filter.getChildren()) {
+  //      res += toString(f, vals);
+  //      res += "&";
+  //    }
+  //    if (res.length() != 1) res = res.substring(0, res.length() - 1);
+  //    res += ")";
+  //    refreshIndex();
+  //    return res;
+  //  }
+  //
+  //  private static String toNotString(NotFilter filter, BiMap<String, String> vals) {
+  //    refreshIndex();
+  //    return "!" + toString(filter.getChild(), vals);
+  //  }
+  //
+  //  private static String toKeyString(KeyFilter filter, BiMap<String, String> vals) {
+  //    String val = "key" + " " + op2Str(filter.getOp())+ " " + filter.getValue();
+  //    if (!vals.containsValue(val)) vals.put(prefix + (index++), val);
+  //    refreshIndex();
+  //    return vals.inverse().get(val);
+  //  }
+  //
+  //  private static String toValueString(ValueFilter filter, BiMap<String, String> vals) {
+  //    String val;
+  //    if (filter.getOp().equals(LIKE)) {
+  //      val = filter.getPath() + " like " + filter.getValue().getBinaryVAsString();
+  //    } else {
+  //      val = filter.getPath() + " " + op2Str(filter.getOp()) + " " + filter.getValue();
+  //    }
+  //    if (!vals.containsValue(val)) vals.put(prefix + (index++), val);
+  //    refreshIndex();
+  //    return vals.inverse().get(val);
+  //  }
+  //
+  //  private static String toOrString(OrFilter filter, BiMap<String, String> vals) {
+  //    String res = "(";
+  //    for (Filter f : filter.getChildren()) {
+  //      res += toString(f, vals);
+  //      res += "|";
+  //    }
+  //    if (res.length() != 1) res = res.substring(0, res.length() - 1);
+  //    res += ")";
+  //    refreshIndex();
+  //    return res;
+  //  }
+  //
+  //  private static final void refreshIndex() {
+  //    deep--;
+  //    if (deep == 0) {
+  //      index = 0;
+  //    }
+  //  }
 }

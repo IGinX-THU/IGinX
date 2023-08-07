@@ -26,15 +26,14 @@ import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class LocalExecutor implements Executor {
   private static final Logger logger = LoggerFactory.getLogger(LocalExecutor.class);
@@ -282,8 +281,9 @@ public class LocalExecutor implements Executor {
           new ColumnsInterval(
               FilePath.convertAbsolutePathToSeries(
                   root, minPathFile.getAbsolutePath(), minPathFile.getName(), null),
-              StringUtils.nextString(FilePath.convertAbsolutePathToSeries(
-                  root, maxPathFile.getAbsolutePath(), maxPathFile.getName(), null)));
+              StringUtils.nextString(
+                  FilePath.convertAbsolutePathToSeries(
+                      root, maxPathFile.getAbsolutePath(), maxPathFile.getName(), null)));
     else tsInterval = new ColumnsInterval(prefix, StringUtils.nextString(prefix));
 
     // 对于pb级的文件系统，遍历是不可能的，直接接入

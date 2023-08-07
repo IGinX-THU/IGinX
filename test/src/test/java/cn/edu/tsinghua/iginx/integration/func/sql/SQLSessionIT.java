@@ -70,7 +70,7 @@ public class SQLSessionIT {
     this.isSupportChinesePath = dbConf.getEnumValue(DBConfType.isSupportChinesePath);
     this.isSupportNumericalPath = dbConf.getEnumValue(DBConfType.isSupportNumericalPath);
     this.isSupportSpecialCharacterPath =
-            dbConf.getEnumValue(DBConfType.isSupportSpecialCharacterPath);
+        dbConf.getEnumValue(DBConfType.isSupportSpecialCharacterPath);
   }
 
   @BeforeClass

@@ -1,8 +1,5 @@
 package cn.edu.tsinghua.iginx.integration.expansion.filesystem;
 
-import cn.edu.tsinghua.iginx.filesystem.file.property.FilePath;
-import cn.edu.tsinghua.iginx.filesystem.tools.ConfLoader;
-import cn.edu.tsinghua.iginx.filesystem.tools.MemoryPool;
 import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.io.*;
@@ -10,13 +7,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
-
-import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,19 +30,12 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
     this.expPort = 4861;
     this.readOnlyPort = 4862;
     EXP_DATA_TYPE_LIST = Arrays.asList(DataType.BINARY, DataType.BINARY);
-    byte[] value1 = createValueRandom(1),
-        value2 = createValueRandom(2);
-    EXP_VALUES_LIST =
-        Arrays.asList(
-            Arrays.asList(value1),Arrays.asList(value2));
+    byte[] value1 = createValueRandom(1), value2 = createValueRandom(2);
+    EXP_VALUES_LIST = Arrays.asList(Arrays.asList(value1), Arrays.asList(value2));
     ORI_DATA_TYPE_LIST = Arrays.asList(DataType.BINARY, DataType.BINARY);
-    ORI_VALUES_LIST =
-        Arrays.asList(
-            Arrays.asList(value1),Arrays.asList(value2));
+    ORI_VALUES_LIST = Arrays.asList(Arrays.asList(value1), Arrays.asList(value2));
     READ_ONLY_DATA_TYPE_LIST = Arrays.asList(DataType.BINARY, DataType.BINARY);
-    READ_ONLY_VALUES_LIST =
-        Arrays.asList(
-            Arrays.asList(value1),Arrays.asList(value2));
+    READ_ONLY_VALUES_LIST = Arrays.asList(Arrays.asList(value1), Arrays.asList(value2));
   }
 
   public void deleteDirectory(String path) {
@@ -99,13 +86,11 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
     return root;
   }
 
-
-
   public List<File> getFileList(List<String> pathList, String root) {
     List<File> res = new ArrayList<>();
     // 创建历史文件
     for (String path : pathList) {
-      String realFilePath = root + path.replace('.','/');
+      String realFilePath = root + path.replace('.', '/');
       File file = new File(realFilePath);
       res.add(file);
       Path filePath = Paths.get(file.getPath());
@@ -135,7 +120,7 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
       try (OutputStream out = Files.newOutputStream(file.toPath(), StandardOpenOption.APPEND)) {
         for (Object value : values) {
           if (value instanceof byte[]) {
-            out.write((byte[])value);
+            out.write((byte[]) value);
           }
         }
       } catch (IOException e) {

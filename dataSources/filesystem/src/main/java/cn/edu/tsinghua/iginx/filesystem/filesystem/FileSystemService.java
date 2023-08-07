@@ -1,5 +1,7 @@
 package cn.edu.tsinghua.iginx.filesystem.filesystem;
 
+import static cn.edu.tsinghua.iginx.engine.logical.utils.ExprUtils.getKeyRangesFromFilter;
+
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
@@ -14,16 +16,13 @@ import cn.edu.tsinghua.iginx.filesystem.tools.TagKVUtils;
 import cn.edu.tsinghua.iginx.filesystem.wrapper.Record;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-
-import static cn.edu.tsinghua.iginx.engine.logical.utils.ExprUtils.getKeyRangesFromFilter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /*
  * 缓存，索引以及优化策略都在这里执行
@@ -46,13 +45,12 @@ public class FileSystemService {
 
   // 获取经过keyFilter后的val值
   public static List<FSResultTable> getValWithFilter(
-          List<File> files, List<KeyRange> keyRanges, Filter filter)
-      throws IOException {
+      List<File> files, List<KeyRange> keyRanges, Filter filter) throws IOException {
     List<FSResultTable> res = new ArrayList<>();
 
     for (File f : files) {
       List<Record> val = new ArrayList<>();
-      for(KeyRange keyRange : keyRanges) {
+      for (KeyRange keyRange : keyRanges) {
         long startTime = keyRange.getActualBeginKey(), endTime = keyRange.getActualEndKey();
         // 能直接添加的依据是，keyrange是递增的
         val.addAll(doReadFile(f, startTime, endTime)); // do read file here
@@ -69,15 +67,15 @@ public class FileSystemService {
 
   public static List<FSResultTable> readFile(File file, TagFilter tagFilter, Filter filter)
       throws IOException {
-    //首先通过tag和file，找到所有有关的文件列表
+    // 首先通过tag和file，找到所有有关的文件列表
     List<File> files = getFilesWithTagFilter(file, tagFilter);
     if (files == null) {
       return new ArrayList<>();
     }
 
     List<KeyRange> keyRanges = getKeyRangesFromFilter(filter);
-    if (keyRanges.size()==0) {
-      keyRanges.add(new KeyRange(0,Long.MAX_VALUE));
+    if (keyRanges.size() == 0) {
+      keyRanges.add(new KeyRange(0, Long.MAX_VALUE));
     }
     return getValWithFilter(files, keyRanges, filter);
   }

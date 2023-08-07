@@ -7,7 +7,6 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-import cn.edu.tsinghua.iginx.filesystem.FileSystem;
 import cn.edu.tsinghua.iginx.filesystem.file.property.FilePath;
 import cn.edu.tsinghua.iginx.filesystem.wrapper.Record;
 import java.io.File;
@@ -22,11 +21,12 @@ public class FileSystemQueryRowStream implements RowStream {
   private Filter filter;
   private Row nextRow = null;
 
-  public FileSystemQueryRowStream(List<FSResultTable> result, String storageUnit, String root, Filter filter) {
+  public FileSystemQueryRowStream(
+      List<FSResultTable> result, String storageUnit, String root, Filter filter) {
     Field time = Field.KEY;
     List<Field> fields = new ArrayList<>();
 
-    this.filter=filter;
+    this.filter = filter;
     this.rowData = result;
 
     String series;
@@ -58,8 +58,8 @@ public class FileSystemQueryRowStream implements RowStream {
 
   @Override
   public boolean hasNext() throws PhysicalException {
-    if(nextRow == null && hasMoreRecords != 0){
-      nextRow=calculateNext();
+    if (nextRow == null && hasMoreRecords != 0) {
+      nextRow = calculateNext();
     }
     return nextRow != null;
   }
@@ -73,7 +73,6 @@ public class FileSystemQueryRowStream implements RowStream {
     nextRow = calculateNext();
     return currRow;
   }
-
 
   private Row getNext() throws PhysicalException {
     long timestamp = Long.MAX_VALUE;
@@ -111,8 +110,8 @@ public class FileSystemQueryRowStream implements RowStream {
 
   private Row calculateNext() throws PhysicalException {
     Row row = getNext();
-    while (row!=null) {
-      if(filter == null || FilterUtils.validate(filter, row)) {
+    while (row != null) {
+      if (filter == null || FilterUtils.validate(filter, row)) {
         return row;
       }
       row = getNext();

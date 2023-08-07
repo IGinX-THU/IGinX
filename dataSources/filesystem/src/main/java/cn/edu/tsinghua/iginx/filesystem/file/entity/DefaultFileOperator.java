@@ -1,5 +1,7 @@
 package cn.edu.tsinghua.iginx.filesystem.file.entity;
 
+import static cn.edu.tsinghua.iginx.thrift.DataType.BINARY;
+
 import cn.edu.tsinghua.iginx.filesystem.file.IFileOperator;
 import cn.edu.tsinghua.iginx.filesystem.file.property.FileMeta;
 import cn.edu.tsinghua.iginx.filesystem.file.property.FileType;
@@ -8,22 +10,17 @@ import cn.edu.tsinghua.iginx.filesystem.wrapper.Record;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.DataTypeUtils;
 import cn.edu.tsinghua.iginx.utils.JsonUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.*;
-import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-
-import static cn.edu.tsinghua.iginx.thrift.DataType.BINARY;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DefaultFileOperator implements IFileOperator {
   private final int IGINX_FILE_PRE_READ_LEN = 8192;
@@ -38,7 +35,7 @@ public class DefaultFileOperator implements IFileOperator {
     long key = begin;
     for (byte[] val : valList) {
       res.add(new Record(key, val));
-      key+=val.length;
+      key += val.length;
     }
     return res;
   }
@@ -189,7 +186,8 @@ public class DefaultFileOperator implements IFileOperator {
         String[] kv = line.split(",", 2);
         key = Long.parseLong(kv[0]);
         if (key >= begin && key <= end) {
-          DataType dataType = DataType.findByValue(Integer.parseInt(fileInfo.get(FileMeta.dataTypeName)));
+          DataType dataType =
+              DataType.findByValue(Integer.parseInt(fileInfo.get(FileMeta.dataTypeName)));
           res.add(
               new Record(
                   Long.parseLong(kv[0]),
@@ -507,14 +505,18 @@ public class DefaultFileOperator implements IFileOperator {
       }
 
       try (BufferedWriter writer = new BufferedWriter(new FileWriter(csvPath.toFile()))) {
-        writer.write(String.valueOf(fileMeta.getDataType().getValue()));
-        writer.write("\n");
-        writer.write(
-            fileMeta.getTag() == null
-                ? "{}"
-                : new String(JsonUtils.toJson(fileMeta.getTag())));
-        writer.write("\n");
-        for (int i = 0; i < FileMeta.iginxFileMetaIndex - 3; i++) {
+        for (int i = 1; i <= FileMeta.iginxFileMetaIndex; i++) {
+          switch (i) {
+            case FileMeta.dataTypeIndex:
+              writer.write(String.valueOf(fileMeta.getDataType().getValue()));
+              break;
+            case FileMeta.tagKVIndex:
+              writer.write(
+                  fileMeta.getTag() == null
+                      ? "{}"
+                      : new String(JsonUtils.toJson(fileMeta.getTag())));
+              break;
+          }
           writer.write("\n");
         }
       }
