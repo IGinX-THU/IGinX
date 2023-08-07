@@ -147,11 +147,8 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
   public static byte[] createValueRandom(int seed) {
     int N = 10;
     byte[] b = new byte[N];
-//    Random random = new Random(seed);
-//    random.nextBytes(b);
-    for(int i=0;i<b.length;i++) {
-      b[i]=100;
-    }
+    Random random = new Random(seed);
+    random.nextBytes(b);
     return b;
   }
 }

@@ -2,8 +2,6 @@ package cn.edu.tsinghua.iginx.filesystem.filesystem;
 
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.filesystem.file.IFileOperator;
 import cn.edu.tsinghua.iginx.filesystem.file.entity.DefaultFileOperator;
@@ -12,30 +10,20 @@ import cn.edu.tsinghua.iginx.filesystem.file.property.FilePath;
 import cn.edu.tsinghua.iginx.filesystem.file.property.FileType;
 import cn.edu.tsinghua.iginx.filesystem.query.FSResultTable;
 import cn.edu.tsinghua.iginx.filesystem.tools.ConfLoader;
-import cn.edu.tsinghua.iginx.filesystem.tools.FilterTransformer;
-import cn.edu.tsinghua.iginx.filesystem.tools.KVCache;
 import cn.edu.tsinghua.iginx.filesystem.tools.TagKVUtils;
 import cn.edu.tsinghua.iginx.filesystem.wrapper.Record;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
-import cn.edu.tsinghua.iginx.utils.StringUtils;
-import com.bpodgursky.jbool_expressions.Expression;
-import com.bpodgursky.jbool_expressions.parsers.ExprParser;
-import com.bpodgursky.jbool_expressions.rules.RuleSet;
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
-import java.io.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.util.stream.Collectors;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import oshi.util.tuples.Triplet;
 
 import static cn.edu.tsinghua.iginx.engine.logical.utils.ExprUtils.getKeyRangesFromFilter;
-import static cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op.*;
 
 /*
  * 缓存，索引以及优化策略都在这里执行
@@ -54,187 +42,6 @@ public class FileSystemService {
 
   public static List<FSResultTable> readFile(File file, Filter filter) throws IOException {
     return readFile(file, null, filter);
-  }
-
-//  public static List<List<String>> expressionToParts(String expression) {
-//    List<List<String>> parts = new ArrayList<>();
-//    String[] terms = expression.split("\\|");
-//    for (String term : terms) {
-//      term = term.trim().replace("(", "").replace(")", "");
-//      if (term.contains("&")) {
-//        parts.add(Arrays.stream(term.split("&"))
-//            .map(String::trim)
-//            .collect(Collectors.toList()));
-//      } else {
-//        parts.add(Arrays.asList(term));
-//      }
-//    }
-//    return parts;
-//  }
-
-//  public static List<List<String>> expressionToParts(String expr) {
-//    List<List<String>> result = new ArrayList<>();
-//    int start = 0, left = 0, right = 0;
-//    for (int i = 0; i < expr.length(); i++) {
-//      char c = expr.charAt(i);
-//      if (c == '(') {
-//        left++;
-//        right = expr.indexOf(")", left);
-//      }
-//
-//      if (c == '|') {
-//        result.add(StringUtils.splitAround(expr, left + 1, right, "&"));
-//        start = i;
-//      }
-//    }
-//    if (start < expr.length()) {
-//      if (expr.contains("(")) {
-//        left = expr.indexOf("(", start);
-//        right = expr.indexOf(")", left);
-//        result.add(StringUtils.splitAround(expr, left + 1, right, "&"));
-//      } else {
-//        List<String> part = new ArrayList<>(Collections.singleton(expr));
-//        result.add(part);
-//      }
-//    }
-//    return result;
-//  }
-
-//  private static class PairComparator implements Comparator<Pair<Long, Op>> {
-//    @Override
-//    public int compare(Pair<Long, Op> p1, Pair<Long, Op> p2) {
-//      return Long.compare(p1.getK(), p2.getK());
-//    }
-//  }
-
-  // 全部返回为左右闭区间
-//  private static List<Pair<Long,Long>> parseKey(List<String> part, BiMap<String, String> vals) {
-//    PriorityQueue<Pair<Long, Op>> queue = new PriorityQueue<>(new PairComparator());
-//    List<Pair<Long,Long>> res = new ArrayList<>();
-//    Long minTime = -1L, maxTime = Long.MAX_VALUE;
-//    Pair<Long,Op> point =null;
-//    for (String p : part) {
-//      String val = vals.get(p);
-//      if (val.contains("key")) {
-//        String[] parts = val.split(" ");
-//        String op = parts[1];
-//        Long key = Long.parseLong(parts[2]);
-//        if (Op.str2Op(op)==NE){
-//          queue.add(new Pair<>(key,L));
-//          queue.add(new Pair<>(key,G));
-//        } else {
-//          point = new Pair<>(key,Op.str2Op(op));
-//        }
-//      }
-//      queue.add(point);
-//    }
-//    while(!queue.isEmpty()) {
-//     point = queue.poll();
-//      Long key = point.getK();
-//      switch (point.getV()) {
-//        case L:
-//          res.add(new Pair<>(minTime,key-1>=0?key-1:0));
-//          minTime = -1L;
-//          maxTime = Long.MAX_VALUE;
-//          break;
-//        case LE:
-//          res.add(new Pair<>(minTime,key));
-//          minTime = -1L;
-//          maxTime = Long.MAX_VALUE;
-//          break;
-//        case GE:
-//          minTime = key;
-//          break;
-//        case G:
-//          minTime = key+1;
-//          break;
-//        case E:
-//          res.add(new Pair<>(key,key));
-//          minTime = -1L;
-//          maxTime = Long.MAX_VALUE;
-//          break;
-//        case NE:
-//        default:
-//          break;
-//      }
-//    }
-//    if (minTime!=-1L) {
-//      res.add(new Pair<>(minTime,maxTime));
-//    }
-//    return res;
-//  }
-
-//  private static List<Triplet<String, Op, Object>> parseVal(
-//      List<String> part, BiMap<String, String> vals) {
-//    List<Triplet<String, Op, Object>> res = new ArrayList<>();
-//    for (String p : part) {
-//      String val = vals.get(p);
-//      if (!val.contains("key")) {
-//        String[] parts = val.split(" ");
-//        res.add(new Triplet<>(parts[0], Op.str2Op(parts[1]), parts[2]));
-//      }
-//    }
-//    return res;
-//  }
-
-//  private static List<List<String>> getDNFExpre (Filter filter,BiMap<String, String> vals) {
-//    Object res = KVCache.getV(filter);
-//    if (res instanceof List<?>) {
-//      return (List<List<String>>) res;
-//    }
-//    String filterExp = FilterTransformer.toString(filter, vals);
-//    Expression<String> nonStandard = ExprParser.parse(filterExp);
-//    Expression<String> expre = RuleSet.toDNF(nonStandard);
-//    return expressionToParts(expre.toString());
-//  }
-
-//  private static List<Pair<Long,Long>> parseKeyFilter (Filter filter) {
-//    List<Pair<Long,Long>> res = new ArrayList<>();
-//    BiMap<String, String> vals = HashBiMap.create();
-//    List<List<String>> parts = getDNFExpre(filter,vals);
-//    List<Pair<Long,Long>> keyRanges = new ArrayList<>();
-//    for (List<String> l : parts) {
-//      res.addAll(parseKey(l, vals));
-//    }
-//    return res;
-//  }
-
-//  private static List<Pair<Pair<Long, Long>, List<Triplet<String, Op, Object>>>> parseValueFilter(
-//      FSFilter filter) {
-//    List<Pair<Pair<Long, Long>, List<Triplet<String, Op, Object>>>> res = new ArrayList<>();
-//
-//
-//    BiMap<String, String> vals = HashBiMap.create();
-//    String filterExp = FilterTransformer.toString(filter, vals);
-//    Expression<String> nonStandard = ExprParser.parse(filterExp);
-//    Expression<String> sopForm = RuleSet.toDNF(nonStandard);
-//
-//    // 获得DNF范式，每个List中的元素都是&&表达式连接
-//    List<List<String>> parts = expressionToParts(sopForm.toString());
-//    for (List<String> l : parts) {
-//      keyRanges = parseKey(l, vals);
-//      List<Triplet<String, Op, Object>> valFilter = parseVal(l, vals);
-//      res.add(new Pair<>(keyRanges, valFilter));
-//    }
-//    return res;
-//  }
-
-  public static int compareObjects(DataType dataType, Object a, Object b) {
-    switch (dataType) {
-      case FLOAT:
-        return Float.compare((float) a, (float) b);
-      case DOUBLE:
-        return Double.compare((float) a, (float) b);
-      case BINARY:
-        return (new String((byte[]) a)).compareTo(new String((byte[]) b));
-      case INTEGER:
-        return Integer.compare((int) a, (int) b);
-      case LONG:
-        return Long.compare((long) a, (long) b);
-      default:
-        logger.error("cant compare the val!");
-        throw new IllegalArgumentException("cant compare the val with different type");
-    }
   }
 
   // 获取经过keyFilter后的val值
@@ -465,27 +272,6 @@ public class FileSystemService {
     return res;
   }
 
-  private static byte[] makeValueToBytes(List<Record> value) throws IOException {
-    List<byte[]> byteList = new ArrayList<>();
-    switch (value.get(0).getDataType()) {
-      case BINARY:
-      default:
-        for (Record val : value) {
-          byteList.add((byte[]) val.getRawData());
-        }
-        break;
-    }
-    return mergeByteArrays(byteList);
-  }
-
-  public static byte[] mergeByteArrays(List<byte[]> arrays) throws IOException {
-    ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-    for (byte[] array : arrays) {
-      outputStream.write(array);
-    }
-    return outputStream.toByteArray();
-  }
-
   // 返回和file文件相关的所有文件（包括目录）
   public static List<File> getAssociatedFiles(File file) {
     List<File> fileList, filess = null;
@@ -505,7 +291,6 @@ public class FileSystemService {
       root = tmp;
       prefix = file.getName();
     } else if (file.getName().contains(WILDCARD)) {
-
       root = file.getParentFile();
     } else if (file.isDirectory()) {
       root = file;
@@ -573,30 +358,6 @@ public class FileSystemService {
     return res.size() == 0 ? null : res;
   }
 
-  /**
-   * 根据提供的 tags 集合查找同名 / 近名的 .iginx 文件,其元数据包含 tags 中的所有 key-value 对。 若找到,返回包含这些文件的集合,否则返回 null。
-   *
-   * @param tags 用于匹配的 tags 集合
-   * @param file 用于查找相同名或近名的父级目录
-   * @return 包含 tags 中所有 key-value 对的 .iginx 文件集合,否则返回 null
-   * @throws IOException 任何查找或读写操作导致的 IOException 将被传播
-   */
-  private static List<File> getFilesContainTag(File file, Map<String, String> tags)
-      throws IOException {
-    List<File> res = new ArrayList<>();
-    List<File> files = getAssociatedFiles(file);
-
-    if (files == null) return null;
-    for (File f : files) {
-      if (f.isDirectory()) continue;
-      FileMeta fileMeta = fileOperator.getFileMeta(f);
-      if (fileMeta.ifContainTag(tags)) {
-        res.add(f);
-      }
-    }
-    return res.size() == 0 ? null : res;
-  }
-
   public static List<Pair<File, FileMeta>> getAllIginXFiles(File dir) {
     List<Pair<File, FileMeta>> res = new ArrayList<>();
     Stack<File> stack = new Stack<>();
@@ -627,6 +388,9 @@ public class FileSystemService {
     File maxFile = getMaxFile(dir);
 
     File lastFile = null;
+    if (maxFile == null) {
+      return null;
+    }
     while (maxFile.isDirectory()) {
       File[] files = maxFile.listFiles();
       if (files != null && files.length != 0) maxFile = files[files.length - 1];
@@ -641,34 +405,38 @@ public class FileSystemService {
 
   static File getMinFile(File dir) {
     File[] files = dir.listFiles();
+    if (files == null) {
+      return null;
+    }
     Arrays.sort(files);
     return files[0];
   }
 
   static File getMaxFile(File dir) {
     File[] files = dir.listFiles();
+    if (files == null) {
+      return null;
+    }
     if (files.length == 0) {
       return dir;
     }
     Arrays.sort(files);
-    File maxFile = files[files.length - 1];
-    return maxFile;
+    return files[files.length - 1];
   }
 
   public static Long getMaxTime(File dir) {
-    List<Long> res = new ArrayList<>();
     List<File> files = getAssociatedFiles(dir);
     long max = Long.MIN_VALUE;
 
     for (File f : files) {
-      long size = f.length();
+      long size = getFileSize(f);
       max = Math.max(max, size);
     }
 
     return max;
   }
 
-  private long getFileSize(File file) {
+  private static long getFileSize(File file) {
     try {
       if (file.exists() && file.isFile()) {
         return fileOperator.length(file);

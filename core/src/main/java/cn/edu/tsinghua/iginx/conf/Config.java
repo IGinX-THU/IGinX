@@ -192,6 +192,8 @@ public class Config {
 
   private boolean isLocalParquetStorage = true;
 
+  private String mountedDirectory = "";
+
   private int parallelFilterThreshold = 10000;
 
   private int parallelGroupByRowsThreshold = 10000;
@@ -814,6 +816,14 @@ public class Config {
 
   public void setLocalParquetStorage(boolean localParquetStorage) {
     isLocalParquetStorage = localParquetStorage;
+  }
+
+  public String getMountedDirectory() {
+    return mountedDirectory;
+  }
+
+  public void setMountedDirectory(String mountedDirectory) {
+    this.mountedDirectory = mountedDirectory;
   }
 
   public int getParallelFilterThreshold() {

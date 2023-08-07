@@ -70,10 +70,10 @@ public class SQLSessionIT {
     this.isAbleToClearData = dbConf.getEnumValue(DBConf.DBConfType.isAbleToClearData);
     this.isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
     this.isAbleToShowColumns = dbConf.getEnumValue(DBConf.DBConfType.isAbleToShowColumns);
-    this.isSupportChinesePath = false;
+    this.isSupportChinesePath = dbConf.getEnumValue(DBConfType.isSupportChinesePath);
     this.isSupportNumericalPath = dbConf.getEnumValue(DBConfType.isSupportNumericalPath);
     this.isSupportSpecialCharacterPath =
-            false;
+            dbConf.getEnumValue(DBConfType.isSupportSpecialCharacterPath);
   }
 
   @BeforeClass

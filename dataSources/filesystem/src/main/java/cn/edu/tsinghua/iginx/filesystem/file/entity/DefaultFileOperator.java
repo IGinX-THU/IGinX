@@ -1,7 +1,5 @@
 package cn.edu.tsinghua.iginx.filesystem.file.entity;
 
-import static cn.edu.tsinghua.iginx.thrift.DataType.BINARY;
-
 import cn.edu.tsinghua.iginx.filesystem.file.IFileOperator;
 import cn.edu.tsinghua.iginx.filesystem.file.property.FileMeta;
 import cn.edu.tsinghua.iginx.filesystem.file.property.FileType;
@@ -10,6 +8,9 @@ import cn.edu.tsinghua.iginx.filesystem.wrapper.Record;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.DataTypeUtils;
 import cn.edu.tsinghua.iginx.utils.JsonUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
@@ -21,8 +22,8 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import static cn.edu.tsinghua.iginx.thrift.DataType.BINARY;
 
 public class DefaultFileOperator implements IFileOperator {
   private final int IGINX_FILE_PRE_READ_LEN = 8192;
@@ -145,17 +146,17 @@ public class DefaultFileOperator implements IFileOperator {
     }
   }
 
-  // 获取iginx文件的meat信息，包括tag，以及存储的数据类型
+  // 获取iginx文件的meta信息，包括tag，以及存储的数据类型
   private Map<String, String> readIginxMetaInfo(File file) throws IOException {
     Map<String, String> result = new HashMap<>();
     BufferedReader reader = new BufferedReader(new FileReader(file));
     String line;
-    int lineCount = 0;
+    int lineCount = 1;
     while ((line = reader.readLine()) != null) {
-      if (lineCount == 0) {
-        result.put("series", line);
-      } else if (lineCount == 1) {
-        result.put("type", line);
+      if (lineCount == FileMeta.dataTypeIndex) {
+        result.put(FileMeta.dataTypeName, line);
+      } else if (lineCount == FileMeta.tagKVIndex) {
+        result.put(FileMeta.tagKVName, line);
       }
       lineCount++;
     }
@@ -188,7 +189,7 @@ public class DefaultFileOperator implements IFileOperator {
         String[] kv = line.split(",", 2);
         key = Long.parseLong(kv[0]);
         if (key >= begin && key <= end) {
-          DataType dataType = DataType.findByValue(Integer.parseInt(fileInfo.get("type")));
+          DataType dataType = DataType.findByValue(Integer.parseInt(fileInfo.get(FileMeta.dataTypeName)));
           res.add(
               new Record(
                   Long.parseLong(kv[0]),
@@ -345,7 +346,6 @@ public class DefaultFileOperator implements IFileOperator {
 
   @Override
   public Exception writeIGinXFile(File file, List<Record> valList) throws IOException {
-    int BUFFER_SIZE = 8192; // 8 KB
     if (file.exists() && file.isDirectory()) {
       throw new IOException("Cannot write to directory: " + file.getAbsolutePath());
     }
@@ -389,6 +389,7 @@ public class DefaultFileOperator implements IFileOperator {
           String[] kv = line.split(",", 2);
           long key = Long.parseLong(kv[0]);
           boolean isCovered = false;
+          // 找到了需要插入的位置
           while (key >= minKey && valIndex < maxLen) {
             if (key == minKey) isCovered = true;
             Record record = valList.get(valIndex++);
@@ -396,7 +397,7 @@ public class DefaultFileOperator implements IFileOperator {
             writer.write("\n");
             if (valIndex < maxLen) {
               minKey = valList.get(valIndex).getKey();
-            } else if (valIndex >= maxLen) {
+            } else {
               break;
             }
           }
@@ -429,32 +430,6 @@ public class DefaultFileOperator implements IFileOperator {
       }
     }
     replaceFile(file, tempFile);
-    return null;
-  }
-
-  public Exception textFileWriter(File file, byte[] bytes, boolean append) throws IOException {
-    // 使用Java NIO将字节数组写入文件
-    Path path = file.toPath();
-    ByteBuffer buffer = ByteBuffer.wrap(bytes);
-
-    // 创建OpenOption选项数组
-    StandardOpenOption[] options;
-    if (append) {
-      options =
-          new StandardOpenOption[] {
-            StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.APPEND
-          };
-    } else {
-      options =
-          new StandardOpenOption[] {
-            StandardOpenOption.CREATE,
-            StandardOpenOption.WRITE,
-            StandardOpenOption.TRUNCATE_EXISTING
-          };
-    }
-
-    // 使用OpenOption选项数组写入文件
-    Files.write(path, buffer.array(), options);
     return null;
   }
 
@@ -532,8 +507,6 @@ public class DefaultFileOperator implements IFileOperator {
       }
 
       try (BufferedWriter writer = new BufferedWriter(new FileWriter(csvPath.toFile()))) {
-        writer.write(String.valueOf(fileMeta.isDir()));
-        writer.write("\n");
         writer.write(String.valueOf(fileMeta.getDataType().getValue()));
         writer.write("\n");
         writer.write(
@@ -577,9 +550,6 @@ public class DefaultFileOperator implements IFileOperator {
         String line;
         while ((line = reader.readLine()) != null && index <= FileMeta.iginxFileMetaIndex) {
           switch (index) {
-            case FileMeta.isDirIndex:
-              fileMeta.setDir(Boolean.parseBoolean(line));
-              break;
             case FileMeta.tagKVIndex:
               fileMeta.setTag(JsonUtils.transformToSS(line));
               break;

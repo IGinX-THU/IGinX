@@ -18,14 +18,11 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.operator.filter;
 
-import com.alibaba.fastjson2.annotation.JSONType;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-@JSONType(typeName = "andf")
 public class AndFilter implements Filter {
 
   private final FilterType type = FilterType.And;

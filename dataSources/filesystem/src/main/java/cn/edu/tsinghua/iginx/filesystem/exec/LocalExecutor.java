@@ -1,7 +1,5 @@
 package cn.edu.tsinghua.iginx.filesystem.exec;
 
-import static cn.edu.tsinghua.iginx.thrift.DataType.*;
-
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
@@ -28,11 +26,15 @@ import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-import java.io.File;
-import java.io.IOException;
-import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 public class LocalExecutor implements Executor {
   private static final Logger logger = LoggerFactory.getLogger(LocalExecutor.class);

@@ -7,24 +7,19 @@ import java.util.Map;
 public class FileMeta {
   // the number of the max meta info
   public static long iginxFileMetaIndex = 10L;
-  // is Dir line number
-  public static final int isDirIndex = 1;
   // data type line number
-  public static final int dataTypeIndex = 2;
+  public static final int dataTypeIndex = 1;
   // tagkv line number
-  public static final int tagKVIndex = 3;
+  public static final int tagKVIndex = 2;
+  public static final String dataTypeName = "data_type";
+  public static final String tagKVName = "tag_KV";
   private DataType dataType;
   private Map<String, String> tag;
-  private boolean isDir = false;
   private Date createTime;
 
   public FileMeta() {
     this.dataType = null;
     this.tag = null;
-  }
-
-  public FileMeta(boolean isDir) {
-    this.isDir = isDir;
   }
 
   public FileMeta(DataType dataType, Map<String, String> tag) {
@@ -70,11 +65,4 @@ public class FileMeta {
     this.tag = tag;
   }
 
-  public boolean isDir() {
-    return isDir;
-  }
-
-  public void setDir(boolean dir) {
-    isDir = dir;
-  }
 }

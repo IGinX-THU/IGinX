@@ -10,6 +10,7 @@ import cn.edu.tsinghua.iginx.filesystem.thrift.FSFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.utils.Pair;
+
 import java.util.List;
 
 public interface Executor {
