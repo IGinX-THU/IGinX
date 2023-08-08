@@ -120,7 +120,7 @@ public class FilterTransformer {
       case G:
         return Op.G;
       default:
-        return Op.UNKNOW;
+        return Op.UNKNOWN;
     }
   }
 
@@ -256,81 +256,4 @@ public class FilterTransformer {
     }
     return myValue;
   }
-
-  // 用于表达式求值
-  //  public static String toString(Filter filter, BiMap<String, String> vals) {
-  //    if (filter == null) {
-  //      return "";
-  //    }
-  //    deep++;
-  //    switch (filter.getType()) {
-  //      case And:
-  //        return toAndString((AndFilter) filter, vals);
-  //      case Or:
-  //        return toOrString((OrFilter) filter, vals);
-  //      case Not:
-  //        return toNotString((NotFilter) filter, vals);
-  //      case Value:
-  //        return toValueString((ValueFilter) filter, vals);
-  //      case Key:
-  //        return toKeyString((KeyFilter) filter, vals);
-  //      default:
-  //        return "";
-  //    }
-  //  }
-  //
-  //  private static String toAndString(AndFilter filter, BiMap<String, String> vals) {
-  //    String res = "(";
-  //    for (Filter f : filter.getChildren()) {
-  //      res += toString(f, vals);
-  //      res += "&";
-  //    }
-  //    if (res.length() != 1) res = res.substring(0, res.length() - 1);
-  //    res += ")";
-  //    refreshIndex();
-  //    return res;
-  //  }
-  //
-  //  private static String toNotString(NotFilter filter, BiMap<String, String> vals) {
-  //    refreshIndex();
-  //    return "!" + toString(filter.getChild(), vals);
-  //  }
-  //
-  //  private static String toKeyString(KeyFilter filter, BiMap<String, String> vals) {
-  //    String val = "key" + " " + op2Str(filter.getOp())+ " " + filter.getValue();
-  //    if (!vals.containsValue(val)) vals.put(prefix + (index++), val);
-  //    refreshIndex();
-  //    return vals.inverse().get(val);
-  //  }
-  //
-  //  private static String toValueString(ValueFilter filter, BiMap<String, String> vals) {
-  //    String val;
-  //    if (filter.getOp().equals(LIKE)) {
-  //      val = filter.getPath() + " like " + filter.getValue().getBinaryVAsString();
-  //    } else {
-  //      val = filter.getPath() + " " + op2Str(filter.getOp()) + " " + filter.getValue();
-  //    }
-  //    if (!vals.containsValue(val)) vals.put(prefix + (index++), val);
-  //    refreshIndex();
-  //    return vals.inverse().get(val);
-  //  }
-  //
-  //  private static String toOrString(OrFilter filter, BiMap<String, String> vals) {
-  //    String res = "(";
-  //    for (Filter f : filter.getChildren()) {
-  //      res += toString(f, vals);
-  //      res += "|";
-  //    }
-  //    if (res.length() != 1) res = res.substring(0, res.length() - 1);
-  //    res += ")";
-  //    refreshIndex();
-  //    return res;
-  //  }
-  //
-  //  private static final void refreshIndex() {
-  //    deep--;
-  //    if (deep == 0) {
-  //      index = 0;
-  //    }
-  //  }
 }

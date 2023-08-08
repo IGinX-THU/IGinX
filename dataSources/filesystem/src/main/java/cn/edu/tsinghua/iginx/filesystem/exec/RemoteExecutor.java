@@ -81,7 +81,7 @@ public class RemoteExecutor implements Executor {
               new Field(
                   fileDataHeader.getNames().get(i), dataType, fileDataHeader.getTagsList().get(i)));
         }
-        Header header = fileDataHeader.hasTime ? new Header(Field.KEY, fields) : new Header(fields);
+        Header header = fileDataHeader.hasKey ? new Header(Field.KEY, fields) : new Header(fields);
 
         List<Row> rowList = new ArrayList<>();
         resp.getRows()
@@ -100,8 +100,8 @@ public class RemoteExecutor implements Executor {
                     }
                   }
 
-                  if (fileDataRow.isSetTimestamp()) {
-                    rowList.add(new Row(header, fileDataRow.getTimestamp(), values));
+                  if (fileDataRow.isSetKey()) {
+                    rowList.add(new Row(header, fileDataRow.getKey(), values));
                   } else {
                     rowList.add(new Row(header, values));
                   }
@@ -141,8 +141,8 @@ public class RemoteExecutor implements Executor {
       pair = compressColData(dataView);
     }
 
-    FileDataRawData fileDataRawData =
-        new FileDataRawData(
+    FileRawData fileDataRawData =
+        new FileRawData(
             paths,
             tagsList,
             ByteBuffer.wrap(ByteUtils.getByteArrayFromLongArray(times)),
@@ -173,16 +173,16 @@ public class RemoteExecutor implements Executor {
       req.setTagFilter(constructRawTagFilter(tagFilter));
     }
     if (keyRanges != null) {
-      List<FileSystemTimeRange> fileSystemTimeRange = new ArrayList<>();
+      List<FileSystemKeyRange> fileSystemTimeRange = new ArrayList<>();
       keyRanges.forEach(
           timeRange ->
               fileSystemTimeRange.add(
-                  new FileSystemTimeRange(
+                  new FileSystemKeyRange(
                       timeRange.getBeginKey(),
                       timeRange.isIncludeBeginKey(),
                       timeRange.getEndKey(),
                       timeRange.isIncludeEndKey())));
-      req.setTimeRanges(fileSystemTimeRange);
+      req.setKeyRanges(fileSystemTimeRange);
     }
 
     try {
@@ -201,7 +201,7 @@ public class RemoteExecutor implements Executor {
   @Override
   public List<Column> getColumnOfStorageUnit(String storageUnit) throws PhysicalException {
     try {
-      GetTimeSeriesOfStorageUnitResp resp = client.getTimeSeriesOfStorageUnit(storageUnit);
+      GetColumnsOfStorageUnitResp resp = client.getColumnsOfStorageUnit(storageUnit);
       List<Column> timeSeriesList = new ArrayList<>();
       resp.getPathList()
           .forEach(

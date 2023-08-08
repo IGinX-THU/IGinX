@@ -1,7 +1,7 @@
 package cn.edu.tsinghua.iginx.filesystem.file;
 
-import cn.edu.tsinghua.iginx.filesystem.file.property.FileMeta;
-import cn.edu.tsinghua.iginx.filesystem.wrapper.Record;
+import cn.edu.tsinghua.iginx.filesystem.file.entity.FileMeta;
+import cn.edu.tsinghua.iginx.filesystem.query.entity.Record;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;

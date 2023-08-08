@@ -33,7 +33,7 @@ enum Op {
     E,
     NE,
     LIKE,
-    UNKNOW,
+    UNKNOWN,
 }
 
 struct Value {
@@ -78,11 +78,11 @@ struct FileDataHeader {
     1: required list<string> names
     2: required list<string> types
     3: required list<map<string, string>> tagsList
-    4: required bool hasTime
+    4: required bool hasKey
 }
 
 struct FileDataRow {
-    1: optional i64 timestamp
+    1: optional i64 key
     2: required binary rowValues
     3: required binary bitmap
 }
@@ -101,10 +101,10 @@ struct ProjectResp {
     3: optional list<FileDataRow> rows
 }
 
-struct FileDataRawData {
+struct FileRawData {
     1: required list<string> paths
     2: required list<map<string, string>> tagsList
-    3: required binary timestamps
+    3: required binary keys
     4: required list<binary> valuesList
     5: required list<binary> bitmapList
     6: required list<string> dataTypeList
@@ -113,21 +113,21 @@ struct FileDataRawData {
 
 struct InsertReq {
     1: required string storageUnit
-    2: required FileDataRawData rawData;
+    2: required FileRawData rawData;
 }
 
-struct FileSystemTimeRange {
-    1: required i64 beginTime;
-    2: required bool includeBeginTime;
-    3: required i64 endTime;
-    4: required bool includeEndTime;
+struct FileSystemKeyRange {
+    1: required i64 beginKey;
+    2: required bool includeBeginKey;
+    3: required i64 endKey;
+    4: required bool includeEndKey;
 }
 
 struct DeleteReq {
     1: required string storageUnit
     2: required list<string> paths
     3: optional RawTagFilter tagFilter
-    4: optional list<FileSystemTimeRange> timeRanges
+    4: optional list<FileSystemKeyRange> keyRanges
 }
 
 struct PathSet {
@@ -136,9 +136,9 @@ struct PathSet {
     3: optional map<string, string> tags
 }
 
-struct GetTimeSeriesOfStorageUnitResp {
+struct GetColumnsOfStorageUnitResp {
     1: required Status status
-    2: optional list<PathSet> PathList
+    2: optional list<PathSet> pathList
 }
 
 service FileSystemService {
@@ -149,7 +149,7 @@ service FileSystemService {
 
     Status executeDelete(1: DeleteReq req);
 
-    GetTimeSeriesOfStorageUnitResp getTimeSeriesOfStorageUnit(1: string storageUnit);
+    GetColumnsOfStorageUnitResp getColumnsOfStorageUnit(1: string storageUnit);
 
     GetStorageBoundaryResp getBoundaryOfStorage(1: string prefix);
 

@@ -1,12 +1,11 @@
-package cn.edu.tsinghua.iginx.filesystem.file.entity;
+package cn.edu.tsinghua.iginx.filesystem.file;
 
 import static cn.edu.tsinghua.iginx.thrift.DataType.BINARY;
 
-import cn.edu.tsinghua.iginx.filesystem.file.IFileOperator;
-import cn.edu.tsinghua.iginx.filesystem.file.property.FileMeta;
-import cn.edu.tsinghua.iginx.filesystem.file.property.FileType;
+import cn.edu.tsinghua.iginx.filesystem.file.entity.FileMeta;
+import cn.edu.tsinghua.iginx.filesystem.file.entity.FileType;
+import cn.edu.tsinghua.iginx.filesystem.query.entity.Record;
 import cn.edu.tsinghua.iginx.filesystem.tools.MemoryPool;
-import cn.edu.tsinghua.iginx.filesystem.wrapper.Record;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.DataTypeUtils;
 import cn.edu.tsinghua.iginx.utils.JsonUtils;

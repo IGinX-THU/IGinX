@@ -1,4 +1,4 @@
-package cn.edu.tsinghua.iginx.filesystem.file.property;
+package cn.edu.tsinghua.iginx.filesystem.file.entity;
 
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.Date;

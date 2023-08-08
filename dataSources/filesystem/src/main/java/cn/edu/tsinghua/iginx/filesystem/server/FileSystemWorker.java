@@ -104,7 +104,7 @@ public class FileSystemWorker implements FileSystemService.Iface {
                 ByteUtils.getRowByteBuffer(rowValues, dataTypes),
                 ByteBuffer.wrap(bitmap.getBytes()));
         if (hasTime) {
-          fileDataRow.setTimestamp(row.getKey());
+          fileDataRow.setKey(row.getKey());
         }
         fileDataRows.add(fileDataRow);
       }
@@ -121,14 +121,14 @@ public class FileSystemWorker implements FileSystemService.Iface {
 
   @Override
   public Status executeInsert(InsertReq req) throws TException {
-    FileDataRawData fileDataRawData = req.getRawData();
+    FileRawData fileDataRawData = req.getRawData();
     RawDataType rawDataType = strToRawDataType(fileDataRawData.getRawDataType());
     if (rawDataType == null) {
       return EXEC_INSERT_FAIL;
     }
 
     List<String> paths = fileDataRawData.getPaths();
-    long[] timeArray = ByteUtils.getLongArrayFromByteArray(fileDataRawData.getTimestamps());
+    long[] timeArray = ByteUtils.getLongArrayFromByteArray(fileDataRawData.getKeys());
     List<Long> times = new ArrayList<>();
     Arrays.stream(timeArray).forEach(times::add);
     List<ByteBuffer> valueList = fileDataRawData.getValuesList();
@@ -181,10 +181,10 @@ public class FileSystemWorker implements FileSystemService.Iface {
 
     // null timeRanges means delete time series
     List<KeyRange> keyRanges = null;
-    if (req.isSetTimeRanges()) {
+    if (req.isSetKeyRanges()) {
       keyRanges = new ArrayList<>();
-      for (FileSystemTimeRange range : req.getTimeRanges()) {
-        keyRanges.add(new KeyRange(range.getBeginTime(), range.getEndTime()));
+      for (FileSystemKeyRange range : req.getKeyRanges()) {
+        keyRanges.add(new KeyRange(range.getBeginKey(), range.getEndKey()));
       }
     }
 
@@ -198,8 +198,7 @@ public class FileSystemWorker implements FileSystemService.Iface {
   }
 
   @Override
-  public GetTimeSeriesOfStorageUnitResp getTimeSeriesOfStorageUnit(String storageUnit)
-      throws TException {
+  public GetColumnsOfStorageUnitResp getColumnsOfStorageUnit(String storageUnit) throws TException {
     List<PathSet> ret = new ArrayList<>();
     try {
       List<Column> tsList = executor.getColumnOfStorageUnit(storageUnit);
@@ -212,12 +211,12 @@ public class FileSystemWorker implements FileSystemService.Iface {
             }
             ret.add(pathSet);
           });
-      GetTimeSeriesOfStorageUnitResp resp = new GetTimeSeriesOfStorageUnitResp(SUCCESS);
+      GetColumnsOfStorageUnitResp resp = new GetColumnsOfStorageUnitResp(SUCCESS);
       resp.setPathList(ret);
       return resp;
     } catch (PhysicalException e) {
       logger.error("encounter error when getTimeSeriesOfStorageUnit ", e);
-      return new GetTimeSeriesOfStorageUnitResp(GET_TS_FAIL);
+      return new GetColumnsOfStorageUnitResp(GET_TS_FAIL);
     }
   }
 

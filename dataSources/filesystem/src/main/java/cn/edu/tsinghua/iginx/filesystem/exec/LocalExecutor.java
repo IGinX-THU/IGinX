@@ -12,15 +12,15 @@ import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.RowDataView;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
-import cn.edu.tsinghua.iginx.filesystem.file.property.FileMeta;
-import cn.edu.tsinghua.iginx.filesystem.file.property.FilePath;
-import cn.edu.tsinghua.iginx.filesystem.filesystem.FileSystemService;
-import cn.edu.tsinghua.iginx.filesystem.query.FSResultTable;
-import cn.edu.tsinghua.iginx.filesystem.query.FileSystemHistoryQueryRowStream;
-import cn.edu.tsinghua.iginx.filesystem.query.FileSystemQueryRowStream;
+import cn.edu.tsinghua.iginx.filesystem.controller.FileSystemService;
+import cn.edu.tsinghua.iginx.filesystem.file.entity.FileMeta;
+import cn.edu.tsinghua.iginx.filesystem.file.entity.FilePath;
+import cn.edu.tsinghua.iginx.filesystem.query.entity.FileSystemHistoryQueryRowStream;
+import cn.edu.tsinghua.iginx.filesystem.query.entity.FileSystemQueryRowStream;
+import cn.edu.tsinghua.iginx.filesystem.query.entity.FileSystemResultTable;
+import cn.edu.tsinghua.iginx.filesystem.query.entity.Record;
 import cn.edu.tsinghua.iginx.filesystem.thrift.FSFilter;
 import cn.edu.tsinghua.iginx.filesystem.tools.FilterTransformer;
-import cn.edu.tsinghua.iginx.filesystem.wrapper.Record;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.thrift.DataType;
@@ -72,7 +72,7 @@ public class LocalExecutor implements Executor {
   public TaskExecuteResult executeQueryTask(
       String storageUnit, List<String> series, TagFilter tagFilter, FSFilter filter) {
     try {
-      List<FSResultTable> result = new ArrayList<>();
+      List<FileSystemResultTable> result = new ArrayList<>();
       logger.info("[Query] execute query file: " + series);
       Filter f = FilterTransformer.toFilter(filter);
       for (String path : series) {
@@ -92,9 +92,9 @@ public class LocalExecutor implements Executor {
     }
   }
 
-  private TaskExecuteResult executeDummyProjectTask(List<String> series, FSFilter filter) {
+  public TaskExecuteResult executeDummyProjectTask(List<String> series, FSFilter filter) {
     try {
-      List<FSResultTable> result = new ArrayList<>();
+      List<FileSystemResultTable> result = new ArrayList<>();
       logger.info("[Query] execute dummy query file: " + series);
       Filter f = FilterTransformer.toFilter(filter);
       for (String path : series) {

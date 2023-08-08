@@ -1,4 +1,4 @@
-package cn.edu.tsinghua.iginx.filesystem.query;
+package cn.edu.tsinghua.iginx.filesystem.query.entity;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils;
@@ -7,16 +7,15 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-import cn.edu.tsinghua.iginx.filesystem.file.property.FilePath;
+import cn.edu.tsinghua.iginx.filesystem.file.entity.FilePath;
 import cn.edu.tsinghua.iginx.filesystem.tools.MemoryPool;
-import cn.edu.tsinghua.iginx.filesystem.wrapper.Record;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
 public class FileSystemHistoryQueryRowStream implements RowStream {
   private final Header header;
-  private final List<FSResultTable> rowData;
+  private final List<FileSystemResultTable> rowData;
   private final int[][] indices;
   private final int[] round;
   private int batch = 10;
@@ -38,7 +37,8 @@ public class FileSystemHistoryQueryRowStream implements RowStream {
   }
 
   // may fix it ，可能可以不用传pathMap
-  public FileSystemHistoryQueryRowStream(List<FSResultTable> result, String root, Filter filter) {
+  public FileSystemHistoryQueryRowStream(
+      List<FileSystemResultTable> result, String root, Filter filter) {
     Field time = Field.KEY;
     List<Field> fields = new ArrayList<>();
 
@@ -46,7 +46,7 @@ public class FileSystemHistoryQueryRowStream implements RowStream {
     this.rowData = result;
 
     String series;
-    for (FSResultTable resultTable : rowData) {
+    for (FileSystemResultTable resultTable : rowData) {
       File file = resultTable.getFile();
       series =
           FilePath.convertAbsolutePathToSeries(root, file.getAbsolutePath(), file.getName(), null);
@@ -70,7 +70,7 @@ public class FileSystemHistoryQueryRowStream implements RowStream {
   @Override
   public void close() throws PhysicalException {
     // release the memory
-    for (FSResultTable table : rowData) {
+    for (FileSystemResultTable table : rowData) {
       List<Record> vals = table.getVal();
       for (Record val : vals) {
         MemoryPool.release((byte[]) val.getRawData());

@@ -1,4 +1,4 @@
-package cn.edu.tsinghua.iginx.filesystem.query;
+package cn.edu.tsinghua.iginx.filesystem.query.entity;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils;
@@ -7,22 +7,21 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-import cn.edu.tsinghua.iginx.filesystem.file.property.FilePath;
-import cn.edu.tsinghua.iginx.filesystem.wrapper.Record;
+import cn.edu.tsinghua.iginx.filesystem.file.entity.FilePath;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
 public class FileSystemQueryRowStream implements RowStream {
   private final Header header;
-  private final List<FSResultTable> rowData;
+  private final List<FileSystemResultTable> rowData;
   private final int[] indices;
   private int hasMoreRecords = 0;
   private Filter filter;
   private Row nextRow = null;
 
   public FileSystemQueryRowStream(
-      List<FSResultTable> result, String storageUnit, String root, Filter filter) {
+      List<FileSystemResultTable> result, String storageUnit, String root, Filter filter) {
     Field time = Field.KEY;
     List<Field> fields = new ArrayList<>();
 
@@ -30,7 +29,7 @@ public class FileSystemQueryRowStream implements RowStream {
     this.rowData = result;
 
     String series;
-    for (FSResultTable resultTable : rowData) {
+    for (FileSystemResultTable resultTable : rowData) {
       File file = resultTable.getFile();
       series =
           FilePath.convertAbsolutePathToSeries(

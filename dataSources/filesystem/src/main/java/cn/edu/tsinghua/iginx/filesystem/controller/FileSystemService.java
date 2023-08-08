@@ -1,19 +1,19 @@
-package cn.edu.tsinghua.iginx.filesystem.filesystem;
+package cn.edu.tsinghua.iginx.filesystem.controller;
 
 import static cn.edu.tsinghua.iginx.engine.logical.utils.ExprUtils.getKeyRangesFromFilter;
 
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
+import cn.edu.tsinghua.iginx.filesystem.file.DefaultFileOperator;
 import cn.edu.tsinghua.iginx.filesystem.file.IFileOperator;
-import cn.edu.tsinghua.iginx.filesystem.file.entity.DefaultFileOperator;
-import cn.edu.tsinghua.iginx.filesystem.file.property.FileMeta;
-import cn.edu.tsinghua.iginx.filesystem.file.property.FilePath;
-import cn.edu.tsinghua.iginx.filesystem.file.property.FileType;
-import cn.edu.tsinghua.iginx.filesystem.query.FSResultTable;
+import cn.edu.tsinghua.iginx.filesystem.file.entity.FileMeta;
+import cn.edu.tsinghua.iginx.filesystem.file.entity.FilePath;
+import cn.edu.tsinghua.iginx.filesystem.file.entity.FileType;
+import cn.edu.tsinghua.iginx.filesystem.query.entity.FileSystemResultTable;
+import cn.edu.tsinghua.iginx.filesystem.query.entity.Record;
 import cn.edu.tsinghua.iginx.filesystem.tools.ConfLoader;
 import cn.edu.tsinghua.iginx.filesystem.tools.TagKVUtils;
-import cn.edu.tsinghua.iginx.filesystem.wrapper.Record;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.io.File;
@@ -39,14 +39,14 @@ public class FileSystemService {
     FilePath.setSeparator(System.getProperty("file.separator"));
   }
 
-  public static List<FSResultTable> readFile(File file, Filter filter) throws IOException {
+  public static List<FileSystemResultTable> readFile(File file, Filter filter) throws IOException {
     return readFile(file, null, filter);
   }
 
   // 获取经过keyFilter后的val值
-  public static List<FSResultTable> getValWithFilter(
+  public static List<FileSystemResultTable> getValWithFilter(
       List<File> files, List<KeyRange> keyRanges, Filter filter) throws IOException {
-    List<FSResultTable> res = new ArrayList<>();
+    List<FileSystemResultTable> res = new ArrayList<>();
 
     for (File f : files) {
       List<Record> val = new ArrayList<>();
@@ -57,15 +57,15 @@ public class FileSystemService {
       }
       if (FileType.getFileType(f) == FileType.IGINX_FILE) {
         FileMeta fileMeta = fileOperator.getFileMeta(f);
-        res.add(new FSResultTable(f, val, fileMeta.getDataType(), fileMeta.getTag()));
+        res.add(new FileSystemResultTable(f, val, fileMeta.getDataType(), fileMeta.getTag()));
       } else {
-        res.add(new FSResultTable(f, val, DataType.BINARY, null));
+        res.add(new FileSystemResultTable(f, val, DataType.BINARY, null));
       }
     }
     return res;
   }
 
-  public static List<FSResultTable> readFile(File file, TagFilter tagFilter, Filter filter)
+  public static List<FileSystemResultTable> readFile(File file, TagFilter tagFilter, Filter filter)
       throws IOException {
     // 首先通过tag和file，找到所有有关的文件列表
     List<File> files = getFilesWithTagFilter(file, tagFilter);
