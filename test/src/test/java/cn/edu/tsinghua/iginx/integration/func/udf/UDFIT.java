@@ -212,7 +212,7 @@ public class UDFIT {
       assertEquals(expected, actual, delta);
 
       expected = cosS2ExpectedValues.get(i);
-      actual = (double) ret.getValues().get(i).get(1);
+      actual = (double) ret.getValues().get(i).get(2);
       assertEquals(expected, actual, delta);
     }
   }
