@@ -7,6 +7,7 @@ public final class FilePath {
   private static String SEPARATOR = System.getProperty("file.separator");
   private String oriSeries;
   private String fileName;
+  public static String FILEEXTENSION = ".iginx";
   public static String WILDCARD = "*";
   private static String FILEPATHFORMAT = "%s%s" + SEPARATOR + "%s.iginx";
   private static String DIRPATHFORMAT = "%s%s" + SEPARATOR + "%s" + SEPARATOR;

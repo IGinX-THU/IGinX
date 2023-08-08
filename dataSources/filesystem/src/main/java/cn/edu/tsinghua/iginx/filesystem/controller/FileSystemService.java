@@ -112,22 +112,28 @@ public class FileSystemService {
     return doWriteFile(file, value);
   }
 
+  public static synchronized File getIDAndCreate(File file, List<Record> value, Map<String, String> tag) throws IOException {
+    File f = null;
+    // 判断该文件的后缀id
+    f = determineFileId(file, tag);
+    // 创建该文件
+    f = createIginxFile(f, value.get(0).getDataType(), tag);
+    return f;
+  }
+
   public static Exception writeFile(File file, List<Record> value, Map<String, String> tag)
       throws IOException {
-    File tmpFile;
+    File tmpFile, f;
     // 判断是否已经创建了对应的文件
     tmpFile = getFileWithTag(file, tag);
     // 如果是首次写入该序列
     if (tmpFile == null) {
-      // 判断该文件的后缀id
-      file = determineFileId(file, tag);
-      // 创建该文件
-      file = createIginxFile(file, value.get(0).getDataType(), tag);
+      f = getIDAndCreate(file, value, tag);
     } else {
-      file = tmpFile;
+      f = tmpFile;
     }
 
-    return doWriteFile(file, value);
+    return doWriteFile(f, value);
   }
 
   public static Exception writeFiles(List<File> files, List<List<Record>> values)
@@ -232,8 +238,8 @@ public class FileSystemService {
     for (File f : files) {
       String name = f.getName();
       if (fileOperator.isDirectory(f)) continue;
-      int idx = name.lastIndexOf(".iginx");
-      String numStr = name.substring(idx + 6);
+      int idx = name.lastIndexOf(FilePath.FILEEXTENSION);
+      String numStr = name.substring(idx + FilePath.FILEEXTENSION.length());
       if (numStr.isEmpty()) continue;
       nums.add(Integer.parseInt(numStr));
     }
