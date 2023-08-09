@@ -4863,4 +4863,72 @@ public class SQLSessionIT {
 
     executor.concurrentExecuteAndCompare(statementsAndExpectRes);
   }
+
+  @Test
+  public void testFilterFragmentOptimizer() {
+    String insert =
+        "INSERT INTO us.d2(key, c) VALUES (1, \"asdas\"), (2, \"sadaa\"), (3, \"sadada\"), (4, \"asdad\"), (5, \"deadsa\"), (6, \"dasda\"), (7, \"asdsad\"), (8, \"frgsa\"), (9, \"asdad\");";
+    executor.execute(insert);
+
+    StringBuilder builder = new StringBuilder();
+    builder.append("INSERT INTO us.d2(key, s1) VALUES ");
+    int size = (int) (endKey - startKey);
+    for (int i = 0; i < size; i++) {
+      builder.append(", (");
+      builder.append(startKey + i).append(", ");
+      builder.append(i + 5);
+      builder.append(")");
+    }
+    builder.append(";");
+
+    insert = builder.toString();
+    executor.execute(insert);
+
+    List<Pair<String, String>> statementsAndExpectRes =
+        Arrays.asList(
+            new Pair<>(
+                "explain SELECT COUNT(*)\n"
+                    + "FROM (\n"
+                    + "    SELECT AVG(s1) AS avg_s1, SUM(s2) AS sum_s2\n"
+                    + "    FROM us.d1 OVER (RANGE 10 IN [1000, 1100))\n"
+                    + ")\n"
+                    + "OVER (RANGE 20 IN [1000, 1100));",
+                "ResultSets:\n"
+                    + "+------------------------+-------------+-------------------------------------------------------------------------------------------------------------------------+\n"
+                    + "|            Logical Tree|Operator Type|                                                                                                            Operator Info|\n"
+                    + "+------------------------+-------------+-------------------------------------------------------------------------------------------------------------------------+\n"
+                    + "|Reorder                 |      Reorder|                                                                                                          Order: count(*)|\n"
+                    + "|  +--Downsample         |   Downsample|Precision: 20, SlideDistance: 20, TimeRange: [1000, 1100), Func: {Name: count, FuncType: System, MappingType: SetMapping}|\n"
+                    + "|    +--Select           |       Select|                                                                                      Filter: (key >= 1000 && key < 1100)|\n"
+                    + "|      +--Rename         |       Rename|                                            AliasMap: (sum(us.d1.s2), sum_s2),(avg(us.d1.s1), avg_s1), IgnorePatterns: []|\n"
+                    + "|        +--Join         |         Join|                                                                                                              JoinBy: key|\n"
+                    + "|          +--Downsample |   Downsample|  Precision: 10, SlideDistance: 10, TimeRange: [1000, 1100), Func: {Name: avg, FuncType: System, MappingType: SetMapping}|\n"
+                    + "|            +--Select   |       Select|                                                                                      Filter: (key >= 1000 && key < 1100)|\n"
+                    + "|              +--Project|      Project|                                                                   Patterns: us.d1.s1,us.d1.s2, Target DU: unit0000000000|\n"
+                    + "|          +--Downsample |   Downsample|  Precision: 10, SlideDistance: 10, TimeRange: [1000, 1100), Func: {Name: sum, FuncType: System, MappingType: SetMapping}|\n"
+                    + "|            +--Select   |       Select|                                                                                      Filter: (key >= 1000 && key < 1100)|\n"
+                    + "|              +--Project|      Project|                                                                   Patterns: us.d1.s1,us.d1.s2, Target DU: unit0000000000|\n"
+                    + "+------------------------+-------------+-------------------------------------------------------------------------------------------------------------------------+\n"
+                    + "Total line number = 11\n"),
+            new Pair<>(
+                "EXPLAIN SELECT s1 FROM us.d1 JOIN us.d2 WHERE key < 100;",
+                "ResultSets:\n"
+                    + "+----------------------+-------------+------------------------------------------------+\n"
+                    + "|          Logical Tree|Operator Type|                                   Operator Info|\n"
+                    + "+----------------------+-------------+------------------------------------------------+\n"
+                    + "|Reorder               |      Reorder|                                       Order: s1|\n"
+                    + "|  +--Project          |      Project|                                    Patterns: s1|\n"
+                    + "|    +--Select         |       Select|                               Filter: key < 100|\n"
+                    + "|      +--InnerJoin    |    InnerJoin|PrefixA: us.d1, PrefixB: us.d2, IsNatural: false|\n"
+                    + "|        +--Join       |         Join|                                     JoinBy: key|\n"
+                    + "|          +--Join     |         Join|                                     JoinBy: key|\n"
+                    + "|            +--Project|      Project|    Patterns: us.d1.*, Target DU: unit0000000000|\n"
+                    + "|            +--Project|      Project|    Patterns: us.d1.*, Target DU: unit0000000001|\n"
+                    + "|          +--Project  |      Project|    Patterns: us.d1.*, Target DU: unit0000000002|\n"
+                    + "|        +--Project    |      Project|    Patterns: us.d2.*, Target DU: unit0000000001|\n"
+                    + "+----------------------+-------------+------------------------------------------------+\n"
+                    + "Total line number = 10\n"));
+
+    executor.concurrentExecuteAndCompare(statementsAndExpectRes);
+  }
 }
