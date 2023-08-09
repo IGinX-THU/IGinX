@@ -27,14 +27,14 @@ import org.slf4j.LoggerFactory;
 /*
  * 缓存，索引以及优化策略都在这里执行
  */
-public class FileSystemService {
-  private static final Logger logger = LoggerFactory.getLogger(FileSystemService.class);
+public class Controller {
+  private static final Logger logger = LoggerFactory.getLogger(Controller.class);
   private static IFileOperator fileOperator = new DefaultFileOperator();
   private static Charset charset = StandardCharsets.UTF_8;
   private static String WILDCARD = FilePath.WILDCARD;
 
   // set the fileSystem type with constructor
-  public FileSystemService(/*FileSystemType type*/ ) {
+  public Controller(/*FileSystemType type*/ ) {
     fileOperator = new DefaultFileOperator();
     FilePath.setSeparator(System.getProperty("file.separator"));
   }
@@ -112,7 +112,8 @@ public class FileSystemService {
     return doWriteFile(file, value);
   }
 
-  public static synchronized File getIDAndCreate(File file, List<Record> value, Map<String, String> tag) throws IOException {
+  public static synchronized File getIDAndCreate(
+      File file, List<Record> value, Map<String, String> tag) throws IOException {
     File f = null;
     // 判断该文件的后缀id
     f = determineFileId(file, tag);
@@ -238,8 +239,8 @@ public class FileSystemService {
     for (File f : files) {
       String name = f.getName();
       if (fileOperator.isDirectory(f)) continue;
-      int idx = name.lastIndexOf(FilePath.FILEEXTENSION);
-      String numStr = name.substring(idx + FilePath.FILEEXTENSION.length());
+      int idx = name.lastIndexOf(FilePath.FILE_EXTENSION);
+      String numStr = name.substring(idx + FilePath.FILE_EXTENSION.length());
       if (numStr.isEmpty()) continue;
       nums.add(Integer.parseInt(numStr));
     }

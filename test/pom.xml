@@ -20,11 +20,6 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-math3</artifactId>
-            <version>3.6.1</version>
-        </dependency>
-        <dependency>
             <groupId>cn.edu.tsinghua</groupId>
             <artifactId>iginx-core</artifactId>
             <version>${project.version}</version>
@@ -49,12 +44,6 @@
             <artifactId>jetcd-core</artifactId>
             <version>0.5.7</version>
             <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>cn.edu.tsinghua</groupId>
-            <artifactId>filesystem</artifactId>
-            <version>0.6.0-SNAPSHOT</version>
-            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.postgresql</groupId>

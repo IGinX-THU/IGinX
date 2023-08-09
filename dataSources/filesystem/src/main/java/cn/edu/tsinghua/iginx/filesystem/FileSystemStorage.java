@@ -50,16 +50,16 @@ import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class FileSystem implements IStorage {
+public class FileSystemStorage implements IStorage {
   private static final String STORAGE_ENGINE = "filesystem";
   public static final int MAXFILESIZE = 100_000_000;
-  private static final Logger logger = LoggerFactory.getLogger(FileSystem.class);
+  private static final Logger logger = LoggerFactory.getLogger(FileSystemStorage.class);
   private final StorageEngineMeta meta;
   ExecutorService executorService = Executors.newFixedThreadPool(1); // 为了更好的管理线程
   private Executor executor;
   private String root = ConfLoader.getRootPath();
 
-  public FileSystem(StorageEngineMeta meta)
+  public FileSystemStorage(StorageEngineMeta meta)
       throws StorageInitializationException, TTransportException {
     if (!meta.getStorageEngine().equals(STORAGE_ENGINE)) {
       throw new StorageInitializationException("unexpected database: " + meta.getStorageEngine());

@@ -12,7 +12,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.RowDataView;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
-import cn.edu.tsinghua.iginx.filesystem.controller.FileSystemService;
+import cn.edu.tsinghua.iginx.filesystem.controller.Controller;
 import cn.edu.tsinghua.iginx.filesystem.file.entity.FileMeta;
 import cn.edu.tsinghua.iginx.filesystem.file.entity.FilePath;
 import cn.edu.tsinghua.iginx.filesystem.query.entity.FileSystemHistoryQueryRowStream;
@@ -77,7 +77,7 @@ public class LocalExecutor implements Executor {
       Filter f = FilterTransformer.toFilter(filter);
       for (String path : series) {
         File file = new File(FilePath.toIginxPath(root, storageUnit, path));
-        result.addAll(Objects.requireNonNull(FileSystemService.readFile(file, tagFilter, f)));
+        result.addAll(Objects.requireNonNull(Controller.readFile(file, tagFilter, f)));
       }
       RowStream rowStream = new FileSystemQueryRowStream(result, storageUnit, root, f);
       return new TaskExecuteResult(rowStream);
@@ -98,8 +98,7 @@ public class LocalExecutor implements Executor {
       logger.info("[Query] execute dummy query file: " + series);
       Filter f = FilterTransformer.toFilter(filter);
       for (String path : series) {
-        result.addAll(
-            FileSystemService.readFile(new File(FilePath.toNormalFilePath(root, path)), f));
+        result.addAll(Controller.readFile(new File(FilePath.toNormalFilePath(root, path)), f));
       }
       RowStream rowStream = new FileSystemHistoryQueryRowStream(result, root, f);
       return new TaskExecuteResult(rowStream);
@@ -158,7 +157,7 @@ public class LocalExecutor implements Executor {
     }
     try {
       logger.info("开始数据写入");
-      return FileSystemService.writeFiles(fileList, valList, tagList);
+      return Controller.writeFiles(fileList, valList, tagList);
     } catch (Exception e) {
       logger.error("encounter error when write points to fileSystem: ", e);
     }
@@ -190,7 +189,7 @@ public class LocalExecutor implements Executor {
 
     try {
       logger.info("开始数据写入");
-      return FileSystemService.writeFiles(fileList, valList, tagList);
+      return Controller.writeFiles(fileList, valList, tagList);
     } catch (Exception e) {
       logger.error("encounter error when write points to fileSystem: ", e);
     }
@@ -206,7 +205,7 @@ public class LocalExecutor implements Executor {
       if (paths.size() == 1 && paths.get(0).equals("*") && tagFilter == null) {
         try {
           exception =
-              FileSystemService.deleteFile(new File(FilePath.toIginxPath(root, storageUnit, null)));
+              Controller.deleteFile(new File(FilePath.toIginxPath(root, storageUnit, null)));
         } catch (Exception e) {
           logger.error("encounter error when clear data: " + e.getMessage());
           exception = e;
@@ -216,7 +215,7 @@ public class LocalExecutor implements Executor {
           fileList.add(new File(FilePath.toIginxPath(root, storageUnit, path)));
         }
         try {
-          exception = FileSystemService.deleteFiles(fileList, tagFilter);
+          exception = Controller.deleteFiles(fileList, tagFilter);
         } catch (Exception e) {
           logger.error("encounter error when clear data: " + e.getMessage());
           exception = e;
@@ -231,7 +230,7 @@ public class LocalExecutor implements Executor {
           }
           for (KeyRange keyRange : keyRanges) {
             exception =
-                FileSystemService.trimFilesContent(
+                Controller.trimFilesContent(
                     fileList, tagFilter, keyRange.getActualBeginKey(), keyRange.getActualEndKey());
           }
         }
@@ -250,7 +249,7 @@ public class LocalExecutor implements Executor {
 
     File directory = new File(FilePath.toIginxPath(root, storageUnit, null));
 
-    List<Pair<File, FileMeta>> res = FileSystemService.getAllIginXFiles(directory);
+    List<Pair<File, FileMeta>> res = Controller.getAllIginXFiles(directory);
 
     for (Pair<File, FileMeta> pair : res) {
       File file = pair.getK();
@@ -270,7 +269,7 @@ public class LocalExecutor implements Executor {
       throws PhysicalException {
     File directory = new File(FilePath.toNormalFilePath(root, prefix));
 
-    Pair<File, File> files = FileSystemService.getBoundaryFiles(directory);
+    Pair<File, File> files = Controller.getBoundaryFiles(directory);
 
     File minPathFile = files.getK();
     File maxPathFile = files.getV();
@@ -287,7 +286,7 @@ public class LocalExecutor implements Executor {
     else tsInterval = new ColumnsInterval(prefix, StringUtils.nextString(prefix));
 
     // 对于pb级的文件系统，遍历是不可能的，直接接入
-    Long time = FileSystemService.getMaxTime(directory);
+    Long time = Controller.getMaxTime(directory);
     KeyInterval keyInterval = new KeyInterval(0, time == Long.MIN_VALUE ? Long.MAX_VALUE : time);
 
     return new Pair<>(tsInterval, keyInterval);

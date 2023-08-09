@@ -7,10 +7,10 @@ public final class FilePath {
   private static String SEPARATOR = System.getProperty("file.separator");
   private String oriSeries;
   private String fileName;
-  public static String FILEEXTENSION = ".iginx";
+  public static String FILE_EXTENSION = ".iginx";
   public static String WILDCARD = "*";
-  private static String FILEPATHFORMAT = "%s%s" + SEPARATOR + "%s.iginx";
-  private static String DIRPATHFORMAT = "%s%s" + SEPARATOR + "%s" + SEPARATOR;
+  private static String FILE_PATH_FORMAT = "%s%s" + SEPARATOR + "%s.iginx";
+  private static String DIR_PATH_FORMAT = "%s%s" + SEPARATOR + "%s" + SEPARATOR;
 
   public FilePath(String oriSeries) {
     this.oriSeries = oriSeries;
@@ -23,14 +23,14 @@ public final class FilePath {
     }
     // 之后根据规则修改获取文件名的方法， may fix it
     if (series == null && storageUnit != null) {
-      return String.format(DIRPATHFORMAT, root, storageUnit, "");
+      return String.format(DIR_PATH_FORMAT, root, storageUnit, "");
     }
     if (series.equals(WILDCARD)) {
-      return String.format(FILEPATHFORMAT, root, storageUnit, WILDCARD);
+      return String.format(FILE_PATH_FORMAT, root, storageUnit, WILDCARD);
     }
     String middlePath = series.substring(0, series.lastIndexOf("."));
     return String.format(
-        FILEPATHFORMAT,
+        FILE_PATH_FORMAT,
         root,
         storageUnit,
         middlePath.replace(".", SEPARATOR) + SEPARATOR + getFileNameFormSeries(series));
