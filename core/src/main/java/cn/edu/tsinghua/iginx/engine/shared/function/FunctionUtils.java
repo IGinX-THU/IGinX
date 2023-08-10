@@ -18,6 +18,9 @@ public class FunctionUtils {
   private static final Set<String> sysSetToSetFunctionSet =
       new HashSet<>(Arrays.asList("first", "last"));
 
+  private static final Set<String> sysCanUseSetQuantifierFunctionSet =
+      new HashSet<>(Arrays.asList("min", "max", "sum", "avg", "count"));
+
   private static final FunctionManager functionManager = FunctionManager.getInstance();
 
   public static boolean isRowToRowFunction(String identifier) {
@@ -42,5 +45,9 @@ public class FunctionUtils {
     }
     Function function = functionManager.getFunction(identifier);
     return function.getIdentifier().equals("py_udsf");
+  }
+
+  public static boolean isCanUseSetQuantifierFunction(String identifier) {
+    return sysCanUseSetQuantifierFunctionSet.contains(identifier.toLowerCase());
   }
 }

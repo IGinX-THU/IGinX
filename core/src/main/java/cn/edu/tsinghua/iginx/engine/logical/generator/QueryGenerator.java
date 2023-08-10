@@ -21,6 +21,7 @@ import cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils;
 import cn.edu.tsinghua.iginx.engine.shared.function.manager.FunctionManager;
 import cn.edu.tsinghua.iginx.engine.shared.operator.AddSchemaPrefix;
 import cn.edu.tsinghua.iginx.engine.shared.operator.CrossJoin;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Distinct;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Downsample;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Except;
 import cn.edu.tsinghua.iginx.engine.shared.operator.GroupBy;
@@ -364,7 +365,11 @@ public class QueryGenerator extends AbstractGenerator {
                             selectStatement.getLayers().isEmpty()
                                 ? null
                                 : selectStatement.getLayers();
-                        FunctionParams params = new FunctionParams(expression.getParams(), levels);
+                        FunctionParams params =
+                            FunctionUtils.isCanUseSetQuantifierFunction(k)
+                                ? new FunctionParams(
+                                    expression.getParams(), levels, expression.isDistinct())
+                                : new FunctionParams(expression.getParams(), levels);
 
                         Operator copySelect = finalRoot.copy();
                         logger.info("function: " + expression.getColumnName());
@@ -487,6 +492,10 @@ public class QueryGenerator extends AbstractGenerator {
             new FunctionCall(functionManager.getFunction(ARITHMETIC_EXPR), params));
       }
       root = new RowTransform(new OperatorSource(root), functionCallList);
+    }
+
+    if (selectStatement.isDistinct()) {
+      root = new Distinct(new OperatorSource(root));
     }
 
     if (!selectStatement.isSubQuery()) {

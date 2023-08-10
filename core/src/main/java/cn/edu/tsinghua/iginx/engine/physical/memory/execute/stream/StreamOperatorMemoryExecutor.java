@@ -18,12 +18,18 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream;
 
+import static cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils.isCanUseSetQuantifierFunction;
+
 import cn.edu.tsinghua.iginx.engine.physical.exception.InvalidOperatorParameterException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.UnexpectedOperatorException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.OperatorMemoryExecutor;
 import cn.edu.tsinghua.iginx.engine.shared.Constants;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
+import cn.edu.tsinghua.iginx.engine.shared.function.SetMappingFunction;
+import cn.edu.tsinghua.iginx.engine.shared.function.system.Max;
+import cn.edu.tsinghua.iginx.engine.shared.function.system.Min;
 import cn.edu.tsinghua.iginx.engine.shared.operator.AddSchemaPrefix;
 import cn.edu.tsinghua.iginx.engine.shared.operator.BinaryOperator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.CrossJoin;
@@ -87,6 +93,8 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
         return executeAddSchemaPrefix((AddSchemaPrefix) operator, stream);
       case GroupBy:
         return executeGroupBy((GroupBy) operator, stream);
+      case Distinct:
+        return executeDistinct(stream);
       default:
         throw new UnexpectedOperatorException("unknown unary operator: " + operator.getType());
     }
@@ -151,6 +159,19 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
   }
 
   private RowStream executeSetTransform(SetTransform setTransform, RowStream stream) {
+    SetMappingFunction function = (SetMappingFunction) setTransform.getFunctionCall().getFunction();
+    FunctionParams params = setTransform.getFunctionCall().getParams();
+    if (params.isDistinct()) {
+      if (!isCanUseSetQuantifierFunction(function.getIdentifier())) {
+        throw new IllegalArgumentException(
+            "function " + function.getIdentifier() + " can't use DISTINCT");
+      }
+      // min和max无需去重
+      if (!function.getIdentifier().equals(Max.MAX) && !function.getIdentifier().equals(Min.MIN)) {
+        stream = executeDistinct(stream);
+      }
+    }
+
     return new SetTransformLazyStream(setTransform, stream);
   }
 
@@ -172,6 +193,10 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
 
   private RowStream executeGroupBy(GroupBy groupBy, RowStream stream) {
     return new GroupByLazyStream(groupBy, stream);
+  }
+
+  private RowStream executeDistinct(RowStream stream) {
+    return new DistinctLazyStream(stream);
   }
 
   private RowStream executeJoin(Join join, RowStream streamA, RowStream streamB)

@@ -6,16 +6,26 @@ public class FuncExpression implements Expression {
 
   private final String funcName;
   private final List<String> params;
+  private final boolean isDistinct;
   private String alias;
 
   public FuncExpression(String funcName, List<String> params) {
-    this(funcName, params, "");
+    this(funcName, params, "", false);
+  }
+
+  public FuncExpression(String funcName, List<String> params, boolean isDistinct) {
+    this(funcName, params, "", isDistinct);
   }
 
   public FuncExpression(String funcName, List<String> params, String alias) {
+    this(funcName, params, alias, false);
+  }
+
+  public FuncExpression(String funcName, List<String> params, String alias, boolean isDistinct) {
     this.funcName = funcName;
     this.params = params;
     this.alias = alias;
+    this.isDistinct = isDistinct;
   }
 
   public String getFuncName() {
@@ -26,9 +36,17 @@ public class FuncExpression implements Expression {
     return params;
   }
 
+  public boolean isDistinct() {
+    return isDistinct;
+  }
+
   @Override
   public String getColumnName() {
-    return funcName.toLowerCase() + "(" + String.join(", ", params) + ")";
+    String columnName = funcName.toLowerCase() + "(";
+    if (isDistinct) {
+      columnName += "distinct ";
+    }
+    return columnName + String.join(", ", params) + ")";
   }
 
   @Override

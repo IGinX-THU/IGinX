@@ -497,6 +497,65 @@ public class SQLSessionIT {
   }
 
   @Test
+  public void testDistinct() {
+    String insert =
+        "INSERT INTO test(key, a) values (1, 1), (2, 2), (3, 2), (4, 3), (5, 3), (6, 3);";
+    executor.execute(insert);
+
+    String statement = "SELECT a FROM test;";
+    String expected =
+        "ResultSets:\n"
+            + "+---+------+\n"
+            + "|key|test.a|\n"
+            + "+---+------+\n"
+            + "|  1|     1|\n"
+            + "|  2|     2|\n"
+            + "|  3|     2|\n"
+            + "|  4|     3|\n"
+            + "|  5|     3|\n"
+            + "|  6|     3|\n"
+            + "+---+------+\n"
+            + "Total line number = 6\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "SELECT DISTINCT a FROM test;";
+    expected =
+        "ResultSets:\n"
+            + "+------+\n"
+            + "|test.a|\n"
+            + "+------+\n"
+            + "|     1|\n"
+            + "|     2|\n"
+            + "|     3|\n"
+            + "+------+\n"
+            + "Total line number = 3\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "SELECT COUNT(a), AVG(a), SUM(a), MIN(a), MAX(a) FROM test;";
+    expected =
+        "ResultSets:\n"
+            + "+-------------+------------------+-----------+-----------+-----------+\n"
+            + "|count(test.a)|       avg(test.a)|sum(test.a)|min(test.a)|max(test.a)|\n"
+            + "+-------------+------------------+-----------+-----------+-----------+\n"
+            + "|            6|2.3333333333333335|         14|          1|          3|\n"
+            + "+-------------+------------------+-----------+-----------+-----------+\n"
+            + "Total line number = 1\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement =
+        "SELECT COUNT(DISTINCT a), AVG(DISTINCT a), SUM(DISTINCT a), MIN(DISTINCT a), MAX(DISTINCT a) FROM test;";
+    expected =
+        "ResultSets:\n"
+            + "+----------------------+--------------------+--------------------+--------------------+--------------------+\n"
+            + "|count(distinct test.a)|avg(distinct test.a)|sum(distinct test.a)|min(distinct test.a)|max(distinct test.a)|\n"
+            + "+----------------------+--------------------+--------------------+--------------------+--------------------+\n"
+            + "|                     3|                 2.0|                   6|                   1|                   3|\n"
+            + "+----------------------+--------------------+--------------------+--------------------+--------------------+\n"
+            + "Total line number = 1\n";
+    executor.executeAndCompare(statement, expected);
+  }
+
+  @Test
   public void testLimitAndOffsetQuery() {
     String statement = "SELECT s1 FROM us.d1 WHERE key > 0 AND key < 10000 limit 10;";
     String expected =
