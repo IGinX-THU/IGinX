@@ -32,7 +32,11 @@ public enum OperatorType {
 
   // BinaryOperator[30,49]
   Join(30),
-  Union,
+  PathUnion,
+  // SetOperator[35, 39)
+  Union(35),
+  Except,
+  Intersect,
   // JoinOperator[40,49]
   InnerJoin(40),
   OuterJoin,

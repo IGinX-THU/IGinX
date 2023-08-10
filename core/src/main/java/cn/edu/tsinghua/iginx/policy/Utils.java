@@ -6,8 +6,9 @@ import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.sql.statement.DataStatement;
 import cn.edu.tsinghua.iginx.sql.statement.DeleteStatement;
 import cn.edu.tsinghua.iginx.sql.statement.InsertStatement;
-import cn.edu.tsinghua.iginx.sql.statement.SelectStatement;
 import cn.edu.tsinghua.iginx.sql.statement.StatementType;
+import cn.edu.tsinghua.iginx.sql.statement.selectstatement.SelectStatement;
+import cn.edu.tsinghua.iginx.sql.statement.selectstatement.UnarySelectStatement;
 import java.util.*;
 
 public class Utils {
@@ -61,7 +62,7 @@ public class Utils {
         List<Long> keys = insertStatement.getKeys();
         return new KeyInterval(keys.get(0), keys.get(keys.size() - 1));
       case SELECT:
-        SelectStatement selectStatement = (SelectStatement) statement;
+        UnarySelectStatement selectStatement = (UnarySelectStatement) statement;
         return new KeyInterval(selectStatement.getStartKey(), selectStatement.getEndKey());
       case DELETE:
         DeleteStatement deleteStatement = (DeleteStatement) statement;

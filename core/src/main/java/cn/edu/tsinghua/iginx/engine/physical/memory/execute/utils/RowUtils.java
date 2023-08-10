@@ -108,15 +108,24 @@ public class RowUtils {
     if (!row1.getHeader().equals(row2.getHeader())) {
       return false;
     }
+    return isValueEqualRow(row1, row2, compareKey);
+  }
+
+  public static boolean isValueEqualRow(Row row1, Row row2, boolean compareKey)
+      throws PhysicalException {
     if (compareKey) {
       if (row1.getKey() != row2.getKey()) {
         return false;
       }
     }
-    List<Field> fields = row1.getHeader().getFields();
-    for (Field field : fields) {
-      Value value1 = row1.getAsValue(field.getName());
-      Value value2 = row2.getAsValue(field.getName());
+    if (row1.getHeader().getFieldSize() != row2.getHeader().getFieldSize()) {
+      return false;
+    }
+
+    int size = row1.getHeader().getFieldSize();
+    for (int index = 0; index < size; index++) {
+      Value value1 = row1.getAsValue(index);
+      Value value2 = row2.getAsValue(index);
       if (ValueUtils.compare(value1, value2) != 0) {
         return false;
       }
