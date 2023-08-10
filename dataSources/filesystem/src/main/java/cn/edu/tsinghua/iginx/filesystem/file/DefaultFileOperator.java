@@ -511,9 +511,9 @@ public class DefaultFileOperator implements IFileOperator {
               break;
             case FileMeta.TAG_KV_INDEX:
               writer.write(
-                  fileMeta.getTag() == null
+                  fileMeta.getTags() == null
                       ? "{}"
-                      : new String(JsonUtils.toJson(fileMeta.getTag())));
+                      : new String(JsonUtils.toJson(fileMeta.getTags())));
               break;
           }
           writer.write("\n");
@@ -552,7 +552,7 @@ public class DefaultFileOperator implements IFileOperator {
         while ((line = reader.readLine()) != null && index <= FileMeta.IGINX_FILE_META_INDEX) {
           switch (index) {
             case FileMeta.TAG_KV_INDEX:
-              fileMeta.setTag(JsonUtils.transformToSS(line));
+              fileMeta.setTags(JsonUtils.transformJsonToStringStringMap(line));
               break;
             case FileMeta.DATA_TYPE_INDEX:
               fileMeta.setDataType(DataType.findByValue(Integer.parseInt(line)));

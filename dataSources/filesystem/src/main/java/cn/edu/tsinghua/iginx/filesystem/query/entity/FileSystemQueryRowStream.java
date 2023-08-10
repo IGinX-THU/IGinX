@@ -7,7 +7,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-import cn.edu.tsinghua.iginx.filesystem.file.entity.FilePath;
+import cn.edu.tsinghua.iginx.filesystem.tools.FilePath;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -32,7 +32,7 @@ public class FileSystemQueryRowStream implements RowStream {
     for (FileSystemResultTable resultTable : rowData) {
       File file = resultTable.getFile();
       series =
-          FilePath.convertAbsolutePathToSeries(
+          FilePath.convertAbsolutePathToPath(
               root, file.getAbsolutePath(), file.getName(), storageUnit);
       Field field = new Field(series, resultTable.getDataType(), resultTable.getTags());
       fields.add(field);
@@ -95,7 +95,7 @@ public class FileSystemQueryRowStream implements RowStream {
         continue;
       }
       Record record = records.get(index);
-      if (record.getKey() == timestamp) { // 考虑时间 ns may fix it
+      if (record.getKey() == timestamp) {
         Object value = record.getRawData();
         values[i] = value;
         indices[i]++;

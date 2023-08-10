@@ -14,10 +14,7 @@ public class JsonUtils {
     return JSON.parseObject(data, clazz);
   }
 
-  public static Map<String, String> transformToSS(String content) {
-    if (content == null || content.equals("{}")) {
-      return null;
-    }
+  public static Map<String, String> transformJsonToStringStringMap(String content) {
     Map<String, Object> rawMap = JSON.parseObject(content);
     Map<String, String> ret = new HashMap<>();
     rawMap.forEach((key, value) -> ret.put(key, (String) value));

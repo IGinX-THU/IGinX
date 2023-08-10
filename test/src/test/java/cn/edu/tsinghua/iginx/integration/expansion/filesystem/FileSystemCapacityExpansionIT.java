@@ -15,7 +15,7 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
   private static final Logger logger = LoggerFactory.getLogger(FileSystemCapacityExpansionIT.class);
 
   public FileSystemCapacityExpansionIT() {
-    super(filesystem, "username:root, password:root, sessionPoolSize:20", 4860, 4861, 4862);
+    super(filesystem, "username:root, password:root", 6667, 6668, 6669);
     EXP_DATA_TYPE_LIST = Arrays.asList(DataType.BINARY, DataType.BINARY);
     byte[] value1 = createValueRandom(1), value2 = createValueRandom(2);
     EXP_VALUES_LIST = Arrays.asList(Arrays.asList(value1, value2));

@@ -2,18 +2,18 @@ package cn.edu.tsinghua.iginx.filesystem.controller;
 
 import static cn.edu.tsinghua.iginx.engine.logical.utils.ExprUtils.getKeyRangesFromFilter;
 
+import cn.edu.tsinghua.iginx.engine.physical.storage.utils.TagKVUtils;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.filesystem.file.DefaultFileOperator;
 import cn.edu.tsinghua.iginx.filesystem.file.IFileOperator;
 import cn.edu.tsinghua.iginx.filesystem.file.entity.FileMeta;
-import cn.edu.tsinghua.iginx.filesystem.file.entity.FilePath;
 import cn.edu.tsinghua.iginx.filesystem.file.entity.FileType;
 import cn.edu.tsinghua.iginx.filesystem.query.entity.FileSystemResultTable;
 import cn.edu.tsinghua.iginx.filesystem.query.entity.Record;
 import cn.edu.tsinghua.iginx.filesystem.tools.ConfLoader;
-import cn.edu.tsinghua.iginx.filesystem.tools.TagKVUtils;
+import cn.edu.tsinghua.iginx.filesystem.tools.FilePath;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.io.File;
@@ -36,7 +36,6 @@ public class Controller {
   // set the fileSystem type with constructor
   public Controller(/*FileSystemType type*/ ) {
     fileOperator = new DefaultFileOperator();
-    FilePath.setSeparator(System.getProperty("file.separator"));
   }
 
   public static List<FileSystemResultTable> readFile(File file, Filter filter) throws IOException {
@@ -57,7 +56,7 @@ public class Controller {
       }
       if (FileType.getFileType(f) == FileType.IGINX_FILE) {
         FileMeta fileMeta = fileOperator.getFileMeta(f);
-        res.add(new FileSystemResultTable(f, val, fileMeta.getDataType(), fileMeta.getTag()));
+        res.add(new FileSystemResultTable(f, val, fileMeta.getDataType(), fileMeta.getTags()));
       } else {
         res.add(new FileSystemResultTable(f, val, DataType.BINARY, null));
       }
@@ -340,8 +339,8 @@ public class Controller {
     for (File fi : res) {
       if (fi.isDirectory()) continue;
       FileMeta fileMeta = fileOperator.getFileMeta(fi);
-      if ((tags == null || tags.size() == 0) && fileMeta.getTag() == null
-          || Objects.equals(tags, fileMeta.getTag())) {
+      if ((tags == null || tags.size() == 0) && fileMeta.getTags() == null
+          || Objects.equals(tags, fileMeta.getTags())) {
         return fi;
       }
     }
@@ -356,7 +355,7 @@ public class Controller {
       if (fi.isDirectory() || !fileOperator.ifFileExists(fi)) continue;
       FileMeta fileMeta = null;
       if (FileType.getFileType(fi) == FileType.IGINX_FILE) fileMeta = fileOperator.getFileMeta(fi);
-      if (tagFilter == null || TagKVUtils.match(fileMeta.getTag(), tagFilter)) {
+      if (tagFilter == null || TagKVUtils.match(fileMeta.getTags(), tagFilter)) {
         res.add(fi);
       }
     }

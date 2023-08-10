@@ -1,20 +1,20 @@
-package cn.edu.tsinghua.iginx.filesystem.file.entity;
+package cn.edu.tsinghua.iginx.filesystem.tools;
 
 import java.io.File;
 
 // 给出时序列，转换为文件系统的路径
 public final class FilePath {
   private static String SEPARATOR = System.getProperty("file.separator");
-  private String oriSeries;
+  private String oriPath;
   private String fileName;
   public static String FILE_EXTENSION = ".iginx";
   public static String WILDCARD = "*";
   private static String FILE_PATH_FORMAT = "%s%s" + SEPARATOR + "%s.iginx";
   private static String DIR_PATH_FORMAT = "%s%s" + SEPARATOR + "%s" + SEPARATOR;
 
-  public FilePath(String oriSeries) {
-    this.oriSeries = oriSeries;
-    this.fileName = getFileNameFormSeries(oriSeries);
+  public FilePath(String oriPath) {
+    this.oriPath = oriPath;
+    this.fileName = getFileNameFormPath(oriPath);
   }
 
   public static String toIginxPath(String root, String storageUnit, String series) {
@@ -33,7 +33,7 @@ public final class FilePath {
         FILE_PATH_FORMAT,
         root,
         storageUnit,
-        middlePath.replace(".", SEPARATOR) + SEPARATOR + getFileNameFormSeries(series));
+        middlePath.replace(".", SEPARATOR) + SEPARATOR + getFileNameFormPath(series));
   }
 
   public static String toNormalFilePath(String root, String series) {
@@ -41,11 +41,11 @@ public final class FilePath {
     return root + series.replace(".", SEPARATOR);
   }
 
-  public static String getFileNameFormSeries(String series) {
+  public static String getFileNameFormPath(String series) {
     return series.substring(series.lastIndexOf(".") + 1);
   }
 
-  public static String convertAbsolutePathToSeries(
+  public static String convertAbsolutePathToPath(
       String root, String filePath, String fileName, String storageUnit) {
     String tmp;
     if (storageUnit != null) {
@@ -63,22 +63,6 @@ public final class FilePath {
     }
 
     return tmp.replace(SEPARATOR, ".");
-  }
-
-  public String getOriSeries() {
-    return oriSeries;
-  }
-
-  public String getFileName() {
-    return fileName;
-  }
-
-  public static void setSeparator(String SEPARATOR) {
-    FilePath.SEPARATOR = SEPARATOR;
-  }
-
-  public static String getSEPARATOR() {
-    return SEPARATOR;
   }
 
   public static String getRootFromArg(String argRoot) {

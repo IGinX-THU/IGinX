@@ -32,10 +32,9 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
 import cn.edu.tsinghua.iginx.filesystem.exec.Executor;
 import cn.edu.tsinghua.iginx.filesystem.exec.LocalExecutor;
 import cn.edu.tsinghua.iginx.filesystem.exec.RemoteExecutor;
-import cn.edu.tsinghua.iginx.filesystem.file.entity.FilePath;
 import cn.edu.tsinghua.iginx.filesystem.server.FileSystemServer;
 import cn.edu.tsinghua.iginx.filesystem.tools.ConfLoader;
-import cn.edu.tsinghua.iginx.filesystem.tools.FilterTransformer;
+import cn.edu.tsinghua.iginx.filesystem.tools.FilePath;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
@@ -107,11 +106,7 @@ public class FileSystemStorage implements IStorage {
                 new KeyFilter(Op.GE, keyInterval.getStartKey()),
                 new KeyFilter(Op.L, keyInterval.getEndKey())));
     return executor.executeProjectTask(
-        project.getPatterns(),
-        project.getTagFilter(),
-        FilterTransformer.toFSFilter(filter),
-        dataArea.getStorageUnit(),
-        false);
+        project.getPatterns(), project.getTagFilter(), filter, dataArea.getStorageUnit(), false);
   }
 
   @Override
@@ -123,11 +118,7 @@ public class FileSystemStorage implements IStorage {
                 new KeyFilter(Op.GE, keyInterval.getStartKey()),
                 new KeyFilter(Op.L, keyInterval.getEndKey())));
     return executor.executeProjectTask(
-        project.getPatterns(),
-        project.getTagFilter(),
-        FilterTransformer.toFSFilter(filter),
-        dataArea.getStorageUnit(),
-        true);
+        project.getPatterns(), project.getTagFilter(), filter, dataArea.getStorageUnit(), true);
   }
 
   @Override
@@ -141,7 +132,7 @@ public class FileSystemStorage implements IStorage {
     return executor.executeProjectTask(
         project.getPatterns(),
         project.getTagFilter(),
-        FilterTransformer.toFSFilter(select.getFilter()),
+        select.getFilter(),
         dataArea.getStorageUnit(),
         false);
   }
@@ -152,7 +143,7 @@ public class FileSystemStorage implements IStorage {
     return executor.executeProjectTask(
         project.getPatterns(),
         project.getTagFilter(),
-        FilterTransformer.toFSFilter(select.getFilter()),
+        select.getFilter(),
         dataArea.getStorageUnit(),
         true);
   }

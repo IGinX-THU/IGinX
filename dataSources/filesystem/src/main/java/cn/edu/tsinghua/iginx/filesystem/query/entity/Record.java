@@ -1,5 +1,6 @@
 package cn.edu.tsinghua.iginx.filesystem.query.entity;
 
+import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -7,23 +8,20 @@ import org.slf4j.LoggerFactory;
 public class Record {
   private static final Logger logger = LoggerFactory.getLogger(Record.class);
   private long key;
-  private DataType dataType;
-  private Object rawData;
+  private Value value;
 
   public Record(long key, DataType dataType, Object rawData) {
     this.key = key;
-    this.dataType = dataType;
-    this.rawData = rawData;
+    this.value = new Value(dataType, rawData);
   }
 
   public Record(long key, Object rawData) {
     this.key = key;
-    this.rawData = rawData;
-    this.dataType = DataType.BINARY;
+    this.value = new Value(rawData);
   }
 
   public Object getRawData() {
-    return rawData;
+    return value.getValue();
   }
 
   public long getKey() {
@@ -31,14 +29,10 @@ public class Record {
   }
 
   public DataType getDataType() {
-    return dataType;
+    return value.getDataType();
   }
 
   public void setKey(long key) {
     this.key = key;
-  }
-
-  public void setRawData(Object rawData) {
-    this.rawData = rawData;
   }
 }

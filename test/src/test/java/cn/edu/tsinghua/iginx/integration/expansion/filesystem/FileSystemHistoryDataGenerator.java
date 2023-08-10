@@ -19,16 +19,16 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
       LoggerFactory.getLogger(FileSystemHistoryDataGenerator.class);
   public static String rootTest = "../dataSources/filesystem/src/test/java/cn/edu/tsinghua/iginx/";
   public static String rootAct = "dataSources/filesystem/src/test/java/cn/edu/tsinghua/iginx/";
-  // 对应port 4860
+  // 对应port 6667
   public static String root1 = "storage/";
-  // 对应port 4861
+  // 对应port 6668
   public static String root2 = "storage2/";
   public static String root3 = "storage3/";
 
   public FileSystemHistoryDataGenerator() {
-    this.oriPort = 4860;
-    this.expPort = 4861;
-    this.readOnlyPort = 4862;
+    this.oriPort = 6667;
+    this.expPort = 6668;
+    this.readOnlyPort = 6669;
     EXP_DATA_TYPE_LIST = Arrays.asList(DataType.BINARY, DataType.BINARY);
     byte[] value1 = createValueRandom(1), value2 = createValueRandom(2);
     EXP_VALUES_LIST = Arrays.asList(Arrays.asList(value1), Arrays.asList(value2));

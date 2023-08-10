@@ -14,13 +14,11 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.filesystem.controller.Controller;
 import cn.edu.tsinghua.iginx.filesystem.file.entity.FileMeta;
-import cn.edu.tsinghua.iginx.filesystem.file.entity.FilePath;
 import cn.edu.tsinghua.iginx.filesystem.query.entity.FileSystemHistoryQueryRowStream;
 import cn.edu.tsinghua.iginx.filesystem.query.entity.FileSystemQueryRowStream;
 import cn.edu.tsinghua.iginx.filesystem.query.entity.FileSystemResultTable;
 import cn.edu.tsinghua.iginx.filesystem.query.entity.Record;
-import cn.edu.tsinghua.iginx.filesystem.thrift.FSFilter;
-import cn.edu.tsinghua.iginx.filesystem.tools.FilterTransformer;
+import cn.edu.tsinghua.iginx.filesystem.tools.FilePath;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.thrift.DataType;
@@ -55,7 +53,7 @@ public class LocalExecutor implements Executor {
   public TaskExecuteResult executeProjectTask(
       List<String> paths,
       TagFilter tagFilter,
-      FSFilter filter,
+      Filter filter,
       String storageUnit,
       boolean isDummyStorageUnit) {
     if (isDummyStorageUnit) {
@@ -70,37 +68,35 @@ public class LocalExecutor implements Executor {
   }
 
   public TaskExecuteResult executeQueryTask(
-      String storageUnit, List<String> series, TagFilter tagFilter, FSFilter filter) {
+      String storageUnit, List<String> paths, TagFilter tagFilter, Filter filter) {
     try {
       List<FileSystemResultTable> result = new ArrayList<>();
-      logger.info("[Query] execute query file: " + series);
-      Filter f = FilterTransformer.toFilter(filter);
-      for (String path : series) {
+      logger.info("[Query] execute query file: " + paths);
+      for (String path : paths) {
         File file = new File(FilePath.toIginxPath(root, storageUnit, path));
-        result.addAll(Objects.requireNonNull(Controller.readFile(file, tagFilter, f)));
+        result.addAll(Objects.requireNonNull(Controller.readFile(file, tagFilter, filter)));
       }
-      RowStream rowStream = new FileSystemQueryRowStream(result, storageUnit, root, f);
+      RowStream rowStream = new FileSystemQueryRowStream(result, storageUnit, root, filter);
       return new TaskExecuteResult(rowStream);
     } catch (Exception e) {
       logger.error(
           String.format(
-              "read file error, storageUnit %s, series(%s), tagFilter(%s), filter(%s)",
-              storageUnit, series, tagFilter, filter));
+              "read file error, storageUnit %s, paths(%s), tagFilter(%s), filter(%s)",
+              storageUnit, paths, tagFilter, filter));
       e.printStackTrace();
       return new TaskExecuteResult(
           new PhysicalTaskExecuteFailureException("execute project task in fileSystem failure", e));
     }
   }
 
-  public TaskExecuteResult executeDummyProjectTask(List<String> series, FSFilter filter) {
+  public TaskExecuteResult executeDummyProjectTask(List<String> paths, Filter filter) {
     try {
       List<FileSystemResultTable> result = new ArrayList<>();
-      logger.info("[Query] execute dummy query file: " + series);
-      Filter f = FilterTransformer.toFilter(filter);
-      for (String path : series) {
-        result.addAll(Controller.readFile(new File(FilePath.toNormalFilePath(root, path)), f));
+      logger.info("[Query] execute dummy query file: " + paths);
+      for (String path : paths) {
+        result.addAll(Controller.readFile(new File(FilePath.toNormalFilePath(root, path)), filter));
       }
-      RowStream rowStream = new FileSystemHistoryQueryRowStream(result, root, f);
+      RowStream rowStream = new FileSystemHistoryQueryRowStream(result, root, filter);
       return new TaskExecuteResult(rowStream);
     } catch (Exception e) {
       logger.error(e.getMessage());
@@ -256,10 +252,10 @@ public class LocalExecutor implements Executor {
       FileMeta meta = pair.getV();
       files.add(
           new Column(
-              FilePath.convertAbsolutePathToSeries(
+              FilePath.convertAbsolutePathToPath(
                   root, file.getAbsolutePath(), file.getName(), storageUnit),
               meta.getDataType(),
-              meta.getTag()));
+              meta.getTags()));
     }
     return files;
   }
@@ -278,10 +274,10 @@ public class LocalExecutor implements Executor {
     if (prefix == null)
       tsInterval =
           new ColumnsInterval(
-              FilePath.convertAbsolutePathToSeries(
+              FilePath.convertAbsolutePathToPath(
                   root, minPathFile.getAbsolutePath(), minPathFile.getName(), null),
               StringUtils.nextString(
-                  FilePath.convertAbsolutePathToSeries(
+                  FilePath.convertAbsolutePathToPath(
                       root, maxPathFile.getAbsolutePath(), maxPathFile.getName(), null)));
     else tsInterval = new ColumnsInterval(prefix, StringUtils.nextString(prefix));
 

@@ -10,6 +10,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.write.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.*;
 import cn.edu.tsinghua.iginx.filesystem.exec.Executor;
 import cn.edu.tsinghua.iginx.filesystem.thrift.*;
+import cn.edu.tsinghua.iginx.filesystem.tools.FilterTransformer;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.thrift.DataType;
@@ -36,7 +37,7 @@ public class FileSystemWorker implements FileSystemService.Iface {
 
   private static final Status EXEC_DELETE_FAIL = new Status(403, "execute delete fail");
 
-  private static final Status GET_COLUMNS_FAIL = new Status(404, "get key series fail");
+  private static final Status GET_COLUMNS_FAIL = new Status(404, "get columns fail");
 
   private static final Status GET_BOUNDARY_FAIL = new Status(405, "get boundary of storage fail");
 
@@ -53,7 +54,7 @@ public class FileSystemWorker implements FileSystemService.Iface {
         executor.executeProjectTask(
             req.getPaths(),
             tagFilter,
-            req.getFilter(),
+            FilterTransformer.toFilter(req.getFilter()),
             req.getStorageUnit(),
             req.isDummyStorageUnit);
 
@@ -201,12 +202,12 @@ public class FileSystemWorker implements FileSystemService.Iface {
   public GetColumnsOfStorageUnitResp getColumnsOfStorageUnit(String storageUnit) throws TException {
     List<PathSet> ret = new ArrayList<>();
     try {
-      List<Column> tsList = executor.getColumnsOfStorageUnit(storageUnit);
-      tsList.forEach(
-          columns -> {
-            PathSet pathSet = new PathSet(columns.getPath(), columns.getDataType().toString());
-            if (columns.getTags() != null) {
-              pathSet.setTags(columns.getTags());
+      List<Column> columns = executor.getColumnsOfStorageUnit(storageUnit);
+      columns.forEach(
+          column -> {
+            PathSet pathSet = new PathSet(column.getPath(), column.getDataType().toString());
+            if (column.getTags() != null) {
+              pathSet.setTags(column.getTags());
             }
             ret.add(pathSet);
           });

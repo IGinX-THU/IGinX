@@ -11,18 +11,18 @@ public class FileSystemResultTable {
   private DataType dataType;
   private Map<String, String> tags;
 
-  public FileSystemResultTable(File file, List<Record> val) {
-    this(file, val, val.isEmpty() ? null : val.get(0).getDataType(), null);
+  public FileSystemResultTable(File file, List<Record> records) {
+    this(file, records, records.isEmpty() ? null : records.get(0).getDataType(), null);
   }
 
-  public FileSystemResultTable(File file, List<Record> val, Map<String, String> tags) {
-    this(file, val, val.isEmpty() ? null : val.get(0).getDataType(), tags);
+  public FileSystemResultTable(File file, List<Record> records, Map<String, String> tags) {
+    this(file, records, records.isEmpty() ? null : records.get(0).getDataType(), tags);
   }
 
   public FileSystemResultTable(
-      File file, List<Record> val, DataType dataType, Map<String, String> tags) {
+      File file, List<Record> records, DataType dataType, Map<String, String> tags) {
     this.file = file;
-    this.records = val;
+    this.records = records;
     this.dataType = dataType;
     this.tags = tags;
   }
@@ -31,8 +31,8 @@ public class FileSystemResultTable {
     return records;
   }
 
-  public void setVal(List<Record> val) {
-    this.records = val;
+  public void setVal(List<Record> records) {
+    this.records = records;
   }
 
   public DataType getDataType() {

@@ -7,22 +7,9 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.filesystem.thrift.FSFilter;
 import cn.edu.tsinghua.iginx.filesystem.thrift.Op;
 import cn.edu.tsinghua.iginx.filesystem.thrift.Value;
-import com.alibaba.fastjson2.JSONB;
-import com.alibaba.fastjson2.JSONWriter;
 import java.util.*;
 
 public class FilterTransformer {
-
-  public static String toString(Filter filter) {
-    if (filter == null) {
-      return null;
-    }
-    return new String(JSONB.toBytes(filter, JSONWriter.Feature.WriteClassName));
-  }
-
-  public static Filter toFilter(String filter) {
-    return JSONB.parseObject(filter.getBytes(), Filter.class);
-  }
 
   public static FSFilter toFSFilter(Filter filter) {
     if (filter == null) {

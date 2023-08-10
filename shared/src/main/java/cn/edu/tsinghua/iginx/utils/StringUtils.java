@@ -19,7 +19,6 @@
 package cn.edu.tsinghua.iginx.utils;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -99,16 +98,6 @@ public class StringUtils {
     List<String> ret = new ArrayList<>();
     paths.forEach(path -> ret.add(reformatPath(path)));
     return ret;
-  }
-
-  public static List<String> splitAround(String expr, int left, int right, String separator) {
-    List<String> res = new ArrayList<>();
-    List<String> part =
-        new ArrayList<>(Arrays.asList(expr.substring(left, right).split(separator)));
-    for (String p : part) {
-      res.add(p.trim());
-    }
-    return res;
   }
 
   public static String reformatPath(String path) {

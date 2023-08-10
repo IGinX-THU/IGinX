@@ -7,7 +7,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-import cn.edu.tsinghua.iginx.filesystem.file.entity.FilePath;
+import cn.edu.tsinghua.iginx.filesystem.tools.FilePath;
 import cn.edu.tsinghua.iginx.filesystem.tools.MemoryPool;
 import java.io.File;
 import java.util.ArrayList;
@@ -48,7 +48,7 @@ public class FileSystemHistoryQueryRowStream implements RowStream {
     for (FileSystemResultTable resultTable : rowData) {
       File file = resultTable.getFile();
       series =
-          FilePath.convertAbsolutePathToSeries(root, file.getAbsolutePath(), file.getName(), null);
+          FilePath.convertAbsolutePathToPath(root, file.getAbsolutePath(), file.getName(), null);
       Field field = new Field(series, resultTable.getDataType(), resultTable.getTags());
       fields.add(field);
     }
@@ -110,17 +110,17 @@ public class FileSystemHistoryQueryRowStream implements RowStream {
     }
     Object[] values = new Object[rowData.size()];
     for (int i = 0; i < this.rowData.size(); i++) {
-      int index = round[i];
+      int columnIndex = round[i];
       List<Record> records = this.rowData.get(i).getVal();
-      if (index == records.size()) { // 数据已经消费完毕了
+      if (columnIndex == records.size()) { // 数据已经消费完毕了
         continue;
       }
-      byte[] val = (byte[]) records.get(index).getRawData();
-      if (records.get(index).getKey() == timestamp) {
+      byte[] val = (byte[]) records.get(columnIndex).getRawData();
+      if (records.get(columnIndex).getKey() == timestamp) {
         Object value = val;
         values[i] = value;
-        indices[i][index] += val.length;
-        if (indices[i][index] >= val.length) {
+        indices[i][columnIndex] += val.length;
+        if (indices[i][columnIndex] >= val.length) {
           round[i]++;
           if (round[i] == records.size()) hasMoreRecords--;
         }
