@@ -91,6 +91,13 @@ public class Row {
     return values[index];
   }
 
+  public Value getAsValue(int index) {
+    if (index < 0 || index >= values.length) {
+      return null;
+    }
+    return new Value(header.getField(index).getType(), values[index]);
+  }
+
   public Value getAsValue(String name) {
     int index = header.indexOf(name);
     if (index == -1) {

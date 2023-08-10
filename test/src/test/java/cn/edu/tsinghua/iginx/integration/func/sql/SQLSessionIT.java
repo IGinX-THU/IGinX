@@ -3848,6 +3848,73 @@ public class SQLSessionIT {
   }
 
   @Test
+  public void testSetOperators() {
+    String insert =
+        "INSERT INTO test(key, a.a, a.b, a.c) VALUES (1, 1, \"aaa\", true), (2, 1, \"eee\", false), (3, 4, \"ccc\", true), (5, 6, \"eee\", false);";
+    executor.execute(insert);
+    insert =
+        "INSERT INTO test(key, b.a, b.b, b.c) VALUES (2, \"eee\", 1, true), (3, \"ccc\", 4, true), (5, \"eee\", 6, false);";
+    executor.execute(insert);
+
+    String statement =
+        "SELECT a, b, c FROM test.a UNION ALL SELECT b, a, c FROM test.b ORDER BY KEY;";
+    String expected =
+        "ResultSets:\n"
+            + "+---+--------+--------+--------+\n"
+            + "|key|test.a.a|test.a.b|test.a.c|\n"
+            + "+---+--------+--------+--------+\n"
+            + "|  1|       1|     aaa|    true|\n"
+            + "|  2|       1|     eee|   false|\n"
+            + "|  2|       1|     eee|    true|\n"
+            + "|  3|       4|     ccc|    true|\n"
+            + "|  3|       4|     ccc|    true|\n"
+            + "|  5|       6|     eee|   false|\n"
+            + "|  5|       6|     eee|   false|\n"
+            + "+---+--------+--------+--------+\n"
+            + "Total line number = 7\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "SELECT a, b, c FROM test.a UNION SELECT b, a, c FROM test.b ORDER BY KEY;";
+    expected =
+        "ResultSets:\n"
+            + "+---+--------+--------+--------+\n"
+            + "|key|test.a.a|test.a.b|test.a.c|\n"
+            + "+---+--------+--------+--------+\n"
+            + "|  1|       1|     aaa|    true|\n"
+            + "|  2|       1|     eee|   false|\n"
+            + "|  2|       1|     eee|    true|\n"
+            + "|  3|       4|     ccc|    true|\n"
+            + "|  5|       6|     eee|   false|\n"
+            + "+---+--------+--------+--------+\n"
+            + "Total line number = 5\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "SELECT a, b, c FROM test.a EXCEPT SELECT b, a, c FROM test.b ORDER BY KEY;";
+    expected =
+        "ResultSets:\n"
+            + "+---+--------+--------+--------+\n"
+            + "|key|test.a.a|test.a.b|test.a.c|\n"
+            + "+---+--------+--------+--------+\n"
+            + "|  1|       1|     aaa|    true|\n"
+            + "|  2|       1|     eee|   false|\n"
+            + "+---+--------+--------+--------+\n"
+            + "Total line number = 2\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "SELECT a, b, c FROM test.a INTERSECT SELECT b, a, c FROM test.b ORDER BY KEY;";
+    expected =
+        "ResultSets:\n"
+            + "+---+--------+--------+--------+\n"
+            + "|key|test.a.a|test.a.b|test.a.c|\n"
+            + "+---+--------+--------+--------+\n"
+            + "|  3|       4|     ccc|    true|\n"
+            + "|  5|       6|     eee|   false|\n"
+            + "+---+--------+--------+--------+\n"
+            + "Total line number = 2\n";
+    executor.executeAndCompare(statement, expected);
+  }
+
+  @Test
   public void testDateFormat() {
     if (!isAbleToDelete) {
       return;
@@ -4204,6 +4271,9 @@ public class SQLSessionIT {
     errClause = "SELECT last(s1) FROM us.d1 GROUP BY s2;";
     executor.executeAndCompareErrMsg(
         errClause, "Group by can not use SetToSet and RowToRow functions.");
+
+    errClause = "select * from test.a join test.b where a > 0;";
+    executor.executeAndCompareErrMsg(errClause, "Unexpected paths' name: [a].");
   }
 
   @Test

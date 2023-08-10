@@ -5,7 +5,7 @@ import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Union extends AbstractBinaryOperator {
+public class Except extends AbstractBinaryOperator {
 
   private final List<String> leftOrder;
 
@@ -13,13 +13,13 @@ public class Union extends AbstractBinaryOperator {
 
   private final boolean isDistinct;
 
-  public Union(
+  public Except(
       Source sourceA,
       Source sourceB,
       List<String> leftOrder,
       List<String> rightOrder,
       boolean isDistinct) {
-    super(OperatorType.Union, sourceA, sourceB);
+    super(OperatorType.Except, sourceA, sourceB);
     this.leftOrder = leftOrder;
     this.rightOrder = rightOrder;
     this.isDistinct = isDistinct;
@@ -39,7 +39,7 @@ public class Union extends AbstractBinaryOperator {
 
   @Override
   public Operator copy() {
-    return new Union(
+    return new Except(
         getSourceA().copy(),
         getSourceB().copy(),
         new ArrayList<>(leftOrder),

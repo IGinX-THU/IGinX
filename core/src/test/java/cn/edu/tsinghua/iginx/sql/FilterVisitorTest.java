@@ -1,7 +1,15 @@
 package cn.edu.tsinghua.iginx.sql;
 
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
-import cn.edu.tsinghua.iginx.sql.statement.SelectStatement;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.BoolFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.FilterVisitor;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.NotFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.OrFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.ValueFilter;
+import cn.edu.tsinghua.iginx.sql.statement.selectstatement.UnarySelectStatement;
 import org.junit.Test;
 
 public class FilterVisitorTest {
@@ -11,14 +19,14 @@ public class FilterVisitorTest {
     FilterVisitor visitor = new NaiveVisitor();
 
     String select = "SELECT a FROM root.v.c WHERE a > 5 AND b <= 10 OR c > 7 AND d == 8;";
-    SelectStatement statement = (SelectStatement) TestUtils.buildStatement(select);
+    UnarySelectStatement statement = (UnarySelectStatement) TestUtils.buildStatement(select);
     Filter filter = statement.getFilter();
     filter.accept(visitor);
 
     System.out.println();
 
     select = "SELECT a FROM root WHERE !(a > 5 AND b <= 10 or time > 7 AND d == 8);";
-    statement = (SelectStatement) TestUtils.buildStatement(select);
+    statement = (UnarySelectStatement) TestUtils.buildStatement(select);
     filter = statement.getFilter();
     filter.accept(visitor);
   }

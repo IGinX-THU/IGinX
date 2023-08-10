@@ -54,10 +54,11 @@ import cn.edu.tsinghua.iginx.sql.statement.DeleteColumnsStatement;
 import cn.edu.tsinghua.iginx.sql.statement.DeleteStatement;
 import cn.edu.tsinghua.iginx.sql.statement.InsertFromSelectStatement;
 import cn.edu.tsinghua.iginx.sql.statement.InsertStatement;
-import cn.edu.tsinghua.iginx.sql.statement.SelectStatement;
 import cn.edu.tsinghua.iginx.sql.statement.Statement;
 import cn.edu.tsinghua.iginx.sql.statement.StatementType;
 import cn.edu.tsinghua.iginx.sql.statement.SystemStatement;
+import cn.edu.tsinghua.iginx.sql.statement.selectstatement.SelectStatement;
+import cn.edu.tsinghua.iginx.sql.statement.selectstatement.UnarySelectStatement;
 import cn.edu.tsinghua.iginx.statistics.IStatisticsCollector;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.thrift.DataType;
@@ -506,7 +507,8 @@ public class StatementExecutor {
 
   private void processCountPoints(RequestContext ctx) throws ExecutionException, PhysicalException {
     SelectStatement statement =
-        new SelectStatement(Collections.singletonList("*"), 0, Long.MAX_VALUE, AggregateType.COUNT);
+        new UnarySelectStatement(
+            Collections.singletonList("*"), 0, Long.MAX_VALUE, AggregateType.COUNT);
     ctx.setStatement(statement);
     process(ctx);
 
