@@ -1,7 +1,6 @@
 package cn.edu.tsinghua.iginx.filesystem.file.entity;
 
 import cn.edu.tsinghua.iginx.thrift.DataType;
-import java.util.Date;
 import java.util.Map;
 
 public class FileMeta {
@@ -15,7 +14,6 @@ public class FileMeta {
   public static final String TAG_KV_NAME = "tag_KV";
   private DataType dataType;
   private Map<String, String> tag;
-  private Date createTime;
 
   public FileMeta() {
     this.dataType = null;

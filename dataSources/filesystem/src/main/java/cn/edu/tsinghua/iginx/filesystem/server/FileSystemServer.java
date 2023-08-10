@@ -47,7 +47,7 @@ public class FileSystemServer implements Runnable {
     try {
       startServer();
     } catch (TTransportException e) {
-      logger.error("FileSystemStorage service starts failure.");
+      logger.error("Filesystem service starts failure!");
     }
   }
 }

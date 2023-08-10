@@ -52,10 +52,8 @@ import org.slf4j.LoggerFactory;
 
 public class FileSystemStorage implements IStorage {
   private static final String STORAGE_ENGINE = "filesystem";
-  public static final int MAXFILESIZE = 100_000_000;
   private static final Logger logger = LoggerFactory.getLogger(FileSystemStorage.class);
-  private final StorageEngineMeta meta;
-  ExecutorService executorService = Executors.newFixedThreadPool(1); // 为了更好的管理线程
+  ExecutorService executorService = Executors.newSingleThreadExecutor(); // 为了更好管理线程
   private Executor executor;
   private String root = ConfLoader.getRootPath();
 
@@ -71,7 +69,6 @@ public class FileSystemStorage implements IStorage {
     } else {
       executor = new RemoteExecutor(meta.getIp(), meta.getPort());
     }
-    this.meta = meta;
   }
 
   public static boolean isLocalIPAddress(String ip) {
@@ -95,7 +92,7 @@ public class FileSystemStorage implements IStorage {
     String argRoot = meta.getExtraParams().get("dir");
     root = argRoot == null ? root : FilePath.getRootFromArg(argRoot);
 
-    this.executor = new LocalExecutor(root);
+    executor = new LocalExecutor(root);
 
     executorService.submit(new Thread(new FileSystemServer(meta.getPort(), executor)));
   }
@@ -176,7 +173,7 @@ public class FileSystemStorage implements IStorage {
 
   @Override
   public List<Column> getColumns() throws PhysicalException {
-    return executor.getColumnOfStorageUnit("*");
+    return executor.getColumnsOfStorageUnit("*");
   }
 
   @Override

@@ -18,7 +18,6 @@ public class FileSystemHistoryQueryRowStream implements RowStream {
   private final List<FileSystemResultTable> rowData;
   private final int[][] indices;
   private final int[] round;
-  private int batch = 10;
   private int hasMoreRecords = 0;
   private Filter filter;
   private Row nextRow = null;

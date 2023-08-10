@@ -60,7 +60,7 @@ public class LocalExecutor implements Executor {
       boolean isDummyStorageUnit) {
     if (isDummyStorageUnit) {
       if (tagFilter != null) {
-        logger.warn("dummy storage query should contain no tag filter");
+        logger.warn("dummy storage query should not contain tag filter");
         return new TaskExecuteResult(new FileSystemHistoryQueryRowStream());
       }
       return executeDummyProjectTask(paths, filter);
@@ -244,7 +244,7 @@ public class LocalExecutor implements Executor {
   }
 
   @Override
-  public List<Column> getColumnOfStorageUnit(String storageUnit) throws PhysicalException {
+  public List<Column> getColumnsOfStorageUnit(String storageUnit) throws PhysicalException {
     List<Column> files = new ArrayList<>();
 
     File directory = new File(FilePath.toIginxPath(root, storageUnit, null));

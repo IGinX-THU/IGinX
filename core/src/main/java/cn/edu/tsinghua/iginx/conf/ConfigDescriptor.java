@@ -327,6 +327,10 @@ public class ConfigDescriptor {
         EnvUtils.loadEnv("expectedStorageUnitNum", config.getExpectedStorageUnitNum()));
     config.setLocalParquetStorage(
         EnvUtils.loadEnv("isLocalParquetStorage", config.isLocalParquetStorage()));
+    config.setMountedDirectory(
+        EnvUtils.loadEnv(
+            "mountedDirectory",
+            "dataSources/filesystem/src/test/java/cn/edu/tsinghua/iginx/storage/"));
     config.setParallelFilterThreshold(
         EnvUtils.loadEnv("parallelFilterThreshold", config.getParallelFilterThreshold()));
     config.setParallelGroupByRowsThreshold(

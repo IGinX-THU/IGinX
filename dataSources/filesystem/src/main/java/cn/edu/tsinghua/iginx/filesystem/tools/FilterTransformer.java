@@ -12,9 +12,6 @@ import com.alibaba.fastjson2.JSONWriter;
 import java.util.*;
 
 public class FilterTransformer {
-  //  private static int index = 0;
-  //  private static int deep = 0;
-  //  private static String prefix = "A";
 
   public static String toString(Filter filter) {
     if (filter == null) {
@@ -25,7 +22,6 @@ public class FilterTransformer {
 
   public static Filter toFilter(String filter) {
     return JSONB.parseObject(filter.getBytes(), Filter.class);
-    //    return null;
   }
 
   public static FSFilter toFSFilter(Filter filter) {

@@ -36,7 +36,7 @@ public class FileSystemWorker implements FileSystemService.Iface {
 
   private static final Status EXEC_DELETE_FAIL = new Status(403, "execute delete fail");
 
-  private static final Status GET_TS_FAIL = new Status(404, "get time series fail");
+  private static final Status GET_COLUMNS_FAIL = new Status(404, "get key series fail");
 
   private static final Status GET_BOUNDARY_FAIL = new Status(405, "get boundary of storage fail");
 
@@ -67,9 +67,9 @@ public class FileSystemWorker implements FileSystemService.Iface {
     List<String> types = new ArrayList<>();
     List<DataType> dataTypes = new ArrayList<>();
     List<Map<String, String>> tagsList = new ArrayList<>();
-    boolean hasTime;
+    boolean hasKey;
     try {
-      hasTime = rowStream.getHeader().hasKey();
+      hasKey = rowStream.getHeader().hasKey();
       rowStream
           .getHeader()
           .getFields()
@@ -86,7 +86,7 @@ public class FileSystemWorker implements FileSystemService.Iface {
       logger.error("encounter error when get header from RowStream ", e);
       return new ProjectResp(EXEC_PROJECT_FAIL);
     }
-    FileDataHeader fileDataHeader = new FileDataHeader(names, types, tagsList, hasTime);
+    FileDataHeader fileDataHeader = new FileDataHeader(names, types, tagsList, hasKey);
 
     List<FileDataRow> fileDataRows = new ArrayList<>();
     try {
@@ -103,7 +103,7 @@ public class FileSystemWorker implements FileSystemService.Iface {
             new FileDataRow(
                 ByteUtils.getRowByteBuffer(rowValues, dataTypes),
                 ByteBuffer.wrap(bitmap.getBytes()));
-        if (hasTime) {
+        if (hasKey) {
           fileDataRow.setKey(row.getKey());
         }
         fileDataRows.add(fileDataRow);
@@ -128,9 +128,9 @@ public class FileSystemWorker implements FileSystemService.Iface {
     }
 
     List<String> paths = fileDataRawData.getPaths();
-    long[] timeArray = ByteUtils.getLongArrayFromByteArray(fileDataRawData.getKeys());
-    List<Long> times = new ArrayList<>();
-    Arrays.stream(timeArray).forEach(times::add);
+    long[] keyArray = ByteUtils.getLongArrayFromByteArray(fileDataRawData.getKeys());
+    List<Long> keys = new ArrayList<>();
+    Arrays.stream(keyArray).forEach(keys::add);
     List<ByteBuffer> valueList = fileDataRawData.getValuesList();
     List<ByteBuffer> bitmapList = fileDataRawData.getBitmapList();
     List<DataType> types = new ArrayList<>();
@@ -149,14 +149,14 @@ public class FileSystemWorker implements FileSystemService.Iface {
     } else {
       bitmaps =
           bitmapList.stream()
-              .map(x -> new Bitmap(times.size(), x.array()))
+              .map(x -> new Bitmap(keys.size(), x.array()))
               .collect(Collectors.toList());
-      values = ByteUtils.getColumnValuesByDataType(valueList, types, bitmapList, times.size());
+      values = ByteUtils.getColumnValuesByDataType(valueList, types, bitmapList, keys.size());
     }
 
     RawData rawData =
         new RawData(
-            paths, fileDataRawData.getTagsList(), times, values, types, bitmaps, rawDataType);
+            paths, fileDataRawData.getTagsList(), keys, values, types, bitmaps, rawDataType);
 
     DataView dataView;
     if (rawDataType == RawDataType.Row || rawDataType == RawDataType.NonAlignedRow) {
@@ -179,7 +179,7 @@ public class FileSystemWorker implements FileSystemService.Iface {
   public Status executeDelete(DeleteReq req) throws TException {
     TagFilter tagFilter = resolveRawTagFilter(req.getTagFilter());
 
-    // null timeRanges means delete time series
+    // null keyRanges means delete key
     List<KeyRange> keyRanges = null;
     if (req.isSetKeyRanges()) {
       keyRanges = new ArrayList<>();
@@ -201,13 +201,12 @@ public class FileSystemWorker implements FileSystemService.Iface {
   public GetColumnsOfStorageUnitResp getColumnsOfStorageUnit(String storageUnit) throws TException {
     List<PathSet> ret = new ArrayList<>();
     try {
-      List<Column> tsList = executor.getColumnOfStorageUnit(storageUnit);
+      List<Column> tsList = executor.getColumnsOfStorageUnit(storageUnit);
       tsList.forEach(
-          timeseries -> {
-            PathSet pathSet =
-                new PathSet(timeseries.getPath(), timeseries.getDataType().toString());
-            if (timeseries.getTags() != null) {
-              pathSet.setTags(timeseries.getTags());
+          columns -> {
+            PathSet pathSet = new PathSet(columns.getPath(), columns.getDataType().toString());
+            if (columns.getTags() != null) {
+              pathSet.setTags(columns.getTags());
             }
             ret.add(pathSet);
           });
@@ -215,8 +214,8 @@ public class FileSystemWorker implements FileSystemService.Iface {
       resp.setPathList(ret);
       return resp;
     } catch (PhysicalException e) {
-      logger.error("encounter error when getTimeSeriesOfStorageUnit ", e);
-      return new GetColumnsOfStorageUnitResp(GET_TS_FAIL);
+      logger.error("encounter error when geColumnsOfStorageUnit ", e);
+      return new GetColumnsOfStorageUnitResp(GET_COLUMNS_FAIL);
     }
   }
 

@@ -7,7 +7,7 @@ import java.util.Map;
 
 public class FileSystemResultTable {
   private File file;
-  private List<Record> val;
+  private List<Record> records;
   private DataType dataType;
   private Map<String, String> tags;
 
@@ -22,17 +22,17 @@ public class FileSystemResultTable {
   public FileSystemResultTable(
       File file, List<Record> val, DataType dataType, Map<String, String> tags) {
     this.file = file;
-    this.val = val;
+    this.records = val;
     this.dataType = dataType;
     this.tags = tags;
   }
 
   public List<Record> getVal() {
-    return val;
+    return records;
   }
 
   public void setVal(List<Record> val) {
-    this.val = val;
+    this.records = val;
   }
 
   public DataType getDataType() {

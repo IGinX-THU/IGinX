@@ -199,7 +199,7 @@ public class RemoteExecutor implements Executor {
   }
 
   @Override
-  public List<Column> getColumnOfStorageUnit(String storageUnit) throws PhysicalException {
+  public List<Column> getColumnsOfStorageUnit(String storageUnit) throws PhysicalException {
     try {
       GetColumnsOfStorageUnitResp resp = client.getColumnsOfStorageUnit(storageUnit);
       List<Column> timeSeriesList = new ArrayList<>();
