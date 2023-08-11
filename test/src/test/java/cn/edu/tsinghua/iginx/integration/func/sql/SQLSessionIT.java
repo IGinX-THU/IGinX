@@ -499,27 +499,23 @@ public class SQLSessionIT {
   @Test
   public void testDistinct() {
     String insert =
-        "INSERT INTO test(key, a, b) values (1, 1, 1), (2, 2, 1), (3, 2, 2), (4, 3, 1), (5, 3, 2), (6, 3, 1), (7, 4, 1), (8, 4, 2), (9, 4, 3), (10, 4, 1);";
+        "INSERT INTO test(key, a) values (1, 1), (2, 2), (3, 2), (4, 3), (5, 3), (6, 3);";
     executor.execute(insert);
 
-    String statement = "SELECT * FROM test;";
+    String statement = "SELECT a FROM test;";
     String expected =
         "ResultSets:\n"
-            + "+---+------+------+\n"
-            + "|key|test.a|test.b|\n"
-            + "+---+------+------+\n"
-            + "|  1|     1|     1|\n"
-            + "|  2|     2|     1|\n"
-            + "|  3|     2|     2|\n"
-            + "|  4|     3|     1|\n"
-            + "|  5|     3|     2|\n"
-            + "|  6|     3|     1|\n"
-            + "|  7|     4|     1|\n"
-            + "|  8|     4|     2|\n"
-            + "|  9|     4|     3|\n"
-            + "| 10|     4|     1|\n"
-            + "+---+------+------+\n"
-            + "Total line number = 10\n";
+            + "+---+------+\n"
+            + "|key|test.a|\n"
+            + "+---+------+\n"
+            + "|  1|     1|\n"
+            + "|  2|     2|\n"
+            + "|  3|     2|\n"
+            + "|  4|     3|\n"
+            + "|  5|     3|\n"
+            + "|  6|     3|\n"
+            + "+---+------+\n"
+            + "Total line number = 6\n";
     executor.executeAndCompare(statement, expected);
 
     statement = "SELECT DISTINCT a FROM test;";
@@ -531,37 +527,18 @@ public class SQLSessionIT {
             + "|     1|\n"
             + "|     2|\n"
             + "|     3|\n"
-            + "|     4|\n"
             + "+------+\n"
-            + "Total line number = 4\n";
-    executor.executeAndCompare(statement, expected);
-
-    statement = "SELECT DISTINCT a, b FROM test;";
-    expected =
-        "ResultSets:\n"
-            + "+------+------+\n"
-            + "|test.a|test.b|\n"
-            + "+------+------+\n"
-            + "|     1|     1|\n"
-            + "|     2|     1|\n"
-            + "|     2|     2|\n"
-            + "|     3|     1|\n"
-            + "|     3|     2|\n"
-            + "|     4|     1|\n"
-            + "|     4|     2|\n"
-            + "|     4|     3|\n"
-            + "+------+------+\n"
-            + "Total line number = 8\n";
+            + "Total line number = 3\n";
     executor.executeAndCompare(statement, expected);
 
     statement = "SELECT COUNT(a), AVG(a), SUM(a), MIN(a), MAX(a) FROM test;";
     expected =
         "ResultSets:\n"
-            + "+-------------+-----------+-----------+-----------+-----------+\n"
-            + "|count(test.a)|avg(test.a)|sum(test.a)|min(test.a)|max(test.a)|\n"
-            + "+-------------+-----------+-----------+-----------+-----------+\n"
-            + "|           10|        3.0|         30|          1|          4|\n"
-            + "+-------------+-----------+-----------+-----------+-----------+\n"
+            + "+-------------+------------------+-----------+-----------+-----------+\n"
+            + "|count(test.a)|       avg(test.a)|sum(test.a)|min(test.a)|max(test.a)|\n"
+            + "+-------------+------------------+-----------+-----------+-----------+\n"
+            + "|            6|2.3333333333333335|         14|          1|          3|\n"
+            + "+-------------+------------------+-----------+-----------+-----------+\n"
             + "Total line number = 1\n";
     executor.executeAndCompare(statement, expected);
 
@@ -572,70 +549,9 @@ public class SQLSessionIT {
             + "+----------------------+--------------------+--------------------+--------------------+--------------------+\n"
             + "|count(distinct test.a)|avg(distinct test.a)|sum(distinct test.a)|min(distinct test.a)|max(distinct test.a)|\n"
             + "+----------------------+--------------------+--------------------+--------------------+--------------------+\n"
-            + "|                     4|                 2.5|                  10|                   1|                   4|\n"
+            + "|                     3|                 2.0|                   6|                   1|                   3|\n"
             + "+----------------------+--------------------+--------------------+--------------------+--------------------+\n"
             + "Total line number = 1\n";
-    executor.executeAndCompare(statement, expected);
-
-    statement = "SELECT a, COUNT(b), AVG(b), SUM(b), MIN(b), MAX(b) FROM test GROUP BY a;";
-    expected =
-        "ResultSets:\n"
-            + "+------+-------------+------------------+-----------+-----------+-----------+\n"
-            + "|test.a|count(test.b)|       avg(test.b)|sum(test.b)|min(test.b)|max(test.b)|\n"
-            + "+------+-------------+------------------+-----------+-----------+-----------+\n"
-            + "|     1|            1|               1.0|          1|          1|          1|\n"
-            + "|     2|            2|               1.5|          3|          1|          2|\n"
-            + "|     3|            3|1.3333333333333333|          4|          1|          2|\n"
-            + "|     4|            4|              1.75|          7|          1|          3|\n"
-            + "+------+-------------+------------------+-----------+-----------+-----------+\n"
-            + "Total line number = 4\n";
-    executor.executeAndCompare(statement, expected);
-
-    statement =
-        "SELECT a, COUNT(DISTINCT b), AVG(DISTINCT b), SUM(DISTINCT b), MIN(DISTINCT b), MAX(DISTINCT b) FROM test GROUP BY a;";
-    expected =
-        "ResultSets:\n"
-            + "+------+----------------------+--------------------+--------------------+--------------------+--------------------+\n"
-            + "|test.a|count(distinct test.b)|avg(distinct test.b)|sum(distinct test.b)|min(distinct test.b)|max(distinct test.b)|\n"
-            + "+------+----------------------+--------------------+--------------------+--------------------+--------------------+\n"
-            + "|     1|                     1|                 1.0|                   1|                   1|                   1|\n"
-            + "|     2|                     2|                 1.5|                   3|                   1|                   2|\n"
-            + "|     3|                     2|                 1.5|                   3|                   1|                   2|\n"
-            + "|     4|                     3|                 2.0|                   6|                   1|                   3|\n"
-            + "+------+----------------------+--------------------+--------------------+--------------------+--------------------+\n"
-            + "Total line number = 4\n";
-    executor.executeAndCompare(statement, expected);
-
-    statement =
-        "SELECT COUNT(a), AVG(a), SUM(a), MIN(a), MAX(a) FROM test OVER (RANGE 2 IN (0, 10]);";
-    expected =
-        "ResultSets:\n"
-            + "+---+-------------+-----------+-----------+-----------+-----------+\n"
-            + "|key|count(test.a)|avg(test.a)|sum(test.a)|min(test.a)|max(test.a)|\n"
-            + "+---+-------------+-----------+-----------+-----------+-----------+\n"
-            + "|  1|            2|        1.5|          3|          1|          2|\n"
-            + "|  3|            2|        2.5|          5|          2|          3|\n"
-            + "|  5|            2|        3.0|          6|          3|          3|\n"
-            + "|  7|            2|        4.0|          8|          4|          4|\n"
-            + "|  9|            2|        4.0|          8|          4|          4|\n"
-            + "+---+-------------+-----------+-----------+-----------+-----------+\n"
-            + "Total line number = 5\n";
-    executor.executeAndCompare(statement, expected);
-
-    statement =
-        "SELECT COUNT(DISTINCT a), AVG(DISTINCT a), SUM(DISTINCT a), MIN(DISTINCT a), MAX(DISTINCT a) FROM test OVER (RANGE 2 IN (0, 10]);";
-    expected =
-        "ResultSets:\n"
-            + "+---+----------------------+--------------------+--------------------+--------------------+--------------------+\n"
-            + "|key|count(distinct test.a)|avg(distinct test.a)|sum(distinct test.a)|min(distinct test.a)|max(distinct test.a)|\n"
-            + "+---+----------------------+--------------------+--------------------+--------------------+--------------------+\n"
-            + "|  1|                     2|                 1.5|                   3|                   1|                   2|\n"
-            + "|  3|                     2|                 2.5|                   5|                   2|                   3|\n"
-            + "|  5|                     1|                 3.0|                   3|                   3|                   3|\n"
-            + "|  7|                     1|                 4.0|                   4|                   4|                   4|\n"
-            + "|  9|                     1|                 4.0|                   4|                   4|                   4|\n"
-            + "+---+----------------------+--------------------+--------------------+--------------------+--------------------+\n"
-            + "Total line number = 5\n";
     executor.executeAndCompare(statement, expected);
   }
 
