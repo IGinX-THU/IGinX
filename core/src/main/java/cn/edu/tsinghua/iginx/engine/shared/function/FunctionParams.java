@@ -18,6 +18,10 @@ public class FunctionParams {
     this(paths, null, null, false);
   }
 
+  public FunctionParams(List<String> paths, boolean isDistinct) {
+    this(paths, null, null, isDistinct);
+  }
+
   public FunctionParams(Expression expr) {
     this(null, null, expr, false);
   }

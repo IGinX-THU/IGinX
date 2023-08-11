@@ -318,7 +318,12 @@ public class QueryGenerator extends AbstractGenerator {
                 if (!k.equals("")) {
                   v.forEach(
                       expression -> {
-                        FunctionParams params = new FunctionParams(expression.getParams());
+                        FunctionParams params =
+                            FunctionUtils.isCanUseSetQuantifierFunction(k)
+                                ? new FunctionParams(
+                                    expression.getParams(), expression.isDistinct())
+                                : new FunctionParams(expression.getParams());
+
                         functionCallList.add(
                             new FunctionCall(functionManager.getFunction(k), params));
                       });
@@ -340,7 +345,12 @@ public class QueryGenerator extends AbstractGenerator {
                             selectStatement.getLayers().isEmpty()
                                 ? null
                                 : selectStatement.getLayers();
-                        FunctionParams params = new FunctionParams(expression.getParams(), levels);
+
+                        FunctionParams params =
+                            FunctionUtils.isCanUseSetQuantifierFunction(k)
+                                ? new FunctionParams(
+                                    expression.getParams(), levels, expression.isDistinct())
+                                : new FunctionParams(expression.getParams(), levels);
 
                         Operator copySelect = finalRoot.copy();
                         queryList.add(
@@ -365,6 +375,7 @@ public class QueryGenerator extends AbstractGenerator {
                             selectStatement.getLayers().isEmpty()
                                 ? null
                                 : selectStatement.getLayers();
+
                         FunctionParams params =
                             FunctionUtils.isCanUseSetQuantifierFunction(k)
                                 ? new FunctionParams(

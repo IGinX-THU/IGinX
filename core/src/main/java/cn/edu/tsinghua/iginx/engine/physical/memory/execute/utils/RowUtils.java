@@ -18,6 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils;
 
+import static cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils.isCanUseSetQuantifierFunction;
 import static cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils.getHash;
 import static cn.edu.tsinghua.iginx.sql.SQLConstant.DOT;
 
@@ -35,6 +36,8 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
 import cn.edu.tsinghua.iginx.engine.shared.function.SetMappingFunction;
+import cn.edu.tsinghua.iginx.engine.shared.function.system.Max;
+import cn.edu.tsinghua.iginx.engine.shared.function.system.Min;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils;
 import cn.edu.tsinghua.iginx.engine.shared.operator.GroupBy;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
@@ -600,7 +603,7 @@ public class RowUtils {
 
   public static void seqApplyFunc(
       GroupBy groupBy, List<Field> fields, Header header, Map<GroupByKey, List<Row>> groups)
-      throws PhysicalTaskExecuteFailureException {
+      throws PhysicalException {
     List<FunctionCall> functionCallList = groupBy.getFunctionCallList();
     for (FunctionCall functionCall : functionCallList) {
       SetMappingFunction function = (SetMappingFunction) functionCall.getFunction();
@@ -609,6 +612,19 @@ public class RowUtils {
       boolean hasAddedFields = false;
       for (Map.Entry<GroupByKey, List<Row>> entry : groups.entrySet()) {
         List<Row> group = entry.getValue();
+
+        if (params.isDistinct()) {
+          if (!isCanUseSetQuantifierFunction(function.getIdentifier())) {
+            throw new IllegalArgumentException(
+                "function " + function.getIdentifier() + " can't use DISTINCT");
+          }
+          // min和max无需去重
+          if (!function.getIdentifier().equals(Max.MAX)
+              && !function.getIdentifier().equals(Min.MIN)) {
+            group = removeDuplicateRows(group);
+          }
+        }
+
         try {
           Row row = function.transform(new Table(header, group), params);
           if (row != null) {
@@ -650,6 +666,23 @@ public class RowUtils {
                   .forEach(
                       entry -> {
                         List<Row> group = entry.getValue();
+
+                        if (params.isDistinct()) {
+                          if (!isCanUseSetQuantifierFunction(function.getIdentifier())) {
+                            throw new IllegalArgumentException(
+                                "function " + function.getIdentifier() + " can't use DISTINCT");
+                          }
+                          // min和max无需去重
+                          if (!function.getIdentifier().equals(Max.MAX)
+                              && !function.getIdentifier().equals(Min.MIN)) {
+                            try {
+                              group = removeDuplicateRows(group);
+                            } catch (PhysicalException e) {
+                              throw new RuntimeException(e);
+                            }
+                          }
+                        }
+
                         try {
                           Row row = function.transform(new Table(header, group), params);
                           if (row != null) {
@@ -827,5 +860,45 @@ public class RowUtils {
           }
           return 0;
         });
+  }
+
+  public static List<Row> removeDuplicateRows(List<Row> rows) throws PhysicalException {
+    List<Row> targetRows = new ArrayList<>();
+    HashMap<Integer, List<Row>> rowsHashMap = new HashMap<>();
+    List<Row> nullValueRows = new ArrayList<>();
+    tableScan:
+    for (Row row : rows) {
+      Value value = row.getAsValue(row.getField(0).getName());
+      if (value == null) {
+        for (Row nullValueRow : nullValueRows) {
+          if (isEqualRow(row, nullValueRow, false)) {
+            continue tableScan;
+          }
+        }
+        nullValueRows.add(row);
+        targetRows.add(row);
+      } else {
+        int hash;
+        if (value.getDataType() == DataType.BINARY) {
+          hash = Arrays.hashCode(value.getBinaryV());
+        } else {
+          hash = value.getValue().hashCode();
+        }
+        if (rowsHashMap.containsKey(hash)) {
+          List<Row> rowsExist = rowsHashMap.get(hash);
+          for (Row rowExist : rowsExist) {
+            if (isEqualRow(row, rowExist, false)) {
+              continue tableScan;
+            }
+          }
+          rowsExist.add(row);
+        } else {
+          rowsHashMap.put(hash, new ArrayList<>(Collections.singletonList(row)));
+        }
+        targetRows.add(row);
+      }
+    }
+
+    return targetRows;
   }
 }
