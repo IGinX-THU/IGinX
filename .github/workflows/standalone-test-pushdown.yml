@@ -19,7 +19,7 @@ jobs:
                 java: [8]
                 python-version: ["3.7"]
                 os: [ubuntu-latest, macos-latest]
-                DB-name: ["InfluxDB", "Redis"]
+                DB-name: ["InfluxDB", "Redis", "PostgreSQL"]
         runs-on: ${{ matrix.os }}
         steps:
             - uses: actions/checkout@v2
