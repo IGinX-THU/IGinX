@@ -32,20 +32,11 @@ public class Constants {
   public static final String QUERY_STATEMENT =
       "SELECT " + KEY_NAME + ", %s FROM %s WHERE %s ORDER BY " + KEY_NAME + ";";
 
-  public static final String QUERY_STATEMENT_WITHOUT_KEYNAME =
-      "SELECT %s FROM %s WHERE %s ORDER BY %s;";
-
   public static final String QUERY_KEY_STATEMENT_WITHOUT_WHERE_CLAUSE =
       "SELECT %s FROM %s ORDER BY " + KEY_NAME + ";";
 
   public static final String CONCAT_QUERY_STATEMENT_WITHOUT_WHERE_CLAUSE =
       "SELECT concat(%s) AS " + KEY_NAME + ", %s FROM %s ORDER BY " + KEY_NAME + ";";
-
-  public static final String CONCAT_QUERY_STATEMENT_WITH_WHERE_CLAUSE =
-      "SELECT concat(%s) AS " + KEY_NAME + ", %s FROM %s WHERE %s ORDER BY " + KEY_NAME + ";";
-
-  public static final String CONCAT_QUERY_STATEMENT_WITH_WHERE_CLAUSE_AND_CONCAT_KEY =
-      "SELECT concat(%s) AS " + KEY_NAME + ", %s FROM %s WHERE %s ORDER BY concat(%s);";
 
   public static final String CREATE_TABLE_STATEMENT =
       "CREATE TABLE %s (" + KEY_NAME + " BIGINT NOT NULL, %s %s, PRIMARY KEY(" + KEY_NAME + "));";

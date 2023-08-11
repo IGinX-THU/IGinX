@@ -24,7 +24,6 @@ import static cn.edu.tsinghua.iginx.postgresql.tools.HashUtils.toHash;
 import static cn.edu.tsinghua.iginx.postgresql.tools.TagKVUtils.splitFullName;
 import static cn.edu.tsinghua.iginx.postgresql.tools.TagKVUtils.toFullName;
 
-import cn.edu.tsinghua.iginx.engine.logical.utils.ExprUtils;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
@@ -41,7 +40,10 @@ import cn.edu.tsinghua.iginx.engine.shared.data.write.ColumnDataView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.RowDataView;
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
 import cn.edu.tsinghua.iginx.postgresql.query.entity.PostgreSQLQueryRowStream;
@@ -54,7 +56,6 @@ import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.postgresql.ds.PGConnectionPoolDataSource;
 import org.slf4j.Logger;
@@ -218,39 +219,6 @@ public class PostgreSQLStorage implements IStorage {
 
   @Override
   public TaskExecuteResult executeProject(Project project, DataArea dataArea) {
-    KeyInterval keyInterval = dataArea.getKeyInterval();
-    Filter filter =
-        new AndFilter(
-            Arrays.asList(
-                new KeyFilter(Op.GE, keyInterval.getStartKey()),
-                new KeyFilter(Op.L, keyInterval.getEndKey())));
-    return executeProjectWithFilter(project, filter, dataArea);
-  }
-
-  @Override
-  public TaskExecuteResult executeProjectDummy(Project project, DataArea dataArea) {
-    KeyInterval keyInterval = dataArea.getKeyInterval();
-    Filter filter =
-        new AndFilter(
-            Arrays.asList(
-                new KeyFilter(Op.GE, keyInterval.getStartKey()),
-                new KeyFilter(Op.L, keyInterval.getEndKey())));
-    return executeProjectDummyWithFilter(project, filter);
-  }
-
-  @Override
-  public boolean isSupportProjectWithSelect() {
-    return true;
-  }
-
-  @Override
-  public TaskExecuteResult executeProjectWithSelect(
-      Project project, Select select, DataArea dataArea) {
-    return executeProjectWithFilter(project, select.getFilter(), dataArea);
-  }
-
-  private TaskExecuteResult executeProjectWithFilter(
-      Project project, Filter filter, DataArea dataArea) {
     try {
       String databaseName = dataArea.getStorageUnit();
       Connection conn = getConnection(databaseName);
@@ -259,112 +227,39 @@ public class PostgreSQLStorage implements IStorage {
             new PhysicalTaskExecuteFailureException(
                 String.format("cannot connect to database %s", databaseName)));
       }
+      KeyInterval keyInterval = dataArea.getKeyInterval();
+      Filter filter =
+          new AndFilter(
+              Arrays.asList(
+                  new KeyFilter(Op.GE, keyInterval.getStartKey()),
+                  new KeyFilter(Op.L, keyInterval.getEndKey())));
 
       List<String> databaseNameList = new ArrayList<>();
       List<ResultSet> resultSets = new ArrayList<>();
+      ResultSet rs;
       Statement stmt;
 
       Map<String, String> tableNameToColumnNames =
           splitAndMergeQueryPatterns(databaseName, conn, project.getPatterns());
-
-      String statement;
-      if (!filter.toString().contains("*")) {
-        for (Map.Entry<String, String> entry : tableNameToColumnNames.entrySet()) {
-          String tableName = entry.getKey();
-          String fullColumnNames = getFullColumnNames(entry.getValue());
-          statement =
-              String.format(
-                  QUERY_STATEMENT,
-                  fullColumnNames,
-                  getFullName(tableName),
-                  FilterTransformer.toString(filter));
-
-          ResultSet rs = null;
-          try {
-            stmt = conn.createStatement();
-            rs = stmt.executeQuery(statement);
-            logger.info("[Query] execute query: {}", statement);
-          } catch (SQLException e) {
-            logger.error("meet error when executing query {}: {}", statement, e.getMessage());
-            continue;
-          }
-          if (rs != null) {
-            databaseNameList.add(databaseName);
-            resultSets.add(rs);
-          }
-        }
-      }
-      // table中带有了通配符，将所有table都join到一起进行查询，以便输入filter.
-      else if (!tableNameToColumnNames.isEmpty()) {
-        List<String> tableNames = new ArrayList<>();
-        List<List<String>> columnNamesList = new ArrayList<>();
-        for (Map.Entry<String, String> entry : tableNameToColumnNames.entrySet()) {
-          String tableName = entry.getKey();
-          tableNames.add(tableName);
-          List<String> columnNames = new ArrayList<>(Arrays.asList(entry.getValue().split(", ")));
-          // 将columnNames中的列名加上tableName前缀
-          columnNames.replaceAll(s -> tableName + IGINX_SEPARATOR + s);
-          columnNamesList.add(columnNames);
-        }
-
-        StringBuilder fullColumnNames = new StringBuilder();
-        fullColumnNames.append(tableNames.get(0)).append(IGINX_SEPARATOR).append(KEY_NAME);
-        fullColumnNames.append(", ");
-        for (List<String> columnNames : columnNamesList) {
-          for (String columnName : columnNames) {
-            fullColumnNames.append(columnName).append(", ");
-          }
-        }
-        fullColumnNames.delete(fullColumnNames.length() - 2, fullColumnNames.length());
-
-        // table之间用FULL OUTER JOIN ON table1.⺅= table2.⺅ 连接，超过2个table的情况下，需要多次嵌套join
-        StringBuilder fullTableName = new StringBuilder();
-        fullTableName.append(tableNames.get(0));
-        for (int i = 1; i < tableNames.size(); i++) {
-          fullTableName.insert(0, "(");
-          fullTableName.append(" FULL OUTER JOIN ").append(tableNames.get(i)).append(" ON ");
-          for (int j = 0; j < i; j++) {
-            fullTableName
-                .append(tableNames.get(i))
-                .append(IGINX_SEPARATOR)
-                .append(KEY_NAME)
-                .append(" = ")
-                .append(tableNames.get(j))
-                .append(IGINX_SEPARATOR)
-                .append(KEY_NAME);
-            if (j != i - 1) {
-              fullTableName.append(" AND ");
-            }
-          }
-          fullTableName.append(")");
-        }
-
-        // 对通配符做处理，将通配符替换成对应的列名
-        if (FilterTransformer.toString(filter).contains("*")) {
-          filter = generateWildCardsFilter(filter, tableNames, columnNamesList);
-          filter = ExprUtils.mergeTrue(filter);
-        }
-
-        statement =
+      for (Map.Entry<String, String> entry : tableNameToColumnNames.entrySet()) {
+        String tableName = entry.getKey();
+        String fullColumnNames = getFullColumnNames(entry.getValue());
+        String statement =
             String.format(
-                QUERY_STATEMENT_WITHOUT_KEYNAME,
+                QUERY_STATEMENT,
                 fullColumnNames,
-                fullTableName,
-                FilterTransformer.toString(filter),
-                tableNames.get(0) + IGINX_SEPARATOR + KEY_NAME);
-
-        ResultSet rs = null;
+                getFullName(tableName),
+                FilterTransformer.toString(filter));
         try {
           stmt = conn.createStatement();
           rs = stmt.executeQuery(statement);
           logger.info("[Query] execute query: {}", statement);
         } catch (SQLException e) {
           logger.error("meet error when executing query {}: {}", statement, e.getMessage());
+          continue;
         }
-        if (rs != null) {
-          databaseNameList.add(databaseName);
-          resultSets.add(rs);
-        }
+        databaseNameList.add(databaseName);
+        resultSets.add(rs);
       }
 
       RowStream rowStream =
@@ -380,323 +275,39 @@ public class PostgreSQLStorage implements IStorage {
     }
   }
 
-  private Filter generateWildCardsFilter(
-      Filter filter, List<String> tableNames, List<List<String>> columnNamesList) {
-    switch (filter.getType()) {
-      case And:
-        List<Filter> andChildren = ((AndFilter) filter).getChildren();
-        for (Filter child : andChildren) {
-          Filter newFilter = generateWildCardsFilter(child, tableNames, columnNamesList);
-          andChildren.set(andChildren.indexOf(child), newFilter);
-        }
-        return new AndFilter(andChildren);
-      case Or:
-        List<Filter> orChildren = ((OrFilter) filter).getChildren();
-        for (Filter child : orChildren) {
-          Filter newFilter = generateWildCardsFilter(child, tableNames, columnNamesList);
-          orChildren.set(orChildren.indexOf(child), newFilter);
-        }
-        return new OrFilter(orChildren);
-      case Not:
-        Filter notChild = ((NotFilter) filter).getChild();
-        Filter newFilter = generateWildCardsFilter(notChild, tableNames, columnNamesList);
-        return new NotFilter(newFilter);
-      case Value:
-        String path = ((ValueFilter) filter).getPath();
-        if (path.contains("*")) {
-          List<String> matchedPath = getMatchedPath(path, tableNames, columnNamesList);
-          if (matchedPath.size() == 0) {
-            return new BoolFilter(true);
-          } else if (matchedPath.size() == 1) {
-            return new ValueFilter(
-                matchedPath.get(0),
-                ((ValueFilter) filter).getOp(),
-                ((ValueFilter) filter).getValue());
-          } else {
-            List<Filter> andValueChildren = new ArrayList<>();
-            for (String matched : matchedPath) {
-              andValueChildren.add(
-                  new ValueFilter(
-                      matched, ((ValueFilter) filter).getOp(), ((ValueFilter) filter).getValue()));
-            }
-            return new AndFilter(andValueChildren);
-          }
-        }
-
-        return filter;
-      case Path:
-        String pathA = ((PathFilter) filter).getPathA();
-        String pathB = ((PathFilter) filter).getPathB();
-        if (pathA.contains("*")) {
-          List<String> matchedPath = getMatchedPath(pathA, tableNames, columnNamesList);
-          if (matchedPath.size() == 0) {
-            return new BoolFilter(true);
-          } else if (matchedPath.size() == 1) {
-            return new PathFilter(
-                matchedPath.get(0),
-                ((PathFilter) filter).getOp(),
-                ((PathFilter) filter).getPathB());
-          } else {
-            List<Filter> andPathChildren = new ArrayList<>();
-            for (String matched : matchedPath) {
-              andPathChildren.add(
-                  new PathFilter(
-                      matched, ((PathFilter) filter).getOp(), ((PathFilter) filter).getPathB()));
-            }
-            filter = new AndFilter(andPathChildren);
-          }
-        }
-
-        if (pathB.contains("*")) {
-          if (filter.getType() != FilterType.And) {
-            return generateWildCardsFilter(filter, tableNames, columnNamesList);
-          }
-
-          List<String> matchedPath = getMatchedPath(pathB, tableNames, columnNamesList);
-          if (matchedPath.size() == 0) {
-            return new BoolFilter(true);
-          } else if (matchedPath.size() == 1) {
-            return new PathFilter(
-                ((PathFilter) filter).getPathA(),
-                ((PathFilter) filter).getOp(),
-                matchedPath.get(0));
-          } else {
-            List<Filter> andPathChildren = new ArrayList<>();
-            for (String matched : matchedPath) {
-              andPathChildren.add(
-                  new PathFilter(
-                      ((PathFilter) filter).getPathA(), ((PathFilter) filter).getOp(), matched));
-            }
-            return new AndFilter(andPathChildren);
-          }
-        }
-
-        return filter;
-
-      case Bool:
-      case Key:
-      default:
-        break;
-    }
-    return filter;
-  }
-
-  private List<String> getMatchedPath(
-      String path, List<String> tableNames, List<List<String>> columnNamesList) {
-    List<String> matchedPath = new ArrayList<>();
-    path = path.replace(".", "\\.");
-    path = path.replace("*", ".*");
-    Pattern pattern = Pattern.compile("^" + path + "$");
-    for (int i = 0; i < tableNames.size(); i++) {
-      List<String> columnNames = columnNamesList.get(i);
-      for (String columnName : columnNames) {
-        Matcher matcher =
-            pattern.matcher(
-                columnName.replace(
-                    Character.toString(POSTGRESQL_SEPARATOR), Character.toString(IGINX_SEPARATOR)));
-        if (matcher.find()) {
-          matchedPath.add(columnName);
-        }
-      }
-    }
-    return matchedPath;
-  }
-
-  private Filter cutFilterDatabaseNameForDummy(Filter filter, String databaseName) {
-    switch (filter.getType()) {
-      case And:
-        List<Filter> andChildren = ((AndFilter) filter).getChildren();
-        andChildren.replaceAll(child -> cutFilterDatabaseNameForDummy(child, databaseName));
-        return new AndFilter(andChildren);
-      case Or:
-        List<Filter> orChildren = ((OrFilter) filter).getChildren();
-        orChildren.replaceAll(child -> cutFilterDatabaseNameForDummy(child, databaseName));
-        return new OrFilter(orChildren);
-      case Not:
-        return new NotFilter(
-            cutFilterDatabaseNameForDummy(((NotFilter) filter).getChild(), databaseName));
-      case Value:
-        String path = ((ValueFilter) filter).getPath();
-        if (path.startsWith(databaseName + IGINX_SEPARATOR)) {
-          return new ValueFilter(
-              path.substring(databaseName.length() + 1),
-              ((ValueFilter) filter).getOp(),
-              ((ValueFilter) filter).getValue());
-        }
-        break;
-      case Path:
-        boolean isChanged = false;
-        String pathA = ((PathFilter) filter).getPathA();
-        String pathB = ((PathFilter) filter).getPathB();
-        if (pathA.startsWith(databaseName + IGINX_SEPARATOR)) {
-          pathA = pathA.substring(databaseName.length() + 1);
-          isChanged = true;
-        }
-        if (pathB.startsWith(databaseName + IGINX_SEPARATOR)) {
-          pathB = pathB.substring(databaseName.length() + 1);
-          isChanged = true;
-        }
-        if (isChanged) {
-          return new PathFilter(pathA, ((PathFilter) filter).getOp(), pathB);
-        }
-        break;
-      default:
-        break;
-    }
-    return filter;
-  }
-
-  private Map<String, String> getAllColumnNameForTable(
-      String databaseName, Map<String, String> tableNameToColumnNames) throws SQLException {
-    Map<String, String> allColumnNameForTable = new HashMap<>();
-    for (Map.Entry<String, String> entry : tableNameToColumnNames.entrySet()) {
-      String tableName = entry.getKey();
-      String columnNames = "";
-      Connection conn = getConnection(databaseName);
-      if (conn == null) {
-        continue;
-      }
-      ResultSet rs = conn.getMetaData().getColumns(databaseName, "public", tableName, "%");
-      while (rs.next()) {
-        tableName = rs.getString("TABLE_NAME");
-        columnNames = tableName + IGINX_SEPARATOR + rs.getString("COLUMN_NAME");
-        if (allColumnNameForTable.containsKey(tableName)) {
-          columnNames = allColumnNameForTable.get(tableName) + ", " + columnNames;
-        }
-        allColumnNameForTable.put(tableName, columnNames);
-      }
-    }
-    return allColumnNameForTable;
-  }
-
   @Override
-  public TaskExecuteResult executeProjectDummyWithSelect(
-      Project project, Select select, DataArea dataArea) {
-    Filter filter = select.getFilter();
-    return executeProjectDummyWithFilter(project, filter);
-  }
-
-  private TaskExecuteResult executeProjectDummyWithFilter(Project project, Filter filter) {
+  public TaskExecuteResult executeProjectDummy(Project project, DataArea dataArea) {
     try {
+      KeyInterval keyInterval = dataArea.getKeyInterval();
+      Filter filter =
+          new AndFilter(
+              Arrays.asList(
+                  new KeyFilter(Op.GE, keyInterval.getStartKey()),
+                  new KeyFilter(Op.L, keyInterval.getEndKey())));
+
       List<String> databaseNameList = new ArrayList<>();
       List<ResultSet> resultSets = new ArrayList<>();
-      ResultSet rs = null;
+      ResultSet rs;
       Connection conn = null;
       Statement stmt;
-      String statement;
 
       Map<String, Map<String, String>> splitResults =
           splitAndMergeHistoryQueryPatterns(project.getPatterns());
       for (Map.Entry<String, Map<String, String>> splitEntry : splitResults.entrySet()) {
-        Map<String, String> tableNameToColumnNames = splitEntry.getValue();
         String databaseName = splitEntry.getKey();
         conn = getConnection(databaseName);
         if (conn == null) {
           continue;
         }
-        if (!filter.toString().contains("*")) {
-          Map<String, String> allColumnNameForTable =
-              getAllColumnNameForTable(databaseName, tableNameToColumnNames);
-          for (Map.Entry<String, String> entry : splitEntry.getValue().entrySet()) {
-            String tableName = entry.getKey();
-            String fullColumnNames = getFullColumnNames(entry.getValue());
-            statement =
-                String.format(
-                    CONCAT_QUERY_STATEMENT_WITH_WHERE_CLAUSE_AND_CONCAT_KEY,
-                    allColumnNameForTable.get(tableName),
-                    fullColumnNames,
-                    getFullName(tableName),
-                    FilterTransformer.toString(
-                        dummyFilterSetTrueByColumnNames(
-                            filter.copy(), Arrays.asList(entry.getValue().split(", ")))),
-                    allColumnNameForTable.get(tableName));
-
-            try {
-              stmt = conn.createStatement();
-              rs = stmt.executeQuery(statement);
-              logger.info("[Query] execute query: {}", statement);
-            } catch (SQLException e) {
-              logger.error("meet error when executing query {}: {}", statement, e.getMessage());
-              continue;
-            }
-            databaseNameList.add(databaseName);
-            resultSets.add(rs);
-          }
-        }
-        // table中带有了通配符，将所有table都join到一起进行查询，以便输入filter.
-        else if (!tableNameToColumnNames.isEmpty()) {
-          List<String> tableNames = new ArrayList<>();
-          List<List<String>> columnNamesList = new ArrayList<>();
-
-          // 将columnNames中的列名加上tableName前缀，带JOIN的查询语句中需要用到
-          for (Map.Entry<String, String> entry : tableNameToColumnNames.entrySet()) {
-            String tableName = entry.getKey();
-            tableNames.add(tableName);
-            List<String> columnNames = new ArrayList<>(Arrays.asList(entry.getValue().split(", ")));
-            columnNames.replaceAll(s -> tableName + IGINX_SEPARATOR + s);
-            columnNamesList.add(columnNames);
-          }
-
-          StringBuilder fullColumnNames = new StringBuilder();
-          for (List<String> columnNames : columnNamesList) {
-            for (String columnName : columnNames) {
-              fullColumnNames.append(columnName).append(", ");
-            }
-          }
-          fullColumnNames.delete(fullColumnNames.length() - 2, fullColumnNames.length());
-
-          // 这里获取所有table的所有列名，用于concat时生成key列。
-          Map<String, String> allColumnNameForTable =
-              getAllColumnNameForTable(databaseName, tableNameToColumnNames);
-          StringBuilder allColumnNames = new StringBuilder();
-          for (String tableName : tableNames) {
-            allColumnNames.append(allColumnNameForTable.get(tableName)).append(", ");
-          }
-          allColumnNames.delete(allColumnNames.length() - 2, allColumnNames.length());
-
-          // table之间用FULL OUTER JOIN ON concat(table1所有列) = concat(table2所有列)
-          // 连接，超过2个table的情况下，需要多次嵌套join
-          StringBuilder fullTableName = new StringBuilder();
-          fullTableName.append(tableNames.get(0));
-          for (int i = 1; i < tableNames.size(); i++) {
-            fullTableName.insert(0, "(");
-            fullTableName.append(" FULL OUTER JOIN ").append(tableNames.get(i)).append(" ON ");
-            for (int j = 0; j < i; j++) {
-              fullTableName
-                  .append("CONCAT(")
-                  .append(allColumnNameForTable.get(tableNames.get(i)))
-                  .append(")")
-                  .append(" = ")
-                  .append("CONCAT(")
-                  .append(allColumnNameForTable.get(tableNames.get(j)))
-                  .append(")");
-              if (j != i - 1) {
-                fullTableName.append(" AND ");
-              }
-            }
-            fullTableName.append(")");
-          }
-
-          Filter copyFilter =
-              dummyFilterSetTrueByColumnNames(
-                  filter.copy(), Arrays.asList(fullColumnNames.toString().split(", ")));
-
-          copyFilter = cutFilterDatabaseNameForDummy(copyFilter, databaseName);
-
-          // 对通配符做处理，将通配符替换成对应的列名
-          if (FilterTransformer.toString(copyFilter).contains("*")) {
-            copyFilter = generateWildCardsFilter(copyFilter, tableNames, columnNamesList);
-            copyFilter = ExprUtils.mergeTrue(copyFilter);
-          }
-
-          statement =
+        for (Map.Entry<String, String> entry : splitEntry.getValue().entrySet()) {
+          String tableName = entry.getKey();
+          String fullColumnNames = getFullColumnNames(entry.getValue());
+          String statement =
               String.format(
-                  CONCAT_QUERY_STATEMENT_WITH_WHERE_CLAUSE_AND_CONCAT_KEY,
-                  allColumnNames,
+                  CONCAT_QUERY_STATEMENT_WITHOUT_WHERE_CLAUSE,
                   fullColumnNames,
-                  fullTableName,
-                  FilterTransformer.toString(copyFilter),
-                  allColumnNames);
+                  fullColumnNames,
+                  getFullName(tableName));
 
           try {
             stmt = conn.createStatement();
@@ -704,11 +315,10 @@ public class PostgreSQLStorage implements IStorage {
             logger.info("[Query] execute query: {}", statement);
           } catch (SQLException e) {
             logger.error("meet error when executing query {}: {}", statement, e.getMessage());
+            continue;
           }
-          if (rs != null) {
-            databaseNameList.add(databaseName);
-            resultSets.add(rs);
-          }
+          databaseNameList.add(databaseName);
+          resultSets.add(rs);
         }
       }
 
@@ -727,39 +337,21 @@ public class PostgreSQLStorage implements IStorage {
     }
   }
 
-  private Filter dummyFilterSetTrueByColumnNames(Filter filter, List<String> columnNameList) {
-    switch (filter.getType()) {
-      case And:
-        List<Filter> andChildren = ((AndFilter) filter).getChildren();
-        andChildren.replaceAll(child -> dummyFilterSetTrueByColumnNames(child, columnNameList));
-        return new AndFilter(andChildren);
-      case Or:
-        List<Filter> orChildren = ((OrFilter) filter).getChildren();
-        orChildren.replaceAll(child -> dummyFilterSetTrueByColumnNames(child, columnNameList));
-        return new OrFilter(orChildren);
-      case Not:
-        return new NotFilter(
-            dummyFilterSetTrueByColumnNames(((NotFilter) filter).getChild(), columnNameList));
-      case Value:
-        String path = ((ValueFilter) filter).getPath();
-        if (!path.contains("*") && !columnNameList.contains(path)) {
-          return new BoolFilter(true);
-        }
-        break;
-      case Path:
-        String pathA = ((PathFilter) filter).getPathA();
-        String pathB = ((PathFilter) filter).getPathB();
-        if ((!pathA.contains("*") && !columnNameList.contains(pathA))
-            || (!pathB.contains("*") && !columnNameList.contains(pathB))) {
-          return new BoolFilter(true);
-        }
-        break;
-      case Key:
-        return new BoolFilter(true);
-      default:
-        break;
-    }
-    return filter;
+  @Override
+  public boolean isSupportProjectWithSelect() {
+    return false;
+  }
+
+  @Override
+  public TaskExecuteResult executeProjectWithSelect(
+      Project project, Select select, DataArea dataArea) {
+    return null;
+  }
+
+  @Override
+  public TaskExecuteResult executeProjectDummyWithSelect(
+      Project project, Select select, DataArea dataArea) {
+    return null;
   }
 
   @Override
@@ -1021,17 +613,6 @@ public class PostgreSQLStorage implements IStorage {
         }
         if (tableNameToColumnNames.containsKey(tableName)) {
           columnNames = tableNameToColumnNames.get(tableName) + ", " + columnNames;
-          // 此处需要去重
-          List<String> columnNamesList =
-              new ArrayList<>(Arrays.asList(tableNameToColumnNames.get(tableName).split(", ")));
-          List<String> newColumnNamesList = new ArrayList<>(Arrays.asList(columnNames.split(", ")));
-          for (String newColumnName : newColumnNamesList) {
-            if (!columnNamesList.contains(newColumnName)) {
-              columnNamesList.add(newColumnName);
-            }
-          }
-
-          columnNames = String.join(", ", columnNamesList);
         }
         tableNameToColumnNames.put(tableName, columnNames);
       }
@@ -1129,25 +710,7 @@ public class PostgreSQLStorage implements IStorage {
           tableNameToColumnNames.put(tableName, columnNames);
         }
         if (splitResults.containsKey(databaseName)) {
-          Map<String, String> oldTableNameToColumnNames = splitResults.get(databaseName);
-          for (Map.Entry<String, String> entry : tableNameToColumnNames.entrySet()) {
-            String oldColumnNames = oldTableNameToColumnNames.get(entry.getKey());
-            if (oldColumnNames != null) {
-              List<String> oldColumnNameList =
-                  Arrays.asList((oldColumnNames + ", " + entry.getValue()).split(", "));
-              // 对list去重
-              List<String> newColumnNameList = new ArrayList<>();
-              for (String columnName : oldColumnNameList) {
-                if (!newColumnNameList.contains(columnName)) {
-                  newColumnNameList.add(columnName);
-                }
-              }
-              oldTableNameToColumnNames.put(entry.getKey(), String.join(", ", newColumnNameList));
-            } else {
-              oldTableNameToColumnNames.put(entry.getKey(), entry.getValue());
-            }
-          }
-          tableNameToColumnNames = oldTableNameToColumnNames;
+          tableNameToColumnNames.putAll(splitResults.get(databaseName));
         }
         splitResults.put(databaseName, tableNameToColumnNames);
       }

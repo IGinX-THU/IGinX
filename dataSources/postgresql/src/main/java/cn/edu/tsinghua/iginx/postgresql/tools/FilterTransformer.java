@@ -18,10 +18,9 @@
  */
 package cn.edu.tsinghua.iginx.postgresql.tools;
 
-import static cn.edu.tsinghua.iginx.postgresql.tools.Constants.*;
+import static cn.edu.tsinghua.iginx.postgresql.tools.Constants.KEY_NAME;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
-import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.stream.Collectors;
 
 public class FilterTransformer {
@@ -41,10 +40,6 @@ public class FilterTransformer {
         return toString((ValueFilter) filter);
       case Key:
         return toString((KeyFilter) filter);
-      case Path:
-        return toString((PathFilter) filter);
-      case Bool:
-        return toString((BoolFilter) filter);
       default:
         return "";
     }
@@ -56,72 +51,21 @@ public class FilterTransformer {
         .collect(Collectors.joining(" and ", "(", ")"));
   }
 
-  private static String toString(BoolFilter filter) {
-    return filter.isTrue() ? "true" : "false";
-  }
-
   private static String toString(NotFilter filter) {
-    return "not " + toString(filter.getChild());
+    return "not " + filter.toString();
   }
 
   private static String toString(KeyFilter filter) {
-    String op =
-        Op.op2Str(filter.getOp())
-            .replace("==", "="); // postgresql does not support "==" but uses "=" instead
-    return (KEY_NAME + " " + op + " " + filter.getValue())
-        .replace(IGINX_SEPARATOR, Constants.POSTGRESQL_SEPARATOR);
+    return KEY_NAME + " " + Op.op2Str(filter.getOp()) + " " + filter.getValue();
   }
 
   private static String toString(ValueFilter filter) {
-    int lastIndexOfSeparator = filter.getPath().lastIndexOf(IGINX_SEPARATOR);
-    String path =
-        filter
-                .getPath()
-                .substring(0, lastIndexOfSeparator)
-                .replace(IGINX_SEPARATOR, Constants.POSTGRESQL_SEPARATOR)
-            + filter.getPath().substring(lastIndexOfSeparator);
-
-    String op =
-        filter.getOp() == Op.LIKE
-            ? "~"
-            : Op.op2Str(filter.getOp())
-                .replace("==", "="); // postgresql does not support "==" but uses "=" instead
-
-    String regex_symbol = filter.getOp() == Op.LIKE ? "$" : "";
-
-    Object value =
-        filter.getValue().getDataType() == DataType.BINARY
-            ? "'" + filter.getValue().getBinaryVAsString() + regex_symbol + "'"
-            : filter.getValue().getValue();
-
-    return path + " " + op + " " + value;
+    return filter.getPath() + " " + Op.op2Str(filter.getOp()) + " " + filter.getValue().getValue();
   }
 
   private static String toString(OrFilter filter) {
     return filter.getChildren().stream()
         .map(FilterTransformer::toString)
         .collect(Collectors.joining(" or ", "(", ")"));
-  }
-
-  private static String toString(PathFilter filter) {
-    int lastIndexOfSeparatorA = filter.getPathA().lastIndexOf(IGINX_SEPARATOR);
-    int lastIndexOfSeparatorB = filter.getPathB().lastIndexOf(IGINX_SEPARATOR);
-    String pathA =
-        filter
-                .getPathA()
-                .substring(0, lastIndexOfSeparatorA)
-                .replace(IGINX_SEPARATOR, Constants.POSTGRESQL_SEPARATOR)
-            + filter.getPathA().substring(lastIndexOfSeparatorA);
-    String pathB =
-        filter
-                .getPathB()
-                .substring(0, lastIndexOfSeparatorB)
-                .replace(IGINX_SEPARATOR, Constants.POSTGRESQL_SEPARATOR)
-            + filter.getPathB().substring(lastIndexOfSeparatorB);
-
-    String op =
-        Op.op2Str(filter.getOp())
-            .replace("==", "="); // postgresql does not support "==" but uses "=" instead
-    return pathA + " " + op + " " + pathB;
   }
 }
