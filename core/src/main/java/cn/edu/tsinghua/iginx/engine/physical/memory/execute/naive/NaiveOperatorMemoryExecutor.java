@@ -27,8 +27,8 @@ import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtil
 import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.equalOnSpecificPaths;
 import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.establishHashMap;
 import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.getSamePathWithSpecificPrefix;
-import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.isEqualRow;
 import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.isValueEqualRow;
+import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.removeDuplicateRows;
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.ALL_PATH_SUFFIX;
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.KEY;
 import static cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils.isCanUseSetQuantifierFunction;
@@ -86,12 +86,10 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OuterJoinType;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import cn.edu.tsinghua.iginx.engine.shared.source.SourceType;
-import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -244,6 +242,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
   private RowStream executeSelect(Select select, Table table) throws PhysicalException {
     Filter filter = select.getFilter();
     List<Row> rows = table.getRows();
+
     List<Row> targetRows = RowUtils.cacheFilterResult(rows, filter);
     return new Table(table.getHeader(), targetRows);
   }
@@ -308,6 +307,19 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
       for (Map.Entry<Long, List<Row>> entry : groups.entrySet()) {
         long time = entry.getKey();
         List<Row> group = entry.getValue();
+
+        if (params.isDistinct()) {
+          if (!isCanUseSetQuantifierFunction(function.getIdentifier())) {
+            throw new IllegalArgumentException(
+                "function " + function.getIdentifier() + " can't use DISTINCT");
+          }
+          // min和max无需去重
+          if (!function.getIdentifier().equals(Max.MAX)
+              && !function.getIdentifier().equals(Min.MIN)) {
+            group = removeDuplicateRows(group);
+          }
+        }
+
         Row row = function.transform(new Table(header, group), params);
         if (row != null) {
           transformedRawRows.add(new Pair<>(time, row));
@@ -594,41 +606,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     }
 
     Header newHeader = new Header(table.getHeader().getFields());
-    List<Row> targetRows = new ArrayList<>();
-    HashMap<Integer, List<Row>> rowsHashMap = new HashMap<>();
-    List<Row> nullValueRows = new ArrayList<>();
-    tableScan:
-    for (Row row : table.getRows()) {
-      Value value = row.getAsValue(row.getField(0).getName());
-      if (value == null) {
-        for (Row nullValueRow : nullValueRows) {
-          if (isEqualRow(row, nullValueRow, false)) {
-            continue tableScan;
-          }
-        }
-        nullValueRows.add(row);
-        targetRows.add(row);
-      } else {
-        int hash;
-        if (value.getDataType() == DataType.BINARY) {
-          hash = Arrays.hashCode(value.getBinaryV());
-        } else {
-          hash = value.getValue().hashCode();
-        }
-        if (rowsHashMap.containsKey(hash)) {
-          List<Row> rowsExist = rowsHashMap.get(hash);
-          for (Row rowExist : rowsExist) {
-            if (isEqualRow(row, rowExist, false)) {
-              continue tableScan;
-            }
-          }
-          rowsExist.add(row);
-        } else {
-          rowsHashMap.put(hash, new ArrayList<>(Collections.singletonList(row)));
-        }
-        targetRows.add(row);
-      }
-    }
+    List<Row> targetRows = removeDuplicateRows(table.getRows());
 
     return new Table(newHeader, targetRows);
   }
