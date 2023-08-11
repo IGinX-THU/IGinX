@@ -12,13 +12,14 @@ import cn.edu.tsinghua.iginx.sql.statement.DeleteColumnsStatement;
 import cn.edu.tsinghua.iginx.sql.statement.DeleteStatement;
 import cn.edu.tsinghua.iginx.sql.statement.InsertFromSelectStatement;
 import cn.edu.tsinghua.iginx.sql.statement.InsertStatement;
-import cn.edu.tsinghua.iginx.sql.statement.SelectStatement;
 import cn.edu.tsinghua.iginx.sql.statement.ShowReplicationStatement;
 import cn.edu.tsinghua.iginx.sql.statement.StatementType;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.FromPartType;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.SubQueryFromPart;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.join.JoinCondition;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.join.JoinType;
+import cn.edu.tsinghua.iginx.sql.statement.selectstatement.SelectStatement;
+import cn.edu.tsinghua.iginx.sql.statement.selectstatement.UnarySelectStatement;
 import cn.edu.tsinghua.iginx.thrift.StorageEngine;
 import java.util.Arrays;
 import java.util.Collections;
@@ -74,12 +75,12 @@ public class ParseTest {
   public void testParseSelect() {
     String selectStr =
         "SELECT SUM(c), SUM(d), SUM(e), COUNT(f), COUNT(g) FROM a.b WHERE 100 < key and key < 1000 or d == \"abc\" or \"666\" <= c or (e < 10 and not (f < 10)) OVER (RANGE 10 IN [200, 300)) AGG LEVEL = 2, 3;";
-    SelectStatement statement = (SelectStatement) TestUtils.buildStatement(selectStr);
+    UnarySelectStatement statement = (UnarySelectStatement) TestUtils.buildStatement(selectStr);
 
     assertTrue(statement.hasFunc());
     assertTrue(statement.hasValueFilter());
     assertTrue(statement.hasDownsample());
-    assertEquals(SelectStatement.QueryType.DownSampleQuery, statement.getQueryType());
+    assertEquals(UnarySelectStatement.QueryType.DownSampleQuery, statement.getQueryType());
 
     assertEquals(2, statement.getFuncExpressionMap().size());
     assertTrue(statement.getFuncExpressionMap().containsKey("sum"));
@@ -115,12 +116,12 @@ public class ParseTest {
   @Test
   public void testFilter() {
     String selectStr = "SELECT a FROM root WHERE a > 100;";
-    SelectStatement statement = (SelectStatement) TestUtils.buildStatement(selectStr);
+    UnarySelectStatement statement = (UnarySelectStatement) TestUtils.buildStatement(selectStr);
     assertEquals(new HashSet<>(Collections.singletonList("root.a")), statement.getPathSet());
     assertEquals("root.a > 100", statement.getFilter().toString());
 
     selectStr = "SELECT a, b FROM root WHERE a > b;";
-    statement = (SelectStatement) TestUtils.buildStatement(selectStr);
+    statement = (UnarySelectStatement) TestUtils.buildStatement(selectStr);
     assertEquals(new HashSet<>(Arrays.asList("root.a", "root.b")), statement.getPathSet());
     assertEquals("root.a > root.b", statement.getFilter().toString());
   }
@@ -128,13 +129,13 @@ public class ParseTest {
   @Test
   public void testParseGroupBy() {
     String selectStr = "SELECT MAX(c) FROM a.b OVER (RANGE 10 IN [100, 1000));";
-    SelectStatement statement = (SelectStatement) TestUtils.buildStatement(selectStr);
+    UnarySelectStatement statement = (UnarySelectStatement) TestUtils.buildStatement(selectStr);
     assertEquals(100, statement.getStartKey());
     assertEquals(1000, statement.getEndKey());
     assertEquals(10L, statement.getPrecision());
 
     selectStr = "SELECT SUM(c) FROM a.b AGG LEVEL = 1, 2;";
-    statement = (SelectStatement) TestUtils.buildStatement(selectStr);
+    statement = (UnarySelectStatement) TestUtils.buildStatement(selectStr);
     assertEquals(
         Collections.singletonList("a.b.c"),
         statement.getFuncExpressionMap().get("sum").get(0).getParams());
@@ -144,24 +145,24 @@ public class ParseTest {
   @Test
   public void testParseSpecialClause() {
     String limit = "SELECT a FROM test LIMIT 2, 5;";
-    SelectStatement statement = (SelectStatement) TestUtils.buildStatement(limit);
+    UnarySelectStatement statement = (UnarySelectStatement) TestUtils.buildStatement(limit);
     assertEquals(5, statement.getLimit());
     assertEquals(2, statement.getOffset());
 
     String orderBy = "SELECT a FROM test ORDER BY KEY";
-    statement = (SelectStatement) TestUtils.buildStatement(orderBy);
+    statement = (UnarySelectStatement) TestUtils.buildStatement(orderBy);
     assertEquals(Collections.singletonList(SQLConstant.KEY), statement.getOrderByPaths());
     assertTrue(statement.isAscending());
 
     String orderByAndLimit = "SELECT a FROM test ORDER BY a DESC LIMIT 10 OFFSET 5;";
-    statement = (SelectStatement) TestUtils.buildStatement(orderByAndLimit);
+    statement = (UnarySelectStatement) TestUtils.buildStatement(orderByAndLimit);
     assertEquals(Collections.singletonList("test.a"), statement.getOrderByPaths());
     assertFalse(statement.isAscending());
     assertEquals(5, statement.getOffset());
     assertEquals(10, statement.getLimit());
 
     String groupBy = "SELECT max(a) FROM test OVER (RANGE 5 IN (10, 120])";
-    statement = (SelectStatement) TestUtils.buildStatement(groupBy);
+    statement = (UnarySelectStatement) TestUtils.buildStatement(groupBy);
 
     assertEquals(11, statement.getStartKey());
     assertEquals(121, statement.getEndKey());
@@ -169,7 +170,7 @@ public class ParseTest {
 
     String groupByAndLimit =
         "SELECT max(a) FROM test OVER (RANGE 10 IN (10, 120)) LIMIT 5 OFFSET 2;";
-    statement = (SelectStatement) TestUtils.buildStatement(groupByAndLimit);
+    statement = (UnarySelectStatement) TestUtils.buildStatement(groupByAndLimit);
     assertEquals(11, statement.getStartKey());
     assertEquals(120, statement.getEndKey());
     assertEquals(10L, statement.getPrecision());
@@ -202,19 +203,20 @@ public class ParseTest {
     String selectWithLimitAndOffset02 = "SELECT * FROM a.b LIMIT 10 OFFSET 2";
     String selectWithLimitAndOffset03 = "SELECT * FROM a.b OFFSET 2 LIMIT 10";
 
-    SelectStatement statement = (SelectStatement) TestUtils.buildStatement(selectWithLimit);
+    UnarySelectStatement statement =
+        (UnarySelectStatement) TestUtils.buildStatement(selectWithLimit);
     assertEquals(10, statement.getLimit());
     assertEquals(0, statement.getOffset());
 
-    statement = (SelectStatement) TestUtils.buildStatement(selectWithLimitAndOffset01);
+    statement = (UnarySelectStatement) TestUtils.buildStatement(selectWithLimitAndOffset01);
     assertEquals(10, statement.getLimit());
     assertEquals(2, statement.getOffset());
 
-    statement = (SelectStatement) TestUtils.buildStatement(selectWithLimitAndOffset02);
+    statement = (UnarySelectStatement) TestUtils.buildStatement(selectWithLimitAndOffset02);
     assertEquals(10, statement.getLimit());
     assertEquals(2, statement.getOffset());
 
-    statement = (SelectStatement) TestUtils.buildStatement(selectWithLimitAndOffset03);
+    statement = (UnarySelectStatement) TestUtils.buildStatement(selectWithLimitAndOffset03);
     assertEquals(10, statement.getLimit());
     assertEquals(2, statement.getOffset());
   }
@@ -222,12 +224,13 @@ public class ParseTest {
   @Test
   public void testSubQueryClause() {
     String selectWithSubQuery = "SELECT res.max_a FROM (SELECT max(a) AS max_a FROM root AS res);";
-    SelectStatement statement = (SelectStatement) TestUtils.buildStatement(selectWithSubQuery);
+    UnarySelectStatement statement =
+        (UnarySelectStatement) TestUtils.buildStatement(selectWithSubQuery);
     assertEquals(new HashSet<>(Collections.singletonList("res.max_a")), statement.getPathSet());
 
     assertEquals(FromPartType.SubQueryFromPart, statement.getFromParts().get(0).getType());
     SubQueryFromPart subQueryFromPart = (SubQueryFromPart) statement.getFromParts().get(0);
-    SelectStatement subStatement = subQueryFromPart.getSubQuery();
+    UnarySelectStatement subStatement = (UnarySelectStatement) subQueryFromPart.getSubQuery();
 
     FuncExpression expression = subStatement.getFuncExpressionMap().get("max").get(0);
     assertEquals(Collections.singletonList("res.a"), expression.getParams());
@@ -282,7 +285,8 @@ public class ParseTest {
 
     String queryStr =
         "SELECT AVG(c) FROM a.b WHERE c > 10 AND c < 1ms OVER (RANGE 10 IN [1s, 2s));";
-    SelectStatement selectStatement = (SelectStatement) TestUtils.buildStatement(queryStr);
+    UnarySelectStatement selectStatement =
+        (UnarySelectStatement) TestUtils.buildStatement(queryStr);
 
     assertEquals(
         "((a.b.c > 10 && a.b.c < 1000000) && key >= 1000000000 && key < 2000000000)",
@@ -296,7 +300,7 @@ public class ParseTest {
   @Test
   public void testJoin() {
     String joinStr = "SELECT * FROM cpu1, cpu2";
-    SelectStatement selectStatement = (SelectStatement) TestUtils.buildStatement(joinStr);
+    UnarySelectStatement selectStatement = (UnarySelectStatement) TestUtils.buildStatement(joinStr);
 
     assertEquals(2, selectStatement.getFromParts().size());
     assertEquals("cpu1", selectStatement.getFromParts().get(0).getPrefix());
@@ -308,7 +312,7 @@ public class ParseTest {
     assertEquals(joinCondition, selectStatement.getFromParts().get(1).getJoinCondition());
 
     joinStr = "SELECT * FROM cpu1, cpu2, cpu3";
-    selectStatement = (SelectStatement) TestUtils.buildStatement(joinStr);
+    selectStatement = (UnarySelectStatement) TestUtils.buildStatement(joinStr);
 
     assertEquals(3, selectStatement.getFromParts().size());
     assertEquals("cpu1", selectStatement.getFromParts().get(0).getPrefix());
@@ -324,7 +328,7 @@ public class ParseTest {
     assertEquals(joinCondition, selectStatement.getFromParts().get(2).getJoinCondition());
 
     joinStr = "SELECT * FROM cpu1 LEFT JOIN cpu2 ON cpu1.usage = cpu2.usage";
-    selectStatement = (SelectStatement) TestUtils.buildStatement(joinStr);
+    selectStatement = (UnarySelectStatement) TestUtils.buildStatement(joinStr);
 
     assertEquals(2, selectStatement.getFromParts().size());
     assertEquals("cpu1", selectStatement.getFromParts().get(0).getPrefix());
@@ -339,7 +343,7 @@ public class ParseTest {
     assertEquals(joinCondition, selectStatement.getFromParts().get(1).getJoinCondition());
 
     joinStr = "SELECT * FROM cpu1 RIGHT OUTER JOIN cpu2 USING usage";
-    selectStatement = (SelectStatement) TestUtils.buildStatement(joinStr);
+    selectStatement = (UnarySelectStatement) TestUtils.buildStatement(joinStr);
 
     assertEquals(2, selectStatement.getFromParts().size());
     assertEquals("cpu1", selectStatement.getFromParts().get(0).getPrefix());
@@ -351,7 +355,7 @@ public class ParseTest {
     assertEquals(joinCondition, selectStatement.getFromParts().get(1).getJoinCondition());
 
     joinStr = "SELECT * FROM cpu1 FULL OUTER JOIN cpu2 ON cpu1.usage = cpu2.usage";
-    selectStatement = (SelectStatement) TestUtils.buildStatement(joinStr);
+    selectStatement = (UnarySelectStatement) TestUtils.buildStatement(joinStr);
 
     assertEquals(2, selectStatement.getFromParts().size());
     assertEquals("cpu1", selectStatement.getFromParts().get(0).getPrefix());
@@ -366,7 +370,7 @@ public class ParseTest {
     assertEquals(joinCondition, selectStatement.getFromParts().get(1).getJoinCondition());
 
     joinStr = "SELECT * FROM cpu1 JOIN cpu2 ON cpu1.usage = cpu2.usage";
-    selectStatement = (SelectStatement) TestUtils.buildStatement(joinStr);
+    selectStatement = (UnarySelectStatement) TestUtils.buildStatement(joinStr);
 
     assertEquals(2, selectStatement.getFromParts().size());
     assertEquals("cpu1", selectStatement.getFromParts().get(0).getPrefix());
@@ -381,7 +385,7 @@ public class ParseTest {
     assertEquals(joinCondition, selectStatement.getFromParts().get(1).getJoinCondition());
 
     joinStr = "SELECT * FROM cpu1 INNER JOIN cpu2 USING usage";
-    selectStatement = (SelectStatement) TestUtils.buildStatement(joinStr);
+    selectStatement = (UnarySelectStatement) TestUtils.buildStatement(joinStr);
 
     assertEquals(2, selectStatement.getFromParts().size());
     assertEquals("cpu1", selectStatement.getFromParts().get(0).getPrefix());

@@ -19,6 +19,7 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.naive;
 
 import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.HeaderUtils.calculateHashJoinPath;
+import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.HeaderUtils.checkHeadersComparable;
 import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.HeaderUtils.constructNewHead;
 import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.checkJoinColumns;
 import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.checkNeedTypeCast;
@@ -27,6 +28,7 @@ import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtil
 import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.establishHashMap;
 import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.getSamePathWithSpecificPrefix;
 import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.isEqualRow;
+import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.isValueEqualRow;
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.ALL_PATH_SUFFIX;
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.KEY;
 import static cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils.getHash;
@@ -57,13 +59,16 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.BinaryOperator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.CrossJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Distinct;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Downsample;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Except;
 import cn.edu.tsinghua.iginx.engine.shared.operator.GroupBy;
 import cn.edu.tsinghua.iginx.engine.shared.operator.InnerJoin;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Intersect;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Join;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Limit;
 import cn.edu.tsinghua.iginx.engine.shared.operator.MappingTransform;
 import cn.edu.tsinghua.iginx.engine.shared.operator.MarkJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.OuterJoin;
+import cn.edu.tsinghua.iginx.engine.shared.operator.PathUnion;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Rename;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Reorder;
@@ -77,6 +82,8 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.UnaryOperator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Union;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OuterJoinType;
+import cn.edu.tsinghua.iginx.engine.shared.source.Source;
+import cn.edu.tsinghua.iginx.engine.shared.source.SourceType;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.Pair;
@@ -164,10 +171,19 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
       case MarkJoin:
         return executeMarkJoin(
             (MarkJoin) operator, transformToTable(streamA), transformToTable(streamB));
+      case PathUnion:
+        return executePathUnion(
+            (PathUnion) operator, transformToTable(streamA), transformToTable(streamB));
       case Union:
         return executeUnion((Union) operator, transformToTable(streamA), transformToTable(streamB));
+      case Except:
+        return executeExcept(
+            (Except) operator, transformToTable(streamA), transformToTable(streamB));
+      case Intersect:
+        return executeIntersect(
+            (Intersect) operator, transformToTable(streamA), transformToTable(streamB));
       default:
-        throw new UnexpectedOperatorException("unknown unary operator: " + operator.getType());
+        throw new UnexpectedOperatorException("unknown binary operator: " + operator.getType());
     }
   }
 
@@ -261,7 +277,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     long precision = downsample.getPrecision();
     long slideDistance = downsample.getSlideDistance();
     // startKey + (n - 1) * slideDistance + precision - 1 >= endKey
-    int n = (int) (Math.ceil((double) (endKey - bias - precision + 1) / slideDistance) + 1);
+    long n = (int) (Math.ceil((double) (endKey - bias - precision + 1) / slideDistance) + 1);
     TreeMap<Long, List<Row>> groups = new TreeMap<>();
     SetMappingFunction function = (SetMappingFunction) downsample.getFunctionCall().getFunction();
     FunctionParams params = downsample.getFunctionCall().getParams();
@@ -271,15 +287,16 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         groups.compute(timestamp, (k, v) -> v == null ? new ArrayList<>() : v).add(row);
       }
     } else {
-      long[] timestamps = new long[n];
-      for (int i = 0; i < n; i++) {
-        timestamps[i] = bias + i * slideDistance;
+      HashMap<Long, Long> timestamps = new HashMap<>();
+      for (long i = 0; i < n; i++) {
+        timestamps.put(i, bias + i * slideDistance);
       }
       for (Row row : rows) {
         long rowTimestamp = row.getKey();
-        for (int i = 0; i < n; i++) {
-          if (rowTimestamp - timestamps[i] >= 0 && rowTimestamp - timestamps[i] < precision) {
-            groups.compute(timestamps[i], (k, v) -> v == null ? new ArrayList<>() : v).add(row);
+        for (long i = 0; i < n; i++) {
+          if (rowTimestamp - timestamps.get(i) >= 0
+              && rowTimestamp - timestamps.get(i) < precision) {
+            groups.compute(timestamps.get(i), (k, v) -> v == null ? new ArrayList<>() : v).add(row);
           }
         }
       }
@@ -507,12 +524,11 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
   }
 
   private RowStream executeReorder(Reorder reorder, Table table) throws PhysicalException {
-    List<String> patterns = reorder.getPatterns();
     Header header = table.getHeader();
     List<Field> targetFields = new ArrayList<>();
     Map<Integer, Integer> reorderMap = new HashMap<>();
 
-    for (String pattern : patterns) {
+    for (String pattern : reorder.getPatterns()) {
       List<Pair<Field, Integer>> matchedFields = new ArrayList<>();
       if (StringUtils.isPattern(pattern)) {
         for (int i = 0; i < header.getFields().size(); i++) {
@@ -1917,11 +1933,8 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     Header joinHeader = constructNewHead(tableA.getHeader(), tableB.getHeader(), true);
 
     List<Row> transformedRows = new ArrayList<>();
-    Filter filter = markJoin.getFilter();
-    boolean matched;
     tableScan:
     for (Row rowA : tableA.getRows()) {
-      matched = false;
       for (Row rowB : tableB.getRows()) {
         if (!equalOnSpecificPaths(rowA, rowB, extraJoinPaths)) {
           continue;
@@ -2131,21 +2144,22 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     }
   }
 
-  private RowStream executeUnion(Union union, Table tableA, Table tableB) throws PhysicalException {
+  private RowStream executePathUnion(PathUnion union, Table tableA, Table tableB)
+      throws PhysicalException {
     // 检查时间是否一致
     Header headerA = tableA.getHeader();
     Header headerB = tableB.getHeader();
     if (headerA.hasKey() ^ headerB.hasKey()) {
       throw new InvalidOperatorParameterException("row stream to be union must have same fields");
     }
-    boolean hasTimestamp = headerA.hasKey();
+    boolean hasKey = headerA.hasKey();
     Set<Field> targetFieldSet = new HashSet<>();
     targetFieldSet.addAll(headerA.getFields());
     targetFieldSet.addAll(headerB.getFields());
     List<Field> targetFields = new ArrayList<>(targetFieldSet);
     Header targetHeader;
     List<Row> rows = new ArrayList<>();
-    if (!hasTimestamp) {
+    if (!hasKey) {
       targetHeader = new Header(targetFields);
       for (Row row : tableA.getRows()) {
         rows.add(RowUtils.transform(row, targetHeader));
@@ -2177,10 +2191,300 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     return new Table(targetHeader, rows);
   }
 
+  private RowStream executeUnion(Union union, Table tableA, Table tableB) throws PhysicalException {
+    // 将左右两表的列Reorder
+    Reorder reorderA = new Reorder(EmptySource.EMPTY_SOURCE, union.getLeftOrder());
+    Reorder reorderB = new Reorder(EmptySource.EMPTY_SOURCE, union.getRightOrder());
+    tableA = transformToTable(executeReorder(reorderA, tableA));
+    tableB = transformToTable(executeReorder(reorderB, tableB));
+
+    // 检查输入两表的header是否可比较
+    checkHeadersComparable(tableA.getHeader(), tableB.getHeader());
+
+    // 判断是否去重
+    if (union.isDistinct()) {
+      return executeUnionDistinct(tableA, tableB);
+    } else {
+      return executeUnionAll(tableA, tableB);
+    }
+  }
+
+  private RowStream executeUnionAll(Table tableA, Table tableB) {
+    boolean hasKey = tableA.getHeader().hasKey();
+    Header targetHeader = tableA.getHeader();
+    List<Row> targetRows = tableA.getRows();
+    for (Row rowB : tableB.getRows()) {
+      if (hasKey) {
+        targetRows.add(new Row(targetHeader, rowB.getKey(), rowB.getValues()));
+      } else {
+        targetRows.add(new Row(targetHeader, rowB.getValues()));
+      }
+    }
+    return new Table(targetHeader, targetRows);
+  }
+
+  private RowStream executeUnionDistinct(Table tableA, Table tableB) throws PhysicalException {
+    boolean hasKey = tableA.getHeader().hasKey();
+    Header targetHeader = tableA.getHeader();
+
+    if (tableA.getHeader().getFields().isEmpty() || tableB.getHeader().getFields().isEmpty()) {
+      throw new InvalidOperatorParameterException(
+          "row stream to be union must have non-empty fields");
+    }
+
+    // 检查是否需要类型转换
+    boolean needTypeCast =
+        checkNeedTypeCast(
+            tableA.getRows(),
+            tableB.getRows(),
+            tableA.getHeader().getField(0).getName(),
+            tableB.getHeader().getField(0).getName());
+
+    int hash;
+    List<Row> targetRows = new ArrayList<>();
+    HashMap<Integer, List<Row>> hashMap = new HashMap<>();
+    // 扫描左表建立哈希表
+    tableAScan:
+    for (Row rowA : tableA.getRows()) {
+      if (hasKey) {
+        hash = Objects.hash(rowA.getKey());
+      } else {
+        Value value = rowA.getAsValue(0);
+        if (value == null) {
+          continue;
+        }
+        hash = getHash(value, needTypeCast);
+      }
+      List<Row> rowsExist = hashMap.computeIfAbsent(hash, k -> new ArrayList<>());
+      // 去重
+      for (Row rowExist : rowsExist) {
+        if (isValueEqualRow(rowExist, rowA, hasKey)) {
+          continue tableAScan;
+        }
+      }
+      rowsExist.add(rowA);
+      targetRows.add(rowA);
+    }
+
+    // 扫描右表
+    tableBScan:
+    for (Row rowB : tableB.getRows()) {
+      if (hasKey) {
+        hash = Objects.hash(rowB.getKey());
+      } else {
+        Value value = rowB.getAsValue(0);
+        if (value == null) {
+          continue;
+        }
+        hash = getHash(value, needTypeCast);
+      }
+
+      // 去重
+      List<Row> rowsExist = hashMap.computeIfAbsent(hash, k -> new ArrayList<>());
+      for (Row rowExist : rowsExist) {
+        if (isValueEqualRow(rowExist, rowB, hasKey)) {
+          continue tableBScan;
+        }
+      }
+
+      Row row =
+          hasKey
+              ? new Row(targetHeader, rowB.getKey(), rowB.getValues())
+              : new Row(targetHeader, rowB.getValues());
+      rowsExist.add(row);
+      targetRows.add(row);
+    }
+
+    return new Table(targetHeader, targetRows);
+  }
+
+  private RowStream executeExcept(Except except, Table tableA, Table tableB)
+      throws PhysicalException {
+    // 将左右两表的列Reorder
+    Reorder reorderA = new Reorder(EmptySource.EMPTY_SOURCE, except.getLeftOrder());
+    Reorder reorderB = new Reorder(EmptySource.EMPTY_SOURCE, except.getRightOrder());
+    tableA = transformToTable(executeReorder(reorderA, tableA));
+    tableB = transformToTable(executeReorder(reorderB, tableB));
+
+    // 检查输入两表的header是否可比较
+    checkHeadersComparable(tableA.getHeader(), tableB.getHeader());
+
+    if (tableA.getHeader().getFields().isEmpty() || tableB.getHeader().getFields().isEmpty()) {
+      throw new InvalidOperatorParameterException(
+          "row stream to be except must have non-empty fields");
+    }
+
+    // 检查是否需要类型转换
+    boolean needTypeCast =
+        checkNeedTypeCast(
+            tableA.getRows(),
+            tableB.getRows(),
+            tableA.getHeader().getField(0).getName(),
+            tableB.getHeader().getField(0).getName());
+
+    boolean isDistinct = except.isDistinct();
+    boolean hasKey = tableA.getHeader().hasKey();
+    int hash;
+    List<Row> targetRows = new ArrayList<>();
+    HashMap<Integer, List<Row>> res = new HashMap<>();
+    HashMap<Integer, List<Row>> rowsBMap = new HashMap<>();
+
+    // 扫描右表建立哈希表
+    for (Row rowB : tableB.getRows()) {
+      if (hasKey) {
+        hash = Objects.hash(rowB.getKey());
+      } else {
+        Value value = rowB.getAsValue(0);
+        if (value == null) {
+          continue;
+        }
+        hash = getHash(value, needTypeCast);
+      }
+      List<Row> rowsBExist = rowsBMap.computeIfAbsent(hash, k -> new ArrayList<>());
+      rowsBExist.add(rowB);
+    }
+
+    // 扫描左表
+    tableAScan:
+    for (Row rowA : tableA.getRows()) {
+      if (hasKey) {
+        hash = Objects.hash(rowA.getKey());
+      } else {
+        Value value = rowA.getAsValue(0);
+        if (value == null) {
+          continue;
+        }
+        hash = getHash(value, needTypeCast);
+      }
+
+      // 筛去左表和右表的公共部分
+      List<Row> rowsB = rowsBMap.computeIfAbsent(hash, k -> new ArrayList<>());
+      for (Row rowB : rowsB) {
+        if (isValueEqualRow(rowA, rowB, hasKey)) {
+          continue tableAScan;
+        }
+      }
+
+      // 去重
+      if (isDistinct) {
+        List<Row> rowsExist = res.computeIfAbsent(hash, k -> new ArrayList<>());
+        for (Row rowExist : rowsExist) {
+          if (isValueEqualRow(rowA, rowExist, hasKey)) {
+            continue tableAScan;
+          }
+        }
+        rowsExist.add(rowA);
+      }
+      targetRows.add(rowA);
+    }
+
+    Header targetHeader = tableA.getHeader();
+    return new Table(targetHeader, targetRows);
+  }
+
+  private RowStream executeIntersect(Intersect intersect, Table tableA, Table tableB)
+      throws PhysicalException {
+    // 将左右两表的列reorder
+    Reorder reorderA = new Reorder(EmptySource.EMPTY_SOURCE, intersect.getLeftOrder());
+    Reorder reorderB = new Reorder(EmptySource.EMPTY_SOURCE, intersect.getRightOrder());
+    tableA = transformToTable(executeReorder(reorderA, tableA));
+    tableB = transformToTable(executeReorder(reorderB, tableB));
+
+    // 检查输入两表的header是否可比较
+    checkHeadersComparable(tableA.getHeader(), tableB.getHeader());
+
+    if (tableA.getHeader().getFields().isEmpty() || tableB.getHeader().getFields().isEmpty()) {
+      throw new InvalidOperatorParameterException(
+          "row stream to be intersect must have non-empty fields");
+    }
+
+    // 检查是否需要类型转换
+    boolean needTypeCast =
+        checkNeedTypeCast(
+            tableA.getRows(),
+            tableB.getRows(),
+            tableA.getHeader().getField(0).getName(),
+            tableB.getHeader().getField(0).getName());
+
+    boolean isDistinct = intersect.isDistinct();
+    boolean hasKey = tableA.getHeader().hasKey();
+    int hash;
+    List<Row> targetRows = new ArrayList<>();
+    HashMap<Integer, List<Row>> ret = new HashMap<>();
+    HashMap<Integer, List<Row>> rowsBMap = new HashMap<>();
+
+    // 扫描右表建立哈希表
+    for (Row rowB : tableB.getRows()) {
+      if (hasKey) {
+        hash = Objects.hash(rowB.getKey());
+      } else {
+        Value value = rowB.getAsValue(0);
+        if (value == null) {
+          continue;
+        }
+        hash = getHash(value, needTypeCast);
+      }
+      List<Row> rowsBExist = rowsBMap.computeIfAbsent(hash, k -> new ArrayList<>());
+      rowsBExist.add(rowB);
+    }
+
+    // 扫描左表
+    tableAScan:
+    for (Row rowA : tableA.getRows()) {
+      if (hasKey) {
+        hash = Objects.hash(rowA.getKey());
+      } else {
+        Value value = rowA.getAsValue(0);
+        if (value == null) {
+          continue;
+        }
+        hash = getHash(value, needTypeCast);
+      }
+      List<Row> rowsB = rowsBMap.computeIfAbsent(hash, k -> new ArrayList<>());
+      List<Row> rowsExist = ret.computeIfAbsent(hash, k -> new ArrayList<>());
+
+      // 去重
+      if (isDistinct) {
+        for (Row rowExist : rowsExist) {
+          if (isValueEqualRow(rowA, rowExist, hasKey)) {
+            continue tableAScan;
+          }
+        }
+      }
+
+      // 保留左表和右表的公共部分
+      for (Row rowB : rowsB) {
+        if (isValueEqualRow(rowA, rowB, hasKey)) {
+          rowsExist.add(rowA);
+          targetRows.add(rowA);
+          continue tableAScan;
+        }
+      }
+    }
+
+    Header targetHeader = tableA.getHeader();
+    return new Table(targetHeader, targetRows);
+  }
+
   private static class NaiveOperatorMemoryExecutorHolder {
 
     private static final NaiveOperatorMemoryExecutor INSTANCE = new NaiveOperatorMemoryExecutor();
 
     private NaiveOperatorMemoryExecutorHolder() {}
+  }
+
+  private static class EmptySource implements Source {
+
+    public static final EmptySource EMPTY_SOURCE = new EmptySource();
+
+    @Override
+    public SourceType getType() {
+      return null;
+    }
+
+    @Override
+    public Source copy() {
+      return null;
+    }
   }
 }
