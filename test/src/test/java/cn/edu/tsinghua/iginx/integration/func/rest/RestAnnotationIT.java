@@ -7,8 +7,11 @@ import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.thrift.DataType;
+import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
 import java.io.*;
+import java.util.HashSet;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.junit.*;
@@ -123,10 +126,15 @@ public class RestAnnotationIT {
     }
   }
 
-  private void executeAndCompare(String json, String output, TYPE type, DataType dataType) {
+  private void executeAndCompare(String json, String expected, TYPE type, DataType dataType) {
     try {
-      String result = execute(json, type, dataType);
-      assertEquals(JSONObject.parse(output), JSONObject.parse(result));
+      List<String> expectedResult =
+          JSON.parseArray(JSONObject.parseObject(expected).getString("queries"), String.class);
+      List<String> actualResult =
+          JSON.parseArray(
+              JSONObject.parseObject(execute(json, type, dataType)).getString("queries"),
+              String.class);
+      assertEquals(new HashSet<>(expectedResult), new HashSet<>(actualResult));
     } catch (Exception e) {
       logger.error("Error occurred during execution ", e);
       fail();

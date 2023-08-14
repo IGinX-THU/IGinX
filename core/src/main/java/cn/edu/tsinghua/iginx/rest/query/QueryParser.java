@@ -817,7 +817,7 @@ public class QueryParser {
         metric = parseQueryResultAnnoDataPaths(path);
         metric.setQueryOriPath(path);
         for (Map.Entry<String, List<String>> entry : metric.getTags().entrySet()) {
-          if (entry.getValue().get(0).equals("category")) {
+          if (entry.getValue().get(0).equals(RestUtils.CATEGORY)) {
             ifhasAnno = true;
             break;
           }
