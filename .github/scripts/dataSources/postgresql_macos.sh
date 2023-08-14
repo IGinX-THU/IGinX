@@ -10,12 +10,6 @@ sh -c "wget --quiet https://get.enterprisedb.com/postgresql/postgresql-15.2-1-os
 
 sh -c "sudo unzip -q postgresql-15.2-1-osx-binaries.zip"
 
-sh -c "sudo cp pgsql/share/postgresql/postgresql.conf.sample pgsql/share/postgresql/postgresql.conf"
-
-sh -c "sudo echo \"max_identifier_length = 127\" >> pgsql/share/postgresql/postgresql.conf"
-
-sh -c "sudo cat pgsql/share/postgresql/postgresql.conf"
-
 sh -c "sudo dscl . -create /Users/postgres"
 
 sh -c "sudo dscl . -create /Users/postgres UserShell /bin/bash"
@@ -38,6 +32,10 @@ sh -c "sudo chown -R postgres /var/lib/postgresql/15/main"
 
 sh -c "sudo chmod -R 777 /var/lib/postgresql/15/main"
 
+sh -c "sudo cp /Users/runner/work/IGinX/IGinX/pgsql/share/postgresql/postgresql.conf.sample /var/lib/postgresql/15/main/postgresql.conf"
+
+sh -c "sudo echo \"max_identifier_length = 127\" >> /var/lib/postgresql/15/main/postgresql.conf"
+
 for port in "$@"
 do
   sh -c "sudo cp -R pgsql pgsql-$port"
@@ -48,9 +46,13 @@ do
 
   sh -c "sudo chmod -R 777 /var/lib/postgresql-$port/15/main"
 
+  sh -c "sudo cp /Users/runner/work/IGinX/IGinX/pgsql-$port/share/postgresql/postgresql.conf.sample /var/lib/postgresql-$port/15/main/postgresql.conf"
+
+  sh -c "sudo echo \"max_identifier_length = 127\" >> /var/lib/postgresql-$port/15/main/postgresql.conf"
+
   sh -c "cd pgsql-$port/bin; sudo -u postgres ./initdb -D /var/lib/postgresql-$port/15/main --auth trust --no-instructions"
 
-  sh -c "cd pgsql-$port/bin; sudo -u postgres ./pg_ctl -D /var/lib/postgresql-$port/15/main -o \"-F -p $port\"  start"
+  sh -c "cd pgsql-$port/bin; sudo -u postgres ./pg_ctl -D /var/lib/postgresql-$port/15/main -o \"-F -p $port\" start"
 
   sh -c "cd pgsql-$port/bin; sudo -u postgres ./psql -c \"ALTER USER postgres WITH PASSWORD 'postgres';\""
 done
