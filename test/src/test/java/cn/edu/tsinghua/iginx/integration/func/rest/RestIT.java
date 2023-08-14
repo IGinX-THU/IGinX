@@ -60,12 +60,12 @@ public class RestIT {
     QUERY,
     INSERT,
     DELETE,
-    DELETEMETRIC
+    DELETE_METRIC
   }
 
   public String orderGen(String json, TYPE type) {
     StringBuilder ret = new StringBuilder();
-    if (type.equals(TYPE.DELETEMETRIC)) {
+    if (type.equals(TYPE.DELETE_METRIC)) {
       ret.append("curl -XDELETE");
       ret.append(" http://127.0.0.1:6666/api/v1/metric/{");
       ret.append(json);
@@ -254,7 +254,7 @@ public class RestIT {
       return;
     }
     String json = "archive.file.tracked";
-    execute(json, TYPE.DELETEMETRIC);
+    execute(json, TYPE.DELETE_METRIC);
 
     String result =
         "{\"queries\":[{\"sample_size\": 0,\"results\": [{ \"name\": \"archive.file.tracked\",\"group_by\": [{\"name\": \"type\",\"type\": \"number\"}], \"tags\": {}, \"values\": []}]}]}";
