@@ -44,7 +44,7 @@ do
 
   sh -c "cd pgsql-$port/bin; sudo -u postgres ./initdb -D /var/lib/postgresql-$port/15/main --auth trust --no-instructions"
 
-  sh -c "ls /var/lib/postgresql-$port/15/main"
+  sh -c "sudo ls /var/lib/postgresql-$port/15/main"
 
   sh -c "sudo cp /Users/runner/work/IGinX/IGinX/pgsql-$port/share/postgresql/postgresql.conf.sample /var/lib/postgresql-$port/15/main/postgresql.conf"
 
