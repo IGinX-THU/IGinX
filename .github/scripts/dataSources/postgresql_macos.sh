@@ -34,6 +34,8 @@ sh -c "sudo chmod -R 777 /var/lib/postgresql/15/main"
 
 sh -c "sudo cp /Users/runner/work/IGinX/IGinX/pgsql/share/postgresql/postgresql.conf.sample /var/lib/postgresql/15/main/postgresql.conf"
 
+sh -c "sudo chmod -R 777 /var/lib/postgresql/15/main/postgresql.conf"
+
 sh -c "sudo echo \"max_identifier_length = 127\" >> /var/lib/postgresql/15/main/postgresql.conf"
 
 for port in "$@"
@@ -47,6 +49,8 @@ do
   sh -c "sudo chmod -R 777 /var/lib/postgresql-$port/15/main"
 
   sh -c "sudo cp /Users/runner/work/IGinX/IGinX/pgsql-$port/share/postgresql/postgresql.conf.sample /var/lib/postgresql-$port/15/main/postgresql.conf"
+
+  sh -c "sudo chmod -R 777 /var/lib/postgresql-$port/15/main/postgresql.conf"
 
   sh -c "sudo echo \"max_identifier_length = 127\" >> /var/lib/postgresql-$port/15/main/postgresql.conf"
 
