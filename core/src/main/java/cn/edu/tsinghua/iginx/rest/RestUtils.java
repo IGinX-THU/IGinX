@@ -5,7 +5,8 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 
 public class RestUtils {
 
-  public static final String CATEGORY = "" + '\u2E84'; // "category";
+  public static final String CATEGORY = "category"; // "category";
+//  public static final String CATEGORY = "" + '\u2E84'; // "category";
   public static final long TOP_KEY = 9223372036854775804L;
   public static final long DESCRIPTION_KEY = 9223372036854775805L;
   public static final long TITLE_KEY = 9223372036854775806L;
