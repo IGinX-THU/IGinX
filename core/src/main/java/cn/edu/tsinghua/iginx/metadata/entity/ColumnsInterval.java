@@ -18,212 +18,195 @@
  */
 package cn.edu.tsinghua.iginx.metadata.entity;
 
+import static cn.edu.tsinghua.iginx.engine.logical.utils.PathUtils.addSuffix;
+
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-import com.alibaba.fastjson2.annotation.JSONType;
 import java.util.Objects;
 
-@JSONType(typeName = "ColumnsInterval")
-public final class ColumnsInterval implements ColumnsRange {
+public final class ColumnsInterval implements Comparable<ColumnsInterval> {
 
-    private final RangeType rangeType = RangeType.NORMAL;
+  private String startColumn;
 
-    private String startColumn;
+  private String endColumn;
 
-    private String endColumn;
+  private String schemaPrefix = null;
 
-    private String schemaPrefix = null;
+  public ColumnsInterval(String startColumn, String endColumn) {
+    this.startColumn = startColumn;
+    this.endColumn = endColumn;
+  }
 
-    // 右边界是否为闭
-    private boolean isClosed;
-
-    public ColumnsInterval(String startColumn, String endColumn, boolean isClosed) {
-        this.startColumn = startColumn;
-        this.endColumn = endColumn;
-        this.isClosed = isClosed;
+  private boolean isValid(String prefix) {
+    if (prefix == null
+        || prefix.contains("..")
+        || prefix.length() != 0 && prefix.charAt(0) == '.') {
+      return false;
     }
+    return true;
+  }
 
-    public ColumnsInterval(String startColumn, String endColumn) {
-        this(startColumn, endColumn, false);
+  public ColumnsInterval(String column) {
+    if (StringUtils.isContainRegex(column)
+        || !isValid(column)
+        || StringUtils.isContainSpecialChar(column)) {
+      throw new IllegalArgumentException("not support the regex in prefix");
     }
+    ColumnsInterval columnsInterval = addSuffix(new ColumnsInterval(column, column));
+    this.startColumn = columnsInterval.startColumn;
+    this.endColumn = columnsInterval.endColumn;
+  }
 
-    public static ColumnsRange fromString(String str) {
-        String[] parts = str.split("-");
-        assert parts.length == 2;
-        return new ColumnsInterval(
-                parts[0].equals("null") ? null : parts[0],
-                parts[1].equals("null") ? null : parts[1]);
+  private String realColumn(String column) {
+    if (column != null && schemaPrefix != null) {
+      return schemaPrefix + "." + column;
     }
+    return column;
+  }
 
-    private static int compareTo(String s1, String s2) {
-        if (s1 == null && s2 == null) return 0;
-        if (s1 == null) return -1;
-        if (s2 == null) return 1;
-        return s1.compareTo(s2);
+  public String getStartColumn() {
+    return startColumn;
+  }
+
+  public void setStartColumn(String startColumn) {
+    this.startColumn = startColumn;
+  }
+
+  public String getEndColumn() {
+    return endColumn;
+  }
+
+  public void setEndColumn(String endColumn) {
+    this.endColumn = endColumn;
+  }
+
+  @Override
+  public String toString() {
+    return startColumn + "-" + endColumn;
+  }
+
+  public String getSchemaPrefix() {
+    return schemaPrefix;
+  }
+
+  public void setSchemaPrefix(String schemaPrefix) {
+    this.schemaPrefix = schemaPrefix;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
     }
-
-    private String realColumn(String column) {
-        if (column != null && schemaPrefix != null) return schemaPrefix + "." + column;
-        return column;
+    if (o == null || getClass() != o.getClass()) {
+      return false;
     }
+    ColumnsInterval that = (ColumnsInterval) o;
+    return Objects.equals(startColumn, that.getStartColumn())
+        && Objects.equals(endColumn, that.getEndColumn());
+  }
 
-    @Override
-    public RangeType getRangeType() {
-        return rangeType;
+  @Override
+  public int hashCode() {
+    return Objects.hash(startColumn, endColumn);
+  }
+
+  public boolean isContain(String columnName) {
+    // judge if is the dummy node && it will have specific prefix
+    String startColumn = realColumn(this.startColumn);
+    String endColumn = realColumn(this.endColumn);
+
+    return (startColumn == null
+            || (columnName != null && StringUtils.compare(columnName, startColumn, true) >= 0))
+        && (endColumn == null
+            || (columnName != null && StringUtils.compare(columnName, endColumn, false) < 0));
+  }
+
+  public boolean isCompletelyBefore(String columnName) {
+    // judge if is the dummy node && it will have specific prefix
+    String endColumn = realColumn(this.endColumn);
+
+    return endColumn != null && columnName != null && endColumn.compareTo(columnName) <= 0;
+  }
+
+  public boolean isIntersect(ColumnsInterval columnsInterval) {
+    // judge if is the dummy node && it will have specific prefix
+    String startColumn = realColumn(this.startColumn);
+    String endColumn = realColumn(this.endColumn);
+
+    return (columnsInterval.getStartColumn() == null
+            || endColumn == null
+            || StringUtils.compare(columnsInterval.getStartColumn(), endColumn, false) < 0)
+        && (columnsInterval.getEndColumn() == null
+            || startColumn == null
+            || StringUtils.compare(columnsInterval.getEndColumn(), startColumn, true) >= 0);
+  }
+
+  public ColumnsInterval getIntersect(ColumnsInterval columnsInterval) {
+    if (!isIntersect(columnsInterval)) {
+      return null;
     }
+    // judge if is the dummy node && it will have specific prefix
+    String startColumn = realColumn(this.startColumn);
+    String endColumn = realColumn(this.endColumn);
 
-    @Override
-    public String getStartColumn() {
-        return startColumn;
+    String start =
+        startColumn == null
+            ? columnsInterval.getStartColumn()
+            : columnsInterval.getStartColumn() == null
+                ? startColumn
+                : StringUtils.compare(columnsInterval.getStartColumn(), startColumn, true) < 0
+                    ? startColumn
+                    : columnsInterval.getStartColumn();
+    String end =
+        endColumn == null
+            ? columnsInterval.getEndColumn()
+            : columnsInterval.getEndColumn() == null
+                ? endColumn
+                : StringUtils.compare(columnsInterval.getEndColumn(), endColumn, false) < 0
+                    ? columnsInterval.getEndColumn()
+                    : endColumn;
+    return new ColumnsInterval(start, end);
+  }
+
+  public boolean isCompletelyAfter(ColumnsInterval columnsInterval) {
+    // judge if is the dummy node && it will have specific prefix
+    String startColumn = realColumn(this.startColumn);
+
+    return columnsInterval.getEndColumn() != null
+        && startColumn != null
+        && StringUtils.compare(columnsInterval.getEndColumn(), startColumn, true) < 0;
+  }
+
+  public boolean isAfter(String colName) {
+    // judge if is the dummy node && it will have specific prefix
+    String startColumn = realColumn(this.startColumn);
+
+    return startColumn != null && StringUtils.compare(colName, startColumn, true) < 0;
+  }
+
+  @Override
+  public int compareTo(ColumnsInterval o) {
+    // judge if is the dummy node && it will have specific prefix
+    String startColumn = realColumn(this.startColumn);
+    String endColumn = realColumn(this.endColumn);
+
+    int value = compareTo(startColumn, o.getStartColumn(), true);
+    if (value != 0) {
+      return value;
     }
+    return compareTo(endColumn, o.getEndColumn(), false);
+  }
 
-    @Override
-    public void setStartColumn(String startColumn) {
-        this.startColumn = startColumn;
+  private static int compareTo(String s1, String s2, boolean isStart) {
+    if (s1 == null && s2 == null) {
+      return 0;
     }
-
-    @Override
-    public String getEndColumn() {
-        return endColumn;
+    if (s1 == null) {
+      return isStart ? -1 : 1;
     }
-
-    @Override
-    public void setEndColumn(String endColumn) {
-        this.endColumn = endColumn;
+    if (s2 == null) {
+      return isStart ? 1 : -1;
     }
-
-    @Override
-    public boolean isClosed() {
-        return isClosed;
-    }
-
-    @Override
-    public void setClosed(boolean closed) {
-        isClosed = closed;
-    }
-
-    @Override
-    public String toString() {
-        return "" + startColumn + "-" + endColumn;
-    }
-
-    @Override
-    public String getSchemaPrefix() {
-        return schemaPrefix;
-    }
-
-    @Override
-    public void setSchemaPrefix(String schemaPrefix) {
-        this.schemaPrefix = schemaPrefix;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        ColumnsRange that = (ColumnsRange) o;
-        return Objects.equals(startColumn, that.getStartColumn())
-                && Objects.equals(endColumn, that.getEndColumn());
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(startColumn, endColumn);
-    }
-
-    @Override
-    public boolean isContain(String colName) {
-        // judge if is the dummy node && it will have specific prefix
-        String startTimeSeries = realColumn(this.startColumn);
-        String endTimeSeries = realColumn(this.endColumn);
-
-        return (startTimeSeries == null
-                        || (colName != null
-                                && StringUtils.compare(colName, startTimeSeries, true) >= 0))
-                && (endTimeSeries == null
-                        || (colName != null
-                                && StringUtils.compare(colName, endTimeSeries, false) < 0));
-    }
-
-    public boolean isCompletelyBefore(String colName) {
-        // judge if is the dummy node && it will have specific prefix
-        String endTimeSeries = realColumn(this.endColumn);
-
-        return endTimeSeries != null && colName != null && endTimeSeries.compareTo(colName) <= 0;
-    }
-
-    @Override
-    public boolean isIntersect(ColumnsRange colRange) {
-        // judge if is the dummy node && it will have specific prefix
-        String startTimeSeries = realColumn(this.startColumn);
-        String endTimeSeries = realColumn(this.endColumn);
-
-        return (colRange.getStartColumn() == null
-                        || endTimeSeries == null
-                        || StringUtils.compare(colRange.getStartColumn(), endTimeSeries, false) < 0)
-                && (colRange.getEndColumn() == null
-                        || startTimeSeries == null
-                        || StringUtils.compare(colRange.getEndColumn(), startTimeSeries, true)
-                                >= 0);
-    }
-
-    public ColumnsRange getIntersect(ColumnsRange colRange) {
-        if (!isIntersect(colRange)) {
-            return null;
-        }
-        // judge if is the dummy node && it will have specific prefix
-        String startTimeSeries = realColumn(this.startColumn);
-        String endTimeSeries = realColumn(this.endColumn);
-
-        String start =
-                startTimeSeries == null
-                        ? colRange.getStartColumn()
-                        : colRange.getStartColumn() == null
-                                ? startTimeSeries
-                                : StringUtils.compare(
-                                                        colRange.getStartColumn(),
-                                                        startTimeSeries,
-                                                        true)
-                                                < 0
-                                        ? startTimeSeries
-                                        : colRange.getStartColumn();
-        String end =
-                endTimeSeries == null
-                        ? colRange.getEndColumn()
-                        : colRange.getEndColumn() == null
-                                ? endTimeSeries
-                                : StringUtils.compare(colRange.getEndColumn(), endTimeSeries, false)
-                                                < 0
-                                        ? colRange.getEndColumn()
-                                        : endTimeSeries;
-        return new ColumnsInterval(start, end);
-    }
-
-    @Override
-    public boolean isCompletelyAfter(ColumnsRange colRange) {
-        // judge if is the dummy node && it will have specific prefix
-        String startTimeSeries = realColumn(this.startColumn);
-
-        return colRange.getEndColumn() != null
-                && startTimeSeries != null
-                && StringUtils.compare(colRange.getEndColumn(), startTimeSeries, true) < 0;
-    }
-
-    @Override
-    public boolean isAfter(String colName) {
-        // judge if is the dummy node && it will have specific prefix
-        String startTimeSeries = realColumn(this.startColumn);
-
-        return startTimeSeries != null && StringUtils.compare(colName, startTimeSeries, true) < 0;
-    }
-
-    @Override
-    public int compareTo(ColumnsRange o) {
-        // judge if is the dummy node && it will have specific prefix
-        String startTimeSeries = realColumn(this.startColumn);
-        String endTimeSeries = realColumn(this.endColumn);
-
-        int value = compareTo(startTimeSeries, o.getStartColumn());
-        if (value != 0) return value;
-        return compareTo(endTimeSeries, o.getEndColumn());
-    }
+    return s1.compareTo(s2);
+  }
 }

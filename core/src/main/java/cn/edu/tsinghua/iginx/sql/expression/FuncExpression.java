@@ -4,47 +4,49 @@ import java.util.List;
 
 public class FuncExpression implements Expression {
 
-    private final String funcName;
-    private final List<String> params;
-    private String alias;
+  private final String funcName;
+  private final List<String> params;
+  private String alias;
 
-    public FuncExpression(String funcName, List<String> params) {
-        this(funcName, params, "");
-    }
+  public FuncExpression(String funcName, List<String> params) {
+    this(funcName, params, "");
+  }
 
-    public FuncExpression(String funcName, List<String> params, String alias) {
-        this.funcName = funcName;
-        this.params = params;
-        this.alias = alias;
-    }
+  public FuncExpression(String funcName, List<String> params, String alias) {
+    this.funcName = funcName;
+    this.params = params;
+    this.alias = alias;
+  }
 
-    public String getFuncName() {
-        return funcName;
-    }
+  public String getFuncName() {
+    return funcName;
+  }
 
-    public List<String> getParams() {
-        return params;
-    }
+  public List<String> getParams() {
+    return params;
+  }
 
-    public String getAlias() {
-        return alias;
-    }
+  @Override
+  public String getColumnName() {
+    return funcName.toLowerCase() + "(" + String.join(", ", params) + ")";
+  }
 
-    public void setAlias(String alias) {
-        this.alias = alias;
-    }
+  @Override
+  public ExpressionType getType() {
+    return ExpressionType.Function;
+  }
 
-    @Override
-    public String getColumnName() {
-        return funcName.toLowerCase() + "(" + String.join(", ", params) + ")";
-    }
+  public boolean hasAlias() {
+    return alias != null && !alias.equals("");
+  }
 
-    @Override
-    public ExpressionType getType() {
-        return ExpressionType.Function;
-    }
+  @Override
+  public String getAlias() {
+    return alias;
+  }
 
-    public boolean hasAlias() {
-        return alias != null && !alias.equals("");
-    }
+  @Override
+  public void setAlias(String alias) {
+    this.alias = alias;
+  }
 }

@@ -22,5 +22,5 @@ import cn.edu.tsinghua.iginx.engine.physical.task.StoragePhysicalTask;
 
 public interface ReplicaDispatcher {
 
-    String chooseReplica(StoragePhysicalTask task);
+  String chooseReplica(StoragePhysicalTask task);
 }

@@ -28,49 +28,49 @@ import org.slf4j.LoggerFactory;
 
 public class ResourceManager {
 
-    private static final Logger logger = LoggerFactory.getLogger(ResourceManager.class);
+  private static final Logger logger = LoggerFactory.getLogger(ResourceManager.class);
 
-    private final SystemMetricsService systemMetrics;
+  private final SystemMetricsService systemMetrics;
 
-    private final double heapMemoryThreshold;
+  private final double heapMemoryThreshold;
 
-    private final double systemMemoryThreshold;
+  private final double systemMemoryThreshold;
 
-    private final double systemCpuThreshold;
+  private final double systemCpuThreshold;
 
-    private ResourceManager() {
-        Config config = ConfigDescriptor.getInstance().getConfig();
-        switch (config.getSystemResourceMetrics()) {
-            case "default":
-                systemMetrics = new DefaultSystemMetricsService();
-                break;
-            default:
-                logger.info("use DefaultSystemMetrics as default");
-                systemMetrics = new DefaultSystemMetricsService();
-                break;
-        }
-        heapMemoryThreshold = config.getHeapMemoryThreshold();
-        systemMemoryThreshold = config.getSystemMemoryThreshold();
-        systemCpuThreshold = config.getSystemCpuThreshold();
+  private ResourceManager() {
+    Config config = ConfigDescriptor.getInstance().getConfig();
+    switch (config.getSystemResourceMetrics()) {
+      case "default":
+        systemMetrics = new DefaultSystemMetricsService();
+        break;
+      default:
+        logger.info("use DefaultSystemMetrics as default");
+        systemMetrics = new DefaultSystemMetricsService();
+        break;
     }
+    heapMemoryThreshold = config.getHeapMemoryThreshold();
+    systemMemoryThreshold = config.getSystemMemoryThreshold();
+    systemCpuThreshold = config.getSystemCpuThreshold();
+  }
 
-    public boolean reject(RequestContext ctx) {
-        return heapMemoryOverwhelmed()
-                || systemMetrics.getRecentCpuUsage() > systemCpuThreshold
-                || systemMetrics.getRecentMemoryUsage() > systemMemoryThreshold;
-    }
+  public boolean reject(RequestContext ctx) {
+    return heapMemoryOverwhelmed()
+        || systemMetrics.getRecentCpuUsage() > systemCpuThreshold
+        || systemMetrics.getRecentMemoryUsage() > systemMemoryThreshold;
+  }
 
-    private boolean heapMemoryOverwhelmed() {
-        return Runtime.getRuntime().totalMemory() * heapMemoryThreshold
-                > Runtime.getRuntime().maxMemory();
-    }
+  private boolean heapMemoryOverwhelmed() {
+    return Runtime.getRuntime().totalMemory() * heapMemoryThreshold
+        > Runtime.getRuntime().maxMemory();
+  }
 
-    public static ResourceManager getInstance() {
-        return ResourceManagerHolder.INSTANCE;
-    }
+  public static ResourceManager getInstance() {
+    return ResourceManagerHolder.INSTANCE;
+  }
 
-    private static class ResourceManagerHolder {
+  private static class ResourceManagerHolder {
 
-        private static final ResourceManager INSTANCE = new ResourceManager();
-    }
+    private static final ResourceManager INSTANCE = new ResourceManager();
+  }
 }

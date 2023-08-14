@@ -1,35 +1,45 @@
 package cn.edu.tsinghua.iginx.engine.shared.operator;
 
+import cn.edu.tsinghua.iginx.engine.shared.operator.type.JoinAlgType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
+import java.util.ArrayList;
+import java.util.List;
 
-public class CrossJoin extends AbstractBinaryOperator {
+public class CrossJoin extends AbstractJoinOperator {
 
-    private final String prefixA;
+  public CrossJoin(Source sourceA, Source sourceB, String prefixA, String prefixB) {
+    this(sourceA, sourceB, prefixA, prefixB, new ArrayList<>());
+  }
 
-    private final String prefixB;
+  public CrossJoin(
+      Source sourceA,
+      Source sourceB,
+      String prefixA,
+      String prefixB,
+      List<String> extraJoinPrefix) {
+    super(
+        OperatorType.CrossJoin,
+        sourceA,
+        sourceB,
+        prefixA,
+        prefixB,
+        JoinAlgType.NestedLoopJoin,
+        extraJoinPrefix);
+  }
 
-    public CrossJoin(Source sourceA, Source sourceB, String prefixA, String prefixB) {
-        super(OperatorType.CrossJoin, sourceA, sourceB);
-        this.prefixA = prefixA;
-        this.prefixB = prefixB;
-    }
+  @Override
+  public Operator copy() {
+    return new CrossJoin(
+        getSourceA().copy(),
+        getSourceB().copy(),
+        getPrefixA(),
+        getPrefixB(),
+        new ArrayList<>(getExtraJoinPrefix()));
+  }
 
-    public String getPrefixA() {
-        return prefixA;
-    }
-
-    public String getPrefixB() {
-        return prefixB;
-    }
-
-    @Override
-    public Operator copy() {
-        return new CrossJoin(getSourceA().copy(), getSourceB().copy(), prefixA, prefixB);
-    }
-
-    @Override
-    public String getInfo() {
-        return "PrefixA: " + prefixA + ", PrefixB: " + prefixB;
-    }
+  @Override
+  public String getInfo() {
+    return "PrefixA: " + getPrefixA() + ", PrefixB: " + getPrefixB();
+  }
 }

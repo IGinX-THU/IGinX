@@ -2,41 +2,44 @@ package cn.edu.tsinghua.iginx.sql.expression;
 
 public class BaseExpression implements Expression {
 
-    private final String pathName;
-    private String alias;
+  private final String pathName;
+  private String alias;
 
-    public BaseExpression(String pathName) {
-        this(pathName, "");
-    }
+  public BaseExpression(String pathName) {
+    this(pathName, "");
+  }
 
-    public BaseExpression(String pathName, String alias) {
-        this.pathName = pathName;
-        this.alias = alias;
-    }
+  public BaseExpression(String pathName, String alias) {
+    this.pathName = pathName;
+    this.alias = alias;
+  }
 
-    public String getPathName() {
-        return pathName;
-    }
+  public String getPathName() {
+    return pathName;
+  }
 
-    public String getAlias() {
-        return alias;
-    }
+  @Override
+  public String getColumnName() {
+    return pathName;
+  }
 
-    public void setAlias(String alias) {
-        this.alias = alias;
-    }
+  @Override
+  public ExpressionType getType() {
+    return ExpressionType.Base;
+  }
 
-    @Override
-    public String getColumnName() {
-        return pathName;
-    }
+  @Override
+  public boolean hasAlias() {
+    return alias != null && !alias.equals("");
+  }
 
-    @Override
-    public ExpressionType getType() {
-        return ExpressionType.Base;
-    }
+  @Override
+  public String getAlias() {
+    return alias;
+  }
 
-    public boolean hasAlias() {
-        return alias != null && !alias.equals("");
-    }
+  @Override
+  public void setAlias(String alias) {
+    this.alias = alias;
+  }
 }

@@ -7,7 +7,7 @@ sqlStatement
 statement
    : INSERT INTO path tagList? insertColumnsSpec VALUES insertValuesSpec # insertStatement
    | DELETE FROM path (COMMA path)* whereClause? withClause? # deleteStatement
-   | EXPLAIN? (LOGICAL | PHYSICAL)? queryClause # selectStatement
+   | EXPLAIN? (LOGICAL | PHYSICAL)? queryClause orderByClause? limitClause? # selectStatement
    | COUNT POINTS # countPointsStatement
    | DELETE COLUMNS path (COMMA path)* withClause? # deleteColumnsStatement
    | CLEAR DATA # clearDataStatement
@@ -29,18 +29,29 @@ statement
    ;
 
 queryClause
-   : selectClause fromClause whereClause? withClause? specialClause? asClause?
+   : LR_BRACKET inBracketQuery = queryClause orderByClause? limitClause? RR_BRACKET
+   | select
+   | leftQuery = queryClause INTERSECT (ALL | DISTINCT)? rightQuery = queryClause
+   | leftQuery = queryClause (UNION | EXCEPT) (ALL | DISTINCT)? rightQuery = queryClause
+   ;
+
+select
+   : selectClause fromClause whereClause? withClause? specialClause?
    ;
 
 selectClause
-   : SELECT expression (COMMA expression)*
+   : SELECT selectSublist (COMMA selectSublist)*
+   ;
+
+selectSublist
+   : expression asClause?
    ;
 
 expression
    : LR_BRACKET inBracketExpr = expression RR_BRACKET
    | constant
-   | functionName LR_BRACKET path (COMMA path)* RR_BRACKET asClause?
-   | path asClause?
+   | functionName LR_BRACKET path (COMMA path)* RR_BRACKET
+   | path
    | (PLUS | MINUS) expr = expression
    | leftExpr = expression (STAR | DIV | MOD) rightExpr = expression
    | leftExpr = expression (PLUS | MINUS) rightExpr = expression
@@ -155,12 +166,11 @@ joinPart
    ;
 
 tableReference
-   : path
-   | subquery
+   : (path | subquery) asClause?
    ;
 
 subquery
-   : LR_BRACKET queryClause RR_BRACKET
+   : LR_BRACKET queryClause orderByClause? limitClause? RR_BRACKET
    ;
 
 colList
@@ -174,12 +184,10 @@ join
    ;
 
 specialClause
-   : limitClause
-   | aggregateWithLevelClause
-   | groupByClause havingClause? orderByClause? limitClause?
-   | downsampleWithLevelClause limitClause?
-   | downsampleClause limitClause?
-   | orderByClause limitClause?
+   : aggregateWithLevelClause
+   | groupByClause havingClause?
+   | downsampleWithLevelClause
+   | downsampleClause
    ;
 
 groupByClause
@@ -787,6 +795,22 @@ CONFIG
 COLUMNS
    : C O L U M N S
    ;
+
+INTERSECT
+   : I N T E R S E C T
+   ;
+
+UNION
+   : U N I O N
+   ;
+
+EXCEPT
+   : E X C E P T
+   ;
+
+DISTINCT
+   : D I S T I N C T
+   ;
    //============================
    
    // End of the keywords list
@@ -954,7 +978,7 @@ fragment NAME_CHAR
    ;
 
 fragment CN_CHAR
-   : '\u2E85' .. '\u9FFF'
+   : '\u2E86' .. '\u9FFF'
    ;
 
 DOUBLE_QUOTE_STRING_LITERAL

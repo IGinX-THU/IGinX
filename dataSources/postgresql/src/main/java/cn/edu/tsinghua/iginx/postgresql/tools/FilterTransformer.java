@@ -18,70 +18,110 @@
  */
 package cn.edu.tsinghua.iginx.postgresql.tools;
 
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.NotFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.OrFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.ValueFilter;
+import static cn.edu.tsinghua.iginx.postgresql.tools.Constants.*;
+
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
+import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.stream.Collectors;
 
 public class FilterTransformer {
 
-    public static final long MAX_TIMESTAMP = Integer.MAX_VALUE;
-
-    public static String toString(Filter filter) {
-        if (filter == null) {
-            return "";
-        }
-        switch (filter.getType()) {
-            case And:
-                return toString((AndFilter) filter);
-            case Or:
-                return toString((OrFilter) filter);
-            case Not:
-                return toString((NotFilter) filter);
-            case Value:
-                return toString((ValueFilter) filter);
-            case Key:
-                return toString((KeyFilter) filter);
-            default:
-                return "";
-        }
+  public static String toString(Filter filter) {
+    if (filter == null) {
+      return "";
     }
-
-    private static String toString(AndFilter filter) {
-        return filter.getChildren()
-                .stream()
-                .map(FilterTransformer::toString)
-                .collect(Collectors.joining(" and ", "(", ")"));
+    switch (filter.getType()) {
+      case And:
+        return toString((AndFilter) filter);
+      case Or:
+        return toString((OrFilter) filter);
+      case Not:
+        return toString((NotFilter) filter);
+      case Value:
+        return toString((ValueFilter) filter);
+      case Key:
+        return toString((KeyFilter) filter);
+      case Path:
+        return toString((PathFilter) filter);
+      case Bool:
+        return toString((BoolFilter) filter);
+      default:
+        return "";
     }
+  }
 
-    private static String toString(NotFilter filter) {
-        return "not " + filter.toString();
-    }
+  private static String toString(AndFilter filter) {
+    return filter.getChildren().stream()
+        .map(FilterTransformer::toString)
+        .collect(Collectors.joining(" and ", "(", ")"));
+  }
 
-    private static String toString(KeyFilter filter) {
-        return "time "
-                + Op.op2Str(filter.getOp())
-                + " to_timestamp("
-                + Math.min(filter.getValue(), MAX_TIMESTAMP)
-                + ")";
-    }
+  private static String toString(BoolFilter filter) {
+    return filter.isTrue() ? "true" : "false";
+  }
 
-    private static String toString(ValueFilter filter) {
-        return filter.getPath()
-                + " "
-                + Op.op2Str(filter.getOp())
-                + " "
-                + filter.getValue().getValue();
-    }
+  private static String toString(NotFilter filter) {
+    return "not " + toString(filter.getChild());
+  }
 
-    private static String toString(OrFilter filter) {
-        return filter.getChildren()
-                .stream()
-                .map(FilterTransformer::toString)
-                .collect(Collectors.joining(" or ", "(", ")"));
-    }
+  private static String toString(KeyFilter filter) {
+    String op =
+        Op.op2Str(filter.getOp())
+            .replace("==", "="); // postgresql does not support "==" but uses "=" instead
+    return (KEY_NAME + " " + op + " " + filter.getValue())
+        .replace(IGINX_SEPARATOR, Constants.POSTGRESQL_SEPARATOR);
+  }
+
+  private static String toString(ValueFilter filter) {
+    int lastIndexOfSeparator = filter.getPath().lastIndexOf(IGINX_SEPARATOR);
+    String path =
+        filter
+                .getPath()
+                .substring(0, lastIndexOfSeparator)
+                .replace(IGINX_SEPARATOR, Constants.POSTGRESQL_SEPARATOR)
+            + filter.getPath().substring(lastIndexOfSeparator);
+
+    String op =
+        filter.getOp() == Op.LIKE
+            ? "~"
+            : Op.op2Str(filter.getOp())
+                .replace("==", "="); // postgresql does not support "==" but uses "=" instead
+
+    String regex_symbol = filter.getOp() == Op.LIKE ? "$" : "";
+
+    Object value =
+        filter.getValue().getDataType() == DataType.BINARY
+            ? "'" + filter.getValue().getBinaryVAsString() + regex_symbol + "'"
+            : filter.getValue().getValue();
+
+    return path + " " + op + " " + value;
+  }
+
+  private static String toString(OrFilter filter) {
+    return filter.getChildren().stream()
+        .map(FilterTransformer::toString)
+        .collect(Collectors.joining(" or ", "(", ")"));
+  }
+
+  private static String toString(PathFilter filter) {
+    int lastIndexOfSeparatorA = filter.getPathA().lastIndexOf(IGINX_SEPARATOR);
+    int lastIndexOfSeparatorB = filter.getPathB().lastIndexOf(IGINX_SEPARATOR);
+    String pathA =
+        filter
+                .getPathA()
+                .substring(0, lastIndexOfSeparatorA)
+                .replace(IGINX_SEPARATOR, Constants.POSTGRESQL_SEPARATOR)
+            + filter.getPathA().substring(lastIndexOfSeparatorA);
+    String pathB =
+        filter
+                .getPathB()
+                .substring(0, lastIndexOfSeparatorB)
+                .replace(IGINX_SEPARATOR, Constants.POSTGRESQL_SEPARATOR)
+            + filter.getPathB().substring(lastIndexOfSeparatorB);
+
+    String op =
+        Op.op2Str(filter.getOp())
+            .replace("==", "="); // postgresql does not support "==" but uses "=" instead
+    return pathA + " " + op + " " + pathB;
+  }
 }

@@ -25,67 +25,68 @@ import java.util.TreeMap;
 
 public class TagKVUtils {
 
-    public static final String tagNameAnnotation = "" + '\u2E83'; // "tagName@";
+  public static final String tagNameAnnotation = "" + '\u2E83'; // "tagName@";
 
-    public static final String tagPrefix = "" + '\u2E80'; // "tagPrefix#";
+  public static final String tagPrefix = "" + '\u2E80'; // "tagPrefix#";
 
-    public static final String tagSuffix = "" + '\u2E81'; // "#tagSuffix";
+  public static final String tagSuffix = "" + '\u2E81'; // "#tagSuffix";
 
-    public static String toPhysicalPath(String name, Map<String, String> tags) {
-        StringBuilder builder = new StringBuilder();
-        builder.append(name);
-        builder.append('.').append(tagPrefix);
-        if (tags != null && !tags.isEmpty()) {
-            TreeMap<String, String> sortedTags = new TreeMap<>(tags);
-            sortedTags.forEach(
-                    (tagKey, tagValue) ->
-                            builder.append('.')
-                                    .append(tagNameAnnotation)
-                                    .append(tagKey)
-                                    .append('.')
-                                    .append(tagValue));
-        }
-        builder.append('.').append(tagSuffix);
-        return builder.toString();
+  public static String toPhysicalPath(String name, Map<String, String> tags) {
+    StringBuilder builder = new StringBuilder();
+    builder.append(name);
+    builder.append('.').append(tagPrefix);
+    if (tags != null && !tags.isEmpty()) {
+      TreeMap<String, String> sortedTags = new TreeMap<>(tags);
+      sortedTags.forEach(
+          (tagKey, tagValue) ->
+              builder
+                  .append('.')
+                  .append(tagNameAnnotation)
+                  .append(tagKey)
+                  .append('.')
+                  .append(tagValue));
     }
+    builder.append('.').append(tagSuffix);
+    return builder.toString();
+  }
 
-    public static String toFullName(String name, Map<String, String> tags) {
-        if (tags == null || tags.isEmpty()) {
-            return name;
-        } else {
-            StringBuilder builder = new StringBuilder();
-            builder.append(name);
-            builder.append('{');
-            TreeMap<String, String> treeMap = new TreeMap<>(tags);
+  public static String toFullName(String name, Map<String, String> tags) {
+    if (tags == null || tags.isEmpty()) {
+      return name;
+    } else {
+      StringBuilder builder = new StringBuilder();
+      builder.append(name);
+      builder.append('{');
+      TreeMap<String, String> treeMap = new TreeMap<>(tags);
 
-            int cnt = 0;
-            for (String key : treeMap.keySet()) {
-                if (cnt != 0) {
-                    builder.append(',');
-                }
-                builder.append(key);
-                builder.append("=");
-                builder.append(treeMap.get(key));
-                cnt++;
-            }
-            builder.append('}');
-            return builder.toString();
+      int cnt = 0;
+      for (String key : treeMap.keySet()) {
+        if (cnt != 0) {
+          builder.append(',');
         }
+        builder.append(key);
+        builder.append("=");
+        builder.append(treeMap.get(key));
+        cnt++;
+      }
+      builder.append('}');
+      return builder.toString();
     }
+  }
 
-    public static Pair<String, Map<String, String>> fromFullName(String fullName) {
-        int index = fullName.indexOf('{');
-        if (index == -1) {
-            return new Pair<>(fullName, Collections.emptyMap());
-        } else {
-            String name = fullName.substring(0, index);
-            String[] tagKVs = fullName.substring(index + 1, fullName.length() - 1).split(",");
-            Map<String, String> tags = new HashMap<>();
-            for (String tagKV : tagKVs) {
-                String[] KV = tagKV.split("=", 2);
-                tags.put(KV[0], KV[1]);
-            }
-            return new Pair<>(name, tags);
-        }
+  public static Pair<String, Map<String, String>> fromFullName(String fullName) {
+    int index = fullName.indexOf('{');
+    if (index == -1) {
+      return new Pair<>(fullName, Collections.emptyMap());
+    } else {
+      String name = fullName.substring(0, index);
+      String[] tagKVs = fullName.substring(index + 1, fullName.length() - 1).split(",");
+      Map<String, String> tags = new HashMap<>();
+      for (String tagKV : tagKVs) {
+        String[] KV = tagKV.split("=", 2);
+        tags.put(KV[0], KV[1]);
+      }
+      return new Pair<>(name, tags);
     }
+  }
 }

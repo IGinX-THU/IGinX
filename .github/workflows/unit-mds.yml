@@ -37,14 +37,14 @@ jobs:
 
             - name: Run ZooKeeper
               run: |
-                  chmod +x "${GITHUB_WORKSPACE}/.github/zk.sh"
-                  "${GITHUB_WORKSPACE}/.github/zk.sh"
+                  chmod +x "${GITHUB_WORKSPACE}/.github/scripts/metadata/zk.sh"
+                  "${GITHUB_WORKSPACE}/.github/scripts/metadata/zk.sh"
 
             - name: Run test for meta manager
-              run: mvn test -q -Dtest=IMetaManagerTest -DfailIfNoTests=false -P passFormat
+              run: mvn test -q -Dtest=IMetaManagerTest -DfailIfNoTests=false -P-format
 
             - name: Run test for sync protocol
-              run: mvn test -q -Dtest=ZooKeeperSyncProtocolTest -DfailIfNoTests=false -P passFormat
+              run: mvn test -q -Dtest=ZooKeeperSyncProtocolTest -DfailIfNoTests=false -P-format
 
             - uses: codecov/codecov-action@v1
               with:
@@ -78,14 +78,14 @@ jobs:
 
             - name: Run ETCD
               run: |
-                  chmod +x "${GITHUB_WORKSPACE}/.github/etcd.sh"
-                  "${GITHUB_WORKSPACE}/.github/etcd.sh"
+                  chmod +x "${GITHUB_WORKSPACE}/.github/scripts/metadata/etcd.sh"
+                  "${GITHUB_WORKSPACE}/.github/scripts/metadata/etcd.sh"
 
             - name: Run test for meta manager
-              run: mvn test -q -Dtest=IMetaManagerTest -DfailIfNoTests=false -P passFormat
+              run: mvn test -q -Dtest=IMetaManagerTest -DfailIfNoTests=false -P-format
 
             - name: Run test for sync protocol
-              run: mvn test -q -Dtest=ETCDSyncProtocolTest -DfailIfNoTests=false -P passFormat
+              run: mvn test -q -Dtest=ETCDSyncProtocolTest -DfailIfNoTests=false -P-format
 
             - uses: codecov/codecov-action@v1
               with:

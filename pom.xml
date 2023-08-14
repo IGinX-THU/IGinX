@@ -20,11 +20,10 @@
         <module>dataSources/iotdb12</module>
         <module>dataSources/influxdb</module>
         <module>dataSources/opentsdb</module>
-        <!--module>dataSources/timescaledb</module-->
         <module>dataSources/postgresql</module>
         <module>dataSources/parquet</module>
-        <module>dataSources/mongodb</module>
         <module>dataSources/redis</module>
+        <module>dataSources/mongodb</module>
         <module>example</module>
         <module>test</module>
         <module>zeppelin-interpreter</module>
@@ -87,20 +86,12 @@
                             <java>
                                 <toggleOffOn/>
                                 <importOrder/>
-                                <!--removeUnusedImports/>
-								<palantirJavaFormat>
-									<version>1.1.0</version>
-								</palantirJavaFormat>
-								<formatAnnotations/-->
+                                <removeUnusedImports/>
+                                <trimTrailingWhitespace/>
                                 <googleJavaFormat>
-                                    <version>1.6</version>
-                                    <style>AOSP</style>
-                                    <!-- or GOOGLE(optional) -->
+                                    <version>1.7</version>
+                                    <style>GOOGLE</style>
                                 </googleJavaFormat>
-                                <indent>
-                                    <spaces>true</spaces>
-                                    <spacesPerTab>4</spacesPerTab>
-                                </indent>
                             </java>
                             <python>
                                 <includes>
@@ -129,6 +120,7 @@
                                 </includes>
                                 <excludes>
                                     <exclude>.github/**/*.yml</exclude>
+                                    <exclude>**/target/**/*.yml</exclude>
                                 </excludes>
                             </yaml>
                             <formats>
@@ -149,6 +141,9 @@
                                 <includes>
                                     <include>**/*.md</include>
                                 </includes>
+                                <excludes>
+                                    <exclude>**/target/**/*.md</exclude>
+                                </excludes>
                                 <flexmark/>
                             </markdown>
                             <pom>
@@ -168,20 +163,16 @@
                         </configuration>
                         <executions>
                             <execution>
-                                <id>format</id>
                                 <goals>
-                                    <!--goal>check</goal-->
                                     <goal>apply</goal>
+                                    <!--goal>check</goal-->
                                 </goals>
-                                <phase>process-sources</phase>
+                                <phase>initialize</phase>
                             </execution>
                         </executions>
                     </plugin>
                 </plugins>
             </build>
-        </profile>
-        <profile>
-            <id>passFormat</id>
         </profile>
         <profile>
             <id>common</id>
@@ -256,5 +247,4 @@
             </build>
         </profile>
     </profiles>
-
 </project>

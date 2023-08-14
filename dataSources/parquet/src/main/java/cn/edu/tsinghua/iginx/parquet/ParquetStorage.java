@@ -37,159 +37,159 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ParquetStorage implements IStorage {
-    @SuppressWarnings("unused")
-    private static final Logger logger = LoggerFactory.getLogger(ParquetStorage.class);
+  @SuppressWarnings("unused")
+  private static final Logger logger = LoggerFactory.getLogger(ParquetStorage.class);
 
-    private static final Config config = ConfigDescriptor.getInstance().getConfig();
+  private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
-    private static final String DRIVER_NAME = "org.duckdb.DuckDBDriver";
+  private static final String DRIVER_NAME = "org.duckdb.DuckDBDriver";
 
-    private static final String CONN_URL = "jdbc:duckdb:";
+  private static final String CONN_URL = "jdbc:duckdb:";
 
-    private Executor executor;
+  private Executor executor;
 
-    public ParquetStorage(StorageEngineMeta meta) throws StorageInitializationException {
-        boolean isLocal = config.isLocalParquetStorage();
-        if (isLocal) {
-            initLocalStorage(meta);
-        } else {
-            initRemoteStorage(meta);
-        }
+  public ParquetStorage(StorageEngineMeta meta) throws StorageInitializationException {
+    boolean isLocal = config.isLocalParquetStorage();
+    if (isLocal) {
+      initLocalStorage(meta);
+    } else {
+      initRemoteStorage(meta);
+    }
+  }
+
+  private void initLocalStorage(StorageEngineMeta meta) throws StorageInitializationException {
+    if (!testLocalConnection()) {
+      throw new StorageInitializationException("cannot connect to " + meta.toString());
     }
 
-    private void initLocalStorage(StorageEngineMeta meta) throws StorageInitializationException {
-        if (!testLocalConnection()) {
-            throw new StorageInitializationException("cannot connect to " + meta.toString());
-        }
-
-        Map<String, String> extraParams = meta.getExtraParams();
-        String dataDir = extraParams.get("dir");
-        try {
-            if (Files.notExists(Paths.get(dataDir))) {
-                Files.createDirectories(Paths.get(dataDir));
-            }
-        } catch (IOException e) {
-            throw new StorageInitializationException("encounter error when create data dir");
-        }
-
-        Connection connection;
-        try {
-            connection = DriverManager.getConnection(CONN_URL);
-        } catch (SQLException e) {
-            throw new StorageInitializationException("cannot connect to " + meta.toString());
-        }
-
-        this.executor = new NewExecutor(connection, dataDir);
-
-        new Thread(new ParquetServer(meta.getPort(), executor)).start();
+    Map<String, String> extraParams = meta.getExtraParams();
+    String dataDir = extraParams.get("dir");
+    try {
+      if (Files.notExists(Paths.get(dataDir))) {
+        Files.createDirectories(Paths.get(dataDir));
+      }
+    } catch (IOException e) {
+      throw new StorageInitializationException("encounter error when create data dir");
     }
 
-    private void initRemoteStorage(StorageEngineMeta meta) throws StorageInitializationException {
-        try {
-            this.executor = new RemoteExecutor(meta.getIp(), meta.getPort());
-        } catch (TTransportException e) {
-            throw new StorageInitializationException(
-                    "encounter error when init RemoteStorage " + e.getMessage());
-        }
+    Connection connection;
+    try {
+      connection = DriverManager.getConnection(CONN_URL);
+    } catch (SQLException e) {
+      throw new StorageInitializationException("cannot connect to " + meta.toString());
     }
 
-    private boolean testLocalConnection() {
-        try {
-            Class.forName(DRIVER_NAME);
-            Connection conn = DriverManager.getConnection(CONN_URL);
-            conn.close();
-            return true;
-        } catch (ClassNotFoundException | SQLException e) {
-            return false;
-        }
-    }
+    this.executor = new NewExecutor(connection, dataDir);
 
-    @Override
-    public TaskExecuteResult executeProject(Project project, DataArea dataArea) {
-        KeyInterval keyInterval = dataArea.getKeyInterval();
-        Filter filter =
-                new AndFilter(
-                        Arrays.asList(
-                                new KeyFilter(Op.GE, keyInterval.getStartKey()),
-                                new KeyFilter(Op.L, keyInterval.getEndKey())));
-        return executor.executeProjectTask(
-                project.getPatterns(),
-                project.getTagFilter(),
-                FilterTransformer.toString(filter),
-                dataArea.getStorageUnit(),
-                false);
-    }
+    new Thread(new ParquetServer(meta.getPort(), executor)).start();
+  }
 
-    @Override
-    public TaskExecuteResult executeProjectDummy(Project project, DataArea dataArea) {
-        KeyInterval keyInterval = dataArea.getKeyInterval();
-        Filter filter =
-                new AndFilter(
-                        Arrays.asList(
-                                new KeyFilter(Op.GE, keyInterval.getStartKey()),
-                                new KeyFilter(Op.L, keyInterval.getEndKey())));
-        return executor.executeProjectTask(
-                project.getPatterns(),
-                project.getTagFilter(),
-                FilterTransformer.toString(filter),
-                dataArea.getStorageUnit(),
-                true);
+  private void initRemoteStorage(StorageEngineMeta meta) throws StorageInitializationException {
+    try {
+      this.executor = new RemoteExecutor(meta.getIp(), meta.getPort());
+    } catch (TTransportException e) {
+      throw new StorageInitializationException(
+          "encounter error when init RemoteStorage " + e.getMessage());
     }
+  }
 
-    @Override
-    public boolean isSupportProjectWithSelect() {
-        return true;
+  private boolean testLocalConnection() {
+    try {
+      Class.forName(DRIVER_NAME);
+      Connection conn = DriverManager.getConnection(CONN_URL);
+      conn.close();
+      return true;
+    } catch (ClassNotFoundException | SQLException e) {
+      return false;
     }
+  }
 
-    @Override
-    public TaskExecuteResult executeProjectWithSelect(
-            Project project, Select select, DataArea dataArea) {
-        return executor.executeProjectTask(
-                project.getPatterns(),
-                project.getTagFilter(),
-                FilterTransformer.toString(select.getFilter()),
-                dataArea.getStorageUnit(),
-                false);
-    }
+  @Override
+  public TaskExecuteResult executeProject(Project project, DataArea dataArea) {
+    KeyInterval keyInterval = dataArea.getKeyInterval();
+    Filter filter =
+        new AndFilter(
+            Arrays.asList(
+                new KeyFilter(Op.GE, keyInterval.getStartKey()),
+                new KeyFilter(Op.L, keyInterval.getEndKey())));
+    return executor.executeProjectTask(
+        project.getPatterns(),
+        project.getTagFilter(),
+        FilterTransformer.toString(filter),
+        dataArea.getStorageUnit(),
+        false);
+  }
 
-    @Override
-    public TaskExecuteResult executeProjectDummyWithSelect(
-            Project project, Select select, DataArea dataArea) {
-        return executor.executeProjectTask(
-                project.getPatterns(),
-                project.getTagFilter(),
-                FilterTransformer.toString(select.getFilter()),
-                dataArea.getStorageUnit(),
-                true);
-    }
+  @Override
+  public TaskExecuteResult executeProjectDummy(Project project, DataArea dataArea) {
+    KeyInterval keyInterval = dataArea.getKeyInterval();
+    Filter filter =
+        new AndFilter(
+            Arrays.asList(
+                new KeyFilter(Op.GE, keyInterval.getStartKey()),
+                new KeyFilter(Op.L, keyInterval.getEndKey())));
+    return executor.executeProjectTask(
+        project.getPatterns(),
+        project.getTagFilter(),
+        FilterTransformer.toString(filter),
+        dataArea.getStorageUnit(),
+        true);
+  }
 
-    @Override
-    public TaskExecuteResult executeDelete(Delete delete, DataArea dataArea) {
-        return executor.executeDeleteTask(
-                delete.getPatterns(),
-                delete.getKeyRanges(),
-                delete.getTagFilter(),
-                dataArea.getStorageUnit());
-    }
+  @Override
+  public boolean isSupportProjectWithSelect() {
+    return true;
+  }
 
-    @Override
-    public TaskExecuteResult executeInsert(Insert insert, DataArea dataArea) {
-        return executor.executeInsertTask(insert.getData(), dataArea.getStorageUnit());
-    }
+  @Override
+  public TaskExecuteResult executeProjectWithSelect(
+      Project project, Select select, DataArea dataArea) {
+    return executor.executeProjectTask(
+        project.getPatterns(),
+        project.getTagFilter(),
+        FilterTransformer.toString(select.getFilter()),
+        dataArea.getStorageUnit(),
+        false);
+  }
 
-    @Override
-    public List<Column> getColumns() throws PhysicalException {
-        return executor.getTimeSeriesOfStorageUnit("*");
-    }
+  @Override
+  public TaskExecuteResult executeProjectDummyWithSelect(
+      Project project, Select select, DataArea dataArea) {
+    return executor.executeProjectTask(
+        project.getPatterns(),
+        project.getTagFilter(),
+        FilterTransformer.toString(select.getFilter()),
+        dataArea.getStorageUnit(),
+        true);
+  }
 
-    @Override
-    public Pair<ColumnsRange, KeyInterval> getBoundaryOfStorage(String prefix)
-            throws PhysicalException {
-        return executor.getBoundaryOfStorage();
-    }
+  @Override
+  public TaskExecuteResult executeDelete(Delete delete, DataArea dataArea) {
+    return executor.executeDeleteTask(
+        delete.getPatterns(),
+        delete.getKeyRanges(),
+        delete.getTagFilter(),
+        dataArea.getStorageUnit());
+  }
 
-    @Override
-    public void release() throws PhysicalException {
-        executor.close();
-    }
+  @Override
+  public TaskExecuteResult executeInsert(Insert insert, DataArea dataArea) {
+    return executor.executeInsertTask(insert.getData(), dataArea.getStorageUnit());
+  }
+
+  @Override
+  public List<Column> getColumns() throws PhysicalException {
+    return executor.getColumnsOfStorageUnit("*");
+  }
+
+  @Override
+  public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String prefix)
+      throws PhysicalException {
+    return executor.getBoundaryOfStorage();
+  }
+
+  @Override
+  public void release() throws PhysicalException {
+    executor.close();
+  }
 }

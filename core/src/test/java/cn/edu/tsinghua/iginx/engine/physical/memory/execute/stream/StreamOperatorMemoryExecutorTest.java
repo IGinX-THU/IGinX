@@ -23,14 +23,14 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.OperatorMemoryExecut
 
 public class StreamOperatorMemoryExecutorTest extends AbstractOperatorMemoryExecutorTest {
 
-    private final StreamOperatorMemoryExecutor executor;
+  private final StreamOperatorMemoryExecutor executor;
 
-    public StreamOperatorMemoryExecutorTest() {
-        this.executor = StreamOperatorMemoryExecutor.getInstance();
-    }
+  public StreamOperatorMemoryExecutorTest() {
+    this.executor = StreamOperatorMemoryExecutor.getInstance();
+  }
 
-    @Override
-    protected OperatorMemoryExecutor getExecutor() {
-        return executor;
-    }
+  @Override
+  protected OperatorMemoryExecutor getExecutor() {
+    return executor;
+  }
 }

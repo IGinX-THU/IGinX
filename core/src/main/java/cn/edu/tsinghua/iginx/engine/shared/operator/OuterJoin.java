@@ -8,125 +8,146 @@ import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import java.util.ArrayList;
 import java.util.List;
 
-public class OuterJoin extends AbstractBinaryOperator {
+public class OuterJoin extends AbstractJoinOperator {
 
-    private final String prefixA;
+  private final OuterJoinType outerJoinType;
 
-    private final String prefixB;
+  private Filter filter;
 
-    private final OuterJoinType outerJoinType;
+  private final List<String> joinColumns;
 
-    private final Filter filter;
+  private final boolean isNaturalJoin;
 
-    private final List<String> joinColumns;
+  public OuterJoin(
+      Source sourceA,
+      Source sourceB,
+      String prefixA,
+      String prefixB,
+      OuterJoinType outerJoinType,
+      Filter filter,
+      List<String> joinColumns) {
+    this(
+        sourceA,
+        sourceB,
+        prefixA,
+        prefixB,
+        outerJoinType,
+        filter,
+        joinColumns,
+        false,
+        JoinAlgType.HashJoin,
+        new ArrayList<>());
+  }
 
-    private final JoinAlgType joinAlgType;
+  public OuterJoin(
+      Source sourceA,
+      Source sourceB,
+      String prefixA,
+      String prefixB,
+      OuterJoinType outerJoinType,
+      Filter filter,
+      List<String> joinColumns,
+      boolean isNaturalJoin,
+      JoinAlgType joinAlgType) {
+    this(
+        sourceA,
+        sourceB,
+        prefixA,
+        prefixB,
+        outerJoinType,
+        filter,
+        joinColumns,
+        isNaturalJoin,
+        joinAlgType,
+        new ArrayList<>());
+  }
 
-    private final boolean isNaturalJoin;
-
-    public OuterJoin(
-            Source sourceA,
-            Source sourceB,
-            String prefixA,
-            String prefixB,
-            OuterJoinType outerJoinType,
-            Filter filter,
-            List<String> joinColumns) {
-        this(
-                sourceA,
-                sourceB,
-                prefixA,
-                prefixB,
-                outerJoinType,
-                filter,
-                joinColumns,
-                false,
-                JoinAlgType.HashJoin);
+  public OuterJoin(
+      Source sourceA,
+      Source sourceB,
+      String prefixA,
+      String prefixB,
+      OuterJoinType outerJoinType,
+      Filter filter,
+      List<String> joinColumns,
+      boolean isNaturalJoin,
+      JoinAlgType joinAlgType,
+      List<String> extraJoinPrefix) {
+    super(OperatorType.OuterJoin, sourceA, sourceB, prefixA, prefixB, joinAlgType, extraJoinPrefix);
+    this.outerJoinType = outerJoinType;
+    this.filter = filter;
+    if (joinColumns != null) {
+      this.joinColumns = joinColumns;
+    } else {
+      this.joinColumns = new ArrayList<>();
     }
+    this.isNaturalJoin = isNaturalJoin;
+  }
 
-    public OuterJoin(
-            Source sourceA,
-            Source sourceB,
-            String prefixA,
-            String prefixB,
-            OuterJoinType outerJoinType,
-            Filter filter,
-            List<String> joinColumns,
-            boolean isNaturalJoin,
-            JoinAlgType joinAlgType) {
-        super(OperatorType.OuterJoin, sourceA, sourceB);
-        this.prefixA = prefixA;
-        this.prefixB = prefixB;
-        this.outerJoinType = outerJoinType;
-        this.filter = filter;
-        if (joinColumns != null) {
-            this.joinColumns = joinColumns;
-        } else {
-            this.joinColumns = new ArrayList<>();
-        }
-        this.joinAlgType = joinAlgType;
-        this.isNaturalJoin = isNaturalJoin;
-    }
+  public OuterJoinType getOuterJoinType() {
+    return outerJoinType;
+  }
 
-    public String getPrefixA() {
-        return prefixA;
-    }
+  public Filter getFilter() {
+    return filter;
+  }
 
-    public String getPrefixB() {
-        return prefixB;
-    }
+  public List<String> getJoinColumns() {
+    return joinColumns;
+  }
 
-    public OuterJoinType getOuterJoinType() {
-        return outerJoinType;
-    }
+  public boolean isNaturalJoin() {
+    return isNaturalJoin;
+  }
 
-    public Filter getFilter() {
-        return filter;
-    }
+  public void setFilter(Filter filter) {
+    this.filter = filter;
+  }
 
-    public List<String> getJoinColumns() {
-        return joinColumns;
-    }
+  public void reChooseJoinAlg() {
+    setJoinAlgType(
+        JoinAlgType.chooseJoinAlg(filter, isNaturalJoin, joinColumns, getExtraJoinPrefix()));
+  }
 
-    public JoinAlgType getJoinAlgType() {
-        return joinAlgType;
-    }
+  @Override
+  public Operator copy() {
+    return new OuterJoin(
+        getSourceA().copy(),
+        getSourceB().copy(),
+        getPrefixA(),
+        getPrefixB(),
+        outerJoinType,
+        filter.copy(),
+        new ArrayList<>(joinColumns),
+        isNaturalJoin,
+        getJoinAlgType(),
+        new ArrayList<>(getExtraJoinPrefix()));
+  }
 
-    public boolean isNaturalJoin() {
-        return isNaturalJoin;
+  @Override
+  public String getInfo() {
+    StringBuilder builder = new StringBuilder();
+    builder.append("PrefixA: ").append(getPrefixA());
+    builder.append(", PrefixB: ").append(getPrefixB());
+    builder.append(", OuterJoinType: ").append(outerJoinType);
+    builder.append(", IsNatural: ").append(isNaturalJoin);
+    if (filter != null) {
+      builder.append(", Filter: ").append(filter);
     }
-
-    @Override
-    public Operator copy() {
-        return new OuterJoin(
-                getSourceA().copy(),
-                getSourceB().copy(),
-                prefixA,
-                prefixB,
-                outerJoinType,
-                filter.copy(),
-                new ArrayList<>(joinColumns),
-                isNaturalJoin,
-                joinAlgType);
+    if (joinColumns != null && !joinColumns.isEmpty()) {
+      builder.append(", JoinColumns: ");
+      for (String col : joinColumns) {
+        builder.append(col).append(",");
+      }
+      builder.deleteCharAt(builder.length() - 1);
     }
-
-    @Override
-    public String getInfo() {
-        StringBuilder builder = new StringBuilder();
-        builder.append("PrefixA: ").append(prefixA);
-        builder.append(", PrefixB: ").append(prefixB);
-        builder.append(", OuterJoinType: ").append(outerJoinType);
-        builder.append(", IsNatural: ").append(isNaturalJoin);
-        if (filter != null) {
-            builder.append(", Filter: ").append(filter.toString());
-        }
-        if (joinColumns != null) {
-            builder.append(", JoinColumns: ");
-            for (String col : joinColumns) {
-                builder.append(col).append(",");
-            }
-            builder.deleteCharAt(builder.length() - 1);
-        }
-        return builder.toString();
+    if (getExtraJoinPrefix() != null && !getExtraJoinPrefix().isEmpty()) {
+      builder.append(", ExtraJoinPrefix: ");
+      for (String col : getExtraJoinPrefix()) {
+        builder.append(col).append(",");
+      }
+      builder.deleteCharAt(builder.length() - 1);
     }
+    return builder.toString();
+  }
 }

@@ -5,14 +5,22 @@ inputs:
         description: "if you need capacity expansion"
         required: false
         default: "false"
-    Test-Way:
-        description: "the way to imp"
-        required: false
-        default: clearData
     DB-name:
         description: "DB name"
         required: false
         default: IoTDB12
+    Test-Way:
+        description: "the way to test"
+        required: false
+        default: clearData
+    Read-Only:
+        description: "make the storage engine read-only"
+        required: false
+        default: "false"
+    Push-Down:
+        description: "make the IGinX push down filter"
+        required: false
+        default: "false"
 
 runs:
     using: "composite" # Mandatory parameter
@@ -52,6 +60,33 @@ runs:
                 sudo sed -i 's/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
               elif [ "$RUNNER_OS" == "macOS" ]; then
                 sudo sed -i '' 's/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
+              else
+                echo "$RUNNER_OS is not supported"
+                exit 1
+              fi
+
+        - if: inputs.Read-Only=='true'
+          name: Change is_read_only
+          shell: bash
+          run: |
+              if [ "$RUNNER_OS" == "Linux" ]; then
+                sudo sed -i 's/is_read_only=false/is_read_only=true/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
+              elif [ "$RUNNER_OS" == "macOS" ]; then
+                sudo sed -i '' 's/is_read_only=false/is_read_only=true/' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
+              else
+                echo "$RUNNER_OS is not supported"
+                exit 1
+              fi
+        - if: inputs.Push-Down=='true'
+          name: Change push_down
+          shell: bash
+          run: |
+              if [ "$RUNNER_OS" == "Linux" ]; then
+                sudo sed -i 's/enablePushDown=false/enablePushDown=true/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sed -i 's/queryOptimizer=remove_not,filter_fragment/queryOptimizer=remove_not,filter_fragment,filter_push_down/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
+              elif [ "$RUNNER_OS" == "macOS" ]; then
+                sudo sed -i '' 's/enablePushDown=false/enablePushDown=true/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sed -i '' 's/queryOptimizer=remove_not,filter_fragment/queryOptimizer=remove_not,filter_fragment,filter_push_down/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
               else
                 echo "$RUNNER_OS is not supported"
                 exit 1

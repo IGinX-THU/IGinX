@@ -138,7 +138,7 @@ Server: Docker Engine - Community
 
 ## 编译镜像
 
-目前 IGinX 的 docker 镜像需要手动安装到本地。首先需要下载 Iginx 源码：
+目前 IGinX 的 docker 镜像需要手动安装到本地。首先需要下载 IGinX 源码：
 
 ```shell
 $ cd ~
@@ -148,9 +148,9 @@ $ cd IGinX
 
 随后开始构建 IGinX 镜像：
 
-目前 IGinx 镜像的构建分为两种：
+目前 IGinX 镜像的构建分为两种：
 - oneShot: 可以将包括 ZooKeeper、IGinX 以及 IoTDB 在内所有依赖进行一键打包及运行。
-- onlyIginx: 另一种为单独构建 IGinx 镜像，需要用户在外部手动启动 ZooKeeper 和 IoTDB 节点。
+- onlyIginx: 另一种为单独构建 IGinX 镜像，需要用户在外部手动启动 ZooKeeper 和 IoTDB 节点。
 
 ## oneShot 镜像
 
@@ -164,37 +164,37 @@ $ ./build_and_run_iginx_docker.sh
 显示出如下的字样表示镜像构建成功并且成功启动：
 
 ```shell
-[+] Building 2.0s (12/12) FINISHED                                                                                                                                                                                                                                       
- => [internal] load build definition from Dockerfile                                                                                                                                                                                                                0.0s
- => => transferring dockerfile: 32B                                                                                                                                                                                                                                 0.0s
- => [internal] load .dockerignore                                                                                                                                                                                                                                   0.0s
- => => transferring context: 2B                                                                                                                                                                                                                                     0.0s
- => [internal] load metadata for docker.io/library/amazoncorretto:8                                                                                                                                                                                                 1.1s
- => [internal] load metadata for docker.io/library/maven:3-amazoncorretto-8                                                                                                                                                                                         1.1s
- => [builder 1/4] FROM docker.io/library/maven:3-amazoncorretto-8@sha256:38be03b00a04502751725aabcdf40e8b74711b5f5a19a4b5cadcbcc6362761a0                                                                                                                           0.0s
- => => resolve docker.io/library/maven:3-amazoncorretto-8@sha256:38be03b00a04502751725aabcdf40e8b74711b5f5a19a4b5cadcbcc6362761a0                                                                                                                                   0.0s
- => [stage-1 1/2] FROM docker.io/library/amazoncorretto:8@sha256:0b713bebcce236a89ed36afaa2542a68d215045cbbfd391b749190f3218d9b0d                                                                                                                                   0.0s
- => [internal] load build context                                                                                                                                                                                                                                   0.7s
- => => transferring context: 875.73kB                                                                                                                                                                                                                               0.6s
- => CACHED [builder 2/4] COPY . /root/IGinX                                                                                                                                                                                                                         0.0s
- => CACHED [builder 3/4] WORKDIR /root/IGinX                                                                                                                                                                                                                        0.0s
- => CACHED [builder 4/4] RUN --mount=type=cache,target=/root/.m2 mvn clean package -pl core,dataSources/iotdb12 -am -Dmaven.test.skip=true -Drevision=dev                                                                                                           0.0s
- => CACHED [stage-1 2/2] COPY --from=builder /root/IGinX/core/target/iginx-core-dev /root/IGinX                                                                                                                                                                     0.0s
- => exporting to image                                                                                                                                                                                                                                              0.0s
- => => exporting layers                                                                                                                                                                                                                                             0.0s
- => => writing image sha256:c112090e67e2904e1656e3f22588a0456755443c73bb56dd31c1194c3b60ddf3                                                                                                                                                                        0.0s
- => => naming to docker.io/library/oneshot_iginx                                                                                                                                                                                                                    0.0s
-
-Use 'docker scan' to run Snyk tests against images to find vulnerabilities and learn how to fix them
-[+] Running 3/3
- ⠿ Container iotdb      Started                                                                                                                                                                                                                                     0.7s
- ⠿ Container zookeeper  Started                                                                                                                                                                                                                                     0.7s
- ⠿ Container iginx1     Started                                                                                                                                                                                                                                     1.6s
+[+] Building 729.6s (12/12) FINISHED
+=> [iginx internal] load .dockerignore                                                                                   0.0s
+=> => transferring context: 2B                                                                                           0.0s
+=> [iginx internal] load build definition from Dockerfile                                                                0.0st
+=> => transferring dockerfile: 384B                                                                                      0.0s
+=> [iginx internal] load metadata for docker.io/library/maven:3-amazoncorretto-8                                         5.5s2
+=> [iginx internal] load metadata for docker.io/library/amazoncorretto:8                                                 5.6s
+=> CACHED [iginx stage-1 1/2] FROM docker.io/library/amazoncorretto:8@sha256:f9290c74c5587f1e651bd4f0b783f8342aba347d84  0.0s
+=> [iginx internal] load build context                                                                                   0.8s
+=> => transferring context: 1.64MB                                                                                       0.8s/
+=> CACHED [iginx builder 1/4] FROM docker.io/library/maven:3-amazoncorretto-8@sha256:c9d6016fad9c479b874f270a80d80f8913  0.0s
+=> [iginx builder 2/4] COPY . /root/IGinX                                                                                1.0s
+=> [iginx builder 3/4] WORKDIR /root/IGinX                                                                               0.1s
+=> [iginx builder 4/4] RUN --mount=type=cache,target=/root/.m2 mvn clean package -pl core,dataSources/iotdb12 -am -Dm  721.4s
+=> [iginx stage-1 2/2] COPY --from=builder /root/IGinX/core/target/iginx-core-dev /root/IGinX                            0.1s
+=> [iginx] exporting to image                                                                                            0.4s
+=> => exporting layers                                                                                                   0.3s
+=> => writing image sha256:3e83d7c3510bd41f9e0404bef932e1c7f48bed869dccac3ba070cbc2b29b966c                              0.0s
+=> => naming to docker.io/library/oneshot-iginx                                                                          0.0s
+[+] Running 4/4
+✔ Network oneshot_net  Created                                                                                           0.6s
+✔ Container iotdb      Started                                                                                           1.6s
+✔ Container zookeeper  Started                                                                                           1.6s
+✔ Container iginx1     Started
 ```
 
 ## onlyIginx 镜像
 
-对于 oneShot 镜像，其构建方法如下：
+注：在开始构建镜像前需要把 IGinX 中的 IoTDB 和 Zookeeper 地址参数进行更改（请勿使用 127.0.0.1 作为 IP 参数）
+
+对于 onlyIginx 镜像，其构建方法如下：
 
 ```shell
 $ cd docker/onlyIginx
@@ -204,26 +204,37 @@ $ ./build_iginx_docker.sh
 显示出如下的字样表示镜像构建成功：
 
 ```shell
-[+] Building 578.0s (12/12) FINISHED                                                                                                                                                                                                                                     
-=> [internal] load build definition from Dockerfile-iginx                                                                                                                                                                                                          0.0s
-=> => transferring dockerfile: 400B                                                                                                                                                                                                                                0.0s
-=> [internal] load .dockerignore                                                                                                                                                                                                                                   0.0s
-=> => transferring context: 2B                                                                                                                                                                                                                                     0.0s
-=> [internal] load metadata for docker.io/library/openjdk:11-jre-slim                                                                                                                                                                                              1.2s
-=> [internal] load metadata for docker.io/library/maven:3-amazoncorretto-8                                                                                                                                                                                         1.2s
-=> [internal] load build context                                                                                                                                                                                                                                  10.7s
-=> => transferring context: 271.34MB                                                                                                                                                                                                                              10.5s
-=> CACHED [builder 1/4] FROM docker.io/library/maven:3-amazoncorretto-8@sha256:38be03b00a04502751725aabcdf40e8b74711b5f5a19a4b5cadcbcc6362761a0                                                                                                                    0.0s
-=> => resolve docker.io/library/maven:3-amazoncorretto-8@sha256:38be03b00a04502751725aabcdf40e8b74711b5f5a19a4b5cadcbcc6362761a0                                                                                                                                   0.0s
-=> CACHED [stage-1 1/2] FROM docker.io/library/openjdk:11-jre-slim@sha256:93af7df2308c5141a751c4830e6b6c5717db102b3b31f012ea29d842dc4f2b02                                                                                                                         0.0s
-=> [builder 2/4] COPY . /root/iginx                                                                                                                                                                                                                                2.6s
-=> [builder 3/4] WORKDIR /root/iginx                                                                                                                                                                                                                               0.0s
-=> [builder 4/4] RUN ls;mvn clean package -DskipTests                                                                                                                                                                                                            560.0s
-=> [stage-1 2/2] COPY --from=builder /root/iginx/core/target/iginx-core-0.6.0-SNAPSHOT /iginx                                                                                                                                                                      1.1s
-=> exporting to image                                                                                                                                                                                                                                              1.4s
-=> => exporting layers                                                                                                                                                                                                                                             1.3s
-=> => writing image sha256:bca6377f80dab1689d6cc9975c2db50046722931edc4e314a1aecceb78833204                                                                                                                                                                        0.0s
-=> => naming to docker.io/library/iginx:0.6.0                                                                                                                                                                                                                      0.0s
+[+] Building 887.9s (12/12) FINISHED
+=> [internal] load build definition from Dockerfile-iginx                                                         0.1s
+=> => transferring dockerfile: 406B                                                                               0.0s
+=> [internal] load .dockerignore                                                                                  0.1s
+=> => transferring context: 2B                                                                                    0.0s
+=> [internal] load metadata for docker.io/library/openjdk:11-jre-slim                                             5.3s
+=> [internal] load metadata for docker.io/library/maven:3-amazoncorretto-8                                        3.3s
+=> [internal] load build context                                                                                  3.6s
+=> => transferring context: 475.61MB                                                                              3.5s
+=> CACHED [builder 1/4] FROM docker.io/library/maven:3-amazoncorretto-8@sha256:c9d6016fad9c479b874f270a80d80f891  0.0s
+=> [stage-1 1/2] FROM docker.io/library/openjdk:11-jre-slim@sha256:93af7df2308c5141a751c4830e6b6c5717db102b3b31  38.3s
+=> => resolve docker.io/library/openjdk:11-jre-slim@sha256:93af7df2308c5141a751c4830e6b6c5717db102b3b31f012ea29d  0.1s
+=> => sha256:764a04af3eff09cc6a29bcc19cf6315dbea455d7392c1a588a5deb331a929c29 7.55kB / 7.55kB                     0.0s
+=> => sha256:1efc276f4ff952c055dea726cfc96ec6a4fdb8b62d9eed816bd2b788f2860ad7 31.37MB / 31.37MB                  25.6s
+=> => sha256:a2f2f93da48276873890ac821b3c991d53a7e864791aaf82c39b7863c908b93b 1.58MB / 1.58MB                     2.7s
+=> => sha256:12cca292b13cb58fadde25af113ddc4ac3b0c5e39ab3f1290a6ba62ec8237afd 212B / 212B                         1.2s
+=> => sha256:93af7df2308c5141a751c4830e6b6c5717db102b3b31f012ea29d842dc4f2b02 549B / 549B                         0.0s
+=> => sha256:884c08d0f406a81ae1b5786932abaf399c335b997da7eea6a30cc51529220b66 1.16kB / 1.16kB                     0.0s
+=> => sha256:d73cf48caaac2e45ad76a2a9eb3b311d0e4eb1d804e3d2b9cf075a1fa31e6f92 46.04MB / 46.04MB                  37.3s
+=> => extracting sha256:1efc276f4ff952c055dea726cfc96ec6a4fdb8b62d9eed816bd2b788f2860ad7                          1.0s
+=> => extracting sha256:a2f2f93da48276873890ac821b3c991d53a7e864791aaf82c39b7863c908b93b                          0.1s
+=> => extracting sha256:12cca292b13cb58fadde25af113ddc4ac3b0c5e39ab3f1290a6ba62ec8237afd                          0.0s
+=> => extracting sha256:d73cf48caaac2e45ad76a2a9eb3b311d0e4eb1d804e3d2b9cf075a1fa31e6f92                          0.7s
+=> [builder 2/4] COPY . /root/iginx                                                                               1.3s
+=> [builder 3/4] WORKDIR /root/iginx                                                                              0.1s
+=> [builder 4/4] RUN mvn clean package -DskipTests -P-format                                                      876.3s
+=> [stage-1 2/2] COPY --from=builder /root/iginx/core/target/iginx-core-0.6.0-SNAPSHOT /iginx                     0.2s
+=> exporting to image                                                                                             0.5s
+=> => exporting layers                                                                                            0.5s
+=> => writing image sha256:e738348598c9db601dbf39c7a8ca9e1396c5ff51769afeb0fe3da12e2fdcd73a                       0.0s
+=> => naming to docker.io/library/iginx:0.6.0
 ```
 
 接下来开始运行镜像
@@ -251,9 +262,8 @@ $ cd ${iotdb_path}
 
 ```shell
 $ cd ${iginx_path}/docker/onlyIginx
-$ ./run_iginx_docker.sh 172.40.0.2 10000
+$ ./run_iginx_docker.sh x.x.x.x 10000
+# x.x.x.x 为用户自己的网络ip地址
 ```
 
-该命令会将本地的 10000 接口暴露出来，作为与 IGinX 集群的通讯接口。通过地址 172.40.0.2:8086 即可开始访问 IGinx
-
-注：在开始构建镜像前需要把 IGinx 中的 IoTDB 和 Zookeeper 地址参数进行更改（请勿使用 127.0.0.1 作为 IP 参数）
+该命令会将本地的 10000 接口暴露出来，作为与 IGinX 集群的通讯接口。通过地址 x.x.x.x:10000 即可开始访问 IGinX

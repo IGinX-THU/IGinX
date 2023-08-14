@@ -1,14 +1,21 @@
 package cn.edu.tsinghua.iginx.sql.statement.frompart;
 
 import cn.edu.tsinghua.iginx.sql.statement.frompart.join.JoinCondition;
+import java.util.List;
 
 public interface FromPart {
 
-    FromPartType getType();
+  FromPartType getType();
 
-    String getPath();
+  boolean hasSinglePrefix();
 
-    boolean isJoinPart();
+  List<String> getPatterns();
 
-    JoinCondition getJoinCondition();
+  String getPrefix();
+
+  boolean isJoinPart();
+
+  JoinCondition getJoinCondition();
+
+  List<String> getFreeVariables();
 }

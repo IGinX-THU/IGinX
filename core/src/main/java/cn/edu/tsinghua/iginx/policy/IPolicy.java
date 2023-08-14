@@ -10,27 +10,22 @@ import java.util.List;
 
 public interface IPolicy {
 
-    void notify(DataStatement statement);
+  void notify(DataStatement statement);
 
-    void init(IMetaManager iMetaManager);
+  void init(IMetaManager iMetaManager);
 
-    StorageEngineChangeHook getStorageEngineChangeHook();
+  StorageEngineChangeHook getStorageEngineChangeHook();
 
-    Pair<List<FragmentMeta>, List<StorageUnitMeta>> generateInitialFragmentsAndStorageUnits(
-            DataStatement statement);
+  Pair<List<FragmentMeta>, List<StorageUnitMeta>> generateInitialFragmentsAndStorageUnits(
+      DataStatement statement);
 
-    Pair<List<FragmentMeta>, List<StorageUnitMeta>> generateFragmentsAndStorageUnits(
-            DataStatement statement);
+  Pair<List<FragmentMeta>, List<StorageUnitMeta>> generateFragmentsAndStorageUnits(
+      DataStatement statement);
 
-    Pair<FragmentMeta, StorageUnitMeta>
-            generateFragmentAndStorageUnitByTimeSeriesIntervalAndTimeInterval(
-                    String startPath,
-                    String endPath,
-                    long startTime,
-                    long endTime,
-                    List<Long> storageEngineList);
+  Pair<FragmentMeta, StorageUnitMeta> generateFragmentAndStorageUnitByColumnsIntervalAndKeyInterval(
+      String startPath, String endPath, long startKey, long endKey, List<Long> storageEngineList);
 
-    boolean isNeedReAllocate();
+  boolean isNeedReAllocate();
 
-    void setNeedReAllocate(boolean needReAllocate);
+  void setNeedReAllocate(boolean needReAllocate);
 }

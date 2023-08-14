@@ -254,7 +254,7 @@ public class TimescaleDBStorage implements IStorage {
   }
 
   private TaskExecuteResult executeProjectTask(Project project,
-      Filter filter) { // 未来可能要用 tsInterval 对查询出来的数据进行过滤
+      Filter filter) { // 未来可能要用 columnsInterval 对查询出来的数据进行过滤
     try {
       List<ResultSet> resultSets = new ArrayList<>();
       List<Field> fields = new ArrayList<>();
