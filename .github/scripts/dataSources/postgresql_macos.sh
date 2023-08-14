@@ -10,13 +10,11 @@ sh -c "wget --quiet https://get.enterprisedb.com/postgresql/postgresql-15.2-1-os
 
 sh -c "sudo unzip -q postgresql-15.2-1-osx-binaries.zip"
 
-sh -c "ls pgsql/share/postgresql"
-
 sh -c "sudo cp pgsql/share/postgresql/postgresql.conf.sample pgsql/share/postgresql/postgresql.conf"
 
-sh -c "sudo echo \"max_identifier_length = 127\" >> psql/share/postgresql/postgresql.conf"
+sh -c "sudo echo \"max_identifier_length = 127\" >> pgsql/share/postgresql/postgresql.conf"
 
-sh -c "sudo cat psql/share/postgresql/postgresql.conf"
+sh -c "sudo cat pgsql/share/postgresql/postgresql.conf"
 
 sh -c "sudo dscl . -create /Users/postgres"
 
