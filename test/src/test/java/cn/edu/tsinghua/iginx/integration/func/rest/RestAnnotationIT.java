@@ -235,7 +235,7 @@ public class RestAnnotationIT {
       4.1、测试添加相同category，通过queryAnno以及queryAll两种方法测试
       4.2、测试不断更新相同结果的category，通过queryAnno以及queryAll两种方法测试
       */
-      testDuplicateAppendViaQueryAnno(dataType);
+      testDuplicateAppend2ViaQueryAll(dataType);
       testDuplicateAppendViaQueryAll(dataType);
       testDuplicateUpdateViaQueryAnno(dataType);
       testDuplicateUpdateViaQueryAll(dataType);
@@ -275,7 +275,7 @@ public class RestAnnotationIT {
       execute("add.json", TYPE.APPEND, DataType.DOUBLE);
       String ans = getAns(getMethodName(), dataType);
       executeAndCompare(
-          "queryAppendViaQueryAnno.json", ans, TYPE.QUERY_ANNOTATION, DataType.DOUBLE);
+          "appendViaQueryAnno.json", ans, TYPE.QUERY_ANNOTATION, DataType.DOUBLE);
       clearData();
     } catch (Exception e) {
       logger.error("Error occurred during execution ", e);
@@ -288,7 +288,7 @@ public class RestAnnotationIT {
     try {
       execute("add.json", TYPE.APPEND, dataType);
       String ans = getAns(getMethodName(), dataType);
-      executeAndCompare("queryAppendViaQueryAll.json", ans, TYPE.QUERY_ALL, dataType);
+      executeAndCompare("appendViaQueryAll.json", ans, TYPE.QUERY_ALL, dataType);
       clearData();
     } catch (Exception e) {
       logger.error("Error occurred during execution ", e);
@@ -301,7 +301,7 @@ public class RestAnnotationIT {
     try {
       execute("update.json", TYPE.UPDATE, dataType);
       String ans = getAns(getMethodName(), dataType);
-      executeAndCompare("queryUpdateViaQueryAll.json", ans, TYPE.QUERY_ALL, dataType);
+      executeAndCompare("updateViaQueryAll.json", ans, TYPE.QUERY_ALL, dataType);
       clearData();
     } catch (Exception e) {
       logger.error("Error occurred during execution ", e);
@@ -314,7 +314,7 @@ public class RestAnnotationIT {
     try {
       execute("update.json", TYPE.UPDATE, dataType);
       String ans = getAns(getMethodName(), dataType);
-      executeAndCompare("queryUpdateViaQueryAnno.json", ans, TYPE.QUERY_ANNOTATION, dataType);
+      executeAndCompare("updateViaQueryAnno.json", ans, TYPE.QUERY_ANNOTATION, dataType);
       clearData();
     } catch (Exception e) {
       logger.error("Error occurred during execution ", e);
@@ -354,14 +354,14 @@ public class RestAnnotationIT {
   4.2、测试不断更新相同结果的category，通过queryAnno以及queryAll两种方法测试
   */
 
-  private void testDuplicateAppendViaQueryAnno(DataType dataType) {
+  private void testDuplicateAppend2ViaQueryAll(DataType dataType) {
     try {
       execute("insert2.json", TYPE.INSERT, dataType);
       execute("add2.json", TYPE.APPEND, dataType);
       execute("add2.json", TYPE.APPEND, dataType);
 
       String ans = getAns(getMethodName(), dataType);
-      executeAndCompare("testAppend2ViaQueryAll.json", ans, TYPE.QUERY_ALL, dataType);
+      executeAndCompare("append2ViaQueryAll.json", ans, TYPE.QUERY_ALL, dataType);
       clearData();
     } catch (Exception e) {
       logger.error("Error occurred during execution ", e);
@@ -376,7 +376,7 @@ public class RestAnnotationIT {
       execute("add.json", TYPE.APPEND, dataType);
 
       String ans = getAns(getMethodName(), dataType);
-      executeAndCompare("queryAppendViaQueryAll.json", ans, TYPE.QUERY_ALL, dataType);
+      executeAndCompare("appendViaQueryAll.json", ans, TYPE.QUERY_ALL, dataType);
       clearData();
     } catch (Exception e) {
       logger.error("Error occurred during execution ", e);
@@ -391,7 +391,7 @@ public class RestAnnotationIT {
       execute("update.json", TYPE.UPDATE, dataType);
 
       String ans = getAns(getMethodName(), dataType);
-      executeAndCompare("queryUpdateViaQueryAll.json", ans, TYPE.QUERY_ALL, dataType);
+      executeAndCompare("updateViaQueryAll.json", ans, TYPE.QUERY_ALL, dataType);
       clearData();
     } catch (Exception e) {
       logger.error("Error occurred during execution ", e);
@@ -406,7 +406,7 @@ public class RestAnnotationIT {
       execute("update.json", TYPE.UPDATE, dataType);
 
       String ans = getAns(getMethodName(), dataType);
-      executeAndCompare("queryUpdateViaQueryAnno.json", ans, TYPE.QUERY_ANNOTATION, dataType);
+      executeAndCompare("updateViaQueryAnno.json", ans, TYPE.QUERY_ANNOTATION, dataType);
       clearData();
     } catch (Exception e) {
       logger.error("Error occurred during execution ", e);
@@ -466,7 +466,7 @@ public class RestAnnotationIT {
     try {
       execute("addSame.json", TYPE.APPEND, dataType);
       String ans = getAns(getMethodName(), dataType);
-      executeAndCompare("queryAppendViaQueryAll.json", ans, TYPE.QUERY_ALL, dataType);
+      executeAndCompare("appendViaQueryAll.json", ans, TYPE.QUERY_ALL, dataType);
       clearData();
     } catch (Exception e) {
       logger.error("Error occurred during execution ", e);
@@ -485,7 +485,7 @@ public class RestAnnotationIT {
 
       execute("delete.json", TYPE.DELETE, dataType);
       String ans = getAns(getMethodName(), dataType);
-      executeAndCompare("testAppend2ViaQueryAll.json", ans, TYPE.QUERY_ALL, dataType);
+      executeAndCompare("append2ViaQueryAll.json", ans, TYPE.QUERY_ALL, dataType);
       clearData();
     } catch (Exception e) {
       logger.error("Error occurred during execution ", e);
