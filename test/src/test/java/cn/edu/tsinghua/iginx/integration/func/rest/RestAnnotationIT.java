@@ -265,17 +265,16 @@ public class RestAnnotationIT {
   private void testQueryAll(DataType dataType) {
     insertData(dataType);
     String ans = getAns(getMethodName(), dataType);
-    executeAndCompare("queryData.json", ans, TYPE.QUERY_ALL, DataType.DOUBLE);
+    executeAndCompare("queryData.json", ans, TYPE.QUERY_ALL, dataType);
     clearData();
   }
 
   private void testAppendViaQueryAnno(DataType dataType) {
     insertData(dataType);
     try {
-      execute("add.json", TYPE.APPEND, DataType.DOUBLE);
+      execute("add.json", TYPE.APPEND, dataType);
       String ans = getAns(getMethodName(), dataType);
-      executeAndCompare(
-          "appendViaQueryAnno.json", ans, TYPE.QUERY_ANNOTATION, DataType.DOUBLE);
+      executeAndCompare("appendViaQueryAnno.json", ans, TYPE.QUERY_ANNOTATION, dataType);
       clearData();
     } catch (Exception e) {
       logger.error("Error occurred during execution ", e);
