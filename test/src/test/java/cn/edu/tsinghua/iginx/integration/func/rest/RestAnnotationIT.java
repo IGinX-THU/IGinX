@@ -133,7 +133,7 @@ public class RestAnnotationIT {
     }
   }
 
-  private String ansFromFile(String fileName, DataType dataType) {
+  private String getAns(String fileName, DataType dataType) {
     StringBuilder ret = new StringBuilder();
     switch (dataType) {
       case DOUBLE:
@@ -185,20 +185,6 @@ public class RestAnnotationIT {
     StackTraceElement[] stacktrace = Thread.currentThread().getStackTrace();
     StackTraceElement e = stacktrace[2];
     return e.getMethodName();
-  }
-
-  private String getAns(String fileName, DataType dataType) {
-    String ans;
-    switch (dataType) {
-      case DOUBLE:
-      case LONG:
-      case BINARY:
-        ans = ansFromFile(fileName, dataType);
-        break;
-      default:
-        throw new IllegalStateException("Unexpected DataType: " + dataType.toString());
-    }
-    return ans;
   }
 
   private void clearData() {
