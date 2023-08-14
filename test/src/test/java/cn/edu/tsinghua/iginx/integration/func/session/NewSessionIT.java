@@ -71,6 +71,7 @@ public class NewSessionIT {
             DataType.LONG,
             DataType.FLOAT,
             DataType.DOUBLE,
+            DataType.BINARY,
             DataType.BINARY);
     List<Long> keys = new ArrayList<>();
     List<List<Object>> values = new ArrayList<>();
