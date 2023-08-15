@@ -9,11 +9,11 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.filesystem.file.DefaultFileOperator;
 import cn.edu.tsinghua.iginx.filesystem.file.IFileOperator;
 import cn.edu.tsinghua.iginx.filesystem.file.entity.FileMeta;
-import cn.edu.tsinghua.iginx.filesystem.file.entity.FileType;
+import cn.edu.tsinghua.iginx.filesystem.file.tools.FileType;
 import cn.edu.tsinghua.iginx.filesystem.query.entity.FileSystemResultTable;
 import cn.edu.tsinghua.iginx.filesystem.query.entity.Record;
 import cn.edu.tsinghua.iginx.filesystem.tools.ConfLoader;
-import cn.edu.tsinghua.iginx.filesystem.tools.FilePath;
+import cn.edu.tsinghua.iginx.filesystem.file.tools.FilePath;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.io.File;
@@ -369,13 +369,13 @@ public class Controller {
     while (!stack.isEmpty()) {
       File current = stack.pop();
       List<File> fileList = null;
-      if (current.isDirectory()) fileList = fileOperator.listFiles(current);
-      else if (FileType.getFileType(current) == FileType.IGINX_FILE) {
-        try {
+      try {
+        if (current.isDirectory()) fileList = fileOperator.listFiles(current);
+        else if (FileType.getFileType(current) == FileType.IGINX_FILE) {
           res.add(new Pair<>(current, fileOperator.getFileMeta(current)));
-        } catch (IOException e) {
-          logger.error(e.getMessage());
         }
+      } catch (IOException e) {
+        logger.error(e.getMessage());
       }
       if (fileList != null) {
         for (File file : fileList) {

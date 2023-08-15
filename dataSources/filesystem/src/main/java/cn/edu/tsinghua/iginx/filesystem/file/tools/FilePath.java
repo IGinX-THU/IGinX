@@ -1,4 +1,4 @@
-package cn.edu.tsinghua.iginx.filesystem.tools;
+package cn.edu.tsinghua.iginx.filesystem.file.tools;
 
 import java.io.File;
 

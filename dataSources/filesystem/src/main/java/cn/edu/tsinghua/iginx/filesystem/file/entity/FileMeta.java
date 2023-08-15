@@ -5,13 +5,17 @@ import java.util.Map;
 
 public class FileMeta {
   // the number of the max meta info
-  public static final long IGINX_FILE_META_INDEX = 2L;
+  public static final long IGINX_FILE_META_INDEX = 3L;
+  public static final int MAGIC_NUMBER_INDEX = 1;
   // data type line number
-  public static final int DATA_TYPE_INDEX = 1;
+  public static final int DATA_TYPE_INDEX = 2;
   // tagkv line number
-  public static final int TAG_KV_INDEX = 2;
+  public static final int TAG_KV_INDEX = 3;
+  public static final byte[] MAGIC_NUMBER = "IGINX".getBytes();
+  public static final String MAGIC_NUMBER_NAME = "magic_number";
   public static final String DATA_TYPE_NAME = "data_type";
   public static final String TAG_KV_NAME = "tag_KV";
+  private byte[] magicNumber;
   private DataType dataType;
   private Map<String, String> tags;
 
@@ -65,5 +69,13 @@ public class FileMeta {
     } else {
       this.tags = tags;
     }
+  }
+
+  public byte[] getMagicNumber() {
+    return magicNumber;
+  }
+
+  public void setMagicNumber(byte[] magicNumber) {
+    this.magicNumber = magicNumber;
   }
 }

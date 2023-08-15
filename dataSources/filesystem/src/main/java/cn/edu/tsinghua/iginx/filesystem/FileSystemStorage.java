@@ -34,7 +34,7 @@ import cn.edu.tsinghua.iginx.filesystem.exec.LocalExecutor;
 import cn.edu.tsinghua.iginx.filesystem.exec.RemoteExecutor;
 import cn.edu.tsinghua.iginx.filesystem.server.FileSystemServer;
 import cn.edu.tsinghua.iginx.filesystem.tools.ConfLoader;
-import cn.edu.tsinghua.iginx.filesystem.tools.FilePath;
+import cn.edu.tsinghua.iginx.filesystem.file.tools.FilePath;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;

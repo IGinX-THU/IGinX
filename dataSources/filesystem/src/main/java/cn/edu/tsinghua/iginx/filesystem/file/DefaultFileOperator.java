@@ -3,7 +3,7 @@ package cn.edu.tsinghua.iginx.filesystem.file;
 import static cn.edu.tsinghua.iginx.thrift.DataType.BINARY;
 
 import cn.edu.tsinghua.iginx.filesystem.file.entity.FileMeta;
-import cn.edu.tsinghua.iginx.filesystem.file.entity.FileType;
+import cn.edu.tsinghua.iginx.filesystem.file.tools.FileType;
 import cn.edu.tsinghua.iginx.filesystem.query.entity.Record;
 import cn.edu.tsinghua.iginx.filesystem.tools.MemoryPool;
 import cn.edu.tsinghua.iginx.thrift.DataType;
@@ -506,6 +506,9 @@ public class DefaultFileOperator implements IFileOperator {
       try (BufferedWriter writer = new BufferedWriter(new FileWriter(csvPath.toFile()))) {
         for (int i = 1; i <= FileMeta.IGINX_FILE_META_INDEX; i++) {
           switch (i) {
+            case FileMeta.MAGIC_NUMBER_INDEX:
+              writer.write(new String(FileMeta.MAGIC_NUMBER));
+              break;
             case FileMeta.DATA_TYPE_INDEX:
               writer.write(String.valueOf(fileMeta.getDataType().getValue()));
               break;
@@ -551,6 +554,9 @@ public class DefaultFileOperator implements IFileOperator {
         String line;
         while ((line = reader.readLine()) != null && index <= FileMeta.IGINX_FILE_META_INDEX) {
           switch (index) {
+            case FileMeta.MAGIC_NUMBER_INDEX:
+              fileMeta.setMagicNumber(line.getBytes());
+              break;
             case FileMeta.TAG_KV_INDEX:
               fileMeta.setTags(JsonUtils.transformJsonToStringStringMap(line));
               break;
