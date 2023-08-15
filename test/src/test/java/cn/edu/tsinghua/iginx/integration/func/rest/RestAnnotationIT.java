@@ -226,54 +226,36 @@ public class RestAnnotationIT {
   @Test
   public void testAll() {
     for (DataType dataType : DATA_TYPE_ARRAY) {
-      /*
-      1、查询annotation信息
-      */
       testQueryAnno(dataType);
-
-      /*
-      2、查询数据以及annotation信息
-      */
       testQueryAll(dataType);
 
-      /*
-      3、对每个修改操作单独测试，并通过两种查询分别验证正确性：
-      3.1、测试 add（增加标签操作），通过queryAnno以及queryAll两种方法测试
-      3.2、测试 update（更新标签操作），通过queryAnno以及queryAll两种方法测试
-      3.3、测试 delete（删除标签操作），通过queryAnno以及queryAll两种方法测试
-      */
       testAppendViaQueryAnno(dataType);
       testAppendViaQueryAll(dataType);
-      testUpdateViaQueryAnno(dataType);
-      testUpdateViaQueryAll(dataType);
-      testDeleteViaQueryAll(dataType);
-      testDeleteViaQueryAnno(dataType);
 
-      /*
-      4、测试重复性操作操作，查看结果正确性
-      4.1、测试添加相同category，通过queryAnno以及queryAll两种方法测试
-      4.2、测试不断更新相同结果的category，通过queryAnno以及queryAll两种方法测试
-      */
       testDuplicateAppend2ViaQueryAll(dataType);
       testDuplicateAppendViaQueryAll(dataType);
-      testDuplicateUpdateViaQueryAnno(dataType);
-      testDuplicateUpdateViaQueryAll(dataType);
-      testDuplicateDeleteViaQueryAnno(dataType);
-      testDuplicateDeleteViaQueryAll(dataType);
 
-      /*
-      5、逻辑上重复的操作，如更新结果与原category相同，查看结果正确性
-      */
-      testSameUpdateViaQueryAll(dataType);
       testSameAppendViaQueryAll(dataType);
 
-      /*
-      6、复杂操作，插入，添加，更新，删除，每步操作查看结果正确性
-      */
-      testAppend2ViaQueryAll(dataType);
+      if (isAbleToDelete) {
+        testUpdateViaQueryAnno(dataType);
+        testUpdateViaQueryAll(dataType);
+        testDeleteViaQueryAnno(dataType);
+        testDeleteViaQueryAll(dataType);
+
+        testDuplicateUpdateViaQueryAnno(dataType);
+        testDuplicateUpdateViaQueryAll(dataType);
+        testDuplicateDeleteViaQueryAnno(dataType);
+        testDuplicateDeleteViaQueryAll(dataType);
+
+        testSameUpdateViaQueryAll(dataType);
+
+        testAppend2ViaQueryAll(dataType);
+      }
     }
   }
 
+  // 查询annotation信息
   private void testQueryAnno(DataType dataType) {
     insertData(dataType);
     String ans = getAns(getMethodName(), dataType);
@@ -281,6 +263,7 @@ public class RestAnnotationIT {
     clearData();
   }
 
+  // 查询数据以及annotation信息
   private void testQueryAll(DataType dataType) {
     insertData(dataType);
     String ans = getAns(getMethodName(), dataType);
@@ -288,6 +271,7 @@ public class RestAnnotationIT {
     clearData();
   }
 
+  // 执行添加annotation操作，并查询annotation信息
   private void testAppendViaQueryAnno(DataType dataType) {
     insertData(dataType);
     try {
@@ -301,6 +285,7 @@ public class RestAnnotationIT {
     }
   }
 
+  // 执行添加annotation操作，并查询数据以及annotation信息
   private void testAppendViaQueryAll(DataType dataType) {
     insertData(dataType);
     try {
@@ -314,22 +299,8 @@ public class RestAnnotationIT {
     }
   }
 
-  private void testUpdateViaQueryAll(DataType dataType) {
-    if (!isAbleToDelete) return;
-    insertData(dataType);
-    try {
-      execute("update.json", TYPE.UPDATE, dataType);
-      String ans = getAns(getMethodName(), dataType);
-      executeAndCompare("updateViaQueryAll.json", ans, TYPE.QUERY_ALL, dataType);
-      clearData();
-    } catch (Exception e) {
-      logger.error("Error occurred during execution ", e);
-      fail();
-    }
-  }
-
+  // 执行更新annotation操作，并查询annotation信息
   private void testUpdateViaQueryAnno(DataType dataType) {
-    if (!isAbleToDelete) return;
     insertData(dataType);
     try {
       execute("update.json", TYPE.UPDATE, dataType);
@@ -342,13 +313,13 @@ public class RestAnnotationIT {
     }
   }
 
-  private void testDeleteViaQueryAll(DataType dataType) {
-    if (!isAbleToDelete) return;
+  // 执行更新annotation操作，并查询数据以及annotation信息
+  private void testUpdateViaQueryAll(DataType dataType) {
     insertData(dataType);
     try {
-      execute("delete.json", TYPE.DELETE, dataType);
+      execute("update.json", TYPE.UPDATE, dataType);
       String ans = getAns(getMethodName(), dataType);
-      executeAndCompare("deleteViaQueryAll.json", ans, TYPE.QUERY_ALL, dataType);
+      executeAndCompare("updateViaQueryAll.json", ans, TYPE.QUERY_ALL, dataType);
       clearData();
     } catch (Exception e) {
       logger.error("Error occurred during execution ", e);
@@ -356,8 +327,8 @@ public class RestAnnotationIT {
     }
   }
 
+  // 执行删除annotation操作，并查询annotation信息
   private void testDeleteViaQueryAnno(DataType dataType) {
-    if (!isAbleToDelete) return;
     insertData(dataType);
     try {
       execute("delete.json", TYPE.DELETE, dataType);
@@ -370,12 +341,21 @@ public class RestAnnotationIT {
     }
   }
 
-  /*
-  4、测试重复性操作操作，查看结果正确性
-  4.1、测试添加相同category，通过queryAnno以及queryAll两种方法测试
-  4.2、测试不断更新相同结果的category，通过queryAnno以及queryAll两种方法测试
-  */
+  // 执行删除annotation操作，并查询数据以及annotation信息
+  private void testDeleteViaQueryAll(DataType dataType) {
+    insertData(dataType);
+    try {
+      execute("delete.json", TYPE.DELETE, dataType);
+      String ans = getAns(getMethodName(), dataType);
+      executeAndCompare("deleteViaQueryAll.json", ans, TYPE.QUERY_ALL, dataType);
+      clearData();
+    } catch (Exception e) {
+      logger.error("Error occurred during execution ", e);
+      fail();
+    }
+  }
 
+  // 重复执行添加annotation操作，并查询数据以及annotation信息
   private void testDuplicateAppend2ViaQueryAll(DataType dataType) {
     try {
       execute("insert2.json", TYPE.INSERT, dataType);
@@ -391,6 +371,7 @@ public class RestAnnotationIT {
     }
   }
 
+  // 重复执行添加annotation操作，并查询数据以及annotation信息
   private void testDuplicateAppendViaQueryAll(DataType dataType) {
     insertData(dataType);
     try {
@@ -406,24 +387,8 @@ public class RestAnnotationIT {
     }
   }
 
-  private void testDuplicateUpdateViaQueryAll(DataType dataType) {
-    if (!isAbleToDelete) return;
-    insertData(dataType);
-    try {
-      execute("update.json", TYPE.UPDATE, dataType);
-      execute("update.json", TYPE.UPDATE, dataType);
-
-      String ans = getAns(getMethodName(), dataType);
-      executeAndCompare("updateViaQueryAll.json", ans, TYPE.QUERY_ALL, dataType);
-      clearData();
-    } catch (Exception e) {
-      logger.error("Error occurred during execution ", e);
-      fail();
-    }
-  }
-
+  // 重复执行更新annotation操作，并查询annotation信息
   private void testDuplicateUpdateViaQueryAnno(DataType dataType) {
-    if (!isAbleToDelete) return;
     insertData(dataType);
     try {
       execute("update.json", TYPE.UPDATE, dataType);
@@ -438,8 +403,24 @@ public class RestAnnotationIT {
     }
   }
 
+  // 重复执行更新annotation操作，并查询数据以及annotation信息
+  private void testDuplicateUpdateViaQueryAll(DataType dataType) {
+    insertData(dataType);
+    try {
+      execute("update.json", TYPE.UPDATE, dataType);
+      execute("update.json", TYPE.UPDATE, dataType);
+
+      String ans = getAns(getMethodName(), dataType);
+      executeAndCompare("updateViaQueryAll.json", ans, TYPE.QUERY_ALL, dataType);
+      clearData();
+    } catch (Exception e) {
+      logger.error("Error occurred during execution ", e);
+      fail();
+    }
+  }
+
+  // 重复执行删除annotation操作，并查询annotation信息
   private void testDuplicateDeleteViaQueryAnno(DataType dataType) {
-    if (!isAbleToDelete) return;
     insertData(dataType);
     try {
       execute("delete.json", TYPE.DELETE, dataType);
@@ -454,8 +435,8 @@ public class RestAnnotationIT {
     }
   }
 
+  // 重复执行删除annotation操作，并查询数据以及annotation信息
   private void testDuplicateDeleteViaQueryAll(DataType dataType) {
-    if (!isAbleToDelete) return;
     insertData(dataType);
     try {
       execute("delete.json", TYPE.DELETE, dataType);
@@ -470,24 +451,7 @@ public class RestAnnotationIT {
     }
   }
 
-  /*
-  5、逻辑上重复的操作，如更新结果与原category相同，查看结果正确性
-  */
-
-  private void testSameUpdateViaQueryAll(DataType dataType) {
-    if (!isAbleToDelete) return;
-    insertData(dataType);
-    try {
-      execute("updateSame.json", TYPE.UPDATE, dataType);
-      String ans = getAns(getMethodName(), dataType);
-      executeAndCompare("queryData.json", ans, TYPE.QUERY_ALL, dataType);
-      clearData();
-    } catch (Exception e) {
-      logger.error("Error occurred during execution ", e);
-      fail();
-    }
-  }
-
+  // 重复执行添加annotation操作，并查询数据以及annotation信息
   private void testSameAppendViaQueryAll(DataType dataType) {
     insertData(dataType);
     try {
@@ -501,15 +465,25 @@ public class RestAnnotationIT {
     }
   }
 
-  /*
-  6、复杂操作，插入，添加，更新，删除，每步操作查看结果正确性
-  */
+  // 重复执行更新annotation操作，并查询数据以及annotation信息
+  private void testSameUpdateViaQueryAll(DataType dataType) {
+    insertData(dataType);
+    try {
+      execute("updateSame.json", TYPE.UPDATE, dataType);
+      String ans = getAns(getMethodName(), dataType);
+      executeAndCompare("queryData.json", ans, TYPE.QUERY_ALL, dataType);
+      clearData();
+    } catch (Exception e) {
+      logger.error("Error occurred during execution ", e);
+      fail();
+    }
+  }
 
+  // 依次执行添加和删除annotation操作，并查询数据以及annotation信息
   private void testAppend2ViaQueryAll(DataType dataType) {
     try {
       execute("insert2.json", TYPE.INSERT, dataType);
       execute("add2.json", TYPE.APPEND, dataType);
-
       execute("delete.json", TYPE.DELETE, dataType);
       String ans = getAns(getMethodName(), dataType);
       executeAndCompare("append2ViaQueryAll.json", ans, TYPE.QUERY_ALL, dataType);
