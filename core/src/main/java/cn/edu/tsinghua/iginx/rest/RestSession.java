@@ -375,8 +375,9 @@ public class RestSession {
       long endKey,
       TimePrecision timePrecision) {
     DeleteDataInColumnsReq req = new DeleteDataInColumnsReq(sessionId, paths, startKey, endKey);
-    if (!tagList.isEmpty()) // LHZ这里要全部将size改为这个empty的判断
-    req.setTagsList(tagList);
+    if (!tagList.isEmpty()) {
+      req.setTagsList(tagList);
+    }
     req.setTimePrecision(timePrecision);
 
     Status status;

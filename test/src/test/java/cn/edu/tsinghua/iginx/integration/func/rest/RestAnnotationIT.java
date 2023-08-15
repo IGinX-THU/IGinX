@@ -92,9 +92,9 @@ public class RestAnnotationIT {
       ProcessBuilder processBuilder = new ProcessBuilder(curlArray.split(" "));
       String dir;
       if (type.equals(TYPE.INSERT)) {
-        dir = String.format(
-            "./src/test/resources/restAnnotation/%sType",
-            dataType.toString().toLowerCase());
+        dir =
+            String.format(
+                "./src/test/resources/restAnnotation/%sType", dataType.toString().toLowerCase());
       } else {
         dir = "./src/test/resources/restAnnotation/common";
       }
@@ -153,8 +153,7 @@ public class RestAnnotationIT {
       case BINARY:
         if (fileName.endsWith("Anno")) {
           fileName =
-              String.format(
-                  "./src/test/resources/restAnnotation/common/ans/%s.json", fileName);
+              String.format("./src/test/resources/restAnnotation/common/ans/%s.json", fileName);
         } else {
           fileName =
               String.format(

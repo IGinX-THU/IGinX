@@ -295,7 +295,7 @@ INFO: [HttpServer] Started.
     }
   },
   {
-      "name": "archive_file_tracked_search",
+      "name": "archive_file_search",
       "timestamp": 1359786400000,
       "value": 321,
       "tags": {
@@ -328,7 +328,7 @@ $ curl -XPOST -H'Content-Type: application/json' -d @insert.json http://127.0.0.
 		"name": "archive_file_tracked"
 		},
 		{
-		"name": "archive_file_tracked_search"
+		"name": "archive_file_search"
 		}
 	]
 }
@@ -385,7 +385,7 @@ $ curl -XPOST -H'Content-Type: application/json' -d @query.json http://127.0.0.1
             "sample_size": 1,
             "results": [
                 {
-                    "name": "archive_file_tracked_search",
+                    "name": "archive_file_search",
                     "group_by": [
                         {
                             "name": "type",

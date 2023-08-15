@@ -439,7 +439,9 @@ public class DataPointsParser {
       throw e;
     }
     try {
-      for (int pos = 0; pos < preQueryResult.getSiz(); pos++) { // LHZ这里在测试时确认是否每个resultDataSet只有一个值
+      for (int pos = 0;
+          pos < preQueryResult.getSize();
+          pos++) { // LHZ这里在测试时确认是否每个resultDataSet只有一个值
 
         QueryResultDataset queryResultDataset = preQueryResult.getQueryResultDatasets().get(pos);
         QueryMetric queryBase = preQueryResult.getQueryMetrics().get(pos);
@@ -505,7 +507,9 @@ public class DataPointsParser {
       throw e;
     }
     try {
-      for (int pos = 0; pos < preQueryResult.getSiz(); pos++) { // LHZ这里在测试时确认是否每个resultDataSet只有一个值
+      for (int pos = 0;
+          pos < preQueryResult.getSize();
+          pos++) { // LHZ这里在测试时确认是否每个resultDataSet只有一个值
         QueryResultDataset queryResultDataset = preQueryResult.getQueryResultDatasets().get(pos);
         QueryMetric queryBase = preQueryResult.getQueryMetrics().get(pos);
         for (int pl = 0; pl < queryResultDataset.getPaths().size(); pl++) {

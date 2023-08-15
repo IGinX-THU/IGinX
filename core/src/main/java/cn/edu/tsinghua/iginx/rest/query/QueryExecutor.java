@@ -63,9 +63,7 @@ public class QueryExecutor {
       session.openSession();
       for (QueryMetric queryMetric : query.getQueryMetrics()) {
         List<String> paths = new ArrayList<>();
-        StringBuilder path = new StringBuilder();
-        path.append(queryMetric.getName());
-        paths.add(path.toString());
+        paths.add(queryMetric.getName());
         if (isDelete) {
           RestSession session = new RestSession();
           session.openSession();
@@ -76,7 +74,7 @@ public class QueryExecutor {
               query.getEndAbsolute(),
               query.getTimePrecision());
           session.closeSession();
-        } else if (queryMetric.getAggregators().size() == 0) {
+        } else if (queryMetric.getAggregators().isEmpty()) {
           ret.addResultSet(
               new QueryAggregatorNone()
                   .doAggregate(
@@ -113,7 +111,7 @@ public class QueryExecutor {
   }
 
   private String getStringFromObject(Object val) {
-    String valStr = new String();
+    String valStr;
     if (val instanceof byte[]) {
       valStr = new String((byte[]) val);
     } else {
@@ -193,11 +191,10 @@ public class QueryExecutor {
   public void deleteMetric() throws Exception {
     RestSession restSession = new RestSession();
     restSession.openSession();
-    List<String> ins = new ArrayList<>();
     for (QueryMetric metric : query.getQueryMetrics()) {
-      ins.add(metric.getPathName());
+      restSession.deleteDataInColumn(
+          metric.getName(), metric.getTags(), query.getStartAbsolute(), query.getEndAbsolute());
     }
-    if (!ins.isEmpty()) restSession.deleteColumns(ins);
     restSession.closeSession();
   }
 

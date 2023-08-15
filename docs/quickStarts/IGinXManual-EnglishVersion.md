@@ -361,7 +361,7 @@ Create the file insert.json and add the following to it:
     }
   },
   {
-      "name": "archive_file_tracked_search",
+      "name": "archive_file_search",
       "timestamp": 1359786400000,
       "value": 321,
       "tags": {
@@ -394,7 +394,7 @@ Create a file query.json and write the following data to it:
 "name": "archive_file_tracked"
 },
 {
-"name": "archive_file_tracked_search"
+"name": "archive_file_search"
 }
 ]
 }
@@ -451,7 +451,7 @@ The command will return information about the data point just inserted:
             "sample_size": 1,
             "results": [
                 {
-                    "name": "archive_file_tracked_search",
+                    "name": "archive_file_search",
                     "group_by": [
                         {
                             "name": "type",

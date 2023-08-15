@@ -306,10 +306,10 @@ public class MetricsResource {
     // 添加cat信息
     parser.getAnnoCategory(resultAnno);
     // 筛选出符合title信息的序列
-    return getAnnoDataQueryFromTitle(query, resultAnno);
+    return getAnnoDataQueryFromTitle(resultAnno);
   }
 
-  private QueryResult annoQuery(Query query, QueryParser parser, String jsonStr) throws Exception {
+  private QueryResult annoQuery(QueryParser parser, String jsonStr) throws Exception {
     // 查找出所有符合tagkv的序列路径
     Query queryBase = parser.parseAnnotationQueryMetric(jsonStr, false);
     Query queryAnno = new Query();
@@ -339,7 +339,7 @@ public class MetricsResource {
         throw new Exception("query json must not be null or empty");
       }
       QueryParser parser = new QueryParser();
-      String entity = new String();
+      String entity;
       Query query =
           isAnnotation
               ? parser.parseAnnotationQueryMetric(jsonStr, isGrafana)
@@ -351,7 +351,7 @@ public class MetricsResource {
         QueryResult result = annoDataQuery(query, parser);
         entity = parser.parseAnnoDataResultToJson(result);
       } else { // 只查询anno信息
-        QueryResult result = annoQuery(query, parser, jsonStr);
+        QueryResult result = annoQuery(parser, jsonStr);
         parser.getAnnoCategory(result);
         entity = parser.parseAnnoResultToJson(result);
       }
@@ -381,7 +381,7 @@ public class MetricsResource {
     return resultAnno;
   }
 
-  public QueryResult getAnnoDataQueryFromTitle(Query query, QueryResult result) {
+  public QueryResult getAnnoDataQueryFromTitle(QueryResult result) {
     QueryResult ret = new QueryResult();
     int len = result.getQueryResultDatasets().size();
     for (int i = 0; i < len; i++) {
@@ -392,17 +392,25 @@ public class MetricsResource {
         if (title.equals(".*")
             || title.isEmpty()
             || (data.getTitles().get(j) != null && data.getTitles().get(j).equals(title))) {
-          if (!data.getPaths().isEmpty()) dataRet.addPath(data.getPaths().get(j));
-          if (!data.getDescriptions().isEmpty())
+          dataRet.addPath(data.getPaths().get(j));
+          if (!data.getDescriptions().isEmpty()) {
             dataRet.addDescription(data.getDescriptions().get(j));
-          if (!data.getCategoryLists().isEmpty())
+          }
+          if (!data.getCategoryLists().isEmpty()) {
             dataRet.addCategory(data.getCategoryLists().get(j));
-          if (!data.getTitles().isEmpty()) dataRet.addTitle(data.getTitles().get(j));
-          if (!data.getValueLists().isEmpty()) dataRet.addValueLists(data.getValueLists().get(j));
-          if (!data.getKeyLists().isEmpty()) dataRet.addKeyLists(data.getKeyLists().get(j));
+          }
+          if (!data.getTitles().isEmpty()) {
+            dataRet.addTitle(data.getTitles().get(j));
+          }
+          if (!data.getValueLists().isEmpty()) {
+            dataRet.addValueLists(data.getValueLists().get(j));
+          }
+          if (!data.getKeyLists().isEmpty()) {
+            dataRet.addKeyLists(data.getKeyLists().get(j));
+          }
         }
       }
-      ret.addqueryResultDataset(dataRet);
+      ret.addQueryResultDataset(dataRet);
       ret.addQueryMetric(result.getQueryMetrics().get(i));
       ret.addQueryAggregator(result.getQueryAggregators().get(i));
     }
@@ -457,8 +465,9 @@ public class MetricsResource {
       queryAll.setTimePrecision(TimePrecision.NS);
 
       // 空查询判断
-      if (queryAll.getQueryMetrics().isEmpty())
+      if (queryAll.getQueryMetrics().isEmpty()) {
         return setHeaders(Response.status(Status.OK).entity("\n")).build();
+      }
 
       QueryExecutor executorData = new QueryExecutor(queryAll);
       // 执行删除操作
