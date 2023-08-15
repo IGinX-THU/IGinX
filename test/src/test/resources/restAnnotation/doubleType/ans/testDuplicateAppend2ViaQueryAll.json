@@ -2,7 +2,7 @@
   "queries": [{
     "name": "archive_file_tracked.ann",
     "tags": {
-      "data_center": ["DC1"],
+      "dc": ["DC1"],
       "host": ["server1"]
     },
     "annotation": {
@@ -19,13 +19,13 @@
   }, {
     "name": "archive_file_tracked.bcc",
     "tags": {
-      "data_center": ["DC1"],
+      "dc": ["DC1"],
       "host": ["server1"]
     },
     "annotation": {
       "title": "titleNewUpbcc",
       "description": "dspNewUpbcc",
-      "category": ["cat2", "cat3", "cat4"]
+      "category": ["cat2", "cat3"]
     },
     "values": [
       [1359788400000, 77.0]

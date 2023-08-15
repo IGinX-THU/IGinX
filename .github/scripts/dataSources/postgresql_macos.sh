@@ -44,12 +44,6 @@ do
 
   sh -c "cd pgsql-$port/bin; sudo -u postgres ./initdb -D /var/lib/postgresql-$port/15/main --auth trust --no-instructions"
 
-  sh -c "sudo cp /Users/runner/work/IGinX/IGinX/pgsql-$port/share/postgresql/postgresql.conf.sample /var/lib/postgresql-$port/15/main/postgresql.conf"
-
-  sh -c "sudo chmod -R 777 /var/lib/postgresql-$port/15/main/postgresql.conf"
-
-  sh -c "echo \"max_identifier_length = 127\" | sudo tee -a /var/lib/postgresql-$port/15/main/postgresql.conf"
-
   sh -c "cd pgsql-$port/bin; sudo -u postgres ./pg_ctl -D /var/lib/postgresql-$port/15/main -o \"-F -p $port\" start"
 
   sh -c "cd pgsql-$port/bin; sudo -u postgres ./psql -c \"ALTER USER postgres WITH PASSWORD 'postgres';\""

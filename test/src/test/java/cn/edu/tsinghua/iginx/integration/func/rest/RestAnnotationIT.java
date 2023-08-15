@@ -90,11 +90,15 @@ public class RestAnnotationIT {
     Process process = null;
     try {
       ProcessBuilder processBuilder = new ProcessBuilder(curlArray.split(" "));
-      processBuilder.directory(
-          new File(
-              String.format(
-                  "./src/test/resources/restAnnotation/%sType",
-                  dataType.toString().toLowerCase())));
+      String dir;
+      if (type.equals(TYPE.INSERT)) {
+        dir = String.format(
+            "./src/test/resources/restAnnotation/%sType",
+            dataType.toString().toLowerCase());
+      } else {
+        dir = "./src/test/resources/restAnnotation/common";
+      }
+      processBuilder.directory(new File(dir));
 
       // 执行 url 命令
       process = processBuilder.start();
@@ -147,10 +151,16 @@ public class RestAnnotationIT {
       case DOUBLE:
       case LONG:
       case BINARY:
-        fileName =
-            String.format(
-                "./src/test/resources/restAnnotation/%sType/ans/%s.json",
-                dataType.toString().toLowerCase(), fileName);
+        if (fileName.endsWith("Anno")) {
+          fileName =
+              String.format(
+                  "./src/test/resources/restAnnotation/common/ans/%s.json", fileName);
+        } else {
+          fileName =
+              String.format(
+                  "./src/test/resources/restAnnotation/%sType/ans/%s.json",
+                  dataType.toString().toLowerCase(), fileName);
+        }
         break;
       default:
         throw new IllegalStateException("Unexpected DataType: " + dataType);

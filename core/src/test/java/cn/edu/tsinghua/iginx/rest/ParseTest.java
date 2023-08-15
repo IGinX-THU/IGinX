@@ -52,7 +52,7 @@ public class ParseTest {
               ]
           },
           {
-              "name": "archive_file_search"
+              "name": "archive_file_tracked_search"
           }
       ]
   }
@@ -90,7 +90,7 @@ public class ParseTest {
           + "\t\t\t]\n"
           + "\t\t},\n"
           + "\t\t{\n"
-          + "\t\t\t\"name\": \"archive_file_search\"\n"
+          + "\t\t\t\"name\": \"archive_file_tracked_search\"\n"
           + "\t\t}\n"
           + "\t]\n"
           + "}";
@@ -106,7 +106,7 @@ public class ParseTest {
           + "        ],\n"
           + "        \"tags\": {\n"
           + "            \"host\": \"server1\",\n"
-          + "            \"data_center\": \"DC1\"\n"
+          + "            \"dc\": \"DC1\"\n"
           + "        },\n"
           + "        \"annotation\": {\n"
           + "        \"category\": [\"cat1\"],\n"
@@ -115,7 +115,7 @@ public class ParseTest {
           + "        }\n"
           + "    },\n"
           + "    {\n"
-          + "          \"name\": \"archive_file_search\",\n"
+          + "          \"name\": \"archive_file_tracked_search\",\n"
           + "          \"timestamp\": 1359786400000,\n"
           + "          \"value\": 321,\n"
           + "          \"tags\": {\n"
@@ -223,7 +223,7 @@ public class ParseTest {
       tagsList = metricLists.get(0).getTags();
       Iterator<Map.Entry<String, String>> entries = tagsList.entrySet().iterator();
       Map.Entry<String, String> it = entries.next();
-      assertEquals(it.getKey(), "data_center");
+      assertEquals(it.getKey(), "dc");
       assertEquals(it.getValue(), "DC1");
       it = entries.next();
       assertEquals(it.getKey(), "host");
@@ -249,7 +249,7 @@ public class ParseTest {
         if (pos == 0) {
           assertEquals(metric.getName(), "archive_file_tracked");
         } else {
-          assertEquals(metric.getName(), "archive_file_search");
+          assertEquals(metric.getName(), "archive_file_tracked_search");
         }
         pos++;
       }
@@ -359,7 +359,7 @@ public class ParseTest {
       Query query = parser.parseQueryMetric(json);
 
       assertEquals(query.getQueryMetrics().get(0).getName(), "rem.hero");
-      assertEquals(query.getQueryMetrics().get(1).getName(), "archive_file_search");
+      assertEquals(query.getQueryMetrics().get(1).getName(), "archive_file_tracked_search");
     } catch (Exception e) {
       logger.error("Error occurred during execution ", e);
     }

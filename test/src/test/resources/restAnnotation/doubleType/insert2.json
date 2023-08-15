@@ -7,7 +7,7 @@
   ],
   "tags": {
     "host": "server1",
-    "data_center": "DC1"
+    "dc": "DC1"
   },
   "annotation": {
     "category": ["zat3"],
@@ -23,7 +23,7 @@
   ],
   "tags": {
     "host": "server1",
-    "data_center": "DC1"
+    "dc": "DC1"
   },
   "annotation": {
     "category": ["zat3","zat4"],
@@ -39,7 +39,7 @@
   ],
   "tags": {
     "host": "server1",
-    "data_center": "DC1"
+    "dc": "DC1"
   },
   "annotation": {
     "category": ["cat2"],
