@@ -4863,4 +4863,39 @@ public class SQLSessionIT {
 
     executor.concurrentExecuteAndCompare(statementsAndExpectRes);
   }
+
+  @Test
+  public void testDeleteColumns() {
+    if (!isAbleToShowColumns || isScaling || !isAbleToDelete) {
+      return;
+    }
+    String statement = "SHOW COLUMNS us.*;";
+    String expected =
+        "Columns:\n"
+            + "+--------+--------+\n"
+            + "|    Path|DataType|\n"
+            + "+--------+--------+\n"
+            + "|us.d1.s1|    LONG|\n"
+            + "|us.d1.s2|    LONG|\n"
+            + "|us.d1.s3|  BINARY|\n"
+            + "|us.d1.s4|  DOUBLE|\n"
+            + "+--------+--------+\n"
+            + "Total line number = 4\n";
+    executor.executeAndCompare(statement, expected);
+
+    String delete = "DELETE COLUMNS us.d1.s1";
+    executor.execute(delete);
+
+    expected =
+        "Columns:\n"
+            + "+--------+--------+\n"
+            + "|    Path|DataType|\n"
+            + "+--------+--------+\n"
+            + "|us.d1.s2|    LONG|\n"
+            + "|us.d1.s3|  BINARY|\n"
+            + "|us.d1.s4|  DOUBLE|\n"
+            + "+--------+--------+\n"
+            + "Total line number = 2\n";
+    executor.executeAndCompare(statement, expected);
+  }
 }
