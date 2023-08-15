@@ -5,6 +5,8 @@ import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
+import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
+import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.alibaba.fastjson2.JSON;
@@ -45,6 +47,14 @@ public class RestAnnotationIT {
   private static final Logger logger = LoggerFactory.getLogger(RestAnnotationIT.class);
 
   private static Session session;
+
+  protected boolean isAbleToDelete;
+
+  public RestAnnotationIT() {
+    ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
+    DBConf dbConf = conf.loadDBConf(conf.getStorageType());
+    this.isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
+  }
 
   public enum TYPE {
     APPEND,
@@ -305,6 +315,7 @@ public class RestAnnotationIT {
   }
 
   private void testUpdateViaQueryAll(DataType dataType) {
+    if (!isAbleToDelete) return;
     insertData(dataType);
     try {
       execute("update.json", TYPE.UPDATE, dataType);
@@ -318,6 +329,7 @@ public class RestAnnotationIT {
   }
 
   private void testUpdateViaQueryAnno(DataType dataType) {
+    if (!isAbleToDelete) return;
     insertData(dataType);
     try {
       execute("update.json", TYPE.UPDATE, dataType);
@@ -331,6 +343,7 @@ public class RestAnnotationIT {
   }
 
   private void testDeleteViaQueryAll(DataType dataType) {
+    if (!isAbleToDelete) return;
     insertData(dataType);
     try {
       execute("delete.json", TYPE.DELETE, dataType);
@@ -344,6 +357,7 @@ public class RestAnnotationIT {
   }
 
   private void testDeleteViaQueryAnno(DataType dataType) {
+    if (!isAbleToDelete) return;
     insertData(dataType);
     try {
       execute("delete.json", TYPE.DELETE, dataType);
@@ -393,6 +407,7 @@ public class RestAnnotationIT {
   }
 
   private void testDuplicateUpdateViaQueryAll(DataType dataType) {
+    if (!isAbleToDelete) return;
     insertData(dataType);
     try {
       execute("update.json", TYPE.UPDATE, dataType);
@@ -408,6 +423,7 @@ public class RestAnnotationIT {
   }
 
   private void testDuplicateUpdateViaQueryAnno(DataType dataType) {
+    if (!isAbleToDelete) return;
     insertData(dataType);
     try {
       execute("update.json", TYPE.UPDATE, dataType);
@@ -423,6 +439,7 @@ public class RestAnnotationIT {
   }
 
   private void testDuplicateDeleteViaQueryAnno(DataType dataType) {
+    if (!isAbleToDelete) return;
     insertData(dataType);
     try {
       execute("delete.json", TYPE.DELETE, dataType);
@@ -438,6 +455,7 @@ public class RestAnnotationIT {
   }
 
   private void testDuplicateDeleteViaQueryAll(DataType dataType) {
+    if (!isAbleToDelete) return;
     insertData(dataType);
     try {
       execute("delete.json", TYPE.DELETE, dataType);
@@ -457,6 +475,7 @@ public class RestAnnotationIT {
   */
 
   private void testSameUpdateViaQueryAll(DataType dataType) {
+    if (!isAbleToDelete) return;
     insertData(dataType);
     try {
       execute("updateSame.json", TYPE.UPDATE, dataType);
