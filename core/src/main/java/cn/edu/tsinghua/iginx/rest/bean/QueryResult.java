@@ -106,7 +106,7 @@ public class QueryResult {
         + ","
         + tagsToStringAnno(queryResultDatasets.get(pos).getPaths().get(now))
         + ","
-        + annoDataToString(pos, now)
+        + annoToString(pos, now)
         + ","
         + valueToStringAnno(pos, now)
         + "}";
@@ -119,7 +119,11 @@ public class QueryResult {
     Map<String, String> tags = parser.getTagsFromPaths(path, new StringBuilder());
     for (Map.Entry<String, String> entry : tags.entrySet()) {
       if (!entry.getValue().equals(RestUtils.CATEGORY)) {
-        ret.append("\"" + entry.getKey() + "\" : [\"" + entry.getValue() + "\"],");
+        ret.append("\"")
+            .append(entry.getKey())
+            .append("\" : [\"")
+            .append(entry.getValue())
+            .append("\"],");
       }
     }
     if (ret.charAt(ret.length() - 1) == ',') {
@@ -131,25 +135,6 @@ public class QueryResult {
 
   // 获取anno信息{}
   private String annoToString(int pos, int now) {
-    StringBuilder ret = new StringBuilder("\"annotation\": {");
-    ret.append(
-        String.format("\"title\": \"%s\",", queryResultDatasets.get(pos).getTitles().get(now)));
-    ret.append(
-        String.format(
-            "\"description\": \"%s\",", queryResultDatasets.get(pos).getDescriptions().get(now)));
-    ret.append("\"category\": [");
-    for (String tag : queryResultDatasets.get(pos).getCategoryLists().get(now)) {
-      ret.append(String.format("\"%s\",", tag));
-    }
-    if (ret.charAt(ret.length() - 1) == ',') {
-      ret.deleteCharAt(ret.length() - 1);
-    }
-    ret.append("]}");
-    return ret.toString();
-  }
-
-  // 获取anno信息{}
-  private String annoDataToString(int pos, int now) {
     StringBuilder ret = new StringBuilder("\"annotation\": {");
     ret.append(
         String.format("\"title\": \"%s\",", queryResultDatasets.get(pos).getTitles().get(now)));
@@ -181,12 +166,7 @@ public class QueryResult {
 
   private String tagsToString(int pos) {
     StringBuilder ret = new StringBuilder(" \"tags\": {");
-    Map<String, Set<String>> tags = null;
-    try {
-      tags = getTagsFromPaths(queryResultDatasets.get(pos).getPaths());
-    } catch (Exception e) {
-      logger.error("Error occurred during parsing tags ", e);
-    }
+    Map<String, Set<String>> tags = getTagsFromPaths(queryResultDatasets.get(pos).getPaths());
     for (Map.Entry<String, Set<String>> entry : tags.entrySet()) {
       ret.append(String.format("\"%s\": [", entry.getKey()));
       for (String v : entry.getValue()) {
@@ -264,14 +244,16 @@ public class QueryResult {
     for (String path : paths) {
       int firstBrace = path.indexOf("{");
       int lastBrace = path.indexOf("}");
-      if (firstBrace == -1 || lastBrace == -1) break;
+      if (firstBrace == -1 || lastBrace == -1) {
+        break;
+      }
       String tagLists = path.substring(firstBrace + 1, lastBrace);
       String[] splitPaths = tagLists.split(",");
       for (String tag : splitPaths) {
         int equalPos = tag.indexOf("=");
         String tagKey = tag.substring(0, equalPos);
         String tagVal = tag.substring(equalPos + 1);
-        ret.computeIfAbsent(tagKey, k -> new HashSet<String>());
+        ret.computeIfAbsent(tagKey, k -> new HashSet<>());
         ret.get(tagKey).add(tagVal);
       }
     }

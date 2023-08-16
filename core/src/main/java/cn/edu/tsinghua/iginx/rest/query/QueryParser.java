@@ -363,7 +363,7 @@ public class QueryParser {
   }
 
   private void setAnnotationLimit(Query ret, QueryMetric ins, JsonNode query) {
-    AnnotationLimit annotationLimit = null;
+    AnnotationLimit annotationLimit;
     JsonNode anno = query.get("annotation");
     if (anno != null) {
       annotationLimit = parserAnno(anno);
@@ -708,7 +708,7 @@ public class QueryParser {
   }
 
   // 获取到确切的路径信息，如何设置这个查询还是一个问题
-  public Query splitPath(QueryResult result, Query queryBase) {
+  public Query splitPath(QueryResult result) {
     Query ret = new Query();
     int pos = 0;
     for (QueryResultDataset queryResultDataset : result.getQueryResultDatasets()) {
@@ -728,13 +728,15 @@ public class QueryParser {
 
     // 数量相同就欧克克
     for (Map.Entry<String, String> entry : tags.entrySet()) {
-      if (entry.getValue().equals(RestUtils.CATEGORY)) num++;
+      if (entry.getValue().equals(RestUtils.CATEGORY)) {
+        num++;
+      }
     }
     return num == annoLimit.getTag().size();
   }
 
   // 获取完全匹配路径信息的query，包含@路径
-  public Query getSpecificQuery(QueryResult result, Query queryBase) {
+  public Query getSpecificQuery(QueryResult result) {
     Query ret = new Query();
     int pos = 0;
     for (QueryResultDataset queryResultDataset : result.getQueryResultDatasets()) {

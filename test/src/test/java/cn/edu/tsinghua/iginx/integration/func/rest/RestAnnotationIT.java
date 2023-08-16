@@ -191,12 +191,7 @@ public class RestAnnotationIT {
     return removeSpecialChar(ret.toString());
   }
 
-  /**
-   * 去除字符串中的空格、回车、换行符、制表符等
-   *
-   * @param str
-   * @return
-   */
+  // 去除字符串中的空格、回车、换行符、制表符等
   private String removeSpecialChar(String str) {
     String s = "";
     if (str != null) {
@@ -361,7 +356,6 @@ public class RestAnnotationIT {
       execute("insert2.json", TYPE.INSERT, dataType);
       execute("add2.json", TYPE.APPEND, dataType);
       execute("add2.json", TYPE.APPEND, dataType);
-
       String ans = getAns(getMethodName(), dataType);
       executeAndCompare("append2ViaQueryAll.json", ans, TYPE.QUERY_ALL, dataType);
       clearData();
@@ -377,7 +371,6 @@ public class RestAnnotationIT {
     try {
       execute("add.json", TYPE.APPEND, dataType);
       execute("add.json", TYPE.APPEND, dataType);
-
       String ans = getAns(getMethodName(), dataType);
       executeAndCompare("appendViaQueryAll.json", ans, TYPE.QUERY_ALL, dataType);
       clearData();
@@ -393,7 +386,6 @@ public class RestAnnotationIT {
     try {
       execute("update.json", TYPE.UPDATE, dataType);
       execute("update.json", TYPE.UPDATE, dataType);
-
       String ans = getAns(getMethodName(), dataType);
       executeAndCompare("updateViaQueryAnno.json", ans, TYPE.QUERY_ANNOTATION, dataType);
       clearData();
@@ -409,7 +401,6 @@ public class RestAnnotationIT {
     try {
       execute("update.json", TYPE.UPDATE, dataType);
       execute("update.json", TYPE.UPDATE, dataType);
-
       String ans = getAns(getMethodName(), dataType);
       executeAndCompare("updateViaQueryAll.json", ans, TYPE.QUERY_ALL, dataType);
       clearData();
@@ -425,7 +416,6 @@ public class RestAnnotationIT {
     try {
       execute("delete.json", TYPE.DELETE, dataType);
       execute("delete.json", TYPE.DELETE, dataType);
-
       String ans = getAns(getMethodName(), dataType);
       executeAndCompare("deleteViaQueryAnno.json", ans, TYPE.QUERY_ANNOTATION, dataType);
       clearData();
@@ -441,7 +431,6 @@ public class RestAnnotationIT {
     try {
       execute("delete.json", TYPE.DELETE, dataType);
       execute("delete.json", TYPE.DELETE, dataType);
-
       String ans = getAns(getMethodName(), dataType);
       executeAndCompare("deleteViaQueryAll.json", ans, TYPE.QUERY_ALL, dataType);
       clearData();

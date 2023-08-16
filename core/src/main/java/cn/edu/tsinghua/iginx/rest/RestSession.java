@@ -137,9 +137,7 @@ public class RestSession {
   }
 
   public void deleteColumn(String path) throws ExecutionException {
-    List<String> paths = new ArrayList<>();
-    paths.add(path);
-    deleteColumns(paths);
+    deleteColumns(Collections.singletonList(path));
   }
 
   public void deleteColumns(List<String> paths) throws ExecutionException {
@@ -393,7 +391,7 @@ public class RestSession {
 
   public SessionQueryDataSet queryData(
       List<String> paths, long startKey, long endKey, Map<String, List<String>> tagList) {
-    return queryData(paths, startKey, endKey, tagList);
+    return queryData(paths, startKey, endKey, tagList, TimeUtils.DEFAULT_TIMESTAMP_PRECISION);
   }
 
   public SessionQueryDataSet queryData(
@@ -407,7 +405,9 @@ public class RestSession {
       return null;
     }
     QueryDataReq req = new QueryDataReq(sessionId, paths, startKey, endKey);
-    if (tagList.size() != 0) req.setTagsList(tagList);
+    if (!tagList.isEmpty()) {
+      req.setTagsList(tagList);
+    }
     req.setTimePrecision(timePrecision);
 
     QueryDataResp resp;

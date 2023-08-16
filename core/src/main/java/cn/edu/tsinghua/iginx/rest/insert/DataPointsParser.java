@@ -49,7 +49,7 @@ public class DataPointsParser {
     this.inputStream = stream;
   }
 
-  public void parse(boolean isAnnotation) throws Exception {
+  public void parse() throws Exception {
     try {
       session.openSession();
     } catch (SessionException e) {
@@ -60,10 +60,10 @@ public class DataPointsParser {
       JsonNode node = mapper.readTree(inputStream);
       if (node.isArray()) {
         for (JsonNode objNode : node) {
-          metricList.add(getMetricObject(objNode, isAnnotation));
+          metricList.add(getMetricObject(objNode));
         }
       } else {
-        metricList.add(getMetricObject(node, isAnnotation));
+        metricList.add(getMetricObject(node));
       }
     } catch (Exception e) {
       logger.error("Error occurred during parsing data ", e);
@@ -88,7 +88,7 @@ public class DataPointsParser {
     return true;
   }
   // 如果有anno信息会直接放入到插入路径中
-  private Metric getMetricObject(JsonNode node, boolean isAnnotation) throws Exception {
+  private Metric getMetricObject(JsonNode node) throws Exception {
     try {
       Metric ret = new Metric();
       if (!ifInputDataValid(node)) {
@@ -110,10 +110,10 @@ public class DataPointsParser {
       JsonNode dp = node.get("datapoints");
       if (dp != null) {
         if (dp.isArray()) {
-          for (JsonNode dpnode : dp) {
-            if (dpnode.isArray()) {
-              ret.addKey(dpnode.get(0).asLong());
-              ret.addValue(dpnode.get(1).asText());
+          for (JsonNode dpNode : dp) {
+            if (dpNode.isArray()) {
+              ret.addKey(dpNode.get(0).asLong());
+              ret.addValue(dpNode.get(1).asText());
             }
           }
         }
@@ -183,13 +183,13 @@ public class DataPointsParser {
 
       // 判断是否存在
       if (result.getQueryResultDatasets().get(0).getPaths().isEmpty()) {
-        return new Long(-1L);
+        return -1L;
       } else {
         if (result.getQueryResultDatasets().get(0).getKeys().isEmpty())
-          return new Long(ANNOTATION_START_KEY + 1L);
+          return ANNOTATION_START_KEY + 1L;
         else {
           Object val = result.getQueryResultDatasets().get(0).getValueLists().get(0).get(0);
-          String valStr = new String();
+          String valStr;
           if (val instanceof byte[]) {
             valStr = new String((byte[]) val);
           } else {
@@ -210,7 +210,6 @@ public class DataPointsParser {
     Object[] valuesList = new Object[1];
     Object[] value = new Object[2];
     List<DataType> type = new ArrayList<>();
-    List<Map<String, String>> tagsList = new ArrayList<>();
 
     paths.add(ANNOTATION_SEQUENCE);
     timestamps.add(1L);
@@ -236,9 +235,9 @@ public class DataPointsParser {
     }
   }
 
-  private void insertAnnoSquence(Map<Long, String> annoSequence) throws Exception {
+  private void insertAnnoSequence(Map<Long, String> annoSequence) throws Exception {
     List<Long> timestamps = new ArrayList<>();
-    List<String> ANNOPATHS = new ArrayList<>();
+    List<String> annoPaths = new ArrayList<>();
     Object[] valuesList = new Object[1];
     Object[] valuesAnno = new Object[2];
     List<DataType> type = new ArrayList<>();
@@ -250,10 +249,10 @@ public class DataPointsParser {
     }
     valuesList[0] = valuesAnno;
     type.add(DataType.BINARY);
-    ANNOPATHS.add(ANNOTATION_SEQUENCE);
+    annoPaths.add(ANNOTATION_SEQUENCE);
     try {
       session.insertNonAlignedColumnRecords(
-          ANNOPATHS,
+          annoPaths,
           timestamps.stream().mapToLong(Long::longValue).toArray(),
           valuesList,
           type,
@@ -297,7 +296,7 @@ public class DataPointsParser {
       // 首先更新anno列表可用最小值
       createAnnoSequence(true, time + num);
       // 在anno列表中插入title以及dsp信息
-      insertAnnoSquence(annoSequence);
+      insertAnnoSequence(annoSequence);
 
       // 在原序列中插入相应的时间戳值
       valuesList[0] = valuesAnno;
@@ -325,10 +324,8 @@ public class DataPointsParser {
       List<Map<String, String>> tagsList = new ArrayList<>();
       tagsList.add(metric.getTags());
 
-      StringBuilder path = new StringBuilder();
-      path.append(metric.getName());
       List<String> paths = new ArrayList<>();
-      paths.add(path.toString());
+      paths.add(metric.getName());
 
       int size = metric.getKeys().size();
       List<DataType> type = new ArrayList<>();
@@ -365,10 +362,10 @@ public class DataPointsParser {
       name.append(path);
       return ret;
     }
-    name.append(path.substring(0, firstBrace));
+    name.append(path, 0, firstBrace);
     String tagLists = path.substring(firstBrace + 1, lastBrace);
-    String[] splitpaths = tagLists.split(",");
-    for (String tag : splitpaths) {
+    String[] splitPaths = tagLists.split(",");
+    for (String tag : splitPaths) {
       int equalPos = tag.indexOf("=");
       String tagKey = tag.substring(0, equalPos);
       String tagVal = tag.substring(equalPos + 1);
@@ -396,10 +393,8 @@ public class DataPointsParser {
   private void insertExe(Metric metric, TimePrecision timePrecision) throws Exception {
     // LHZ以下代码重复了，能否合并到一个函数？？？
     // 执行插入
-    StringBuilder path = new StringBuilder();
-    path.append(metric.getName());
     List<String> paths = new ArrayList<>();
-    paths.add(path.toString());
+    paths.add(metric.getName());
     List<Map<String, String>> taglist = new ArrayList<>();
     taglist.add(metric.getTags());
     int size = metric.getKeys().size();
@@ -430,7 +425,7 @@ public class DataPointsParser {
   }
 
   // 修改路径，并插入数据
-  public void handleAnnotationAppend(Query preQuery, QueryResult preQueryResult) throws Exception {
+  public void handleAnnotationAppend(QueryResult preQueryResult) throws Exception {
     // 创建session
     try {
       session.openSession();
@@ -454,7 +449,7 @@ public class DataPointsParser {
           metric.setName(name);
 
           // 向metric中插入，anno以及数据点信息
-          metricGetData(metric, queryBase, queryResultDataset, queryBase.getAnnotationLimit(), pl);
+          metricGetData(metric, queryResultDataset, queryBase.getAnnotationLimit(), pl);
 
           // 执行插入
           insertExe(metric, TimePrecision.NS);
@@ -487,17 +482,6 @@ public class DataPointsParser {
     return metric;
   }
 
-  private boolean specificAnnoCategoryPath(Map<String, String> tags, AnnotationLimit annoLimit) {
-    int num = 0;
-
-    // 数量相同就ok
-    for (Map.Entry<String, String> entry : tags.entrySet()) {
-      if (entry.getValue().equals(RestUtils.CATEGORY)) num++;
-    }
-    if (num == annoLimit.getTag().size()) return true;
-    return false;
-  }
-
   public void handleAnnotationUpdate(Query preQuery, QueryResult preQueryResult) throws Exception {
     // 创建session
     try {
@@ -513,19 +497,15 @@ public class DataPointsParser {
         QueryResultDataset queryResultDataset = preQueryResult.getQueryResultDatasets().get(pos);
         QueryMetric queryBase = preQueryResult.getQueryMetrics().get(pos);
         for (int pl = 0; pl < queryResultDataset.getPaths().size(); pl++) {
-          Metric metric = new Metric();
-          StringBuilder name = new StringBuilder();
           // 添加包含@的路径
-          Map<String, String> tags = getTagsFromPaths(queryResultDataset.getPaths().get(pl), name);
           /*这里更新为包含关系2022.8.12.23.24，如果之后修改，在此处加入if限制条件*/
           // 更改为新的anno信息，即将路径中的cat信息更新
           AnnotationLimit newAnnoLimit =
               preQuery.getQueryMetrics().get(pos).getNewAnnotationLimit();
-          metric = updateAnnoPath(queryResultDataset.getPaths().get(pl), newAnnoLimit);
+          Metric metric = updateAnnoPath(queryResultDataset.getPaths().get(pl), newAnnoLimit);
 
           // 添加anno的title等信息，以及数据点信息
-          metricGetData(
-              metric, queryBase, queryResultDataset, queryBase.getNewAnnotationLimit(), pl);
+          metricGetData(metric, queryResultDataset, queryBase.getNewAnnotationLimit(), pl);
 
           insertExe(metric, TimePrecision.NS);
         }
@@ -538,20 +518,6 @@ public class DataPointsParser {
     }
   }
 
-  public DataType judgeObjectType(Object obj) {
-    if (obj instanceof Boolean) {
-      return DataType.BOOLEAN;
-    } else if (obj instanceof Byte || obj instanceof String || obj instanceof Character) {
-      return DataType.BINARY;
-    } else if (obj instanceof Long || obj instanceof Integer) {
-      return DataType.LONG;
-    } else if (obj instanceof Double || obj instanceof Float) {
-      return DataType.DOUBLE;
-    }
-    // 否则默认字符串类型
-    return DataType.BINARY;
-  }
-
   public String getStringVal(Object val) {
     switch (judgeObjectType(val)) {
       case BINARY:
@@ -560,7 +526,7 @@ public class DataPointsParser {
       case DOUBLE:
         return String.valueOf(val);
       default:
-        return new String(); // 尽量不要传null
+        return ""; // 尽量不要传null
     }
   }
 
@@ -596,11 +562,7 @@ public class DataPointsParser {
   }
 
   void metricGetData(
-      Metric metric,
-      QueryMetric queryBase,
-      QueryResultDataset queryResultDataset,
-      AnnotationLimit anno,
-      int pl) {
+      Metric metric, QueryResultDataset queryResultDataset, AnnotationLimit anno, int pl) {
     // 添加anno的title等信息
     if (!anno.getTitle().equals(".*")) metric.addAnno("title", anno.getTitle());
     if (!anno.getText().equals(".*")) metric.addAnno("description", anno.getText());

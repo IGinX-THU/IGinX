@@ -304,7 +304,6 @@ public class StatementExecutor {
       StatusCode statusCode = StatusCode.STATEMENT_EXECUTION_ERROR;
       ctx.setResult(new Result(RpcUtils.status(statusCode, e.getMessage())));
     } catch (Exception e) {
-      e.printStackTrace();
       logger.error(
           "unexpected exception during dispatcher memory task, please contact developer to check: ",
           e);

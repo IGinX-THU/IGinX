@@ -117,7 +117,7 @@ start "iginx" /d ".\sbin" start_iginx.bat
     ],
     "tags": {
         "host": "server1",
-        "dc": "DC1"
+        "data_center": "DC1"
     }
   },
   {
@@ -183,7 +183,7 @@ $ curl -XPOST -H'Content-Type: application/json' -d @query.json http://127.0.0.1
                         }
                     ],
                     "tags": {
-                        "dc": [
+                        "data_center": [
                             "DC1"
                         ],
                         "host": [

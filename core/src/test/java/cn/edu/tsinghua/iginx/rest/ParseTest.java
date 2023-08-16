@@ -106,7 +106,7 @@ public class ParseTest {
           + "        ],\n"
           + "        \"tags\": {\n"
           + "            \"host\": \"server1\",\n"
-          + "            \"dc\": \"DC1\"\n"
+          + "            \"data_center\": \"DC1\"\n"
           + "        },\n"
           + "        \"annotation\": {\n"
           + "        \"category\": [\"cat1\"],\n"
@@ -223,7 +223,7 @@ public class ParseTest {
       tagsList = metricLists.get(0).getTags();
       Iterator<Map.Entry<String, String>> entries = tagsList.entrySet().iterator();
       Map.Entry<String, String> it = entries.next();
-      assertEquals(it.getKey(), "dc");
+      assertEquals(it.getKey(), "data_center");
       assertEquals(it.getValue(), "DC1");
       it = entries.next();
       assertEquals(it.getKey(), "host");

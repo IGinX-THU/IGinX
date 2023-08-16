@@ -28,7 +28,6 @@ import cn.edu.tsinghua.iginx.rest.bean.QueryResultDataset;
 import cn.edu.tsinghua.iginx.rest.query.aggregator.QueryAggregator;
 import cn.edu.tsinghua.iginx.rest.query.aggregator.QueryAggregatorNone;
 import cn.edu.tsinghua.iginx.rest.query.aggregator.QueryShowTimeSeries;
-import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.TimePrecision;
 import java.util.*;
 import org.slf4j.Logger;
@@ -122,7 +121,7 @@ public class QueryExecutor {
 
   // 结果通过引用传出
   public void queryAnno(QueryResult anno) throws Exception {
-    QueryResult title = new QueryResult(), description = new QueryResult();
+    QueryResult title, description;
     Query titleQuery = new Query();
     Query descriptionQuery = new Query();
     boolean hasTitle = false, hasDescription = false;
@@ -198,20 +197,6 @@ public class QueryExecutor {
     restSession.closeSession();
   }
 
-  public DataType judgeObjectType(Object obj) {
-    if (obj instanceof Boolean) {
-      return DataType.BOOLEAN;
-    } else if (obj instanceof Byte || obj instanceof String || obj instanceof Character) {
-      return DataType.BINARY;
-    } else if (obj instanceof Long || obj instanceof Integer) {
-      return DataType.LONG;
-    } else if (obj instanceof Double || obj instanceof Float) {
-      return DataType.DOUBLE;
-    }
-    // 否则默认字符串类型
-    return DataType.BINARY;
-  }
-
   // 错误返回-1
   public Long getLongVal(Object val) {
     switch (judgeObjectType(val)) {
@@ -222,7 +207,7 @@ public class QueryExecutor {
       case LONG:
         return (Long) val;
       default:
-        return new Long(-1); // 尽量不要传null
+        return -1L; // 尽量不要传null
     }
   }
 }

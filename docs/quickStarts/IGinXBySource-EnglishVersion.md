@@ -291,7 +291,7 @@ Create a file insert.json and add the following into it:
     ],
     "tags": {
         "host": "server1",
-        "dc": "DC1"
+        "data_center": "DC1"
     }
   },
   {
@@ -357,7 +357,7 @@ The command will return information about the data point just inserted:
                         }
                     ],
                     "tags": {
-                        "dc": [
+                        "data_center": [
                             "DC1"
                         ],
                         "host": [
