@@ -13,7 +13,6 @@ import cn.edu.tsinghua.iginx.filesystem.file.tools.FilePath;
 import cn.edu.tsinghua.iginx.filesystem.file.tools.FileType;
 import cn.edu.tsinghua.iginx.filesystem.query.entity.FileSystemResultTable;
 import cn.edu.tsinghua.iginx.filesystem.query.entity.Record;
-import cn.edu.tsinghua.iginx.filesystem.tools.ConfLoader;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.io.File;
@@ -174,15 +173,6 @@ public class Controller {
     for (File file : fileList) {
       if (!fileOperator.delete(file)) {
         return new IOException("Failed to delete file: " + file.getAbsolutePath());
-      }
-      File parent = file.getParentFile();
-      // 如果父文件夹空，则连带删除父文件夹
-      while (parent != null && parent.isDirectory() && fileOperator.listFiles(parent) == null) {
-        if (!fileOperator.delete(parent)) {
-          return new IOException("Failed to delete file: " + file.getAbsolutePath());
-        }
-        parent = parent.getParentFile();
-        if (fileOperator.ifFilesEqual(parent.getParentFile(), ConfLoader.getRootFile())) break;
       }
     }
     return null;

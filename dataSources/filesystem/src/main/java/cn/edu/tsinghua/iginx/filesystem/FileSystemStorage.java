@@ -32,9 +32,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
 import cn.edu.tsinghua.iginx.filesystem.exec.Executor;
 import cn.edu.tsinghua.iginx.filesystem.exec.LocalExecutor;
 import cn.edu.tsinghua.iginx.filesystem.exec.RemoteExecutor;
-import cn.edu.tsinghua.iginx.filesystem.file.tools.FilePath;
 import cn.edu.tsinghua.iginx.filesystem.server.FileSystemServer;
-import cn.edu.tsinghua.iginx.filesystem.tools.ConfLoader;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
@@ -54,7 +52,7 @@ public class FileSystemStorage implements IStorage {
   private static final Logger logger = LoggerFactory.getLogger(FileSystemStorage.class);
   ExecutorService executorService = Executors.newSingleThreadExecutor(); // 为了更好管理线程
   private Executor executor;
-  private String root = ConfLoader.getRootPath();
+  public String root;
 
   public FileSystemStorage(StorageEngineMeta meta)
       throws StorageInitializationException, TTransportException {
@@ -88,8 +86,11 @@ public class FileSystemStorage implements IStorage {
   }
 
   private void initLocalExecutor(StorageEngineMeta meta) {
-    String argRoot = meta.getExtraParams().get("dir");
-    root = argRoot == null ? root : FilePath.getRootFromArg(argRoot);
+    root = meta.getExtraParams().get("dir");
+
+    if (root == null) {
+     throw new RuntimeException("root is null");
+    }
 
     executor = new LocalExecutor(root);
 

@@ -203,10 +203,6 @@ public class ConfigDescriptor {
           Integer.parseInt(properties.getProperty("expectedStorageUnitNum", "0")));
       config.setLocalParquetStorage(
           Boolean.parseBoolean(properties.getProperty("isLocalParquetStorage", "true")));
-      config.setMountedDirectory(
-          properties.getProperty(
-              "mountedDirectory",
-              "dataSources/filesystem/src/test/java/cn/edu/tsinghua/iginx/storage/"));
       config.setMinThriftWorkerThreadNum(
           Integer.parseInt(properties.getProperty("minThriftWorkerThreadNum", "20")));
       config.setMaxThriftWrokerThreadNum(
@@ -327,10 +323,6 @@ public class ConfigDescriptor {
         EnvUtils.loadEnv("expectedStorageUnitNum", config.getExpectedStorageUnitNum()));
     config.setLocalParquetStorage(
         EnvUtils.loadEnv("isLocalParquetStorage", config.isLocalParquetStorage()));
-    config.setMountedDirectory(
-        EnvUtils.loadEnv(
-            "mountedDirectory",
-            "/path/to/your/filesystem"));
     config.setParallelFilterThreshold(
         EnvUtils.loadEnv("parallelFilterThreshold", config.getParallelFilterThreshold()));
     config.setParallelGroupByRowsThreshold(
