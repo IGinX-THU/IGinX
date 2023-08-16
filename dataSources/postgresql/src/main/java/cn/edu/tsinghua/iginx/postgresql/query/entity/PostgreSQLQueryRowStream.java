@@ -1,6 +1,8 @@
 package cn.edu.tsinghua.iginx.postgresql.query.entity;
 
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.SEPARATOR;
 import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils.validate;
+import static cn.edu.tsinghua.iginx.engine.shared.Constants.*;
 import static cn.edu.tsinghua.iginx.postgresql.tools.Constants.*;
 import static cn.edu.tsinghua.iginx.postgresql.tools.HashUtils.toHash;
 import static cn.edu.tsinghua.iginx.postgresql.tools.TagKVUtils.splitFullName;
@@ -99,19 +101,13 @@ public class PostgreSQLQueryRowStream implements RowStream {
         if (isDummy) {
           field =
               new Field(
-                  databaseNameList.get(i)
-                      + IGINX_SEPARATOR
-                      + tableName.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR)
-                      + IGINX_SEPARATOR
-                      + namesAndTags.k.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR),
+                  databaseNameList.get(i) + SEPARATOR + tableName + SEPARATOR + namesAndTags.k,
                   DataTypeTransformer.fromPostgreSQL(typeName),
                   namesAndTags.v);
         } else {
           field =
               new Field(
-                  tableName.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR)
-                      + IGINX_SEPARATOR
-                      + namesAndTags.k.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR),
+                  tableName + SEPARATOR + namesAndTags.k,
                   DataTypeTransformer.fromPostgreSQL(typeName),
                   namesAndTags.v);
         }
@@ -224,11 +220,9 @@ public class PostgreSQLQueryRowStream implements RowStream {
                 header
                     .getField(startIndex + j)
                     .getName()
-                    .substring(
-                        0, header.getField(startIndex + j).getName().lastIndexOf(IGINX_SEPARATOR))
-                    .replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
+                    .substring(0, header.getField(startIndex + j).getName().lastIndexOf(SEPARATOR));
             if (isDummy) {
-              tableName = tableName.substring(tableName.indexOf(POSTGRESQL_SEPARATOR) + 1);
+              tableName = tableName.substring(tableName.indexOf(SEPARATOR) + 1);
             }
             tableNameSet.add(tableName);
 

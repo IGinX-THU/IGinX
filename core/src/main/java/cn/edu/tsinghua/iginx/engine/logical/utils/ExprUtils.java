@@ -594,10 +594,11 @@ public class ExprUtils {
   private static boolean isInPatterns(String path, List<String> patterns) {
     for (String pattern : patterns) {
       String regexPattern = pattern;
-      regexPattern = regexPattern.replace(".", "\\.");
+      regexPattern = regexPattern.replaceAll("[.^${}]", "\\\\$0");
       regexPattern = regexPattern.replace("*", ".*");
       regexPattern = "^" + regexPattern + "$";
-      if (path.matches(regexPattern)) {
+      Matcher matcher = Pattern.compile(regexPattern).matcher(path);
+      if (matcher.find()) {
         return true;
       }
     }
