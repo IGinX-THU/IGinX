@@ -267,6 +267,10 @@ public class LocalExecutor implements Executor {
 
     Pair<File, File> files = Controller.getBoundaryFiles(directory);
 
+    if (files == null) {
+      throw new PhysicalTaskExecuteFailureException("no data!");
+    }
+
     File minPathFile = files.getK();
     File maxPathFile = files.getV();
 
