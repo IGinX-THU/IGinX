@@ -7,7 +7,7 @@ sqlStatement
 statement
    : INSERT INTO path tagList? insertColumnsSpec VALUES insertValuesSpec # insertStatement
    | DELETE FROM path (COMMA path)* whereClause? withClause? # deleteStatement
-   | EXPLAIN? (LOGICAL | PHYSICAL)? queryClause # selectStatement
+   | EXPLAIN? (LOGICAL | PHYSICAL)? queryClause orderByClause? limitClause? # selectStatement
    | COUNT POINTS # countPointsStatement
    | DELETE COLUMNS path (COMMA path)* withClause? # deleteColumnsStatement
    | CLEAR DATA # clearDataStatement
@@ -29,11 +29,18 @@ statement
    ;
 
 queryClause
+   : LR_BRACKET inBracketQuery = queryClause orderByClause? limitClause? RR_BRACKET
+   | select
+   | leftQuery = queryClause INTERSECT (ALL | DISTINCT)? rightQuery = queryClause
+   | leftQuery = queryClause (UNION | EXCEPT) (ALL | DISTINCT)? rightQuery = queryClause
+   ;
+
+select
    : selectClause fromClause whereClause? withClause? specialClause?
    ;
 
 selectClause
-   : SELECT selectSublist (COMMA selectSublist)*
+   : SELECT DISTINCT? selectSublist (COMMA selectSublist)*
    ;
 
 selectSublist
@@ -43,7 +50,7 @@ selectSublist
 expression
    : LR_BRACKET inBracketExpr = expression RR_BRACKET
    | constant
-   | functionName LR_BRACKET path (COMMA path)* RR_BRACKET
+   | functionName LR_BRACKET (ALL | DISTINCT)? path (COMMA path)* RR_BRACKET
    | path
    | (PLUS | MINUS) expr = expression
    | leftExpr = expression (STAR | DIV | MOD) rightExpr = expression
@@ -163,7 +170,7 @@ tableReference
    ;
 
 subquery
-   : LR_BRACKET queryClause RR_BRACKET
+   : LR_BRACKET queryClause orderByClause? limitClause? RR_BRACKET
    ;
 
 colList
@@ -177,12 +184,10 @@ join
    ;
 
 specialClause
-   : limitClause
-   | aggregateWithLevelClause
-   | groupByClause havingClause? orderByClause? limitClause?
-   | downsampleWithLevelClause limitClause?
-   | downsampleClause limitClause?
-   | orderByClause limitClause?
+   : aggregateWithLevelClause
+   | groupByClause havingClause?
+   | downsampleWithLevelClause
+   | downsampleClause
    ;
 
 groupByClause
@@ -789,6 +794,22 @@ CONFIG
 
 COLUMNS
    : C O L U M N S
+   ;
+
+INTERSECT
+   : I N T E R S E C T
+   ;
+
+UNION
+   : U N I O N
+   ;
+
+EXCEPT
+   : E X C E P T
+   ;
+
+DISTINCT
+   : D I S T I N C T
    ;
    //============================
    

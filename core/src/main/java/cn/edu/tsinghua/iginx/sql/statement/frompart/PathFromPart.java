@@ -58,7 +58,7 @@ public class PathFromPart implements FromPart {
 
   @Override
   public List<String> getPatterns() {
-    return Collections.singletonList(path + Constants.ALL_PATH_SUFFIX);
+    return Collections.singletonList(getPrefix() + Constants.ALL_PATH_SUFFIX);
   }
 
   @Override

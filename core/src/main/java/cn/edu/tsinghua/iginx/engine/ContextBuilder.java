@@ -9,6 +9,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.tag.BaseTagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.OrTagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.sql.statement.*;
+import cn.edu.tsinghua.iginx.sql.statement.selectstatement.UnarySelectStatement;
 import cn.edu.tsinghua.iginx.thrift.*;
 import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.ByteUtils;
@@ -152,8 +153,8 @@ public class ContextBuilder {
   }
 
   public RequestContext build(QueryDataReq req) {
-    SelectStatement statement =
-        new SelectStatement(
+    UnarySelectStatement statement =
+        new UnarySelectStatement(
             req.getPaths(),
             getTimeWithPrecision(req.getStartKey(), req.getTimePrecision()),
             getTimeWithPrecision(req.getEndKey(), req.getTimePrecision()));
@@ -165,8 +166,8 @@ public class ContextBuilder {
   }
 
   public RequestContext build(AggregateQueryReq req) {
-    SelectStatement statement =
-        new SelectStatement(
+    UnarySelectStatement statement =
+        new UnarySelectStatement(
             req.getPaths(),
             getTimeWithPrecision(req.getStartKey(), req.getTimePrecision()),
             getTimeWithPrecision(req.getEndKey(), req.getTimePrecision()),
@@ -179,8 +180,8 @@ public class ContextBuilder {
   }
 
   public RequestContext build(DownsampleQueryReq req) {
-    SelectStatement statement =
-        new SelectStatement(
+    UnarySelectStatement statement =
+        new UnarySelectStatement(
             req.getPaths(),
             getTimeWithPrecision(req.getStartKey(), req.getTimePrecision()),
             getTimeWithPrecision(req.getEndKey(), req.getTimePrecision()),
@@ -207,8 +208,8 @@ public class ContextBuilder {
   }
 
   public RequestContext build(LastQueryReq req) {
-    SelectStatement statement =
-        new SelectStatement(
+    UnarySelectStatement statement =
+        new UnarySelectStatement(
             req.getPaths(),
             getTimeWithPrecision(req.getStartKey(), req.getTimePrecision()),
             Long.MAX_VALUE,

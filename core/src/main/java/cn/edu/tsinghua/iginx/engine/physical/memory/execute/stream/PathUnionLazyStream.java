@@ -25,15 +25,15 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Union;
+import cn.edu.tsinghua.iginx.engine.shared.operator.PathUnion;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public class UnionLazyStream extends BinaryLazyStream {
+public class PathUnionLazyStream extends BinaryLazyStream {
 
-  private final Union union;
+  private final PathUnion union;
 
   private boolean hasInitialized = false;
 
@@ -43,7 +43,7 @@ public class UnionLazyStream extends BinaryLazyStream {
 
   private Row nextB;
 
-  public UnionLazyStream(Union union, RowStream streamA, RowStream streamB) {
+  public PathUnionLazyStream(PathUnion union, RowStream streamA, RowStream streamB) {
     super(streamA, streamB);
     this.union = union;
   }

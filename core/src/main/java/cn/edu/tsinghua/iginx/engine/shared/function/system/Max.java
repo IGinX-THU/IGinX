@@ -73,8 +73,14 @@ public class Max implements SetMappingFunction {
     for (int i = 0; i < rows.getHeader().getFieldSize(); i++) {
       Field field = rows.getHeader().getField(i);
       if (pattern.matcher(field.getFullName()).matches()) {
-        String name = getIdentifier() + "(" + field.getName() + ")";
-        String fullName = getIdentifier() + "(" + field.getFullName() + ")";
+        String name = getIdentifier() + "(";
+        String fullName = getIdentifier() + "(";
+        if (params.isDistinct()) {
+          name += "distinct ";
+          fullName += "distinct ";
+        }
+        name += field.getName() + ")";
+        fullName += field.getFullName() + ")";
         targetFields.add(new Field(name, fullName, field.getType()));
         indices.add(i);
       }

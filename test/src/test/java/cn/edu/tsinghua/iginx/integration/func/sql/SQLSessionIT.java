@@ -497,6 +497,149 @@ public class SQLSessionIT {
   }
 
   @Test
+  public void testDistinct() {
+    String insert =
+        "INSERT INTO test(key, a, b) values (1, 1, 1), (2, 2, 1), (3, 2, 2), (4, 3, 1), (5, 3, 2), (6, 3, 1), (7, 4, 1), (8, 4, 2), (9, 4, 3), (10, 4, 1);";
+    executor.execute(insert);
+
+    String statement = "SELECT * FROM test;";
+    String expected =
+        "ResultSets:\n"
+            + "+---+------+------+\n"
+            + "|key|test.a|test.b|\n"
+            + "+---+------+------+\n"
+            + "|  1|     1|     1|\n"
+            + "|  2|     2|     1|\n"
+            + "|  3|     2|     2|\n"
+            + "|  4|     3|     1|\n"
+            + "|  5|     3|     2|\n"
+            + "|  6|     3|     1|\n"
+            + "|  7|     4|     1|\n"
+            + "|  8|     4|     2|\n"
+            + "|  9|     4|     3|\n"
+            + "| 10|     4|     1|\n"
+            + "+---+------+------+\n"
+            + "Total line number = 10\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "SELECT DISTINCT a FROM test;";
+    expected =
+        "ResultSets:\n"
+            + "+------+\n"
+            + "|test.a|\n"
+            + "+------+\n"
+            + "|     1|\n"
+            + "|     2|\n"
+            + "|     3|\n"
+            + "|     4|\n"
+            + "+------+\n"
+            + "Total line number = 4\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "SELECT DISTINCT a, b FROM test;";
+    expected =
+        "ResultSets:\n"
+            + "+------+------+\n"
+            + "|test.a|test.b|\n"
+            + "+------+------+\n"
+            + "|     1|     1|\n"
+            + "|     2|     1|\n"
+            + "|     2|     2|\n"
+            + "|     3|     1|\n"
+            + "|     3|     2|\n"
+            + "|     4|     1|\n"
+            + "|     4|     2|\n"
+            + "|     4|     3|\n"
+            + "+------+------+\n"
+            + "Total line number = 8\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "SELECT COUNT(a), AVG(a), SUM(a), MIN(a), MAX(a) FROM test;";
+    expected =
+        "ResultSets:\n"
+            + "+-------------+-----------+-----------+-----------+-----------+\n"
+            + "|count(test.a)|avg(test.a)|sum(test.a)|min(test.a)|max(test.a)|\n"
+            + "+-------------+-----------+-----------+-----------+-----------+\n"
+            + "|           10|        3.0|         30|          1|          4|\n"
+            + "+-------------+-----------+-----------+-----------+-----------+\n"
+            + "Total line number = 1\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement =
+        "SELECT COUNT(DISTINCT a), AVG(DISTINCT a), SUM(DISTINCT a), MIN(DISTINCT a), MAX(DISTINCT a) FROM test;";
+    expected =
+        "ResultSets:\n"
+            + "+----------------------+--------------------+--------------------+--------------------+--------------------+\n"
+            + "|count(distinct test.a)|avg(distinct test.a)|sum(distinct test.a)|min(distinct test.a)|max(distinct test.a)|\n"
+            + "+----------------------+--------------------+--------------------+--------------------+--------------------+\n"
+            + "|                     4|                 2.5|                  10|                   1|                   4|\n"
+            + "+----------------------+--------------------+--------------------+--------------------+--------------------+\n"
+            + "Total line number = 1\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "SELECT a, COUNT(b), AVG(b), SUM(b), MIN(b), MAX(b) FROM test GROUP BY a;";
+    expected =
+        "ResultSets:\n"
+            + "+------+-------------+------------------+-----------+-----------+-----------+\n"
+            + "|test.a|count(test.b)|       avg(test.b)|sum(test.b)|min(test.b)|max(test.b)|\n"
+            + "+------+-------------+------------------+-----------+-----------+-----------+\n"
+            + "|     1|            1|               1.0|          1|          1|          1|\n"
+            + "|     2|            2|               1.5|          3|          1|          2|\n"
+            + "|     3|            3|1.3333333333333333|          4|          1|          2|\n"
+            + "|     4|            4|              1.75|          7|          1|          3|\n"
+            + "+------+-------------+------------------+-----------+-----------+-----------+\n"
+            + "Total line number = 4\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement =
+        "SELECT a, COUNT(DISTINCT b), AVG(DISTINCT b), SUM(DISTINCT b), MIN(DISTINCT b), MAX(DISTINCT b) FROM test GROUP BY a;";
+    expected =
+        "ResultSets:\n"
+            + "+------+----------------------+--------------------+--------------------+--------------------+--------------------+\n"
+            + "|test.a|count(distinct test.b)|avg(distinct test.b)|sum(distinct test.b)|min(distinct test.b)|max(distinct test.b)|\n"
+            + "+------+----------------------+--------------------+--------------------+--------------------+--------------------+\n"
+            + "|     1|                     1|                 1.0|                   1|                   1|                   1|\n"
+            + "|     2|                     2|                 1.5|                   3|                   1|                   2|\n"
+            + "|     3|                     2|                 1.5|                   3|                   1|                   2|\n"
+            + "|     4|                     3|                 2.0|                   6|                   1|                   3|\n"
+            + "+------+----------------------+--------------------+--------------------+--------------------+--------------------+\n"
+            + "Total line number = 4\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement =
+        "SELECT COUNT(a), AVG(a), SUM(a), MIN(a), MAX(a) FROM test OVER (RANGE 2 IN (0, 10]);";
+    expected =
+        "ResultSets:\n"
+            + "+---+-------------+-----------+-----------+-----------+-----------+\n"
+            + "|key|count(test.a)|avg(test.a)|sum(test.a)|min(test.a)|max(test.a)|\n"
+            + "+---+-------------+-----------+-----------+-----------+-----------+\n"
+            + "|  1|            2|        1.5|          3|          1|          2|\n"
+            + "|  3|            2|        2.5|          5|          2|          3|\n"
+            + "|  5|            2|        3.0|          6|          3|          3|\n"
+            + "|  7|            2|        4.0|          8|          4|          4|\n"
+            + "|  9|            2|        4.0|          8|          4|          4|\n"
+            + "+---+-------------+-----------+-----------+-----------+-----------+\n"
+            + "Total line number = 5\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement =
+        "SELECT COUNT(DISTINCT a), AVG(DISTINCT a), SUM(DISTINCT a), MIN(DISTINCT a), MAX(DISTINCT a) FROM test OVER (RANGE 2 IN (0, 10]);";
+    expected =
+        "ResultSets:\n"
+            + "+---+----------------------+--------------------+--------------------+--------------------+--------------------+\n"
+            + "|key|count(distinct test.a)|avg(distinct test.a)|sum(distinct test.a)|min(distinct test.a)|max(distinct test.a)|\n"
+            + "+---+----------------------+--------------------+--------------------+--------------------+--------------------+\n"
+            + "|  1|                     2|                 1.5|                   3|                   1|                   2|\n"
+            + "|  3|                     2|                 2.5|                   5|                   2|                   3|\n"
+            + "|  5|                     1|                 3.0|                   3|                   3|                   3|\n"
+            + "|  7|                     1|                 4.0|                   4|                   4|                   4|\n"
+            + "|  9|                     1|                 4.0|                   4|                   4|                   4|\n"
+            + "+---+----------------------+--------------------+--------------------+--------------------+--------------------+\n"
+            + "Total line number = 5\n";
+    executor.executeAndCompare(statement, expected);
+  }
+
+  @Test
   public void testLimitAndOffsetQuery() {
     String statement = "SELECT s1 FROM us.d1 WHERE key > 0 AND key < 10000 limit 10;";
     String expected =
@@ -3848,6 +3991,73 @@ public class SQLSessionIT {
   }
 
   @Test
+  public void testSetOperators() {
+    String insert =
+        "INSERT INTO test(key, a.a, a.b, a.c) VALUES (1, 1, \"aaa\", true), (2, 1, \"eee\", false), (3, 4, \"ccc\", true), (5, 6, \"eee\", false);";
+    executor.execute(insert);
+    insert =
+        "INSERT INTO test(key, b.a, b.b, b.c) VALUES (2, \"eee\", 1, true), (3, \"ccc\", 4, true), (5, \"eee\", 6, false);";
+    executor.execute(insert);
+
+    String statement =
+        "SELECT a, b, c FROM test.a UNION ALL SELECT b, a, c FROM test.b ORDER BY KEY;";
+    String expected =
+        "ResultSets:\n"
+            + "+---+--------+--------+--------+\n"
+            + "|key|test.a.a|test.a.b|test.a.c|\n"
+            + "+---+--------+--------+--------+\n"
+            + "|  1|       1|     aaa|    true|\n"
+            + "|  2|       1|     eee|   false|\n"
+            + "|  2|       1|     eee|    true|\n"
+            + "|  3|       4|     ccc|    true|\n"
+            + "|  3|       4|     ccc|    true|\n"
+            + "|  5|       6|     eee|   false|\n"
+            + "|  5|       6|     eee|   false|\n"
+            + "+---+--------+--------+--------+\n"
+            + "Total line number = 7\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "SELECT a, b, c FROM test.a UNION SELECT b, a, c FROM test.b ORDER BY KEY;";
+    expected =
+        "ResultSets:\n"
+            + "+---+--------+--------+--------+\n"
+            + "|key|test.a.a|test.a.b|test.a.c|\n"
+            + "+---+--------+--------+--------+\n"
+            + "|  1|       1|     aaa|    true|\n"
+            + "|  2|       1|     eee|   false|\n"
+            + "|  2|       1|     eee|    true|\n"
+            + "|  3|       4|     ccc|    true|\n"
+            + "|  5|       6|     eee|   false|\n"
+            + "+---+--------+--------+--------+\n"
+            + "Total line number = 5\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "SELECT a, b, c FROM test.a EXCEPT SELECT b, a, c FROM test.b ORDER BY KEY;";
+    expected =
+        "ResultSets:\n"
+            + "+---+--------+--------+--------+\n"
+            + "|key|test.a.a|test.a.b|test.a.c|\n"
+            + "+---+--------+--------+--------+\n"
+            + "|  1|       1|     aaa|    true|\n"
+            + "|  2|       1|     eee|   false|\n"
+            + "+---+--------+--------+--------+\n"
+            + "Total line number = 2\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "SELECT a, b, c FROM test.a INTERSECT SELECT b, a, c FROM test.b ORDER BY KEY;";
+    expected =
+        "ResultSets:\n"
+            + "+---+--------+--------+--------+\n"
+            + "|key|test.a.a|test.a.b|test.a.c|\n"
+            + "+---+--------+--------+--------+\n"
+            + "|  3|       4|     ccc|    true|\n"
+            + "|  5|       6|     eee|   false|\n"
+            + "+---+--------+--------+--------+\n"
+            + "Total line number = 2\n";
+    executor.executeAndCompare(statement, expected);
+  }
+
+  @Test
   public void testDateFormat() {
     if (!isAbleToDelete) {
       return;
@@ -4204,6 +4414,9 @@ public class SQLSessionIT {
     errClause = "SELECT last(s1) FROM us.d1 GROUP BY s2;";
     executor.executeAndCompareErrMsg(
         errClause, "Group by can not use SetToSet and RowToRow functions.");
+
+    errClause = "select * from test.a join test.b where a > 0;";
+    executor.executeAndCompareErrMsg(errClause, "Unexpected paths' name: [a].");
   }
 
   @Test
@@ -4860,6 +5073,109 @@ public class SQLSessionIT {
                     + "|            +--Project    |      Project|Patterns: us.*, Target DU: unit0000000002|\n"
                     + "+--------------------------+-------------+-----------------------------------------+\n"
                     + "Total line number = 12\n"));
+
+    executor.concurrentExecuteAndCompare(statementsAndExpectRes);
+  }
+
+  @Test
+  public void testFilterFragmentOptimizer() {
+    MultiConnection session =
+        new MultiConnection(
+            new Session(defaultTestHost, defaultTestPort, defaultTestUser, defaultTestPass));
+    try {
+      session.openSession();
+      String queryOptimizer =
+          session.executeSql("SHOW CONFIG \"queryOptimizer\"").getResultInString(false, "");
+      if (!queryOptimizer.equals("remove_not,filter_fragment")) {
+        logger.info(
+            "Skip SQLSessionIT.ttestFilterFragmentOptimizer because optimizer is not remove_not,filter_fragment");
+        return;
+      }
+    } catch (SessionException | ExecutionException e) {
+      logger.error(e.getMessage());
+      return;
+    }
+
+    String insert =
+        "INSERT INTO us.d2(key, c) VALUES (1, \"asdas\"), (2, \"sadaa\"), (3, \"sadada\"), (4, \"asdad\"), (5, \"deadsa\"), (6, \"dasda\"), (7, \"asdsad\"), (8, \"frgsa\"), (9, \"asdad\");";
+    executor.execute(insert);
+
+    StringBuilder builder = new StringBuilder();
+    builder.append("INSERT INTO us.d2(key, s1) VALUES ");
+    int size = (int) (endKey - startKey);
+    for (int i = 0; i < size; i++) {
+      builder.append(", (");
+      builder.append(startKey + i).append(", ");
+      builder.append(i + 5);
+      builder.append(")");
+    }
+    builder.append(";");
+
+    insert = builder.toString();
+    executor.execute(insert);
+
+    List<Pair<String, String>> statementsAndExpectRes =
+        Arrays.asList(
+            new Pair<>(
+                "explain SELECT COUNT(*)\n"
+                    + "FROM (\n"
+                    + "    SELECT AVG(s1) AS avg_s1, SUM(s2) AS sum_s2\n"
+                    + "    FROM us.d1 OVER (RANGE 10 IN [1000, 1100))\n"
+                    + ")\n"
+                    + "OVER (RANGE 20 IN [1000, 1100));",
+                "ResultSets:\n"
+                    + "+--------------------------+-------------+-------------------------------------------------------------------------------------------------------------------------+\n"
+                    + "|              Logical Tree|Operator Type|                                                                                                            Operator Info|\n"
+                    + "+--------------------------+-------------+-------------------------------------------------------------------------------------------------------------------------+\n"
+                    + "|Reorder                   |      Reorder|                                                                                                          Order: count(*)|\n"
+                    + "|  +--Downsample           |   Downsample|Precision: 20, SlideDistance: 20, TimeRange: [1000, 1100), Func: {Name: count, FuncType: System, MappingType: SetMapping}|\n"
+                    + "|    +--Select             |       Select|                                                                                      Filter: (key >= 1000 && key < 1100)|\n"
+                    + "|      +--Rename           |       Rename|                                            AliasMap: (sum(us.d1.s2), sum_s2),(avg(us.d1.s1), avg_s1), IgnorePatterns: []|\n"
+                    + "|        +--Join           |         Join|                                                                                                              JoinBy: key|\n"
+                    + "|          +--Downsample   |   Downsample|  Precision: 10, SlideDistance: 10, TimeRange: [1000, 1100), Func: {Name: avg, FuncType: System, MappingType: SetMapping}|\n"
+                    + "|            +--Select     |       Select|                                                                                      Filter: (key >= 1000 && key < 1100)|\n"
+                    + "|              +--PathUnion|    PathUnion|                                                                                                                         |\n"
+                    + "|                +--Project|      Project|                                                                   Patterns: us.d1.s1,us.d1.s2, Target DU: unit0000000001|\n"
+                    + "|                +--Project|      Project|                                                                   Patterns: us.d1.s1,us.d1.s2, Target DU: unit0000000002|\n"
+                    + "|          +--Downsample   |   Downsample|  Precision: 10, SlideDistance: 10, TimeRange: [1000, 1100), Func: {Name: sum, FuncType: System, MappingType: SetMapping}|\n"
+                    + "|            +--Select     |       Select|                                                                                      Filter: (key >= 1000 && key < 1100)|\n"
+                    + "|              +--PathUnion|    PathUnion|                                                                                                                         |\n"
+                    + "|                +--Project|      Project|                                                                   Patterns: us.d1.s1,us.d1.s2, Target DU: unit0000000001|\n"
+                    + "|                +--Project|      Project|                                                                   Patterns: us.d1.s1,us.d1.s2, Target DU: unit0000000002|\n"
+                    + "+--------------------------+-------------+-------------------------------------------------------------------------------------------------------------------------+\n"
+                    + "Total line number = 15\n"),
+            new Pair<>(
+                "EXPLAIN SELECT s1 FROM us.d1 JOIN us.d2 WHERE key < 100;",
+                "ResultSets:\n"
+                    + "+--------------------+-------------+------------------------------------------------+\n"
+                    + "|        Logical Tree|Operator Type|                                   Operator Info|\n"
+                    + "+--------------------+-------------+------------------------------------------------+\n"
+                    + "|Reorder             |      Reorder|                                       Order: s1|\n"
+                    + "|  +--Project        |      Project|                                    Patterns: s1|\n"
+                    + "|    +--Select       |       Select|                               Filter: key < 100|\n"
+                    + "|      +--InnerJoin  |    InnerJoin|PrefixA: us.d1, PrefixB: us.d2, IsNatural: false|\n"
+                    + "|        +--PathUnion|    PathUnion|                                                |\n"
+                    + "|          +--Project|      Project|    Patterns: us.d1.*, Target DU: unit0000000001|\n"
+                    + "|          +--Project|      Project|    Patterns: us.d1.*, Target DU: unit0000000002|\n"
+                    + "|        +--PathUnion|    PathUnion|                                                |\n"
+                    + "|          +--Project|      Project|    Patterns: us.d2.*, Target DU: unit0000000001|\n"
+                    + "|          +--Project|      Project|    Patterns: us.d2.*, Target DU: unit0000000002|\n"
+                    + "+--------------------+-------------+------------------------------------------------+\n"
+                    + "Total line number = 10\n"),
+            new Pair<>(
+                "EXPLAIN SELECT avg(bb) FROM (SELECT a as aa, b as bb FROM us.d2) WHERE key > 2 GROUP BY aa;",
+                "ResultSets:\n"
+                    + "+--------------------+-------------+-----------------------------------------------------------------------------------------+\n"
+                    + "|        Logical Tree|Operator Type|                                                                            Operator Info|\n"
+                    + "+--------------------+-------------+-----------------------------------------------------------------------------------------+\n"
+                    + "|Reorder             |      Reorder|                                                                           Order: avg(bb)|\n"
+                    + "|  +--GroupBy        |      GroupBy|GroupByCols: aa, FunctionCallList: {Name: avg, FuncType: System, MappingType: SetMapping}|\n"
+                    + "|    +--Select       |       Select|                                                                          Filter: key > 2|\n"
+                    + "|      +--Rename     |       Rename|                                AliasMap: (us.d2.a, aa),(us.d2.b, bb), IgnorePatterns: []|\n"
+                    + "|        +--Project  |      Project|                                                                Patterns: us.d2.a,us.d2.b|\n"
+                    + "|          +--Project|      Project|                                     Patterns: us.d2.a,us.d2.b, Target DU: unit0000000001|\n"
+                    + "+--------------------+-------------+-----------------------------------------------------------------------------------------+\n"
+                    + "Total line number = 6\n"));
 
     executor.concurrentExecuteAndCompare(statementsAndExpectRes);
   }
