@@ -27,10 +27,11 @@ import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtil
 import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.equalOnSpecificPaths;
 import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.establishHashMap;
 import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.getSamePathWithSpecificPrefix;
-import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.isEqualRow;
 import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.isValueEqualRow;
+import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.removeDuplicateRows;
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.ALL_PATH_SUFFIX;
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.KEY;
+import static cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils.isCanUseSetQuantifierFunction;
 import static cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils.getHash;
 
 import cn.edu.tsinghua.iginx.conf.Config;
@@ -54,10 +55,11 @@ import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
 import cn.edu.tsinghua.iginx.engine.shared.function.MappingFunction;
 import cn.edu.tsinghua.iginx.engine.shared.function.RowMappingFunction;
 import cn.edu.tsinghua.iginx.engine.shared.function.SetMappingFunction;
+import cn.edu.tsinghua.iginx.engine.shared.function.system.Max;
+import cn.edu.tsinghua.iginx.engine.shared.function.system.Min;
 import cn.edu.tsinghua.iginx.engine.shared.operator.AddSchemaPrefix;
 import cn.edu.tsinghua.iginx.engine.shared.operator.BinaryOperator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.CrossJoin;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Distinct;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Downsample;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Except;
 import cn.edu.tsinghua.iginx.engine.shared.operator.GroupBy;
@@ -84,12 +86,10 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OuterJoinType;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import cn.edu.tsinghua.iginx.engine.shared.source.SourceType;
-import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -144,7 +144,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
       case GroupBy:
         return executeGroupBy((GroupBy) operator, transformToTable(stream));
       case Distinct:
-        return executeDistinct((Distinct) operator, transformToTable(stream));
+        return executeDistinct(transformToTable(stream));
       default:
         throw new UnexpectedOperatorException("unknown unary operator: " + operator.getType());
     }
@@ -242,6 +242,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
   private RowStream executeSelect(Select select, Table table) throws PhysicalException {
     Filter filter = select.getFilter();
     List<Row> rows = table.getRows();
+
     List<Row> targetRows = RowUtils.cacheFilterResult(rows, filter);
     return new Table(table.getHeader(), targetRows);
   }
@@ -306,6 +307,19 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
       for (Map.Entry<Long, List<Row>> entry : groups.entrySet()) {
         long time = entry.getKey();
         List<Row> group = entry.getValue();
+
+        if (params.isDistinct()) {
+          if (!isCanUseSetQuantifierFunction(function.getIdentifier())) {
+            throw new IllegalArgumentException(
+                "function " + function.getIdentifier() + " can't use DISTINCT");
+          }
+          // min和max无需去重
+          if (!function.getIdentifier().equals(Max.MAX)
+              && !function.getIdentifier().equals(Min.MIN)) {
+            group = removeDuplicateRows(group);
+          }
+        }
+
         Row row = function.transform(new Table(header, group), params);
         if (row != null) {
           transformedRawRows.add(new Pair<>(time, row));
@@ -380,6 +394,18 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
       throws PhysicalException {
     SetMappingFunction function = (SetMappingFunction) setTransform.getFunctionCall().getFunction();
     FunctionParams params = setTransform.getFunctionCall().getParams();
+
+    if (params.isDistinct()) {
+      if (!isCanUseSetQuantifierFunction(function.getIdentifier())) {
+        throw new IllegalArgumentException(
+            "function " + function.getIdentifier() + " can't use DISTINCT");
+      }
+      // min和max无需去重
+      if (!function.getIdentifier().equals(Max.MAX) && !function.getIdentifier().equals(Min.MIN)) {
+        table = transformToTable(executeDistinct(table));
+      }
+    }
+
     try {
       Row row = function.transform(table, params);
       if (row == null) {
@@ -574,47 +600,13 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     return new Table(newHeader, rows);
   }
 
-  private RowStream executeDistinct(Distinct distinct, Table table) throws PhysicalException {
+  private RowStream executeDistinct(Table table) throws PhysicalException {
     if (table.getHeader().getFields().isEmpty()) {
       return table;
     }
 
     Header newHeader = new Header(table.getHeader().getFields());
-    List<Row> targetRows = new ArrayList<>();
-    HashMap<Integer, List<Row>> rowsHashMap = new HashMap<>();
-    List<Row> nullValueRows = new ArrayList<>();
-    tableScan:
-    for (Row row : table.getRows()) {
-      Value value = row.getAsValue(row.getField(0).getName());
-      if (value == null) {
-        for (Row nullValueRow : nullValueRows) {
-          if (isEqualRow(row, nullValueRow, false)) {
-            continue tableScan;
-          }
-        }
-        nullValueRows.add(row);
-        targetRows.add(row);
-      } else {
-        int hash;
-        if (value.getDataType() == DataType.BINARY) {
-          hash = Arrays.hashCode(value.getBinaryV());
-        } else {
-          hash = value.getValue().hashCode();
-        }
-        if (rowsHashMap.containsKey(hash)) {
-          List<Row> rowsExist = rowsHashMap.get(hash);
-          for (Row rowExist : rowsExist) {
-            if (isEqualRow(row, rowExist, false)) {
-              continue tableScan;
-            }
-          }
-          rowsExist.add(row);
-        } else {
-          rowsHashMap.put(hash, new ArrayList<>(Collections.singletonList(row)));
-        }
-        targetRows.add(row);
-      }
-    }
+    List<Row> targetRows = removeDuplicateRows(table.getRows());
 
     return new Table(newHeader, targetRows);
   }

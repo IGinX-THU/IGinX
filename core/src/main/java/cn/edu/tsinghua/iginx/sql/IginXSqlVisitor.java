@@ -1,5 +1,6 @@
 package cn.edu.tsinghua.iginx.sql;
 
+import static cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils.isCanUseSetQuantifierFunction;
 import static cn.edu.tsinghua.iginx.engine.shared.operator.MarkJoin.MARK_PREFIX;
 import static cn.edu.tsinghua.iginx.sql.statement.selectstatement.SelectStatement.markJoinCount;
 
@@ -646,6 +647,10 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   }
 
   private void parseSelectPaths(SelectClauseContext ctx, UnarySelectStatement selectStatement) {
+    if (ctx.DISTINCT() != null) {
+      selectStatement.setDistinct(true);
+    }
+
     List<SelectSublistContext> selectList = ctx.selectSublist();
 
     for (SelectSublistContext select : selectList) {
@@ -749,6 +754,17 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       ExpressionContext ctx, UnarySelectStatement selectStatement) {
     String funcName = ctx.functionName().getText();
 
+    boolean isDistinct = false;
+    if (ctx.ALL() != null || ctx.DISTINCT() != null) {
+      if (!isCanUseSetQuantifierFunction(funcName)) {
+        throw new SQLParserException(
+            "Function: " + funcName + " can't use ALL or DISTINCT in bracket.");
+      }
+      if (ctx.DISTINCT() != null) {
+        isDistinct = true;
+      }
+    }
+
     List<String> params = new ArrayList<>();
     for (PathContext pathContext : ctx.path()) {
       params.add(pathContext.getText());
@@ -765,7 +781,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       }
       params = newParams;
     }
-    FuncExpression expression = new FuncExpression(funcName, params);
+    FuncExpression expression = new FuncExpression(funcName, params, isDistinct);
     selectStatement.setSelectedFuncsAndPaths(funcName, expression);
     return expression;
   }

@@ -40,7 +40,7 @@ select
    ;
 
 selectClause
-   : SELECT selectSublist (COMMA selectSublist)*
+   : SELECT DISTINCT? selectSublist (COMMA selectSublist)*
    ;
 
 selectSublist
@@ -50,7 +50,7 @@ selectSublist
 expression
    : LR_BRACKET inBracketExpr = expression RR_BRACKET
    | constant
-   | functionName LR_BRACKET path (COMMA path)* RR_BRACKET
+   | functionName LR_BRACKET (ALL | DISTINCT)? path (COMMA path)* RR_BRACKET
    | path
    | (PLUS | MINUS) expr = expression
    | leftExpr = expression (STAR | DIV | MOD) rightExpr = expression
