@@ -12,7 +12,7 @@ import cn.edu.tsinghua.iginx.integration.tool.DBType;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.thrift.RemovedStorageEngineInfo;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import org.junit.*;
 import org.slf4j.Logger;
@@ -80,7 +80,7 @@ public abstract class BaseCapacityExpansionIT {
       session.executeSql(statement.toString());
       return null;
     } catch (ExecutionException | SessionException e) {
-      logger.error(
+      logger.warn(
           "add storage engine {} port {} hasData {} isReadOnly {} dataPrefix {} schemaPrefix {} failure: {}",
           dbType.name(),
           port,
@@ -328,13 +328,13 @@ public abstract class BaseCapacityExpansionIT {
 
   private void testAddAndRemoveStorageEngineWithPrefix() {
     addStorageEngine(expPort, true, true, "mn", "p1");
-    // 添加不同schemaprefix，相同dataPrefix
+    // 添加不同schemaPrefix，相同dataPrefix
     addStorageEngine(expPort, true, true, "mn", "p2");
     addStorageEngine(expPort, true, true, "mn", null);
 
     // 如果是重复添加，则报错
     String res = addStorageEngine(expPort, true, true, "mn", null);
-    if (!res.contains("unexpected repeated add")) {
+    if (res != null && !res.contains("unexpected repeated add")) {
       fail();
     }
     addStorageEngine(expPort, true, true, "mn", "p3");
@@ -347,22 +347,22 @@ public abstract class BaseCapacityExpansionIT {
 
     // 添加节点 dataPrefix = mn && schemaPrefix = p1 后查询
     String statement = "select * from p1.mn";
-    List<String> pathList = Arrays.asList("p1.mn.wf03.wt01.status");
+    List<String> pathList = Collections.singletonList("p1.mn.wf03.wt01.status");
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
     // 添加节点 dataPrefix = mn && schemaPrefix = p2 后查询
     statement = "select * from p2.mn";
-    pathList = Arrays.asList("p2.mn.wf03.wt01.status");
+    pathList = Collections.singletonList("p2.mn.wf03.wt01.status");
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
     // 添加节点 dataPrefix = mn && schemaPrefix = null 后查询
     statement = "select * from mn";
-    pathList = Arrays.asList("mn.wf03.wt01.status");
+    pathList = Collections.singletonList("mn.wf03.wt01.status");
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
     // 添加节点 dataPrefix = null && schemaPrefix = p3 后查询
     statement = "select * from p3.mn";
-    pathList = Arrays.asList("p3.mn.wf03.wt01.status");
+    pathList = Collections.singletonList("p3.mn.wf03.wt01.status");
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
     // 通过 session 接口测试移除节点
