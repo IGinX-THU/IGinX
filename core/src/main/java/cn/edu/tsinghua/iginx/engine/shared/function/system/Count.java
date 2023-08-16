@@ -85,8 +85,14 @@ public class Count implements SetMappingFunction {
       Field field = rows.getHeader().getField(i);
       if (pattern.matcher(field.getFullName()).matches()) {
         if (groupByLevels == null) {
-          String name = getIdentifier() + "(" + field.getName() + ")";
-          String fullName = getIdentifier() + "(" + field.getFullName() + ")";
+          String name = getIdentifier() + "(";
+          String fullName = getIdentifier() + "(";
+          if (params.isDistinct()) {
+            name += "distinct ";
+            fullName += "distinct ";
+          }
+          name += field.getName() + ")";
+          fullName += field.getFullName() + ")";
           targetFields.add(new Field(name, fullName, DataType.LONG));
         } else {
           String targetFieldName =

@@ -18,6 +18,8 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.operator;
 
+import static cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils.isCanUseSetQuantifierFunction;
+
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
@@ -36,10 +38,19 @@ public class SetTransform extends AbstractUnaryOperator {
       throw new IllegalArgumentException("function should be set mapping function");
     }
     this.functionCall = functionCall;
+    if (isDistinct()
+        && !isCanUseSetQuantifierFunction(functionCall.getFunction().getIdentifier())) {
+      throw new IllegalArgumentException(
+          "function " + functionCall.getFunction().getIdentifier() + " can't use DISTINCT");
+    }
   }
 
   public FunctionCall getFunctionCall() {
     return functionCall;
+  }
+
+  public boolean isDistinct() {
+    return functionCall.getParams().isDistinct();
   }
 
   @Override
@@ -49,6 +60,10 @@ public class SetTransform extends AbstractUnaryOperator {
 
   @Override
   public String getInfo() {
-    return "Func: " + functionCall.toString();
+    if (isDistinct()) {
+      return "Func: " + functionCall.toString() + ", isDistinct: true";
+    } else {
+      return "Func: " + functionCall.toString();
+    }
   }
 }

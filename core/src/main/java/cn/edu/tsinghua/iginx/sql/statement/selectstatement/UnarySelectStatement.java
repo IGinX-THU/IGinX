@@ -36,6 +36,7 @@ public class UnarySelectStatement extends SelectStatement {
   private QueryType queryType;
 
   private boolean hasFunc;
+  private boolean isDistinct = false;
   private boolean hasJoinParts = false;
   private boolean hasValueFilter;
   private boolean hasDownsample;
@@ -254,6 +255,14 @@ public class UnarySelectStatement extends SelectStatement {
 
   public void setHasFunc(boolean hasFunc) {
     this.hasFunc = hasFunc;
+  }
+
+  public boolean isDistinct() {
+    return isDistinct;
+  }
+
+  public void setDistinct(boolean distinct) {
+    isDistinct = distinct;
   }
 
   public boolean hasValueFilter() {
