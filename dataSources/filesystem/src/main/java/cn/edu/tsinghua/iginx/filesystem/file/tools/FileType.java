@@ -2,7 +2,6 @@ package cn.edu.tsinghua.iginx.filesystem.file.tools;
 
 import cn.edu.tsinghua.iginx.filesystem.file.DefaultFileOperator;
 import cn.edu.tsinghua.iginx.filesystem.file.entity.FileMeta;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;

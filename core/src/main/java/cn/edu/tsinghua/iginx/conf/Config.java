@@ -192,7 +192,7 @@ public class Config {
 
   private boolean isLocalParquetStorage = true;
 
-  private String mountedDirectory = "";
+  private String mountedDirectory = "/path/to/your/filesystem";
 
   private int parallelFilterThreshold = 10000;
 

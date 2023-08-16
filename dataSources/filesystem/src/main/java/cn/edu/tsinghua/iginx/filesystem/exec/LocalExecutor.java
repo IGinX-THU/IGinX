@@ -14,11 +14,11 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.filesystem.controller.Controller;
 import cn.edu.tsinghua.iginx.filesystem.file.entity.FileMeta;
+import cn.edu.tsinghua.iginx.filesystem.file.tools.FilePath;
 import cn.edu.tsinghua.iginx.filesystem.query.entity.FileSystemHistoryQueryRowStream;
 import cn.edu.tsinghua.iginx.filesystem.query.entity.FileSystemQueryRowStream;
 import cn.edu.tsinghua.iginx.filesystem.query.entity.FileSystemResultTable;
 import cn.edu.tsinghua.iginx.filesystem.query.entity.Record;
-import cn.edu.tsinghua.iginx.filesystem.file.tools.FilePath;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.thrift.DataType;
@@ -43,7 +43,7 @@ public class LocalExecutor implements Executor {
 
   public LocalExecutor(String root) {
     if (root == null) {
-      logger.error("root should not to be null!");
+      logger.error("root should not be null!");
     } else {
       this.root = root;
     }
