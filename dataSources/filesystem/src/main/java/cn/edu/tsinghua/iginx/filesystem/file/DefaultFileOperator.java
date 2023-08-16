@@ -191,7 +191,7 @@ public class DefaultFileOperator implements IFileOperator {
               new Record(
                   Long.parseLong(kv[0]),
                   dataType,
-                  DataTypeUtils.parseStringByDataTyp(kv[1], dataType)));
+                  DataTypeUtils.parseStringByDataType(kv[1], dataType)));
         }
       }
     }
@@ -558,7 +558,7 @@ public class DefaultFileOperator implements IFileOperator {
               fileMeta.setMagicNumber(line.getBytes());
               break;
             case FileMeta.TAG_KV_INDEX:
-              fileMeta.setTags(JsonUtils.transformJsonToStringStringMap(line));
+              fileMeta.setTags(JsonUtils.parseMap(line, String.class, String.class));
               break;
             case FileMeta.DATA_TYPE_INDEX:
               fileMeta.setDataType(DataType.findByValue(Integer.parseInt(line)));

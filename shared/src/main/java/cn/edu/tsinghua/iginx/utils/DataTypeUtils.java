@@ -37,7 +37,7 @@ public class DataTypeUtils {
     return dataType == DataType.INTEGER || dataType == DataType.LONG;
   }
 
-  public static DataType strToDataType(String type) {
+  public static DataType getDataTypeFromString(String type) {
     switch (type.toLowerCase()) {
       case "boolean":
         return DataType.BOOLEAN;
@@ -56,7 +56,27 @@ public class DataTypeUtils {
     }
   }
 
-  public static Object parseStringByDataTyp(String val, DataType type) {
+  public static DataType getDataTypeFromObject(Object object) {
+    if (object instanceof Boolean) {
+      return DataType.BOOLEAN;
+    } else if (object instanceof Integer) {
+      return DataType.INTEGER;
+    } else if (object instanceof Long) {
+      return DataType.LONG;
+    } else if (object instanceof Float) {
+      return DataType.FLOAT;
+    } else if (object instanceof Double) {
+      return DataType.DOUBLE;
+    } else if (object instanceof String) {
+      return DataType.BINARY;
+    } else if (object instanceof byte[]) {
+      return DataType.BINARY;
+    } else {
+      return null;
+    }
+  }
+
+  public static Object parseStringByDataType(String val, DataType type) {
     switch (type) {
       case BOOLEAN:
         return Boolean.parseBoolean(val);

@@ -663,7 +663,7 @@ public class StatementExecutor {
 
       if (rowValues.length == 2) {
         paths.add(new String((byte[]) rowValues[0]));
-        DataType type = DataTypeUtils.strToDataType(new String((byte[]) rowValues[1]));
+        DataType type = DataTypeUtils.getDataTypeFromString(new String((byte[]) rowValues[1]));
         if (type == null) {
           logger.warn("unknown data type [{}]", rowValues[1]);
         }

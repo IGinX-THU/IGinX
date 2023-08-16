@@ -136,7 +136,7 @@ public class FileSystemWorker implements FileSystemService.Iface {
     List<ByteBuffer> bitmapList = fileDataRawData.getBitmapList();
     List<DataType> types = new ArrayList<>();
     for (String dataType : fileDataRawData.getDataTypeList()) {
-      types.add(DataTypeUtils.strToDataType(dataType));
+      types.add(DataTypeUtils.getDataTypeFromString(dataType));
     }
 
     List<Bitmap> bitmaps;

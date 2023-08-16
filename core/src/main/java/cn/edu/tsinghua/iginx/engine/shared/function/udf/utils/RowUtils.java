@@ -4,6 +4,8 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
+import cn.edu.tsinghua.iginx.utils.DataTypeUtils;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -16,7 +18,7 @@ public class RowUtils {
       targetFields.add(
           new Field(
               (String) res.get(0).get(i),
-              TypeUtils.getDataTypeFromString((String) res.get(1).get(i))));
+              DataTypeUtils.getDataTypeFromString((String) res.get(1).get(i))));
     }
     return hasKey ? new Header(Field.KEY, targetFields) : new Header(targetFields);
   }

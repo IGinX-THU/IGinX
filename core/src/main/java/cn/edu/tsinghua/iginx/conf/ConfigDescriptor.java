@@ -330,7 +330,7 @@ public class ConfigDescriptor {
     config.setMountedDirectory(
         EnvUtils.loadEnv(
             "mountedDirectory",
-            "dataSources/filesystem/src/test/java/cn/edu/tsinghua/iginx/storage/"));
+            "/path/to/your/filesystem"));
     config.setParallelFilterThreshold(
         EnvUtils.loadEnv("parallelFilterThreshold", config.getParallelFilterThreshold()));
     config.setParallelGroupByRowsThreshold(

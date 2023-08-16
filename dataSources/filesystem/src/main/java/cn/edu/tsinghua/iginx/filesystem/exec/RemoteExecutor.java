@@ -77,7 +77,7 @@ public class RemoteExecutor implements Executor {
         List<DataType> dataTypes = new ArrayList<>();
         List<Field> fields = new ArrayList<>();
         for (int i = 0; i < fileDataHeader.getNamesSize(); i++) {
-          DataType dataType = DataTypeUtils.strToDataType(fileDataHeader.getTypes().get(i));
+          DataType dataType = DataTypeUtils.getDataTypeFromString(fileDataHeader.getTypes().get(i));
           dataTypes.add(dataType);
           fields.add(
               new Field(
@@ -211,7 +211,7 @@ public class RemoteExecutor implements Executor {
                   timeSeriesList.add(
                       new Column(
                           ts.getPath(),
-                          DataTypeUtils.strToDataType(ts.getDataType()),
+                          DataTypeUtils.getDataTypeFromString(ts.getDataType()),
                           ts.getTags())));
       return timeSeriesList;
     } catch (TException e) {

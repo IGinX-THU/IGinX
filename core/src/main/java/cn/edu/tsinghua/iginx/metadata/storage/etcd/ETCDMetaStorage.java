@@ -230,9 +230,7 @@ public class ETCDMetaStorage implements IMetaStorage {
                       Map<String, Integer> schemaMapping = null;
                       switch (event.getEventType()) {
                         case PUT:
-                          schemaMapping =
-                              JsonUtils.transform(
-                                  new String(event.getKeyValue().getValue().getBytes()));
+                          schemaMapping = JsonUtils.parseMap(new String(event.getKeyValue().getValue().getBytes()), String.class, Integer.class);
                           break;
                         case DELETE:
                           break;
@@ -711,7 +709,7 @@ public class ETCDMetaStorage implements IMetaStorage {
                         .toString(StandardCharsets.UTF_8)
                         .substring(SCHEMA_MAPPING_PREFIX.length());
                 Map<String, Integer> schemaMapping =
-                    JsonUtils.transform(e.getValue().toString(StandardCharsets.UTF_8));
+                    JsonUtils.parseMap(e.getValue().toString(StandardCharsets.UTF_8), String.class, Integer.class);
                 schemaMappings.put(schema, schemaMapping);
               });
       return schemaMappings;

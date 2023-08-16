@@ -1,7 +1,8 @@
 package cn.edu.tsinghua.iginx.utils;
 
 import com.alibaba.fastjson2.JSON;
-import java.util.HashMap;
+import com.alibaba.fastjson2.TypeReference;
+
 import java.util.Map;
 
 public class JsonUtils {
@@ -14,17 +15,7 @@ public class JsonUtils {
     return JSON.parseObject(data, clazz);
   }
 
-  public static Map<String, String> transformJsonToStringStringMap(String content) {
-    Map<String, Object> rawMap = JSON.parseObject(content);
-    Map<String, String> ret = new HashMap<>();
-    rawMap.forEach((key, value) -> ret.put(key, (String) value));
-    return ret;
-  }
-
-  public static Map<String, Integer> transform(String content) {
-    Map<String, Object> rawMap = JSON.parseObject(content);
-    Map<String, Integer> ret = new HashMap<>();
-    rawMap.forEach((key, value) -> ret.put(key, (Integer) value));
-    return ret;
+  public static <K, V> Map<K, V> parseMap(String data, Class<K> keyType, Class<V> valueType) {
+    return JSON.parseObject(data, new TypeReference<Map<K, V>>(keyType, valueType) {});
   }
 }
