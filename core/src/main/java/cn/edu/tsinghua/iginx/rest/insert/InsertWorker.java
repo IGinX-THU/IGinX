@@ -86,10 +86,10 @@ public class InsertWorker extends Thread {
       if (!isAppend && !isAnnotation) {
         DataPointsParser parser =
             new DataPointsParser(new InputStreamReader(stream, StandardCharsets.UTF_8));
-        parser.parse(isAnnotation);
+        parser.parse();
       } else if (isAppend) {
         DataPointsParser parser = new DataPointsParser();
-        parser.handleAnnotationAppend(preQuery, preQueryResult);
+        parser.handleAnnotationAppend(preQueryResult);
       } else {
         DataPointsParser parser = new DataPointsParser();
         parser.handleAnnotationUpdate(preQuery, preQueryResult);

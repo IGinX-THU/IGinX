@@ -39,13 +39,23 @@ public class QueryResult {
   private List<QueryMetric> queryMetrics = new ArrayList<>();
   private List<QueryResultDataset> queryResultDatasets = new ArrayList<>();
   private List<QueryAggregator> queryAggregators = new ArrayList<>();
-  private int siz = 0;
+  private int size = 0;
+
+  public boolean hasValues(int pos, int now) {
+    List<Long> keyList = queryResultDatasets.get(pos).getKeyLists().get(now);
+    for (Long key : keyList) {
+      if (key <= TOP_KEY) {
+        return true;
+      }
+    }
+    return false;
+  }
 
   public void addQueryMetric(QueryMetric queryMetric) {
     queryMetrics.add(queryMetric);
   }
 
-  public void addqueryResultDataset(QueryResultDataset queryResultDataset) {
+  public void addQueryResultDataset(QueryResultDataset queryResultDataset) {
     queryResultDatasets.add(queryResultDataset);
   }
 
@@ -55,93 +65,51 @@ public class QueryResult {
 
   public void addResultSet(
       QueryResultDataset queryDataSet, QueryMetric queryMetric, QueryAggregator queryAggregator) {
-    addqueryResultDataset(queryDataSet);
+    addQueryResultDataset(queryDataSet);
     addQueryMetric(queryMetric);
     addQueryAggregator(queryAggregator);
-    siz += 1;
+    size += 1;
   }
 
   public void addResultSet(QueryResultDataset queryDataSet) {
-    addqueryResultDataset(queryDataSet);
+    addQueryResultDataset(queryDataSet);
   }
 
-  public String toResultString(int num) {
+  public String toResultString(int pos) {
     return "{"
-        + sampleSizeToString(num)
+        + sampleSizeToString(pos)
         + ","
         + "\"results\": [{ "
-        + nameToString(num)
+        + nameToString(pos)
         + ","
         + groupbyToString()
         + ","
-        + tagsToString(num)
+        + tagsToString(pos)
         + ","
-        + valueToString(num)
+        + valueToString(pos)
         + "}]}";
   }
 
-  public String toResultStringAnno(int now, int pos) {
+  public String toResultStringAnno(int pos, int now) {
     return "{"
         + nameToString(pos)
         + ","
         + tagsToStringAnno(queryResultDatasets.get(pos).getPaths().get(now))
         + ","
-        + annoToString(now, pos)
+        + annoToString(pos, now)
         + "}";
   }
 
-  public String toResultString(int now, int pos) {
+  public String toResultString(int pos, int now) {
     return "{"
         + nameToString(pos)
         + ","
         + tagsToStringAnno(queryResultDatasets.get(pos).getPaths().get(now))
         + ","
-        + annoDataToString(now, pos)
+        + annoToString(pos, now)
         + ","
-        + valueToStringAnno(now, pos)
+        + valueToStringAnno(pos, now)
         + "}";
-  }
-
-  public String toAnnotationResultString(QueryResult anno, boolean isGrafana) {
-    StringBuilder ret = new StringBuilder();
-    List<Annotation> values = new ArrayList<>();
-    int siz = queryResultDatasets.get(0).getValues().size();
-    //        for (int i = 0; i < siz; i++) {
-    //            Annotation ins = new Annotation(new String((byte[])
-    // queryResultDatasets.get(0).getValues().get(i)),
-    // queryResultDatasets.get(0).getTimestamps().get(i));
-    //            values.add(ins);
-    //        }
-    int now = 0;
-    if (siz == 0) {
-      return "{}";
-    }
-    if (isGrafana) {
-      for (int i = 1; i < siz; i++) {
-        if (values.get(i).isEqual(values.get(i - 1))) {
-          if (values.get(i - 1).match(queryMetrics.get(0).getAnnotationLimit())) {
-            buildGrafanaString(ret, values, i, now);
-            ret.append("]},");
-          }
-          now = i;
-        }
-      }
-      if (values.get(siz - 1).match(queryMetrics.get(0).getAnnotationLimit())) {
-        buildGrafanaString(ret, values, siz, now);
-        ret.append("]}");
-      }
-    } else {
-      for (int i = 0; i < siz; i++) {
-        for (int j = 0; j < queryResultDatasets.get(i).getPaths().size(); j++) {
-          buildAnnotationString(ret, anno, j, i);
-          ret.append("},");
-        }
-      }
-    }
-    if (ret.charAt(ret.length() - 1) == ',') {
-      ret.deleteCharAt(ret.length() - 1);
-    }
-    return ret.toString();
   }
 
   // 从包含cat的完整路径中获取tags{}
@@ -151,7 +119,11 @@ public class QueryResult {
     Map<String, String> tags = parser.getTagsFromPaths(path, new StringBuilder());
     for (Map.Entry<String, String> entry : tags.entrySet()) {
       if (!entry.getValue().equals(RestUtils.CATEGORY)) {
-        ret.append("\"" + entry.getKey() + "\" : [\"" + entry.getValue() + "\"],");
+        ret.append("\"")
+            .append(entry.getKey())
+            .append("\" : [\"")
+            .append(entry.getValue())
+            .append("\"],");
       }
     }
     if (ret.charAt(ret.length() - 1) == ',') {
@@ -162,15 +134,15 @@ public class QueryResult {
   }
 
   // 获取anno信息{}
-  private String annoToString(int now, int i) {
+  private String annoToString(int pos, int now) {
     StringBuilder ret = new StringBuilder("\"annotation\": {");
     ret.append(
-        String.format("\"title\": \"%s\",", queryResultDatasets.get(i).getTitles().get(now)));
+        String.format("\"title\": \"%s\",", queryResultDatasets.get(pos).getTitles().get(now)));
     ret.append(
         String.format(
-            "\"description\": \"%s\",", queryResultDatasets.get(i).getDescriptions().get(now)));
+            "\"description\": \"%s\",", queryResultDatasets.get(pos).getDescriptions().get(now)));
     ret.append("\"category\": [");
-    for (String tag : queryResultDatasets.get(i).getCategoryLists().get(now)) {
+    for (String tag : queryResultDatasets.get(pos).getCategoryLists().get(now)) {
       ret.append(String.format("\"%s\",", tag));
     }
     if (ret.charAt(ret.length() - 1) == ',') {
@@ -180,53 +152,11 @@ public class QueryResult {
     return ret.toString();
   }
 
-  // 获取anno信息{}
-  private String annoDataToString(int now, int i) {
-    StringBuilder ret = new StringBuilder("\"annotation\": {");
-    ret.append(
-        String.format("\"title\": \"%s\",", queryResultDatasets.get(i).getTitles().get(now)));
-    ret.append(
-        String.format(
-            "\"description\": \"%s\",", queryResultDatasets.get(i).getDescriptions().get(now)));
-    ret.append("\"category\": [");
-    for (String tag : queryResultDatasets.get(i).getCategoryLists().get(now)) {
-      ret.append(String.format("\"%s\",", tag));
-    }
-    if (ret.charAt(ret.length() - 1) == ',') {
-      ret.deleteCharAt(ret.length() - 1);
-    }
-    ret.append("]}");
-    return ret.toString();
-  }
-
-  private void buildAnnotationString(StringBuilder ret, QueryResult anno, int now, int i) {
-    ret.append("{");
-    ret.append(String.format("\"name\": \"%s\",", queryMetrics.get(i).getName()));
-    ret.append(tagsToStringAnno(queryMetrics.get(i).getName()));
-    annoDataToString(now, i);
-  }
-
-  private void buildGrafanaString(StringBuilder ret, List<Annotation> values, int siz, int now) {
-    ret.append("{");
-    ret.append(String.format("\"text\": \"%s\",", values.get(siz - 1).getText()));
-    ret.append(String.format("\"title\": \"%s\",", values.get(siz - 1).getTitle()));
-    ret.append("\"isRegion\": true,");
-    ret.append(String.format("\"time\": \"%d\",", values.get(now).getTimestamp()));
-    ret.append(String.format("\"timeEnd\": \"%d\",", values.get(siz - 1).getTimestamp()));
-    ret.append("\"tags\": [");
-    for (String tag : values.get(siz - 1).getTags()) {
-      ret.append(String.format("\"%s\",", tag));
-    }
-    if (ret.charAt(ret.length() - 1) == ',') {
-      ret.deleteCharAt(ret.length() - 1);
-    }
-  }
-
-  private String nameToString(int num) {
-    if (queryAggregators.get(num).getType() == QueryAggregatorType.SAVE_AS) {
-      return String.format("\"name\": \"%s\"", queryAggregators.get(num).getMetric_name());
+  private String nameToString(int pos) {
+    if (queryAggregators.get(pos).getType() == QueryAggregatorType.SAVE_AS) {
+      return String.format("\"name\": \"%s\"", queryAggregators.get(pos).getMetric_name());
     } else {
-      return String.format("\"name\": \"%s\"", queryMetrics.get(num).getName());
+      return String.format("\"name\": \"%s\"", queryMetrics.get(pos).getName());
     }
   }
 
@@ -234,16 +164,9 @@ public class QueryResult {
     return "\"group_by\": [{\"name\": \"type\",\"type\": \"number\"}]";
   }
 
-  private String tagsToString(int num) {
+  private String tagsToString(int pos) {
     StringBuilder ret = new StringBuilder(" \"tags\": {");
-    Map<String, Set<String>> tags = null;
-    try {
-      tags =
-          getTagsFromPaths(
-              queryMetrics.get(num).getName(), queryResultDatasets.get(num).getPaths());
-    } catch (Exception e) {
-      logger.error("Error occurred during parsing tags ", e);
-    }
+    Map<String, Set<String>> tags = getTagsFromPaths(queryResultDatasets.get(pos).getPaths());
     for (Map.Entry<String, Set<String>> entry : tags.entrySet()) {
       ret.append(String.format("\"%s\": [", entry.getKey()));
       for (String v : entry.getValue()) {
@@ -259,20 +182,20 @@ public class QueryResult {
     return ret.toString();
   }
 
-  private String valueToString(int num) {
+  private String valueToString(int pos) {
     StringBuilder ret = new StringBuilder(" \"values\": [");
-    int n = queryResultDatasets.get(num).getSize();
+    int n = queryResultDatasets.get(pos).getSize();
     for (int i = 0; i < n; i++) {
       long timeRes =
           TimeUtils.getTimeFromNsToSpecPrecision(
-              queryResultDatasets.get(num).getKeys().get(i), TimeUtils.DEFAULT_TIMESTAMP_PRECISION);
+              queryResultDatasets.get(pos).getKeys().get(i), TimeUtils.DEFAULT_TIMESTAMP_PRECISION);
       ret.append(String.format("[%d,", timeRes));
-      if (queryResultDatasets.get(num).getValues().get(i) instanceof byte[]) {
+      if (queryResultDatasets.get(pos).getValues().get(i) instanceof byte[]) {
         ret.append("\"");
-        ret.append(new String((byte[]) queryResultDatasets.get(num).getValues().get(i)));
+        ret.append(new String((byte[]) queryResultDatasets.get(pos).getValues().get(i)));
         ret.append("\"");
       } else {
-        ret.append(queryResultDatasets.get(num).getValues().get(i).toString());
+        ret.append(queryResultDatasets.get(pos).getValues().get(i).toString());
       }
       ret.append("],");
     }
@@ -283,16 +206,18 @@ public class QueryResult {
     return ret.toString();
   }
 
-  private String valueToStringAnno(int now, int num) {
+  private String valueToStringAnno(int pos, int now) {
     StringBuilder ret = new StringBuilder(" \"values\": [");
-    List<Long> timeLists = queryResultDatasets.get(num).getKeyLists().get(now);
-    List<Object> valueLists = queryResultDatasets.get(num).getValueLists().get(now);
+    List<Long> keyLists = queryResultDatasets.get(pos).getKeyLists().get(now);
+    List<Object> valueLists = queryResultDatasets.get(pos).getValueLists().get(now);
 
-    for (int j = 0; j < timeLists.size(); j++) {
-      if (timeLists.get(j) > TOP_KEY) continue;
+    for (int j = 0; j < keyLists.size(); j++) {
+      if (keyLists.get(j) > TOP_KEY) {
+        continue;
+      }
       long timeInPrecision =
           TimeUtils.getTimeFromNsToSpecPrecision(
-              timeLists.get(j), TimeUtils.DEFAULT_TIMESTAMP_PRECISION);
+              keyLists.get(j), TimeUtils.DEFAULT_TIMESTAMP_PRECISION);
       ret.append(String.format("[%d,", timeInPrecision));
       if (valueLists.get(j) instanceof byte[]) {
         ret.append("\"");
@@ -310,26 +235,25 @@ public class QueryResult {
     return ret.toString();
   }
 
-  private String sampleSizeToString(int num) {
-    return "\"sample_size\": " + queryResultDatasets.get(num).getSampleSize();
+  private String sampleSizeToString(int pos) {
+    return "\"sample_size\": " + queryResultDatasets.get(pos).getSampleSize();
   }
 
-  private Map<String, Set<String>> getTagsFromPaths(String name, List<String> paths)
-      throws Exception {
-    List<Map<String, Integer>> dup = new ArrayList<>();
+  private Map<String, Set<String>> getTagsFromPaths(List<String> paths) {
     Map<String, Set<String>> ret = new TreeMap<>();
-    Map<Integer, String> pos2path = new TreeMap<>();
     for (String path : paths) {
       int firstBrace = path.indexOf("{");
       int lastBrace = path.indexOf("}");
-      if (firstBrace == -1 || lastBrace == -1) break;
+      if (firstBrace == -1 || lastBrace == -1) {
+        break;
+      }
       String tagLists = path.substring(firstBrace + 1, lastBrace);
-      String[] splitpaths = tagLists.split(",");
-      for (String tag : splitpaths) {
+      String[] splitPaths = tagLists.split(",");
+      for (String tag : splitPaths) {
         int equalPos = tag.indexOf("=");
         String tagKey = tag.substring(0, equalPos);
         String tagVal = tag.substring(equalPos + 1);
-        ret.computeIfAbsent(tagKey, k -> new HashSet<String>());
+        ret.computeIfAbsent(tagKey, k -> new HashSet<>());
         ret.get(tagKey).add(tagVal);
       }
     }

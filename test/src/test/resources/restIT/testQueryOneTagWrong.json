@@ -9,7 +9,7 @@
       "name": "archive.file.tracked",
       "tags": {
         "host": ["server1"],
-        "data_center": ["DC2"]
+        "dc": ["DC2"]
       }
     }
   ]
