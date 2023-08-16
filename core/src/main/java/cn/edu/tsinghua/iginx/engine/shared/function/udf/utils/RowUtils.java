@@ -5,7 +5,6 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.utils.DataTypeUtils;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;

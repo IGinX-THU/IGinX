@@ -7,7 +7,6 @@ import cn.edu.tsinghua.iginx.filesystem.file.tools.FileType;
 import cn.edu.tsinghua.iginx.filesystem.query.entity.Record;
 import cn.edu.tsinghua.iginx.filesystem.tools.MemoryPool;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-import cn.edu.tsinghua.iginx.utils.DataTypeUtils;
 import cn.edu.tsinghua.iginx.utils.JsonUtils;
 import java.io.*;
 import java.nio.charset.Charset;
@@ -187,11 +186,7 @@ public class DefaultFileOperator implements IFileOperator {
         if (key >= begin && key <= end) {
           DataType dataType =
               DataType.findByValue(Integer.parseInt(fileInfo.get(FileMeta.DATA_TYPE_NAME)));
-          res.add(
-              new Record(
-                  Long.parseLong(kv[0]),
-                  dataType,
-                  DataTypeUtils.parseStringByDataType(kv[1], dataType)));
+          res.add(new Record(Long.parseLong(kv[0]), dataType, kv[1]));
         }
       }
     }

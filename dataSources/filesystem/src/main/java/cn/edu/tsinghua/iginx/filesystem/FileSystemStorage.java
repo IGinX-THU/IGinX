@@ -52,7 +52,6 @@ public class FileSystemStorage implements IStorage {
   private static final Logger logger = LoggerFactory.getLogger(FileSystemStorage.class);
   ExecutorService executorService = Executors.newSingleThreadExecutor(); // 为了更好管理线程
   private Executor executor;
-  public String root;
 
   public FileSystemStorage(StorageEngineMeta meta)
       throws StorageInitializationException, TTransportException {
@@ -86,14 +85,8 @@ public class FileSystemStorage implements IStorage {
   }
 
   private void initLocalExecutor(StorageEngineMeta meta) {
-    root = meta.getExtraParams().get("dir");
-
-    if (root == null) {
-     throw new RuntimeException("root is null");
-    }
-
+    String root = meta.getExtraParams().getOrDefault("dir", "/path/to/your/filesystem");
     executor = new LocalExecutor(root);
-
     executorService.submit(new Thread(new FileSystemServer(meta.getPort(), executor)));
   }
 

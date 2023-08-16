@@ -1,6 +1,7 @@
 package cn.edu.tsinghua.iginx.integration.expansion.influxdb;
 
 import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
+import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.influxdb.client.InfluxDBClient;
 import com.influxdb.client.InfluxDBClientFactory;
@@ -23,9 +24,9 @@ public class InfluxDBHistoryDataGenerator extends BaseHistoryDataGenerator {
   private static final WritePrecision WRITE_PRECISION = WritePrecision.NS;
 
   public InfluxDBHistoryDataGenerator() {
-    this.oriPort = 8086;
-    this.expPort = 8087;
-    this.readOnlyPort = 8088;
+    Constant.oriPort = 8086;
+    Constant.expPort = 8087;
+    Constant.readOnlyPort = 8088;
   }
 
   @Override

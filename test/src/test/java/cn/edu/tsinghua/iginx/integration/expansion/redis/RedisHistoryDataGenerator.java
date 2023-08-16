@@ -1,6 +1,7 @@
 package cn.edu.tsinghua.iginx.integration.expansion.redis;
 
 import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
+import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.List;
 import org.slf4j.Logger;
@@ -14,9 +15,9 @@ public class RedisHistoryDataGenerator extends BaseHistoryDataGenerator {
   private static final String LOCAL_IP = "127.0.0.1";
 
   public RedisHistoryDataGenerator() {
-    this.oriPort = 6379;
-    this.expPort = 6380;
-    this.readOnlyPort = 6381;
+    Constant.oriPort = 6379;
+    Constant.expPort = 6380;
+    Constant.readOnlyPort = 6381;
   }
 
   @Override

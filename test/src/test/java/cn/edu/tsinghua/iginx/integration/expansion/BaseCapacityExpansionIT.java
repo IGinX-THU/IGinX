@@ -1,11 +1,12 @@
 package cn.edu.tsinghua.iginx.integration.expansion;
 
-import static cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator.EXP_VALUES_LIST2;
+import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.*;
 import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
+import cn.edu.tsinghua.iginx.integration.expansion.filesystem.FileSystemCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.influxdb.InfluxDBCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
 import cn.edu.tsinghua.iginx.integration.tool.DBType;
@@ -29,19 +30,9 @@ public abstract class BaseCapacityExpansionIT {
 
   protected String extraParams;
 
-  protected int oriPort;
-
-  protected int expPort;
-
-  protected int readOnlyPort;
-
-  public BaseCapacityExpansionIT(
-      DBType dbType, String extraParams, int oriPort, int expPort, int readOnlyPort) {
+  public BaseCapacityExpansionIT(DBType dbType, String extraParams) {
     this.dbType = dbType;
     this.extraParams = extraParams;
-    this.oriPort = oriPort;
-    this.expPort = expPort;
-    this.readOnlyPort = readOnlyPort;
   }
 
   protected String addStorageEngine(
@@ -61,6 +52,10 @@ public abstract class BaseCapacityExpansionIT {
         statement.append(", url:http://localhost:");
         statement.append(port);
         statement.append("/");
+      }
+      if (this instanceof FileSystemCapacityExpansionIT) {
+        statement.append(", dir:storage");
+        statement.append(port);
       }
       if (extraParams != null) {
         statement.append(", ");
@@ -204,8 +199,8 @@ public abstract class BaseCapacityExpansionIT {
   @Test
   public void testQueryHistoryDataOriHasData() {
     String statement = "select * from mn";
-    List<String> pathList = BaseHistoryDataGenerator.ORI_PATH_LIST;
-    List<List<Object>> valuesList = BaseHistoryDataGenerator.ORI_VALUES_LIST;
+    List<String> pathList = ORI_PATH_LIST;
+    List<List<Object>> valuesList = oriValuesList;
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
     statement = "select count(*) from mn.wf01";
@@ -222,13 +217,13 @@ public abstract class BaseCapacityExpansionIT {
 
   private void testQueryHistoryDataExpHasData() {
     String statement = "select * from mn.wf03";
-    List<String> pathList = BaseHistoryDataGenerator.EXP_PATH_LIST1;
-    List<List<Object>> valuesList = BaseHistoryDataGenerator.EXP_VALUES_LIST1;
+    List<String> pathList = EXP_PATH_LIST1;
+    List<List<Object>> valuesList = expValuesList1;
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
     statement = "select * from nt.wf03";
-    pathList = BaseHistoryDataGenerator.EXP_PATH_LIST2;
-    valuesList = BaseHistoryDataGenerator.EXP_VALUES_LIST2;
+    pathList = EXP_PATH_LIST2;
+    valuesList = expValuesList2;
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
   }
 
@@ -248,8 +243,8 @@ public abstract class BaseCapacityExpansionIT {
 
   private void testQueryHistoryDataReadOnly() {
     String statement = "select * from mn.wf05";
-    List<String> pathList = BaseHistoryDataGenerator.READ_ONLY_PATH_LIST;
-    List<List<Object>> valuesList = BaseHistoryDataGenerator.READ_ONLY_VALUES_LIST;
+    List<String> pathList = READ_ONLY_PATH_LIST;
+    List<List<Object>> valuesList = readOnlyValuesList;
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
   }
 
@@ -343,7 +338,7 @@ public abstract class BaseCapacityExpansionIT {
     // 添加相同schemaPrefix，但是不同dataPrefix的节点
     addStorageEngine(expPort, true, true, "nt", "p3");
 
-    List<List<Object>> valuesList = BaseHistoryDataGenerator.EXP_VALUES_LIST1;
+    List<List<Object>> valuesList = expValuesList1;
 
     // 添加节点 dataPrefix = mn && schemaPrefix = p1 后查询
     String statement = "select * from p1.mn";
@@ -383,7 +378,7 @@ public abstract class BaseCapacityExpansionIT {
     statement = "select * from p3.nt";
     List<String> pathListAns = new ArrayList<>();
     pathListAns.add("p3.nt.wf03.wt01.temperature");
-    SQLTestTools.executeAndCompare(session, statement, pathListAns, EXP_VALUES_LIST2);
+    SQLTestTools.executeAndCompare(session, statement, pathListAns, expValuesList2);
 
     // 通过 sql 语句测试移除节点
     try {

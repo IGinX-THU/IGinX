@@ -2,8 +2,6 @@ package cn.edu.tsinghua.iginx.filesystem.query.entity;
 
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class Record {
   private long key;

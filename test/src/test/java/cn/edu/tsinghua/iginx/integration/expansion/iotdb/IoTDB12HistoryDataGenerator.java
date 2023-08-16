@@ -17,11 +17,7 @@ public class IoTDB12HistoryDataGenerator extends BaseHistoryDataGenerator {
 
   private static final String INSERT_DATA = "INSERT INTO root.%s (timestamp,%s) values(%s,%s)";
 
-  public IoTDB12HistoryDataGenerator() {
-    this.oriPort = 6667;
-    this.expPort = 6668;
-    this.readOnlyPort = 6669;
-  }
+  public IoTDB12HistoryDataGenerator() {}
 
   @Override
   public void writeHistoryData(

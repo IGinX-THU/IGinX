@@ -251,7 +251,9 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
         for (String schema : schemas) {
           Map<String, Integer> schemaMapping =
               JsonUtils.parseMap(
-                  new String(this.client.getData().forPath(SCHEMA_MAPPING_PREFIX + "/" + schema)), String.class, Integer.class);
+                  new String(this.client.getData().forPath(SCHEMA_MAPPING_PREFIX + "/" + schema)),
+                  String.class,
+                  Integer.class);
           schemaMappings.put(schema, schemaMapping);
         }
       }

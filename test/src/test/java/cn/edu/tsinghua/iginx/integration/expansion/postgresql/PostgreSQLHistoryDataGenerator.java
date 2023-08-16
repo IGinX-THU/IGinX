@@ -1,6 +1,7 @@
 package cn.edu.tsinghua.iginx.integration.expansion.postgresql;
 
 import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
+import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.sql.*;
 import java.util.*;
@@ -31,9 +32,9 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
   private static final String PASSWORD = "postgres";
 
   public PostgreSQLHistoryDataGenerator() {
-    this.oriPort = 5432;
-    this.expPort = 5433;
-    this.readOnlyPort = 5434;
+    Constant.oriPort = 5432;
+    Constant.expPort = 5433;
+    Constant.readOnlyPort = 5434;
   }
 
   private Connection connect(int port, boolean useSystemDatabase, String databaseName) {
