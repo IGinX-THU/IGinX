@@ -14,11 +14,11 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.filesystem.controller.Controller;
 import cn.edu.tsinghua.iginx.filesystem.file.entity.FileMeta;
-import cn.edu.tsinghua.iginx.filesystem.file.tools.FilePath;
 import cn.edu.tsinghua.iginx.filesystem.query.entity.FileSystemHistoryQueryRowStream;
 import cn.edu.tsinghua.iginx.filesystem.query.entity.FileSystemQueryRowStream;
 import cn.edu.tsinghua.iginx.filesystem.query.entity.FileSystemResultTable;
 import cn.edu.tsinghua.iginx.filesystem.query.entity.Record;
+import cn.edu.tsinghua.iginx.filesystem.tools.FilePathUtils;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.thrift.DataType;
@@ -73,7 +73,7 @@ public class LocalExecutor implements Executor {
       List<FileSystemResultTable> result = new ArrayList<>();
       logger.info("[Query] execute query file: " + paths);
       for (String path : paths) {
-        File file = new File(FilePath.toIginxPath(root, storageUnit, path));
+        File file = new File(FilePathUtils.toIginxPath(root, storageUnit, path));
         result.addAll(Objects.requireNonNull(Controller.readFile(file, tagFilter, filter)));
       }
       RowStream rowStream = new FileSystemQueryRowStream(result, storageUnit, root, filter);
@@ -94,7 +94,8 @@ public class LocalExecutor implements Executor {
       List<FileSystemResultTable> result = new ArrayList<>();
       logger.info("[Query] execute dummy query file: " + paths);
       for (String path : paths) {
-        result.addAll(Controller.readFile(new File(FilePath.toNormalFilePath(root, path)), filter));
+        result.addAll(
+            Controller.readFile(new File(FilePathUtils.toNormalFilePath(root, path)), filter));
       }
       RowStream rowStream = new FileSystemHistoryQueryRowStream(result, root, filter);
       return new TaskExecuteResult(rowStream);
@@ -132,7 +133,7 @@ public class LocalExecutor implements Executor {
     List<Map<String, String>> tagList = new ArrayList<>();
 
     for (int j = 0; j < data.getPathNum(); j++) {
-      fileList.add(new File(FilePath.toIginxPath(root, storageUnit, data.getPath(j))));
+      fileList.add(new File(FilePathUtils.toIginxPath(root, storageUnit, data.getPath(j))));
       tagList.add(data.getTags(j));
     }
 
@@ -166,7 +167,7 @@ public class LocalExecutor implements Executor {
     List<Map<String, String>> tagList = new ArrayList<>();
 
     for (int j = 0; j < data.getPathNum(); j++) {
-      fileList.add(new File(FilePath.toIginxPath(root, storageUnit, data.getPath(j))));
+      fileList.add(new File(FilePathUtils.toIginxPath(root, storageUnit, data.getPath(j))));
       tagList.add(data.getTags(j));
     }
 
@@ -201,14 +202,14 @@ public class LocalExecutor implements Executor {
       if (paths.size() == 1 && paths.get(0).equals("*") && tagFilter == null) {
         try {
           exception =
-              Controller.deleteFile(new File(FilePath.toIginxPath(root, storageUnit, null)));
+              Controller.deleteFile(new File(FilePathUtils.toIginxPath(root, storageUnit, null)));
         } catch (Exception e) {
           logger.error("encounter error when clear data: " + e.getMessage());
           exception = e;
         }
       } else {
         for (String path : paths) {
-          fileList.add(new File(FilePath.toIginxPath(root, storageUnit, path)));
+          fileList.add(new File(FilePathUtils.toIginxPath(root, storageUnit, path)));
         }
         try {
           exception = Controller.deleteFiles(fileList, tagFilter);
@@ -222,7 +223,7 @@ public class LocalExecutor implements Executor {
       try {
         if (paths.size() != 0) {
           for (String path : paths) {
-            fileList.add(new File(FilePath.toIginxPath(root, storageUnit, path)));
+            fileList.add(new File(FilePathUtils.toIginxPath(root, storageUnit, path)));
           }
           for (KeyRange keyRange : keyRanges) {
             exception =
@@ -243,7 +244,7 @@ public class LocalExecutor implements Executor {
   public List<Column> getColumnsOfStorageUnit(String storageUnit) throws PhysicalException {
     List<Column> files = new ArrayList<>();
 
-    File directory = new File(FilePath.toIginxPath(root, storageUnit, null));
+    File directory = new File(FilePathUtils.toIginxPath(root, storageUnit, null));
 
     List<Pair<File, FileMeta>> res = Controller.getAllIginXFiles(directory);
 
@@ -252,8 +253,7 @@ public class LocalExecutor implements Executor {
       FileMeta meta = pair.getV();
       files.add(
           new Column(
-              FilePath.convertAbsolutePathToPath(
-                  root, file.getAbsolutePath(), file.getName(), storageUnit),
+              FilePathUtils.convertAbsolutePathToPath(root, file.getAbsolutePath(), storageUnit),
               meta.getDataType(),
               meta.getTags()));
     }
@@ -263,7 +263,7 @@ public class LocalExecutor implements Executor {
   @Override
   public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String prefix)
       throws PhysicalException {
-    File directory = new File(FilePath.toNormalFilePath(root, prefix));
+    File directory = new File(FilePathUtils.toNormalFilePath(root, prefix));
 
     Pair<File, File> files = Controller.getBoundaryFiles(directory);
 
@@ -274,11 +274,10 @@ public class LocalExecutor implements Executor {
     if (prefix == null)
       tsInterval =
           new ColumnsInterval(
-              FilePath.convertAbsolutePathToPath(
-                  root, minPathFile.getAbsolutePath(), minPathFile.getName(), null),
+              FilePathUtils.convertAbsolutePathToPath(root, minPathFile.getAbsolutePath(), null),
               StringUtils.nextString(
-                  FilePath.convertAbsolutePathToPath(
-                      root, maxPathFile.getAbsolutePath(), maxPathFile.getName(), null)));
+                  FilePathUtils.convertAbsolutePathToPath(
+                      root, maxPathFile.getAbsolutePath(), null)));
     else tsInterval = new ColumnsInterval(prefix, StringUtils.nextString(prefix));
 
     // 对于pb级的文件系统，遍历是不可能的，直接接入

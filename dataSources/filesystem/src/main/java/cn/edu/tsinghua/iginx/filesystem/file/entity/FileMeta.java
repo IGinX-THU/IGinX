@@ -29,28 +29,6 @@ public class FileMeta {
     this.tags = tag;
   }
 
-  public boolean ifTagEqual(Map<String, String> map) {
-    if (map.size() != tags.size()) return false;
-
-    for (String key : map.keySet()) {
-      if (!tags.containsKey(key)) return false;
-      String value1 = map.get(key);
-      String value2 = tags.get(key);
-      if (!value1.equals(value2)) return false;
-    }
-
-    return true;
-  }
-
-  public boolean ifContainTag(Map<String, String> map) {
-    for (String key : map.keySet()) {
-      if (this.tags == null || !this.tags.containsKey(key)) return false;
-      String value = map.get(key);
-      if (!this.tags.get(key).equals(value)) return false;
-    }
-    return true;
-  }
-
   public DataType getDataType() {
     return dataType;
   }

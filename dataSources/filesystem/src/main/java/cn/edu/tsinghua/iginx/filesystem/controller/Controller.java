@@ -1,6 +1,8 @@
 package cn.edu.tsinghua.iginx.filesystem.controller;
 
 import static cn.edu.tsinghua.iginx.engine.logical.utils.ExprUtils.getKeyRangesFromFilter;
+import static cn.edu.tsinghua.iginx.filesystem.constant.Constant.FILE_EXTENSION;
+import static cn.edu.tsinghua.iginx.filesystem.constant.Constant.WILDCARD;
 
 import cn.edu.tsinghua.iginx.engine.physical.storage.utils.TagKVUtils;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
@@ -9,8 +11,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.filesystem.file.DefaultFileOperator;
 import cn.edu.tsinghua.iginx.filesystem.file.IFileOperator;
 import cn.edu.tsinghua.iginx.filesystem.file.entity.FileMeta;
-import cn.edu.tsinghua.iginx.filesystem.file.tools.FilePath;
-import cn.edu.tsinghua.iginx.filesystem.file.tools.FileType;
+import cn.edu.tsinghua.iginx.filesystem.file.type.FileType;
 import cn.edu.tsinghua.iginx.filesystem.query.entity.FileSystemResultTable;
 import cn.edu.tsinghua.iginx.filesystem.query.entity.Record;
 import cn.edu.tsinghua.iginx.thrift.DataType;
@@ -30,7 +31,6 @@ public class Controller {
   private static final Logger logger = LoggerFactory.getLogger(Controller.class);
   private static IFileOperator fileOperator = new DefaultFileOperator();
   private static Charset charset = StandardCharsets.UTF_8;
-  private static String WILDCARD = FilePath.WILDCARD;
 
   // set the fileSystem type with constructor
   public Controller(/*FileSystemType type*/ ) {
@@ -88,16 +88,15 @@ public class Controller {
     List<Record> res = new ArrayList<>();
     switch (FileType.getFileType(file)) {
       case DIR:
-        res = fileOperator.readDir(file);
+        logger.error("{} is a dir!", file.getAbsolutePath());
         break;
       case IGINX_FILE:
         res = fileOperator.readIGinXFileByKey(file, begin, end, charset);
         break;
       case NORMAL_FILE:
-        res = fileOperator.readNormalFile(file, begin, end, charset);
-        break;
       default:
         res = fileOperator.readNormalFile(file, begin, end, charset);
+        break;
     }
     return res;
   }
@@ -228,8 +227,8 @@ public class Controller {
     for (File f : files) {
       String name = f.getName();
       if (fileOperator.isDirectory(f)) continue;
-      int idx = name.lastIndexOf(FilePath.FILE_EXTENSION);
-      String numStr = name.substring(idx + FilePath.FILE_EXTENSION.length());
+      int idx = name.lastIndexOf(FILE_EXTENSION);
+      String numStr = name.substring(idx + FILE_EXTENSION.length());
       if (numStr.isEmpty()) continue;
       nums.add(Integer.parseInt(numStr));
     }

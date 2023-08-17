@@ -7,7 +7,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-import cn.edu.tsinghua.iginx.filesystem.file.tools.FilePath;
+import cn.edu.tsinghua.iginx.filesystem.tools.FilePathUtils;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -31,9 +31,7 @@ public class FileSystemQueryRowStream implements RowStream {
     String series;
     for (FileSystemResultTable resultTable : rowData) {
       File file = resultTable.getFile();
-      series =
-          FilePath.convertAbsolutePathToPath(
-              root, file.getAbsolutePath(), file.getName(), storageUnit);
+      series = FilePathUtils.convertAbsolutePathToPath(root, file.getAbsolutePath(), storageUnit);
       Field field = new Field(series, resultTable.getDataType(), resultTable.getTags());
       fields.add(field);
     }

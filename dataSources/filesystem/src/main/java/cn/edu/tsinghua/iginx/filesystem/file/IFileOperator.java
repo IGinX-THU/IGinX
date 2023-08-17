@@ -8,7 +8,6 @@ import java.nio.charset.Charset;
 import java.util.List;
 
 public interface IFileOperator {
-  List<Record> readDir(File file) throws IOException;
   // read the all the file
   List<Record> readNormalFile(File file, long begin, long end, Charset charset) throws IOException;
 

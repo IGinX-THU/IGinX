@@ -18,7 +18,7 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
   private static final Logger logger =
       LoggerFactory.getLogger(FileSystemHistoryDataGenerator.class);
 
-  public static String root = "storage%d";
+  public static String root = "storage%d/";
 
   public FileSystemHistoryDataGenerator() {
     Constant.setDataTypeAndValuesForFileSystem();

@@ -3,7 +3,7 @@ package cn.edu.tsinghua.iginx.filesystem.file;
 import static cn.edu.tsinghua.iginx.thrift.DataType.BINARY;
 
 import cn.edu.tsinghua.iginx.filesystem.file.entity.FileMeta;
-import cn.edu.tsinghua.iginx.filesystem.file.tools.FileType;
+import cn.edu.tsinghua.iginx.filesystem.file.type.FileType;
 import cn.edu.tsinghua.iginx.filesystem.query.entity.Record;
 import cn.edu.tsinghua.iginx.filesystem.tools.MemoryPool;
 import cn.edu.tsinghua.iginx.thrift.DataType;
@@ -191,10 +191,6 @@ public class DefaultFileOperator implements IFileOperator {
       }
     }
     return res;
-  }
-
-  public List<Record> readDir(File file) throws IOException {
-    return new ArrayList<>();
   }
 
   @Override
