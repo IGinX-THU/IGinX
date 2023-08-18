@@ -54,7 +54,7 @@ public abstract class BaseCapacityExpansionIT {
         statement.append("/");
       }
       if (this instanceof FileSystemCapacityExpansionIT) {
-        statement.append(", dir:storage");
+        statement.append(", dir:test/storage");
         statement.append(port);
       }
       if (extraParams != null) {
