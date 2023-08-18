@@ -18,6 +18,8 @@
  */
 package cn.edu.tsinghua.iginx.utils;
 
+import static cn.edu.tsinghua.iginx.thrift.DataType.BINARY;
+
 import cn.edu.tsinghua.iginx.thrift.DataType;
 
 public class DataTypeUtils {
@@ -76,22 +78,58 @@ public class DataTypeUtils {
     }
   }
 
-  public static Object parseStringByDataType(String val, DataType type) {
+  public static Object parseStringByDataType(String value, DataType type) {
     switch (type) {
       case BOOLEAN:
-        return Boolean.parseBoolean(val);
+        return Boolean.parseBoolean(value);
       case LONG:
-        return Long.parseLong(val);
+        return Long.parseLong(value);
       case DOUBLE:
-        return Double.parseDouble(val);
+        return Double.parseDouble(value);
       case BINARY:
-        return val.getBytes();
+        return value.getBytes();
       case INTEGER:
-        return Integer.parseInt(val);
+        return Integer.parseInt(value);
       case FLOAT:
-        return Float.parseFloat(val);
+        return Float.parseFloat(value);
       default:
-        return val;
+        return value;
     }
+  }
+
+  public static String transformObjectToStringByDataType(Object object, DataType type) {
+    if (object == null) {
+      return null;
+    }
+    if (type == null) {
+      type = BINARY;
+    }
+
+    String strValue;
+    switch (type) {
+      case BINARY:
+        strValue = new String((byte[]) object);
+        break;
+      case INTEGER:
+        strValue = Integer.toString((int) object);
+        break;
+      case DOUBLE:
+        strValue = Double.toString((double) object);
+        break;
+      case FLOAT:
+        strValue = Float.toString((float) object);
+        break;
+      case BOOLEAN:
+        strValue = Boolean.toString((boolean) object);
+        break;
+      case LONG:
+        strValue = Long.toString((long) object);
+        break;
+      default:
+        strValue = null;
+        break;
+    }
+
+    return strValue;
   }
 }

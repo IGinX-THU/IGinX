@@ -5,13 +5,11 @@ import static cn.edu.tsinghua.iginx.integration.expansion.filesystem.FileSystemH
 import static cn.edu.tsinghua.iginx.integration.tool.DBType.filesystem;
 
 import cn.edu.tsinghua.iginx.integration.expansion.BaseCapacityExpansionIT;
-import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.Arrays;
 import java.util.Collections;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
 
@@ -30,13 +28,10 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
     byte[] oriValue = generateRandomValue(1);
     byte[] expValue = generateRandomValue(2);
     byte[] readOnlyValue = generateRandomValue(3);
-    oriValuesList =
-        Collections.singletonList(Arrays.asList(oriValue, oriValue));
-    expValuesList =
-        Collections.singletonList(Arrays.asList(expValue, expValue));
+    oriValuesList = Collections.singletonList(Arrays.asList(oriValue, oriValue));
+    expValuesList = Collections.singletonList(Arrays.asList(expValue, expValue));
     expValuesList1 = Collections.singletonList(Collections.singletonList(expValue));
     expValuesList2 = Collections.singletonList(Collections.singletonList(expValue));
-    readOnlyValuesList =
-        Collections.singletonList(Arrays.asList(readOnlyValue, readOnlyValue));
+    readOnlyValuesList = Collections.singletonList(Arrays.asList(readOnlyValue, readOnlyValue));
   }
 }

@@ -1,5 +1,7 @@
 package cn.edu.tsinghua.iginx.filesystem.exec;
 
+import static cn.edu.tsinghua.iginx.engine.logical.utils.ExprUtils.getKeyRangesFromFilter;
+
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
@@ -12,7 +14,6 @@ import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.RowDataView;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
-import cn.edu.tsinghua.iginx.filesystem.controller.Controller;
 import cn.edu.tsinghua.iginx.filesystem.file.entity.FileMeta;
 import cn.edu.tsinghua.iginx.filesystem.file.type.FileType;
 import cn.edu.tsinghua.iginx.filesystem.query.entity.FileSystemHistoryQueryRowStream;
@@ -30,7 +31,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,12 +61,11 @@ public class LocalExecutor implements Executor {
       boolean isDummyStorageUnit) {
     if (isDummyStorageUnit) {
       if (tagFilter != null) {
-        logger.warn("dummy storage query should not contain tag filter");
+        logger.error("dummy storage query should not contain tag filter");
         return new TaskExecuteResult(new FileSystemHistoryQueryRowStream());
       }
       return executeDummyProjectTask(paths, filter);
     }
-
     return executeQueryTask(storageUnit, paths, tagFilter, filter);
   }
 
@@ -75,9 +74,14 @@ public class LocalExecutor implements Executor {
     try {
       List<FileSystemResultTable> result = new ArrayList<>();
       logger.info("[Query] execute query file: " + paths);
+      List<KeyRange> keyRanges = getKeyRangesFromFilter(filter);
       for (String path : paths) {
-        File file = new File(FilePathUtils.toIginxPath(root, storageUnit, path));
-        result.addAll(Objects.requireNonNull(Controller.readFile(file, tagFilter, filter)));
+        result.addAll(
+            FileSystemManager.readFile(
+                new File(FilePathUtils.toIginxPath(root, storageUnit, path)),
+                tagFilter,
+                keyRanges,
+                false));
       }
       RowStream rowStream = new FileSystemQueryRowStream(result, storageUnit, root, filter);
       return new TaskExecuteResult(rowStream);
@@ -86,7 +90,6 @@ public class LocalExecutor implements Executor {
           String.format(
               "read file error, storageUnit %s, paths(%s), tagFilter(%s), filter(%s)",
               storageUnit, paths, tagFilter, filter));
-      e.printStackTrace();
       return new TaskExecuteResult(
           new PhysicalTaskExecuteFailureException("execute project task in fileSystem failure", e));
     }
@@ -96,16 +99,19 @@ public class LocalExecutor implements Executor {
     try {
       List<FileSystemResultTable> result = new ArrayList<>();
       logger.info("[Query] execute dummy query file: " + paths);
+      List<KeyRange> keyRanges = getKeyRangesFromFilter(filter);
       for (String path : paths) {
         result.addAll(
-            Controller.readFile(new File(FilePathUtils.toNormalFilePath(root, path)), filter));
+            FileSystemManager.readFile(
+                new File(FilePathUtils.toNormalFilePath(root, path)), null, keyRanges, true));
       }
       RowStream rowStream = new FileSystemHistoryQueryRowStream(result, root, filter);
       return new TaskExecuteResult(rowStream);
     } catch (Exception e) {
-      logger.error(e.getMessage());
+      logger.error("read file error, paths {} filter {}", paths, filter);
       return new TaskExecuteResult(
-          new PhysicalTaskExecuteFailureException("execute project task in fileSystem failure", e));
+          new PhysicalTaskExecuteFailureException(
+              "execute dummy project task in fileSystem failure", e));
     }
   }
 
@@ -123,7 +129,6 @@ public class LocalExecutor implements Executor {
         break;
     }
     if (e != null) {
-      e.printStackTrace();
       return new TaskExecuteResult(
           null, new PhysicalException("execute insert task in fileSystem failure", e));
     }
@@ -131,17 +136,17 @@ public class LocalExecutor implements Executor {
   }
 
   private Exception insertRowRecords(RowDataView data, String storageUnit) {
-    List<List<Record>> valList = new ArrayList<>();
+    List<List<Record>> recordsList = new ArrayList<>();
     List<File> fileList = new ArrayList<>();
-    List<Map<String, String>> tagList = new ArrayList<>();
+    List<Map<String, String>> tagsList = new ArrayList<>();
 
     for (int j = 0; j < data.getPathNum(); j++) {
       fileList.add(new File(FilePathUtils.toIginxPath(root, storageUnit, data.getPath(j))));
-      tagList.add(data.getTags(j));
+      tagsList.add(data.getTags(j));
     }
 
     for (int j = 0; j < data.getPathNum(); j++) {
-      valList.add(new ArrayList<>());
+      recordsList.add(new ArrayList<>());
     }
 
     for (int i = 0; i < data.getKeySize(); i++) {
@@ -150,48 +155,49 @@ public class LocalExecutor implements Executor {
       for (int j = 0; j < data.getPathNum(); j++) {
         if (bitmapView.get(j)) {
           DataType dataType = data.getDataType(j);
-          valList.get(j).add(new Record(data.getKey(i), dataType, data.getValue(i, index)));
+          recordsList.get(j).add(new Record(data.getKey(i), dataType, data.getValue(i, index)));
           index++;
         }
       }
     }
     try {
       logger.info("开始数据写入");
-      return Controller.writeFiles(fileList, valList, tagList);
+      return FileSystemManager.writeFiles(fileList, recordsList, tagsList);
     } catch (Exception e) {
-      logger.error("encounter error when write points to fileSystem: ", e);
+      logger.error("encounter error when inserting row records to fileSystem: ", e);
     }
     return null;
   }
 
   private Exception insertColumnRecords(ColumnDataView data, String storageUnit) {
-    List<List<Record>> valList = new ArrayList<>();
+    List<List<Record>> recordsList = new ArrayList<>();
     List<File> fileList = new ArrayList<>();
-    List<Map<String, String>> tagList = new ArrayList<>();
+    List<Map<String, String>> tagsList = new ArrayList<>();
 
     for (int j = 0; j < data.getPathNum(); j++) {
       fileList.add(new File(FilePathUtils.toIginxPath(root, storageUnit, data.getPath(j))));
-      tagList.add(data.getTags(j));
+      tagsList.add(data.getTags(j));
     }
 
     for (int i = 0; i < data.getPathNum(); i++) {
-      List<Record> val = new ArrayList<>();
+      List<Record> records = new ArrayList<>();
       BitmapView bitmapView = data.getBitmapView(i);
+      DataType dataType = data.getDataType(i);
       int index = 0;
       for (int j = 0; j < data.getKeySize(); j++) {
         if (bitmapView.get(j)) {
-          val.add(new Record(data.getKey(j), data.getDataType(i), data.getValue(i, index)));
+          records.add(new Record(data.getKey(j), dataType, data.getValue(i, index)));
           index++;
         }
       }
-      valList.add(val);
+      recordsList.add(records);
     }
 
     try {
       logger.info("开始数据写入");
-      return Controller.writeFiles(fileList, valList, tagList);
+      return FileSystemManager.writeFiles(fileList, recordsList, tagsList);
     } catch (Exception e) {
-      logger.error("encounter error when write points to fileSystem: ", e);
+      logger.error("encounter error when inserting column records to fileSystem: ", e);
     }
     return null;
   }
@@ -200,12 +206,13 @@ public class LocalExecutor implements Executor {
   public TaskExecuteResult executeDeleteTask(
       List<String> paths, List<KeyRange> keyRanges, TagFilter tagFilter, String storageUnit) {
     Exception exception = null;
-    if (keyRanges == null || keyRanges.size() == 0) {
-      List<File> fileList = new ArrayList<>();
+    List<File> fileList = new ArrayList<>();
+    if (keyRanges == null || keyRanges.isEmpty()) {
       if (paths.size() == 1 && paths.get(0).equals("*") && tagFilter == null) {
         try {
           exception =
-              Controller.deleteFile(new File(FilePathUtils.toIginxPath(root, storageUnit, null)));
+              FileSystemManager.deleteFile(
+                  new File(FilePathUtils.toIginxPath(root, storageUnit, null)));
         } catch (Exception e) {
           logger.error("encounter error when clear data: " + e.getMessage());
           exception = e;
@@ -215,22 +222,21 @@ public class LocalExecutor implements Executor {
           fileList.add(new File(FilePathUtils.toIginxPath(root, storageUnit, path)));
         }
         try {
-          exception = Controller.deleteFiles(fileList, tagFilter);
+          exception = FileSystemManager.deleteFiles(fileList, tagFilter);
         } catch (Exception e) {
           logger.error("encounter error when clear data: " + e.getMessage());
           exception = e;
         }
       }
     } else {
-      List<File> fileList = new ArrayList<>();
       try {
-        if (paths.size() != 0) {
+        if (!paths.isEmpty()) {
           for (String path : paths) {
             fileList.add(new File(FilePathUtils.toIginxPath(root, storageUnit, path)));
           }
           for (KeyRange keyRange : keyRanges) {
             exception =
-                Controller.trimFilesContent(
+                FileSystemManager.trimFilesContent(
                     fileList, tagFilter, keyRange.getActualBeginKey(), keyRange.getActualEndKey());
           }
         }
@@ -239,8 +245,7 @@ public class LocalExecutor implements Executor {
         exception = e;
       }
     }
-    return new TaskExecuteResult(
-        null, exception != null ? new PhysicalException(exception.getMessage()) : null);
+    return new TaskExecuteResult(null, exception != null ? new PhysicalException(exception) : null);
   }
 
   @Override
@@ -249,10 +254,10 @@ public class LocalExecutor implements Executor {
 
     File directory = new File(FilePathUtils.toIginxPath(root, storageUnit, null));
 
-    List<File> allFiles = Controller.getAllFilesWithoutDir(directory);
+    List<File> allFiles = FileSystemManager.getAllFilesWithoutDir(directory);
 
     for (File file : allFiles) {
-      try {//如果加入该Storage时有数据，才读取该文件夹下的文件
+      try { // 如果加入该Storage时有数据，才读取该文件夹下的文件
         if (hasData && FileType.getFileType(file).equals(FileType.NORMAL_FILE)) {
           files.add(
               new Column(
@@ -261,10 +266,16 @@ public class LocalExecutor implements Executor {
                   DataType.BINARY,
                   null));
         } else {
-          FileMeta meta = Controller.getFileMeta(file);
+          FileMeta meta = FileSystemManager.getFileMeta(file);
           if (meta == null) {
-            logger.error("encounter error when get columns of storage unit: " + file.getAbsolutePath() + ", meta is null");
-            throw new PhysicalException("encounter error when get columns of storage unit: " + file.getAbsolutePath()+ ", meta is null");
+            logger.error(
+                "encounter error when get columns of storage unit: "
+                    + file.getAbsolutePath()
+                    + ", meta is null");
+            throw new PhysicalException(
+                "encounter error when get columns of storage unit: "
+                    + file.getAbsolutePath()
+                    + ", meta is null");
           }
           files.add(
               new Column(
@@ -287,7 +298,7 @@ public class LocalExecutor implements Executor {
       throws PhysicalException {
     File directory = new File(FilePathUtils.toNormalFilePath(root, prefix));
 
-    Pair<File, File> files = Controller.getBoundaryFiles(directory);
+    Pair<File, File> files = FileSystemManager.getBoundaryFiles(directory);
 
     if (files == null) {
       throw new PhysicalTaskExecuteFailureException("no data!");
@@ -307,7 +318,7 @@ public class LocalExecutor implements Executor {
     else tsInterval = new ColumnsInterval(prefix, StringUtils.nextString(prefix));
 
     // 对于pb级的文件系统，遍历是不可能的，直接接入
-    Long time = Controller.getMaxTime(directory);
+    Long time = FileSystemManager.getMaxTime(directory);
     KeyInterval keyInterval = new KeyInterval(0, time == Long.MIN_VALUE ? Long.MAX_VALUE : time);
 
     return new Pair<>(tsInterval, keyInterval);

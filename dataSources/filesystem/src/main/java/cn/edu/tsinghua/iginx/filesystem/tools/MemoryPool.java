@@ -1,47 +1,58 @@
 package cn.edu.tsinghua.iginx.filesystem.tools;
 
+import static cn.edu.tsinghua.iginx.filesystem.constant.Constant.BLOCK_SIZE;
+
+import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class MemoryPool {
-  private static final Logger logger = LoggerFactory.getLogger(MemoryPool.class);
-  private static int blockSize; // 1024 bytes per block
-  private static ConcurrentLinkedQueue<byte[]> freeBlocks;
-  private static int poolSize;
-  private static AtomicInteger numberOfBlocks;
-  private static int maxNumberOfBlocks;
 
-  static {
-    poolSize = 1024 * 1024 * 100;
-    blockSize = 1024 * 1024;
-    maxNumberOfBlocks = poolSize / blockSize;
-    numberOfBlocks = new AtomicInteger(poolSize / blockSize);
-    freeBlocks = new ConcurrentLinkedQueue<>();
-    for (int i = 0; i < numberOfBlocks.get(); i++) {
-      freeBlocks.add(new byte[blockSize]);
+  private static final Logger logger = LoggerFactory.getLogger(MemoryPool.class);
+
+  private static final Queue<byte[]> freeBlocks = new ConcurrentLinkedQueue<>();
+
+  private static final AtomicInteger numberOfBlocks = new AtomicInteger(100);
+
+  private static final int maxNumberOfBlocks = 100;
+
+  private static MemoryPool INSTANCE = null;
+
+  public static MemoryPool getInstance() {
+    if (INSTANCE == null) {
+      synchronized (MemoryPool.class) {
+        if (INSTANCE == null) {
+          INSTANCE = new MemoryPool();
+        }
+      }
+    }
+    return INSTANCE;
+  }
+
+  public MemoryPool() {
+    for (int i = 0; i < maxNumberOfBlocks; i++) {
+      freeBlocks.add(new byte[BLOCK_SIZE]);
     }
   }
 
-  public static byte[] allocate(int size) {
+  public byte[] allocate() {
     byte[] buffer = freeBlocks.poll();
-    if (numberOfBlocks.get() > 0) numberOfBlocks.decrementAndGet();
     if (buffer == null) {
       logger.warn("Out of memory: No more blocks available");
-      return new byte[size];
+      return new byte[BLOCK_SIZE];
+    }
+    if (numberOfBlocks.get() > 0) {
+      numberOfBlocks.decrementAndGet();
     }
     return buffer;
   }
 
-  public static void release(byte[] buffer) {
+  public void release(byte[] buffer) {
     if (numberOfBlocks.get() < maxNumberOfBlocks) {
       numberOfBlocks.incrementAndGet();
       freeBlocks.offer(buffer);
     }
-  }
-
-  public static int getBlockSize() {
-    return blockSize;
   }
 }

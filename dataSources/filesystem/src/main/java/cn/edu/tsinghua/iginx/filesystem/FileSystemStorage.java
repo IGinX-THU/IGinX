@@ -18,6 +18,8 @@
  */
 package cn.edu.tsinghua.iginx.filesystem;
 
+import static cn.edu.tsinghua.iginx.filesystem.tools.FilePathUtils.getRootFromArg;
+
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
@@ -33,7 +35,6 @@ import cn.edu.tsinghua.iginx.filesystem.exec.Executor;
 import cn.edu.tsinghua.iginx.filesystem.exec.LocalExecutor;
 import cn.edu.tsinghua.iginx.filesystem.exec.RemoteExecutor;
 import cn.edu.tsinghua.iginx.filesystem.server.FileSystemServer;
-import cn.edu.tsinghua.iginx.filesystem.tools.FilePathUtils;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
@@ -86,16 +87,16 @@ public class FileSystemStorage implements IStorage {
   }
 
   private void initLocalExecutor(StorageEngineMeta meta) {
-    String root = FilePathUtils.getRootFromArg((meta.getExtraParams().getOrDefault("dir", "/path/to/your/filesystem")));
+    String root =
+        getRootFromArg(meta.getExtraParams().getOrDefault("dir", "/path/to/your/filesystem"));
     executor = new LocalExecutor(root, meta.isHasData());
     executorService.submit(new Thread(new FileSystemServer(meta.getPort(), executor)));
   }
 
   @Override
   public TaskExecuteResult executeProject(Project project, DataArea dataArea) {
-    Filter filter;
     KeyInterval keyInterval = dataArea.getKeyInterval();
-    filter =
+    Filter filter =
         new AndFilter(
             Arrays.asList(
                 new KeyFilter(Op.GE, keyInterval.getStartKey()),
@@ -124,23 +125,34 @@ public class FileSystemStorage implements IStorage {
   @Override
   public TaskExecuteResult executeProjectWithSelect(
       Project project, Select select, DataArea dataArea) {
+    KeyInterval keyInterval = dataArea.getKeyInterval();
+    Filter filter =
+        new AndFilter(
+            Arrays.asList(
+                new KeyFilter(Op.GE, keyInterval.getStartKey()),
+                new KeyFilter(Op.L, keyInterval.getEndKey()),
+                select.getFilter()));
     return executor.executeProjectTask(
-        project.getPatterns(),
-        project.getTagFilter(),
-        select.getFilter(),
-        dataArea.getStorageUnit(),
-        false);
+        project.getPatterns(), project.getTagFilter(), filter, dataArea.getStorageUnit(), false);
   }
 
   @Override
   public TaskExecuteResult executeProjectDummyWithSelect(
       Project project, Select select, DataArea dataArea) {
+    KeyInterval keyInterval = dataArea.getKeyInterval();
+    Filter filter =
+        new AndFilter(
+            Arrays.asList(
+                new KeyFilter(Op.GE, keyInterval.getStartKey()),
+                new KeyFilter(Op.L, keyInterval.getEndKey()),
+                select.getFilter()));
     return executor.executeProjectTask(
-        project.getPatterns(),
-        project.getTagFilter(),
-        select.getFilter(),
-        dataArea.getStorageUnit(),
-        true);
+        project.getPatterns(), project.getTagFilter(), filter, dataArea.getStorageUnit(), true);
+  }
+
+  @Override
+  public TaskExecuteResult executeInsert(Insert insert, DataArea dataArea) {
+    return executor.executeInsertTask(insert.getData(), dataArea.getStorageUnit());
   }
 
   @Override
@@ -150,11 +162,6 @@ public class FileSystemStorage implements IStorage {
         delete.getKeyRanges(),
         delete.getTagFilter(),
         dataArea.getStorageUnit());
-  }
-
-  @Override
-  public TaskExecuteResult executeInsert(Insert insert, DataArea dataArea) {
-    return executor.executeInsertTask(insert.getData(), dataArea.getStorageUnit());
   }
 
   @Override

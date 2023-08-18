@@ -1,5 +1,7 @@
 package cn.edu.tsinghua.iginx.filesystem.file.type;
 
+import static cn.edu.tsinghua.iginx.filesystem.constant.Constant.MAGIC_NUMBER;
+
 import cn.edu.tsinghua.iginx.filesystem.file.DefaultFileOperator;
 import cn.edu.tsinghua.iginx.filesystem.file.entity.FileMeta;
 import java.io.File;
@@ -23,8 +25,7 @@ public enum FileType {
   }
 
   private static boolean ifMatchMagicNumber(File file) throws IOException {
-    DefaultFileOperator operator = new DefaultFileOperator();
-    FileMeta fileMeta = operator.getFileMeta(file);
-    return Arrays.equals(fileMeta.getMagicNumber(), FileMeta.MAGIC_NUMBER);
+    FileMeta fileMeta = DefaultFileOperator.getInstance().getFileMeta(file);
+    return Arrays.equals(fileMeta.getMagicNumber(), MAGIC_NUMBER);
   }
 }

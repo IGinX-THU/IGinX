@@ -31,7 +31,7 @@ public class FileSystemHistoryQueryRowStream implements RowStream {
     this.round = new int[0];
     this.header = new Header(time, fields);
     for (int i = 0; i < this.rowData.size(); i++) {
-      if (this.rowData.get(i).getVal().size() != 0) hasMoreRecords++;
+      if (this.rowData.get(i).getRecords().size() != 0) hasMoreRecords++;
     }
   }
 
@@ -56,7 +56,7 @@ public class FileSystemHistoryQueryRowStream implements RowStream {
     this.round = new int[this.rowData.size()];
     this.header = new Header(time, fields);
     for (int i = 0; i < this.rowData.size(); i++) {
-      if (this.rowData.get(i).getVal().size() != 0) hasMoreRecords++;
+      if (this.rowData.get(i).getRecords().size() != 0) hasMoreRecords++;
     }
   }
 
@@ -69,9 +69,9 @@ public class FileSystemHistoryQueryRowStream implements RowStream {
   public void close() throws PhysicalException {
     // release the memory
     for (FileSystemResultTable table : rowData) {
-      List<Record> vals = table.getVal();
-      for (Record val : vals) {
-        MemoryPool.release((byte[]) val.getRawData());
+      List<Record> records = table.getRecords();
+      for (Record record : records) {
+        MemoryPool.getInstance().release((byte[]) record.getRawData());
       }
     }
   }
@@ -98,7 +98,7 @@ public class FileSystemHistoryQueryRowStream implements RowStream {
     long timestamp = Long.MAX_VALUE;
     for (int i = 0; i < this.rowData.size(); i++) {
       int index = round[i];
-      List<Record> records = this.rowData.get(i).getVal();
+      List<Record> records = this.rowData.get(i).getRecords();
       if (index == records.size()) { // 数据已经消费完毕了
         continue;
       }
@@ -110,7 +110,7 @@ public class FileSystemHistoryQueryRowStream implements RowStream {
     Object[] values = new Object[rowData.size()];
     for (int i = 0; i < this.rowData.size(); i++) {
       int columnIndex = round[i];
-      List<Record> records = this.rowData.get(i).getVal();
+      List<Record> records = this.rowData.get(i).getRecords();
       if (columnIndex == records.size()) { // 数据已经消费完毕了
         continue;
       }

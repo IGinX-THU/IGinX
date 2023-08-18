@@ -1,8 +1,8 @@
 package cn.edu.tsinghua.iginx.filesystem.tools;
 
-import java.io.File;
-
 import static cn.edu.tsinghua.iginx.filesystem.constant.Constant.*;
+
+import java.io.File;
 
 public class FilePathUtils {
 
@@ -34,8 +34,7 @@ public class FilePathUtils {
     return path.substring(path.lastIndexOf(".") + 1);
   }
 
-  public static String convertAbsolutePathToPath(
-      String root, String filePath, String storageUnit) {
+  public static String convertAbsolutePathToPath(String root, String filePath, String storageUnit) {
     String tmp;
 
     // 对iginx文件操作
@@ -43,9 +42,7 @@ public class FilePathUtils {
       tmp = filePath.substring(0, filePath.lastIndexOf(FILE_EXTENSION));
       if (storageUnit != null) {
         if (storageUnit.equals(WILDCARD)) {
-          tmp =
-              tmp.substring(
-                  tmp.indexOf(SEPARATOR, tmp.indexOf(root) + root.length() +1) + 1);
+          tmp = tmp.substring(tmp.indexOf(SEPARATOR, tmp.indexOf(root) + root.length() + 1) + 1);
         } else {
           tmp = tmp.substring(tmp.indexOf(storageUnit) + storageUnit.length() + 1);
         }
@@ -53,8 +50,7 @@ public class FilePathUtils {
         tmp = tmp.substring(tmp.indexOf(root) + root.length());
       }
     } else { // 对普通文件操作
-      tmp = filePath.substring(
-          filePath.indexOf(root) + root.length());
+      tmp = filePath.substring(filePath.indexOf(root) + root.length());
     }
     if (tmp.isEmpty()) {
       return SEPARATOR;

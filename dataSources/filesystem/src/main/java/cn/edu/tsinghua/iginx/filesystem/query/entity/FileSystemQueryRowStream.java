@@ -39,7 +39,7 @@ public class FileSystemQueryRowStream implements RowStream {
     this.indices = new int[this.rowData.size()];
     this.header = new Header(time, fields);
     for (int i = 0; i < this.rowData.size(); i++) {
-      if (this.rowData.get(i).getVal().size() != 0) hasMoreRecords++;
+      if (this.rowData.get(i).getRecords().size() != 0) hasMoreRecords++;
     }
   }
 
@@ -75,7 +75,7 @@ public class FileSystemQueryRowStream implements RowStream {
     long timestamp = Long.MAX_VALUE;
     for (int i = 0; i < this.rowData.size(); i++) {
       int index = indices[i];
-      List<Record> records = this.rowData.get(i).getVal();
+      List<Record> records = this.rowData.get(i).getRecords();
       if (index == records.size()) { // 数据已经消费完毕了
         continue;
       }
@@ -88,7 +88,7 @@ public class FileSystemQueryRowStream implements RowStream {
     Object[] values = new Object[rowData.size()];
     for (int i = 0; i < this.rowData.size(); i++) {
       int index = indices[i];
-      List<Record> records = this.rowData.get(i).getVal();
+      List<Record> records = this.rowData.get(i).getRecords();
       if (index == records.size()) { // 数据已经消费完毕了
         continue;
       }

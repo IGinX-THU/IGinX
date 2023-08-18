@@ -4,8 +4,10 @@ import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 
 public class Record {
-  private long key;
-  private Value value;
+
+  private final long key;
+
+  private final Value value;
 
   public Record(long key, DataType dataType, Object rawData) {
     this.key = key;
@@ -27,9 +29,5 @@ public class Record {
 
   public DataType getDataType() {
     return value.getDataType();
-  }
-
-  public void setKey(long key) {
-    this.key = key;
   }
 }

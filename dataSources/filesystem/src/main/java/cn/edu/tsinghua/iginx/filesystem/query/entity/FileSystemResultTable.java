@@ -27,11 +27,11 @@ public class FileSystemResultTable {
     this.tags = tags;
   }
 
-  public List<Record> getVal() {
+  public List<Record> getRecords() {
     return records;
   }
 
-  public void setVal(List<Record> records) {
+  public void setRecords(List<Record> records) {
     this.records = records;
   }
 

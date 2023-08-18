@@ -8,28 +8,24 @@ import java.nio.charset.Charset;
 import java.util.List;
 
 public interface IFileOperator {
-  // read the all the file
-  List<Record> readNormalFile(File file, long begin, long end, Charset charset) throws IOException;
 
-  // read the file by key [begin, end]
-  List<Record> readIGinXFileByKey(File file, long begin, long end, Charset charset)
+  // read normal file by [startKey, endKey)
+  List<Record> readNormalFile(File file, long startKey, long endKey, Charset charset)
       throws IOException;
 
-  Exception writeIGinXFile(File file, List<Record> valList) throws IOException;
+  // read IGinX file by [startKey, endKey)
+  List<Record> readIginxFile(File file, long startKey, long endKey, Charset charset)
+      throws IOException;
 
-  Exception trimFile(File file, long begin, long end) throws IOException;
-
-  boolean delete(File file);
+  Exception writeIginxFile(File file, List<Record> valList) throws IOException;
 
   File create(File file, FileMeta fileMeta) throws IOException;
 
-  boolean mkdir(File file);
+  boolean delete(File file);
 
-  boolean isDirectory(File file);
+  Exception trimFile(File file, long begin, long end);
 
   FileMeta getFileMeta(File file) throws IOException;
-
-  Boolean ifFileExists(File file);
 
   List<File> listFiles(File file);
 

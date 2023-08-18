@@ -55,8 +55,6 @@ public class Constant {
   public static List<List<Object>> readOnlyValuesList =
       Arrays.asList(Arrays.asList(false, 100.01), Arrays.asList(true, 99.99));
 
-
-
   public static byte[] generateRandomValue(int seed) {
     int N = 10;
     byte[] b = new byte[N];
