@@ -55,26 +55,9 @@ public class Constant {
   public static List<List<Object>> readOnlyValuesList =
       Arrays.asList(Arrays.asList(false, 100.01), Arrays.asList(true, 99.99));
 
-  public static void setDataTypeAndValuesForFileSystem() {
-    oriDataTypeList = Arrays.asList(DataType.BINARY, DataType.BINARY);
-    expDataTypeList = Arrays.asList(DataType.BINARY, DataType.BINARY);
-    readOnlyDataTypeList = Arrays.asList(DataType.BINARY, DataType.BINARY);
 
-    byte[] oriValue = generateRandomValue(1);
-    byte[] expValue = generateRandomValue(2);
-    byte[] readOnlyValue = generateRandomValue(3);
-    oriValuesList =
-        Arrays.asList(Collections.singletonList(oriValue), Collections.singletonList(oriValue));
-    expValuesList =
-        Arrays.asList(Collections.singletonList(expValue), Collections.singletonList(expValue));
-    expValuesList1 = Collections.singletonList(Collections.singletonList(expValue));
-    expValuesList2 = Collections.singletonList(Collections.singletonList(expValue));
-    readOnlyValuesList =
-        Arrays.asList(
-            Collections.singletonList(readOnlyValue), Collections.singletonList(readOnlyValue));
-  }
 
-  private static byte[] generateRandomValue(int seed) {
+  public static byte[] generateRandomValue(int seed) {
     int N = 10;
     byte[] b = new byte[N];
     Random random = new Random(seed);

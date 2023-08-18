@@ -351,24 +351,22 @@ public class Controller {
     return res.size() == 0 ? null : res;
   }
 
-  public static List<Pair<File, FileMeta>> getAllIginXFiles(File dir) {
-    List<Pair<File, FileMeta>> res = new ArrayList<>();
+  public static List<File> getAllFilesWithoutDir(File dir) {
+    List<File> res = new ArrayList<>();
     Stack<File> stack = new Stack<>();
     stack.push(dir);
     while (!stack.isEmpty()) {
       File current = stack.pop();
       List<File> fileList = null;
-      try {
-        if (current.isDirectory()) fileList = fileOperator.listFiles(current);
-        else if (FileType.getFileType(current) == FileType.IGINX_FILE) {
-          res.add(new Pair<>(current, fileOperator.getFileMeta(current)));
-        }
-      } catch (IOException e) {
-        logger.error(e.getMessage());
+      if (current.isDirectory()) {
+        fileList = fileOperator.listFiles(current);
       }
-      if (fileList != null) {
-        for (File file : fileList) {
-          stack.push(file);
+      if (fileList == null) continue;
+      for (File f : fileList) {
+        if (f.isDirectory()) {
+          stack.push(f);
+        } else {
+          res.add(f);
         }
       }
     }
@@ -439,5 +437,14 @@ public class Controller {
     }
 
     return 0;
+  }
+
+  public static FileMeta getFileMeta(File file) {
+    try {
+      return fileOperator.getFileMeta(file);
+    } catch (IOException e) {
+      logger.error(e.getMessage());
+    }
+    return null;
   }
 }

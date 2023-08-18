@@ -1,5 +1,7 @@
 package cn.edu.tsinghua.iginx.filesystem.tools;
 
+import java.io.File;
+
 import static cn.edu.tsinghua.iginx.filesystem.constant.Constant.*;
 
 public class FilePathUtils {
@@ -32,25 +34,35 @@ public class FilePathUtils {
     return path.substring(path.lastIndexOf(".") + 1);
   }
 
-  public static String convertAbsolutePathToPath(String root, String filePath, String storageUnit) {
+  public static String convertAbsolutePathToPath(
+      String root, String filePath, String storageUnit) {
     String tmp;
-    if (storageUnit != null) {
-      if (storageUnit.equals(WILDCARD)) {
-        tmp =
-            filePath.substring(
-                filePath.indexOf(SEPARATOR, filePath.indexOf(root) + root.length() + 1) + 1);
+
+    // 对iginx文件操作
+    if (filePath.contains(FILE_EXTENSION)) {
+      tmp = filePath.substring(0, filePath.lastIndexOf(FILE_EXTENSION));
+      if (storageUnit != null) {
+        if (storageUnit.equals(WILDCARD)) {
+          tmp =
+              tmp.substring(
+                  tmp.indexOf(SEPARATOR, tmp.indexOf(root) + root.length() +1) + 1);
+        } else {
+          tmp = tmp.substring(tmp.indexOf(storageUnit) + storageUnit.length() + 1);
+        }
       } else {
-        tmp = filePath.substring(filePath.indexOf(storageUnit) + storageUnit.length() + 1);
+        tmp = tmp.substring(tmp.indexOf(root) + root.length());
       }
-    } else {
-      tmp = filePath.substring(filePath.indexOf(root) + root.length());
+    } else { // 对普通文件操作
+      tmp = filePath.substring(
+          filePath.indexOf(root) + root.length());
     }
     if (tmp.isEmpty()) {
       return SEPARATOR;
     }
-    if (tmp.contains(FILE_EXTENSION)) {
-      tmp = tmp.substring(0, tmp.lastIndexOf(FILE_EXTENSION));
-    }
     return tmp.replace(SEPARATOR, ".");
+  }
+
+  public static String getRootFromArg(String argRoot) {
+    return new File(argRoot).getAbsolutePath() + SEPARATOR;
   }
 }

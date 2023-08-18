@@ -1,5 +1,6 @@
 package cn.edu.tsinghua.iginx.integration.expansion.filesystem;
 
+import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.*;
 import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
 import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
 import cn.edu.tsinghua.iginx.thrift.DataType;
@@ -9,6 +10,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,7 +24,7 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
   public static String root = "storage%d/";
 
   public FileSystemHistoryDataGenerator() {
-    Constant.setDataTypeAndValuesForFileSystem();
+    setDataTypeAndValuesForFileSystem();
   }
 
   public void deleteDirectory(String path) {
@@ -99,5 +102,24 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
         e.printStackTrace();
       }
     }
+  }
+
+  private void setDataTypeAndValuesForFileSystem() {
+    Constant.oriDataTypeList = Arrays.asList(DataType.BINARY, DataType.BINARY);
+    Constant.expDataTypeList = Arrays.asList(DataType.BINARY, DataType.BINARY);
+    Constant.readOnlyDataTypeList = Arrays.asList(DataType.BINARY, DataType.BINARY);
+
+    byte[] oriValue = generateRandomValue(1);
+    byte[] expValue = generateRandomValue(2);
+    byte[] readOnlyValue = generateRandomValue(3);
+    oriValuesList =
+        Arrays.asList(Collections.singletonList(oriValue), Collections.singletonList(oriValue));
+    expValuesList =
+        Arrays.asList(Collections.singletonList(expValue), Collections.singletonList(expValue));
+    expValuesList1 = Collections.singletonList(Collections.singletonList(expValue));
+    expValuesList2 = Collections.singletonList(Collections.singletonList(expValue));
+    readOnlyValuesList =
+        Arrays.asList(
+            Collections.singletonList(readOnlyValue), Collections.singletonList(readOnlyValue));
   }
 }

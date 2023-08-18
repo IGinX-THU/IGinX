@@ -75,4 +75,23 @@ public class DataTypeUtils {
       return null;
     }
   }
+
+  public static Object parseStringByDataType(String val, DataType type) {
+    switch (type) {
+      case BOOLEAN:
+        return Boolean.parseBoolean(val);
+      case LONG:
+        return Long.parseLong(val);
+      case DOUBLE:
+        return Double.parseDouble(val);
+      case BINARY:
+        return val.getBytes();
+      case INTEGER:
+        return Integer.parseInt(val);
+      case FLOAT:
+        return Float.parseFloat(val);
+      default:
+        return val;
+    }
+  }
 }

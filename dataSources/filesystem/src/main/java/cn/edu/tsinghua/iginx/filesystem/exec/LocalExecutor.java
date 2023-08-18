@@ -14,6 +14,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.filesystem.controller.Controller;
 import cn.edu.tsinghua.iginx.filesystem.file.entity.FileMeta;
+import cn.edu.tsinghua.iginx.filesystem.file.type.FileType;
 import cn.edu.tsinghua.iginx.filesystem.query.entity.FileSystemHistoryQueryRowStream;
 import cn.edu.tsinghua.iginx.filesystem.query.entity.FileSystemQueryRowStream;
 import cn.edu.tsinghua.iginx.filesystem.query.entity.FileSystemResultTable;
@@ -36,15 +37,17 @@ import org.slf4j.LoggerFactory;
 public class LocalExecutor implements Executor {
   private static final Logger logger = LoggerFactory.getLogger(LocalExecutor.class);
   private String root;
+  private boolean hasData;
 
   public LocalExecutor() {
-    this(null);
+    this(null, false);
   }
 
-  public LocalExecutor(String root) {
+  public LocalExecutor(String root, boolean hasData) {
     if (root == null) {
       logger.error("root should not be null!");
     } else {
+      this.hasData = hasData;
       this.root = root;
     }
   }
@@ -246,17 +249,36 @@ public class LocalExecutor implements Executor {
 
     File directory = new File(FilePathUtils.toIginxPath(root, storageUnit, null));
 
-    List<Pair<File, FileMeta>> res = Controller.getAllIginXFiles(directory);
+    List<File> allFiles = Controller.getAllFilesWithoutDir(directory);
 
-    for (Pair<File, FileMeta> pair : res) {
-      File file = pair.getK();
-      FileMeta meta = pair.getV();
-      files.add(
-          new Column(
-              FilePathUtils.convertAbsolutePathToPath(root, file.getAbsolutePath(), storageUnit),
-              meta.getDataType(),
-              meta.getTags()));
+    for (File file : allFiles) {
+      try {//如果加入该Storage时有数据，才读取该文件夹下的文件
+        if (hasData && FileType.getFileType(file).equals(FileType.NORMAL_FILE)) {
+          files.add(
+              new Column(
+                  FilePathUtils.convertAbsolutePathToPath(
+                      root, file.getAbsolutePath(), storageUnit),
+                  DataType.BINARY,
+                  null));
+        } else {
+          FileMeta meta = Controller.getFileMeta(file);
+          if (meta == null) {
+            logger.error("encounter error when get columns of storage unit: " + file.getAbsolutePath() + ", meta is null");
+            throw new PhysicalException("encounter error when get columns of storage unit: " + file.getAbsolutePath()+ ", meta is null");
+          }
+          files.add(
+              new Column(
+                  FilePathUtils.convertAbsolutePathToPath(
+                      root, file.getAbsolutePath(), storageUnit),
+                  meta.getDataType(),
+                  meta.getTags()));
+        }
+      } catch (IOException e) {
+        logger.error("encounter error when get columns of storage unit: " + e.getMessage());
+        throw new PhysicalException(e.getMessage());
+      }
     }
+
     return files;
   }
 

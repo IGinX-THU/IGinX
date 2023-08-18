@@ -33,6 +33,7 @@ import cn.edu.tsinghua.iginx.filesystem.exec.Executor;
 import cn.edu.tsinghua.iginx.filesystem.exec.LocalExecutor;
 import cn.edu.tsinghua.iginx.filesystem.exec.RemoteExecutor;
 import cn.edu.tsinghua.iginx.filesystem.server.FileSystemServer;
+import cn.edu.tsinghua.iginx.filesystem.tools.FilePathUtils;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
@@ -46,8 +47,6 @@ import java.util.concurrent.Executors;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static cn.edu.tsinghua.iginx.filesystem.file.tools.FilePath.getRootFromArg;
 
 public class FileSystemStorage implements IStorage {
   private static final String STORAGE_ENGINE = "filesystem";
@@ -87,8 +86,8 @@ public class FileSystemStorage implements IStorage {
   }
 
   private void initLocalExecutor(StorageEngineMeta meta) {
-    String root = getRootFromArg(meta.getExtraParams().getOrDefault("dir", "/path/to/your/filesystem"));
-    executor = new LocalExecutor(root);
+    String root = FilePathUtils.getRootFromArg((meta.getExtraParams().getOrDefault("dir", "/path/to/your/filesystem")));
+    executor = new LocalExecutor(root, meta.isHasData());
     executorService.submit(new Thread(new FileSystemServer(meta.getPort(), executor)));
   }
 
