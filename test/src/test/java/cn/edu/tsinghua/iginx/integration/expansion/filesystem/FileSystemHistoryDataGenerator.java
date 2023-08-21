@@ -45,6 +45,7 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
     try (Stream<Path> walk = Files.walk(Paths.get(rootPath))) {
       walk.sorted(Comparator.reverseOrder()).forEach(this::deleteDirectoryStream);
     } catch (IOException e) {
+      e.printStackTrace();
       logger.error("delete {} failure", rootPath);
     }
   }

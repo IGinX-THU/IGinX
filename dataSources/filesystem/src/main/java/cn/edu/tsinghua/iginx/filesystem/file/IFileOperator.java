@@ -30,6 +30,4 @@ public interface IFileOperator {
   List<File> listFiles(File file);
 
   List<File> listFiles(File file, String prefix);
-
-  long length(File file);
 }

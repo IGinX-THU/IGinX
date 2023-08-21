@@ -175,16 +175,16 @@ public class RemoteExecutor implements Executor {
       req.setTagFilter(constructRawTagFilter(tagFilter));
     }
     if (keyRanges != null) {
-      List<FSKeyRange> fileSystemKeyRange = new ArrayList<>();
+      List<FSKeyRange> fsKeyRanges = new ArrayList<>();
       keyRanges.forEach(
           keyRange ->
-              fileSystemKeyRange.add(
+              fsKeyRanges.add(
                   new FSKeyRange(
                       keyRange.getBeginKey(),
                       keyRange.isIncludeBeginKey(),
                       keyRange.getEndKey(),
                       keyRange.isIncludeEndKey())));
-      req.setKeyRanges(fileSystemKeyRange);
+      req.setKeyRanges(fsKeyRanges);
     }
 
     try {

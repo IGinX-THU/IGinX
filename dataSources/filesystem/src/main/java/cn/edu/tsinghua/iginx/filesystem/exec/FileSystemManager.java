@@ -255,16 +255,14 @@ public class FileSystemManager {
     while (!S.empty()) {
       File tmp = S.pop();
       if (tmp.isDirectory()) {
-        List<File> files = fileOperator.listFiles(tmp, prefix),
-            dirlist = fileOperator.listFiles(tmp);
-        if (files != null) {
-          for (File f : files) S.push(f);
+        List<File> files = fileOperator.listFiles(tmp, prefix);
+        List<File> dirlist = fileOperator.listFiles(tmp);
+        for (File f : files) {
+          S.push(f);
         }
-        if (dirlist != null) {
-          for (File f : dirlist) {
-            if (f.isDirectory()) {
-              S.push(f);
-            }
+        for (File f : dirlist) {
+          if (f.isDirectory()) {
+            S.push(f);
           }
         }
       }
@@ -285,18 +283,15 @@ public class FileSystemManager {
     stack.push(dir);
     while (!stack.isEmpty()) {
       File current = stack.pop();
-      List<File> fileList = null;
+      List<File> fileList;
       if (current.isDirectory()) {
         fileList = fileOperator.listFiles(current);
-      }
-      if (fileList == null) {
-        continue;
-      }
-      for (File f : fileList) {
-        if (f.isDirectory()) {
-          stack.push(f);
-        } else {
-          res.add(f);
+        for (File f : fileList) {
+          if (f.isDirectory()) {
+            stack.push(f);
+          } else {
+            res.add(f);
+          }
         }
       }
     }

@@ -496,7 +496,7 @@ public class DefaultFileOperator implements IFileOperator {
   public List<File> listFiles(File file, String prefix) {
     FileFilter readFileFilter = null;
     if (prefix != null) {
-      readFileFilter = file1 -> file1.getName().startsWith(prefix);
+      readFileFilter = f -> f.getName().startsWith(prefix);
     }
 
     File[] files;
@@ -505,11 +505,6 @@ public class DefaultFileOperator implements IFileOperator {
     } else {
       files = file.getParentFile().listFiles(readFileFilter);
     }
-    return files == null || files.length == 0 ? null : Arrays.asList(files);
-  }
-
-  @Override
-  public long length(File file) {
-    return file.length();
+    return files == null ? new ArrayList<>() : Arrays.asList(files);
   }
 }
