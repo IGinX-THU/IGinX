@@ -92,7 +92,7 @@ public class FileSystemStorage implements IStorage {
   private void initLocalExecutor(StorageEngineMeta meta) {
     String path = meta.getExtraParams().getOrDefault("dir", "/path/to/your/filesystem");
     File file = new File(path);
-    if (!file.exists() || file.isFile()) {
+    if (file.isFile()) {
       logger.error("invalid directory: {}", file.getAbsolutePath());
       return;
     }
