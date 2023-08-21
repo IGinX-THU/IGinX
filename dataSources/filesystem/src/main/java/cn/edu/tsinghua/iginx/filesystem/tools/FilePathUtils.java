@@ -22,7 +22,7 @@ public class FilePathUtils {
             root,
             storageUnit,
             middlePath.replace(".", SEPARATOR),
-            middlePath.substring(middlePath.lastIndexOf(".") + 1) + ".iginx")
+            path.substring(path.lastIndexOf(".") + 1) + FILE_EXTENSION)
         .toString();
   }
 
