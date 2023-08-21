@@ -73,7 +73,7 @@ public class RemoteExecutor implements Executor {
     try {
       ProjectResp resp = client.executeProject(req);
       if (resp.getStatus().code == SUCCESS_CODE) {
-        FileDataHeader fileDataHeader = resp.getHeader();
+        FSHeader fileDataHeader = resp.getHeader();
         List<DataType> dataTypes = new ArrayList<>();
         List<Field> fields = new ArrayList<>();
         for (int i = 0; i < fileDataHeader.getNamesSize(); i++) {
@@ -130,9 +130,9 @@ public class RemoteExecutor implements Executor {
       tagsList.add(dataView.getTags(i) == null ? new HashMap<>() : dataView.getTags(i));
     }
 
-    long[] times = new long[dataView.getKeySize()];
+    long[] keys = new long[dataView.getKeySize()];
     for (int i = 0; i < dataView.getKeySize(); i++) {
-      times[i] = dataView.getKey(i);
+      keys[i] = dataView.getKey(i);
     }
 
     Pair<List<ByteBuffer>, List<ByteBuffer>> pair;
@@ -143,11 +143,11 @@ public class RemoteExecutor implements Executor {
       pair = compressColData(dataView);
     }
 
-    FileRawData fileDataRawData =
-        new FileRawData(
+    FSRawData fileDataRawData =
+        new FSRawData(
             paths,
             tagsList,
-            ByteBuffer.wrap(ByteUtils.getByteArrayFromLongArray(times)),
+            ByteBuffer.wrap(ByteUtils.getByteArrayFromLongArray(keys)),
             pair.getK(),
             pair.getV(),
             types,
@@ -175,16 +175,16 @@ public class RemoteExecutor implements Executor {
       req.setTagFilter(constructRawTagFilter(tagFilter));
     }
     if (keyRanges != null) {
-      List<FileSystemKeyRange> fileSystemTimeRange = new ArrayList<>();
+      List<FSKeyRange> fileSystemKeyRange = new ArrayList<>();
       keyRanges.forEach(
-          timeRange ->
-              fileSystemTimeRange.add(
-                  new FileSystemKeyRange(
-                      timeRange.getBeginKey(),
-                      timeRange.isIncludeBeginKey(),
-                      timeRange.getEndKey(),
-                      timeRange.isIncludeEndKey())));
-      req.setKeyRanges(fileSystemTimeRange);
+          keyRange ->
+              fileSystemKeyRange.add(
+                  new FSKeyRange(
+                      keyRange.getBeginKey(),
+                      keyRange.isIncludeBeginKey(),
+                      keyRange.getEndKey(),
+                      keyRange.isIncludeEndKey())));
+      req.setKeyRanges(fileSystemKeyRange);
     }
 
     try {
@@ -204,36 +204,38 @@ public class RemoteExecutor implements Executor {
   public List<Column> getColumnsOfStorageUnit(String storageUnit) throws PhysicalException {
     try {
       GetColumnsOfStorageUnitResp resp = client.getColumnsOfStorageUnit(storageUnit);
-      List<Column> timeSeriesList = new ArrayList<>();
+      List<Column> columns = new ArrayList<>();
       resp.getPathList()
           .forEach(
-              ts ->
-                  timeSeriesList.add(
+              column ->
+                  columns.add(
                       new Column(
-                          ts.getPath(),
-                          DataTypeUtils.getDataTypeFromString(ts.getDataType()),
-                          ts.getTags())));
-      return timeSeriesList;
+                          column.getPath(),
+                          DataTypeUtils.getDataTypeFromString(column.getDataType()),
+                          column.getTags())));
+      return columns;
     } catch (TException e) {
-      throw new PhysicalException("encounter error when getTimeSeriesOfStorageUnit ", e);
+      throw new PhysicalException(
+          "encounter error when executing remote getColumnsOfStorageUnit task ", e);
     }
   }
 
   @Override
-  public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String prefix)
+  public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String dataPrefix)
       throws PhysicalException {
     try {
-      GetStorageBoundaryResp resp = client.getBoundaryOfStorage(prefix);
+      GetBoundaryOfStorageResp resp = client.getBoundaryOfStorage(dataPrefix);
       return new Pair<>(
           new ColumnsInterval(resp.getStartColumn(), resp.getEndColumn()),
           new KeyInterval(resp.getStartKey(), resp.getEndKey()));
     } catch (TException e) {
-      throw new PhysicalException("encounter error when getBoundaryOfStorage ", e);
+      throw new PhysicalException(
+          "encounter error when executing remote getBoundaryOfStorage task ", e);
     }
   }
 
   @Override
-  public void close() throws PhysicalException {
+  public void close() {
     if (transport != null && transport.isOpen()) {
       transport.close();
     }

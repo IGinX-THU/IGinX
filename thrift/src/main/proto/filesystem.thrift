@@ -25,7 +25,7 @@ enum FilterType {
     Not,
 }
 
-enum Op {
+enum FSOp {
     GE,
     G,
     LE,
@@ -36,7 +36,7 @@ enum Op {
     UNKNOWN,
 }
 
-struct Value {
+struct FSValue {
     1: required rpc.DataType dataType
     2: optional bool boolV
     3: optional i32 intV
@@ -54,34 +54,26 @@ struct RawTagFilter {
     5: optional list<RawTagFilter> children
 }
 
-struct GetStorageBoundaryResp {
-    1: required Status status
-    2: optional i64 startKey
-    3: optional i64 endKey
-    4: optional string startColumn
-    5: optional string endColumn
-}
-
 struct FSFilter {
     1: required FilterType type
     2: optional list<FSFilter> children
     3: optional bool isTrue
     4: optional i64 keyValue
-    5: optional Op op
+    5: optional FSOp op
     6: optional string pathA
     7: optional string pathB
     8: optional string path
-    9: optional Value value
+    9: optional FSValue value
 }
 
-struct FileDataHeader {
+struct FSHeader {
     1: required list<string> names
     2: required list<string> types
     3: required list<map<string, string>> tagsList
     4: required bool hasKey
 }
 
-struct FileDataRow {
+struct FSRow {
     1: optional i64 key
     2: required binary rowValues
     3: required binary bitmap
@@ -97,11 +89,11 @@ struct ProjectReq {
 
 struct ProjectResp {
     1: required Status status
-    2: optional FileDataHeader header
-    3: optional list<FileDataRow> rows
+    2: optional FSHeader header
+    3: optional list<FSRow> rows
 }
 
-struct FileRawData {
+struct FSRawData {
     1: required list<string> paths
     2: required list<map<string, string>> tagsList
     3: required binary keys
@@ -113,10 +105,10 @@ struct FileRawData {
 
 struct InsertReq {
     1: required string storageUnit
-    2: required FileRawData rawData;
+    2: required FSRawData rawData;
 }
 
-struct FileSystemKeyRange {
+struct FSKeyRange {
     1: required i64 beginKey;
     2: required bool includeBeginKey;
     3: required i64 endKey;
@@ -127,10 +119,10 @@ struct DeleteReq {
     1: required string storageUnit
     2: required list<string> paths
     3: optional RawTagFilter tagFilter
-    4: optional list<FileSystemKeyRange> keyRanges
+    4: optional list<FSKeyRange> keyRanges
 }
 
-struct PathSet {
+struct FSColumn {
     1: required string path
     2: required string dataType
     3: optional map<string, string> tags
@@ -138,7 +130,15 @@ struct PathSet {
 
 struct GetColumnsOfStorageUnitResp {
     1: required Status status
-    2: optional list<PathSet> pathList
+    2: optional list<FSColumn> pathList
+}
+
+struct GetBoundaryOfStorageResp {
+    1: required Status status
+    2: optional i64 startKey
+    3: optional i64 endKey
+    4: optional string startColumn
+    5: optional string endColumn
 }
 
 service FileSystemService {
@@ -151,6 +151,6 @@ service FileSystemService {
 
     GetColumnsOfStorageUnitResp getColumnsOfStorageUnit(1: string storageUnit);
 
-    GetStorageBoundaryResp getBoundaryOfStorage(1: string prefix);
+    GetBoundaryOfStorageResp getBoundaryOfStorage(1: string dataPrefix);
 
 }

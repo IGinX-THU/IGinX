@@ -3,10 +3,11 @@ package cn.edu.tsinghua.iginx.filesystem.tools;
 import static cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op.*;
 import static cn.edu.tsinghua.iginx.filesystem.thrift.FilterType.*;
 
+import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.filesystem.thrift.FSFilter;
-import cn.edu.tsinghua.iginx.filesystem.thrift.Op;
-import cn.edu.tsinghua.iginx.filesystem.thrift.Value;
+import cn.edu.tsinghua.iginx.filesystem.thrift.FSOp;
+import cn.edu.tsinghua.iginx.filesystem.thrift.FSValue;
 import java.util.*;
 
 public class FilterTransformer {
@@ -86,30 +87,29 @@ public class FilterTransformer {
     return fsFilter;
   }
 
-  private static Op toFSOp(cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op op) {
+  private static FSOp toFSOp(Op op) {
     switch (op) {
       case L:
-        return Op.L;
+        return FSOp.L;
       case LE:
-        return Op.LE;
+        return FSOp.LE;
       case LIKE:
-        return Op.LIKE;
+        return FSOp.LIKE;
       case NE:
-        return Op.NE;
+        return FSOp.NE;
       case E:
-        return Op.E;
+        return FSOp.E;
       case GE:
-        return Op.GE;
+        return FSOp.GE;
       case G:
-        return Op.G;
+        return FSOp.G;
       default:
-        return Op.UNKNOWN;
+        return FSOp.UNKNOWN;
     }
   }
 
-  private static cn.edu.tsinghua.iginx.filesystem.thrift.Value toFSValue(
-      cn.edu.tsinghua.iginx.engine.shared.data.Value value) {
-    Value fsValue = new Value();
+  private static FSValue toFSValue(Value value) {
+    FSValue fsValue = new FSValue();
     fsValue.setDataType(value.getDataType());
     switch (value.getDataType()) {
       case FLOAT:
@@ -194,7 +194,7 @@ public class FilterTransformer {
     return new BoolFilter(filter.isIsTrue());
   }
 
-  private static cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op toOp(Op op) {
+  private static Op toOp(FSOp op) {
     switch (op) {
       case L:
         return L;
@@ -215,28 +215,28 @@ public class FilterTransformer {
     }
   }
 
-  private static cn.edu.tsinghua.iginx.engine.shared.data.Value toValue(Value value) {
-    cn.edu.tsinghua.iginx.engine.shared.data.Value myValue = null;
-    switch (value.getDataType()) {
+  private static Value toValue(FSValue fsValue) {
+    Value value = null;
+    switch (fsValue.getDataType()) {
       case FLOAT:
-        myValue = new cn.edu.tsinghua.iginx.engine.shared.data.Value(value.getFloatV());
+        value = new Value(fsValue.getFloatV());
         break;
       case INTEGER:
-        myValue = new cn.edu.tsinghua.iginx.engine.shared.data.Value(value.getIntV());
+        value = new Value(fsValue.getIntV());
         break;
       case BINARY:
-        myValue = new cn.edu.tsinghua.iginx.engine.shared.data.Value(value.getBinaryV());
+        value = new Value(fsValue.getBinaryV());
         break;
       case BOOLEAN:
-        myValue = new cn.edu.tsinghua.iginx.engine.shared.data.Value(value.isBoolV());
+        value = new Value(fsValue.isBoolV());
         break;
       case DOUBLE:
-        myValue = new cn.edu.tsinghua.iginx.engine.shared.data.Value(value.getDoubleV());
+        value = new Value(fsValue.getDoubleV());
         break;
       case LONG:
-        myValue = new cn.edu.tsinghua.iginx.engine.shared.data.Value(value.getLongV());
+        value = new Value(fsValue.getLongV());
         break;
     }
-    return myValue;
+    return value;
   }
 }

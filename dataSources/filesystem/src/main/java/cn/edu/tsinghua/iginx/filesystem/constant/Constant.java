@@ -11,10 +11,6 @@ public class Constant {
 
   public static final String WILDCARD = "*";
 
-  public static final String FILE_PATH_FORMAT = "%s%s" + SEPARATOR + "%s.iginx";
-
-  public static final String DIR_PATH_FORMAT = "%s%s" + SEPARATOR + "%s" + SEPARATOR;
-
   // the number of meta info
   public static final long IGINX_FILE_META_INDEX = 3L;
 

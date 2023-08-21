@@ -1,5 +1,6 @@
 package cn.edu.tsinghua.iginx.filesystem.exec;
 
+import static cn.edu.tsinghua.iginx.engine.logical.utils.PathUtils.MAX_CHAR;
 import static cn.edu.tsinghua.iginx.filesystem.constant.Constant.*;
 
 import cn.edu.tsinghua.iginx.engine.physical.storage.utils.TagKVUtils;
@@ -14,6 +15,7 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -87,7 +89,7 @@ public class FileSystemManager {
   }
 
   /** ******************** 写入相关 ******************** */
-  public synchronized static Exception writeFiles(
+  public static synchronized Exception writeFiles(
       List<File> files, List<List<Record>> recordsList, List<Map<String, String>> tagsList)
       throws IOException {
     for (int i = 0; i < files.size(); i++) {
@@ -99,8 +101,8 @@ public class FileSystemManager {
     return null;
   }
 
-  private synchronized static Exception writeFile(File file, List<Record> records, Map<String, String> tags)
-      throws IOException {
+  private static synchronized Exception writeFile(
+      File file, List<Record> records, Map<String, String> tags) throws IOException {
     File f;
     // 判断是否已经创建了对应的文件
     File tmpFile = getFileWithTags(file, tags);
@@ -287,7 +289,9 @@ public class FileSystemManager {
       if (current.isDirectory()) {
         fileList = fileOperator.listFiles(current);
       }
-      if (fileList == null) continue;
+      if (fileList == null) {
+        continue;
+      }
       for (File f : fileList) {
         if (f.isDirectory()) {
           stack.push(f);
@@ -299,70 +303,20 @@ public class FileSystemManager {
     return res;
   }
 
-  // 返回最大最小的文件，文件可能是目录
-  public static Pair<File, File> getBoundaryFiles(File dir) {
-    File minFile = getMinFile(dir);
-    File maxFile = getMaxFile(dir);
-
-    File lastFile = null;
-    if (maxFile == null) {
+  // 返回字典序最大和最小的文件，可能是目录
+  public static Pair<File, File> getBoundaryOfFiles(File dir) {
+    File[] files = dir.listFiles();
+    if (files == null || files.length == 0) {
+      logger.error("{} is empty", dir.getAbsolutePath());
       return null;
     }
-    while (maxFile.isDirectory()) {
-      File[] files = maxFile.listFiles();
-      if (files != null && files.length != 0) maxFile = files[files.length - 1];
-      if (lastFile != null && fileOperator.ifFilesEqual(lastFile, maxFile)) {
-        break;
-      }
-      lastFile = maxFile;
-    }
-
+    Arrays.sort(files);
+    File minFile = files[0];
+    File maxFile =
+        new File(
+            Paths.get(files[files.length - 1].getAbsolutePath(), String.valueOf(MAX_CHAR))
+                .toString());
     return new Pair<>(minFile, maxFile);
-  }
-
-  static File getMinFile(File dir) {
-    File[] files = dir.listFiles();
-    if (files == null) {
-      return null;
-    }
-    Arrays.sort(files);
-    return files[0];
-  }
-
-  static File getMaxFile(File dir) {
-    File[] files = dir.listFiles();
-    if (files == null) {
-      return null;
-    }
-    if (files.length == 0) {
-      return dir;
-    }
-    Arrays.sort(files);
-    return files[files.length - 1];
-  }
-
-  public static Long getMaxTime(File dir) {
-    List<File> files = getAssociatedFiles(dir);
-    long max = Long.MIN_VALUE;
-
-    for (File f : files) {
-      long size = getFileSize(f);
-      max = Math.max(max, size);
-    }
-
-    return max;
-  }
-
-  private static long getFileSize(File file) {
-    try {
-      if (file.exists() && file.isFile()) {
-        return fileOperator.length(file);
-      }
-    } catch (IOException e) {
-      logger.error(e.getMessage());
-    }
-
-    return 0;
   }
 
   public static FileMeta getFileMeta(File file) {

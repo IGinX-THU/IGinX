@@ -18,7 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.filesystem;
 
-import static cn.edu.tsinghua.iginx.filesystem.tools.FilePathUtils.getRootFromArg;
+import static cn.edu.tsinghua.iginx.filesystem.constant.Constant.SEPARATOR;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
@@ -39,8 +39,11 @@ import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.utils.Pair;
+import java.io.File;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
+import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -52,7 +55,7 @@ import org.slf4j.LoggerFactory;
 public class FileSystemStorage implements IStorage {
   private static final String STORAGE_ENGINE = "filesystem";
   private static final Logger logger = LoggerFactory.getLogger(FileSystemStorage.class);
-  ExecutorService executorService = Executors.newSingleThreadExecutor(); // 为了更好管理线程
+  ExecutorService executorService = Executors.newSingleThreadExecutor();
   private Executor executor;
 
   public FileSystemStorage(StorageEngineMeta meta)
@@ -81,14 +84,19 @@ public class FileSystemStorage implements IStorage {
       }
       InetAddress local = InetAddress.getLocalHost();
       return local.equals(address);
-    } catch (Exception e) {
+    } catch (UnknownHostException | SocketException e) {
       return false;
     }
   }
 
   private void initLocalExecutor(StorageEngineMeta meta) {
-    String root =
-        getRootFromArg(meta.getExtraParams().getOrDefault("dir", "/path/to/your/filesystem"));
+    String path = meta.getExtraParams().getOrDefault("dir", "/path/to/your/filesystem");
+    File file = new File(path);
+    if (!file.exists() || file.isFile()) {
+      logger.error("invalid directory: {}", file.getAbsolutePath());
+      return;
+    }
+    String root = file.getAbsolutePath() + SEPARATOR;
     executor = new LocalExecutor(root, meta.isHasData());
     executorService.submit(new Thread(new FileSystemServer(meta.getPort(), executor)));
   }

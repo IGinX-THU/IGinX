@@ -31,7 +31,5 @@ public interface IFileOperator {
 
   List<File> listFiles(File file, String prefix);
 
-  long length(File file) throws IOException;
-
-  boolean ifFilesEqual(File... file);
+  long length(File file);
 }

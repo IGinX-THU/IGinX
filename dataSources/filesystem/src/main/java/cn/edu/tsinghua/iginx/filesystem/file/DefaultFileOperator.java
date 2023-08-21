@@ -5,7 +5,6 @@ import static cn.edu.tsinghua.iginx.utils.DataTypeUtils.transformObjectToStringB
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 
 import cn.edu.tsinghua.iginx.filesystem.file.entity.FileMeta;
-import cn.edu.tsinghua.iginx.filesystem.file.type.FileType;
 import cn.edu.tsinghua.iginx.filesystem.query.entity.Record;
 import cn.edu.tsinghua.iginx.filesystem.tools.MemoryPool;
 import cn.edu.tsinghua.iginx.thrift.DataType;
@@ -20,14 +19,11 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.ReentrantLock;
-
 import org.apache.commons.io.input.ReversedLinesFileReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class DefaultFileOperator implements IFileOperator {
-  private final int IGINX_FILE_PRE_READ_LEN = 8192;
 
   private static final Logger logger = LoggerFactory.getLogger(DefaultFileOperator.class);
 
@@ -343,7 +339,7 @@ public class DefaultFileOperator implements IFileOperator {
       return -1L;
     }
   }
-  private final ReentrantLock lock = new ReentrantLock();
+
   private Exception replaceFile(File file, File tempFile) {
     if (!tempFile.exists()) {
       return new IOException(
@@ -387,7 +383,7 @@ public class DefaultFileOperator implements IFileOperator {
               break;
             case TAG_KV_INDEX:
               writer.write(
-                  fileMeta.getTags()==null
+                  fileMeta.getTags() == null
                       ? "{}"
                       : new String(JsonUtils.toJson(fileMeta.getTags())));
               break;
@@ -512,20 +508,8 @@ public class DefaultFileOperator implements IFileOperator {
     return files == null || files.length == 0 ? null : Arrays.asList(files);
   }
 
-  public long length(File file) throws IOException {
-    if (FileType.getFileType(file) == FileType.IGINX_FILE) {
-      return getIginxFileMaxKey(file);
-    } else {
-      return file.length();
-    }
-  }
-
-  public boolean ifFilesEqual(File... file) {
-    for (int i = 1; i < file.length; i++) {
-      if (!file[i].getAbsolutePath().equals(file[i - 1].getAbsolutePath())) {
-        return false;
-      }
-    }
-    return true;
+  @Override
+  public long length(File file) {
+    return file.length();
   }
 }

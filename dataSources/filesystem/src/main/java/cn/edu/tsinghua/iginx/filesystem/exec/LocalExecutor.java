@@ -25,7 +25,6 @@ import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
-import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -35,21 +34,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class LocalExecutor implements Executor {
-  private static final Logger logger = LoggerFactory.getLogger(LocalExecutor.class);
-  private String root;
-  private boolean hasData;
 
-  public LocalExecutor() {
-    this(null, false);
-  }
+  private static final Logger logger = LoggerFactory.getLogger(LocalExecutor.class);
+
+  private final String root;
+
+  private final boolean hasData;
 
   public LocalExecutor(String root, boolean hasData) {
-    if (root == null) {
-      logger.error("root should not be null!");
-    } else {
-      this.hasData = hasData;
-      this.root = root;
-    }
+    this.hasData = hasData;
+    this.root = root;
   }
 
   @Override
@@ -73,7 +67,7 @@ public class LocalExecutor implements Executor {
       String storageUnit, List<String> paths, TagFilter tagFilter, Filter filter) {
     try {
       List<FileSystemResultTable> result = new ArrayList<>();
-      logger.info("[Query] execute query file: " + paths);
+      logger.info("[Query] execute query file: {}", paths);
       List<KeyRange> keyRanges = getKeyRangesFromFilter(filter);
       for (String path : paths) {
         result.addAll(
@@ -87,9 +81,11 @@ public class LocalExecutor implements Executor {
       return new TaskExecuteResult(rowStream);
     } catch (Exception e) {
       logger.error(
-          String.format(
-              "read file error, storageUnit %s, paths(%s), tagFilter(%s), filter(%s)",
-              storageUnit, paths, tagFilter, filter));
+          "read file error, storageUnit {}, paths({}), tagFilter({}), filter({})",
+          storageUnit,
+          paths,
+          tagFilter,
+          filter);
       return new TaskExecuteResult(
           new PhysicalTaskExecuteFailureException("execute project task in fileSystem failure", e));
     }
@@ -98,7 +94,7 @@ public class LocalExecutor implements Executor {
   public TaskExecuteResult executeDummyProjectTask(List<String> paths, Filter filter) {
     try {
       List<FileSystemResultTable> result = new ArrayList<>();
-      logger.info("[Query] execute dummy query file: " + paths);
+      logger.info("[Query] execute dummy query file: {}", paths);
       List<KeyRange> keyRanges = getKeyRangesFromFilter(filter);
       for (String path : paths) {
         result.addAll(
@@ -164,7 +160,7 @@ public class LocalExecutor implements Executor {
       logger.info("开始数据写入");
       return FileSystemManager.writeFiles(fileList, recordsList, tagsList);
     } catch (Exception e) {
-      logger.error("encounter error when inserting row records to fileSystem: ", e);
+      logger.error("encounter error when inserting row records to fileSystem: {}", e.getMessage());
     }
     return null;
   }
@@ -197,7 +193,8 @@ public class LocalExecutor implements Executor {
       logger.info("开始数据写入");
       return FileSystemManager.writeFiles(fileList, recordsList, tagsList);
     } catch (Exception e) {
-      logger.error("encounter error when inserting column records to fileSystem: ", e);
+      logger.error(
+          "encounter error when inserting column records to fileSystem: {}", e.getMessage());
     }
     return null;
   }
@@ -214,7 +211,7 @@ public class LocalExecutor implements Executor {
               FileSystemManager.deleteFile(
                   new File(FilePathUtils.toIginxPath(root, storageUnit, null)));
         } catch (Exception e) {
-          logger.error("encounter error when clear data: " + e.getMessage());
+          logger.error("encounter error when clearing data: {}", e.getMessage());
           exception = e;
         }
       } else {
@@ -224,7 +221,7 @@ public class LocalExecutor implements Executor {
         try {
           exception = FileSystemManager.deleteFiles(fileList, tagFilter);
         } catch (Exception e) {
-          logger.error("encounter error when clear data: " + e.getMessage());
+          logger.error("encounter error when clearing data: {}", e.getMessage());
           exception = e;
         }
       }
@@ -241,7 +238,7 @@ public class LocalExecutor implements Executor {
           }
         }
       } catch (IOException e) {
-        logger.error("encounter error when delete data: " + e.getMessage());
+        logger.error("encounter error when deleting data: {}", e.getMessage());
         exception = e;
       }
     }
@@ -250,16 +247,14 @@ public class LocalExecutor implements Executor {
 
   @Override
   public List<Column> getColumnsOfStorageUnit(String storageUnit) throws PhysicalException {
-    List<Column> files = new ArrayList<>();
-
+    List<Column> columns = new ArrayList<>();
     File directory = new File(FilePathUtils.toIginxPath(root, storageUnit, null));
+    List<File> files = FileSystemManager.getAllFilesWithoutDir(directory);
 
-    List<File> allFiles = FileSystemManager.getAllFilesWithoutDir(directory);
-
-    for (File file : allFiles) {
+    for (File file : files) {
       try { // 如果加入该Storage时有数据，才读取该文件夹下的文件
         if (hasData && FileType.getFileType(file).equals(FileType.NORMAL_FILE)) {
-          files.add(
+          columns.add(
               new Column(
                   FilePathUtils.convertAbsolutePathToPath(
                       root, file.getAbsolutePath(), storageUnit),
@@ -268,16 +263,12 @@ public class LocalExecutor implements Executor {
         } else {
           FileMeta meta = FileSystemManager.getFileMeta(file);
           if (meta == null) {
-            logger.error(
-                "encounter error when get columns of storage unit: "
-                    + file.getAbsolutePath()
-                    + ", meta is null");
             throw new PhysicalException(
-                "encounter error when get columns of storage unit: "
+                "encounter error when getting columns of storage unit: "
                     + file.getAbsolutePath()
                     + ", meta is null");
           }
-          files.add(
+          columns.add(
               new Column(
                   FilePathUtils.convertAbsolutePathToPath(
                       root, file.getAbsolutePath(), storageUnit),
@@ -285,45 +276,38 @@ public class LocalExecutor implements Executor {
                   meta.getTags()));
         }
       } catch (IOException e) {
-        logger.error("encounter error when get columns of storage unit: " + e.getMessage());
+        logger.error("encounter error when getting columns of storage unit: {}", e.getMessage());
         throw new PhysicalException(e.getMessage());
       }
     }
 
-    return files;
+    return columns;
   }
 
   @Override
-  public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String prefix)
+  public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String dataPrefix)
       throws PhysicalException {
-    File directory = new File(FilePathUtils.toNormalFilePath(root, prefix));
+    KeyInterval keyInterval = new KeyInterval(0, Long.MAX_VALUE);
+    ColumnsInterval columnsInterval;
 
-    Pair<File, File> files = FileSystemManager.getBoundaryFiles(directory);
-
-    if (files == null) {
-      throw new PhysicalTaskExecuteFailureException("no data!");
+    File directory = new File(FilePathUtils.toNormalFilePath(root, dataPrefix));
+    if (dataPrefix != null && !dataPrefix.isEmpty()) {
+      columnsInterval = new ColumnsInterval(dataPrefix);
+    } else {
+      Pair<File, File> filePair = FileSystemManager.getBoundaryOfFiles(directory);
+      if (filePair == null) {
+        columnsInterval = new ColumnsInterval(null, null);
+      } else {
+        columnsInterval =
+            new ColumnsInterval(
+                FilePathUtils.convertAbsolutePathToPath(root, filePair.k.getAbsolutePath(), null),
+                FilePathUtils.convertAbsolutePathToPath(root, filePair.v.getAbsolutePath(), null));
+      }
     }
 
-    File minPathFile = files.getK();
-    File maxPathFile = files.getV();
-
-    ColumnsInterval tsInterval = null;
-    if (prefix == null)
-      tsInterval =
-          new ColumnsInterval(
-              FilePathUtils.convertAbsolutePathToPath(root, minPathFile.getAbsolutePath(), null),
-              StringUtils.nextString(
-                  FilePathUtils.convertAbsolutePathToPath(
-                      root, maxPathFile.getAbsolutePath(), null)));
-    else tsInterval = new ColumnsInterval(prefix, StringUtils.nextString(prefix));
-
-    // 对于pb级的文件系统，遍历是不可能的，直接接入
-    Long time = FileSystemManager.getMaxTime(directory);
-    KeyInterval keyInterval = new KeyInterval(0, time == Long.MIN_VALUE ? Long.MAX_VALUE : time);
-
-    return new Pair<>(tsInterval, keyInterval);
+    return new Pair<>(columnsInterval, keyInterval);
   }
 
   @Override
-  public void close() throws PhysicalException {}
+  public void close() {}
 }

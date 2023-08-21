@@ -87,9 +87,9 @@ public class FileSystemWorker implements FileSystemService.Iface {
       logger.error("encounter error when get header from RowStream ", e);
       return new ProjectResp(EXEC_PROJECT_FAIL);
     }
-    FileDataHeader fileDataHeader = new FileDataHeader(names, types, tagsList, hasKey);
+    FSHeader fsHeader = new FSHeader(names, types, tagsList, hasKey);
 
-    List<FileDataRow> fileDataRows = new ArrayList<>();
+    List<FSRow> fsRows = new ArrayList<>();
     try {
       while (rowStream.hasNext()) {
         Row row = rowStream.next();
@@ -100,14 +100,14 @@ public class FileSystemWorker implements FileSystemService.Iface {
             bitmap.mark(j);
           }
         }
-        FileDataRow fileDataRow =
-            new FileDataRow(
+        FSRow fsRow =
+            new FSRow(
                 ByteUtils.getRowByteBuffer(rowValues, dataTypes),
                 ByteBuffer.wrap(bitmap.getBytes()));
         if (hasKey) {
-          fileDataRow.setKey(row.getKey());
+          fsRow.setKey(row.getKey());
         }
-        fileDataRows.add(fileDataRow);
+        fsRows.add(fsRow);
       }
     } catch (PhysicalException e) {
       logger.error("encounter error when get result from RowStream ", e);
@@ -115,27 +115,27 @@ public class FileSystemWorker implements FileSystemService.Iface {
     }
 
     ProjectResp resp = new ProjectResp(SUCCESS);
-    resp.setHeader(fileDataHeader);
-    resp.setRows(fileDataRows);
+    resp.setHeader(fsHeader);
+    resp.setRows(fsRows);
     return resp;
   }
 
   @Override
   public Status executeInsert(InsertReq req) throws TException {
-    FileRawData fileDataRawData = req.getRawData();
-    RawDataType rawDataType = strToRawDataType(fileDataRawData.getRawDataType());
+    FSRawData fsRawData = req.getRawData();
+    RawDataType rawDataType = strToRawDataType(fsRawData.getRawDataType());
     if (rawDataType == null) {
       return EXEC_INSERT_FAIL;
     }
 
-    List<String> paths = fileDataRawData.getPaths();
-    long[] keyArray = ByteUtils.getLongArrayFromByteArray(fileDataRawData.getKeys());
+    List<String> paths = fsRawData.getPaths();
+    long[] keyArray = ByteUtils.getLongArrayFromByteArray(fsRawData.getKeys());
     List<Long> keys = new ArrayList<>();
     Arrays.stream(keyArray).forEach(keys::add);
-    List<ByteBuffer> valueList = fileDataRawData.getValuesList();
-    List<ByteBuffer> bitmapList = fileDataRawData.getBitmapList();
+    List<ByteBuffer> valueList = fsRawData.getValuesList();
+    List<ByteBuffer> bitmapList = fsRawData.getBitmapList();
     List<DataType> types = new ArrayList<>();
-    for (String dataType : fileDataRawData.getDataTypeList()) {
+    for (String dataType : fsRawData.getDataTypeList()) {
       types.add(DataTypeUtils.getDataTypeFromString(dataType));
     }
 
@@ -143,7 +143,7 @@ public class FileSystemWorker implements FileSystemService.Iface {
     Object[] values;
     if (rawDataType == RawDataType.Row || rawDataType == RawDataType.NonAlignedRow) {
       bitmaps =
-          fileDataRawData.getBitmapList().stream()
+          fsRawData.getBitmapList().stream()
               .map(x -> new Bitmap(paths.size(), x.array()))
               .collect(Collectors.toList());
       values = ByteUtils.getRowValuesByDataType(valueList, types, bitmapList);
@@ -156,8 +156,7 @@ public class FileSystemWorker implements FileSystemService.Iface {
     }
 
     RawData rawData =
-        new RawData(
-            paths, fileDataRawData.getTagsList(), keys, values, types, bitmaps, rawDataType);
+        new RawData(paths, fsRawData.getTagsList(), keys, values, types, bitmaps, rawDataType);
 
     DataView dataView;
     if (rawDataType == RawDataType.Row || rawDataType == RawDataType.NonAlignedRow) {
@@ -184,7 +183,7 @@ public class FileSystemWorker implements FileSystemService.Iface {
     List<KeyRange> keyRanges = null;
     if (req.isSetKeyRanges()) {
       keyRanges = new ArrayList<>();
-      for (FileSystemKeyRange range : req.getKeyRanges()) {
+      for (FSKeyRange range : req.getKeyRanges()) {
         keyRanges.add(new KeyRange(range.getBeginKey(), range.getEndKey()));
       }
     }
@@ -200,12 +199,12 @@ public class FileSystemWorker implements FileSystemService.Iface {
 
   @Override
   public GetColumnsOfStorageUnitResp getColumnsOfStorageUnit(String storageUnit) throws TException {
-    List<PathSet> ret = new ArrayList<>();
+    List<FSColumn> ret = new ArrayList<>();
     try {
       List<Column> columns = executor.getColumnsOfStorageUnit(storageUnit);
       columns.forEach(
           column -> {
-            PathSet pathSet = new PathSet(column.getPath(), column.getDataType().toString());
+            FSColumn pathSet = new FSColumn(column.getPath(), column.getDataType().toString());
             if (column.getTags() != null) {
               pathSet.setTags(column.getTags());
             }
@@ -221,10 +220,10 @@ public class FileSystemWorker implements FileSystemService.Iface {
   }
 
   @Override
-  public GetStorageBoundaryResp getBoundaryOfStorage(String prefix) throws TException {
+  public GetBoundaryOfStorageResp getBoundaryOfStorage(String prefix) throws TException {
     try {
       Pair<ColumnsInterval, KeyInterval> pair = executor.getBoundaryOfStorage(prefix);
-      GetStorageBoundaryResp resp = new GetStorageBoundaryResp(SUCCESS);
+      GetBoundaryOfStorageResp resp = new GetBoundaryOfStorageResp(SUCCESS);
       resp.setStartKey(pair.getV().getStartKey());
       resp.setEndKey(pair.getV().getEndKey());
       resp.setStartColumn(pair.getK().getStartColumn());
@@ -232,7 +231,7 @@ public class FileSystemWorker implements FileSystemService.Iface {
       return resp;
     } catch (PhysicalException e) {
       logger.error("encounter error when getBoundaryOfStorage ", e);
-      return new GetStorageBoundaryResp(GET_BOUNDARY_FAIL);
+      return new GetBoundaryOfStorageResp(GET_BOUNDARY_FAIL);
     }
   }
 
