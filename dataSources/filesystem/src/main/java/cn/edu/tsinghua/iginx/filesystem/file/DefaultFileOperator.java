@@ -20,6 +20,8 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
+
 import org.apache.commons.io.input.ReversedLinesFileReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -275,15 +277,16 @@ public class DefaultFileOperator implements IFileOperator {
           tempWriter.write("\n");
         }
       }
+
+      reader.close();
+      tempWriter.close();
+
       if (recordIndex < maxLen) {
         Exception e = appendRecordsToIginxFile(tempFile, records, recordIndex, records.size());
         if (e != null) {
           return e;
         }
       }
-
-      reader.close();
-      tempWriter.close();
 
       return replaceFile(file, tempFile);
     } catch (IOException e) {
@@ -340,7 +343,7 @@ public class DefaultFileOperator implements IFileOperator {
       return -1L;
     }
   }
-
+  private final ReentrantLock lock = new ReentrantLock();
   private Exception replaceFile(File file, File tempFile) {
     if (!tempFile.exists()) {
       return new IOException(
@@ -384,7 +387,7 @@ public class DefaultFileOperator implements IFileOperator {
               break;
             case TAG_KV_INDEX:
               writer.write(
-                  fileMeta.getTags() == null
+                  fileMeta.getTags()==null
                       ? "{}"
                       : new String(JsonUtils.toJson(fileMeta.getTags())));
               break;

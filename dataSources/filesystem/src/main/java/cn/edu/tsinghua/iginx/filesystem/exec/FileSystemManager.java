@@ -49,7 +49,7 @@ public class FileSystemManager {
         // 能直接添加的依据是，keyRange是递增的
         records.addAll(readSingleFile(f, startKey, endKey, isDummy)); // do readFile here
       }
-      if (isDummy) {
+      if (!isDummy) {
         FileMeta fileMeta = fileOperator.getFileMeta(f);
         res.add(new FileSystemResultTable(f, records, fileMeta.getDataType(), fileMeta.getTags()));
       } else {
@@ -87,7 +87,7 @@ public class FileSystemManager {
   }
 
   /** ******************** 写入相关 ******************** */
-  public static Exception writeFiles(
+  public synchronized static Exception writeFiles(
       List<File> files, List<List<Record>> recordsList, List<Map<String, String>> tagsList)
       throws IOException {
     for (int i = 0; i < files.size(); i++) {
@@ -99,7 +99,7 @@ public class FileSystemManager {
     return null;
   }
 
-  private static Exception writeFile(File file, List<Record> records, Map<String, String> tags)
+  private synchronized static Exception writeFile(File file, List<Record> records, Map<String, String> tags)
       throws IOException {
     File f;
     // 判断是否已经创建了对应的文件
@@ -125,7 +125,7 @@ public class FileSystemManager {
     List<File> files = getAssociatedFiles(file);
     for (File f : files) {
       FileMeta fileMeta = fileOperator.getFileMeta(f);
-      if ((tags == null || tags.isEmpty()) && fileMeta.getTags() == null
+      if ((tags == null || tags.isEmpty()) && fileMeta.getTags().isEmpty()
           || Objects.equals(tags, fileMeta.getTags())) {
         return f;
       }
