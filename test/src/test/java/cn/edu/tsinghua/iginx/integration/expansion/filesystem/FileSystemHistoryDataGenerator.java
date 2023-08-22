@@ -41,7 +41,7 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   @Override
   public void clearHistoryDataForGivenPort(int port) {
-    String rootPath = String.format(root, port);
+    String rootPath = "test/" + String.format(root, port);
     try (Stream<Path> walk = Files.walk(Paths.get(rootPath))) {
       walk.sorted(Comparator.reverseOrder()).forEach(this::deleteDirectoryStream);
     } catch (IOException e) {
