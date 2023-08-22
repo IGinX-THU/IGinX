@@ -43,8 +43,8 @@ public class FileSystemManager {
   public FileSystemManager(Map<String, String> params) {
     memoryPool =
         new MemoryPool(
-            Integer.parseInt(params.getOrDefault(INIT_INFO_MEMORYPOOL_SIZE, "1024")),
-            Integer.parseInt(params.getOrDefault(INIT_INFO_CHUNK_SIZE, "100")));
+            Integer.parseInt(params.getOrDefault(INIT_INFO_MEMORYPOOL_SIZE, "100")),
+            Integer.parseInt(params.getOrDefault(INIT_INFO_CHUNK_SIZE, "1024")));
     fileOperator = new DefaultFileOperator();
   }
 

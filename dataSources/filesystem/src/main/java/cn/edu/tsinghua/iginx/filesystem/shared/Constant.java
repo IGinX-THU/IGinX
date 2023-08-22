@@ -32,5 +32,5 @@ public class Constant {
 
   public static final String INIT_INFO_MEMORYPOOL_SIZE = "memory_pool_size";
 
-  public static final String INIT_INFO_CHUNK_SIZE = "chunk_size_MB";
+  public static final String INIT_INFO_CHUNK_SIZE = "chunk_size_mb";
 }
