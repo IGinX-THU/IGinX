@@ -41,11 +41,10 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   @Override
   public void clearHistoryDataForGivenPort(int port) {
-    String rootPath = "test/" + String.format(root, port);
+    String rootPath = String.format(root, port);
     try (Stream<Path> walk = Files.walk(Paths.get(rootPath))) {
       walk.sorted(Comparator.reverseOrder()).forEach(this::deleteDirectoryStream);
     } catch (IOException e) {
-      e.printStackTrace();
       logger.error("delete {} failure", rootPath);
     }
   }
@@ -115,7 +114,7 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   private void deleteDirectoryStream(Path path) {
     try {
-      Files.delete(path);
+      Files.deleteIfExists(path);
     } catch (IOException e) {
       logger.error("delete {} failure", path);
     }

@@ -38,7 +38,7 @@ public class FileSystemHistoryQueryRowStream implements RowStream {
 
   // may fix it ，可能可以不用传pathMap
   public FileSystemHistoryQueryRowStream(
-          List<FileSystemResultTable> result, String root, Filter filter, MemoryPool memoryPool) {
+      List<FileSystemResultTable> result, String root, Filter filter, MemoryPool memoryPool) {
     Field time = Field.KEY;
     List<Field> fields = new ArrayList<>();
 

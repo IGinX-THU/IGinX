@@ -22,7 +22,7 @@ public class Controller {
   private static final Logger logger = LoggerFactory.getLogger(Controller.class);
 
   public static final String CLEAR_DATA_EXCEPTION =
-          "cn.edu.tsinghua.iginx.exceptions.ExecutionException: Caution: can not clear the data of read-only node.";
+      "cn.edu.tsinghua.iginx.exceptions.ExecutionException: Caution: can not clear the data of read-only node.";
 
   public static final String CLEAR_DATA = "CLEAR DATA;";
 
@@ -72,10 +72,10 @@ public class Controller {
 
     // set the task list
     envir.setTestTasks(
-            testConfLoader
-                    .getTaskMap()
-                    .get(DBType.valueOf(testConfLoader.getStorageType().toLowerCase())),
-            TEST_TASK_FILE);
+        testConfLoader
+            .getTaskMap()
+            .get(DBType.valueOf(testConfLoader.getStorageType().toLowerCase())),
+        TEST_TASK_FILE);
     // run the test together
     shellRunner.runShellCommand(MVN_RUN_TEST);
   }

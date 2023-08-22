@@ -19,7 +19,7 @@ public class MemoryPool {
   public int chunkSize;
 
   public MemoryPool() {
-    new MemoryPool(100, 1024*1024);
+    new MemoryPool(100, 1024 * 1024);
   }
 
   public MemoryPool(int capacity, int chunkSize) {

@@ -1,20 +1,21 @@
 package cn.edu.tsinghua.iginx.filesystem.exec;
 
+import static cn.edu.tsinghua.iginx.engine.logical.utils.PathUtils.MAX_CHAR;
+import static cn.edu.tsinghua.iginx.filesystem.shared.Constant.*;
+import static cn.edu.tsinghua.iginx.filesystem.shared.FileType.*;
+
 import cn.edu.tsinghua.iginx.engine.physical.storage.utils.TagKVUtils;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.filesystem.file.DefaultFileOperator;
 import cn.edu.tsinghua.iginx.filesystem.file.IFileOperator;
 import cn.edu.tsinghua.iginx.filesystem.file.entity.FileMeta;
-import cn.edu.tsinghua.iginx.filesystem.shared.FileType;
 import cn.edu.tsinghua.iginx.filesystem.query.entity.FileSystemResultTable;
 import cn.edu.tsinghua.iginx.filesystem.query.entity.Record;
+import cn.edu.tsinghua.iginx.filesystem.shared.FileType;
 import cn.edu.tsinghua.iginx.filesystem.tools.MemoryPool;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
@@ -23,35 +24,34 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
-
-import static cn.edu.tsinghua.iginx.engine.logical.utils.PathUtils.MAX_CHAR;
-import static cn.edu.tsinghua.iginx.filesystem.shared.Constant.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /*
  * 缓存，索引以及优化策略都在这里执行
  */
 public class FileSystemManager {
 
-  private  final Logger logger = LoggerFactory.getLogger(FileSystemManager.class);
+  private final Logger logger = LoggerFactory.getLogger(FileSystemManager.class);
 
-  private  IFileOperator fileOperator;
+  private final IFileOperator fileOperator;
 
-  private MemoryPool memoryPool = null;
+  private final MemoryPool memoryPool;
 
-  private  final Map<String, FileMeta> fileMetaMap = new HashMap<>();
+  private final Map<String, FileMeta> fileMetaMap = new HashMap<>();
 
-  // set the fileSystem type with constructor
   public FileSystemManager(Map<String, String> params) {
-    memoryPool = new MemoryPool(
+    memoryPool =
+        new MemoryPool(
             Integer.parseInt(params.getOrDefault(INIT_INFO_MEMORYPOOL_SIZE, "1024")),
             Integer.parseInt(params.getOrDefault(INIT_INFO_CHUNK_SIZE, "100")));
     fileOperator = new DefaultFileOperator();
   }
 
   /** ******************** 查询相关 ******************** */
-  public  List<FileSystemResultTable> readFile(
-          File file, TagFilter tagFilter, List<KeyRange> keyRanges, boolean isDummy)
-          throws IOException {
+  public List<FileSystemResultTable> readFile(
+      File file, TagFilter tagFilter, List<KeyRange> keyRanges, boolean isDummy)
+      throws IOException {
     List<FileSystemResultTable> res = new ArrayList<>();
     // 首先通过tagFilter和file，找到所有有关的文件列表
     List<File> files = getFilesWithTagFilter(file, tagFilter, isDummy);
@@ -62,10 +62,10 @@ public class FileSystemManager {
         long startKey = keyRange.getActualBeginKey();
         long endKey = keyRange.getActualEndKey();
         // 能直接添加的依据是，keyRange是递增的
-        records.addAll(readSingleFile(f, startKey, endKey, isDummy)); // do readFile here
+        records.addAll(readSingleFile(f, startKey, endKey, isDummy)); // do readSingleFile here
       }
       if (!isDummy) {
-        FileMeta fileMeta = fileOperator.getFileMeta(f);
+        FileMeta fileMeta = getFileMeta(f);
         res.add(new FileSystemResultTable(f, records, fileMeta.getDataType(), fileMeta.getTags()));
       } else {
         res.add(new FileSystemResultTable(f, records, DataType.BINARY, null));
@@ -74,15 +74,15 @@ public class FileSystemManager {
     return res;
   }
 
-  private  List<File> getFilesWithTagFilter(File file, TagFilter tagFilter, boolean isDummy)
-          throws IOException {
+  private List<File> getFilesWithTagFilter(File file, TagFilter tagFilter, boolean isDummy)
+      throws IOException {
     List<File> files = getAssociatedFiles(file);
     List<File> res = new ArrayList<>();
     for (File f : files) {
       if (isDummy) {
         res.add(f);
       } else {
-        FileMeta fileMeta = fileOperator.getFileMeta(f);
+        FileMeta fileMeta = getFileMeta(f);
         if (tagFilter == null || TagKVUtils.match(fileMeta.getTags(), tagFilter)) {
           res.add(f);
         }
@@ -92,13 +92,13 @@ public class FileSystemManager {
   }
 
   // 执行读文件，返回文件内容
-  private  List<Record> readSingleFile(File file, long startKey, long endKey, boolean isDummy)
-          throws IOException {
+  private List<Record> readSingleFile(File file, long startKey, long endKey, boolean isDummy)
+      throws IOException {
     if (!isDummy) {
       return fileOperator.readIginxFile(file, startKey, endKey, CHARSET);
     }
 
-    // 處理dummy查詢
+    // 处理dummy查询
     if (file == null || !file.exists() || !file.isFile()) {
       throw new IllegalArgumentException("Invalid file.");
     }
@@ -132,15 +132,15 @@ public class FileSystemManager {
         byte[] buffer = memoryPool.allocate();
         if (ifNeedMultithread) {
           futures.add(
-                  executorService.submit(
-                          () -> {
-                            fileOperator.readNormalFile(file, finalReadPos, buffer);
-                            res.set(finalIndex,buffer);
-                            return null;
-                          }));
+              executorService.submit(
+                  () -> {
+                    fileOperator.readNormalFile(file, finalReadPos, buffer);
+                    res.set(finalIndex, buffer);
+                    return null;
+                  }));
         } else {
           fileOperator.readNormalFile(file, finalReadPos, buffer);
-          res.set(finalIndex,buffer);
+          res.set(finalIndex, buffer);
         }
         index.getAndIncrement();
         readPos.addAndGet(chunkSize);
@@ -181,9 +181,9 @@ public class FileSystemManager {
   }
 
   /** ******************** 写入相关 ******************** */
-  public synchronized  Exception writeFiles(
-          List<File> files, List<List<Record>> recordsList, List<Map<String, String>> tagsList)
-          throws IOException {
+  public synchronized Exception writeFiles(
+      List<File> files, List<List<Record>> recordsList, List<Map<String, String>> tagsList)
+      throws IOException {
     for (int i = 0; i < files.size(); i++) {
       Exception e = writeFile(files.get(i), recordsList.get(i), tagsList.get(i));
       if (e != null) {
@@ -193,8 +193,8 @@ public class FileSystemManager {
     return null;
   }
 
-  private synchronized  Exception writeFile(File file, List<Record> records, Map<String, String> tags)
-          throws IOException {
+  private synchronized Exception writeFile(
+      File file, List<Record> records, Map<String, String> tags) throws IOException {
     File f;
     // 判断是否已经创建了对应的文件
     File tmpFile = getFileWithTags(file, tags);
@@ -215,28 +215,30 @@ public class FileSystemManager {
    * @return 元数据与 tags 相等的 .iginx 文件,否则返回 null
    * @throws IOException 任何查找或读写操作导致的 IOException 将被传播
    */
-  private  File getFileWithTags(File file, Map<String, String> tags) throws IOException {
+  private File getFileWithTags(File file, Map<String, String> tags) throws IOException {
     List<File> files = getAssociatedFiles(file);
     for (File f : files) {
-      FileMeta fileMeta = fileOperator.getFileMeta(f);
+      FileMeta fileMeta = getFileMeta(f);
       if ((tags == null || tags.isEmpty()) && fileMeta.getTags().isEmpty()
-              || Objects.equals(tags, fileMeta.getTags())) {
+          || Objects.equals(tags, fileMeta.getTags())) {
         return f;
       }
     }
     return null;
   }
 
-  private  synchronized File getFileIDAndCreate(
-          File file, List<Record> records, Map<String, String> tags) throws IOException {
+  private synchronized File getFileIDAndCreate(
+      File file, List<Record> records, Map<String, String> tags) throws IOException {
     // 判断该文件的后缀id
-    File f = determineFileId(file, tags);
+    File f = determineFileId(file);
     // 创建该文件
-    return fileOperator.create(f, new FileMeta(records.get(0).getDataType(), tags));
+    FileMeta fileMeta = new FileMeta(records.get(0).getDataType(), tags);
+    fileMetaMap.put(f.getAbsolutePath(), fileMeta);
+    return fileOperator.create(f, fileMeta);
   }
 
-  private  File determineFileId(File file, Map<String, String> tag) throws IOException {
-    int id = getFileID(file, tag);
+  private File determineFileId(File file) {
+    int id = getFileID(file);
     if (id == -1) {
       id = 0;
     } else {
@@ -247,7 +249,7 @@ public class FileSystemManager {
   }
 
   // 获取文件id，例如 a.iginx5，则其id就是5
-  private  int getFileID(File file, Map<String, String> tag) throws IOException {
+  private int getFileID(File file) {
     List<File> files = getAssociatedFiles(file);
     if (files.isEmpty()) {
       return -1;
@@ -259,7 +261,9 @@ public class FileSystemManager {
       String name = f.getName();
       int idx = name.lastIndexOf(FILE_EXTENSION);
       String numStr = name.substring(idx + FILE_EXTENSION.length());
-      if (numStr.isEmpty()) continue;
+      if (numStr.isEmpty()) {
+        continue;
+      }
       nums.add(Integer.parseInt(numStr));
     }
 
@@ -267,7 +271,7 @@ public class FileSystemManager {
   }
 
   /** ******************** 删除相关 ******************** */
-  public  Exception deleteFile(File file) {
+  public Exception deleteFile(File file) {
     return deleteFiles(Collections.singletonList(file), null);
   }
 
@@ -277,7 +281,7 @@ public class FileSystemManager {
    * @param files 要删除的文件或目录列表
    * @return 如果删除操作失败则抛出异常
    */
-  public  Exception deleteFiles(List<File> files, TagFilter filter) {
+  public Exception deleteFiles(List<File> files, TagFilter filter) {
     List<File> fileList = new ArrayList<>();
     try {
       for (File file : files) {
@@ -285,21 +289,22 @@ public class FileSystemManager {
       }
     } catch (IOException e) {
       logger.error(
-              "delete files {} failure: {}",
-              files.stream().map(File::getAbsolutePath).collect(Collectors.joining(" ")),
-              e.getMessage());
+          "delete files {} failure: {}",
+          files.stream().map(File::getAbsolutePath).collect(Collectors.joining(" ")),
+          e.getMessage());
       return e;
     }
     for (File file : fileList) {
       if (!fileOperator.delete(file)) {
         return new IOException("Failed to delete file: " + file.getAbsolutePath());
       }
+      fileMetaMap.remove(file.getAbsolutePath());
     }
     return null;
   }
 
-  public  Exception trimFilesContent(
-          List<File> files, TagFilter tagFilter, long startKey, long endKey) throws IOException {
+  public Exception trimFilesContent(
+      List<File> files, TagFilter tagFilter, long startKey, long endKey) throws IOException {
     for (File file : files) {
       List<File> fileList = getFilesWithTagFilter(file, tagFilter, false);
       if (fileList.isEmpty()) {
@@ -317,7 +322,7 @@ public class FileSystemManager {
   }
 
   // 返回和file文件相关的所有文件
-  private  List<File> getAssociatedFiles(File file) {
+  private List<File> getAssociatedFiles(File file) {
     List<File> fileList;
     Stack<File> S = new Stack<>();
     Set<File> res = new HashSet<>();
@@ -327,7 +332,7 @@ public class FileSystemManager {
     if (file.getParentFile().getName().equals(WILDCARD) && file.getName().contains(WILDCARD)) {
       root = file.getParentFile().getParentFile(); // storage unit file
     } else if (file.getParentFile().getName().equals(WILDCARD)
-            && !file.getName().contains(WILDCARD)) {
+        && !file.getName().contains(WILDCARD)) {
       File tmp = file.getParentFile();
       while (tmp.getName().equals(WILDCARD)) {
         tmp = tmp.getParentFile();
@@ -369,7 +374,7 @@ public class FileSystemManager {
     return fileList;
   }
 
-  public  List<File> getAllFilesWithoutDir(File dir) {
+  public List<File> getAllFilesWithoutDir(File dir) {
     List<File> res = new ArrayList<>();
     Stack<File> stack = new Stack<>();
     stack.push(dir);
@@ -400,15 +405,23 @@ public class FileSystemManager {
     Arrays.sort(files);
     File minFile = files[0];
     File maxFile =
-            new File(
-                    Paths.get(files[files.length - 1].getAbsolutePath(), String.valueOf(MAX_CHAR))
-                            .toString());
+        new File(
+            Paths.get(files[files.length - 1].getAbsolutePath(), String.valueOf(MAX_CHAR))
+                .toString());
     return new Pair<>(minFile, maxFile);
   }
 
-  public  FileMeta getFileMeta(File file) {
+  public FileMeta getFileMeta(File file) {
     try {
-      return fileOperator.getFileMeta(file);
+      FileMeta fileMeta;
+      String filePath = file.getAbsolutePath();
+      if (fileMetaMap.containsKey(filePath)) {
+        fileMeta = fileMetaMap.get(filePath);
+      } else {
+        fileMeta = fileOperator.getFileMeta(file);
+        fileMetaMap.put(filePath, fileMeta);
+      }
+      return fileMeta;
     } catch (IOException e) {
       logger.error(e.getMessage());
     }
@@ -416,12 +429,14 @@ public class FileSystemManager {
   }
 
   public FileType getFileType(File file) {
-    try {
-      return fileOperator.getFileType(file);
-    } catch (IOException e) {
-      logger.error(e.getMessage());
+    if (file.isDirectory()) {
+      return DIR;
     }
-    return null;
+    FileMeta fileMeta = getFileMeta(file);
+    if (Arrays.equals(fileMeta.getMagicNumber(), MAGIC_NUMBER)) {
+      return IGINX_FILE;
+    }
+    return NORMAL_FILE;
   }
 
   /** ******************** 资源控制 ******************** */

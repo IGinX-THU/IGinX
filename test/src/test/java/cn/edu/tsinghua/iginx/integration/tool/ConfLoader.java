@@ -1,6 +1,5 @@
 package cn.edu.tsinghua.iginx.integration.tool;
 
-import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.utils.FileReader;
 import java.io.IOException;
 import java.io.InputStream;

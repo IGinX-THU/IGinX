@@ -1,27 +1,25 @@
 package cn.edu.tsinghua.iginx.filesystem.file;
 
+import static cn.edu.tsinghua.iginx.filesystem.shared.Constant.*;
+import static cn.edu.tsinghua.iginx.filesystem.shared.Constant.MAGIC_NUMBER;
+import static cn.edu.tsinghua.iginx.filesystem.shared.FileType.*;
+import static cn.edu.tsinghua.iginx.utils.DataTypeUtils.transformObjectToStringByDataType;
+import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
+
 import cn.edu.tsinghua.iginx.filesystem.file.entity.FileMeta;
 import cn.edu.tsinghua.iginx.filesystem.query.entity.Record;
-import cn.edu.tsinghua.iginx.filesystem.shared.FileType;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.DataTypeUtils;
 import cn.edu.tsinghua.iginx.utils.JsonUtils;
-import org.apache.commons.io.input.ReversedLinesFileReader;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.*;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
-
-import static cn.edu.tsinghua.iginx.filesystem.shared.Constant.MAGIC_NUMBER;
-import static cn.edu.tsinghua.iginx.filesystem.shared.Constant.*;
-import static cn.edu.tsinghua.iginx.filesystem.shared.FileType.*;
-import static cn.edu.tsinghua.iginx.utils.DataTypeUtils.transformObjectToStringByDataType;
-import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
+import org.apache.commons.io.input.ReversedLinesFileReader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DefaultFileOperator implements IFileOperator {
 
@@ -53,15 +51,14 @@ public class DefaultFileOperator implements IFileOperator {
       }
       return buffer;
     } catch (IOException e) {
-      logger.error(
-              "readBatch fail because {} with readPos:{} ", e.getMessage(), readPos);
+      logger.error("readBatch fail because {} with readPos:{} ", e.getMessage(), readPos);
       throw new IOException(e);
     }
   }
 
   @Override
   public List<Record> readIginxFile(File file, long startKey, long endKey, Charset charset)
-          throws IOException {
+      throws IOException {
     Map<String, String> fileInfo = readIginxMetaInfo(file);
     List<Record> res = new ArrayList<>();
     long key;
@@ -71,7 +68,7 @@ public class DefaultFileOperator implements IFileOperator {
     }
     if (startKey < 0 || endKey < 0 || (startKey > endKey)) {
       throw new IllegalArgumentException(
-              "Read information outside the boundary with BEGIN " + startKey + " and END " + endKey);
+          "Read information outside the boundary with BEGIN " + startKey + " and END " + endKey);
     }
 
     try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
@@ -87,10 +84,10 @@ public class DefaultFileOperator implements IFileOperator {
         if (key >= startKey && key <= endKey) {
           DataType dataType = DataType.findByValue(Integer.parseInt(fileInfo.get(DATA_TYPE_NAME)));
           res.add(
-                  new Record(
-                          Long.parseLong(kv[0]),
-                          dataType,
-                          DataTypeUtils.parseStringByDataType(kv[1], dataType)));
+              new Record(
+                  Long.parseLong(kv[0]),
+                  dataType,
+                  DataTypeUtils.parseStringByDataType(kv[1], dataType)));
         }
       }
     }
@@ -221,15 +218,15 @@ public class DefaultFileOperator implements IFileOperator {
       return null;
     } catch (IOException e) {
       logger.error(
-              "append records to iginx file {} failure: {}", file.getAbsolutePath(), e.getMessage());
+          "append records to iginx file {} failure: {}", file.getAbsolutePath(), e.getMessage());
       return e;
     }
   }
 
   private String recordToString(Record record) {
     return record.getKey()
-            + ","
-            + transformObjectToStringByDataType(record.getRawData(), record.getDataType());
+        + ","
+        + transformObjectToStringByDataType(record.getRawData(), record.getDataType());
   }
 
   // return -1表示空
@@ -239,7 +236,7 @@ public class DefaultFileOperator implements IFileOperator {
       return Long.parseLong(lastLine.split(",", 2)[0]);
     } catch (IOException e) {
       logger.error(
-              "get max key of iginx file {} failure: {}", file.getAbsolutePath(), e.getMessage());
+          "get max key of iginx file {} failure: {}", file.getAbsolutePath(), e.getMessage());
       return -1L;
     }
   }
@@ -247,21 +244,21 @@ public class DefaultFileOperator implements IFileOperator {
   private Exception replaceFile(File file, File tempFile) {
     if (!tempFile.exists()) {
       return new IOException(
-              String.format("Temp file %s does not exist.", tempFile.getAbsoluteFile()));
+          String.format("Temp file %s does not exist.", tempFile.getAbsoluteFile()));
     }
     if (!file.exists()) {
       return new IOException(
-              String.format("Original file %s does not exist.", file.getAbsoluteFile()));
+          String.format("Original file %s does not exist.", file.getAbsoluteFile()));
     }
     try {
       Files.move(tempFile.toPath(), file.toPath(), REPLACE_EXISTING);
       return null;
     } catch (IOException e) {
       logger.error(
-              "replace file from {} to {} failure: {}",
-              tempFile.getAbsolutePath(),
-              file.getAbsoluteFile(),
-              e.getMessage());
+          "replace file from {} to {} failure: {}",
+          tempFile.getAbsolutePath(),
+          file.getAbsoluteFile(),
+          e.getMessage());
       return e;
     }
   }
@@ -276,25 +273,22 @@ public class DefaultFileOperator implements IFileOperator {
       } else {
         return file;
       }
-      try (BufferedWriter writer = new BufferedWriter(new FileWriter(csvPath.toFile()))) {
-        for (int i = 1; i <= IGINX_FILE_META_INDEX; i++) {
-          switch (i) {
-            case MAGIC_NUMBER_INDEX:
-              writer.write(new String(MAGIC_NUMBER));
-              break;
-            case DATA_TYPE_INDEX:
-              writer.write(String.valueOf(fileMeta.getDataType().getValue()));
-              break;
-            case TAG_KV_INDEX:
-              writer.write(
-                      fileMeta.getTags() == null
-                              ? "{}"
-                              : new String(JsonUtils.toJson(fileMeta.getTags())));
-              break;
-          }
-          writer.write("\n");
+      BufferedWriter writer = new BufferedWriter(new FileWriter(csvPath.toFile()));
+      for (int i = 1; i <= IGINX_FILE_META_INDEX; i++) {
+        switch (i) {
+          case MAGIC_NUMBER_INDEX:
+            writer.write(new String(MAGIC_NUMBER));
+            break;
+          case DATA_TYPE_INDEX:
+            writer.write(String.valueOf(fileMeta.getDataType().getValue()));
+            break;
+          case TAG_KV_INDEX:
+            writer.write(new String(JsonUtils.toJson(fileMeta.getTags())));
+            break;
         }
+        writer.write("\n");
       }
+      writer.close();
     } catch (IOException e) {
       throw new IOException("Cannot create file: " + file.getAbsolutePath());
     }
@@ -389,22 +383,6 @@ public class DefaultFileOperator implements IFileOperator {
       throw new IOException("Cannot get file meta : " + file.getAbsolutePath());
     }
     return fileMeta;
-  }
-
-  @Override
-  public FileType getFileType(File file) throws IOException {
-    if (file.isDirectory()) {
-      return DIR;
-    }
-    if (ifMatchMagicNumber(file)) {
-      return IGINX_FILE;
-    }
-    return NORMAL_FILE;
-  }
-
-  private boolean ifMatchMagicNumber(File file) throws IOException {
-    FileMeta fileMeta = getFileMeta(file);
-    return Arrays.equals(fileMeta.getMagicNumber(), MAGIC_NUMBER);
   }
 
   @Override

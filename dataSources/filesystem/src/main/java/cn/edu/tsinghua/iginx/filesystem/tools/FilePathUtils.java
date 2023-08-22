@@ -18,10 +18,13 @@ public class FilePathUtils {
       return root + storageUnit + SEPARATOR + WILDCARD;
     }
     String middlePath = path.substring(0, path.lastIndexOf("."));
-    return root +
-            storageUnit + SEPARATOR +
-            middlePath.replace(".", SEPARATOR) + SEPARATOR +
-            path.substring(path.lastIndexOf(".") + 1) + FILE_EXTENSION;
+    return root
+        + storageUnit
+        + SEPARATOR
+        + middlePath.replace(".", SEPARATOR)
+        + SEPARATOR
+        + path.substring(path.lastIndexOf(".") + 1)
+        + FILE_EXTENSION;
   }
 
   public static String toNormalFilePath(String root, String path) {

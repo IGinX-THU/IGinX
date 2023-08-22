@@ -5,17 +5,20 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class FileMeta {
+
   private byte[] magicNumber;
+
   private DataType dataType;
+
   private Map<String, String> tags = new HashMap<>();
 
-  public FileMeta() {
-    this.dataType = null;
-  }
+  public FileMeta() {}
 
-  public FileMeta(DataType dataType, Map<String, String> tag) {
+  public FileMeta(DataType dataType, Map<String, String> tags) {
     this.dataType = dataType;
-    this.tags = tag;
+    if (tags != null) {
+      this.tags = tags;
+    }
   }
 
   public DataType getDataType() {

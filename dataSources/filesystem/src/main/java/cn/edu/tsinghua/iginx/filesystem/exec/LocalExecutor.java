@@ -1,8 +1,8 @@
 package cn.edu.tsinghua.iginx.filesystem.exec;
 
 import static cn.edu.tsinghua.iginx.engine.logical.utils.ExprUtils.getKeyRangesFromFilter;
-import static cn.edu.tsinghua.iginx.filesystem.shared.Constant.WILDCARD;
 import static cn.edu.tsinghua.iginx.filesystem.shared.Constant.SEPARATOR;
+import static cn.edu.tsinghua.iginx.filesystem.shared.Constant.WILDCARD;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
@@ -16,13 +16,13 @@ import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.RowDataView;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
-import cn.edu.tsinghua.iginx.filesystem.shared.Constant;
 import cn.edu.tsinghua.iginx.filesystem.file.entity.FileMeta;
-import cn.edu.tsinghua.iginx.filesystem.shared.FileType;
 import cn.edu.tsinghua.iginx.filesystem.query.entity.FileSystemHistoryQueryRowStream;
 import cn.edu.tsinghua.iginx.filesystem.query.entity.FileSystemQueryRowStream;
 import cn.edu.tsinghua.iginx.filesystem.query.entity.FileSystemResultTable;
 import cn.edu.tsinghua.iginx.filesystem.query.entity.Record;
+import cn.edu.tsinghua.iginx.filesystem.shared.Constant;
+import cn.edu.tsinghua.iginx.filesystem.shared.FileType;
 import cn.edu.tsinghua.iginx.filesystem.tools.FilePathUtils;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
@@ -39,13 +39,12 @@ import org.slf4j.LoggerFactory;
 public class LocalExecutor implements Executor {
 
   private static final Logger logger = LoggerFactory.getLogger(LocalExecutor.class);
-  private String root;
-  private boolean hasData;
-  private FileSystemManager fileSystemManager;
 
-  public LocalExecutor() {
-    this(false, null);
-  }
+  private String root;
+
+  private boolean hasData;
+
+  private FileSystemManager fileSystemManager;
 
   public LocalExecutor(boolean hasData, Map<String, String> extraParams) {
     String path = extraParams.getOrDefault(Constant.INIT_INFO_DIR, "/path/to/your/filesystem");
@@ -61,11 +60,11 @@ public class LocalExecutor implements Executor {
 
   @Override
   public TaskExecuteResult executeProjectTask(
-          List<String> paths,
-          TagFilter tagFilter,
-          Filter filter,
-          String storageUnit,
-          boolean isDummyStorageUnit) {
+      List<String> paths,
+      TagFilter tagFilter,
+      Filter filter,
+      String storageUnit,
+      boolean isDummyStorageUnit) {
     if (isDummyStorageUnit) {
       if (tagFilter != null) {
         logger.error("dummy storage query should not contain tag filter");
@@ -77,30 +76,31 @@ public class LocalExecutor implements Executor {
   }
 
   public TaskExecuteResult executeQueryTask(
-          String storageUnit, List<String> paths, TagFilter tagFilter, Filter filter) {
+      String storageUnit, List<String> paths, TagFilter tagFilter, Filter filter) {
     try {
       List<FileSystemResultTable> result = new ArrayList<>();
       logger.info("[Query] execute query file: {}", paths);
       List<KeyRange> keyRanges = getKeyRangesFromFilter(filter);
       for (String path : paths) {
         result.addAll(
-                fileSystemManager.readFile(
-                        new File(FilePathUtils.toIginxPath(root, storageUnit, path)),
-                        tagFilter,
-                        keyRanges,
-                        false));
+            fileSystemManager.readFile(
+                new File(FilePathUtils.toIginxPath(root, storageUnit, path)),
+                tagFilter,
+                keyRanges,
+                false));
       }
       RowStream rowStream = new FileSystemQueryRowStream(result, storageUnit, root, filter);
       return new TaskExecuteResult(rowStream);
     } catch (Exception e) {
       logger.error(
-              "read file error, storageUnit {}, paths({}), tagFilter({}), filter({})",
-              storageUnit,
-              paths,
-              tagFilter,
-              filter);
+          "read file error, storageUnit {}, paths({}), tagFilter({}), filter({})",
+          storageUnit,
+          paths,
+          tagFilter,
+          filter);
+      e.printStackTrace();
       return new TaskExecuteResult(
-              new PhysicalTaskExecuteFailureException("execute project task in fileSystem failure", e));
+          new PhysicalTaskExecuteFailureException("execute project task in fileSystem failure", e));
     }
   }
 
@@ -111,16 +111,18 @@ public class LocalExecutor implements Executor {
       List<KeyRange> keyRanges = getKeyRangesFromFilter(filter);
       for (String path : paths) {
         result.addAll(
-                fileSystemManager.readFile(
-                        new File(FilePathUtils.toNormalFilePath(root, path)), null, keyRanges, true));
+            fileSystemManager.readFile(
+                new File(FilePathUtils.toNormalFilePath(root, path)), null, keyRanges, true));
       }
-      RowStream rowStream = new FileSystemHistoryQueryRowStream(result, root, filter, fileSystemManager.getMemoryPool());
+      RowStream rowStream =
+          new FileSystemHistoryQueryRowStream(
+              result, root, filter, fileSystemManager.getMemoryPool());
       return new TaskExecuteResult(rowStream);
     } catch (Exception e) {
       logger.error("read file error, paths {} filter {}", paths, filter);
       return new TaskExecuteResult(
-              new PhysicalTaskExecuteFailureException(
-                      "execute dummy project task in fileSystem failure", e));
+          new PhysicalTaskExecuteFailureException(
+              "execute dummy project task in fileSystem failure", e));
     }
   }
 
@@ -139,7 +141,7 @@ public class LocalExecutor implements Executor {
     }
     if (e != null) {
       return new TaskExecuteResult(
-              null, new PhysicalException("execute insert task in fileSystem failure", e));
+          null, new PhysicalException("execute insert task in fileSystem failure", e));
     }
     return new TaskExecuteResult(null, null);
   }
@@ -207,22 +209,22 @@ public class LocalExecutor implements Executor {
       return fileSystemManager.writeFiles(fileList, recordsList, tagsList);
     } catch (Exception e) {
       logger.error(
-              "encounter error when inserting column records to fileSystem: {}", e.getMessage());
+          "encounter error when inserting column records to fileSystem: {}", e.getMessage());
     }
     return null;
   }
 
   @Override
   public TaskExecuteResult executeDeleteTask(
-          List<String> paths, List<KeyRange> keyRanges, TagFilter tagFilter, String storageUnit) {
+      List<String> paths, List<KeyRange> keyRanges, TagFilter tagFilter, String storageUnit) {
     Exception exception = null;
     List<File> fileList = new ArrayList<>();
     if (keyRanges == null || keyRanges.isEmpty()) {
       if (paths.size() == 1 && paths.get(0).equals(WILDCARD) && tagFilter == null) {
         try {
           exception =
-                  fileSystemManager.deleteFile(
-                          new File(FilePathUtils.toIginxPath(root, storageUnit, null)));
+              fileSystemManager.deleteFile(
+                  new File(FilePathUtils.toIginxPath(root, storageUnit, null)));
         } catch (Exception e) {
           logger.error("encounter error when clearing data: {}", e.getMessage());
           exception = e;
@@ -246,8 +248,8 @@ public class LocalExecutor implements Executor {
           }
           for (KeyRange keyRange : keyRanges) {
             exception =
-                    fileSystemManager.trimFilesContent(
-                            fileList, tagFilter, keyRange.getActualBeginKey(), keyRange.getActualEndKey());
+                fileSystemManager.trimFilesContent(
+                    fileList, tagFilter, keyRange.getActualBeginKey(), keyRange.getActualEndKey());
           }
         }
       } catch (IOException e) {
@@ -268,25 +270,23 @@ public class LocalExecutor implements Executor {
       // 如果加入该Storage时有数据，才读取该文件夹下的文件
       if (hasData && fileSystemManager.getFileType(file).equals(FileType.NORMAL_FILE)) {
         columns.add(
-                new Column(
-                        FilePathUtils.convertAbsolutePathToPath(
-                                root, file.getAbsolutePath(), storageUnit),
-                        DataType.BINARY,
-                        null));
+            new Column(
+                FilePathUtils.convertAbsolutePathToPath(root, file.getAbsolutePath(), storageUnit),
+                DataType.BINARY,
+                null));
       } else {
         FileMeta meta = fileSystemManager.getFileMeta(file);
         if (meta == null) {
           throw new PhysicalException(
-                  "encounter error when getting columns of storage unit: "
-                          + file.getAbsolutePath()
-                          + ", meta is null");
+              "encounter error when getting columns of storage unit: "
+                  + file.getAbsolutePath()
+                  + ", meta is null");
         }
         columns.add(
-                new Column(
-                        FilePathUtils.convertAbsolutePathToPath(
-                                root, file.getAbsolutePath(), storageUnit),
-                        meta.getDataType(),
-                        meta.getTags()));
+            new Column(
+                FilePathUtils.convertAbsolutePathToPath(root, file.getAbsolutePath(), storageUnit),
+                meta.getDataType(),
+                meta.getTags()));
       }
     }
 
@@ -295,7 +295,7 @@ public class LocalExecutor implements Executor {
 
   @Override
   public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String dataPrefix)
-          throws PhysicalException {
+      throws PhysicalException {
     KeyInterval keyInterval = new KeyInterval(0, Long.MAX_VALUE);
     ColumnsInterval columnsInterval;
 
@@ -308,9 +308,9 @@ public class LocalExecutor implements Executor {
         columnsInterval = new ColumnsInterval(null, null);
       } else {
         columnsInterval =
-                new ColumnsInterval(
-                        FilePathUtils.convertAbsolutePathToPath(root, filePair.k.getAbsolutePath(), null),
-                        FilePathUtils.convertAbsolutePathToPath(root, filePair.v.getAbsolutePath(), null));
+            new ColumnsInterval(
+                FilePathUtils.convertAbsolutePathToPath(root, filePair.k.getAbsolutePath(), null),
+                FilePathUtils.convertAbsolutePathToPath(root, filePair.v.getAbsolutePath(), null));
       }
     }
 
