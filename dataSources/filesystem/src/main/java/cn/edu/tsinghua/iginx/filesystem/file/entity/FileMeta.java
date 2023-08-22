@@ -1,14 +1,14 @@
 package cn.edu.tsinghua.iginx.filesystem.file.entity;
 
+import static cn.edu.tsinghua.iginx.filesystem.shared.Constant.MAGIC_NUMBER;
+
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.HashMap;
 import java.util.Map;
 
-import static cn.edu.tsinghua.iginx.filesystem.shared.Constant.MAGIC_NUMBER;
-
 public class FileMeta {
 
-  private byte[] magicNumber;
+  private byte[] magicNumber = MAGIC_NUMBER;
 
   private DataType dataType;
 
@@ -17,7 +17,6 @@ public class FileMeta {
   public FileMeta() {}
 
   public FileMeta(DataType dataType, Map<String, String> tags) {
-    this.magicNumber = MAGIC_NUMBER;
     this.dataType = dataType;
     if (tags != null) {
       this.tags = tags;
