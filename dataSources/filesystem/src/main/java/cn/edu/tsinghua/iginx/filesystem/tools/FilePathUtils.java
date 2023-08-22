@@ -1,6 +1,6 @@
 package cn.edu.tsinghua.iginx.filesystem.tools;
 
-import static cn.edu.tsinghua.iginx.filesystem.constant.Constant.*;
+import static cn.edu.tsinghua.iginx.filesystem.shared.Constant.*;
 
 import java.nio.file.Paths;
 
@@ -12,18 +12,16 @@ public class FilePathUtils {
     }
     // 之后根据规则修改获取文件名的方法， may fix it
     if (path == null) {
-      return Paths.get(root, storageUnit).toString();
+      return root + storageUnit;
     }
     if (path.equals(WILDCARD)) {
-      return Paths.get(root, storageUnit, WILDCARD).toString();
+      return root + storageUnit + SEPARATOR + WILDCARD;
     }
     String middlePath = path.substring(0, path.lastIndexOf("."));
-    return Paths.get(
-            root,
-            storageUnit,
-            middlePath.replace(".", SEPARATOR),
-            path.substring(path.lastIndexOf(".") + 1) + FILE_EXTENSION)
-        .toString();
+    return root +
+            storageUnit + SEPARATOR +
+            middlePath.replace(".", SEPARATOR) + SEPARATOR +
+            path.substring(path.lastIndexOf(".") + 1) + FILE_EXTENSION;
   }
 
   public static String toNormalFilePath(String root, String path) {

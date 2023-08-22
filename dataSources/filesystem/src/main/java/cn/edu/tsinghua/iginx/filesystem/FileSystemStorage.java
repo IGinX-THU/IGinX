@@ -18,7 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.filesystem;
 
-import static cn.edu.tsinghua.iginx.filesystem.constant.Constant.SEPARATOR;
+import static cn.edu.tsinghua.iginx.filesystem.shared.Constant.WILDCARD;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
@@ -39,7 +39,7 @@ import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.utils.Pair;
-import java.io.File;
+
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
@@ -90,14 +90,7 @@ public class FileSystemStorage implements IStorage {
   }
 
   private void initLocalExecutor(StorageEngineMeta meta) {
-    String path = meta.getExtraParams().getOrDefault("dir", "/path/to/your/filesystem");
-    File file = new File(path);
-    if (file.isFile()) {
-      logger.error("invalid directory: {}", file.getAbsolutePath());
-      return;
-    }
-    String root = file.getAbsolutePath() + SEPARATOR;
-    executor = new LocalExecutor(root, meta.isHasData());
+    executor = new LocalExecutor(meta.isHasData(), meta.getExtraParams());
     executorService.submit(new Thread(new FileSystemServer(meta.getPort(), executor)));
   }
 
@@ -174,7 +167,7 @@ public class FileSystemStorage implements IStorage {
 
   @Override
   public List<Column> getColumns() throws PhysicalException {
-    return executor.getColumnsOfStorageUnit("*");
+    return executor.getColumnsOfStorageUnit(WILDCARD);
   }
 
   @Override

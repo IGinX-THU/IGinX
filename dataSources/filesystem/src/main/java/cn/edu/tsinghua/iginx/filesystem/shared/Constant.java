@@ -1,4 +1,4 @@
-package cn.edu.tsinghua.iginx.filesystem.constant;
+package cn.edu.tsinghua.iginx.filesystem.shared;
 
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -28,5 +28,9 @@ public class Constant {
 
   public static final Charset CHARSET = StandardCharsets.UTF_8;
 
-  public static final int BLOCK_SIZE = 1024 * 1024;
+  public static final String INIT_INFO_DIR = "dir";
+
+  public static final String INIT_INFO_MEMORYPOOL_SIZE = "memory_pool_size";
+
+  public static final String INIT_INFO_CHUNK_SIZE = "chunk_size_MB";
 }

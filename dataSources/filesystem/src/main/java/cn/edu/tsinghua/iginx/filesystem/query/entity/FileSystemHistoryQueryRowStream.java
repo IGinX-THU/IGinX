@@ -21,6 +21,7 @@ public class FileSystemHistoryQueryRowStream implements RowStream {
   private int hasMoreRecords = 0;
   private Filter filter;
   private Row nextRow = null;
+  private MemoryPool memoryPool = null;
 
   public FileSystemHistoryQueryRowStream() {
     Field time = Field.KEY;
@@ -37,12 +38,13 @@ public class FileSystemHistoryQueryRowStream implements RowStream {
 
   // may fix it ，可能可以不用传pathMap
   public FileSystemHistoryQueryRowStream(
-      List<FileSystemResultTable> result, String root, Filter filter) {
+          List<FileSystemResultTable> result, String root, Filter filter, MemoryPool memoryPool) {
     Field time = Field.KEY;
     List<Field> fields = new ArrayList<>();
 
     this.filter = filter;
     this.rowData = result;
+    this.memoryPool = memoryPool;
 
     String series;
     for (FileSystemResultTable resultTable : rowData) {
@@ -71,7 +73,7 @@ public class FileSystemHistoryQueryRowStream implements RowStream {
     for (FileSystemResultTable table : rowData) {
       List<Record> records = table.getRecords();
       for (Record record : records) {
-        MemoryPool.getInstance().release((byte[]) record.getRawData());
+        memoryPool.release((byte[]) record.getRawData());
       }
     }
   }

@@ -26,8 +26,6 @@ public class ConfLoader {
 
   private static List<String> storageEngines = new ArrayList<>();
 
-  private List<StorageEngineMeta> storageEngineMetas = new ArrayList<>();
-
   private Map<DBType, List<String>> taskMap = new HashMap<>();
 
   private static String confPath;
@@ -66,34 +64,6 @@ public class ConfLoader {
       return;
     }
     storageEngines = Arrays.asList(property.split(","));
-
-    // load the storageEngine
-    for (String storageEngine : storageEngines) {
-      String storageEngineInfo = properties.getProperty(storageEngine);
-      logInfo("load the info of {} : {}", storageEngine, storageEngineInfo);
-      String[] storageEngineParts = storageEngineInfo.split("#");
-      String ip = storageEngineParts[0];
-      int port = -1;
-      if (!storageEngineParts[1].equals("")) {
-        port = Integer.parseInt(storageEngineParts[1]);
-      }
-      Map<String, String> extraParams = new HashMap<>();
-      String[] KAndV;
-      for (int j = 3; j < storageEngineParts.length; j++) {
-        if (storageEngineParts[j].contains("\"")) {
-          KAndV = storageEngineParts[j].split("\"");
-          extraParams.put(KAndV[0].substring(0, KAndV[0].length() - 1), KAndV[1]);
-        } else {
-          KAndV = storageEngineParts[j].split("=");
-          if (KAndV.length != 2) {
-            logger.error("unexpected storage engine meta info: " + storageEngineInfo);
-            continue;
-          }
-          extraParams.put(KAndV[0], KAndV[1]);
-        }
-      }
-      storageEngineMetas.add(new StorageEngineMeta(-1, ip, port, extraParams, storageEngine, -1));
-    }
 
     // load the task list
     for (String storageEngine : storageEngines) {
@@ -150,9 +120,5 @@ public class ConfLoader {
 
   public Map<DBType, List<String>> getTaskMap() {
     return taskMap;
-  }
-
-  public List<StorageEngineMeta> getStorageEngineMetas() {
-    return storageEngineMetas;
   }
 }

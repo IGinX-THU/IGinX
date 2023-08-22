@@ -22,7 +22,7 @@ public class Controller {
   private static final Logger logger = LoggerFactory.getLogger(Controller.class);
 
   public static final String CLEAR_DATA_EXCEPTION =
-      "cn.edu.tsinghua.iginx.exceptions.ExecutionException: Caution: can not clear the data of read-only node.";
+          "cn.edu.tsinghua.iginx.exceptions.ExecutionException: Caution: can not clear the data of read-only node.";
 
   public static final String CLEAR_DATA = "CLEAR DATA;";
 
@@ -66,32 +66,16 @@ public class Controller {
     // load the test conf
     ConfLoader testConfLoader = new ConfLoader(CONFIG_FILE);
     testConfLoader.loadTestConf();
-    storageEngineMetas = testConfLoader.getStorageEngineMetas();
 
     ShellRunner shellRunner = new ShellRunner();
     TestEnvironmentController envir = new TestEnvironmentController();
 
-    // ori plan
-    //        // skip this when support remove Engine
-    //        shellRunner.runShellCommand(MVNRUNTEST);
-    //        // for each storage , run the test
-    //        for (StorageEngineMeta storageEngineMeta : storageEngineMetas) {
-    //            // add the storage engine
-    //            envir.addStorageEngine(storageEngineMeta);
-    //            // set the task list
-    //
-    // envir.setTestTasks(testConfLoader.getTaskMap().get(storageEngineMeta.getStorageEngine()),
-    // FILEPATH);
-    //            // run the test together
-    //            shellRunner.runShellCommand(MVNRUNTEST);
-    //        }
-
     // set the task list
     envir.setTestTasks(
-        testConfLoader
-            .getTaskMap()
-            .get(DBType.valueOf(testConfLoader.getStorageType().toLowerCase())),
-        TEST_TASK_FILE);
+            testConfLoader
+                    .getTaskMap()
+                    .get(DBType.valueOf(testConfLoader.getStorageType().toLowerCase())),
+            TEST_TASK_FILE);
     // run the test together
     shellRunner.runShellCommand(MVN_RUN_TEST);
   }

@@ -1,7 +1,5 @@
 package cn.edu.tsinghua.iginx.filesystem.tools;
 
-import static cn.edu.tsinghua.iginx.filesystem.constant.Constant.BLOCK_SIZE;
-
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -10,30 +8,26 @@ import org.slf4j.LoggerFactory;
 
 public class MemoryPool {
 
-  private static final Logger logger = LoggerFactory.getLogger(MemoryPool.class);
+  private final Logger logger = LoggerFactory.getLogger(MemoryPool.class);
 
-  private static final Queue<byte[]> freeBlocks = new ConcurrentLinkedQueue<>();
+  private final Queue<byte[]> freeBlocks = new ConcurrentLinkedQueue<>();
 
-  private static final AtomicInteger numberOfBlocks = new AtomicInteger(100);
+  private AtomicInteger numberOfBlocks;
 
-  private static final int maxNumberOfBlocks = 100;
+  private int maxNumberOfBlocks;
 
-  private static MemoryPool INSTANCE = null;
-
-  public static MemoryPool getInstance() {
-    if (INSTANCE == null) {
-      synchronized (MemoryPool.class) {
-        if (INSTANCE == null) {
-          INSTANCE = new MemoryPool();
-        }
-      }
-    }
-    return INSTANCE;
-  }
+  public int chunkSize;
 
   public MemoryPool() {
+    new MemoryPool(100, 1024*1024);
+  }
+
+  public MemoryPool(int capacity, int chunkSize) {
+    this.maxNumberOfBlocks = capacity;
+    this.chunkSize = chunkSize;
+    this.numberOfBlocks = new AtomicInteger(maxNumberOfBlocks);
     for (int i = 0; i < maxNumberOfBlocks; i++) {
-      freeBlocks.add(new byte[BLOCK_SIZE]);
+      freeBlocks.add(new byte[chunkSize]);
     }
   }
 
@@ -41,7 +35,7 @@ public class MemoryPool {
     byte[] buffer = freeBlocks.poll();
     if (buffer == null) {
       logger.warn("Out of memory: No more blocks available");
-      return new byte[BLOCK_SIZE];
+      return new byte[chunkSize];
     }
     if (numberOfBlocks.get() > 0) {
       numberOfBlocks.decrementAndGet();
@@ -54,5 +48,9 @@ public class MemoryPool {
       numberOfBlocks.incrementAndGet();
       freeBlocks.offer(buffer);
     }
+  }
+
+  public void close() {
+    freeBlocks.clear();
   }
 }
