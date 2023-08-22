@@ -16,11 +16,11 @@ public interface IFileOperator {
   List<Record> readIginxFile(File file, long startKey, long endKey, DataType dataType)
       throws IOException;
 
-  Exception writeIginxFile(File file, List<Record> valList) throws IOException;
+  Exception writeIginxFile(File file, List<Record> valList);
 
   File create(File file, FileMeta fileMeta) throws IOException;
 
-  boolean delete(File file);
+  Exception delete(File file);
 
   Exception trimFile(File file, long begin, long end);
 

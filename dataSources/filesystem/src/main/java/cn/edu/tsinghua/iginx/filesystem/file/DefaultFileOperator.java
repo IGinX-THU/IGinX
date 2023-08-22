@@ -272,16 +272,14 @@ public class DefaultFileOperator implements IFileOperator {
   }
 
   @Override
-  public boolean delete(File file) {
+  public Exception delete(File file) {
     if (!Files.exists(Paths.get(file.getPath()))) {
-      logger.error("No file to delete: {}", file.getAbsolutePath());
-      return false;
+      return new IOException("Cannot delete file because not exist: " + file.getAbsolutePath());
     }
     if (!file.delete()) {
-      logger.error("Failed to delete file: {}", file.getAbsolutePath());
-      return false;
+      return new IOException("Cannot delete file: " + file.getAbsolutePath());
     }
-    return true;
+    return null;
   }
 
   // 删除对应key范围内的数据
@@ -330,7 +328,6 @@ public class DefaultFileOperator implements IFileOperator {
 
     try {
       if (!Files.exists(csvPath)) {
-        logger.error("Cannot get file meta because not exist");
         throw new IOException("Cannot get file meta because not exist: " + file.getAbsolutePath());
       }
 

@@ -172,7 +172,7 @@ public class LocalExecutor implements Executor {
       }
     }
     try {
-      logger.info("开始数据写入");
+      logger.info("begin to write data");
       return fileSystemManager.writeFiles(fileList, recordsList, tagsList);
     } catch (Exception e) {
       logger.error("encounter error when inserting row records to fileSystem: {}", e.getMessage());
@@ -205,7 +205,7 @@ public class LocalExecutor implements Executor {
     }
 
     try {
-      logger.info("开始数据写入");
+      logger.info("begin to write data");
       return fileSystemManager.writeFiles(fileList, recordsList, tagsList);
     } catch (Exception e) {
       logger.error(

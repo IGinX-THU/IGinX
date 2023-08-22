@@ -101,10 +101,11 @@ public class FileSystemManager {
 
     // 处理dummy查询
     if (file == null || !file.exists() || !file.isFile()) {
-      throw new IllegalArgumentException("Invalid file.");
+      throw new IllegalArgumentException("Invalid file " + file.getAbsolutePath());
     }
     if (startKey < 0 || endKey < startKey) {
-      throw new IllegalArgumentException("Invalid byte range.");
+      throw new IllegalArgumentException(
+          "Invalid byte range startKey: " + startKey + " endKey: " + endKey);
     }
     if (endKey > file.length()) {
       endKey = file.length() - 1;
@@ -153,7 +154,11 @@ public class FileSystemManager {
         }
       }
     } catch (InterruptedException e) {
-      throw new RuntimeException(e);
+      throw new RuntimeException(
+          "Interrupted while reading file: "
+              + file.getAbsolutePath()
+              + "with error: "
+              + e.getMessage());
     } finally {
       if (executorService != null) {
         executorService.shutdown();
@@ -165,7 +170,7 @@ public class FileSystemManager {
       try {
         future.get();
       } catch (InterruptedException | ExecutionException e) {
-        logger.error("Exception thrown by task: " + e.getMessage());
+        logger.error("Exception thrown while reading file: " + e.getMessage());
         throw new RuntimeException(e);
       }
     }
@@ -296,8 +301,9 @@ public class FileSystemManager {
       return e;
     }
     for (File file : fileList) {
-      if (!fileOperator.delete(file)) {
-        return new IOException("Failed to delete file: " + file.getAbsolutePath());
+      Exception e = fileOperator.delete(file);
+      if (e != null) {
+        return e;
       }
       fileMetaMap.remove(file.getAbsolutePath());
     }
