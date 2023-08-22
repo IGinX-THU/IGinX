@@ -7,21 +7,21 @@
 
 usageHint="Usage: ./run_iginx_docker.sh\n\
           -n container_name\n\
-          -h host_ip\n\
           -p host port for IGinX container to cast\n\
-          [optional]-o overlay network to use\n\
+          [optional]-c absolute path of local config file (default: "../../conf/config.properties")\n\
+          [optional]-o network to use (default: bridge)\n\
           -u usage hint\n"
 
 
 name=null
-ip=null
 hostPort=null
 network=null
+localConfigFile=null
 
-declare -i flag=3
+declare -i flag=2
 
 # read args from user
-while getopts ":n:h:p:o:u" opt
+while getopts ":n:p:o:c:u" opt
 do
   case $opt in
     n)
@@ -34,16 +34,6 @@ do
     echo "Using container name ${name}."
     flag+=-1
     ;;
-    h)
-		if [ "${ip}" != "null" ]; then
-			echo "Error: Only one host ip is needed."
-      printf "${usageHint}"
-			exit 1
-		fi
-		ip=${OPTARG}
-    echo "Using host ip ${ip}."
-    flag+=-1
-    ;;
     p)
 		if [ "${hostPort}" != "null" ]; then
 			echo "Error: Only one host port is needed."
@@ -53,6 +43,15 @@ do
 		hostPort=${OPTARG}
     echo "Using host port ${hostPort}."
     flag+=-1
+    ;;
+    c)
+		if [ "${localConfigFile}" != "null" ]; then
+			echo "Error: Only one local config file is needed."
+      printf "${usageHint}"
+			exit 1
+		fi
+		localConfigFile=${OPTARG}
+    echo "Using local config file: ${localConfigFile}."
     ;;
     o)
 		if [ "${network}" != "null" ]; then
@@ -75,25 +74,37 @@ do
 done
 
 if (( ${flag} != 0 )); then
-  echo "Error: first 3 params are not optional:"
+  echo "Error: first 2 params must be provided:"
   printf "${usageHint}"
   exit 1
 fi
 
 portCastParams=""
 
-# read config file
-configFile="../../conf/config.properties"
+# read config file. default:"../../conf/config.properties"
+if [[ "${localConfigFile}" == "null" ]]; then
+  localConfigFile="$(dirname $(dirname "$PWD"))/conf/config.properties"
+  echo "Using local config file: ${localConfigFile}"
+fi
+if [ ! -f ${localConfigFile} ]; then
+  echo "File ${localConfigFile} does not exist"
+  exit 1
+fi
 
-# find container iginx port
-containerPort=$(awk -F'=' '{print $2}' <<< $(sed -n "/^port=/p" ${configFile}))
+
+# find container IGinX port and cast
+containerPort=$(awk -F'=' '{print $2}' <<< $(sed -n "/^port=/p" ${localConfigFile}))
 portCastParams=${portCastParams}" -p ${hostPort}:${containerPort}"
 
-# find container parquet port, only cast local parquet ports
-engineListStr=$(sed -n "/^storageEngineList=/p" ${configFile})
+# find container IGinX IP
+containerIP=$(awk -F'=' '{print $2}' <<< $(sed -n "/^ip=/p" ${localConfigFile}))
+
+# find container parquet port, only cast local parquet ports.
+# (IGinX ip == parquet ip) ? local : remote
+engineListStr=$(sed -n "/^storageEngineList=/p" ${localConfigFile})
 engineListArr=($(echo ${engineListStr} | tr "," "\n"))
 for item in "${engineListArr[@]}"; do
-  if [[ ${item} =~ "#isLocal=true" ]]; then
+  if [[ ${item} =~ (=|^)${containerIP}# ]]; then
     parquetPort=$(awk -F'#' '{print $2}' <<< ${item})
     portCastParams=${portCastParams}" -p ${parquetPort}:${parquetPort}"
   fi
@@ -102,12 +113,14 @@ done
 # read network ip from config file if network is specified
 if [ "${network}" != "null" ]; then
   network="--net=${network} "
-  localIP="--ip=$(awk -F'=' '{print $2}' <<< $(sed -n "/^ip=/p" ${configFile})) "
+  localIPConfig="--ip=${containerIP} "
 else
   network=""
-  localIP=""
+  localIPConfig=""
 fi
 
-command="docker run --name=${name} ${localIP}--add-host=host.docker.internal:host-gateway ${network}--privileged -dit -e ip=${ip} -e host_iginx_port=${hostPort}${portCastParams} iginx:0.6.0"
+configFileConfig="-v ${localConfigFile}:/iginx/conf/config.properties "
+
+command="docker run --name=${name} ${localIPConfig}${configFileConfig}--add-host=host.docker.internal:host-gateway ${network}--privileged -dit -e host_iginx_port=${hostPort}${portCastParams} iginx:0.6.0"
 echo "RUNNING ${command}"
-${command}
+# ${command}

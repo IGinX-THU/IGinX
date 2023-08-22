@@ -29,6 +29,7 @@ import cn.edu.tsinghua.iginx.conf.Constants;
 import cn.edu.tsinghua.iginx.engine.ContextBuilder;
 import cn.edu.tsinghua.iginx.engine.StatementExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngineImpl;
+import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.physical.storage.StorageManager;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.exceptions.StatusCode;
@@ -54,6 +55,8 @@ public class IginxWorker implements IService.Iface {
 
   private static final Logger logger = LoggerFactory.getLogger(IginxWorker.class);
 
+  private static final Config config = ConfigDescriptor.getInstance().getConfig();
+
   private static final IginxWorker instance = new IginxWorker();
 
   private final IMetaManager metaManager = DefaultMetaManager.getInstance();
@@ -68,7 +71,27 @@ public class IginxWorker implements IService.Iface {
 
   private final StatementExecutor executor = StatementExecutor.getInstance();
 
-  private static final Config config = ConfigDescriptor.getInstance().getConfig();
+  private IginxWorker() {
+    // if there are new local parquets in conf, add them to cluster.
+    List<StorageEngineMeta> localParquetMetaList = getLocalParquetsFromConf();
+    if (!localParquetMetaList.isEmpty()){
+      addStorageEngineMetas(localParquetMetaList);
+    }
+  }
+
+  private List<StorageEngineMeta> getLocalParquetsFromConf(){
+    List<StorageEngineMeta> confStorageEngineList = metaManager.getConfStorageEngineList();
+    List<StorageEngineMeta> localParquetList = new ArrayList<>();
+    for (StorageEngineMeta meta : confStorageEngineList) {
+      if (!meta.getStorageEngine().equals("parquet")
+            || !meta.getIp().equals(config.getIp())
+            || Integer.parseInt(meta.getExtraParams().get("iginx_port")) != config.getPort()){
+      continue;
+      }
+      localParquetList.add(meta);
+    }
+    return localParquetList;
+  }
 
   public static IginxWorker getInstance() {
     return instance;
@@ -272,6 +295,10 @@ public class IginxWorker implements IService.Iface {
         if (dir == null || dir.equals("")) {
           return RpcUtils.FAILURE;
         }
+        String iginx_port = extraParams.get("iginx_port");
+        if (iginx_port == null || iginx_port.equals("")) {
+          return RpcUtils.FAILURE;
+        }
         if (extraParams.containsKey(SCHEMA_PREFIX)) {
           extraParams.put(SCHEMA_PREFIX, extraParams.get(SCHEMA_PREFIX) + "." + dir);
         } else {
@@ -298,6 +325,10 @@ public class IginxWorker implements IService.Iface {
               metaManager.getIginxId());
       storageEngineMetas.add(meta);
     }
+    return addStorageEngineMetas(storageEngineMetas);
+  }
+
+  private Status addStorageEngineMetas(List<StorageEngineMeta> storageEngineMetas){
     Status status = RpcUtils.SUCCESS;
     // 检测是否与已有的存储单元冲突
     List<StorageEngineMeta> currentStorageEngines = metaManager.getStorageEngineList();
@@ -312,7 +343,7 @@ public class IginxWorker implements IService.Iface {
     }
     if (!duplicatedStorageEngine.isEmpty()) {
       storageEngineMetas.removeAll(duplicatedStorageEngine);
-      if (!storageEngines.isEmpty()) {
+      if (!storageEngineMetas.isEmpty()) {
         status = new Status(RpcUtils.PARTIAL_SUCCESS.code);
       } else {
         status = new Status(RpcUtils.FAILURE.code);
@@ -348,11 +379,36 @@ public class IginxWorker implements IService.Iface {
         meta.setDummyFragment(dummyFragment);
       }
     }
-    if (!metaManager.addStorageEngines(storageEngineMetas)) {
+
+    // init local parquet before add to meta
+    // exclude remote parquet
+    List<StorageEngineMeta> localParquetMetas = new ArrayList<>();
+    List<StorageEngineMeta> noneParquetMetas = new ArrayList<>();
+    for (StorageEngineMeta meta : storageEngineMetas) {
+      if (meta.getStorageEngine().equals("parquet")){
+        Map<String, String> extraParams = meta.getExtraParams();
+        int iginx_port = Integer.parseInt(extraParams.get("iginx_port"));
+        boolean isLocal = (meta.getIp().equals(config.getIp()) && config.getPort() == iginx_port);
+        if (!isLocal) {
+          status = new Status(RpcUtils.PARTIAL_SUCCESS.code);
+          status.setMessage("Parquet database needs to be local: " + meta);
+        } else {
+          localParquetMetas.add(meta);
+        }
+      } else noneParquetMetas.add(meta);
+    }
+
+    if (!metaManager.addStorageEngines(noneParquetMetas)) {
       status = RpcUtils.FAILURE;
     }
-    for (StorageEngineMeta meta : storageEngineMetas) {
+    for (StorageEngineMeta meta : noneParquetMetas) {
       PhysicalEngineImpl.getInstance().getStorageManager().addStorage(meta);
+    }
+
+    for (StorageEngineMeta meta : localParquetMetas) {
+      IStorage storage = PhysicalEngineImpl.getInstance().getStorageManager().initLocalParquet(meta);
+      metaManager.addStorageEngines(new ArrayList<>(Collections.singletonList(meta)));
+      PhysicalEngineImpl.getInstance().getStorageManager().addStorage(meta, storage);
     }
     return status;
   }

@@ -71,6 +71,8 @@ public class DefaultMetaManager implements IMetaManager {
   // 在重分片过程中，是否为提出者
   private boolean isProposer = false;
 
+  private List<StorageEngineMeta> confStorageEngineList;
+
   private DefaultMetaManager() {
     cache = DefaultMetaCache.getInstance();
 
@@ -1256,6 +1258,14 @@ public class DefaultMetaManager implements IMetaManager {
       storageEngineMetaList.add(storage);
     }
     return storageEngineMetaList;
+  }
+
+  @Override
+  public List<StorageEngineMeta> getConfStorageEngineList() {
+    if (confStorageEngineList == null) {
+      confStorageEngineList = resolveStorageEngineFromConf();
+    }
+    return confStorageEngineList;
   }
 
   private UserMeta resolveUserFromConf() {

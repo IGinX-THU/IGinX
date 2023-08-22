@@ -5,33 +5,33 @@ set "list=%*"
 
 @REM usageHint="Usage: ./run_iginx_docker.bash
 @REM           -n container_name
-@REM           -h host_ip
 @REM           -p host port for IGinX container to cast
-@REM           [optional]-o overlay network to use
+@REM           [optional]-c absolute path of local config file (default: "../../conf/config.properties")\n\
+@REM           [optional]-o overlay network to use (default: bridge)
 @REM           -u usage hint"
-set "paramHint=-n container_name; -h host_ip; -p host port for IGinX container to cast; [optional]-o overlay network to use; -u usage hint"
+set "paramHint=-n container_name; -p host port for IGinX container to cast; [optional]-c absolute path of local config file; [optional]-o overlay network to use; -u usage hint"
 set /A "flag=0"
-set /A "paramflag=3"
+set /A "paramflag=2"
 set name=null
-set hostip=null
 set hostPort=null
 set network=null
+set localConfigFile=null
 for %%p in (%list%) do (
   if !flag!==0 (
     if "%%p"=="-n" (
       set /A "flag=1"
     )
-    if "%%p"=="-h" (
-      set /A "flag=2"
-    )
     if "%%p"=="-p" (
       set /A "flag=3"
     )
-    if "%%p"=="-o" (
+    if "%%p"=="-c" (
       set /A "flag=4"
     )
+    if "%%p"=="-o" (
+      set /A "flag=5"
+    )
     if "%%p"=="-u" (
-      echo -n container_name; -h host_ip; -p host port for IGinX container to cast; [optional]-o overlay network to use; -u usage hint
+      echo %paramHint%
       exit /b 0
     )
   ) else (
@@ -45,16 +45,6 @@ for %%p in (%list%) do (
       echo Using container name %%p
       set /A "paramflag-=1"
     )
-    if !flag!==2 (
-      if "!hostip!" neq "null" (
-        echo Error: only one host ip needed.
-        exit /b 1
-      )
-      set hostip=%%p
-      set /A "flag=0"
-      echo Using host ip %%p
-      set /A "paramflag-=1"
-    )
     if !flag!==3 (
       if "!hostPort!" neq "null" (
         echo Error: only one host port needed.
@@ -66,6 +56,15 @@ for %%p in (%list%) do (
       set /A "paramflag-=1"
     )
     if !flag!==4 (
+      if "!localConfigFile!" neq "null" (
+        echo Error: only one local config file needed.
+        exit /b 1
+      )
+      set localConfigFile=%%p
+      set /A "flag=0"
+      echo Using local config file: %%p
+    )
+    if !flag!==5 (
       set network=%%p
       set /A "flag=0"
       echo Using network %%p
@@ -74,45 +73,40 @@ for %%p in (%list%) do (
 )
 
 if not !paramflag!==0 (
-  echo Error: first 3 params needed
+  echo Error: first 2 params needed
   echo %paramHint%
   exit /b 1
 )
 
-@REM OPTION1: find public address (DANGER)
-@REM for /f "delims=" %%a in ('curl -s ifconfig.me/ip') do set ip=%%a
-
-
-@REM OPTION2: find ipv4 address under WLAN adapter
-@REM set "_adapter="
-@REM for /f "tokens=1* delims=:" %%g in ('ipconfig /all') do (
-@REM 	set tmp=%%~g
-@REM 	if "!tmp:adapter=!"=="!tmp!" (
-@REM 		if not "!tmp:IPv4 Address=!"=="!tmp!" (
-@REM 			for %%i in (%%~h) do (
-@REM 				if not "%%~i"=="" set ip=%%~i
-@REM 			)
-@REM 			for /f "tokens=1 delims=(" %%j in ("!ip!") do (
-@REM 				set ip=%%j
-@REM 			)
-@REM 			echo !ip!
-@REM 			echo !_adapter!
-@REM 			if not "!_adapter:WLAN=!"=="!_adapter!" goto END_IGINX
-@REM 		)
-@REM 	) else (
-@REM 		set _adapter=!tmp!
-@REM 	)
-@REM )
-@REM :END_IGINX
-
-@REM cast storage engines(parquet) ports to the same host ports
+@REM cast local storage engines(parquet) ports to the same host ports
 set engineCast=
 set port=
-set confPath=..\..\conf\config.properties
+
+if "!localConfigFile!" neq "null" (
+  set confPath=!localConfigFile!
+) else (
+  set "confPath=..\..\conf\config.properties"
+  @REM get absolute path for ..\..\conf\config.properties
+  for %%A in ("%~dp0.") do for %%B in ("%%~dpA.") do set "confDir=%%~dpB"
+  set "localConfigFile=!confDir:\=/!conf"
+  echo Using local config file: !localConfigFile!
+  for /f "tokens=1,* delims=:" %%a in ("!localConfigFile!") do (
+    set disk=%%a
+    set diskRest=%%b
+  )
+  for %%i in (a b c d e f g h i j k l m n o p q r s t u v w x y z) do set disk=!disk:%%i=%%i!
+  set "localConfigFile=/!disk!!diskRest!"
+)
 
 @REM find exposed iginx port
 for /f "tokens=2 delims== " %%a in ('findstr /b "port=" %confpath%') do (
 	set "port=%%a"
+)
+
+@REM find local iginx ip
+for /f "tokens=2 delims== " %%a in ('findstr /b "ip=" %confpath%') do (
+	set "localIP=%%a"
+	set "localIPConfig=--ip=%%a "
 )
 
 @REM find storageEngineList in config and stored value in line
@@ -123,12 +117,12 @@ for /f "tokens=1,* delims== " %%a in ('findstr /b "storageEngineList=" %confpath
 
 @REM cast every LOCAL parquet port to same port on host
 :processEngineList
-if not defined line goto engineReadError
+if not defined line goto :engineReadError
 :EngineListLoop
 @REM for every engine
 for /f "tokens=1* delims=," %%a in ("!line!") do (
   set "engine=%%a"
-  call :processEngine !engine! || goto engineReadError
+  call :processEngine !engine! || goto :engineReadError
 	set line=%%b
 )
 if defined line goto :EngineListLoop
@@ -144,8 +138,8 @@ set "thisEngineCpy=!engine!"
 @REM if there is, will jump to :endEngineLoop and add port cast to engineCast
 @REM if there is not, will exit to where it's called after reading of config string reach end
 :EngineLoop
-for /f "tokens=1,* delims=# " %%g in ("!thisEngineCpy!") do (
-  if "%%g" == "isLocal=true" goto :endEngineLoop
+for /f "tokens=1,* delims=#= " %%g in ("!thisEngineCpy!") do (
+  if "%%g" == "!localIP!" goto :endEngineLoop
   set "thisEngineCpy=%%h"
 )
 if defined thisEngineCpy goto :EngineLoop
@@ -154,11 +148,6 @@ exit /b
 for /f "tokens=1,2 delims=#" %%i in ("%thisEngine%") do set "engineCast=!engineCast!-p %%j:%%j "
 exit /b
 :endprocessEngine
-
-@REM find local iginx ip
-for /f "tokens=2 delims== " %%a in ('findstr /b "ip=" %confpath%') do (
-	set "localIPConfig=--ip=%%a "
-)
 
 :RUN
 
@@ -171,7 +160,9 @@ if "!network!" neq "null" (
   set "localIPConfig="
 )
 
-set command=docker run --name="%name%" !network!!localIPConfig!--privileged -dit -e ip=%hostip% -e host_iginx_port=%hostPort% -p %hostPort%:!port! !engineCast!iginx:0.6.0
+set "configFileConfig=-v !localConfigFile!:/iginx/conf "
+@REM 
+set command=docker run --name="%name%" !network!!localIPConfig!!configFileConfig!--privileged -dit -e host_iginx_port=%hostPort% -p %hostPort%:!port! !engineCast!iginx:0.6.0
 echo %command%
 %command%
 
