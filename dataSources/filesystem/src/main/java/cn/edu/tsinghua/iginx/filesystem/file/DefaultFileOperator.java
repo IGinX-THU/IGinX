@@ -97,18 +97,18 @@ public class DefaultFileOperator implements IFileOperator {
   // 获取iginx文件的meta信息，包括tag，以及存储的数据类型
   private Map<String, String> readIginxMetaInfo(File file) throws IOException {
     Map<String, String> result = new HashMap<>();
-    BufferedReader reader = new BufferedReader(new FileReader(file));
-    String line;
-    int lineCount = 1;
-    while ((line = reader.readLine()) != null) {
-      if (lineCount == DATA_TYPE_INDEX) {
-        result.put(DATA_TYPE_NAME, line);
-      } else if (lineCount == TAG_KV_INDEX) {
-        result.put(TAG_KV_NAME, line);
+    try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+      String line;
+      int lineCount = 1;
+      while ((line = reader.readLine()) != null) {
+        if (lineCount == DATA_TYPE_INDEX) {
+          result.put(DATA_TYPE_NAME, line);
+        } else if (lineCount == TAG_KV_INDEX) {
+          result.put(TAG_KV_NAME, line);
+        }
+        lineCount++;
       }
-      lineCount++;
     }
-    reader.close();
     return result;
   }
 
@@ -135,47 +135,46 @@ public class DefaultFileOperator implements IFileOperator {
     }
 
     // Create temporary file
-    try {
-      File tempFile = new File(file.getParentFile(), file.getName() + ".tmp");
-      BufferedWriter tempWriter = new BufferedWriter(new FileWriter(tempFile));
+    File tempFile = new File(file.getParentFile(), file.getName() + ".tmp");
+    try (BufferedWriter tempWriter = new BufferedWriter(new FileWriter(tempFile))) {
       int recordIndex = 0;
       int maxLen = records.size();
       long minKey = records.get(0).getKey();
       long currentLine = 0L;
 
-      BufferedReader reader = new BufferedReader(new FileReader(file));
-      String line;
-      while ((line = reader.readLine()) != null) {
-        currentLine++;
-        if (currentLine <= IGINX_FILE_META_INDEX) {
-          tempWriter.write(line);
-          tempWriter.write("\n");
-          continue;
-        }
-        String[] kv = line.split(",", 2);
-        long key = Long.parseLong(kv[0]);
-        boolean isCovered = false;
-        // 找到了需要插入的位置
-        while (key >= minKey && recordIndex < maxLen) {
-          if (key == minKey) {
-            isCovered = true;
+      try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+        String line;
+        while ((line = reader.readLine()) != null) {
+          currentLine++;
+          if (currentLine <= IGINX_FILE_META_INDEX) {
+            tempWriter.write(line);
+            tempWriter.write("\n");
+            continue;
           }
-          Record record = records.get(recordIndex++);
-          tempWriter.write(recordToString(record));
-          tempWriter.write("\n");
-          if (recordIndex < maxLen) {
-            minKey = records.get(recordIndex).getKey();
-          } else {
-            break;
+          String[] kv = line.split(",", 2);
+          long key = Long.parseLong(kv[0]);
+          boolean isCovered = false;
+          // 找到了需要插入的位置
+          while (key >= minKey && recordIndex < maxLen) {
+            if (key == minKey) {
+              isCovered = true;
+            }
+            Record record = records.get(recordIndex++);
+            tempWriter.write(recordToString(record));
+            tempWriter.write("\n");
+            if (recordIndex < maxLen) {
+              minKey = records.get(recordIndex).getKey();
+            } else {
+              break;
+            }
           }
-        }
-        if (!isCovered) {
-          tempWriter.write(line);
-          tempWriter.write("\n");
+          if (!isCovered) {
+            tempWriter.write(line);
+            tempWriter.write("\n");
+          }
         }
       }
 
-      reader.close();
       tempWriter.close();
 
       if (recordIndex < maxLen) {
@@ -266,14 +265,13 @@ public class DefaultFileOperator implements IFileOperator {
   @Override
   public File create(File file, FileMeta fileMeta) throws IOException {
     Path csvPath = Paths.get(file.getPath());
-    try {
-      if (!Files.exists(csvPath)) {
-        file.getParentFile().mkdirs();
-        Files.createFile(csvPath);
-      } else {
-        return file;
-      }
-      BufferedWriter writer = new BufferedWriter(new FileWriter(csvPath.toFile()));
+    if (!Files.exists(csvPath)) {
+      file.getParentFile().mkdirs();
+      Files.createFile(csvPath);
+    } else {
+      return file;
+    }
+    try (BufferedWriter writer = new BufferedWriter(new FileWriter(csvPath.toFile()))) {
       for (int i = 1; i <= IGINX_FILE_META_INDEX; i++) {
         switch (i) {
           case MAGIC_NUMBER_INDEX:
@@ -288,7 +286,6 @@ public class DefaultFileOperator implements IFileOperator {
         }
         writer.write("\n");
       }
-      writer.close();
     } catch (IOException e) {
       throw new IOException("Cannot create file: " + file.getAbsolutePath());
     }
@@ -311,31 +308,30 @@ public class DefaultFileOperator implements IFileOperator {
   // 删除对应key范围内的数据
   @Override
   public Exception trimFile(File file, long begin, long end) {
-    try {
-      // Create temporary file
-      File tempFile = new File(file.getParentFile(), file.getName() + ".tmp");
-      BufferedWriter tempWriter = new BufferedWriter(new FileWriter(tempFile));
+    // Create temporary file
+    File tempFile = new File(file.getParentFile(), file.getName() + ".tmp");
+    try (BufferedWriter tempWriter = new BufferedWriter(new FileWriter(tempFile))) {
       long currentLine = 0L;
 
-      BufferedReader reader = new BufferedReader(new FileReader(file));
-      String line;
-      while ((line = reader.readLine()) != null) {
-        currentLine++;
-        if (currentLine <= IGINX_FILE_META_INDEX) {
+      try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+        String line;
+        while ((line = reader.readLine()) != null) {
+          currentLine++;
+          if (currentLine <= IGINX_FILE_META_INDEX) {
+            tempWriter.write(line);
+            tempWriter.write("\n");
+            continue;
+          }
+          String[] kv = line.split(",", 2);
+          long key = Long.parseLong(kv[0]);
+          if (key >= begin && key <= end) {
+            continue;
+          }
           tempWriter.write(line);
           tempWriter.write("\n");
-          continue;
         }
-        String[] kv = line.split(",", 2);
-        long key = Long.parseLong(kv[0]);
-        if (key >= begin && key <= end) {
-          continue;
-        }
-        tempWriter.write(line);
-        tempWriter.write("\n");
       }
 
-      reader.close();
       tempWriter.close();
 
       return replaceFile(file, tempFile);
