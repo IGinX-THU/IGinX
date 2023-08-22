@@ -2,8 +2,6 @@ package cn.edu.tsinghua.iginx.filesystem.tools;
 
 import static cn.edu.tsinghua.iginx.filesystem.shared.Constant.*;
 
-import java.nio.file.Paths;
-
 public class FilePathUtils {
 
   public static String toIginxPath(String root, String storageUnit, String path) {
@@ -31,7 +29,7 @@ public class FilePathUtils {
     if (path == null) {
       return root;
     }
-    return Paths.get(root, path.replace(".", SEPARATOR)).toString();
+    return root + path.replace(".", SEPARATOR);
   }
 
   public static String convertAbsolutePathToPath(String root, String filePath, String storageUnit) {

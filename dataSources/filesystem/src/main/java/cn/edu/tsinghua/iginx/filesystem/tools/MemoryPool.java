@@ -46,7 +46,11 @@ public class MemoryPool {
   public void release(byte[] buffer) {
     if (numberOfBlocks.get() < maxNumberOfBlocks) {
       numberOfBlocks.incrementAndGet();
-      freeBlocks.offer(buffer);
+      if (buffer.length != chunkSize) {
+        freeBlocks.offer(new byte[chunkSize]);
+      } else {
+        freeBlocks.offer(buffer);
+      }
     }
   }
 

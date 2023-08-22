@@ -134,13 +134,13 @@ public class FileSystemManager {
           futures.add(
               executorService.submit(
                   () -> {
-                    fileOperator.readNormalFile(file, finalReadPos, buffer);
-                    res.set(finalIndex, buffer);
+                    byte[] bytes = fileOperator.readNormalFile(file, finalReadPos, buffer);
+                    res.set(finalIndex, bytes);
                     return null;
                   }));
         } else {
-          fileOperator.readNormalFile(file, finalReadPos, buffer);
-          res.set(finalIndex, buffer);
+          byte[] bytes = fileOperator.readNormalFile(file, finalReadPos, buffer);
+          res.set(finalIndex, bytes);
         }
         index.getAndIncrement();
         readPos.addAndGet(chunkSize);
