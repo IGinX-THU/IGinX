@@ -3,10 +3,8 @@ package cn.edu.tsinghua.iginx.filesystem.file;
 import cn.edu.tsinghua.iginx.filesystem.file.entity.FileMeta;
 import cn.edu.tsinghua.iginx.filesystem.query.entity.Record;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.util.List;
 
 public interface IFileOperator {

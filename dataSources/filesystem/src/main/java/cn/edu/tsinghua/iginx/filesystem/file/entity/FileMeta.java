@@ -4,6 +4,8 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.HashMap;
 import java.util.Map;
 
+import static cn.edu.tsinghua.iginx.filesystem.shared.Constant.MAGIC_NUMBER;
+
 public class FileMeta {
 
   private byte[] magicNumber;
@@ -15,6 +17,7 @@ public class FileMeta {
   public FileMeta() {}
 
   public FileMeta(DataType dataType, Map<String, String> tags) {
+    this.magicNumber = MAGIC_NUMBER;
     this.dataType = dataType;
     if (tags != null) {
       this.tags = tags;

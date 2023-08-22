@@ -367,9 +367,11 @@ public class DefaultFileOperator implements IFileOperator {
 
   @Override
   public List<File> listFiles(File file, String prefix) {
-    FileFilter readFileFilter = null;
+    FileFilter readFileFilter;
     if (prefix != null) {
-      readFileFilter = f -> f.getName().startsWith(prefix);
+      readFileFilter = f -> f.getName().startsWith(prefix) && !f.isHidden();
+    } else {
+      readFileFilter = f -> !f.isHidden();
     }
 
     File[] files;
