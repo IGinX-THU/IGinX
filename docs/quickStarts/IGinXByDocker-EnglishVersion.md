@@ -155,28 +155,7 @@ Currently, there are two types of IGinX image construction:
 
 ## oneShot
 
-In this method, ZooKeeper, IoTDB and IGinX run as 3 separate containers with a custom network bridge which enables these three containers to communicate with each other.
-
-Before building the image, the params in `conf/config.properties` need to be changed. The IP address for ZooKeeper and IoTDB should be changed to the hostnames of those containers. Otherwise, IGinX will not be able to access them.
-
-```properties
-# IoTDB:iotdb12
-# ZooKeeper:zkServer
-storageEngineList=iotdb12#6667#iotdb12#username=root#password=root#sessionPoolSize=20#has_data=false#is_read_only=false
-zookeeperConnectionString=zkServer:2181
-```
-
-Hostnames for Zookeeper and IoTDB containers can be changed in `$IGINX_HOME/docker/oneShot/docker-compose.yaml`：
-
-```yaml
-services:
-  zookeeper:
-    hostname: "custom_zookeeper_hostname"
-  iotdb:
-    hostname: "custom_IoTDB_hostname"
-```
-
-Then use the following command to build image and run:
+Then use the following command to build and run the IGinX image:
 
 ```shell
 $ cd docker/oneShot
@@ -212,11 +191,9 @@ The following words are displayed to indicate that the image was built and run s
 ✔ Container iginx1     Started
 ```
 
-After this step, 127.0.0.1:10001 will be accessable for IGinX service.
-
 ## onlyIginx
 
-**Warning: Before starting to build the IGinX image, you need to modify the network address parameters in IGinX. All "127.0.0.1" should be replaced by "host.docker.internal" to enable the IGinX container to communicate with ZooKeeper, database services that run on host machine.**
+**Warning:** Before starting to build the IGinX image, you need to change the IoTDB and Zookeeper address parameters in IGinX (do not use 127.0.0.1 as the IP parameter)
 
 Use the following command to build the IGinX image:
 
@@ -253,7 +230,7 @@ The following words are displayed to indicate that the image was built successfu
 => => extracting sha256:d73cf48caaac2e45ad76a2a9eb3b311d0e4eb1d804e3d2b9cf075a1fa31e6f92                          0.7s
 => [builder 2/4] COPY . /root/iginx                                                                               1.3s
 => [builder 3/4] WORKDIR /root/iginx                                                                              0.1s
-=> [builder 4/4] RUN mvn clean package -DskipTests -P passFormat                                                876.3s
+=> [builder 4/4] RUN mvn clean package -DskipTests -P-format                                                      876.3s
 => [stage-1 2/2] COPY --from=builder /root/iginx/core/target/iginx-core-0.6.0-SNAPSHOT /iginx                     0.2s
 => exporting to image                                                                                             0.5s
 => => exporting layers                                                                                            0.5s
@@ -261,12 +238,11 @@ The following words are displayed to indicate that the image was built successfu
 => => naming to docker.io/library/iginx:0.6.0
 ```
 
-Then start to run the image.
-Considering that IGinX and ZooKeeper communicates through network, it is necessary to establish a Docker network bridge to allow them to be interconnected through the network. Here we create a network bridge called docker-cluster-iginx:
+Then start to run the image
+Considering that IGinX and IoTDB communicated through the network before, it is necessary to establish a Docker network to allow them to be interconnected through the network. Here we create a bridge network called docker-cluster-iginx:
 
 ```shell
 $ docker network create -d bridge --attachable --subnet 172.40.0.0/16 docker-cluster-iginx
-# 172.40.0.0 refers to the bridge's ip. You can customize it if necessary. The ip address usually starts with 172.
 ```
 
 Now start Zookeeper:
@@ -283,13 +259,12 @@ $ cd ${iotdb_path}
 # ./sbin/start-server.sh
 ```
 
-Finally, start IGinX to complete the startup of the entire system:
+Finally, start IGinX, choose to use zookeeper as the metadata storage backend, and set the backend storage as the IoTDB instance just started to complete the startup of the entire system:
 
 ```shell
 $ cd ${iginx_path}/docker/onlyIginx
 $ ./run_iginx_docker.sh x.x.x.x 10000
-# x.x.x.x is the ip address IGinX container would use. It should be accessable to docker-cluster-iginx. You can use 172.40.0.2 for example. Note that 172.40.0.1 is the gateway and cannot be used here.
-# 10000 refers to the port on host that can be used to access IGinX service. You can customize it if preferred.
+# x.x.x.x refers to user's local ip address
 ```
 
-This command will expose the localhost port 10000 as the communication interface with the IGinX cluster. You can start accessing IGinX through 127.0.0.1:10000.
+This command will expose the local 10000 interface as the communication interface with the IGinX cluster. You can start accessing IGinX through x.x.x.x:10000
