@@ -22,10 +22,6 @@ public class Constant {
 
   public static final byte[] MAGIC_NUMBER = "IGINX".getBytes();
 
-  public static final String DATA_TYPE_NAME = "data_type";
-
-  public static final String TAG_KV_NAME = "tag_KV";
-
   public static final Charset CHARSET = StandardCharsets.UTF_8;
 
   public static final String INIT_INFO_DIR = "dir";

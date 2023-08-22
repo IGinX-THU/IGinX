@@ -95,7 +95,8 @@ public class FileSystemManager {
   private List<Record> readSingleFile(File file, long startKey, long endKey, boolean isDummy)
       throws IOException {
     if (!isDummy) {
-      return fileOperator.readIginxFile(file, startKey, endKey, CHARSET);
+      FileMeta fileMeta = getFileMeta(file);
+      return fileOperator.readIginxFile(file, startKey, endKey, fileMeta.getDataType());
     }
 
     // 处理dummy查询

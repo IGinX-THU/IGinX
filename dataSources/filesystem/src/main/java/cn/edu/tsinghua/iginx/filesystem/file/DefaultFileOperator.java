@@ -12,7 +12,6 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.DataTypeUtils;
 import cn.edu.tsinghua.iginx.utils.JsonUtils;
 import java.io.*;
-import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -57,9 +56,8 @@ public class DefaultFileOperator implements IFileOperator {
   }
 
   @Override
-  public List<Record> readIginxFile(File file, long startKey, long endKey, Charset charset)
+  public List<Record> readIginxFile(File file, long startKey, long endKey, DataType dataType)
       throws IOException {
-    Map<String, String> fileInfo = readIginxMetaInfo(file);
     List<Record> res = new ArrayList<>();
     long key;
     if (startKey == -1 && endKey == -1) {
@@ -82,7 +80,6 @@ public class DefaultFileOperator implements IFileOperator {
         String[] kv = line.split(",", 2);
         key = Long.parseLong(kv[0]);
         if (key >= startKey && key <= endKey) {
-          DataType dataType = DataType.findByValue(Integer.parseInt(fileInfo.get(DATA_TYPE_NAME)));
           res.add(
               new Record(
                   Long.parseLong(kv[0]),
@@ -92,24 +89,6 @@ public class DefaultFileOperator implements IFileOperator {
       }
     }
     return res;
-  }
-
-  // 获取iginx文件的meta信息，包括tag，以及存储的数据类型
-  private Map<String, String> readIginxMetaInfo(File file) throws IOException {
-    Map<String, String> result = new HashMap<>();
-    try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
-      String line;
-      int lineCount = 1;
-      while ((line = reader.readLine()) != null) {
-        if (lineCount == DATA_TYPE_INDEX) {
-          result.put(DATA_TYPE_NAME, line);
-        } else if (lineCount == TAG_KV_INDEX) {
-          result.put(TAG_KV_NAME, line);
-        }
-        lineCount++;
-      }
-    }
-    return result;
   }
 
   @Override

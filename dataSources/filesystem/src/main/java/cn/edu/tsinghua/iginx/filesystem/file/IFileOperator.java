@@ -2,6 +2,8 @@ package cn.edu.tsinghua.iginx.filesystem.file;
 
 import cn.edu.tsinghua.iginx.filesystem.file.entity.FileMeta;
 import cn.edu.tsinghua.iginx.filesystem.query.entity.Record;
+import cn.edu.tsinghua.iginx.thrift.DataType;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -13,7 +15,7 @@ public interface IFileOperator {
   byte[] readNormalFile(File file, long readPos, byte[] buffer) throws IOException;
 
   // read IGinX file by [startKey, endKey)
-  List<Record> readIginxFile(File file, long startKey, long endKey, Charset charset)
+  List<Record> readIginxFile(File file, long startKey, long endKey, DataType dataType)
       throws IOException;
 
   Exception writeIginxFile(File file, List<Record> valList) throws IOException;
