@@ -52,9 +52,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class FileSystemStorage implements IStorage {
+
   private static final String STORAGE_ENGINE = "filesystem";
+
   private static final Logger logger = LoggerFactory.getLogger(FileSystemStorage.class);
+
   ExecutorService executorService = Executors.newSingleThreadExecutor();
+
   private Executor executor;
 
   public FileSystemStorage(StorageEngineMeta meta)

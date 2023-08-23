@@ -104,6 +104,7 @@ public class StringUtils {
     if (!path.contains("*")) return path;
     path = path.replaceAll("[.]", "[.]");
     path = path.replaceAll("[*]", ".*");
+    path = path.replaceAll("\\\\", "\\\\\\\\");
     return path;
   }
 
@@ -113,6 +114,7 @@ public class StringUtils {
     name = name.replaceAll("[*]", ".*");
     name = name.replaceAll("[(]", "[(]");
     name = name.replaceAll("[)]", "[)]");
+    name = name.replaceAll("\\\\", "\\\\\\\\");
     return name;
   }
 

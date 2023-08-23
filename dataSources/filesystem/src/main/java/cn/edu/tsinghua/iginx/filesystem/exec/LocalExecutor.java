@@ -99,7 +99,6 @@ public class LocalExecutor implements Executor {
           paths,
           tagFilter,
           filter);
-      e.printStackTrace();
       return new TaskExecuteResult(
           new PhysicalTaskExecuteFailureException("execute project task in fileSystem failure", e));
     }
@@ -269,25 +268,28 @@ public class LocalExecutor implements Executor {
 
     for (File file : files) {
       // 如果加入该Storage时有数据，才读取该文件夹下的文件
-      if (hasData && fileSystemManager.getFileType(file).equals(FileType.NORMAL_FILE)) {
-        columns.add(
-            new Column(
-                FilePathUtils.convertAbsolutePathToPath(root, file.getAbsolutePath(), storageUnit),
-                DataType.BINARY,
-                null));
-      } else if (fileSystemManager.getFileType(file).equals(FileType.IGINX_FILE)) {
+      if (fileSystemManager.getFileType(file).equals(FileType.IGINX_FILE)) {
         FileMeta meta = fileSystemManager.getFileMeta(file);
         if (meta == null) {
           throw new PhysicalException(
-              "encounter error when getting columns of storage unit: "
-                  + file.getAbsolutePath()
-                  + ", meta is null");
+              String.format(
+                  "encounter error when getting columns of storage unit because file meta %s is null",
+                  file.getAbsolutePath()));
         }
         columns.add(
             new Column(
                 FilePathUtils.convertAbsolutePathToPath(root, file.getAbsolutePath(), storageUnit),
                 meta.getDataType(),
                 meta.getTags()));
+      } else {
+        if (hasData) {
+          columns.add(
+              new Column(
+                  FilePathUtils.convertAbsolutePathToPath(
+                      root, file.getAbsolutePath(), storageUnit),
+                  DataType.BINARY,
+                  null));
+        }
       }
     }
 

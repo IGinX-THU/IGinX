@@ -2,7 +2,6 @@ package cn.edu.tsinghua.iginx.filesystem.file;
 
 import static cn.edu.tsinghua.iginx.filesystem.shared.Constant.*;
 import static cn.edu.tsinghua.iginx.filesystem.shared.Constant.MAGIC_NUMBER;
-import static cn.edu.tsinghua.iginx.filesystem.shared.FileType.*;
 import static cn.edu.tsinghua.iginx.utils.DataTypeUtils.transformObjectToStringByDataType;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 
@@ -40,7 +39,7 @@ public class DefaultFileOperator implements IFileOperator {
       raf.seek(readPos);
       int len = raf.read(buffer);
       if (len < 0) {
-        logger.info("reach the end of the file with len {}", len);
+        logger.info("reach the end of the file {} with len {}", file.getAbsolutePath(), len);
         return null;
       }
       if (len != buffer.length) {
@@ -50,8 +49,10 @@ public class DefaultFileOperator implements IFileOperator {
       }
       return buffer;
     } catch (IOException e) {
-      logger.error("readBatch fail because {} with readPos:{} ", e.getMessage(), readPos);
-      throw new IOException(e);
+      throw new IOException(
+          String.format(
+              "readNormalFile %s failed with readPos:%d", file.getAbsoluteFile(), readPos),
+          e);
     }
   }
 
@@ -66,7 +67,9 @@ public class DefaultFileOperator implements IFileOperator {
     }
     if (startKey < 0 || endKey < 0 || (startKey > endKey)) {
       throw new IllegalArgumentException(
-          "Read information outside the boundary with BEGIN " + startKey + " and END " + endKey);
+          String.format(
+              "readIginxFile %s failed with startKey:%d endKey:%d",
+              file.getAbsoluteFile(), startKey, endKey));
     }
 
     try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
@@ -94,10 +97,12 @@ public class DefaultFileOperator implements IFileOperator {
   @Override
   public Exception writeIginxFile(File file, List<Record> records) {
     if (file.exists() && file.isDirectory()) {
-      return new IOException("Cannot write to directory: " + file.getAbsolutePath());
+      return new IOException(String.format("cannot write to directory %s", file.getAbsolutePath()));
     }
     if (!file.exists()) {
-      return new IOException("Cannot write to file that not exist: " + file.getAbsolutePath());
+      return new IOException(
+          String.format(
+              "cannot write to file %s because it does not exist", file.getAbsolutePath()));
     }
 
     // 如果是一个空文件，即没有内容，只有元数据，则直接添加数据
@@ -222,11 +227,11 @@ public class DefaultFileOperator implements IFileOperator {
   private Exception replaceFile(File file, File tempFile) {
     if (!tempFile.exists()) {
       return new IOException(
-          String.format("Temp file %s does not exist.", tempFile.getAbsoluteFile()));
+          String.format("temporary file %s does not exist", tempFile.getAbsoluteFile()));
     }
     if (!file.exists()) {
       return new IOException(
-          String.format("Original file %s does not exist.", file.getAbsoluteFile()));
+          String.format("original file %s does not exist", file.getAbsoluteFile()));
     }
     try {
       Files.move(tempFile.toPath(), file.toPath(), REPLACE_EXISTING);
@@ -266,7 +271,7 @@ public class DefaultFileOperator implements IFileOperator {
         writer.write("\n");
       }
     } catch (IOException e) {
-      throw new IOException("Cannot create file: " + file.getAbsolutePath());
+      throw new IOException(String.format("cannot create file %s", file.getAbsolutePath()));
     }
     return file;
   }
@@ -274,10 +279,11 @@ public class DefaultFileOperator implements IFileOperator {
   @Override
   public Exception delete(File file) {
     if (!Files.exists(Paths.get(file.getPath()))) {
-      return new IOException("Cannot delete file because not exist: " + file.getAbsolutePath());
+      return new IOException(
+          String.format("cannot delete file %s because it does not exist", file.getAbsolutePath()));
     }
     if (!file.delete()) {
-      return new IOException("Cannot delete file: " + file.getAbsolutePath());
+      return new IOException(String.format("cannot delete file %s", file.getAbsolutePath()));
     }
     return null;
   }
@@ -328,7 +334,9 @@ public class DefaultFileOperator implements IFileOperator {
 
     try {
       if (!Files.exists(csvPath)) {
-        throw new IOException("Cannot get file meta because not exist: " + file.getAbsolutePath());
+        throw new IOException(
+            String.format(
+                "cannot get file meta %s because it does not exist", file.getAbsolutePath()));
       }
 
       try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
@@ -352,7 +360,7 @@ public class DefaultFileOperator implements IFileOperator {
         }
       }
     } catch (IOException e) {
-      throw new IOException("Cannot get file meta : " + file.getAbsolutePath());
+      throw new IOException(String.format("cannot get file meta %s", file.getAbsolutePath()));
     }
     return fileMeta;
   }

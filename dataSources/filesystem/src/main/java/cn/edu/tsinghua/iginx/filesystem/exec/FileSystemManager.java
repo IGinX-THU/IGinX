@@ -23,7 +23,6 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,7 +42,7 @@ public class FileSystemManager {
   public FileSystemManager(Map<String, String> params) {
     memoryPool =
         new MemoryPool(
-            Integer.parseInt(params.getOrDefault(INIT_INFO_MEMORYPOOL_SIZE, "100")),
+            Integer.parseInt(params.getOrDefault(INIT_INFO_MEMORY_POOL_SIZE, "100")),
             Integer.parseInt(params.getOrDefault(INIT_INFO_CHUNK_SIZE, "1024")));
     fileOperator = new DefaultFileOperator();
   }
@@ -101,11 +100,12 @@ public class FileSystemManager {
 
     // 处理dummy查询
     if (file == null || !file.exists() || !file.isFile()) {
-      throw new IllegalArgumentException("Invalid file " + file.getAbsolutePath());
+      throw new IllegalArgumentException(
+          String.format("invalid file %s", file == null ? "null" : file.getAbsolutePath()));
     }
     if (startKey < 0 || endKey < startKey) {
       throw new IllegalArgumentException(
-          "Invalid byte range startKey: " + startKey + " endKey: " + endKey);
+          String.format("invalid byte range startKey: %d endKey: %d", startKey, endKey));
     }
     if (endKey > file.length()) {
       endKey = file.length() - 1;
@@ -155,10 +155,7 @@ public class FileSystemManager {
       }
     } catch (InterruptedException e) {
       throw new RuntimeException(
-          "Interrupted while reading file: "
-              + file.getAbsolutePath()
-              + "with error: "
-              + e.getMessage());
+          String.format("interrupted while reading file %s", file.getAbsolutePath()), e);
     } finally {
       if (executorService != null) {
         executorService.shutdown();
@@ -170,8 +167,8 @@ public class FileSystemManager {
       try {
         future.get();
       } catch (InterruptedException | ExecutionException e) {
-        logger.error("Exception thrown while reading file: " + e.getMessage());
-        throw new RuntimeException(e);
+        throw new RuntimeException(
+            String.format("exception thrown while reading file %s", file.getAbsolutePath()), e);
       }
     }
 
@@ -219,9 +216,8 @@ public class FileSystemManager {
    * @param file 用于查找相同名或近名的父级目录
    * @param tags 用于匹配的 tags 集合
    * @return 元数据与 tags 相等的 .iginx 文件,否则返回 null
-   * @throws IOException 任何查找或读写操作导致的 IOException 将被传播
    */
-  private File getFileWithTags(File file, Map<String, String> tags) throws IOException {
+  private File getFileWithTags(File file, Map<String, String> tags) {
     List<File> files = getAssociatedFiles(file);
     for (File f : files) {
       FileMeta fileMeta = getFileMeta(f);
@@ -289,16 +285,12 @@ public class FileSystemManager {
    */
   public Exception deleteFiles(List<File> files, TagFilter filter) {
     List<File> fileList = new ArrayList<>();
-    try {
-      for (File file : files) {
+    for (File file : files) {
+      try {
         fileList.addAll(getFilesWithTagFilter(file, filter, false));
+      } catch (IOException e) {
+        return new IOException(String.format("delete file %s failed", file.getAbsoluteFile()), e);
       }
-    } catch (IOException e) {
-      logger.error(
-          "delete files {} failure: {}",
-          files.stream().map(File::getAbsolutePath).collect(Collectors.joining(" ")),
-          e.getMessage());
-      return e;
     }
     for (File file : fileList) {
       Exception e = fileOperator.delete(file);
@@ -430,7 +422,7 @@ public class FileSystemManager {
       }
       return fileMeta;
     } catch (IOException e) {
-      logger.error(e.getMessage());
+      logger.error("getFileMeta failure: {}", e.getMessage());
     }
     return null;
   }

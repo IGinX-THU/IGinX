@@ -84,7 +84,7 @@ public class FileSystemWorker implements FileSystemService.Iface {
                 tagsList.add(tags);
               });
     } catch (PhysicalException e) {
-      logger.error("encounter error when get header from RowStream ", e);
+      logger.error("encounter error when getting header from RowStream {}", e.getMessage());
       return new ProjectResp(EXEC_PROJECT_FAIL);
     }
     FSHeader fsHeader = new FSHeader(names, types, tagsList, hasKey);
@@ -110,7 +110,7 @@ public class FileSystemWorker implements FileSystemService.Iface {
         fsRows.add(fsRow);
       }
     } catch (PhysicalException e) {
-      logger.error("encounter error when get result from RowStream ", e);
+      logger.error("encounter error when getting result from RowStream {}", e.getMessage());
       return new ProjectResp(EXEC_PROJECT_FAIL);
     }
 

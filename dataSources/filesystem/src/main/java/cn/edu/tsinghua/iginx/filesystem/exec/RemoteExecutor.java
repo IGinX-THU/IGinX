@@ -39,6 +39,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class RemoteExecutor implements Executor {
+
   private static final Logger logger = LoggerFactory.getLogger(RemoteExecutor.class);
 
   private static final int SUCCESS_CODE = 200;
@@ -67,7 +68,7 @@ public class RemoteExecutor implements Executor {
     if (tagFilter != null) {
       req.setTagFilter(constructRawTagFilter(tagFilter));
     }
-    if (filter != null && !filter.equals("")) {
+    if (filter != null && !filter.toString().isEmpty()) {
       req.setFilter(FilterTransformer.toFSFilter(filter));
     }
     try {
@@ -216,7 +217,7 @@ public class RemoteExecutor implements Executor {
       return columns;
     } catch (TException e) {
       throw new PhysicalException(
-          "encounter error when executing remote getColumnsOfStorageUnit task ", e);
+          "encounter error when executing remote getColumnsOfStorageUnit task", e);
     }
   }
 
@@ -230,7 +231,7 @@ public class RemoteExecutor implements Executor {
           new KeyInterval(resp.getStartKey(), resp.getEndKey()));
     } catch (TException e) {
       throw new PhysicalException(
-          "encounter error when executing remote getBoundaryOfStorage task ", e);
+          "encounter error when executing remote getBoundaryOfStorage task", e);
     }
   }
 
