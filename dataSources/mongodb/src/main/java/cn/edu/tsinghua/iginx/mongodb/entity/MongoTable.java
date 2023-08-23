@@ -10,8 +10,12 @@ public class MongoTable implements Iterable<MongoRow> {
 
   private final DataView dataView;
 
-  public MongoTable(DataView dataView) {
+  private MongoTable(DataView dataView) {
     this.dataView = dataView;
+  }
+
+  public static MongoTable of(DataView dataView) {
+    return new MongoTable(dataView);
   }
 
   @Override
@@ -195,8 +199,7 @@ public class MongoTable implements Iterable<MongoRow> {
     for (int pathIdx = 0; pathIdx < pathNum; pathIdx++) {
       Map<String, MongoPoint> fields = new TreeMap<>();
       fields.put(pathList.get(pathIdx), new MongoPoint(typeList.get(pathIdx), pathIdx));
-      Map<String, String> tags = tagsList.get(pathIdx);
-      tags = (tags == null) ? new TreeMap<>() : tags;
+      Map<String, String> tags = Optional.ofNullable(tagsList.get(pathIdx)).orElse(new TreeMap<>());
       rows.add(new MongoRow(new MongoId(-1, tags), fields));
     }
     return rows;
