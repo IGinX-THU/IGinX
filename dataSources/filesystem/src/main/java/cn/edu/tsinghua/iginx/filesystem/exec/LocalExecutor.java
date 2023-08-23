@@ -274,7 +274,7 @@ public class LocalExecutor implements Executor {
                 FilePathUtils.convertAbsolutePathToPath(root, file.getAbsolutePath(), storageUnit),
                 DataType.BINARY,
                 null));
-      } else {
+      } else if (fileSystemManager.getFileType(file).equals(FileType.IGINX_FILE)) {
         FileMeta meta = fileSystemManager.getFileMeta(file);
         if (meta == null) {
           throw new PhysicalException(
