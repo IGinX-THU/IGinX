@@ -6,18 +6,14 @@ import java.util.List;
 import java.util.Map;
 
 public class FileSystemResultTable {
+
   private File file;
+
   private List<Record> records;
+
   private DataType dataType;
+
   private Map<String, String> tags;
-
-  public FileSystemResultTable(File file, List<Record> records) {
-    this(file, records, records.isEmpty() ? null : records.get(0).getDataType(), null);
-  }
-
-  public FileSystemResultTable(File file, List<Record> records, Map<String, String> tags) {
-    this(file, records, records.isEmpty() ? null : records.get(0).getDataType(), tags);
-  }
 
   public FileSystemResultTable(
       File file, List<Record> records, DataType dataType, Map<String, String> tags) {

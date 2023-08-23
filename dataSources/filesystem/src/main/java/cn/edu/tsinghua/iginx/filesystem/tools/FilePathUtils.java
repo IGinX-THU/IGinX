@@ -29,7 +29,7 @@ public class FilePathUtils {
     if (path == null) {
       return root;
     }
-    return root + path.replace(".", SEPARATOR);
+    return root + path.replace(".", SEPARATOR).replace("\\", ".");
   }
 
   public static String convertAbsolutePathToPath(String root, String filePath, String storageUnit) {
@@ -52,6 +52,6 @@ public class FilePathUtils {
     if (tmp.isEmpty()) {
       return SEPARATOR;
     }
-    return tmp.replace(SEPARATOR, ".");
+    return tmp.replace(".", "\\").replace(SEPARATOR, ".");
   }
 }

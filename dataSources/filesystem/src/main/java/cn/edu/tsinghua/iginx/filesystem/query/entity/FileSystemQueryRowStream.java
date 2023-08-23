@@ -13,11 +13,17 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class FileSystemQueryRowStream implements RowStream {
+
   private final Header header;
+
   private final List<FileSystemResultTable> rowData;
+
   private final int[] indices;
+
   private int hasMoreRecords = 0;
+
   private Filter filter;
+
   private Row nextRow = null;
 
   public FileSystemQueryRowStream(
@@ -28,18 +34,20 @@ public class FileSystemQueryRowStream implements RowStream {
     this.filter = filter;
     this.rowData = result;
 
-    String series;
+    String column;
     for (FileSystemResultTable resultTable : rowData) {
       File file = resultTable.getFile();
-      series = FilePathUtils.convertAbsolutePathToPath(root, file.getAbsolutePath(), storageUnit);
-      Field field = new Field(series, resultTable.getDataType(), resultTable.getTags());
+      column = FilePathUtils.convertAbsolutePathToPath(root, file.getAbsolutePath(), storageUnit);
+      Field field = new Field(column, resultTable.getDataType(), resultTable.getTags());
       fields.add(field);
     }
 
-    this.indices = new int[this.rowData.size()];
+    this.indices = new int[rowData.size()];
     this.header = new Header(time, fields);
-    for (int i = 0; i < this.rowData.size(); i++) {
-      if (this.rowData.get(i).getRecords().size() != 0) hasMoreRecords++;
+    for (FileSystemResultTable row : rowData) {
+      if (!row.getRecords().isEmpty()) {
+        hasMoreRecords++;
+      }
     }
   }
 
@@ -72,28 +80,28 @@ public class FileSystemQueryRowStream implements RowStream {
   }
 
   private Row getNext() throws PhysicalException {
-    long timestamp = Long.MAX_VALUE;
-    for (int i = 0; i < this.rowData.size(); i++) {
+    long key = Long.MAX_VALUE;
+    for (int i = 0; i < rowData.size(); i++) {
       int index = indices[i];
-      List<Record> records = this.rowData.get(i).getRecords();
+      List<Record> records = rowData.get(i).getRecords();
       if (index == records.size()) { // 数据已经消费完毕了
         continue;
       }
       Record record = records.get(index);
-      timestamp = Math.min(record.getKey(), timestamp);
+      key = Math.min(record.getKey(), key);
     }
-    if (timestamp == Long.MAX_VALUE) {
+    if (key == Long.MAX_VALUE) {
       return null;
     }
     Object[] values = new Object[rowData.size()];
-    for (int i = 0; i < this.rowData.size(); i++) {
+    for (int i = 0; i < rowData.size(); i++) {
       int index = indices[i];
-      List<Record> records = this.rowData.get(i).getRecords();
+      List<Record> records = rowData.get(i).getRecords();
       if (index == records.size()) { // 数据已经消费完毕了
         continue;
       }
       Record record = records.get(index);
-      if (record.getKey() == timestamp) {
+      if (record.getKey() == key) {
         Object value = record.getRawData();
         values[i] = value;
         indices[i]++;
@@ -102,7 +110,7 @@ public class FileSystemQueryRowStream implements RowStream {
         }
       }
     }
-    return new Row(header, timestamp, values);
+    return new Row(header, key, values);
   }
 
   private Row calculateNext() throws PhysicalException {

@@ -6,6 +6,7 @@ import static cn.edu.tsinghua.iginx.filesystem.shared.Constant.WILDCARD;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream.EmptyRowStream;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
@@ -68,7 +69,7 @@ public class LocalExecutor implements Executor {
     if (isDummyStorageUnit) {
       if (tagFilter != null) {
         logger.error("dummy storage query should not contain tag filter");
-        return new TaskExecuteResult(new FileSystemHistoryQueryRowStream());
+        return new TaskExecuteResult(new EmptyRowStream());
       }
       return executeDummyProjectTask(paths, filter);
     }

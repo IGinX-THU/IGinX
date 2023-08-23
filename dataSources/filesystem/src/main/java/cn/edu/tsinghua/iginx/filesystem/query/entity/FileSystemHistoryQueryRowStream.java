@@ -14,27 +14,22 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class FileSystemHistoryQueryRowStream implements RowStream {
+
   private final Header header;
+
   private final List<FileSystemResultTable> rowData;
+
   private final int[][] indices;
+
   private final int[] round;
+
   private int hasMoreRecords = 0;
+
   private Filter filter;
+
   private Row nextRow = null;
-  private MemoryPool memoryPool = null;
 
-  public FileSystemHistoryQueryRowStream() {
-    Field time = Field.KEY;
-    List<Field> fields = new ArrayList<>();
-
-    this.rowData = new ArrayList<>();
-    this.indices = new int[0][1024 * 1024 + 100];
-    this.round = new int[0];
-    this.header = new Header(time, fields);
-    for (int i = 0; i < this.rowData.size(); i++) {
-      if (this.rowData.get(i).getRecords().size() != 0) hasMoreRecords++;
-    }
-  }
+  private MemoryPool memoryPool;
 
   // may fix it ，可能可以不用传pathMap
   public FileSystemHistoryQueryRowStream(
@@ -46,19 +41,21 @@ public class FileSystemHistoryQueryRowStream implements RowStream {
     this.rowData = result;
     this.memoryPool = memoryPool;
 
-    String series;
+    String column;
     for (FileSystemResultTable resultTable : rowData) {
       File file = resultTable.getFile();
-      series = FilePathUtils.convertAbsolutePathToPath(root, file.getAbsolutePath(), null);
-      Field field = new Field(series, resultTable.getDataType(), resultTable.getTags());
+      column = FilePathUtils.convertAbsolutePathToPath(root, file.getAbsolutePath(), null);
+      Field field = new Field(column, resultTable.getDataType(), resultTable.getTags());
       fields.add(field);
     }
 
-    this.indices = new int[this.rowData.size()][1024 * 100];
-    this.round = new int[this.rowData.size()];
+    this.indices = new int[rowData.size()][1024 * 100];
+    this.round = new int[rowData.size()];
     this.header = new Header(time, fields);
-    for (int i = 0; i < this.rowData.size(); i++) {
-      if (this.rowData.get(i).getRecords().size() != 0) hasMoreRecords++;
+    for (FileSystemResultTable row : rowData) {
+      if (!row.getRecords().isEmpty()) {
+        hasMoreRecords++;
+      }
     }
   }
 
@@ -97,37 +94,38 @@ public class FileSystemHistoryQueryRowStream implements RowStream {
   }
 
   public Row getNext() throws PhysicalException {
-    long timestamp = Long.MAX_VALUE;
-    for (int i = 0; i < this.rowData.size(); i++) {
+    long key = Long.MAX_VALUE;
+    for (int i = 0; i < rowData.size(); i++) {
       int index = round[i];
-      List<Record> records = this.rowData.get(i).getRecords();
+      List<Record> records = rowData.get(i).getRecords();
       if (index == records.size()) { // 数据已经消费完毕了
         continue;
       }
-      timestamp = Math.min(records.get(index).getKey(), timestamp);
+      key = Math.min(records.get(index).getKey(), key);
     }
-    if (timestamp == Long.MAX_VALUE) {
+    if (key == Long.MAX_VALUE) {
       return null;
     }
     Object[] values = new Object[rowData.size()];
-    for (int i = 0; i < this.rowData.size(); i++) {
+    for (int i = 0; i < rowData.size(); i++) {
       int columnIndex = round[i];
-      List<Record> records = this.rowData.get(i).getRecords();
+      List<Record> records = rowData.get(i).getRecords();
       if (columnIndex == records.size()) { // 数据已经消费完毕了
         continue;
       }
-      byte[] val = (byte[]) records.get(columnIndex).getRawData();
-      if (records.get(columnIndex).getKey() == timestamp) {
-        Object value = val;
+      byte[] value = (byte[]) records.get(columnIndex).getRawData();
+      if (records.get(columnIndex).getKey() == key) {
         values[i] = value;
-        indices[i][columnIndex] += val.length;
-        if (indices[i][columnIndex] >= val.length) {
+        indices[i][columnIndex] += value.length;
+        if (indices[i][columnIndex] >= value.length) {
           round[i]++;
-          if (round[i] == records.size()) hasMoreRecords--;
+          if (round[i] == records.size()) {
+            hasMoreRecords--;
+          }
         }
       }
     }
-    return new Row(header, timestamp, values);
+    return new Row(header, key, values);
   }
 
   private Row calculateNext() throws PhysicalException {
