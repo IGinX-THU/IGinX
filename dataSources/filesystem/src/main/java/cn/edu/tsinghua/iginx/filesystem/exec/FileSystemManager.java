@@ -431,7 +431,7 @@ public class FileSystemManager {
     if (file.isDirectory()) {
       return DIR;
     }
-    if (file.getAbsolutePath().endsWith(FILE_EXTENSION)) {
+    if (file.getName().contains(FILE_EXTENSION)) {
       return IGINX_FILE;
     }
     return NORMAL_FILE;
