@@ -194,6 +194,11 @@ public abstract class BaseCapacityExpansionIT {
     testWriteAndQueryNewData();
     // 再次写入并查询所有新数据
     testWriteAndQueryNewDataAfterCE();
+
+    if (this instanceof FileSystemCapacityExpansionIT) {
+      // 仅用于扩容文件系统后查询文件
+      testQueryForFileSystem();
+    }
   }
 
   @Test
@@ -394,6 +399,48 @@ public abstract class BaseCapacityExpansionIT {
             "'remove history data' should throw error when remove the node that not exist");
         fail();
       }
+    }
+  }
+
+  private void testQueryForFileSystem() {
+    try {
+      session.executeSql(
+          "add storageengine (\"127.0.0.1\", 6669, filesystem, has_data:true, is_read_only:true, dir:test)");
+      String statement = "select 1\\\\txt from a.*";
+      String expect =
+          "ResultSets:\n"
+              + "+---+---------------------------------------------------------------------------+\n"
+              + "|key|                                                              a.b.c.d.1\\txt|\n"
+              + "+---+---------------------------------------------------------------------------+\n"
+              + "|  0|979899100101102103104105106107108109110111112113114115116117118119120121122|\n"
+              + "+---+---------------------------------------------------------------------------+\n"
+              + "Total line number = 1\n";
+      SQLTestTools.executeAndCompare(session, statement, expect);
+
+      statement = "select 2\\\\txt from a.*";
+      expect =
+          "ResultSets:\n"
+              + "+---+----------------------------------------------------+\n"
+              + "|key|                                           a.e.2\\txt|\n"
+              + "+---+----------------------------------------------------+\n"
+              + "|  0|6566676869707172737475767778798081828384858687888990|\n"
+              + "+---+----------------------------------------------------+\n"
+              + "Total line number = 1\n";
+      SQLTestTools.executeAndCompare(session, statement, expect);
+
+      statement = "select 3\\\\txt from a.*";
+      expect =
+          "ResultSets:\n"
+              + "+---+------------------------------------------+\n"
+              + "|key|                               a.f.g.3\\txt|\n"
+              + "+---+------------------------------------------+\n"
+              + "|  0|012345678910111213141516171819202122232425|\n"
+              + "+---+------------------------------------------+\n"
+              + "Total line number = 1\n";
+      SQLTestTools.executeAndCompare(session, statement, expect);
+    } catch (SessionException | ExecutionException e) {
+      logger.error("test query for file system failed {}", e.getMessage());
+      fail();
     }
   }
 }

@@ -37,6 +37,9 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
     List<File> files = getFileList(pathList, String.format(root, port));
     // 将数据写入
     writeValuesToFile(valuesList, files);
+
+    // 仅用于扩容文件系统后查询文件
+    writeSpecificDirectoriesAndFiles();
   }
 
   @Override
@@ -117,6 +120,54 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
       Files.deleteIfExists(path);
     } catch (IOException e) {
       logger.error("delete {} failure", path);
+    }
+  }
+
+  private void writeSpecificDirectoriesAndFiles() {
+    // a
+    // ├── b
+    // │   └── c
+    // │       └── d
+    // │           └── 1.txt
+    // ├── e
+    // │   └── 2.txt
+    // └── f
+    //     └── g
+    //         └── 3.txt
+    StringBuilder content1 = new StringBuilder();
+    StringBuilder content2 = new StringBuilder();
+    StringBuilder content3 = new StringBuilder();
+    for (int i = 0; i < 26; i++) {
+      content1.append('a' + i);
+    }
+    for (int i = 0; i < 26; i++) {
+      content2.append('A' + i);
+    }
+    for (int i = 0; i < 26; i++) {
+      content3.append(i);
+    }
+
+    createAndWriteFile(content1.toString().getBytes(), "a", "b", "c", "d", "1.txt");
+    createAndWriteFile(content2.toString().getBytes(), "a", "e", "2.txt");
+    createAndWriteFile(content3.toString().getBytes(), "a", "f", "g", "3.txt");
+  }
+
+  private void createAndWriteFile(byte[] content, String first, String... more) {
+    File file = new File(Paths.get(first, more).toString());
+    try {
+      if (!file.getParentFile().mkdirs()) {
+        logger.error("create directory {} failed", file.getParentFile().getAbsolutePath());
+        return;
+      }
+      if (!file.exists() && !file.createNewFile()) {
+        logger.error("create file {} failed", file.getAbsolutePath());
+        return;
+      }
+      try (FileOutputStream fos = new FileOutputStream(file)) {
+        fos.write(content);
+      }
+    } catch (IOException e) {
+      logger.error("createFile failed first {} more {}", first, more);
     }
   }
 }
