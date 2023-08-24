@@ -107,6 +107,10 @@ jobs:
 
             - name: Run testReadOnly
               run: |
+                  ls /home/runner/work/IGinX/IGinX/test/
+                  ls /home/runner/work/IGinX/IGinX/test/a
+                  ls /home/runner/work/IGinX/IGinX/test/a/b
+                  cat /home/runner/work/IGinX/IGinX/test/a/e/2.txt
                   mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#testReadOnly -DfailIfNoTests=false -P-format
                   mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
 
