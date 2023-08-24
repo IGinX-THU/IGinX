@@ -406,7 +406,7 @@ public abstract class BaseCapacityExpansionIT {
     try {
       session.executeSql(
           "add storageengine (\"127.0.0.1\", 6669, \"filesystem\", \"data_prefix:a, dir:test, has_data:true, is_read_only:true\")");
-      String statement = "select 1\\\\txt from *";
+      String statement = "select 1\\txt from *";
       String expect =
           "ResultSets:\n"
               + "+---+---------------------------------------------------------------------------+\n"
@@ -417,7 +417,7 @@ public abstract class BaseCapacityExpansionIT {
               + "Total line number = 1\n";
       SQLTestTools.executeAndCompare(session, statement, expect);
 
-      statement = "select 2\\\\txt from *";
+      statement = "select 2\\txt from *";
       expect =
           "ResultSets:\n"
               + "+---+----------------------------------------------------+\n"
@@ -428,7 +428,7 @@ public abstract class BaseCapacityExpansionIT {
               + "Total line number = 1\n";
       SQLTestTools.executeAndCompare(session, statement, expect);
 
-      statement = "select 3\\\\txt from *";
+      statement = "select 3\\txt from *";
       expect =
           "ResultSets:\n"
               + "+---+------------------------------------------+\n"
