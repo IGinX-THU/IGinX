@@ -43,7 +43,7 @@ public class FileSystemManager {
     memoryPool =
         new MemoryPool(
             Integer.parseInt(params.getOrDefault(INIT_INFO_MEMORY_POOL_SIZE, "100")),
-            Integer.parseInt(params.getOrDefault(INIT_INFO_CHUNK_SIZE, "1024")));
+            Integer.parseInt(params.getOrDefault(INIT_INFO_CHUNK_SIZE, "1"))*1024*1024);
     fileOperator = new DefaultFileOperator();
   }
 
@@ -431,8 +431,7 @@ public class FileSystemManager {
     if (file.isDirectory()) {
       return DIR;
     }
-    FileMeta fileMeta = getFileMeta(file);
-    if (Arrays.equals(fileMeta.getMagicNumber(), MAGIC_NUMBER)) {
+    if (file.getAbsolutePath().endsWith(FILE_EXTENSION)) {
       return IGINX_FILE;
     }
     return NORMAL_FILE;

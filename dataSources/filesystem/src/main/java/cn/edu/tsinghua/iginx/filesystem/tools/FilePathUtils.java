@@ -29,7 +29,14 @@ public class FilePathUtils {
     if (path == null) {
       return root;
     }
-    return root + path.replace(".", SEPARATOR).replace("\\", ".");
+    String[] parts = path.split("\\.");
+    StringBuilder res = new StringBuilder();
+    for (String s : parts) {
+      s = s.replace("\\", ".");
+      res.append(s).append(SEPARATOR);
+    }
+    res = new StringBuilder(res.substring(0, res.length() - 1));
+    return root + res;
   }
 
   public static String convertAbsolutePathToPath(String root, String filePath, String storageUnit) {
@@ -48,10 +55,18 @@ public class FilePathUtils {
       }
     } else { // 对普通文件操作
       tmp = filePath.substring(filePath.indexOf(root) + root.length());
+      String[] parts = tmp.split("\\\\");
+      StringBuilder res = new StringBuilder();
+      for (String s : parts) {
+        s = s.replace(".", "\\");
+        res.append(s).append(".");
+      }
+      res = new StringBuilder(res.substring(0, res.length() - 1));
+      return res.toString();
     }
     if (tmp.isEmpty()) {
       return SEPARATOR;
     }
-    return tmp.replace(".", "\\").replace(SEPARATOR, ".");
+    return tmp.replace(SEPARATOR, ".");
   }
 }
