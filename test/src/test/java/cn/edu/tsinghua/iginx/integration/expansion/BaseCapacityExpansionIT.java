@@ -405,7 +405,7 @@ public abstract class BaseCapacityExpansionIT {
   private void testQueryForFileSystem() {
     try {
       session.executeSql(
-          "add storageengine (\"127.0.0.1\", 6669, filesystem, has_data:true, is_read_only:true, dir:test)");
+          "add storageengine (\"127.0.0.1\", 6669, \"filesystem\", \"dir:test, has_data:true, is_read_only:true\")");
       String statement = "select 1\\\\txt from a.*";
       String expect =
           "ResultSets:\n"
