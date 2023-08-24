@@ -55,7 +55,7 @@ public class FilePathUtils {
       }
     } else { // 对普通文件操作
       tmp = filePath.substring(filePath.indexOf(root) + root.length());
-      String[] parts = tmp.split("\\\\");
+      String[] parts = tmp.split(SEPARATOR);
       StringBuilder res = new StringBuilder();
       for (String s : parts) {
         s = s.replace(".", "\\");
