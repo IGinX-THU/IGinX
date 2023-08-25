@@ -219,6 +219,12 @@ public class ConfigDescriptor {
           Integer.parseInt(properties.getProperty("parallelGroupByPoolNum", "5")));
       config.setStreamParallelGroupByWorkerNum(
           Integer.parseInt(properties.getProperty("streamParallelGroupByWorkerNum", "5")));
+      config.setBatchSizeExportCsv(
+          Integer.parseInt(properties.getProperty("batchSizeExportCsv", "50")));
+      config.setBatchSizeImportCsv(
+          Integer.parseInt(properties.getProperty("batchSizeImportCsv", "50")));
+      config.setBatchSizeExportByteStream(
+          Integer.parseInt(properties.getProperty("batchSizeExportByteStream", "50")));
     } catch (IOException e) {
       logger.error("Fail to load properties: ", e);
     }

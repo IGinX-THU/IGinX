@@ -5,9 +5,10 @@ sqlStatement
    ;
 
 statement
-   : INSERT INTO path tagList? insertColumnsSpec VALUES insertValuesSpec # insertStatement
+   : INSERT INTO insertFullPathSpec VALUES insertValuesSpec # insertStatement
+   | LOAD DATA importFileClause INTO insertFullPathSpec # insertFromFileStatement
    | DELETE FROM path (COMMA path)* whereClause? withClause? # deleteStatement
-   | EXPLAIN? (LOGICAL | PHYSICAL)? queryClause orderByClause? limitClause? # selectStatement
+   | EXPLAIN? (LOGICAL | PHYSICAL)? queryClause orderByClause? limitClause? exportFileClause? # selectStatement
    | COUNT POINTS # countPointsStatement
    | DELETE COLUMNS path (COMMA path)* withClause? # deleteColumnsStatement
    | CLEAR DATA # clearDataStatement
@@ -26,6 +27,10 @@ statement
    | SET CONFIG configName = stringLiteral configValue = stringLiteral # setConfigStatement
    | SHOW CONFIG configName = stringLiteral # showConfigStatement
    | COMPACT # compactStatement
+   ;
+
+insertFullPathSpec
+   : path tagList? insertColumnsSpec
    ;
 
 queryClause
@@ -239,6 +244,30 @@ offsetClause
    : OFFSET INT
    ;
 
+exportFileClause
+   : INTO OUTFILE (csvFile (WITH HEADER)? | streamFile)
+   ;
+
+importFileClause
+   : FROM INFILE csvFile (SKIPPING HEADER)?
+   ;
+
+csvFile
+   : filePath = stringLiteral AS CSV fieldsOption? linesOption?
+   ;
+
+streamFile
+   : dirPath = stringLiteral AS STREAM
+   ;
+
+fieldsOption
+   : FIELDS (TERMINATED BY fieldsTerminated = stringLiteral)? (OPTIONALLY? ENCLOSED BY enclosed = stringLiteral)? (ESCAPED BY escaped = stringLiteral)?
+   ;
+
+linesOption
+   : LINES TERMINATED BY linesTerminated = stringLiteral
+   ;
+
 comparisonOperator
    : type = OPERATOR_GT
    | type = OPERATOR_GTE
@@ -390,6 +419,22 @@ keyWords
    | SET
    | CONFIG
    | COLUMNS
+   | INTERSECT
+   | UNION
+   | EXCEPT
+   | DISTINCT
+   | OUTFILE
+   | INFILE
+   | CSV
+   | STREAM
+   | FIELDS
+   | TERMINATED
+   | OPTIONALLY
+   | ENCLOSED
+   | LINES
+   | SKIPPING
+   | HEADER
+   | LOAD
    ;
 
 dateFormat
@@ -810,6 +855,58 @@ EXCEPT
 
 DISTINCT
    : D I S T I N C T
+   ;
+
+OUTFILE
+   : O U T F I L E
+   ;
+
+INFILE
+   : I N F I L E
+   ;
+
+CSV
+   : C S V
+   ;
+
+STREAM
+   : S T R E A M
+   ;
+
+FIELDS
+   : F I E L D S
+   ;
+
+TERMINATED
+   : T E R M I N A T E D
+   ;
+
+OPTIONALLY
+   : O P T I O N A L L Y
+   ;
+
+ENCLOSED
+   : E N C L O S E D
+   ;
+
+ESCAPED
+   : E S C A P E D
+   ;
+
+LINES
+   : L I N E S
+   ;
+
+SKIPPING
+   : S K I P P I N G
+   ;
+
+HEADER
+   : H E A D E R
+   ;
+
+LOAD
+   : L O A D
    ;
    //============================
    
