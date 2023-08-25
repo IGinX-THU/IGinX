@@ -30,7 +30,7 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
   public ParquetHistoryDataGenerator() {
     this.oriPort = 6667;
     this.expPort = 6668;
-    this.readOnlyPort = 6668;
+    this.readOnlyPort = 6669;
   }
 
   private static Connection getConnection() {
