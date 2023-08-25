@@ -23,6 +23,9 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -431,7 +434,10 @@ public class FileSystemManager {
     if (file.isDirectory()) {
       return DIR;
     }
-    if (file.getName().contains(FILE_EXTENSION)) {
+    String pattern = "\\.iginx\\d+$"; // 正则表达式模式，以".iginx"结尾，后跟一个或多个数字
+    Pattern regex = Pattern.compile(pattern);
+    Matcher matcher = regex.matcher(file.getAbsolutePath());
+    if (matcher.find()) {
       return IGINX_FILE;
     }
     return NORMAL_FILE;
