@@ -64,7 +64,7 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
   @Override
   public void writeHistoryData(int port, List<String> pathList, List<DataType> dataTypeList, List<List<Object>> valuesList) {
     if (!parquetParams.containsKey(port)) {
-      logger.error("writing to unknown port.");
+      logger.error(String.format("writing to unknown port %d.", port));
       return;
     }
     Connection conn = getConnection();
@@ -168,7 +168,7 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
   @Override
   public void clearHistoryDataForGivenPort(int port) {
     if (!parquetParams.containsKey(port)) {
-      logger.error("delete from unknown port.");
+      logger.error(String.format("delete from unknown port %d.", port));
       return;
     }
 
