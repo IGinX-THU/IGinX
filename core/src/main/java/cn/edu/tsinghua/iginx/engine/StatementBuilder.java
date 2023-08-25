@@ -23,6 +23,8 @@ public class StatementBuilder {
     typeMap.put(StatementType.DELETE, SqlType.Delete);
     typeMap.put(StatementType.SELECT, SqlType.Query);
     typeMap.put(StatementType.INSERT_FROM_SELECT, SqlType.Insert);
+    typeMap.put(StatementType.INSERT_FROM_FILE, SqlType.Insert);
+    typeMap.put(StatementType.EXPORT_FILE_FROM_SELECT, SqlType.ExportFile);
     typeMap.put(StatementType.ADD_STORAGE_ENGINE, SqlType.AddStorageEngines);
     typeMap.put(StatementType.REMOVE_HISTORY_DATA_RESOURCE, SqlType.RemoveHistoryDataResource);
     typeMap.put(StatementType.SHOW_REPLICATION, SqlType.GetReplicaNum);

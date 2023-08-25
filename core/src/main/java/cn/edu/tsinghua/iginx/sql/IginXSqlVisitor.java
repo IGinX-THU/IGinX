@@ -8,6 +8,12 @@ import cn.edu.tsinghua.iginx.engine.logical.utils.ExprUtils;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.RawDataType;
+import cn.edu.tsinghua.iginx.engine.shared.file.CSVFile;
+import cn.edu.tsinghua.iginx.engine.shared.file.read.ImportCsv;
+import cn.edu.tsinghua.iginx.engine.shared.file.read.ImportFile;
+import cn.edu.tsinghua.iginx.engine.shared.file.write.ExportByteStream;
+import cn.edu.tsinghua.iginx.engine.shared.file.write.ExportCsv;
+import cn.edu.tsinghua.iginx.engine.shared.file.write.ExportFile;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.BoolFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
@@ -38,15 +44,20 @@ import cn.edu.tsinghua.iginx.sql.SqlParser.CommitTransformJobStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.CompactStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.ConstantContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.CountPointsStatementContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.CsvFileContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.DateExpressionContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.DateFormatContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.DeleteColumnsStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.DeleteStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.DownsampleClauseContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.DropTaskStatementContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.ExportFileClauseContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.ExpressionContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.FromClauseContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.GroupByClauseContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.ImportFileClauseContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.InsertFromFileStatementContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.InsertFullPathSpecContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.InsertMultiValueContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.InsertStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.InsertValuesSpecContext;
@@ -104,6 +115,8 @@ import cn.edu.tsinghua.iginx.sql.statement.CountPointsStatement;
 import cn.edu.tsinghua.iginx.sql.statement.DeleteColumnsStatement;
 import cn.edu.tsinghua.iginx.sql.statement.DeleteStatement;
 import cn.edu.tsinghua.iginx.sql.statement.DropTaskStatement;
+import cn.edu.tsinghua.iginx.sql.statement.ExportFileFromSelectStatement;
+import cn.edu.tsinghua.iginx.sql.statement.InsertFromFileStatement;
 import cn.edu.tsinghua.iginx.sql.statement.InsertFromSelectStatement;
 import cn.edu.tsinghua.iginx.sql.statement.InsertStatement;
 import cn.edu.tsinghua.iginx.sql.statement.RegisterTaskStatement;
@@ -165,6 +178,40 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       insertStatement = new InsertStatement(RawDataType.NonAlignedColumn);
     }
 
+    parseInsertFullPathSpec(ctx.insertFullPathSpec(), insertStatement);
+
+    InsertValuesSpecContext valuesSpecContext = ctx.insertValuesSpec();
+    if (hasSubQuery) {
+      SelectStatement selectStatement =
+          parseQueryClause(ctx.insertValuesSpec().queryClause(), false);
+      long timeOffset =
+          valuesSpecContext.TIME_OFFSET() == null
+              ? 0
+              : Long.parseLong(valuesSpecContext.INT().getText());
+      return new InsertFromSelectStatement(timeOffset, selectStatement, insertStatement);
+    } else {
+      // parse keys, values and types
+      parseInsertValuesSpec(valuesSpecContext, insertStatement);
+      if (insertStatement.getPaths().size() != insertStatement.getValues().length) {
+        throw new SQLParserException("Insert path size and value size must be equal.");
+      }
+      insertStatement.sortData();
+      return insertStatement;
+    }
+  }
+
+  @Override
+  public Statement visitInsertFromFileStatement(InsertFromFileStatementContext ctx) {
+    ImportFile importFile = parseImportFileClause(ctx.importFileClause());
+
+    InsertStatement insertStatement = new InsertStatement(RawDataType.NonAlignedRow);
+    parseInsertFullPathSpec(ctx.insertFullPathSpec(), insertStatement);
+
+    return new InsertFromFileStatement(importFile, insertStatement);
+  }
+
+  private void parseInsertFullPathSpec(
+      InsertFullPathSpecContext ctx, InsertStatement insertStatement) {
     insertStatement.setPrefixPath(ctx.path().getText());
 
     if (ctx.tagList() != null) {
@@ -194,24 +241,20 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
               }
               insertStatement.setPath(path, tags);
             });
+  }
 
-    InsertValuesSpecContext valuesSpecContext = ctx.insertValuesSpec();
-    if (hasSubQuery) {
-      SelectStatement selectStatement =
-          parseQueryClause(ctx.insertValuesSpec().queryClause(), false);
-      long timeOffset =
-          valuesSpecContext.TIME_OFFSET() == null
-              ? 0
-              : Long.parseLong(valuesSpecContext.INT().getText());
-      return new InsertFromSelectStatement(timeOffset, selectStatement, insertStatement);
-    } else {
-      // parse times, values and types
-      parseInsertValuesSpec(valuesSpecContext, insertStatement);
-      if (insertStatement.getPaths().size() != insertStatement.getValues().length) {
-        throw new SQLParserException("Insert path size and value size must be equal.");
+  private ImportFile parseImportFileClause(ImportFileClauseContext ctx) {
+    if (ctx.csvFile() != null) {
+      String filePath = ctx.csvFile().filePath.getText();
+      filePath = filePath.substring(1, filePath.length() - 1);
+      ImportCsv importCsv = new ImportCsv(filePath);
+      parseCsvFile(ctx.csvFile(), importCsv.getCsvFile());
+      if (ctx.HEADER() != null) {
+        importCsv.setSkippingImportHeader(true);
       }
-      insertStatement.sortData();
-      return insertStatement;
+      return importCsv;
+    } else {
+      throw new SQLParserException("Unknown import file type");
     }
   }
 
@@ -254,6 +297,16 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       Pair<Integer, Integer> limitAndOffset = parseLimitClause(ctx.limitClause());
       selectStatement.setLimit(limitAndOffset.getK());
       selectStatement.setOffset(limitAndOffset.getV());
+    }
+    if (ctx.exportFileClause() != null) {
+      if (ctx.EXPLAIN() != null) {
+        throw new SQLParserException(
+            "OUTFILE is not supported to be used in statement with EXPLAIN.");
+      }
+      ExportFile exportFile = parseExportFileClause(ctx.exportFileClause());
+      ExportFileFromSelectStatement statement =
+          new ExportFileFromSelectStatement(selectStatement, exportFile);
+      return statement;
     }
     return selectStatement;
   }
@@ -325,6 +378,66 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
     // Step 2. decide the query type according to the information.
     selectStatement.checkQueryType();
+  }
+
+  private ExportFile parseExportFileClause(ExportFileClauseContext ctx) {
+    if (ctx.csvFile() != null) {
+      String filePath = ctx.csvFile().filePath.getText();
+      filePath = filePath.substring(1, filePath.length() - 1);
+      ExportCsv exportCsv = new ExportCsv(filePath);
+      parseCsvFile(ctx.csvFile(), exportCsv.getCsvFile());
+      if (ctx.HEADER() != null) {
+        exportCsv.setExportHeader(true);
+      }
+      return exportCsv;
+    } else if (ctx.streamFile() != null) {
+      String dirPath = ctx.streamFile().dirPath.getText();
+      dirPath = dirPath.substring(1, dirPath.length() - 1);
+      return new ExportByteStream(dirPath);
+    } else {
+      throw new SQLParserException("Unknown export file type");
+    }
+  }
+
+  private void parseCsvFile(CsvFileContext ctx, CSVFile csvFile) {
+    if (ctx.fieldsOption() != null) {
+      if (ctx.fieldsOption().TERMINATED() == null
+          && ctx.fieldsOption().ENCLOSED() == null
+          && ctx.fieldsOption().ESCAPED() == null) {
+        throw new SQLParserException("FILEDS should be used with TERMINATED, ENCLOSED or ESCAPED.");
+      }
+      if (ctx.fieldsOption().TERMINATED() != null) {
+        String delimiter = ctx.fieldsOption().fieldsTerminated.getText();
+        delimiter = delimiter.substring(1, delimiter.length() - 1);
+        csvFile.setDelimiter(delimiter);
+      }
+      if (ctx.fieldsOption().ENCLOSED() != null) {
+        String quote = ctx.fieldsOption().enclosed.getText();
+        quote = quote.substring(1, quote.length() - 1);
+        if (quote.length() != 1) {
+          throw new SQLParserException("a char is expected behind ENCLOSED BY.");
+        }
+        csvFile.setQuote(quote.charAt(0));
+        if (ctx.fieldsOption().OPTIONALLY() != null) {
+          csvFile.setOptionallyQuote(true);
+        }
+      }
+      if (ctx.fieldsOption().ESCAPED() != null) {
+        String escaped = ctx.fieldsOption().escaped.getText();
+        escaped = escaped.substring(1, escaped.length() - 1);
+        if (escaped.length() != 1) {
+          throw new SQLParserException("a char is expected behind ENCLOSED BY.");
+        }
+        csvFile.setEscaped(escaped.charAt(0));
+      }
+    }
+
+    if (ctx.linesOption() != null) {
+      String recordSeparator = ctx.linesOption().linesTerminated.getText();
+      recordSeparator = recordSeparator.substring(1, recordSeparator.length() - 1);
+      String CRLF = "\r\n";
+      csvFile.setRecordSeparator(recordSeparator);
+    }
   }
 
   @Override
