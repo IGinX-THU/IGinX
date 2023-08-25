@@ -201,11 +201,6 @@
             <artifactId>commons-csv</artifactId>
             <version>1.10.0</version>
         </dependency>
-        <dependency>
-            <groupId>cn.edu.tsinghua</groupId>
-            <artifactId>iginx-tools-expCsv</artifactId>
-            <version>${project.version}</version>
-        </dependency>
     </dependencies>
 
     <repositories>
