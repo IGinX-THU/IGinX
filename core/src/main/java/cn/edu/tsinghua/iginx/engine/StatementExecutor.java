@@ -708,13 +708,13 @@ public class StatementExecutor {
     InsertStatement insertStatement = statement.getSubInsertStatement();
 
     if (Objects.requireNonNull(importFile.getType()) == FileType.CSV) {
-      LoadValuesSpecFromCsv(ctx, (ImportCsv) importFile, insertStatement);
+      loadValuesSpecFromCsv(ctx, (ImportCsv) importFile, insertStatement);
     } else {
       throw new RuntimeException("Unknown import file type: " + importFile.getType());
     }
   }
 
-  private void LoadValuesSpecFromCsv(
+  private void loadValuesSpecFromCsv(
       RequestContext ctx, ImportCsv importCsv, InsertStatement insertStatement) {
     final int BATCH_SIZE = config.getBatchSizeImportCsv();
     File file = new File(importCsv.getFilepath());
