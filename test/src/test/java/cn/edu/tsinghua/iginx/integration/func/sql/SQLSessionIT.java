@@ -4130,21 +4130,24 @@ public class SQLSessionIT {
 
     assertTrue(dirFile.exists());
     assertTrue(dirFile.isDirectory());
-    assertEquals(Objects.requireNonNull(dirFile.list()).length, 4);
+    List<String> filenames = Arrays.asList(Objects.requireNonNull(dirFile.list()));
+    assertEquals(filenames.size(), 4);
 
-    assertEquals(Objects.requireNonNull(dirFile.list())[0], "us.d2.s1");
+    filenames.sort(String::compareTo);
+
+    assertEquals(filenames.get(0), "us.d2.s1");
     File file1 = new File(Paths.get(dir, "us.d2.s1").toString());
     assertEquals(file1.length(), 46);
 
-    assertEquals(Objects.requireNonNull(dirFile.list())[1], "us.d2.s2");
+    assertEquals(filenames.get(1), "us.d2.s2");
     File file2 = new File(Paths.get(dir, "us.d2.s2").toString());
     assertEquals(file2.length(), 72);
 
-    assertEquals(Objects.requireNonNull(dirFile.list())[2], "us.d2.s3");
+    assertEquals(filenames.get(2), "us.d2.s3");
     File file3 = new File(Paths.get(dir, "us.d2.s3").toString());
     assertEquals(file3.length(), 72);
 
-    assertEquals(Objects.requireNonNull(dirFile.list())[3], "us.d2.s4");
+    assertEquals(filenames.get(3), "us.d2.s4");
     File file4 = new File(Paths.get(dir, "us.d2.s4").toString());
     assertEquals(file4.length(), 9);
   }
