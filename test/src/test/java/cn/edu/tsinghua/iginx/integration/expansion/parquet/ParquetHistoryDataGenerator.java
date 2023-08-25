@@ -14,7 +14,6 @@ import java.util.*;
 import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
-import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,6 +26,12 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
   private static final char PARQUET_SEPARATOR = '$';
 
   private static final HashMap<Integer, List<String>> parquetParams = new ParquetParams().getParams();
+
+  public ParquetHistoryDataGenerator() {
+    this.oriPort = 6667;
+    this.expPort = 6668;
+    this.readOnlyPort = 6668;
+  }
 
   private static Connection getConnection() {
     try {
