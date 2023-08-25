@@ -38,28 +38,28 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
     }
   }
 
-  @Test
-  public void Test() {
-
-    int oriPort = 6669;
-
-    List<String> ORI_PATH_LIST =
-            Arrays.asList("mn.wf05.wt01.status", "mn.wf05.wt01.temperature");
-
-    List<DataType> ORI_DATA_TYPE_LIST =
-            Arrays.asList(DataType.BOOLEAN, DataType.DOUBLE);
-
-    List<List<Object>> ORI_VALUES_LIST =
-            Arrays.asList(Arrays.asList(false, 100.01), Arrays.asList(true, 99.99));
-
-    writeHistoryData(oriPort, ORI_PATH_LIST, ORI_DATA_TYPE_LIST, ORI_VALUES_LIST);
-  }
-
-  @Test
-  public void clear() {
-    int port = 6667;
-    clearHistoryDataForGivenPort(port);
-  }
+//  @Test
+//  public void Test() {
+//
+//    int oriPort = 6669;
+//
+//    List<String> ORI_PATH_LIST =
+//            Arrays.asList("mn.wf05.wt01.status", "mn.wf05.wt01.temperature");
+//
+//    List<DataType> ORI_DATA_TYPE_LIST =
+//            Arrays.asList(DataType.BOOLEAN, DataType.DOUBLE);
+//
+//    List<List<Object>> ORI_VALUES_LIST =
+//            Arrays.asList(Arrays.asList(false, 100.01), Arrays.asList(true, 99.99));
+//
+//    writeHistoryData(oriPort, ORI_PATH_LIST, ORI_DATA_TYPE_LIST, ORI_VALUES_LIST);
+//  }
+//
+//  @Test
+//  public void clear() {
+//    int port = 6667;
+//    clearHistoryDataForGivenPort(port);
+//  }
 
   @Override
   public void writeHistoryData(int port, List<String> pathList, List<DataType> dataTypeList, List<List<Object>> valuesList) {
