@@ -9,9 +9,11 @@ import org.bson.BsonString;
 import org.bson.BsonValue;
 
 public class MongoId {
-  public static final String ID_FIELD_NAME = "_id";
-  public static final String KEY_SUBFIELD_NAME = "_";
-  public static final String KEY_FIELD_NAME = ID_FIELD_NAME + "." + KEY_SUBFIELD_NAME;
+  public static final String KEY_SUBFIELD = "_";
+  // Note: why set place holder?
+  //     因为在测试中要求，即使是空列也需要返回该列。目前现状是，删除了一条序列的所有数据，
+  // 并不等于删除了一条序列；删除一条序列是一个特殊操作。
+  public static final long PLACE_HOLDER_KEY = Long.MAX_VALUE; // 分片区间左开右闭，此值不处于任何分片
   private final long key;
   private final Map<String, String> tags;
 
@@ -56,6 +58,6 @@ public class MongoId {
   }
 
   public BsonDocument toBsonDocument() {
-    return getBsonTags().append(KEY_SUBFIELD_NAME, getBsonKey());
+    return getBsonTags().append(KEY_SUBFIELD, getBsonKey());
   }
 }

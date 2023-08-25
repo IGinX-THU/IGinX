@@ -12,7 +12,7 @@ public class Base16m {
     char[] code = new char[bytes.length * 2];
     for (int i = 0; i < bytes.length; i++) {
       code[2 * i] = (char) ((bytes[i] & 0xF) + BASE_ASCII);
-      code[2 * i + 1] = (char) ((bytes[i] >>> 4) + BASE_ASCII);
+      code[2 * i + 1] = (char) (((bytes[i] >> 4) & 0xF) + BASE_ASCII);
     }
     return new String(code);
   }

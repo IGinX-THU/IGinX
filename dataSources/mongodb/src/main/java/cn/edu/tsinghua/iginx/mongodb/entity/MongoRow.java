@@ -2,6 +2,7 @@ package cn.edu.tsinghua.iginx.mongodb.entity;
 
 import cn.edu.tsinghua.iginx.mongodb.tools.NameUtils;
 import java.util.Map;
+import java.util.Objects;
 import org.bson.*;
 
 public class MongoRow {
@@ -34,5 +35,18 @@ public class MongoRow {
 
   public BsonDocument getBsonId() {
     return id.toBsonDocument();
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    MongoRow mongoRow = (MongoRow) o;
+    return Objects.equals(id, mongoRow.id) && Objects.equals(fields, mongoRow.fields);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(id, fields);
   }
 }

@@ -10,17 +10,26 @@ public class MongoTable implements Iterable<MongoRow> {
 
   private final DataView dataView;
 
-  private MongoTable(DataView dataView) {
+  public MongoTable(DataView dataView) {
     this.dataView = dataView;
   }
 
-  public static MongoTable of(DataView dataView) {
-    return new MongoTable(dataView);
+  public Set<MongoRow> headers() {
+    return mergeRows(getHeaders(this.dataView)).stream()
+        .map(
+            row ->
+                new MongoRow(
+                    row.getId(),
+                    row.getFields().entrySet().stream()
+                        .collect(
+                            Collectors.toMap(
+                                Map.Entry::getKey, e -> new MongoPoint(e.getValue().getType())))))
+        .collect(Collectors.toSet());
   }
 
   @Override
   public Iterator<MongoRow> iterator() {
-    if (dataView.isColumnData()) {
+    if (this.dataView.isColumnData()) {
       return new MongoPointIterator(this.dataView);
     } else {
       return new MongoRowIterator(this.dataView);
@@ -141,24 +150,6 @@ public class MongoTable implements Iterable<MongoRow> {
       return rowList.iterator();
     }
 
-    private static List<MongoRow> mergeRows(List<MongoRow> headers) {
-      return headers.stream()
-          .collect(Collectors.groupingBy(MongoRow::getId))
-          .entrySet()
-          .stream()
-          .map(
-              group -> {
-                MongoId groupId = group.getKey();
-                List<MongoRow> groupFields = group.getValue();
-                Map<String, MongoPoint> fields = new HashMap<>();
-                for (MongoRow field : groupFields) {
-                  fields.putAll(field.getFields());
-                }
-                return new MongoRow(groupId, fields);
-              })
-          .collect(Collectors.toList());
-    }
-
     private static ArrayList<Object> getRowValues(DataView dataView, int keyIndex) {
       BitmapView bitmapView = dataView.getBitmapView(keyIndex);
       ArrayList<Object> values = new ArrayList<>(bitmapView.getSize());
@@ -189,6 +180,24 @@ public class MongoTable implements Iterable<MongoRow> {
     }
   }
 
+  private static List<MongoRow> mergeRows(List<MongoRow> headers) {
+    return headers.stream()
+        .collect(Collectors.groupingBy(MongoRow::getId))
+        .entrySet()
+        .stream()
+        .map(
+            group -> {
+              MongoId groupId = group.getKey();
+              List<MongoRow> groupFields = group.getValue();
+              Map<String, MongoPoint> fields = new HashMap<>();
+              for (MongoRow field : groupFields) {
+                fields.putAll(field.getFields());
+              }
+              return new MongoRow(groupId, fields);
+            })
+        .collect(Collectors.toList());
+  }
+
   private static List<MongoRow> getHeaders(DataView dataView) {
     int pathNum = dataView.getPathNum();
     List<String> pathList = dataView.getPaths();
@@ -199,8 +208,15 @@ public class MongoTable implements Iterable<MongoRow> {
     for (int pathIdx = 0; pathIdx < pathNum; pathIdx++) {
       Map<String, MongoPoint> fields = new TreeMap<>();
       fields.put(pathList.get(pathIdx), new MongoPoint(typeList.get(pathIdx), pathIdx));
-      Map<String, String> tags = Optional.ofNullable(tagsList.get(pathIdx)).orElse(new TreeMap<>());
-      rows.add(new MongoRow(new MongoId(-1, tags), fields));
+
+      Map<String, String> tags = new TreeMap<>();
+      if (tagsList != null && pathIdx < tagsList.size()) {
+        Map<String, String> tagsInIdx = tagsList.get(pathIdx);
+        if (tagsInIdx != null) {
+          tags = tagsInIdx;
+        }
+      }
+      rows.add(new MongoRow(new MongoId(MongoId.PLACE_HOLDER_KEY, tags), fields));
     }
     return rows;
   }

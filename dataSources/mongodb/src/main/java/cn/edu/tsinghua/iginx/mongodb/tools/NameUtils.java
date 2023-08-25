@@ -19,7 +19,7 @@ public class NameUtils {
     StringJoiner joiner = new StringJoiner("_");
     for (String node : nodes) {
       if (isWildcard(node)) {
-        joiner.add(Base16m.encode(node).replaceAll(Base16m.encode("*"), "*"));
+        joiner.add(Base16m.encode(node).replaceAll(Base16m.encode("*"), ".*"));
       } else {
         joiner.add(Base16m.encode(node));
       }

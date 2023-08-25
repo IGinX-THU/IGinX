@@ -7,36 +7,42 @@ import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.DataArea;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
+import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
-import cn.edu.tsinghua.iginx.mongodb.entity.MongoId;
+import cn.edu.tsinghua.iginx.mongodb.entity.IginxTable;
 import cn.edu.tsinghua.iginx.mongodb.entity.MongoRow;
 import cn.edu.tsinghua.iginx.mongodb.entity.MongoTable;
-import cn.edu.tsinghua.iginx.mongodb.query.AllColumns;
+import cn.edu.tsinghua.iginx.mongodb.query.Query;
 import cn.edu.tsinghua.iginx.mongodb.tools.FilterUtils;
 import cn.edu.tsinghua.iginx.mongodb.tools.NameUtils;
+import cn.edu.tsinghua.iginx.mongodb.tools.UpdateUtils;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.ServerAddress;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
-import com.mongodb.client.model.UpdateOneModel;
-import com.mongodb.client.model.UpdateOptions;
-import com.mongodb.client.model.WriteModel;
+import com.mongodb.client.model.*;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import org.bson.BsonDocument;
 import org.bson.conversions.Bson;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-// due to its schema, mongodb doesn't support history data
 public class MongoDBStorage implements IStorage {
+
+  private static final Logger logger = LoggerFactory.getLogger(MongoDBStorage.class.getName());
 
   private static final String STORAGE_ENGINE = "mongodb";
   private static final long MAX_WAIT_TIME = 5;
@@ -54,7 +60,9 @@ public class MongoDBStorage implements IStorage {
     try {
       this.client = connect(meta.getIp(), meta.getPort());
     } catch (Exception e) {
-      throw new StorageInitializationException("connection failure: " + e);
+      String message = "fail to connect " + meta.getIp() + ":" + meta.getPort();
+      logger.error(message, e);
+      throw new StorageInitializationException(message);
     }
   }
 
@@ -74,26 +82,50 @@ public class MongoDBStorage implements IStorage {
   }
 
   @Override
-  public TaskExecuteResult executeProject(Project project, DataArea dataArea) {
-    // TODO
-    return new TaskExecuteResult(new PhysicalException("not implemented"));
-  }
-
-  @Override
-  public TaskExecuteResult executeProjectDummy(Project project, DataArea dataArea) {
-    // TODO
-    return new TaskExecuteResult(new PhysicalException("not implemented"));
-  }
-
-  @Override
   public boolean isSupportProjectWithSelect() {
-    // TODO
-    return false;
+    return true;
+  }
+
+  @Override
+  public TaskExecuteResult executeProject(Project project, DataArea dataArea) {
+    return project(project, dataArea, null);
   }
 
   @Override
   public TaskExecuteResult executeProjectWithSelect(
       Project project, Select select, DataArea dataArea) {
+    return project(project, dataArea, select.getFilter());
+  }
+
+  private TaskExecuteResult project(Project project, DataArea dataArea, Filter filter) {
+    String unit = dataArea.getStorageUnit();
+    KeyInterval range = dataArea.getKeyInterval();
+    List<String> paths = project.getPatterns();
+    TagFilter tags = project.getTagFilter();
+
+    Query query = new Query();
+    try {
+      if (range != null) query.range(range);
+      if (tags != null) query.filter(tags);
+      if (filter != null) query.filter(filter);
+      if (paths.stream().noneMatch(NameUtils::isWildcardAll)) {
+        if (paths.stream().noneMatch(NameUtils::isWildcard)) {
+          query.normalProject(paths);
+        } else {
+          query.wildcardProject(paths);
+        }
+      }
+
+      return new TaskExecuteResult(query.query(getCollection(unit)).rowStream());
+    } catch (Exception e) {
+      logger.error("project {} from {}[{}] where {} and {}", paths, unit, range, filter, tags);
+      logger.error("failed to aggregate " + query, e);
+      return new TaskExecuteResult(new PhysicalException("failed to project", e));
+    }
+  }
+
+  @Override
+  public TaskExecuteResult executeProjectDummy(Project project, DataArea dataArea) {
     // TODO
     return new TaskExecuteResult(new PhysicalException("not implemented"));
   }
@@ -107,64 +139,87 @@ public class MongoDBStorage implements IStorage {
 
   @Override
   public TaskExecuteResult executeDelete(Delete delete, DataArea dataArea) {
-    List<String> pathPatterns = delete.getPatterns();
-    List<KeyRange> keyRanges = delete.getKeyRanges();
-    TagFilter tagFilter = delete.getTagFilter();
+    String unit = dataArea.getStorageUnit();
+    List<String> paths = delete.getPatterns();
+    List<KeyRange> ranges = delete.getKeyRanges();
+    TagFilter tags = delete.getTagFilter();
 
-    assert !pathPatterns.isEmpty();
-
+    List<WriteModel<BsonDocument>> operations = new ArrayList<>();
     try {
-      if (pathPatterns.stream().anyMatch(NameUtils::isWildcardAll)) { // match all columns
-        if (FilterUtils.isEmpty(keyRanges) && FilterUtils.isEmpty(tagFilter)) { // match all rows
-          this.getCollection(dataArea).drop();
-        } else { // match key and tag
-          // TODO
-          throw new RuntimeException("not implemented");
+      Bson filter = new BsonDocument();
+      if ((ranges != null && !ranges.isEmpty()) || tags != null) {
+        if (tags == null) {
+          filter = FilterUtils.ranges(ranges);
+        } else if (ranges == null || ranges.isEmpty()) {
+          filter = FilterUtils.withTags(tags);
+        } else {
+          filter = Filters.and(FilterUtils.withTags(tags), FilterUtils.ranges(ranges));
         }
-      } else {
-        if (pathPatterns.stream().anyMatch(NameUtils::isWildcard)) { // match the wildcard
-          // TODO
-          throw new RuntimeException("not implemented");
-        }
-        // TODO
-        throw new RuntimeException("not implemented");
       }
+
+      if (!paths.isEmpty()) {
+        if (paths.stream().anyMatch(NameUtils::isWildcardAll)) { // match all columns
+          operations.add(new DeleteManyModel<>(filter));
+        } else {
+          if (paths.stream().anyMatch(NameUtils::isWildcard)) { // match the wildcard
+            operations.add(new UpdateManyModel<>(filter, UpdateUtils.wildcardUnset(paths)));
+          } else {
+            operations.add(new UpdateManyModel<>(filter, UpdateUtils.unset(paths)));
+          }
+          operations.add(new DeleteManyModel<>(FilterUtils.nonFieldExcept("$$ROOT", "_id")));
+        }
+        this.getCollection(unit).bulkWrite(operations);
+      }
+      return new TaskExecuteResult();
     } catch (Exception e) {
+      logger.error("delete {} from {} where {} and {}", paths, unit, ranges, tags);
+      logger.error("failed to write " + operations, e);
       return new TaskExecuteResult(new PhysicalException("failed to delete", e));
     }
-
-    return new TaskExecuteResult();
   }
 
   @Override
   public TaskExecuteResult executeInsert(Insert insert, DataArea dataArea) {
+    String unit = dataArea.getStorageUnit();
+    DataView data = insert.getData();
+
+    List<WriteModel<BsonDocument>> operations = new ArrayList<>();
     try {
-      List<WriteModel<BsonDocument>> operations = new ArrayList<>();
-      for (MongoRow row : MongoTable.of(insert.getData())) {
-        // { "_id": { "$eq": { "_": <key>, "<tag0k>": <tag0v>,  "<tag1k>": <tag1v>, ...} }}
-        Bson filter =
-            new BsonDocument(MongoId.ID_FIELD_NAME, new BsonDocument("$eq", row.getBsonId()));
-        // { "$set": { "<path0>": <value0>, "<path1>": <value1>, ... }}
-        Bson update = new BsonDocument("$set", row.getBsonFields());
-        operations.add(new UpdateOneModel<>(filter, update, new UpdateOptions().upsert(true)));
-      }
-      this.getCollection(dataArea).bulkWrite(operations);
+      Consumer<MongoRow> toUpsert =
+          row -> {
+            Bson filter = new BsonDocument("_id", row.getBsonId());
+            Bson update = new BsonDocument("$set", row.getBsonFields());
+            operations.add(new UpdateOneModel<>(filter, update, new UpdateOptions().upsert(true)));
+          };
+
+      MongoTable table = new MongoTable(data);
+      for (MongoRow row : table) toUpsert.accept(row);
+      for (MongoRow row : table.headers()) toUpsert.accept(row); // upsert place holder
+
+      this.getCollection(unit).bulkWrite(operations, new BulkWriteOptions().ordered(false));
+      return new TaskExecuteResult();
     } catch (Exception e) {
+      logger.error("insert into {} values {}*{}", unit, data.getKeySize(), data.getPaths());
+      logger.error("failed to write " + operations, e);
       return new TaskExecuteResult(new PhysicalException("failed to insert", e));
     }
-
-    return new TaskExecuteResult(null, null);
   }
 
   @Override
   public List<Column> getColumns() {
-    Set<Column> columns = new HashSet<>();
-    for (MongoCollection<BsonDocument> mongoCollection : getCollections()) {
-      for (Column column : AllColumns.of(mongoCollection)) {
-        columns.add(column);
+    Set<Column> columnSet = new HashSet<>();
+    try {
+      for (MongoCollection<BsonDocument> mongoCollection : getCollections()) {
+        IginxTable result = new Query().last().query(mongoCollection);
+        for (Field field : result.rowStream().getHeader().getFields()) {
+          columnSet.add(new Column(field.getName(), field.getType(), field.getTags()));
+        }
       }
+    } catch (Exception e) {
+      logger.error("failed to get columns", e);
+      return null;
     }
-    return new ArrayList<>(columns);
+    return new ArrayList<>(columnSet);
   }
 
   @Override
@@ -173,9 +228,8 @@ public class MongoDBStorage implements IStorage {
     return null;
   }
 
-  private MongoCollection<BsonDocument> getCollection(DataArea dataArea) {
-    String unitName = dataArea.getStorageUnit();
-    String dbName = "iginx_" + unitName;
+  private MongoCollection<BsonDocument> getCollection(String unit) {
+    String dbName = "iginx_" + unit;
     return this.client
         .getDatabase(dbName)
         .getCollection(DEFAULT_COLLECTION_NAME, BsonDocument.class);
