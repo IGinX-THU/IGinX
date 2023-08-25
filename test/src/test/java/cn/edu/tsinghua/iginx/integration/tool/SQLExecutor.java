@@ -53,7 +53,6 @@ public class SQLExecutor {
         return "";
       } else {
         logger.error(CLEAR_DATA_ERROR, statement, e.getMessage());
-        e.printStackTrace();
         fail();
       }
     }

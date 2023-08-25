@@ -4072,7 +4072,7 @@ public class SQLSessionIT {
             + "(7, \"melon\", 516, 113.6, true), (8, \"mango\", 458, 232.1, false), (9, \"pear\", 336, 613.1, true);";
     executor.execute(insert);
 
-    Path csvPath = Paths.get("src", "test", "resources", "fileReadAndWrite", "csv", "us.d2.csv");
+    Path csvPath = Paths.get("src", "test", "resources", "fileReadAndWrite", "csv", "usd2.csv");
     File csvFile = csvPath.toFile();
     String exportCsv =
         "SELECT * FROM us.d2 INTO OUTFILE \"" + csvFile.getAbsolutePath() + "\" AS CSV";
