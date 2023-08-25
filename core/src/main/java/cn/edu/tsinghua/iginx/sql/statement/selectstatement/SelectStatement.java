@@ -1,5 +1,6 @@
 package cn.edu.tsinghua.iginx.sql.statement.selectstatement;
 
+import cn.edu.tsinghua.iginx.engine.shared.file.write.ExportFile;
 import cn.edu.tsinghua.iginx.sql.expression.Expression;
 import cn.edu.tsinghua.iginx.sql.statement.DataStatement;
 import cn.edu.tsinghua.iginx.sql.statement.StatementType;
@@ -14,6 +15,7 @@ public abstract class SelectStatement extends DataStatement {
   protected SelectStatementType selectStatementType;
   protected boolean needLogicalExplain = false;
   protected boolean needPhysicalExplain = false;
+  protected ExportFile exportFile;
   protected final boolean isSubQuery;
   protected List<String> freeVariables;
   protected final List<String> orderByPaths;
@@ -49,6 +51,14 @@ public abstract class SelectStatement extends DataStatement {
 
   public void setNeedPhysicalExplain(boolean needPhysicalExplain) {
     this.needPhysicalExplain = needPhysicalExplain;
+  }
+
+  public ExportFile getExportFile() {
+    return exportFile;
+  }
+
+  public void setExportFile(ExportFile exportFile) {
+    this.exportFile = exportFile;
   }
 
   public boolean isSubQuery() {

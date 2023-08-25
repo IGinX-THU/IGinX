@@ -1,5 +1,7 @@
 package cn.edu.tsinghua.iginx.integration.func.sql;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
@@ -14,9 +16,12 @@ import cn.edu.tsinghua.iginx.pool.IginxInfo;
 import cn.edu.tsinghua.iginx.pool.SessionPool;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.utils.Pair;
+import java.io.File;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -4055,6 +4060,93 @@ public class SQLSessionIT {
             + "+---+--------+--------+--------+\n"
             + "Total line number = 2\n";
     executor.executeAndCompare(statement, expected);
+  }
+
+  @Test
+  public void testExportAndImportCsv() {
+    String insert =
+        "INSERT INTO us.d2 (key, s1, s2, s3, s4) VALUES "
+            + "(1, \"apple\", 871, 232.1, true), (2, \"peach\", 123, 132.5, false), (3, \"banana\", 356, 317.8, true),"
+            + "(4, \"cherry\", 621, 456.1, false), (5, \"grape\", 336, 132.5, true), (6, \"dates\", 119, 232.1, false),"
+            + "(7, \"melon\", 516, 113.6, true), (8, \"mango\", 458, 232.1, false), (9, \"pear\", 336, 613.1, true);";
+    executor.execute(insert);
+
+    String csvPath =
+        Paths.get("src", "test", "resources", "fileReadAndWrite", "csv", "usd2.csv").toString();
+    File csvFile = new File(csvPath);
+    String exportCsv =
+        "SELECT * FROM us.d2 INTO OUTFILE \"" + csvFile.getAbsolutePath() + "\" AS CSV";
+    executor.execute(exportCsv);
+
+    assertTrue(csvFile.exists());
+    assertTrue(csvFile.isFile());
+    assertEquals(csvFile.length(), 212);
+
+    String queryBeforeImport = "SELECT * FROM test";
+    String expected =
+        "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
+    executor.executeAndCompare(queryBeforeImport, expected);
+
+    String importCsv =
+        "LOAD DATA FROM INFILE \""
+            + csvFile.getAbsolutePath()
+            + "\" AS CSV INTO test(key, a, b, c, d);";
+    executor.execute(importCsv);
+
+    String orderByQuery = "SELECT * FROM test ORDER BY c, b";
+    expected =
+        "ResultSets:\n"
+            + "+---+------+------+------+------+\n"
+            + "|key|test.a|test.b|test.c|test.d|\n"
+            + "+---+------+------+------+------+\n"
+            + "|  7| melon|   516| 113.6|  true|\n"
+            + "|  2| peach|   123| 132.5| false|\n"
+            + "|  5| grape|   336| 132.5|  true|\n"
+            + "|  6| dates|   119| 232.1| false|\n"
+            + "|  8| mango|   458| 232.1| false|\n"
+            + "|  1| apple|   871| 232.1|  true|\n"
+            + "|  3|banana|   356| 317.8|  true|\n"
+            + "|  4|cherry|   621| 456.1| false|\n"
+            + "|  9|  pear|   336| 613.1|  true|\n"
+            + "+---+------+------+------+------+\n"
+            + "Total line number = 9\n";
+    executor.executeAndCompare(orderByQuery, expected);
+  }
+
+  @Test
+  public void testExportByteStream() {
+    String insert =
+        "INSERT INTO us.d2 (key, s1, s2, s3, s4) VALUES "
+            + "(1, \"apple\", 871, 232.1, true), (2, \"peach\", 123, 132.5, false), (3, \"banana\", 356, 317.8, true),"
+            + "(4, \"cherry\", 621, 456.1, false), (5, \"grape\", 336, 132.5, true), (6, \"dates\", 119, 232.1, false),"
+            + "(7, \"melon\", 516, 113.6, true), (8, \"mango\", 458, 232.1, false), (9, \"pear\", 336, 613.1, true);";
+    executor.execute(insert);
+
+    String dir = Paths.get("src", "test", "resources", "fileReadAndWrite", "byteStream").toString();
+    File dirFile = new File(dir);
+    String exportByteStream =
+        "SELECT * FROM us.d2 INTO OUTFILE \"" + dirFile.getAbsolutePath() + "\" AS STREAM";
+    executor.execute(exportByteStream);
+
+    assertTrue(dirFile.exists());
+    assertTrue(dirFile.isDirectory());
+    assertEquals(Objects.requireNonNull(dirFile.list()).length, 4);
+
+    assertEquals(Objects.requireNonNull(dirFile.list())[0], "us.d2.s1");
+    File file1 = new File(Paths.get(dir, "us.d2.s1").toString());
+    assertEquals(file1.length(), 46);
+
+    assertEquals(Objects.requireNonNull(dirFile.list())[1], "us.d2.s2");
+    File file2 = new File(Paths.get(dir, "us.d2.s2").toString());
+    assertEquals(file2.length(), 72);
+
+    assertEquals(Objects.requireNonNull(dirFile.list())[2], "us.d2.s3");
+    File file3 = new File(Paths.get(dir, "us.d2.s3").toString());
+    assertEquals(file3.length(), 72);
+
+    assertEquals(Objects.requireNonNull(dirFile.list())[3], "us.d2.s4");
+    File file4 = new File(Paths.get(dir, "us.d2.s4").toString());
+    assertEquals(file4.length(), 9);
   }
 
   @Test
