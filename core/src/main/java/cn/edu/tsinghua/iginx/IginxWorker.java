@@ -299,11 +299,6 @@ public class IginxWorker implements IService.Iface {
         if (iginx_port == null || iginx_port.equals("")) {
           return RpcUtils.FAILURE;
         }
-        if (extraParams.containsKey(SCHEMA_PREFIX)) {
-          extraParams.put(SCHEMA_PREFIX, extraParams.get(SCHEMA_PREFIX) + "." + dir);
-        } else {
-          extraParams.put(SCHEMA_PREFIX, dir);
-        }
       }
       String dataPrefix = null;
       if (hasData && extraParams.containsKey(Constants.DATA_PREFIX)) {

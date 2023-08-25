@@ -7,12 +7,15 @@ import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.expansion.influxdb.InfluxDBCapacityExpansionIT;
+import cn.edu.tsinghua.iginx.integration.expansion.parquet.ParquetCapacityExpansionIT;
+import cn.edu.tsinghua.iginx.integration.expansion.parquet.ParquetParams;
 import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
 import cn.edu.tsinghua.iginx.integration.tool.DBType;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.thrift.RemovedStorageEngineInfo;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import org.junit.*;
 import org.slf4j.Logger;
@@ -34,6 +37,8 @@ public abstract class BaseCapacityExpansionIT {
   protected int expPort;
 
   protected int readOnlyPort;
+
+  private static final HashMap<Integer, List<String>> parquetParams = new ParquetParams().getParams();
 
   public BaseCapacityExpansionIT(
       DBType dbType, String extraParams, int oriPort, int expPort, int readOnlyPort) {
@@ -61,6 +66,9 @@ public abstract class BaseCapacityExpansionIT {
         statement.append(", url:http://localhost:");
         statement.append(port);
         statement.append("/");
+      }
+      if (this instanceof ParquetCapacityExpansionIT) {
+        extraParams += ", dir:"+parquetParams.get(port).get(0);
       }
       if (extraParams != null) {
         statement.append(", ");
