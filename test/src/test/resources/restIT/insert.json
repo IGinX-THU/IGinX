@@ -8,7 +8,7 @@
     ],
     "tags": {
       "host": "server1",
-      "data_center": "DC1"
+      "dc": "DC1"
     }
   },
   {

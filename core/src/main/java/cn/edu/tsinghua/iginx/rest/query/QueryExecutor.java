@@ -28,7 +28,6 @@ import cn.edu.tsinghua.iginx.rest.bean.QueryResultDataset;
 import cn.edu.tsinghua.iginx.rest.query.aggregator.QueryAggregator;
 import cn.edu.tsinghua.iginx.rest.query.aggregator.QueryAggregatorNone;
 import cn.edu.tsinghua.iginx.rest.query.aggregator.QueryShowTimeSeries;
-import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.TimePrecision;
 import java.util.*;
 import org.slf4j.Logger;
@@ -63,9 +62,7 @@ public class QueryExecutor {
       session.openSession();
       for (QueryMetric queryMetric : query.getQueryMetrics()) {
         List<String> paths = new ArrayList<>();
-        StringBuilder path = new StringBuilder();
-        path.append(queryMetric.getName());
-        paths.add(path.toString());
+        paths.add(queryMetric.getName());
         if (isDelete) {
           RestSession session = new RestSession();
           session.openSession();
@@ -76,7 +73,7 @@ public class QueryExecutor {
               query.getEndAbsolute(),
               query.getTimePrecision());
           session.closeSession();
-        } else if (queryMetric.getAggregators().size() == 0) {
+        } else if (queryMetric.getAggregators().isEmpty()) {
           ret.addResultSet(
               new QueryAggregatorNone()
                   .doAggregate(
@@ -113,7 +110,7 @@ public class QueryExecutor {
   }
 
   private String getStringFromObject(Object val) {
-    String valStr = new String();
+    String valStr;
     if (val instanceof byte[]) {
       valStr = new String((byte[]) val);
     } else {
@@ -124,7 +121,7 @@ public class QueryExecutor {
 
   // 结果通过引用传出
   public void queryAnno(QueryResult anno) throws Exception {
-    QueryResult title = new QueryResult(), description = new QueryResult();
+    QueryResult title, description;
     Query titleQuery = new Query();
     Query descriptionQuery = new Query();
     boolean hasTitle = false, hasDescription = false;
@@ -193,26 +190,11 @@ public class QueryExecutor {
   public void deleteMetric() throws Exception {
     RestSession restSession = new RestSession();
     restSession.openSession();
-    List<String> ins = new ArrayList<>();
     for (QueryMetric metric : query.getQueryMetrics()) {
-      ins.add(metric.getPathName());
+      restSession.deleteDataInColumn(
+          metric.getName(), metric.getTags(), query.getStartAbsolute(), query.getEndAbsolute());
     }
-    if (!ins.isEmpty()) restSession.deleteColumns(ins);
     restSession.closeSession();
-  }
-
-  public DataType judgeObjectType(Object obj) {
-    if (obj instanceof Boolean) {
-      return DataType.BOOLEAN;
-    } else if (obj instanceof Byte || obj instanceof String || obj instanceof Character) {
-      return DataType.BINARY;
-    } else if (obj instanceof Long || obj instanceof Integer) {
-      return DataType.LONG;
-    } else if (obj instanceof Double || obj instanceof Float) {
-      return DataType.DOUBLE;
-    }
-    // 否则默认字符串类型
-    return DataType.BINARY;
   }
 
   // 错误返回-1
@@ -225,7 +207,7 @@ public class QueryExecutor {
       case LONG:
         return (Long) val;
       default:
-        return new Long(-1); // 尽量不要传null
+        return -1L; // 尽量不要传null
     }
   }
 }

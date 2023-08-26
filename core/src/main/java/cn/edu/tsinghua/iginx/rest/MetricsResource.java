@@ -92,7 +92,6 @@ public class MetricsResource {
       QueryResult result = executor.execute(false);
       String entity = parser.parseResultToGrafanaJson(result);
       return setHeaders(Response.status(Status.OK).entity(entity + "\n")).build();
-
     } catch (Exception e) {
       logger.error("Error occurred during execution ", e);
       return setHeaders(
@@ -306,13 +305,12 @@ public class MetricsResource {
     // 添加cat信息
     parser.getAnnoCategory(resultAnno);
     // 筛选出符合title信息的序列
-    return getAnnoDataQueryFromTitle(query, resultAnno);
+    return getAnnoDataQueryFromTitle(resultAnno);
   }
 
-  private QueryResult annoQuery(Query query, QueryParser parser, String jsonStr) throws Exception {
+  private QueryResult annoQuery(QueryParser parser, String jsonStr) throws Exception {
     // 查找出所有符合tagkv的序列路径
     Query queryBase = parser.parseAnnotationQueryMetric(jsonStr, false);
-    Query queryAnno = new Query();
 
     // 通过first聚合查询，先查找出所以路径集合
     queryBase.addFirstAggregator();
@@ -325,21 +323,21 @@ public class MetricsResource {
     // 重新组织路径，将聚合查询符号删除
     parser.removeAggPath(resultPath);
     // 分离cat路径信息
-    queryAnno = parser.splitAnnoPathToQuery(resultPath);
+    Query queryAnno = parser.splitAnnoPathToQuery(resultPath);
 
     // 查询anno的title以及dsp信息
     queryAnno.setTimePrecision(TimePrecision.NS);
     return getAnno(queryAnno, DESCRIPTION_KEY, MAX_KEY);
   }
 
-  public Response postQuery(
+  private Response postQuery(
       String jsonStr, boolean isAnnotation, boolean isAnnoData, boolean isGrafana) {
     try {
       if (jsonStr == null) {
         throw new Exception("query json must not be null or empty");
       }
       QueryParser parser = new QueryParser();
-      String entity = new String();
+      String entity;
       Query query =
           isAnnotation
               ? parser.parseAnnotationQueryMetric(jsonStr, isGrafana)
@@ -351,7 +349,7 @@ public class MetricsResource {
         QueryResult result = annoDataQuery(query, parser);
         entity = parser.parseAnnoDataResultToJson(result);
       } else { // 只查询anno信息
-        QueryResult result = annoQuery(query, parser, jsonStr);
+        QueryResult result = annoQuery(parser, jsonStr);
         parser.getAnnoCategory(result);
         entity = parser.parseAnnoResultToJson(result);
       }
@@ -381,7 +379,7 @@ public class MetricsResource {
     return resultAnno;
   }
 
-  public QueryResult getAnnoDataQueryFromTitle(Query query, QueryResult result) {
+  private QueryResult getAnnoDataQueryFromTitle(QueryResult result) {
     QueryResult ret = new QueryResult();
     int len = result.getQueryResultDatasets().size();
     for (int i = 0; i < len; i++) {
@@ -392,24 +390,32 @@ public class MetricsResource {
         if (title.equals(".*")
             || title.isEmpty()
             || (data.getTitles().get(j) != null && data.getTitles().get(j).equals(title))) {
-          if (!data.getPaths().isEmpty()) dataRet.addPath(data.getPaths().get(j));
-          if (!data.getDescriptions().isEmpty())
+          dataRet.addPath(data.getPaths().get(j));
+          if (!data.getDescriptions().isEmpty()) {
             dataRet.addDescription(data.getDescriptions().get(j));
-          if (!data.getCategoryLists().isEmpty())
+          }
+          if (!data.getCategoryLists().isEmpty()) {
             dataRet.addCategory(data.getCategoryLists().get(j));
-          if (!data.getTitles().isEmpty()) dataRet.addTitle(data.getTitles().get(j));
-          if (!data.getValueLists().isEmpty()) dataRet.addValueLists(data.getValueLists().get(j));
-          if (!data.getKeyLists().isEmpty()) dataRet.addKeyLists(data.getKeyLists().get(j));
+          }
+          if (!data.getTitles().isEmpty()) {
+            dataRet.addTitle(data.getTitles().get(j));
+          }
+          if (!data.getValueLists().isEmpty()) {
+            dataRet.addValueLists(data.getValueLists().get(j));
+          }
+          if (!data.getKeyLists().isEmpty()) {
+            dataRet.addKeyLists(data.getKeyLists().get(j));
+          }
         }
       }
-      ret.addqueryResultDataset(dataRet);
+      ret.addQueryResultDataset(dataRet);
       ret.addQueryMetric(result.getQueryMetrics().get(i));
       ret.addQueryAggregator(result.getQueryAggregators().get(i));
     }
     return ret;
   }
 
-  public Query getAnnoDataQueryFromColumns(Query query, QueryResult result) {
+  private Query getAnnoDataQueryFromColumns(Query query, QueryResult result) {
     Query ret = new Query();
     QueryParser parser = new QueryParser();
     // 筛选出符合全部anno信息的路径
@@ -422,8 +428,7 @@ public class MetricsResource {
                 query.getQueryMetrics().get(i).getAnnotationLimit().getTag(), data.getPaths());
       }
       for (String pathStr : paths) {
-        QueryMetric metric = new QueryMetric();
-        metric = parser.parseQueryResultAnnoDataPaths(pathStr);
+        QueryMetric metric = parser.parseQueryResultAnnoDataPaths(pathStr);
         metric.setQueryOriPath(pathStr);
         metric.setAnnotationLimit(query.getQueryMetrics().get(i).getAnnotationLimit());
         ret.addQueryMetrics(metric);
@@ -432,33 +437,30 @@ public class MetricsResource {
     return ret;
   }
 
-  public Response postAnnoDelete(String jsonStr) {
+  private Response postAnnoDelete(String jsonStr) {
     try {
       // 查找出所有符合tagkv的序列路径
       QueryParser parser = new QueryParser();
       Query queryBase = parser.parseAnnotationQueryMetric(jsonStr, false);
+
       // 加入category路径信息
       Query querySp = parser.addAnnoTags(queryBase);
       querySp.setStartAbsolute(1L);
       querySp.setEndAbsolute(TOP_KEY);
       querySp.setTimePrecision(TimePrecision.NS);
       QueryExecutor executorPath = new QueryExecutor(querySp);
-      QueryResult resultALL = executorPath.execute(false);
+      QueryResult resultAll = executorPath.execute(false);
 
-      // 修改路径，并重新查询数据，并插入数据
-      //            DataPointsParser parserInsert = new DataPointsParser();
-      //            querySp.setNullNewAnno();
-      //            parserInsert.handleAnnotationUpdate(querySp, resultALL);
-
-      // 找到精确路径
-      Query queryAll = parser.getSpecificQuery(resultALL, queryBase);
+      // 路径筛选，这里代码的意义是为了之后的拓展
+      Query queryAll = parser.getSpecificQuery(resultAll);
       queryAll.setStartAbsolute(1L);
       queryAll.setEndAbsolute(TOP_KEY);
       queryAll.setTimePrecision(TimePrecision.NS);
 
       // 空查询判断
-      if (queryAll.getQueryMetrics().isEmpty())
+      if (queryAll.getQueryMetrics().isEmpty()) {
         return setHeaders(Response.status(Status.OK).entity("\n")).build();
+      }
 
       QueryExecutor executorData = new QueryExecutor(queryAll);
       // 执行删除操作
@@ -474,7 +476,7 @@ public class MetricsResource {
     }
   }
 
-  public Response postDelete(String jsonStr) {
+  private Response postDelete(String jsonStr) {
     try {
       if (jsonStr == null) {
         throw new Exception("query json must not be null or empty");
@@ -493,7 +495,7 @@ public class MetricsResource {
     }
   }
 
-  void deleteMetric(String metricName) throws Exception {
+  private void deleteMetric(String metricName) throws Exception {
     RestSession restSession = new RestSession();
     restSession.openSession();
     List<String> ins = new ArrayList<>();
@@ -502,7 +504,7 @@ public class MetricsResource {
     restSession.closeSession();
   }
 
-  public void appendAnno(String jsonStr, HttpHeaders httpheaders, AsyncResponse asyncResponse)
+  private void appendAnno(String jsonStr, HttpHeaders httpheaders, AsyncResponse asyncResponse)
       throws Exception {
     // 查找出所有符合tagkv的序列路径
     QueryParser parser = new QueryParser();
@@ -512,7 +514,7 @@ public class MetricsResource {
     QueryResult result = executorPath.execute(false);
 
     // 修改路径，得到所有的单条路径信息，便于之后操作
-    Query queryAll = parser.splitPath(result, queryBase);
+    Query queryAll = parser.splitPath(result);
     queryAll.setStartAbsolute(queryBase.getStartAbsolute());
     queryAll.setEndAbsolute(queryBase.getEndAbsolute());
 
@@ -524,29 +526,30 @@ public class MetricsResource {
     threadPool.execute(new InsertWorker(asyncResponse, httpheaders, result, queryBase, true));
   }
 
-  public void updateAnno(String jsonStr, HttpHeaders httpheaders, AsyncResponse asyncResponse)
+  private void updateAnno(String jsonStr, HttpHeaders httpheaders, AsyncResponse asyncResponse)
       throws Exception {
     // 查找出所有符合tagkv的序列路径
     QueryParser parser = new QueryParser();
     Query queryBase = parser.parseAnnotationQueryMetric(jsonStr, false);
+
     // 加入category路径信息
     Query querySp = parser.addAnnoTags(queryBase);
     querySp.setStartAbsolute(1L);
     querySp.setEndAbsolute(TOP_KEY);
     querySp.setTimePrecision(TimePrecision.NS);
     QueryExecutor executorPath = new QueryExecutor(querySp);
-    QueryResult resultALL = executorPath.execute(false);
+    QueryResult resultAll = executorPath.execute(false);
 
     // 路径筛选，这里代码的意义是为了之后的拓展
-    Query queryAll = parser.getSpecificQuery(resultALL, queryBase);
+    Query queryAll = parser.getSpecificQuery(resultAll);
     queryAll.setStartAbsolute(1L);
     queryAll.setEndAbsolute(TOP_KEY);
     queryAll.setTimePrecision(TimePrecision.NS);
+
     QueryExecutor executorData = new QueryExecutor(queryAll);
     // 执行删除操作
     executorData.deleteMetric();
-
     // 修改路径，并重新查询数据，并插入数据
-    threadPool.execute(new InsertWorker(asyncResponse, httpheaders, resultALL, querySp, false));
+    threadPool.execute(new InsertWorker(asyncResponse, httpheaders, resultAll, querySp, false));
   }
 }
