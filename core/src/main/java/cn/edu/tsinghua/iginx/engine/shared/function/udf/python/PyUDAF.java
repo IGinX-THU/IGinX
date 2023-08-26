@@ -110,7 +110,7 @@ public class PyUDAF implements UDAF {
     }
     interpreters.add(interpreter);
 
-    Header header = RowUtils.constructHeaderWithFirstTwoRows(res, false);
+    Header header = RowUtils.constructHeaderWithFirstTwoRowsUsingFuncName(res, false, funcName);
     return RowUtils.constructNewRow(header, res.get(2));
   }
 
