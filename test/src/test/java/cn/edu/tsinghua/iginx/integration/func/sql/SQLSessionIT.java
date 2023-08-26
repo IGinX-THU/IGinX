@@ -17,6 +17,7 @@ import cn.edu.tsinghua.iginx.pool.SessionPool;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.io.File;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -4071,9 +4072,8 @@ public class SQLSessionIT {
             + "(7, \"melon\", 516, 113.6, true), (8, \"mango\", 458, 232.1, false), (9, \"pear\", 336, 613.1, true);";
     executor.execute(insert);
 
-    String csvPath =
-        Paths.get("src", "test", "resources", "fileReadAndWrite", "csv", "usd2.csv").toString();
-    File csvFile = new File(csvPath);
+    Path csvPath = Paths.get("src", "test", "resources", "fileReadAndWrite", "csv", "us.d2.csv");
+    File csvFile = csvPath.toFile();
     String exportCsv =
         "SELECT * FROM us.d2 INTO OUTFILE \"" + csvFile.getAbsolutePath() + "\" AS CSV";
     executor.execute(exportCsv);
@@ -4122,8 +4122,8 @@ public class SQLSessionIT {
             + "(7, \"melon\", 516, 113.6, true), (8, \"mango\", 458, 232.1, false), (9, \"pear\", 336, 613.1, true);";
     executor.execute(insert);
 
-    String dir = Paths.get("src", "test", "resources", "fileReadAndWrite", "byteStream").toString();
-    File dirFile = new File(dir);
+    Path dir = Paths.get("src", "test", "resources", "fileReadAndWrite", "byteStream");
+    File dirFile = dir.toFile();
     String exportByteStream =
         "SELECT * FROM us.d2 INTO OUTFILE \"" + dirFile.getAbsolutePath() + "\" AS STREAM";
     executor.execute(exportByteStream);
@@ -4135,21 +4135,13 @@ public class SQLSessionIT {
 
     filenames.sort(String::compareTo);
 
-    assertEquals(filenames.get(0), "us.d2.s1");
-    File file1 = new File(Paths.get(dir, "us.d2.s1").toString());
-    assertEquals(file1.length(), 46);
-
-    assertEquals(filenames.get(1), "us.d2.s2");
-    File file2 = new File(Paths.get(dir, "us.d2.s2").toString());
-    assertEquals(file2.length(), 72);
-
-    assertEquals(filenames.get(2), "us.d2.s3");
-    File file3 = new File(Paths.get(dir, "us.d2.s3").toString());
-    assertEquals(file3.length(), 72);
-
-    assertEquals(filenames.get(3), "us.d2.s4");
-    File file4 = new File(Paths.get(dir, "us.d2.s4").toString());
-    assertEquals(file4.length(), 9);
+    long[] lengths = new long[] {46, 72, 72, 9};
+    for (int i = 1; i <= 4; i++) {
+      String expectedFilename = String.format("us.d2.s%d", i);
+      assertEquals(expectedFilename, filenames.get(i - 1));
+      File file = new File(Paths.get(dir.toString(), expectedFilename).toString());
+      assertEquals(file.length(), lengths[i - 1]);
+    }
   }
 
   @Test

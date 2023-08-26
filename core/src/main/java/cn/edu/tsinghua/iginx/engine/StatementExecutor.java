@@ -71,9 +71,9 @@ import cn.edu.tsinghua.iginx.statistics.IStatisticsCollector;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.Status;
-import cn.edu.tsinghua.iginx.tools.utils.DataTypeInferenceUtils;
 import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.ByteUtils;
+import cn.edu.tsinghua.iginx.utils.DataTypeInferenceUtils;
 import cn.edu.tsinghua.iginx.utils.DataTypeUtils;
 import cn.edu.tsinghua.iginx.utils.FormatUtils;
 import cn.edu.tsinghua.iginx.utils.RpcUtils;
@@ -708,13 +708,13 @@ public class StatementExecutor {
     InsertStatement insertStatement = statement.getSubInsertStatement();
 
     if (Objects.requireNonNull(importFile.getType()) == FileType.CSV) {
-      LoadValuesSpecFromCsv(ctx, (ImportCsv) importFile, insertStatement);
+      loadValuesSpecFromCsv(ctx, (ImportCsv) importFile, insertStatement);
     } else {
       throw new RuntimeException("Unknown import file type: " + importFile.getType());
     }
   }
 
-  private void LoadValuesSpecFromCsv(
+  private void loadValuesSpecFromCsv(
       RequestContext ctx, ImportCsv importCsv, InsertStatement insertStatement) {
     final int BATCH_SIZE = config.getBatchSizeImportCsv();
     File file = new File(importCsv.getFilepath());
