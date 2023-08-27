@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
     DB-CE:
-        timeout-minutes: 150
+        timeout-minutes: 240
         strategy:
             fail-fast: false
             matrix:
