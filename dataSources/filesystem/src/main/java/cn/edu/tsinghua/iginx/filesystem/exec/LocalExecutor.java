@@ -176,8 +176,8 @@ public class LocalExecutor implements Executor {
       return fileSystemManager.writeFiles(fileList, recordsList, tagsList);
     } catch (Exception e) {
       logger.error("encounter error when inserting row records to fileSystem: {}", e.getMessage());
+      return e;
     }
-    return null;
   }
 
   private Exception insertColumnRecords(ColumnDataView data, String storageUnit) {
@@ -210,8 +210,8 @@ public class LocalExecutor implements Executor {
     } catch (Exception e) {
       logger.error(
           "encounter error when inserting column records to fileSystem: {}", e.getMessage());
+      return e;
     }
-    return null;
   }
 
   @Override
