@@ -147,9 +147,9 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
       content3.append(i);
     }
 
-    createAndWriteFile(content1.toString().getBytes(), "a", "b", "c", "d", "1.txt");
-    createAndWriteFile(content2.toString().getBytes(), "a", "e", "2.txt");
-    createAndWriteFile(content3.toString().getBytes(), "a", "f", "g", "3.txt");
+    createAndWriteFile(content1.toString().getBytes(), "test", "a", "b", "c", "d", "1.txt");
+    createAndWriteFile(content2.toString().getBytes(), "test", "a", "e", "2.txt");
+    createAndWriteFile(content3.toString().getBytes(), "test", "a", "f", "g", "3.txt");
   }
 
   private void createAndWriteFile(byte[] content, String first, String... more) {
