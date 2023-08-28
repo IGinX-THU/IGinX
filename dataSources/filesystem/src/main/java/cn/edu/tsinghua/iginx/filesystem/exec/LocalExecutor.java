@@ -264,7 +264,7 @@ public class LocalExecutor implements Executor {
   public List<Column> getColumnsOfStorageUnit(String storageUnit) throws PhysicalException {
     List<Column> columns = new ArrayList<>();
     File directory = new File(FilePathUtils.toIginxPath(root, storageUnit, null));
-    List<File> files = fileSystemManager.getAllFilesWithoutDir(directory);
+    List<File> files = fileSystemManager.getAllFiles(directory);
 
     for (File file : files) {
       // 如果加入该Storage时有数据，才读取该文件夹下的文件

@@ -54,8 +54,16 @@ public class FilePathUtils {
         tmp = tmp.substring(tmp.indexOf(root) + root.length());
       }
     } else { // 对普通文件操作
+      String[] parts;
       tmp = filePath.substring(filePath.indexOf(root) + root.length());
-      String[] parts = tmp.split(SEPARATOR);
+      if (!tmp.contains(SEPARATOR)) { // 一級目或文件
+        return tmp;
+      }
+      if (SEPARATOR.equals("\\")) { // 针对win系统
+        parts = tmp.split("\\\\");
+      } else {
+        parts = tmp.split(SEPARATOR);
+      }
       StringBuilder res = new StringBuilder();
       for (String s : parts) {
         s = s.replace(".", "\\");
