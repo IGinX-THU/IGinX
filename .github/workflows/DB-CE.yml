@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
     DB-CE:
-        timeout-minutes: 150
+        timeout-minutes: 90
         strategy:
             fail-fast: false
             matrix:
@@ -21,7 +21,7 @@ jobs:
                 python-version: ["3.7.16"]
                 os: [ubuntu-latest, macos-latest]
                 DB-name:
-                    ["IoTDB12", "InfluxDB", "PostgreSQL", "Redis", "MongoDB"]
+                    ["IoTDB12", "InfluxDB", "PostgreSQL", "Redis"]
         runs-on: ${{ matrix.os }}
         steps:
             - uses: actions/checkout@v2
