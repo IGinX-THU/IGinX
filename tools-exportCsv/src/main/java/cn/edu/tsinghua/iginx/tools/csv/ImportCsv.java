@@ -22,7 +22,7 @@ import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-import cn.edu.tsinghua.iginx.tools.utils.DataTypeInferenceUtils;
+import cn.edu.tsinghua.iginx.utils.DataTypeInferenceUtils;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;

@@ -25,7 +25,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,7 +45,7 @@ public class FileSystemManager {
     memoryPool =
         new MemoryPool(
             Integer.parseInt(params.getOrDefault(INIT_INFO_MEMORY_POOL_SIZE, "100")),
-            Integer.parseInt(params.getOrDefault(INIT_INFO_CHUNK_SIZE, "1"))*1024*1024);
+            Integer.parseInt(params.getOrDefault(INIT_INFO_CHUNK_SIZE, "1")) * 1024 * 1024);
     fileOperator = new DefaultFileOperator();
   }
 

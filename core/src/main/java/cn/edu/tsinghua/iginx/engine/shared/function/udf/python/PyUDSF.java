@@ -110,7 +110,7 @@ public class PyUDSF implements UDSF {
     }
     interpreters.add(interpreter);
 
-    Header header = RowUtils.constructHeaderWithFirstTwoRows(res, false);
+    Header header = RowUtils.constructHeaderWithFirstTwoRowsUsingFuncName(res, false, funcName);
     return RowUtils.constructNewTable(header, res, 2);
   }
 

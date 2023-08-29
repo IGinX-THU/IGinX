@@ -3,6 +3,7 @@ package org.apache.zeppelin.iginx;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
+import cn.edu.tsinghua.iginx.thrift.SqlType;
 import cn.edu.tsinghua.iginx.utils.FormatUtils;
 import java.util.Arrays;
 import java.util.List;
@@ -32,6 +33,8 @@ public class IginxInterpreter extends AbstractInterpreter {
   private static final String WHITESPACE = " ";
   private static final String MULTISPACE = " +";
   private static final String SEMICOLON = ";";
+  private static final String SUCCESS = "Success!";
+  private static final String NO_DATA_TO_PRINT = "No data to print.\n";
 
   private String host = "";
   private int port = 0;
@@ -41,6 +44,15 @@ public class IginxInterpreter extends AbstractInterpreter {
   private Session session;
 
   private Exception exception;
+
+  // 返回结果为单个表格的语句
+  private static final List<SqlType> singleFormSqlType =
+      Arrays.asList(
+          SqlType.Query,
+          SqlType.ShowColumns,
+          SqlType.GetReplicaNum,
+          SqlType.GetReplicaNum,
+          SqlType.ShowRegisterTask);
 
   public IginxInterpreter(Properties properties) {
     super(properties);
@@ -106,19 +118,43 @@ public class IginxInterpreter extends AbstractInterpreter {
         return new InterpreterResult(InterpreterResult.Code.ERROR, sqlResult.getParseErrorMsg());
       }
 
-      String msg =
-          buildResult(
-              sqlResult.getResultInList(true, FormatUtils.DEFAULT_TIME_FORMAT, timePrecision));
-      InterpreterResult interpreterResult = new InterpreterResult(InterpreterResult.Code.SUCCESS);
-      interpreterResult.add(InterpreterResult.Type.TABLE, msg);
+      InterpreterResult interpreterResult = null;
+      String msg = "";
+
+      if (singleFormSqlType.contains(sqlResult.getSqlType()) && !sql.startsWith("explain")) {
+        msg =
+            buildSingleFormResult(
+                sqlResult.getResultInList(true, FormatUtils.DEFAULT_TIME_FORMAT, timePrecision));
+        interpreterResult = new InterpreterResult(InterpreterResult.Code.SUCCESS);
+        interpreterResult.add(InterpreterResult.Type.TABLE, msg);
+      } else if (sqlResult.getSqlType() == SqlType.Query && sql.startsWith("explain")) {
+        msg =
+            buildExplainResult(
+                sqlResult.getResultInList(true, FormatUtils.DEFAULT_TIME_FORMAT, timePrecision));
+        interpreterResult = new InterpreterResult(InterpreterResult.Code.SUCCESS);
+        interpreterResult.add(InterpreterResult.Type.TABLE, msg);
+      } else if (sqlResult.getSqlType() == SqlType.ShowClusterInfo) {
+        interpreterResult = new InterpreterResult(InterpreterResult.Code.SUCCESS);
+        buildClusterInfoResult(
+            interpreterResult,
+            sqlResult.getResultInList(true, FormatUtils.DEFAULT_TIME_FORMAT, timePrecision));
+      } else {
+        msg = sqlResult.getResultInString(true, timePrecision);
+        if (msg.equals(NO_DATA_TO_PRINT)) {
+          msg = SUCCESS;
+        }
+        interpreterResult = new InterpreterResult(InterpreterResult.Code.SUCCESS, msg);
+      }
+
       return interpreterResult;
     } catch (Exception e) {
       return new InterpreterResult(
-          InterpreterResult.Code.ERROR, "encounter error when executing sql statement.");
+          InterpreterResult.Code.ERROR,
+          "encounter error when executing sql statement:\n" + e.getMessage());
     }
   }
 
-  private String buildResult(List<List<String>> queryList) {
+  private String buildSingleFormResult(List<List<String>> queryList) {
     StringBuilder builder = new StringBuilder();
     for (List<String> row : queryList) {
       for (String val : row) {
@@ -130,12 +166,64 @@ public class IginxInterpreter extends AbstractInterpreter {
     return builder.toString();
   }
 
+  private String buildExplainResult(List<List<String>> queryList) {
+    StringBuilder builder = new StringBuilder();
+    for (List<String> row : queryList) {
+      for (String val : row) {
+        if (row.get(0).equals(val) && val.startsWith(" ")) {
+          // zeppelin会将表格中的开头空格给删除，并且会将多个空格合并成一个空格，因此需要将查询树中开头的空格替换成其他字符
+          for (int i = 0; i < val.length(); i++) {
+            if (val.charAt(i) != ' ') {
+              builder.append(val.substring(i)).append(TAB);
+              break;
+            } else {
+              builder.append("-");
+            }
+          }
+        } else {
+          builder.append(val).append(TAB);
+        }
+      }
+      builder.deleteCharAt(builder.length() - 1);
+      builder.append(NEWLINE);
+    }
+    return builder.toString();
+  }
+
+  /** 构造Show Cluster Info的结果，因为返回结果为多个表格，因此需要传入InterpreterResult进行构造 */
+  private void buildClusterInfoResult(
+      InterpreterResult interpreterResult, List<List<String>> clusterInfoList) {
+    List<String> titles =
+        Arrays.asList(
+            "IginX infos:", "Storage engine infos:", "Meta Storage infos:", "Meta Storage path:");
+    StringBuilder builder = new StringBuilder();
+    for (List<String> row : clusterInfoList) {
+      if (row.size() == 1 && titles.contains(row.get(0))) {
+        if (!builder.toString().isEmpty()) {
+          interpreterResult.add(InterpreterResult.Type.TABLE, builder.toString());
+          builder = new StringBuilder();
+        }
+        interpreterResult.add(InterpreterResult.Type.TEXT, row.get(0));
+        continue;
+      }
+
+      for (String val : row) {
+        builder.append(val).append(TAB);
+      }
+      builder.deleteCharAt(builder.length() - 1);
+      builder.append(NEWLINE);
+    }
+
+    if (!builder.toString().isEmpty()) {
+      interpreterResult.add(InterpreterResult.Type.TABLE, builder.toString());
+    }
+  }
+
   private String[] parseMultiLinesSQL(String sql) {
     String[] tmp =
         sql.replace(TAB, WHITESPACE)
             .replace(NEWLINE, WHITESPACE)
             .replaceAll(MULTISPACE, WHITESPACE)
-            .toLowerCase()
             .trim()
             .split(SEMICOLON);
     return Arrays.stream(tmp).map(String::trim).toArray(String[]::new);

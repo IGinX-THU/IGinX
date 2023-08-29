@@ -62,7 +62,8 @@ enum SqlType {
     RemoveHistoryDataResource,
     SetConfig,
     ShowConfig,
-    Compact
+    Compact,
+    ExportFile
 }
 
 enum AuthType {
