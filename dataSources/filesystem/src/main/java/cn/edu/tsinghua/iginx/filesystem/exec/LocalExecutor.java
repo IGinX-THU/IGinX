@@ -60,7 +60,7 @@ public class LocalExecutor implements Executor {
         throw new IllegalArgumentException("No dummy directory declared!");
       }
 
-      if (isReadOnly) {
+      if (!isReadOnly) {
         if (path == null) {
           logger.error("No directory declared!");
           throw new IllegalArgumentException("No directory declared!");
@@ -304,8 +304,12 @@ public class LocalExecutor implements Executor {
   @Override
   public List<Column> getColumnsOfStorageUnit(String storageUnit) throws PhysicalException {
     List<Column> columns = new ArrayList<>();
-    File directory = new File(FilePathUtils.toIginxPath(root, storageUnit, null));
-    List<File> files = fileSystemManager.getAllFiles(directory);
+    List<File> files = new ArrayList<>();
+    if (root != null) {
+      File directory = new File(FilePathUtils.toIginxPath(root, storageUnit, null));
+      files = fileSystemManager.getAllFiles(directory);
+    }
+
     if (hasData) {
       files.addAll(fileSystemManager.getAllFiles(new File(dummyRoot)));
     }
