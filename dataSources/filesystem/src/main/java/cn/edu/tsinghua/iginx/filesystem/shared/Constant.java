@@ -26,6 +26,8 @@ public class Constant {
 
   public static final String INIT_INFO_DIR = "dir";
 
+  public static final String INIT_INFO_DUMMY_DIR = "dummy_dir";
+
   public static final String INIT_INFO_MEMORY_POOL_SIZE = "memory_pool_size";
 
   public static final String INIT_INFO_CHUNK_SIZE = "chunk_size_mb";

@@ -43,18 +43,59 @@ public class LocalExecutor implements Executor {
 
   private String root;
 
+  private String dummyRoot;
+
   private boolean hasData;
 
   private FileSystemManager fileSystemManager;
 
-  public LocalExecutor(boolean hasData, Map<String, String> extraParams) {
-    String path = extraParams.getOrDefault(Constant.INIT_INFO_DIR, "/path/to/your/filesystem");
-    File file = new File(path);
-    if (file.isFile()) {
-      logger.error("invalid directory: {}", file.getAbsolutePath());
-      return;
+  public LocalExecutor(boolean isReadOnly, boolean hasData, Map<String, String> extraParams) {
+    String path = extraParams.get(Constant.INIT_INFO_DIR);
+
+    String dummyPath = extraParams.get(Constant.INIT_INFO_DUMMY_DIR);
+
+    if (hasData) {
+      if (dummyPath == null) {
+        logger.error("No dummy directory declared!");
+        throw new IllegalArgumentException("No dummy directory declared!");
+      }
+
+      if (isReadOnly) {
+        if (path == null) {
+          logger.error("No directory declared!");
+          throw new IllegalArgumentException("No directory declared!");
+        }
+
+        if (path.equals(dummyPath)) {
+          logger.error("directory: {} cannot be equal to dummy directory: {}", path, dummyPath);
+          throw new IllegalArgumentException("directory: " + path + " cannot be equal to dummy directory: " + dummyPath);
+        }
+      }
+    } else {
+      if (path == null) {
+        logger.error("No directory declared!");
+        throw new IllegalArgumentException("No directory declared!");
+      }
     }
-    this.root = file.getAbsolutePath() + SEPARATOR;
+
+    if (path != null) {
+      File file = new File(path);
+      if (file.isFile()) {
+        logger.error("invalid directory: {}", file.getAbsolutePath());
+        return;
+      }
+      this.root = file.getAbsolutePath() + SEPARATOR;
+    }
+
+    if (dummyPath != null) {
+      File dummyFile = new File(dummyPath);
+      if (dummyFile.isFile()) {
+        logger.error("invalid directory: {}", dummyFile.getAbsolutePath());
+        return;
+      }
+      this.dummyRoot = dummyFile.getAbsolutePath() + SEPARATOR;
+    }
+
     this.hasData = hasData;
     this.fileSystemManager = new FileSystemManager(extraParams);
   }
@@ -112,11 +153,11 @@ public class LocalExecutor implements Executor {
       for (String path : paths) {
         result.addAll(
             fileSystemManager.readFile(
-                new File(FilePathUtils.toNormalFilePath(root, path)), null, keyRanges, true));
+                new File(FilePathUtils.toNormalFilePath(dummyRoot, path)), null, keyRanges, true));
       }
       RowStream rowStream =
           new FileSystemHistoryQueryRowStream(
-              result, root, filter, fileSystemManager.getMemoryPool());
+              result, dummyRoot, filter, fileSystemManager.getMemoryPool());
       return new TaskExecuteResult(rowStream);
     } catch (Exception e) {
       logger.error("read file error, paths {} filter {}", paths, filter);
@@ -265,6 +306,9 @@ public class LocalExecutor implements Executor {
     List<Column> columns = new ArrayList<>();
     File directory = new File(FilePathUtils.toIginxPath(root, storageUnit, null));
     List<File> files = fileSystemManager.getAllFiles(directory);
+    if (hasData) {
+      files.addAll(fileSystemManager.getAllFiles(new File(dummyRoot)));
+    }
 
     for (File file : files) {
       // 如果加入该Storage时有数据，才读取该文件夹下的文件
@@ -286,7 +330,7 @@ public class LocalExecutor implements Executor {
           columns.add(
               new Column(
                   FilePathUtils.convertAbsolutePathToPath(
-                      root, file.getAbsolutePath(), storageUnit),
+                          dummyRoot, file.getAbsolutePath(), storageUnit),
                   DataType.BINARY,
                   null));
         }
@@ -302,7 +346,7 @@ public class LocalExecutor implements Executor {
     KeyInterval keyInterval = new KeyInterval(0, Long.MAX_VALUE);
     ColumnsInterval columnsInterval;
 
-    File directory = new File(FilePathUtils.toNormalFilePath(root, dataPrefix));
+    File directory = new File(FilePathUtils.toNormalFilePath(dummyRoot, dataPrefix));
     if (dataPrefix != null && !dataPrefix.isEmpty()) {
       columnsInterval = new ColumnsInterval(dataPrefix);
     } else {
@@ -312,8 +356,8 @@ public class LocalExecutor implements Executor {
       } else {
         columnsInterval =
             new ColumnsInterval(
-                FilePathUtils.convertAbsolutePathToPath(root, filePair.k.getAbsolutePath(), null),
-                FilePathUtils.convertAbsolutePathToPath(root, filePair.v.getAbsolutePath(), null));
+                FilePathUtils.convertAbsolutePathToPath(dummyRoot, filePair.k.getAbsolutePath(), null),
+                FilePathUtils.convertAbsolutePathToPath(dummyRoot, filePair.v.getAbsolutePath(), null));
       }
     }
 

@@ -93,7 +93,7 @@ public class FileSystemStorage implements IStorage {
   }
 
   private void initLocalExecutor(StorageEngineMeta meta) {
-    executor = new LocalExecutor(meta.isHasData(), meta.getExtraParams());
+    executor = new LocalExecutor(meta.isReadOnly(), meta.isHasData(), meta.getExtraParams());
     executorService.submit(new Thread(new FileSystemServer(meta.getPort(), executor)));
   }
 
