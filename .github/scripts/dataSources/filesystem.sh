@@ -8,4 +8,6 @@ sed -i "s/#storageEngineList=127.0.0.1#6667#filesystem/storageEngineList=127.0.0
 
 sed -i "s/enablePushDown=true/enablePushDown=false/g" conf/config.properties
 
-sed -i "s#dir=/path/to/your/filesystem#dir=test/storage6667#g" conf/config.properties
+sed -i "s#dummy_dir=/path/to/your/data#dir=test/storage6667#g" conf/config.properties
+
+sed -i "s#dir=/path/to/your/filesystem#dir=test/iginx_storage6667#g" conf/config.properties

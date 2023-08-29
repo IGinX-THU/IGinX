@@ -57,6 +57,7 @@ public abstract class BaseCapacityExpansionIT {
         statement.append(", dummy_dir:test/storage");
         statement.append(port);
         statement.append(", dir:test/iginx_storage");
+        statement.append(port);
       }
       if (extraParams != null) {
         statement.append(", ");
