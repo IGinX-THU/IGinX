@@ -1,6 +1,7 @@
 package cn.edu.tsinghua.iginx.parquet.entity;
 
 import cn.edu.tsinghua.iginx.parquet.thrift.ParquetService.Client;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
@@ -8,12 +9,11 @@ import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.ConcurrentLinkedDeque;
-
 public class ThriftConnPool {
   private static final Logger logger = LoggerFactory.getLogger(ThriftConnPool.class);
 
-  private final ConcurrentLinkedDeque<TTransport> availableTransportQueue = new ConcurrentLinkedDeque<>();
+  private final ConcurrentLinkedDeque<TTransport> availableTransportQueue =
+      new ConcurrentLinkedDeque<>();
 
   private static int size;
 
@@ -42,7 +42,7 @@ public class ThriftConnPool {
     size = 0;
   }
 
-  public Client borrowClient(){
+  public Client borrowClient() {
     if (isClosed()) {
       logger.error("client pool closed.");
       return null;
@@ -64,7 +64,7 @@ public class ThriftConnPool {
           return null;
         }
         transport = newTransport();
-        if (!transport.isOpen()){
+        if (!transport.isOpen()) {
           transport.open();
         }
       } catch (TTransportException e) {
@@ -118,7 +118,7 @@ public class ThriftConnPool {
 
   private TTransport newTransport() throws TTransportException {
     TTransport transport = new TSocket(this.ip, this.port);
-    if (!transport.isOpen()){
+    if (!transport.isOpen()) {
       transport.open();
     }
     return transport;
@@ -126,8 +126,7 @@ public class ThriftConnPool {
 
   public void close() {
     logger.info("closing connection pool...");
-    for (TTransport transport :
-            availableTransportQueue) {
+    for (TTransport transport : availableTransportQueue) {
       transport.close();
     }
     synchronized (this) {

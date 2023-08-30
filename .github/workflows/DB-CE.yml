@@ -20,7 +20,8 @@ jobs:
                 java: [8]
                 python-version: ["3.7.16"]
                 os: [ubuntu-latest, macos-latest]
-                DB-name: ["IoTDB12", "InfluxDB", "PostgreSQL", "Redis", "Parquet"]
+                DB-name:
+                    ["IoTDB12", "InfluxDB", "PostgreSQL", "Redis", "Parquet"]
         runs-on: ${{ matrix.os }}
         steps:
             - uses: actions/checkout@v2
@@ -119,7 +120,6 @@ jobs:
               with:
                   file: ./**/target/site/jacoco/jacoco.xml
                   name: codecov
-
 #    Parquet-Capacity-Expansion-ds:
 #        strategy:
 #            fail-fast: false

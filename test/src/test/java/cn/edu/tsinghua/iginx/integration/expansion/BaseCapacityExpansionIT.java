@@ -38,7 +38,8 @@ public abstract class BaseCapacityExpansionIT {
 
   protected int readOnlyPort;
 
-  private static final HashMap<Integer, List<String>> parquetParams = new ParquetParams().getParams();
+  private static final HashMap<Integer, List<String>> parquetParams =
+      new ParquetParams().getParams();
 
   public BaseCapacityExpansionIT(
       DBType dbType, String extraParams, int oriPort, int expPort, int readOnlyPort) {
@@ -68,7 +69,7 @@ public abstract class BaseCapacityExpansionIT {
         statement.append("/");
       }
       if (this instanceof ParquetCapacityExpansionIT) {
-        extraParams += ", dir:"+parquetParams.get(port).get(0);
+        extraParams += ", dir:" + parquetParams.get(port).get(0);
       }
       if (extraParams != null) {
         statement.append(", ");

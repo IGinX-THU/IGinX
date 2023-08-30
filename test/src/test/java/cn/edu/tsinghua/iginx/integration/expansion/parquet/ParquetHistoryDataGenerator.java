@@ -1,5 +1,8 @@
 package cn.edu.tsinghua.iginx.integration.expansion.parquet;
 
+import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
+import cn.edu.tsinghua.iginx.thrift.DataType;
+import cn.edu.tsinghua.iginx.utils.Pair;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -10,10 +13,6 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.*;
-
-import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
-import cn.edu.tsinghua.iginx.thrift.DataType;
-import cn.edu.tsinghua.iginx.utils.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,7 +24,8 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   private static final char PARQUET_SEPARATOR = '$';
 
-  private static final HashMap<Integer, List<String>> parquetParams = new ParquetParams().getParams();
+  private static final HashMap<Integer, List<String>> parquetParams =
+      new ParquetParams().getParams();
 
   public ParquetHistoryDataGenerator() {
     this.oriPort = 6667;
@@ -43,31 +43,9 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
     }
   }
 
-//  @Test
-//  public void Test() {
-//
-//    int oriPort = 6669;
-//
-//    List<String> ORI_PATH_LIST =
-//            Arrays.asList("mn.wf05.wt01.status", "mn.wf05.wt01.temperature");
-//
-//    List<DataType> ORI_DATA_TYPE_LIST =
-//            Arrays.asList(DataType.BOOLEAN, DataType.DOUBLE);
-//
-//    List<List<Object>> ORI_VALUES_LIST =
-//            Arrays.asList(Arrays.asList(false, 100.01), Arrays.asList(true, 99.99));
-//
-//    writeHistoryData(oriPort, ORI_PATH_LIST, ORI_DATA_TYPE_LIST, ORI_VALUES_LIST);
-//  }
-//
-//  @Test
-//  public void clear() {
-//    int port = 6667;
-//    clearHistoryDataForGivenPort(port);
-//  }
-
   @Override
-  public void writeHistoryData(int port, List<String> pathList, List<DataType> dataTypeList, List<List<Object>> valuesList) {
+  public void writeHistoryData(
+      int port, List<String> pathList, List<DataType> dataTypeList, List<List<Object>> valuesList) {
     if (!parquetParams.containsKey(port)) {
       logger.error(String.format("writing to unknown port %d.", port));
       return;
@@ -91,7 +69,7 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
 
     String dir = parquetParams.get(port).get(0);
     String filename = parquetParams.get(port).get(1);
-    Path dirPath = Paths.get("../"+dir);
+    Path dirPath = Paths.get("../" + dir);
     if (Files.notExists(dirPath)) {
       try {
         Files.createDirectories(dirPath);
@@ -119,25 +97,21 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
       // create table
       StringBuilder typeListStr = new StringBuilder();
       StringBuilder insertStr;
-      for (Pair p :
-              columnList) {
+      for (Pair p : columnList) {
         typeListStr.append(p.k).append(" ").append(p.v).append(", ");
       }
 
       System.out.println(tableName);
       System.out.println(typeListStr);
       stmt.execute(
-              String.format(
-                      "CREATE TABLE %s (time LONG, %s);",
-                      tableName,
-                      typeListStr.substring(0, typeListStr.length() - 2))
-      );
+          String.format(
+              "CREATE TABLE %s (time LONG, %s);",
+              tableName, typeListStr.substring(0, typeListStr.length() - 2)));
 
-      //insert value
+      // insert value
       insertStr = new StringBuilder();
       int timeCnt = 0;
-      for (List<Object> values :
-              valuesList) {
+      for (List<Object> values : valuesList) {
         insertStr.append("(").append(timeCnt).append(", ");
         for (int i = 0; i < columnCount; i++) {
           insertStr.append(values.get(i)).append(", ");
@@ -150,24 +124,19 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
       System.out.println(tableName);
       System.out.println(insertStr);
       stmt.execute(
-              String.format(
-                      "INSERT INTO %s VALUES %s;",
-                      tableName,
-                      insertStr.substring(0, insertStr.length() - 2))
-      );
-
+          String.format(
+              "INSERT INTO %s VALUES %s;",
+              tableName, insertStr.substring(0, insertStr.length() - 2)));
 
       Path parquetPath = Paths.get("../" + dir, filename);
       stmt.execute(
-              String.format(
-                      "COPY (SELECT * FROM %s) TO '%s' (FORMAT 'parquet');",
-                      tableName, parquetPath));
+          String.format(
+              "COPY (SELECT * FROM %s) TO '%s' (FORMAT 'parquet');", tableName, parquetPath));
 
     } catch (SQLException e) {
       logger.error("write history data failed.");
       e.printStackTrace();
     }
-
   }
 
   @Override
@@ -185,7 +154,7 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
     if (file.exists() && file.isFile()) {
       file.delete();
     } else {
-      logger.error("Delete "+dir+"/"+filename+" error: does not exist or is not a file.");
+      logger.error("Delete " + dir + "/" + filename + " error: does not exist or is not a file.");
     }
   }
 }

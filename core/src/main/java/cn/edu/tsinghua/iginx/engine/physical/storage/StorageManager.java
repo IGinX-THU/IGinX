@@ -125,8 +125,8 @@ public class StorageManager {
         ThreadPoolExecutor dispatcher =
             new ThreadPoolExecutor(
                 ConfigDescriptor.getInstance()
-                        .getConfig()
-                        .getPhysicalTaskThreadPoolSizePerStorage(),
+                    .getConfig()
+                    .getPhysicalTaskThreadPoolSizePerStorage(),
                 Integer.MAX_VALUE,
                 60L,
                 TimeUnit.SECONDS,
@@ -193,16 +193,16 @@ public class StorageManager {
     return true;
   }
 
-  public IStorage initLocalParquet(StorageEngineMeta meta){
+  public IStorage initLocalParquet(StorageEngineMeta meta) {
     String engine = meta.getStorageEngine();
-    if (!engine.equals("parquet")){
+    if (!engine.equals("parquet")) {
       return null;
     }
     String driver = drivers.get(engine);
     ClassLoader loader = classLoaders.get(engine);
     try {
       return (IStorage)
-              loader.loadClass(driver).getConstructor(StorageEngineMeta.class).newInstance(meta);
+          loader.loadClass(driver).getConstructor(StorageEngineMeta.class).newInstance(meta);
     } catch (ClassNotFoundException e) {
       logger.error("load class {} for engine {} failure: {}", driver, engine, e);
       return null;
@@ -211,5 +211,4 @@ public class StorageManager {
       return null;
     }
   }
-
 }

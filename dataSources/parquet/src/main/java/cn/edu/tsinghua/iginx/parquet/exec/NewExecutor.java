@@ -170,7 +170,7 @@ public class NewExecutor implements Executor {
     try {
       duManager.delete(paths, keyRanges, tagFilter);
     } catch (Exception e) {
-      return new TaskExecuteResult(null, new PhysicalException("Fail to delete data "+e));
+      return new TaskExecuteResult(null, new PhysicalException("Fail to delete data " + e));
     }
 
     return new TaskExecuteResult(null, null);

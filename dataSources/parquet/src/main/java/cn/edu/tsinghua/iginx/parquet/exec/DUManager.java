@@ -716,7 +716,8 @@ public class DUManager {
       ResultSet rs = stmt.executeQuery(String.format(SELECT_PARQUET_METADATA, filepath));
       while (rs.next()) {
         String pathName =
-                ((String) rs.getObject(COLUMN_NAME_META)).replaceAll(PARQUET_SEPARATOR, IGINX_SEPARATOR);
+            ((String) rs.getObject(COLUMN_NAME_META))
+                .replaceAll(PARQUET_SEPARATOR, IGINX_SEPARATOR);
         if (pathName.equals(COLUMN_KEY)) {
           startTime = Long.parseLong((String) rs.getObject(COLUMN_MIN_VALUE_META));
           endTime = Long.parseLong((String) rs.getObject(COLUMN_MAX_VALUE_META));
