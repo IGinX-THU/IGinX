@@ -267,6 +267,8 @@ public class IginxWorker implements IService.Iface {
       String type = storageEngine.getType();
       Map<String, String> extraParams = storageEngine.getExtraParams();
       boolean hasData = Boolean.parseBoolean(extraParams.getOrDefault(Constants.HAS_DATA, "false"));
+      boolean readOnly =
+          Boolean.parseBoolean(extraParams.getOrDefault(Constants.IS_READ_ONLY, "false"));
       if (type.equals("parquet")) {
         String dir = extraParams.get("dir");
         if (dir == null || dir.equals("")) {
@@ -278,12 +280,48 @@ public class IginxWorker implements IService.Iface {
           extraParams.put(SCHEMA_PREFIX, dir);
         }
       }
+      if (hasData && type.equals("filesystem")) {
+        // 如果hasData为true，则参数中必须配置dummy_dir
+        String dummyDir = extraParams.get("dummy_dir");
+        if (dummyDir == null || dummyDir.isEmpty()) {
+          return RpcUtils.FAILURE;
+        }
+        if (!readOnly) {
+          // 如果hasData为true，且readOnly为false，则参数中必须配置dir，且不能与dummy_dir相同
+          String dir = extraParams.get("dir");
+          if (dir == null || dir.isEmpty()) {
+            return RpcUtils.FAILURE;
+          }
+          try {
+            String dummyDirPath = new File(dummyDir).getCanonicalPath();
+            String dirPath = new File(dir).getCanonicalPath();
+            if (dummyDirPath.equals(dirPath)) {
+              return RpcUtils.FAILURE;
+            }
+          } catch (IOException e) {
+            return RpcUtils.FAILURE;
+          }
+        }
+        String prefix =
+            dummyDir.substring(dummyDir.lastIndexOf(System.getProperty("file.separator")));
+        if (extraParams.containsKey(SCHEMA_PREFIX)) {
+          extraParams.put(SCHEMA_PREFIX, extraParams.get(SCHEMA_PREFIX) + "." + prefix);
+        } else {
+          extraParams.put(SCHEMA_PREFIX, prefix);
+        }
+      } else {
+        // 如果hasData为false，则参数中必须配置dir
+        String dir = extraParams.get("dir");
+        if (dir == null || dir.isEmpty()) {
+          return RpcUtils.FAILURE;
+        }
+      }
+
       String dataPrefix = null;
       if (hasData && extraParams.containsKey(Constants.DATA_PREFIX)) {
         dataPrefix = extraParams.get(Constants.DATA_PREFIX);
       }
-      boolean readOnly =
-          Boolean.parseBoolean(extraParams.getOrDefault(Constants.IS_READ_ONLY, "false"));
+
       StorageEngineMeta meta =
           new StorageEngineMeta(
               -1,

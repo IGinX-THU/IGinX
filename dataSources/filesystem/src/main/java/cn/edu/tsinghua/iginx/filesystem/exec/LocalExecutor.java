@@ -50,52 +50,48 @@ public class LocalExecutor implements Executor {
   private FileSystemManager fileSystemManager;
 
   public LocalExecutor(boolean isReadOnly, boolean hasData, Map<String, String> extraParams) {
-    String path = extraParams.get(Constant.INIT_INFO_DIR);
-
-    String dummyPath = extraParams.get(Constant.INIT_INFO_DUMMY_DIR);
-
+    String dir = extraParams.get(Constant.INIT_INFO_DIR);
+    String dummyDir = extraParams.get(Constant.INIT_INFO_DUMMY_DIR);
     if (hasData) {
-      if (dummyPath == null) {
-        logger.error("No dummy directory declared!");
-        throw new IllegalArgumentException("No dummy directory declared!");
+      if (dummyDir == null || dummyDir.isEmpty()) {
+        throw new IllegalArgumentException("No dummy_dir declared!");
       }
-
+      File dummyFile = new File(dummyDir);
+      if (dummyFile.isFile()) {
+        throw new IllegalArgumentException(String.format("invalid dummy_dir %s", dummyDir));
+      }
+      this.dummyRoot = dummyFile.getAbsolutePath() + SEPARATOR;
       if (!isReadOnly) {
-        if (path == null) {
-          logger.error("No directory declared!");
-          throw new IllegalArgumentException("No directory declared!");
+        if (dir == null || dir.isEmpty()) {
+          throw new IllegalArgumentException("No dir declared!");
         }
-
-        if (path.equals(dummyPath)) {
-          logger.error("directory: {} cannot be equal to dummy directory: {}", path, dummyPath);
-          throw new IllegalArgumentException("directory: " + path + " cannot be equal to dummy directory: " + dummyPath);
+        File file = new File(dir);
+        if (file.isFile()) {
+          throw new IllegalArgumentException(String.format("invalid dir %s", dir));
+        }
+        this.root = file.getAbsolutePath() + SEPARATOR;
+        try {
+          String dummyDirPath = dummyFile.getCanonicalPath();
+          String dirPath = file.getCanonicalPath();
+          if (dummyDirPath.equals(dirPath)) {
+            throw new IllegalArgumentException(
+                String.format("dir %s cannot be equal to dummy directory %s", dir, dummyDir));
+          }
+        } catch (IOException e) {
+          throw new RuntimeException(
+              String.format("get canonical path failed for dir %s dummy_dir %s", dir, dummyDir));
         }
       }
     } else {
-      if (path == null) {
-        logger.error("No directory declared!");
-        throw new IllegalArgumentException("No directory declared!");
+      if (dir == null || dir.isEmpty()) {
+        throw new IllegalArgumentException("No dir declared!");
       }
-    }
-
-    if (path != null) {
-      File file = new File(path);
+      File file = new File(dir);
       if (file.isFile()) {
-        logger.error("invalid directory: {}", file.getAbsolutePath());
-        return;
+        throw new IllegalArgumentException(String.format("invalid dir %s", dir));
       }
       this.root = file.getAbsolutePath() + SEPARATOR;
     }
-
-    if (dummyPath != null) {
-      File dummyFile = new File(dummyPath);
-      if (dummyFile.isFile()) {
-        logger.error("invalid directory: {}", dummyFile.getAbsolutePath());
-        return;
-      }
-      this.dummyRoot = dummyFile.getAbsolutePath() + SEPARATOR;
-    }
-
     this.hasData = hasData;
     this.fileSystemManager = new FileSystemManager(extraParams);
   }
@@ -334,7 +330,7 @@ public class LocalExecutor implements Executor {
           columns.add(
               new Column(
                   FilePathUtils.convertAbsolutePathToPath(
-                          dummyRoot, file.getAbsolutePath(), storageUnit),
+                      dummyRoot, file.getAbsolutePath(), storageUnit),
                   DataType.BINARY,
                   null));
         }
@@ -360,8 +356,10 @@ public class LocalExecutor implements Executor {
       } else {
         columnsInterval =
             new ColumnsInterval(
-                FilePathUtils.convertAbsolutePathToPath(dummyRoot, filePair.k.getAbsolutePath(), null),
-                FilePathUtils.convertAbsolutePathToPath(dummyRoot, filePair.v.getAbsolutePath(), null));
+                FilePathUtils.convertAbsolutePathToPath(
+                    dummyRoot, filePair.k.getAbsolutePath(), null),
+                FilePathUtils.convertAbsolutePathToPath(
+                    dummyRoot, filePair.v.getAbsolutePath(), null));
       }
     }
 
