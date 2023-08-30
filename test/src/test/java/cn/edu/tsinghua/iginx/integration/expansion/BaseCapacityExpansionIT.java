@@ -357,7 +357,8 @@ public abstract class BaseCapacityExpansionIT {
 
     // 通过 session 接口测试移除节点
     List<RemovedStorageEngineInfo> removedStorageEngineList = new ArrayList<>();
-    removedStorageEngineList.add(new RemovedStorageEngineInfo("127.0.0.1", expPort, "p2", "nt.wf03"));
+    removedStorageEngineList.add(
+        new RemovedStorageEngineInfo("127.0.0.1", expPort, "p2", "nt.wf03"));
     removedStorageEngineList.add(
         new RemovedStorageEngineInfo("127.0.0.1", expPort, "p3", "nt.wf03"));
     try {
@@ -371,9 +372,9 @@ public abstract class BaseCapacityExpansionIT {
         "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
     // 移除节点 dataPrefix = nt.wf03 && schemaPrefix = p3 后再查询，测试重点是移除相同schemaPrefix不同dataPrefix
-    statement = "select * from p3.nt.wf03";
+    statement = "select * from p3.nt.wf04";
     List<String> pathListAns = new ArrayList<>();
-    pathListAns.add("p3.nt.wf03.wt01.temperature");
+    pathListAns.add("p3.nt.wf04.wt01.temperature");
     SQLTestTools.executeAndCompare(session, statement, pathListAns, expValuesList2);
 
     // 通过 sql 语句测试移除节点
@@ -407,7 +408,7 @@ public abstract class BaseCapacityExpansionIT {
   private void testQueryForFileSystem() {
     try {
       session.executeSql(
-          "add storageengine (\"127.0.0.1\", 6669, \"filesystem\", \"dummy_dir:test/test/a, has_data:true, is_read_only:true\")");
+          "ADD STORAGEENGINE (\"127.0.0.1\", 6669, \"filesystem\", \"dummy_dir:test/test/a, has_data:true, is_read_only:true\")");
       String statement = "select 1\\txt from *";
       String expect =
           "ResultSets:\n"

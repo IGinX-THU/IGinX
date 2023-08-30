@@ -350,16 +350,17 @@ public class LocalExecutor implements Executor {
     if (dataPrefix != null && !dataPrefix.isEmpty()) {
       columnsInterval = new ColumnsInterval(dataPrefix);
     } else {
-      Pair<File, File> filePair = fileSystemManager.getBoundaryOfFiles(directory);
+      Pair<String, String> filePair = fileSystemManager.getBoundaryOfFiles(directory);
+      String tmpDummyRoot = dummyRoot.substring(0, dummyRoot.lastIndexOf(SEPARATOR));
+      String schemaPrefix = tmpDummyRoot.substring(tmpDummyRoot.lastIndexOf(SEPARATOR) + 1);
       if (filePair == null) {
-        columnsInterval = new ColumnsInterval(null, null);
+        columnsInterval = new ColumnsInterval(null, null, schemaPrefix);
       } else {
         columnsInterval =
             new ColumnsInterval(
-                FilePathUtils.convertAbsolutePathToPath(
-                    dummyRoot, filePair.k.getAbsolutePath(), null),
-                FilePathUtils.convertAbsolutePathToPath(
-                    dummyRoot, filePair.v.getAbsolutePath(), null));
+                FilePathUtils.convertAbsolutePathToPath(dummyRoot, filePair.k, null),
+                FilePathUtils.convertAbsolutePathToPath(dummyRoot, filePair.v, null),
+                schemaPrefix);
       }
     }
 

@@ -395,8 +395,8 @@ public class FileSystemManager {
     return res;
   }
 
-  // 返回字典序最大和最小的文件，可能是目录
-  public Pair<File, File> getBoundaryOfFiles(File dir) {
+  // 返回字典序最大和最小的文件路径，可能是目录
+  public Pair<String, String> getBoundaryOfFiles(File dir) {
     File[] files = dir.listFiles();
     if (files == null || files.length == 0) {
       logger.error("{} is empty", dir.getAbsolutePath());
@@ -408,7 +408,7 @@ public class FileSystemManager {
         new File(
             Paths.get(files[files.length - 1].getAbsolutePath(), String.valueOf(MAX_CHAR))
                 .toString());
-    return new Pair<>(minFile, maxFile);
+    return new Pair<>(minFile.getAbsolutePath(), maxFile.getAbsolutePath());
   }
 
   public FileMeta getFileMeta(File file) {

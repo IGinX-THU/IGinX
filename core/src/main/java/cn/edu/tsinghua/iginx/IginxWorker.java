@@ -303,12 +303,18 @@ public class IginxWorker implements IService.Iface {
               return RpcUtils.FAILURE;
             }
           }
-          String prefix =
-              dummyDir.substring(dummyDir.lastIndexOf(System.getProperty("file.separator")));
-          if (extraParams.containsKey(SCHEMA_PREFIX)) {
-            extraParams.put(SCHEMA_PREFIX, extraParams.get(SCHEMA_PREFIX) + "." + prefix);
+          String schemaPrefix;
+          String separator = System.getProperty("file.separator");
+          if (dummyDir.endsWith(separator)) {
+            String tempSchemaPrefix = dummyDir.substring(0, dummyDir.lastIndexOf(separator));
+            schemaPrefix = tempSchemaPrefix.substring(tempSchemaPrefix.lastIndexOf(separator) + 1);
           } else {
-            extraParams.put(SCHEMA_PREFIX, prefix);
+            schemaPrefix = dummyDir.substring(dummyDir.lastIndexOf(separator) + 1);
+          }
+          if (extraParams.containsKey(SCHEMA_PREFIX)) {
+            extraParams.put(SCHEMA_PREFIX, extraParams.get(SCHEMA_PREFIX) + "." + schemaPrefix);
+          } else {
+            extraParams.put(SCHEMA_PREFIX, schemaPrefix);
           }
         } else {
           // 如果hasData为false，则参数中必须配置dir

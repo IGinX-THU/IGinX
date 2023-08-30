@@ -53,10 +53,14 @@ public class FilePathUtils {
       } else {
         tmp = tmp.substring(tmp.indexOf(root) + root.length());
       }
+      if (tmp.isEmpty()) {
+        return SEPARATOR;
+      }
+      return tmp.replace(SEPARATOR, ".");
     } else { // 对普通文件操作
       String[] parts;
       tmp = filePath.substring(filePath.indexOf(root) + root.length());
-      if (!tmp.contains(SEPARATOR)) { // 一級目或文件
+      if (!tmp.contains(SEPARATOR)) { // 一级目录或文件
         return tmp;
       }
       if (SEPARATOR.equals("\\")) { // 针对win系统
@@ -69,12 +73,7 @@ public class FilePathUtils {
         s = s.replace(".", "\\");
         res.append(s).append(".");
       }
-      res = new StringBuilder(res.substring(0, res.length() - 1));
-      return res.toString();
+      return res.substring(0, res.length() - 1);
     }
-    if (tmp.isEmpty()) {
-      return SEPARATOR;
-    }
-    return tmp.replace(SEPARATOR, ".");
   }
 }
