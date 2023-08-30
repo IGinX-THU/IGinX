@@ -380,11 +380,7 @@ public abstract class BaseCapacityExpansionIT {
     // 通过 sql 语句测试移除节点
     try {
       session.executeSql(
-          "remove historydataresource (\"127.0.0.1\", " + expPort + ", \"p3\", \"nt.wf03\")");
-      session.executeSql(
           "remove historydataresource (\"127.0.0.1\", " + expPort + ", \"p1\", \"nt.wf03\")");
-      session.executeSql(
-          "remove historydataresource (\"127.0.0.1\", " + expPort + ", \"\", \"nt.wf03\")");
     } catch (ExecutionException | SessionException e) {
       logger.error("remove history data source through sql error: {}", e.getMessage());
     }
