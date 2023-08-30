@@ -28,7 +28,7 @@ public class Constant {
       Collections.singletonList("nt.wf03.wt01.status");
 
   public static final List<String> EXP_PATH_LIST2 =
-      Collections.singletonList("nt.wf03.wt01.temperature");
+      Collections.singletonList("nt.wf04.wt01.temperature");
 
   public static final List<String> READ_ONLY_PATH_LIST =
       Arrays.asList("tm.wf05.wt01.status", "tm.wf05.wt01.temperature");
