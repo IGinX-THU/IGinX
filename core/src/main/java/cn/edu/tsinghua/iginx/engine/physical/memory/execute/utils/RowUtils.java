@@ -18,6 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils;
 
+import static cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils.isCanUseSetQuantifierFunction;
 import static cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils.getHash;
 import static cn.edu.tsinghua.iginx.sql.SQLConstant.DOT;
 
@@ -35,6 +36,8 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
 import cn.edu.tsinghua.iginx.engine.shared.function.SetMappingFunction;
+import cn.edu.tsinghua.iginx.engine.shared.function.system.Max;
+import cn.edu.tsinghua.iginx.engine.shared.function.system.Min;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils;
 import cn.edu.tsinghua.iginx.engine.shared.operator.GroupBy;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
@@ -108,15 +111,24 @@ public class RowUtils {
     if (!row1.getHeader().equals(row2.getHeader())) {
       return false;
     }
+    return isValueEqualRow(row1, row2, compareKey);
+  }
+
+  public static boolean isValueEqualRow(Row row1, Row row2, boolean compareKey)
+      throws PhysicalException {
     if (compareKey) {
       if (row1.getKey() != row2.getKey()) {
         return false;
       }
     }
-    List<Field> fields = row1.getHeader().getFields();
-    for (Field field : fields) {
-      Value value1 = row1.getAsValue(field.getName());
-      Value value2 = row2.getAsValue(field.getName());
+    if (row1.getHeader().getFieldSize() != row2.getHeader().getFieldSize()) {
+      return false;
+    }
+
+    int size = row1.getHeader().getFieldSize();
+    for (int index = 0; index < size; index++) {
+      Value value1 = row1.getAsValue(index);
+      Value value2 = row2.getAsValue(index);
       if (ValueUtils.compare(value1, value2) != 0) {
         return false;
       }
@@ -591,7 +603,7 @@ public class RowUtils {
 
   public static void seqApplyFunc(
       GroupBy groupBy, List<Field> fields, Header header, Map<GroupByKey, List<Row>> groups)
-      throws PhysicalTaskExecuteFailureException {
+      throws PhysicalException {
     List<FunctionCall> functionCallList = groupBy.getFunctionCallList();
     for (FunctionCall functionCall : functionCallList) {
       SetMappingFunction function = (SetMappingFunction) functionCall.getFunction();
@@ -600,6 +612,19 @@ public class RowUtils {
       boolean hasAddedFields = false;
       for (Map.Entry<GroupByKey, List<Row>> entry : groups.entrySet()) {
         List<Row> group = entry.getValue();
+
+        if (params.isDistinct()) {
+          if (!isCanUseSetQuantifierFunction(function.getIdentifier())) {
+            throw new IllegalArgumentException(
+                "function " + function.getIdentifier() + " can't use DISTINCT");
+          }
+          // min和max无需去重
+          if (!function.getIdentifier().equals(Max.MAX)
+              && !function.getIdentifier().equals(Min.MIN)) {
+            group = removeDuplicateRows(group);
+          }
+        }
+
         try {
           Row row = function.transform(new Table(header, group), params);
           if (row != null) {
@@ -641,6 +666,23 @@ public class RowUtils {
                   .forEach(
                       entry -> {
                         List<Row> group = entry.getValue();
+
+                        if (params.isDistinct()) {
+                          if (!isCanUseSetQuantifierFunction(function.getIdentifier())) {
+                            throw new IllegalArgumentException(
+                                "function " + function.getIdentifier() + " can't use DISTINCT");
+                          }
+                          // min和max无需去重
+                          if (!function.getIdentifier().equals(Max.MAX)
+                              && !function.getIdentifier().equals(Min.MIN)) {
+                            try {
+                              group = removeDuplicateRows(group);
+                            } catch (PhysicalException e) {
+                              throw new RuntimeException(e);
+                            }
+                          }
+                        }
+
                         try {
                           Row row = function.transform(new Table(header, group), params);
                           if (row != null) {
@@ -818,5 +860,45 @@ public class RowUtils {
           }
           return 0;
         });
+  }
+
+  public static List<Row> removeDuplicateRows(List<Row> rows) throws PhysicalException {
+    List<Row> targetRows = new ArrayList<>();
+    HashMap<Integer, List<Row>> rowsHashMap = new HashMap<>();
+    List<Row> nullValueRows = new ArrayList<>();
+    tableScan:
+    for (Row row : rows) {
+      Value value = row.getAsValue(row.getField(0).getName());
+      if (value == null) {
+        for (Row nullValueRow : nullValueRows) {
+          if (isEqualRow(row, nullValueRow, false)) {
+            continue tableScan;
+          }
+        }
+        nullValueRows.add(row);
+        targetRows.add(row);
+      } else {
+        int hash;
+        if (value.getDataType() == DataType.BINARY) {
+          hash = Arrays.hashCode(value.getBinaryV());
+        } else {
+          hash = value.getValue().hashCode();
+        }
+        if (rowsHashMap.containsKey(hash)) {
+          List<Row> rowsExist = rowsHashMap.get(hash);
+          for (Row rowExist : rowsExist) {
+            if (isEqualRow(row, rowExist, false)) {
+              continue tableScan;
+            }
+          }
+          rowsExist.add(row);
+        } else {
+          rowsHashMap.put(hash, new ArrayList<>(Collections.singletonList(row)));
+        }
+        targetRows.add(row);
+      }
+    }
+
+    return targetRows;
   }
 }

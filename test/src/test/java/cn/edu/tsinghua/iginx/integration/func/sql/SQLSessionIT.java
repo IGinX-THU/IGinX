@@ -1,10 +1,9 @@
 package cn.edu.tsinghua.iginx.integration.func.sql;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import cn.edu.tsinghua.iginx.Iginx;
-import cn.edu.tsinghua.iginx.conf.Config;
-import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
@@ -17,9 +16,13 @@ import cn.edu.tsinghua.iginx.pool.IginxInfo;
 import cn.edu.tsinghua.iginx.pool.SessionPool;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.utils.Pair;
+import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -497,6 +500,149 @@ public class SQLSessionIT {
             + "+---+-------+-------+\n"
             + "Total line number = 8\n";
     executor.executeAndCompare(query, expected);
+  }
+
+  @Test
+  public void testDistinct() {
+    String insert =
+        "INSERT INTO test(key, a, b) values (1, 1, 1), (2, 2, 1), (3, 2, 2), (4, 3, 1), (5, 3, 2), (6, 3, 1), (7, 4, 1), (8, 4, 2), (9, 4, 3), (10, 4, 1);";
+    executor.execute(insert);
+
+    String statement = "SELECT * FROM test;";
+    String expected =
+        "ResultSets:\n"
+            + "+---+------+------+\n"
+            + "|key|test.a|test.b|\n"
+            + "+---+------+------+\n"
+            + "|  1|     1|     1|\n"
+            + "|  2|     2|     1|\n"
+            + "|  3|     2|     2|\n"
+            + "|  4|     3|     1|\n"
+            + "|  5|     3|     2|\n"
+            + "|  6|     3|     1|\n"
+            + "|  7|     4|     1|\n"
+            + "|  8|     4|     2|\n"
+            + "|  9|     4|     3|\n"
+            + "| 10|     4|     1|\n"
+            + "+---+------+------+\n"
+            + "Total line number = 10\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "SELECT DISTINCT a FROM test;";
+    expected =
+        "ResultSets:\n"
+            + "+------+\n"
+            + "|test.a|\n"
+            + "+------+\n"
+            + "|     1|\n"
+            + "|     2|\n"
+            + "|     3|\n"
+            + "|     4|\n"
+            + "+------+\n"
+            + "Total line number = 4\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "SELECT DISTINCT a, b FROM test;";
+    expected =
+        "ResultSets:\n"
+            + "+------+------+\n"
+            + "|test.a|test.b|\n"
+            + "+------+------+\n"
+            + "|     1|     1|\n"
+            + "|     2|     1|\n"
+            + "|     2|     2|\n"
+            + "|     3|     1|\n"
+            + "|     3|     2|\n"
+            + "|     4|     1|\n"
+            + "|     4|     2|\n"
+            + "|     4|     3|\n"
+            + "+------+------+\n"
+            + "Total line number = 8\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "SELECT COUNT(a), AVG(a), SUM(a), MIN(a), MAX(a) FROM test;";
+    expected =
+        "ResultSets:\n"
+            + "+-------------+-----------+-----------+-----------+-----------+\n"
+            + "|count(test.a)|avg(test.a)|sum(test.a)|min(test.a)|max(test.a)|\n"
+            + "+-------------+-----------+-----------+-----------+-----------+\n"
+            + "|           10|        3.0|         30|          1|          4|\n"
+            + "+-------------+-----------+-----------+-----------+-----------+\n"
+            + "Total line number = 1\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement =
+        "SELECT COUNT(DISTINCT a), AVG(DISTINCT a), SUM(DISTINCT a), MIN(DISTINCT a), MAX(DISTINCT a) FROM test;";
+    expected =
+        "ResultSets:\n"
+            + "+----------------------+--------------------+--------------------+--------------------+--------------------+\n"
+            + "|count(distinct test.a)|avg(distinct test.a)|sum(distinct test.a)|min(distinct test.a)|max(distinct test.a)|\n"
+            + "+----------------------+--------------------+--------------------+--------------------+--------------------+\n"
+            + "|                     4|                 2.5|                  10|                   1|                   4|\n"
+            + "+----------------------+--------------------+--------------------+--------------------+--------------------+\n"
+            + "Total line number = 1\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "SELECT a, COUNT(b), AVG(b), SUM(b), MIN(b), MAX(b) FROM test GROUP BY a;";
+    expected =
+        "ResultSets:\n"
+            + "+------+-------------+------------------+-----------+-----------+-----------+\n"
+            + "|test.a|count(test.b)|       avg(test.b)|sum(test.b)|min(test.b)|max(test.b)|\n"
+            + "+------+-------------+------------------+-----------+-----------+-----------+\n"
+            + "|     1|            1|               1.0|          1|          1|          1|\n"
+            + "|     2|            2|               1.5|          3|          1|          2|\n"
+            + "|     3|            3|1.3333333333333333|          4|          1|          2|\n"
+            + "|     4|            4|              1.75|          7|          1|          3|\n"
+            + "+------+-------------+------------------+-----------+-----------+-----------+\n"
+            + "Total line number = 4\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement =
+        "SELECT a, COUNT(DISTINCT b), AVG(DISTINCT b), SUM(DISTINCT b), MIN(DISTINCT b), MAX(DISTINCT b) FROM test GROUP BY a;";
+    expected =
+        "ResultSets:\n"
+            + "+------+----------------------+--------------------+--------------------+--------------------+--------------------+\n"
+            + "|test.a|count(distinct test.b)|avg(distinct test.b)|sum(distinct test.b)|min(distinct test.b)|max(distinct test.b)|\n"
+            + "+------+----------------------+--------------------+--------------------+--------------------+--------------------+\n"
+            + "|     1|                     1|                 1.0|                   1|                   1|                   1|\n"
+            + "|     2|                     2|                 1.5|                   3|                   1|                   2|\n"
+            + "|     3|                     2|                 1.5|                   3|                   1|                   2|\n"
+            + "|     4|                     3|                 2.0|                   6|                   1|                   3|\n"
+            + "+------+----------------------+--------------------+--------------------+--------------------+--------------------+\n"
+            + "Total line number = 4\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement =
+        "SELECT COUNT(a), AVG(a), SUM(a), MIN(a), MAX(a) FROM test OVER (RANGE 2 IN (0, 10]);";
+    expected =
+        "ResultSets:\n"
+            + "+---+-------------+-----------+-----------+-----------+-----------+\n"
+            + "|key|count(test.a)|avg(test.a)|sum(test.a)|min(test.a)|max(test.a)|\n"
+            + "+---+-------------+-----------+-----------+-----------+-----------+\n"
+            + "|  1|            2|        1.5|          3|          1|          2|\n"
+            + "|  3|            2|        2.5|          5|          2|          3|\n"
+            + "|  5|            2|        3.0|          6|          3|          3|\n"
+            + "|  7|            2|        4.0|          8|          4|          4|\n"
+            + "|  9|            2|        4.0|          8|          4|          4|\n"
+            + "+---+-------------+-----------+-----------+-----------+-----------+\n"
+            + "Total line number = 5\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement =
+        "SELECT COUNT(DISTINCT a), AVG(DISTINCT a), SUM(DISTINCT a), MIN(DISTINCT a), MAX(DISTINCT a) FROM test OVER (RANGE 2 IN (0, 10]);";
+    expected =
+        "ResultSets:\n"
+            + "+---+----------------------+--------------------+--------------------+--------------------+--------------------+\n"
+            + "|key|count(distinct test.a)|avg(distinct test.a)|sum(distinct test.a)|min(distinct test.a)|max(distinct test.a)|\n"
+            + "+---+----------------------+--------------------+--------------------+--------------------+--------------------+\n"
+            + "|  1|                     2|                 1.5|                   3|                   1|                   2|\n"
+            + "|  3|                     2|                 2.5|                   5|                   2|                   3|\n"
+            + "|  5|                     1|                 3.0|                   3|                   3|                   3|\n"
+            + "|  7|                     1|                 4.0|                   4|                   4|                   4|\n"
+            + "|  9|                     1|                 4.0|                   4|                   4|                   4|\n"
+            + "+---+----------------------+--------------------+--------------------+--------------------+--------------------+\n"
+            + "Total line number = 5\n";
+    executor.executeAndCompare(statement, expected);
   }
 
   @Test
@@ -3851,6 +3997,154 @@ public class SQLSessionIT {
   }
 
   @Test
+  public void testSetOperators() {
+    String insert =
+        "INSERT INTO test(key, a.a, a.b, a.c) VALUES (1, 1, \"aaa\", true), (2, 1, \"eee\", false), (3, 4, \"ccc\", true), (5, 6, \"eee\", false);";
+    executor.execute(insert);
+    insert =
+        "INSERT INTO test(key, b.a, b.b, b.c) VALUES (2, \"eee\", 1, true), (3, \"ccc\", 4, true), (5, \"eee\", 6, false);";
+    executor.execute(insert);
+
+    String statement =
+        "SELECT a, b, c FROM test.a UNION ALL SELECT b, a, c FROM test.b ORDER BY KEY;";
+    String expected =
+        "ResultSets:\n"
+            + "+---+--------+--------+--------+\n"
+            + "|key|test.a.a|test.a.b|test.a.c|\n"
+            + "+---+--------+--------+--------+\n"
+            + "|  1|       1|     aaa|    true|\n"
+            + "|  2|       1|     eee|   false|\n"
+            + "|  2|       1|     eee|    true|\n"
+            + "|  3|       4|     ccc|    true|\n"
+            + "|  3|       4|     ccc|    true|\n"
+            + "|  5|       6|     eee|   false|\n"
+            + "|  5|       6|     eee|   false|\n"
+            + "+---+--------+--------+--------+\n"
+            + "Total line number = 7\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "SELECT a, b, c FROM test.a UNION SELECT b, a, c FROM test.b ORDER BY KEY;";
+    expected =
+        "ResultSets:\n"
+            + "+---+--------+--------+--------+\n"
+            + "|key|test.a.a|test.a.b|test.a.c|\n"
+            + "+---+--------+--------+--------+\n"
+            + "|  1|       1|     aaa|    true|\n"
+            + "|  2|       1|     eee|   false|\n"
+            + "|  2|       1|     eee|    true|\n"
+            + "|  3|       4|     ccc|    true|\n"
+            + "|  5|       6|     eee|   false|\n"
+            + "+---+--------+--------+--------+\n"
+            + "Total line number = 5\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "SELECT a, b, c FROM test.a EXCEPT SELECT b, a, c FROM test.b ORDER BY KEY;";
+    expected =
+        "ResultSets:\n"
+            + "+---+--------+--------+--------+\n"
+            + "|key|test.a.a|test.a.b|test.a.c|\n"
+            + "+---+--------+--------+--------+\n"
+            + "|  1|       1|     aaa|    true|\n"
+            + "|  2|       1|     eee|   false|\n"
+            + "+---+--------+--------+--------+\n"
+            + "Total line number = 2\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "SELECT a, b, c FROM test.a INTERSECT SELECT b, a, c FROM test.b ORDER BY KEY;";
+    expected =
+        "ResultSets:\n"
+            + "+---+--------+--------+--------+\n"
+            + "|key|test.a.a|test.a.b|test.a.c|\n"
+            + "+---+--------+--------+--------+\n"
+            + "|  3|       4|     ccc|    true|\n"
+            + "|  5|       6|     eee|   false|\n"
+            + "+---+--------+--------+--------+\n"
+            + "Total line number = 2\n";
+    executor.executeAndCompare(statement, expected);
+  }
+
+  @Test
+  public void testExportAndImportCsv() {
+    String insert =
+        "INSERT INTO us.d2 (key, s1, s2, s3, s4) VALUES "
+            + "(1, \"apple\", 871, 232.1, true), (2, \"peach\", 123, 132.5, false), (3, \"banana\", 356, 317.8, true),"
+            + "(4, \"cherry\", 621, 456.1, false), (5, \"grape\", 336, 132.5, true), (6, \"dates\", 119, 232.1, false),"
+            + "(7, \"melon\", 516, 113.6, true), (8, \"mango\", 458, 232.1, false), (9, \"pear\", 336, 613.1, true);";
+    executor.execute(insert);
+
+    Path csvPath = Paths.get("src", "test", "resources", "fileReadAndWrite", "csv", "us.d2.csv");
+    File csvFile = csvPath.toFile();
+    String exportCsv =
+        "SELECT * FROM us.d2 INTO OUTFILE \"" + csvFile.getAbsolutePath() + "\" AS CSV";
+    executor.execute(exportCsv);
+
+    assertTrue(csvFile.exists());
+    assertTrue(csvFile.isFile());
+    assertEquals(csvFile.length(), 212);
+
+    String queryBeforeImport = "SELECT * FROM test";
+    String expected =
+        "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
+    executor.executeAndCompare(queryBeforeImport, expected);
+
+    String importCsv =
+        "LOAD DATA FROM INFILE \""
+            + csvFile.getAbsolutePath()
+            + "\" AS CSV INTO test(key, a, b, c, d);";
+    executor.execute(importCsv);
+
+    String orderByQuery = "SELECT * FROM test ORDER BY c, b";
+    expected =
+        "ResultSets:\n"
+            + "+---+------+------+------+------+\n"
+            + "|key|test.a|test.b|test.c|test.d|\n"
+            + "+---+------+------+------+------+\n"
+            + "|  7| melon|   516| 113.6|  true|\n"
+            + "|  2| peach|   123| 132.5| false|\n"
+            + "|  5| grape|   336| 132.5|  true|\n"
+            + "|  6| dates|   119| 232.1| false|\n"
+            + "|  8| mango|   458| 232.1| false|\n"
+            + "|  1| apple|   871| 232.1|  true|\n"
+            + "|  3|banana|   356| 317.8|  true|\n"
+            + "|  4|cherry|   621| 456.1| false|\n"
+            + "|  9|  pear|   336| 613.1|  true|\n"
+            + "+---+------+------+------+------+\n"
+            + "Total line number = 9\n";
+    executor.executeAndCompare(orderByQuery, expected);
+  }
+
+  @Test
+  public void testExportByteStream() {
+    String insert =
+        "INSERT INTO us.d2 (key, s1, s2, s3, s4) VALUES "
+            + "(1, \"apple\", 871, 232.1, true), (2, \"peach\", 123, 132.5, false), (3, \"banana\", 356, 317.8, true),"
+            + "(4, \"cherry\", 621, 456.1, false), (5, \"grape\", 336, 132.5, true), (6, \"dates\", 119, 232.1, false),"
+            + "(7, \"melon\", 516, 113.6, true), (8, \"mango\", 458, 232.1, false), (9, \"pear\", 336, 613.1, true);";
+    executor.execute(insert);
+
+    Path dir = Paths.get("src", "test", "resources", "fileReadAndWrite", "byteStream");
+    File dirFile = dir.toFile();
+    String exportByteStream =
+        "SELECT * FROM us.d2 INTO OUTFILE \"" + dirFile.getAbsolutePath() + "\" AS STREAM";
+    executor.execute(exportByteStream);
+
+    assertTrue(dirFile.exists());
+    assertTrue(dirFile.isDirectory());
+    List<String> filenames = Arrays.asList(Objects.requireNonNull(dirFile.list()));
+    assertEquals(filenames.size(), 4);
+
+    filenames.sort(String::compareTo);
+
+    long[] lengths = new long[] {46, 72, 72, 9};
+    for (int i = 1; i <= 4; i++) {
+      String expectedFilename = String.format("us.d2.s%d", i);
+      assertEquals(expectedFilename, filenames.get(i - 1));
+      File file = new File(Paths.get(dir.toString(), expectedFilename).toString());
+      assertEquals(file.length(), lengths[i - 1]);
+    }
+  }
+
+  @Test
   public void testDateFormat() {
     if (!isAbleToDelete) {
       return;
@@ -4207,6 +4501,9 @@ public class SQLSessionIT {
     errClause = "SELECT last(s1) FROM us.d1 GROUP BY s2;";
     executor.executeAndCompareErrMsg(
         errClause, "Group by can not use SetToSet and RowToRow functions.");
+
+    errClause = "select * from test.a join test.b where a > 0;";
+    executor.executeAndCompareErrMsg(errClause, "Unexpected paths' name: [a].");
   }
 
   @Test
@@ -4611,15 +4908,17 @@ public class SQLSessionIT {
   }
 
   @Test
-  public void testFilterPushDownExplain(){
+  public void testFilterPushDownExplain() {
     MultiConnection session =
-            new MultiConnection(
-                    new Session(defaultTestHost, defaultTestPort, defaultTestUser, defaultTestPass));
+        new MultiConnection(
+            new Session(defaultTestHost, defaultTestPort, defaultTestUser, defaultTestPass));
     try {
       session.openSession();
-      String queryOptimizer = session.executeSql("SHOW CONFIG \"queryOptimizer\"").getResultInString(false, "");
+      String queryOptimizer =
+          session.executeSql("SHOW CONFIG \"queryOptimizer\"").getResultInString(false, "");
       if (!queryOptimizer.contains("filter_push_down")) {
-        logger.info("Skip SQLSessionIT.testFilterPushDownExplain because filter_push_down optimizer is not open");
+        logger.info(
+            "Skip SQLSessionIT.testFilterPushDownExplain because filter_push_down optimizer is not open");
         return;
       }
     } catch (SessionException | ExecutionException e) {
@@ -4628,7 +4927,7 @@ public class SQLSessionIT {
     }
 
     String insert =
-            "INSERT INTO us.d2(key, c) VALUES (1, \"asdas\"), (2, \"sadaa\"), (3, \"sadada\"), (4, \"asdad\"), (5, \"deadsa\"), (6, \"dasda\"), (7, \"asdsad\"), (8, \"frgsa\"), (9, \"asdad\");";
+        "INSERT INTO us.d2(key, c) VALUES (1, \"asdas\"), (2, \"sadaa\"), (3, \"sadada\"), (4, \"asdad\"), (5, \"deadsa\"), (6, \"dasda\"), (7, \"asdsad\"), (8, \"frgsa\"), (9, \"asdad\");";
     executor.execute(insert);
 
     StringBuilder builder = new StringBuilder();
@@ -4649,229 +4948,321 @@ public class SQLSessionIT {
         Arrays.asList(
             new Pair<>(
                 "explain SELECT * FROM us WHERE d1.s1 < 4;",
-                "ResultSets:\n" +
-                        "+----------------------+-------------+-----------------------------------------+\n" +
-                        "|          Logical Tree|Operator Type|                            Operator Info|\n" +
-                        "+----------------------+-------------+-----------------------------------------+\n" +
-                        "|Reorder               |      Reorder|                              Order: us.*|\n" +
-                        "|  +--Project          |      Project|                           Patterns: us.*|\n" +
-                        "|    +--Select         |       Select|                     Filter: us.d1.s1 < 4|\n" +
-                        "|      +--Join         |         Join|                              JoinBy: key|\n" +
-                        "|        +--Join       |         Join|                              JoinBy: key|\n" +
-                        "|          +--Select   |       Select|                     Filter: us.d1.s1 < 4|\n" +
-                        "|            +--Project|      Project|Patterns: us.*, Target DU: unit0000000000|\n" +
-                        "|          +--Project  |      Project|Patterns: us.*, Target DU: unit0000000001|\n" +
-                        "|        +--Project    |      Project|Patterns: us.*, Target DU: unit0000000002|\n" +
-                        "+----------------------+-------------+-----------------------------------------+\n" +
-                        "Total line number = 9\n"),
-                new Pair<>(
-                        "explain SELECT * FROM us WHERE d1.s1 < 5 and d1.s2 > 2;",
-                        "ResultSets:\n" +
-                                "+----------------------+-------------+-----------------------------------------+\n" +
-                                "|          Logical Tree|Operator Type|                            Operator Info|\n" +
-                                "+----------------------+-------------+-----------------------------------------+\n" +
-                                "|Reorder               |      Reorder|                              Order: us.*|\n" +
-                                "|  +--Project          |      Project|                           Patterns: us.*|\n" +
-                                "|    +--Select         |       Select|   Filter: (us.d1.s1 < 5 && us.d1.s2 > 2)|\n" +
-                                "|      +--Join         |         Join|                              JoinBy: key|\n" +
-                                "|        +--Join       |         Join|                              JoinBy: key|\n" +
-                                "|          +--Select   |       Select|   Filter: (us.d1.s1 < 5 && us.d1.s2 > 2)|\n" +
-                                "|            +--Project|      Project|Patterns: us.*, Target DU: unit0000000000|\n" +
-                                "|          +--Project  |      Project|Patterns: us.*, Target DU: unit0000000001|\n" +
-                                "|        +--Project    |      Project|Patterns: us.*, Target DU: unit0000000002|\n" +
-                                "+----------------------+-------------+-----------------------------------------+\n" +
-                                "Total line number = 9\n"),
-                new Pair<>(
-                        "explain SELECT * FROM us WHERE d1.s1 < 6 and d2.s1 > 3;",
-                        "ResultSets:\n" +
-                                "+----------------------+-------------+-----------------------------------------+\n" +
-                                "|          Logical Tree|Operator Type|                            Operator Info|\n" +
-                                "+----------------------+-------------+-----------------------------------------+\n" +
-                                "|Reorder               |      Reorder|                              Order: us.*|\n" +
-                                "|  +--Project          |      Project|                           Patterns: us.*|\n" +
-                                "|    +--Select         |       Select|   Filter: (us.d1.s1 < 6 && us.d2.s1 > 3)|\n" +
-                                "|      +--Join         |         Join|                              JoinBy: key|\n" +
-                                "|        +--Join       |         Join|                              JoinBy: key|\n" +
-                                "|          +--Select   |       Select|                     Filter: us.d1.s1 < 6|\n" +
-                                "|            +--Project|      Project|Patterns: us.*, Target DU: unit0000000000|\n" +
-                                "|          +--Select   |       Select|                     Filter: us.d2.s1 > 3|\n" +
-                                "|            +--Project|      Project|Patterns: us.*, Target DU: unit0000000001|\n" +
-                                "|        +--Project    |      Project|Patterns: us.*, Target DU: unit0000000002|\n" +
-                                "+----------------------+-------------+-----------------------------------------+\n" +
-                                "Total line number = 10\n"
-                ),
-                new Pair<>(
-                        "explain SELECT * FROM us WHERE d1.s1 < 6 or d2.s1 < 7;\n",
-                        "ResultSets:\n" +
-                                "+--------------------+-------------+-----------------------------------------+\n" +
-                                "|        Logical Tree|Operator Type|                            Operator Info|\n" +
-                                "+--------------------+-------------+-----------------------------------------+\n" +
-                                "|Reorder             |      Reorder|                              Order: us.*|\n" +
-                                "|  +--Project        |      Project|                           Patterns: us.*|\n" +
-                                "|    +--Select       |       Select|   Filter: (us.d1.s1 < 6 || us.d2.s1 < 7)|\n" +
-                                "|      +--Join       |         Join|                              JoinBy: key|\n" +
-                                "|        +--Join     |         Join|                              JoinBy: key|\n" +
-                                "|          +--Project|      Project|Patterns: us.*, Target DU: unit0000000000|\n" +
-                                "|          +--Project|      Project|Patterns: us.*, Target DU: unit0000000001|\n" +
-                                "|        +--Project  |      Project|Patterns: us.*, Target DU: unit0000000002|\n" +
-                                "+--------------------+-------------+-----------------------------------------+\n" +
-                                "Total line number = 8\n"
-                ),
-                new Pair<>(
-                        "explain SELECT * FROM us WHERE d2.c like \"[a|s]\"",
-                        "ResultSets:\n" +
-                                "+----------------------+-------------+-----------------------------------------+\n" +
-                                "|          Logical Tree|Operator Type|                            Operator Info|\n" +
-                                "+----------------------+-------------+-----------------------------------------+\n" +
-                                "|Reorder               |      Reorder|                              Order: us.*|\n" +
-                                "|  +--Project          |      Project|                           Patterns: us.*|\n" +
-                                "|    +--Select         |       Select|             Filter: us.d2.c like \"[a|s]\"|\n" +
-                                "|      +--Join         |         Join|                              JoinBy: key|\n" +
-                                "|        +--Join       |         Join|                              JoinBy: key|\n" +
-                                "|          +--Project  |      Project|Patterns: us.*, Target DU: unit0000000000|\n" +
-                                "|          +--Select   |       Select|             Filter: us.d2.c like \"[a|s]\"|\n" +
-                                "|            +--Project|      Project|Patterns: us.*, Target DU: unit0000000001|\n" +
-                                "|        +--Project    |      Project|Patterns: us.*, Target DU: unit0000000002|\n" +
-                                "+----------------------+-------------+-----------------------------------------+\n" +
-                                "Total line number = 9\n"
-                ),
-                new Pair<>(
-                        "explain SELECT * FROM us WHERE key < 4;\n",
-                        "ResultSets:\n" +
-                                "+----------------------+-------------+-----------------------------------------+\n" +
-                                "|          Logical Tree|Operator Type|                            Operator Info|\n" +
-                                "+----------------------+-------------+-----------------------------------------+\n" +
-                                "|Reorder               |      Reorder|                              Order: us.*|\n" +
-                                "|  +--Project          |      Project|                           Patterns: us.*|\n" +
-                                "|    +--Select         |       Select|                          Filter: key < 4|\n" +
-                                "|      +--Join         |         Join|                              JoinBy: key|\n" +
-                                "|        +--Join       |         Join|                              JoinBy: key|\n" +
-                                "|          +--Select   |       Select|                          Filter: key < 4|\n" +
-                                "|            +--Project|      Project|Patterns: us.*, Target DU: unit0000000000|\n" +
-                                "|          +--Select   |       Select|                          Filter: key < 4|\n" +
-                                "|            +--Project|      Project|Patterns: us.*, Target DU: unit0000000001|\n" +
-                                "|        +--Select     |       Select|                          Filter: key < 4|\n" +
-                                "|          +--Project  |      Project|Patterns: us.*, Target DU: unit0000000002|\n" +
-                                "+----------------------+-------------+-----------------------------------------+\n" +
-                                "Total line number = 11\n"
-                ),
-                new Pair<>(
-                        "explain SELECT * FROM us WHERE key < 5 and key > 1;\n",
-                        "ResultSets:\n" +
-                                "+----------------------+-------------+-----------------------------------------+\n" +
-                                "|          Logical Tree|Operator Type|                            Operator Info|\n" +
-                                "+----------------------+-------------+-----------------------------------------+\n" +
-                                "|Reorder               |      Reorder|                              Order: us.*|\n" +
-                                "|  +--Project          |      Project|                           Patterns: us.*|\n" +
-                                "|    +--Select         |       Select|             Filter: (key < 5 && key > 1)|\n" +
-                                "|      +--Join         |         Join|                              JoinBy: key|\n" +
-                                "|        +--Join       |         Join|                              JoinBy: key|\n" +
-                                "|          +--Select   |       Select|             Filter: (key < 5 && key > 1)|\n" +
-                                "|            +--Project|      Project|Patterns: us.*, Target DU: unit0000000000|\n" +
-                                "|          +--Select   |       Select|             Filter: (key < 5 && key > 1)|\n" +
-                                "|            +--Project|      Project|Patterns: us.*, Target DU: unit0000000001|\n" +
-                                "|        +--Select     |       Select|             Filter: (key < 5 && key > 1)|\n" +
-                                "|          +--Project  |      Project|Patterns: us.*, Target DU: unit0000000002|\n" +
-                                "+----------------------+-------------+-----------------------------------------+\n" +
-                                "Total line number = 11\n"
-                ),
-                new Pair<>(
-                        "explain SELECT * FROM us WHERE key < 5 or key > 1003;",
-                        "ResultSets:\n" +
-                                "+----------------------+-------------+-----------------------------------------+\n" +
-                                "|          Logical Tree|Operator Type|                            Operator Info|\n" +
-                                "+----------------------+-------------+-----------------------------------------+\n" +
-                                "|Reorder               |      Reorder|                              Order: us.*|\n" +
-                                "|  +--Project          |      Project|                           Patterns: us.*|\n" +
-                                "|    +--Select         |       Select|          Filter: (key < 5 || key > 1003)|\n" +
-                                "|      +--Join         |         Join|                              JoinBy: key|\n" +
-                                "|        +--Join       |         Join|                              JoinBy: key|\n" +
-                                "|          +--Select   |       Select|          Filter: (key < 5 || key > 1003)|\n" +
-                                "|            +--Project|      Project|Patterns: us.*, Target DU: unit0000000000|\n" +
-                                "|          +--Select   |       Select|          Filter: (key < 5 || key > 1003)|\n" +
-                                "|            +--Project|      Project|Patterns: us.*, Target DU: unit0000000001|\n" +
-                                "|        +--Select     |       Select|          Filter: (key < 5 || key > 1003)|\n" +
-                                "|          +--Project  |      Project|Patterns: us.*, Target DU: unit0000000002|\n" +
-                                "+----------------------+-------------+-----------------------------------------+\n" +
-                                "Total line number = 11\n"
-                ),
-                new Pair<>(
-                        "explain SELECT * FROM us WHERE d1.s1 < d1.s2;\n",
-                        "ResultSets:\n" +
-                                "+----------------------+-------------+-----------------------------------------+\n" +
-                                "|          Logical Tree|Operator Type|                            Operator Info|\n" +
-                                "+----------------------+-------------+-----------------------------------------+\n" +
-                                "|Reorder               |      Reorder|                              Order: us.*|\n" +
-                                "|  +--Project          |      Project|                           Patterns: us.*|\n" +
-                                "|    +--Select         |       Select|              Filter: us.d1.s1 < us.d1.s2|\n" +
-                                "|      +--Join         |         Join|                              JoinBy: key|\n" +
-                                "|        +--Join       |         Join|                              JoinBy: key|\n" +
-                                "|          +--Select   |       Select|              Filter: us.d1.s1 < us.d1.s2|\n" +
-                                "|            +--Project|      Project|Patterns: us.*, Target DU: unit0000000000|\n" +
-                                "|          +--Project  |      Project|Patterns: us.*, Target DU: unit0000000001|\n" +
-                                "|        +--Project    |      Project|Patterns: us.*, Target DU: unit0000000002|\n" +
-                                "+----------------------+-------------+-----------------------------------------+\n" +
-                                "Total line number = 9\n"
-                ),
-                new Pair<>(
-                        "explain SELECT * FROM us WHERE d1.s1 < d2.s1;\n",
-                        "ResultSets:\n" +
-                                "+--------------------+-------------+-----------------------------------------+\n" +
-                                "|        Logical Tree|Operator Type|                            Operator Info|\n" +
-                                "+--------------------+-------------+-----------------------------------------+\n" +
-                                "|Reorder             |      Reorder|                              Order: us.*|\n" +
-                                "|  +--Project        |      Project|                           Patterns: us.*|\n" +
-                                "|    +--Select       |       Select|              Filter: us.d1.s1 < us.d2.s1|\n" +
-                                "|      +--Join       |         Join|                              JoinBy: key|\n" +
-                                "|        +--Join     |         Join|                              JoinBy: key|\n" +
-                                "|          +--Project|      Project|Patterns: us.*, Target DU: unit0000000000|\n" +
-                                "|          +--Project|      Project|Patterns: us.*, Target DU: unit0000000001|\n" +
-                                "|        +--Project  |      Project|Patterns: us.*, Target DU: unit0000000002|\n" +
-                                "+--------------------+-------------+-----------------------------------------+\n" +
-                                "Total line number = 8\n"
-                ),
-                new Pair<>(
-                        "explain SELECT * FROM (SELECT * FROM us WHERE us.d1.s1 < 5) WHERE us.d1.s2 < 5;\n",
-                        "ResultSets:\n" +
-                                "+--------------------------+-------------+-----------------------------------------+\n" +
-                                "|              Logical Tree|Operator Type|                            Operator Info|\n" +
-                                "+--------------------------+-------------+-----------------------------------------+\n" +
-                                "|Reorder                   |      Reorder|                                 Order: *|\n" +
-                                "|  +--Project              |      Project|                              Patterns: *|\n" +
-                                "|    +--Select             |       Select|                     Filter: us.d1.s2 < 5|\n" +
-                                "|      +--Project          |      Project|                           Patterns: us.*|\n" +
-                                "|        +--Select         |       Select|                     Filter: us.d1.s1 < 5|\n" +
-                                "|          +--Join         |         Join|                              JoinBy: key|\n" +
-                                "|            +--Join       |         Join|                              JoinBy: key|\n" +
-                                "|              +--Select   |       Select|   Filter: (us.d1.s2 < 5 && us.d1.s1 < 5)|\n" +
-                                "|                +--Project|      Project|Patterns: us.*, Target DU: unit0000000000|\n" +
-                                "|              +--Project  |      Project|Patterns: us.*, Target DU: unit0000000001|\n" +
-                                "|            +--Project    |      Project|Patterns: us.*, Target DU: unit0000000002|\n" +
-                                "+--------------------------+-------------+-----------------------------------------+\n" +
-                                "Total line number = 11\n"
-                ),
-                new Pair<>(
-                        "explain SELECT * FROM (SELECT * FROM us WHERE us.d1.s1 < 5) WHERE us.d2.s1 < 10;",
-                        "ResultSets:\n" +
-                                "+--------------------------+-------------+-----------------------------------------+\n" +
-                                "|              Logical Tree|Operator Type|                            Operator Info|\n" +
-                                "+--------------------------+-------------+-----------------------------------------+\n" +
-                                "|Reorder                   |      Reorder|                                 Order: *|\n" +
-                                "|  +--Project              |      Project|                              Patterns: *|\n" +
-                                "|    +--Select             |       Select|                    Filter: us.d2.s1 < 10|\n" +
-                                "|      +--Project          |      Project|                           Patterns: us.*|\n" +
-                                "|        +--Select         |       Select|                     Filter: us.d1.s1 < 5|\n" +
-                                "|          +--Join         |         Join|                              JoinBy: key|\n" +
-                                "|            +--Join       |         Join|                              JoinBy: key|\n" +
-                                "|              +--Select   |       Select|                     Filter: us.d1.s1 < 5|\n" +
-                                "|                +--Project|      Project|Patterns: us.*, Target DU: unit0000000000|\n" +
-                                "|              +--Select   |       Select|                    Filter: us.d2.s1 < 10|\n" +
-                                "|                +--Project|      Project|Patterns: us.*, Target DU: unit0000000001|\n" +
-                                "|            +--Project    |      Project|Patterns: us.*, Target DU: unit0000000002|\n" +
-                                "+--------------------------+-------------+-----------------------------------------+\n" +
-                                "Total line number = 12\n"
-                )
-                );
+                "ResultSets:\n"
+                    + "+----------------------+-------------+-----------------------------------------+\n"
+                    + "|          Logical Tree|Operator Type|                            Operator Info|\n"
+                    + "+----------------------+-------------+-----------------------------------------+\n"
+                    + "|Reorder               |      Reorder|                              Order: us.*|\n"
+                    + "|  +--Project          |      Project|                           Patterns: us.*|\n"
+                    + "|    +--Select         |       Select|                     Filter: us.d1.s1 < 4|\n"
+                    + "|      +--Join         |         Join|                              JoinBy: key|\n"
+                    + "|        +--Join       |         Join|                              JoinBy: key|\n"
+                    + "|          +--Select   |       Select|                     Filter: us.d1.s1 < 4|\n"
+                    + "|            +--Project|      Project|Patterns: us.*, Target DU: unit0000000000|\n"
+                    + "|          +--Project  |      Project|Patterns: us.*, Target DU: unit0000000001|\n"
+                    + "|        +--Project    |      Project|Patterns: us.*, Target DU: unit0000000002|\n"
+                    + "+----------------------+-------------+-----------------------------------------+\n"
+                    + "Total line number = 9\n"),
+            new Pair<>(
+                "explain SELECT * FROM us WHERE d1.s1 < 5 and d1.s2 > 2;",
+                "ResultSets:\n"
+                    + "+----------------------+-------------+-----------------------------------------+\n"
+                    + "|          Logical Tree|Operator Type|                            Operator Info|\n"
+                    + "+----------------------+-------------+-----------------------------------------+\n"
+                    + "|Reorder               |      Reorder|                              Order: us.*|\n"
+                    + "|  +--Project          |      Project|                           Patterns: us.*|\n"
+                    + "|    +--Select         |       Select|   Filter: (us.d1.s1 < 5 && us.d1.s2 > 2)|\n"
+                    + "|      +--Join         |         Join|                              JoinBy: key|\n"
+                    + "|        +--Join       |         Join|                              JoinBy: key|\n"
+                    + "|          +--Select   |       Select|   Filter: (us.d1.s1 < 5 && us.d1.s2 > 2)|\n"
+                    + "|            +--Project|      Project|Patterns: us.*, Target DU: unit0000000000|\n"
+                    + "|          +--Project  |      Project|Patterns: us.*, Target DU: unit0000000001|\n"
+                    + "|        +--Project    |      Project|Patterns: us.*, Target DU: unit0000000002|\n"
+                    + "+----------------------+-------------+-----------------------------------------+\n"
+                    + "Total line number = 9\n"),
+            new Pair<>(
+                "explain SELECT * FROM us WHERE d1.s1 < 6 and d2.s1 > 3;",
+                "ResultSets:\n"
+                    + "+----------------------+-------------+-----------------------------------------+\n"
+                    + "|          Logical Tree|Operator Type|                            Operator Info|\n"
+                    + "+----------------------+-------------+-----------------------------------------+\n"
+                    + "|Reorder               |      Reorder|                              Order: us.*|\n"
+                    + "|  +--Project          |      Project|                           Patterns: us.*|\n"
+                    + "|    +--Select         |       Select|   Filter: (us.d1.s1 < 6 && us.d2.s1 > 3)|\n"
+                    + "|      +--Join         |         Join|                              JoinBy: key|\n"
+                    + "|        +--Join       |         Join|                              JoinBy: key|\n"
+                    + "|          +--Select   |       Select|                     Filter: us.d1.s1 < 6|\n"
+                    + "|            +--Project|      Project|Patterns: us.*, Target DU: unit0000000000|\n"
+                    + "|          +--Select   |       Select|                     Filter: us.d2.s1 > 3|\n"
+                    + "|            +--Project|      Project|Patterns: us.*, Target DU: unit0000000001|\n"
+                    + "|        +--Project    |      Project|Patterns: us.*, Target DU: unit0000000002|\n"
+                    + "+----------------------+-------------+-----------------------------------------+\n"
+                    + "Total line number = 10\n"),
+            new Pair<>(
+                "explain SELECT * FROM us WHERE d1.s1 < 6 or d2.s1 < 7;\n",
+                "ResultSets:\n"
+                    + "+--------------------+-------------+-----------------------------------------+\n"
+                    + "|        Logical Tree|Operator Type|                            Operator Info|\n"
+                    + "+--------------------+-------------+-----------------------------------------+\n"
+                    + "|Reorder             |      Reorder|                              Order: us.*|\n"
+                    + "|  +--Project        |      Project|                           Patterns: us.*|\n"
+                    + "|    +--Select       |       Select|   Filter: (us.d1.s1 < 6 || us.d2.s1 < 7)|\n"
+                    + "|      +--Join       |         Join|                              JoinBy: key|\n"
+                    + "|        +--Join     |         Join|                              JoinBy: key|\n"
+                    + "|          +--Project|      Project|Patterns: us.*, Target DU: unit0000000000|\n"
+                    + "|          +--Project|      Project|Patterns: us.*, Target DU: unit0000000001|\n"
+                    + "|        +--Project  |      Project|Patterns: us.*, Target DU: unit0000000002|\n"
+                    + "+--------------------+-------------+-----------------------------------------+\n"
+                    + "Total line number = 8\n"),
+            new Pair<>(
+                "explain SELECT * FROM us WHERE d2.c like \"[a|s]\"",
+                "ResultSets:\n"
+                    + "+----------------------+-------------+-----------------------------------------+\n"
+                    + "|          Logical Tree|Operator Type|                            Operator Info|\n"
+                    + "+----------------------+-------------+-----------------------------------------+\n"
+                    + "|Reorder               |      Reorder|                              Order: us.*|\n"
+                    + "|  +--Project          |      Project|                           Patterns: us.*|\n"
+                    + "|    +--Select         |       Select|             Filter: us.d2.c like \"[a|s]\"|\n"
+                    + "|      +--Join         |         Join|                              JoinBy: key|\n"
+                    + "|        +--Join       |         Join|                              JoinBy: key|\n"
+                    + "|          +--Project  |      Project|Patterns: us.*, Target DU: unit0000000000|\n"
+                    + "|          +--Select   |       Select|             Filter: us.d2.c like \"[a|s]\"|\n"
+                    + "|            +--Project|      Project|Patterns: us.*, Target DU: unit0000000001|\n"
+                    + "|        +--Project    |      Project|Patterns: us.*, Target DU: unit0000000002|\n"
+                    + "+----------------------+-------------+-----------------------------------------+\n"
+                    + "Total line number = 9\n"),
+            new Pair<>(
+                "explain SELECT * FROM us WHERE key < 4;\n",
+                "ResultSets:\n"
+                    + "+----------------------+-------------+-----------------------------------------+\n"
+                    + "|          Logical Tree|Operator Type|                            Operator Info|\n"
+                    + "+----------------------+-------------+-----------------------------------------+\n"
+                    + "|Reorder               |      Reorder|                              Order: us.*|\n"
+                    + "|  +--Project          |      Project|                           Patterns: us.*|\n"
+                    + "|    +--Select         |       Select|                          Filter: key < 4|\n"
+                    + "|      +--Join         |         Join|                              JoinBy: key|\n"
+                    + "|        +--Join       |         Join|                              JoinBy: key|\n"
+                    + "|          +--Select   |       Select|                          Filter: key < 4|\n"
+                    + "|            +--Project|      Project|Patterns: us.*, Target DU: unit0000000000|\n"
+                    + "|          +--Select   |       Select|                          Filter: key < 4|\n"
+                    + "|            +--Project|      Project|Patterns: us.*, Target DU: unit0000000001|\n"
+                    + "|        +--Select     |       Select|                          Filter: key < 4|\n"
+                    + "|          +--Project  |      Project|Patterns: us.*, Target DU: unit0000000002|\n"
+                    + "+----------------------+-------------+-----------------------------------------+\n"
+                    + "Total line number = 11\n"),
+            new Pair<>(
+                "explain SELECT * FROM us WHERE key < 5 and key > 1;\n",
+                "ResultSets:\n"
+                    + "+----------------------+-------------+-----------------------------------------+\n"
+                    + "|          Logical Tree|Operator Type|                            Operator Info|\n"
+                    + "+----------------------+-------------+-----------------------------------------+\n"
+                    + "|Reorder               |      Reorder|                              Order: us.*|\n"
+                    + "|  +--Project          |      Project|                           Patterns: us.*|\n"
+                    + "|    +--Select         |       Select|             Filter: (key < 5 && key > 1)|\n"
+                    + "|      +--Join         |         Join|                              JoinBy: key|\n"
+                    + "|        +--Join       |         Join|                              JoinBy: key|\n"
+                    + "|          +--Select   |       Select|             Filter: (key < 5 && key > 1)|\n"
+                    + "|            +--Project|      Project|Patterns: us.*, Target DU: unit0000000000|\n"
+                    + "|          +--Select   |       Select|             Filter: (key < 5 && key > 1)|\n"
+                    + "|            +--Project|      Project|Patterns: us.*, Target DU: unit0000000001|\n"
+                    + "|        +--Select     |       Select|             Filter: (key < 5 && key > 1)|\n"
+                    + "|          +--Project  |      Project|Patterns: us.*, Target DU: unit0000000002|\n"
+                    + "+----------------------+-------------+-----------------------------------------+\n"
+                    + "Total line number = 11\n"),
+            new Pair<>(
+                "explain SELECT * FROM us WHERE key < 5 or key > 1003;",
+                "ResultSets:\n"
+                    + "+----------------------+-------------+-----------------------------------------+\n"
+                    + "|          Logical Tree|Operator Type|                            Operator Info|\n"
+                    + "+----------------------+-------------+-----------------------------------------+\n"
+                    + "|Reorder               |      Reorder|                              Order: us.*|\n"
+                    + "|  +--Project          |      Project|                           Patterns: us.*|\n"
+                    + "|    +--Select         |       Select|          Filter: (key < 5 || key > 1003)|\n"
+                    + "|      +--Join         |         Join|                              JoinBy: key|\n"
+                    + "|        +--Join       |         Join|                              JoinBy: key|\n"
+                    + "|          +--Select   |       Select|          Filter: (key < 5 || key > 1003)|\n"
+                    + "|            +--Project|      Project|Patterns: us.*, Target DU: unit0000000000|\n"
+                    + "|          +--Select   |       Select|          Filter: (key < 5 || key > 1003)|\n"
+                    + "|            +--Project|      Project|Patterns: us.*, Target DU: unit0000000001|\n"
+                    + "|        +--Select     |       Select|          Filter: (key < 5 || key > 1003)|\n"
+                    + "|          +--Project  |      Project|Patterns: us.*, Target DU: unit0000000002|\n"
+                    + "+----------------------+-------------+-----------------------------------------+\n"
+                    + "Total line number = 11\n"),
+            new Pair<>(
+                "explain SELECT * FROM us WHERE d1.s1 < d1.s2;\n",
+                "ResultSets:\n"
+                    + "+----------------------+-------------+-----------------------------------------+\n"
+                    + "|          Logical Tree|Operator Type|                            Operator Info|\n"
+                    + "+----------------------+-------------+-----------------------------------------+\n"
+                    + "|Reorder               |      Reorder|                              Order: us.*|\n"
+                    + "|  +--Project          |      Project|                           Patterns: us.*|\n"
+                    + "|    +--Select         |       Select|              Filter: us.d1.s1 < us.d1.s2|\n"
+                    + "|      +--Join         |         Join|                              JoinBy: key|\n"
+                    + "|        +--Join       |         Join|                              JoinBy: key|\n"
+                    + "|          +--Select   |       Select|              Filter: us.d1.s1 < us.d1.s2|\n"
+                    + "|            +--Project|      Project|Patterns: us.*, Target DU: unit0000000000|\n"
+                    + "|          +--Project  |      Project|Patterns: us.*, Target DU: unit0000000001|\n"
+                    + "|        +--Project    |      Project|Patterns: us.*, Target DU: unit0000000002|\n"
+                    + "+----------------------+-------------+-----------------------------------------+\n"
+                    + "Total line number = 9\n"),
+            new Pair<>(
+                "explain SELECT * FROM us WHERE d1.s1 < d2.s1;\n",
+                "ResultSets:\n"
+                    + "+--------------------+-------------+-----------------------------------------+\n"
+                    + "|        Logical Tree|Operator Type|                            Operator Info|\n"
+                    + "+--------------------+-------------+-----------------------------------------+\n"
+                    + "|Reorder             |      Reorder|                              Order: us.*|\n"
+                    + "|  +--Project        |      Project|                           Patterns: us.*|\n"
+                    + "|    +--Select       |       Select|              Filter: us.d1.s1 < us.d2.s1|\n"
+                    + "|      +--Join       |         Join|                              JoinBy: key|\n"
+                    + "|        +--Join     |         Join|                              JoinBy: key|\n"
+                    + "|          +--Project|      Project|Patterns: us.*, Target DU: unit0000000000|\n"
+                    + "|          +--Project|      Project|Patterns: us.*, Target DU: unit0000000001|\n"
+                    + "|        +--Project  |      Project|Patterns: us.*, Target DU: unit0000000002|\n"
+                    + "+--------------------+-------------+-----------------------------------------+\n"
+                    + "Total line number = 8\n"),
+            new Pair<>(
+                "explain SELECT * FROM (SELECT * FROM us WHERE us.d1.s1 < 5) WHERE us.d1.s2 < 5;\n",
+                "ResultSets:\n"
+                    + "+--------------------------+-------------+-----------------------------------------+\n"
+                    + "|              Logical Tree|Operator Type|                            Operator Info|\n"
+                    + "+--------------------------+-------------+-----------------------------------------+\n"
+                    + "|Reorder                   |      Reorder|                                 Order: *|\n"
+                    + "|  +--Project              |      Project|                              Patterns: *|\n"
+                    + "|    +--Select             |       Select|                     Filter: us.d1.s2 < 5|\n"
+                    + "|      +--Project          |      Project|                           Patterns: us.*|\n"
+                    + "|        +--Select         |       Select|                     Filter: us.d1.s1 < 5|\n"
+                    + "|          +--Join         |         Join|                              JoinBy: key|\n"
+                    + "|            +--Join       |         Join|                              JoinBy: key|\n"
+                    + "|              +--Select   |       Select|   Filter: (us.d1.s2 < 5 && us.d1.s1 < 5)|\n"
+                    + "|                +--Project|      Project|Patterns: us.*, Target DU: unit0000000000|\n"
+                    + "|              +--Project  |      Project|Patterns: us.*, Target DU: unit0000000001|\n"
+                    + "|            +--Project    |      Project|Patterns: us.*, Target DU: unit0000000002|\n"
+                    + "+--------------------------+-------------+-----------------------------------------+\n"
+                    + "Total line number = 11\n"),
+            new Pair<>(
+                "explain SELECT * FROM (SELECT * FROM us WHERE us.d1.s1 < 5) WHERE us.d2.s1 < 10;",
+                "ResultSets:\n"
+                    + "+--------------------------+-------------+-----------------------------------------+\n"
+                    + "|              Logical Tree|Operator Type|                            Operator Info|\n"
+                    + "+--------------------------+-------------+-----------------------------------------+\n"
+                    + "|Reorder                   |      Reorder|                                 Order: *|\n"
+                    + "|  +--Project              |      Project|                              Patterns: *|\n"
+                    + "|    +--Select             |       Select|                    Filter: us.d2.s1 < 10|\n"
+                    + "|      +--Project          |      Project|                           Patterns: us.*|\n"
+                    + "|        +--Select         |       Select|                     Filter: us.d1.s1 < 5|\n"
+                    + "|          +--Join         |         Join|                              JoinBy: key|\n"
+                    + "|            +--Join       |         Join|                              JoinBy: key|\n"
+                    + "|              +--Select   |       Select|                     Filter: us.d1.s1 < 5|\n"
+                    + "|                +--Project|      Project|Patterns: us.*, Target DU: unit0000000000|\n"
+                    + "|              +--Select   |       Select|                    Filter: us.d2.s1 < 10|\n"
+                    + "|                +--Project|      Project|Patterns: us.*, Target DU: unit0000000001|\n"
+                    + "|            +--Project    |      Project|Patterns: us.*, Target DU: unit0000000002|\n"
+                    + "+--------------------------+-------------+-----------------------------------------+\n"
+                    + "Total line number = 12\n"));
+
+    executor.concurrentExecuteAndCompare(statementsAndExpectRes);
+  }
+
+  @Test
+  public void testFilterFragmentOptimizer() {
+    MultiConnection session =
+        new MultiConnection(
+            new Session(defaultTestHost, defaultTestPort, defaultTestUser, defaultTestPass));
+    try {
+      session.openSession();
+      String queryOptimizer =
+          session.executeSql("SHOW CONFIG \"queryOptimizer\"").getResultInString(false, "");
+      if (!queryOptimizer.equals("remove_not,filter_fragment")) {
+        logger.info(
+            "Skip SQLSessionIT.ttestFilterFragmentOptimizer because optimizer is not remove_not,filter_fragment");
+        return;
+      }
+    } catch (SessionException | ExecutionException e) {
+      logger.error(e.getMessage());
+      return;
+    }
+
+    String insert =
+        "INSERT INTO us.d2(key, c) VALUES (1, \"asdas\"), (2, \"sadaa\"), (3, \"sadada\"), (4, \"asdad\"), (5, \"deadsa\"), (6, \"dasda\"), (7, \"asdsad\"), (8, \"frgsa\"), (9, \"asdad\");";
+    executor.execute(insert);
+
+    StringBuilder builder = new StringBuilder();
+    builder.append("INSERT INTO us.d2(key, s1) VALUES ");
+    int size = (int) (endKey - startKey);
+    for (int i = 0; i < size; i++) {
+      builder.append(", (");
+      builder.append(startKey + i).append(", ");
+      builder.append(i + 5);
+      builder.append(")");
+    }
+    builder.append(";");
+
+    insert = builder.toString();
+    executor.execute(insert);
+
+    List<Pair<String, String>> statementsAndExpectRes =
+        Arrays.asList(
+            new Pair<>(
+                "explain SELECT COUNT(*)\n"
+                    + "FROM (\n"
+                    + "    SELECT AVG(s1) AS avg_s1, SUM(s2) AS sum_s2\n"
+                    + "    FROM us.d1 OVER (RANGE 10 IN [1000, 1100))\n"
+                    + ")\n"
+                    + "OVER (RANGE 20 IN [1000, 1100));",
+                "ResultSets:\n"
+                    + "+--------------------------+-------------+-------------------------------------------------------------------------------------------------------------------------+\n"
+                    + "|              Logical Tree|Operator Type|                                                                                                            Operator Info|\n"
+                    + "+--------------------------+-------------+-------------------------------------------------------------------------------------------------------------------------+\n"
+                    + "|Reorder                   |      Reorder|                                                                                                          Order: count(*)|\n"
+                    + "|  +--Downsample           |   Downsample|Precision: 20, SlideDistance: 20, TimeRange: [1000, 1100), Func: {Name: count, FuncType: System, MappingType: SetMapping}|\n"
+                    + "|    +--Select             |       Select|                                                                                      Filter: (key >= 1000 && key < 1100)|\n"
+                    + "|      +--Rename           |       Rename|                                            AliasMap: (sum(us.d1.s2), sum_s2),(avg(us.d1.s1), avg_s1), IgnorePatterns: []|\n"
+                    + "|        +--Join           |         Join|                                                                                                              JoinBy: key|\n"
+                    + "|          +--Downsample   |   Downsample|  Precision: 10, SlideDistance: 10, TimeRange: [1000, 1100), Func: {Name: avg, FuncType: System, MappingType: SetMapping}|\n"
+                    + "|            +--Select     |       Select|                                                                                      Filter: (key >= 1000 && key < 1100)|\n"
+                    + "|              +--PathUnion|    PathUnion|                                                                                                                         |\n"
+                    + "|                +--Project|      Project|                                                                   Patterns: us.d1.s1,us.d1.s2, Target DU: unit0000000001|\n"
+                    + "|                +--Project|      Project|                                                                   Patterns: us.d1.s1,us.d1.s2, Target DU: unit0000000002|\n"
+                    + "|          +--Downsample   |   Downsample|  Precision: 10, SlideDistance: 10, TimeRange: [1000, 1100), Func: {Name: sum, FuncType: System, MappingType: SetMapping}|\n"
+                    + "|            +--Select     |       Select|                                                                                      Filter: (key >= 1000 && key < 1100)|\n"
+                    + "|              +--PathUnion|    PathUnion|                                                                                                                         |\n"
+                    + "|                +--Project|      Project|                                                                   Patterns: us.d1.s1,us.d1.s2, Target DU: unit0000000001|\n"
+                    + "|                +--Project|      Project|                                                                   Patterns: us.d1.s1,us.d1.s2, Target DU: unit0000000002|\n"
+                    + "+--------------------------+-------------+-------------------------------------------------------------------------------------------------------------------------+\n"
+                    + "Total line number = 15\n"),
+            new Pair<>(
+                "EXPLAIN SELECT s1 FROM us.d1 JOIN us.d2 WHERE key < 100;",
+                "ResultSets:\n"
+                    + "+--------------------+-------------+------------------------------------------------+\n"
+                    + "|        Logical Tree|Operator Type|                                   Operator Info|\n"
+                    + "+--------------------+-------------+------------------------------------------------+\n"
+                    + "|Reorder             |      Reorder|                                       Order: s1|\n"
+                    + "|  +--Project        |      Project|                                    Patterns: s1|\n"
+                    + "|    +--Select       |       Select|                               Filter: key < 100|\n"
+                    + "|      +--InnerJoin  |    InnerJoin|PrefixA: us.d1, PrefixB: us.d2, IsNatural: false|\n"
+                    + "|        +--PathUnion|    PathUnion|                                                |\n"
+                    + "|          +--Project|      Project|    Patterns: us.d1.*, Target DU: unit0000000001|\n"
+                    + "|          +--Project|      Project|    Patterns: us.d1.*, Target DU: unit0000000002|\n"
+                    + "|        +--PathUnion|    PathUnion|                                                |\n"
+                    + "|          +--Project|      Project|    Patterns: us.d2.*, Target DU: unit0000000001|\n"
+                    + "|          +--Project|      Project|    Patterns: us.d2.*, Target DU: unit0000000002|\n"
+                    + "+--------------------+-------------+------------------------------------------------+\n"
+                    + "Total line number = 10\n"),
+            new Pair<>(
+                "EXPLAIN SELECT avg(bb) FROM (SELECT a as aa, b as bb FROM us.d2) WHERE key > 2 GROUP BY aa;",
+                "ResultSets:\n"
+                    + "+--------------------+-------------+-----------------------------------------------------------------------------------------+\n"
+                    + "|        Logical Tree|Operator Type|                                                                            Operator Info|\n"
+                    + "+--------------------+-------------+-----------------------------------------------------------------------------------------+\n"
+                    + "|Reorder             |      Reorder|                                                                           Order: avg(bb)|\n"
+                    + "|  +--GroupBy        |      GroupBy|GroupByCols: aa, FunctionCallList: {Name: avg, FuncType: System, MappingType: SetMapping}|\n"
+                    + "|    +--Select       |       Select|                                                                          Filter: key > 2|\n"
+                    + "|      +--Rename     |       Rename|                                AliasMap: (us.d2.a, aa),(us.d2.b, bb), IgnorePatterns: []|\n"
+                    + "|        +--Project  |      Project|                                                                Patterns: us.d2.a,us.d2.b|\n"
+                    + "|          +--Project|      Project|                                     Patterns: us.d2.a,us.d2.b, Target DU: unit0000000001|\n"
+                    + "+--------------------+-------------+-----------------------------------------------------------------------------------------+\n"
+                    + "Total line number = 6\n"));
 
     executor.concurrentExecuteAndCompare(statementsAndExpectRes);
   }

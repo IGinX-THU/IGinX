@@ -5,9 +5,10 @@ sqlStatement
    ;
 
 statement
-   : INSERT INTO path tagList? insertColumnsSpec VALUES insertValuesSpec # insertStatement
+   : INSERT INTO insertFullPathSpec VALUES insertValuesSpec # insertStatement
+   | LOAD DATA importFileClause INTO insertFullPathSpec # insertFromFileStatement
    | DELETE FROM path (COMMA path)* whereClause? withClause? # deleteStatement
-   | EXPLAIN? (LOGICAL | PHYSICAL)? queryClause # selectStatement
+   | EXPLAIN? (LOGICAL | PHYSICAL)? queryClause orderByClause? limitClause? exportFileClause? # selectStatement
    | COUNT POINTS # countPointsStatement
    | DELETE COLUMNS path (COMMA path)* withClause? # deleteColumnsStatement
    | CLEAR DATA # clearDataStatement
@@ -28,12 +29,23 @@ statement
    | COMPACT # compactStatement
    ;
 
+insertFullPathSpec
+   : path tagList? insertColumnsSpec
+   ;
+
 queryClause
+   : LR_BRACKET inBracketQuery = queryClause orderByClause? limitClause? RR_BRACKET
+   | select
+   | leftQuery = queryClause INTERSECT (ALL | DISTINCT)? rightQuery = queryClause
+   | leftQuery = queryClause (UNION | EXCEPT) (ALL | DISTINCT)? rightQuery = queryClause
+   ;
+
+select
    : selectClause fromClause whereClause? withClause? specialClause?
    ;
 
 selectClause
-   : SELECT selectSublist (COMMA selectSublist)*
+   : SELECT DISTINCT? selectSublist (COMMA selectSublist)*
    ;
 
 selectSublist
@@ -43,7 +55,7 @@ selectSublist
 expression
    : LR_BRACKET inBracketExpr = expression RR_BRACKET
    | constant
-   | functionName LR_BRACKET path (COMMA path)* RR_BRACKET
+   | functionName LR_BRACKET (ALL | DISTINCT)? path (COMMA path)* RR_BRACKET
    | path
    | (PLUS | MINUS) expr = expression
    | leftExpr = expression (STAR | DIV | MOD) rightExpr = expression
@@ -163,7 +175,7 @@ tableReference
    ;
 
 subquery
-   : LR_BRACKET queryClause RR_BRACKET
+   : LR_BRACKET queryClause orderByClause? limitClause? RR_BRACKET
    ;
 
 colList
@@ -177,12 +189,10 @@ join
    ;
 
 specialClause
-   : limitClause
-   | aggregateWithLevelClause
-   | groupByClause havingClause? orderByClause? limitClause?
-   | downsampleWithLevelClause limitClause?
-   | downsampleClause limitClause?
-   | orderByClause limitClause?
+   : aggregateWithLevelClause
+   | groupByClause havingClause?
+   | downsampleWithLevelClause
+   | downsampleClause
    ;
 
 groupByClause
@@ -232,6 +242,30 @@ limitClause
 
 offsetClause
    : OFFSET INT
+   ;
+
+exportFileClause
+   : INTO OUTFILE (csvFile (WITH HEADER)? | streamFile)
+   ;
+
+importFileClause
+   : FROM INFILE csvFile (SKIPPING HEADER)?
+   ;
+
+csvFile
+   : filePath = stringLiteral AS CSV fieldsOption? linesOption?
+   ;
+
+streamFile
+   : dirPath = stringLiteral AS STREAM
+   ;
+
+fieldsOption
+   : FIELDS (TERMINATED BY fieldsTerminated = stringLiteral)? (OPTIONALLY? ENCLOSED BY enclosed = stringLiteral)? (ESCAPED BY escaped = stringLiteral)?
+   ;
+
+linesOption
+   : LINES TERMINATED BY linesTerminated = stringLiteral
    ;
 
 comparisonOperator
@@ -385,6 +419,22 @@ keyWords
    | SET
    | CONFIG
    | COLUMNS
+   | INTERSECT
+   | UNION
+   | EXCEPT
+   | DISTINCT
+   | OUTFILE
+   | INFILE
+   | CSV
+   | STREAM
+   | FIELDS
+   | TERMINATED
+   | OPTIONALLY
+   | ENCLOSED
+   | LINES
+   | SKIPPING
+   | HEADER
+   | LOAD
    ;
 
 dateFormat
@@ -789,6 +839,74 @@ CONFIG
 
 COLUMNS
    : C O L U M N S
+   ;
+
+INTERSECT
+   : I N T E R S E C T
+   ;
+
+UNION
+   : U N I O N
+   ;
+
+EXCEPT
+   : E X C E P T
+   ;
+
+DISTINCT
+   : D I S T I N C T
+   ;
+
+OUTFILE
+   : O U T F I L E
+   ;
+
+INFILE
+   : I N F I L E
+   ;
+
+CSV
+   : C S V
+   ;
+
+STREAM
+   : S T R E A M
+   ;
+
+FIELDS
+   : F I E L D S
+   ;
+
+TERMINATED
+   : T E R M I N A T E D
+   ;
+
+OPTIONALLY
+   : O P T I O N A L L Y
+   ;
+
+ENCLOSED
+   : E N C L O S E D
+   ;
+
+ESCAPED
+   : E S C A P E D
+   ;
+
+LINES
+   : L I N E S
+   ;
+
+SKIPPING
+   : S K I P P I N G
+   ;
+
+HEADER
+   : H E A D E R
+   ;
+
+LOAD
+   : L O A D
    ;
    //============================
    

@@ -12,17 +12,17 @@ public class Column {
 
   private final DataType type;
 
-  private final Map<String, String> data;
+  private final Map<Long, String> data;
 
   public Column(String pathName, String value) {
     this(pathName);
-    data.put("0", value);
+    data.put(0L, value);
   }
 
   public Column(String pathName, List<String> values) {
     this(pathName);
     for (int i = 0; i < values.size(); i++) {
-      data.put(String.valueOf(i), values.get(i));
+      data.put((long) i, values.get(i));
     }
   }
 
@@ -30,7 +30,7 @@ public class Column {
     this(pathName);
     int i = 0;
     for (String value : values) {
-      data.put(String.valueOf(i), value);
+      data.put((long) i, value);
       i++;
     }
   }
@@ -41,7 +41,7 @@ public class Column {
     this.data = new HashMap<>();
   }
 
-  public Column(String pathName, DataType type, Map<String, String> data) {
+  public Column(String pathName, DataType type, Map<Long, String> data) {
     this.pathName = pathName;
     this.type = type;
     this.data = data;
@@ -55,7 +55,7 @@ public class Column {
     return type;
   }
 
-  public Map<String, String> getData() {
+  public Map<Long, String> getData() {
     return data;
   }
 }
