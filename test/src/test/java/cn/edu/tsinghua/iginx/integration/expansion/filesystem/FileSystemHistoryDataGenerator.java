@@ -9,8 +9,6 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
@@ -24,8 +22,6 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
   private static final Logger logger =
       LoggerFactory.getLogger(FileSystemHistoryDataGenerator.class);
 
-  public static String root = "storage%d/";
-
   public FileSystemHistoryDataGenerator() {
     setDataTypeAndValuesForFileSystem();
   }
@@ -33,19 +29,19 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
   @Override
   public void writeHistoryData(
       int port, List<String> pathList, List<DataType> dataTypeList, List<List<Object>> valuesList) {
-    // 创建文件
-    List<File> files = getFileList(pathList, String.format(root, port));
-    // 将数据写入
-    writeValuesToFile(valuesList, files);
-
+    // 创建并写入文件
+    createFileAndWriteValues(pathList, valuesList);
     // 仅用于扩容文件系统后查询文件
     writeSpecificDirectoriesAndFiles();
   }
 
   @Override
   public void clearHistoryDataForGivenPort(int port) {
-    String rootPath = String.format(root, port);
-    try (Stream<Path> walk = Files.walk(Paths.get(rootPath))) {
+    Path rootPath = Paths.get(PORT_TO_ROOT.get(port));
+    if (!Files.exists(rootPath)) {
+      return;
+    }
+    try (Stream<Path> walk = Files.walk(rootPath)) {
       walk.sorted(Comparator.reverseOrder()).forEach(this::deleteDirectoryStream);
     } catch (IOException e) {
       logger.error("delete {} failure", rootPath);
@@ -71,40 +67,15 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
             Collections.singletonList(readOnlyValue), Collections.singletonList(readOnlyValue));
   }
 
-  private List<File> getFileList(List<String> pathList, String root) {
-    List<File> res = new ArrayList<>();
-    // 创建历史文件
+  private void createFileAndWriteValues(List<String> pathList, List<List<Object>> valuesList) {
     String separator = System.getProperty("file.separator");
-    for (String path : pathList) {
-      String realFilePath = root + path.replace(".", separator);
+    for (int i = 0; i < pathList.size(); i++) {
+      String realFilePath = pathList.get(i).replace(".", separator);
       File file = new File(realFilePath);
-      res.add(file);
-      Path filePath = Paths.get(file.getPath());
-      try {
-        if (!Files.exists(filePath)) {
-          file.getParentFile().mkdirs();
-          Files.createFile(filePath);
-          logger.info("create file {} success", file.getAbsolutePath());
-        }
-      } catch (IOException e) {
-        logger.error("create file {} failure", file.getAbsolutePath());
-      }
-    }
-    return res;
-  }
-
-  private void writeValuesToFile(List<List<Object>> valuesList, List<File> files) {
-    if (valuesList.size() != files.size()) {
-      throw new IllegalArgumentException("Number of values lists and files don't match");
-    }
-
-    int numFiles = files.size();
-    for (int i = 0; i < numFiles; i++) {
-      List<Object> values = valuesList.get(i);
-      File file = files.get(i);
-
-      try (OutputStream out = Files.newOutputStream(file.toPath(), StandardOpenOption.APPEND)) {
-        for (Object value : values) {
+      file.getParentFile().mkdirs();
+      logger.info("create file {} success", file.getAbsolutePath());
+      try (OutputStream out = Files.newOutputStream(file.toPath())) {
+        for (Object value : valuesList.get(i)) {
           if (value instanceof byte[]) {
             out.write((byte[]) value);
           }
@@ -155,6 +126,10 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
   private void createAndWriteFile(byte[] content, String first, String... more) {
     File file = new File(Paths.get(first, more).toString());
     try {
+      if (file.exists()) {
+        logger.info("file {} has existed", file.getAbsolutePath());
+        return;
+      }
       if (!file.getParentFile().mkdirs()) {
         logger.error("create directory {} failed", file.getParentFile().getAbsolutePath());
         return;
@@ -167,7 +142,7 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
         fos.write(content);
       }
     } catch (IOException e) {
-      logger.error("createFile failed first {} more {}", first, more);
+      logger.error("createAndWriteFile failed first {} more {}", first, more);
     }
   }
 }

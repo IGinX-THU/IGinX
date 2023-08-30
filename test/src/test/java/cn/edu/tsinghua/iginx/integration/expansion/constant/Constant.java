@@ -3,7 +3,9 @@ package cn.edu.tsinghua.iginx.integration.expansion.constant;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 public class Constant {
@@ -20,16 +22,16 @@ public class Constant {
       Arrays.asList("mn.wf01.wt01.status", "mn.wf01.wt01.temperature");
 
   public static final List<String> EXP_PATH_LIST =
-      Arrays.asList("mn.wf03.wt01.status", "nt.wf03.wt01.temperature");
+      Arrays.asList("nt.wf03.wt01.status", "nt.wf04.wt01.temperature");
 
   public static final List<String> EXP_PATH_LIST1 =
-      Collections.singletonList("mn.wf03.wt01.status");
+      Collections.singletonList("nt.wf03.wt01.status");
 
   public static final List<String> EXP_PATH_LIST2 =
       Collections.singletonList("nt.wf03.wt01.temperature");
 
   public static final List<String> READ_ONLY_PATH_LIST =
-      Arrays.asList("mn.wf05.wt01.status", "mn.wf05.wt01.temperature");
+      Arrays.asList("tm.wf05.wt01.status", "tm.wf05.wt01.temperature");
 
   // data type
   public static List<DataType> oriDataTypeList = Arrays.asList(DataType.BOOLEAN, DataType.DOUBLE);
@@ -54,6 +56,16 @@ public class Constant {
 
   public static List<List<Object>> readOnlyValuesList =
       Arrays.asList(Arrays.asList(false, 100.01), Arrays.asList(true, 99.99));
+
+  // for file system
+  public static final Map<Integer, String> PORT_TO_ROOT =
+      new HashMap<Integer, String>() {
+        {
+          put(oriPort, "mn");
+          put(expPort, "nt");
+          put(readOnlyPort, "tm");
+        }
+      };
 
   public static byte[] generateRandomValue(int seed) {
     int N = 10;
