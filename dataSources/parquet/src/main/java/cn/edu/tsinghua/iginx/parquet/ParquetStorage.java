@@ -42,6 +42,9 @@ public class ParquetStorage implements IStorage {
 
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
+  // if hasData = true, data dir will contain .parquet file.
+  private static boolean hasData = false;
+
   private static final String DRIVER_NAME = "org.duckdb.DuckDBDriver";
 
   private static final String CONN_URL = "jdbc:duckdb:";
@@ -52,6 +55,7 @@ public class ParquetStorage implements IStorage {
     Map<String, String> extraParams = meta.getExtraParams();
     int iginx_port = Integer.parseInt(extraParams.get("iginx_port"));
     boolean isLocal = (meta.getIp().equals(config.getIp()) && config.getPort() == iginx_port);
+    hasData = extraParams.get("has_data").equalsIgnoreCase("true");
     if (isLocal) {
       initLocalStorage(meta);
     } else {
@@ -81,7 +85,7 @@ public class ParquetStorage implements IStorage {
       throw new StorageInitializationException("cannot connect to " + meta.toString());
     }
 
-    this.executor = new NewExecutor(connection, dataDir);
+    this.executor = new NewExecutor(connection, dataDir, hasData);
 
     new Thread(new ParquetServer(meta.getPort(), executor)).start();
   }

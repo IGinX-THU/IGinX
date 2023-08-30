@@ -41,7 +41,7 @@ public class NewExecutor implements Executor {
 
   private boolean isClosed = false;
 
-  public NewExecutor(Connection connection, String dataDir) {
+  public NewExecutor(Connection connection, String dataDir, boolean hasData) {
     this.connection = connection;
     this.dataDir = dataDir;
 
@@ -54,6 +54,18 @@ public class NewExecutor implements Executor {
       }
     } catch (IOException e) {
       logger.error("parquet executor init error, details: {}", e.getMessage());
+    }
+
+    if (hasData) {
+      try {
+        if (Files.exists(path)) {
+          recoverFromParquet();
+        } else {
+          logger.error("No parquet file provided in dir " + dataDir + " that has data.");
+        }
+      } catch (IOException e) {
+        logger.error("Initial parquet data read error, details: {}", e.getMessage());
+      }
     }
 
     Runtime.getRuntime()
@@ -73,8 +85,21 @@ public class NewExecutor implements Executor {
     File[] duDirs = file.listFiles();
     if (duDirs != null) {
       for (File duDir : duDirs) {
+        if (duDir.getName().contains(".parquet")) continue;
         DUManager duManager = new DUManager(duDir.getName(), dataDir, connection, false);
         duManagerMap.put(duDir.getName(), duManager);
+      }
+    }
+  }
+
+  private void recoverFromParquet() throws IOException {
+    File dataFile = new File(dataDir);
+    File[] files = dataFile.listFiles();
+    if (files != null) {
+      for (File file : files) {
+        if (!file.getName().contains(".parquet")) continue;
+        DUManager duManager = new DUManager(file.getName(), dataDir, connection, true);
+        duManagerMap.put(file.getName(), duManager);
       }
     }
   }

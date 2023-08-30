@@ -28,6 +28,12 @@ public class Constant {
 
   public static final String CMD_DELETE = "DELETE";
 
+  public static final String COLUMN_NAME_META = "path_in_schema";
+
+  public static final String COLUMN_MIN_VALUE_META = "stats_min_value";
+
+  public static final String COLUMN_MAX_VALUE_META = "stats_max_value";
+
   public static final int MAX_MEM_SIZE = 1000 * 1024 * 1024 /* BYTE */;
 
   public static final String CREATE_TABLE_STMT = "CREATE TABLE %s (%s)";
@@ -57,6 +63,8 @@ public class Constant {
       "SELECT time FROM '%s' order by time desc limit 1";
 
   public static final String SELECT_PARQUET_SCHEMA = "SELECT * FROM parquet_schema('%s')";
+
+  public static final String SELECT_PARQUET_METADATA = "SELECT * FROM parquet_metadata('%s')";
 
   public static final String DELETE_DATA_STMT =
       "UPDATE %s SET %s=NULL WHERE time >= %s AND time <= %s";
