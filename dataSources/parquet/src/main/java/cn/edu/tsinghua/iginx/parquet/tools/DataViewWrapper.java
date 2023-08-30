@@ -33,6 +33,7 @@ public class DataViewWrapper {
     String path = dataView.getPath(index);
     Map<String, String> tags = dataView.getTags(index);
     path = TagKVUtils.toFullName(path, tags);
+    path = "\"" + path + "\"";
     pathCache.put(index, path);
     return path;
   }

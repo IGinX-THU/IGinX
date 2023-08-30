@@ -1,5 +1,6 @@
 package cn.edu.tsinghua.iginx.parquet.tools;
 
+import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.*;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
@@ -17,9 +18,13 @@ public class TagKVUtils {
   @SuppressWarnings("unused")
   private static final Logger logger = LoggerFactory.getLogger(TagKVUtils.class);
 
-  public static final String tagNameAnnotation = "\u2E83";
+  public static final String tagNameAnnotation = Config.tagNameAnnotation;
 
   public static Pair<String, Map<String, String>> splitFullName(String fullName) {
+    if (fullName.startsWith("\"") && fullName.endsWith("\"")) {
+      fullName = fullName.substring(1, fullName.length() - 1);
+    }
+
     if (!fullName.contains(tagNameAnnotation)) {
       return new Pair<>(fullName, null);
     }
