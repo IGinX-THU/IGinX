@@ -54,7 +54,7 @@ public class LocalExecutor implements Executor {
     String dummyDir = extraParams.get(Constant.INIT_INFO_DUMMY_DIR);
     if (hasData) {
       if (dummyDir == null || dummyDir.isEmpty()) {
-        throw new IllegalArgumentException("No dummy_dir declared!");
+        throw new IllegalArgumentException("No dummy_dir declared with params " + extraParams);
       }
       File dummyFile = new File(dummyDir);
       if (dummyFile.isFile()) {
@@ -63,7 +63,7 @@ public class LocalExecutor implements Executor {
       this.dummyRoot = dummyFile.getAbsolutePath() + SEPARATOR;
       if (!isReadOnly) {
         if (dir == null || dir.isEmpty()) {
-          throw new IllegalArgumentException("No dir declared!");
+          throw new IllegalArgumentException("No dir declared with params " + extraParams);
         }
         File file = new File(dir);
         if (file.isFile()) {
@@ -84,7 +84,7 @@ public class LocalExecutor implements Executor {
       }
     } else {
       if (dir == null || dir.isEmpty()) {
-        throw new IllegalArgumentException("No dir declared!");
+        throw new IllegalArgumentException("No dir declared with params " + extraParams);
       }
       File file = new File(dir);
       if (file.isFile()) {
