@@ -3,12 +3,18 @@ package cn.edu.tsinghua.iginx.engine.logical.utils;
 import static org.junit.Assert.assertEquals;
 
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.NotFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.OrFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.ValueFilter;
 import cn.edu.tsinghua.iginx.exceptions.SQLParserException;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.sql.TestUtils;
 import cn.edu.tsinghua.iginx.sql.statement.DeleteStatement;
-import cn.edu.tsinghua.iginx.sql.statement.SelectStatement;
+import cn.edu.tsinghua.iginx.sql.statement.selectstatement.UnarySelectStatement;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.stream.Collectors;
@@ -62,25 +68,25 @@ public class ExprUtilsTest {
   @Test
   public void testRemoveNot() {
     String select = "SELECT a FROM root WHERE !(a != 10);";
-    SelectStatement statement = (SelectStatement) TestUtils.buildStatement(select);
+    UnarySelectStatement statement = (UnarySelectStatement) TestUtils.buildStatement(select);
     Filter filter = statement.getFilter();
     System.out.println(filter.toString());
     System.out.println(ExprUtils.removeNot(filter).toString());
 
     select = "SELECT a FROM root WHERE !(!(a != 10));";
-    statement = (SelectStatement) TestUtils.buildStatement(select);
+    statement = (UnarySelectStatement) TestUtils.buildStatement(select);
     filter = statement.getFilter();
     System.out.println(filter.toString());
     System.out.println(ExprUtils.removeNot(filter).toString());
 
     select = "SELECT a FROM root WHERE !(a > 5 AND b <= 10 AND c > 7 AND d == 8);";
-    statement = (SelectStatement) TestUtils.buildStatement(select);
+    statement = (UnarySelectStatement) TestUtils.buildStatement(select);
     filter = statement.getFilter();
     System.out.println(filter.toString());
     System.out.println(ExprUtils.removeNot(filter).toString());
 
     select = "SELECT a FROM root WHERE !(a > 5 AND b <= 10 or c > 7 AND d == 8);";
-    statement = (SelectStatement) TestUtils.buildStatement(select);
+    statement = (UnarySelectStatement) TestUtils.buildStatement(select);
     filter = statement.getFilter();
     System.out.println(filter.toString());
     System.out.println(ExprUtils.removeNot(filter).toString());
@@ -89,26 +95,26 @@ public class ExprUtilsTest {
   @Test
   public void testToDNF() {
     String select = "SELECT a FROM root WHERE a > 5 AND b <= 10 OR c > 7 AND d == 8;";
-    SelectStatement statement = (SelectStatement) TestUtils.buildStatement(select);
+    UnarySelectStatement statement = (UnarySelectStatement) TestUtils.buildStatement(select);
     Filter filter = statement.getFilter();
     System.out.println(filter.toString());
     System.out.println(ExprUtils.toDNF(filter).toString());
 
     select = "SELECT a FROM root WHERE (a > 5 OR b <= 10) AND (c > 7 OR d == 8);";
-    statement = (SelectStatement) TestUtils.buildStatement(select);
+    statement = (UnarySelectStatement) TestUtils.buildStatement(select);
     filter = statement.getFilter();
     System.out.println(filter.toString());
     System.out.println(ExprUtils.toDNF(filter).toString());
 
     select =
         "SELECT a FROM root WHERE (a > 5 OR b <= 10) AND (c > 7 OR d == 8) AND (e < 3 OR f != 2);";
-    statement = (SelectStatement) TestUtils.buildStatement(select);
+    statement = (UnarySelectStatement) TestUtils.buildStatement(select);
     filter = statement.getFilter();
     System.out.println(filter.toString());
     System.out.println(ExprUtils.toDNF(filter).toString());
 
     select = "SELECT a FROM root WHERE (a > 5 AND b <= 10) AND (c > 7 OR d == 8);";
-    statement = (SelectStatement) TestUtils.buildStatement(select);
+    statement = (UnarySelectStatement) TestUtils.buildStatement(select);
     filter = statement.getFilter();
     System.out.println(filter.toString());
     System.out.println(ExprUtils.toDNF(filter).toString());
@@ -117,7 +123,7 @@ public class ExprUtilsTest {
   @Test
   public void testToCNF() {
     String select = "SELECT a FROM root WHERE a > 5 OR b <= 10 AND c > 7 OR d == 8;";
-    SelectStatement statement = (SelectStatement) TestUtils.buildStatement(select);
+    UnarySelectStatement statement = (UnarySelectStatement) TestUtils.buildStatement(select);
     Filter filter = statement.getFilter();
     System.out.println(filter.toString());
     System.out.println(InfluxDBFilterTransformer.toString(filter));
@@ -125,7 +131,7 @@ public class ExprUtilsTest {
     System.out.println(InfluxDBFilterTransformer.toString(ExprUtils.toCNF(filter)));
 
     select = "SELECT a FROM root WHERE (a > 5 AND b <= 10) OR (c > 7 AND d == 8);";
-    statement = (SelectStatement) TestUtils.buildStatement(select);
+    statement = (UnarySelectStatement) TestUtils.buildStatement(select);
     filter = statement.getFilter();
     System.out.println(filter.toString());
     System.out.println(InfluxDBFilterTransformer.toString(filter));
@@ -134,7 +140,7 @@ public class ExprUtilsTest {
 
     select =
         "SELECT a FROM root WHERE (a > 5 AND b <= 10) OR (c > 7 OR d == 8) OR (e < 3 AND f != 2);";
-    statement = (SelectStatement) TestUtils.buildStatement(select);
+    statement = (UnarySelectStatement) TestUtils.buildStatement(select);
     filter = statement.getFilter();
     System.out.println(filter.toString());
     System.out.println(InfluxDBFilterTransformer.toString(filter));
@@ -142,7 +148,7 @@ public class ExprUtilsTest {
     System.out.println(InfluxDBFilterTransformer.toString(ExprUtils.toCNF(filter)));
 
     select = "SELECT a FROM root WHERE (a > 5 OR b <= 10) OR (c > 7 AND d == 8);";
-    statement = (SelectStatement) TestUtils.buildStatement(select);
+    statement = (UnarySelectStatement) TestUtils.buildStatement(select);
     filter = statement.getFilter();
     System.out.println(filter.toString());
     System.out.println(InfluxDBFilterTransformer.toString(filter));
@@ -194,7 +200,7 @@ public class ExprUtilsTest {
     // sub1
     String select =
         "SELECT a FROM root WHERE (a > 5 OR d < 15) AND !(e < 27) AND (c < 10 OR b > 2) AND key > 10 AND key <= 100;";
-    SelectStatement statement = (SelectStatement) TestUtils.buildStatement(select);
+    UnarySelectStatement statement = (UnarySelectStatement) TestUtils.buildStatement(select);
     Filter filter = statement.getFilter();
     assertEquals(
         "((root.a > 5 || root.d < 15) && !(root.e < 27) && (root.c < 10 || root.b > 2) && key > 10 && key <= 100)",
@@ -207,7 +213,7 @@ public class ExprUtilsTest {
     // sub2
     select =
         "SELECT a FROM root WHERE (a > 5 OR d < 15) AND !(e < 27) AND (c < 10 OR b > 2) AND key > 10 AND key <= 100;";
-    statement = (SelectStatement) TestUtils.buildStatement(select);
+    statement = (UnarySelectStatement) TestUtils.buildStatement(select);
     filter = statement.getFilter();
     assertEquals(
         "((root.a > 5 || root.d < 15) && !(root.e < 27) && (root.c < 10 || root.b > 2) && key > 10 && key <= 100)",
@@ -219,7 +225,7 @@ public class ExprUtilsTest {
 
     // whole
     select = "SELECT a FROM root WHERE (a > 5 OR d < 15) AND !(e < 27) AND (c < 10 OR b > 2);";
-    statement = (SelectStatement) TestUtils.buildStatement(select);
+    statement = (UnarySelectStatement) TestUtils.buildStatement(select);
     filter = statement.getFilter();
     assertEquals(
         "((root.a > 5 || root.d < 15) && !(root.e < 27) && (root.c < 10 || root.b > 2))",
@@ -231,7 +237,7 @@ public class ExprUtilsTest {
 
     // empty
     select = "SELECT a FROM root WHERE (a > 5 OR d < 15) AND !(e < 27) AND (c < 10 OR b > 2);";
-    statement = (SelectStatement) TestUtils.buildStatement(select);
+    statement = (UnarySelectStatement) TestUtils.buildStatement(select);
     filter = statement.getFilter();
     assertEquals(
         "((root.a > 5 || root.d < 15) && !(root.e < 27) && (root.c < 10 || root.b > 2))",

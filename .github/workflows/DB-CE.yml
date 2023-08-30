@@ -41,7 +41,7 @@ jobs:
             - name: Install IGinX with Maven
               shell: bash
               run: |
-                  mvn clean package -DskipTests -P passFormat -q
+                  mvn clean package -DskipTests -P-format -q
 
             # 第 1 阶段测试开始==========================================
             - name: Prepare CapExp environment oriHasDataExpHasData
@@ -53,8 +53,8 @@ jobs:
 
             - name: oriHasDataExpHasData IT
               run: |
-                  mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriHasDataExpHasData -DfailIfNoTests=false -P passFormat
-                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P passFormat
+                  mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriHasDataExpHasData -DfailIfNoTests=false -P-format
+                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
 
             # 第 2 阶段测试开始==========================================
             - name: Prepare CapExp environment oriNoDataExpNoData
@@ -66,8 +66,8 @@ jobs:
 
             - name: oriNoDataExpNoData IT
               run: |
-                  mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriNoDataExpNoData -DfailIfNoTests=false -P passFormat
-                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P passFormat
+                  mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriNoDataExpNoData -DfailIfNoTests=false -P-format
+                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
 
             # 第 3 阶段测试开始==========================================
             - name: Prepare CapExp environment oriHasDataExpNoData
@@ -79,8 +79,8 @@ jobs:
 
             - name: oriHasDataExpNoData IT
               run: |
-                  mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriHasDataExpNoData -DfailIfNoTests=false -P passFormat
-                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P passFormat
+                  mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriHasDataExpNoData -DfailIfNoTests=false -P-format
+                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
 
             # 第 4 阶段测试开始==========================================
             - name: Prepare CapExp environment oriNoDataExpHasData
@@ -92,8 +92,8 @@ jobs:
 
             - name: oriNoDataExpHasData IT
               run: |
-                  mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriNoDataExpHasData -DfailIfNoTests=false -P passFormat
-                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P passFormat
+                  mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriNoDataExpHasData -DfailIfNoTests=false -P-format
+                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
 
             # 测试只读节点===============================================
             - name: Prepare CapExp environment for testReadOnly
@@ -106,8 +106,8 @@ jobs:
 
             - name: Run testReadOnly
               run: |
-                  mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#testReadOnly -DfailIfNoTests=false -P passFormat
-                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P passFormat
+                  mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#testReadOnly -DfailIfNoTests=false -P-format
+                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
 
             - name: Show IGinX log
               if: always()
@@ -119,63 +119,3 @@ jobs:
               with:
                   file: ./**/target/site/jacoco/jacoco.xml
                   name: codecov
-
-#    Parquet-Capacity-Expansion-ds:
-#        strategy:
-#            fail-fast: false
-#            matrix:
-#                java: [8]
-#                python-version: ["3.7.16"]
-#                os: [ubuntu-latest, macos-latest]
-#        runs-on: ${{ matrix.os }}
-#        steps:
-#            - uses: actions/checkout@v2
-#            - name: Environment dependence
-#              uses: ./.github/actions/dependence
-#              with:
-#                  python-version: ${{ matrix.python-version }}
-#                  java: ${{ matrix.java }}
-#
-#            - name: Cache Maven packages
-#              uses: actions/cache@v2.1.5
-#              with:
-#                  path: ~/.m2
-#                  key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-#                  restore-keys: ${{ runner.os }}-m2
-#
-#            - name: Run ZooKeeper
-#              uses: ./.github/actions/zookeeperRunner
-#
-#            - name: Run DB
-#              uses: ./.github/actions/dbRunner
-#              with:
-#                  version: Parquet
-#
-#            - name: Install IGinX with Maven
-#              shell: bash
-#              run: |
-#                  mvn clean package -DskipTests -P passFormat -q
-#
-#            - name: Write history Data
-#              run: |
-#                  mvn test -q -Dtest=ParquetHistoryDataGeneratorTest -DfailIfNoTests=false -P passFormat
-#                  sleep 10
-#
-#            - name: Start IGinX
-#              uses: ./.github/actions/iginxRunner
-#              with:
-#                  version: ${VERSION}
-#
-#            - name: ParquetCapacityExpansionIT
-#              run: mvn test -q -Dtest=ParquetCapacityExpansionIT -DfailIfNoTests=false -P passFormat
-#
-#            - name: Show IGinX log
-#              if: always()
-#              shell: bash
-#              run: |
-#                  cat iginx.log
-#
-#            - uses: codecov/codecov-action@v1
-#              with:
-#                  file: ./**/target/site/jacoco/jacoco.xml
-#                  name: codecov

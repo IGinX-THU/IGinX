@@ -78,6 +78,7 @@ public class ValueUtils {
       if (numericTypeSet.contains(dataType1) && numericTypeSet.contains(dataType2)) {
         v1 = transformToDouble(v1);
         v2 = transformToDouble(v2);
+        dataType1 = DataType.DOUBLE;
       } else {
         throw new InvalidOperatorParameterException(
             dataType1.toString() + " and " + dataType2.toString() + " can't be compared");

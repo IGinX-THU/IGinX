@@ -26,6 +26,12 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
+import cn.edu.tsinghua.iginx.engine.shared.file.FileType;
+import cn.edu.tsinghua.iginx.engine.shared.file.read.ImportCsv;
+import cn.edu.tsinghua.iginx.engine.shared.file.read.ImportFile;
+import cn.edu.tsinghua.iginx.engine.shared.file.write.ExportByteStream;
+import cn.edu.tsinghua.iginx.engine.shared.file.write.ExportCsv;
+import cn.edu.tsinghua.iginx.engine.shared.file.write.ExportFile;
 import cn.edu.tsinghua.iginx.engine.shared.operator.BinaryOperator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.MultipleOperator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
@@ -52,29 +58,50 @@ import cn.edu.tsinghua.iginx.resource.ResourceManager;
 import cn.edu.tsinghua.iginx.sql.statement.DataStatement;
 import cn.edu.tsinghua.iginx.sql.statement.DeleteColumnsStatement;
 import cn.edu.tsinghua.iginx.sql.statement.DeleteStatement;
+import cn.edu.tsinghua.iginx.sql.statement.ExportFileFromSelectStatement;
+import cn.edu.tsinghua.iginx.sql.statement.InsertFromFileStatement;
 import cn.edu.tsinghua.iginx.sql.statement.InsertFromSelectStatement;
 import cn.edu.tsinghua.iginx.sql.statement.InsertStatement;
-import cn.edu.tsinghua.iginx.sql.statement.SelectStatement;
 import cn.edu.tsinghua.iginx.sql.statement.Statement;
 import cn.edu.tsinghua.iginx.sql.statement.StatementType;
 import cn.edu.tsinghua.iginx.sql.statement.SystemStatement;
+import cn.edu.tsinghua.iginx.sql.statement.selectstatement.SelectStatement;
+import cn.edu.tsinghua.iginx.sql.statement.selectstatement.UnarySelectStatement;
 import cn.edu.tsinghua.iginx.statistics.IStatisticsCollector;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.Status;
 import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.ByteUtils;
+import cn.edu.tsinghua.iginx.utils.DataTypeInferenceUtils;
 import cn.edu.tsinghua.iginx.utils.DataTypeUtils;
+import cn.edu.tsinghua.iginx.utils.FormatUtils;
 import cn.edu.tsinghua.iginx.utils.RpcUtils;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.security.InvalidParameterException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
+import org.apache.commons.csv.CSVParser;
+import org.apache.commons.csv.CSVPrinter;
+import org.apache.commons.csv.CSVRecord;
+import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -292,6 +319,12 @@ public class StatementExecutor {
           case CLEAR_DATA:
             processClearData(ctx);
             return;
+          case INSERT_FROM_FILE:
+            processInsertFromFile(ctx);
+            return;
+          case EXPORT_FILE_FROM_SELECT:
+            processExportFileFromSelect(ctx);
+            return;
           default:
             throw new ExecutionException(
                 String.format("Execute Error: unknown statement type [%s].", type));
@@ -299,7 +332,7 @@ public class StatementExecutor {
       } else {
         ((SystemStatement) statement).execute(ctx);
       }
-    } catch (ExecutionException | PhysicalException e) {
+    } catch (ExecutionException | PhysicalException | IOException e) {
       StatusCode statusCode = StatusCode.STATEMENT_EXECUTION_ERROR;
       ctx.setResult(new Result(RpcUtils.status(statusCode, e.getMessage())));
     } catch (Exception e) {
@@ -482,6 +515,344 @@ public class StatementExecutor {
     setResult(ctx, stream);
   }
 
+  private void processExportFileFromSelect(RequestContext ctx)
+      throws ExecutionException, PhysicalException, IOException {
+    ExportFileFromSelectStatement statement = (ExportFileFromSelectStatement) ctx.getStatement();
+
+    // step 1: select stage
+    SelectStatement selectStatement = statement.getSelectStatement();
+    RequestContext selectContext = new RequestContext(ctx.getSessionId(), selectStatement, true);
+    process(selectContext);
+    RowStream rowStream = selectContext.getResult().getResultStream();
+
+    // step 2: export file
+    ExportFile exportFile = statement.getExportFile();
+    switch (exportFile.getType()) {
+      case CSV:
+        processExportCsvFile(ctx, rowStream, (ExportCsv) exportFile);
+        return;
+      case BYTE_STREAM:
+        processExportByteStream(ctx, rowStream, (ExportByteStream) exportFile);
+        return;
+      default:
+        throw new RuntimeException("Unknown export file type: " + exportFile.getType());
+    }
+  }
+
+  private void processExportCsvFile(RequestContext ctx, RowStream stream, ExportCsv exportFile)
+      throws PhysicalException, IOException {
+    final int BATCH_SIZE = config.getBatchSizeExportCsv();
+    File file = new File(exportFile.getFilepath());
+    // 删除原来的文件
+    Files.deleteIfExists(Paths.get(file.getPath()));
+    Files.createFile(Paths.get(file.getPath()));
+    if (!file.isFile()) {
+      throw new InvalidParameterException(exportFile.getFilepath() + " is not a file!");
+    }
+    if (!exportFile.getFilepath().endsWith(".csv")) {
+      throw new InvalidParameterException(
+          "The file name must end with [.csv], "
+              + exportFile.getFilepath()
+              + " doesn't satisfy the requirement!");
+    }
+
+    try {
+      CSVPrinter printer = exportFile.getCSVBuilder().build().print(new PrintWriter(file));
+
+      boolean[] fieldIsBinary = new boolean[stream.getHeader().getFieldSize()];
+      List<Field> fields = stream.getHeader().getFields();
+      for (int i = 0; i < fields.size(); i++) {
+        fieldIsBinary[i] = fields.get(i).getType().equals(DataType.BINARY);
+      }
+
+      if (exportFile.isExportHeader()) {
+        List<String> headerNames = new ArrayList<>();
+        if (stream.getHeader().hasKey()) {
+          headerNames.add("key");
+        }
+        stream
+            .getHeader()
+            .getFields()
+            .forEach(
+                field -> {
+                  headerNames.add(field.getFullName());
+                });
+        printer.printRecord(headerNames);
+      }
+
+      if (stream.getHeader().hasKey()) {
+        while (stream.hasNext()) {
+          List<List<Object>> rowsValues = new ArrayList<>(BATCH_SIZE);
+          // 每次取出BATCH_SIZE行数据写入csv文件
+          for (int n = 0; n < BATCH_SIZE && stream.hasNext(); n++) {
+            Row row = stream.next();
+            List<Object> rowValues = new ArrayList<>();
+            rowValues.add(row.getKey());
+            for (int i = 0; i < row.getValues().length; i++) {
+              if (fieldIsBinary[i]) {
+                rowValues.add(FormatUtils.valueToString(row.getValue(i)));
+              } else {
+                rowValues.add(row.getValue(i));
+              }
+            }
+            rowsValues.add(rowValues);
+          }
+          printer.printRecords(rowsValues);
+        }
+      } else {
+        while (stream.hasNext()) {
+          List<List<Object>> rowsValues = new ArrayList<>(BATCH_SIZE);
+          // 每次取出BATCH_SIZE行数据写入csv文件
+          for (int n = 0; n < BATCH_SIZE && stream.hasNext(); n++) {
+            Row row = stream.next();
+            List<Object> rowValues = new ArrayList<>();
+            for (int i = 0; i < row.getValues().length; i++) {
+              if (fieldIsBinary[i]) {
+                rowValues.add(FormatUtils.valueToString(row.getValue(i)));
+              } else {
+                rowValues.add(row.getValue(i));
+              }
+            }
+            rowsValues.add(rowValues);
+          }
+          printer.printRecords(rowsValues);
+        }
+      }
+
+      printer.flush();
+      printer.close();
+    } catch (IOException e) {
+      throw new RuntimeException(
+          "Encounter an error when writing csv file "
+              + exportFile.getFilepath()
+              + ", because "
+              + e.getMessage());
+    }
+    ctx.setResult(new Result(RpcUtils.SUCCESS));
+  }
+
+  private void processExportByteStream(
+      RequestContext ctx, RowStream stream, ExportByteStream exportFile)
+      throws PhysicalException, IOException {
+    final int BATCH_SIZE = config.getBatchSizeExportByteStream();
+    String dir = exportFile.getDir();
+    File dirFile = new File(dir);
+    // 删除原有的目录及其所有文件
+    if (dirFile.exists()) {
+      FileUtils.deleteDirectory(dirFile);
+    }
+    Files.createDirectory(Paths.get(dir));
+    if (!dirFile.isDirectory()) {
+      throw new InvalidParameterException(exportFile.getDir() + " is not a directory!");
+    }
+
+    int fieldSize = stream.getHeader().getFieldSize();
+    String[] columns = new String[fieldSize];
+    Map<String, Integer> countMap = new HashMap<>();
+    for (int i = 0; i < fieldSize; i++) {
+      String originColumn = stream.getHeader().getField(i).getFullName();
+      Integer count = countMap.getOrDefault(originColumn, 0);
+      count += 1;
+      countMap.put(originColumn, count);
+      // 重复的列名在列名后面加上(1),(2)...
+      if (count >= 2) {
+        columns[i] = Paths.get(dir, originColumn + "(" + (count - 1) + ")").toString();
+      } else {
+        columns[i] = Paths.get(dir, originColumn).toString();
+      }
+    }
+
+    while (stream.hasNext()) {
+      List<Row> rows = new ArrayList<>(BATCH_SIZE);
+      // 每次取出BATCH_SIZE行数据写入文件
+      for (int n = 0; n < BATCH_SIZE && stream.hasNext(); n++) {
+        rows.add(stream.next());
+      }
+
+      for (int i = 0; i < fieldSize; i++) {
+        try {
+          File file = new File(columns[i]);
+          FileOutputStream fos;
+          if (!file.exists()) {
+            Files.createFile(Paths.get(file.getPath()));
+            fos = new FileOutputStream(file);
+          } else {
+            fos = new FileOutputStream(file, true);
+          }
+
+          int finalI = i;
+          rows.forEach(
+              row -> {
+                try {
+                  fos.write(row.getAsValue(finalI).castToByteArray());
+                } catch (IOException e) {
+                  throw new RuntimeException(e);
+                }
+              });
+
+          fos.close();
+        } catch (IOException e) {
+          throw new RuntimeException(
+              "Encounter an error when writing file " + columns[i] + ", because " + e.getMessage());
+        }
+      }
+    }
+
+    ctx.setResult(new Result(RpcUtils.SUCCESS));
+  }
+
+  private void processInsertFromFile(RequestContext ctx)
+      throws ExecutionException, PhysicalException {
+    InsertFromFileStatement statement = (InsertFromFileStatement) ctx.getStatement();
+    ImportFile importFile = statement.getImportFile();
+    InsertStatement insertStatement = statement.getSubInsertStatement();
+
+    if (Objects.requireNonNull(importFile.getType()) == FileType.CSV) {
+      loadValuesSpecFromCsv(ctx, (ImportCsv) importFile, insertStatement);
+    } else {
+      throw new RuntimeException("Unknown import file type: " + importFile.getType());
+    }
+  }
+
+  private void loadValuesSpecFromCsv(
+      RequestContext ctx, ImportCsv importCsv, InsertStatement insertStatement) {
+    final int BATCH_SIZE = config.getBatchSizeImportCsv();
+    File file = new File(importCsv.getFilepath());
+    if (!file.isFile()) {
+      throw new InvalidParameterException(importCsv.getFilepath() + " is not a file!");
+    }
+    if (!importCsv.getFilepath().endsWith(".csv")) {
+      throw new InvalidParameterException(
+          "The file name must end with [.csv], "
+              + importCsv.getFilepath()
+              + " doesn't satisfy the requirement!");
+    }
+
+    try {
+      CSVParser parser =
+          importCsv
+              .getCSVBuilder()
+              .build()
+              .parse(new InputStreamReader(Files.newInputStream(file.toPath())));
+
+      CSVRecord tmp;
+      Iterator<CSVRecord> iterator = parser.stream().iterator();
+      // 跳过解析第一行
+      if (importCsv.isSkippingImportHeader() && iterator.hasNext()) {
+        tmp = iterator.next();
+      }
+
+      int pathSize = insertStatement.getPaths().size();
+      while (iterator.hasNext()) {
+        List<CSVRecord> records = new ArrayList<>(BATCH_SIZE);
+        // 每次从文件中取出BATCH_SIZE行数据
+        for (int n = 0; n < BATCH_SIZE && iterator.hasNext(); n++) {
+          tmp = iterator.next();
+          if (tmp.size() != pathSize + 1) {
+            throw new RuntimeException(
+                "The paths' size doesn't match csv data at line: " + tmp.getRecordNumber());
+          }
+          records.add(tmp);
+        }
+
+        int recordsSize = records.size();
+        Long[] keys = new Long[recordsSize];
+        Object[][] values = new Object[recordsSize][pathSize];
+        List<DataType> types = new ArrayList<>();
+        List<Bitmap> bitmaps = new ArrayList<>();
+
+        // 填充 types
+        Set<Integer> dataTypeIndex = new HashSet<>();
+        for (int i = 0; i < pathSize; i++) {
+          types.add(null);
+        }
+        for (int i = 0; i < pathSize; i++) {
+          dataTypeIndex.add(i);
+        }
+        for (CSVRecord record : records) {
+          for (int j = 0; j < pathSize; j++) {
+            if (!dataTypeIndex.contains(j)) {
+              continue;
+            }
+            DataType inferredDataType =
+                DataTypeInferenceUtils.getInferredDataType(record.get(j + 1));
+            if (inferredDataType != null) { // 找到每一列第一个不为 null 的值进行类型推断
+              types.set(j, inferredDataType);
+              dataTypeIndex.remove(j);
+            }
+          }
+          if (dataTypeIndex.isEmpty()) {
+            break;
+          }
+        }
+        if (!dataTypeIndex.isEmpty()) {
+          for (Integer index : dataTypeIndex) {
+            types.set(index, DataType.BINARY);
+          }
+        }
+
+        // 填充 keys, values 和 bitmaps
+        for (int i = 0; i < recordsSize; i++) {
+          CSVRecord record = records.get(i);
+          keys[i] = Long.parseLong(record.get(0));
+          Bitmap bitmap = new Bitmap(pathSize);
+
+          for (int j = 0; j < pathSize; j++) {
+            if (record.get(j).equalsIgnoreCase("null")) {
+              values[i][j] = null;
+            } else {
+              bitmap.mark(j);
+              switch (types.get(j)) {
+                case BOOLEAN:
+                  values[i][j] = Boolean.parseBoolean(record.get(j + 1));
+                  break;
+                case INTEGER:
+                  values[i][j] = Integer.parseInt(record.get(j + 1));
+                  break;
+                case LONG:
+                  values[i][j] = Long.parseLong(record.get(j + 1));
+                  break;
+                case FLOAT:
+                  values[i][j] = Float.parseFloat(record.get(j + 1));
+                  break;
+                case DOUBLE:
+                  values[i][j] = Double.parseDouble(record.get(j + 1));
+                  break;
+                case BINARY:
+                  values[i][j] = record.get(j + 1).getBytes();
+                  break;
+                default:
+              }
+            }
+          }
+          bitmaps.add(bitmap);
+        }
+
+        insertStatement.setKeys(new ArrayList<>(Arrays.asList(keys)));
+        insertStatement.setValues(values);
+        insertStatement.setTypes(types);
+        insertStatement.setBitmaps(bitmaps);
+
+        RequestContext subInsertContext = new RequestContext(ctx.getSessionId(), insertStatement);
+        process(subInsertContext);
+
+        if (!subInsertContext.getResult().getStatus().equals(RpcUtils.SUCCESS)) {
+          ctx.setResult(new Result(RpcUtils.FAILURE));
+          return;
+        }
+      }
+      ctx.setResult(new Result(RpcUtils.SUCCESS));
+    } catch (IOException e) {
+      throw new RuntimeException(
+          "Encounter an error when reading csv file "
+              + importCsv.getFilepath()
+              + ", because "
+              + e.getMessage());
+    } catch (ExecutionException | PhysicalException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   private void processInsertFromSelect(RequestContext ctx)
       throws ExecutionException, PhysicalException {
     InsertFromSelectStatement statement = (InsertFromSelectStatement) ctx.getStatement();
@@ -506,7 +877,8 @@ public class StatementExecutor {
 
   private void processCountPoints(RequestContext ctx) throws ExecutionException, PhysicalException {
     SelectStatement statement =
-        new SelectStatement(Collections.singletonList("*"), 0, Long.MAX_VALUE, AggregateType.COUNT);
+        new UnarySelectStatement(
+            Collections.singletonList("*"), 0, Long.MAX_VALUE, AggregateType.COUNT);
     ctx.setStatement(statement);
     process(ctx);
 

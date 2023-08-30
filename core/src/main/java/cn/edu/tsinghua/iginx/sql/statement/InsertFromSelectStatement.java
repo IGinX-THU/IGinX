@@ -1,5 +1,7 @@
 package cn.edu.tsinghua.iginx.sql.statement;
 
+import cn.edu.tsinghua.iginx.sql.statement.selectstatement.SelectStatement;
+
 public class InsertFromSelectStatement extends DataStatement {
 
   private final long keyOffset;

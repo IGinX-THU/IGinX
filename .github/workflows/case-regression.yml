@@ -41,7 +41,7 @@ jobs:
             - name: Install IGinX with Maven
               shell: bash
               run: |
-                  mvn clean package -DskipTests -P passFormat -q
+                  mvn clean package -DskipTests -P-format -q
 
             - name: Start IGinX
               uses: ./.github/actions/iginxRunner
@@ -50,7 +50,7 @@ jobs:
               if: always()
               shell: bash
               run: |
-                  mvn test -q -Dtest=MixClusterShowColumnsRegressionTest -DfailIfNoTests=false -P passFormat
+                  mvn test -q -Dtest=MixClusterShowColumnsRegressionTest -DfailIfNoTests=false -P-format
 
             - name: Show IGinX log
               if: always()

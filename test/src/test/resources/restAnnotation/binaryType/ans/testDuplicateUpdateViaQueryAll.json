@@ -2,7 +2,7 @@
   "queries": [{
     "name": "archive_file_tracked.ann",
     "tags": {
-      "data_center": ["DC2"],
+      "dc": ["DC2"],
       "host": ["server2"]
     },
     "annotation": {
@@ -18,7 +18,7 @@
   }, {
     "name": "archive_file_tracked.bcc",
     "tags": {
-      "data_center": ["DC1"],
+      "dc": ["DC1"],
       "host": ["server1"]
     },
     "annotation": {
@@ -34,7 +34,7 @@
   }, {
     "name": "archive_file_tracked.ann",
     "tags": {
-      "data_center": ["DC1"],
+      "dc": ["DC1"],
       "host": ["server1"]
     },
     "annotation": {
