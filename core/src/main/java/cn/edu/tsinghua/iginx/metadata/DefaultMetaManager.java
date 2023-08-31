@@ -1280,8 +1280,8 @@ public class DefaultMetaManager implements IMetaManager {
           String parentDir;
           String separator = System.getProperty("file.separator");
           if (dummyDir.endsWith(separator)) {
-            parentDir =
-                dummyDir.substring(dummyDir.lastIndexOf(separator) + 1, dummyDir.length() - 1);
+            parentDir = dummyDir.substring(0, dummyDir.lastIndexOf(separator));
+            parentDir = parentDir.substring(parentDir.lastIndexOf(separator) + 1);
           } else if (dummyDir.contains(separator)) {
             parentDir = dummyDir.substring(dummyDir.lastIndexOf(separator) + 1);
           } else {
