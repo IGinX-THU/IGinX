@@ -98,7 +98,7 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
       String dataType;
       for (int i = 0; i < columnCount; i++) {
         columnName = pathList.get(i).replace(IGINX_SEPARATOR, PARQUET_SEPARATOR);
-        columnName = columnName.substring(columnName.indexOf(PARQUET_SEPARATOR));
+        columnName = columnName.substring(columnName.indexOf(PARQUET_SEPARATOR) + 1);
         dataType = dataTypeList.get(i).toString();
 
         columnList.add(new Pair(columnName, dataType));
