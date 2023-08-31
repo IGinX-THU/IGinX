@@ -101,7 +101,9 @@ public class PyUDTF implements UDTF {
     }
     interpreters.add(interpreter);
 
-    Header header = RowUtils.constructHeaderWithFirstTwoRows(res, row.getHeader().hasKey());
+    Header header =
+        RowUtils.constructHeaderWithFirstTwoRowsUsingFuncName(
+            res, row.getHeader().hasKey(), funcName);
     return RowUtils.constructNewRowWithKey(header, row.getKey(), res.get(2));
   }
 

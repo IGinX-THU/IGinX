@@ -68,18 +68,12 @@ public class FilterTransformer {
     String op =
         Op.op2Str(filter.getOp())
             .replace("==", "="); // postgresql does not support "==" but uses "=" instead
-    return (KEY_NAME + " " + op + " " + filter.getValue())
-        .replace(IGINX_SEPARATOR, Constants.POSTGRESQL_SEPARATOR);
+    return (getQuotName(KEY_NAME) + " " + op + " " + filter.getValue());
   }
 
   private static String toString(ValueFilter filter) {
-    int lastIndexOfSeparator = filter.getPath().lastIndexOf(IGINX_SEPARATOR);
-    String path =
-        filter
-                .getPath()
-                .substring(0, lastIndexOfSeparator)
-                .replace(IGINX_SEPARATOR, Constants.POSTGRESQL_SEPARATOR)
-            + filter.getPath().substring(lastIndexOfSeparator);
+    PostgreSQLSchema schema = new PostgreSQLSchema(filter.getPath());
+    String path = schema.getQuotFullName();
 
     String op =
         filter.getOp() == Op.LIKE
@@ -104,24 +98,18 @@ public class FilterTransformer {
   }
 
   private static String toString(PathFilter filter) {
-    int lastIndexOfSeparatorA = filter.getPathA().lastIndexOf(IGINX_SEPARATOR);
-    int lastIndexOfSeparatorB = filter.getPathB().lastIndexOf(IGINX_SEPARATOR);
-    String pathA =
-        filter
-                .getPathA()
-                .substring(0, lastIndexOfSeparatorA)
-                .replace(IGINX_SEPARATOR, Constants.POSTGRESQL_SEPARATOR)
-            + filter.getPathA().substring(lastIndexOfSeparatorA);
-    String pathB =
-        filter
-                .getPathB()
-                .substring(0, lastIndexOfSeparatorB)
-                .replace(IGINX_SEPARATOR, Constants.POSTGRESQL_SEPARATOR)
-            + filter.getPathB().substring(lastIndexOfSeparatorB);
+    PostgreSQLSchema schemaA = new PostgreSQLSchema(filter.getPathA());
+    PostgreSQLSchema schemaB = new PostgreSQLSchema(filter.getPathB());
+    String pathA = schemaA.getQuotFullName();
+    String pathB = schemaB.getQuotFullName();
 
     String op =
         Op.op2Str(filter.getOp())
             .replace("==", "="); // postgresql does not support "==" but uses "=" instead
     return pathA + " " + op + " " + pathB;
+  }
+
+  private static String getQuotName(String name) {
+    return "\"" + name + "\"";
   }
 }

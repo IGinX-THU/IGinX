@@ -1,5 +1,7 @@
 package cn.edu.tsinghua.iginx.integration.func.sql;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
@@ -14,9 +16,13 @@ import cn.edu.tsinghua.iginx.pool.IginxInfo;
 import cn.edu.tsinghua.iginx.pool.SessionPool;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.utils.Pair;
+import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -3615,6 +3621,19 @@ public class SQLSessionIT {
             + "Total line number = 4\n";
     executor.executeAndCompare(statement, expected);
 
+    statement = "SELECT * FROM test.a WHERE d IN (SELECT d FROM test.b ORDER BY key LIMIT 2);";
+    expected =
+        "ResultSets:\n"
+            + "+---+--------+--------+--------+--------+\n"
+            + "|key|test.a.a|test.a.b|test.a.c|test.a.d|\n"
+            + "+---+--------+--------+--------+--------+\n"
+            + "|  1|       3|       2|     3.1|    val1|\n"
+            + "|  2|       1|       3|     2.1|    val2|\n"
+            + "|  5|       1|       2|     3.1|    val1|\n"
+            + "+---+--------+--------+--------+--------+\n"
+            + "Total line number = 3\n";
+    executor.executeAndCompare(statement, expected);
+
     statement = "SELECT * FROM test.a WHERE d IN (SELECT d FROM test.b WHERE test.b.a = test.a.a);";
     expected =
         "ResultSets:\n"
@@ -3666,6 +3685,19 @@ public class SQLSessionIT {
             + "|  6|       2|       2|     5.1|    val3|\n"
             + "+---+--------+--------+--------+--------+\n"
             + "Total line number = 4\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "SELECT * FROM test.a WHERE d = SOME (SELECT d FROM test.b ORDER BY key LIMIT 2);";
+    expected =
+        "ResultSets:\n"
+            + "+---+--------+--------+--------+--------+\n"
+            + "|key|test.a.a|test.a.b|test.a.c|test.a.d|\n"
+            + "+---+--------+--------+--------+--------+\n"
+            + "|  1|       3|       2|     3.1|    val1|\n"
+            + "|  2|       1|       3|     2.1|    val2|\n"
+            + "|  5|       1|       2|     3.1|    val1|\n"
+            + "+---+--------+--------+--------+--------+\n"
+            + "Total line number = 3\n";
     executor.executeAndCompare(statement, expected);
 
     statement = "SELECT * FROM test.a WHERE c > SOME (SELECT c FROM test.b);";
@@ -4058,6 +4090,87 @@ public class SQLSessionIT {
   }
 
   @Test
+  public void testExportAndImportCsv() {
+    String insert =
+        "INSERT INTO us.d2 (key, s1, s2, s3, s4) VALUES "
+            + "(1, \"apple\", 871, 232.1, true), (2, \"peach\", 123, 132.5, false), (3, \"banana\", 356, 317.8, true),"
+            + "(4, \"cherry\", 621, 456.1, false), (5, \"grape\", 336, 132.5, true), (6, \"dates\", 119, 232.1, false),"
+            + "(7, \"melon\", 516, 113.6, true), (8, \"mango\", 458, 232.1, false), (9, \"pear\", 336, 613.1, true);";
+    executor.execute(insert);
+
+    Path csvPath = Paths.get("src", "test", "resources", "fileReadAndWrite", "csv", "us.d2.csv");
+    File csvFile = csvPath.toFile();
+    String exportCsv =
+        "SELECT * FROM us.d2 INTO OUTFILE \"" + csvFile.getAbsolutePath() + "\" AS CSV";
+    executor.execute(exportCsv);
+
+    assertTrue(csvFile.exists());
+    assertTrue(csvFile.isFile());
+    assertEquals(csvFile.length(), 212);
+
+    String queryBeforeImport = "SELECT * FROM test";
+    String expected =
+        "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
+    executor.executeAndCompare(queryBeforeImport, expected);
+
+    String importCsv =
+        "LOAD DATA FROM INFILE \""
+            + csvFile.getAbsolutePath()
+            + "\" AS CSV INTO test(key, a, b, c, d);";
+    executor.execute(importCsv);
+
+    String orderByQuery = "SELECT * FROM test ORDER BY c, b";
+    expected =
+        "ResultSets:\n"
+            + "+---+------+------+------+------+\n"
+            + "|key|test.a|test.b|test.c|test.d|\n"
+            + "+---+------+------+------+------+\n"
+            + "|  7| melon|   516| 113.6|  true|\n"
+            + "|  2| peach|   123| 132.5| false|\n"
+            + "|  5| grape|   336| 132.5|  true|\n"
+            + "|  6| dates|   119| 232.1| false|\n"
+            + "|  8| mango|   458| 232.1| false|\n"
+            + "|  1| apple|   871| 232.1|  true|\n"
+            + "|  3|banana|   356| 317.8|  true|\n"
+            + "|  4|cherry|   621| 456.1| false|\n"
+            + "|  9|  pear|   336| 613.1|  true|\n"
+            + "+---+------+------+------+------+\n"
+            + "Total line number = 9\n";
+    executor.executeAndCompare(orderByQuery, expected);
+  }
+
+  @Test
+  public void testExportByteStream() {
+    String insert =
+        "INSERT INTO us.d2 (key, s1, s2, s3, s4) VALUES "
+            + "(1, \"apple\", 871, 232.1, true), (2, \"peach\", 123, 132.5, false), (3, \"banana\", 356, 317.8, true),"
+            + "(4, \"cherry\", 621, 456.1, false), (5, \"grape\", 336, 132.5, true), (6, \"dates\", 119, 232.1, false),"
+            + "(7, \"melon\", 516, 113.6, true), (8, \"mango\", 458, 232.1, false), (9, \"pear\", 336, 613.1, true);";
+    executor.execute(insert);
+
+    Path dir = Paths.get("src", "test", "resources", "fileReadAndWrite", "byteStream");
+    File dirFile = dir.toFile();
+    String exportByteStream =
+        "SELECT * FROM us.d2 INTO OUTFILE \"" + dirFile.getAbsolutePath() + "\" AS STREAM";
+    executor.execute(exportByteStream);
+
+    assertTrue(dirFile.exists());
+    assertTrue(dirFile.isDirectory());
+    List<String> filenames = Arrays.asList(Objects.requireNonNull(dirFile.list()));
+    assertEquals(filenames.size(), 4);
+
+    filenames.sort(String::compareTo);
+
+    long[] lengths = new long[] {46, 72, 72, 9};
+    for (int i = 1; i <= 4; i++) {
+      String expectedFilename = String.format("us.d2.s%d", i);
+      assertEquals(expectedFilename, filenames.get(i - 1));
+      File file = new File(Paths.get(dir.toString(), expectedFilename).toString());
+      assertEquals(file.length(), lengths[i - 1]);
+    }
+  }
+
+  @Test
   public void testDateFormat() {
     if (!isAbleToDelete) {
       return;
@@ -4340,7 +4453,7 @@ public class SQLSessionIT {
 
     // IGinX SQL 路径中支持的合法字符
     String insert =
-        "INSERT INTO _:@#$~^{}(key, _:@#$~^{}) VALUES (1, 1), (2, 2), (3, 3), (4, 4), (5, 5);";
+        "INSERT INTO _:@#$~^{}(key, _:@#$~^{}, _:@#$~^) VALUES (1, 1, 2), (2, 2, 3), (3, 3, 4), (4, 4, 4), (5, 5, 5);";
     executor.execute(insert);
 
     String query = "SELECT _:@#$~^{} FROM _:@#$~^{};";
@@ -4356,6 +4469,32 @@ public class SQLSessionIT {
             + "|  5|                  5|\n"
             + "+---+-------------------+\n"
             + "Total line number = 5\n";
+    executor.executeAndCompare(query, expected);
+
+    query = "SELECT _:@#$~^{} FROM _:@#$~^{} WHERE _:@#$~^{} >= 2 AND _:@#$~^{} <= 4";
+    expected =
+        "ResultSets:\n"
+            + "+---+-------------------+\n"
+            + "|key|_:@#$~^{}._:@#$~^{}|\n"
+            + "+---+-------------------+\n"
+            + "|  2|                  2|\n"
+            + "|  3|                  3|\n"
+            + "|  4|                  4|\n"
+            + "+---+-------------------+\n"
+            + "Total line number = 3\n";
+    executor.executeAndCompare(query, expected);
+
+    query = "SELECT _:@#$~^{}, _:@#$~^ FROM _:@#$~^{} WHERE _:@#$~^{} < _:@#$~^";
+    expected =
+        "ResultSets:\n"
+            + "+---+-------------------+-----------------+\n"
+            + "|key|_:@#$~^{}._:@#$~^{}|_:@#$~^{}._:@#$~^|\n"
+            + "+---+-------------------+-----------------+\n"
+            + "|  1|                  1|                2|\n"
+            + "|  2|                  2|                3|\n"
+            + "|  3|                  3|                4|\n"
+            + "+---+-------------------+-----------------+\n"
+            + "Total line number = 3\n";
     executor.executeAndCompare(query, expected);
   }
 

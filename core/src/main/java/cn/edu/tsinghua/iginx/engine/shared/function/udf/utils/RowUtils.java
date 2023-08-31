@@ -10,13 +10,17 @@ import java.util.stream.Collectors;
 
 public class RowUtils {
 
-  public static Header constructHeaderWithFirstTwoRows(List<List<Object>> res, boolean hasKey) {
+  public static Header constructHeaderWithFirstTwoRowsUsingFuncName(
+      List<List<Object>> res, boolean hasKey, String funcName) {
     List<Field> targetFields = new ArrayList<>();
     for (int i = 0; i < res.get(0).size(); i++) {
+      String resColumnName = (String) res.get(0).get(i);
+      if (resColumnName.matches(".*(.*)")) {
+        String resFuncName = resColumnName.substring(0, resColumnName.indexOf("("));
+        resColumnName = resColumnName.replaceFirst(resFuncName, funcName);
+      }
       targetFields.add(
-          new Field(
-              (String) res.get(0).get(i),
-              TypeUtils.getDataTypeFromString((String) res.get(1).get(i))));
+          new Field(resColumnName, TypeUtils.getDataTypeFromString((String) res.get(1).get(i))));
     }
     return hasKey ? new Header(Field.KEY, targetFields) : new Header(targetFields);
   }

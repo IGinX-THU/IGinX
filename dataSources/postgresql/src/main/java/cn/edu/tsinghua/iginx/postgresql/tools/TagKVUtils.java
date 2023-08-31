@@ -1,6 +1,6 @@
 package cn.edu.tsinghua.iginx.postgresql.tools;
 
-import static cn.edu.tsinghua.iginx.postgresql.tools.Constants.POSTGRESQL_SEPARATOR;
+import static cn.edu.tsinghua.iginx.postgresql.tools.Constants.*;
 
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.*;
@@ -8,20 +8,19 @@ import java.util.*;
 public class TagKVUtils {
 
   public static Pair<String, Map<String, String>> splitFullName(String fullName) {
-    if (fullName.indexOf(POSTGRESQL_SEPARATOR) == -1) {
+    if (!fullName.contains(TAGKV_SEPARATOR)) {
       return new Pair<>(fullName, null);
     }
 
-    String[] parts = fullName.split("\\" + POSTGRESQL_SEPARATOR);
-    String name = parts[0];
+    int separator_index = fullName.indexOf(TAGKV_SEPARATOR);
+    String name = fullName.substring(0, separator_index);
+    String[] parts = fullName.substring(separator_index + 1).split(TAGKV_SEPARATOR);
 
     Map<String, String> tags = new HashMap<>();
-    for (int i = 1; i < parts.length; i++) {
-      if (i % 2 != 0) {
-        continue;
-      }
-      String tagKey = parts[i - 1];
-      String tagValue = parts[i];
+    for (int i = 0; i < parts.length; i++) {
+      int equal_index = parts[i].indexOf(TAGKV_EQUAL);
+      String tagKey = parts[i].substring(0, equal_index);
+      String tagValue = parts[i].substring(equal_index + 1);
       tags.put(tagKey, tagValue);
     }
     return new Pair<>(name, tags);
@@ -34,9 +33,9 @@ public class TagKVUtils {
       sortedTags.forEach(
           (tagKey, tagValue) ->
               pathBuilder
-                  .append(POSTGRESQL_SEPARATOR)
+                  .append(TAGKV_SEPARATOR)
                   .append(tagKey)
-                  .append(POSTGRESQL_SEPARATOR)
+                  .append(TAGKV_EQUAL)
                   .append(tagValue));
       name += pathBuilder.toString();
     }

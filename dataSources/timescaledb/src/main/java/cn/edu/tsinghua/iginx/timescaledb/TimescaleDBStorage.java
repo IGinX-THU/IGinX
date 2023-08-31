@@ -187,7 +187,7 @@ public class TimescaleDBStorage implements IStorage {
         String tableName = tableSet.getString(3);//获取表名称
         ResultSet columnSet = databaseMetaData.getColumns(null, "%", tableName, "%");
         if (tableName.startsWith("unit")) {
-          tableName = tableName.substring(tableName.indexOf(POSTGRESQL_SEPARATOR) + 1);
+          tableName = tableName.substring(tableName.indexOf(SEPARATOR) + 1);
         }
         while (columnSet.next()) {
           String columnName = columnSet.getString("COLUMN_NAME");//获取列名称

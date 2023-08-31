@@ -141,6 +141,10 @@ public class SessionExecuteSqlResult {
     } else if (sqlType == SqlType.CountPoints) {
       result.add(new ArrayList<>(Collections.singletonList("Points num")));
       result.add(new ArrayList<>(Collections.singletonList(pointsNum + "")));
+    } else if (sqlType == SqlType.ShowClusterInfo) {
+      result = buildShowClusterInfoListResult();
+    } else if (sqlType == SqlType.ShowRegisterTask) {
+      result = buildShowRegisterTaskListResult();
     } else {
       result.add(new ArrayList<>(Collections.singletonList("Empty set")));
     }
@@ -360,6 +364,79 @@ public class SessionExecuteSqlResult {
     }
 
     return builder.toString();
+  }
+
+  private List<List<String>> buildShowRegisterTaskListResult() {
+    List<List<String>> resList = new ArrayList<>();
+
+    StringBuilder builder = new StringBuilder();
+
+    if (registerTaskInfos != null && !registerTaskInfos.isEmpty()) {
+      resList.add(
+          new ArrayList<>(Arrays.asList("NAME", "CLASS_NAME", "FILE_NAME", "IP", "UDF_TYPE")));
+      for (RegisterTaskInfo info : registerTaskInfos) {
+        resList.add(
+            new ArrayList<>(
+                Arrays.asList(
+                    info.getName(),
+                    info.getClassName(),
+                    info.getFileName(),
+                    info.getIp(),
+                    info.getType().toString())));
+      }
+    }
+    return resList;
+  }
+
+  private List<List<String>> buildShowClusterInfoListResult() {
+    List<List<String>> resList = new ArrayList<>();
+
+    if (iginxInfos != null && !iginxInfos.isEmpty()) {
+      resList.add(new ArrayList<>(Arrays.asList("IginX infos:")));
+      resList.add(new ArrayList<>(Arrays.asList("ID", "IP", "PORT")));
+      for (IginxInfo info : iginxInfos) {
+        resList.add(
+            new ArrayList<>(
+                Arrays.asList(
+                    String.valueOf(info.getId()), info.getIp(), String.valueOf(info.getPort()))));
+      }
+    }
+
+    if (storageEngineInfos != null && !storageEngineInfos.isEmpty()) {
+      resList.add(new ArrayList<>(Arrays.asList("Storage engine infos:")));
+      resList.add(
+          new ArrayList<>(
+              Arrays.asList("ID", "IP", "PORT", "TYPE", "SCHEMA_PREFIX", "DATAPREFIX")));
+      for (StorageEngineInfo info : storageEngineInfos) {
+        resList.add(
+            new ArrayList<>(
+                Arrays.asList(
+                    String.valueOf(info.getId()),
+                    info.getIp(),
+                    String.valueOf(info.getPort()),
+                    info.getType(),
+                    info.getSchemaPrefix(),
+                    info.getDataPrefix())));
+      }
+    }
+
+    if (metaStorageInfos != null && !metaStorageInfos.isEmpty()) {
+      resList.add(new ArrayList<>(Arrays.asList("Meta Storage infos:")));
+      resList.add(new ArrayList<>(Arrays.asList("IP", "PORT", "TYPE")));
+      for (MetaStorageInfo info : metaStorageInfos) {
+        resList.add(
+            new ArrayList<>(
+                Arrays.asList(info.getIp(), String.valueOf(info.getPort()), info.getType())));
+      }
+    }
+
+    if (localMetaStorageInfo != null) {
+      resList.add(new ArrayList<>(Arrays.asList("Meta Storage path:")));
+      resList.add(new ArrayList<>(Collections.singletonList("PATH")));
+      resList.add(new ArrayList<>(Collections.singletonList(localMetaStorageInfo.getPath())));
+    }
+
+    return resList;
   }
 
   public SqlType getSqlType() {
