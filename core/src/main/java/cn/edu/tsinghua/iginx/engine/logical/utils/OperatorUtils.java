@@ -142,6 +142,11 @@ public class OperatorUtils {
     }
 
     AbstractJoinOperator apply = (AbstractJoinOperator) root;
+    Operator operatorB = ((OperatorSource) apply.getSourceB()).getOperator();
+    // 如果apply算子的右子树中不再有关联变量，则停止下推
+    if (!hasPaths(operatorB, correlatedVariables)) {
+      return root;
+    }
     AbstractJoinOperator applyCopy = (AbstractJoinOperator) apply.copy();
 
     Operator operatorA = new Project(applyCopy.getSourceA(), correlatedVariables, null);
