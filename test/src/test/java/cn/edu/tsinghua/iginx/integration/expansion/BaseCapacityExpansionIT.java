@@ -69,7 +69,8 @@ public abstract class BaseCapacityExpansionIT {
         statement.append("/");
       }
       if (this instanceof ParquetCapacityExpansionIT) {
-        extraParams += ", dir:" + parquetParams.get(port).get(0);
+        extraParams += ", dummy_dir:" + parquetParams.get(port).get(0);
+        extraParams += ", dir:parquetData";
       }
       if (extraParams != null) {
         statement.append(", ");

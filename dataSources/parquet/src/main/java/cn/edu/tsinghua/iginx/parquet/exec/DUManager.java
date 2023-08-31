@@ -700,8 +700,17 @@ public class DUManager {
       ret = new HashMap<>(curMemTablePathMap);
       fileMetaMap.forEach((k, v) -> ret.putAll(v.getPathMap()));
     } else {
-      Path filepath = Paths.get(dataDir, id);
-      ret = getPathsFromFile(filepath.toString());
+      ret = new HashMap<>();
+      File file = new File(dataDir);
+      File[] dataFiles = file.listFiles();
+      if (dataFiles != null) {
+        for (File dataFile : dataFiles) {
+          if (!dataFile.getName().endsWith(SUFFIX_PARQUET_FILE)) {
+            continue;
+          }
+          ret.putAll(getPathsFromFile(dataFile.getPath()));
+        }
+      }
     }
     return ret;
   }
@@ -727,15 +736,17 @@ public class DUManager {
       conn.close();
     } catch (SQLException e) {
       logger.error("get key range from parquet file failure", e);
-      return new KeyInterval(startTime, endTime + 1);
+      return new KeyInterval(startTime, endTime);
     }
-    return new KeyInterval(startTime, endTime + 1);
+    return new KeyInterval(startTime, endTime);
   }
 
   public KeyInterval getTimeInterval() {
+    long start = Long.MAX_VALUE;
+    long end = Long.MIN_VALUE;
     if (!isDummyStorageUnit) {
-      long start = curStartTime;
-      long end = curEndTime;
+      start = curStartTime;
+      end = curEndTime;
       for (FileMeta fileMeta : fileMetaMap.values()) {
         if (fileMeta.getStartKey() < start) {
           start = fileMeta.getStartKey();
@@ -746,7 +757,21 @@ public class DUManager {
       }
       return new KeyInterval(start, end + 1);
     } else {
-      return getTimeIntervalFromFile(Paths.get(dataDir, id).toString());
+      File file = new File(dataDir);
+      File[] dataFiles = file.listFiles();
+      if (dataFiles != null) {
+        for (File dataFile : dataFiles) {
+          if (!dataFile.getName().endsWith(SUFFIX_PARQUET_FILE)) {
+            continue;
+          }
+          KeyInterval in = getTimeIntervalFromFile(dataFile.getPath());
+          long min = in.getStartKey();
+          long max = in.getEndKey();
+          start = Math.min(start, min);
+          end = Math.max(end, max);
+        }
+      }
+      return new KeyInterval(start, end + 1);
     }
   }
 

@@ -7,7 +7,7 @@ import java.util.List;
 public class ParquetParams {
 
   // <port, [dataDir, dataFilename]>
-  private HashMap<Integer, List<String>> params;
+  private final HashMap<Integer, List<String>> params;
 
   private static final int oriPort = 6667;
 
@@ -15,11 +15,11 @@ public class ParquetParams {
 
   private static final int readOnlyPort = 6669;
 
-  private static final String oriDir = "parquetData";
+  private static final String oriDir = "test/mn";
 
-  private static final String expDir = "parquetDataExp";
+  private static final String expDir = "test/nt";
 
-  private static final String readOnlyDir = "parquetDataRO";
+  private static final String readOnlyDir = "test/tm";
 
   private static final String oriFilename = "oriData.parquet";
 

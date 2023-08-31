@@ -278,6 +278,39 @@ public class IginxWorker implements IService.Iface {
     return status;
   }
 
+  private boolean isValidFileStorageEngine(Map<String, String> extraParams) {
+    boolean has_data = extraParams.get("has_data").equalsIgnoreCase("true");
+    boolean read_only = extraParams.get("is_read_only").equalsIgnoreCase("true");
+    String dir = extraParams.get("dir");
+    String dummyDir = extraParams.get("dummy_dir");
+
+    // has_data & read_only : dummy_dir required
+    // has_data : dummy_dir and dir required
+    // no data : dir required
+    if (has_data) {
+      if (dummyDir == null || dummyDir.isEmpty()) {
+        return false;
+      }
+      if (!read_only) {
+        if (dir == null || dir.isEmpty()) {
+          return false;
+        }
+        try {
+          String dummyDirPath = new File(dummyDir).getCanonicalPath();
+          String dirPath = new File(dir).getCanonicalPath();
+          if (dummyDirPath.equals(dirPath)) {
+            return false;
+          }
+        } catch (IOException e) {
+          return false;
+        }
+      }
+    } else {
+      return dir != null && !dir.isEmpty();
+    }
+    return true;
+  }
+
   @Override
   public Status addStorageEngines(AddStorageEnginesReq req) {
     if (!sessionManager.checkSession(req.getSessionId(), AuthType.Cluster)) {
@@ -291,13 +324,27 @@ public class IginxWorker implements IService.Iface {
       Map<String, String> extraParams = storageEngine.getExtraParams();
       boolean hasData = Boolean.parseBoolean(extraParams.getOrDefault(Constants.HAS_DATA, "false"));
       if (type.equals("parquet")) {
-        String dir = extraParams.get("dir");
-        if (dir == null || dir.equals("")) {
+        if (!isValidFileStorageEngine(extraParams)) {
           return RpcUtils.FAILURE;
         }
         String iginx_port = extraParams.get("iginx_port");
         if (iginx_port == null || iginx_port.equals("")) {
           return RpcUtils.FAILURE;
+        }
+        if (hasData) {
+          String dummyDir = extraParams.get("dummy_dir");
+          String parentDir;
+          if (dummyDir.contains(System.getProperty("file.separator"))) {
+            parentDir =
+                dummyDir.substring(dummyDir.lastIndexOf(System.getProperty("file.separator")));
+          } else {
+            parentDir = dummyDir;
+          }
+          if (extraParams.containsKey(SCHEMA_PREFIX)) {
+            extraParams.put(SCHEMA_PREFIX, extraParams.get(SCHEMA_PREFIX) + "." + parentDir);
+          } else {
+            extraParams.put(SCHEMA_PREFIX, parentDir);
+          }
         }
       }
       String dataPrefix = null;

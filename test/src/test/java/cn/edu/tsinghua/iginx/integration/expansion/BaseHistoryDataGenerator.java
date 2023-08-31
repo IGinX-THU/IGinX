@@ -21,7 +21,7 @@ public abstract class BaseHistoryDataGenerator {
   public int expPort;
 
   public static final List<String> EXP_PATH_LIST =
-      Arrays.asList("mn.wf03.wt01.status", "nt.wf03.wt01.temperature");
+      Arrays.asList("nt.wf03.wt01.status", "nt.wf03.wt01.temperature");
 
   public static final List<String> EXP_PATH_LIST1 = Arrays.asList("mn.wf03.wt01.status");
 
@@ -42,7 +42,7 @@ public abstract class BaseHistoryDataGenerator {
   public int readOnlyPort;
 
   public static final List<String> READ_ONLY_PATH_LIST =
-      Arrays.asList("mn.wf05.wt01.status", "mn.wf05.wt01.temperature");
+      Arrays.asList("tm.wf05.wt01.status", "tm.wf05.wt01.temperature");
 
   public static final List<DataType> READ_ONLY_DATA_TYPE_LIST =
       Arrays.asList(DataType.BOOLEAN, DataType.DOUBLE);

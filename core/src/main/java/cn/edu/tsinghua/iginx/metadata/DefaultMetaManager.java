@@ -18,6 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.metadata;
 
+import static cn.edu.tsinghua.iginx.conf.Constants.SCHEMA_PREFIX;
 import static cn.edu.tsinghua.iginx.metadata.utils.ReshardStatus.EXECUTING;
 import static cn.edu.tsinghua.iginx.metadata.utils.ReshardStatus.NON_RESHARDING;
 
@@ -43,6 +44,8 @@ import cn.edu.tsinghua.iginx.thrift.UserType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.SnowFlakeUtils;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
+import java.io.File;
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -1200,6 +1203,42 @@ public class DefaultMetaManager implements IMetaManager {
     return cache.getSchemaMappingItem(schema, key);
   }
 
+  private boolean isValidFileStorageEngine(Map<String, String> extraParams) {
+    if (!extraParams.containsKey("has_data") || !extraParams.containsKey("is_read_only")) {
+      return false;
+    }
+    boolean has_data = extraParams.get("has_data").equalsIgnoreCase("true");
+    boolean read_only = extraParams.get("is_read_only").equalsIgnoreCase("true");
+    String dir = extraParams.get("dir");
+    String dummyDir = extraParams.get("dummy_dir");
+
+    // has_data & read_only : dummy_dir required
+    // has_data : dummy_dir and dir required
+    // no data : dir required
+    if (has_data) {
+      if (dummyDir == null || dummyDir.isEmpty()) {
+        return false;
+      }
+      if (!read_only) {
+        if (dir == null || dir.isEmpty()) {
+          return false;
+        }
+        try {
+          String dummyDirPath = new File(dummyDir).getCanonicalPath();
+          String dirPath = new File(dir).getCanonicalPath();
+          if (dummyDirPath.equals(dirPath)) {
+            return false;
+          }
+        } catch (IOException e) {
+          return false;
+        }
+      }
+    } else {
+      return dir != null && !dir.isEmpty();
+    }
+    return true;
+  }
+
   private List<StorageEngineMeta> resolveStorageEngineFromConf() {
     List<StorageEngineMeta> storageEngineMetaList = new ArrayList<>();
     String[] storageEngineStrings =
@@ -1231,6 +1270,30 @@ public class DefaultMetaManager implements IMetaManager {
         }
       }
       boolean hasData = Boolean.parseBoolean(extraParams.getOrDefault(Constants.HAS_DATA, "false"));
+      if (storageEngine.equals("parquet")) {
+        if (!isValidFileStorageEngine(extraParams)) {
+          logger.error(String.format("Invalid parquet storage with params: %s.", extraParams));
+          continue;
+        }
+        if (hasData) {
+          String dummyDir = extraParams.get("dummy_dir");
+          String parentDir;
+          String separator = System.getProperty("file.separator");
+          if (dummyDir.endsWith(separator)) {
+            parentDir =
+                dummyDir.substring(dummyDir.lastIndexOf(separator) + 1, dummyDir.length() - 1);
+          } else if (dummyDir.contains(separator)) {
+            parentDir = dummyDir.substring(dummyDir.lastIndexOf(separator) + 1);
+          } else {
+            parentDir = dummyDir;
+          }
+          if (extraParams.containsKey(SCHEMA_PREFIX)) {
+            extraParams.put(SCHEMA_PREFIX, extraParams.get(SCHEMA_PREFIX) + "." + parentDir);
+          } else {
+            extraParams.put(SCHEMA_PREFIX, parentDir);
+          }
+        }
+      }
       String dataPrefix = null;
       if (hasData && extraParams.containsKey(Constants.DATA_PREFIX)) {
         dataPrefix = extraParams.get(Constants.DATA_PREFIX);
@@ -1245,11 +1308,14 @@ public class DefaultMetaManager implements IMetaManager {
             new StorageUnitMeta(StorageUnitMeta.generateDummyStorageUnitID(i), i);
         Pair<ColumnsInterval, KeyInterval> boundary = StorageManager.getBoundaryOfStorage(storage);
         FragmentMeta dummyFragment;
+        String schemaPrefix = extraParams.get(SCHEMA_PREFIX);
         if (dataPrefix == null) {
+          boundary.k.setSchemaPrefix(schemaPrefix);
           dummyFragment = new FragmentMeta(boundary.k, boundary.v, dummyStorageUnit);
         } else {
-          dummyFragment =
-              new FragmentMeta(new ColumnsInterval(dataPrefix), boundary.v, dummyStorageUnit);
+          ColumnsInterval ci = new ColumnsInterval(dataPrefix);
+          ci.setSchemaPrefix(schemaPrefix);
+          dummyFragment = new FragmentMeta(ci, boundary.v, dummyStorageUnit);
         }
         dummyFragment.setDummyFragment(true);
         storage.setDummyStorageUnit(dummyStorageUnit);
@@ -1257,6 +1323,7 @@ public class DefaultMetaManager implements IMetaManager {
       }
       storageEngineMetaList.add(storage);
     }
+    confStorageEngineList = storageEngineMetaList;
     return storageEngineMetaList;
   }
 

@@ -23,15 +23,18 @@ import cn.edu.tsinghua.iginx.parquet.exec.RemoteExecutor;
 import cn.edu.tsinghua.iginx.parquet.server.ParquetServer;
 import cn.edu.tsinghua.iginx.parquet.tools.FilterTransformer;
 import cn.edu.tsinghua.iginx.utils.Pair;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,24 +45,42 @@ public class ParquetStorage implements IStorage {
 
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
-  // if hasData = true, data dir will contain .parquet file.
-  private static boolean hasData = false;
-
   private static final String DRIVER_NAME = "org.duckdb.DuckDBDriver";
 
   private static final String CONN_URL = "jdbc:duckdb:";
 
   private Executor executor;
 
+  private ExecutorService serverExecutor = Executors.newSingleThreadExecutor();
+
   public ParquetStorage(StorageEngineMeta meta) throws StorageInitializationException {
     Map<String, String> extraParams = meta.getExtraParams();
     int iginx_port = Integer.parseInt(extraParams.get("iginx_port"));
-    boolean isLocal = (meta.getIp().equals(config.getIp()) && config.getPort() == iginx_port);
-    hasData = extraParams.get("has_data").equalsIgnoreCase("true");
+    String ip = meta.getIp();
+    boolean isLocal =
+        ((isLocalIPAddress(ip) || meta.getIp().equals(config.getIp()))
+            && config.getPort() == iginx_port);
     if (isLocal) {
       initLocalStorage(meta);
     } else {
       initRemoteStorage(meta);
+    }
+  }
+
+  public static boolean isLocalIPAddress(String ip) {
+    try {
+      InetAddress address = InetAddress.getByName(ip);
+      if (address.isAnyLocalAddress() || address.isLoopbackAddress()) {
+        return true;
+      }
+      NetworkInterface ni = NetworkInterface.getByInetAddress(address);
+      if (ni != null && ni.isVirtual()) {
+        return true;
+      }
+      InetAddress local = InetAddress.getLocalHost();
+      return local.equals(address);
+    } catch (UnknownHostException | SocketException e) {
+      return false;
     }
   }
 
@@ -70,13 +91,7 @@ public class ParquetStorage implements IStorage {
 
     Map<String, String> extraParams = meta.getExtraParams();
     String dataDir = extraParams.get("dir");
-    try {
-      if (Files.notExists(Paths.get(dataDir))) {
-        Files.createDirectories(Paths.get(dataDir));
-      }
-    } catch (IOException e) {
-      throw new StorageInitializationException("encounter error when create data dir");
-    }
+    String dummyDir = extraParams.get("dummy_dir");
 
     Connection connection;
     try {
@@ -85,9 +100,11 @@ public class ParquetStorage implements IStorage {
       throw new StorageInitializationException("cannot connect to " + meta.toString());
     }
 
-    this.executor = new NewExecutor(connection, dataDir, hasData);
+    this.executor =
+        new NewExecutor(connection, meta.isHasData(), meta.isReadOnly(), dataDir, dummyDir);
 
-    new Thread(new ParquetServer(meta.getPort(), executor)).start();
+    //    new Thread(new ParquetServer(meta.getPort(), executor)).start();
+    serverExecutor.submit(new Thread(new ParquetServer(meta.getPort(), executor)));
   }
 
   private void initRemoteStorage(StorageEngineMeta meta) throws StorageInitializationException {
@@ -197,5 +214,6 @@ public class ParquetStorage implements IStorage {
   @Override
   public void release() throws PhysicalException {
     executor.close();
+    serverExecutor.shutdown();
   }
 }
