@@ -408,9 +408,9 @@ public abstract class BaseCapacityExpansionIT {
       session.executeSql(
           String.format(removeStatement, expPort, "p1" + schemaPrefixSuffix, dataPrefix1));
     } catch (ExecutionException | SessionException e) {
-      if (!e.getMessage().contains("dummy storage engine is not exists.")) {
+      if (!e.getMessage().contains("dummy storage engine does not exist.")) {
         logger.error(
-            "'remove history data' should throw error when remove the node that not exist");
+            "'remove history data source should throw error when removing the node that does not exist");
         fail();
       }
     }
@@ -456,5 +456,10 @@ public abstract class BaseCapacityExpansionIT {
       logger.error("test query for file system failed {}", e.getMessage());
       fail();
     }
+  }
+
+  public static void main(String[] args) {
+    String sql = "remove historydataresource (\"127.0.0.1\", " + expPort + ", \"\", \"mn\")";
+    logger.error(sql);
   }
 }

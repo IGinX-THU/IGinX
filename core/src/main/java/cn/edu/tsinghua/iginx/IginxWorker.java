@@ -200,6 +200,14 @@ public class IginxWorker implements IService.Iface {
         String metaIp = metaa.getIp(),
             metaSchemaPrefix = metaa.getSchemaPrefix(),
             metaDataPrefix = metaa.getDataPrefix();
+        logger.error(
+            "infoIp = {} infoSchemaPrefix = {} infoDataPrefix = {} metaIp = {} metaSchemaPrefix = {} metaDataPrefix = {}",
+            infoIp,
+            infoSchemaPrefix,
+            infoDataPrefix,
+            metaIp,
+            metaSchemaPrefix,
+            metaDataPrefix);
         if (infoIp.equals(metaIp)
             && storageEngineInfo.getPort() == metaa.getPort()
             && (infoSchemaPrefix.length() == 0 && metaSchemaPrefix == null
@@ -207,12 +215,13 @@ public class IginxWorker implements IService.Iface {
                     && (infoDataPrefix.length() == 0 && metaDataPrefix == null
                         || Objects.equals(infoDataPrefix, metaDataPrefix)))) {
           meta = metaa;
+          logger.error("meat = {}", meta);
           dummyStorageId = metaa.getId();
         }
       }
       if (meta == null || meta.getDummyFragment() == null || meta.getDummyStorageUnit() == null) {
         status = RpcUtils.FAILURE;
-        status.setMessage("dummy storage engine is not exists.");
+        status.setMessage("dummy storage engine does not exist.");
         return status;
       }
       try {
