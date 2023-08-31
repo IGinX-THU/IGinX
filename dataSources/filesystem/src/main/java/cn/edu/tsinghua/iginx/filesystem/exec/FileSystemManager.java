@@ -375,7 +375,7 @@ public class FileSystemManager {
     return fileList;
   }
 
-  public List<File> getAllFiles(File dir) {
+  public List<File> getAllFiles(File dir, boolean containsDir) {
     List<File> res = new ArrayList<>();
     Stack<File> stack = new Stack<>();
     stack.push(dir);
@@ -387,8 +387,12 @@ public class FileSystemManager {
         for (File f : fileList) {
           if (f.isDirectory()) {
             stack.push(f);
+            if (containsDir) {
+              res.add(f);
+            }
+          } else {
+            res.add(f);
           }
-          res.add(f);
         }
       }
     }

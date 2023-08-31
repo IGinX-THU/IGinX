@@ -23,7 +23,6 @@ import cn.edu.tsinghua.iginx.filesystem.query.entity.FileSystemQueryRowStream;
 import cn.edu.tsinghua.iginx.filesystem.query.entity.FileSystemResultTable;
 import cn.edu.tsinghua.iginx.filesystem.query.entity.Record;
 import cn.edu.tsinghua.iginx.filesystem.shared.Constant;
-import cn.edu.tsinghua.iginx.filesystem.shared.FileType;
 import cn.edu.tsinghua.iginx.filesystem.tools.FilePathUtils;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
@@ -300,19 +299,9 @@ public class LocalExecutor implements Executor {
   @Override
   public List<Column> getColumnsOfStorageUnit(String storageUnit) throws PhysicalException {
     List<Column> columns = new ArrayList<>();
-    List<File> files = new ArrayList<>();
     if (root != null) {
       File directory = new File(FilePathUtils.toIginxPath(root, storageUnit, null));
-      files = fileSystemManager.getAllFiles(directory);
-    }
-
-    if (hasData) {
-      files.addAll(fileSystemManager.getAllFiles(new File(dummyRoot)));
-    }
-
-    for (File file : files) {
-      // 如果加入该Storage时有数据，才读取该文件夹下的文件
-      if (fileSystemManager.getFileType(file).equals(FileType.IGINX_FILE)) {
+      for (File file : fileSystemManager.getAllFiles(directory, false)) {
         FileMeta meta = fileSystemManager.getFileMeta(file);
         if (meta == null) {
           throw new PhysicalException(
@@ -320,23 +309,23 @@ public class LocalExecutor implements Executor {
                   "encounter error when getting columns of storage unit because file meta %s is null",
                   file.getAbsolutePath()));
         }
-        columns.add(
-            new Column(
-                FilePathUtils.convertAbsolutePathToPath(root, file.getAbsolutePath(), storageUnit),
-                meta.getDataType(),
-                meta.getTags()));
-      } else {
-        if (hasData) {
-          columns.add(
-              new Column(
-                  FilePathUtils.convertAbsolutePathToPath(
-                      dummyRoot, file.getAbsolutePath(), storageUnit),
-                  DataType.BINARY,
-                  null));
-        }
+        columns.add(new Column(
+            FilePathUtils.convertAbsolutePathToPath(root, file.getAbsolutePath(), storageUnit),
+            meta.getDataType(),
+            meta.getTags(),
+            false));
       }
     }
-
+    if (hasData && dummyRoot != null) {
+      for (File file : fileSystemManager.getAllFiles(new File(dummyRoot), true)) {
+        columns.add(new Column(
+            FilePathUtils.convertAbsolutePathToPath(
+                dummyRoot, file.getAbsolutePath(), storageUnit),
+            DataType.BINARY,
+            null,
+            true));
+      }
+    }
     return columns;
   }
 

@@ -19,6 +19,7 @@
 package cn.edu.tsinghua.iginx;
 
 import static cn.edu.tsinghua.iginx.conf.Constants.SCHEMA_PREFIX;
+import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.setSchemaPrefixInExtraParams;
 import static cn.edu.tsinghua.iginx.utils.ByteUtils.getLongArrayFromByteBuffer;
 
 import cn.edu.tsinghua.iginx.auth.SessionManager;
@@ -267,11 +268,15 @@ public class IginxWorker implements IService.Iface {
       String type = storageEngine.getType();
       Map<String, String> extraParams = storageEngine.getExtraParams();
       boolean hasData = Boolean.parseBoolean(extraParams.getOrDefault(Constants.HAS_DATA, "false"));
+      String dataPrefix = null;
+      if (hasData && extraParams.containsKey(Constants.DATA_PREFIX)) {
+        dataPrefix = extraParams.get(Constants.DATA_PREFIX);
+      }
       boolean readOnly =
           Boolean.parseBoolean(extraParams.getOrDefault(Constants.IS_READ_ONLY, "false"));
       if (type.equals("parquet")) {
         String dir = extraParams.get("dir");
-        if (dir == null || dir.equals("")) {
+        if (dir == null || dir.isEmpty()) {
           return RpcUtils.FAILURE;
         }
         if (extraParams.containsKey(SCHEMA_PREFIX)) {
@@ -280,55 +285,10 @@ public class IginxWorker implements IService.Iface {
           extraParams.put(SCHEMA_PREFIX, dir);
         }
       }
-      if (type.equals("filesystem")) {
-        if (hasData) {
-          // 如果hasData为true，则参数中必须配置dummy_dir
-          String dummyDir = extraParams.get("dummy_dir");
-          if (dummyDir == null || dummyDir.isEmpty()) {
-            return RpcUtils.FAILURE;
-          }
-          if (!readOnly) {
-            // 如果hasData为true，且readOnly为false，则参数中必须配置dir，且不能与dummy_dir相同
-            String dir = extraParams.get("dir");
-            if (dir == null || dir.isEmpty()) {
-              return RpcUtils.FAILURE;
-            }
-            try {
-              String dummyDirPath = new File(dummyDir).getCanonicalPath();
-              String dirPath = new File(dir).getCanonicalPath();
-              if (dummyDirPath.equals(dirPath)) {
-                return RpcUtils.FAILURE;
-              }
-            } catch (IOException e) {
-              return RpcUtils.FAILURE;
-            }
-          }
-          String schemaPrefix;
-          String separator = System.getProperty("file.separator");
-          if (dummyDir.endsWith(separator)) {
-            String tempSchemaPrefix = dummyDir.substring(0, dummyDir.lastIndexOf(separator));
-            schemaPrefix = tempSchemaPrefix.substring(tempSchemaPrefix.lastIndexOf(separator) + 1);
-          } else {
-            schemaPrefix = dummyDir.substring(dummyDir.lastIndexOf(separator) + 1);
-          }
-          if (extraParams.containsKey(SCHEMA_PREFIX)) {
-            extraParams.put(SCHEMA_PREFIX, extraParams.get(SCHEMA_PREFIX) + "." + schemaPrefix);
-          } else {
-            extraParams.put(SCHEMA_PREFIX, schemaPrefix);
-          }
-        } else {
-          // 如果hasData为false，则参数中必须配置dir
-          String dir = extraParams.get("dir");
-          if (dir == null || dir.isEmpty()) {
-            return RpcUtils.FAILURE;
-          }
-        }
+      if (!setSchemaPrefixInExtraParams(type, extraParams)) {
+        return RpcUtils.FAILURE;
       }
-
-      String dataPrefix = null;
-      if (hasData && extraParams.containsKey(Constants.DATA_PREFIX)) {
-        dataPrefix = extraParams.get(Constants.DATA_PREFIX);
-      }
+      String schemaPrefix = extraParams.get(Constants.SCHEMA_PREFIX);
 
       StorageEngineMeta meta =
           new StorageEngineMeta(
@@ -337,7 +297,7 @@ public class IginxWorker implements IService.Iface {
               storageEngine.getPort(),
               hasData,
               dataPrefix,
-              extraParams.get(SCHEMA_PREFIX),
+              schemaPrefix,
               readOnly,
               storageEngine.getExtraParams(),
               type,

@@ -38,6 +38,8 @@ public final class Column {
 
   private String physicalPath = null;
 
+  private boolean isDummy = false;
+
   public Column(String path, DataType dataType) {
     this(path, dataType, null);
   }
@@ -46,6 +48,11 @@ public final class Column {
     this.path = path;
     this.dataType = dataType;
     this.tags = tags;
+  }
+
+  public Column(String path, DataType dataType, Map<String, String> tags, boolean isDummy) {
+    this(path, dataType, tags);
+    this.isDummy = isDummy;
   }
 
   public static RowStream toRowStream(Collection<Column> timeseries) {
@@ -87,6 +94,10 @@ public final class Column {
 
   public Map<String, String> getTags() {
     return tags;
+  }
+
+  public boolean isDummy() {
+    return isDummy;
   }
 
   @Override
