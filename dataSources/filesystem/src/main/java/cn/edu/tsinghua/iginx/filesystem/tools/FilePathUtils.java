@@ -15,6 +15,10 @@ public class FilePathUtils {
     if (path.equals(WILDCARD)) {
       return root + storageUnit + SEPARATOR + WILDCARD;
     }
+    // TODO compaction 会调用 show columns，会错误地返回单级目录，导致传入的 path 不含 .
+    if (!path.contains(".")) {
+      return root + path;
+    }
     String middlePath = path.substring(0, path.lastIndexOf("."));
     return root
         + storageUnit

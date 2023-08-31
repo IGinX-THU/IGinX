@@ -216,7 +216,7 @@ public class IginxWorker implements IService.Iface {
         return status;
       }
       try {
-        // 设置对应的 dummyFragament 为 invalid 状态
+        // 设置对应的 dummyFragment 为 invalid 状态
         meta.getDummyFragment().setIfValid(false);
         meta.getDummyStorageUnit().setIfValid(false);
 
