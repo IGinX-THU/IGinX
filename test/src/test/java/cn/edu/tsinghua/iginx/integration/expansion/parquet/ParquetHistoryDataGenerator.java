@@ -84,7 +84,16 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
     try {
       int columnCount = pathList.size();
       // table name does not affect query
-      String tableName = dir;
+      String separator = System.getProperty("file.separator");
+      String tableName;
+      if (dir.endsWith(separator)) {
+        tableName = dir.substring(0, dir.lastIndexOf(separator));
+        tableName = tableName.substring(tableName.lastIndexOf(separator) + 1);
+      } else if (dir.contains(separator)) {
+        tableName = dir.substring(dir.lastIndexOf(separator) + 1);
+      } else {
+        tableName = dir;
+      }
       String columnName;
       String dataType;
       for (int i = 0; i < columnCount; i++) {
