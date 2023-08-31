@@ -320,6 +320,7 @@ public abstract class BaseCapacityExpansionIT {
     String dataPrefix1 = this instanceof FileSystemCapacityExpansionIT ? "wf03" : "nt.wf03";
     String dataPrefix2 = this instanceof FileSystemCapacityExpansionIT ? "wf04" : "nt.wf04";
     String schemaPrefixSuffix = this instanceof FileSystemCapacityExpansionIT ? ".nt" : "";
+    String schemaPrefix = this instanceof FileSystemCapacityExpansionIT ? "nt" : "";
 
     // 添加不同 schemaPrefix，相同 dataPrefix
     addStorageEngine(expPort, true, true, dataPrefix1, "p1");
@@ -389,7 +390,7 @@ public abstract class BaseCapacityExpansionIT {
           String.format(removeStatement, expPort, "p1" + schemaPrefixSuffix, dataPrefix1));
       session.executeSql(
           String.format(removeStatement, expPort, "p3" + schemaPrefixSuffix, dataPrefix2));
-      session.executeSql(String.format(removeStatement, expPort, "nt", dataPrefix1));
+      session.executeSql(String.format(removeStatement, expPort, schemaPrefix, dataPrefix1));
     } catch (ExecutionException | SessionException e) {
       logger.error("remove history data source through sql error: {}", e.getMessage());
     }
