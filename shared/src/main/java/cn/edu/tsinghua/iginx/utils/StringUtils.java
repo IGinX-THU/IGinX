@@ -101,10 +101,12 @@ public class StringUtils {
   }
 
   public static String reformatPath(String path) {
-    path = path.replaceAll("[.^${}]", "\\\\$0");
-    if (!path.contains("*")) return path;
-    path = path.replaceAll("[*]", ".*");
     path = path.replaceAll("\\\\", "\\\\\\\\");
+    path = path.replaceAll("[.^${}]", "\\\\$0");
+    if (!path.contains("*")) {
+      return path;
+    }
+    path = path.replaceAll("[*]", ".*");
     return path;
   }
 
