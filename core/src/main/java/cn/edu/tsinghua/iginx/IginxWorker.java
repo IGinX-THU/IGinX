@@ -334,9 +334,12 @@ public class IginxWorker implements IService.Iface {
         if (hasData) {
           String dummyDir = extraParams.get("dummy_dir");
           String parentDir;
-          if (dummyDir.contains(System.getProperty("file.separator"))) {
+          String separator = System.getProperty("file.separator");
+          if (dummyDir.endsWith(separator)) {
+            parentDir = dummyDir.substring(0, dummyDir.lastIndexOf(separator));
+          } else if (dummyDir.contains(separator)) {
             parentDir =
-                dummyDir.substring(dummyDir.lastIndexOf(System.getProperty("file.separator")));
+                dummyDir.substring(dummyDir.lastIndexOf(separator) + 1);
           } else {
             parentDir = dummyDir;
           }
