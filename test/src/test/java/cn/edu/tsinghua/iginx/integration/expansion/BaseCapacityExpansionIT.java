@@ -384,14 +384,19 @@ public abstract class BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, pathListAns, expValuesList2);
 
     // 通过 sql 语句测试移除节点
+    String removeStatement = "remove historydataresource (\"127.0.0.1\", %d, \"%s\", \"%s\")";
     try {
-      String removeStatement = "remove historydataresource (\"127.0.0.1\", %d, \"%s\", \"%s\")";
-      session.executeSql(
-          String.format(removeStatement, expPort, "p1" + schemaPrefixSuffix, dataPrefix1));
-      session.executeSql(
-          String.format(removeStatement, expPort, "p3" + schemaPrefixSuffix, dataPrefix2));
-      session.executeSql(String.format(removeStatement, expPort, schemaPrefix, dataPrefix1));
+      statement = String.format(removeStatement, expPort, "p1" + schemaPrefixSuffix, dataPrefix1);
+      logger.error(statement);
+      session.executeSql(statement);
+      statement = String.format(removeStatement, expPort, "p3" + schemaPrefixSuffix, dataPrefix2);
+      logger.error(statement);
+      session.executeSql(statement);
+      statement = String.format(removeStatement, expPort, schemaPrefix, dataPrefix1);
+      logger.error(statement);
+      session.executeSql(statement);
     } catch (ExecutionException | SessionException e) {
+      e.printStackTrace();
       logger.error("remove history data source through sql error: {}", e.getMessage());
     }
     // 移除节点 dataPrefix = dataPrefix1 && schemaPrefix = p1 + schemaPrefixSuffix 后再查询
@@ -401,13 +406,7 @@ public abstract class BaseCapacityExpansionIT {
 
     try {
       session.executeSql(
-          "remove historydataresource (\"127.0.0.1\", "
-              + expPort
-              + ", \"p1"
-              + schemaPrefixSuffix
-              + "\", \""
-              + dataPrefix1
-              + "\")");
+          String.format(removeStatement, expPort, "p1" + schemaPrefixSuffix, dataPrefix1));
     } catch (ExecutionException | SessionException e) {
       if (!e.getMessage().contains("dummy storage engine is not exists.")) {
         logger.error(
