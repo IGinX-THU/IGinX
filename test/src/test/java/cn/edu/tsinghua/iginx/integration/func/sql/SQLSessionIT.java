@@ -3621,6 +3621,19 @@ public class SQLSessionIT {
             + "Total line number = 4\n";
     executor.executeAndCompare(statement, expected);
 
+    statement = "SELECT * FROM test.a WHERE d IN (SELECT d FROM test.b ORDER BY key LIMIT 2);";
+    expected =
+        "ResultSets:\n"
+            + "+---+--------+--------+--------+--------+\n"
+            + "|key|test.a.a|test.a.b|test.a.c|test.a.d|\n"
+            + "+---+--------+--------+--------+--------+\n"
+            + "|  1|       3|       2|     3.1|    val1|\n"
+            + "|  2|       1|       3|     2.1|    val2|\n"
+            + "|  5|       1|       2|     3.1|    val1|\n"
+            + "+---+--------+--------+--------+--------+\n"
+            + "Total line number = 3\n";
+    executor.executeAndCompare(statement, expected);
+
     statement = "SELECT * FROM test.a WHERE d IN (SELECT d FROM test.b WHERE test.b.a = test.a.a);";
     expected =
         "ResultSets:\n"
@@ -3672,6 +3685,19 @@ public class SQLSessionIT {
             + "|  6|       2|       2|     5.1|    val3|\n"
             + "+---+--------+--------+--------+--------+\n"
             + "Total line number = 4\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "SELECT * FROM test.a WHERE d = SOME (SELECT d FROM test.b ORDER BY key LIMIT 2);";
+    expected =
+        "ResultSets:\n"
+            + "+---+--------+--------+--------+--------+\n"
+            + "|key|test.a.a|test.a.b|test.a.c|test.a.d|\n"
+            + "+---+--------+--------+--------+--------+\n"
+            + "|  1|       3|       2|     3.1|    val1|\n"
+            + "|  2|       1|       3|     2.1|    val2|\n"
+            + "|  5|       1|       2|     3.1|    val1|\n"
+            + "+---+--------+--------+--------+--------+\n"
+            + "Total line number = 3\n";
     executor.executeAndCompare(statement, expected);
 
     statement = "SELECT * FROM test.a WHERE c > SOME (SELECT c FROM test.b);";
@@ -4427,7 +4453,7 @@ public class SQLSessionIT {
 
     // IGinX SQL 路径中支持的合法字符
     String insert =
-        "INSERT INTO _:@#$~^{}(key, _:@#$~^{}) VALUES (1, 1), (2, 2), (3, 3), (4, 4), (5, 5);";
+        "INSERT INTO _:@#$~^{}(key, _:@#$~^{}, _:@#$~^) VALUES (1, 1, 2), (2, 2, 3), (3, 3, 4), (4, 4, 4), (5, 5, 5);";
     executor.execute(insert);
 
     String query = "SELECT _:@#$~^{} FROM _:@#$~^{};";
@@ -4443,6 +4469,32 @@ public class SQLSessionIT {
             + "|  5|                  5|\n"
             + "+---+-------------------+\n"
             + "Total line number = 5\n";
+    executor.executeAndCompare(query, expected);
+
+    query = "SELECT _:@#$~^{} FROM _:@#$~^{} WHERE _:@#$~^{} >= 2 AND _:@#$~^{} <= 4";
+    expected =
+        "ResultSets:\n"
+            + "+---+-------------------+\n"
+            + "|key|_:@#$~^{}._:@#$~^{}|\n"
+            + "+---+-------------------+\n"
+            + "|  2|                  2|\n"
+            + "|  3|                  3|\n"
+            + "|  4|                  4|\n"
+            + "+---+-------------------+\n"
+            + "Total line number = 3\n";
+    executor.executeAndCompare(query, expected);
+
+    query = "SELECT _:@#$~^{}, _:@#$~^ FROM _:@#$~^{} WHERE _:@#$~^{} < _:@#$~^";
+    expected =
+        "ResultSets:\n"
+            + "+---+-------------------+-----------------+\n"
+            + "|key|_:@#$~^{}._:@#$~^{}|_:@#$~^{}._:@#$~^|\n"
+            + "+---+-------------------+-----------------+\n"
+            + "|  1|                  1|                2|\n"
+            + "|  2|                  2|                3|\n"
+            + "|  3|                  3|                4|\n"
+            + "+---+-------------------+-----------------+\n"
+            + "Total line number = 3\n";
     executor.executeAndCompare(query, expected);
   }
 

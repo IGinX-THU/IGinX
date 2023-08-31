@@ -1331,12 +1331,19 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   private Filter parseExistsFilter(
       PredicateWithSubqueryContext ctx, UnarySelectStatement statement, boolean isHavingFilter) {
     SelectStatement subStatement = parseQueryClause(ctx.subquery().get(0).queryClause(), true);
-    if (ctx.subquery().get(0).orderByClause() != null) {
-      throw new SQLParserException("Not supported for order by used in where subquery.");
+
+    if (ctx.subquery().get(0).orderByClause() != null
+        && ctx.subquery().get(0).limitClause() != null) {
+      parseOrderByClause(ctx.subquery().get(0).orderByClause(), subStatement);
+      Pair<Integer, Integer> limitAndOffset = parseLimitClause(ctx.subquery().get(0).limitClause());
+      subStatement.setLimit(limitAndOffset.getK());
+      subStatement.setOffset(limitAndOffset.getV());
+    } else if (ctx.subquery().get(0).orderByClause() != null
+        ^ ctx.subquery().get(0).limitClause() != null) {
+      throw new SQLParserException(
+          "order by and limit should be used at the same time in where subquery");
     }
-    if (ctx.subquery().get(0).limitClause() != null) {
-      throw new SQLParserException("Not supported for limit used in where subquery.");
-    }
+
     // 计算子查询的自由变量
     subStatement.initFreeVariables();
     String markColumn = MARK_PREFIX + markJoinCount;
@@ -1359,11 +1366,17 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   private Filter parseInFilter(
       PredicateWithSubqueryContext ctx, UnarySelectStatement statement, boolean isHavingFilter) {
     SelectStatement subStatement = parseQueryClause(ctx.subquery().get(0).queryClause(), true);
-    if (ctx.subquery().get(0).orderByClause() != null) {
-      throw new SQLParserException("Not supported for order by used in where subquery.");
-    }
-    if (ctx.subquery().get(0).limitClause() != null) {
-      throw new SQLParserException("Not supported for limit used in where subquery.");
+
+    if (ctx.subquery().get(0).orderByClause() != null
+        && ctx.subquery().get(0).limitClause() != null) {
+      parseOrderByClause(ctx.subquery().get(0).orderByClause(), subStatement);
+      Pair<Integer, Integer> limitAndOffset = parseLimitClause(ctx.subquery().get(0).limitClause());
+      subStatement.setLimit(limitAndOffset.getK());
+      subStatement.setOffset(limitAndOffset.getV());
+    } else if (ctx.subquery().get(0).orderByClause() != null
+        ^ ctx.subquery().get(0).limitClause() != null) {
+      throw new SQLParserException(
+          "order by and limit should be used at the same time in where subquery");
     }
     if (subStatement.getExpressions().size() != 1) {
       throw new SQLParserException(
@@ -1411,11 +1424,17 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   private Filter parseQuantifierComparisonFilter(
       PredicateWithSubqueryContext ctx, UnarySelectStatement statement, boolean isHavingFilter) {
     SelectStatement subStatement = parseQueryClause(ctx.subquery().get(0).queryClause(), true);
-    if (ctx.subquery().get(0).orderByClause() != null) {
-      throw new SQLParserException("Not supported for order by used in where subquery.");
-    }
-    if (ctx.subquery().get(0).limitClause() != null) {
-      throw new SQLParserException("Not supported for limit used in where subquery.");
+
+    if (ctx.subquery().get(0).orderByClause() != null
+        && ctx.subquery().get(0).limitClause() != null) {
+      parseOrderByClause(ctx.subquery().get(0).orderByClause(), subStatement);
+      Pair<Integer, Integer> limitAndOffset = parseLimitClause(ctx.subquery().get(0).limitClause());
+      subStatement.setLimit(limitAndOffset.getK());
+      subStatement.setOffset(limitAndOffset.getV());
+    } else if (ctx.subquery().get(0).orderByClause() != null
+        ^ ctx.subquery().get(0).limitClause() != null) {
+      throw new SQLParserException(
+          "order by and limit should be used at the same time in where subquery");
     }
     if (subStatement.getExpressions().size() != 1) {
       throw new SQLParserException(
@@ -1468,11 +1487,17 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   private Filter parseScalarSubQueryComparisonFilter(
       PredicateWithSubqueryContext ctx, UnarySelectStatement statement, boolean isHavingFilter) {
     SelectStatement subStatement = parseQueryClause(ctx.subquery().get(0).queryClause(), true);
-    if (ctx.subquery().get(0).orderByClause() != null) {
-      throw new SQLParserException("Not supported for order by used in where subquery.");
-    }
-    if (ctx.subquery().get(0).limitClause() != null) {
-      throw new SQLParserException("Not supported for limit used in where subquery.");
+
+    if (ctx.subquery().get(0).orderByClause() != null
+        && ctx.subquery().get(0).limitClause() != null) {
+      parseOrderByClause(ctx.subquery().get(0).orderByClause(), subStatement);
+      Pair<Integer, Integer> limitAndOffset = parseLimitClause(ctx.subquery().get(0).limitClause());
+      subStatement.setLimit(limitAndOffset.getK());
+      subStatement.setOffset(limitAndOffset.getV());
+    } else if (ctx.subquery().get(0).orderByClause() != null
+        ^ ctx.subquery().get(0).limitClause() != null) {
+      throw new SQLParserException(
+          "order by and limit should be used at the same time in where subquery");
     }
     if (subStatement.getExpressions().size() != 1) {
       throw new SQLParserException(
@@ -1519,11 +1544,18 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
     for (int i = 0; i < 2; i++) {
       SelectStatement subStatement = parseQueryClause(ctx.subquery().get(i).queryClause(), true);
-      if (ctx.subquery().get(0).orderByClause() != null) {
-        throw new SQLParserException("Not supported for order by used in where subquery.");
-      }
-      if (ctx.subquery().get(0).limitClause() != null) {
-        throw new SQLParserException("Not supported for limit used in where subquery.");
+
+      if (ctx.subquery().get(0).orderByClause() != null
+          && ctx.subquery().get(0).limitClause() != null) {
+        parseOrderByClause(ctx.subquery().get(0).orderByClause(), subStatement);
+        Pair<Integer, Integer> limitAndOffset =
+            parseLimitClause(ctx.subquery().get(0).limitClause());
+        subStatement.setLimit(limitAndOffset.getK());
+        subStatement.setOffset(limitAndOffset.getV());
+      } else if (ctx.subquery().get(0).orderByClause() != null
+          ^ ctx.subquery().get(0).limitClause() != null) {
+        throw new SQLParserException(
+            "order by and limit should be used at the same time in where subquery");
       }
       if (subStatement.getExpressions().size() != 1) {
         throw new SQLParserException(

@@ -21,6 +21,10 @@ public class TagKVUtils {
   public static final String tagNameAnnotation = Config.tagNameAnnotation;
 
   public static Pair<String, Map<String, String>> splitFullName(String fullName) {
+    if (fullName.startsWith("\"") && fullName.endsWith("\"")) {
+      fullName = fullName.substring(1, fullName.length() - 1);
+    }
+
     if (!fullName.contains(tagNameAnnotation)) {
       return new Pair<>(fullName, null);
     }
