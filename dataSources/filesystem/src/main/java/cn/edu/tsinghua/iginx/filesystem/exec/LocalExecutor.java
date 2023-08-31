@@ -309,21 +309,23 @@ public class LocalExecutor implements Executor {
                   "encounter error when getting columns of storage unit because file meta %s is null",
                   file.getAbsolutePath()));
         }
-        columns.add(new Column(
-            FilePathUtils.convertAbsolutePathToPath(root, file.getAbsolutePath(), storageUnit),
-            meta.getDataType(),
-            meta.getTags(),
-            false));
+        columns.add(
+            new Column(
+                FilePathUtils.convertAbsolutePathToPath(root, file.getAbsolutePath(), storageUnit),
+                meta.getDataType(),
+                meta.getTags(),
+                false));
       }
     }
     if (hasData && dummyRoot != null) {
       for (File file : fileSystemManager.getAllFiles(new File(dummyRoot), true)) {
-        columns.add(new Column(
-            FilePathUtils.convertAbsolutePathToPath(
-                dummyRoot, file.getAbsolutePath(), storageUnit),
-            DataType.BINARY,
-            null,
-            true));
+        columns.add(
+            new Column(
+                FilePathUtils.convertAbsolutePathToPath(
+                    dummyRoot, file.getAbsolutePath(), storageUnit),
+                DataType.BINARY,
+                null,
+                true));
       }
     }
     return columns;
