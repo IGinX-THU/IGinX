@@ -231,7 +231,7 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   private void testQueryHistoryDataExpHasData() {
-    String statement = "select * from mn.wf03";
+    String statement = "select * from nt.wf01";
     List<String> pathList = BaseHistoryDataGenerator.EXP_PATH_LIST1;
     List<List<Object>> valuesList = BaseHistoryDataGenerator.EXP_VALUES_LIST1;
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
@@ -257,7 +257,7 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   private void testQueryHistoryDataReadOnly() {
-    String statement = "select * from mn.wf05";
+    String statement = "select * from tm.wf05";
     List<String> pathList = BaseHistoryDataGenerator.READ_ONLY_PATH_LIST;
     List<List<Object>> valuesList = BaseHistoryDataGenerator.READ_ONLY_VALUES_LIST;
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);

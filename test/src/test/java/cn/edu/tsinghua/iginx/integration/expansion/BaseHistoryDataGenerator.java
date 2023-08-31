@@ -21,9 +21,9 @@ public abstract class BaseHistoryDataGenerator {
   public int expPort;
 
   public static final List<String> EXP_PATH_LIST =
-      Arrays.asList("nt.wf03.wt01.status", "nt.wf03.wt01.temperature");
+      Arrays.asList("nt.wf01.wt01.status", "nt.wf03.wt01.temperature");
 
-  public static final List<String> EXP_PATH_LIST1 = Arrays.asList("mn.wf03.wt01.status");
+  public static final List<String> EXP_PATH_LIST1 = Arrays.asList("nt.wf01.wt01.status");
 
   public static final List<String> EXP_PATH_LIST2 = Arrays.asList("nt.wf03.wt01.temperature");
 
