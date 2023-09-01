@@ -19,7 +19,6 @@ public class StorageEngineUtils {
       if (hasData) {
         // 如果hasData为true，则参数中必须配置dummy_dir
         Pair<Boolean, String> dummyDirPair = getCanonicalPath(extraParams.get("dummy_dir"));
-        System.out.println("dummyDirPair = " + dummyDirPair);
         if (!dummyDirPair.k) {
           return false;
         }
@@ -27,7 +26,6 @@ public class StorageEngineUtils {
         if (!readOnly) {
           // 如果hasData为true，且readOnly为false，则参数中必须配置dir，且不能与dummy_dir相同
           Pair<Boolean, String> dirPair = getCanonicalPath(extraParams.get("dir"));
-          System.out.println("dirPair = " + dirPair);
           if (!dirPair.k) {
             return false;
           }
@@ -39,7 +37,6 @@ public class StorageEngineUtils {
         String separator = System.getProperty("file.separator");
         // dummyDirPath是规范路径，一定不会以separator结尾
         String schemaPrefix = dummyDirPath.substring(dummyDirPath.lastIndexOf(separator) + 1);
-        System.out.println("schemaPrefix = " + schemaPrefix);
         if (extraParams.containsKey(SCHEMA_PREFIX)) {
           extraParams.put(SCHEMA_PREFIX, extraParams.get(SCHEMA_PREFIX) + "." + schemaPrefix);
         } else {
@@ -48,7 +45,6 @@ public class StorageEngineUtils {
       } else {
         // 如果hasData为false，则参数中必须配置dir
         Pair<Boolean, String> dirPair = getCanonicalPath(extraParams.get("dir"));
-        System.out.println("dirPair = " + dirPair);
         return dirPair.k;
       }
     }
@@ -58,13 +54,16 @@ public class StorageEngineUtils {
   private static Pair<Boolean, String> getCanonicalPath(String dir) {
     Pair<Boolean, String> invalidPair = new Pair<>(false, "");
     if (dir == null || dir.isEmpty()) { // 为空
-      System.out.println("dir is empty " + dir);
       return invalidPair;
     }
     File file = new File(dir);
-    if (!file.exists() || !file.isDirectory()) { // 不存在或不是目录
-      System.out.println("dir is invalid " + file.getAbsolutePath());
+    if (file.exists() && !file.isDirectory()) { // 存在但不是目录
       return invalidPair;
+    }
+    if (!file.exists()) { // 不存在则尝试创建
+      if (!file.mkdirs()) {
+        return invalidPair;
+      }
     }
     try {
       String canonicalPath = file.getCanonicalPath(); // 获取规范路径
