@@ -36,7 +36,7 @@ public class StorageEngineUtils {
         }
         String separator = System.getProperty("file.separator");
         // dummyDirPath是规范路径，一定不会以separator结尾
-        String schemaPrefix = dummyDirPath.substring(dummyDirPath.lastIndexOf(separator) + 1);;
+        String schemaPrefix = dummyDirPath.substring(dummyDirPath.lastIndexOf(separator) + 1);
         if (extraParams.containsKey(SCHEMA_PREFIX)) {
           extraParams.put(SCHEMA_PREFIX, extraParams.get(SCHEMA_PREFIX) + "." + schemaPrefix);
         } else {
