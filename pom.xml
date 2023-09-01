@@ -17,6 +17,7 @@
         <module>antlr</module>
         <module>jdbc</module>
         <module>session</module>
+        <module>dataSources/filesystem</module>
         <module>dataSources/iotdb12</module>
         <module>dataSources/influxdb</module>
         <module>dataSources/opentsdb</module>

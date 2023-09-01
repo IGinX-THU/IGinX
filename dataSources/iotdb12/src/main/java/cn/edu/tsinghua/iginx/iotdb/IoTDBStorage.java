@@ -237,29 +237,31 @@ public class IoTDBStorage implements IStorage {
         }
         String path = record.getFields().get(0).getStringValue();
         path = path.substring(5); // remove root.
+        boolean isDummy = true;
         if (path.startsWith("unit")) {
           path = path.substring(path.indexOf('.') + 1);
+          isDummy = false;
         }
         Pair<String, Map<String, String>> pair = TagKVUtils.splitFullName(path);
         String dataTypeName = record.getFields().get(3).getStringValue();
         switch (dataTypeName) {
           case "BOOLEAN":
-            timeseries.add(new Column(pair.k, DataType.BOOLEAN, pair.v));
+            timeseries.add(new Column(pair.k, DataType.BOOLEAN, pair.v, isDummy));
             break;
           case "FLOAT":
-            timeseries.add(new Column(pair.k, DataType.FLOAT, pair.v));
+            timeseries.add(new Column(pair.k, DataType.FLOAT, pair.v, isDummy));
             break;
           case "TEXT":
-            timeseries.add(new Column(pair.k, DataType.BINARY, pair.v));
+            timeseries.add(new Column(pair.k, DataType.BINARY, pair.v, isDummy));
             break;
           case "DOUBLE":
-            timeseries.add(new Column(pair.k, DataType.DOUBLE, pair.v));
+            timeseries.add(new Column(pair.k, DataType.DOUBLE, pair.v, isDummy));
             break;
           case "INT32":
-            timeseries.add(new Column(pair.k, DataType.INTEGER, pair.v));
+            timeseries.add(new Column(pair.k, DataType.INTEGER, pair.v, isDummy));
             break;
           case "INT64":
-            timeseries.add(new Column(pair.k, DataType.LONG, pair.v));
+            timeseries.add(new Column(pair.k, DataType.LONG, pair.v, isDummy));
             break;
         }
       }

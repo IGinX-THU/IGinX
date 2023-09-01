@@ -48,7 +48,14 @@ public class SQLTestTools {
             .map(
                 row -> {
                   List<String> strValues = new ArrayList<>();
-                  row.forEach(val -> strValues.add(String.valueOf(val)));
+                  row.forEach(
+                      val -> {
+                        if (val instanceof byte[]) {
+                          strValues.add(new String((byte[]) val));
+                        } else {
+                          strValues.add(String.valueOf(val));
+                        }
+                      });
                   return strValues;
                 })
             .collect(Collectors.toSet());
