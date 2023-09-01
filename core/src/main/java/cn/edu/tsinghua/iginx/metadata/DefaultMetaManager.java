@@ -20,6 +20,7 @@ package cn.edu.tsinghua.iginx.metadata;
 
 import static cn.edu.tsinghua.iginx.metadata.utils.ReshardStatus.EXECUTING;
 import static cn.edu.tsinghua.iginx.metadata.utils.ReshardStatus.NON_RESHARDING;
+import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.setSchemaPrefixInExtraParams;
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.conf.Constants;
@@ -1203,13 +1204,13 @@ public class DefaultMetaManager implements IMetaManager {
     String[] storageEngineStrings =
         ConfigDescriptor.getInstance().getConfig().getStorageEngineList().split(",");
     for (int i = 0; i < storageEngineStrings.length; i++) {
-      if (storageEngineStrings[i].length() == 0) {
+      if (storageEngineStrings[i].isEmpty()) {
         continue;
       }
       String[] storageEngineParts = storageEngineStrings[i].split("#");
       String ip = storageEngineParts[0];
       int port = -1;
-      if (!storageEngineParts[1].equals("")) {
+      if (!storageEngineParts[1].isEmpty()) {
         port = Integer.parseInt(storageEngineParts[1]);
       }
       String storageEngine = storageEngineParts[2];
@@ -1235,19 +1236,36 @@ public class DefaultMetaManager implements IMetaManager {
       }
       boolean readOnly =
           Boolean.parseBoolean(extraParams.getOrDefault(Constants.IS_READ_ONLY, "false"));
+      if (!setSchemaPrefixInExtraParams(storageEngine, extraParams)) {
+        continue;
+      }
+      String schemaPrefix = extraParams.get(Constants.SCHEMA_PREFIX);
+
       StorageEngineMeta storage =
           new StorageEngineMeta(
-              i, ip, port, hasData, dataPrefix, readOnly, extraParams, storageEngine, id);
+              i,
+              ip,
+              port,
+              hasData,
+              dataPrefix,
+              schemaPrefix,
+              readOnly,
+              extraParams,
+              storageEngine,
+              id);
       if (hasData) {
         StorageUnitMeta dummyStorageUnit =
             new StorageUnitMeta(StorageUnitMeta.generateDummyStorageUnitID(i), i);
         Pair<ColumnsInterval, KeyInterval> boundary = StorageManager.getBoundaryOfStorage(storage);
         FragmentMeta dummyFragment;
+
         if (dataPrefix == null) {
+          boundary.k.setSchemaPrefix(schemaPrefix);
           dummyFragment = new FragmentMeta(boundary.k, boundary.v, dummyStorageUnit);
         } else {
-          dummyFragment =
-              new FragmentMeta(new ColumnsInterval(dataPrefix), boundary.v, dummyStorageUnit);
+          ColumnsInterval columnsInterval = new ColumnsInterval(dataPrefix);
+          columnsInterval.setSchemaPrefix(schemaPrefix);
+          dummyFragment = new FragmentMeta(columnsInterval, boundary.v, dummyStorageUnit);
         }
         dummyFragment.setDummyFragment(true);
         storage.setDummyStorageUnit(dummyStorageUnit);

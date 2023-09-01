@@ -20,7 +20,8 @@ jobs:
                 java: [8]
                 python-version: ["3.7.16"]
                 os: [ubuntu-latest, macos-latest]
-                DB-name: ["IoTDB12", "InfluxDB", "PostgreSQL", "Redis"]
+                DB-name:
+                    ["FileSystem", "IoTDB12", "InfluxDB", "PostgreSQL", "Redis"]
         runs-on: ${{ matrix.os }}
         steps:
             - uses: actions/checkout@v2
@@ -41,7 +42,7 @@ jobs:
             - name: Install IGinX with Maven
               shell: bash
               run: |
-                  mvn clean package -DskipTests -P passFormat -q
+                  mvn clean package -DskipTests -P-format -q
 
             # 第 1 阶段测试开始==========================================
             - name: Prepare CapExp environment oriHasDataExpHasData
@@ -53,8 +54,8 @@ jobs:
 
             - name: oriHasDataExpHasData IT
               run: |
-                  mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriHasDataExpHasData -DfailIfNoTests=false -P passFormat
-                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P passFormat
+                  mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriHasDataExpHasData -DfailIfNoTests=false -P-format
+                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
 
             # 第 2 阶段测试开始==========================================
             - name: Prepare CapExp environment oriNoDataExpNoData
@@ -66,8 +67,8 @@ jobs:
 
             - name: oriNoDataExpNoData IT
               run: |
-                  mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriNoDataExpNoData -DfailIfNoTests=false -P passFormat
-                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P passFormat
+                  mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriNoDataExpNoData -DfailIfNoTests=false -P-format
+                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
 
             # 第 3 阶段测试开始==========================================
             - name: Prepare CapExp environment oriHasDataExpNoData
@@ -79,8 +80,8 @@ jobs:
 
             - name: oriHasDataExpNoData IT
               run: |
-                  mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriHasDataExpNoData -DfailIfNoTests=false -P passFormat
-                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P passFormat
+                  mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriHasDataExpNoData -DfailIfNoTests=false -P-format
+                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
 
             # 第 4 阶段测试开始==========================================
             - name: Prepare CapExp environment oriNoDataExpHasData
@@ -92,8 +93,8 @@ jobs:
 
             - name: oriNoDataExpHasData IT
               run: |
-                  mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriNoDataExpHasData -DfailIfNoTests=false -P passFormat
-                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P passFormat
+                  mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriNoDataExpHasData -DfailIfNoTests=false -P-format
+                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
 
             # 测试只读节点===============================================
             - name: Prepare CapExp environment for testReadOnly
@@ -106,8 +107,8 @@ jobs:
 
             - name: Run testReadOnly
               run: |
-                  mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#testReadOnly -DfailIfNoTests=false -P passFormat
-                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P passFormat
+                  mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#testReadOnly -DfailIfNoTests=false -P-format
+                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
 
             - name: Show IGinX log
               if: always()
@@ -154,11 +155,11 @@ jobs:
             - name: Install IGinX with Maven
               shell: bash
               run: |
-                  mvn clean package -DskipTests -P passFormat -q
+                  mvn clean package -DskipTests -P-format -q
 
             - name: Write history Data
               run: |
-                  mvn test -q -Dtest=ParquetHistoryDataGeneratorTest -DfailIfNoTests=false -P passFormat
+                  mvn test -q -Dtest=ParquetHistoryDataGeneratorTest -DfailIfNoTests=false -P-format
                   sleep 10
 
             - name: Start IGinX
@@ -167,7 +168,7 @@ jobs:
                   version: ${VERSION}
 
             - name: ParquetCapacityExpansionIT
-              run: mvn test -q -Dtest=ParquetCapacityExpansionIT -DfailIfNoTests=false -P passFormat
+              run: mvn test -q -Dtest=ParquetCapacityExpansionIT -DfailIfNoTests=false -P-format
 
             - name: Show IGinX log
               if: always()

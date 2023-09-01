@@ -4,14 +4,15 @@ import static cn.edu.tsinghua.iginx.metadata.utils.FragmentUtils.keyFromColumnsI
 
 import cn.edu.tsinghua.iginx.engine.logical.utils.ExprUtils;
 import cn.edu.tsinghua.iginx.engine.logical.utils.OperatorUtils;
+import cn.edu.tsinghua.iginx.engine.shared.Constants;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
+import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
+import cn.edu.tsinghua.iginx.engine.shared.source.Source;
+import cn.edu.tsinghua.iginx.engine.shared.source.SourceType;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
@@ -86,6 +87,19 @@ public class FilterFragmentOptimizer implements Optimizer {
     Filter filter = selectOperator.getFilter();
     List<KeyRange> keyRanges = ExprUtils.getKeyRangesFromFilter(filter);
 
+    // 因为该optimizer是针对key范围进行优化，所以如果select operator没有对key进行过滤，那么就不需要进行优化，直接返回
+    if (keyRanges.isEmpty()) {
+      return;
+    }
+
+    // 如果Select Operator的子树中包含非Project和Join(ByKey)节点，那么无法进行优化，直接返回
+    // 无法优化的情况有(1)Select Operator下含有子查询，(2)含有OUTER JOIN、INNER JOIN等会消除Key列的JOIN操作，在此排除。
+    if (!onlyHasProjectAndJoinByKeyAndUnion(
+        ((OperatorSource) (selectOperator.getSource())).getOperator())) {
+      return;
+    }
+
+    // 将符合Key范围的Fragment Project节点用Join(ByKey)合成一个新的子树并设置为Select Operator的子节点
     List<Operator> unionList = new ArrayList<>();
     fragments.forEach(
         (k, v) -> {
@@ -135,5 +149,47 @@ public class FilterFragmentOptimizer implements Optimizer {
       }
     }
     return false;
+  }
+
+  /** 判断子树中是否含有非Project和Join(ByKey)节点 */
+  private static boolean onlyHasProjectAndJoinByKeyAndUnion(Operator operator) {
+    boolean res =
+        operator.getType() == OperatorType.Project
+            || (operator.getType() == OperatorType.Join
+                    && ((Join) operator).getJoinBy().equals(Constants.KEY)
+                || operator.getType() == OperatorType.Union);
+
+    if (!res) {
+      return false;
+    }
+
+    // dfs to find select operator.
+    if (OperatorType.isUnaryOperator(operator.getType())) {
+      UnaryOperator unaryOp = (UnaryOperator) operator;
+      Source source = unaryOp.getSource();
+      if (source.getType() != SourceType.Fragment) {
+        res = res && onlyHasProjectAndJoinByKeyAndUnion(((OperatorSource) source).getOperator());
+      }
+    } else if (OperatorType.isBinaryOperator(operator.getType())) {
+      BinaryOperator binaryOperator = (BinaryOperator) operator;
+      Source sourceA = binaryOperator.getSourceA();
+      Source sourceB = binaryOperator.getSourceB();
+      if (sourceA.getType() != SourceType.Fragment) {
+        res = res && onlyHasProjectAndJoinByKeyAndUnion(((OperatorSource) sourceA).getOperator());
+      }
+      if (sourceB.getType() != SourceType.Fragment) {
+        res = res && onlyHasProjectAndJoinByKeyAndUnion(((OperatorSource) sourceB).getOperator());
+      }
+    } else {
+      MultipleOperator multipleOperator = (MultipleOperator) operator;
+      List<Source> sources = multipleOperator.getSources();
+      for (Source source : sources) {
+        if (source.getType() != SourceType.Fragment) {
+          res = res && onlyHasProjectAndJoinByKeyAndUnion(((OperatorSource) source).getOperator());
+        }
+      }
+    }
+
+    return res;
   }
 }

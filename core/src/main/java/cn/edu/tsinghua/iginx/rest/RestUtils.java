@@ -52,4 +52,18 @@ public class RestUtils {
   public static long getIntervalStart(long key, long startKey, long duration) {
     return (key - startKey) / duration * duration + startKey;
   }
+
+  public static DataType judgeObjectType(Object obj) {
+    if (obj instanceof Boolean) {
+      return DataType.BOOLEAN;
+    } else if (obj instanceof Byte || obj instanceof String || obj instanceof Character) {
+      return DataType.BINARY;
+    } else if (obj instanceof Long || obj instanceof Integer) {
+      return DataType.LONG;
+    } else if (obj instanceof Double || obj instanceof Float) {
+      return DataType.DOUBLE;
+    }
+    // 否则默认字符串类型
+    return DataType.BINARY;
+  }
 }

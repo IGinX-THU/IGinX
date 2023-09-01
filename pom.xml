@@ -17,6 +17,7 @@
         <module>antlr</module>
         <module>jdbc</module>
         <module>session</module>
+        <module>dataSources/filesystem</module>
         <module>dataSources/iotdb12</module>
         <module>dataSources/influxdb</module>
         <module>dataSources/opentsdb</module>
@@ -120,6 +121,7 @@
                                 </includes>
                                 <excludes>
                                     <exclude>.github/**/*.yml</exclude>
+                                    <exclude>**/target/**/*.yml</exclude>
                                 </excludes>
                             </yaml>
                             <formats>
@@ -140,6 +142,9 @@
                                 <includes>
                                     <include>**/*.md</include>
                                 </includes>
+                                <excludes>
+                                    <exclude>**/target/**/*.md</exclude>
+                                </excludes>
                                 <flexmark/>
                             </markdown>
                             <pom>
@@ -159,20 +164,16 @@
                         </configuration>
                         <executions>
                             <execution>
-                                <id>format</id>
                                 <goals>
-                                    <!--goal>check</goal-->
                                     <goal>apply</goal>
+                                    <!--goal>check</goal-->
                                 </goals>
-                                <phase>process-sources</phase>
+                                <phase>initialize</phase>
                             </execution>
                         </executions>
                     </plugin>
                 </plugins>
             </build>
-        </profile>
-        <profile>
-            <id>passFormat</id>
         </profile>
         <profile>
             <id>common</id>
@@ -247,5 +248,4 @@
             </build>
         </profile>
     </profiles>
-
 </project>

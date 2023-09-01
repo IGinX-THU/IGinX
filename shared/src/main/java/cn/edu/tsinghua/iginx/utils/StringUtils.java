@@ -25,7 +25,7 @@ import java.util.regex.Pattern;
 
 public class StringUtils {
 
-  public static final Character MIN_CHAR = '!';
+  private static final Character MAX_CHAR = '~';
   private static final String SPECIAL_CHAR_SET =
       "[!&()+=|'%`;,<>?\n\t][\u2E80\u2E81\u2E82\u2E83\u2E84\u2E85][\\x00-\\x1F\\x7F]";
   private static final String[] REGEX = {"[", "]", "(", ")", "|", "+", "?", "*", "-"};
@@ -74,7 +74,7 @@ public class StringUtils {
   }
 
   public static String nextString(String str) {
-    return str + MIN_CHAR;
+    return str + MAX_CHAR;
   }
 
   public static boolean allHasMoreThanOneSubPath(List<String> pathList) {
@@ -101,8 +101,11 @@ public class StringUtils {
   }
 
   public static String reformatPath(String path) {
-    if (!path.contains("*")) return path;
-    path = path.replaceAll("[.]", "[.]");
+    path = path.replaceAll("\\\\", "\\\\\\\\");
+    path = path.replaceAll("[.^${}]", "\\\\$0");
+    if (!path.contains("*")) {
+      return path;
+    }
     path = path.replaceAll("[*]", ".*");
     return path;
   }
@@ -113,6 +116,7 @@ public class StringUtils {
     name = name.replaceAll("[*]", ".*");
     name = name.replaceAll("[(]", "[(]");
     name = name.replaceAll("[)]", "[)]");
+    name = name.replaceAll("\\\\", "\\\\\\\\");
     return name;
   }
 

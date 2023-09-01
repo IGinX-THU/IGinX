@@ -253,7 +253,7 @@ The following words are displayed to indicate that the image was built successfu
 => => extracting sha256:d73cf48caaac2e45ad76a2a9eb3b311d0e4eb1d804e3d2b9cf075a1fa31e6f92                          0.7s
 => [builder 2/4] COPY . /root/iginx                                                                               1.3s
 => [builder 3/4] WORKDIR /root/iginx                                                                              0.1s
-=> [builder 4/4] RUN mvn clean package -DskipTests -P passFormat                                                876.3s
+=> [builder 4/4] RUN mvn clean package -DskipTests -P-format                                                      876.3s
 => [stage-1 2/2] COPY --from=builder /root/iginx/core/target/iginx-core-0.6.0-SNAPSHOT /iginx                     0.2s
 => exporting to image                                                                                             0.5s
 => => exporting layers                                                                                            0.5s

@@ -22,7 +22,7 @@ for line in ${LISTS[@]}
 do
    echo "test IT name : "$line
    echo "test IT name : "$line >> ./test/src/test/resources/testResult.txt
-   mvn test -q -Dtest=$line -DfailIfNoTests=false -P passFormat
+   mvn test -q -Dtest=$line -DfailIfNoTests=false  -P-format
 
    if [ $? -ne 0 ];then
      echo " test  -- Faile  : "$?

@@ -83,8 +83,14 @@ public class Avg implements SetMappingFunction {
       Field field = fields.get(i);
       if (pattern.matcher(field.getFullName()).matches()) {
         if (groupByLevels == null) {
-          String name = getIdentifier() + "(" + field.getName() + ")";
-          String fullName = getIdentifier() + "(" + field.getFullName() + ")";
+          String name = getIdentifier() + "(";
+          String fullName = getIdentifier() + "(";
+          if (params.isDistinct()) {
+            name += "distinct ";
+            fullName += "distinct ";
+          }
+          name += field.getName() + ")";
+          fullName += field.getFullName() + ")";
           targetFields.add(new Field(name, fullName, DataType.DOUBLE));
         } else {
           String targetFieldName =

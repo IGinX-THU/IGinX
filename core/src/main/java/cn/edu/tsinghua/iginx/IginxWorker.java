@@ -19,6 +19,7 @@
 package cn.edu.tsinghua.iginx;
 
 import static cn.edu.tsinghua.iginx.conf.Constants.SCHEMA_PREFIX;
+import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.setSchemaPrefixInExtraParams;
 import static cn.edu.tsinghua.iginx.utils.ByteUtils.getLongArrayFromByteBuffer;
 
 import cn.edu.tsinghua.iginx.auth.SessionManager;
@@ -199,23 +200,31 @@ public class IginxWorker implements IService.Iface {
         String metaIp = metaa.getIp(),
             metaSchemaPrefix = metaa.getSchemaPrefix(),
             metaDataPrefix = metaa.getDataPrefix();
-        if (infoIp.equals(metaIp)
-            && storageEngineInfo.getPort() == metaa.getPort()
-            && (infoSchemaPrefix.length() == 0 && metaSchemaPrefix == null
-                || Objects.equals(infoSchemaPrefix, metaSchemaPrefix)
-                    && (infoDataPrefix.length() == 0 && metaDataPrefix == null
-                        || Objects.equals(infoDataPrefix, metaDataPrefix)))) {
-          meta = metaa;
-          dummyStorageId = metaa.getId();
+        if (!infoIp.equals(metaIp)) {
+          continue;
         }
+        if (storageEngineInfo.getPort() != metaa.getPort()) {
+          continue;
+        }
+        if (!(infoSchemaPrefix.isEmpty() && metaSchemaPrefix == null)
+            && !Objects.equals(infoSchemaPrefix, metaSchemaPrefix)) {
+          continue;
+        }
+        if (!(infoDataPrefix.isEmpty() && metaDataPrefix == null)
+            && !Objects.equals(infoDataPrefix, metaDataPrefix)) {
+          continue;
+        }
+        meta = metaa;
+        dummyStorageId = metaa.getId();
+        break;
       }
       if (meta == null || meta.getDummyFragment() == null || meta.getDummyStorageUnit() == null) {
         status = RpcUtils.FAILURE;
-        status.setMessage("dummy storage engine is not exists.");
+        status.setMessage("dummy storage engine does not exist.");
         return status;
       }
       try {
-        // 设置对应的 dummyFragament 为 invalid 状态
+        // 设置对应的 dummyFragment 为 invalid 状态
         meta.getDummyFragment().setIfValid(false);
         meta.getDummyStorageUnit().setIfValid(false);
 
@@ -267,9 +276,15 @@ public class IginxWorker implements IService.Iface {
       String type = storageEngine.getType();
       Map<String, String> extraParams = storageEngine.getExtraParams();
       boolean hasData = Boolean.parseBoolean(extraParams.getOrDefault(Constants.HAS_DATA, "false"));
+      String dataPrefix = null;
+      if (hasData && extraParams.containsKey(Constants.DATA_PREFIX)) {
+        dataPrefix = extraParams.get(Constants.DATA_PREFIX);
+      }
+      boolean readOnly =
+          Boolean.parseBoolean(extraParams.getOrDefault(Constants.IS_READ_ONLY, "false"));
       if (type.equals("parquet")) {
         String dir = extraParams.get("dir");
-        if (dir == null || dir.equals("")) {
+        if (dir == null || dir.isEmpty()) {
           return RpcUtils.FAILURE;
         }
         if (extraParams.containsKey(SCHEMA_PREFIX)) {
@@ -278,12 +293,11 @@ public class IginxWorker implements IService.Iface {
           extraParams.put(SCHEMA_PREFIX, dir);
         }
       }
-      String dataPrefix = null;
-      if (hasData && extraParams.containsKey(Constants.DATA_PREFIX)) {
-        dataPrefix = extraParams.get(Constants.DATA_PREFIX);
+      if (!setSchemaPrefixInExtraParams(type, extraParams)) {
+        return RpcUtils.FAILURE;
       }
-      boolean readOnly =
-          Boolean.parseBoolean(extraParams.getOrDefault(Constants.IS_READ_ONLY, "false"));
+      String schemaPrefix = extraParams.get(Constants.SCHEMA_PREFIX);
+
       StorageEngineMeta meta =
           new StorageEngineMeta(
               -1,
@@ -291,7 +305,7 @@ public class IginxWorker implements IService.Iface {
               storageEngine.getPort(),
               hasData,
               dataPrefix,
-              extraParams.get(SCHEMA_PREFIX),
+              schemaPrefix,
               readOnly,
               storageEngine.getExtraParams(),
               type,

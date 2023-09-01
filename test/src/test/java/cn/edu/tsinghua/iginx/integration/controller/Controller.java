@@ -66,25 +66,9 @@ public class Controller {
     // load the test conf
     ConfLoader testConfLoader = new ConfLoader(CONFIG_FILE);
     testConfLoader.loadTestConf();
-    storageEngineMetas = testConfLoader.getStorageEngineMetas();
 
     ShellRunner shellRunner = new ShellRunner();
     TestEnvironmentController envir = new TestEnvironmentController();
-
-    // ori plan
-    //        // skip this when support remove Engine
-    //        shellRunner.runShellCommand(MVNRUNTEST);
-    //        // for each storage , run the test
-    //        for (StorageEngineMeta storageEngineMeta : storageEngineMetas) {
-    //            // add the storage engine
-    //            envir.addStorageEngine(storageEngineMeta);
-    //            // set the task list
-    //
-    // envir.setTestTasks(testConfLoader.getTaskMap().get(storageEngineMeta.getStorageEngine()),
-    // FILEPATH);
-    //            // run the test together
-    //            shellRunner.runShellCommand(MVNRUNTEST);
-    //        }
 
     // set the task list
     envir.setTestTasks(

@@ -22,6 +22,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.MarkJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.MultipleOperator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.OuterJoin;
+import cn.edu.tsinghua.iginx.engine.shared.operator.PathUnion;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Rename;
 import cn.edu.tsinghua.iginx.engine.shared.operator.RowTransform;
@@ -29,7 +30,6 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
 import cn.edu.tsinghua.iginx.engine.shared.operator.SetTransform;
 import cn.edu.tsinghua.iginx.engine.shared.operator.SingleJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.UnaryOperator;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Union;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.BoolFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.FilterType;
@@ -51,7 +51,7 @@ public class OperatorUtils {
     if (operators.size() == 1) return operators.get(0);
     Operator union = operators.get(0);
     for (int i = 1; i < operators.size(); i++) {
-      union = new Union(new OperatorSource(union), new OperatorSource(operators.get(i)));
+      union = new PathUnion(new OperatorSource(union), new OperatorSource(operators.get(i)));
     }
     return union;
   }
@@ -142,6 +142,11 @@ public class OperatorUtils {
     }
 
     AbstractJoinOperator apply = (AbstractJoinOperator) root;
+    Operator operatorB = ((OperatorSource) apply.getSourceB()).getOperator();
+    // 如果apply算子的右子树中不再有关联变量，则停止下推
+    if (!hasPaths(operatorB, correlatedVariables)) {
+      return root;
+    }
     AbstractJoinOperator applyCopy = (AbstractJoinOperator) apply.copy();
 
     Operator operatorA = new Project(applyCopy.getSourceA(), correlatedVariables, null);
@@ -423,6 +428,10 @@ public class OperatorUtils {
         }
         root = markJoin;
         break;
+      case Union:
+      case Except:
+      case Intersect:
+        throw new RuntimeException("Correlated subquery is not supported to use set operator yet.");
       default:
         throw new RuntimeException("Unexpected operator type: " + operatorB.getType());
     }
