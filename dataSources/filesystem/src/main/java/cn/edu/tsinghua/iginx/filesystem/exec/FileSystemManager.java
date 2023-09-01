@@ -18,6 +18,9 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.*;
@@ -375,7 +378,7 @@ public class FileSystemManager {
     return fileList;
   }
 
-  public List<File> getAllFiles(File dir, boolean containsDir) {
+  public List<File> getAllFiles(File dir, boolean containsEmptyDir) {
     List<File> res = new ArrayList<>();
     Stack<File> stack = new Stack<>();
     stack.push(dir);
@@ -387,7 +390,7 @@ public class FileSystemManager {
         for (File f : fileList) {
           if (f.isDirectory()) {
             stack.push(f);
-            if (containsDir) {
+            if (containsEmptyDir && isEmptyDirectory(f)) {
               res.add(f);
             }
           } else {
@@ -397,6 +400,15 @@ public class FileSystemManager {
       }
     }
     return res;
+  }
+
+  private boolean isEmptyDirectory(File directory) {
+    try (DirectoryStream<Path> stream = Files.newDirectoryStream(directory.toPath())) {
+      return !stream.iterator().hasNext();
+    } catch (IOException e) {
+      logger.error("Fail to judge the empty dir because {}", e.getMessage());
+      return false;
+    }
   }
 
   // 返回字典序最大和最小的文件路径，可能是目录
