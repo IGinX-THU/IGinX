@@ -100,7 +100,6 @@ public class StorageEngineUtils {
       return new Pair<>(true, canonicalPath);
     } catch (IOException e) {
       return invalidPair;
-
     }
   }
 }
