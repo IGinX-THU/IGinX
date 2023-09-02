@@ -24,6 +24,7 @@ import static cn.edu.tsinghua.iginx.thrift.DataType.BINARY;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream.EmptyRowStream;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.DataArea;
@@ -305,6 +306,10 @@ public class IoTDBStorage implements IStorage {
     try {
       StringBuilder builder = new StringBuilder();
       for (String path : project.getPatterns()) {
+        // TODO 暂时屏蔽含有\的pattern
+        if (path.contains("\\")) {
+          return new TaskExecuteResult(new EmptyRowStream());
+        }
         builder.append(path);
         builder.append(',');
       }
@@ -347,6 +352,10 @@ public class IoTDBStorage implements IStorage {
     try {
       StringBuilder builder = new StringBuilder();
       for (String path : project.getPatterns()) {
+        // TODO 暂时屏蔽含有\的pattern
+        if (path.contains("\\")) {
+          return new TaskExecuteResult(new EmptyRowStream());
+        }
         builder.append(path);
         builder.append(',');
       }
