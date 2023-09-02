@@ -176,7 +176,7 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
       return;
     }
 
-    String dir = parquetParams.get(port).get(0);
+    String dir = "test" + System.getProperty("file.separator") + parquetParams.get(port).get(0);
     String filename = parquetParams.get(port).get(1);
     Path parquetPath = Paths.get("../" + dir, filename);
     File file = new File(parquetPath.toString());
