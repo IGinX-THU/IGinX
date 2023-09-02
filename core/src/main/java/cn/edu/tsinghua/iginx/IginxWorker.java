@@ -18,6 +18,7 @@
  */
 package cn.edu.tsinghua.iginx;
 
+import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.isLocalParquet;
 import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.setSchemaPrefixInExtraParams;
 import static cn.edu.tsinghua.iginx.utils.ByteUtils.getLongArrayFromByteBuffer;
 
@@ -83,9 +84,7 @@ public class IginxWorker implements IService.Iface {
     List<StorageEngineMeta> confStorageEngineList = metaManager.getConfStorageEngineList();
     List<StorageEngineMeta> localParquetList = new ArrayList<>();
     for (StorageEngineMeta meta : confStorageEngineList) {
-      if (!meta.getStorageEngine().equals("parquet")
-          || !meta.getIp().equals(config.getIp())
-          || Integer.parseInt(meta.getExtraParams().get("iginx_port")) != config.getPort()) {
+      if (!isLocalParquet(meta, config.getIp(), config.getPort())) {
         continue;
       }
       localParquetList.add(meta);
@@ -390,10 +389,7 @@ public class IginxWorker implements IService.Iface {
     List<StorageEngineMeta> noneParquetMetas = new ArrayList<>();
     for (StorageEngineMeta meta : storageEngineMetas) {
       if (meta.getStorageEngine().equals("parquet")) {
-        Map<String, String> extraParams = meta.getExtraParams();
-        int iginx_port = Integer.parseInt(extraParams.get("iginx_port"));
-        boolean isLocal = (meta.getIp().equals(config.getIp()) && config.getPort() == iginx_port);
-        if (!isLocal) {
+        if (!isLocalParquet(meta, config.getIp(), config.getPort())) {
           status = new Status(RpcUtils.PARTIAL_SUCCESS.code);
           status.setMessage("Parquet database needs to be local: " + meta);
         } else {

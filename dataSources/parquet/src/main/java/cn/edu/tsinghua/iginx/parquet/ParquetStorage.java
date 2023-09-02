@@ -1,5 +1,7 @@
 package cn.edu.tsinghua.iginx.parquet;
 
+import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.isLocalParquet;
+
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
@@ -23,10 +25,6 @@ import cn.edu.tsinghua.iginx.parquet.exec.RemoteExecutor;
 import cn.edu.tsinghua.iginx.parquet.server.ParquetServer;
 import cn.edu.tsinghua.iginx.parquet.tools.FilterTransformer;
 import cn.edu.tsinghua.iginx.utils.Pair;
-import java.net.InetAddress;
-import java.net.NetworkInterface;
-import java.net.SocketException;
-import java.net.UnknownHostException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -54,33 +52,10 @@ public class ParquetStorage implements IStorage {
   private ExecutorService serverExecutor = Executors.newSingleThreadExecutor();
 
   public ParquetStorage(StorageEngineMeta meta) throws StorageInitializationException {
-    Map<String, String> extraParams = meta.getExtraParams();
-    int iginx_port = Integer.parseInt(extraParams.get("iginx_port"));
-    String ip = meta.getIp();
-    boolean isLocal =
-        ((isLocalIPAddress(ip) || meta.getIp().equals(config.getIp()))
-            && config.getPort() == iginx_port);
-    if (isLocal) {
+    if (isLocalParquet(meta, config.getIp(), config.getPort())) {
       initLocalStorage(meta);
     } else {
       initRemoteStorage(meta);
-    }
-  }
-
-  public static boolean isLocalIPAddress(String ip) {
-    try {
-      InetAddress address = InetAddress.getByName(ip);
-      if (address.isAnyLocalAddress() || address.isLoopbackAddress()) {
-        return true;
-      }
-      NetworkInterface ni = NetworkInterface.getByInetAddress(address);
-      if (ni != null && ni.isVirtual()) {
-        return true;
-      }
-      InetAddress local = InetAddress.getLocalHost();
-      return local.equals(address);
-    } catch (UnknownHostException | SocketException e) {
-      return false;
     }
   }
 

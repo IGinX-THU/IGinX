@@ -4,8 +4,13 @@ import static cn.edu.tsinghua.iginx.conf.Constants.HAS_DATA;
 import static cn.edu.tsinghua.iginx.conf.Constants.SCHEMA_PREFIX;
 
 import cn.edu.tsinghua.iginx.conf.Constants;
+import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import java.io.File;
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.util.Map;
 
 public class StorageEngineUtils {
@@ -59,5 +64,30 @@ public class StorageEngineUtils {
       }
     }
     return true;
+  }
+
+  public static boolean isLocalParquet(StorageEngineMeta meta, String iginxIP, int iginxPort) {
+    if (!meta.getStorageEngine().equals("parquet")) return false;
+    String storageIP = meta.getIp();
+    int storageIginxPort = Integer.parseInt(meta.getExtraParams().getOrDefault("iginx_port", "-1"));
+    return ((isLocalIPAddress(storageIP) || storageIP.equals(iginxIP))
+        && storageIginxPort == iginxPort);
+  }
+
+  private static boolean isLocalIPAddress(String ip) {
+    try {
+      InetAddress address = InetAddress.getByName(ip);
+      if (address.isAnyLocalAddress() || address.isLoopbackAddress()) {
+        return true;
+      }
+      NetworkInterface ni = NetworkInterface.getByInetAddress(address);
+      if (ni != null && ni.isVirtual()) {
+        return true;
+      }
+      InetAddress local = InetAddress.getLocalHost();
+      return local.equals(address);
+    } catch (UnknownHostException | SocketException e) {
+      return false;
+    }
   }
 }

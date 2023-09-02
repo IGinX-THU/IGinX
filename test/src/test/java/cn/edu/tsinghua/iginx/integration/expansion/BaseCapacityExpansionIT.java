@@ -417,7 +417,6 @@ public abstract class BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, expect);
 
     try {
-      String s = String.format(removeStatement, expPort, "p1" + schemaPrefixSuffix, dataPrefix1);
       session.executeSql(
           String.format(removeStatement, expPort, "p1" + schemaPrefixSuffix, dataPrefix1));
     } catch (ExecutionException | SessionException e) {
