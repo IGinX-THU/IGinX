@@ -78,6 +78,8 @@ public class StorageEngineUtils {
       return local.equals(address);
     } catch (UnknownHostException | SocketException e) {
       return false;
+    }
+  }
 
   private static Pair<Boolean, String> getCanonicalPath(String dir) {
     Pair<Boolean, String> invalidPair = new Pair<>(false, "");
