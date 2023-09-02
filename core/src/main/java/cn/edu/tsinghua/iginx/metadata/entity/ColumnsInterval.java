@@ -36,13 +36,15 @@ public final class ColumnsInterval implements Comparable<ColumnsInterval> {
     this.endColumn = endColumn;
   }
 
+  public ColumnsInterval(String startColumn, String endColumn, String schemaPrefix) {
+    this(startColumn, endColumn);
+    this.schemaPrefix = schemaPrefix;
+  }
+
   private boolean isValid(String prefix) {
-    if (prefix == null
-        || prefix.contains("..")
-        || prefix.length() != 0 && prefix.charAt(0) == '.') {
-      return false;
-    }
-    return true;
+    return prefix != null
+        && !prefix.contains("..")
+        && (prefix.isEmpty() || prefix.charAt(0) != '.');
   }
 
   public ColumnsInterval(String column) {

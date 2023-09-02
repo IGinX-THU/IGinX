@@ -3,6 +3,7 @@ package cn.edu.tsinghua.iginx.integration.expansion.parquet;
 import static cn.edu.tsinghua.iginx.integration.tool.DBType.parquet;
 
 import cn.edu.tsinghua.iginx.integration.expansion.BaseCapacityExpansionIT;
+import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -11,6 +12,9 @@ public class ParquetCapacityExpansionIT extends BaseCapacityExpansionIT {
   private static final Logger logger = LoggerFactory.getLogger(ParquetCapacityExpansionIT.class);
 
   public ParquetCapacityExpansionIT() {
-    super(parquet, "iginx_port:6888", 6667, 6668, 6669);
+    super(parquet, "iginx_port:6888");
+    Constant.oriPort = 6667;
+    Constant.expPort = 6668;
+    Constant.readOnlyPort = 6669;
   }
 }

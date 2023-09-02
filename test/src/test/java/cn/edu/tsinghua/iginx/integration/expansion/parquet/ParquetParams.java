@@ -15,11 +15,11 @@ public class ParquetParams {
 
   private static final int readOnlyPort = 6669;
 
-  private static final String oriDir = "test/mn";
+  private static final String oriDir = "mn";
 
-  private static final String expDir = "test/nt";
+  private static final String expDir = "nt";
 
-  private static final String readOnlyDir = "test/tm";
+  private static final String readOnlyDir = "tm";
 
   private static final String oriFilename = "oriData.parquet";
 

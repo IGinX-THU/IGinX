@@ -1,21 +1,20 @@
 package cn.edu.tsinghua.iginx.integration.expansion;
 
-import static cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator.EXP_VALUES_LIST2;
+import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.*;
 import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
+import cn.edu.tsinghua.iginx.integration.expansion.filesystem.FileSystemCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.influxdb.InfluxDBCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.parquet.ParquetCapacityExpansionIT;
-import cn.edu.tsinghua.iginx.integration.expansion.parquet.ParquetParams;
 import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
 import cn.edu.tsinghua.iginx.integration.tool.DBType;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.thrift.RemovedStorageEngineInfo;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import org.junit.*;
 import org.slf4j.Logger;
@@ -32,22 +31,9 @@ public abstract class BaseCapacityExpansionIT {
 
   protected String extraParams;
 
-  protected int oriPort;
-
-  protected int expPort;
-
-  protected int readOnlyPort;
-
-  private static final HashMap<Integer, List<String>> parquetParams =
-      new ParquetParams().getParams();
-
-  public BaseCapacityExpansionIT(
-      DBType dbType, String extraParams, int oriPort, int expPort, int readOnlyPort) {
+  public BaseCapacityExpansionIT(DBType dbType, String extraParams) {
     this.dbType = dbType;
     this.extraParams = extraParams;
-    this.oriPort = oriPort;
-    this.expPort = expPort;
-    this.readOnlyPort = readOnlyPort;
   }
 
   protected String addStorageEngine(
@@ -68,9 +54,15 @@ public abstract class BaseCapacityExpansionIT {
         statement.append(port);
         statement.append("/");
       }
-      if (this instanceof ParquetCapacityExpansionIT) {
-        extraParams += ", dummy_dir:" + parquetParams.get(port).get(0);
-        extraParams += ", dir:parquetData";
+      if (this instanceof FileSystemCapacityExpansionIT
+          || this instanceof ParquetCapacityExpansionIT) {
+        statement.append(", dummy_dir:test").append(System.getProperty("file.separator"));
+        statement.append(PORT_TO_ROOT.get(port));
+        statement
+            .append(", dir:test")
+            .append(System.getProperty("file.separator"))
+            .append("iginx_");
+        statement.append(PORT_TO_ROOT.get(port));
       }
       if (extraParams != null) {
         statement.append(", ");
@@ -209,36 +201,29 @@ public abstract class BaseCapacityExpansionIT {
     testWriteAndQueryNewData();
     // 再次写入并查询所有新数据
     testWriteAndQueryNewDataAfterCE();
+
+    if (this instanceof FileSystemCapacityExpansionIT) {
+      // 仅用于扩容文件系统后查询文件
+      testQueryForFileSystem();
+    }
   }
 
-  @Test
-  public void testQueryHistoryDataOriHasData() {
+  private void testQueryHistoryDataOriHasData() {
     String statement = "select * from mn";
-    List<String> pathList = BaseHistoryDataGenerator.ORI_PATH_LIST;
-    List<List<Object>> valuesList = BaseHistoryDataGenerator.ORI_VALUES_LIST;
+    List<String> pathList = ORI_PATH_LIST;
+    List<List<Object>> valuesList = oriValuesList;
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
-
-    statement = "select count(*) from mn.wf01";
-    String expect =
-        "ResultSets:\n"
-            + "+--------------------------+-------------------------------+\n"
-            + "|count(mn.wf01.wt01.status)|count(mn.wf01.wt01.temperature)|\n"
-            + "+--------------------------+-------------------------------+\n"
-            + "|                         2|                              2|\n"
-            + "+--------------------------+-------------------------------+\n"
-            + "Total line number = 1\n";
-    SQLTestTools.executeAndCompare(session, statement, expect);
   }
 
   private void testQueryHistoryDataExpHasData() {
-    String statement = "select * from nt.wf01";
-    List<String> pathList = BaseHistoryDataGenerator.EXP_PATH_LIST1;
-    List<List<Object>> valuesList = BaseHistoryDataGenerator.EXP_VALUES_LIST1;
+    String statement = "select * from nt.wf03";
+    List<String> pathList = EXP_PATH_LIST1;
+    List<List<Object>> valuesList = expValuesList1;
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
-    statement = "select * from nt.wf03";
-    pathList = BaseHistoryDataGenerator.EXP_PATH_LIST2;
-    valuesList = BaseHistoryDataGenerator.EXP_VALUES_LIST2;
+    statement = "select * from nt.wf04";
+    pathList = EXP_PATH_LIST2;
+    valuesList = expValuesList2;
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
   }
 
@@ -250,7 +235,7 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   private void testQueryHistoryDataExpNoData() {
-    String statement = "select * from mn.wf03";
+    String statement = "select * from nt";
     String expect =
         "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
@@ -258,8 +243,8 @@ public abstract class BaseCapacityExpansionIT {
 
   private void testQueryHistoryDataReadOnly() {
     String statement = "select * from tm.wf05";
-    List<String> pathList = BaseHistoryDataGenerator.READ_ONLY_PATH_LIST;
-    List<List<Object>> valuesList = BaseHistoryDataGenerator.READ_ONLY_VALUES_LIST;
+    List<String> pathList = READ_ONLY_PATH_LIST;
+    List<List<Object>> valuesList = readOnlyValuesList;
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
   }
 
@@ -337,89 +322,152 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   private void testAddAndRemoveStorageEngineWithPrefix() {
-    addStorageEngine(expPort, true, true, "mn", "p1");
-    // 添加不同schemaPrefix，相同dataPrefix
-    addStorageEngine(expPort, true, true, "mn", "p2");
-    addStorageEngine(expPort, true, true, "mn", null);
+    String dataPrefix1 =
+        this instanceof FileSystemCapacityExpansionIT || this instanceof ParquetCapacityExpansionIT
+            ? "wf03"
+            : "nt.wf03";
+    String dataPrefix2 =
+        this instanceof FileSystemCapacityExpansionIT || this instanceof ParquetCapacityExpansionIT
+            ? "wf04"
+            : "nt.wf04";
+    String schemaPrefixSuffix =
+        this instanceof FileSystemCapacityExpansionIT || this instanceof ParquetCapacityExpansionIT
+            ? ".nt"
+            : "";
+    String schemaPrefix =
+        this instanceof FileSystemCapacityExpansionIT || this instanceof ParquetCapacityExpansionIT
+            ? "nt"
+            : "";
+
+    // 添加不同 schemaPrefix，相同 dataPrefix
+    addStorageEngine(expPort, true, true, dataPrefix1, "p1");
+    addStorageEngine(expPort, true, true, dataPrefix1, "p2");
+    addStorageEngine(expPort, true, true, dataPrefix1, null);
 
     // 如果是重复添加，则报错
-    String res = addStorageEngine(expPort, true, true, "mn", null);
+    String res = addStorageEngine(expPort, true, true, dataPrefix1, null);
     if (res != null && !res.contains("unexpected repeated add")) {
       fail();
     }
-    addStorageEngine(expPort, true, true, "mn", "p3");
+    addStorageEngine(expPort, true, true, dataPrefix1, "p3");
     // 这里是之后待测试的点，如果添加包含关系的，应当报错。
-    //    res = addStorageEngine(expPort, true, true, "mn.wf03", "p3");
-    // 添加相同schemaPrefix，但是不同dataPrefix的节点
-    addStorageEngine(expPort, true, true, "nt", "p3");
+    //    res = addStorageEngine(expPort, true, true, "nt.wf03.wt01", "p3");
+    // 添加相同 schemaPrefix，不同 dataPrefix
+    addStorageEngine(expPort, true, true, dataPrefix2, "p3");
 
-    List<List<Object>> valuesList = BaseHistoryDataGenerator.EXP_VALUES_LIST1;
+    List<List<Object>> valuesList = expValuesList1;
 
-    // 添加节点 dataPrefix = mn && schemaPrefix = p1 后查询
-    String statement = "select * from p1.mn";
-    List<String> pathList = Collections.singletonList("p1.mn.wf03.wt01.status");
+    // 添加节点 dataPrefix = dataPrefix1 && schemaPrefix = p1 后查询
+    String statement = "select * from p1.nt.wf03";
+    List<String> pathList = Collections.singletonList("p1.nt.wf03.wt01.status");
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
-    // 添加节点 dataPrefix = mn && schemaPrefix = p2 后查询
-    statement = "select * from p2.mn";
-    pathList = Collections.singletonList("p2.mn.wf03.wt01.status");
+    // 添加节点 dataPrefix = dataPrefix1 && schemaPrefix = p2 后查询
+    statement = "select * from p2.nt.wf03";
+    pathList = Collections.singletonList("p2.nt.wf03.wt01.status");
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
-    // 添加节点 dataPrefix = mn && schemaPrefix = null 后查询
-    statement = "select * from mn";
-    pathList = Collections.singletonList("mn.wf03.wt01.status");
+    // 添加节点 dataPrefix = dataPrefix1 && schemaPrefix = null 后查询
+    statement = "select * from nt.wf03";
+    pathList = Collections.singletonList("nt.wf03.wt01.status");
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
     // 添加节点 dataPrefix = null && schemaPrefix = p3 后查询
-    statement = "select * from p3.mn";
-    pathList = Collections.singletonList("p3.mn.wf03.wt01.status");
+    statement = "select * from p3.nt.wf03";
+    pathList = Collections.singletonList("p3.nt.wf03.wt01.status");
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
     // 通过 session 接口测试移除节点
     List<RemovedStorageEngineInfo> removedStorageEngineList = new ArrayList<>();
-    removedStorageEngineList.add(new RemovedStorageEngineInfo("127.0.0.1", expPort, "p2", "mn"));
-    removedStorageEngineList.add(new RemovedStorageEngineInfo("127.0.0.1", expPort, "p3", "mn"));
+    removedStorageEngineList.add(
+        new RemovedStorageEngineInfo("127.0.0.1", expPort, "p2" + schemaPrefixSuffix, dataPrefix1));
+    removedStorageEngineList.add(
+        new RemovedStorageEngineInfo("127.0.0.1", expPort, "p3" + schemaPrefixSuffix, dataPrefix1));
     try {
       session.removeHistoryDataSource(removedStorageEngineList);
     } catch (ExecutionException | SessionException e) {
       logger.error("remove history data source through session api error: {}", e.getMessage());
     }
-    // 移除节点 dataPrefix = mn && schemaPrefix = p2 后再查询
-    statement = "select * from p2.mn";
+    // 移除节点 dataPrefix = dataPrefix1 && schemaPrefix = p2 + schemaPrefixSuffix 后再查询
+    statement = "select * from p2.nt.wf03";
     String expect =
         "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
-    // 移除节点 dataPrefix = mn && schemaPrefix = p3 后再查询，测试重点是移除相同schemaPrefix不同dataPrefix
-    statement = "select * from p3.nt";
+    // 移除节点 dataPrefix = dataPrefix1 && schemaPrefix = p3 + schemaPrefixSuffix
+    // 后再查询，测试重点是移除相同 schemaPrefix，不同 dataPrefix
+    statement = "select * from p3.nt.wf04";
     List<String> pathListAns = new ArrayList<>();
-    pathListAns.add("p3.nt.wf03.wt01.temperature");
-    SQLTestTools.executeAndCompare(session, statement, pathListAns, EXP_VALUES_LIST2);
+    pathListAns.add("p3.nt.wf04.wt01.temperature");
+    SQLTestTools.executeAndCompare(session, statement, pathListAns, expValuesList2);
 
     // 通过 sql 语句测试移除节点
+    String removeStatement = "remove historydataresource (\"127.0.0.1\", %d, \"%s\", \"%s\")";
     try {
       session.executeSql(
-          "remove historydataresource (\"127.0.0.1\", " + expPort + ", \"p3\", \"nt\")");
+          String.format(removeStatement, expPort, "p1" + schemaPrefixSuffix, dataPrefix1));
       session.executeSql(
-          "remove historydataresource (\"127.0.0.1\", " + expPort + ", \"p1\", \"mn\")");
-      session.executeSql(
-          "remove historydataresource (\"127.0.0.1\", " + expPort + ", \"\", \"mn\")");
+          String.format(removeStatement, expPort, "p3" + schemaPrefixSuffix, dataPrefix2));
+      session.executeSql(String.format(removeStatement, expPort, schemaPrefix, dataPrefix1));
     } catch (ExecutionException | SessionException e) {
       logger.error("remove history data source through sql error: {}", e.getMessage());
     }
-    // 移除节点 dataPrefix = mn && schemaPrefix = p1 后再查询
-    statement = "select * from p1.mn";
+    // 移除节点 dataPrefix = dataPrefix1 && schemaPrefix = p1 + schemaPrefixSuffix 后再查询
+    statement = "select * from p1.nt.wf03";
     expect = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
 
     try {
+      String s = String.format(removeStatement, expPort, "p1" + schemaPrefixSuffix, dataPrefix1);
       session.executeSql(
-          "remove historydataresource (\"127.0.0.1\", " + expPort + ", \"p1\", \"mn\")");
+          String.format(removeStatement, expPort, "p1" + schemaPrefixSuffix, dataPrefix1));
     } catch (ExecutionException | SessionException e) {
-      if (!e.getMessage().contains("dummy storage engine is not exists.")) {
+      if (!e.getMessage().contains("dummy storage engine does not exist.")) {
         logger.error(
-            "'remove history data' should throw error when remove the node that not exist");
+            "'remove history data source should throw error when removing the node that does not exist");
         fail();
       }
+    }
+  }
+
+  private void testQueryForFileSystem() {
+    try {
+      session.executeSql(
+          "ADD STORAGEENGINE (\"127.0.0.1\", 6669, \"filesystem\", \"dummy_dir:test/test/a, has_data:true, is_read_only:true\")");
+      String statement = "select 1\\txt from a.*";
+      String expect =
+          "ResultSets:\n"
+              + "+---+---------------------------------------------------------------------------+\n"
+              + "|key|                                                              a.b.c.d.1\\txt|\n"
+              + "+---+---------------------------------------------------------------------------+\n"
+              + "|  0|979899100101102103104105106107108109110111112113114115116117118119120121122|\n"
+              + "+---+---------------------------------------------------------------------------+\n"
+              + "Total line number = 1\n";
+      SQLTestTools.executeAndCompare(session, statement, expect);
+
+      statement = "select 2\\txt from a.*";
+      expect =
+          "ResultSets:\n"
+              + "+---+----------------------------------------------------+\n"
+              + "|key|                                           a.e.2\\txt|\n"
+              + "+---+----------------------------------------------------+\n"
+              + "|  0|6566676869707172737475767778798081828384858687888990|\n"
+              + "+---+----------------------------------------------------+\n"
+              + "Total line number = 1\n";
+      SQLTestTools.executeAndCompare(session, statement, expect);
+
+      statement = "select 3\\txt from a.*";
+      expect =
+          "ResultSets:\n"
+              + "+---+------------------------------------------+\n"
+              + "|key|                               a.f.g.3\\txt|\n"
+              + "+---+------------------------------------------+\n"
+              + "|  0|012345678910111213141516171819202122232425|\n"
+              + "+---+------------------------------------------+\n"
+              + "Total line number = 1\n";
+      SQLTestTools.executeAndCompare(session, statement, expect);
+    } catch (SessionException | ExecutionException e) {
+      logger.error("test query for file system failed {}", e.getMessage());
+      fail();
     }
   }
 }

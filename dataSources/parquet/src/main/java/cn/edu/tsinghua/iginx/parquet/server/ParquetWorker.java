@@ -150,7 +150,7 @@ public class ParquetWorker implements ParquetService.Iface {
     List<ByteBuffer> bitmapList = parquetRawData.getBitmapList();
     List<DataType> types = new ArrayList<>();
     for (String dataType : parquetRawData.getDataTypeList()) {
-      types.add(DataTypeUtils.strToDataType(dataType));
+      types.add(DataTypeUtils.getDataTypeFromString(dataType));
     }
 
     List<Bitmap> bitmaps;

@@ -6,5 +6,6 @@ public enum DBType {
   influxdb,
   mongodb,
   redis,
+  filesystem,
   postgresql
 }

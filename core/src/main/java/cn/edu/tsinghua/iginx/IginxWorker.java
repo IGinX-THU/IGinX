@@ -18,7 +18,7 @@
  */
 package cn.edu.tsinghua.iginx;
 
-import static cn.edu.tsinghua.iginx.conf.Constants.SCHEMA_PREFIX;
+import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.setSchemaPrefixInExtraParams;
 import static cn.edu.tsinghua.iginx.utils.ByteUtils.getLongArrayFromByteBuffer;
 
 import cn.edu.tsinghua.iginx.auth.SessionManager;
@@ -222,23 +222,31 @@ public class IginxWorker implements IService.Iface {
         String metaIp = metaa.getIp(),
             metaSchemaPrefix = metaa.getSchemaPrefix(),
             metaDataPrefix = metaa.getDataPrefix();
-        if (infoIp.equals(metaIp)
-            && storageEngineInfo.getPort() == metaa.getPort()
-            && (infoSchemaPrefix.length() == 0 && metaSchemaPrefix == null
-                || Objects.equals(infoSchemaPrefix, metaSchemaPrefix)
-                    && (infoDataPrefix.length() == 0 && metaDataPrefix == null
-                        || Objects.equals(infoDataPrefix, metaDataPrefix)))) {
-          meta = metaa;
-          dummyStorageId = metaa.getId();
+        if (!infoIp.equals(metaIp)) {
+          continue;
         }
+        if (storageEngineInfo.getPort() != metaa.getPort()) {
+          continue;
+        }
+        if (!(infoSchemaPrefix.isEmpty() && metaSchemaPrefix == null)
+            && !Objects.equals(infoSchemaPrefix, metaSchemaPrefix)) {
+          continue;
+        }
+        if (!(infoDataPrefix.isEmpty() && metaDataPrefix == null)
+            && !Objects.equals(infoDataPrefix, metaDataPrefix)) {
+          continue;
+        }
+        meta = metaa;
+        dummyStorageId = metaa.getId();
+        break;
       }
       if (meta == null || meta.getDummyFragment() == null || meta.getDummyStorageUnit() == null) {
         status = RpcUtils.FAILURE;
-        status.setMessage("dummy storage engine is not exists.");
+        status.setMessage("dummy storage engine does not exist.");
         return status;
       }
       try {
-        // 设置对应的 dummyFragament 为 invalid 状态
+        // 设置对应的 dummyFragment 为 invalid 状态
         meta.getDummyFragment().setIfValid(false);
         meta.getDummyStorageUnit().setIfValid(false);
 
@@ -278,39 +286,6 @@ public class IginxWorker implements IService.Iface {
     return status;
   }
 
-  private boolean isValidFileStorageEngine(Map<String, String> extraParams) {
-    boolean has_data = extraParams.get("has_data").equalsIgnoreCase("true");
-    boolean read_only = extraParams.get("is_read_only").equalsIgnoreCase("true");
-    String dir = extraParams.get("dir");
-    String dummyDir = extraParams.get("dummy_dir");
-
-    // has_data & read_only : dummy_dir required
-    // has_data : dummy_dir and dir required
-    // no data : dir required
-    if (has_data) {
-      if (dummyDir == null || dummyDir.isEmpty()) {
-        return false;
-      }
-      if (!read_only) {
-        if (dir == null || dir.isEmpty()) {
-          return false;
-        }
-        try {
-          String dummyDirPath = new File(dummyDir).getCanonicalPath();
-          String dirPath = new File(dir).getCanonicalPath();
-          if (dummyDirPath.equals(dirPath)) {
-            return false;
-          }
-        } catch (IOException e) {
-          return false;
-        }
-      }
-    } else {
-      return dir != null && !dir.isEmpty();
-    }
-    return true;
-  }
-
   @Override
   public Status addStorageEngines(AddStorageEnginesReq req) {
     if (!sessionManager.checkSession(req.getSessionId(), AuthType.Cluster)) {
@@ -323,39 +298,23 @@ public class IginxWorker implements IService.Iface {
       String type = storageEngine.getType();
       Map<String, String> extraParams = storageEngine.getExtraParams();
       boolean hasData = Boolean.parseBoolean(extraParams.getOrDefault(Constants.HAS_DATA, "false"));
-      if (type.equals("parquet")) {
-        if (!isValidFileStorageEngine(extraParams)) {
-          return RpcUtils.FAILURE;
-        }
-        String iginx_port = extraParams.get("iginx_port");
-        if (iginx_port == null || iginx_port.equals("")) {
-          return RpcUtils.FAILURE;
-        }
-        if (hasData) {
-          String dummyDir = extraParams.get("dummy_dir");
-          String parentDir;
-          String separator = System.getProperty("file.separator");
-          if (dummyDir.endsWith(separator)) {
-            parentDir = dummyDir.substring(0, dummyDir.lastIndexOf(separator));
-          } else if (dummyDir.contains(separator)) {
-            parentDir =
-                dummyDir.substring(dummyDir.lastIndexOf(separator) + 1);
-          } else {
-            parentDir = dummyDir;
-          }
-          if (extraParams.containsKey(SCHEMA_PREFIX)) {
-            extraParams.put(SCHEMA_PREFIX, extraParams.get(SCHEMA_PREFIX) + "." + parentDir);
-          } else {
-            extraParams.put(SCHEMA_PREFIX, parentDir);
-          }
-        }
-      }
       String dataPrefix = null;
       if (hasData && extraParams.containsKey(Constants.DATA_PREFIX)) {
         dataPrefix = extraParams.get(Constants.DATA_PREFIX);
       }
       boolean readOnly =
           Boolean.parseBoolean(extraParams.getOrDefault(Constants.IS_READ_ONLY, "false"));
+      if (type.equals("parquet")) {
+        String iginxPort = extraParams.get("iginx_port");
+        if (iginxPort == null || iginxPort.isEmpty()) {
+          return RpcUtils.FAILURE;
+        }
+      }
+      if (!setSchemaPrefixInExtraParams(type, extraParams)) {
+        return RpcUtils.FAILURE;
+      }
+      String schemaPrefix = extraParams.get(Constants.SCHEMA_PREFIX);
+
       StorageEngineMeta meta =
           new StorageEngineMeta(
               -1,
@@ -363,7 +322,7 @@ public class IginxWorker implements IService.Iface {
               storageEngine.getPort(),
               hasData,
               dataPrefix,
-              extraParams.get(SCHEMA_PREFIX),
+              schemaPrefix,
               readOnly,
               storageEngine.getExtraParams(),
               type,

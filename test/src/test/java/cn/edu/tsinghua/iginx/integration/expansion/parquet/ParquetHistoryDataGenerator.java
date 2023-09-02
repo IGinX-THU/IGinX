@@ -1,6 +1,10 @@
 package cn.edu.tsinghua.iginx.integration.expansion.parquet;
 
+import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.*;
+import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.readOnlyValuesList;
+
 import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
+import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.io.File;
@@ -13,6 +17,7 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.*;
+import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,9 +33,9 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
       new ParquetParams().getParams();
 
   public ParquetHistoryDataGenerator() {
-    this.oriPort = 6667;
-    this.expPort = 6668;
-    this.readOnlyPort = 6669;
+    Constant.oriPort = 6667;
+    Constant.expPort = 6668;
+    Constant.readOnlyPort = 6669;
   }
 
   private static Connection getConnection() {
@@ -41,6 +46,21 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
       e.printStackTrace();
       return null;
     }
+  }
+
+  @Test
+  public void writeHistoryDataToOri() {
+    writeHistoryData(oriPort, ORI_PATH_LIST, oriDataTypeList, oriValuesList);
+  }
+
+  @Test
+  public void writeHistoryDataToExp() {
+    writeHistoryData(expPort, EXP_PATH_LIST, expDataTypeList, expValuesList);
+  }
+
+  @Test
+  public void writeHistoryDataToReadOnly() {
+    writeHistoryData(readOnlyPort, READ_ONLY_PATH_LIST, readOnlyDataTypeList, readOnlyValuesList);
   }
 
   @Override
@@ -67,7 +87,7 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
       return;
     }
 
-    String dir = parquetParams.get(port).get(0);
+    String dir = "test" + System.getProperty("file.separator") + parquetParams.get(port).get(0);
     String filename = parquetParams.get(port).get(1);
     Path dirPath = Paths.get("../" + dir);
     if (Files.notExists(dirPath)) {
@@ -111,8 +131,8 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
         typeListStr.append(p.k).append(" ").append(p.v).append(", ");
       }
 
-      System.out.println(tableName);
-      System.out.println(typeListStr);
+      //      System.out.println(tableName);
+      //      System.out.println(typeListStr);
       stmt.execute(
           String.format(
               "CREATE TABLE %s (time LONG, %s);",
@@ -131,8 +151,8 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
         timeCnt++;
       }
 
-      System.out.println(tableName);
-      System.out.println(insertStr);
+      //      System.out.println(tableName);
+      //      System.out.println(insertStr);
       stmt.execute(
           String.format(
               "INSERT INTO %s VALUES %s;",

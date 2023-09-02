@@ -1,6 +1,7 @@
 package cn.edu.tsinghua.iginx.integration.expansion.postgresql;
 
 import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
+import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.sql.*;
 import java.util.*;
@@ -12,9 +13,7 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
   private static final Logger logger =
       LoggerFactory.getLogger(PostgreSQLHistoryDataGenerator.class);
 
-  private static final char IGINX_SEPARATOR = '.';
-
-  private static final char POSTGRESQL_SEPARATOR = '\u2E82';
+  private static final char SEPARATOR = '.';
 
   private static final String QUERY_DATABASES_STATEMENT = "SELECT datname FROM pg_database;";
 
@@ -31,9 +30,9 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
   private static final String PASSWORD = "postgres";
 
   public PostgreSQLHistoryDataGenerator() {
-    this.oriPort = 5432;
-    this.expPort = 5433;
-    this.readOnlyPort = 5434;
+    Constant.oriPort = 5432;
+    Constant.expPort = 5433;
+    Constant.readOnlyPort = 5434;
   }
 
   private Connection connect(int port, boolean useSystemDatabase, String databaseName) {
@@ -64,10 +63,8 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
       Map<String, Map<String, List<Integer>>> databaseToTablesToColumnIndexes = new HashMap<>();
       for (int i = 0; i < pathList.size(); i++) {
         String path = pathList.get(i);
-        String databaseName = path.substring(0, path.indexOf(IGINX_SEPARATOR));
-        String tableName =
-            path.substring(path.indexOf(IGINX_SEPARATOR) + 1, path.lastIndexOf(IGINX_SEPARATOR))
-                .replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
+        String databaseName = path.substring(0, path.indexOf(SEPARATOR));
+        String tableName = path.substring(path.indexOf(SEPARATOR) + 1, path.lastIndexOf(SEPARATOR));
 
         Map<String, List<Integer>> tablesToColumnIndexes =
             databaseToTablesToColumnIndexes.computeIfAbsent(databaseName, x -> new HashMap<>());
@@ -95,9 +92,9 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
           StringBuilder createTableStr = new StringBuilder();
           for (Integer index : item.getValue()) {
             String path = pathList.get(index);
-            String columnName = path.substring(path.lastIndexOf(IGINX_SEPARATOR) + 1);
+            String columnName = path.substring(path.lastIndexOf(SEPARATOR) + 1);
             DataType dataType = dataTypeList.get(index);
-            createTableStr.append(columnName);
+            createTableStr.append(getQuotName(columnName));
             createTableStr.append(" ");
             createTableStr.append(toPostgreSQL(dataType));
             createTableStr.append(", ");
@@ -105,7 +102,7 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
           stmt.execute(
               String.format(
                   CREATE_TABLE_STATEMENT,
-                  tableName,
+                  getQuotName(tableName),
                   createTableStr.substring(0, createTableStr.length() - 2)));
 
           StringBuilder insertStr = new StringBuilder();
@@ -120,7 +117,9 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
           }
           stmt.execute(
               String.format(
-                  INSERT_STATEMENT, tableName, insertStr.substring(0, insertStr.length() - 2)));
+                  INSERT_STATEMENT,
+                  getQuotName(tableName),
+                  insertStr.substring(0, insertStr.length() - 2)));
         }
         stmt.close();
         conn.close();
@@ -179,5 +178,9 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
       default:
         return "TEXT";
     }
+  }
+
+  private static String getQuotName(String name) {
+    return "\"" + name + "\"";
   }
 }
