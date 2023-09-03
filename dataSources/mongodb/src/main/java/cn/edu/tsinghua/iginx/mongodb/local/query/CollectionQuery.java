@@ -5,9 +5,7 @@ import cn.edu.tsinghua.iginx.mongodb.local.entity.ResultTable;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
-
 import java.util.*;
-
 import org.bson.BsonArray;
 import org.bson.BsonDocument;
 import org.bson.BsonInt32;
@@ -28,7 +26,6 @@ public class CollectionQuery {
   }
 
   public ResultTable query(PathTree tree) {
-    tree.setLeaf(false);
     Bson projection = getProjection(tree);
     FindIterable<BsonDocument> find =
         this.collection.find().projection(projection).showRecordId(true);
@@ -58,8 +55,12 @@ public class CollectionQuery {
 
     BsonDocument projection = new BsonDocument();
     for (Map.Entry<String, PathTree> child : tree.getChildren().entrySet()) {
+      String node = child.getKey();
+      if (parseInt(node) != null) {
+        return new BsonInt32(1);
+      }
       BsonValue subProjection = getSubProjection(child.getValue());
-      projection.put(child.getKey(), subProjection);
+      projection.put(node, subProjection);
     }
 
     return projection;
@@ -71,7 +72,6 @@ public class CollectionQuery {
     List<String> prefixes = new ArrayList<>(Arrays.asList(datebaseName, collectionName));
 
     ResultTable.Builder builder = new ResultTable.Builder();
-    putFieldNames(builder, prefixes, tree);
 
     while (cursor.hasNext()) {
       BsonDocument doc = cursor.next();
@@ -83,26 +83,8 @@ public class CollectionQuery {
     return builder.build();
   }
 
-  private void putFieldNames(ResultTable.Builder builder, List<String> prefixes, PathTree tree) {
-    if (tree.isLeaf()) {
-      builder.put(String.join(".", prefixes));
-    }
-
-    for (Map.Entry<String, PathTree> child : tree.getChildren().entrySet()) {
-      if (child.getKey() != null) {
-        prefixes.add(child.getKey());
-        putFieldNames(builder, prefixes, child.getValue());
-        prefixes.remove(prefixes.size() - 1);
-      }
-    }
-  }
-
   private void putMatchedFields(
       ResultTable.Builder builder, List<String> prefixes, PathTree tree, BsonValue value) {
-    if (tree.isLeaf()) {
-      builder.put(String.join(".", prefixes), value);
-    }
-
     switch (value.getBsonType()) {
       case DOCUMENT:
         putMatchedSubFields(builder, prefixes, tree, (BsonDocument) value);
@@ -124,6 +106,9 @@ public class CollectionQuery {
         BsonValue subRaw = doc.get(node);
         if (subRaw != null) {
           prefixes.add(node);
+          if (subTree.isLeaf()) {
+            builder.put(String.join(".", prefixes), subRaw);
+          }
           putMatchedFields(builder, prefixes, subTree, subRaw);
           prefixes.remove(prefixes.size() - 1);
         }
@@ -137,9 +122,14 @@ public class CollectionQuery {
     wildcardSubTree.getChildren().put(null, subTree);
 
     for (Map.Entry<String, BsonValue> field : doc.entrySet()) {
+      BsonValue value = field.getValue();
       prefixes.add(field.getKey());
-      putMatchedFields(builder, prefixes, subTree, field.getValue());
-      putMatchedFields(builder, prefixes, wildcardSubTree, field.getValue());
+      if (value.getBsonType().isContainer()) {
+        putMatchedFields(builder, prefixes, subTree, value);
+        putMatchedFields(builder, prefixes, wildcardSubTree, value);
+      } else if (subTree.isLeaf()) {
+        builder.put(String.join(".", prefixes), value);
+      }
       prefixes.remove(prefixes.size() - 1);
     }
   }
@@ -161,6 +151,9 @@ public class CollectionQuery {
           if (0 <= index && index < arr.size()) {
             BsonValue subRaw = arr.get(index);
             prefixes.add(node);
+            if (subTree.isLeaf()) {
+              builder.put(String.join(".", prefixes), subRaw);
+            }
             putMatchedFields(builder, prefixes, subTree, subRaw);
             prefixes.remove(prefixes.size() - 1);
           }
@@ -180,10 +173,14 @@ public class CollectionQuery {
 
     for (int idx = 0; idx < arr.size(); idx++) {
       String node = encodeInt(idx);
-      BsonValue subRaw = arr.get(idx);
+      BsonValue value = arr.get(idx);
       prefixes.add(node);
-      putMatchedFields(builder, prefixes, subTree, subRaw);
-      putMatchedFields(builder, prefixes, wildcardSubTree, subRaw);
+      if (value.getBsonType().isContainer()) {
+        putMatchedFields(builder, prefixes, subTree, value);
+        putMatchedFields(builder, prefixes, wildcardSubTree, value);
+      } else if (subTree.isLeaf()) {
+        builder.put(String.join(".", prefixes), value);
+      }
       prefixes.remove(prefixes.size() - 1);
     }
   }
@@ -207,11 +204,11 @@ public class CollectionQuery {
   }
 
   private void putMatchedSubSubFieldsAsArray(
-      ResultTable.Builder builder, List<String> prefixes, PathTree subTree, BsonArray raw) {
+      ResultTable.Builder builder, List<String> prefixes, PathTree tree, BsonArray raw) {
     Builder subBuilder = new Builder();
 
     for (BsonValue subRaw : raw) {
-      putMatchedFields(subBuilder, prefixes, subTree, subRaw);
+      putMatchedFields(subBuilder, prefixes, tree, subRaw);
     }
 
     for (Map.Entry<String, BsonArray> value : subBuilder.getArrays().entrySet()) {

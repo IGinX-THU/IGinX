@@ -2,12 +2,9 @@ package cn.edu.tsinghua.iginx.mongodb.local.entity;
 
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-import java.io.StringWriter;
 import java.util.*;
+import java.util.stream.Collectors;
 import org.bson.*;
-import org.bson.codecs.BsonValueCodec;
-import org.bson.codecs.EncoderContext;
-import org.bson.json.JsonWriter;
 
 public class ResultTable {
   private final List<Field> fields;
@@ -75,12 +72,8 @@ public class ResultTable {
       this.currentRow = null;
     }
 
-    public int put(String field) {
-      return fieldIndexes.computeIfAbsent(field, k -> fieldIndexes.size());
-    }
-
     public void put(String field, BsonValue rawValue) {
-      int index = put(field);
+      int index = fieldIndexes.computeIfAbsent(field, k -> fieldIndexes.size());
       Object value = this.getValue(rawValue);
       this.lastValues.put(index, value);
       this.getCurrentRow().put(index, value);
@@ -94,26 +87,45 @@ public class ResultTable {
     }
 
     private Object getValue(BsonValue value) {
+      Object o = convert(value);
+      if (o instanceof String) {
+        o = ((String) o).getBytes();
+      }
+      return o;
+    }
+
+    private Object convert(BsonValue value) {
       switch (value.getBsonType()) {
         case DOUBLE:
           return ((BsonDouble) value).getValue();
         case STRING:
-          return ((BsonString) value).getValue().getBytes();
+          return "\"" + ((BsonString) value).getValue() + "\"";
+        case DOCUMENT:
+          return ((BsonDocument) value).toJson();
+        case ARRAY:
+          return ((BsonArray) value)
+              .stream()
+                  .map(this::convert)
+                  .map(Object::toString)
+                  .collect(Collectors.joining(",", "[", "]"));
+        case OBJECT_ID:
+          return ((BsonObjectId) value).getValue().toHexString();
         case BOOLEAN:
           return ((BsonBoolean) value).getValue();
         case DATE_TIME:
           return ((BsonDateTime) value).getValue();
+        case REGULAR_EXPRESSION:
+          return ((BsonRegularExpression) value).getPattern();
         case INT32:
           return ((BsonInt32) value).getValue();
         case TIMESTAMP:
           return ((BsonTimestamp) value).getValue();
         case INT64:
           return ((BsonInt64) value).getValue();
+        case DECIMAL128:
+          return ((BsonDecimal128) value).getValue().toString();
       }
-
-      StringWriter writer = new StringWriter();
-      new BsonValueCodec().encode(new JsonWriter(writer), value, EncoderContext.builder().build());
-      return writer.toString().getBytes();
+      return value.toString();
     }
   }
 }
