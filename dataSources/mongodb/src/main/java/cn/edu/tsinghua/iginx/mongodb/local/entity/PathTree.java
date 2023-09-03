@@ -1,6 +1,7 @@
 package cn.edu.tsinghua.iginx.mongodb.local.entity;
 
 import cn.edu.tsinghua.iginx.mongodb.tools.NameUtils;
+
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -45,6 +46,10 @@ public class PathTree {
 
   public boolean isLeaf() {
     return leaf;
+  }
+
+  public void setLeaf(boolean leaf) {
+    this.leaf = leaf;
   }
 
   @Override

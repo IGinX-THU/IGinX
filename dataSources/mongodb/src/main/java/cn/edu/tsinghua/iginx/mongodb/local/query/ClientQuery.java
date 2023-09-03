@@ -86,7 +86,7 @@ public class ClientQuery {
         nextRow = getNextMatchRow();
       }
 
-      return nextRow == null;
+      return nextRow != null;
     }
 
     @Override

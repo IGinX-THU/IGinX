@@ -5,10 +5,9 @@ import cn.edu.tsinghua.iginx.mongodb.local.entity.ResultTable;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+
+import java.util.*;
+
 import org.bson.BsonArray;
 import org.bson.BsonDocument;
 import org.bson.BsonInt32;
@@ -29,6 +28,7 @@ public class CollectionQuery {
   }
 
   public ResultTable query(PathTree tree) {
+    tree.setLeaf(false);
     Bson projection = getProjection(tree);
     FindIterable<BsonDocument> find =
         this.collection.find().projection(projection).showRecordId(true);
@@ -68,7 +68,7 @@ public class CollectionQuery {
   private ResultTable getResult(MongoCursor<BsonDocument> cursor, PathTree tree) {
     String datebaseName = this.collection.getNamespace().getDatabaseName();
     String collectionName = this.collection.getNamespace().getCollectionName();
-    List<String> prefixes = Arrays.asList(datebaseName, collectionName);
+    List<String> prefixes = new ArrayList<>(Arrays.asList(datebaseName, collectionName));
 
     ResultTable.Builder builder = new ResultTable.Builder();
     putFieldNames(builder, prefixes, tree);
