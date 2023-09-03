@@ -1,8 +1,10 @@
-package cn.edu.tsinghua.iginx.mongodb.tools;
+package cn.edu.tsinghua.iginx.mongodb.immigrant.tools;
 
-import cn.edu.tsinghua.iginx.mongodb.query.Query;
+import cn.edu.tsinghua.iginx.mongodb.immigrant.entity.Query;
+import cn.edu.tsinghua.iginx.mongodb.tools.NameUtils;
 import com.mongodb.client.model.Updates;
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
 import java.util.stream.Collectors;
 import org.bson.Document;
 import org.bson.conversions.Bson;

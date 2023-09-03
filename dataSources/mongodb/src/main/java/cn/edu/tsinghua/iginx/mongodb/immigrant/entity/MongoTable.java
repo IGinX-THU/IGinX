@@ -1,8 +1,10 @@
-package cn.edu.tsinghua.iginx.mongodb.entity;
+package cn.edu.tsinghua.iginx.mongodb.immigrant.entity;
 
 import cn.edu.tsinghua.iginx.engine.shared.data.write.BitmapView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.thrift.DataType;
+
+import javax.validation.constraints.NotNull;
 import java.util.*;
 import java.util.stream.Collectors;
 

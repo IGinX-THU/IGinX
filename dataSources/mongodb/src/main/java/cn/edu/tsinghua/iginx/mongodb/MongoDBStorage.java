@@ -8,23 +8,27 @@ import cn.edu.tsinghua.iginx.engine.physical.storage.domain.DataArea;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
-import cn.edu.tsinghua.iginx.mongodb.entity.IginxTable;
-import cn.edu.tsinghua.iginx.mongodb.entity.MongoRow;
-import cn.edu.tsinghua.iginx.mongodb.entity.MongoTable;
-import cn.edu.tsinghua.iginx.mongodb.query.Query;
-import cn.edu.tsinghua.iginx.mongodb.tools.FilterUtils;
+import cn.edu.tsinghua.iginx.mongodb.immigrant.entity.MongoRow;
+import cn.edu.tsinghua.iginx.mongodb.immigrant.entity.MongoTable;
+import cn.edu.tsinghua.iginx.mongodb.immigrant.entity.Query;
+import cn.edu.tsinghua.iginx.mongodb.immigrant.tools.FilterUtils;
+import cn.edu.tsinghua.iginx.mongodb.immigrant.tools.UpdateUtils;
+import cn.edu.tsinghua.iginx.mongodb.local.LocalStorage;
 import cn.edu.tsinghua.iginx.mongodb.tools.NameUtils;
-import cn.edu.tsinghua.iginx.mongodb.tools.UpdateUtils;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.ServerAddress;
@@ -52,6 +56,8 @@ public class MongoDBStorage implements IStorage {
 
   private final MongoClient client;
 
+  private final LocalStorage localStorage;
+
   public MongoDBStorage(StorageEngineMeta meta) throws StorageInitializationException {
     if (!meta.getStorageEngine().equals(STORAGE_ENGINE)) {
       throw new StorageInitializationException("unexpected database: " + meta.getStorageEngine());
@@ -64,6 +70,8 @@ public class MongoDBStorage implements IStorage {
       logger.error(message, e);
       throw new StorageInitializationException(message);
     }
+
+    this.localStorage = new LocalStorage(client, logger);
   }
 
   private MongoClient connect(String ip, int port) {
@@ -87,54 +95,67 @@ public class MongoDBStorage implements IStorage {
   }
 
   @Override
-  public TaskExecuteResult executeProject(Project project, DataArea dataArea) {
-    return project(project, dataArea, null);
+  public TaskExecuteResult executeProject(Project project, DataArea area) {
+    String unit = area.getStorageUnit();
+    KeyInterval range = area.getKeyInterval();
+    List<String> patterns = project.getPatterns();
+    TagFilter tags = project.getTagFilter();
+    return query(unit, range, patterns, tags, null);
   }
 
   @Override
-  public TaskExecuteResult executeProjectWithSelect(
-      Project project, Select select, DataArea dataArea) {
-    return project(project, dataArea, select.getFilter());
+  public TaskExecuteResult executeProjectWithSelect(Project project, Select select, DataArea area) {
+    String unit = area.getStorageUnit();
+    KeyInterval range = area.getKeyInterval();
+    List<String> patterns = project.getPatterns();
+    TagFilter tags = project.getTagFilter();
+    return query(unit, range, patterns, tags, select.getFilter());
   }
 
-  private TaskExecuteResult project(Project project, DataArea dataArea, Filter filter) {
-    String unit = dataArea.getStorageUnit();
-    KeyInterval range = dataArea.getKeyInterval();
-    List<String> paths = project.getPatterns();
-    TagFilter tags = project.getTagFilter();
-
+  private TaskExecuteResult query(
+      String unit, KeyInterval range, List<String> patterns, TagFilter tags, Filter filter) {
     Query query = new Query();
     try {
-      if (range != null) query.range(range);
+      query.range(range);
       if (tags != null) query.filter(tags);
       if (filter != null) query.filter(filter);
-      if (paths.stream().noneMatch(NameUtils::isWildcardAll)) {
-        if (paths.stream().noneMatch(NameUtils::isWildcard)) {
-          query.normalProject(paths);
-        } else {
-          query.wildcardProject(paths);
-        }
-      }
+      if (patterns != null && !patterns.isEmpty()) query.project(patterns);
 
-      return new TaskExecuteResult(query.query(getCollection(unit)).rowStream());
+      return new TaskExecuteResult(query.query(getCollection(unit)));
     } catch (Exception e) {
-      logger.error("project {} from {}[{}] where {} and {}", paths, unit, range, filter, tags);
-      logger.error("failed to aggregate " + query, e);
+      logger.error("project {} from {}[{}] where {} and {}", patterns, unit, range, filter, tags);
+      logger.error("failed to query " + query, e);
       return new TaskExecuteResult(new PhysicalException("failed to project", e));
     }
   }
 
   @Override
-  public TaskExecuteResult executeProjectDummy(Project project, DataArea dataArea) {
-    // TODO
-    return new TaskExecuteResult(new PhysicalException("not implemented"));
+  public TaskExecuteResult executeProjectDummy(Project project, DataArea area) {
+    return queryDummy(area.getKeyInterval(), project.getPatterns(), null);
   }
 
   @Override
   public TaskExecuteResult executeProjectDummyWithSelect(
-      Project project, Select select, DataArea dataArea) {
-    // TODO
-    return new TaskExecuteResult(new PhysicalException("not implemented"));
+      Project project, Select select, DataArea area) {
+    return queryDummy(area.getKeyInterval(), project.getPatterns(), select.getFilter());
+  }
+
+  private TaskExecuteResult queryDummy(KeyInterval range, List<String> patterns, Filter filter) {
+    try {
+      if (patterns == null) patterns = new ArrayList<>();
+
+      AndFilter unionFilter = new AndFilter(new ArrayList<>());
+      if (filter != null) unionFilter.getChildren().add(filter);
+      if (range != null) {
+        KeyFilter leftFilter = new KeyFilter(Op.GE, range.getStartKey());
+        KeyFilter rightFilter = new KeyFilter(Op.L, range.getEndKey());
+        unionFilter.getChildren().addAll(Arrays.asList(leftFilter, rightFilter));
+      }
+
+      return new TaskExecuteResult(localStorage.query(patterns, unionFilter));
+    } catch (Exception e) {
+      return new TaskExecuteResult(new PhysicalException("failed to query dummy", e));
+    }
   }
 
   @Override
@@ -210,8 +231,8 @@ public class MongoDBStorage implements IStorage {
     Set<Column> columnSet = new HashSet<>();
     try {
       for (MongoCollection<BsonDocument> mongoCollection : getCollections()) {
-        IginxTable result = new Query().last().query(mongoCollection);
-        for (Field field : result.rowStream().getHeader().getFields()) {
+        RowStream result = new Query().last().query(mongoCollection);
+        for (Field field : result.getHeader().getFields()) {
           columnSet.add(new Column(field.getName(), field.getType(), field.getTags()));
         }
       }
@@ -224,8 +245,21 @@ public class MongoDBStorage implements IStorage {
 
   @Override
   public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String prefix) {
-    // TODO
-    return null;
+    KeyInterval keyInterval = new KeyInterval(0, Long.MAX_VALUE);
+    List<String> prefixes = new ArrayList<>();
+    for (String db : this.client.listDatabaseNames()) {
+      for (String collection : this.client.getDatabase(db).listCollectionNames()) {
+        prefixes.add(db + "." + collection);
+      }
+    }
+    ColumnsInterval columnsInterval = new ColumnsInterval("");
+    if (!prefixes.isEmpty()) {
+      ColumnsInterval first = new ColumnsInterval(Collections.min(prefixes));
+      ColumnsInterval last = new ColumnsInterval(Collections.max(prefixes));
+      columnsInterval = new ColumnsInterval(first.getStartColumn(), last.getEndColumn());
+    }
+
+    return new Pair<>(columnsInterval, keyInterval);
   }
 
   private MongoCollection<BsonDocument> getCollection(String unit) {

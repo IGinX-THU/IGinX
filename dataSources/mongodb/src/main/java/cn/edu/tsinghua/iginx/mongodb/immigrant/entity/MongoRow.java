@@ -1,9 +1,10 @@
-package cn.edu.tsinghua.iginx.mongodb.entity;
+package cn.edu.tsinghua.iginx.mongodb.immigrant.entity;
 
 import cn.edu.tsinghua.iginx.mongodb.tools.NameUtils;
 import java.util.Map;
 import java.util.Objects;
-import org.bson.*;
+import org.bson.BsonDocument;
+import org.bson.BsonValue;
 
 public class MongoRow {
 

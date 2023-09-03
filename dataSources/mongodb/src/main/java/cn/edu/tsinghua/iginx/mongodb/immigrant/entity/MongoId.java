@@ -1,4 +1,4 @@
-package cn.edu.tsinghua.iginx.mongodb.entity;
+package cn.edu.tsinghua.iginx.mongodb.immigrant.entity;
 
 import cn.edu.tsinghua.iginx.mongodb.tools.NameUtils;
 import java.util.Map;

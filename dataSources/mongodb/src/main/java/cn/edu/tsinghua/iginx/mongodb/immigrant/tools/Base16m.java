@@ -1,4 +1,4 @@
-package cn.edu.tsinghua.iginx.mongodb.tools;
+package cn.edu.tsinghua.iginx.mongodb.immigrant.tools;
 
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;

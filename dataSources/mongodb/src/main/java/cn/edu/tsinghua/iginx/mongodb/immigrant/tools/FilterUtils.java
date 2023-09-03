@@ -1,15 +1,18 @@
-package cn.edu.tsinghua.iginx.mongodb.tools;
+package cn.edu.tsinghua.iginx.mongodb.immigrant.tools;
 
 import static com.mongodb.client.model.Filters.*;
 
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.NotFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.*;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
-import cn.edu.tsinghua.iginx.mongodb.entity.MongoId;
-import cn.edu.tsinghua.iginx.mongodb.entity.MongoPoint;
-import cn.edu.tsinghua.iginx.mongodb.query.Query;
+import cn.edu.tsinghua.iginx.mongodb.immigrant.entity.MongoId;
+import cn.edu.tsinghua.iginx.mongodb.immigrant.entity.MongoPoint;
+import cn.edu.tsinghua.iginx.mongodb.immigrant.entity.Query;
+import cn.edu.tsinghua.iginx.mongodb.tools.NameUtils;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.*;
 import java.util.stream.Collectors;
