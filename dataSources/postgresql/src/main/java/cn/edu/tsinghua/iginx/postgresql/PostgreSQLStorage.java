@@ -18,6 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.postgresql;
 
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.SEPARATOR;
 import static cn.edu.tsinghua.iginx.postgresql.tools.Constants.*;
 import static cn.edu.tsinghua.iginx.postgresql.tools.DataTypeTransformer.fromPostgreSQL;
 import static cn.edu.tsinghua.iginx.postgresql.tools.HashUtils.toHash;
@@ -40,13 +41,19 @@ import cn.edu.tsinghua.iginx.engine.shared.data.write.BitmapView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.ColumnDataView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.RowDataView;
-import cn.edu.tsinghua.iginx.engine.shared.operator.*;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
-import cn.edu.tsinghua.iginx.metadata.entity.*;
+import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
+import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
+import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.postgresql.query.entity.PostgreSQLQueryRowStream;
 import cn.edu.tsinghua.iginx.postgresql.tools.DataTypeTransformer;
 import cn.edu.tsinghua.iginx.postgresql.tools.FilterTransformer;
+import cn.edu.tsinghua.iginx.postgresql.tools.PostgreSQLSchema;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
@@ -183,19 +190,13 @@ public class PostgreSQLStorage implements IStorage {
               if (databaseName.startsWith(DATABASE_PREFIX)) {
                 columns.add(
                     new Column(
-                        tableName.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR)
-                            + IGINX_SEPARATOR
-                            + nameAndTags.k,
+                        tableName + SEPARATOR + nameAndTags.k,
                         fromPostgreSQL(typeName),
                         nameAndTags.v));
               } else {
                 columns.add(
                     new Column(
-                        databaseName.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR)
-                            + IGINX_SEPARATOR
-                            + tableName.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR)
-                            + IGINX_SEPARATOR
-                            + nameAndTags.k,
+                        databaseName + SEPARATOR + tableName + SEPARATOR + nameAndTags.k,
                         fromPostgreSQL(typeName),
                         nameAndTags.v));
               }
@@ -271,12 +272,12 @@ public class PostgreSQLStorage implements IStorage {
       if (!filter.toString().contains("*")) {
         for (Map.Entry<String, String> entry : tableNameToColumnNames.entrySet()) {
           String tableName = entry.getKey();
-          String fullColumnNames = getFullColumnNames(entry.getValue());
+          String quotColumnNames = getQuotColumnNames(entry.getValue());
           statement =
               String.format(
                   QUERY_STATEMENT,
-                  fullColumnNames,
-                  getFullName(tableName),
+                  quotColumnNames,
+                  getQuotName(tableName),
                   FilterTransformer.toString(filter));
 
           ResultSet rs = null;
@@ -297,41 +298,41 @@ public class PostgreSQLStorage implements IStorage {
       // table中带有了通配符，将所有table都join到一起进行查询，以便输入filter.
       else if (!tableNameToColumnNames.isEmpty()) {
         List<String> tableNames = new ArrayList<>();
-        List<List<String>> columnNamesList = new ArrayList<>();
+        List<List<String>> fullColumnNamesList = new ArrayList<>();
         for (Map.Entry<String, String> entry : tableNameToColumnNames.entrySet()) {
           String tableName = entry.getKey();
           tableNames.add(tableName);
-          List<String> columnNames = new ArrayList<>(Arrays.asList(entry.getValue().split(", ")));
+          List<String> fullColumnNames =
+              new ArrayList<>(Arrays.asList(entry.getValue().split(", ")));
+
           // 将columnNames中的列名加上tableName前缀
-          columnNames.replaceAll(s -> tableName + IGINX_SEPARATOR + s);
-          columnNamesList.add(columnNames);
+          fullColumnNames.replaceAll(s -> PostgreSQLSchema.getQuotFullName(tableName, s));
+          fullColumnNamesList.add(fullColumnNames);
         }
 
         StringBuilder fullColumnNames = new StringBuilder();
-        fullColumnNames.append(tableNames.get(0)).append(IGINX_SEPARATOR).append(KEY_NAME);
-        fullColumnNames.append(", ");
-        for (List<String> columnNames : columnNamesList) {
+        fullColumnNames.append(PostgreSQLSchema.getQuotFullName(tableNames.get(0), KEY_NAME));
+        for (List<String> columnNames : fullColumnNamesList) {
           for (String columnName : columnNames) {
-            fullColumnNames.append(columnName).append(", ");
+            fullColumnNames.append(", ").append(columnName);
           }
         }
-        fullColumnNames.delete(fullColumnNames.length() - 2, fullColumnNames.length());
 
         // table之间用FULL OUTER JOIN ON table1.⺅= table2.⺅ 连接，超过2个table的情况下，需要多次嵌套join
         StringBuilder fullTableName = new StringBuilder();
-        fullTableName.append(tableNames.get(0));
+        fullTableName.append(getQuotName(tableNames.get(0)));
         for (int i = 1; i < tableNames.size(); i++) {
           fullTableName.insert(0, "(");
-          fullTableName.append(" FULL OUTER JOIN ").append(tableNames.get(i)).append(" ON ");
+          fullTableName
+              .append(" FULL OUTER JOIN ")
+              .append(getQuotName(tableNames.get(i)))
+              .append(" ON ");
           for (int j = 0; j < i; j++) {
             fullTableName
-                .append(tableNames.get(i))
-                .append(IGINX_SEPARATOR)
-                .append(KEY_NAME)
+                .append(PostgreSQLSchema.getQuotFullName(tableNames.get(i), KEY_NAME))
                 .append(" = ")
-                .append(tableNames.get(j))
-                .append(IGINX_SEPARATOR)
-                .append(KEY_NAME);
+                .append(PostgreSQLSchema.getQuotFullName(tableNames.get(j), KEY_NAME));
+
             if (j != i - 1) {
               fullTableName.append(" AND ");
             }
@@ -341,7 +342,7 @@ public class PostgreSQLStorage implements IStorage {
 
         // 对通配符做处理，将通配符替换成对应的列名
         if (FilterTransformer.toString(filter).contains("*")) {
-          filter = generateWildCardsFilter(filter, tableNames, columnNamesList);
+          filter = generateWildCardsFilter(filter, fullColumnNamesList);
           filter = ExprUtils.mergeTrue(filter);
         }
 
@@ -351,7 +352,7 @@ public class PostgreSQLStorage implements IStorage {
                 fullColumnNames,
                 fullTableName,
                 FilterTransformer.toString(filter),
-                tableNames.get(0) + IGINX_SEPARATOR + KEY_NAME);
+                PostgreSQLSchema.getQuotFullName(tableNames.get(0), KEY_NAME));
 
         ResultSet rs = null;
         try {
@@ -380,31 +381,30 @@ public class PostgreSQLStorage implements IStorage {
     }
   }
 
-  private Filter generateWildCardsFilter(
-      Filter filter, List<String> tableNames, List<List<String>> columnNamesList) {
+  private Filter generateWildCardsFilter(Filter filter, List<List<String>> columnNamesList) {
     switch (filter.getType()) {
       case And:
         List<Filter> andChildren = ((AndFilter) filter).getChildren();
         for (Filter child : andChildren) {
-          Filter newFilter = generateWildCardsFilter(child, tableNames, columnNamesList);
+          Filter newFilter = generateWildCardsFilter(child, columnNamesList);
           andChildren.set(andChildren.indexOf(child), newFilter);
         }
         return new AndFilter(andChildren);
       case Or:
         List<Filter> orChildren = ((OrFilter) filter).getChildren();
         for (Filter child : orChildren) {
-          Filter newFilter = generateWildCardsFilter(child, tableNames, columnNamesList);
+          Filter newFilter = generateWildCardsFilter(child, columnNamesList);
           orChildren.set(orChildren.indexOf(child), newFilter);
         }
         return new OrFilter(orChildren);
       case Not:
         Filter notChild = ((NotFilter) filter).getChild();
-        Filter newFilter = generateWildCardsFilter(notChild, tableNames, columnNamesList);
+        Filter newFilter = generateWildCardsFilter(notChild, columnNamesList);
         return new NotFilter(newFilter);
       case Value:
         String path = ((ValueFilter) filter).getPath();
         if (path.contains("*")) {
-          List<String> matchedPath = getMatchedPath(path, tableNames, columnNamesList);
+          List<String> matchedPath = getMatchedPath(path, columnNamesList);
           if (matchedPath.size() == 0) {
             return new BoolFilter(true);
           } else if (matchedPath.size() == 1) {
@@ -428,7 +428,7 @@ public class PostgreSQLStorage implements IStorage {
         String pathA = ((PathFilter) filter).getPathA();
         String pathB = ((PathFilter) filter).getPathB();
         if (pathA.contains("*")) {
-          List<String> matchedPath = getMatchedPath(pathA, tableNames, columnNamesList);
+          List<String> matchedPath = getMatchedPath(pathA, columnNamesList);
           if (matchedPath.size() == 0) {
             return new BoolFilter(true);
           } else if (matchedPath.size() == 1) {
@@ -449,10 +449,10 @@ public class PostgreSQLStorage implements IStorage {
 
         if (pathB.contains("*")) {
           if (filter.getType() != FilterType.And) {
-            return generateWildCardsFilter(filter, tableNames, columnNamesList);
+            return generateWildCardsFilter(filter, columnNamesList);
           }
 
-          List<String> matchedPath = getMatchedPath(pathB, tableNames, columnNamesList);
+          List<String> matchedPath = getMatchedPath(pathB, columnNamesList);
           if (matchedPath.size() == 0) {
             return new BoolFilter(true);
           } else if (matchedPath.size() == 1) {
@@ -481,19 +481,15 @@ public class PostgreSQLStorage implements IStorage {
     return filter;
   }
 
-  private List<String> getMatchedPath(
-      String path, List<String> tableNames, List<List<String>> columnNamesList) {
+  private List<String> getMatchedPath(String path, List<List<String>> columnNamesList) {
     List<String> matchedPath = new ArrayList<>();
-    path = path.replace(".", "\\.");
+    path = path.replaceAll("[.^${}]", "\\\\$0");
     path = path.replace("*", ".*");
     Pattern pattern = Pattern.compile("^" + path + "$");
-    for (int i = 0; i < tableNames.size(); i++) {
+    for (int i = 0; i < columnNamesList.size(); i++) {
       List<String> columnNames = columnNamesList.get(i);
       for (String columnName : columnNames) {
-        Matcher matcher =
-            pattern.matcher(
-                columnName.replace(
-                    Character.toString(POSTGRESQL_SEPARATOR), Character.toString(IGINX_SEPARATOR)));
+        Matcher matcher = pattern.matcher(columnName);
         if (matcher.find()) {
           matchedPath.add(columnName);
         }
@@ -517,7 +513,7 @@ public class PostgreSQLStorage implements IStorage {
             cutFilterDatabaseNameForDummy(((NotFilter) filter).getChild(), databaseName));
       case Value:
         String path = ((ValueFilter) filter).getPath();
-        if (path.startsWith(databaseName + IGINX_SEPARATOR)) {
+        if (path.startsWith(databaseName + SEPARATOR)) {
           return new ValueFilter(
               path.substring(databaseName.length() + 1),
               ((ValueFilter) filter).getOp(),
@@ -528,11 +524,11 @@ public class PostgreSQLStorage implements IStorage {
         boolean isChanged = false;
         String pathA = ((PathFilter) filter).getPathA();
         String pathB = ((PathFilter) filter).getPathB();
-        if (pathA.startsWith(databaseName + IGINX_SEPARATOR)) {
+        if (pathA.startsWith(databaseName + SEPARATOR)) {
           pathA = pathA.substring(databaseName.length() + 1);
           isChanged = true;
         }
-        if (pathB.startsWith(databaseName + IGINX_SEPARATOR)) {
+        if (pathB.startsWith(databaseName + SEPARATOR)) {
           pathB = pathB.substring(databaseName.length() + 1);
           isChanged = true;
         }
@@ -559,7 +555,7 @@ public class PostgreSQLStorage implements IStorage {
       ResultSet rs = conn.getMetaData().getColumns(databaseName, "public", tableName, "%");
       while (rs.next()) {
         tableName = rs.getString("TABLE_NAME");
-        columnNames = tableName + IGINX_SEPARATOR + rs.getString("COLUMN_NAME");
+        columnNames = PostgreSQLSchema.getQuotFullName(tableName, rs.getString("COLUMN_NAME"));
         if (allColumnNameForTable.containsKey(tableName)) {
           columnNames = allColumnNameForTable.get(tableName) + ", " + columnNames;
         }
@@ -599,16 +595,19 @@ public class PostgreSQLStorage implements IStorage {
               getAllColumnNameForTable(databaseName, tableNameToColumnNames);
           for (Map.Entry<String, String> entry : splitEntry.getValue().entrySet()) {
             String tableName = entry.getKey();
-            String fullColumnNames = getFullColumnNames(entry.getValue());
+            String fullQuotColumnNames = getQuotColumnNames(entry.getValue());
+            List<String> fullPathList = Arrays.asList(entry.getValue().split(", "));
+            fullPathList.replaceAll(s -> PostgreSQLSchema.getQuotFullName(tableName, s));
             statement =
                 String.format(
                     CONCAT_QUERY_STATEMENT_WITH_WHERE_CLAUSE_AND_CONCAT_KEY,
                     allColumnNameForTable.get(tableName),
-                    fullColumnNames,
-                    getFullName(tableName),
+                    fullQuotColumnNames,
+                    getQuotName(tableName),
                     FilterTransformer.toString(
                         dummyFilterSetTrueByColumnNames(
-                            filter.copy(), Arrays.asList(entry.getValue().split(", ")))),
+                            cutFilterDatabaseNameForDummy(filter.copy(), databaseName),
+                            fullPathList)),
                     allColumnNameForTable.get(tableName));
 
             try {
@@ -626,19 +625,25 @@ public class PostgreSQLStorage implements IStorage {
         // table中带有了通配符，将所有table都join到一起进行查询，以便输入filter.
         else if (!tableNameToColumnNames.isEmpty()) {
           List<String> tableNames = new ArrayList<>();
-          List<List<String>> columnNamesList = new ArrayList<>();
+          List<List<String>> fullColumnNamesList = new ArrayList<>();
+          List<List<String>> fullQuotColumnNamesList = new ArrayList<>();
 
           // 将columnNames中的列名加上tableName前缀，带JOIN的查询语句中需要用到
           for (Map.Entry<String, String> entry : tableNameToColumnNames.entrySet()) {
             String tableName = entry.getKey();
             tableNames.add(tableName);
             List<String> columnNames = new ArrayList<>(Arrays.asList(entry.getValue().split(", ")));
-            columnNames.replaceAll(s -> tableName + IGINX_SEPARATOR + s);
-            columnNamesList.add(columnNames);
+            columnNames.replaceAll(s -> PostgreSQLSchema.getFullName(tableName, s));
+            fullColumnNamesList.add(columnNames);
+
+            List<String> fullColumnNames =
+                new ArrayList<>(Arrays.asList(entry.getValue().split(", ")));
+            fullColumnNames.replaceAll(s -> PostgreSQLSchema.getQuotFullName(tableName, s));
+            fullQuotColumnNamesList.add(fullColumnNames);
           }
 
           StringBuilder fullColumnNames = new StringBuilder();
-          for (List<String> columnNames : columnNamesList) {
+          for (List<String> columnNames : fullQuotColumnNamesList) {
             for (String columnName : columnNames) {
               fullColumnNames.append(columnName).append(", ");
             }
@@ -677,15 +682,16 @@ public class PostgreSQLStorage implements IStorage {
             fullTableName.append(")");
           }
 
-          Filter copyFilter =
-              dummyFilterSetTrueByColumnNames(
-                  filter.copy(), Arrays.asList(fullColumnNames.toString().split(", ")));
+          Filter copyFilter = cutFilterDatabaseNameForDummy(filter.copy(), databaseName);
 
-          copyFilter = cutFilterDatabaseNameForDummy(copyFilter, databaseName);
+          copyFilter =
+              dummyFilterSetTrueByColumnNames(
+                  copyFilter,
+                  Arrays.asList(fullColumnNames.toString().replace("\"", "").split(", ")));
 
           // 对通配符做处理，将通配符替换成对应的列名
           if (FilterTransformer.toString(copyFilter).contains("*")) {
-            copyFilter = generateWildCardsFilter(copyFilter, tableNames, columnNamesList);
+            copyFilter = generateWildCardsFilter(copyFilter, fullColumnNamesList);
             copyFilter = ExprUtils.mergeTrue(copyFilter);
           }
 
@@ -812,7 +818,7 @@ public class PostgreSQLStorage implements IStorage {
             if (tableSet.next()) {
               statement =
                   String.format(
-                      DROP_COLUMN_STATEMENT, getFullName(tableName), getFullName(columnName));
+                      DROP_COLUMN_STATEMENT, getQuotName(tableName), getQuotName(columnName));
               logger.info("[Delete] execute delete: {}", statement);
               stmt.execute(statement); // 删除列
             }
@@ -829,8 +835,8 @@ public class PostgreSQLStorage implements IStorage {
               statement =
                   String.format(
                       UPDATE_STATEMENT,
-                      getFullName(tableName),
-                      getFullName(columnName),
+                      getQuotName(tableName),
+                      getQuotName(columnName),
                       keyRange.getBeginKey(),
                       keyRange.getEndKey());
               logger.info("[Delete] execute delete: {}", statement);
@@ -911,12 +917,7 @@ public class PostgreSQLStorage implements IStorage {
             columnNames.append(columnName);
             columnNames.append(", "); // c1, c2, c3,
 
-            String path =
-                databaseName
-                    + IGINX_SEPARATOR
-                    + tableName.replace(POSTGRESQL_SEPARATOR, IGINX_SEPARATOR)
-                    + IGINX_SEPARATOR
-                    + columnName;
+            String path = databaseName + SEPARATOR + tableName + SEPARATOR + columnName;
             if (dataPrefix != null && !path.startsWith(dataPrefix)) {
               continue;
             }
@@ -929,8 +930,8 @@ public class PostgreSQLStorage implements IStorage {
           String statement =
               String.format(
                   CONCAT_QUERY_STATEMENT,
-                  getFullColumnNames(columnNames.toString()),
-                  getFullName(tableName));
+                  getQuotColumnNames(columnNames.toString()),
+                  getQuotName(tableName));
           Statement concatStmt = conn.createStatement();
           ResultSet concatSet = concatStmt.executeQuery(statement);
           while (concatSet.next()) {
@@ -986,15 +987,12 @@ public class PostgreSQLStorage implements IStorage {
         tableName = "%";
         columnNames = "%";
       } else {
-        if (pattern.split("\\" + IGINX_SEPARATOR).length == 1) { // REST 查询的路径中可能不含 .
+        if (pattern.split("\\" + SEPARATOR).length == 1) { // REST 查询的路径中可能不含 .
           tableName = pattern;
           columnNames = "%";
         } else {
-          tableName =
-              pattern
-                  .substring(0, pattern.lastIndexOf(IGINX_SEPARATOR))
-                  .replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
-          columnNames = pattern.substring(pattern.lastIndexOf(IGINX_SEPARATOR) + 1);
+          tableName = pattern.substring(0, pattern.lastIndexOf(SEPARATOR));
+          columnNames = pattern.substring(pattern.lastIndexOf(SEPARATOR) + 1);
           boolean columnEqualsStar = columnNames.equals("*");
           boolean tableContainsStar = tableName.contains("*");
           if (columnEqualsStar || tableContainsStar) {
@@ -1055,7 +1053,7 @@ public class PostgreSQLStorage implements IStorage {
         tableName = "%";
         columnNames = "%";
       } else {
-        String[] parts = pattern.split("\\" + IGINX_SEPARATOR);
+        String[] parts = pattern.split("\\" + SEPARATOR);
 
         databaseName = parts[0];
         if (parts.length == 1) { // 只有一级
@@ -1067,11 +1065,9 @@ public class PostgreSQLStorage implements IStorage {
         } else {
           tableName =
               pattern
-                  .substring(
-                      pattern.indexOf(IGINX_SEPARATOR) + 1, pattern.lastIndexOf(IGINX_SEPARATOR))
-                  .replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR)
+                  .substring(pattern.indexOf(SEPARATOR) + 1, pattern.lastIndexOf(SEPARATOR))
                   .replace("*", "%");
-          columnNames = pattern.substring(pattern.lastIndexOf(IGINX_SEPARATOR) + 1);
+          columnNames = pattern.substring(pattern.lastIndexOf(SEPARATOR) + 1);
           if (columnNames.equals("*")) {
             tableName += "%";
             columnNames = "%";
@@ -1169,12 +1165,8 @@ public class PostgreSQLStorage implements IStorage {
         tags = tagsList.get(i);
       }
       DataType dataType = dataTypeList.get(i);
-      String tableName =
-          path.substring(0, path.lastIndexOf(IGINX_SEPARATOR))
-              .replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
-      String columnName =
-          path.substring(path.lastIndexOf(IGINX_SEPARATOR) + 1)
-              .replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
+      String tableName = path.substring(0, path.lastIndexOf(SEPARATOR));
+      String columnName = path.substring(path.lastIndexOf(SEPARATOR) + 1);
 
       try {
         Statement stmt = conn.createStatement();
@@ -1186,8 +1178,8 @@ public class PostgreSQLStorage implements IStorage {
           String statement =
               String.format(
                   CREATE_TABLE_STATEMENT,
-                  getFullName(tableName),
-                  getFullName(columnName),
+                  getQuotName(tableName),
+                  getQuotName(columnName),
                   DataTypeTransformer.toPostgreSQL(dataType));
           logger.info("[Create] execute create: {}", statement);
           stmt.execute(statement);
@@ -1198,8 +1190,8 @@ public class PostgreSQLStorage implements IStorage {
             String statement =
                 String.format(
                     ADD_COLUMN_STATEMENT,
-                    getFullName(tableName),
-                    getFullName(columnName),
+                    getQuotName(tableName),
+                    getQuotName(columnName),
                     DataTypeTransformer.toPostgreSQL(dataType));
             logger.info("[Create] execute create: {}", statement);
             stmt.execute(statement);
@@ -1239,10 +1231,8 @@ public class PostgreSQLStorage implements IStorage {
           for (int j = 0; j < data.getPathNum(); j++) {
             String path = data.getPath(j);
             DataType dataType = data.getDataType(j);
-            String tableName =
-                path.substring(0, path.lastIndexOf(IGINX_SEPARATOR))
-                    .replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
-            String columnName = path.substring(path.lastIndexOf(IGINX_SEPARATOR) + 1);
+            String tableName = path.substring(0, path.lastIndexOf(SEPARATOR));
+            String columnName = path.substring(path.lastIndexOf(SEPARATOR) + 1);
             Map<String, String> tags = data.getTags(j);
 
             StringBuilder columnKeys = new StringBuilder();
@@ -1345,10 +1335,8 @@ public class PostgreSQLStorage implements IStorage {
         for (int i = 0; i < data.getPathNum(); i++) {
           String path = data.getPath(i);
           DataType dataType = data.getDataType(i);
-          String tableName =
-              path.substring(0, path.lastIndexOf(IGINX_SEPARATOR))
-                  .replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
-          String columnName = path.substring(path.lastIndexOf(IGINX_SEPARATOR) + 1);
+          String tableName = path.substring(0, path.lastIndexOf(SEPARATOR));
+          String columnName = path.substring(path.lastIndexOf(SEPARATOR) + 1);
           Map<String, String> tags = data.getTags(i);
           BitmapView bitmapView = data.getBitmapView(i);
 
@@ -1451,11 +1439,11 @@ public class PostgreSQLStorage implements IStorage {
       // XXX, ...) ON CONFLICT ("\u2E85") DO UPDATE SET (XXX, ...) = (excluded.XXX, ...);
       StringBuilder statement = new StringBuilder();
       statement.append("INSERT INTO ");
-      statement.append(getFullName(tableName));
+      statement.append(getQuotName(tableName));
       statement.append(" (");
-      statement.append(KEY_NAME);
+      statement.append(getQuotName(KEY_NAME));
       statement.append(", ");
-      String fullColumnNames = getFullColumnNames(columnNames);
+      String fullColumnNames = getQuotColumnNames(columnNames);
       statement.append(fullColumnNames);
 
       statement.append(") VALUES ");
@@ -1467,7 +1455,7 @@ public class PostgreSQLStorage implements IStorage {
       statement = new StringBuilder(statement.substring(0, statement.length() - 2));
 
       statement.append(" ON CONFLICT (");
-      statement.append(KEY_NAME);
+      statement.append(getQuotName(KEY_NAME));
       statement.append(") DO UPDATE SET ");
       if (hasMultipleRows) {
         statement.append("("); // 只有一列不加括号
@@ -1482,7 +1470,7 @@ public class PostgreSQLStorage implements IStorage {
       }
       for (String part : parts) {
         statement.append("excluded.");
-        statement.append(getFullName(part));
+        statement.append(getQuotName(part));
         statement.append(", ");
       }
       statement = new StringBuilder(statement.substring(0, statement.length() - 2));
@@ -1509,13 +1497,9 @@ public class PostgreSQLStorage implements IStorage {
             continue;
           }
           String fullPath = column.getPath();
-          String tableName =
-              fullPath
-                  .substring(0, fullPath.lastIndexOf(IGINX_SEPARATOR))
-                  .replace(IGINX_SEPARATOR, POSTGRESQL_SEPARATOR);
+          String tableName = fullPath.substring(0, fullPath.lastIndexOf(SEPARATOR));
           String columnName =
-              toFullName(
-                  fullPath.substring(fullPath.lastIndexOf(IGINX_SEPARATOR) + 1), column.getTags());
+              toFullName(fullPath.substring(fullPath.lastIndexOf(SEPARATOR) + 1), column.getTags());
           deletedPaths.add(new Pair<>(tableName, columnName));
           break;
         }
@@ -1525,16 +1509,16 @@ public class PostgreSQLStorage implements IStorage {
     return deletedPaths;
   }
 
-  private String getFullName(String name) {
+  private String getQuotName(String name) {
     return "\"" + name + "\"";
     //        return Character.isDigit(name.charAt(0)) ? "\"" + name + "\"" : name;
   }
 
-  private String getFullColumnNames(String columnNames) {
+  private String getQuotColumnNames(String columnNames) {
     String[] parts = columnNames.split(", ");
     StringBuilder fullColumnNames = new StringBuilder();
     for (String part : parts) {
-      fullColumnNames.append(getFullName(part));
+      fullColumnNames.append(getQuotName(part));
       fullColumnNames.append(", ");
     }
     return fullColumnNames.substring(0, fullColumnNames.length() - 2);

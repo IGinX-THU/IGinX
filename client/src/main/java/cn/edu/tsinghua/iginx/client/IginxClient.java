@@ -242,7 +242,11 @@ public class IginxClient {
   }
 
   private static boolean isQuery(String sql) {
-    return sql.startsWith("select");
+    // 该方法仍不能完全区分查询语句和写入文件语句
+    // 比如select * from test where a = " into outfile ";
+    // 上述语句为查询语句，但在该方法中返回false
+    // 在没有SQL解析器的情况下，暂未想到区分查询语句和写入文件语句的方法
+    return sql.startsWith("select") && !sql.contains(" into outfile ");
   }
 
   private static boolean isShowColumns(String sql) {
