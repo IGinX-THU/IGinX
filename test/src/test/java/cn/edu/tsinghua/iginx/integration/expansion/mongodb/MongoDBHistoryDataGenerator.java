@@ -1,6 +1,9 @@
 package cn.edu.tsinghua.iginx.integration.expansion.mongodb;
 
+import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.readOnlyPort;
+
 import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
+import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.ServerAddress;
@@ -9,10 +12,12 @@ import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.*;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.StringJoiner;
+
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.slf4j.Logger;
@@ -25,9 +30,9 @@ public class MongoDBHistoryDataGenerator extends BaseHistoryDataGenerator {
   private static final String LOCAL_IP = "127.0.0.1";
 
   public MongoDBHistoryDataGenerator() {
-    this.oriPort = 27017;
-    this.expPort = 27018;
-    this.readOnlyPort = 27019;
+    Constant.oriPort = 27017;
+    Constant.expPort = 27018;
+    Constant.readOnlyPort = 27019;
   }
 
   @Override
@@ -76,10 +81,11 @@ public class MongoDBHistoryDataGenerator extends BaseHistoryDataGenerator {
   @Override
   public void writeHistoryDataToReadOnly() {
     Document doc = Document.parse(JSON_EXAMPLE);
-    MongoClient client = connect(readOnlyPort);
-    MongoDatabase database = client.getDatabase("d0");
-    MongoCollection<Document> collection = database.getCollection("c0");
-    collection.insertOne(doc);
+    try (MongoClient client = connect(readOnlyPort)) {
+      MongoDatabase database = client.getDatabase("d0");
+      MongoCollection<Document> collection = database.getCollection("c0");
+      collection.insertOne(doc);
+    }
   }
 
   private MongoClient connect(int port) {

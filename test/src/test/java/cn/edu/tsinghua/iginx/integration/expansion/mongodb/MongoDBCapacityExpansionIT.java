@@ -3,16 +3,16 @@ package cn.edu.tsinghua.iginx.integration.expansion.mongodb;
 import static cn.edu.tsinghua.iginx.integration.tool.DBType.mongodb;
 
 import cn.edu.tsinghua.iginx.integration.expansion.BaseCapacityExpansionIT;
+import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
 import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
 
-  private static final Logger logger = LoggerFactory.getLogger(MongoDBCapacityExpansionIT.class);
-
   public MongoDBCapacityExpansionIT() {
-    super(mongodb, null, 27017, 27018, 27019);
+    super(mongodb, null);
+    Constant.oriPort = 27017;
+    Constant.expPort = 27018;
+    Constant.readOnlyPort = 27019;
   }
 
   @Override
@@ -43,11 +43,11 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
 
   @Override
   protected void testQueryHistoryDataExpHasData() {
-    String statement = "select * from mn.wf03";
+    String statement = "select * from nt.wf03";
     String expect =
         "ResultSets:\n"
             + "+---+-----------+-------------------+\n"
-            + "|key|mn.wf03._id|mn.wf03.wt01.status|\n"
+            + "|key|nt.wf03._id|nt.wf03.wt01.status|\n"
             + "+---+-----------+-------------------+\n"
             + "|  1|          0|               true|\n"
             + "|  2|          1|              false|\n"
@@ -55,11 +55,11 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "Total line number = 2\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
 
-    statement = "select * from nt.wf03";
+    statement = "select * from nt.wf04";
     expect =
         "ResultSets:\n"
             + "+---+-----------+------------------------+\n"
-            + "|key|nt.wf03._id|nt.wf03.wt01.temperature|\n"
+            + "|key|nt.wf04._id|nt.wf04.wt01.temperature|\n"
             + "+---+-----------+------------------------+\n"
             + "|  1|          0|                   66.23|\n"
             + "|  2|          1|                   77.71|\n"
