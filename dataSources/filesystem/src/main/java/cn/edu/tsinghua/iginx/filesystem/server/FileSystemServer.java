@@ -23,6 +23,8 @@ public class FileSystemServer implements Runnable {
 
   private final Executor executor;
 
+  TServer server;
+
   public FileSystemServer(int port, Executor executor) {
     this.port = port;
     this.executor = executor;
@@ -38,7 +40,7 @@ public class FileSystemServer implements Runnable {
             .minWorkerThreads(config.getMinThriftWorkerThreadNum())
             .maxWorkerThreads(config.getMaxThriftWrokerThreadNum());
     args.protocolFactory(new TBinaryProtocol.Factory());
-    TServer server = new TThreadPoolServer(args);
+    server = new TThreadPoolServer(args);
     logger.info("File System service starts successfully!");
     server.serve();
   }
@@ -50,5 +52,9 @@ public class FileSystemServer implements Runnable {
     } catch (TTransportException e) {
       logger.error("File System service starts failure!");
     }
+  }
+
+  public void stop() {
+    server.stop();
   }
 }

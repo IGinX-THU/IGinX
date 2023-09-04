@@ -61,6 +61,8 @@ public class FileSystemStorage implements IStorage {
 
   private Executor executor;
 
+  private FileSystemServer server = null;
+
   public FileSystemStorage(StorageEngineMeta meta)
       throws StorageInitializationException, TTransportException {
     if (!meta.getStorageEngine().equals(STORAGE_ENGINE)) {
@@ -94,7 +96,8 @@ public class FileSystemStorage implements IStorage {
 
   private void initLocalExecutor(StorageEngineMeta meta) {
     executor = new LocalExecutor(meta.isReadOnly(), meta.isHasData(), meta.getExtraParams());
-    executorService.submit(new Thread(new FileSystemServer(meta.getPort(), executor)));
+    server = new FileSystemServer(meta.getPort(), executor);
+    executorService.submit(server);
   }
 
   @Override
@@ -183,5 +186,8 @@ public class FileSystemStorage implements IStorage {
   public void release() throws PhysicalException {
     executor.close();
     executorService.shutdown();
+    if (server != null) {
+      server.stop();
+    }
   }
 }
