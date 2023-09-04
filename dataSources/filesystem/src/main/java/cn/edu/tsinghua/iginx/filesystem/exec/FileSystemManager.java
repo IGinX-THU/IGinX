@@ -324,9 +324,18 @@ public class FileSystemManager {
     List<File> associatedFiles = new ArrayList<>();
     try {
       String filePath = file.getCanonicalPath();
-      if (filePath.contains(WILDCARD) || !isDummy) {
-        File root = new File(filePath.substring(0, filePath.indexOf(WILDCARD)));
+      if (!filePath.contains(WILDCARD) && isDummy) {
+        if (file.isFile() && file.exists()) {
+          associatedFiles.add(file);
+        }
+      } else { // filePath.contains(WILDCARD) || !isDummy
+        File root;
         String regex;
+        if (filePath.contains(WILDCARD)) {
+          root = new File(filePath.substring(0, filePath.indexOf(WILDCARD)));
+        } else { // !isDummy
+          root = file.getParentFile();
+        }
         if (isDummy) {
           regex = filePath.replaceAll("[*]", ".*");
         } else {
@@ -358,10 +367,6 @@ public class FileSystemManager {
                 return FileVisitResult.CONTINUE;
               }
             });
-      } else {
-        if (file.isFile() && file.exists()) {
-          associatedFiles.add(file);
-        }
       }
     } catch (IOException e) {
       logger.error(
