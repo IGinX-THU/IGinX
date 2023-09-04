@@ -27,7 +27,8 @@ import cn.edu.tsinghua.iginx.mongodb.immigrant.entity.MongoTable;
 import cn.edu.tsinghua.iginx.mongodb.immigrant.entity.Query;
 import cn.edu.tsinghua.iginx.mongodb.immigrant.tools.FilterUtils;
 import cn.edu.tsinghua.iginx.mongodb.immigrant.tools.UpdateUtils;
-import cn.edu.tsinghua.iginx.mongodb.local.LocalStorage;
+import cn.edu.tsinghua.iginx.mongodb.local.entity.PathTree;
+import cn.edu.tsinghua.iginx.mongodb.local.query.ClientQuery;
 import cn.edu.tsinghua.iginx.mongodb.tools.NameUtils;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import com.mongodb.MongoClientSettings;
@@ -36,9 +37,11 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.*;
+
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+
 import org.bson.BsonDocument;
 import org.bson.conversions.Bson;
 import org.slf4j.Logger;
@@ -56,8 +59,6 @@ public class MongoDBStorage implements IStorage {
 
   private final MongoClient client;
 
-  private final LocalStorage localStorage;
-
   public MongoDBStorage(StorageEngineMeta meta) throws StorageInitializationException {
     if (!meta.getStorageEngine().equals(STORAGE_ENGINE)) {
       throw new StorageInitializationException("unexpected database: " + meta.getStorageEngine());
@@ -70,8 +71,6 @@ public class MongoDBStorage implements IStorage {
       logger.error(message, e);
       throw new StorageInitializationException(message);
     }
-
-    this.localStorage = new LocalStorage(client, logger);
   }
 
   private MongoClient connect(String ip, int port) {
@@ -141,19 +140,26 @@ public class MongoDBStorage implements IStorage {
   }
 
   private TaskExecuteResult queryDummy(KeyInterval range, List<String> patterns, Filter filter) {
-    try {
-      if (patterns == null) patterns = new ArrayList<>();
-
-      AndFilter unionFilter = new AndFilter(new ArrayList<>());
-      if (filter != null) unionFilter.getChildren().add(filter);
-      if (range != null) {
-        KeyFilter leftFilter = new KeyFilter(Op.GE, range.getStartKey());
-        KeyFilter rightFilter = new KeyFilter(Op.L, range.getEndKey());
-        unionFilter.getChildren().addAll(Arrays.asList(leftFilter, rightFilter));
+    PathTree pathTree = new PathTree();
+    if (patterns != null) {
+      for (String pattern : patterns) {
+        pathTree.put(Arrays.stream(pattern.split("\\.")).iterator());
       }
+    }
 
-      return new TaskExecuteResult(localStorage.query(patterns, unionFilter));
+    AndFilter unionFilter = new AndFilter(new ArrayList<>());
+    if (filter != null) unionFilter.getChildren().add(filter);
+    if (range != null) {
+      KeyFilter leftFilter = new KeyFilter(Op.GE, range.getStartKey());
+      KeyFilter rightFilter = new KeyFilter(Op.L, range.getEndKey());
+      unionFilter.getChildren().addAll(Arrays.asList(leftFilter, rightFilter));
+    }
+
+    try {
+      return new TaskExecuteResult(new ClientQuery(this.client).query(pathTree, unionFilter));
     } catch (Exception e) {
+      logger.error("dummy project {} where {}", patterns, filter);
+      logger.error("failed to dummy query ", e);
       return new TaskExecuteResult(new PhysicalException("failed to query dummy", e));
     }
   }
