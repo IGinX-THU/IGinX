@@ -200,6 +200,8 @@ public abstract class BaseCapacityExpansionIT {
     if (this instanceof FileSystemCapacityExpansionIT) {
       // 仅用于扩容文件系统后查询文件
       testQueryForFileSystem();
+      // TODO 扩容后show columns测试
+      testShowColumnsForFileSystem();
     }
   }
 
@@ -451,5 +453,77 @@ public abstract class BaseCapacityExpansionIT {
       logger.error("test query for file system failed {}", e.getMessage());
       fail();
     }
+  }
+
+  private void testShowColumnsForFileSystem() {
+    String statement = "SHOW COLUMNS;";
+    String expected =
+        "Columns:\n"
+            + "+--------+--------+\n"
+            + "|    Path|DataType|\n"
+            + "+--------+--------+\n"
+            + "|us.d1.s1|    LONG|\n"
+            + "|us.d1.s2|    LONG|\n"
+            + "|us.d1.s3|  BINARY|\n"
+            + "|us.d1.s4|  DOUBLE|\n"
+            + "+--------+--------+\n"
+            + "Total line number = 4\n";
+    SQLTestTools.executeAndCompare(session, statement, expected);
+
+    statement = "SHOW COLUMNS mn.*;";
+    expected =
+        "Columns:\n"
+            + "+--------+--------+\n"
+            + "|    Path|DataType|\n"
+            + "+--------+--------+\n"
+            + "|us.d1.s1|    LONG|\n"
+            + "|us.d1.s2|    LONG|\n"
+            + "|us.d1.s3|  BINARY|\n"
+            + "|us.d1.s4|  DOUBLE|\n"
+            + "+--------+--------+\n"
+            + "Total line number = 4\n";
+    SQLTestTools.executeAndCompare(session, statement, expected);
+
+    statement = "SHOW COLUMNS nt.*;";
+    expected =
+        "Columns:\n"
+            + "+--------+--------+\n"
+            + "|    Path|DataType|\n"
+            + "+--------+--------+\n"
+            + "|us.d1.s1|    LONG|\n"
+            + "|us.d1.s2|    LONG|\n"
+            + "|us.d1.s3|  BINARY|\n"
+            + "|us.d1.s4|  DOUBLE|\n"
+            + "+--------+--------+\n"
+            + "Total line number = 4\n";
+    SQLTestTools.executeAndCompare(session, statement, expected);
+
+    statement = "SHOW COLUMNS tm.*;";
+    expected =
+        "Columns:\n"
+            + "+--------+--------+\n"
+            + "|    Path|DataType|\n"
+            + "+--------+--------+\n"
+            + "|us.d1.s1|    LONG|\n"
+            + "|us.d1.s2|    LONG|\n"
+            + "|us.d1.s3|  BINARY|\n"
+            + "|us.d1.s4|  DOUBLE|\n"
+            + "+--------+--------+\n"
+            + "Total line number = 4\n";
+    SQLTestTools.executeAndCompare(session, statement, expected);
+
+    statement = "SHOW COLUMNS a.*;";
+    expected =
+        "Columns:\n"
+            + "+--------+--------+\n"
+            + "|    Path|DataType|\n"
+            + "+--------+--------+\n"
+            + "|us.d1.s1|    LONG|\n"
+            + "|us.d1.s2|    LONG|\n"
+            + "|us.d1.s3|  BINARY|\n"
+            + "|us.d1.s4|  DOUBLE|\n"
+            + "+--------+--------+\n"
+            + "Total line number = 4\n";
+    SQLTestTools.executeAndCompare(session, statement, expected);
   }
 }
