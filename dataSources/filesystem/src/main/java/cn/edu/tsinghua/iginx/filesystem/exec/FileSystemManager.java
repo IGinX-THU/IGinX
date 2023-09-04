@@ -222,7 +222,7 @@ public class FileSystemManager {
    * @return 元数据与 tags 相等的 .iginx 文件,否则返回 null
    */
   private File getFileWithTags(File file, Map<String, String> tags) {
-    for (File f : getAssociatedFiles(file, true)) {
+    for (File f : getAssociatedFiles(file, false)) {
       FileMeta fileMeta = getFileMeta(f);
       if ((tags == null || tags.isEmpty()) && fileMeta.getTags().isEmpty()) {
         return f;
@@ -256,7 +256,7 @@ public class FileSystemManager {
 
   // 获取文件id，例如 a.iginx5，则其id就是5
   private int getFileID(File file) {
-    List<File> files = getAssociatedFiles(file, true);
+    List<File> files = getAssociatedFiles(file, false);
     if (files.isEmpty()) {
       return -1;
     }
