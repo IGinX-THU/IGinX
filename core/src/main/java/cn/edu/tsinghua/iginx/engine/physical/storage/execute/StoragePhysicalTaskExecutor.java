@@ -295,7 +295,9 @@ public class StoragePhysicalTaskExecutor {
             String schemaPrefix = storage.getSchemaPrefix();
             if (schemaPrefix != null) {
               for (Column column : columnList) {
-                column.setPath(schemaPrefix + "." + column.getPath());
+                if (column.isDummy()) {
+                  column.setPath(schemaPrefix + "." + column.getPath());
+                }
               }
             }
             columnSet.addAll(columnList);

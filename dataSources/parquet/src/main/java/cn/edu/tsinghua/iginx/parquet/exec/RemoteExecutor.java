@@ -81,7 +81,7 @@ public class RemoteExecutor implements Executor {
         List<DataType> dataTypes = new ArrayList<>();
         List<Field> fields = new ArrayList<>();
         for (int i = 0; i < parquetHeader.getNamesSize(); i++) {
-          DataType dataType = DataTypeUtils.strToDataType(parquetHeader.getTypes().get(i));
+          DataType dataType = DataTypeUtils.getDataTypeFromString(parquetHeader.getTypes().get(i));
           dataTypes.add(dataType);
           fields.add(
               new Field(
@@ -325,7 +325,7 @@ public class RemoteExecutor implements Executor {
                   columnList.add(
                       new Column(
                           ts.getPath(),
-                          DataTypeUtils.strToDataType(ts.getDataType()),
+                          DataTypeUtils.getDataTypeFromString(ts.getDataType()),
                           ts.getTags())));
       return columnList;
     } catch (TException e) {

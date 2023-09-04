@@ -244,7 +244,10 @@ public class InfluxDBStorage implements IStorage {
     for (Bucket bucket :
         client.getBucketsApi().findBucketsByOrgName(organization.getName())) { // get all the bucket
       // query all the series by querying all the data with first()
-      if (!bucket.getName().contains("unit")) continue;
+      if (!bucket.getName().contains("unit")) {
+        continue;
+      }
+      // TODO 没有show dummy columns
       String statement = String.format(SHOW_TIME_SERIES, bucket.getName());
       tables.addAll(client.getQueryApi().query(statement, organization.getId()));
     }

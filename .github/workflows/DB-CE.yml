@@ -21,7 +21,7 @@ jobs:
                 python-version: ["3.7.16"]
                 os: [ubuntu-latest, macos-latest]
                 DB-name:
-                    ["IoTDB12", "InfluxDB", "PostgreSQL", "Redis", "MongoDB"]
+                    ["FileSystem", "IoTDB12", "InfluxDB", "PostgreSQL", "Redis", "MongoDB"]
         runs-on: ${{ matrix.os }}
         steps:
             - uses: actions/checkout@v2

@@ -250,8 +250,10 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
         List<String> schemas = this.client.getChildren().forPath(SCHEMA_MAPPING_PREFIX);
         for (String schema : schemas) {
           Map<String, Integer> schemaMapping =
-              JsonUtils.transform(
-                  new String(this.client.getData().forPath(SCHEMA_MAPPING_PREFIX + "/" + schema)));
+              JsonUtils.parseMap(
+                  new String(this.client.getData().forPath(SCHEMA_MAPPING_PREFIX + "/" + schema)),
+                  String.class,
+                  Integer.class);
           schemaMappings.put(schema, schemaMapping);
         }
       }
@@ -288,7 +290,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
             case NODE_ADDED:
             case NODE_UPDATED:
               data = event.getData().getData();
-              schemaMapping = JsonUtils.transform(new String(data));
+              schemaMapping = JsonUtils.parseMap(new String(data), String.class, Integer.class);
               break;
             case NODE_REMOVED:
             default:
