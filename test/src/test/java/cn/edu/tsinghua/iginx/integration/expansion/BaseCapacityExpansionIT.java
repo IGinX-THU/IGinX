@@ -495,14 +495,14 @@ public abstract class BaseCapacityExpansionIT {
     statement = "SHOW COLUMNS a.*;";
     expected =
         "Columns:\n"
-            + "+--------------+--------+\n"
-            + "|          Path|DataType|\n"
-            + "+--------------+--------+\n"
+            + "+-------------+--------+\n"
+            + "|         Path|DataType|\n"
+            + "+-------------+--------+\n"
             + "|a.b.c.d.1\\txt|  BINARY|\n"
             + "|    a.e.2\\txt|  BINARY|\n"
             + "|  a.f.g.3\\txt|  BINARY|\n"
-            + "+--------------+--------+\n"
-            + "Total line number = 3\n";
+            + "+-------------+--------+\n"
+            + "Total line number = 3";
     SQLTestTools.executeAndCompare(session, statement, expected);
   }
 }
