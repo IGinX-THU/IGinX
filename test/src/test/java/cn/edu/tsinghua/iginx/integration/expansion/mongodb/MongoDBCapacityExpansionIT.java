@@ -1,12 +1,21 @@
 package cn.edu.tsinghua.iginx.integration.expansion.mongodb;
 
+import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.expPort;
 import static cn.edu.tsinghua.iginx.integration.tool.DBType.mongodb;
+import static org.junit.Assert.fail;
 
+import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
+import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.expansion.BaseCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
 import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
+import cn.edu.tsinghua.iginx.thrift.RemovedStorageEngineInfo;
+import java.util.Arrays;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
+  private static final Logger logger = LoggerFactory.getLogger(MongoDBCapacityExpansionIT.class);
 
   public MongoDBCapacityExpansionIT() {
     super(mongodb, null);
@@ -157,5 +166,115 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "+---+-----------------------------+\n"
             + "Total line number = 1\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
+  }
+
+  @Override
+  protected void testAddAndRemoveStorageEngineWithPrefix() {
+    addStorageEngine(expPort, true, true, "nt.wf03", "p1");
+    addStorageEngine(expPort, true, true, "nt.wf03", "p2");
+    addStorageEngine(expPort, true, true, "nt.wf03", null);
+
+    String res = addStorageEngine(expPort, true, true, "nt.wf03", null);
+    if (res != null && !res.contains("unexpected repeated add")) {
+      fail();
+    }
+    addStorageEngine(expPort, true, true, "nt.wf03", "p3");
+    addStorageEngine(expPort, true, true, "nt.wf04", "p3");
+
+    String statement = "select * from p1.nt.wf03";
+    String expect =
+        "ResultSets:\n"
+            + "+---+--------------+----------------------+\n"
+            + "|key|p1.nt.wf03._id|p1.nt.wf03.wt01.status|\n"
+            + "+---+--------------+----------------------+\n"
+            + "|  1|             0|                  true|\n"
+            + "|  2|             1|                 false|\n"
+            + "+---+--------------+----------------------+\n"
+            + "Total line number = 2\n";
+    SQLTestTools.executeAndCompare(session, statement, expect);
+
+    statement = "select * from p2.nt.wf03";
+    expect =
+        "ResultSets:\n"
+            + "+---+--------------+----------------------+\n"
+            + "|key|p2.nt.wf03._id|p2.nt.wf03.wt01.status|\n"
+            + "+---+--------------+----------------------+\n"
+            + "|  1|             0|                  true|\n"
+            + "|  2|             1|                 false|\n"
+            + "+---+--------------+----------------------+\n"
+            + "Total line number = 2\n";
+    SQLTestTools.executeAndCompare(session, statement, expect);
+
+    statement = "select * from nt.wf03";
+    expect =
+        "ResultSets:\n"
+            + "+---+-----------+-------------------+\n"
+            + "|key|nt.wf03._id|nt.wf03.wt01.status|\n"
+            + "+---+-----------+-------------------+\n"
+            + "|  1|          0|               true|\n"
+            + "|  2|          1|              false|\n"
+            + "+---+-----------+-------------------+\n"
+            + "Total line number = 2\n";
+    SQLTestTools.executeAndCompare(session, statement, expect);
+
+    statement = "select * from p3.nt.wf03";
+    expect =
+        "ResultSets:\n"
+            + "+---+--------------+----------------------+\n"
+            + "|key|p3.nt.wf03._id|p3.nt.wf03.wt01.status|\n"
+            + "+---+--------------+----------------------+\n"
+            + "|  1|             0|                  true|\n"
+            + "|  2|             1|                 false|\n"
+            + "+---+--------------+----------------------+\n"
+            + "Total line number = 2\n";
+    SQLTestTools.executeAndCompare(session, statement, expect);
+
+    try {
+      session.removeHistoryDataSource(
+          Arrays.asList(
+              new RemovedStorageEngineInfo("127.0.0.1", expPort, "p2", "nt.wf03"),
+              new RemovedStorageEngineInfo("127.0.0.1", expPort, "p3", "nt.wf03")));
+    } catch (ExecutionException | SessionException e) {
+      logger.error("remove history data source through session api error: {}", e.getMessage());
+    }
+
+    statement = "select * from p2.nt.wf03";
+    expect = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
+    SQLTestTools.executeAndCompare(session, statement, expect);
+
+    statement = "select * from p3.nt.wf04";
+    expect =
+        "ResultSets:\n"
+            + "+---+--------------+---------------------------+\n"
+            + "|key|p3.nt.wf04._id|p3.nt.wf04.wt01.temperature|\n"
+            + "+---+--------------+---------------------------+\n"
+            + "|  1|             0|                      66.23|\n"
+            + "|  2|             1|                      77.71|\n"
+            + "+---+--------------+---------------------------+\n"
+            + "Total line number = 2\n";
+    SQLTestTools.executeAndCompare(session, statement, expect);
+
+    String removeStatement = "remove historydataresource (\"127.0.0.1\", %d, \"%s\", \"%s\")";
+    try {
+      session.executeSql(String.format(removeStatement, expPort, "p1", "nt.wf03"));
+      session.executeSql(String.format(removeStatement, expPort, "p3", "nt.wf04"));
+      session.executeSql(String.format(removeStatement, expPort, "", "nt.wf03"));
+    } catch (ExecutionException | SessionException e) {
+      logger.error("remove history data source through sql error: {}", e.getMessage());
+    }
+
+    statement = "select * from p1.nt.wf03";
+    expect = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
+    SQLTestTools.executeAndCompare(session, statement, expect);
+
+    try {
+      session.executeSql(String.format(removeStatement, expPort, "p1", "nt.wf03"));
+    } catch (ExecutionException | SessionException e) {
+      if (!e.getMessage().contains("dummy storage engine does not exist.")) {
+        logger.error(
+            "'remove history data source should throw error when removing the node that does not exist");
+        fail();
+      }
+    }
   }
 }

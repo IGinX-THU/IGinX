@@ -316,7 +316,7 @@ public abstract class BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, expect);
   }
 
-  private void testAddAndRemoveStorageEngineWithPrefix() {
+  protected void testAddAndRemoveStorageEngineWithPrefix() {
     String dataPrefix1 = this instanceof FileSystemCapacityExpansionIT ? "wf03" : "nt.wf03";
     String dataPrefix2 = this instanceof FileSystemCapacityExpansionIT ? "wf04" : "nt.wf04";
     String schemaPrefixSuffix = this instanceof FileSystemCapacityExpansionIT ? ".nt" : "";
