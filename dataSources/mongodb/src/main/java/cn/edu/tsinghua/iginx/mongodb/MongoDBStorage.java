@@ -37,11 +37,9 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.*;
-
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-
 import org.bson.BsonDocument;
 import org.bson.conversions.Bson;
 import org.slf4j.Logger;
