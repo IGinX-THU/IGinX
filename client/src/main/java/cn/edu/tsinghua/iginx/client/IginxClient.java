@@ -231,7 +231,7 @@ public class IginxClient {
       return OperationResult.STOP;
     }
 
-    if (isQuery(statement) || isShowColumns(statement)) {
+    if (isQuery(statement)) {
       processSqlWithStream(statement);
     } else if (isSetTimeUnit(statement)) {
       processSetTimeUnit(statement);
@@ -247,10 +247,6 @@ public class IginxClient {
     // 上述语句为查询语句，但在该方法中返回false
     // 在没有SQL解析器的情况下，暂未想到区分查询语句和写入文件语句的方法
     return sql.startsWith("select") && !sql.contains(" into outfile ");
-  }
-
-  private static boolean isShowColumns(String sql) {
-    return sql.contains("show") && sql.contains("columns");
   }
 
   private static boolean isSetTimeUnit(String sql) {
