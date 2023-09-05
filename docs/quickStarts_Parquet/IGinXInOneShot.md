@@ -71,7 +71,6 @@ $ ./runIginxOn1Host.sh
 
 ```shell
 ZooKeeper is started!
-IoTDB is started!
 IGinX is started!
 =====================================
 You can now test IGinX. Have fun!~

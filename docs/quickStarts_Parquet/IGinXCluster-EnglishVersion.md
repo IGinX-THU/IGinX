@@ -95,7 +95,7 @@ $ tar -zxvf IGinX-release-v0.5.1-bin.tar.gz
 
 ## Launch
 
-Here is an example of starting  two IGinX instances to demonstrate how to start an IGinX cluster.
+Here is an example of starting two IGinX instances and two Parquet database servers to demonstrate how to start an IGinX cluster. These two Parquet servers are created by two IGinX instances respectively.
 
 ### Start ZooKeeper
 
@@ -143,6 +143,10 @@ Modify conf/config.Properties
 ```shell
 # IGinX binding port
 port=7888
+
+# Parquet database server port, IGinX port and data directory
+storageEngineList=127.0.0.1#6668#parquet#dir=parquetData2#iginx_port=7888#has_data=false#is_read_only=false
+
 # rest bind port
 restPort=7666
 ```

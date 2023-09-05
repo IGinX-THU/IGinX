@@ -222,7 +222,7 @@ Starting zookeeper ... STARTED
 Modify `IGINX_HOME/conf/config.properties` and set storage engine to Parquet.
 
 ```properties
-storageEngineList=127.0.0.1#6667#parquet#dir=parquetData
+storageEngineList=127.0.0.1#6667#parquet#dir=parquetData#has_data=false#is_read_only=false
 # dir=parquetData will create a /parquetData folder in the working directory. You can customize the name.
 ```
 

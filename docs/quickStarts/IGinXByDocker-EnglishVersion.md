@@ -173,7 +173,7 @@ services:
   zookeeper:
     hostname: "custom_zookeeper_hostname"	#default: zkServer
   iotdb:
-    hostname: "custom_IoTDB_hostname"		##default: iotdb12
+    hostname: "custom_IoTDB_hostname"		#default: iotdb12
 # conf/config.properties should be changed accordingly
 ```
 

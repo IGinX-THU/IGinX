@@ -95,7 +95,7 @@ $ tar -zxvf IGinX-release-v0.5.1-bin.tar.gz
 
 ## 启动
 
-这里以启动两个 IGinX 实例为例子，演示如何启动 IGinX 集群
+这里以启动两个 IGinX 实例和两个Parquet数据库服务为例子，演示如何启动 IGinX 集群。两个Parquet数据库服务分别由两个IGinX创建并可以访问互联。
 
 ### 启动 ZooKeeper
 
@@ -143,6 +143,10 @@ $ ./sbin/start_iginx.sh
 ```shell
 # IGinX 绑定的端口
 port=7888
+
+# Parquet 数据库端口|IGinX端口和数据文件夹配置
+storageEngineList=127.0.0.1#6668#parquet#dir=parquetData2#iginx_port=7888#has_data=false#is_read_only=false
+
 # rest 绑定的端口
 restPort=7666
 ```

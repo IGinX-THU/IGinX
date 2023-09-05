@@ -224,7 +224,7 @@ Starting zookeeper ... STARTED
 修改`IGINX_HOME/conf/config.properties`，设置时序数据库为parquet
 
 ```properties
-storageEngineList=127.0.0.1#6667#parquet#dir=parquetData
+storageEngineList=127.0.0.1#6667#parquet#dir=parquetData#has_data=false#is_read_only=false
 # dir=parquetData将在工作目录创建一个parquetData文件夹，用户也可以修改为其他路径（工作目录中）
 ```
 
