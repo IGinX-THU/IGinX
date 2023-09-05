@@ -21,8 +21,6 @@ package cn.edu.tsinghua.iginx.filesystem;
 import static cn.edu.tsinghua.iginx.filesystem.shared.Constant.WILDCARD;
 import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.isLocal;
 
-import cn.edu.tsinghua.iginx.conf.Config;
-import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;

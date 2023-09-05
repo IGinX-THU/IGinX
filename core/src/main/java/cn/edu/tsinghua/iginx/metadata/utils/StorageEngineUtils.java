@@ -9,8 +9,6 @@ import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.conf.Constants;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.utils.Pair;
-import cn.edu.tsinghua.iginx.utils.RpcUtils;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;

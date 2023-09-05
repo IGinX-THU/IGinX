@@ -31,7 +31,8 @@ public abstract class BaseCapacityExpansionIT {
 
   protected String extraParams;
 
-  private final boolean IS_PARQUET_OR_FILE_SYSTEM =  this instanceof FileSystemCapacityExpansionIT || this instanceof ParquetCapacityExpansionIT;
+  private final boolean IS_PARQUET_OR_FILE_SYSTEM =
+      this instanceof FileSystemCapacityExpansionIT || this instanceof ParquetCapacityExpansionIT;
 
   public BaseCapacityExpansionIT(DBType dbType, String extraParams) {
     this.dbType = dbType;
