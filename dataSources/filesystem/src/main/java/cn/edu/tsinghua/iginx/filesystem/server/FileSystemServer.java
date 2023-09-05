@@ -15,7 +15,7 @@ import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class FileSystemServer {
+public class FileSystemServer implements Runnable {
 
   private static final Logger logger = LoggerFactory.getLogger(FileSystemServer.class);
 
@@ -51,7 +51,6 @@ public class FileSystemServer {
               .protocolFactory(new TBinaryProtocol.Factory())
               .executorService(executorService);
       server = new TThreadPoolServer(args);
-      server.serve();
       logger.info("File System service starts successfully!");
     } catch (TTransportException e) {
       logger.error("File System service starts failure: {}", e.getMessage());
@@ -68,5 +67,10 @@ public class FileSystemServer {
     if (executorService != null) {
       executorService.shutdown();
     }
+  }
+
+  @Override
+  public void run() {
+    server.serve();
   }
 }

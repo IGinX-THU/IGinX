@@ -45,6 +45,8 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,6 +60,8 @@ public class FileSystemStorage implements IStorage {
   private Executor executor;
 
   private FileSystemServer server = null;
+
+  private ExecutorService executorService;
 
   public FileSystemStorage(StorageEngineMeta meta)
       throws StorageInitializationException, TTransportException {
@@ -92,7 +96,9 @@ public class FileSystemStorage implements IStorage {
 
   private void initLocalExecutor(StorageEngineMeta meta) {
     this.executor = new LocalExecutor(meta.isReadOnly(), meta.isHasData(), meta.getExtraParams());
-    this.server = new FileSystemServer(meta.getPort(), this.executor);
+    this.server = new FileSystemServer(meta.getPort(), executor);
+    this.executorService = Executors.newSingleThreadExecutor();
+    executorService.submit(server);
   }
 
   @Override
@@ -182,6 +188,9 @@ public class FileSystemStorage implements IStorage {
     executor.close();
     if (server != null) {
       server.stop();
+    }
+    if (executorService != null) {
+      executorService.shutdown();
     }
   }
 }
