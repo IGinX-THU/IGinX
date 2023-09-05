@@ -282,6 +282,9 @@ public class IginxWorker implements IService.Iface {
       }
       boolean readOnly =
           Boolean.parseBoolean(extraParams.getOrDefault(Constants.IS_READ_ONLY, "false"));
+      if (!hasData & readOnly) { // Added a meaningless node
+        return new Status(RpcUtils.FAILURE).setMessage("Cannot add a meaningless node with read-only access and no data!");
+      }
       if (type.equals("parquet")) {
         String dir = extraParams.get("dir");
         if (dir == null || dir.isEmpty()) {
