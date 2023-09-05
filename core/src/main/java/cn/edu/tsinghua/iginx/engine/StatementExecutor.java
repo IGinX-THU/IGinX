@@ -628,6 +628,7 @@ public class StatementExecutor {
               + ", because "
               + e.getMessage());
     }
+    stream.close();
     ctx.setResult(new Result(RpcUtils.SUCCESS));
   }
 
@@ -698,6 +699,7 @@ public class StatementExecutor {
       }
     }
 
+    stream.close();
     ctx.setResult(new Result(RpcUtils.SUCCESS));
   }
 
