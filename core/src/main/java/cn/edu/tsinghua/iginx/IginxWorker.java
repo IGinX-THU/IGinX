@@ -271,6 +271,8 @@ public class IginxWorker implements IService.Iface {
     }
     List<StorageEngine> storageEngines = req.getStorageEngines();
     List<StorageEngineMeta> storageEngineMetas = new ArrayList<>();
+    Status status = RpcUtils.SUCCESS;
+    List<Status> statusList = new ArrayList<>();
 
     for (StorageEngine storageEngine : storageEngines) {
       String type = storageEngine.getType();
@@ -282,8 +284,11 @@ public class IginxWorker implements IService.Iface {
       }
       boolean readOnly =
           Boolean.parseBoolean(extraParams.getOrDefault(Constants.IS_READ_ONLY, "false"));
-      if (!hasData & readOnly) { // Added a meaningless node
-        return new Status(RpcUtils.FAILURE).setMessage("Cannot add a meaningless node with read-only access and no data!");
+      if (!hasData & readOnly) { // 无意义的存储引擎：不带数据且只读
+        status = new Status(RpcUtils.PARTIAL_SUCCESS.code);
+        status.setMessage("normal storage engine should not be read-only");
+        statusList.add(status);
+        continue;
       }
       if (type.equals("parquet")) {
         String dir = extraParams.get("dir");
@@ -315,8 +320,12 @@ public class IginxWorker implements IService.Iface {
               metaManager.getIginxId());
       storageEngineMetas.add(meta);
     }
-    Status status = RpcUtils.SUCCESS;
-    // 检测是否与已有的存储单元冲突
+    // 所有存储引擎均无意义
+    if (!statusList.isEmpty() && storageEngineMetas.isEmpty()) {
+      status = RpcUtils.FAILURE;
+      statusList.clear();
+    }
+    // 检测是否与已有的存储引擎冲突
     List<StorageEngineMeta> currentStorageEngines = metaManager.getStorageEngineList();
     List<StorageEngineMeta> duplicatedStorageEngine = new ArrayList<>();
     for (StorageEngineMeta storageEngine : storageEngineMetas) {
@@ -329,12 +338,13 @@ public class IginxWorker implements IService.Iface {
     }
     if (!duplicatedStorageEngine.isEmpty()) {
       storageEngineMetas.removeAll(duplicatedStorageEngine);
-      if (!storageEngines.isEmpty()) {
+      if (!storageEngineMetas.isEmpty()) {
         status = new Status(RpcUtils.PARTIAL_SUCCESS.code);
+        status.setMessage("unexpected repeated add");
+        statusList.add(status);
       } else {
-        status = new Status(RpcUtils.FAILURE.code);
+        return RpcUtils.FAILURE.setMessage("unexpected repeated add");
       }
-      status.setMessage("unexpected repeated add");
     }
     if (!storageEngineMetas.isEmpty()
         && storageEngineMetas.stream().anyMatch(e -> !e.isReadOnly())) {
@@ -370,6 +380,9 @@ public class IginxWorker implements IService.Iface {
     }
     for (StorageEngineMeta meta : storageEngineMetas) {
       PhysicalEngineImpl.getInstance().getStorageManager().addStorage(meta);
+    }
+    if (status == RpcUtils.PARTIAL_SUCCESS && statusList.size() > 1) {
+      status.setSubStatus(statusList);
     }
     return status;
   }
