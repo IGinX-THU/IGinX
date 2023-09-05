@@ -2,7 +2,6 @@ package cn.edu.tsinghua.iginx.filesystem.exec;
 
 import static cn.edu.tsinghua.iginx.engine.logical.utils.PathUtils.MAX_CHAR;
 import static cn.edu.tsinghua.iginx.filesystem.shared.Constant.*;
-import static cn.edu.tsinghua.iginx.filesystem.shared.FileType.*;
 
 import cn.edu.tsinghua.iginx.engine.physical.storage.utils.TagKVUtils;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
@@ -12,18 +11,22 @@ import cn.edu.tsinghua.iginx.filesystem.file.IFileOperator;
 import cn.edu.tsinghua.iginx.filesystem.file.entity.FileMeta;
 import cn.edu.tsinghua.iginx.filesystem.query.entity.FileSystemResultTable;
 import cn.edu.tsinghua.iginx.filesystem.query.entity.Record;
-import cn.edu.tsinghua.iginx.filesystem.shared.FileType;
 import cn.edu.tsinghua.iginx.filesystem.tools.MemoryPool;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.DirectoryStream;
+import java.nio.file.FileVisitResult;
+import java.nio.file.FileVisitor;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -77,9 +80,8 @@ public class FileSystemManager {
 
   private List<File> getFilesWithTagFilter(File file, TagFilter tagFilter, boolean isDummy)
       throws IOException {
-    List<File> files = getAssociatedFiles(file);
     List<File> res = new ArrayList<>();
-    for (File f : files) {
+    for (File f : getAssociatedFiles(file, isDummy)) {
       if (isDummy) {
         res.add(f);
       } else {
@@ -220,11 +222,12 @@ public class FileSystemManager {
    * @return 元数据与 tags 相等的 .iginx 文件,否则返回 null
    */
   private File getFileWithTags(File file, Map<String, String> tags) {
-    List<File> files = getAssociatedFiles(file);
-    for (File f : files) {
+    for (File f : getAssociatedFiles(file, false)) {
       FileMeta fileMeta = getFileMeta(f);
-      if ((tags == null || tags.isEmpty()) && fileMeta.getTags().isEmpty()
-          || Objects.equals(tags, fileMeta.getTags())) {
+      if ((tags == null || tags.isEmpty()) && fileMeta.getTags().isEmpty()) {
+        return f;
+      }
+      if (Objects.equals(tags, fileMeta.getTags())) {
         return f;
       }
     }
@@ -234,43 +237,39 @@ public class FileSystemManager {
   private synchronized File getFileIDAndCreate(
       File file, List<Record> records, Map<String, String> tags) throws IOException {
     // 判断该文件的后缀id
-    File f = determineFileId(file);
+    File f = determineFileID(file);
     // 创建该文件
     FileMeta fileMeta = new FileMeta(records.get(0).getDataType(), tags);
     fileMetaMap.put(f.getAbsolutePath(), fileMeta);
     return fileOperator.create(f, fileMeta);
   }
 
-  private File determineFileId(File file) {
+  private File determineFileID(File file) {
     int id = getFileID(file);
     if (id == -1) {
       id = 0;
     } else {
       id += 1;
     }
-    String path = file.getAbsolutePath() + id;
-    return new File(path);
+    return new File(file.getAbsolutePath() + id);
   }
 
   // 获取文件id，例如 a.iginx5，则其id就是5
   private int getFileID(File file) {
-    List<File> files = getAssociatedFiles(file);
+    List<File> files = getAssociatedFiles(file, false);
     if (files.isEmpty()) {
       return -1;
     }
-
     List<Integer> nums = new ArrayList<>();
     nums.add(0);
     for (File f : files) {
       String name = f.getName();
-      int idx = name.lastIndexOf(FILE_EXTENSION);
-      String numStr = name.substring(idx + FILE_EXTENSION.length());
+      String numStr = name.substring(name.lastIndexOf(FILE_EXTENSION) + FILE_EXTENSION.length());
       if (numStr.isEmpty()) {
         continue;
       }
       nums.add(Integer.parseInt(numStr));
     }
-
     return Collections.max(nums);
   }
 
@@ -286,20 +285,18 @@ public class FileSystemManager {
    * @return 如果删除操作失败则抛出异常
    */
   public Exception deleteFiles(List<File> files, TagFilter filter) {
-    List<File> fileList = new ArrayList<>();
     for (File file : files) {
       try {
-        fileList.addAll(getFilesWithTagFilter(file, filter, false));
+        for (File f : getFilesWithTagFilter(file, filter, false)) {
+          Exception e = fileOperator.delete(f);
+          if (e != null) {
+            return e;
+          }
+          fileMetaMap.remove(f.getAbsolutePath());
+        }
       } catch (IOException e) {
         return new IOException(String.format("delete file %s failed", file.getAbsoluteFile()), e);
       }
-    }
-    for (File file : fileList) {
-      Exception e = fileOperator.delete(file);
-      if (e != null) {
-        return e;
-      }
-      fileMetaMap.remove(file.getAbsolutePath());
     }
     return null;
   }
@@ -323,78 +320,94 @@ public class FileSystemManager {
   }
 
   // 返回和file文件相关的所有文件
-  private List<File> getAssociatedFiles(File file) {
-    List<File> fileList;
-    Stack<File> S = new Stack<>();
-    Set<File> res = new HashSet<>();
-    File root;
-    String prefix = null;
-    // select * from *
-    if (file.getParentFile().getName().equals(WILDCARD) && file.getName().contains(WILDCARD)) {
-      root = file.getParentFile().getParentFile(); // storage unit file
-    } else if (file.getParentFile().getName().equals(WILDCARD)
-        && !file.getName().contains(WILDCARD)) {
-      File tmp = file.getParentFile();
-      while (tmp.getName().equals(WILDCARD)) {
-        tmp = tmp.getParentFile();
+  private List<File> getAssociatedFiles(File file, boolean isDummy) {
+    List<File> associatedFiles = new ArrayList<>();
+    try {
+      String filePath = file.getCanonicalPath();
+      if (!filePath.contains(WILDCARD) && isDummy) {
+        if (file.isFile() && file.exists()) {
+          associatedFiles.add(file);
+        }
+      } else { // filePath.contains(WILDCARD) || !isDummy
+        File root;
+        String regex;
+        if (filePath.contains(WILDCARD)) {
+          root = new File(filePath.substring(0, filePath.indexOf(WILDCARD)));
+        } else { // !isDummy
+          root = file.getParentFile();
+        }
+        if (isDummy) {
+          regex = filePath.replaceAll("[$^{}]", "\\\\$0").replaceAll("[*]", ".*");
+        } else {
+          regex = filePath.replaceAll("[$^{}]", "\\\\$0").replaceAll("[*]", ".*") + ".*";
+        }
+        Files.walkFileTree(
+            root.toPath(),
+            new FileVisitor<Path>() {
+              @Override
+              public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
+                return FileVisitResult.CONTINUE;
+              }
+
+              @Override
+              public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+                if (!file.toFile().isHidden() && Pattern.matches(regex, file.toString())) {
+                  associatedFiles.add(file.toFile());
+                }
+                return FileVisitResult.CONTINUE;
+              }
+
+              @Override
+              public FileVisitResult visitFileFailed(Path file, IOException exc) {
+                return FileVisitResult.CONTINUE;
+              }
+
+              @Override
+              public FileVisitResult postVisitDirectory(Path dir, IOException exc) {
+                return FileVisitResult.CONTINUE;
+              }
+            });
       }
-      root = tmp;
-      prefix = file.getName();
-    } else if (file.getName().contains(WILDCARD)) {
-      root = file.getParentFile();
-    } else if (file.isDirectory()) {
-      root = file;
-    } else {
-      root = file.getParentFile();
-      prefix = file.getName();
+    } catch (IOException e) {
+      logger.error(
+          "get associated files of {} failure: {}", file.getAbsolutePath(), e.getMessage());
     }
-    boolean flag = false;
-    S.push(root);
-    while (!S.empty()) {
-      File tmp = S.pop();
-      if (tmp.isDirectory()) {
-        List<File> files = fileOperator.listFiles(tmp, prefix);
-        List<File> dirlist = fileOperator.listFiles(tmp);
-        for (File f : files) {
-          S.push(f);
-        }
-        for (File f : dirlist) {
-          if (f.isDirectory()) {
-            S.push(f);
-          }
-        }
-      }
-      if (flag) {
-        if (tmp.isFile()) {
-          res.add(tmp);
-        }
-      }
-      flag = true;
-    }
-    fileList = new ArrayList<>(res);
-    return fileList;
+    return associatedFiles;
   }
 
-  public List<File> getAllFiles(File dir, boolean containsDir) {
+  public List<File> getAllFiles(File dir, boolean containsEmptyDir) {
     List<File> res = new ArrayList<>();
-    Stack<File> stack = new Stack<>();
-    stack.push(dir);
-    while (!stack.isEmpty()) {
-      File current = stack.pop();
-      List<File> fileList;
-      if (current.isDirectory()) {
-        fileList = fileOperator.listFiles(current);
-        for (File f : fileList) {
-          if (f.isDirectory()) {
-            stack.push(f);
-            if (containsDir) {
-              res.add(f);
+    try {
+      Files.walkFileTree(
+          dir.toPath(),
+          new FileVisitor<Path>() {
+            @Override
+            public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs)
+                throws IOException {
+              if (containsEmptyDir && isDirEmpty(dir)) {
+                res.add(dir.toFile());
+              }
+              return FileVisitResult.CONTINUE;
             }
-          } else {
-            res.add(f);
-          }
-        }
-      }
+
+            @Override
+            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+              res.add(file.toFile());
+              return FileVisitResult.CONTINUE;
+            }
+
+            @Override
+            public FileVisitResult visitFileFailed(Path file, IOException exc) {
+              return FileVisitResult.CONTINUE;
+            }
+
+            @Override
+            public FileVisitResult postVisitDirectory(Path dir, IOException exc) {
+              return FileVisitResult.CONTINUE;
+            }
+          });
+    } catch (IOException e) {
+      logger.error("get all files of {} failure: {}", dir.getAbsolutePath(), e.getMessage());
     }
     return res;
   }
@@ -432,17 +445,10 @@ public class FileSystemManager {
     return null;
   }
 
-  public FileType getFileType(File file) {
-    if (file.isDirectory()) {
-      return DIR;
+  private boolean isDirEmpty(Path dir) throws IOException {
+    try (DirectoryStream<Path> dirStream = Files.newDirectoryStream(dir)) {
+      return !dirStream.iterator().hasNext();
     }
-    String pattern = "\\.iginx\\d+$"; // 正则表达式模式，以".iginx"结尾，后跟一个或多个数字
-    Pattern regex = Pattern.compile(pattern);
-    Matcher matcher = regex.matcher(file.getAbsolutePath());
-    if (matcher.find()) {
-      return IGINX_FILE;
-    }
-    return NORMAL_FILE;
   }
 
   /** ******************** 资源控制 ******************** */

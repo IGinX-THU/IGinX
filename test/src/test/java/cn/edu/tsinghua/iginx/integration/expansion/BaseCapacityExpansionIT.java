@@ -200,6 +200,8 @@ public abstract class BaseCapacityExpansionIT {
     if (this instanceof FileSystemCapacityExpansionIT) {
       // 仅用于扩容文件系统后查询文件
       testQueryForFileSystem();
+      // TODO 扩容后show columns测试
+      testShowColumnsForFileSystem();
     }
   }
 
@@ -451,5 +453,56 @@ public abstract class BaseCapacityExpansionIT {
       logger.error("test query for file system failed {}", e.getMessage());
       fail();
     }
+  }
+
+  private void testShowColumnsForFileSystem() {
+    String statement = "SHOW COLUMNS mn.*;";
+    String expected =
+        "Columns:\n"
+            + "+------------------------+--------+\n"
+            + "|                    Path|DataType|\n"
+            + "+------------------------+--------+\n"
+            + "|     mn.wf01.wt01.status|  BINARY|\n"
+            + "|mn.wf01.wt01.temperature|  BINARY|\n"
+            + "+------------------------+--------+\n"
+            + "Total line number = 2\n";
+    SQLTestTools.executeAndCompare(session, statement, expected);
+
+    statement = "SHOW COLUMNS nt.*;";
+    expected =
+        "Columns:\n"
+            + "+------------------------+--------+\n"
+            + "|                    Path|DataType|\n"
+            + "+------------------------+--------+\n"
+            + "|     nt.wf03.wt01.status|  BINARY|\n"
+            + "|nt.wf04.wt01.temperature|  BINARY|\n"
+            + "+------------------------+--------+\n"
+            + "Total line number = 2\n";
+    SQLTestTools.executeAndCompare(session, statement, expected);
+
+    statement = "SHOW COLUMNS tm.*;";
+    expected =
+        "Columns:\n"
+            + "+------------------------+--------+\n"
+            + "|                    Path|DataType|\n"
+            + "+------------------------+--------+\n"
+            + "|     tm.wf05.wt01.status|  BINARY|\n"
+            + "|tm.wf05.wt01.temperature|  BINARY|\n"
+            + "+------------------------+--------+\n"
+            + "Total line number = 2\n";
+    SQLTestTools.executeAndCompare(session, statement, expected);
+
+    statement = "SHOW COLUMNS a.*;";
+    expected =
+        "Columns:\n"
+            + "+-------------+--------+\n"
+            + "|         Path|DataType|\n"
+            + "+-------------+--------+\n"
+            + "|a.b.c.d.1\\txt|  BINARY|\n"
+            + "|    a.e.2\\txt|  BINARY|\n"
+            + "|  a.f.g.3\\txt|  BINARY|\n"
+            + "+-------------+--------+\n"
+            + "Total line number = 3";
+    SQLTestTools.executeAndCompare(session, statement, expected);
   }
 }
