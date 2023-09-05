@@ -250,7 +250,8 @@ public class IginxClient {
   }
 
   private static boolean isShowColumns(String sql) {
-    return sql.contains("show") && sql.contains("columns");
+    String lowerSql = sql.toLowerCase();
+    return lowerSql.contains("show") && lowerSql.contains("columns");
   }
 
   private static boolean isSetTimeUnit(String sql) {
