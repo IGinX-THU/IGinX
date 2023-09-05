@@ -268,9 +268,9 @@ $ ./bin/zkServer.sh start
 
 Then, modify IGinX configuration file `$IGINX_HOME/conf/config.properties`:
 
-1. IP for IGinX: 
+1. IP for IGinX:
 
-   a. If you are **not** giving the container a customized IP, fill with IP address of the host server. 
+   a. If you are **not** giving the container a customized IP, fill with IP address of the host server.
 
    ```properties
    # example:
@@ -283,7 +283,6 @@ Then, modify IGinX configuration file `$IGINX_HOME/conf/config.properties`:
    # example
    ip:172.34.1.2
    ```
-
 2. IP for parquet server:
 
    a. If you want IGinX to start a parquet database service, IP for parquet database server should be the same as IP for IGinX.
@@ -301,7 +300,6 @@ Then, modify IGinX configuration file `$IGINX_HOME/conf/config.properties`:
    ip:11.272.81.34
    storageEngineList=11.272.83.2#6667#parquet#dir=/path/to/your/parquet#dummy_dir=/path/to/your/data#iginx_port=6888#has_data=false#is_read_only=false
    ```
-
 3. IP for ZooKeeper service:
 
    You should use the real IP address of the host server that ZooKeeper service runs on. Or, if ZooKeeper runs as a container with IGinX containers in the same net bridge, you can choose ZooKeeper container's hostname instead.
@@ -334,6 +332,4 @@ $ ./run_iginx_docker.sh -n iginx0 -p 10001 -c my/path/to/config -o myNetwork
 # [optional] -o overlay network
 #				(to connect different containers from different hosts)
 ```
-
-
 

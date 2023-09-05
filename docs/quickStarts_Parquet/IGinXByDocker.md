@@ -267,7 +267,7 @@ $ ./bin/zkServer.sh start
 
 然后对IGinX配置文件`$IGINX_HOME/conf/config.properties`进行修改：
 
-1. IGinX IP: 
+1. IGinX IP:
 
    a. 如果不会给IGinX容器指定IP，则填写宿主机的IP。
 
@@ -282,7 +282,6 @@ $ ./bin/zkServer.sh start
    # example
    ip:172.34.1.2
    ```
-
 2. Parquet数据库服务的IP:
 
    a. 如果需要让该IGinX启动一个本地parquet服务，则为Parquet服务配置和IGinX相同的IP。
@@ -300,7 +299,6 @@ $ ./bin/zkServer.sh start
    ip:11.272.81.34
    storageEngineList=11.272.83.2#6667#parquet#dir=/path/to/your/parquet#dummy_dir=/path/to/your/data#iginx_port=6888#has_data=false#is_read_only=false
    ```
-
 3. ZooKeeper服务的IP:
 
    填写ZooKeeper服务实际运行在的宿主机的IP地址。
