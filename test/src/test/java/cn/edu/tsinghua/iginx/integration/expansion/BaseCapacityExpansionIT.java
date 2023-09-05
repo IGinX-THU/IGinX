@@ -31,6 +31,8 @@ public abstract class BaseCapacityExpansionIT {
 
   protected String extraParams;
 
+  private final boolean IS_PARQUET_OR_FILE_SYSTEM =  this instanceof FileSystemCapacityExpansionIT || this instanceof ParquetCapacityExpansionIT;
+
   public BaseCapacityExpansionIT(DBType dbType, String extraParams) {
     this.dbType = dbType;
     this.extraParams = extraParams;
@@ -54,14 +56,10 @@ public abstract class BaseCapacityExpansionIT {
         statement.append(port);
         statement.append("/");
       }
-      if (this instanceof FileSystemCapacityExpansionIT
-          || this instanceof ParquetCapacityExpansionIT) {
-        statement.append(", dummy_dir:test").append(System.getProperty("file.separator"));
+      if (IS_PARQUET_OR_FILE_SYSTEM) {
+        statement.append(", dummy_dir:test/");
         statement.append(PORT_TO_ROOT.get(port));
-        statement
-            .append(", dir:test")
-            .append(System.getProperty("file.separator"))
-            .append("iginx_");
+        statement.append(", dir:test/iginx_");
         statement.append(PORT_TO_ROOT.get(port));
       }
       if (extraParams != null) {
@@ -202,7 +200,7 @@ public abstract class BaseCapacityExpansionIT {
     // 再次写入并查询所有新数据
     testWriteAndQueryNewDataAfterCE();
 
-    if (this instanceof FileSystemCapacityExpansionIT) {
+    if (IS_PARQUET_OR_FILE_SYSTEM) {
       // 仅用于扩容文件系统后查询文件
       testQueryForFileSystem();
     }
@@ -322,22 +320,10 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   private void testAddAndRemoveStorageEngineWithPrefix() {
-    String dataPrefix1 =
-        this instanceof FileSystemCapacityExpansionIT || this instanceof ParquetCapacityExpansionIT
-            ? "wf03"
-            : "nt.wf03";
-    String dataPrefix2 =
-        this instanceof FileSystemCapacityExpansionIT || this instanceof ParquetCapacityExpansionIT
-            ? "wf04"
-            : "nt.wf04";
-    String schemaPrefixSuffix =
-        this instanceof FileSystemCapacityExpansionIT || this instanceof ParquetCapacityExpansionIT
-            ? ".nt"
-            : "";
-    String schemaPrefix =
-        this instanceof FileSystemCapacityExpansionIT || this instanceof ParquetCapacityExpansionIT
-            ? "nt"
-            : "";
+    String dataPrefix1 = IS_PARQUET_OR_FILE_SYSTEM ? "wf03" : "nt.wf03";
+    String dataPrefix2 = IS_PARQUET_OR_FILE_SYSTEM ? "wf04" : "nt.wf04";
+    String schemaPrefixSuffix = IS_PARQUET_OR_FILE_SYSTEM ? ".nt" : "";
+    String schemaPrefix = IS_PARQUET_OR_FILE_SYSTEM ? "nt" : "";
 
     // 添加不同 schemaPrefix，相同 dataPrefix
     addStorageEngine(expPort, true, true, dataPrefix1, "p1");

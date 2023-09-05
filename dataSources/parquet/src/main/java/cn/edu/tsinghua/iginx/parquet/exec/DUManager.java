@@ -1,7 +1,35 @@
 package cn.edu.tsinghua.iginx.parquet.exec;
 
-import static cn.edu.tsinghua.iginx.parquet.tools.Constant.*;
-import static cn.edu.tsinghua.iginx.parquet.tools.DataTypeTransformer.*;
+import static cn.edu.tsinghua.iginx.parquet.tools.Constant.ADD_COLUMNS_STMT;
+import static cn.edu.tsinghua.iginx.parquet.tools.Constant.CMD_DELETE;
+import static cn.edu.tsinghua.iginx.parquet.tools.Constant.CMD_KEY;
+import static cn.edu.tsinghua.iginx.parquet.tools.Constant.CMD_PATHS;
+import static cn.edu.tsinghua.iginx.parquet.tools.Constant.COLUMN_KEY;
+import static cn.edu.tsinghua.iginx.parquet.tools.Constant.COLUMN_MAX_VALUE_META;
+import static cn.edu.tsinghua.iginx.parquet.tools.Constant.COLUMN_MIN_VALUE_META;
+import static cn.edu.tsinghua.iginx.parquet.tools.Constant.COLUMN_NAME_META;
+import static cn.edu.tsinghua.iginx.parquet.tools.Constant.COLUMN_TYPE;
+import static cn.edu.tsinghua.iginx.parquet.tools.Constant.CREATE_TABLE_STMT;
+import static cn.edu.tsinghua.iginx.parquet.tools.Constant.DATATYPE_BIGINT;
+import static cn.edu.tsinghua.iginx.parquet.tools.Constant.DELETE_DATA_STMT;
+import static cn.edu.tsinghua.iginx.parquet.tools.Constant.DROP_COLUMN_STMT;
+import static cn.edu.tsinghua.iginx.parquet.tools.Constant.DROP_TABLE_STMT;
+import static cn.edu.tsinghua.iginx.parquet.tools.Constant.DUCKDB_SCHEMA;
+import static cn.edu.tsinghua.iginx.parquet.tools.Constant.IGINX_SEPARATOR;
+import static cn.edu.tsinghua.iginx.parquet.tools.Constant.INSERT_STMT_PREFIX;
+import static cn.edu.tsinghua.iginx.parquet.tools.Constant.MAX_MEM_SIZE;
+import static cn.edu.tsinghua.iginx.parquet.tools.Constant.NAME;
+import static cn.edu.tsinghua.iginx.parquet.tools.Constant.PARQUET_SEPARATOR;
+import static cn.edu.tsinghua.iginx.parquet.tools.Constant.SAVE_TO_PARQUET_STMT;
+import static cn.edu.tsinghua.iginx.parquet.tools.Constant.SELECT_MEM_STMT;
+import static cn.edu.tsinghua.iginx.parquet.tools.Constant.SELECT_PARQUET_METADATA;
+import static cn.edu.tsinghua.iginx.parquet.tools.Constant.SELECT_PARQUET_SCHEMA;
+import static cn.edu.tsinghua.iginx.parquet.tools.Constant.SELECT_STMT;
+import static cn.edu.tsinghua.iginx.parquet.tools.Constant.SUFFIX_EXTRA_FILE;
+import static cn.edu.tsinghua.iginx.parquet.tools.Constant.SUFFIX_PARQUET_FILE;
+import static cn.edu.tsinghua.iginx.parquet.tools.DataTypeTransformer.fromDuckDBDataType;
+import static cn.edu.tsinghua.iginx.parquet.tools.DataTypeTransformer.fromParquetDataType;
+import static cn.edu.tsinghua.iginx.parquet.tools.DataTypeTransformer.toParquetDataType;
 
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.BitmapView;
@@ -671,7 +699,9 @@ public class DUManager {
   }
 
   private Map<String, DataType> getPathsFromFile(String filepath) {
-    if (!filepath.contains(".parquet")) return new HashMap<>();
+    if (!filepath.contains(".parquet")) {
+      return new HashMap<>();
+    }
     Map<String, DataType> ret = new HashMap<>();
     try {
       Connection conn = ((DuckDBConnection) connection).duplicate();

@@ -193,9 +193,9 @@ public class StorageManager {
     return true;
   }
 
-  public IStorage initLocalParquet(StorageEngineMeta meta) {
+  public IStorage initLocalStorage(StorageEngineMeta meta) {
     String engine = meta.getStorageEngine();
-    if (!engine.equals("parquet")) {
+    if (!engine.equals("parquet") && !engine.equals("filesystem")) {
       return null;
     }
     String driver = drivers.get(engine);

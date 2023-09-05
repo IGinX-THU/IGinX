@@ -72,7 +72,7 @@ public class DefaultMetaManager implements IMetaManager {
   // 在重分片过程中，是否为提出者
   private boolean isProposer = false;
 
-  private List<StorageEngineMeta> confStorageEngineList;
+  private List<StorageEngineMeta> storageEngineListFromConf = new ArrayList<>();
 
   private DefaultMetaManager() {
     cache = DefaultMetaCache.getInstance();
@@ -252,7 +252,8 @@ public class DefaultMetaManager implements IMetaManager {
             }
           }
         });
-    storage.loadStorageEngine(resolveStorageEngineFromConf());
+    storageEngineListFromConf = resolveStorageEngineFromConf();
+    storage.loadStorageEngine(storageEngineListFromConf);
   }
 
   private void initStorageUnit() throws MetaStorageException {
@@ -1275,16 +1276,15 @@ public class DefaultMetaManager implements IMetaManager {
       }
       storageEngineMetaList.add(storage);
     }
-    confStorageEngineList = storageEngineMetaList;
     return storageEngineMetaList;
   }
 
   @Override
-  public List<StorageEngineMeta> getConfStorageEngineList() {
-    if (confStorageEngineList == null) {
-      confStorageEngineList = resolveStorageEngineFromConf();
+  public List<StorageEngineMeta> getStorageEngineListFromConf() {
+    if (storageEngineListFromConf.isEmpty()) {
+      storageEngineListFromConf = resolveStorageEngineFromConf();
     }
-    return confStorageEngineList;
+    return storageEngineListFromConf;
   }
 
   private UserMeta resolveUserFromConf() {

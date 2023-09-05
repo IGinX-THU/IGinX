@@ -16,7 +16,7 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
   private static final Logger logger = LoggerFactory.getLogger(FileSystemCapacityExpansionIT.class);
 
   public FileSystemCapacityExpansionIT() {
-    super(filesystem, null);
+    super(filesystem, "iginx_port:6888");
     setDataTypeAndValuesForFileSystem();
   }
 

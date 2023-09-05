@@ -2,25 +2,31 @@ package cn.edu.tsinghua.iginx.metadata.utils;
 
 import static cn.edu.tsinghua.iginx.conf.Constants.HAS_DATA;
 import static cn.edu.tsinghua.iginx.conf.Constants.SCHEMA_PREFIX;
+import static cn.edu.tsinghua.iginx.utils.IPUtils.isLocalIPAddress;
 
+import cn.edu.tsinghua.iginx.conf.Config;
+import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.conf.Constants;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.utils.Pair;
+import cn.edu.tsinghua.iginx.utils.RpcUtils;
+
 import java.io.File;
 import java.io.IOException;
-import java.net.InetAddress;
-import java.net.NetworkInterface;
-import java.net.SocketException;
-import java.net.UnknownHostException;
 import java.util.Map;
 
 public class StorageEngineUtils {
 
   public static boolean setSchemaPrefixInExtraParams(String type, Map<String, String> extraParams) {
-    boolean hasData = Boolean.parseBoolean(extraParams.getOrDefault(HAS_DATA, "false"));
-    boolean readOnly =
-        Boolean.parseBoolean(extraParams.getOrDefault(Constants.IS_READ_ONLY, "false"));
     if (type.equals("filesystem") || type.equals("parquet")) {
+      // 必须配置iginx_port参数
+      String iginxPort = extraParams.get("iginx_port");
+      if (iginxPort == null || iginxPort.isEmpty()) {
+        return false;
+      }
+      boolean hasData = Boolean.parseBoolean(extraParams.getOrDefault(HAS_DATA, "false"));
+      boolean readOnly =
+          Boolean.parseBoolean(extraParams.getOrDefault(Constants.IS_READ_ONLY, "false"));
       if (hasData) {
         // 如果hasData为true，则参数中必须配置dummy_dir
         Pair<Boolean, String> dummyDirPair = getCanonicalPath(extraParams.get("dummy_dir"));
@@ -56,29 +62,12 @@ public class StorageEngineUtils {
     return true;
   }
 
-  public static boolean isLocalParquet(StorageEngineMeta meta, String iginxIP, int iginxPort) {
-    if (!meta.getStorageEngine().equals("parquet")) return false;
+  public static boolean isLocal(StorageEngineMeta meta) {
+    Config config = ConfigDescriptor.getInstance().getConfig();
     String storageIP = meta.getIp();
     int storageIginxPort = Integer.parseInt(meta.getExtraParams().getOrDefault("iginx_port", "-1"));
-    return ((isLocalIPAddress(storageIP) || storageIP.equals(iginxIP))
-        && storageIginxPort == iginxPort);
-  }
-
-  private static boolean isLocalIPAddress(String ip) {
-    try {
-      InetAddress address = InetAddress.getByName(ip);
-      if (address.isAnyLocalAddress() || address.isLoopbackAddress()) {
-        return true;
-      }
-      NetworkInterface ni = NetworkInterface.getByInetAddress(address);
-      if (ni != null && ni.isVirtual()) {
-        return true;
-      }
-      InetAddress local = InetAddress.getLocalHost();
-      return local.equals(address);
-    } catch (UnknownHostException | SocketException e) {
-      return false;
-    }
+    return ((isLocalIPAddress(storageIP) || storageIP.equals(config.getIp()))
+        && storageIginxPort == config.getPort());
   }
 
   private static Pair<Boolean, String> getCanonicalPath(String dir) {

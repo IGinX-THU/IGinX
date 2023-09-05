@@ -1,6 +1,6 @@
 package cn.edu.tsinghua.iginx.parquet;
 
-import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.isLocalParquet;
+import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.isLocal;
 
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
@@ -41,8 +41,6 @@ public class ParquetStorage implements IStorage {
   @SuppressWarnings("unused")
   private static final Logger logger = LoggerFactory.getLogger(ParquetStorage.class);
 
-  private static final Config config = ConfigDescriptor.getInstance().getConfig();
-
   private static final String DRIVER_NAME = "org.duckdb.DuckDBDriver";
 
   private static final String CONN_URL = "jdbc:duckdb:";
@@ -52,7 +50,7 @@ public class ParquetStorage implements IStorage {
   private ExecutorService serverExecutor = Executors.newSingleThreadExecutor();
 
   public ParquetStorage(StorageEngineMeta meta) throws StorageInitializationException {
-    if (isLocalParquet(meta, config.getIp(), config.getPort())) {
+    if (isLocal(meta)) {
       initLocalStorage(meta);
     } else {
       initRemoteStorage(meta);
@@ -78,8 +76,7 @@ public class ParquetStorage implements IStorage {
     this.executor =
         new NewExecutor(connection, meta.isHasData(), meta.isReadOnly(), dataDir, dummyDir);
 
-    //    new Thread(new ParquetServer(meta.getPort(), executor)).start();
-    serverExecutor.submit(new Thread(new ParquetServer(meta.getPort(), executor)));
+    serverExecutor.submit(new ParquetServer(meta.getPort(), executor));
   }
 
   private void initRemoteStorage(StorageEngineMeta meta) throws StorageInitializationException {

@@ -3,7 +3,6 @@ package cn.edu.tsinghua.iginx.integration.expansion.parquet;
 import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.*;
 
 import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
-import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.io.File;
@@ -27,21 +26,13 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   private static final char PARQUET_SEPARATOR = '$';
 
-  private static final HashMap<Integer, List<String>> parquetParams =
-      new ParquetParams().getParams();
-
-  public ParquetHistoryDataGenerator() {
-    Constant.oriPort = 6667;
-    Constant.expPort = 6668;
-    Constant.readOnlyPort = 6669;
-  }
+  public ParquetHistoryDataGenerator() {}
 
   private static Connection getConnection() {
     try {
       Class.forName("org.duckdb.DuckDBDriver");
       return DriverManager.getConnection("jdbc:duckdb:");
     } catch (Exception e) {
-      e.printStackTrace();
       return null;
     }
   }
@@ -49,8 +40,8 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
   @Override
   public void writeHistoryData(
       int port, List<String> pathList, List<DataType> dataTypeList, List<List<Object>> valuesList) {
-    if (!parquetParams.containsKey(port)) {
-      logger.error(String.format("writing to unknown port %d.", port));
+    if (!PARQUET_PARAMS.containsKey(port)) {
+      logger.error("writing to unknown port {}.", port);
       return;
     }
     Connection conn = getConnection();
@@ -58,7 +49,7 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
       logger.error("can't get DuckDB connection.");
       return;
     }
-    Statement stmt = null;
+    Statement stmt;
     try {
       stmt = conn.createStatement();
       if (stmt == null) {
@@ -70,8 +61,8 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
       return;
     }
 
-    String dir = "test" + System.getProperty("file.separator") + parquetParams.get(port).get(0);
-    String filename = parquetParams.get(port).get(1);
+    String dir = "test" + System.getProperty("file.separator") + PARQUET_PARAMS.get(port).get(0);
+    String filename = PARQUET_PARAMS.get(port).get(1);
     Path dirPath = Paths.get("../" + dir);
     if (Files.notExists(dirPath)) {
       try {
@@ -104,13 +95,13 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
         columnName = columnName.substring(columnName.indexOf(PARQUET_SEPARATOR) + 1);
         dataType = dataTypeList.get(i).toString();
 
-        columnList.add(new Pair(columnName, dataType));
+        columnList.add(new Pair<>(columnName, dataType));
       }
 
       // create table
       StringBuilder typeListStr = new StringBuilder();
       StringBuilder insertStr;
-      for (Pair p : columnList) {
+      for (Pair<String, String> p : columnList) {
         typeListStr.append(p.k).append(" ").append(p.v).append(", ");
       }
 
@@ -121,15 +112,15 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
 
       // insert value
       insertStr = new StringBuilder();
-      int timeCnt = 0;
+      int keyCnt = 0;
       for (List<Object> values : valuesList) {
-        insertStr.append("(").append(timeCnt).append(", ");
+        insertStr.append("(").append(keyCnt).append(", ");
         for (int i = 0; i < columnCount; i++) {
           insertStr.append(values.get(i)).append(", ");
         }
         insertStr = new StringBuilder(insertStr.substring(0, insertStr.length() - 2));
         insertStr.append("), ");
-        timeCnt++;
+        keyCnt++;
       }
 
       stmt.execute(
@@ -144,26 +135,25 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
 
     } catch (SQLException e) {
       logger.error("write history data failed.");
-      e.printStackTrace();
     }
   }
 
   @Override
   public void clearHistoryDataForGivenPort(int port) {
-    if (!parquetParams.containsKey(port)) {
-      logger.error(String.format("delete from unknown port %d.", port));
+    if (!PARQUET_PARAMS.containsKey(port)) {
+      logger.error("delete from unknown port {}.", port);
       return;
     }
 
-    String dir = "test" + System.getProperty("file.separator") + parquetParams.get(port).get(0);
-    String filename = parquetParams.get(port).get(1);
+    String dir = "test" + System.getProperty("file.separator") + PARQUET_PARAMS.get(port).get(0);
+    String filename = PARQUET_PARAMS.get(port).get(1);
     Path parquetPath = Paths.get("../" + dir, filename);
     File file = new File(parquetPath.toString());
 
     if (file.exists() && file.isFile()) {
       file.delete();
     } else {
-      logger.error("Delete " + dir + "/" + filename + " error: does not exist or is not a file.");
+      logger.error("delete {}/{} error: does not exist or is not a file.", dir, filename);
     }
   }
 }

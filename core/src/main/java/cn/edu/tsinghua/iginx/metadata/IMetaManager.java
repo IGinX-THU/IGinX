@@ -241,5 +241,5 @@ public interface IMetaManager {
   void submitMaxActiveEndKey();
 
   /** resolve storage engine list from config file */
-  List<StorageEngineMeta> getConfStorageEngineList();
+  List<StorageEngineMeta> getStorageEngineListFromConf();
 }
