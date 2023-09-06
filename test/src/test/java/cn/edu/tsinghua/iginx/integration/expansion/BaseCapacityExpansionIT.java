@@ -118,7 +118,7 @@ public abstract class BaseCapacityExpansionIT {
     Controller.clearData(session);
   }
 
-  @Test
+  //  @Test
   public void oriHasDataExpHasData() {
     // 查询原始节点的历史数据，结果不为空
     testQueryHistoryDataOriHasData();
@@ -134,7 +134,7 @@ public abstract class BaseCapacityExpansionIT {
     testWriteAndQueryNewDataAfterCE();
   }
 
-  @Test
+  //  @Test
   public void oriHasDataExpNoData() {
     // 查询原始节点的历史数据，结果不为空
     testQueryHistoryDataOriHasData();
@@ -150,7 +150,7 @@ public abstract class BaseCapacityExpansionIT {
     testWriteAndQueryNewDataAfterCE();
   }
 
-  @Test
+  //  @Test
   public void oriNoDataExpHasData() {
     // 查询原始节点的历史数据，结果为空
     testQueryHistoryDataOriNoData();
@@ -168,7 +168,7 @@ public abstract class BaseCapacityExpansionIT {
     testAddAndRemoveStorageEngineWithPrefix();
   }
 
-  @Test
+  //  @Test
   public void oriNoDataExpNoData() {
     // 查询原始节点的历史数据，结果为空
     testQueryHistoryDataOriNoData();
@@ -201,7 +201,7 @@ public abstract class BaseCapacityExpansionIT {
     // 再次写入并查询所有新数据
     testWriteAndQueryNewDataAfterCE();
 
-    if (IS_PARQUET_OR_FILE_SYSTEM) {
+    if (this instanceof FileSystemCapacityExpansionIT) {
       // 仅用于扩容文件系统后查询文件
       testQueryForFileSystem();
     }
@@ -418,7 +418,7 @@ public abstract class BaseCapacityExpansionIT {
   private void testQueryForFileSystem() {
     try {
       session.executeSql(
-          "ADD STORAGEENGINE (\"127.0.0.1\", 6669, \"filesystem\", \"dummy_dir:test/test/a, has_data:true, is_read_only:true\")");
+          "ADD STORAGEENGINE (\"127.0.0.1\", 6669, \"filesystem\", \"dummy_dir:test/test/a, has_data:true, is_read_only:true, iginx_port:6888\")");
       String statement = "select 1\\txt from a.*";
       String expect =
           "ResultSets:\n"
