@@ -19,6 +19,7 @@
 package cn.edu.tsinghua.iginx.filesystem;
 
 import static cn.edu.tsinghua.iginx.filesystem.shared.Constant.WILDCARD;
+import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.isLocal;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
@@ -39,10 +40,6 @@ import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.utils.Pair;
-import java.net.InetAddress;
-import java.net.NetworkInterface;
-import java.net.SocketException;
-import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -69,28 +66,10 @@ public class FileSystemStorage implements IStorage {
       throw new StorageInitializationException("unexpected database: " + meta.getStorageEngine());
     }
 
-    boolean isLocal = isLocalIPAddress(meta.getIp());
-    if (isLocal) {
+    if (isLocal(meta)) {
       initLocalExecutor(meta);
     } else {
       this.executor = new RemoteExecutor(meta.getIp(), meta.getPort());
-    }
-  }
-
-  public static boolean isLocalIPAddress(String ip) {
-    try {
-      InetAddress address = InetAddress.getByName(ip);
-      if (address.isAnyLocalAddress() || address.isLoopbackAddress()) {
-        return true;
-      }
-      NetworkInterface ni = NetworkInterface.getByInetAddress(address);
-      if (ni != null && ni.isVirtual()) {
-        return true;
-      }
-      InetAddress local = InetAddress.getLocalHost();
-      return local.equals(address);
-    } catch (UnknownHostException | SocketException e) {
-      return false;
     }
   }
 
