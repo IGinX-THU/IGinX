@@ -7,20 +7,13 @@ services:
     networks:
     - "net"
     hostname: "zkServer"
-  iotdb:
-    container_name: "iotdb"
-    image: "apache/iotdb:0.12.6-node"
-    networks:
-    - "net"
-    hostname: "iotdb12"
   iginx:
     container_name: "iginx1"
     depends_on:
     - "zookeeper"
-    - "iotdb"
     build:
       context: "../../"
-      dockerfile: "./docker/oneShot/Dockerfile"
+      dockerfile: "./docker/oneShot-parquet/Dockerfile"
     command:
     - "/bin/bash"
     - "/root/IGinX/sbin/start_iginx.sh"

@@ -2,6 +2,7 @@ package cn.edu.tsinghua.iginx.parquet.exec;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
+import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
@@ -35,25 +36,27 @@ public class NewExecutor implements Executor {
 
   private final Connection connection;
 
-  public final String dataDir;
+  public String dataDir;
+
+  public String dummyDir;
 
   private final Map<String, DUManager> duManagerMap = new ConcurrentHashMap<>();
 
   private boolean isClosed = false;
 
-  public NewExecutor(Connection connection, String dataDir) {
-    this.connection = connection;
-    this.dataDir = dataDir;
+  public NewExecutor(
+      Connection connection, boolean hasData, boolean readOnly, String dataDir, String dummyDir)
+      throws StorageInitializationException {
+    testValidAndInit(hasData, readOnly, dataDir, dummyDir);
 
-    Path path = Paths.get(dataDir);
-    try {
-      if (Files.exists(path)) {
-        recoverFromDisk();
-      } else {
-        Files.createDirectory(path);
+    this.connection = connection;
+
+    if (hasData) {
+      try {
+        recoverFromParquet();
+      } catch (IOException e) {
+        logger.error("Initial parquet data read error, details: {}", e.getMessage());
       }
-    } catch (IOException e) {
-      logger.error("parquet executor init error, details: {}", e.getMessage());
     }
 
     Runtime.getRuntime()
@@ -68,22 +71,100 @@ public class NewExecutor implements Executor {
                 }));
   }
 
+  private void testValidAndInit(
+      boolean has_data, boolean read_only, String data_dir, String dummy_dir)
+      throws StorageInitializationException {
+
+    // has_data & read_only : dummy_dir required
+    // has_data : dummy_dir and dir required
+    // no data : dir required
+    if (has_data) {
+      if (dummy_dir == null || dummy_dir.isEmpty()) {
+        throw new StorageInitializationException("Data dir not provided in dummy storage.");
+      }
+      File dummyFile = new File(dummy_dir);
+      if (dummyFile.isFile()) {
+        throw new StorageInitializationException(
+            String.format("Dummy dir %s is not a directory.", dummy_dir));
+      }
+      this.dummyDir = dummy_dir;
+      if (!read_only) {
+        if (data_dir == null || data_dir.isEmpty()) {
+          throw new StorageInitializationException(
+              "Data dir not provided in non-read-only storage.");
+        }
+        File dataFile = new File(data_dir);
+        if (dataFile.isFile()) {
+          throw new StorageInitializationException(
+              String.format("Data dir %s is not a directory.", data_dir));
+        }
+        try {
+          String dummyDirPath = new File(dummy_dir).getCanonicalPath();
+          String dirPath = new File(data_dir).getCanonicalPath();
+          if (dummyDirPath.equals(dirPath)) {
+            throw new StorageInitializationException(
+                String.format(
+                    "%s can't be used as dummy dir and data dir at same time.", dummy_dir));
+          }
+          this.dataDir = data_dir;
+          createDir(data_dir);
+        } catch (IOException e) {
+          throw new StorageInitializationException(
+              String.format(
+                  "Error reading dummy dir path %s and dir path %s: " + e.getMessage(),
+                  dummy_dir,
+                  data_dir));
+        }
+      }
+    } else {
+      if (data_dir == null || data_dir.isEmpty()) {
+        throw new StorageInitializationException("Dir not provided in non-dummy storage.");
+      }
+      File dataFile = new File(data_dir);
+      if (dataFile.isFile()) {
+        throw new StorageInitializationException(
+            String.format("Data dir %s is not a directory.", data_dir));
+      }
+      this.dataDir = data_dir;
+      createDir(data_dir);
+    }
+  }
+
+  private void createDir(String dirPath) {
+    Path path = Paths.get(dirPath);
+    try {
+      if (!Files.exists(path)) {
+        Files.createDirectory(path);
+      }
+    } catch (IOException e) {
+      logger.error(String.format("Create directory %s error: " + e.getMessage(), dirPath));
+    }
+  }
+
   private void recoverFromDisk() throws IOException {
     File file = new File(dataDir);
     File[] duDirs = file.listFiles();
     if (duDirs != null) {
       for (File duDir : duDirs) {
+        if (duDir.isFile()) continue;
         DUManager duManager = new DUManager(duDir.getName(), dataDir, connection, false);
         duManagerMap.put(duDir.getName(), duManager);
       }
     }
   }
 
+  private void recoverFromParquet() throws IOException {
+    DUManager duManager = new DUManager(dummyDir, dummyDir, connection, true);
+    duManagerMap.put(dummyDir, duManager);
+  }
+
   private DUManager getDUManager(String storageUnit, boolean isDummyStorageUnit)
       throws IOException {
     DUManager duManager = duManagerMap.get(storageUnit);
     if (duManager == null) {
-      duManager = new DUManager(storageUnit, dataDir, connection, isDummyStorageUnit);
+      duManager =
+          new DUManager(
+              storageUnit, isDummyStorageUnit ? dummyDir : dataDir, connection, isDummyStorageUnit);
       duManagerMap.putIfAbsent(storageUnit, duManager);
       duManager = duManagerMap.get(storageUnit);
     }
@@ -145,7 +226,7 @@ public class NewExecutor implements Executor {
     try {
       duManager.delete(paths, keyRanges, tagFilter);
     } catch (Exception e) {
-      return new TaskExecuteResult(null, new PhysicalException("Fail to delete data ", e));
+      return new TaskExecuteResult(null, new PhysicalException("Fail to delete data " + e));
     }
 
     return new TaskExecuteResult(null, null);

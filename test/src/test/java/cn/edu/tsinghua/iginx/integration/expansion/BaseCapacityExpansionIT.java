@@ -8,6 +8,7 @@ import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.expansion.filesystem.FileSystemCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.influxdb.InfluxDBCapacityExpansionIT;
+import cn.edu.tsinghua.iginx.integration.expansion.parquet.ParquetCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
 import cn.edu.tsinghua.iginx.integration.tool.DBType;
 import cn.edu.tsinghua.iginx.session.Session;
@@ -29,6 +30,9 @@ public abstract class BaseCapacityExpansionIT {
   protected DBType dbType;
 
   protected String extraParams;
+
+  private final boolean IS_PARQUET_OR_FILE_SYSTEM =
+      this instanceof FileSystemCapacityExpansionIT || this instanceof ParquetCapacityExpansionIT;
 
   public BaseCapacityExpansionIT(DBType dbType, String extraParams) {
     this.dbType = dbType;
@@ -53,7 +57,7 @@ public abstract class BaseCapacityExpansionIT {
         statement.append(port);
         statement.append("/");
       }
-      if (this instanceof FileSystemCapacityExpansionIT) {
+      if (IS_PARQUET_OR_FILE_SYSTEM) {
         statement.append(", dummy_dir:test/");
         statement.append(PORT_TO_ROOT.get(port));
         statement.append(", dir:test/iginx_");
@@ -317,10 +321,10 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   private void testAddAndRemoveStorageEngineWithPrefix() {
-    String dataPrefix1 = this instanceof FileSystemCapacityExpansionIT ? "wf03" : "nt.wf03";
-    String dataPrefix2 = this instanceof FileSystemCapacityExpansionIT ? "wf04" : "nt.wf04";
-    String schemaPrefixSuffix = this instanceof FileSystemCapacityExpansionIT ? ".nt" : "";
-    String schemaPrefix = this instanceof FileSystemCapacityExpansionIT ? "nt" : "";
+    String dataPrefix1 = IS_PARQUET_OR_FILE_SYSTEM ? "wf03" : "nt.wf03";
+    String dataPrefix2 = IS_PARQUET_OR_FILE_SYSTEM ? "wf04" : "nt.wf04";
+    String schemaPrefixSuffix = IS_PARQUET_OR_FILE_SYSTEM ? ".nt" : "";
+    String schemaPrefix = IS_PARQUET_OR_FILE_SYSTEM ? "nt" : "";
 
     // 添加不同 schemaPrefix，相同 dataPrefix
     addStorageEngine(expPort, true, true, dataPrefix1, "p1");
@@ -414,7 +418,7 @@ public abstract class BaseCapacityExpansionIT {
   private void testQueryForFileSystem() {
     try {
       session.executeSql(
-          "ADD STORAGEENGINE (\"127.0.0.1\", 6669, \"filesystem\", \"dummy_dir:test/test/a, has_data:true, is_read_only:true\")");
+          "ADD STORAGEENGINE (\"127.0.0.1\", 6669, \"filesystem\", \"dummy_dir:test/test/a, has_data:true, is_read_only:true, iginx_port:6888\")");
       String statement = "select 1\\txt from a.*";
       String expect =
           "ResultSets:\n"

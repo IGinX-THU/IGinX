@@ -21,7 +21,14 @@ jobs:
                 python-version: ["3.7.16"]
                 os: [ubuntu-latest, macos-latest]
                 DB-name:
-                    ["FileSystem", "IoTDB12", "InfluxDB", "PostgreSQL", "Redis"]
+                    [
+                        "FileSystem",
+                        "IoTDB12",
+                        "InfluxDB",
+                        "PostgreSQL",
+                        "Redis",
+                        "Parquet",
+                    ]
         runs-on: ${{ matrix.os }}
         steps:
             - uses: actions/checkout@v2
@@ -109,66 +116,6 @@ jobs:
               run: |
                   mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#testReadOnly -DfailIfNoTests=false -P-format
                   mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
-
-            - name: Show IGinX log
-              if: always()
-              shell: bash
-              run: |
-                  cat iginx.log
-
-            - uses: codecov/codecov-action@v1
-              with:
-                  file: ./**/target/site/jacoco/jacoco.xml
-                  name: codecov
-
-    Parquet-Capacity-Expansion-ds:
-        strategy:
-            fail-fast: false
-            matrix:
-                java: [8]
-                python-version: ["3.7.16"]
-                os: [ubuntu-latest, macos-latest]
-        runs-on: ${{ matrix.os }}
-        steps:
-            - uses: actions/checkout@v2
-            - name: Environment dependence
-              uses: ./.github/actions/dependence
-              with:
-                  python-version: ${{ matrix.python-version }}
-                  java: ${{ matrix.java }}
-
-            - name: Cache Maven packages
-              uses: actions/cache@v2.1.5
-              with:
-                  path: ~/.m2
-                  key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-                  restore-keys: ${{ runner.os }}-m2
-
-            - name: Run ZooKeeper
-              uses: ./.github/actions/zookeeperRunner
-
-            - name: Run DB
-              uses: ./.github/actions/dbRunner
-              with:
-                  version: Parquet
-
-            - name: Install IGinX with Maven
-              shell: bash
-              run: |
-                  mvn clean package -DskipTests -P-format -q
-
-            - name: Write history Data
-              run: |
-                  mvn test -q -Dtest=ParquetHistoryDataGeneratorTest -DfailIfNoTests=false -P-format
-                  sleep 10
-
-            - name: Start IGinX
-              uses: ./.github/actions/iginxRunner
-              with:
-                  version: ${VERSION}
-
-            - name: ParquetCapacityExpansionIT
-              run: mvn test -q -Dtest=ParquetCapacityExpansionIT -DfailIfNoTests=false -P-format
 
             - name: Show IGinX log
               if: always()

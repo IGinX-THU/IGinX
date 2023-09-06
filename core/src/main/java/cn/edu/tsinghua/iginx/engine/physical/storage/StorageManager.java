@@ -104,6 +104,23 @@ public class StorageManager {
         IStorage storage =
             (IStorage)
                 loader.loadClass(driver).getConstructor(StorageEngineMeta.class).newInstance(meta);
+        return initStorage(meta, storage);
+      }
+    } catch (ClassNotFoundException e) {
+      logger.error("load class {} for engine {} failure: {}", driver, engine, e);
+      return false;
+    } catch (Exception e) {
+      logger.error("unexpected error when process engine {}: {}", engine, e);
+      return false;
+    }
+    return true;
+  }
+
+  private boolean initStorage(StorageEngineMeta meta, IStorage storage) {
+    String engine = meta.getStorageEngine();
+    long id = meta.getId();
+    try {
+      if (!storageMap.containsKey(id)) {
         // 启动一个派发线程池
         ThreadPoolExecutor dispatcher =
             new ThreadPoolExecutor(
@@ -116,9 +133,6 @@ public class StorageManager {
                 new SynchronousQueue<>());
         storageMap.put(meta.getId(), new Pair<>(storage, dispatcher));
       }
-    } catch (ClassNotFoundException e) {
-      logger.error("load class {} for engine {} failure: {}", driver, engine, e);
-      return false;
     } catch (Exception e) {
       logger.error("unexpected error when process engine {}: {}", engine, e);
       return false;
@@ -167,5 +181,34 @@ public class StorageManager {
       logger.info("add storage " + meta + " success.");
     }
     return true;
+  }
+
+  public boolean addStorage(StorageEngineMeta meta, IStorage storage) {
+    if (!initStorage(meta, storage)) {
+      logger.error("add storage " + meta + " failure!");
+      return false;
+    } else {
+      logger.info("add storage " + meta + " success.");
+    }
+    return true;
+  }
+
+  public IStorage initLocalStorage(StorageEngineMeta meta) {
+    String engine = meta.getStorageEngine();
+    if (!engine.equals("parquet") && !engine.equals("filesystem")) {
+      return null;
+    }
+    String driver = drivers.get(engine);
+    ClassLoader loader = classLoaders.get(engine);
+    try {
+      return (IStorage)
+          loader.loadClass(driver).getConstructor(StorageEngineMeta.class).newInstance(meta);
+    } catch (ClassNotFoundException e) {
+      logger.error("load class {} for engine {} failure: {}", driver, engine, e);
+      return null;
+    } catch (Exception e) {
+      logger.error("add storage " + meta + " failure!");
+      return null;
+    }
   }
 }
