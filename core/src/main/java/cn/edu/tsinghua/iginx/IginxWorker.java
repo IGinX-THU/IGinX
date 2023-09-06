@@ -293,7 +293,7 @@ public class IginxWorker implements IService.Iface {
     }
     List<StorageEngine> storageEngines = req.getStorageEngines();
     List<StorageEngineMeta> storageEngineMetas = new ArrayList<>();
-    Status status = RpcUtils.SUCCESS;
+    Status status;
     List<Status> statusList = new ArrayList<>();
 
     for (StorageEngine storageEngine : storageEngines) {
@@ -408,7 +408,7 @@ public class IginxWorker implements IService.Iface {
           || meta.getStorageEngine().equals("filesystem")) {
         if (!isLocal(meta)) {
           status = new Status(RpcUtils.PARTIAL_SUCCESS.code);
-          status.setMessage("Parquet database needs to be local: " + meta);
+          status.setMessage(String.format("storage engine %s needs to be local!", meta));
         } else {
           localMetas.add(meta);
         }

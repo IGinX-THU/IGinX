@@ -1246,7 +1246,7 @@ public class DefaultMetaManager implements IMetaManager {
 
       StorageEngineMeta storage =
           new StorageEngineMeta(
-              i,
+              -1,
               ip,
               port,
               hasData,

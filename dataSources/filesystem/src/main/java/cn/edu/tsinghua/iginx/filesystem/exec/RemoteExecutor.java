@@ -213,7 +213,8 @@ public class RemoteExecutor implements Executor {
                       new Column(
                           column.getPath(),
                           DataTypeUtils.getDataTypeFromString(column.getDataType()),
-                          column.getTags())));
+                          column.getTags(),
+                          column.isDummy())));
       return columns;
     } catch (TException e) {
       throw new PhysicalException(
