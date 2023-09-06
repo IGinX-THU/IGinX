@@ -420,7 +420,7 @@ public abstract class BaseCapacityExpansionIT {
   private void testQueryForFileSystem() {
     try {
       session.executeSql(
-          "ADD STORAGEENGINE (\"127.0.0.1\", 6669, \"filesystem\", \"dummy_dir:test/test/a, has_data:true, is_read_only:true, iginx_port:6888\")");
+          "ADD STORAGEENGINE (\"127.0.0.1\", 6670, \"filesystem\", \"dummy_dir:test/test/a, has_data:true, is_read_only:true, iginx_port:6888\")");
       String statement = "select 1\\txt from a.*";
       String expect =
           "ResultSets:\n"
