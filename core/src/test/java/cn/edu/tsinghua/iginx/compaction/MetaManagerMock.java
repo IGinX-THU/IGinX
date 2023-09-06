@@ -339,4 +339,9 @@ public class MetaManagerMock implements IMetaManager {
 
   @Override
   public void submitMaxActiveEndKey() {}
+
+  @Override
+  public List<StorageEngineMeta> getStorageEngineListFromConf() {
+    return null;
+  }
 }

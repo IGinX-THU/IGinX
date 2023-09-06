@@ -67,6 +67,29 @@ public class Constant {
         }
       };
 
+  // for parquet
+  // <port, [dataDir, dataFilename]>
+  private static final String oriDir = "mn";
+
+  private static final String expDir = "nt";
+
+  private static final String readOnlyDir = "tm";
+
+  private static final String oriFilename = "oriData.parquet";
+
+  private static final String expFilename = "expData.parquet";
+
+  private static final String readOnlyFilename = "readOnlyData.parquet";
+
+  public static final Map<Integer, List<String>> PARQUET_PARAMS =
+      new HashMap<Integer, List<String>>() {
+        {
+          put(oriPort, Arrays.asList(oriDir, oriFilename));
+          put(expPort, Arrays.asList(expDir, expFilename));
+          put(readOnlyPort, Arrays.asList(readOnlyDir, readOnlyFilename));
+        }
+      };
+
   public static byte[] generateRandomValue(int seed) {
     int N = 10;
     byte[] b = new byte[N];
