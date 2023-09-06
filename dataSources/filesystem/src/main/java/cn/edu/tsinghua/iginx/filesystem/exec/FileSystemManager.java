@@ -80,15 +80,15 @@ public class FileSystemManager {
 
   private List<File> getFilesWithTagFilter(File file, TagFilter tagFilter, boolean isDummy)
       throws IOException {
+    List<File> associatedFiles = getAssociatedFiles(file, isDummy);
+    if (isDummy) {
+      return associatedFiles;
+    }
     List<File> res = new ArrayList<>();
-    for (File f : getAssociatedFiles(file, isDummy)) {
-      if (isDummy) {
+    for (File f : associatedFiles) {
+      FileMeta fileMeta = getFileMeta(f);
+      if (tagFilter == null || TagKVUtils.match(fileMeta.getTags(), tagFilter)) {
         res.add(f);
-      } else {
-        FileMeta fileMeta = getFileMeta(f);
-        if (tagFilter == null || TagKVUtils.match(fileMeta.getTags(), tagFilter)) {
-          res.add(f);
-        }
       }
     }
     return res;

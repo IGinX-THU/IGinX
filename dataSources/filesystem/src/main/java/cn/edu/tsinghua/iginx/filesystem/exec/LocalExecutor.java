@@ -51,16 +51,38 @@ public class LocalExecutor implements Executor {
   public LocalExecutor(boolean isReadOnly, boolean hasData, Map<String, String> extraParams) {
     String dir = extraParams.get(Constant.INIT_INFO_DIR);
     String dummyDir = extraParams.get(Constant.INIT_INFO_DUMMY_DIR);
-    if (hasData) {
-      if (dummyDir == null || dummyDir.isEmpty()) {
-        throw new IllegalArgumentException("No dummy_dir declared with params " + extraParams);
-      }
-      File dummyFile = new File(dummyDir);
-      if (dummyFile.isFile()) {
-        throw new IllegalArgumentException(String.format("invalid dummy_dir %s", dummyDir));
-      }
-      this.dummyRoot = dummyFile.getAbsolutePath() + SEPARATOR;
-      if (!isReadOnly) {
+    try {
+      if (hasData) {
+        if (dummyDir == null || dummyDir.isEmpty()) {
+          throw new IllegalArgumentException("No dummy_dir declared with params " + extraParams);
+        }
+        File dummyFile = new File(dummyDir);
+        if (dummyFile.isFile()) {
+          throw new IllegalArgumentException(String.format("invalid dummy_dir %s", dummyDir));
+        }
+        this.dummyRoot = dummyFile.getCanonicalPath() + SEPARATOR;
+        if (!isReadOnly) {
+          if (dir == null || dir.isEmpty()) {
+            throw new IllegalArgumentException("No dir declared with params " + extraParams);
+          }
+          File file = new File(dir);
+          if (file.isFile()) {
+            throw new IllegalArgumentException(String.format("invalid dir %s", dir));
+          }
+          this.root = file.getCanonicalPath() + SEPARATOR;
+          try {
+            String dummyDirPath = dummyFile.getCanonicalPath();
+            String dirPath = file.getCanonicalPath();
+            if (dummyDirPath.equals(dirPath)) {
+              throw new IllegalArgumentException(
+                  String.format("dir %s cannot be equal to dummy directory %s", dir, dummyDir));
+            }
+          } catch (IOException e) {
+            throw new RuntimeException(
+                String.format("get canonical path failed for dir %s dummy_dir %s", dir, dummyDir));
+          }
+        }
+      } else {
         if (dir == null || dir.isEmpty()) {
           throw new IllegalArgumentException("No dir declared with params " + extraParams);
         }
@@ -68,28 +90,10 @@ public class LocalExecutor implements Executor {
         if (file.isFile()) {
           throw new IllegalArgumentException(String.format("invalid dir %s", dir));
         }
-        this.root = file.getAbsolutePath() + SEPARATOR;
-        try {
-          String dummyDirPath = dummyFile.getCanonicalPath();
-          String dirPath = file.getCanonicalPath();
-          if (dummyDirPath.equals(dirPath)) {
-            throw new IllegalArgumentException(
-                String.format("dir %s cannot be equal to dummy directory %s", dir, dummyDir));
-          }
-        } catch (IOException e) {
-          throw new RuntimeException(
-              String.format("get canonical path failed for dir %s dummy_dir %s", dir, dummyDir));
-        }
+        this.root = file.getCanonicalPath() + SEPARATOR;
       }
-    } else {
-      if (dir == null || dir.isEmpty()) {
-        throw new IllegalArgumentException("No dir declared with params " + extraParams);
-      }
-      File file = new File(dir);
-      if (file.isFile()) {
-        throw new IllegalArgumentException(String.format("invalid dir %s", dir));
-      }
-      this.root = file.getAbsolutePath() + SEPARATOR;
+    } catch (IOException e) {
+      logger.error("get dir or dummy dir failure: {}", e.getMessage());
     }
     this.hasData = hasData;
     this.fileSystemManager = new FileSystemManager(extraParams);
