@@ -118,7 +118,7 @@ public abstract class BaseCapacityExpansionIT {
     Controller.clearData(session);
   }
 
-  //  @Test
+  @Test
   public void oriHasDataExpHasData() {
     // 查询原始节点的历史数据，结果不为空
     testQueryHistoryDataOriHasData();
@@ -134,7 +134,7 @@ public abstract class BaseCapacityExpansionIT {
     testWriteAndQueryNewDataAfterCE();
   }
 
-  //  @Test
+  @Test
   public void oriHasDataExpNoData() {
     // 查询原始节点的历史数据，结果不为空
     testQueryHistoryDataOriHasData();
@@ -150,7 +150,7 @@ public abstract class BaseCapacityExpansionIT {
     testWriteAndQueryNewDataAfterCE();
   }
 
-  //  @Test
+  @Test
   public void oriNoDataExpHasData() {
     // 查询原始节点的历史数据，结果为空
     testQueryHistoryDataOriNoData();
@@ -168,7 +168,7 @@ public abstract class BaseCapacityExpansionIT {
     testAddAndRemoveStorageEngineWithPrefix();
   }
 
-  //  @Test
+  @Test
   public void oriNoDataExpNoData() {
     // 查询原始节点的历史数据，结果为空
     testQueryHistoryDataOriNoData();
