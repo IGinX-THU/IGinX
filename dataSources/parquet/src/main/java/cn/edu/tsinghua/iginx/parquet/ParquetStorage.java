@@ -45,7 +45,9 @@ public class ParquetStorage implements IStorage {
 
   private Executor executor;
 
-  private ExecutorService serverExecutor = Executors.newSingleThreadExecutor();
+  private ParquetServer server = null;
+
+  private ExecutorService executorService;
 
   public ParquetStorage(StorageEngineMeta meta) throws StorageInitializationException {
     if (isLocal(meta)) {
@@ -73,8 +75,9 @@ public class ParquetStorage implements IStorage {
 
     this.executor =
         new NewExecutor(connection, meta.isHasData(), meta.isReadOnly(), dataDir, dummyDir);
-
-    serverExecutor.submit(new ParquetServer(meta.getPort(), executor));
+    this.server = new ParquetServer(meta.getPort(), executor);
+    this.executorService = Executors.newSingleThreadExecutor();
+    executorService.submit(server);
   }
 
   private void initRemoteStorage(StorageEngineMeta meta) throws StorageInitializationException {
@@ -184,6 +187,11 @@ public class ParquetStorage implements IStorage {
   @Override
   public void release() throws PhysicalException {
     executor.close();
-    serverExecutor.shutdown();
+    if (server != null) {
+      server.stop();
+    }
+    if (executorService != null) {
+      executorService.shutdown();
+    }
   }
 }
