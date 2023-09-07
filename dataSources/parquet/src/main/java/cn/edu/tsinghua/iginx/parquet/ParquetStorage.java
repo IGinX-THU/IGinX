@@ -32,7 +32,6 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -189,7 +188,7 @@ public class ParquetStorage implements IStorage {
   }
 
   @Override
-  public void release() throws PhysicalException {
+  public synchronized void release() throws PhysicalException {
     executor.close();
     if (server != null) {
       server.stop();
