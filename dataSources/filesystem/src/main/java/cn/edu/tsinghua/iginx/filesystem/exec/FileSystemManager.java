@@ -337,9 +337,9 @@ public class FileSystemManager {
           root = file.getParentFile();
         }
         if (isDummy) {
-          regex = filePath.replaceAll("[$^{}]", "\\\\$0").replaceAll("[*]", ".*");
+          regex = filePath.replaceAll("[$^{}\\\\]", "\\\\$0").replaceAll("[*]", ".*");
         } else {
-          regex = filePath.replaceAll("[$^{}]", "\\\\$0").replaceAll("[*]", ".*") + ".*";
+          regex = filePath.replaceAll("[$^{}\\\\]", "\\\\$0").replaceAll("[*]", ".*") + ".*";
         }
         Files.walkFileTree(
             root.toPath(),
