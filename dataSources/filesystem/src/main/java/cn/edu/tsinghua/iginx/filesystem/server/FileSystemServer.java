@@ -4,8 +4,6 @@ import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.filesystem.exec.Executor;
 import cn.edu.tsinghua.iginx.filesystem.thrift.FileSystemService;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.server.TServer;
@@ -29,8 +27,6 @@ public class FileSystemServer implements Runnable {
 
   private TServer server;
 
-  private ExecutorService executorService;
-
   public FileSystemServer(int port, Executor executor) {
     this.port = port;
     this.executor = executor;
@@ -42,14 +38,12 @@ public class FileSystemServer implements Runnable {
       TProcessor processor =
           new FileSystemService.Processor<FileSystemService.Iface>(new FileSystemWorker(executor));
       serverTransport = new TServerSocket(port);
-      executorService = Executors.newCachedThreadPool();
       TThreadPoolServer.Args args =
           new TThreadPoolServer.Args(serverTransport)
               .processor(processor)
               .minWorkerThreads(config.getMinThriftWorkerThreadNum())
               .maxWorkerThreads(config.getMaxThriftWrokerThreadNum())
-              .protocolFactory(new TBinaryProtocol.Factory())
-              .executorService(executorService);
+              .protocolFactory(new TBinaryProtocol.Factory());
       server = new TThreadPoolServer(args);
       logger.info("File System service starts successfully!");
     } catch (TTransportException e) {
@@ -65,10 +59,6 @@ public class FileSystemServer implements Runnable {
     if (serverTransport != null) {
       serverTransport.close();
       serverTransport = null;
-    }
-    if (executorService != null) {
-      executorService.shutdown();
-      executorService = null;
     }
   }
 
