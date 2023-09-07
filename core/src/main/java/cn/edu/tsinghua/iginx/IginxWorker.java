@@ -79,13 +79,23 @@ public class IginxWorker implements IService.Iface {
 
   private void addLocalStorageEngineMetas() {
     List<StorageEngineMeta> localMetas = new ArrayList<>();
-    for (StorageEngineMeta meta : metaManager.getStorageEngineListFromConf()) {
-      if (!meta.getStorageEngine().equals("parquet")
-          && !meta.getStorageEngine().equals("filesystem")) {
+    for (StorageEngineMeta metaFromConf : metaManager.getStorageEngineListFromConf()) {
+      if (!metaFromConf.getStorageEngine().equals("parquet")
+          && !metaFromConf.getStorageEngine().equals("filesystem")) {
         continue;
       }
-      if (isLocal(meta)) {
-        localMetas.add(meta);
+      boolean hasAdded = false;
+      for (StorageEngineMeta meta : metaManager.getStorageEngineList()) {
+        if (isDuplicated(metaFromConf, meta)) {
+          hasAdded = true;
+          break;
+        }
+      }
+      if (hasAdded) {
+        continue;
+      }
+      if (isLocal(metaFromConf)) {
+        localMetas.add(metaFromConf);
       }
     }
     if (!localMetas.isEmpty()) {
@@ -335,38 +345,40 @@ public class IginxWorker implements IService.Iface {
     if (!statusList.isEmpty() && storageEngineMetas.isEmpty()) {
       return RpcUtils.FAILURE;
     }
-    return addStorageEngineMetas(storageEngineMetas, statusList);
+    return addStorageEngineMetas(storageEngineMetas, statusList, false);
   }
 
   private void addStorageEngineMetas(List<StorageEngineMeta> storageEngineMetas) {
-    Status status = addStorageEngineMetas(storageEngineMetas, new ArrayList<>());
+    Status status = addStorageEngineMetas(storageEngineMetas, new ArrayList<>(), true);
     if (status.code != RpcUtils.SUCCESS.code) {
       logger.error("add local storage engines failed when initializing IginxWorker!");
     }
   }
 
   private Status addStorageEngineMetas(
-      List<StorageEngineMeta> storageEngineMetas, List<Status> statusList) {
+      List<StorageEngineMeta> storageEngineMetas, List<Status> statusList, boolean hasChecked) {
     Status status = RpcUtils.SUCCESS;
     // 检测是否与已有的存储引擎冲突
-    List<StorageEngineMeta> currentStorageEngines = metaManager.getStorageEngineList();
-    List<StorageEngineMeta> duplicatedStorageEngine = new ArrayList<>();
-    for (StorageEngineMeta storageEngine : storageEngineMetas) {
-      for (StorageEngineMeta currentStorageEngine : currentStorageEngines) {
-        if (isDuplicated(storageEngine, currentStorageEngine)) {
-          duplicatedStorageEngine.add(storageEngine);
-          break;
+    if (!hasChecked) {
+      List<StorageEngineMeta> currentStorageEngines = metaManager.getStorageEngineList();
+      List<StorageEngineMeta> duplicatedStorageEngine = new ArrayList<>();
+      for (StorageEngineMeta storageEngine : storageEngineMetas) {
+        for (StorageEngineMeta currentStorageEngine : currentStorageEngines) {
+          if (isDuplicated(storageEngine, currentStorageEngine)) {
+            duplicatedStorageEngine.add(storageEngine);
+            break;
+          }
         }
       }
-    }
-    if (!duplicatedStorageEngine.isEmpty()) {
-      storageEngineMetas.removeAll(duplicatedStorageEngine);
-      if (!storageEngineMetas.isEmpty()) {
-        status = new Status(RpcUtils.PARTIAL_SUCCESS.code);
-        status.setMessage("unexpected repeated add");
-        statusList.add(status);
-      } else {
-        return RpcUtils.FAILURE.setMessage("unexpected repeated add");
+      if (!duplicatedStorageEngine.isEmpty()) {
+        storageEngineMetas.removeAll(duplicatedStorageEngine);
+        if (!storageEngineMetas.isEmpty()) {
+          status = new Status(RpcUtils.PARTIAL_SUCCESS.code);
+          status.setMessage("unexpected repeated add");
+          statusList.add(status);
+        } else {
+          return RpcUtils.FAILURE.setMessage("unexpected repeated add");
+        }
       }
     }
     if (!storageEngineMetas.isEmpty()
