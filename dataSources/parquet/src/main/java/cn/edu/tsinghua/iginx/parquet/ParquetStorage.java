@@ -31,6 +31,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,7 +49,9 @@ public class ParquetStorage implements IStorage {
 
   private ParquetServer server = null;
 
-  private ExecutorService executorService;
+  private ExecutorService executorService = null;
+
+  private Future<?> future = null;
 
   public ParquetStorage(StorageEngineMeta meta) throws StorageInitializationException {
     if (isLocal(meta)) {
@@ -77,7 +81,7 @@ public class ParquetStorage implements IStorage {
         new NewExecutor(connection, meta.isHasData(), meta.isReadOnly(), dataDir, dummyDir);
     this.server = new ParquetServer(meta.getPort(), executor);
     this.executorService = Executors.newSingleThreadExecutor();
-    executorService.submit(server);
+    this.future = executorService.submit(server);
   }
 
   private void initRemoteStorage(StorageEngineMeta meta) throws StorageInitializationException {
@@ -189,9 +193,15 @@ public class ParquetStorage implements IStorage {
     executor.close();
     if (server != null) {
       server.stop();
+      server = null;
+    }
+    if (future != null) {
+      future.cancel(true);
+      future = null;
     }
     if (executorService != null) {
       executorService.shutdown();
+      executorService = null;
     }
   }
 }

@@ -42,6 +42,10 @@ import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,7 +60,9 @@ public class FileSystemStorage implements IStorage {
 
   private FileSystemServer server = null;
 
-  private Thread thread = null;
+  private ExecutorService executorService = null;
+
+  private Future<?> future = null;
 
   public FileSystemStorage(StorageEngineMeta meta)
       throws StorageInitializationException, TTransportException {
@@ -74,8 +80,8 @@ public class FileSystemStorage implements IStorage {
   private void initLocalExecutor(StorageEngineMeta meta) {
     this.executor = new LocalExecutor(meta.isReadOnly(), meta.isHasData(), meta.getExtraParams());
     this.server = new FileSystemServer(meta.getPort(), executor);
-    this.thread = new Thread(server);
-    thread.start();
+    this.executorService = Executors.newSingleThreadExecutor();
+    this.future = executorService.submit(server);
   }
 
   @Override
@@ -167,9 +173,13 @@ public class FileSystemStorage implements IStorage {
       server.stop();
       server = null;
     }
-    if (thread != null) {
-      thread.interrupt();
-      thread = null;
+    if (future != null) {
+      future.cancel(true);
+      future = null;
+    }
+    if (executorService != null) {
+      executorService.shutdown();
+      executorService = null;
     }
   }
 }
