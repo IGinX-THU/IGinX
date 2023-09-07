@@ -5,7 +5,6 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
-
 import java.util.*;
 
 public class ResultTable implements RowStream {
@@ -75,5 +74,4 @@ public class ResultTable implements RowStream {
       return new ResultTable(header, rows.entrySet().iterator());
     }
   }
-
 }

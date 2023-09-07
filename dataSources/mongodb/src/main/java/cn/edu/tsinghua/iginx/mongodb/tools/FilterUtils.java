@@ -2,10 +2,8 @@ package cn.edu.tsinghua.iginx.mongodb.tools;
 
 import static com.mongodb.client.model.Filters.*;
 
-import cn.edu.tsinghua.iginx.engine.physical.storage.utils.TagKVUtils;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.NotFilter;
@@ -15,10 +13,8 @@ import cn.edu.tsinghua.iginx.mongodb.immigrant.entity.MongoId;
 import cn.edu.tsinghua.iginx.mongodb.immigrant.entity.MongoPoint;
 import cn.edu.tsinghua.iginx.mongodb.immigrant.entity.Query;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-
 import java.util.*;
 import java.util.stream.Collectors;
-
 import org.bson.BsonValue;
 import org.bson.Document;
 import org.bson.conversions.Bson;
@@ -27,8 +23,6 @@ public class FilterUtils {
 
   public static Bson interval(KeyInterval range) {
     Bson left = gte("_id", range.getStartKey());
-    if (range.getEndKey() == Long.MAX_VALUE) return left;
-
     Bson right = lt("_id", range.getEndKey());
     return and(left, right);
   }

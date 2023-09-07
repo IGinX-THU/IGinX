@@ -4,7 +4,6 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.BitmapView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-
 import java.util.*;
 
 public class SourceTable implements Iterable<SourceTable.Column> {
@@ -33,7 +32,6 @@ public class SourceTable implements Iterable<SourceTable.Column> {
     public Map<Long, Object> getData() {
       return data;
     }
-
   }
 
   @Override

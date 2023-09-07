@@ -55,15 +55,15 @@ public class TypeUtils {
     byte byte3 = (byte) (bits & 0xff);
 
     if (byte3 != 0) {
-      return new byte[]{byte0, byte1, byte2, byte3};
+      return new byte[] {byte0, byte1, byte2, byte3};
     } else if (byte2 != 0) {
-      return new byte[]{byte0, byte1, byte2};
+      return new byte[] {byte0, byte1, byte2};
     } else if (byte1 != 0) {
-      return new byte[]{byte0, byte1};
+      return new byte[] {byte0, byte1};
     } else if (byte0 != 0) {
-      return new byte[]{byte0};
+      return new byte[] {byte0};
     } else {
-      return new byte[]{};
+      return new byte[] {};
     }
   }
 

@@ -24,11 +24,11 @@ import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.mongodb.immigrant.entity.Query;
 import cn.edu.tsinghua.iginx.mongodb.immigrant.entity.ResultTable;
 import cn.edu.tsinghua.iginx.mongodb.immigrant.entity.SourceTable;
-import cn.edu.tsinghua.iginx.mongodb.tools.FilterUtils;
-import cn.edu.tsinghua.iginx.mongodb.tools.TypeUtils;
 import cn.edu.tsinghua.iginx.mongodb.local.entity.PathTree;
 import cn.edu.tsinghua.iginx.mongodb.local.query.ClientQuery;
+import cn.edu.tsinghua.iginx.mongodb.tools.FilterUtils;
 import cn.edu.tsinghua.iginx.mongodb.tools.NameUtils;
+import cn.edu.tsinghua.iginx.mongodb.tools.TypeUtils;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import com.mongodb.*;
@@ -37,11 +37,9 @@ import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoIterable;
 import com.mongodb.client.model.*;
-
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
-
 import org.bson.BsonDocument;
 import org.bson.BsonInt64;
 import org.bson.BsonValue;
@@ -77,7 +75,15 @@ public class MongoDBStorage implements IStorage {
 
   private MongoClient connect(String ip, int port) {
     ServerAddress address = new ServerAddress(ip, port);
-    MongoClientSettings settings = MongoClientSettings.builder().applyToClusterSettings(builder -> builder.hosts(Collections.singletonList(address))).applyToConnectionPoolSettings(builder -> builder.maxWaitTime(MAX_WAIT_TIME, TimeUnit.SECONDS).maxSize(SESSION_POOL_MAX_SIZE)).build();
+    MongoClientSettings settings =
+        MongoClientSettings.builder()
+            .applyToClusterSettings(builder -> builder.hosts(Collections.singletonList(address)))
+            .applyToConnectionPoolSettings(
+                builder ->
+                    builder
+                        .maxWaitTime(MAX_WAIT_TIME, TimeUnit.SECONDS)
+                        .maxSize(SESSION_POOL_MAX_SIZE))
+            .build();
 
     return MongoClients.create(settings);
   }
@@ -125,13 +131,23 @@ public class MongoDBStorage implements IStorage {
   @Override
   public TaskExecuteResult executeProjectWithSelect(Project project, Select select, DataArea area) {
     String unit = area.getStorageUnit();
-    KeyInterval range = area.getKeyInterval();
     List<String> patterns = project.getPatterns();
-    TagFilter tags = project.getTagFilter();
-    return query(unit, range, patterns, tags, select.getFilter());
+    TagFilter tagFilter = project.getTagFilter();
+    Collection<Field> fields = this.getMatchedFields(unit, patterns, tagFilter);
+
+    List<Filter> filters = new ArrayList<>();
+    KeyInterval range = area.getKeyInterval();
+    filters.add(new KeyFilter(Op.GE, range.getStartKey()));
+    filters.add(new KeyFilter(Op.L, range.getEndKey()));
+    Filter filter = select.getFilter();
+    if (filter != null) filters.add(filter);
+    Filter unionFilter = new AndFilter(filters);
+
+    return query(unit, range, patterns, tagFilter, select.getFilter());
   }
 
-  private TaskExecuteResult query(String unit, KeyInterval range, List<String> patterns, TagFilter tags, Filter filter) {
+  private TaskExecuteResult query(
+      String unit, KeyInterval range, List<String> patterns, TagFilter tags, Filter filter) {
     Query query = new Query();
     try {
       query.range(range);
@@ -139,7 +155,7 @@ public class MongoDBStorage implements IStorage {
       if (filter != null) query.filter(filter);
       if (patterns != null && !patterns.isEmpty()) query.project(patterns);
 
-//      return new TaskExecuteResult(query.query(getCollection(unit)));
+      //      return new TaskExecuteResult(query.query(getCollection(unit)));
       return new TaskExecuteResult();
     } catch (Exception e) {
       logger.error("project {} from {}[{}] where {} and {}", patterns, unit, range, filter, tags);
@@ -154,7 +170,8 @@ public class MongoDBStorage implements IStorage {
   }
 
   @Override
-  public TaskExecuteResult executeProjectDummyWithSelect(Project project, Select select, DataArea area) {
+  public TaskExecuteResult executeProjectDummyWithSelect(
+      Project project, Select select, DataArea area) {
     return queryDummy(area.getKeyInterval(), project.getPatterns(), select.getFilter());
   }
 
@@ -228,6 +245,12 @@ public class MongoDBStorage implements IStorage {
   public TaskExecuteResult executeInsert(Insert insert, DataArea dataArea) {
     String unit = dataArea.getStorageUnit();
 
+    logger.info(
+        "insert {}*{} into {}",
+        insert.getData().getPaths(),
+        insert.getData().getKeySize(),
+        dataArea.getStorageUnit());
+
     for (SourceTable.Column column : new SourceTable(insert.getData())) {
       Field field = column.getField();
       Map<Long, Object> data = column.getData();
@@ -242,7 +265,9 @@ public class MongoDBStorage implements IStorage {
 
       MongoCollection<BsonDocument> collection = this.getCollection(unit, field);
       try {
+        logger.info("insert {} into {}", documents, collection.getNamespace());
         collection.insertMany(documents, new InsertManyOptions().ordered(false));
+
       } catch (MongoBulkWriteException e) { // has duplicate key, try to upsert
         List<WriteModel<BsonDocument>> writeModels = new ArrayList<>();
         for (WriteError error : e.getWriteErrors()) {
@@ -262,6 +287,9 @@ public class MongoDBStorage implements IStorage {
           writeModels.add(new ReplaceOneModel<>(filter, doc, option));
         }
         collection.bulkWrite(writeModels, new BulkWriteOptions().ordered(false));
+      } catch (Exception e) {
+        logger.error("failed to insert", e);
+        return new TaskExecuteResult(new PhysicalException("failed to insert", e));
       }
     }
 
@@ -324,3 +352,4 @@ public class MongoDBStorage implements IStorage {
 }
 
 // TODO dummy 测试一下多个文档，多数据库，多集合的情况
+// TODO 特殊名称的替换

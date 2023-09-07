@@ -3,7 +3,6 @@ package cn.edu.tsinghua.iginx.mongodb.tools;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.mongodb.immigrant.tools.Base16m;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -17,7 +16,8 @@ public class NameUtils {
 
   public static String getFullName(Field field) {
     StringJoiner tagsJoiner = new StringJoiner(TAG_SEPARATOR);
-    for (Map.Entry<String, String> tag : field.getTags().entrySet()) {
+    SortedMap<String, String> sortedTags = new TreeMap<>(field.getTags());
+    for (Map.Entry<String, String> tag : sortedTags.entrySet()) {
       tagsJoiner.add(tag.getKey() + KV_SEPARATOR + tag.getValue());
     }
     return field.getName() + NAME_SEPARATOR + field.getType() + NAME_SEPARATOR + tagsJoiner;
@@ -87,6 +87,4 @@ public class NameUtils {
   public static boolean isWildcardAll(String path) {
     return path.chars().allMatch(c -> c == '*' || c == '.');
   }
-
-
 }
