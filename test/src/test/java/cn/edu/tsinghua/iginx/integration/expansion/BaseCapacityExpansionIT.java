@@ -10,9 +10,9 @@ import cn.edu.tsinghua.iginx.integration.expansion.filesystem.FileSystemCapacity
 import cn.edu.tsinghua.iginx.integration.expansion.influxdb.InfluxDBCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.parquet.ParquetCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
-import cn.edu.tsinghua.iginx.integration.tool.DBType;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.thrift.RemovedStorageEngineInfo;
+import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -27,15 +27,15 @@ public abstract class BaseCapacityExpansionIT {
 
   protected static Session session;
 
-  protected DBType dbType;
+  protected StorageEngineType type;
 
   protected String extraParams;
 
   private final boolean IS_PARQUET_OR_FILE_SYSTEM =
       this instanceof FileSystemCapacityExpansionIT || this instanceof ParquetCapacityExpansionIT;
 
-  public BaseCapacityExpansionIT(DBType dbType, String extraParams) {
-    this.dbType = dbType;
+  public BaseCapacityExpansionIT(StorageEngineType type, String extraParams) {
+    this.type = type;
     this.extraParams = extraParams;
   }
 
@@ -46,7 +46,7 @@ public abstract class BaseCapacityExpansionIT {
       statement.append("ADD STORAGEENGINE (\"127.0.0.1\", ");
       statement.append(port);
       statement.append(", \"");
-      statement.append(dbType.name());
+      statement.append(type.name());
       statement.append("\", \"");
       statement.append("has_data:");
       statement.append(hasData);
@@ -83,7 +83,7 @@ public abstract class BaseCapacityExpansionIT {
     } catch (ExecutionException | SessionException e) {
       logger.warn(
           "add storage engine {} port {} hasData {} isReadOnly {} dataPrefix {} schemaPrefix {} failure: {}",
-          dbType.name(),
+          type.name(),
           port,
           hasData,
           isReadOnly,

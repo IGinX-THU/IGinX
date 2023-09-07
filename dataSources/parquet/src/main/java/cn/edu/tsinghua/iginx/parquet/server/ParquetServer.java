@@ -45,21 +45,24 @@ public class ParquetServer implements Runnable {
 
   @Override
   public void run() {
+    TProcessor processor =
+        new ParquetService.Processor<ParquetService.Iface>(new ParquetWorker(executor));
     try {
-      TProcessor processor =
-          new ParquetService.Processor<ParquetService.Iface>(new ParquetWorker(executor));
       serverTransport = new TServerSocket(port);
-      TThreadPoolServer.Args args =
-          new TThreadPoolServer.Args(serverTransport)
-              .processor(processor)
-              .minWorkerThreads(config.getMinThriftWorkerThreadNum())
-              .maxWorkerThreads(config.getMaxThriftWrokerThreadNum())
-              .protocolFactory(new TBinaryProtocol.Factory());
-      server = new TThreadPoolServer(args);
-      logger.info("Parquet service starts successfully!");
-      server.serve();
     } catch (TTransportException e) {
-      logger.error("Parquet service starts failure: {}", e.getMessage());
+      if (!e.getMessage().contains("Could not create ServerSocket on address")) {
+        logger.error("Parquet service starts failure: {}", e.getMessage());
+      }
+      return;
     }
+    TThreadPoolServer.Args args =
+        new TThreadPoolServer.Args(serverTransport)
+            .processor(processor)
+            .minWorkerThreads(config.getMinThriftWorkerThreadNum())
+            .maxWorkerThreads(config.getMaxThriftWrokerThreadNum())
+            .protocolFactory(new TBinaryProtocol.Factory());
+    server = new TThreadPoolServer(args);
+    logger.info("Parquet service starts successfully!");
+    server.serve();
   }
 }

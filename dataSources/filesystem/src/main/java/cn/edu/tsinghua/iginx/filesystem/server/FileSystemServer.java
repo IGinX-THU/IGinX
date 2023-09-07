@@ -45,21 +45,24 @@ public class FileSystemServer implements Runnable {
 
   @Override
   public void run() {
+    TProcessor processor =
+        new FileSystemService.Processor<FileSystemService.Iface>(new FileSystemWorker(executor));
     try {
-      TProcessor processor =
-          new FileSystemService.Processor<FileSystemService.Iface>(new FileSystemWorker(executor));
       serverTransport = new TServerSocket(port);
-      TThreadPoolServer.Args args =
-          new TThreadPoolServer.Args(serverTransport)
-              .processor(processor)
-              .minWorkerThreads(config.getMinThriftWorkerThreadNum())
-              .maxWorkerThreads(config.getMaxThriftWrokerThreadNum())
-              .protocolFactory(new TBinaryProtocol.Factory());
-      server = new TThreadPoolServer(args);
-      logger.info("File System service starts successfully!");
-      server.serve();
     } catch (TTransportException e) {
-      logger.error("File System service starts failure: {}", e.getMessage());
+      if (!e.getMessage().contains("Could not create ServerSocket on address")) {
+        logger.error("File System service starts failure: {}", e.getMessage());
+      }
+      return;
     }
+    TThreadPoolServer.Args args =
+        new TThreadPoolServer.Args(serverTransport)
+            .processor(processor)
+            .minWorkerThreads(config.getMinThriftWorkerThreadNum())
+            .maxWorkerThreads(config.getMaxThriftWrokerThreadNum())
+            .protocolFactory(new TBinaryProtocol.Factory());
+    server = new TThreadPoolServer(args);
+    logger.info("File System service starts successfully!");
+    server.serve();
   }
 }
