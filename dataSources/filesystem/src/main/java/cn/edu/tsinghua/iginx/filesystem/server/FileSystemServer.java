@@ -60,12 +60,15 @@ public class FileSystemServer implements Runnable {
   public void stop() {
     if (server != null) {
       server.stop();
+      server = null;
     }
     if (serverTransport != null) {
       serverTransport.close();
+      serverTransport = null;
     }
     if (executorService != null) {
       executorService.shutdown();
+      executorService = null;
     }
   }
 
