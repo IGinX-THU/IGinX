@@ -12,7 +12,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
-import cn.edu.tsinghua.iginx.mongodb.immigrant.tools.FilterUtils;
+import cn.edu.tsinghua.iginx.mongodb.tools.FilterUtils;
 import cn.edu.tsinghua.iginx.mongodb.tools.NameUtils;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;

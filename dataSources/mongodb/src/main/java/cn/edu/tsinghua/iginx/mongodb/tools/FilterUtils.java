@@ -1,9 +1,11 @@
-package cn.edu.tsinghua.iginx.mongodb.immigrant.tools;
+package cn.edu.tsinghua.iginx.mongodb.tools;
 
 import static com.mongodb.client.model.Filters.*;
 
+import cn.edu.tsinghua.iginx.engine.physical.storage.utils.TagKVUtils;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.NotFilter;
@@ -12,10 +14,11 @@ import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.mongodb.immigrant.entity.MongoId;
 import cn.edu.tsinghua.iginx.mongodb.immigrant.entity.MongoPoint;
 import cn.edu.tsinghua.iginx.mongodb.immigrant.entity.Query;
-import cn.edu.tsinghua.iginx.mongodb.tools.NameUtils;
 import cn.edu.tsinghua.iginx.thrift.DataType;
+
 import java.util.*;
 import java.util.stream.Collectors;
+
 import org.bson.BsonValue;
 import org.bson.Document;
 import org.bson.conversions.Bson;
@@ -23,34 +26,30 @@ import org.bson.conversions.Bson;
 public class FilterUtils {
 
   public static Bson interval(KeyInterval range) {
-    String fieldName = "_id." + MongoId.KEY_SUBFIELD;
-    Bson left = gte(fieldName, range.getStartKey());
-
+    Bson left = gte("_id", range.getStartKey());
     if (range.getEndKey() == Long.MAX_VALUE) return left;
 
-    Bson right = lt(fieldName, range.getEndKey());
-    return or(and(left, right), eq(fieldName, MongoId.PLACE_HOLDER_KEY));
+    Bson right = lt("_id", range.getEndKey());
+    return and(left, right);
   }
 
   public static Bson ranges(List<KeyRange> ranges) {
-    return or(
-        ranges.stream()
-            .map(
-                range -> {
-                  List<Bson> bounds = new ArrayList<>();
-                  if (range.isIncludeBeginKey()) {
-                    bounds.add(gte("_id." + MongoId.KEY_SUBFIELD, range.getBeginKey()));
-                  } else {
-                    bounds.add(gt("_id." + MongoId.KEY_SUBFIELD, range.getBeginKey()));
-                  }
-                  if (range.isIncludeEndKey()) {
-                    bounds.add(lte("_id." + MongoId.KEY_SUBFIELD, range.getEndKey()));
-                  } else {
-                    bounds.add(lt("_id." + MongoId.KEY_SUBFIELD, range.getEndKey()));
-                  }
-                  return and(bounds);
-                })
-            .collect(Collectors.toList()));
+    List<Bson> rangeFilters = new ArrayList<>();
+    for (KeyRange range : ranges) {
+      List<Bson> bounds = new ArrayList<>();
+      if (range.isIncludeBeginKey()) {
+        bounds.add(gte("_id", range.getBeginKey()));
+      } else {
+        bounds.add(gt("_id", range.getBeginKey()));
+      }
+      if (range.isIncludeEndKey()) {
+        bounds.add(lte("_id", range.getEndKey()));
+      } else {
+        bounds.add(lt("_id", range.getEndKey()));
+      }
+      rangeFilters.add(and(bounds));
+    }
+    return or(rangeFilters);
   }
 
   public static Bson nonFieldExcept(Object input, String exceptFieldName) {

@@ -1,13 +1,41 @@
 package cn.edu.tsinghua.iginx.mongodb.tools;
 
+import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.mongodb.immigrant.tools.Base16m;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.StringJoiner;
+import cn.edu.tsinghua.iginx.thrift.DataType;
+
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class NameUtils {
+
+  private static final String NAME_SEPARATOR = "/";
+
+  private static final String KV_SEPARATOR = "=";
+
+  private static final String TAG_SEPARATOR = "&";
+
+  public static String getFullName(Field field) {
+    StringJoiner tagsJoiner = new StringJoiner(TAG_SEPARATOR);
+    for (Map.Entry<String, String> tag : field.getTags().entrySet()) {
+      tagsJoiner.add(tag.getKey() + KV_SEPARATOR + tag.getValue());
+    }
+    return field.getName() + NAME_SEPARATOR + field.getType() + NAME_SEPARATOR + tagsJoiner;
+  }
+
+  public static Field parseFullName(String collectionName) {
+    String[] nameParts = collectionName.split(NAME_SEPARATOR);
+    String name = nameParts[0];
+    DataType type = DataType.valueOf(nameParts[1]);
+    Map<String, String> tags = new HashMap<>();
+    if (nameParts.length >= 3) {
+      for (String tagName : nameParts[2].split(TAG_SEPARATOR)) {
+        String[] kv = tagName.split(KV_SEPARATOR);
+        tags.put(kv[0], kv[1]);
+      }
+    }
+    return new Field(name, type, tags);
+  }
 
   public static String encodeTagK(String tagK) {
     return Base16m.encode(tagK);
@@ -59,4 +87,6 @@ public class NameUtils {
   public static boolean isWildcardAll(String path) {
     return path.chars().allMatch(c -> c == '*' || c == '.');
   }
+
+
 }
