@@ -30,25 +30,6 @@ public class FileSystemServer implements Runnable {
   public FileSystemServer(int port, Executor executor) {
     this.port = port;
     this.executor = executor;
-    initServer();
-  }
-
-  private void initServer() {
-    try {
-      TProcessor processor =
-          new FileSystemService.Processor<FileSystemService.Iface>(new FileSystemWorker(executor));
-      serverTransport = new TServerSocket(port);
-      TThreadPoolServer.Args args =
-          new TThreadPoolServer.Args(serverTransport)
-              .processor(processor)
-              .minWorkerThreads(config.getMinThriftWorkerThreadNum())
-              .maxWorkerThreads(config.getMaxThriftWrokerThreadNum())
-              .protocolFactory(new TBinaryProtocol.Factory());
-      server = new TThreadPoolServer(args);
-      logger.info("File System service starts successfully!");
-    } catch (TTransportException e) {
-      logger.error("File System service starts failure: {}", e.getMessage());
-    }
   }
 
   public void stop() {
@@ -64,6 +45,21 @@ public class FileSystemServer implements Runnable {
 
   @Override
   public void run() {
-    server.serve();
+    try {
+      TProcessor processor =
+          new FileSystemService.Processor<FileSystemService.Iface>(new FileSystemWorker(executor));
+      serverTransport = new TServerSocket(port);
+      TThreadPoolServer.Args args =
+          new TThreadPoolServer.Args(serverTransport)
+              .processor(processor)
+              .minWorkerThreads(config.getMinThriftWorkerThreadNum())
+              .maxWorkerThreads(config.getMaxThriftWrokerThreadNum())
+              .protocolFactory(new TBinaryProtocol.Factory());
+      server = new TThreadPoolServer(args);
+      logger.info("File System service starts successfully!");
+      server.serve();
+    } catch (TTransportException e) {
+      logger.error("File System service starts failure: {}", e.getMessage());
+    }
   }
 }

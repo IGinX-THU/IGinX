@@ -22,6 +22,7 @@ import cn.edu.tsinghua.iginx.parquet.exec.NewExecutor;
 import cn.edu.tsinghua.iginx.parquet.exec.RemoteExecutor;
 import cn.edu.tsinghua.iginx.parquet.server.ParquetServer;
 import cn.edu.tsinghua.iginx.parquet.tools.FilterTransformer;
+import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -48,6 +49,9 @@ public class ParquetStorage implements IStorage {
   private Thread thread = null;
 
   public ParquetStorage(StorageEngineMeta meta) throws StorageInitializationException {
+    if (!meta.getStorageEngine().equals(StorageEngineType.parquet)) {
+      throw new StorageInitializationException("unexpected database: " + meta.getStorageEngine());
+    }
     if (isLocal(meta)) {
       initLocalStorage(meta);
     } else {
@@ -185,13 +189,13 @@ public class ParquetStorage implements IStorage {
   @Override
   public synchronized void release() throws PhysicalException {
     executor.close();
-    if (server != null) {
-      server.stop();
-      server = null;
-    }
     if (thread != null) {
       thread.interrupt();
       thread = null;
+    }
+    if (server != null) {
+      server.stop();
+      server = null;
     }
   }
 }

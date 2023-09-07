@@ -39,6 +39,7 @@ import cn.edu.tsinghua.iginx.filesystem.server.FileSystemServer;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
+import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.Arrays;
 import java.util.List;
@@ -47,8 +48,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class FileSystemStorage implements IStorage {
-
-  private static final String STORAGE_ENGINE = "filesystem";
 
   private static final Logger logger = LoggerFactory.getLogger(FileSystemStorage.class);
 
@@ -60,7 +59,7 @@ public class FileSystemStorage implements IStorage {
 
   public FileSystemStorage(StorageEngineMeta meta)
       throws StorageInitializationException, TTransportException {
-    if (!meta.getStorageEngine().equals(STORAGE_ENGINE)) {
+    if (!meta.getStorageEngine().equals(StorageEngineType.filesystem)) {
       throw new StorageInitializationException("unexpected database: " + meta.getStorageEngine());
     }
 
@@ -163,13 +162,13 @@ public class FileSystemStorage implements IStorage {
   @Override
   public synchronized void release() throws PhysicalException {
     executor.close();
-    if (server != null) {
-      server.stop();
-      server = null;
-    }
     if (thread != null) {
       thread.interrupt();
       thread = null;
+    }
+    if (server != null) {
+      server.stop();
+      server = null;
     }
   }
 }

@@ -18,6 +18,7 @@
  */
 package cn.edu.tsinghua.iginx;
 
+import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.isEmbeddedStorageEngine;
 import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.isLocal;
 import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.setSchemaPrefixInExtraParams;
 import static cn.edu.tsinghua.iginx.utils.ByteUtils.getLongArrayFromByteBuffer;
@@ -80,8 +81,7 @@ public class IginxWorker implements IService.Iface {
   private void addLocalStorageEngineMetas() {
     List<StorageEngineMeta> localMetas = new ArrayList<>();
     for (StorageEngineMeta metaFromConf : metaManager.getStorageEngineListFromConf()) {
-      if (!metaFromConf.getStorageEngine().equals("parquet")
-          && !metaFromConf.getStorageEngine().equals("filesystem")) {
+      if (!isEmbeddedStorageEngine(metaFromConf.getStorageEngine())) {
         continue;
       }
       boolean hasAdded = false;
@@ -307,7 +307,7 @@ public class IginxWorker implements IService.Iface {
     List<Status> statusList = new ArrayList<>();
 
     for (StorageEngine storageEngine : storageEngines) {
-      String type = storageEngine.getType();
+      StorageEngineType type = storageEngine.getType();
       Map<String, String> extraParams = storageEngine.getExtraParams();
       boolean hasData = Boolean.parseBoolean(extraParams.getOrDefault(Constants.HAS_DATA, "false"));
       String dataPrefix = null;
@@ -416,8 +416,7 @@ public class IginxWorker implements IService.Iface {
     List<StorageEngineMeta> localMetas = new ArrayList<>();
     List<StorageEngineMeta> otherMetas = new ArrayList<>();
     for (StorageEngineMeta meta : storageEngineMetas) {
-      if (meta.getStorageEngine().equals("parquet")
-          || meta.getStorageEngine().equals("filesystem")) {
+      if (isEmbeddedStorageEngine(meta.getStorageEngine())) {
         if (!isLocal(meta)) {
           status = new Status(RpcUtils.PARTIAL_SUCCESS.code);
           status.setMessage(String.format("storage engine %s needs to be local!", meta));

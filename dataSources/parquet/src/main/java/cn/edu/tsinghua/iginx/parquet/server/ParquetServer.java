@@ -30,25 +30,6 @@ public class ParquetServer implements Runnable {
   public ParquetServer(int port, Executor executor) {
     this.port = port;
     this.executor = executor;
-    initServer();
-  }
-
-  private void initServer() {
-    try {
-      TProcessor processor =
-          new ParquetService.Processor<ParquetService.Iface>(new ParquetWorker(executor));
-      serverTransport = new TServerSocket(port);
-      TThreadPoolServer.Args args =
-          new TThreadPoolServer.Args(serverTransport)
-              .processor(processor)
-              .minWorkerThreads(config.getMinThriftWorkerThreadNum())
-              .maxWorkerThreads(config.getMaxThriftWrokerThreadNum())
-              .protocolFactory(new TBinaryProtocol.Factory());
-      server = new TThreadPoolServer(args);
-      logger.info("Parquet service starts successfully!");
-    } catch (TTransportException e) {
-      logger.error("Parquet service starts failure: {}", e.getMessage());
-    }
   }
 
   public void stop() {
@@ -64,6 +45,21 @@ public class ParquetServer implements Runnable {
 
   @Override
   public void run() {
-    server.serve();
+    try {
+      TProcessor processor =
+          new ParquetService.Processor<ParquetService.Iface>(new ParquetWorker(executor));
+      serverTransport = new TServerSocket(port);
+      TThreadPoolServer.Args args =
+          new TThreadPoolServer.Args(serverTransport)
+              .processor(processor)
+              .minWorkerThreads(config.getMinThriftWorkerThreadNum())
+              .maxWorkerThreads(config.getMaxThriftWrokerThreadNum())
+              .protocolFactory(new TBinaryProtocol.Factory());
+      server = new TThreadPoolServer(args);
+      logger.info("Parquet service starts successfully!");
+      server.serve();
+    } catch (TTransportException e) {
+      logger.error("Parquet service starts failure: {}", e.getMessage());
+    }
   }
 }

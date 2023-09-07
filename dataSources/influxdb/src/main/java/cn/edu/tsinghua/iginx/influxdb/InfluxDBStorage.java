@@ -49,6 +49,7 @@ import cn.edu.tsinghua.iginx.influxdb.tools.SchemaTransformer;
 import cn.edu.tsinghua.iginx.influxdb.tools.TagFilterUtils;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
 import cn.edu.tsinghua.iginx.thrift.DataType;
+import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import com.influxdb.client.InfluxDBClient;
@@ -75,8 +76,6 @@ import org.slf4j.LoggerFactory;
 public class InfluxDBStorage implements IStorage {
 
   private static final Logger logger = LoggerFactory.getLogger(InfluxDBStorage.class);
-
-  private static final String STORAGE_ENGINE = "influxdb";
 
   private static final WritePrecision WRITE_PRECISION = NS;
 
@@ -109,7 +108,7 @@ public class InfluxDBStorage implements IStorage {
 
   public InfluxDBStorage(StorageEngineMeta meta) throws StorageInitializationException {
     this.meta = meta;
-    if (!meta.getStorageEngine().equals(STORAGE_ENGINE)) {
+    if (!meta.getStorageEngine().equals(StorageEngineType.influxdb)) {
       throw new StorageInitializationException("unexpected database: " + meta.getStorageEngine());
     }
     if (!testConnection()) {
