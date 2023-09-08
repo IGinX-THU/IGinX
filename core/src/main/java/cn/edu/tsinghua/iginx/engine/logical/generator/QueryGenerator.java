@@ -798,7 +798,7 @@ public class QueryGenerator extends AbstractGenerator {
 
   // 筛选出在 columnsInterval 范围内的 path 列表，返回去除 schemaPrefix 后的结果
   private List<String> pathMatchPrefix(
-          List<String> pathList, ColumnsInterval columnsInterval, String schemaPrefix) {
+      List<String> pathList, ColumnsInterval columnsInterval, String schemaPrefix) {
     List<String> ans = new ArrayList<>();
 
     for (String path : pathList) {
