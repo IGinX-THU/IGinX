@@ -20,6 +20,7 @@ package cn.edu.tsinghua.iginx.engine.shared.function.manager;
 
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
+import cn.edu.tsinghua.iginx.conf.Constants;
 import cn.edu.tsinghua.iginx.engine.shared.function.Function;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.ArithmeticExpr;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Avg;
@@ -69,7 +70,10 @@ public class FunctionManager {
   private static final String PY_SUFFIX = ".py";
 
   private static final String PATH =
-      String.join(File.separator, System.getProperty("user.dir"), "python_scripts");
+      String.join(
+          File.separator,
+          System.getenv().getOrDefault(Constants.IGINX_HOME, System.getProperty("user.dir")),
+          "python_scripts");
 
   private FunctionManager() {
     this.functions = new HashMap<>();

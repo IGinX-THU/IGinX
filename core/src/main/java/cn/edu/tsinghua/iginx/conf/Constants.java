@@ -22,6 +22,8 @@ public class Constants {
 
   public static final int MAX_REDIRECT_TIME = 5;
 
+  public static final String IGINX_HOME = "IGINX_HOME";
+
   public static final String CONF = "IGINX_CONF";
 
   public static final String DRIVER = "IGINX_DRIVER";

@@ -348,8 +348,10 @@ public class ConfigDescriptor {
   }
 
   private void loadUDFListFromFile() {
+    String iginxHome = System.getenv().getOrDefault(Constants.IGINX_HOME, "");
     try (InputStream in =
-        new FileInputStream(EnvUtils.loadEnv(Constants.UDF_LIST, Constants.UDF_LIST_FILE))) {
+        new FileInputStream(
+            EnvUtils.loadEnv(Constants.UDF_LIST, iginxHome + "/" + Constants.UDF_LIST_FILE))) {
       BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(in));
 
       String line = null;
