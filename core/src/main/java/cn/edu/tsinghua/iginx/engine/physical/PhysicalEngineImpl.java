@@ -110,6 +110,11 @@ public class PhysicalEngineImpl implements PhysicalEngine {
       for (PhysicalTask parentTask : task.getParentTasks()) {
         getStorageTasks(tasks, parentTask);
       }
+    } else if (root.getType() == TaskType.Folded) {
+      FoldedPhysicalTask task = (FoldedPhysicalTask) root;
+      for (PhysicalTask parentTask : task.getParentTasks()) {
+        getStorageTasks(tasks, parentTask);
+      }
     }
   }
 

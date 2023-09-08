@@ -115,7 +115,15 @@ public class NaivePhysicalOptimizer implements PhysicalOptimizer {
       }
       List<Operator> operators = new ArrayList<>();
       operators.add(operator);
-      PhysicalTask task = new MultipleMemoryPhysicalTask(operators, parentTasks);
+
+      PhysicalTask task;
+      if (operator.getType().equals(OperatorType.Super)) {
+        Super superOperator = (Super) multipleOperator;
+        task = new FoldedPhysicalTask(operators, superOperator.getRootFolded(), parentTasks);
+      } else {
+        task = new MultipleMemoryPhysicalTask(operators, parentTasks);
+      }
+
       for (PhysicalTask parentTask : parentTasks) {
         parentTask.setFollowerTask(task);
       }

@@ -43,9 +43,8 @@ public class UnaryMemoryPhysicalTask extends MemoryPhysicalTask {
         OperatorMemoryExecutorFactory.getInstance().getMemoryExecutor();
     try {
       for (Operator op : operators) {
-        if (OperatorType.isBinaryOperator(op.getType())) {
-          throw new UnexpectedOperatorException(
-              "unexpected binary operator " + op + " in unary task");
+        if (!OperatorType.isUnaryOperator(op.getType())) {
+          throw new UnexpectedOperatorException("unexpected operator " + op + " in unary task");
         }
         stream = executor.executeUnaryOperator((UnaryOperator) op, stream);
       }
