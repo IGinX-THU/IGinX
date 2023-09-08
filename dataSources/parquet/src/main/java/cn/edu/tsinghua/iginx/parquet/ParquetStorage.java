@@ -1,7 +1,7 @@
 package cn.edu.tsinghua.iginx.parquet;
 
-import cn.edu.tsinghua.iginx.conf.Config;
-import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
+import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.isLocal;
+
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
@@ -23,15 +23,14 @@ import cn.edu.tsinghua.iginx.parquet.exec.RemoteExecutor;
 import cn.edu.tsinghua.iginx.parquet.server.ParquetServer;
 import cn.edu.tsinghua.iginx.parquet.tools.FilterTransformer;
 import cn.edu.tsinghua.iginx.utils.Pair;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,17 +39,16 @@ public class ParquetStorage implements IStorage {
   @SuppressWarnings("unused")
   private static final Logger logger = LoggerFactory.getLogger(ParquetStorage.class);
 
-  private static final Config config = ConfigDescriptor.getInstance().getConfig();
-
   private static final String DRIVER_NAME = "org.duckdb.DuckDBDriver";
 
   private static final String CONN_URL = "jdbc:duckdb:";
 
   private Executor executor;
 
+  private ExecutorService serverExecutor = Executors.newSingleThreadExecutor();
+
   public ParquetStorage(StorageEngineMeta meta) throws StorageInitializationException {
-    boolean isLocal = config.isLocalParquetStorage();
-    if (isLocal) {
+    if (isLocal(meta)) {
       initLocalStorage(meta);
     } else {
       initRemoteStorage(meta);
@@ -64,13 +62,7 @@ public class ParquetStorage implements IStorage {
 
     Map<String, String> extraParams = meta.getExtraParams();
     String dataDir = extraParams.get("dir");
-    try {
-      if (Files.notExists(Paths.get(dataDir))) {
-        Files.createDirectories(Paths.get(dataDir));
-      }
-    } catch (IOException e) {
-      throw new StorageInitializationException("encounter error when create data dir");
-    }
+    String dummyDir = extraParams.get("dummy_dir");
 
     Connection connection;
     try {
@@ -79,9 +71,10 @@ public class ParquetStorage implements IStorage {
       throw new StorageInitializationException("cannot connect to " + meta.toString());
     }
 
-    this.executor = new NewExecutor(connection, dataDir);
+    this.executor =
+        new NewExecutor(connection, meta.isHasData(), meta.isReadOnly(), dataDir, dummyDir);
 
-    new Thread(new ParquetServer(meta.getPort(), executor)).start();
+    serverExecutor.submit(new ParquetServer(meta.getPort(), executor));
   }
 
   private void initRemoteStorage(StorageEngineMeta meta) throws StorageInitializationException {
@@ -191,5 +184,6 @@ public class ParquetStorage implements IStorage {
   @Override
   public void release() throws PhysicalException {
     executor.close();
+    serverExecutor.shutdown();
   }
 }

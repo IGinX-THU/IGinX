@@ -20,6 +20,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.tag.PreciseTagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
+import cn.edu.tsinghua.iginx.parquet.entity.ThriftConnPool;
 import cn.edu.tsinghua.iginx.parquet.thrift.*;
 import cn.edu.tsinghua.iginx.parquet.thrift.ParquetService.Client;
 import cn.edu.tsinghua.iginx.thrift.DataType;
@@ -33,9 +34,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.thrift.TException;
-import org.apache.thrift.protocol.TBinaryProtocol;
-import org.apache.thrift.transport.TSocket;
-import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,17 +44,10 @@ public class RemoteExecutor implements Executor {
 
   private static final int SUCCESS_CODE = 200;
 
-  private final TTransport transport;
-
-  private final ParquetService.Iface client;
+  private final ThriftConnPool thriftConnPool;
 
   public RemoteExecutor(String ip, int port) throws TTransportException {
-    this.transport = new TSocket(ip, port);
-    if (!transport.isOpen()) {
-      transport.open();
-    }
-
-    this.client = new Client(new TBinaryProtocol(transport));
+    this.thriftConnPool = new ThriftConnPool(ip, port);
   }
 
   @Override
@@ -75,7 +66,9 @@ public class RemoteExecutor implements Executor {
     }
 
     try {
+      Client client = thriftConnPool.borrowClient();
       ProjectResp resp = client.executeProject(req);
+      thriftConnPool.returnClient(client);
       if (resp.getStatus().code == SUCCESS_CODE) {
         ParquetHeader parquetHeader = resp.getHeader();
         List<DataType> dataTypes = new ArrayList<>();
@@ -159,7 +152,9 @@ public class RemoteExecutor implements Executor {
 
     InsertReq req = new InsertReq(storageUnit, parquetRawData);
     try {
+      Client client = thriftConnPool.borrowClient();
       Status status = client.executeInsert(req);
+      thriftConnPool.returnClient(client);
       if (status.code == SUCCESS_CODE) {
         return new TaskExecuteResult(null, null);
       } else {
@@ -244,7 +239,9 @@ public class RemoteExecutor implements Executor {
     }
 
     try {
+      Client client = thriftConnPool.borrowClient();
       Status status = client.executeDelete(req);
+      thriftConnPool.returnClient(client);
       if (status.code == SUCCESS_CODE) {
         return new TaskExecuteResult(null, null);
       } else {
@@ -317,7 +314,9 @@ public class RemoteExecutor implements Executor {
   @Override
   public List<Column> getColumnsOfStorageUnit(String storageUnit) throws PhysicalException {
     try {
+      Client client = thriftConnPool.borrowClient();
       GetColumnsOfStorageUnitResp resp = client.getColumnsOfStorageUnit(storageUnit);
+      thriftConnPool.returnClient(client);
       List<Column> columnList = new ArrayList<>();
       resp.getTsList()
           .forEach(
@@ -336,7 +335,9 @@ public class RemoteExecutor implements Executor {
   @Override
   public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage() throws PhysicalException {
     try {
+      Client client = thriftConnPool.borrowClient();
       GetStorageBoundaryResp resp = client.getBoundaryOfStorage();
+      thriftConnPool.returnClient(client);
       return new Pair<>(
           new ColumnsInterval(resp.getStartColumn(), resp.getEndColumn()),
           new KeyInterval(resp.getStartKey(), resp.getEndKey()));
@@ -347,8 +348,6 @@ public class RemoteExecutor implements Executor {
 
   @Override
   public void close() throws PhysicalException {
-    if (transport != null && transport.isOpen()) {
-      transport.close();
-    }
+    thriftConnPool.close();
   }
 }
