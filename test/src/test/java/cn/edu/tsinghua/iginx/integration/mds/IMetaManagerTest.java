@@ -24,6 +24,7 @@ import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
+import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -111,7 +112,12 @@ public class IMetaManagerTest {
     extraParams.put("sessionPoolSize", "20");
     StorageEngineMeta engine1 =
         new StorageEngineMeta(
-            0, "127.0.0.1", 1001, extraParams, "iotdb", iMetaManager.getIginxId());
+            0,
+            "127.0.0.1",
+            1001,
+            extraParams,
+            StorageEngineType.iotdb12,
+            iMetaManager.getIginxId());
     iMetaManager.addStorageEngines(Collections.singletonList(engine1));
     // 查询数据后端
     storageEngines = iMetaManager.getStorageEngineList();

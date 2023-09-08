@@ -1,8 +1,7 @@
 package cn.edu.tsinghua.iginx.integration.expansion.filesystem;
 
 import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.*;
-import static cn.edu.tsinghua.iginx.integration.expansion.filesystem.FileSystemHistoryDataGenerator.*;
-import static cn.edu.tsinghua.iginx.integration.tool.DBType.filesystem;
+import static cn.edu.tsinghua.iginx.thrift.StorageEngineType.filesystem;
 
 import cn.edu.tsinghua.iginx.integration.expansion.BaseCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.thrift.DataType;

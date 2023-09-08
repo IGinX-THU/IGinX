@@ -39,41 +39,42 @@ import cn.edu.tsinghua.iginx.filesystem.server.FileSystemServer;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
+import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class FileSystemStorage implements IStorage {
 
-  private static final String STORAGE_ENGINE = "filesystem";
-
   private static final Logger logger = LoggerFactory.getLogger(FileSystemStorage.class);
-
-  ExecutorService executorService = Executors.newSingleThreadExecutor();
 
   private Executor executor;
 
+  private FileSystemServer server = null;
+
+  private Thread thread = null;
+
   public FileSystemStorage(StorageEngineMeta meta)
       throws StorageInitializationException, TTransportException {
-    if (!meta.getStorageEngine().equals(STORAGE_ENGINE)) {
+    if (!meta.getStorageEngine().equals(StorageEngineType.filesystem)) {
       throw new StorageInitializationException("unexpected database: " + meta.getStorageEngine());
     }
 
     if (isLocal(meta)) {
       initLocalExecutor(meta);
     } else {
-      executor = new RemoteExecutor(meta.getIp(), meta.getPort());
+      this.executor = new RemoteExecutor(meta.getIp(), meta.getPort());
     }
   }
 
   private void initLocalExecutor(StorageEngineMeta meta) {
-    executor = new LocalExecutor(meta.isReadOnly(), meta.isHasData(), meta.getExtraParams());
-    executorService.submit(new Thread(new FileSystemServer(meta.getPort(), executor)));
+    this.executor = new LocalExecutor(meta.isReadOnly(), meta.isHasData(), meta.getExtraParams());
+    this.server = new FileSystemServer(meta.getPort(), executor);
+    this.thread = new Thread(server);
+    thread.start();
   }
 
   @Override
@@ -159,8 +160,15 @@ public class FileSystemStorage implements IStorage {
   }
 
   @Override
-  public void release() throws PhysicalException {
+  public synchronized void release() throws PhysicalException {
     executor.close();
-    executorService.shutdown();
+    if (thread != null) {
+      thread.interrupt();
+      thread = null;
+    }
+    if (server != null) {
+      server.stop();
+      server = null;
+    }
   }
 }

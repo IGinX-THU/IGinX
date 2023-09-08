@@ -10,9 +10,9 @@ import cn.edu.tsinghua.iginx.integration.expansion.filesystem.FileSystemCapacity
 import cn.edu.tsinghua.iginx.integration.expansion.influxdb.InfluxDBCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.parquet.ParquetCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
-import cn.edu.tsinghua.iginx.integration.tool.DBType;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.thrift.RemovedStorageEngineInfo;
+import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -27,15 +27,15 @@ public abstract class BaseCapacityExpansionIT {
 
   protected static Session session;
 
-  protected DBType dbType;
+  protected StorageEngineType type;
 
   protected String extraParams;
 
   private final boolean IS_PARQUET_OR_FILE_SYSTEM =
       this instanceof FileSystemCapacityExpansionIT || this instanceof ParquetCapacityExpansionIT;
 
-  public BaseCapacityExpansionIT(DBType dbType, String extraParams) {
-    this.dbType = dbType;
+  public BaseCapacityExpansionIT(StorageEngineType type, String extraParams) {
+    this.type = type;
     this.extraParams = extraParams;
   }
 
@@ -46,7 +46,7 @@ public abstract class BaseCapacityExpansionIT {
       statement.append("ADD STORAGEENGINE (\"127.0.0.1\", ");
       statement.append(port);
       statement.append(", \"");
-      statement.append(dbType.name());
+      statement.append(type.name());
       statement.append("\", \"");
       statement.append("has_data:");
       statement.append(hasData);
@@ -83,7 +83,7 @@ public abstract class BaseCapacityExpansionIT {
     } catch (ExecutionException | SessionException e) {
       logger.warn(
           "add storage engine {} port {} hasData {} isReadOnly {} dataPrefix {} schemaPrefix {} failure: {}",
-          dbType.name(),
+          type.name(),
           port,
           hasData,
           isReadOnly,
@@ -204,6 +204,8 @@ public abstract class BaseCapacityExpansionIT {
     if (this instanceof FileSystemCapacityExpansionIT) {
       // 仅用于扩容文件系统后查询文件
       testQueryForFileSystem();
+      // TODO 扩容后show columns测试
+      testShowColumnsForFileSystem();
     }
   }
 
@@ -418,7 +420,7 @@ public abstract class BaseCapacityExpansionIT {
   private void testQueryForFileSystem() {
     try {
       session.executeSql(
-          "ADD STORAGEENGINE (\"127.0.0.1\", 6669, \"filesystem\", \"dummy_dir:test/test/a, has_data:true, is_read_only:true, iginx_port:6888\")");
+          "ADD STORAGEENGINE (\"127.0.0.1\", 6670, \"filesystem\", \"dummy_dir:test/test/a, has_data:true, is_read_only:true, iginx_port:6888\")");
       String statement = "select 1\\txt from a.*";
       String expect =
           "ResultSets:\n"
@@ -455,5 +457,56 @@ public abstract class BaseCapacityExpansionIT {
       logger.error("test query for file system failed {}", e.getMessage());
       fail();
     }
+  }
+
+  private void testShowColumnsForFileSystem() {
+    String statement = "SHOW COLUMNS mn.*;";
+    String expected =
+        "Columns:\n"
+            + "+------------------------+--------+\n"
+            + "|                    Path|DataType|\n"
+            + "+------------------------+--------+\n"
+            + "|     mn.wf01.wt01.status|  BINARY|\n"
+            + "|mn.wf01.wt01.temperature|  BINARY|\n"
+            + "+------------------------+--------+\n"
+            + "Total line number = 2\n";
+    SQLTestTools.executeAndCompare(session, statement, expected);
+
+    statement = "SHOW COLUMNS nt.*;";
+    expected =
+        "Columns:\n"
+            + "+------------------------+--------+\n"
+            + "|                    Path|DataType|\n"
+            + "+------------------------+--------+\n"
+            + "|     nt.wf03.wt01.status|  BINARY|\n"
+            + "|nt.wf04.wt01.temperature|  BINARY|\n"
+            + "+------------------------+--------+\n"
+            + "Total line number = 2\n";
+    SQLTestTools.executeAndCompare(session, statement, expected);
+
+    statement = "SHOW COLUMNS tm.*;";
+    expected =
+        "Columns:\n"
+            + "+------------------------+--------+\n"
+            + "|                    Path|DataType|\n"
+            + "+------------------------+--------+\n"
+            + "|     tm.wf05.wt01.status|  BINARY|\n"
+            + "|tm.wf05.wt01.temperature|  BINARY|\n"
+            + "+------------------------+--------+\n"
+            + "Total line number = 2\n";
+    SQLTestTools.executeAndCompare(session, statement, expected);
+
+    statement = "SHOW COLUMNS a.*;";
+    expected =
+        "Columns:\n"
+            + "+-------------+--------+\n"
+            + "|         Path|DataType|\n"
+            + "+-------------+--------+\n"
+            + "|a.b.c.d.1\\txt|  BINARY|\n"
+            + "|    a.e.2\\txt|  BINARY|\n"
+            + "|  a.f.g.3\\txt|  BINARY|\n"
+            + "+-------------+--------+\n"
+            + "Total line number = 3\n";
+    SQLTestTools.executeAndCompare(session, statement, expected);
   }
 }

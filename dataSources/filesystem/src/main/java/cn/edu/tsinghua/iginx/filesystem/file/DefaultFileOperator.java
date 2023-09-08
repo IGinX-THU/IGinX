@@ -278,7 +278,7 @@ public class DefaultFileOperator implements IFileOperator {
 
   @Override
   public Exception delete(File file) {
-    if (!Files.exists(Paths.get(file.getPath()))) {
+    if (!file.exists()) {
       return new IOException(
           String.format("cannot delete file %s because it does not exist", file.getAbsolutePath()));
     }
