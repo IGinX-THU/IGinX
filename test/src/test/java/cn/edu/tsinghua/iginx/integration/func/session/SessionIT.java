@@ -32,6 +32,7 @@ import cn.edu.tsinghua.iginx.session.SessionAggregateQueryDataSet;
 import cn.edu.tsinghua.iginx.session.SessionQueryDataSet;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.thrift.DataType;
+import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -44,7 +45,7 @@ public class SessionIT extends BaseSessionIT {
 
   private static final Logger logger = LoggerFactory.getLogger(SessionIT.class);
 
-  protected String storageEngineType;
+  protected StorageEngineType storageEngineType;
   protected int defaultPort2 = 6668;
   protected Map<String, String> extraParams;
   protected Boolean ifNeedCapExp = false;

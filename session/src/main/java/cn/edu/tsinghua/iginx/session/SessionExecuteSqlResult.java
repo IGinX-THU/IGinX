@@ -288,7 +288,7 @@ public class SessionExecuteSqlResult {
       List<List<String>> cache = new ArrayList<>();
       cache.add(
           new ArrayList<>(
-              Arrays.asList("ID", "IP", "PORT", "TYPE", "SCHEMA_PREFIX", "DATAPREFIX")));
+              Arrays.asList("ID", "IP", "PORT", "TYPE", "SCHEMA_PREFIX", "DATA_PREFIX")));
       for (StorageEngineInfo info : storageEngineInfos) {
         cache.add(
             new ArrayList<>(
@@ -296,7 +296,7 @@ public class SessionExecuteSqlResult {
                     String.valueOf(info.getId()),
                     info.getIp(),
                     String.valueOf(info.getPort()),
-                    info.getType(),
+                    info.getType().toString(),
                     info.getSchemaPrefix(),
                     info.getDataPrefix())));
       }
@@ -406,7 +406,7 @@ public class SessionExecuteSqlResult {
       resList.add(new ArrayList<>(Arrays.asList("Storage engine infos:")));
       resList.add(
           new ArrayList<>(
-              Arrays.asList("ID", "IP", "PORT", "TYPE", "SCHEMA_PREFIX", "DATAPREFIX")));
+              Arrays.asList("ID", "IP", "PORT", "TYPE", "SCHEMA_PREFIX", "DATA_PREFIX")));
       for (StorageEngineInfo info : storageEngineInfos) {
         resList.add(
             new ArrayList<>(
@@ -414,7 +414,7 @@ public class SessionExecuteSqlResult {
                     String.valueOf(info.getId()),
                     info.getIp(),
                     String.valueOf(info.getPort()),
-                    info.getType(),
+                    info.getType().toString(),
                     info.getSchemaPrefix(),
                     info.getDataPrefix())));
       }

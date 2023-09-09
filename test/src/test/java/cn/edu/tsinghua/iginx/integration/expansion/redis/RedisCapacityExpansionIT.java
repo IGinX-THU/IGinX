@@ -1,6 +1,6 @@
 package cn.edu.tsinghua.iginx.integration.expansion.redis;
 
-import static cn.edu.tsinghua.iginx.integration.tool.DBType.redis;
+import static cn.edu.tsinghua.iginx.thrift.StorageEngineType.redis;
 
 import cn.edu.tsinghua.iginx.integration.expansion.BaseCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;

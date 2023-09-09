@@ -204,11 +204,12 @@ public class FileSystemWorker implements FileSystemService.Iface {
       List<Column> columns = executor.getColumnsOfStorageUnit(storageUnit);
       columns.forEach(
           column -> {
-            FSColumn pathSet = new FSColumn(column.getPath(), column.getDataType().toString());
+            FSColumn fsColumn =
+                new FSColumn(column.getPath(), column.getDataType().toString(), column.isDummy());
             if (column.getTags() != null) {
-              pathSet.setTags(column.getTags());
+              fsColumn.setTags(column.getTags());
             }
-            ret.add(pathSet);
+            ret.add(fsColumn);
           });
       GetColumnsOfStorageUnitResp resp = new GetColumnsOfStorageUnitResp(SUCCESS);
       resp.setPathList(ret);

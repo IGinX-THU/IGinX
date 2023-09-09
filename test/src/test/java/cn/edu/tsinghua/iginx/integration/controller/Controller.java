@@ -5,11 +5,11 @@ import static org.junit.Assert.fail;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
-import cn.edu.tsinghua.iginx.integration.tool.DBType;
 import cn.edu.tsinghua.iginx.integration.tool.MultiConnection;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
+import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.utils.ShellRunner;
 import java.util.ArrayList;
 import java.util.List;
@@ -74,7 +74,7 @@ public class Controller {
     envir.setTestTasks(
         testConfLoader
             .getTaskMap()
-            .get(DBType.valueOf(testConfLoader.getStorageType().toLowerCase())),
+            .get(StorageEngineType.valueOf(testConfLoader.getStorageType().toLowerCase())),
         TEST_TASK_FILE);
     // run the test together
     shellRunner.runShellCommand(MVN_RUN_TEST);
