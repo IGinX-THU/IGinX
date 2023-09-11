@@ -1,10 +1,10 @@
 package cn.edu.tsinghua.iginx.integration.func.session;
 
+import static cn.edu.tsinghua.iginx.thrift.StorageEngineType.influxdb;
 import static org.junit.Assert.*;
 
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
-import cn.edu.tsinghua.iginx.integration.tool.DBType;
 import cn.edu.tsinghua.iginx.session_v2.*;
 import cn.edu.tsinghua.iginx.session_v2.annotations.Field;
 import cn.edu.tsinghua.iginx.session_v2.annotations.Measurement;
@@ -38,7 +38,7 @@ public class SessionV2IT {
   @BeforeClass
   public static void setUp() {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
-    if (DBType.valueOf(conf.getStorageType().toLowerCase()) == DBType.influxdb) {
+    if (StorageEngineType.valueOf(conf.getStorageType().toLowerCase()) == influxdb) {
       isInfluxdb = true;
     }
     iginXClient = IginXClientFactory.create("127.0.0.1", 6888);

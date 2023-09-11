@@ -8,6 +8,7 @@ import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.conf.Constants;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
+import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.io.File;
 import java.io.IOException;
@@ -15,8 +16,13 @@ import java.util.Map;
 
 public class StorageEngineUtils {
 
-  public static boolean setSchemaPrefixInExtraParams(String type, Map<String, String> extraParams) {
-    if (type.equals("filesystem") || type.equals("parquet")) {
+  public static boolean isEmbeddedStorageEngine(StorageEngineType type) {
+    return type.equals(StorageEngineType.parquet) || type.equals(StorageEngineType.filesystem);
+  }
+
+  public static boolean setSchemaPrefixInExtraParams(
+      StorageEngineType type, Map<String, String> extraParams) {
+    if (isEmbeddedStorageEngine(type)) {
       // 必须配置iginx_port参数
       String iginxPort = extraParams.get("iginx_port");
       if (iginxPort == null || iginxPort.isEmpty()) {

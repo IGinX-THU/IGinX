@@ -1,5 +1,6 @@
 package cn.edu.tsinghua.iginx.integration.tool;
 
+import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.utils.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -25,7 +26,7 @@ public class ConfLoader {
 
   private static List<String> storageEngines = new ArrayList<>();
 
-  private Map<DBType, List<String>> taskMap = new HashMap<>();
+  private Map<StorageEngineType, List<String>> taskMap = new HashMap<>();
 
   private static String confPath;
 
@@ -81,7 +82,7 @@ public class ConfLoader {
         taskList.add(taskName);
         logInfo("taskName: {}", taskName);
       }
-      taskMap.put(DBType.valueOf(storageEngine.toLowerCase()), taskList);
+      taskMap.put(StorageEngineType.valueOf(storageEngine.toLowerCase()), taskList);
     }
   }
 
@@ -117,7 +118,7 @@ public class ConfLoader {
     return dbConf;
   }
 
-  public Map<DBType, List<String>> getTaskMap() {
+  public Map<StorageEngineType, List<String>> getTaskMap() {
     return taskMap;
   }
 }

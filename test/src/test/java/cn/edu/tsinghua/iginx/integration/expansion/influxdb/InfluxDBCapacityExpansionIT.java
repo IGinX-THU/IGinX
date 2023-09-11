@@ -1,7 +1,6 @@
 package cn.edu.tsinghua.iginx.integration.expansion.influxdb;
 
-import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.*;
-import static cn.edu.tsinghua.iginx.integration.tool.DBType.influxdb;
+import static cn.edu.tsinghua.iginx.thrift.StorageEngineType.influxdb;
 
 import cn.edu.tsinghua.iginx.integration.expansion.BaseCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;

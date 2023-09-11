@@ -18,6 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.metadata.entity;
 
+import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -27,10 +28,10 @@ public final class StorageEngineMeta {
   /** 数据库的 id */
   private long id;
 
-  /** 时序数据库所在的 ip */
+  /** 数据库所在的 ip */
   private final String ip;
 
-  /** 时序数据库开放的端口 */
+  /** 数据库开放的端口 */
   private final int port;
 
   private final boolean readOnly;
@@ -45,11 +46,11 @@ public final class StorageEngineMeta {
 
   private FragmentMeta dummyFragment;
 
-  /** 时序数据库需要的其他参数信息，例如用户名、密码等 */
+  /** 数据库需要的其他参数信息，例如用户名、密码等 */
   private final Map<String, String> extraParams;
 
   /** 数据库类型 */
-  private final String storageEngine;
+  private final StorageEngineType storageEngine;
 
   /** 实例上管理的存储单元列表 */
   private transient List<StorageUnitMeta> storageUnitList = new ArrayList<>();
@@ -63,7 +64,7 @@ public final class StorageEngineMeta {
       String ip,
       int port,
       Map<String, String> extraParams,
-      String storageEngine,
+      StorageEngineType storageEngine,
       long createdBy) {
     this(id, ip, port, false, null, null, false, extraParams, storageEngine, createdBy);
   }
@@ -76,7 +77,7 @@ public final class StorageEngineMeta {
       String dataPrefix,
       boolean readOnly,
       Map<String, String> extraParams,
-      String storageEngine,
+      StorageEngineType storageEngine,
       long createdBy) {
     this(
         id,
@@ -103,7 +104,7 @@ public final class StorageEngineMeta {
       String schemaPrefix,
       boolean readOnly,
       Map<String, String> extraParams,
-      String storageEngine,
+      StorageEngineType storageEngine,
       long createdBy) {
     this(
         id,
@@ -132,7 +133,7 @@ public final class StorageEngineMeta {
       StorageUnitMeta dummyStorageUnit,
       FragmentMeta dummyFragment,
       Map<String, String> extraParams,
-      String storageEngine,
+      StorageEngineType storageEngine,
       long createdBy,
       boolean needReAllocate) {
     this.id = id;
@@ -161,7 +162,7 @@ public final class StorageEngineMeta {
       StorageUnitMeta dummyStorageUnit,
       FragmentMeta dummyFragment,
       Map<String, String> extraParams,
-      String storageEngine,
+      StorageEngineType storageEngine,
       List<StorageUnitMeta> storageUnitList,
       long createdBy,
       boolean needReAllocate) {
@@ -208,7 +209,7 @@ public final class StorageEngineMeta {
     return extraParams;
   }
 
-  public String getStorageEngine() {
+  public StorageEngineType getStorageEngine() {
     return storageEngine;
   }
 
@@ -282,7 +283,7 @@ public final class StorageEngineMeta {
         + ", port="
         + port
         + ", type='"
-        + storageEngine
+        + storageEngine.toString()
         + '\''
         + '}';
   }

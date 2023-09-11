@@ -1,6 +1,6 @@
 package cn.edu.tsinghua.iginx.integration.expansion.iotdb;
 
-import static cn.edu.tsinghua.iginx.integration.tool.DBType.iotdb12;
+import static cn.edu.tsinghua.iginx.thrift.StorageEngineType.iotdb12;
 
 import cn.edu.tsinghua.iginx.integration.expansion.BaseCapacityExpansionIT;
 import org.slf4j.Logger;
