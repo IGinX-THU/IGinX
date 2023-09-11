@@ -54,6 +54,7 @@ public class ConfigDescriptor {
       Properties properties = new Properties();
       properties.load(in);
 
+      config.setIginxHomePath(EnvUtils.loadEnv(Constants.IGINX_HOME, ""));
       config.setIp(properties.getProperty("ip", "0.0.0.0"));
       config.setPort(Integer.parseInt(properties.getProperty("port", "6888")));
       config.setUsername(properties.getProperty("username", "root"));
@@ -348,10 +349,9 @@ public class ConfigDescriptor {
   }
 
   private void loadUDFListFromFile() {
-    String iginxHome = System.getenv().getOrDefault(Constants.IGINX_HOME, "");
-    try (InputStream in =
-        new FileInputStream(
-            EnvUtils.loadEnv(Constants.UDF_LIST, iginxHome + "/" + Constants.UDF_LIST_FILE))) {
+    String defaultUDFPath =
+        String.join(File.separator, config.getIginxHomePath(), Constants.UDF_LIST_FILE);
+    try (InputStream in = new FileInputStream(defaultUDFPath)) {
       BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(in));
 
       String line = null;
