@@ -22,10 +22,10 @@ public class Constant {
       Arrays.asList("mn.wf01.wt01.status", "mn.wf01.wt01.temperature");
 
   public static final List<String> EXP_PATH_LIST =
-      Arrays.asList("nt.wf03.wt01.status", "nt.wf04.wt01.temperature");
+      Arrays.asList("nt.wf03.wt01.status2", "nt.wf04.wt01.temperature");
 
   public static final List<String> EXP_PATH_LIST1 =
-      Collections.singletonList("nt.wf03.wt01.status");
+      Collections.singletonList("nt.wf03.wt01.status2");
 
   public static final List<String> EXP_PATH_LIST2 =
       Collections.singletonList("nt.wf04.wt01.temperature");

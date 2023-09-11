@@ -800,6 +800,7 @@ public class QueryGenerator extends AbstractGenerator {
   private List<String> pathMatchPrefix(
       List<String> pathList, ColumnsInterval columnsInterval, String schemaPrefix) {
     List<String> ans = new ArrayList<>();
+    boolean hasMoreDelimiter = false;
 
     for (String path : pathList) {
       String pathWithoutPrefix = path;
@@ -811,11 +812,18 @@ public class QueryGenerator extends AbstractGenerator {
         if (!path.startsWith(schemaPrefix) && !path.startsWith("*")) {
           continue;
         }
+        // if begin with *. and has schemaPrefix, you should condiser two cases
         if (path.startsWith(schemaPrefix)) {
           pathWithoutPrefix = path.substring(schemaPrefix.length() + 1);
+        } else if (path.startsWith("*") && path.indexOf(".", path.indexOf(".")+1)!=-1) {
+          hasMoreDelimiter = true;
+          pathWithoutPrefix = path.substring(2);
         }
       }
       if (columnsInterval.isContain(path)) {
+        if (path.startsWith("*") && hasMoreDelimiter) {
+          ans.add(path);
+        }
         ans.add(pathWithoutPrefix);
       }
     }
