@@ -55,6 +55,7 @@ import cn.edu.tsinghua.iginx.postgresql.tools.DataTypeTransformer;
 import cn.edu.tsinghua.iginx.postgresql.tools.FilterTransformer;
 import cn.edu.tsinghua.iginx.postgresql.tools.PostgreSQLSchema;
 import cn.edu.tsinghua.iginx.thrift.DataType;
+import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.nio.charset.StandardCharsets;
@@ -80,6 +81,9 @@ public class PostgreSQLStorage implements IStorage {
 
   public PostgreSQLStorage(StorageEngineMeta meta) throws StorageInitializationException {
     this.meta = meta;
+    if (!meta.getStorageEngine().equals(StorageEngineType.postgresql)) {
+      throw new StorageInitializationException("unexpected database: " + meta.getStorageEngine());
+    }
     if (!testConnection()) {
       throw new StorageInitializationException("cannot connect to " + meta.toString());
     }

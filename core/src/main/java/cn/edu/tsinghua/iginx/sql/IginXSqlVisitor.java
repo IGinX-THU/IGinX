@@ -144,6 +144,7 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.JobState;
 import cn.edu.tsinghua.iginx.thrift.RemovedStorageEngineInfo;
 import cn.edu.tsinghua.iginx.thrift.StorageEngine;
+import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.thrift.UDFType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.TimeUtils;
@@ -483,7 +484,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
           typeStr.substring(
               typeStr.indexOf(SQLConstant.QUOTE) + 1, typeStr.lastIndexOf(SQLConstant.QUOTE));
       Map<String, String> extra = parseExtra(engine.extra);
-      addStorageEngineStatement.setEngines(new StorageEngine(ip, port, type, extra));
+      addStorageEngineStatement.setEngines(
+          new StorageEngine(ip, port, StorageEngineType.valueOf(type.toLowerCase()), extra));
     }
     return addStorageEngineStatement;
   }

@@ -6,11 +6,13 @@ services:
     image: "zookeeper:latest"
     networks:
     - "net"
+    hostname: "zkServer"
   iotdb:
     container_name: "iotdb"
     image: "apache/iotdb:0.12.6-node"
     networks:
     - "net"
+    hostname: "iotdb12"
   iginx:
     container_name: "iginx1"
     depends_on:
