@@ -77,6 +77,8 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, expect);
   }
 
+  // TODO dummy 测试一下多个文档，多数据库，多集合的情况
+
   @Override
   protected void testQueryHistoryDataReadOnly() {
     String statement = "select count(*) from d0.c0.objects";

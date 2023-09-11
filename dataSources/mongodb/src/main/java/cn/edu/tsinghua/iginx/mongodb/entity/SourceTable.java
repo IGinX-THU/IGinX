@@ -1,4 +1,4 @@
-package cn.edu.tsinghua.iginx.mongodb.immigrant.entity;
+package cn.edu.tsinghua.iginx.mongodb.entity;
 
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.BitmapView;
@@ -37,13 +37,13 @@ public class SourceTable implements Iterable<SourceTable.Column> {
   @Override
   public Iterator<Column> iterator() {
     if (this.dataView.isColumnData()) {
-      return createColumnDataIterator(this.dataView);
+      return createColumnDataIterator();
     } else {
-      return createRowDataIterator(this.dataView);
+      return createRowDataIterator();
     }
   }
 
-  private Iterator<Column> createColumnDataIterator(DataView dataView) {
+  private Iterator<Column> createColumnDataIterator() {
     List<Column> columns = new ArrayList<>();
     for (int pathIdx = 0; pathIdx < this.dataView.getPathNum(); pathIdx++) {
       String name = this.dataView.getPaths().get(pathIdx);
@@ -64,7 +64,7 @@ public class SourceTable implements Iterable<SourceTable.Column> {
     return columns.iterator();
   }
 
-  private Iterator<Column> createRowDataIterator(DataView dataView) {
+  private Iterator<Column> createRowDataIterator() {
     Map<Integer, Map<Long, Object>> dataList = new HashMap<>();
     for (int keyIdx = 0; keyIdx < this.dataView.getKeySize(); keyIdx++) {
       long key = this.dataView.getKey(keyIdx);

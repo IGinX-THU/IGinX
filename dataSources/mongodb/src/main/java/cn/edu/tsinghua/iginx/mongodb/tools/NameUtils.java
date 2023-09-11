@@ -1,12 +1,16 @@
 package cn.edu.tsinghua.iginx.mongodb.tools;
 
+import cn.edu.tsinghua.iginx.engine.physical.storage.utils.TagKVUtils;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
-import cn.edu.tsinghua.iginx.mongodb.immigrant.tools.Base16m;
+import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.thrift.DataType;
+import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.util.*;
-import java.util.stream.Collectors;
+import java.util.regex.Pattern;
 
 public class NameUtils {
+
+  // TODO 特殊名称的替换
 
   private static final String NAME_SEPARATOR = "/";
 
@@ -14,7 +18,7 @@ public class NameUtils {
 
   private static final String TAG_SEPARATOR = "&";
 
-  public static String getFullName(Field field) {
+  public static String getCollectionName(Field field) {
     StringJoiner tagsJoiner = new StringJoiner(TAG_SEPARATOR);
     SortedMap<String, String> sortedTags = new TreeMap<>(field.getTags());
     for (Map.Entry<String, String> tag : sortedTags.entrySet()) {
@@ -23,7 +27,7 @@ public class NameUtils {
     return field.getName() + NAME_SEPARATOR + field.getType() + NAME_SEPARATOR + tagsJoiner;
   }
 
-  public static Field parseFullName(String collectionName) {
+  public static Field parseCollectionName(String collectionName) {
     String[] nameParts = collectionName.split(NAME_SEPARATOR);
     String name = nameParts[0];
     DataType type = DataType.valueOf(nameParts[1]);
@@ -37,54 +41,24 @@ public class NameUtils {
     return new Field(name, type, tags);
   }
 
-  public static String encodeTagK(String tagK) {
-    return Base16m.encode(tagK);
-  }
-
-  public static String decodeTagK(String tagK) {
-    return Base16m.decode(tagK);
-  }
-
-  static final ThreadLocal<Map<String, String>> tlEncodeCache = new ThreadLocal<>();
-
-  public static String encodePath(String path) {
-    if (tlEncodeCache.get() == null) {
-      tlEncodeCache.set(new HashMap<>());
-    }
-    return tlEncodeCache.get().computeIfAbsent(path, NameUtils::toEncodePath);
-  }
-
-  private static String toEncodePath(String path) {
-    String[] nodes = path.split("\\.");
-    StringJoiner joiner = new StringJoiner("_");
-    for (String node : nodes) {
-      if (isWildcard(node)) {
-        joiner.add(Base16m.encode(node).replaceAll(Base16m.encode("*"), ".*"));
-      } else {
-        joiner.add(Base16m.encode(node));
+  public static List<Field> match(
+      Iterable<Field> fieldList, Iterable<String> patterns, TagFilter tagFilter) {
+    List<Field> fields = new ArrayList<>();
+    for (Field field : fieldList) {
+      if (tagFilter != null && !TagKVUtils.match(field.getTags(), tagFilter)) {
+        continue;
+      }
+      for (String pattern : patterns) {
+        if (Pattern.matches(StringUtils.reformatPath(pattern), field.getName())) {
+          fields.add(field);
+          break;
+        }
       }
     }
-    return joiner.toString();
+    return fields;
   }
 
-  static final ThreadLocal<Map<String, String>> tlDecodeCache = new ThreadLocal<>();
-
-  public static String decodePath(String path) {
-    if (tlDecodeCache.get() == null) {
-      tlDecodeCache.set(new HashMap<>());
-    }
-    return tlDecodeCache.get().computeIfAbsent(path, NameUtils::toDecodePath);
-  }
-
-  private static String toDecodePath(String path) {
-    return Arrays.stream(path.split("_")).map(Base16m::decode).collect(Collectors.joining("."));
-  }
-
-  public static boolean isWildcard(String path) {
-    return path.contains("*");
-  }
-
-  public static boolean isWildcardAll(String path) {
-    return path.chars().allMatch(c -> c == '*' || c == '.');
+  public static boolean isWildcard(String node) {
+    return node.contains("*");
   }
 }
