@@ -322,7 +322,7 @@ public abstract class BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, expect);
   }
 
-  private void testAddAndRemoveStorageEngineWithPrefix() {
+  protected void testAddAndRemoveStorageEngineWithPrefix() {
     String dataPrefix1 = IS_PARQUET_OR_FILE_SYSTEM ? "wf03" : "nt.wf03";
     String dataPrefix2 = IS_PARQUET_OR_FILE_SYSTEM ? "wf04" : "nt.wf04";
     String schemaPrefixSuffix = IS_PARQUET_OR_FILE_SYSTEM ? ".nt" : "";

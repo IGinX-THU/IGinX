@@ -1,7 +1,7 @@
 package cn.edu.tsinghua.iginx.integration.expansion.mongodb;
 
 import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.expPort;
-import static cn.edu.tsinghua.iginx.integration.tool.DBType.mongodb;
+import static cn.edu.tsinghua.iginx.thrift.StorageEngineType.mongodb;
 import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;

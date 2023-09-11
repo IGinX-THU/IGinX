@@ -56,12 +56,9 @@ public class MongoDBStorage implements IStorage {
 
   private static final Logger logger = LoggerFactory.getLogger(MongoDBStorage.class.getName());
 
-  private static final String STORAGE_ENGINE = "mongodb";
   private static final long MAX_WAIT_TIME = 5;
   private static final int SESSION_POOL_MAX_SIZE = 200;
-
   public static final String VALUE_FIELD = "v";
-
 
   private final MongoClient client;
 
