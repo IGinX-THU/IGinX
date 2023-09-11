@@ -16,14 +16,14 @@ inputs:
 runs:
     using: "composite" # Mandatory parameter
     steps:
-        - if: inputs.if-test-udf=="true"
+        - if: inputs.if-test-udf=='true'
           name: Test UDF Path
           shell: bash
           run: |
               chmod +x "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_udf_path.sh"
               "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_udf_path.sh"
 
-        - if: inputs.if-test-udf=="false" && inputs.if-stop=='false'
+        - if: inputs.if-test-udf=='false' && inputs.if-stop=='false'
           name: Start IGinX
           shell: bash
           run: |
@@ -35,7 +35,7 @@ runs:
                 "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_macos.sh"
               fi
 
-        - if: inputs.if-test-udf=="false" && inputs.if-stop=='true'
+        - if: inputs.if-test-udf=='false' && inputs.if-stop=='true'
           name: Stop IGinX
           shell: bash
           run: |
