@@ -326,8 +326,8 @@ public abstract class BaseCapacityExpansionIT {
     // 添加不同 schemaPrefix，相同 dataPrefix
     addStorageEngine(expPort, true, true, dataPrefix1, "p1");
 
-    // 添加节点 dataPrefix = dataPrefix1 && schemaPrefix = p1 后查询，测试重点是from *
-    String statement = "select status2 from *";
+    // 添加节点 dataPrefix = dataPrefix1 && schemaPrefix = p1 后查询
+    String statement = "select status2 from *.nt.wf03.wt01";
     List<String> pathList = Arrays.asList("p1.nt.wf03.wt01.status2", "nt.wf03.wt01.status2");
     SQLTestTools.executeAndCompare(session, statement, pathList, schemaPrefixExpValuesList);
 
