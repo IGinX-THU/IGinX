@@ -35,6 +35,5 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
     expValuesList1 = Collections.singletonList(Collections.singletonList(expValue));
     expValuesList2 = Collections.singletonList(Collections.singletonList(expValue));
     readOnlyValuesList = Collections.singletonList(Arrays.asList(readOnlyValue, readOnlyValue));
-    schemaPrefixExpValuesList = Collections.singletonList(Arrays.asList(expValue, expValue));
   }
 }

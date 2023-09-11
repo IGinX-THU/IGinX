@@ -57,9 +57,6 @@ public class Constant {
   public static List<List<Object>> readOnlyValuesList =
       Arrays.asList(Arrays.asList(false, 100.01), Arrays.asList(true, 99.99));
 
-  public static List<List<Object>> schemaPrefixExpValuesList =
-      Arrays.asList(Arrays.asList(true, true), Arrays.asList(false, false));
-
   // for file system
   public static final Map<Integer, String> PORT_TO_ROOT =
       new HashMap<Integer, String>() {
