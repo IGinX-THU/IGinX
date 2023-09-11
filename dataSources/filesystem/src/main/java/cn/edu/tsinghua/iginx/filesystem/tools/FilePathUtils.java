@@ -65,7 +65,7 @@ public class FilePathUtils {
       String[] parts;
       tmp = filePath.substring(filePath.indexOf(root) + root.length());
       if (!tmp.contains(SEPARATOR)) { // 一级目录或文件
-        return tmp;
+        return tmp.replace(".", "\\");
       }
       if (SEPARATOR.equals("\\")) { // 针对win系统
         parts = tmp.split("\\\\");

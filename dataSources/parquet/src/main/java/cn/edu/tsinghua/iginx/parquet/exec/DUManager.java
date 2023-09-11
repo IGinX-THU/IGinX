@@ -5,6 +5,10 @@ import static cn.edu.tsinghua.iginx.parquet.tools.Constant.CMD_DELETE;
 import static cn.edu.tsinghua.iginx.parquet.tools.Constant.CMD_KEY;
 import static cn.edu.tsinghua.iginx.parquet.tools.Constant.CMD_PATHS;
 import static cn.edu.tsinghua.iginx.parquet.tools.Constant.COLUMN_KEY;
+import static cn.edu.tsinghua.iginx.parquet.tools.Constant.COLUMN_MAX_VALUE_META;
+import static cn.edu.tsinghua.iginx.parquet.tools.Constant.COLUMN_MIN_VALUE_META;
+import static cn.edu.tsinghua.iginx.parquet.tools.Constant.COLUMN_NAME_META;
+import static cn.edu.tsinghua.iginx.parquet.tools.Constant.COLUMN_TYPE;
 import static cn.edu.tsinghua.iginx.parquet.tools.Constant.CREATE_TABLE_STMT;
 import static cn.edu.tsinghua.iginx.parquet.tools.Constant.DATATYPE_BIGINT;
 import static cn.edu.tsinghua.iginx.parquet.tools.Constant.DELETE_DATA_STMT;
@@ -18,10 +22,12 @@ import static cn.edu.tsinghua.iginx.parquet.tools.Constant.NAME;
 import static cn.edu.tsinghua.iginx.parquet.tools.Constant.PARQUET_SEPARATOR;
 import static cn.edu.tsinghua.iginx.parquet.tools.Constant.SAVE_TO_PARQUET_STMT;
 import static cn.edu.tsinghua.iginx.parquet.tools.Constant.SELECT_MEM_STMT;
+import static cn.edu.tsinghua.iginx.parquet.tools.Constant.SELECT_PARQUET_METADATA;
 import static cn.edu.tsinghua.iginx.parquet.tools.Constant.SELECT_PARQUET_SCHEMA;
 import static cn.edu.tsinghua.iginx.parquet.tools.Constant.SELECT_STMT;
 import static cn.edu.tsinghua.iginx.parquet.tools.Constant.SUFFIX_EXTRA_FILE;
 import static cn.edu.tsinghua.iginx.parquet.tools.Constant.SUFFIX_PARQUET_FILE;
+import static cn.edu.tsinghua.iginx.parquet.tools.DataTypeTransformer.fromDuckDBDataType;
 import static cn.edu.tsinghua.iginx.parquet.tools.DataTypeTransformer.fromParquetDataType;
 import static cn.edu.tsinghua.iginx.parquet.tools.DataTypeTransformer.toParquetDataType;
 
@@ -56,7 +62,6 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -227,7 +232,7 @@ public class DUManager {
           continue;
         }
 
-        Set<String> pathsInFile = getPathsFromFile(dataFile.getPath());
+        Set<String> pathsInFile = getPathsFromFile(dataFile.getPath()).keySet();
         List<String> filePaths = determinePathList(pathsInFile, paths, tagFilter);
         if (!filePaths.isEmpty()) {
           List<Column> columns =
@@ -642,9 +647,9 @@ public class DUManager {
 
   private void clearData() throws SQLException {
     // drop mem table
-    if (!curMemTable.equals("")) {
-      try {
-        memTableLock.writeLock().lock();
+    try {
+      memTableLock.writeLock().lock();
+      if (!curMemTable.equals("")) {
         Connection conn = ((DuckDBConnection) connection).duplicate();
         Statement stmt = conn.createStatement();
 
@@ -658,9 +663,9 @@ public class DUManager {
 
         stmt.close();
         conn.close();
-      } finally {
-        memTableLock.writeLock().unlock();
       }
+    } finally {
+      memTableLock.writeLock().unlock();
     }
 
     // delete parquet files
@@ -693,17 +698,21 @@ public class DUManager {
     return ret;
   }
 
-  private Set<String> getPathsFromFile(String path) {
-    Set<String> ret = new HashSet<>();
+  private Map<String, DataType> getPathsFromFile(String filepath) {
+    if (!filepath.contains(".parquet")) {
+      return new HashMap<>();
+    }
+    Map<String, DataType> ret = new HashMap<>();
     try {
       Connection conn = ((DuckDBConnection) connection).duplicate();
       Statement stmt = conn.createStatement();
-      ResultSet rs = stmt.executeQuery(String.format(SELECT_PARQUET_SCHEMA, path));
+      ResultSet rs = stmt.executeQuery(String.format(SELECT_PARQUET_SCHEMA, filepath));
       while (rs.next()) {
         String pathName =
             ((String) rs.getObject(NAME)).replaceAll(PARQUET_SEPARATOR, IGINX_SEPARATOR);
+        DataType type = fromDuckDBDataType((String) rs.getObject(COLUMN_TYPE));
         if (!pathName.equals(DUCKDB_SCHEMA) && !pathName.equals(COLUMN_KEY)) {
-          ret.add(pathName);
+          ret.put(pathName, type);
         }
       }
       stmt.close();
@@ -716,23 +725,84 @@ public class DUManager {
   }
 
   public Map<String, DataType> getPaths() {
-    Map<String, DataType> ret = new HashMap<>(curMemTablePathMap);
-    fileMetaMap.forEach((k, v) -> ret.putAll(v.getPathMap()));
+    Map<String, DataType> ret;
+    if (!isDummyStorageUnit) {
+      ret = new HashMap<>(curMemTablePathMap);
+      fileMetaMap.forEach((k, v) -> ret.putAll(v.getPathMap()));
+    } else {
+      ret = new HashMap<>();
+      File file = new File(dataDir);
+      File[] dataFiles = file.listFiles();
+      if (dataFiles != null) {
+        for (File dataFile : dataFiles) {
+          if (!dataFile.getName().endsWith(SUFFIX_PARQUET_FILE)) {
+            continue;
+          }
+          ret.putAll(getPathsFromFile(dataFile.getPath()));
+        }
+      }
+    }
     return ret;
   }
 
-  public KeyInterval getTimeInterval() {
-    long start = curStartTime;
-    long end = curEndTime;
-    for (FileMeta fileMeta : fileMetaMap.values()) {
-      if (fileMeta.getStartKey() < start) {
-        start = fileMeta.getStartKey();
+  public KeyInterval getTimeIntervalFromFile(String filepath) {
+    if (!filepath.contains(".parquet")) return null;
+    Long startTime = 0L;
+    Long endTime = Long.MAX_VALUE - 1;
+    try {
+      Connection conn = ((DuckDBConnection) connection).duplicate();
+      Statement stmt = conn.createStatement();
+      ResultSet rs = stmt.executeQuery(String.format(SELECT_PARQUET_METADATA, filepath));
+      while (rs.next()) {
+        String pathName =
+            ((String) rs.getObject(COLUMN_NAME_META))
+                .replaceAll(PARQUET_SEPARATOR, IGINX_SEPARATOR);
+        if (pathName.equals(COLUMN_KEY)) {
+          startTime = Long.parseLong((String) rs.getObject(COLUMN_MIN_VALUE_META));
+          endTime = Long.parseLong((String) rs.getObject(COLUMN_MAX_VALUE_META));
+        }
       }
-      if (fileMeta.getEndKey() > end) {
-        end = fileMeta.getEndKey();
-      }
+      stmt.close();
+      conn.close();
+    } catch (SQLException e) {
+      logger.error("get key range from parquet file failure", e);
+      return new KeyInterval(startTime, endTime);
     }
-    return new KeyInterval(start, end + 1);
+    return new KeyInterval(startTime, endTime);
+  }
+
+  public KeyInterval getTimeInterval() {
+    long start = Long.MAX_VALUE;
+    long end = Long.MIN_VALUE;
+    if (!isDummyStorageUnit) {
+      start = curStartTime;
+      end = curEndTime;
+      for (FileMeta fileMeta : fileMetaMap.values()) {
+        if (fileMeta.getStartKey() < start) {
+          start = fileMeta.getStartKey();
+        }
+        if (fileMeta.getEndKey() > end) {
+          end = fileMeta.getEndKey();
+        }
+      }
+      return new KeyInterval(start, end + 1);
+    } else {
+      File file = new File(dataDir);
+      File[] dataFiles = file.listFiles();
+      if (dataFiles != null) {
+        for (File dataFile : dataFiles) {
+          if (!dataFile.getName().endsWith(SUFFIX_PARQUET_FILE)) {
+            continue;
+          }
+          KeyInterval in = getTimeIntervalFromFile(dataFile.getPath());
+          long min = in.getStartKey();
+          long max = in.getEndKey();
+          start = Math.min(start, min);
+          end = Math.max(end, max);
+        }
+      }
+      return new KeyInterval(start, end + 1);
+    }
   }
 
   public boolean isFlushing() {

@@ -23,32 +23,46 @@ public class ParquetServer implements Runnable {
 
   private final Executor executor;
 
+  private TServerSocket serverTransport;
+
+  private TServer server;
+
   public ParquetServer(int port, Executor executor) {
     this.port = port;
     this.executor = executor;
   }
 
-  private void startServer() throws TTransportException {
-    TProcessor processor =
-        new ParquetService.Processor<ParquetService.Iface>(new ParquetWorker(executor));
-    TServerSocket serverTransport = new TServerSocket(port);
-    TThreadPoolServer.Args args =
-        new TThreadPoolServer.Args(serverTransport)
-            .processor(processor)
-            .minWorkerThreads(config.getMinThriftWorkerThreadNum())
-            .maxWorkerThreads(config.getMaxThriftWrokerThreadNum());
-    args.protocolFactory(new TBinaryProtocol.Factory());
-    TServer server = new TThreadPoolServer(args);
-    logger.info("parquet service starts successfully!");
-    server.serve();
+  public void stop() {
+    if (server != null) {
+      server.stop();
+      server = null;
+    }
+    if (serverTransport != null) {
+      serverTransport.close();
+      serverTransport = null;
+    }
   }
 
   @Override
   public void run() {
+    TProcessor processor =
+        new ParquetService.Processor<ParquetService.Iface>(new ParquetWorker(executor));
     try {
-      startServer();
+      serverTransport = new TServerSocket(port);
     } catch (TTransportException e) {
-      logger.error("parquet service starts failure.");
+      if (!e.getMessage().contains("Could not create ServerSocket on address")) {
+        logger.error("Parquet service starts failure: {}", e.getMessage());
+      }
+      return;
     }
+    TThreadPoolServer.Args args =
+        new TThreadPoolServer.Args(serverTransport)
+            .processor(processor)
+            .minWorkerThreads(config.getMinThriftWorkerThreadNum())
+            .maxWorkerThreads(config.getMaxThriftWrokerThreadNum())
+            .protocolFactory(new TBinaryProtocol.Factory());
+    server = new TThreadPoolServer(args);
+    logger.info("Parquet service starts successfully!");
+    server.serve();
   }
 }

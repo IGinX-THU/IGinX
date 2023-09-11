@@ -34,6 +34,7 @@ import cn.edu.tsinghua.iginx.mongodb.query.entity.MongoDBQueryRowStream;
 import cn.edu.tsinghua.iginx.mongodb.query.entity.MongoDBSchema;
 import cn.edu.tsinghua.iginx.mongodb.tools.DataUtils;
 import cn.edu.tsinghua.iginx.thrift.DataType;
+import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import com.alibaba.fastjson2.JSONObject;
@@ -56,8 +57,6 @@ import org.slf4j.LoggerFactory;
 public class MongoDBStorage implements IStorage {
 
   private static final Logger logger = LoggerFactory.getLogger(MongoDBStorage.class.getName());
-
-  private static final String STORAGE_ENGINE = "mongodb";
 
   private static final String CONNECTION_STRING = "mongodb://%s:%d";
 
@@ -92,7 +91,7 @@ public class MongoDBStorage implements IStorage {
 
   public MongoDBStorage(StorageEngineMeta meta) throws StorageInitializationException {
     this.meta = meta;
-    if (!meta.getStorageEngine().equals(STORAGE_ENGINE)) {
+    if (!meta.getStorageEngine().equals(StorageEngineType.mongodb)) {
       throw new StorageInitializationException("unexpected database: " + meta.getStorageEngine());
     }
     init();

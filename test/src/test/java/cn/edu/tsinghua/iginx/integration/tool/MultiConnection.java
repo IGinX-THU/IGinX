@@ -9,6 +9,7 @@ import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.session.SessionQueryDataSet;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.thrift.DataType;
+import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import java.util.List;
 import java.util.Map;
 
@@ -170,7 +171,8 @@ public class MultiConnection {
     return null;
   }
 
-  public void addStorageEngine(String ip, int port, String type, Map<String, String> extraParams)
+  public void addStorageEngine(
+      String ip, int port, StorageEngineType type, Map<String, String> extraParams)
       throws SessionException, ExecutionException {
     if (session != null) {
       session.addStorageEngine(ip, port, type, extraParams);

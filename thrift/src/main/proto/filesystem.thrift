@@ -125,7 +125,8 @@ struct DeleteReq {
 struct FSColumn {
     1: required string path
     2: required string dataType
-    3: optional map<string, string> tags
+    3: required bool dummy
+    4: optional map<string, string> tags
 }
 
 struct GetColumnsOfStorageUnitResp {

@@ -24,6 +24,7 @@ import static cn.edu.tsinghua.iginx.thrift.DataType.BINARY;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream.EmptyRowStream;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.DataArea;
@@ -50,6 +51,7 @@ import cn.edu.tsinghua.iginx.iotdb.tools.FilterTransformer;
 import cn.edu.tsinghua.iginx.iotdb.tools.TagKVUtils;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
 import cn.edu.tsinghua.iginx.thrift.DataType;
+import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.util.ArrayList;
@@ -75,8 +77,6 @@ import org.slf4j.LoggerFactory;
 public class IoTDBStorage implements IStorage {
 
   private static final int BATCH_SIZE = 10000;
-
-  private static final String STORAGE_ENGINE = "iotdb12";
 
   private static final String USERNAME = "username";
 
@@ -114,7 +114,7 @@ public class IoTDBStorage implements IStorage {
 
   public IoTDBStorage(StorageEngineMeta meta) throws StorageInitializationException {
     this.meta = meta;
-    if (!meta.getStorageEngine().equals(STORAGE_ENGINE)) {
+    if (!meta.getStorageEngine().equals(StorageEngineType.iotdb12)) {
       throw new StorageInitializationException("unexpected database: " + meta.getStorageEngine());
     }
     if (!testConnection()) {
@@ -305,6 +305,10 @@ public class IoTDBStorage implements IStorage {
     try {
       StringBuilder builder = new StringBuilder();
       for (String path : project.getPatterns()) {
+        // TODO 暂时屏蔽含有\的pattern
+        if (path.contains("\\")) {
+          return new TaskExecuteResult(new EmptyRowStream());
+        }
         builder.append(path);
         builder.append(',');
       }
@@ -347,6 +351,10 @@ public class IoTDBStorage implements IStorage {
     try {
       StringBuilder builder = new StringBuilder();
       for (String path : project.getPatterns()) {
+        // TODO 暂时屏蔽含有\的pattern
+        if (path.contains("\\")) {
+          return new TaskExecuteResult(new EmptyRowStream());
+        }
         builder.append(path);
         builder.append(',');
       }
