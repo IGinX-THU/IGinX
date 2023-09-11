@@ -20,8 +20,8 @@ runs:
           name: Test UDF Path
           shell: bash
           run: |
-            chmod +x "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_udf_path.sh"
-            "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_udf_path.sh"
+              chmod +x "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_udf_path.sh"
+              "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_udf_path.sh"
 
         - if: inputs.if-test-udf=="false" && inputs.if-stop=='false'
           name: Start IGinX
