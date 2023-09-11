@@ -27,6 +27,7 @@ import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.ByteUtils;
 import cn.edu.tsinghua.iginx.utils.DataTypeUtils;
 import cn.edu.tsinghua.iginx.utils.Pair;
+import cn.edu.tsinghua.iginx.utils.ThriftConnPool;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -34,7 +35,6 @@ import java.util.List;
 import java.util.Map;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TBinaryProtocol;
-import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
@@ -46,17 +46,10 @@ public class RemoteExecutor implements Executor {
 
   private static final int SUCCESS_CODE = 200;
 
-  private final TTransport transport;
-
-  private final ParquetService.Iface client;
+  private final ThriftConnPool thriftConnPool;
 
   public RemoteExecutor(String ip, int port) throws TTransportException {
-    this.transport = new TSocket(ip, port);
-    if (!transport.isOpen()) {
-      transport.open();
-    }
-
-    this.client = new Client(new TBinaryProtocol(transport));
+    this.thriftConnPool = new ThriftConnPool(ip, port);
   }
 
   @Override
@@ -74,8 +67,10 @@ public class RemoteExecutor implements Executor {
       req.setFilter(filter);
     }
 
-    try {
+    try (TTransport transport = thriftConnPool.borrowTransport()) {
+      Client client = new Client(new TBinaryProtocol(transport));
       ProjectResp resp = client.executeProject(req);
+      thriftConnPool.returnTransport(transport);
       if (resp.getStatus().code == SUCCESS_CODE) {
         ParquetHeader parquetHeader = resp.getHeader();
         List<DataType> dataTypes = new ArrayList<>();
@@ -158,8 +153,10 @@ public class RemoteExecutor implements Executor {
             dataView.getRawDataType().toString());
 
     InsertReq req = new InsertReq(storageUnit, parquetRawData);
-    try {
+    try (TTransport transport = thriftConnPool.borrowTransport()) {
+      Client client = new Client(new TBinaryProtocol(transport));
       Status status = client.executeInsert(req);
+      thriftConnPool.returnTransport(transport);
       if (status.code == SUCCESS_CODE) {
         return new TaskExecuteResult(null, null);
       } else {
@@ -243,8 +240,10 @@ public class RemoteExecutor implements Executor {
       req.setKeyRanges(parquetKeyRanges);
     }
 
-    try {
+    try (TTransport transport = thriftConnPool.borrowTransport()) {
+      Client client = new Client(new TBinaryProtocol(transport));
       Status status = client.executeDelete(req);
+      thriftConnPool.returnTransport(transport);
       if (status.code == SUCCESS_CODE) {
         return new TaskExecuteResult(null, null);
       } else {
@@ -316,8 +315,10 @@ public class RemoteExecutor implements Executor {
 
   @Override
   public List<Column> getColumnsOfStorageUnit(String storageUnit) throws PhysicalException {
-    try {
+    try (TTransport transport = thriftConnPool.borrowTransport()) {
+      Client client = new Client(new TBinaryProtocol(transport));
       GetColumnsOfStorageUnitResp resp = client.getColumnsOfStorageUnit(storageUnit);
+      thriftConnPool.returnTransport(transport);
       List<Column> columnList = new ArrayList<>();
       resp.getTsList()
           .forEach(
@@ -335,8 +336,10 @@ public class RemoteExecutor implements Executor {
 
   @Override
   public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage() throws PhysicalException {
-    try {
+    try (TTransport transport = thriftConnPool.borrowTransport()) {
+      Client client = new Client(new TBinaryProtocol(transport));
       GetStorageBoundaryResp resp = client.getBoundaryOfStorage();
+      thriftConnPool.returnTransport(transport);
       return new Pair<>(
           new ColumnsInterval(resp.getStartColumn(), resp.getEndColumn()),
           new KeyInterval(resp.getStartKey(), resp.getEndKey()));
@@ -347,8 +350,6 @@ public class RemoteExecutor implements Executor {
 
   @Override
   public void close() throws PhysicalException {
-    if (transport != null && transport.isOpen()) {
-      transport.close();
-    }
+    thriftConnPool.close();
   }
 }

@@ -1,6 +1,6 @@
 package cn.edu.tsinghua.iginx.integration.expansion.postgresql;
 
-import static cn.edu.tsinghua.iginx.integration.tool.DBType.postgresql;
+import static cn.edu.tsinghua.iginx.thrift.StorageEngineType.postgresql;
 
 import cn.edu.tsinghua.iginx.integration.expansion.BaseCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;

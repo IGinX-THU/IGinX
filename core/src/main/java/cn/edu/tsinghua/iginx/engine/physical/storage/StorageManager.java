@@ -18,10 +18,13 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.storage;
 
+import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.isEmbeddedStorageEngine;
+
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
+import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.io.IOException;
 import java.util.List;
@@ -37,11 +40,11 @@ public class StorageManager {
 
   private static final Logger logger = LoggerFactory.getLogger(StorageManager.class);
 
-  private static final Map<String, ClassLoader> classLoaders = new ConcurrentHashMap<>();
+  private static final Map<StorageEngineType, ClassLoader> classLoaders = new ConcurrentHashMap<>();
 
   private static boolean hasInitLoaders = false;
 
-  private static final Map<String, String> drivers = new ConcurrentHashMap<>();
+  private static final Map<StorageEngineType, String> drivers = new ConcurrentHashMap<>();
 
   private static final Map<Long, Pair<IStorage, ThreadPoolExecutor>> storageMap =
       new ConcurrentHashMap<>();
@@ -62,7 +65,7 @@ public class StorageManager {
   public static Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(
       StorageEngineMeta meta, String dataPrefix) {
     initClassLoaderAndDrivers();
-    String engine = meta.getStorageEngine();
+    StorageEngineType engine = meta.getStorageEngine();
     String driver = drivers.get(engine);
     long id = meta.getId();
     boolean needRelease = false;
@@ -75,7 +78,9 @@ public class StorageManager {
         storage =
             (IStorage)
                 loader.loadClass(driver).getConstructor(StorageEngineMeta.class).newInstance(meta);
-        needRelease = true;
+        if (!isEmbeddedStorageEngine(engine)) {
+          needRelease = true;
+        }
       }
       return storage.getBoundaryOfStorage(dataPrefix);
     } catch (ClassNotFoundException e) {
@@ -95,7 +100,7 @@ public class StorageManager {
   }
 
   private boolean initStorage(StorageEngineMeta meta) {
-    String engine = meta.getStorageEngine();
+    StorageEngineType engine = meta.getStorageEngine();
     String driver = drivers.get(engine);
     long id = meta.getId();
     try {
@@ -104,6 +109,23 @@ public class StorageManager {
         IStorage storage =
             (IStorage)
                 loader.loadClass(driver).getConstructor(StorageEngineMeta.class).newInstance(meta);
+        return initStorage(meta, storage);
+      }
+    } catch (ClassNotFoundException e) {
+      logger.error("load class {} for engine {} failure: {}", driver, engine, e);
+      return false;
+    } catch (Exception e) {
+      logger.error("unexpected error when process engine {}: {}", engine, e);
+      return false;
+    }
+    return true;
+  }
+
+  private boolean initStorage(StorageEngineMeta meta, IStorage storage) {
+    StorageEngineType engine = meta.getStorageEngine();
+    long id = meta.getId();
+    try {
+      if (!storageMap.containsKey(id)) {
         // 启动一个派发线程池
         ThreadPoolExecutor dispatcher =
             new ThreadPoolExecutor(
@@ -116,9 +138,6 @@ public class StorageManager {
                 new SynchronousQueue<>());
         storageMap.put(meta.getId(), new Pair<>(storage, dispatcher));
       }
-    } catch (ClassNotFoundException e) {
-      logger.error("load class {} for engine {} failure: {}", driver, engine, e);
-      return false;
     } catch (Exception e) {
       logger.error("unexpected error when process engine {}: {}", engine, e);
       return false;
@@ -141,8 +160,9 @@ public class StorageManager {
       String driver = kAndV[1];
       try {
         ClassLoader classLoader = new StorageEngineClassLoader(storage);
-        classLoaders.put(storage, classLoader);
-        drivers.put(storage, driver);
+        StorageEngineType type = StorageEngineType.valueOf(storage.toLowerCase());
+        classLoaders.put(type, classLoader);
+        drivers.put(type, driver);
       } catch (IOException e) {
         logger.error("encounter error when init class loader for {}: {}", storage, e);
         System.exit(-1);
@@ -167,5 +187,34 @@ public class StorageManager {
       logger.info("add storage " + meta + " success.");
     }
     return true;
+  }
+
+  public boolean addStorage(StorageEngineMeta meta, IStorage storage) {
+    if (!initStorage(meta, storage)) {
+      logger.error("add storage " + meta + " failure!");
+      return false;
+    } else {
+      logger.info("add storage " + meta + " success.");
+    }
+    return true;
+  }
+
+  public IStorage initLocalStorage(StorageEngineMeta meta) {
+    StorageEngineType engine = meta.getStorageEngine();
+    if (!isEmbeddedStorageEngine(engine)) {
+      return null;
+    }
+    String driver = drivers.get(engine);
+    ClassLoader loader = classLoaders.get(engine);
+    try {
+      return (IStorage)
+          loader.loadClass(driver).getConstructor(StorageEngineMeta.class).newInstance(meta);
+    } catch (ClassNotFoundException e) {
+      logger.error("load class {} for engine {} failure: {}", driver, engine, e);
+      return null;
+    } catch (Exception e) {
+      logger.error("add storage " + meta + " failure!");
+      return null;
+    }
   }
 }

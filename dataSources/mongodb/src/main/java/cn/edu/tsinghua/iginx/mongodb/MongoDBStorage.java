@@ -29,6 +29,7 @@ import cn.edu.tsinghua.iginx.mongodb.entity.SourceTable;
 import cn.edu.tsinghua.iginx.mongodb.tools.FilterUtils;
 import cn.edu.tsinghua.iginx.mongodb.tools.NameUtils;
 import cn.edu.tsinghua.iginx.mongodb.tools.TypeUtils;
+import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import com.mongodb.MongoBulkWriteException;
 import com.mongodb.MongoClientSettings;
@@ -61,10 +62,11 @@ public class MongoDBStorage implements IStorage {
 
   public static final String VALUE_FIELD = "v";
 
+
   private final MongoClient client;
 
   public MongoDBStorage(StorageEngineMeta meta) throws StorageInitializationException {
-    if (!meta.getStorageEngine().equals(STORAGE_ENGINE)) {
+    if (!meta.getStorageEngine().equals(StorageEngineType.mongodb)) {
       throw new StorageInitializationException("unexpected database: " + meta.getStorageEngine());
     }
 
