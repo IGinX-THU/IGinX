@@ -77,8 +77,6 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, expect);
   }
 
-  // TODO dummy 测试一下多个文档，多数据库，多集合的情况
-
   @Override
   protected void testQueryHistoryDataReadOnly() {
     String statement = "select count(*) from d0.c0.objects";
@@ -110,8 +108,9 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "|key|                                                                                                                          d0.c0.information|\n"
             + "+---+-------------------------------------------------------------------------------------------------------------------------------------------+\n"
             + "|  1|{\"year\": 2022, \"version\": \"1.0\", \"description\": \"\", \"contributor\": \"Label Studio\", \"url\": \"\", \"date_created\": \"2022-12-12 08:37:26.832616\"}|\n"
+            + "|  2|{\"year\": 2022, \"version\": \"1.0\", \"description\": \"\", \"contributor\": \"Label Studio\", \"url\": \"\", \"date_created\": \"2022-12-12 08:37:26.832616\"}|\n"
             + "+---+-------------------------------------------------------------------------------------------------------------------------------------------+\n"
-            + "Total line number = 1\n";
+            + "Total line number = 2\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
 
     statement = "select name from d0.c0.categories";

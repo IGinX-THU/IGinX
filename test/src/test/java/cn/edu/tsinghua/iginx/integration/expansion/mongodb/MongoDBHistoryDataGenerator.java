@@ -78,11 +78,11 @@ public class MongoDBHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   @Override
   public void writeHistoryDataToReadOnly() {
-    Document doc = Document.parse(JSON_EXAMPLE);
     try (MongoClient client = connect(readOnlyPort)) {
       MongoDatabase database = client.getDatabase("d0");
       MongoCollection<Document> collection = database.getCollection("c0");
-      collection.insertOne(doc);
+      collection.insertOne(Document.parse(JSON_EXAMPLE_0));
+      collection.insertOne(Document.parse(JSON_EXAMPLE_1));
     }
   }
 
@@ -96,7 +96,7 @@ public class MongoDBHistoryDataGenerator extends BaseHistoryDataGenerator {
     return MongoClients.create(settings);
   }
 
-  private static final String JSON_EXAMPLE =
+  private static final String JSON_EXAMPLE_0 =
       "{\n"
           + "  \"images\": [\n"
           + "    {\n"
@@ -320,5 +320,24 @@ public class MongoDBHistoryDataGenerator extends BaseHistoryDataGenerator {
           + "            }\n"
           + "        }\n"
           + "    ]"
+          + "}";
+  private static final String JSON_EXAMPLE_1 =
+      "{\n"
+          + "  \"images\": [\n"
+          + "    {\n"
+          + "      \"width\": 1037,\n"
+          + "      \"height\": 501,\n"
+          + "      \"id\": 0,\n"
+          + "      \"file_name\": \"images/3/ad37161b-P92902000484212110001_-2_crop.jpg\"\n"
+          + "    }\n"
+          + "  ],\n"
+          + "  \"information\": {\n"
+          + "    \"year\": 2022,\n"
+          + "    \"version\": \"1.0\",\n"
+          + "    \"description\": \"\",\n"
+          + "    \"contributor\": \"Label Studio\",\n"
+          + "    \"url\": \"\",\n"
+          + "    \"date_created\": \"2022-12-12 08:37:26.832616\"\n"
+          + "  }\n"
           + "}";
 }
