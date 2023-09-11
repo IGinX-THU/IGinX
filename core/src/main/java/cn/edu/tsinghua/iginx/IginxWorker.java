@@ -18,7 +18,8 @@
  */
 package cn.edu.tsinghua.iginx;
 
-import static cn.edu.tsinghua.iginx.conf.Constants.SCHEMA_PREFIX;
+import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.isEmbeddedStorageEngine;
+import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.isLocal;
 import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.setSchemaPrefixInExtraParams;
 import static cn.edu.tsinghua.iginx.utils.ByteUtils.getLongArrayFromByteBuffer;
 
@@ -30,6 +31,7 @@ import cn.edu.tsinghua.iginx.conf.Constants;
 import cn.edu.tsinghua.iginx.engine.ContextBuilder;
 import cn.edu.tsinghua.iginx.engine.StatementExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngineImpl;
+import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.physical.storage.StorageManager;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.exceptions.StatusCode;
@@ -70,6 +72,36 @@ public class IginxWorker implements IService.Iface {
   private final StatementExecutor executor = StatementExecutor.getInstance();
 
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
+
+  private IginxWorker() {
+    // if there are new local parquets/file systems in conf, add them to cluster.
+    addLocalStorageEngineMetas();
+  }
+
+  private void addLocalStorageEngineMetas() {
+    List<StorageEngineMeta> localMetas = new ArrayList<>();
+    for (StorageEngineMeta metaFromConf : metaManager.getStorageEngineListFromConf()) {
+      if (!isEmbeddedStorageEngine(metaFromConf.getStorageEngine())) {
+        continue;
+      }
+      boolean hasAdded = false;
+      for (StorageEngineMeta meta : metaManager.getStorageEngineList()) {
+        if (isDuplicated(metaFromConf, meta)) {
+          hasAdded = true;
+          break;
+        }
+      }
+      if (hasAdded) {
+        continue;
+      }
+      if (isLocal(metaFromConf)) {
+        localMetas.add(metaFromConf);
+      }
+    }
+    if (!localMetas.isEmpty()) {
+      addStorageEngineMetas(localMetas);
+    }
+  }
 
   public static IginxWorker getInstance() {
     return instance;
@@ -271,9 +303,11 @@ public class IginxWorker implements IService.Iface {
     }
     List<StorageEngine> storageEngines = req.getStorageEngines();
     List<StorageEngineMeta> storageEngineMetas = new ArrayList<>();
+    Status status;
+    List<Status> statusList = new ArrayList<>();
 
     for (StorageEngine storageEngine : storageEngines) {
-      String type = storageEngine.getType();
+      StorageEngineType type = storageEngine.getType();
       Map<String, String> extraParams = storageEngine.getExtraParams();
       boolean hasData = Boolean.parseBoolean(extraParams.getOrDefault(Constants.HAS_DATA, "false"));
       String dataPrefix = null;
@@ -282,16 +316,11 @@ public class IginxWorker implements IService.Iface {
       }
       boolean readOnly =
           Boolean.parseBoolean(extraParams.getOrDefault(Constants.IS_READ_ONLY, "false"));
-      if (type.equals("parquet")) {
-        String dir = extraParams.get("dir");
-        if (dir == null || dir.isEmpty()) {
-          return RpcUtils.FAILURE;
-        }
-        if (extraParams.containsKey(SCHEMA_PREFIX)) {
-          extraParams.put(SCHEMA_PREFIX, extraParams.get(SCHEMA_PREFIX) + "." + dir);
-        } else {
-          extraParams.put(SCHEMA_PREFIX, dir);
-        }
+      if (!hasData & readOnly) { // 无意义的存储引擎：不带数据且只读
+        status = new Status(RpcUtils.PARTIAL_SUCCESS.code);
+        status.setMessage("normal storage engine should not be read-only");
+        statusList.add(status);
+        continue;
       }
       if (!setSchemaPrefixInExtraParams(type, extraParams)) {
         return RpcUtils.FAILURE;
@@ -312,26 +341,45 @@ public class IginxWorker implements IService.Iface {
               metaManager.getIginxId());
       storageEngineMetas.add(meta);
     }
+    // 所有存储引擎均无意义
+    if (!statusList.isEmpty() && storageEngineMetas.isEmpty()) {
+      return RpcUtils.FAILURE;
+    }
+    return addStorageEngineMetas(storageEngineMetas, statusList, false);
+  }
+
+  private void addStorageEngineMetas(List<StorageEngineMeta> storageEngineMetas) {
+    Status status = addStorageEngineMetas(storageEngineMetas, new ArrayList<>(), true);
+    if (status.code != RpcUtils.SUCCESS.code) {
+      logger.error("add local storage engines failed when initializing IginxWorker!");
+    }
+  }
+
+  private Status addStorageEngineMetas(
+      List<StorageEngineMeta> storageEngineMetas, List<Status> statusList, boolean hasChecked) {
     Status status = RpcUtils.SUCCESS;
-    // 检测是否与已有的存储单元冲突
-    List<StorageEngineMeta> currentStorageEngines = metaManager.getStorageEngineList();
-    List<StorageEngineMeta> duplicatedStorageEngine = new ArrayList<>();
-    for (StorageEngineMeta storageEngine : storageEngineMetas) {
-      for (StorageEngineMeta currentStorageEngine : currentStorageEngines) {
-        if (isDuplicated(storageEngine, currentStorageEngine)) {
-          duplicatedStorageEngine.add(storageEngine);
-          break;
+    // 检测是否与已有的存储引擎冲突
+    if (!hasChecked) {
+      List<StorageEngineMeta> currentStorageEngines = metaManager.getStorageEngineList();
+      List<StorageEngineMeta> duplicatedStorageEngine = new ArrayList<>();
+      for (StorageEngineMeta storageEngine : storageEngineMetas) {
+        for (StorageEngineMeta currentStorageEngine : currentStorageEngines) {
+          if (isDuplicated(storageEngine, currentStorageEngine)) {
+            duplicatedStorageEngine.add(storageEngine);
+            break;
+          }
         }
       }
-    }
-    if (!duplicatedStorageEngine.isEmpty()) {
-      storageEngineMetas.removeAll(duplicatedStorageEngine);
-      if (!storageEngines.isEmpty()) {
-        status = new Status(RpcUtils.PARTIAL_SUCCESS.code);
-      } else {
-        status = new Status(RpcUtils.FAILURE.code);
+      if (!duplicatedStorageEngine.isEmpty()) {
+        storageEngineMetas.removeAll(duplicatedStorageEngine);
+        if (!storageEngineMetas.isEmpty()) {
+          status = new Status(RpcUtils.PARTIAL_SUCCESS.code);
+          status.setMessage("unexpected repeated add");
+          statusList.add(status);
+        } else {
+          return RpcUtils.FAILURE.setMessage("unexpected repeated add");
+        }
       }
-      status.setMessage("unexpected repeated add");
     }
     if (!storageEngineMetas.isEmpty()
         && storageEngineMetas.stream().anyMatch(e -> !e.isReadOnly())) {
@@ -362,11 +410,39 @@ public class IginxWorker implements IService.Iface {
         meta.setDummyFragment(dummyFragment);
       }
     }
-    if (!metaManager.addStorageEngines(storageEngineMetas)) {
+
+    // init local parquet/file system before add to meta
+    // exclude remote parquet/file system
+    List<StorageEngineMeta> localMetas = new ArrayList<>();
+    List<StorageEngineMeta> otherMetas = new ArrayList<>();
+    for (StorageEngineMeta meta : storageEngineMetas) {
+      if (isEmbeddedStorageEngine(meta.getStorageEngine())) {
+        if (!isLocal(meta)) {
+          status = new Status(RpcUtils.PARTIAL_SUCCESS.code);
+          status.setMessage(String.format("storage engine %s needs to be local!", meta));
+        } else {
+          localMetas.add(meta);
+        }
+      } else {
+        otherMetas.add(meta);
+      }
+    }
+
+    if (!metaManager.addStorageEngines(otherMetas)) {
       status = RpcUtils.FAILURE;
     }
-    for (StorageEngineMeta meta : storageEngineMetas) {
+    if (status == RpcUtils.PARTIAL_SUCCESS && statusList.size() > 1) {
+      status.setSubStatus(statusList);
+    }
+
+    for (StorageEngineMeta meta : otherMetas) {
       PhysicalEngineImpl.getInstance().getStorageManager().addStorage(meta);
+    }
+    for (StorageEngineMeta meta : localMetas) {
+      IStorage storage =
+          PhysicalEngineImpl.getInstance().getStorageManager().initLocalStorage(meta);
+      metaManager.addStorageEngines(Collections.singletonList(meta));
+      PhysicalEngineImpl.getInstance().getStorageManager().addStorage(meta, storage);
     }
     return status;
   }
@@ -505,8 +581,12 @@ public class IginxWorker implements IService.Iface {
 
     // IginX 信息
     List<IginxInfo> iginxInfos = new ArrayList<>();
+    // if starts in Docker, host_iginx_port will be given as env, representing host port to access
+    // IGinX service
+    String iginxPort = System.getenv("host_iginx_port");
     for (IginxMeta iginxMeta : metaManager.getIginxList()) {
-      iginxInfos.add(new IginxInfo(iginxMeta.getId(), iginxMeta.getIp(), iginxMeta.getPort()));
+      int thisIginxPort = iginxPort != null ? Integer.parseInt(iginxPort) : iginxMeta.getPort();
+      iginxInfos.add(new IginxInfo(iginxMeta.getId(), iginxMeta.getIp(), thisIginxPort));
     }
     iginxInfos.sort(Comparator.comparingLong(IginxInfo::getId));
     resp.setIginxInfos(iginxInfos);
@@ -517,7 +597,9 @@ public class IginxWorker implements IService.Iface {
       StorageEngineInfo info =
           new StorageEngineInfo(
               storageEngineMeta.getId(),
-              storageEngineMeta.getIp(),
+              storageEngineMeta.getIp().equals("host.docker.internal")
+                  ? System.getenv("ip")
+                  : storageEngineMeta.getIp(),
               storageEngineMeta.getPort(),
               storageEngineMeta.getStorageEngine());
       info.setSchemaPrefix(
@@ -548,7 +630,9 @@ public class IginxWorker implements IService.Iface {
           String[] ipAndPort = endPoint.split(":", 2);
           MetaStorageInfo metaStorageInfo =
               new MetaStorageInfo(
-                  ipAndPort[0], Integer.parseInt(ipAndPort[1]), Constants.ETCD_META);
+                  ipAndPort[0].equals("host.docker.internal") ? System.getenv("ip") : ipAndPort[0],
+                  Integer.parseInt(ipAndPort[1]),
+                  Constants.ETCD_META);
           metaStorageInfos.add(metaStorageInfo);
         }
         break;
@@ -559,7 +643,9 @@ public class IginxWorker implements IService.Iface {
           String[] ipAndPort = zookeeper.split(":", 2);
           MetaStorageInfo metaStorageInfo =
               new MetaStorageInfo(
-                  ipAndPort[0], Integer.parseInt(ipAndPort[1]), Constants.ZOOKEEPER_META);
+                  ipAndPort[0].equals("host.docker.internal") ? System.getenv("ip") : ipAndPort[0],
+                  Integer.parseInt(ipAndPort[1]),
+                  Constants.ZOOKEEPER_META);
           metaStorageInfos.add(metaStorageInfo);
         }
         break;
