@@ -10,13 +10,15 @@ import java.util.regex.Pattern;
 
 public class NameUtils {
 
-  // TODO 特殊名称的替换
-
   private static final String NAME_SEPARATOR = "/";
 
   private static final String KV_SEPARATOR = "=";
 
   private static final String TAG_SEPARATOR = "&";
+
+  private static final char INVALID_CHAR = '$';
+
+  private static final char REPLACE_CHAR = '!';
 
   public static String getCollectionName(Field field) {
     StringJoiner tagsJoiner = new StringJoiner(TAG_SEPARATOR);
@@ -24,21 +26,25 @@ public class NameUtils {
     for (Map.Entry<String, String> tag : sortedTags.entrySet()) {
       tagsJoiner.add(tag.getKey() + KV_SEPARATOR + tag.getValue());
     }
-    return field.getName() + NAME_SEPARATOR + field.getType() + NAME_SEPARATOR + tagsJoiner;
+
+    StringJoiner nameJoiner = new StringJoiner(NAME_SEPARATOR, NAME_SEPARATOR, NAME_SEPARATOR);
+    nameJoiner.add(field.getName()).add(field.getType().toString()).add(tagsJoiner.toString());
+    return nameJoiner.toString().replace(INVALID_CHAR, REPLACE_CHAR);
   }
 
   public static Field parseCollectionName(String collectionName) {
-    String[] nameParts = collectionName.split(NAME_SEPARATOR);
-    String name = nameParts[0];
-    DataType type = DataType.valueOf(nameParts[1]);
+    String name = collectionName.replace(REPLACE_CHAR, INVALID_CHAR);
+    String[] nameParts = name.split(NAME_SEPARATOR);
+    String path = nameParts[1];
+    DataType type = DataType.valueOf(nameParts[2]);
     Map<String, String> tags = new HashMap<>();
-    if (nameParts.length >= 3) {
-      for (String tagName : nameParts[2].split(TAG_SEPARATOR)) {
+    if (nameParts.length >= 4) {
+      for (String tagName : nameParts[3].split(TAG_SEPARATOR)) {
         String[] kv = tagName.split(KV_SEPARATOR);
         tags.put(kv[0], kv[1]);
       }
     }
-    return new Field(name, type, tags);
+    return new Field(path, type, tags);
   }
 
   public static List<Field> match(
