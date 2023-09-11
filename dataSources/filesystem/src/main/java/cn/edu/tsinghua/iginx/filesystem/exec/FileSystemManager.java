@@ -123,8 +123,8 @@ public class FileSystemManager {
     }
     AtomicLong readPos = new AtomicLong(startKey);
     AtomicInteger index = new AtomicInteger();
-    // TODO 为什么是5？？？
-    boolean ifNeedMultithread = size / (chunkSize) > 2;
+    // TODO The configuration here varies in different situations.
+    boolean ifNeedMultithread = size / (chunkSize) > 1;
     if (ifNeedMultithread) {
       executorService = Executors.newCachedThreadPool();
     }

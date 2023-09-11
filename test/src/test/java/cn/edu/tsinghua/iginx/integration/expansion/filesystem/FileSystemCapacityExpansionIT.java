@@ -8,6 +8,8 @@ import cn.edu.tsinghua.iginx.integration.expansion.BaseCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,5 +35,6 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
     expValuesList1 = Collections.singletonList(Collections.singletonList(expValue));
     expValuesList2 = Collections.singletonList(Collections.singletonList(expValue));
     readOnlyValuesList = Collections.singletonList(Arrays.asList(readOnlyValue, readOnlyValue));
+    schemaPrefixExpValuesList = Collections.singletonList(Arrays.asList(expValue, expValue));
   }
 }

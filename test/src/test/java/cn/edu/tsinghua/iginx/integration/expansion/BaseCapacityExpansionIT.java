@@ -324,6 +324,12 @@ public abstract class BaseCapacityExpansionIT {
 
     // 添加不同 schemaPrefix，相同 dataPrefix
     addStorageEngine(expPort, true, true, dataPrefix1, "p1");
+
+    // 添加节点 dataPrefix = dataPrefix1 && schemaPrefix = p1 后查询，测试重点是from *
+    String statement = "select status from *";
+    List<String> pathList = Collections.singletonList("p1.nt.wf03.wt01.status, nt.wf03.wt01.status");
+    SQLTestTools.executeAndCompare(session, statement, pathList, schemaPrefixExpValuesList);
+
     addStorageEngine(expPort, true, true, dataPrefix1, "p2");
     addStorageEngine(expPort, true, true, dataPrefix1, null);
 
@@ -341,8 +347,8 @@ public abstract class BaseCapacityExpansionIT {
     List<List<Object>> valuesList = expValuesList1;
 
     // 添加节点 dataPrefix = dataPrefix1 && schemaPrefix = p1 后查询
-    String statement = "select * from p1.nt.wf03";
-    List<String> pathList = Collections.singletonList("p1.nt.wf03.wt01.status");
+    statement = "select * from p1.nt.wf03";
+    pathList = Collections.singletonList("p1.nt.wf03.wt01.status");
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
     // 添加节点 dataPrefix = dataPrefix1 && schemaPrefix = p2 后查询
