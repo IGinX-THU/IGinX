@@ -42,6 +42,8 @@ public class Config {
   private String storageEngineList =
       "127.0.0.1#6667#iotdb12#username=root#password=root#sessionPoolSize=20#dataDir=/path/to/your/data/";
 
+  private String defaultUDFFilePath = "conf/udf_list";
+
   private int maxAsyncRetryTimes = 2;
 
   private int syncExecuteThreadPool = 60;
@@ -274,6 +276,14 @@ public class Config {
 
   public void setStorageEngineList(String storageEngineList) {
     this.storageEngineList = storageEngineList;
+  }
+
+  public String getDefaultUDFFilePath() {
+    return this.defaultUDFFilePath;
+  }
+
+  public void setDefaultUDFFilePath(String path) {
+    this.defaultUDFFilePath = path;
   }
 
   public int getMaxAsyncRetryTimes() {

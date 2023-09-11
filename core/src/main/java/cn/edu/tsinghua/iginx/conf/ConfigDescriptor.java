@@ -55,6 +55,7 @@ public class ConfigDescriptor {
       properties.load(in);
 
       config.setIginxHomePath(EnvUtils.loadEnv(Constants.IGINX_HOME, ""));
+      config.setDefaultUDFFilePath(properties.getProperty("defaultUDFFilePath", "conf/udf_list"));
       config.setIp(properties.getProperty("ip", "0.0.0.0"));
       config.setPort(Integer.parseInt(properties.getProperty("port", "6888")));
       config.setUsername(properties.getProperty("username", "root"));
