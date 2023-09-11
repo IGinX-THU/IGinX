@@ -44,3 +44,9 @@ jobs:
               with:
                   version: ${VERSION}
                   if-test-udf: "true"
+
+            - name: Show IGinX log
+              if: always()
+              shell: bash
+              run: |
+                cat iginx.log
