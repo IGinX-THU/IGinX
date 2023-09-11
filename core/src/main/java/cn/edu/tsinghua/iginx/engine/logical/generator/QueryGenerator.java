@@ -818,6 +818,8 @@ public class QueryGenerator extends AbstractGenerator {
         } else if (path.startsWith("*") && path.indexOf(".", path.indexOf(".")+1)!=-1) {
           hasMoreDelimiter = true;
           pathWithoutPrefix = path.substring(2);
+        } else if (path.startsWith("*.*")) {
+          pathWithoutPrefix = path.substring(2);
         }
       }
       if (columnsInterval.isContain(path)) {
