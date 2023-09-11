@@ -309,6 +309,9 @@ public class IoTDBStorage implements IStorage {
         if (path.contains("\\")) {
           return new TaskExecuteResult(new EmptyRowStream());
         }
+        if (path.startsWith("*") && path.indexOf("*.", 1)!=2) {
+          path = "*." + path;
+        }
         builder.append(path);
         builder.append(',');
       }
@@ -354,6 +357,9 @@ public class IoTDBStorage implements IStorage {
         // TODO 暂时屏蔽含有\的pattern
         if (path.contains("\\")) {
           return new TaskExecuteResult(new EmptyRowStream());
+        }
+        if (path.startsWith("*") && path.indexOf("*.", 1)!=2) {
+          path = "*." + path;
         }
         builder.append(path);
         builder.append(',');
