@@ -815,10 +815,10 @@ public class QueryGenerator extends AbstractGenerator {
         // if begin with *. and has schemaPrefix, you should condiser two cases
         if (path.startsWith(schemaPrefix)) {
           pathWithoutPrefix = path.substring(schemaPrefix.length() + 1);
+        } else if (path.startsWith("*.*")) {
+          pathWithoutPrefix = path.substring(2);
         } else if (path.startsWith("*") && path.indexOf(".", path.indexOf(".")+1)!=-1) {
           hasMoreDelimiter = true;
-          pathWithoutPrefix = path.substring(2);
-        } else if (path.startsWith("*.*")) {
           pathWithoutPrefix = path.substring(2);
         }
       }
