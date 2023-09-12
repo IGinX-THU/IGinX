@@ -136,12 +136,16 @@ public class RestSession {
     RpcUtils.verifySuccess(status);
   }
 
-  public void deleteColumn(String path) throws ExecutionException {
-    deleteColumns(Collections.singletonList(path));
+  public void deleteColumn(String path, List<Map<String,List<String>>> tagList) throws ExecutionException {
+    deleteColumns(Collections.singletonList(path), tagList);
   }
 
-  public void deleteColumns(List<String> paths) throws ExecutionException {
+  public void deleteColumns(List<String> paths, List<Map<String,List<String>>> tagList) throws ExecutionException {
     DeleteColumnsReq req = new DeleteColumnsReq(sessionId, paths);
+    if (!tagList.isEmpty()) {
+      req.setTagsList(tagList);
+      req.setFilterType(TagFilterType.Precise);
+    }
 
     Status status;
     do {
@@ -355,26 +359,27 @@ public class RestSession {
   }
 
   public void deleteDataInColumn(
-      String path, Map<String, List<String>> tagList, long startKey, long endKey) {
+      String path, List<Map<String,List<String>>> tagList, long startKey, long endKey) {
     List<String> paths = new ArrayList<>();
     paths.add(path);
     deleteDataInColumns(paths, tagList, startKey, endKey);
   }
 
   public void deleteDataInColumns(
-      List<String> paths, Map<String, List<String>> tagList, long startKey, long endKey) {
+      List<String> paths, List<Map<String,List<String>>> tagList, long startKey, long endKey) {
     deleteDataInColumns(paths, tagList, startKey, endKey, TimeUtils.DEFAULT_TIMESTAMP_PRECISION);
   }
 
   public void deleteDataInColumns(
       List<String> paths,
-      Map<String, List<String>> tagList,
+      List<Map<String,List<String>>> tagList,
       long startKey,
       long endKey,
       TimePrecision timePrecision) {
     DeleteDataInColumnsReq req = new DeleteDataInColumnsReq(sessionId, paths, startKey, endKey);
     if (!tagList.isEmpty()) {
       req.setTagsList(tagList);
+      req.setFilterType(TagFilterType.And);
     }
     req.setTimePrecision(timePrecision);
 
@@ -390,7 +395,7 @@ public class RestSession {
   }
 
   public SessionQueryDataSet queryData(
-      List<String> paths, long startKey, long endKey, Map<String, List<String>> tagList) {
+      List<String> paths, long startKey, long endKey, List<Map<String,List<String>>> tagList) {
     return queryData(paths, startKey, endKey, tagList, TimeUtils.DEFAULT_TIMESTAMP_PRECISION);
   }
 
@@ -398,7 +403,7 @@ public class RestSession {
       List<String> paths,
       long startKey,
       long endKey,
-      Map<String, List<String>> tagList,
+      List<Map<String,List<String>>> tagList,
       TimePrecision timePrecision) {
     if (paths.isEmpty() || startKey > endKey) {
       logger.error("Invalid query request!");
@@ -407,6 +412,7 @@ public class RestSession {
     QueryDataReq req = new QueryDataReq(sessionId, paths, startKey, endKey);
     if (!tagList.isEmpty()) {
       req.setTagsList(tagList);
+      req.setFilterType(TagFilterType.And);
     }
     req.setTimePrecision(timePrecision);
 
@@ -428,12 +434,13 @@ public class RestSession {
       List<String> paths,
       long startKey,
       long endKey,
-      Map<String, List<String>> tagList,
+      List<Map<String,List<String>>> tagList,
       AggregateType aggregateType,
       TimePrecision timePrecision) {
     AggregateQueryReq req =
         new AggregateQueryReq(sessionId, paths, startKey, endKey, aggregateType);
     req.setTagsList(tagList);
+    req.setFilterType(TagFilterType.And);
     req.setTimePrecision(timePrecision);
 
     AggregateQueryResp resp;
@@ -451,7 +458,7 @@ public class RestSession {
 
   public SessionQueryDataSet downsampleQuery(
       List<String> paths,
-      Map<String, List<String>> tagList,
+      List<Map<String,List<String>>> tagList,
       long startKey,
       long endKey,
       AggregateType aggregateType,
@@ -460,6 +467,7 @@ public class RestSession {
     DownsampleQueryReq req =
         new DownsampleQueryReq(sessionId, paths, startKey, endKey, aggregateType, precision);
     req.setTagsList(tagList);
+    req.setFilterType(TagFilterType.And);
     req.setTimePrecision(timePrecision);
 
     DownsampleQueryResp resp;

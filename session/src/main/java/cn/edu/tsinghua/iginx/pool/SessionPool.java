@@ -842,7 +842,7 @@ public class SessionPool {
   }
 
   public void deleteDataInColumns(
-      List<String> paths, long startKey, long endKey, Map<String, List<String>> tagsList)
+      List<String> paths, long startKey, long endKey, List<Map<String,List<String>>> tagsList)
       throws SessionException, ExecutionException {
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
@@ -883,7 +883,7 @@ public class SessionPool {
   }
 
   public SessionQueryDataSet queryData(
-      List<String> paths, long startKey, long endKey, Map<String, List<String>> tagsList)
+      List<String> paths, long startKey, long endKey, List<Map<String,List<String>>> tagsList)
       throws SessionException, ExecutionException {
     SessionQueryDataSet sessionQueryDataSet = null;
     for (int i = 0; i < RETRY; i++) {
@@ -983,7 +983,7 @@ public class SessionPool {
       long endKey,
       AggregateType aggregateType,
       long precision,
-      Map<String, List<String>> tagsList)
+      List<Map<String,List<String>>> tagsList)
       throws SessionException, ExecutionException {
     SessionQueryDataSet sessionQueryDataSet = null;
     for (int i = 0; i < RETRY; i++) {
@@ -1068,7 +1068,7 @@ public class SessionPool {
   }
 
   public SessionQueryDataSet queryLast(
-      List<String> paths, long startKey, Map<String, List<String>> tagsList)
+      List<String> paths, long startKey, List<Map<String,List<String>>> tagsList)
       throws SessionException, ExecutionException {
     SessionQueryDataSet sessionQueryDataSet = null;
     for (int i = 0; i < RETRY; i++) {

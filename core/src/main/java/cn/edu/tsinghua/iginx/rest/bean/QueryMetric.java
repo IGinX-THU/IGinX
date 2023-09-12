@@ -34,7 +34,7 @@ public class QueryMetric {
   private String pathName;
   private String queryOriPath;
   private Long limit;
-  private Map<String, List<String>> tags = new TreeMap<>();
+  private List<Map<String,List<String>>> tags = new ArrayList<>();
   private List<QueryAggregator> aggregators = new ArrayList<>();
   private Boolean annotation = false;
   private Boolean newAnnotation = false;
@@ -45,9 +45,8 @@ public class QueryMetric {
     queryOriPath = new String(path);
   }
 
-  public void addTag(String key, String value) {
-    tags.computeIfAbsent(key, k -> new ArrayList<>());
-    tags.get(key).add(value);
+  public void addTag(Map<String, List<String>> tags) {
+    this.tags.add(tags);
   }
 
   public void addAggregator(QueryAggregator qa) {

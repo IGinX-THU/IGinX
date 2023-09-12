@@ -500,7 +500,7 @@ public class MetricsResource {
     restSession.openSession();
     List<String> ins = new ArrayList<>();
     ins.add(metricName);
-    restSession.deleteColumns(ins);
+    restSession.deleteColumns(ins, new ArrayList<>());
     restSession.closeSession();
   }
 

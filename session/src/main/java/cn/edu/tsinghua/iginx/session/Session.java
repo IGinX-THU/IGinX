@@ -738,7 +738,7 @@ public class Session {
   }
 
   public void deleteDataInColumns(
-      List<String> paths, long startKey, long endKey, Map<String, List<String>> tagsList)
+      List<String> paths, long startKey, long endKey, List<Map<String,List<String>>> tagsList)
       throws SessionException, ExecutionException {
     DeleteDataInColumnsReq req =
         new DeleteDataInColumnsReq(sessionId, mergeAndSortPaths(paths), startKey, endKey);
@@ -756,7 +756,7 @@ public class Session {
   }
 
   public SessionQueryDataSet queryData(
-      List<String> paths, long startKey, long endKey, Map<String, List<String>> tagsList)
+      List<String> paths, long startKey, long endKey, List<Map<String,List<String>>> tagsList)
       throws SessionException, ExecutionException {
     return queryData(paths, startKey, endKey, tagsList, timeUnit);
   }
@@ -765,7 +765,7 @@ public class Session {
       List<String> paths,
       long startKey,
       long endKey,
-      Map<String, List<String>> tagsList,
+      List<Map<String,List<String>>> tagsList,
       TimePrecision timePrecision)
       throws SessionException, ExecutionException {
     if (paths.isEmpty() || startKey > endKey) {
@@ -806,7 +806,7 @@ public class Session {
       long startKey,
       long endKey,
       AggregateType aggregateType,
-      Map<String, List<String>> tagsList)
+      List<Map<String,List<String>>> tagsList)
       throws SessionException, ExecutionException {
     return aggregateQuery(paths, startKey, endKey, aggregateType, tagsList, timeUnit);
   }
@@ -816,7 +816,7 @@ public class Session {
       long startKey,
       long endKey,
       AggregateType aggregateType,
-      Map<String, List<String>> tagsList,
+      List<Map<String,List<String>>> tagsList,
       TimePrecision timePrecision)
       throws SessionException, ExecutionException {
     AggregateQueryReq req =
@@ -856,7 +856,7 @@ public class Session {
       long endKey,
       AggregateType aggregateType,
       long precision,
-      Map<String, List<String>> tagsList)
+      List<Map<String,List<String>>> tagsList)
       throws SessionException, ExecutionException {
     return downsampleQuery(paths, startKey, endKey, aggregateType, precision, tagsList, timeUnit);
   }
@@ -867,7 +867,7 @@ public class Session {
       long endKey,
       AggregateType aggregateType,
       long precision,
-      Map<String, List<String>> tagsList,
+      List<Map<String,List<String>>> tagsList,
       TimePrecision timePrecision)
       throws SessionException, ExecutionException {
     DownsampleQueryReq req =
@@ -914,7 +914,7 @@ public class Session {
   }
 
   public SessionQueryDataSet queryLast(
-      List<String> paths, long startKey, Map<String, List<String>> tagsList)
+      List<String> paths, long startKey, List<Map<String,List<String>>> tagsList)
       throws SessionException, ExecutionException {
     return queryLast(paths, startKey, tagsList, timeUnit);
   }
@@ -922,7 +922,7 @@ public class Session {
   public SessionQueryDataSet queryLast(
       List<String> paths,
       long startKey,
-      Map<String, List<String>> tagsList,
+      List<Map<String,List<String>>> tagsList,
       TimePrecision timePrecision)
       throws SessionException, ExecutionException {
     if (paths.isEmpty()) {

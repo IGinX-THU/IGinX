@@ -333,7 +333,7 @@ public class ParseTest {
       int MetricNum = 0;
 
       for (QueryMetric queryMetric : query.getQueryMetrics()) {
-        for (Map.Entry<String, List<String>> entry : queryMetric.getTags().entrySet()) {
+        for (Map.Entry<String, List<String>> entry : queryMetric.getTags().get(0).entrySet()) {
           String mapKey = entry.getKey();
           if (MetricNum == 0) {
             assertEquals(mapKey, "high");

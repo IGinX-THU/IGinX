@@ -16,6 +16,9 @@ import cn.edu.tsinghua.iginx.session_v2.write.Record;
 import cn.edu.tsinghua.iginx.session_v2.write.Table;
 import cn.edu.tsinghua.iginx.thrift.*;
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -358,13 +361,18 @@ public class SessionV2IT {
 
   @Test
   public void testTagKV() {
+
     IginXTable table =
         queryClient.query(
             SimpleQuery.builder()
                 .addMeasurement("test.session.v3.*")
                 .startKey(endKey - 1000L)
                 .endKey(endKey)
-                .addTags("k1", Arrays.asList("v1", "v3", "v5"))
+                .addTagsList(Stream.of(
+                        new HashMap<String, List<String>>() {{put("k1", Collections.singletonList("v1"));}},
+                        new HashMap<String, List<String>>() {{put("k1", Collections.singletonList("v3"));}},
+                        new HashMap<String, List<String>>() {{put("k1", Collections.singletonList("v5"));}}
+                ).collect(Collectors.toList()))
                 .build());
     assertNotNull(table);
 
@@ -412,8 +420,12 @@ public class SessionV2IT {
                 .addMeasurement("test.session.v3.*")
                 .startKey(endKey - 1000L)
                 .endKey(endKey)
-                .addTags("k1", Arrays.asList("v2", "v4", "v6"))
-                .build());
+                    .addTagsList(Stream.of(
+                            new HashMap<String, List<String>>() {{put("k1", Collections.singletonList("v2"));}},
+                            new HashMap<String, List<String>>() {{put("k1", Collections.singletonList("v3"));}},
+                            new HashMap<String, List<String>>() {{put("k1", Collections.singletonList("v6"));}}
+                    ).collect(Collectors.toList()))
+                    .build());
     assertNotNull(table);
 
     header = table.getHeader();
