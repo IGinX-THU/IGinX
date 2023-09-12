@@ -54,7 +54,10 @@ public class ConfigDescriptor {
       Properties properties = new Properties();
       properties.load(in);
 
-      config.setIginxHomePath(EnvUtils.loadEnv(Constants.IGINX_HOME, ""));
+      // runs/debugged in IDE: IGINX_HOME not set, use user.dir as root
+      // runs by script: IGINX_HOME should always have been set
+      config.setIginxHomePath(
+          EnvUtils.loadEnv(Constants.IGINX_HOME, System.getProperty("user.dir")));
       config.setDefaultUDFFilePath(properties.getProperty("defaultUDFFilePath", "conf/udf_list"));
       config.setIp(properties.getProperty("ip", "0.0.0.0"));
       config.setPort(Integer.parseInt(properties.getProperty("port", "6888")));
@@ -351,7 +354,7 @@ public class ConfigDescriptor {
 
   private void loadUDFListFromFile() {
     String defaultUDFPath =
-        String.join(File.separator, config.getIginxHomePath(), Constants.UDF_LIST_FILE);
+        String.join(File.separator, config.getIginxHomePath(), config.getDefaultUDFFilePath());
     try (InputStream in = new FileInputStream(defaultUDFPath)) {
       BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(in));
 

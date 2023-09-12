@@ -45,6 +45,10 @@ jobs:
                   version: ${VERSION}
                   if-test-udf: "true"
 
+            - name: Run UDF path test
+              run: |
+                  mvn test -q -Dtest=UDFPathIT -DfailIfNoTests=false -P-format
+
             - name: Show IGinX log
               if: always()
               shell: bash
