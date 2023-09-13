@@ -194,7 +194,11 @@ public class MultiConnection {
 
   public void deleteDataInColumns(List<String> paths, long startKey, long endKey)
       throws SessionException, ExecutionException {
-    session.deleteDataInColumns(paths, startKey, endKey, null, null);
+    if (session != null) {
+      session.deleteDataInColumns(paths, startKey, endKey, null, null);
+    } else if (sessionPool != null) {
+      sessionPool.deleteDataInColumns(paths, startKey, endKey, null, null);
+    }
   }
 
   public void deleteDataInColumns(List<String> paths, long startKey, long endKey, List<Map<String, List<String>>> tags, TagFilterType type)

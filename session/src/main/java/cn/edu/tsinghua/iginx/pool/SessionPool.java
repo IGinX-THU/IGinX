@@ -544,6 +544,24 @@ public class SessionPool {
     }
   }
 
+  public void deleteColumns(List<String> paths, List<Map<String, List<String>>> tags, TagFilterType type) throws SessionException, ExecutionException {
+    for (int i = 0; i < RETRY; i++) {
+      Session session = getSession();
+      try {
+        session.deleteColumns(paths, tags, type);
+        putBack(session);
+        return;
+      } catch (SessionException e) {
+        // TException means the connection is broken, remove it and get a new one.
+        logger.warn("deleteColumns failed", e);
+        cleanSessionAndMayThrowConnectionException(session, i, e);
+      } catch (ExecutionException | RuntimeException e) {
+        putBack(session);
+        throw e;
+      }
+    }
+  }
+
   public void insertColumnRecords(
       List<String> paths, long[] timestamps, Object[] valuesList, List<DataType> dataTypeList)
       throws SessionException, ExecutionException {
@@ -843,12 +861,12 @@ public class SessionPool {
   }
 
   public void deleteDataInColumns(
-      List<String> paths, long startKey, long endKey, List<Map<String,List<String>>> tagsList)
+      List<String> paths, long startKey, long endKey, List<Map<String,List<String>>> tagsList, TagFilterType type)
       throws SessionException, ExecutionException {
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
       try {
-        session.deleteDataInColumns(paths, startKey, endKey, tagsList, null);
+        session.deleteDataInColumns(paths, startKey, endKey, tagsList, type);
         putBack(session);
         return;
       } catch (SessionException e) {
