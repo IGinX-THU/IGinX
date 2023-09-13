@@ -1,5 +1,7 @@
 package cn.edu.tsinghua.iginx.integration.expansion.mongodb;
 
+import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.readOnlyPort;
+
 import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
 import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
 import cn.edu.tsinghua.iginx.thrift.DataType;
@@ -28,7 +30,7 @@ public class MongoDBHistoryDataGenerator extends BaseHistoryDataGenerator {
   public MongoDBHistoryDataGenerator() {
     Constant.oriPort = 27017;
     Constant.expPort = 27018;
-    Constant.readOnlyPort = 27019;
+    readOnlyPort = 27019;
   }
 
   @Override
@@ -75,8 +77,8 @@ public class MongoDBHistoryDataGenerator extends BaseHistoryDataGenerator {
   }
 
   @Override
-  public void writeSpecialHistoryData(int port) {
-    try (MongoClient client = connect(port)) {
+  public void writeSpecialHistoryData() {
+    try (MongoClient client = connect(readOnlyPort)) {
       MongoDatabase database = client.getDatabase("d0");
       MongoCollection<Document> collection = database.getCollection("c0");
       collection.insertOne(Document.parse(JSON_EXAMPLE_0));

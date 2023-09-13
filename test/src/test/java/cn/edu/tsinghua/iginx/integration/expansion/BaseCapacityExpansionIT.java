@@ -201,18 +201,14 @@ public abstract class BaseCapacityExpansionIT {
     // 再次写入并查询所有新数据
     testWriteAndQueryNewDataAfterCE();
 
+    testQuerySpecialHistoryData();
+
     if (this instanceof FileSystemCapacityExpansionIT) {
       // 仅用于扩容文件系统后查询文件
       testQueryForFileSystem();
       // TODO 扩容后show columns测试
       testShowColumnsForFileSystem();
     }
-  }
-
-  @Test
-  public void specialHistoryData() {
-    addStorageEngine(readOnlyPort, true, true, null, null);
-    testQuerySpecialHistoryData();
   }
 
   protected void testQuerySpecialHistoryData() {}

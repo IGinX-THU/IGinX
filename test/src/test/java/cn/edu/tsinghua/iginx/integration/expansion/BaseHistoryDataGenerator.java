@@ -15,6 +15,7 @@ public abstract class BaseHistoryDataGenerator {
     writeHistoryDataToOri();
     writeHistoryDataToExp();
     writeHistoryDataToReadOnly();
+    writeSpecialHistoryData();
   }
 
   @Test
@@ -30,12 +31,7 @@ public abstract class BaseHistoryDataGenerator {
   @Test
   public void oriNoDataExpNoData() {}
 
-  @Test
-  public void specialHistoryData() {
-    writeSpecialHistoryData(readOnlyPort);
-  }
-
-  public void writeSpecialHistoryData(int port) {}
+  public void writeSpecialHistoryData() {}
 
   public void writeHistoryDataToOri() {
     writeHistoryData(oriPort, ORI_PATH_LIST, oriDataTypeList, oriValuesList);

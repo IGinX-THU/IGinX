@@ -118,18 +118,6 @@ jobs:
                   mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#testReadOnly -DfailIfNoTests=false -P-format
                   mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
 
-            # 测试专用样例===============================================
-            - name: Prepare CapExp environment for specialHistoryData
-              uses: ./.github/actions/capacityExpansionUnionTest
-              with:
-                  version: ${VERSION}
-                  DB-name: ${{ matrix.DB-name }}
-                  Test-Way: specialHistoryData
-
-            - name: Run specialHistoryData
-              run: |
-                  mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#specialHistoryData -DfailIfNoTests=false -P-format
-
             - name: Show IGinX log
               if: always()
               shell: bash
