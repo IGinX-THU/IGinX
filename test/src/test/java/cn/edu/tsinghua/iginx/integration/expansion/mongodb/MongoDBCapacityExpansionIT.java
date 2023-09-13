@@ -1,5 +1,6 @@
 package cn.edu.tsinghua.iginx.integration.expansion.mongodb;
 
+import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.readOnlyPort;
 import static cn.edu.tsinghua.iginx.thrift.StorageEngineType.mongodb;
 
 import cn.edu.tsinghua.iginx.integration.expansion.BaseCapacityExpansionIT;
@@ -20,6 +21,8 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
 
   @Override
   public void testSpecialHistoryData() {
+    addStorageEngine(readOnlyPort, true, true, null, null);
+
     String statement = "select count(*) from d0.c0.objects";
     String expect =
         "ResultSets:\n"

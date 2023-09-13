@@ -30,6 +30,7 @@ public abstract class BaseHistoryDataGenerator {
   @Test
   public void oriNoDataExpNoData() {}
 
+  // important: should only write to expPort or readOnlyPort
   @Test
   public void specialHistoryData() {}
 
