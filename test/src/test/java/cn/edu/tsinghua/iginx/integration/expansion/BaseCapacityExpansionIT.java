@@ -210,7 +210,12 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   @Test
-  public void testSpecialHistoryData() {}
+  public void specialHistoryData() {
+    addStorageEngine(readOnlyPort, true, true, null, null);
+    testQuerySpecialHistoryData();
+  }
+
+  protected void testQuerySpecialHistoryData() {}
 
   private void testQueryHistoryDataOriHasData() {
     String statement = "select wf01.wt01.status, wf01.wt01.temperature from mn";
