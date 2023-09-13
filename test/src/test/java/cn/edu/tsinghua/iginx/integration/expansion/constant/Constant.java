@@ -17,6 +17,12 @@ public class Constant {
 
   public static int readOnlyPort = 6669;
 
+  public static int oriPortIginx = 6888;
+
+  public static int expPortIginx = 6889;
+
+  public static int readOnlyPortIginx = 6890;
+
   // path
   public static final List<String> ORI_PATH_LIST =
       Arrays.asList("mn.wf01.wt01.status", "mn.wf01.wt01.temperature");
@@ -87,6 +93,15 @@ public class Constant {
           put(oriPort, Arrays.asList(oriDir, oriFilename));
           put(expPort, Arrays.asList(expDir, expFilename));
           put(readOnlyPort, Arrays.asList(readOnlyDir, readOnlyFilename));
+        }
+      };
+
+  public static final Map<Integer, Integer> PARQUET_FILESYSTEM_IGINX_PORT=
+      new HashMap<Integer, Integer>() {
+        {
+          put(oriPort, oriPortIginx);
+            put(expPort, expPortIginx);
+            put(readOnlyPort, readOnlyPortIginx);
         }
       };
 

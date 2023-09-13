@@ -1,6 +1,7 @@
 package cn.edu.tsinghua.iginx.integration.expansion;
 
 import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.*;
+import static cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools.executeShellScript;
 import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
@@ -64,6 +65,9 @@ public abstract class BaseCapacityExpansionIT {
         statement.append(PORT_TO_ROOT.get(port));
       }
       if (extraParams != null) {
+        if (IS_PARQUET_OR_FILE_SYSTEM) {
+          extraParams = "iginx_port:" +PARQUET_FILESYSTEM_IGINX_PORT.get(port);
+        }
         statement.append(", ");
         statement.append(extraParams);
       }
@@ -125,7 +129,12 @@ public abstract class BaseCapacityExpansionIT {
     // 写入并查询新数据
     testWriteAndQueryNewData();
     // 扩容
-    addStorageEngine(expPort, true, false, null, null);
+    if (IS_PARQUET_OR_FILE_SYSTEM) {
+      startStorageEngineWithIginx( this, expPort, true, false);
+    } else {
+      addStorageEngine(expPort, true, false, null, null);
+    }
+
     // 查询扩容节点的历史数据，结果不为空
     testQueryHistoryDataExpHasData();
     // 再次查询新数据
@@ -141,7 +150,11 @@ public abstract class BaseCapacityExpansionIT {
     // 写入并查询新数据
     testWriteAndQueryNewData();
     // 扩容
-    addStorageEngine(expPort, false, false, null, null);
+    if (IS_PARQUET_OR_FILE_SYSTEM) {
+      startStorageEngineWithIginx( this, expPort, false, false);
+    } else {
+      addStorageEngine(expPort, false, false, null, null);
+    }
     // 查询扩容节点的历史数据，结果为空
     testQueryHistoryDataExpNoData();
     // 再次查询新数据
@@ -157,7 +170,11 @@ public abstract class BaseCapacityExpansionIT {
     // 写入并查询新数据
     testWriteAndQueryNewData();
     // 扩容
-    addStorageEngine(expPort, true, false, null, null);
+    if (IS_PARQUET_OR_FILE_SYSTEM) {
+      startStorageEngineWithIginx( this, expPort, true, false);
+    } else {
+      addStorageEngine(expPort, true, false, null, null);
+    }
     // 查询扩容节点的历史数据，结果不为空
     testQueryHistoryDataExpHasData();
     // 再次查询新数据
@@ -175,7 +192,11 @@ public abstract class BaseCapacityExpansionIT {
     // 写入并查询新数据
     testWriteAndQueryNewData();
     // 扩容
-    addStorageEngine(expPort, false, false, null, null);
+    if (IS_PARQUET_OR_FILE_SYSTEM) {
+      startStorageEngineWithIginx( this, expPort, false, false);
+    } else {
+      addStorageEngine(expPort, false, false, null, null);
+    }
     // 查询扩容节点的历史数据，结果为空
     testQueryHistoryDataExpNoData();
     // 再次查询新数据
@@ -189,11 +210,19 @@ public abstract class BaseCapacityExpansionIT {
     // 查询原始只读节点的历史数据，结果不为空
     testQueryHistoryDataOriHasData();
     // 扩容只读节点
-    addStorageEngine(readOnlyPort, true, true, null, null);
+    if (IS_PARQUET_OR_FILE_SYSTEM) {
+      startStorageEngineWithIginx( this, readOnlyPort, true, true);
+    } else {
+      addStorageEngine(readOnlyPort, true, true, null, null);
+    }
     // 查询扩容只读节点的历史数据，结果不为空
     testQueryHistoryDataReadOnly();
     // 扩容可写节点
-    addStorageEngine(expPort, true, false, null, null);
+    if (IS_PARQUET_OR_FILE_SYSTEM) {
+      startStorageEngineWithIginx( this, expPort, true, false);
+    } else {
+      addStorageEngine(expPort, true, false, null, null);
+    }
     // 查询扩容可写节点的历史数据，结果不为空
     testQueryHistoryDataExpHasData();
     // 写入并查询新数据
@@ -335,7 +364,7 @@ public abstract class BaseCapacityExpansionIT {
 
     // 如果是重复添加，则报错
     String res = addStorageEngine(expPort, true, true, dataPrefix1, null);
-    if (res != null && !res.contains("unexpected repeated add")) {
+    if (res != null && !res.contains("unexpected repeated add") || (IS_PARQUET_OR_FILE_SYSTEM && res!=null)) {
       fail();
     }
     addStorageEngine(expPort, true, true, dataPrefix1, "p3");
@@ -508,5 +537,77 @@ public abstract class BaseCapacityExpansionIT {
             + "+-------------+--------+\n"
             + "Total line number = 3\n";
     SQLTestTools.executeAndCompare(session, statement, expected);
+  }
+
+  protected void startStorageEngineWithIginx(
+      BaseCapacityExpansionIT it, int port, boolean hasData, boolean isReadOnly) {
+    String scriptPath;
+    String os = System.getProperty("os.name").toLowerCase();
+    boolean isOnMac = false;
+    if (os.contains("mac")) {
+      isOnMac = true;
+    }
+
+    if (this instanceof FileSystemCapacityExpansionIT) {
+      if (isOnMac) {
+        scriptPath = "../.github/scripts/dataSources/filesystem_macos.sh";
+      } else {
+        scriptPath = "../.github/scripts/dataSources/filesystem.sh";
+      }
+    } else if (this instanceof ParquetCapacityExpansionIT) {
+      if (isOnMac) {
+        scriptPath = "../.github/scripts/dataSources/parquet_macos.sh";
+      } else {
+        scriptPath = "../.github/scripts/dataSources/parquet.sh";
+      }
+    } else {
+      throw new IllegalStateException("just support file system and parquet");
+    }
+
+    int iginxPort;
+    switch (port) {
+      case 6667:
+        iginxPort = oriPortIginx;
+        break;
+      case 6668:
+        iginxPort = expPortIginx;
+        break;
+      case 6669:
+        iginxPort = readOnlyPortIginx;
+        break;
+      default:
+        throw new IllegalStateException("Unexpected value: " + port);
+    }
+
+    int restPort;
+    switch (port) {
+      case 6667:
+        restPort = 6666;
+        break;
+      case 6668:
+        restPort = 6665;
+        break;
+      case 6669:
+        restPort = 6664;
+        break;
+      default:
+        throw new IllegalStateException("Unexpected value: " + port);
+    }
+
+    int res = executeShellScript(scriptPath,
+        String.valueOf(port),
+        String.valueOf(iginxPort),
+        "test/"+PORT_TO_ROOT.get(port),
+        "test/iginx_"+ PORT_TO_ROOT.get(port),
+        String.valueOf(hasData),
+        String.valueOf(isReadOnly));
+    if(res != 0) {
+        fail("change config file fail");
+    }
+
+    res = executeShellScript("../.github/scripts/iginx/iginx.sh", String.valueOf(iginxPort), String.valueOf(restPort));
+    if(res != 0) {
+      fail("start iginx fail");
+    }
   }
 }

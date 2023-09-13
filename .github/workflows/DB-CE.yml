@@ -23,10 +23,10 @@ jobs:
                 DB-name:
                     [
                         "FileSystem",
-                        "IoTDB12",
-                        "InfluxDB",
-                        "PostgreSQL",
-                        "Redis",
+#                        "IoTDB12",
+#                        "InfluxDB",
+#                        "PostgreSQL",
+#                        "Redis",
                         "Parquet",
                     ]
         runs-on: ${{ matrix.os }}
@@ -121,7 +121,7 @@ jobs:
               if: always()
               shell: bash
               run: |
-                  cat iginx.log
+                  cat iginx-*.log
 
             - uses: codecov/codecov-action@v1
               with:

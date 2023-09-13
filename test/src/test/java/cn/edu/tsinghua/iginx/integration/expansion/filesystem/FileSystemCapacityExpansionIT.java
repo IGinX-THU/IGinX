@@ -1,10 +1,13 @@
 package cn.edu.tsinghua.iginx.integration.expansion.filesystem;
 
 import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.*;
+import static cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools.executeShellScript;
 import static cn.edu.tsinghua.iginx.thrift.StorageEngineType.filesystem;
 
 import cn.edu.tsinghua.iginx.integration.expansion.BaseCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.thrift.DataType;
+
+import java.io.*;
 import java.util.Arrays;
 import java.util.Collections;
 import org.slf4j.Logger;

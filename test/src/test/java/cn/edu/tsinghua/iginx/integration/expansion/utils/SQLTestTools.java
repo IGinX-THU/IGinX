@@ -6,6 +6,10 @@ import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.*;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -103,4 +107,33 @@ public class SQLTestTools {
       fail();
     }
   }
+
+    public static int executeShellScript(String scriptPath, String... args) {
+        try {
+            // 构建shell命令
+            String[] command = new String[args.length + 2];
+            command[0] = "sh";
+            command[1] = scriptPath;
+            System.arraycopy(args, 0, command, 2, args.length);
+
+            // 创建进程并执行命令
+            ProcessBuilder processBuilder = new ProcessBuilder(command);
+            Process process = processBuilder.start();
+
+            // 读取脚本输出
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                System.out.println(line);
+            }
+
+            // 等待脚本执行完毕
+            int exitCode = process.waitFor();
+            System.out.println("脚本执行完毕，退出码：" + exitCode);
+            return exitCode;
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
 }
