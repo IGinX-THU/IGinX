@@ -76,15 +76,15 @@ public class MongoDBHistoryDataGenerator extends BaseHistoryDataGenerator {
     logger.info("clear data on 127.0.0.1:{} success!", port);
   }
 
-  @Override
-  public void writeSpecialHistoryData() {
-    try (MongoClient client = connect(readOnlyPort)) {
-      MongoDatabase database = client.getDatabase("d0");
-      MongoCollection<Document> collection = database.getCollection("c0");
-      collection.insertOne(Document.parse(JSON_EXAMPLE_0));
-      collection.insertOne(Document.parse(JSON_EXAMPLE_1));
-    }
-  }
+//  @Override
+//  public void writeSpecialHistoryData() {
+//    try (MongoClient client = connect(readOnlyPort)) {
+//      MongoDatabase database = client.getDatabase("d0");
+//      MongoCollection<Document> collection = database.getCollection("c0");
+//      collection.insertOne(Document.parse(JSON_EXAMPLE_0));
+//      collection.insertOne(Document.parse(JSON_EXAMPLE_1));
+//    }
+//  }
 
   private MongoClient connect(int port) {
     ServerAddress address = new ServerAddress(MongoDBHistoryDataGenerator.LOCAL_IP, port);
