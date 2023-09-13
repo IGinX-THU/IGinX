@@ -40,7 +40,20 @@ public class ThriftConnPool {
     size = 0;
   }
 
-  public TTransport borrowTransport() {
+  public TTransport borrowAndOpenTransport() {
+    try {
+      TTransport transport = borrowTransport();
+      if (transport != null && !transport.isOpen()) {
+        transport.open();
+      }
+      return transport;
+    } catch (TTransportException e) {
+      logger.error("creating new connection failed:" + e);
+      return null;
+    }
+  }
+
+  private TTransport borrowTransport() {
     if (isClosed()) {
       logger.error("client pool closed.");
       return null;
@@ -64,9 +77,6 @@ public class ThriftConnPool {
           return null;
         }
         transport = newTransport();
-        if (!transport.isOpen()) {
-          transport.open();
-        }
       } catch (TTransportException e) {
         logger.error("creating new connection failed:" + e);
         return null;
@@ -104,9 +114,11 @@ public class ThriftConnPool {
     return closed;
   }
 
-  public void returnTransport(TTransport transport) {
-    if (isClosed()) {
+  public void returnAndCloseTransport(TTransport transport) {
+    if (transport.isOpen()) {
       transport.close();
+    }
+    if (isClosed()) {
       logger.warn("returning connection to a closed connection pool.");
       return;
     }
