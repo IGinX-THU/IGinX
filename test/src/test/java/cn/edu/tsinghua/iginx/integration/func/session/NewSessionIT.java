@@ -22,6 +22,7 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.thrift.TagFilterType;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.After;
