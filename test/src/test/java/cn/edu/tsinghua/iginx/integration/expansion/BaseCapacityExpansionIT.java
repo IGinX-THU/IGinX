@@ -209,6 +209,9 @@ public abstract class BaseCapacityExpansionIT {
     }
   }
 
+  @Test
+  public void testSpecialHistoryData() {}
+
   private void testQueryHistoryDataOriHasData() {
     String statement = "select wf01.wt01.status, wf01.wt01.temperature from mn";
     List<String> pathList = ORI_PATH_LIST;

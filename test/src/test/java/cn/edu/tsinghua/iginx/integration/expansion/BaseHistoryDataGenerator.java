@@ -30,6 +30,9 @@ public abstract class BaseHistoryDataGenerator {
   @Test
   public void oriNoDataExpNoData() {}
 
+  @Test
+  public void specialHistoryData() {}
+
   public void writeHistoryDataToOri() {
     writeHistoryData(oriPort, ORI_PATH_LIST, oriDataTypeList, oriValuesList);
   }

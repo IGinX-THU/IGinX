@@ -77,7 +77,7 @@ public class MongoDBHistoryDataGenerator extends BaseHistoryDataGenerator {
   }
 
   @Override
-  public void writeHistoryDataToReadOnly() {
+  public void specialHistoryData() {
     try (MongoClient client = connect(readOnlyPort)) {
       MongoDatabase database = client.getDatabase("d0");
       MongoCollection<Document> collection = database.getCollection("c0");
