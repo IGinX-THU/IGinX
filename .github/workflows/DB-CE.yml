@@ -125,7 +125,6 @@ jobs:
                   version: ${VERSION}
                   DB-name: ${{ matrix.DB-name }}
                   Test-Way: specialHistoryData
-                  Read-Only: true
 
             - name: Run testSpecialHistoryData
               run: |
