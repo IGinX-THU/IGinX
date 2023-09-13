@@ -30,7 +30,7 @@ public class MemoryPool {
   public byte[] allocate() {
     byte[] buffer = freeBlocks.poll();
     if (buffer == null) {
-      logger.warn("Out of memory: No more blocks available");
+      //      logger.warn("Out of memory: No more blocks available");
       return new byte[chunkSize];
     }
     if (numberOfBlocks.get() > 0) {

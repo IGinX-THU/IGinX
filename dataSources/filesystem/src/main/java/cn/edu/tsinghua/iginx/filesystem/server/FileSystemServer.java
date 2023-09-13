@@ -23,32 +23,46 @@ public class FileSystemServer implements Runnable {
 
   private final Executor executor;
 
+  private TServerSocket serverTransport;
+
+  private TServer server;
+
   public FileSystemServer(int port, Executor executor) {
     this.port = port;
     this.executor = executor;
   }
 
-  private void startServer() throws TTransportException {
-    TProcessor processor =
-        new FileSystemService.Processor<FileSystemService.Iface>(new FileSystemWorker(executor));
-    TServerSocket serverTransport = new TServerSocket(port);
-    TThreadPoolServer.Args args =
-        new TThreadPoolServer.Args(serverTransport)
-            .processor(processor)
-            .minWorkerThreads(config.getMinThriftWorkerThreadNum())
-            .maxWorkerThreads(config.getMaxThriftWrokerThreadNum());
-    args.protocolFactory(new TBinaryProtocol.Factory());
-    TServer server = new TThreadPoolServer(args);
-    logger.info("File System service starts successfully!");
-    server.serve();
+  public void stop() {
+    if (server != null) {
+      server.stop();
+      server = null;
+    }
+    if (serverTransport != null) {
+      serverTransport.close();
+      serverTransport = null;
+    }
   }
 
   @Override
   public void run() {
+    TProcessor processor =
+        new FileSystemService.Processor<FileSystemService.Iface>(new FileSystemWorker(executor));
     try {
-      startServer();
+      serverTransport = new TServerSocket(port);
     } catch (TTransportException e) {
-      logger.error("File System service starts failure!");
+      if (!e.getMessage().contains("Could not create ServerSocket on address")) {
+        logger.error("File System service starts failure: {}", e.getMessage());
+      }
+      return;
     }
+    TThreadPoolServer.Args args =
+        new TThreadPoolServer.Args(serverTransport)
+            .processor(processor)
+            .minWorkerThreads(config.getMinThriftWorkerThreadNum())
+            .maxWorkerThreads(config.getMaxThriftWrokerThreadNum())
+            .protocolFactory(new TBinaryProtocol.Factory());
+    server = new TThreadPoolServer(args);
+    logger.info("File System service starts successfully!");
+    server.serve();
   }
 }

@@ -28,6 +28,19 @@ enum DataType {
     BINARY,
 }
 
+enum StorageEngineType {
+    iotdb12,
+    influxdb,
+    parquet,
+    postgresql,
+    mongodb,
+    redis,
+    filesystem,
+    opentsdb,
+    timescaledb,
+    unknown
+}
+
 enum AggregateType {
     MAX,
     MIN,
@@ -247,7 +260,7 @@ struct AddStorageEnginesReq {
 struct StorageEngine {
     1: required string ip
     2: required i32 port
-    3: required string type
+    3: required StorageEngineType type
     4: required map<string, string> extraParams
 }
 
@@ -407,7 +420,7 @@ struct StorageEngineInfo {
     1: required i64 id
     2: required string ip
     3: required i32 port
-    4: required string type
+    4: required StorageEngineType type
     5: optional string schemaPrefix
     6: optional string dataPrefix
 }
@@ -580,7 +593,7 @@ struct Storage {
     1: required i64 id
     2: required string ip
     3: required i64 port
-    4: required string type
+    4: required StorageEngineType type
 }
 
 struct StorageUnit {

@@ -181,7 +181,8 @@ public class MultiConnection {
     return null;
   }
 
-  public void addStorageEngine(String ip, int port, String type, Map<String, String> extraParams)
+  public void addStorageEngine(
+      String ip, int port, StorageEngineType type, Map<String, String> extraParams)
       throws SessionException, ExecutionException {
     if (session != null) {
       session.addStorageEngine(ip, port, type, extraParams);

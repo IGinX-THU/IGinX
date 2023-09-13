@@ -118,7 +118,8 @@ public class RestSession {
     return false;
   }
 
-  public void addStorageEngine(String ip, int port, String type, Map<String, String> extraParams)
+  public void addStorageEngine(
+      String ip, int port, StorageEngineType type, Map<String, String> extraParams)
       throws ExecutionException {
     StorageEngine storageEngine = new StorageEngine(ip, port, type, extraParams);
     AddStorageEnginesReq req =

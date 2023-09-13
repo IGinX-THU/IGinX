@@ -1,5 +1,6 @@
 package cn.edu.tsinghua.iginx.integration.func.session;
 
+import static cn.edu.tsinghua.iginx.thrift.StorageEngineType.influxdb;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
@@ -9,7 +10,6 @@ import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
-import cn.edu.tsinghua.iginx.integration.tool.DBType;
 import cn.edu.tsinghua.iginx.integration.tool.MultiConnection;
 import cn.edu.tsinghua.iginx.pool.IginxInfo;
 import cn.edu.tsinghua.iginx.pool.SessionPool;
@@ -106,12 +106,12 @@ public class NewSessionIT {
 
   @BeforeClass
   public static void setUp() throws SessionException {
-//    ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
-//    if (DBType.valueOf(conf.getStorageType().toLowerCase()) == DBType.influxdb) {
-//      isInfluxdb = true;
-//    }
-//    DBConf dbConf = conf.loadDBConf(conf.getStorageType());
-//    isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
+    ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
+    if (StorageEngineType.valueOf(conf.getStorageType().toLowerCase()) == influxdb) {
+      isInfluxdb = true;
+    }
+    DBConf dbConf = conf.loadDBConf(conf.getStorageType());
+    isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
     if (isForSession) {
       conn =
           new MultiConnection(

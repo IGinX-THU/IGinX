@@ -18,6 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.session_v2.domain;
 
+import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import java.util.Map;
 
 public final class Storage {
@@ -26,11 +27,11 @@ public final class Storage {
 
   private final int port;
 
-  private final String type;
+  private final StorageEngineType type;
 
   private final Map<String, String> extraParams;
 
-  public Storage(String ip, int port, String type, Map<String, String> extraParams) {
+  public Storage(String ip, int port, StorageEngineType type, Map<String, String> extraParams) {
     this.ip = ip;
     this.port = port;
     this.type = type;
@@ -45,7 +46,7 @@ public final class Storage {
     return port;
   }
 
-  public String getType() {
+  public StorageEngineType getType() {
     return type;
   }
 

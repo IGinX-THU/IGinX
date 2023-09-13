@@ -417,7 +417,8 @@ public class SessionPool {
     }
   }
 
-  public void addStorageEngine(String ip, int port, String type, Map<String, String> extraParams)
+  public void addStorageEngine(
+      String ip, int port, StorageEngineType type, Map<String, String> extraParams)
       throws SessionException, ExecutionException {
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();

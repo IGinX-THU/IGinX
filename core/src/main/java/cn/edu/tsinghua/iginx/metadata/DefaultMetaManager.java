@@ -40,6 +40,7 @@ import cn.edu.tsinghua.iginx.monitor.RequestsMonitor;
 import cn.edu.tsinghua.iginx.policy.simple.ColumnCalDO;
 import cn.edu.tsinghua.iginx.sql.statement.InsertStatement;
 import cn.edu.tsinghua.iginx.thrift.AuthType;
+import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.thrift.UserType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.SnowFlakeUtils;
@@ -1239,14 +1240,15 @@ public class DefaultMetaManager implements IMetaManager {
       }
       boolean readOnly =
           Boolean.parseBoolean(extraParams.getOrDefault(Constants.IS_READ_ONLY, "false"));
-      if (!setSchemaPrefixInExtraParams(storageEngine, extraParams)) {
+      if (!setSchemaPrefixInExtraParams(
+          StorageEngineType.valueOf(storageEngine.toLowerCase()), extraParams)) {
         continue;
       }
       String schemaPrefix = extraParams.get(Constants.SCHEMA_PREFIX);
 
       StorageEngineMeta storage =
           new StorageEngineMeta(
-              i,
+              -1,
               ip,
               port,
               hasData,
@@ -1254,7 +1256,7 @@ public class DefaultMetaManager implements IMetaManager {
               schemaPrefix,
               readOnly,
               extraParams,
-              storageEngine,
+              StorageEngineType.valueOf(storageEngine.toLowerCase()),
               id);
       if (hasData) {
         StorageUnitMeta dummyStorageUnit =

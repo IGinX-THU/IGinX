@@ -22,6 +22,7 @@ import cn.edu.tsinghua.iginx.parquet.exec.NewExecutor;
 import cn.edu.tsinghua.iginx.parquet.exec.RemoteExecutor;
 import cn.edu.tsinghua.iginx.parquet.server.ParquetServer;
 import cn.edu.tsinghua.iginx.parquet.tools.FilterTransformer;
+import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -29,8 +30,6 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,9 +44,14 @@ public class ParquetStorage implements IStorage {
 
   private Executor executor;
 
-  private ExecutorService serverExecutor = Executors.newSingleThreadExecutor();
+  private ParquetServer server = null;
+
+  private Thread thread = null;
 
   public ParquetStorage(StorageEngineMeta meta) throws StorageInitializationException {
+    if (!meta.getStorageEngine().equals(StorageEngineType.parquet)) {
+      throw new StorageInitializationException("unexpected database: " + meta.getStorageEngine());
+    }
     if (isLocal(meta)) {
       initLocalStorage(meta);
     } else {
@@ -73,8 +77,9 @@ public class ParquetStorage implements IStorage {
 
     this.executor =
         new NewExecutor(connection, meta.isHasData(), meta.isReadOnly(), dataDir, dummyDir);
-
-    serverExecutor.submit(new ParquetServer(meta.getPort(), executor));
+    this.server = new ParquetServer(meta.getPort(), executor);
+    this.thread = new Thread(server);
+    thread.start();
   }
 
   private void initRemoteStorage(StorageEngineMeta meta) throws StorageInitializationException {
@@ -182,8 +187,15 @@ public class ParquetStorage implements IStorage {
   }
 
   @Override
-  public void release() throws PhysicalException {
+  public synchronized void release() throws PhysicalException {
     executor.close();
-    serverExecutor.shutdown();
+    if (thread != null) {
+      thread.interrupt();
+      thread = null;
+    }
+    if (server != null) {
+      server.stop();
+      server = null;
+    }
   }
 }
