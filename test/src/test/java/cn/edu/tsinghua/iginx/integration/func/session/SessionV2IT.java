@@ -40,10 +40,10 @@ public class SessionV2IT {
 
   @BeforeClass
   public static void setUp() {
-    ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
-    if (DBType.valueOf(conf.getStorageType().toLowerCase()) == DBType.influxdb) {
-      isInfluxdb = true;
-    }
+//    ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
+//    if (DBType.valueOf(conf.getStorageType().toLowerCase()) == DBType.influxdb) {
+//      isInfluxdb = true;
+//    }
     iginXClient = IginXClientFactory.create("127.0.0.1", 6888);
 
     writeClient = iginXClient.getWriteClient();
@@ -422,7 +422,7 @@ public class SessionV2IT {
                 .endKey(endKey)
                     .addTagsList(Stream.of(
                             new HashMap<String, List<String>>() {{put("k1", Collections.singletonList("v2"));}},
-                            new HashMap<String, List<String>>() {{put("k1", Collections.singletonList("v3"));}},
+                            new HashMap<String, List<String>>() {{put("k1", Collections.singletonList("v4"));}},
                             new HashMap<String, List<String>>() {{put("k1", Collections.singletonList("v6"));}}
                     ).collect(Collectors.toList()))
                     .build());

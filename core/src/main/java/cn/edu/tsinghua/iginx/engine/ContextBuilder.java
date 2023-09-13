@@ -222,11 +222,11 @@ public class ContextBuilder {
 
   private TagFilter constructTagFilterFromTagList(List<Map<String,List<String>>> tagList, TagFilterType type) {
     if (type == null) type = TagFilterType.Or;
-    List<TagFilter> andTagFilterList = new ArrayList<>();
-    List<TagFilter> orTagFilterList = new ArrayList<>();
     switch (type) {
-      case And:
+      case And: //合取范式
+        List<TagFilter> andTagFilterList = new ArrayList<>();
         tagList.forEach(map-> {
+          List<TagFilter> orTagFilterList = new ArrayList<>();
           map.forEach((key, value) -> {
             for(String val: value) {
               orTagFilterList.add(new BaseTagFilter(key, val));
@@ -235,13 +235,15 @@ public class ContextBuilder {
           andTagFilterList.add(new AndTagFilter(orTagFilterList));
         });
         return andTagFilterList.isEmpty() ? null : new AndTagFilter(andTagFilterList);
-      case Or:
+      case Or: //析取范式
+        List<TagFilter> orTagFilterList = new ArrayList<>();
         tagList.forEach(map-> {
-                  map.forEach((key, value) -> andTagFilterList.add(new BaseTagFilter(key, value.get(0))));
-                  orTagFilterList.add(new OrTagFilter(andTagFilterList));
+                  List<TagFilter> andTagList = new ArrayList<>();
+                  map.forEach((key, value) -> andTagList.add(new BaseTagFilter(key, value.get(0))));
+                  orTagFilterList.add(new OrTagFilter(andTagList));
                 });
         return orTagFilterList.isEmpty() ? null : new OrTagFilter(orTagFilterList);
-      case Precise:
+      case Precise: //转换为析取范式
         List<BasePreciseTagFilter> baseTagFilterList = new ArrayList<>();
         List<Map<String, String>> rawTags = convertToDNF(tagList);
         rawTags.forEach(map->

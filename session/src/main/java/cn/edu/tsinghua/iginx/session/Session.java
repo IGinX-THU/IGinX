@@ -288,7 +288,17 @@ public class Session {
   }
 
   public void deleteColumns(List<String> paths) throws SessionException, ExecutionException {
+    deleteColumns(paths, null, null);
+  }
+
+  public void deleteColumns(List<String> paths, List<Map<String, List<String>>> tags, TagFilterType type) throws SessionException, ExecutionException {
     DeleteColumnsReq req = new DeleteColumnsReq(sessionId, mergeAndSortPaths(paths));
+    if (tags !=null && !tags.isEmpty()) {
+      req.setTagsList(tags);
+      if (type!=null) {
+        req.setFilterType(type);
+      }
+    }
     executeWithCheck(() -> client.deleteColumns(req));
   }
 
@@ -734,17 +744,20 @@ public class Session {
 
   public void deleteDataInColumns(List<String> paths, long startKey, long endKey)
       throws SessionException, ExecutionException {
-    deleteDataInColumns(paths, startKey, endKey, null);
+    deleteDataInColumns(paths, startKey, endKey, null,null);
   }
 
   public void deleteDataInColumns(
-      List<String> paths, long startKey, long endKey, List<Map<String,List<String>>> tagsList)
+      List<String> paths, long startKey, long endKey, List<Map<String,List<String>>> tagsList, TagFilterType type)
       throws SessionException, ExecutionException {
     DeleteDataInColumnsReq req =
         new DeleteDataInColumnsReq(sessionId, mergeAndSortPaths(paths), startKey, endKey);
 
     if (tagsList != null && !tagsList.isEmpty()) {
       req.setTagsList(tagsList);
+      if (type!=null) {
+        req.setFilterType(type);
+      }
     }
 
     executeWithCheck(() -> client.deleteDataInColumns(req));

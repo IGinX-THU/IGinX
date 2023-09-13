@@ -847,7 +847,7 @@ public class SessionPool {
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
       try {
-        session.deleteDataInColumns(paths, startKey, endKey, tagsList);
+        session.deleteDataInColumns(paths, startKey, endKey, tagsList, null);
         putBack(session);
         return;
       } catch (SessionException e) {
