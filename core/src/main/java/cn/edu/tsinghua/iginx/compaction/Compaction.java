@@ -134,10 +134,12 @@ public abstract class Compaction {
             pathSet.add(timeSeries);
           }
         }
-        Migration migration =
-            new Migration(
-                new GlobalSource(), fragmentMeta, new ArrayList<>(pathSet), targetStorageUnit);
-        physicalEngine.execute(new RequestContext(), migration);
+        if (!pathSet.isEmpty()) {
+          Migration migration =
+              new Migration(
+                  new GlobalSource(), fragmentMeta, new ArrayList<>(pathSet), targetStorageUnit);
+          physicalEngine.execute(new RequestContext(), migration);
+        }
       }
     }
     // TODO add write lock
