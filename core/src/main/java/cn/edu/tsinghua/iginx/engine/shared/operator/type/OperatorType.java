@@ -25,7 +25,7 @@ public enum OperatorType {
 
   // MultipleOperator[10,19]
   CombineNonQuery(10),
-  Super,
+  Folded,
 
   // isGlobalOperator[20,29]
   ShowTimeSeries(20),
@@ -64,7 +64,8 @@ public enum OperatorType {
   AddSchemaPrefix,
   GroupBy,
   Distinct,
-  ValueToExpression;
+  ProjectWaitingForPath,
+  ValueToSelectedPath;
 
   private int value;
 

@@ -41,6 +41,7 @@ public class UnarySelectStatement extends SelectStatement {
   private boolean hasValueFilter;
   private boolean hasDownsample;
   private boolean hasGroupBy;
+  private boolean hasValueToSelectedPath = false;
 
   private final List<Expression> expressions;
   private final Map<String, List<FuncExpression>> funcExpressionMap;
@@ -297,6 +298,14 @@ public class UnarySelectStatement extends SelectStatement {
     this.hasJoinParts = hasJoinParts;
   }
 
+  public boolean hasValueToSelectedPath() {
+    return hasValueToSelectedPath;
+  }
+
+  public void setHasValueToSelectedPath(boolean hasValueToSelectedPath) {
+    this.hasValueToSelectedPath = hasValueToSelectedPath;
+  }
+
   public Map<String, List<FuncExpression>> getFuncExpressionMap() {
     return funcExpressionMap;
   }
@@ -531,7 +540,8 @@ public class UnarySelectStatement extends SelectStatement {
   public boolean needRowTransform() {
     for (Expression expression : expressions) {
       if (!expression.getType().equals(Expression.ExpressionType.Base)
-          && !expression.getType().equals(Expression.ExpressionType.Function)) {
+          && !expression.getType().equals(Expression.ExpressionType.Function)
+          && !expression.getType().equals(Expression.ExpressionType.FromValue)) {
         return true;
       }
     }

@@ -8,7 +8,7 @@ public class ValueToSelectedPath extends AbstractUnaryOperator {
   private final String prefix;
 
   public ValueToSelectedPath(Source source, String prefix) {
-    super(OperatorType.ValueToExpression, source);
+    super(OperatorType.ValueToSelectedPath, source);
     this.prefix = prefix;
   }
 

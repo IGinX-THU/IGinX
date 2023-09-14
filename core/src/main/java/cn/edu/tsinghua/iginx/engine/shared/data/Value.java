@@ -240,6 +240,28 @@ public class Value {
     }
   }
 
+  public String getAsString() {
+    if (isNull()) {
+      return "";
+    }
+    switch (dataType) {
+      case BINARY:
+        return new String(binaryV);
+      case LONG:
+        return longV.toString();
+      case INTEGER:
+        return intV.toString();
+      case DOUBLE:
+        return doubleV.toString();
+      case FLOAT:
+        return floatV.toString();
+      case BOOLEAN:
+        return boolV.toString();
+      default:
+        return "";
+    }
+  }
+
   public Value copy() {
     return new Value(this.getValue());
   }

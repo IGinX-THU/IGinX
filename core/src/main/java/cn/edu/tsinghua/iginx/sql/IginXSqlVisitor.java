@@ -812,6 +812,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     }
 
     selectStatement.setExpression(new FromValueExpression(subStatement));
+    selectStatement.setHasValueToSelectedPath(true);
   }
 
   private List<Expression> parseExpression(

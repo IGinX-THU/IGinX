@@ -3,6 +3,7 @@ package cn.edu.tsinghua.iginx.sql.expression;
 import cn.edu.tsinghua.iginx.sql.statement.selectstatement.SelectStatement;
 
 public class FromValueExpression implements Expression {
+
   private final SelectStatement subStatement;
 
   public FromValueExpression(SelectStatement subStatement) {
