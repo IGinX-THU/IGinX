@@ -214,15 +214,15 @@ public class QueryParser {
     JsonNode tags = dpnode.get("tags");
     if (tags != null) {
       Iterator<String> fieldNames = tags.fieldNames();
-      Iterator<JsonNode> elements = tags.elements();
-      while (elements.hasNext() && fieldNames.hasNext()) {
-        String key = fieldNames.next();
+      while (fieldNames.hasNext()) {
+        String fieldName = fieldNames.next();
+        JsonNode value = tags.get(fieldName);
         List<String> values = new ArrayList<>();
-        while (elements.hasNext()) {
-          values.add(elements.next().asText());
+        for (JsonNode jsonNode : value) {
+          values.add(jsonNode.asText());
         }
         ret.addTag(new HashMap<String, List<String>>(){{
-          put(key, values);
+          put(fieldName, values);
         }});
       }
     }
