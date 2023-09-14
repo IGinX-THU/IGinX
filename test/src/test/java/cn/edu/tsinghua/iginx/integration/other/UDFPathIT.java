@@ -10,9 +10,6 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Arrays;
-import java.util.List;
-
 public class UDFPathIT {
 
   private static final Logger logger = LoggerFactory.getLogger(UDFPathIT.class);
@@ -24,9 +21,6 @@ public class UDFPathIT {
   private static int defaultTestPort = 6888;
   private static String defaultTestUser = "root";
   private static String defaultTestPass = "root";
-
-  public static final List<String> UDF_LIST =
-          Arrays.asList("mn.wf01.wt01.status", "mn.wf01.wt01.temperature");
 
   @BeforeClass
   public static void setUp() throws SessionException {
@@ -68,13 +62,13 @@ public class UDFPathIT {
 
     String statement = "select cos(value) from aa.bb";
     String expectedRes =
-            "ResultSets:\n" +
-                    "+---+-------------------+\n" +
-                    "|key|   cos(aa.bb.value)|\n" +
-                    "+---+-------------------+\n" +
-                    "|  1|-0.4161468365471424|\n" +
-                    "+---+-------------------+\n" +
-                    "Total line number = 1";
+        "ResultSets:\n"
+            + "+---+-------------------+\n"
+            + "|key|   cos(aa.bb.value)|\n"
+            + "+---+-------------------+\n"
+            + "|  1|-0.4161468365471424|\n"
+            + "+---+-------------------+\n"
+            + "Total line number = 1";
 
     SQLTestTools.executeAndCompare(session, statement, expectedRes);
   }
