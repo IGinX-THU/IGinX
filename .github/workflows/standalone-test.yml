@@ -74,19 +74,6 @@ jobs:
               run: |
                   cat iginx.log
 
-            - name: Restore UDF Config
-              if: always()
-              shell: bash
-              run: |
-                  if [ "$RUNNER_OS" == "Linux" ]; then
-                      sudo sed -i 's/needInitBasicUDFFunctions=true/needInitBasicUDFFunctions=false/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
-                  elif [ "$RUNNER_OS" == "macOS" ]; then
-                      sudo sed -i '' 's/needInitBasicUDFFunctions=true/needInitBasicUDFFunctions=false/' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
-                  else
-                      echo "$RUNNER_OS is not supported"
-                      exit 1
-                  fi
-
             # start db test
             - name: Stop IGinX
               uses: ./.github/actions/iginxRunner
