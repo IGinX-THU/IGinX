@@ -472,7 +472,7 @@ public abstract class BaseCapacityExpansionIT {
             + "+------------------------+--------+\n"
             + "|                    Path|DataType|\n"
             + "+------------------------+--------+\n"
-            + "|    mn.wf01.wt01.status|  BINARY|\n"
+            + "|     mn.wf01.wt01.status|  BINARY|\n"
             + "|mn.wf01.wt01.temperature|  BINARY|\n"
             + "+------------------------+--------+\n"
             + "Total line number = 2\n";
