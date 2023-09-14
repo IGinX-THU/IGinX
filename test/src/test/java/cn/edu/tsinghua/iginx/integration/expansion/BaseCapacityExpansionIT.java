@@ -335,8 +335,8 @@ public abstract class BaseCapacityExpansionIT {
 
     // 添加节点 dataPrefix = dataPrefix1 && schemaPrefix = p1 后查询
     String statement = "select status2 from *";
-    List<String> pathList = Collections.singletonList("p1.nt.wf03.wt01.status2");
-    SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
+    List<String> pathList = Arrays.asList("nt.wf03.wt01.status2", "p1.nt.wf03.wt01.status2");
+    SQLTestTools.executeAndCompare(session, statement, pathList, repeatExpValuesList1);
 
     addStorageEngine(expPort, true, true, dataPrefix1, "p2");
     addStorageEngine(expPort, true, true, dataPrefix1, null);
