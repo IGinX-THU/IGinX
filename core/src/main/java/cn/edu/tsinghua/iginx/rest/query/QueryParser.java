@@ -218,8 +218,8 @@ public class QueryParser {
       while (elements.hasNext() && fieldNames.hasNext()) {
         String key = fieldNames.next();
         List<String> values = new ArrayList<>();
-        for (JsonNode valueNode : elements.next()) {
-          values.add(valueNode.asText());
+        while (elements.hasNext()) {
+          values.add(elements.next().asText());
         }
         ret.addTag(new HashMap<String, List<String>>(){{
           put(key, values);
