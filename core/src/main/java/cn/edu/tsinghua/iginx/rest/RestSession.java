@@ -380,7 +380,7 @@ public class RestSession {
     DeleteDataInColumnsReq req = new DeleteDataInColumnsReq(sessionId, paths, startKey, endKey);
     if (!tagList.isEmpty()) {
       req.setTagsList(tagList);
-      req.setFilterType(TagFilterType.And);
+      req.setFilterType(TagFilterType.Or);
     }
     req.setTimePrecision(timePrecision);
 

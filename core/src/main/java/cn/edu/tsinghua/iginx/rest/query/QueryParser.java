@@ -218,8 +218,12 @@ public class QueryParser {
         String fieldName = fieldNames.next();
         JsonNode value = tags.get(fieldName);
         List<String> values = new ArrayList<>();
-        for (JsonNode jsonNode : value) {
-          values.add(jsonNode.asText());
+        if (value.isArray()) {
+          for (JsonNode jsonNode : value) {
+            values.add(jsonNode.asText());
+          }
+        } else {
+          values.add(value.asText());
         }
         ret.addTag(new HashMap<String, List<String>>(){{
           put(fieldName, values);
