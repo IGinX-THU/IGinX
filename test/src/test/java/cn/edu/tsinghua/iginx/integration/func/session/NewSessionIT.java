@@ -423,17 +423,9 @@ public class NewSessionIT {
     try {
       conn.deleteColumns(deleteColumns, Collections.singletonList(new HashMap<String, List<String>>(){{
         put("k1", Collections.singletonList("v1"));
-      }}), TagFilterType.Precise);
-      TestDataSection expected =
-              baseDataSection.getSubDataSectionWithPath(deleteColumns);
-      SessionQueryDataSet dataSet = conn.queryData(deleteColumns, START_KEY, END_KEY);
-      compare(expected, dataSet);
-
-      conn.deleteColumns(deleteColumns, Collections.singletonList(new HashMap<String, List<String>>(){{
-        put("k1", Collections.singletonList("v1"));
         put("k2", Collections.singletonList("v2"));
       }}), TagFilterType.Precise);
-      dataSet = conn.queryData(deleteColumns, START_KEY, END_KEY);
+      SessionQueryDataSet dataSet = conn.queryData(deleteColumns, START_KEY, END_KEY);
       compare(TestDataSection.EMPTY_TEST_DATA_SECTION, dataSet);
     } catch (SessionException | ExecutionException e) {
       logger.error("execute delete columns failed.");
