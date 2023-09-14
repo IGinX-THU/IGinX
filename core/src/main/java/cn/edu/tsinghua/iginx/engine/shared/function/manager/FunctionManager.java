@@ -69,7 +69,7 @@ public class FunctionManager {
   private static final String PY_SUFFIX = ".py";
 
   private static final String PATH =
-      String.join(File.separator, config.getDefaultUDFFilePath(), "python_scripts");
+      String.join(File.separator, config.getDefaultUDFDir(), "python_scripts");
 
   private FunctionManager() {
     this.functions = new HashMap<>();
