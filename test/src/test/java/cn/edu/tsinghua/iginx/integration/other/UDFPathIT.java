@@ -68,7 +68,7 @@ public class UDFPathIT {
             + "+---+-------------------+\n"
             + "|  1|-0.4161468365471424|\n"
             + "+---+-------------------+\n"
-            + "Total line number = 1";
+            + "Total line number = 1\n";
 
     SQLTestTools.executeAndCompare(session, statement, expectedRes);
   }
