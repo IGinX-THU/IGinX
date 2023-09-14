@@ -54,12 +54,9 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+
+import java.util.*;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.iotdb.rpc.IoTDBConnectionException;
@@ -304,13 +301,11 @@ public class IoTDBStorage implements IStorage {
       Project project, Filter filter, String storageUnit) {
     try {
       StringBuilder builder = new StringBuilder();
-      for (String path : project.getPatterns()) {
+      List<String> paths = determinePathList(storageUnit, project.getPatterns());
+      for (String path : paths) {
         // TODO 暂时屏蔽含有\的pattern
         if (path.contains("\\")) {
           return new TaskExecuteResult(new EmptyRowStream());
-        }
-        if (path.startsWith("*") && path.indexOf("*.", 1)!=2) {
-          path = "*." + path;
         }
         builder.append(path);
         builder.append(',');
@@ -353,7 +348,8 @@ public class IoTDBStorage implements IStorage {
   private TaskExecuteResult executeProjectDummyWithFilter(Project project, Filter filter) {
     try {
       StringBuilder builder = new StringBuilder();
-      for (String path : project.getPatterns()) {
+      List<String> paths = determinePathList(null, project.getPatterns());
+      for (String path : paths) {
         // TODO 暂时屏蔽含有\的pattern
         if (path.contains("\\")) {
           return new TaskExecuteResult(new EmptyRowStream());
@@ -814,5 +810,53 @@ public class IoTDBStorage implements IStorage {
       }
       return pathList;
     }
+  }
+
+  private List<String> determinePathList(
+      String storageUnit, List<String> patterns) throws IoTDBConnectionException, StatementExecutionException {
+    List<String> paths = new ArrayList<>();
+    String showColumns = SHOW_TIMESERIES;
+    showColumns = storageUnit ==null ? showColumns: showColumns + " " + PREFIX + storageUnit;
+    SessionDataSetWrapper dataSet = sessionPool.executeQueryStatement(showColumns);
+    while (dataSet.hasNext()) {
+      RowRecord record = dataSet.next();
+      if (record == null || record.getFields().size() < 4) {
+        continue;
+      }
+      String path = record.getFields().get(0).getStringValue();
+      path = path.substring(5); // remove root.
+      boolean isDummy = true;
+      if (path.startsWith("unit")) {
+        path = path.substring(path.indexOf('.') + 1);
+        isDummy = false;
+      }
+      if (!isDummy && storageUnit == null) {
+        continue;
+      }
+      Pair<String, Map<String, String>> pair = TagKVUtils.splitFullName(path);
+      if (patterns == null || patterns.isEmpty()) {
+          paths.add(pair.k);
+      } else {
+        for (String pattern : patterns) {
+          if (match(pair.k, pattern)) {
+              paths.add(pair.k);
+              break;
+          }
+        }
+      }
+    }
+    dataSet.close();
+    return paths.isEmpty() ? patterns: paths;
+  }
+
+  private boolean match(String s, String p) {
+    // 将输入的字符串p转换为正则表达式
+    String regex = p.replace(".", "\\.").replace("*", ".*");
+
+    // 使用正则表达式匹配字符串s
+    Pattern pattern = Pattern.compile(regex);
+    Matcher matcher = pattern.matcher(s);
+
+    return matcher.matches();
   }
 }
