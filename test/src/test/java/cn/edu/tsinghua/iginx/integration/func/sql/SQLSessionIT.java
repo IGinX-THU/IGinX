@@ -4216,6 +4216,19 @@ public class SQLSessionIT {
             + "+---+--------+--------+\n"
             + "Total line number = 4\n";
     executor.executeAndCompare(statement, expected);
+
+    statement =
+        "SELECT value2meta(SELECT suffix FROM prefix_test WHERE type = \"boolean\") FROM test GROUP BY c.b;";
+    expected =
+        "ResultSets:\n"
+            + "+--------+\n"
+            + "|test.c.b|\n"
+            + "+--------+\n"
+            + "|   false|\n"
+            + "|    true|\n"
+            + "+--------+\n"
+            + "Total line number = 2\n";
+    executor.executeAndCompare(statement, expected);
   }
 
   @Test
