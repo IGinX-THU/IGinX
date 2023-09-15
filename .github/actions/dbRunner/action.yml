@@ -45,10 +45,10 @@ runs:
           run: |
               if [ "$RUNNER_OS" == "Linux" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/parquet.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/parquet.sh" 6667 6888 test/mn test/iginx_mn
+                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/parquet.sh" 6667 6888 test/mn test/iginx_mn false false
               elif [ "$RUNNER_OS" == "macOS" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/parquet_macos.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/parquet_macos.sh" 6667 6888 test/mn test/iginx_mn
+                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/parquet_macos.sh" 6667 6888 test/mn test/iginx_mn false false
               else
                 echo "$RUNNER_OS is not supported"
                 exit 1
@@ -75,10 +75,10 @@ runs:
           run: |
               if [ "$RUNNER_OS" == "Linux" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/filesystem.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/filesystem.sh" 6667 6888 test/mn test/iginx_mn
+                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/filesystem.sh" 6667 6888 test/mn test/iginx_mn false false
               elif [ "$RUNNER_OS" == "macOS" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/filesystem_macos.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/filesystem_macos.sh" 6667 6888 test/mn test/iginx_mn
+                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/filesystem_macos.sh" 6667 6888 test/mn test/iginx_mn false false
               else
                 echo "$RUNNER_OS is not supported"
                 exit 1
