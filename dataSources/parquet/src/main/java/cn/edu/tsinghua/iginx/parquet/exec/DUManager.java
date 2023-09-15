@@ -354,15 +354,13 @@ public class DUManager {
 
   private boolean isEmptyReq(DataView dataView) {
     if (dataView.getPathNum() > 0 && dataView.getKeySize() > 0) {
-      return true;
+      return false;
     }
-    return false;
+    return true;
   }
 
   public void insert(DataView dataView) throws SQLException {
     if (isEmptyReq(dataView)) {
-      logger.info(String.valueOf(dataView.getPathNum()));
-      logger.info(String.valueOf(dataView.getKeySize()));
       logger.warn(String.format("Inserting empty data into %s", id));
       return;
     }
