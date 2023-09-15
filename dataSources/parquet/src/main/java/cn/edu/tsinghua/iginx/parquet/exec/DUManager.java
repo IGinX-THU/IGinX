@@ -362,6 +362,8 @@ public class DUManager {
 
   public void insert(DataView dataView) throws SQLException {
     if (isEmptyReq(dataView)) {
+      logger.info(dataView.getPaths().toString());
+      logger.info(String.valueOf(dataView.getPathNum()));
       logger.warn(String.format("Inserting empty data into %s", id));
       return;
     }
