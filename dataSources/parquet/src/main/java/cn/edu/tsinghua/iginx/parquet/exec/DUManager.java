@@ -354,7 +354,7 @@ public class DUManager {
 
   private boolean isEmptyReq(DataView dataView) {
     DataViewWrapper data = new DataViewWrapper(dataView);
-    if (data.getPathNum() > 0 && data.getKeySize() > 0) {
+    if (data.getPathNum() > 0) {
       return true;
     }
     return false;
