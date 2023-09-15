@@ -6,7 +6,6 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
 import org.apache.commons.lang3.RandomStringUtils;
 
 public class TagKVSessionExample {
@@ -94,10 +93,19 @@ public class TagKVSessionExample {
     SessionQueryDataSet dataSet = session.queryData(paths, startKey, endKey, null);
     dataSet.print();
 
-    List<Map<String, List<String>>> tagsList = Stream.of(
-            new HashMap<String, List<String>>() {{put("k", Collections.singletonList("v1"));}},
-            new HashMap<String, List<String>>() {{put("k",  Arrays.asList("v3"));}}
-    ).collect(Collectors.toList());
+    List<Map<String, List<String>>> tagsList =
+        Stream.of(
+                new HashMap<String, List<String>>() {
+                  {
+                    put("k", Collections.singletonList("v1"));
+                  }
+                },
+                new HashMap<String, List<String>>() {
+                  {
+                    put("k", Arrays.asList("v3"));
+                  }
+                })
+            .collect(Collectors.toList());
 
     dataSet = session.queryData(paths, startKey, endKey, tagsList);
     dataSet.print();

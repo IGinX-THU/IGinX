@@ -30,7 +30,10 @@ public class SimpleQuery extends Query {
   private final String timePrecision;
 
   private SimpleQuery(
-      Set<String> measurements, List<Map<String,List<String>>> tagsList, long startKey, long endKey) {
+      Set<String> measurements,
+      List<Map<String, List<String>>> tagsList,
+      long startKey,
+      long endKey) {
     super(Collections.unmodifiableSet(measurements), tagsList);
     this.startKey = startKey;
     this.endKey = endKey;
@@ -39,7 +42,7 @@ public class SimpleQuery extends Query {
 
   private SimpleQuery(
       Set<String> measurements,
-      List<Map<String,List<String>>> tagsList,
+      List<Map<String, List<String>>> tagsList,
       long startKey,
       long endKey,
       String timePrecision) {
@@ -69,7 +72,7 @@ public class SimpleQuery extends Query {
 
     private final Set<String> measurements;
 
-    private final List<Map<String,List<String>>> tagsList;
+    private final List<Map<String, List<String>>> tagsList;
 
     private long startKey;
 
@@ -102,7 +105,7 @@ public class SimpleQuery extends Query {
       return this;
     }
 
-    public SimpleQuery.Builder addTagsList(List<Map<String,List<String>>> tagsList) {
+    public SimpleQuery.Builder addTagsList(List<Map<String, List<String>>> tagsList) {
       Arguments.checkListNonEmpty(tagsList, "valueList");
       this.tagsList.addAll(tagsList);
       return this;

@@ -225,9 +225,12 @@ public class QueryParser {
         } else {
           values.add(value.asText());
         }
-        ret.addTag(new HashMap<String, List<String>>(){{
-          put(fieldName, values);
-        }});
+        ret.addTag(
+            new HashMap<String, List<String>>() {
+              {
+                put(fieldName, values);
+              }
+            });
       }
     }
     return ret;
@@ -676,7 +679,7 @@ public class QueryParser {
     Map<String, String> result = getTagsFromPaths(path, name);
 
     Map<String, List<String>> tags = new HashMap<>();
-    result.forEach((key, val)->tags.put(key, Collections.singletonList(val)));
+    result.forEach((key, val) -> tags.put(key, Collections.singletonList(val)));
     queryMetric.addTag(tags);
     queryMetric.setName(name.toString());
     return queryMetric;
@@ -774,7 +777,7 @@ public class QueryParser {
     name.append("." + tagSuffix);
 
     Map<String, List<String>> kv = new HashMap<>();
-    tags.forEach((key, val)->kv.put(key, Collections.singletonList(val)));
+    tags.forEach((key, val) -> kv.put(key, Collections.singletonList(val)));
     metric.addTag(kv);
     metric.setPathName(name.toString());
     return metric;

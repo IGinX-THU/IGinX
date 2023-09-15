@@ -220,35 +220,37 @@ public class ContextBuilder {
     return new RequestContext(req.getSessionId(), statement);
   }
 
-  private TagFilter constructTagFilterFromTagList(List<Map<String,List<String>>> tagList, TagFilterType type) {
+  private TagFilter constructTagFilterFromTagList(
+      List<Map<String, List<String>>> tagList, TagFilterType type) {
     if (type == null) type = TagFilterType.Or;
     switch (type) {
-      case And: //合取范式
+      case And: // 合取范式
         List<TagFilter> andTagFilterList = new ArrayList<>();
-        tagList.forEach(map-> {
-          List<TagFilter> orTagFilterList = new ArrayList<>();
-          map.forEach((key, value) -> {
-            for(String val: value) {
-              orTagFilterList.add(new BaseTagFilter(key, val));
-            }
-          });
-          andTagFilterList.add(new AndTagFilter(orTagFilterList));
-        });
+        tagList.forEach(
+            map -> {
+              List<TagFilter> orTagFilterList = new ArrayList<>();
+              map.forEach(
+                  (key, value) -> {
+                    for (String val : value) {
+                      orTagFilterList.add(new BaseTagFilter(key, val));
+                    }
+                  });
+              andTagFilterList.add(new AndTagFilter(orTagFilterList));
+            });
         return andTagFilterList.isEmpty() ? null : new AndTagFilter(andTagFilterList);
-      case Or: //析取范式
+      case Or: // 析取范式
         List<TagFilter> orTagFilterList = new ArrayList<>();
-        tagList.forEach(map-> {
-                  List<TagFilter> andTagList = new ArrayList<>();
-                  map.forEach((key, value) -> andTagList.add(new BaseTagFilter(key, value.get(0))));
-                  orTagFilterList.add(new OrTagFilter(andTagList));
-                });
+        tagList.forEach(
+            map -> {
+              List<TagFilter> andTagList = new ArrayList<>();
+              map.forEach((key, value) -> andTagList.add(new BaseTagFilter(key, value.get(0))));
+              orTagFilterList.add(new OrTagFilter(andTagList));
+            });
         return orTagFilterList.isEmpty() ? null : new OrTagFilter(orTagFilterList);
-      case Precise: //转换为析取范式
+      case Precise: // 转换为析取范式
         List<BasePreciseTagFilter> baseTagFilterList = new ArrayList<>();
         List<Map<String, String>> rawTags = convertToDNF(tagList);
-        rawTags.forEach(map->
-          baseTagFilterList.add(new BasePreciseTagFilter(map)
-        ));
+        rawTags.forEach(map -> baseTagFilterList.add(new BasePreciseTagFilter(map)));
         return baseTagFilterList.isEmpty() ? null : new PreciseTagFilter(baseTagFilterList);
       case WithoutTag:
         return new WithoutTagFilter();
@@ -260,14 +262,19 @@ public class ContextBuilder {
   private List<Map<String, String>> convertToDNF(List<Map<String, List<String>>> tagList) {
     List<Map<String, String>> dnfList = new ArrayList<>();
     List<Map.Entry<String, List<String>>> valList = new ArrayList<>();
-    tagList.forEach(map-> {
-      valList.addAll(map.entrySet());
-    });
-    tagList.forEach(map -> generateDNF(valList, 0, new HashMap<>(),dnfList));
+    tagList.forEach(
+        map -> {
+          valList.addAll(map.entrySet());
+        });
+    tagList.forEach(map -> generateDNF(valList, 0, new HashMap<>(), dnfList));
     return dnfList;
   }
 
-  private void generateDNF(List<Map.Entry<String, List<String>>> entry, int index, Map<String, String> currentMap, List<Map<String, String>> dnfList) {
+  private void generateDNF(
+      List<Map.Entry<String, List<String>>> entry,
+      int index,
+      Map<String, String> currentMap,
+      List<Map<String, String>> dnfList) {
     if (index == entry.size()) {
       dnfList.add(currentMap);
       return;
@@ -277,7 +284,7 @@ public class ContextBuilder {
     List<String> valList = entry.get(index).getValue();
     for (String val : valList) {
       currentMap.put(key, val);
-      generateDNF(entry, index+1, new HashMap<>(currentMap), dnfList);
+      generateDNF(entry, index + 1, new HashMap<>(currentMap), dnfList);
     }
   }
 }

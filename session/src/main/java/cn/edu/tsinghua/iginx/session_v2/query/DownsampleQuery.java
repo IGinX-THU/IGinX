@@ -36,7 +36,7 @@ public class DownsampleQuery extends Query {
 
   public DownsampleQuery(
       Set<String> measurements,
-      List<Map<String,List<String>>> tagsList,
+      List<Map<String, List<String>>> tagsList,
       long startKey,
       long endKey,
       AggregateType aggregateType,
@@ -51,7 +51,7 @@ public class DownsampleQuery extends Query {
 
   public DownsampleQuery(
       Set<String> measurements,
-      List<Map<String,List<String>>> tagsList,
+      List<Map<String, List<String>>> tagsList,
       long startKey,
       long endKey,
       AggregateType aggregateType,
@@ -93,7 +93,7 @@ public class DownsampleQuery extends Query {
 
     private final Set<String> measurements;
 
-    private final List<Map<String,List<String>>> tagsList;
+    private final List<Map<String, List<String>>> tagsList;
 
     private long startKey;
 
@@ -131,7 +131,7 @@ public class DownsampleQuery extends Query {
       return this;
     }
 
-    public DownsampleQuery.Builder addTagsList(List<Map<String,List<String>>> tagsList) {
+    public DownsampleQuery.Builder addTagsList(List<Map<String, List<String>>> tagsList) {
       Arguments.checkListNonEmpty(tagsList, "valueList");
       this.tagsList.addAll(tagsList);
       return this;

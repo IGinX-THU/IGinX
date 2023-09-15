@@ -27,7 +27,8 @@ public class LastQuery extends Query {
 
   private final String timePrecision;
 
-  public LastQuery(Set<String> measurements, List<Map<String,List<String>>> tagsList, long startKey) {
+  public LastQuery(
+      Set<String> measurements, List<Map<String, List<String>>> tagsList, long startKey) {
     super(measurements, tagsList);
     this.startKey = startKey;
     this.timePrecision = null;
@@ -35,7 +36,7 @@ public class LastQuery extends Query {
 
   public LastQuery(
       Set<String> measurements,
-      List<Map<String,List<String>>> tagsList,
+      List<Map<String, List<String>>> tagsList,
       long startKey,
       String timePrecision) {
     super(measurements, tagsList);
@@ -59,7 +60,7 @@ public class LastQuery extends Query {
 
     private final Set<String> measurements;
 
-    private final List<Map<String,List<String>>> tagsList;
+    private final List<Map<String, List<String>>> tagsList;
 
     private long startKey;
 
@@ -89,7 +90,7 @@ public class LastQuery extends Query {
       return this;
     }
 
-    public LastQuery.Builder addTagsList(List<Map<String,List<String>>> tagsList) {
+    public LastQuery.Builder addTagsList(List<Map<String, List<String>>> tagsList) {
       Arguments.checkListNonEmpty(tagsList, "valueList");
       this.tagsList.addAll(tagsList);
       return this;

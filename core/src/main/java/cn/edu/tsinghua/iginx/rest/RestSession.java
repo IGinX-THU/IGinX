@@ -137,11 +137,13 @@ public class RestSession {
     RpcUtils.verifySuccess(status);
   }
 
-  public void deleteColumn(String path, List<Map<String,List<String>>> tagList) throws ExecutionException {
+  public void deleteColumn(String path, List<Map<String, List<String>>> tagList)
+      throws ExecutionException {
     deleteColumns(Collections.singletonList(path), tagList);
   }
 
-  public void deleteColumns(List<String> paths, List<Map<String,List<String>>> tagList) throws ExecutionException {
+  public void deleteColumns(List<String> paths, List<Map<String, List<String>>> tagList)
+      throws ExecutionException {
     DeleteColumnsReq req = new DeleteColumnsReq(sessionId, paths);
     if (!tagList.isEmpty()) {
       req.setTagsList(tagList);
@@ -360,20 +362,20 @@ public class RestSession {
   }
 
   public void deleteDataInColumn(
-      String path, List<Map<String,List<String>>> tagList, long startKey, long endKey) {
+      String path, List<Map<String, List<String>>> tagList, long startKey, long endKey) {
     List<String> paths = new ArrayList<>();
     paths.add(path);
     deleteDataInColumns(paths, tagList, startKey, endKey);
   }
 
   public void deleteDataInColumns(
-      List<String> paths, List<Map<String,List<String>>> tagList, long startKey, long endKey) {
+      List<String> paths, List<Map<String, List<String>>> tagList, long startKey, long endKey) {
     deleteDataInColumns(paths, tagList, startKey, endKey, TimeUtils.DEFAULT_TIMESTAMP_PRECISION);
   }
 
   public void deleteDataInColumns(
       List<String> paths,
-      List<Map<String,List<String>>> tagList,
+      List<Map<String, List<String>>> tagList,
       long startKey,
       long endKey,
       TimePrecision timePrecision) {
@@ -396,7 +398,7 @@ public class RestSession {
   }
 
   public SessionQueryDataSet queryData(
-      List<String> paths, long startKey, long endKey, List<Map<String,List<String>>> tagList) {
+      List<String> paths, long startKey, long endKey, List<Map<String, List<String>>> tagList) {
     return queryData(paths, startKey, endKey, tagList, TimeUtils.DEFAULT_TIMESTAMP_PRECISION);
   }
 
@@ -404,7 +406,7 @@ public class RestSession {
       List<String> paths,
       long startKey,
       long endKey,
-      List<Map<String,List<String>>> tagList,
+      List<Map<String, List<String>>> tagList,
       TimePrecision timePrecision) {
     if (paths.isEmpty() || startKey > endKey) {
       logger.error("Invalid query request!");
@@ -435,7 +437,7 @@ public class RestSession {
       List<String> paths,
       long startKey,
       long endKey,
-      List<Map<String,List<String>>> tagList,
+      List<Map<String, List<String>>> tagList,
       AggregateType aggregateType,
       TimePrecision timePrecision) {
     AggregateQueryReq req =
@@ -459,7 +461,7 @@ public class RestSession {
 
   public SessionQueryDataSet downsampleQuery(
       List<String> paths,
-      List<Map<String,List<String>>> tagList,
+      List<Map<String, List<String>>> tagList,
       long startKey,
       long endKey,
       AggregateType aggregateType,

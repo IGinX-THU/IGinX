@@ -106,7 +106,7 @@ public abstract class QueryAggregator {
   public QueryResultDataset doAggregate(
       RestSession session,
       List<String> paths,
-      List<Map<String,List<String>>> tagList,
+      List<Map<String, List<String>>> tagList,
       long startKey,
       long endKey) {
     return doAggregate(
@@ -116,7 +116,7 @@ public abstract class QueryAggregator {
   public QueryResultDataset doAggregate(
       RestSession session,
       List<String> paths,
-      List<Map<String,List<String>>> tagList,
+      List<Map<String, List<String>>> tagList,
       long startKey,
       long endKey,
       TimePrecision timePrecision) {

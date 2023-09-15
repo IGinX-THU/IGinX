@@ -34,7 +34,7 @@ public class AggregateQuery extends Query {
 
   public AggregateQuery(
       Set<String> measurements,
-      List<Map<String,List<String>>> tagsList,
+      List<Map<String, List<String>>> tagsList,
       long startKey,
       long endKey,
       AggregateType aggregateType) {
@@ -47,7 +47,7 @@ public class AggregateQuery extends Query {
 
   public AggregateQuery(
       Set<String> measurements,
-      List<Map<String,List<String>>> tagsList,
+      List<Map<String, List<String>>> tagsList,
       long startKey,
       long endKey,
       AggregateType aggregateType,
@@ -83,7 +83,7 @@ public class AggregateQuery extends Query {
 
     private final Set<String> measurements;
 
-    private final List<Map<String,List<String>>> tagsList;
+    private final List<Map<String, List<String>>> tagsList;
 
     private long startKey;
 

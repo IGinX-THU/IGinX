@@ -544,7 +544,9 @@ public class SessionPool {
     }
   }
 
-  public void deleteColumns(List<String> paths, List<Map<String, List<String>>> tags, TagFilterType type) throws SessionException, ExecutionException {
+  public void deleteColumns(
+      List<String> paths, List<Map<String, List<String>>> tags, TagFilterType type)
+      throws SessionException, ExecutionException {
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
       try {
@@ -861,7 +863,11 @@ public class SessionPool {
   }
 
   public void deleteDataInColumns(
-      List<String> paths, long startKey, long endKey, List<Map<String,List<String>>> tagsList, TagFilterType type)
+      List<String> paths,
+      long startKey,
+      long endKey,
+      List<Map<String, List<String>>> tagsList,
+      TagFilterType type)
       throws SessionException, ExecutionException {
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
@@ -902,7 +908,7 @@ public class SessionPool {
   }
 
   public SessionQueryDataSet queryData(
-      List<String> paths, long startKey, long endKey, List<Map<String,List<String>>> tagsList)
+      List<String> paths, long startKey, long endKey, List<Map<String, List<String>>> tagsList)
       throws SessionException, ExecutionException {
     SessionQueryDataSet sessionQueryDataSet = null;
     for (int i = 0; i < RETRY; i++) {
@@ -1002,7 +1008,7 @@ public class SessionPool {
       long endKey,
       AggregateType aggregateType,
       long precision,
-      List<Map<String,List<String>>> tagsList)
+      List<Map<String, List<String>>> tagsList)
       throws SessionException, ExecutionException {
     SessionQueryDataSet sessionQueryDataSet = null;
     for (int i = 0; i < RETRY; i++) {
@@ -1087,7 +1093,7 @@ public class SessionPool {
   }
 
   public SessionQueryDataSet queryLast(
-      List<String> paths, long startKey, List<Map<String,List<String>>> tagsList)
+      List<String> paths, long startKey, List<Map<String, List<String>>> tagsList)
       throws SessionException, ExecutionException {
     SessionQueryDataSet sessionQueryDataSet = null;
     for (int i = 0; i < RETRY; i++) {
