@@ -136,12 +136,12 @@ public abstract class Compaction {
         }
 
         // TODO: pathSet 不应为空，目前通过判空做补丁，有待深入处理
-        //        if (!pathSet.isEmpty()) {
-        Migration migration =
-            new Migration(
-                new GlobalSource(), fragmentMeta, new ArrayList<>(pathSet), targetStorageUnit);
-        physicalEngine.execute(new RequestContext(), migration);
-        //        }
+        if (!pathSet.isEmpty()) {
+          Migration migration =
+              new Migration(
+                  new GlobalSource(), fragmentMeta, new ArrayList<>(pathSet), targetStorageUnit);
+          physicalEngine.execute(new RequestContext(), migration);
+        }
       }
     }
     // TODO add write lock

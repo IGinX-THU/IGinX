@@ -233,14 +233,14 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   private void testQueryHistoryDataOriNoData() {
-    String statement = "select * from mn";
+    String statement = "select wf01.wt01.status, wf01.wt01.temperature from mn";
     String expect =
         "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
   }
 
   private void testQueryHistoryDataExpNoData() {
-    String statement = "select * from nt";
+    String statement = "select wf03.wt01.status, wf04.wt01.temperature from nt";
     String expect =
         "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
