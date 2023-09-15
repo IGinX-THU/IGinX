@@ -1,8 +1,6 @@
-package cn.edu.tsinghua.iginx.parquet.entity;
+package cn.edu.tsinghua.iginx.utils;
 
-import cn.edu.tsinghua.iginx.parquet.thrift.ParquetService.Client;
 import java.util.concurrent.ConcurrentLinkedDeque;
-import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
@@ -42,19 +40,34 @@ public class ThriftConnPool {
     size = 0;
   }
 
-  public Client borrowClient() {
+  public TTransport borrowAndOpenTransport() {
+    try {
+      TTransport transport = borrowTransport();
+      if (transport != null && !transport.isOpen()) {
+        transport.open();
+      }
+      return transport;
+    } catch (TTransportException e) {
+      logger.error("creating new connection failed:" + e);
+      return null;
+    }
+  }
+
+  private TTransport borrowTransport() {
     if (isClosed()) {
       logger.error("client pool closed.");
       return null;
     }
     TTransport transport = availableTransportQueue.poll();
     if (transport != null) {
-      return new Client(new TBinaryProtocol(transport));
+      return transport;
     }
 
     boolean canCreate = false;
     synchronized (this) {
-      if (size < this.max_size) canCreate = true;
+      if (size < this.max_size) {
+        canCreate = true;
+      }
     }
 
     if (canCreate) {
@@ -64,9 +77,6 @@ public class ThriftConnPool {
           return null;
         }
         transport = newTransport();
-        if (!transport.isOpen()) {
-          transport.open();
-        }
       } catch (TTransportException e) {
         logger.error("creating new connection failed:" + e);
         return null;
@@ -97,20 +107,22 @@ public class ThriftConnPool {
       }
     }
 
-    return new Client(new TBinaryProtocol(transport));
+    return transport;
   }
 
   private synchronized boolean isClosed() {
     return closed;
   }
 
-  public void returnClient(Client client) {
+  public void returnAndCloseTransport(TTransport transport) {
+    if (transport.isOpen()) {
+      transport.close();
+    }
     if (isClosed()) {
-      client.getInputProtocol().getTransport().close();
       logger.warn("returning connection to a closed connection pool.");
       return;
     }
-    availableTransportQueue.offer(client.getInputProtocol().getTransport());
+    availableTransportQueue.offer(transport);
     synchronized (this) {
       this.notify();
     }

@@ -20,7 +20,6 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.tag.PreciseTagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
-import cn.edu.tsinghua.iginx.parquet.entity.ThriftConnPool;
 import cn.edu.tsinghua.iginx.parquet.thrift.*;
 import cn.edu.tsinghua.iginx.parquet.thrift.ParquetService.Client;
 import cn.edu.tsinghua.iginx.thrift.DataType;
@@ -28,12 +27,15 @@ import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.ByteUtils;
 import cn.edu.tsinghua.iginx.utils.DataTypeUtils;
 import cn.edu.tsinghua.iginx.utils.Pair;
+import cn.edu.tsinghua.iginx.utils.ThriftConnPool;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.thrift.TException;
+import org.apache.thrift.protocol.TBinaryProtocol;
+import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,10 +67,10 @@ public class RemoteExecutor implements Executor {
       req.setFilter(filter);
     }
 
-    try {
-      Client client = thriftConnPool.borrowClient();
+    try (TTransport transport = thriftConnPool.borrowAndOpenTransport()) {
+      Client client = new Client(new TBinaryProtocol(transport));
       ProjectResp resp = client.executeProject(req);
-      thriftConnPool.returnClient(client);
+      thriftConnPool.returnAndCloseTransport(transport);
       if (resp.getStatus().code == SUCCESS_CODE) {
         ParquetHeader parquetHeader = resp.getHeader();
         List<DataType> dataTypes = new ArrayList<>();
@@ -151,10 +153,10 @@ public class RemoteExecutor implements Executor {
             dataView.getRawDataType().toString());
 
     InsertReq req = new InsertReq(storageUnit, parquetRawData);
-    try {
-      Client client = thriftConnPool.borrowClient();
+    try (TTransport transport = thriftConnPool.borrowAndOpenTransport()) {
+      Client client = new Client(new TBinaryProtocol(transport));
       Status status = client.executeInsert(req);
-      thriftConnPool.returnClient(client);
+      thriftConnPool.returnAndCloseTransport(transport);
       if (status.code == SUCCESS_CODE) {
         return new TaskExecuteResult(null, null);
       } else {
@@ -238,10 +240,10 @@ public class RemoteExecutor implements Executor {
       req.setKeyRanges(parquetKeyRanges);
     }
 
-    try {
-      Client client = thriftConnPool.borrowClient();
+    try (TTransport transport = thriftConnPool.borrowAndOpenTransport()) {
+      Client client = new Client(new TBinaryProtocol(transport));
       Status status = client.executeDelete(req);
-      thriftConnPool.returnClient(client);
+      thriftConnPool.returnAndCloseTransport(transport);
       if (status.code == SUCCESS_CODE) {
         return new TaskExecuteResult(null, null);
       } else {
@@ -313,10 +315,10 @@ public class RemoteExecutor implements Executor {
 
   @Override
   public List<Column> getColumnsOfStorageUnit(String storageUnit) throws PhysicalException {
-    try {
-      Client client = thriftConnPool.borrowClient();
+    try (TTransport transport = thriftConnPool.borrowAndOpenTransport()) {
+      Client client = new Client(new TBinaryProtocol(transport));
       GetColumnsOfStorageUnitResp resp = client.getColumnsOfStorageUnit(storageUnit);
-      thriftConnPool.returnClient(client);
+      thriftConnPool.returnAndCloseTransport(transport);
       List<Column> columnList = new ArrayList<>();
       resp.getTsList()
           .forEach(
@@ -334,10 +336,10 @@ public class RemoteExecutor implements Executor {
 
   @Override
   public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage() throws PhysicalException {
-    try {
-      Client client = thriftConnPool.borrowClient();
+    try (TTransport transport = thriftConnPool.borrowAndOpenTransport()) {
+      Client client = new Client(new TBinaryProtocol(transport));
       GetStorageBoundaryResp resp = client.getBoundaryOfStorage();
-      thriftConnPool.returnClient(client);
+      thriftConnPool.returnAndCloseTransport(transport);
       return new Pair<>(
           new ColumnsInterval(resp.getStartColumn(), resp.getEndColumn()),
           new KeyInterval(resp.getStartKey(), resp.getEndKey()));

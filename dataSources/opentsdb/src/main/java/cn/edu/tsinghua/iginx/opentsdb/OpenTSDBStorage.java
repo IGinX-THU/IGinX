@@ -28,6 +28,7 @@ import cn.edu.tsinghua.iginx.opentsdb.query.entity.OpenTSDBSchema;
 import cn.edu.tsinghua.iginx.opentsdb.tools.DataViewWrapper;
 import cn.edu.tsinghua.iginx.opentsdb.tools.TagKVUtils;
 import cn.edu.tsinghua.iginx.thrift.DataType;
+import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.io.IOException;
@@ -49,8 +50,6 @@ import org.slf4j.LoggerFactory;
 
 public class OpenTSDBStorage implements IStorage {
 
-  private static final String STORAGE_ENGINE = "opentsdb";
-
   private static final String DU_PREFIX = "unit";
 
   private static final int HTTP_CONNECT_POOL_SIZE = 100;
@@ -65,7 +64,7 @@ public class OpenTSDBStorage implements IStorage {
 
   public OpenTSDBStorage(StorageEngineMeta meta) throws StorageInitializationException {
     this.meta = meta;
-    if (!meta.getStorageEngine().equals(STORAGE_ENGINE)) {
+    if (!meta.getStorageEngine().equals(StorageEngineType.opentsdb)) {
       throw new StorageInitializationException("unexpected database: " + meta.getStorageEngine());
     }
     if (!testConnection()) {

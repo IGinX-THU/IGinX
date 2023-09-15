@@ -258,7 +258,8 @@ public class Session {
     }
   }
 
-  public void addStorageEngine(String ip, int port, String type, Map<String, String> extraParams)
+  public void addStorageEngine(
+      String ip, int port, StorageEngineType type, Map<String, String> extraParams)
       throws SessionException, ExecutionException {
     StorageEngine storageEngine = new StorageEngine(ip, port, type, extraParams);
     addStorageEngines(Collections.singletonList(storageEngine));

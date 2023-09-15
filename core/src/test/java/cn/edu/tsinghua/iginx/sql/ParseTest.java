@@ -21,6 +21,7 @@ import cn.edu.tsinghua.iginx.sql.statement.frompart.join.JoinType;
 import cn.edu.tsinghua.iginx.sql.statement.selectstatement.SelectStatement;
 import cn.edu.tsinghua.iginx.sql.statement.selectstatement.UnarySelectStatement;
 import cn.edu.tsinghua.iginx.thrift.StorageEngine;
+import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -258,12 +259,14 @@ public class ParseTest {
     Map<String, String> extra01 = new HashMap<>();
     extra01.put("username", "root");
     extra01.put("password", "root");
-    StorageEngine engine01 = new StorageEngine("127.0.0.1", 6667, "iotdb12", extra01);
+    StorageEngine engine01 =
+        new StorageEngine("127.0.0.1", 6667, StorageEngineType.iotdb12, extra01);
 
     Map<String, String> extra02 = new HashMap<>();
     extra02.put("key1", "val1");
     extra02.put("key2", "val2");
-    StorageEngine engine02 = new StorageEngine("127.0.0.1", 6668, "influxdb", extra02);
+    StorageEngine engine02 =
+        new StorageEngine("127.0.0.1", 6668, StorageEngineType.influxdb, extra02);
 
     assertEquals(engine01, statement.getEngines().get(0));
     assertEquals(engine02, statement.getEngines().get(1));

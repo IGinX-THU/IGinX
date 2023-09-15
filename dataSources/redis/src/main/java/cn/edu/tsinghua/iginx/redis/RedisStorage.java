@@ -24,6 +24,7 @@ import cn.edu.tsinghua.iginx.redis.tools.DataViewWrapper;
 import cn.edu.tsinghua.iginx.redis.tools.FilterUtils;
 import cn.edu.tsinghua.iginx.redis.tools.TagKVUtils;
 import cn.edu.tsinghua.iginx.thrift.DataType;
+import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.util.ArrayList;
@@ -44,8 +45,6 @@ import redis.clients.jedis.JedisPoolConfig;
 public class RedisStorage implements IStorage {
 
   private static final Logger logger = LoggerFactory.getLogger(RedisStorage.class);
-
-  private static final String STORAGE_ENGINE = "redis";
 
   private static final String KEY_DATA_TYPE = "data:type";
 
@@ -79,7 +78,7 @@ public class RedisStorage implements IStorage {
 
   public RedisStorage(StorageEngineMeta meta) throws StorageInitializationException {
     this.meta = meta;
-    if (!meta.getStorageEngine().equals(STORAGE_ENGINE)) {
+    if (!meta.getStorageEngine().equals(StorageEngineType.redis)) {
       throw new StorageInitializationException("unexpected database: " + meta.getStorageEngine());
     }
     this.jedisPool = createJedisPool();
