@@ -357,8 +357,8 @@ public abstract class BaseCapacityExpansionIT {
     addStorageEngine(expPort, true, true, dataPrefix2, "p3");
 
     // 添加节点 dataPrefix = dataPrefix1 && schemaPrefix = p1 后查询
-    String statement = "select wt01.status from p1.nt.wf03";
-    List<String> pathList = Collections.singletonList("p1.nt.wf03.wt01.status2");
+    statement = "select wt01.status2 from p1.nt.wf03";
+    pathList = Collections.singletonList("p1.nt.wf03.wt01.status2");
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
     // 添加节点 dataPrefix = dataPrefix1 && schemaPrefix = p2 后查询
