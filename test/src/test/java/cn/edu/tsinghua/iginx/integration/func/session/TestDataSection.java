@@ -105,10 +105,7 @@ public class TestDataSection {
     }
 
     return new TestDataSection(
-        new ArrayList<>(keys),
-        newTypes,
-        newPaths,
-        newValues, tagList == null ? null : tagList);
+        new ArrayList<>(keys), newTypes, newPaths, newValues, tagList == null ? null : tagList);
   }
 
   public TestDataSection mergeOther(TestDataSection other) {

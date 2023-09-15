@@ -18,7 +18,6 @@ import cn.edu.tsinghua.iginx.thrift.*;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -368,11 +367,24 @@ public class SessionV2IT {
                 .addMeasurement("test.session.v3.*")
                 .startKey(endKey - 1000L)
                 .endKey(endKey)
-                .addTagsList(Stream.of(
-                        new HashMap<String, List<String>>() {{put("k1", Collections.singletonList("v1"));}},
-                        new HashMap<String, List<String>>() {{put("k1", Collections.singletonList("v3"));}},
-                        new HashMap<String, List<String>>() {{put("k1", Collections.singletonList("v5"));}}
-                ).collect(Collectors.toList()))
+                .addTagsList(
+                    Stream.of(
+                            new HashMap<String, List<String>>() {
+                              {
+                                put("k1", Collections.singletonList("v1"));
+                              }
+                            },
+                            new HashMap<String, List<String>>() {
+                              {
+                                put("k1", Collections.singletonList("v3"));
+                              }
+                            },
+                            new HashMap<String, List<String>>() {
+                              {
+                                put("k1", Collections.singletonList("v5"));
+                              }
+                            })
+                        .collect(Collectors.toList()))
                 .build());
     assertNotNull(table);
 
@@ -420,12 +432,25 @@ public class SessionV2IT {
                 .addMeasurement("test.session.v3.*")
                 .startKey(endKey - 1000L)
                 .endKey(endKey)
-                    .addTagsList(Stream.of(
-                            new HashMap<String, List<String>>() {{put("k1", Collections.singletonList("v2"));}},
-                            new HashMap<String, List<String>>() {{put("k1", Collections.singletonList("v4"));}},
-                            new HashMap<String, List<String>>() {{put("k1", Collections.singletonList("v6"));}}
-                    ).collect(Collectors.toList()))
-                    .build());
+                .addTagsList(
+                    Stream.of(
+                            new HashMap<String, List<String>>() {
+                              {
+                                put("k1", Collections.singletonList("v2"));
+                              }
+                            },
+                            new HashMap<String, List<String>>() {
+                              {
+                                put("k1", Collections.singletonList("v4"));
+                              }
+                            },
+                            new HashMap<String, List<String>>() {
+                              {
+                                put("k1", Collections.singletonList("v6"));
+                              }
+                            })
+                        .collect(Collectors.toList()))
+                .build());
     assertNotNull(table);
 
     header = table.getHeader();

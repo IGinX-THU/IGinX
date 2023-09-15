@@ -18,12 +18,10 @@ import cn.edu.tsinghua.iginx.session.SessionAggregateQueryDataSet;
 import cn.edu.tsinghua.iginx.session.SessionQueryDataSet;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-
-import java.util.*;
-import java.util.stream.Collectors;
-
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.thrift.TagFilterType;
+import java.util.*;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -74,18 +72,20 @@ public class NewSessionIT {
             DataType.DOUBLE,
             DataType.BINARY,
             DataType.BINARY);
-    List<Map<String, String>> tagsList = Arrays.asList(
+    List<Map<String, String>> tagsList =
+        Arrays.asList(
             new HashMap<>(),
             new HashMap<>(),
             new HashMap<>(),
             new HashMap<>(),
             new HashMap<>(),
             new HashMap<>(),
-            new HashMap<String, String>(){{
-              put("k1", "v1");
-              put("k2", "v2");
-            }}
-    );
+            new HashMap<String, String>() {
+              {
+                put("k1", "v1");
+                put("k2", "v2");
+              }
+            });
     List<Long> keys = new ArrayList<>();
     List<List<Object>> values = new ArrayList<>();
 
@@ -256,7 +256,8 @@ public class NewSessionIT {
     }
   }
 
-  private void comparePaths(List<String> expectedPaths, List<String> actualPaths, List<Map<String, String>> tagList) {
+  private void comparePaths(
+      List<String> expectedPaths, List<String> actualPaths, List<Map<String, String>> tagList) {
     assertEquals(expectedPaths.size(), actualPaths.size());
     for (int i = 0; i < expectedPaths.size(); i++) {
       assertEquals(getPathWithTag(expectedPaths.get(i), tagList.get(i)), actualPaths.get(i));
@@ -265,7 +266,7 @@ public class NewSessionIT {
 
   private static String formatTags(Map<String, String> tags) {
     StringBuilder builder = new StringBuilder();
-    if(tags.isEmpty()) return new String();
+    if (tags.isEmpty()) return new String();
     builder.append("{");
     for (Map.Entry<String, String> entry : tags.entrySet()) {
       String key = entry.getKey();
@@ -421,10 +422,16 @@ public class NewSessionIT {
     // delete path with tag
     deleteColumns = Collections.singletonList("us.d1.s7");
     try {
-      conn.deleteColumns(deleteColumns, Collections.singletonList(new HashMap<String, List<String>>(){{
-        put("k1", Collections.singletonList("v1"));
-        put("k2", Collections.singletonList("v2"));
-      }}), TagFilterType.Precise);
+      conn.deleteColumns(
+          deleteColumns,
+          Collections.singletonList(
+              new HashMap<String, List<String>>() {
+                {
+                  put("k1", Collections.singletonList("v1"));
+                  put("k2", Collections.singletonList("v2"));
+                }
+              }),
+          TagFilterType.Precise);
       SessionQueryDataSet dataSet = conn.queryData(deleteColumns, START_KEY, END_KEY);
       compare(TestDataSection.EMPTY_TEST_DATA_SECTION, dataSet);
     } catch (SessionException | ExecutionException e) {
@@ -465,51 +472,50 @@ public class NewSessionIT {
                 types,
                 paths.stream().map(s -> "min(" + s + ")").collect(Collectors.toList()),
                 Collections.singletonList(Arrays.asList(0, 0L, 0.1f, 0.2d)),
-                    baseDataSection.getTagsList()),
+                baseDataSection.getTagsList()),
             new TestDataSection(
                 keys,
                 types,
                 paths.stream().map(s -> "sum(" + s + ")").collect(Collectors.toList()),
                 Collections.singletonList(
                     Arrays.asList(127992000L, 127992000L, 127993600.0d, 127993600.0d)),
-                    baseDataSection.getTagsList()),
+                baseDataSection.getTagsList()),
             new TestDataSection(
                 keys,
                 types,
                 paths.stream().map(s -> "count(" + s + ")").collect(Collectors.toList()),
                 Collections.singletonList(Arrays.asList(16000L, 16000L, 16000L, 16000L)),
-                    baseDataSection.getTagsList()),
+                baseDataSection.getTagsList()),
             new TestDataSection(
                 keys,
                 types,
                 paths.stream().map(s -> "avg(" + s + ")").collect(Collectors.toList()),
                 Collections.singletonList(Arrays.asList(7999.5d, 7999.5d, 7999.6d, 7999.7d)),
-                    baseDataSection.getTagsList()),
+                baseDataSection.getTagsList()),
             new TestDataSection(
                 keys,
                 types,
                 paths.stream().map(s -> "first_value(" + s + ")").collect(Collectors.toList()),
                 Collections.singletonList(Arrays.asList(0, 0L, 0.1f, 0.2d)),
-                    baseDataSection.getTagsList()),
+                baseDataSection.getTagsList()),
             new TestDataSection(
                 keys,
                 types,
                 paths.stream().map(s -> "last_value(" + s + ")").collect(Collectors.toList()),
                 Collections.singletonList(Arrays.asList(15999, 15999L, 15999.1f, 15999.2d)),
-                    baseDataSection.getTagsList()),
+                baseDataSection.getTagsList()),
             new TestDataSection(
                 keys,
                 types,
                 Arrays.asList("path", "value"),
                 Collections.singletonList(Arrays.asList("us.d1.s2".getBytes(), "0".getBytes())),
-                    baseDataSection.getTagsList()),
+                baseDataSection.getTagsList()),
             new TestDataSection(
                 keys,
                 types,
                 Arrays.asList("path", "value"),
-                Collections.singletonList(
-                    Arrays.asList("us.d1.s2".getBytes(), "15999".getBytes())),
-                    baseDataSection.getTagsList()));
+                Collections.singletonList(Arrays.asList("us.d1.s2".getBytes(), "15999".getBytes())),
+                baseDataSection.getTagsList()));
 
     for (int i = 0; i < aggregateTypes.size(); i++) {
       AggregateType type = aggregateTypes.get(i);
@@ -552,7 +558,7 @@ public class NewSessionIT {
                     Arrays.asList(7999, 7999L, 7999.1f, 7999.2d),
                     Arrays.asList(11999, 11999L, 11999.1f, 11999.2d),
                     Arrays.asList(15999, 15999L, 15999.1f, 15999.2d)),
-                    baseDataSection.getTagsList()),
+                baseDataSection.getTagsList()),
             new TestDataSection(
                 keys,
                 types,
@@ -562,7 +568,7 @@ public class NewSessionIT {
                     Arrays.asList(4000, 4000L, 4000.1f, 4000.2d),
                     Arrays.asList(8000, 8000L, 8000.1f, 8000.2d),
                     Arrays.asList(12000, 12000L, 12000.1f, 12000.2d)),
-                    baseDataSection.getTagsList()),
+                baseDataSection.getTagsList()),
             new TestDataSection(
                 keys,
                 types,
@@ -572,7 +578,7 @@ public class NewSessionIT {
                     Arrays.asList(23998000L, 23998000L, 23998400.0d, 23998800.0d),
                     Arrays.asList(39998000L, 39998000L, 39998400.0d, 39998800.0d),
                     Arrays.asList(55998000L, 55998000L, 55998400.0d, 55998800.0d)),
-                    baseDataSection.getTagsList()),
+                baseDataSection.getTagsList()),
             new TestDataSection(
                 keys,
                 types,
@@ -582,7 +588,7 @@ public class NewSessionIT {
                     Arrays.asList(4000L, 4000L, 4000L, 4000L),
                     Arrays.asList(4000L, 4000L, 4000L, 4000L),
                     Arrays.asList(4000L, 4000L, 4000L, 4000L)),
-                    baseDataSection.getTagsList()),
+                baseDataSection.getTagsList()),
             new TestDataSection(
                 keys,
                 types,
@@ -592,7 +598,7 @@ public class NewSessionIT {
                     Arrays.asList(5999.5d, 5999.5d, 5999.6d, 5999.7d),
                     Arrays.asList(9999.5d, 9999.5d, 9999.6d, 9999.7d),
                     Arrays.asList(13999.5d, 13999.5d, 13999.6d, 13999.7d)),
-                    baseDataSection.getTagsList()),
+                baseDataSection.getTagsList()),
             new TestDataSection(
                 keys,
                 types,
@@ -602,7 +608,7 @@ public class NewSessionIT {
                     Arrays.asList(4000, 4000L, 4000.1f, 4000.2d),
                     Arrays.asList(8000, 8000L, 8000.1f, 8000.2d),
                     Arrays.asList(12000, 12000L, 12000.1f, 12000.2d)),
-                    baseDataSection.getTagsList()),
+                baseDataSection.getTagsList()),
             new TestDataSection(
                 keys,
                 types,
@@ -612,7 +618,7 @@ public class NewSessionIT {
                     Arrays.asList(7999, 7999L, 7999.1f, 7999.2d),
                     Arrays.asList(11999, 11999L, 11999.1f, 11999.2d),
                     Arrays.asList(15999, 15999L, 15999.1f, 15999.2d)),
-                    baseDataSection.getTagsList()));
+                baseDataSection.getTagsList()));
 
     for (int i = 0; i < aggregateTypes.size(); i++) {
       AggregateType type = aggregateTypes.get(i);
@@ -708,21 +714,41 @@ public class NewSessionIT {
     try {
       // first
       List<String> paths = Collections.singletonList("us.d1.s7");
-      conn.deleteDataInColumns(paths, START_KEY, START_KEY + 100, Collections.singletonList(new HashMap<String, List<String>>(){{
-        put("k1", Collections.singletonList("v1"));
-      }}), TagFilterType.Precise);
+      conn.deleteDataInColumns(
+          paths,
+          START_KEY,
+          START_KEY + 100,
+          Collections.singletonList(
+              new HashMap<String, List<String>>() {
+                {
+                  put("k1", Collections.singletonList("v1"));
+                }
+              }),
+          TagFilterType.Precise);
       SessionQueryDataSet actual = conn.queryData(paths, START_KEY, START_KEY + 200);
       TestDataSection expected =
-              baseDataSection.getSubDataSectionWithPath(paths).getSubDataSectionWithKey(START_KEY, START_KEY + 200);
+          baseDataSection
+              .getSubDataSectionWithPath(paths)
+              .getSubDataSectionWithKey(START_KEY, START_KEY + 200);
       compare(expected, actual);
 
-      conn.deleteDataInColumns(paths, START_KEY, START_KEY + 100, Collections.singletonList(new HashMap<String, List<String>>(){{
-        put("k1", Collections.singletonList("v1"));
-        put("k2", Collections.singletonList("v2"));
-      }}), TagFilterType.Precise);
+      conn.deleteDataInColumns(
+          paths,
+          START_KEY,
+          START_KEY + 100,
+          Collections.singletonList(
+              new HashMap<String, List<String>>() {
+                {
+                  put("k1", Collections.singletonList("v1"));
+                  put("k2", Collections.singletonList("v2"));
+                }
+              }),
+          TagFilterType.Precise);
       actual = conn.queryData(paths, START_KEY, START_KEY + 200);
       expected =
-              baseDataSection.getSubDataSectionWithPath(paths).getSubDataSectionWithKey(START_KEY + 100, START_KEY + 200);
+          baseDataSection
+              .getSubDataSectionWithPath(paths)
+              .getSubDataSectionWithKey(START_KEY + 100, START_KEY + 200);
       compare(expected, actual);
     } catch (SessionException | ExecutionException e) {
       logger.error("execute delete or query data failed.");

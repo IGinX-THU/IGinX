@@ -1,6 +1,5 @@
 package cn.edu.tsinghua.iginx.integration.tool;
 
-import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.pool.SessionPool;
@@ -12,7 +11,6 @@ import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.thrift.TagFilterType;
-
 import java.util.List;
 import java.util.Map;
 
@@ -128,7 +126,9 @@ public class MultiConnection {
     }
   }
 
-  public void deleteColumns(List<String> paths, List<Map<String, List<String>>> tags, TagFilterType type) throws SessionException, ExecutionException {
+  public void deleteColumns(
+      List<String> paths, List<Map<String, List<String>>> tags, TagFilterType type)
+      throws SessionException, ExecutionException {
     if (session != null) {
       session.deleteColumns(paths, tags, type);
     } else if (sessionPool != null) {
@@ -201,8 +201,13 @@ public class MultiConnection {
     }
   }
 
-  public void deleteDataInColumns(List<String> paths, long startKey, long endKey, List<Map<String, List<String>>> tags, TagFilterType type)
-          throws SessionException, ExecutionException {
+  public void deleteDataInColumns(
+      List<String> paths,
+      long startKey,
+      long endKey,
+      List<Map<String, List<String>>> tags,
+      TagFilterType type)
+      throws SessionException, ExecutionException {
     if (session != null) {
       session.deleteDataInColumns(paths, startKey, endKey, tags, type);
     } else if (sessionPool != null) {
