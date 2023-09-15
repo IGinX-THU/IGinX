@@ -60,10 +60,10 @@ runs:
           run: |
               if [ "$RUNNER_OS" == "Linux" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mongodb.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mongodb.sh"
+                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mongodb.sh" 27017 27018 27019
               elif [ "$RUNNER_OS" == "macOS" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mongodb_macos.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mongodb_macos.sh"
+                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mongodb_macos.sh" 27017 27018 27019
               else
                 echo "$RUNNER_OS is not supported"
                 exit 1
