@@ -101,7 +101,6 @@ import org.antlr.v4.runtime.misc.ParseCancellationException;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.csv.CSVRecord;
-import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -638,11 +637,9 @@ public class StatementExecutor {
     final int BATCH_SIZE = config.getBatchSizeExportByteStream();
     String dir = exportFile.getDir();
     File dirFile = new File(dir);
-    // 删除原有的目录及其所有文件
-    if (dirFile.exists()) {
-      FileUtils.deleteDirectory(dirFile);
+    if (!dirFile.exists()) {
+      Files.createDirectory(Paths.get(dir));
     }
-    Files.createDirectory(Paths.get(dir));
     if (!dirFile.isDirectory()) {
       throw new InvalidParameterException(exportFile.getDir() + " is not a directory!");
     }
@@ -661,6 +658,8 @@ public class StatementExecutor {
       } else {
         columns[i] = Paths.get(dir, originColumn).toString();
       }
+      // 若将要写入的文件存在，删除之
+      Files.deleteIfExists(Paths.get(columns[i]));
     }
 
     while (stream.hasNext()) {
