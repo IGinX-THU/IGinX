@@ -352,7 +352,15 @@ public class DUManager {
     }
   }
 
+  private boolean isEmptyReq(DataView dataView) {
+    DataViewWrapper data = new DataViewWrapper(dataView);
+    return false;
+  }
+
   public void insert(DataView dataView) throws SQLException {
+    if (isEmptyReq(dataView)) {
+      logger.warn(String.format("Inserting empty data into %s", id));
+    }
     try {
       memTableLock.writeLock().lock();
 

@@ -207,6 +207,7 @@ public class NewExecutor implements Executor {
     try {
       duManager.insert(dataView);
     } catch (SQLException e) {
+      System.out.print(dataView.toString());
       return new TaskExecuteResult(null, new PhysicalException("Fail to insert data ", e));
     }
 
