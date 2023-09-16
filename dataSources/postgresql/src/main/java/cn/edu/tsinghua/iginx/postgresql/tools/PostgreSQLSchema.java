@@ -17,16 +17,15 @@ public class PostgreSQLSchema {
 
   public PostgreSQLSchema(String path, boolean isDummy) {
     int firstSeparator = path.indexOf(".");
-    int lastSeparator = path.lastIndexOf(".");
     if (isDummy) {
       databaseName = path.substring(0, firstSeparator);
-      tableName = path.substring(firstSeparator + 1, lastSeparator);
-      columnName = path.substring(lastSeparator + 1);
+      path = path.substring(firstSeparator + 1);
     } else {
       databaseName = "";
-      tableName = path.substring(0, lastSeparator);
-      columnName = path.substring(lastSeparator + 1);
     }
+    int lastSeparator = path.lastIndexOf(".");
+    tableName = path.substring(0, lastSeparator);
+    columnName = path.substring(lastSeparator + 1);
   }
 
   public PostgreSQLSchema(String tableName, String columnName) {

@@ -10,4 +10,9 @@ sh -c "wget https://fastdl.mongodb.org/osx/mongodb-macos-x86_64-6.0.4.tgz"
 
 sh -c "tar -zxf mongodb-macos-x86_64-6.0.4.tgz"
 
-sudo sh -c "cd mongodb-macos-x86_64-6.0.4/; mkdir -p data/db; mkdir -p data/log; nohup ./bin/mongod --dbpath data/db --logpath data/log/mongo.log &"
+for port in "$@"
+do
+  sudo sh -c "cp -r mongodb-macos-x86_64-6.0.4/ mongodb-macos-x86_64-6.0.4-$port/"
+
+  sudo sh -c "cd mongodb-macos-x86_64-6.0.4-$port/; mkdir -p data/db; mkdir -p data/log; nohup ./bin/mongod --port $port --dbpath data/db --logpath data/log/mongo.log &"
+done

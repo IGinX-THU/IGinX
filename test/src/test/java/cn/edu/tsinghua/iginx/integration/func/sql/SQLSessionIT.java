@@ -5460,4 +5460,27 @@ public class SQLSessionIT {
 
     executor.concurrentExecuteAndCompare(statementsAndExpectRes);
   }
+
+  @Test
+  public void testFilterWithMultiTable() {
+    String insert1 = "INSERT INTO test.a(key, a) VALUES (1, 1), (2, 2), (3, 3)";
+    String insert2 = "INSERT INTO test.b(key, a) VALUES (1, 1), (2, 2), (3, 3)";
+    String insert3 = "INSERT INTO test.c(key, a) VALUES (1, 1), (2, 2), (3, 3)";
+
+    executor.execute(insert1);
+    executor.execute(insert2);
+    executor.execute(insert3);
+
+    String query = "SELECT * FROM test WHERE a.a < 3";
+    String expect =
+        "ResultSets:\n"
+            + "+---+--------+--------+--------+\n"
+            + "|key|test.a.a|test.b.a|test.c.a|\n"
+            + "+---+--------+--------+--------+\n"
+            + "|  1|       1|       1|       1|\n"
+            + "|  2|       2|       2|       2|\n"
+            + "+---+--------+--------+--------+\n"
+            + "Total line number = 2\n";
+    executor.executeAndCompare(query, expect);
+  }
 }
