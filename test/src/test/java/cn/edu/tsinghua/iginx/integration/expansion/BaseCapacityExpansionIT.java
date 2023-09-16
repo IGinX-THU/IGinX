@@ -201,6 +201,8 @@ public abstract class BaseCapacityExpansionIT {
     // 再次写入并查询所有新数据
     testWriteAndQueryNewDataAfterCE();
 
+    testQuerySpecialHistoryData();
+
     if (this instanceof FileSystemCapacityExpansionIT) {
       // 仅用于扩容文件系统后查询文件
       testQueryForFileSystem();
@@ -209,41 +211,43 @@ public abstract class BaseCapacityExpansionIT {
     }
   }
 
+  protected void testQuerySpecialHistoryData() {}
+
   private void testQueryHistoryDataOriHasData() {
-    String statement = "select * from mn";
+    String statement = "select wf01.wt01.status, wf01.wt01.temperature from mn";
     List<String> pathList = ORI_PATH_LIST;
     List<List<Object>> valuesList = oriValuesList;
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
   }
 
   private void testQueryHistoryDataExpHasData() {
-    String statement = "select * from nt.wf03";
+    String statement = "select wt01.status from nt.wf03";
     List<String> pathList = EXP_PATH_LIST1;
     List<List<Object>> valuesList = expValuesList1;
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
-    statement = "select * from nt.wf04";
+    statement = "select wt01.temperature from nt.wf04";
     pathList = EXP_PATH_LIST2;
     valuesList = expValuesList2;
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
   }
 
   private void testQueryHistoryDataOriNoData() {
-    String statement = "select * from mn";
+    String statement = "select wf01.wt01.status, wf01.wt01.temperature from mn";
     String expect =
         "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
   }
 
   private void testQueryHistoryDataExpNoData() {
-    String statement = "select * from nt";
+    String statement = "select wf03.wt01.status, wf04.wt01.temperature from nt";
     String expect =
         "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
   }
 
   private void testQueryHistoryDataReadOnly() {
-    String statement = "select * from tm.wf05";
+    String statement = "select wt01.status, wt01.temperature from tm.wf05";
     List<String> pathList = READ_ONLY_PATH_LIST;
     List<List<Object>> valuesList = readOnlyValuesList;
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
@@ -347,22 +351,22 @@ public abstract class BaseCapacityExpansionIT {
     List<List<Object>> valuesList = expValuesList1;
 
     // 添加节点 dataPrefix = dataPrefix1 && schemaPrefix = p1 后查询
-    String statement = "select * from p1.nt.wf03";
+    String statement = "select wt01.status from p1.nt.wf03";
     List<String> pathList = Collections.singletonList("p1.nt.wf03.wt01.status");
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
     // 添加节点 dataPrefix = dataPrefix1 && schemaPrefix = p2 后查询
-    statement = "select * from p2.nt.wf03";
+    statement = "select wt01.status from p2.nt.wf03";
     pathList = Collections.singletonList("p2.nt.wf03.wt01.status");
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
     // 添加节点 dataPrefix = dataPrefix1 && schemaPrefix = null 后查询
-    statement = "select * from nt.wf03";
+    statement = "select wt01.status from nt.wf03";
     pathList = Collections.singletonList("nt.wf03.wt01.status");
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
     // 添加节点 dataPrefix = null && schemaPrefix = p3 后查询
-    statement = "select * from p3.nt.wf03";
+    statement = "select wt01.status from p3.nt.wf03";
     pathList = Collections.singletonList("p3.nt.wf03.wt01.status");
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
@@ -384,7 +388,7 @@ public abstract class BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, expect);
     // 移除节点 dataPrefix = dataPrefix1 && schemaPrefix = p3 + schemaPrefixSuffix
     // 后再查询，测试重点是移除相同 schemaPrefix，不同 dataPrefix
-    statement = "select * from p3.nt.wf04";
+    statement = "select wt01.temperature from p3.nt.wf04";
     List<String> pathListAns = new ArrayList<>();
     pathListAns.add("p3.nt.wf04.wt01.temperature");
     SQLTestTools.executeAndCompare(session, statement, pathListAns, expValuesList2);
