@@ -93,7 +93,7 @@ public class SQLTestTools {
       List<String> pathList = res.getPaths();
       List<List<Object>> actualValuesList = res.getValues();
 
-      assertArrayEquals(new List[]{pathListAns}, new List[]{pathList});
+      assertArrayEquals(new List[] {pathListAns}, new List[] {pathList});
 
       compareValuesList(expectedValuesList, actualValuesList);
     } catch (SessionException | ExecutionException e) {

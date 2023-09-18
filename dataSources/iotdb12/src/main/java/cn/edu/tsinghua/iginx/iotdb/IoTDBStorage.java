@@ -54,7 +54,6 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -301,7 +300,17 @@ public class IoTDBStorage implements IStorage {
       Project project, Filter filter, String storageUnit) {
     try {
       StringBuilder builder = new StringBuilder();
-      List<String> paths = determinePathList(storageUnit, project.getPatterns());
+      boolean isContainWildcard = false;
+      for (String pattern : project.getPatterns()) {
+        if (pattern.contains("*")) {
+          isContainWildcard = true;
+          break;
+        }
+      }
+      List<String> paths = project.getPatterns();
+      if (isContainWildcard) {
+        paths = determinePathList(storageUnit, project.getPatterns());
+      }
       for (String path : paths) {
         // TODO 暂时屏蔽含有\的pattern
         if (path.contains("\\")) {
@@ -348,13 +357,23 @@ public class IoTDBStorage implements IStorage {
   private TaskExecuteResult executeProjectDummyWithFilter(Project project, Filter filter) {
     try {
       StringBuilder builder = new StringBuilder();
-      List<String> paths = determinePathList(null, project.getPatterns());
+      boolean isContainWildcard = false;
+      for (String pattern : project.getPatterns()) {
+        if (pattern.contains("*")) {
+          isContainWildcard = true;
+          break;
+        }
+      }
+      List<String> paths = project.getPatterns();
+      if (isContainWildcard) {
+        paths = determinePathList(null, project.getPatterns());
+      }
       for (String path : paths) {
         // TODO 暂时屏蔽含有\的pattern
         if (path.contains("\\")) {
           return new TaskExecuteResult(new EmptyRowStream());
         }
-        if (path.startsWith("*") && path.indexOf("*.", 1)!=2) {
+        if (path.startsWith("*") && path.indexOf("*.", 1) != 2) {
           path = "*." + path;
         }
         builder.append(path);
@@ -812,11 +831,11 @@ public class IoTDBStorage implements IStorage {
     }
   }
 
-  private List<String> determinePathList(
-      String storageUnit, List<String> patterns) throws IoTDBConnectionException, StatementExecutionException {
-    List<String> paths = new ArrayList<>();
+  private List<String> determinePathList(String storageUnit, List<String> patterns)
+      throws IoTDBConnectionException, StatementExecutionException {
+    Set<String> pathSet = new HashSet<>();
     String showColumns = SHOW_TIMESERIES;
-    showColumns = storageUnit ==null ? showColumns: showColumns + " " + PREFIX + storageUnit;
+    showColumns = storageUnit == null ? showColumns : showColumns + " " + PREFIX + storageUnit;
     SessionDataSetWrapper dataSet = sessionPool.executeQueryStatement(showColumns);
     while (dataSet.hasNext()) {
       RowRecord record = dataSet.next();
@@ -835,18 +854,18 @@ public class IoTDBStorage implements IStorage {
       }
       Pair<String, Map<String, String>> pair = TagKVUtils.splitFullName(path);
       if (patterns == null || patterns.isEmpty()) {
-          paths.add(pair.k);
+        pathSet.add(pair.k);
       } else {
         for (String pattern : patterns) {
           if (match(pair.k, pattern)) {
-              paths.add(pair.k);
-              break;
+            pathSet.add(pair.k);
+            break;
           }
         }
       }
     }
     dataSet.close();
-    return paths.isEmpty() ? patterns: paths;
+    return pathSet.isEmpty() ? patterns : new ArrayList<>(pathSet);
   }
 
   private boolean match(String s, String p) {

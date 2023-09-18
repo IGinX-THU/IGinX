@@ -817,7 +817,7 @@ public class QueryGenerator extends AbstractGenerator {
           pathWithoutPrefix = path.substring(schemaPrefix.length() + 1);
         } else if (path.startsWith("*.*")) {
           pathWithoutPrefix = path.substring(2);
-        } else if (path.startsWith("*") && path.indexOf(".", path.indexOf(".")+1)!=-1) {
+        } else if (path.startsWith("*") && path.indexOf(".", path.indexOf(".") + 1) != -1) {
           hasMoreDelimiter = true;
           pathWithoutPrefix = path.substring(2);
         }
