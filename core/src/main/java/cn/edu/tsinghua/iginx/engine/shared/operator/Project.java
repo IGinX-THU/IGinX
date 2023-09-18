@@ -15,13 +15,21 @@ public class Project extends AbstractUnaryOperator {
 
   private final TagFilter tagFilter;
 
+  private boolean needSelectedPath;
+
   public Project(Source source, List<String> patterns, TagFilter tagFilter) {
+    this(source, patterns, tagFilter, false);
+  }
+
+  public Project(
+      Source source, List<String> patterns, TagFilter tagFilter, boolean needSelectedPath) {
     super(OperatorType.Project, source);
     if (patterns == null) {
       throw new IllegalArgumentException("patterns shouldn't be null");
     }
     this.patterns = patterns;
     this.tagFilter = tagFilter;
+    this.needSelectedPath = needSelectedPath;
   }
 
   public List<String> getPatterns() {
@@ -30,6 +38,14 @@ public class Project extends AbstractUnaryOperator {
 
   public TagFilter getTagFilter() {
     return tagFilter;
+  }
+
+  public boolean isNeedSelectedPath() {
+    return needSelectedPath;
+  }
+
+  public void setNeedSelectedPath(boolean needSelectedPath) {
+    this.needSelectedPath = needSelectedPath;
   }
 
   @Override

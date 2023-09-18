@@ -17,6 +17,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.postgresql.tools.DataTypeTransformer;
+import cn.edu.tsinghua.iginx.postgresql.tools.PostgreSQLSchema;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.sql.ResultSet;
@@ -216,14 +217,10 @@ public class PostgreSQLQueryRowStream implements RowStream {
 
           for (int j = 0; j < resultSetSizes[i]; j++) {
             String columnName = fieldToColumnName.get(header.getField(startIndex + j));
-            String tableName =
-                header
-                    .getField(startIndex + j)
-                    .getName()
-                    .substring(0, header.getField(startIndex + j).getName().lastIndexOf(SEPARATOR));
-            if (isDummy) {
-              tableName = tableName.substring(tableName.indexOf(SEPARATOR) + 1);
-            }
+            PostgreSQLSchema schema =
+                new PostgreSQLSchema(header.getField(startIndex + j).getName(), isDummy);
+            String tableName = schema.getTableName();
+
             tableNameSet.add(tableName);
 
             Object value = getResultSetObject(resultSet, columnName, tableName);

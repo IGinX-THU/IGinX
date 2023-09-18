@@ -46,6 +46,7 @@ select
 
 selectClause
    : SELECT DISTINCT? selectSublist (COMMA selectSublist)*
+   | SELECT VALUE2META LR_BRACKET queryClause orderByClause? limitClause? RR_BRACKET
    ;
 
 selectSublist
@@ -908,6 +909,10 @@ HEADER
 LOAD
    : L O A D
    ;
+
+VALUE2META
+   : V A L U E INT_2 M E T A
+   ;
    //============================
    
    // End of the keywords list
@@ -1040,6 +1045,10 @@ stringLiteral
 
 INT
    : [0-9]+
+   ;
+
+INT_2
+   : [2]
    ;
 
 EXPONENT

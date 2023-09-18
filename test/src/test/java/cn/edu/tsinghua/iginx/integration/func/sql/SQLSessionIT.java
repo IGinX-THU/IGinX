@@ -4090,6 +4090,148 @@ public class SQLSessionIT {
   }
 
   @Test
+  public void testValueToMeta() {
+    String insert =
+        "INSERT INTO test(key, a.a, a.b, b.a, c.b) VALUES "
+            + "(1, \"apple\", 871, 232.1, true), (2, \"peach\", 123, 132.5, false), (3, \"banana\", 356, 317.8, true),"
+            + "(4, \"cherry\", 621, 456.1, false), (5, \"grape\", 336, 132.5, true), (6, \"dates\", 119, 232.1, false),"
+            + "(7, \"melon\", 516, 113.6, true), (8, \"mango\", 458, 232.1, false), (9, \"pear\", 336, 613.1, true);";
+    executor.execute(insert);
+
+    insert =
+        "INSERT INTO prefix_test(key, suffix, type) VALUES (0, \"a.a\", \"string\"), (1, \"a.b\", \"long\"), (2, \"b.a\", \"double\"), (3, \"c.b\", \"boolean\");";
+    executor.execute(insert);
+
+    String statement = "SELECT * FROM prefix_test";
+    String expected =
+        "ResultSets:\n"
+            + "+---+------------------+----------------+\n"
+            + "|key|prefix_test.suffix|prefix_test.type|\n"
+            + "+---+------------------+----------------+\n"
+            + "|  0|               a.a|          string|\n"
+            + "|  1|               a.b|            long|\n"
+            + "|  2|               b.a|          double|\n"
+            + "|  3|               c.b|         boolean|\n"
+            + "+---+------------------+----------------+\n"
+            + "Total line number = 4\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "SELECT value2meta(SELECT suffix FROM prefix_test) FROM test;";
+    expected =
+        "ResultSets:\n"
+            + "+---+--------+--------+--------+--------+\n"
+            + "|key|test.a.a|test.a.b|test.b.a|test.c.b|\n"
+            + "+---+--------+--------+--------+--------+\n"
+            + "|  1|   apple|     871|   232.1|    true|\n"
+            + "|  2|   peach|     123|   132.5|   false|\n"
+            + "|  3|  banana|     356|   317.8|    true|\n"
+            + "|  4|  cherry|     621|   456.1|   false|\n"
+            + "|  5|   grape|     336|   132.5|    true|\n"
+            + "|  6|   dates|     119|   232.1|   false|\n"
+            + "|  7|   melon|     516|   113.6|    true|\n"
+            + "|  8|   mango|     458|   232.1|   false|\n"
+            + "|  9|    pear|     336|   613.1|    true|\n"
+            + "+---+--------+--------+--------+--------+\n"
+            + "Total line number = 9\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "SELECT value2meta(SELECT suffix FROM prefix_test) FROM test WHERE a.b > 500;";
+    expected =
+        "ResultSets:\n"
+            + "+---+--------+--------+--------+--------+\n"
+            + "|key|test.a.a|test.a.b|test.b.a|test.c.b|\n"
+            + "+---+--------+--------+--------+--------+\n"
+            + "|  1|   apple|     871|   232.1|    true|\n"
+            + "|  4|  cherry|     621|   456.1|   false|\n"
+            + "|  7|   melon|     516|   113.6|    true|\n"
+            + "+---+--------+--------+--------+--------+\n"
+            + "Total line number = 3\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "SELECT value2meta(SELECT suffix FROM prefix_test) FROM test WHERE c.b = true;";
+    expected =
+        "ResultSets:\n"
+            + "+---+--------+--------+--------+--------+\n"
+            + "|key|test.a.a|test.a.b|test.b.a|test.c.b|\n"
+            + "+---+--------+--------+--------+--------+\n"
+            + "|  1|   apple|     871|   232.1|    true|\n"
+            + "|  3|  banana|     356|   317.8|    true|\n"
+            + "|  5|   grape|     336|   132.5|    true|\n"
+            + "|  7|   melon|     516|   113.6|    true|\n"
+            + "|  9|    pear|     336|   613.1|    true|\n"
+            + "+---+--------+--------+--------+--------+\n"
+            + "Total line number = 5\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "SELECT value2meta(SELECT suffix FROM prefix_test) FROM test ORDER BY b.a;";
+    expected =
+        "ResultSets:\n"
+            + "+---+--------+--------+--------+--------+\n"
+            + "|key|test.a.a|test.a.b|test.b.a|test.c.b|\n"
+            + "+---+--------+--------+--------+--------+\n"
+            + "|  7|   melon|     516|   113.6|    true|\n"
+            + "|  2|   peach|     123|   132.5|   false|\n"
+            + "|  5|   grape|     336|   132.5|    true|\n"
+            + "|  1|   apple|     871|   232.1|    true|\n"
+            + "|  6|   dates|     119|   232.1|   false|\n"
+            + "|  8|   mango|     458|   232.1|   false|\n"
+            + "|  3|  banana|     356|   317.8|    true|\n"
+            + "|  4|  cherry|     621|   456.1|   false|\n"
+            + "|  9|    pear|     336|   613.1|    true|\n"
+            + "+---+--------+--------+--------+--------+\n"
+            + "Total line number = 9\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement =
+        "SELECT value2meta(SELECT suffix FROM prefix_test WHERE type = \"string\" OR type = \"long\") FROM test;";
+    expected =
+        "ResultSets:\n"
+            + "+---+--------+--------+\n"
+            + "|key|test.a.a|test.a.b|\n"
+            + "+---+--------+--------+\n"
+            + "|  1|   apple|     871|\n"
+            + "|  2|   peach|     123|\n"
+            + "|  3|  banana|     356|\n"
+            + "|  4|  cherry|     621|\n"
+            + "|  5|   grape|     336|\n"
+            + "|  6|   dates|     119|\n"
+            + "|  7|   melon|     516|\n"
+            + "|  8|   mango|     458|\n"
+            + "|  9|    pear|     336|\n"
+            + "+---+--------+--------+\n"
+            + "Total line number = 9\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement =
+        "SELECT value2meta(SELECT suffix FROM prefix_test WHERE type = \"double\" OR type = \"boolean\") FROM test WHERE c.b = false;";
+    expected =
+        "ResultSets:\n"
+            + "+---+--------+--------+\n"
+            + "|key|test.b.a|test.c.b|\n"
+            + "+---+--------+--------+\n"
+            + "|  2|   132.5|   false|\n"
+            + "|  4|   456.1|   false|\n"
+            + "|  6|   232.1|   false|\n"
+            + "|  8|   232.1|   false|\n"
+            + "+---+--------+--------+\n"
+            + "Total line number = 4\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement =
+        "SELECT value2meta(SELECT suffix FROM prefix_test WHERE type = \"boolean\") FROM test GROUP BY c.b;";
+    expected =
+        "ResultSets:\n"
+            + "+--------+\n"
+            + "|test.c.b|\n"
+            + "+--------+\n"
+            + "|   false|\n"
+            + "|    true|\n"
+            + "+--------+\n"
+            + "Total line number = 2\n";
+    executor.executeAndCompare(statement, expected);
+  }
+
+  @Test
   public void testExportAndImportCsv() {
     String insert =
         "INSERT INTO us.d2 (key, s1, s2, s3, s4) VALUES "
@@ -5317,5 +5459,28 @@ public class SQLSessionIT {
                     + "Total line number = 6\n"));
 
     executor.concurrentExecuteAndCompare(statementsAndExpectRes);
+  }
+
+  @Test
+  public void testFilterWithMultiTable() {
+    String insert1 = "INSERT INTO test.a(key, a) VALUES (1, 1), (2, 2), (3, 3)";
+    String insert2 = "INSERT INTO test.b(key, a) VALUES (1, 1), (2, 2), (3, 3)";
+    String insert3 = "INSERT INTO test.c(key, a) VALUES (1, 1), (2, 2), (3, 3)";
+
+    executor.execute(insert1);
+    executor.execute(insert2);
+    executor.execute(insert3);
+
+    String query = "SELECT * FROM test WHERE a.a < 3";
+    String expect =
+        "ResultSets:\n"
+            + "+---+--------+--------+--------+\n"
+            + "|key|test.a.a|test.b.a|test.c.a|\n"
+            + "+---+--------+--------+--------+\n"
+            + "|  1|       1|       1|       1|\n"
+            + "|  2|       2|       2|       2|\n"
+            + "+---+--------+--------+--------+\n"
+            + "Total line number = 2\n";
+    executor.executeAndCompare(query, expect);
   }
 }

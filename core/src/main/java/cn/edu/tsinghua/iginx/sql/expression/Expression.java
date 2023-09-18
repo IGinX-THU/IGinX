@@ -18,6 +18,7 @@ public interface Expression {
     Unary,
     Function,
     Base,
-    Constant
+    Constant,
+    FromValue
   }
 }
