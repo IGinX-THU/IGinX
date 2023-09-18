@@ -4,12 +4,12 @@ import java.io.File;
 
 public class FileUtils {
 
-  public static boolean isRelativePath(String path) {
+  public static boolean isAbsolutePath(String path) {
     File file = new File(path);
 
     // 判断是否为绝对路径
     if (file.isAbsolute()) {
-      return false;
+      return true;
     }
 
     // 如果不是绝对路径，再根据操作系统类型判断
