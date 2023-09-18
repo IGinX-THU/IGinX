@@ -103,6 +103,7 @@ import cn.edu.tsinghua.iginx.sql.expression.BracketExpression;
 import cn.edu.tsinghua.iginx.sql.expression.ConstantExpression;
 import cn.edu.tsinghua.iginx.sql.expression.Expression;
 import cn.edu.tsinghua.iginx.sql.expression.Expression.ExpressionType;
+import cn.edu.tsinghua.iginx.sql.expression.FromValueExpression;
 import cn.edu.tsinghua.iginx.sql.expression.FuncExpression;
 import cn.edu.tsinghua.iginx.sql.expression.Operator;
 import cn.edu.tsinghua.iginx.sql.expression.UnaryExpression;
@@ -762,6 +763,11 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   }
 
   private void parseSelectPaths(SelectClauseContext ctx, UnarySelectStatement selectStatement) {
+    if (ctx.VALUE2META() != null) {
+      parseSelectPathsWithValue2Meta(ctx, selectStatement);
+      return;
+    }
+
     if (ctx.DISTINCT() != null) {
       selectStatement.setDistinct(true);
     }
@@ -791,6 +797,22 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     if (!selectStatement.getFuncTypeSet().isEmpty()) {
       selectStatement.setHasFunc(true);
     }
+  }
+
+  private void parseSelectPathsWithValue2Meta(
+      SelectClauseContext ctx, UnarySelectStatement selectStatement) {
+    SelectStatement subStatement = parseQueryClause(ctx.queryClause(), false);
+    if (ctx.orderByClause() != null) {
+      parseOrderByClause(ctx.orderByClause(), subStatement);
+    }
+    if (ctx.limitClause() != null) {
+      Pair<Integer, Integer> limitAndOffset = parseLimitClause(ctx.limitClause());
+      subStatement.setLimit(limitAndOffset.getK());
+      subStatement.setOffset(limitAndOffset.getV());
+    }
+
+    selectStatement.setExpression(new FromValueExpression(subStatement));
+    selectStatement.setHasValueToSelectedPath(true);
   }
 
   private List<Expression> parseExpression(
