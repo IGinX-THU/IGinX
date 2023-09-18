@@ -9,7 +9,7 @@ public class FileUtils {
 
     // 判断是否为绝对路径
     if (file.isAbsolute()) {
-      return true;
+      return false;
     }
 
     // 如果不是绝对路径，再根据操作系统类型判断

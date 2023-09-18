@@ -25,8 +25,6 @@ import java.util.List;
 
 public class Config {
 
-  private String iginxHomePath = "";
-
   private String ip = "0.0.0.0";
 
   private int port = 6888;
@@ -213,14 +211,6 @@ public class Config {
   private int batchSizeImportCsv = 10000;
 
   private int batchSizeExportByteStream = 10000;
-
-  public void setIginxHomePath(String path) {
-    this.iginxHomePath = path;
-  }
-
-  public String getIginxHomePath() {
-    return this.iginxHomePath;
-  }
 
   public int getMaxTimeseriesLength() {
     return maxTimeseriesLength;

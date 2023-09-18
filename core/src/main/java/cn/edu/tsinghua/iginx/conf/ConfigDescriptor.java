@@ -56,12 +56,11 @@ public class ConfigDescriptor {
 
       // runs/debugged in IDE: IGINX_HOME not set, use user.dir as root
       // runs by script: IGINX_HOME should always have been set
-      config.setIginxHomePath(
-          EnvUtils.loadEnv(Constants.IGINX_HOME, System.getProperty("user.dir")));
+      String iginxHomePath = EnvUtils.loadEnv(Constants.IGINX_HOME, System.getProperty("user.dir"));
       String udfPath = properties.getProperty("defaultUDFDir", "udf_funcs");
       if (FileUtils.isRelativePath(udfPath)) {
         // if relative, build absolute path
-        udfPath = String.join(File.separator, config.getIginxHomePath(), udfPath);
+        udfPath = String.join(File.separator, iginxHomePath, udfPath);
       }
       config.setDefaultUDFDir(udfPath);
       config.setIp(properties.getProperty("ip", "0.0.0.0"));
