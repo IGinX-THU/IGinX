@@ -18,6 +18,8 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical;
 
+import static cn.edu.tsinghua.iginx.engine.physical.task.utils.TaskUtils.getStorageTasks;
+
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.MemoryPhysicalTaskDispatcher;
@@ -92,30 +94,19 @@ public class PhysicalEngineImpl implements PhysicalEngine {
     return result.getRowStream();
   }
 
-  private void getStorageTasks(List<StoragePhysicalTask> tasks, PhysicalTask root) {
-    if (root == null) {
-      return;
-    }
-    if (root.getType() == TaskType.Storage) {
-      tasks.add((StoragePhysicalTask) root);
-    } else if (root.getType() == TaskType.BinaryMemory) {
-      BinaryMemoryPhysicalTask task = (BinaryMemoryPhysicalTask) root;
-      getStorageTasks(tasks, task.getParentTaskA());
-      getStorageTasks(tasks, task.getParentTaskB());
-    } else if (root.getType() == TaskType.UnaryMemory) {
-      UnaryMemoryPhysicalTask task = (UnaryMemoryPhysicalTask) root;
-      getStorageTasks(tasks, task.getParentTask());
-    } else if (root.getType() == TaskType.MultipleMemory) {
-      MultipleMemoryPhysicalTask task = (MultipleMemoryPhysicalTask) root;
-      for (PhysicalTask parentTask : task.getParentTasks()) {
-        getStorageTasks(tasks, parentTask);
-      }
-    }
+  @Override
+  public PhysicalOptimizer getOptimizer() {
+    return optimizer;
   }
 
   @Override
   public ConstraintManager getConstraintManager() {
     return optimizer.getConstraintManager();
+  }
+
+  @Override
+  public StoragePhysicalTaskExecutor getStoragePhysicalTaskExecutor() {
+    return storageTaskExecutor;
   }
 
   @Override

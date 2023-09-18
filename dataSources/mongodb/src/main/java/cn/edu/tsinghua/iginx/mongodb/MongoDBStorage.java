@@ -1,552 +1,305 @@
 package cn.edu.tsinghua.iginx.mongodb;
 
-import static com.mongodb.client.model.Aggregates.*;
-import static com.mongodb.client.model.Filters.*;
-import static com.mongodb.client.model.Projections.*;
-
-import cn.edu.tsinghua.iginx.engine.physical.exception.NonExecutablePhysicalTaskException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.DataArea;
-import cn.edu.tsinghua.iginx.engine.physical.storage.utils.TagKVUtils;
-import cn.edu.tsinghua.iginx.engine.physical.task.StoragePhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
-import cn.edu.tsinghua.iginx.engine.shared.data.write.BitmapView;
-import cn.edu.tsinghua.iginx.engine.shared.data.write.ColumnDataView;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
-import cn.edu.tsinghua.iginx.engine.shared.data.write.RowDataView;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
-import cn.edu.tsinghua.iginx.engine.shared.operator.tag.*;
-import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
+import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
-import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
-import cn.edu.tsinghua.iginx.mongodb.query.entity.MongoDBQueryRowStream;
-import cn.edu.tsinghua.iginx.mongodb.query.entity.MongoDBSchema;
-import cn.edu.tsinghua.iginx.mongodb.tools.DataUtils;
-import cn.edu.tsinghua.iginx.thrift.DataType;
+import cn.edu.tsinghua.iginx.mongodb.entity.ColumnQuery;
+import cn.edu.tsinghua.iginx.mongodb.entity.DummyQuery;
+import cn.edu.tsinghua.iginx.mongodb.entity.JoinQuery;
+import cn.edu.tsinghua.iginx.mongodb.entity.SourceTable;
+import cn.edu.tsinghua.iginx.mongodb.tools.FilterUtils;
+import cn.edu.tsinghua.iginx.mongodb.tools.NameUtils;
+import cn.edu.tsinghua.iginx.mongodb.tools.TypeUtils;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.utils.Pair;
-import cn.edu.tsinghua.iginx.utils.StringUtils;
-import com.alibaba.fastjson2.JSONObject;
-import com.mongodb.ConnectionString;
+import com.mongodb.MongoBulkWriteException;
 import com.mongodb.MongoClientSettings;
-import com.mongodb.client.*;
+import com.mongodb.ServerAddress;
+import com.mongodb.WriteError;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.*;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Pattern;
-import org.bson.Document;
+import org.bson.BsonDocument;
+import org.bson.BsonInt64;
+import org.bson.BsonValue;
 import org.bson.conversions.Bson;
-import org.bson.types.ObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-// due to its schema, mongodb doesn't support history data
 public class MongoDBStorage implements IStorage {
 
   private static final Logger logger = LoggerFactory.getLogger(MongoDBStorage.class.getName());
 
-  private static final String CONNECTION_STRING = "mongodb://%s:%d";
+  private static final long MAX_WAIT_TIME = 5;
+  private static final int SESSION_POOL_MAX_SIZE = 200;
+  public static final String VALUE_FIELD = "v";
 
-  private static final String DATABASE = "IGinX";
-
-  public static final String NAME = "name";
-
-  public static final String FULLNAME = "fullname";
-
-  public static final String TAG_PREFIX = "tag_";
-
-  public static final String VALUES = "values";
-
-  public static final String TYPE = "type";
-
-  public static final String INNER_TIMESTAMP = "t";
-
-  public static final String INNER_VALUE = "v";
-
-  private final StorageEngineMeta meta;
-
-  private final int SESSION_POOL_MAX_SIZE = 200;
-
-  private final int MAX_WAIT_TIME = 5;
-
-  private MongoClient mongoClient;
-
-  private MongoDatabase mongoDatabase;
-
-  private ConcurrentMap<String, MongoCollection<Document>> collectionMap =
-      new ConcurrentHashMap<>();
+  private final MongoClient client;
 
   public MongoDBStorage(StorageEngineMeta meta) throws StorageInitializationException {
-    this.meta = meta;
     if (!meta.getStorageEngine().equals(StorageEngineType.mongodb)) {
       throw new StorageInitializationException("unexpected database: " + meta.getStorageEngine());
     }
-    init();
-  }
-
-  private void init() {
-    String connectionString = String.format(CONNECTION_STRING, meta.getIp(), meta.getPort());
-    mongoClient =
-        MongoClients.create(
-            MongoClientSettings.builder()
-                .applyConnectionString(new ConnectionString(connectionString))
-                .applyToConnectionPoolSettings(
-                    builder ->
-                        builder
-                            .maxWaitTime(MAX_WAIT_TIME, TimeUnit.SECONDS)
-                            .maxSize(SESSION_POOL_MAX_SIZE))
-                .build());
-    mongoDatabase = mongoClient.getDatabase(DATABASE);
-  }
-
-  private MongoCollection<Document> getCollection(String id) {
-    return collectionMap.computeIfAbsent(
-        id,
-        name -> {
-          try {
-            return mongoDatabase.getCollection(id);
-          } catch (Exception e) {
-            logger.error("init collection error: ", e);
-            return null;
-          }
-        });
-  }
-
-  public TaskExecuteResult execute(StoragePhysicalTask task) {
-    List<Operator> operators = task.getOperators();
-    if (operators.size() != 1) {
-      return new TaskExecuteResult(
-          new NonExecutablePhysicalTaskException("unsupported physical task"));
-    }
-    FragmentMeta fragment = task.getTargetFragment();
-    Operator op = operators.get(0);
-    String storageUnit = task.getStorageUnit();
-    if (op.getType() == OperatorType.Project) { // 目前只实现 project 操作符，同时不支持历史数据
-      Project project = (Project) op;
-      return executeProjectTask(fragment.getKeyInterval(), storageUnit, project);
-    } else if (op.getType() == OperatorType.Insert) {
-      Insert insert = (Insert) op;
-      return executeInsertTask(storageUnit, insert);
-    } else if (op.getType() == OperatorType.Delete) {
-      Delete delete = (Delete) op;
-      return executeDeleteTask(storageUnit, delete);
-    }
-    return new TaskExecuteResult(
-        new NonExecutablePhysicalTaskException("unsupported physical task"));
-  }
-
-  private TaskExecuteResult executeInsertTask(String storageUnit, Insert insert) {
-    DataView dataView = insert.getData();
-    Exception e = null;
-    switch (dataView.getRawDataType()) {
-      case Row:
-      case NonAlignedRow:
-        e = insertRowRecords((RowDataView) dataView, storageUnit);
-        break;
-      case Column:
-      case NonAlignedColumn:
-        e = insertColumnRecords((ColumnDataView) dataView, storageUnit);
-        break;
-    }
-    if (e != null) {
-      return new TaskExecuteResult(
-          null, new PhysicalException("execute insert task in mongodb failure", e));
-    }
-    return new TaskExecuteResult(null, null);
-  }
-
-  private Bson genPatternBson(List<String> patterns) {
-    List<Bson> patternRegexes = new ArrayList<>();
-    for (String pattern : patterns) {
-      patternRegexes.add(regex(NAME, DataUtils.reformatPattern(pattern)));
-    }
-    return or(patternRegexes);
-  }
-
-  private Bson genTagKVBson(TagFilter tagFilter) {
-    switch (tagFilter.getType()) {
-      case Base:
-        BaseTagFilter baseTagFilter = (BaseTagFilter) tagFilter;
-        if (!baseTagFilter.getTagValue().contains("*")) {
-          return eq(TAG_PREFIX + baseTagFilter.getTagKey(), baseTagFilter.getTagValue());
-        } else {
-          return exists(TAG_PREFIX + baseTagFilter.getTagKey(), true);
-        }
-      case And:
-        AndTagFilter andTagFilter = (AndTagFilter) tagFilter;
-        List<Bson> andBsonFilters = new ArrayList<>();
-        for (TagFilter subTagFilter : andTagFilter.getChildren()) {
-          Bson filter = genTagKVBson(subTagFilter);
-          if (filter != null) {
-            andBsonFilters.add(filter);
-          }
-        }
-        if (andBsonFilters.isEmpty()) {
-          return null;
-        }
-        return and(andBsonFilters);
-      case Or:
-        OrTagFilter orTagFilter = (OrTagFilter) tagFilter;
-        List<Bson> orBsonFilters = new ArrayList<>();
-        for (TagFilter subTagFilter : orTagFilter.getChildren()) {
-          Bson filter = genTagKVBson(subTagFilter);
-          if (filter != null) {
-            orBsonFilters.add(filter);
-          }
-        }
-        if (orBsonFilters.isEmpty()) {
-          return null;
-        }
-        return or(orBsonFilters);
-      case BasePrecise:
-        BasePreciseTagFilter basePreciseTagFilter = (BasePreciseTagFilter) tagFilter;
-        List<Bson> basePreciseBsonFilters = new ArrayList<>();
-        Map<String, String> basePreciseMap = basePreciseTagFilter.getTags();
-        basePreciseBsonFilters.add(
-            regex(FULLNAME, ".*" + DataUtils.fromTagKVToString(basePreciseMap)));
-        if (basePreciseBsonFilters.isEmpty()) {
-          return null;
-        }
-        return and(basePreciseBsonFilters);
-      case Precise:
-        PreciseTagFilter preciseTagFilter = (PreciseTagFilter) tagFilter;
-        List<Bson> preciseBsonFilters = new ArrayList<>();
-        List<BasePreciseTagFilter> basePreciseTagFilters = preciseTagFilter.getChildren();
-        for (BasePreciseTagFilter subBasePreciseTagFilter : basePreciseTagFilters) {
-          Bson filter = genTagKVBson(subBasePreciseTagFilter);
-          if (filter != null) {
-            preciseBsonFilters.add(filter);
-          }
-        }
-        if (preciseBsonFilters.isEmpty()) {
-          return null;
-        }
-        return or(preciseBsonFilters);
-      case WithoutTag:
-      default:
-        return null;
-    }
-  }
-
-  private TaskExecuteResult executeProjectTask(
-      KeyInterval keyInterval, String storageUnit, Project project) {
-    MongoCollection<Document> collection = getCollection(storageUnit);
-    if (collection == null) {
-      return new TaskExecuteResult(
-          new PhysicalTaskExecuteFailureException("create collection failure!"));
-    }
-    Bson findQuery = genPatternBson(project.getPatterns());
-    if (project.getTagFilter() != null) {
-      Bson tagKVFilter = genTagKVBson(project.getTagFilter());
-      if (tagKVFilter != null) {
-        findQuery = and(genPatternBson(project.getPatterns()), tagKVFilter);
-      }
-    }
-
-    try (MongoCursor<Document> cursor =
-        collection
-            .aggregate(
-                Arrays.asList(
-                    match(findQuery),
-                    match(
-                        or(
-                            exists(VALUES + "." + INNER_TIMESTAMP, false), // 空序列
-                            and( // 非空序列
-                                gte(VALUES + "." + INNER_TIMESTAMP, keyInterval.getStartKey()),
-                                lt(VALUES + "." + INNER_TIMESTAMP, keyInterval.getEndKey())))),
-                    unwind("$" + VALUES, new UnwindOptions().preserveNullAndEmptyArrays(true))))
-            .cursor()) {
-      MongoDBQueryRowStream rowStream =
-          new MongoDBQueryRowStream(cursor, keyInterval, project.getTagFilter());
-      return new TaskExecuteResult(rowStream);
-    }
-  }
-
-  private TaskExecuteResult executeDeleteTask(String storageUnit, Delete delete) {
-    MongoCollection<Document> collection = getCollection(storageUnit);
-    if (collection == null) {
-      return new TaskExecuteResult(
-          new PhysicalTaskExecuteFailureException("create collection failure!"));
-    }
-    if (delete.getKeyRanges() == null || delete.getKeyRanges().size() == 0) { // 没有传任何 time range
-      List<String> paths = delete.getPatterns();
-      if (paths.size() == 1 && paths.get(0).equals("*") && delete.getTagFilter() == null) {
-        collection.drop();
-      } else {
-        // 整条序列级别的删除
-        List<ObjectId> deletedObjectIds = determineDeletedObjectIds(collection, delete);
-        collection.deleteMany(in("_id", deletedObjectIds));
-      }
-    } else {
-      // 删除序列的一部分
-      List<ObjectId> deletedObjectIds = determineDeletedObjectIds(collection, delete);
-      for (KeyRange range : delete.getKeyRanges()) {
-        collection.updateMany(
-            in("_id", deletedObjectIds),
-            new Document(
-                "$pull",
-                new Document(
-                    VALUES,
-                    and(
-                        gte(INNER_TIMESTAMP, range.getBeginKey()),
-                        lt(INNER_TIMESTAMP, range.getEndKey())))));
-      }
-    }
-    return new TaskExecuteResult(null, null);
-  }
-
-  private List<ObjectId> determineDeletedObjectIds(
-      MongoCollection<Document> collection, Delete delete) {
-    List<Column> timeSeries = getColumns();
-    List<ObjectId> deletedObjectIds = new ArrayList<>();
-
-    for (Column ts : timeSeries) {
-      for (String path : delete.getPatterns()) {
-        if (Pattern.matches(StringUtils.reformatPath(path), ts.getPath())) {
-          if (delete.getTagFilter() != null
-              && !TagKVUtils.match(ts.getTags(), delete.getTagFilter())) {
-            continue;
-          }
-          try (MongoCursor<Document> cursor =
-              collection
-                  .find(
-                      and(
-                          eq(NAME, ts.getPath()),
-                          eq(FULLNAME, getFullName(ts.getPath(), ts.getTags()))))
-                  .cursor()) {
-            if (cursor.hasNext()) {
-              deletedObjectIds.add(cursor.next().get("_id", ObjectId.class));
-            }
-          }
-          break;
-        }
-      }
-    }
-
-    return deletedObjectIds;
-  }
-
-  private Exception insertRowRecords(RowDataView data, String storageUnit) {
-    MongoCollection<Document> collection = getCollection(storageUnit);
-    if (collection == null) {
-      return new PhysicalTaskExecuteFailureException("create collection failure!");
-    }
-    List<MongoDBSchema> schemas = new ArrayList<>();
-    for (int i = 0; i < data.getPathNum(); i++) {
-      schemas.add(new MongoDBSchema(data.getPath(i), data.getTags(i), data.getDataType(i)));
-    }
-
-    Map<MongoDBSchema, List<JSONObject>> points = new HashMap<>();
-    for (int i = 0; i < data.getKeySize(); i++) {
-      BitmapView bitmapView = data.getBitmapView(i);
-      int index = 0;
-      for (int j = 0; j < data.getPathNum(); j++) {
-        if (bitmapView.get(j)) {
-          MongoDBSchema schema = schemas.get(j);
-          List<JSONObject> timeAndValues = points.computeIfAbsent(schema, k -> new ArrayList<>());
-          Map<String, Object> timeAndValueMap = new HashMap<>();
-          timeAndValueMap.put(MongoDBStorage.INNER_TIMESTAMP, data.getKey(i));
-          timeAndValueMap.put(MongoDBStorage.INNER_VALUE, data.getValue(i, index));
-          timeAndValues.add(new JSONObject(timeAndValueMap));
-          index++;
-        }
-      }
-    }
-
-    List<WriteModel<Document>> operations = new ArrayList<>();
-    for (Map.Entry<MongoDBSchema, List<JSONObject>> entry : points.entrySet()) {
-      MongoDBSchema mongoDBSchema = entry.getKey();
-      List<JSONObject> jsonObjects = entry.getValue();
-      String fullName = getFullName(mongoDBSchema);
-      Bson findQuery = eq(FULLNAME, fullName);
-      if (!collection.find(findQuery).iterator().hasNext()) {
-        operations.add(
-            new InsertOneModel<>(
-                DataUtils.constructDocument(mongoDBSchema, mongoDBSchema.getType(), jsonObjects)));
-      } else {
-        operations.add(new UpdateOneModel<>(findQuery, Updates.addEachToSet(VALUES, jsonObjects)));
-      }
-    }
 
     try {
-      if (!operations.isEmpty()) {
-        collection.bulkWrite(operations);
-        operations.clear();
-      }
+      this.client = connect(meta.getIp(), meta.getPort());
     } catch (Exception e) {
-      logger.error("encounter error when write points to mongodb: {}", e.getMessage());
-      return e;
+      String message = "fail to connect " + meta.getIp() + ":" + meta.getPort();
+      logger.error(message, e);
+      throw new StorageInitializationException(message);
     }
-    return null;
   }
 
-  private Exception insertColumnRecords(ColumnDataView data, String storageUnit) {
-    MongoCollection<Document> collection = getCollection(storageUnit);
-    if (collection == null) {
-      return new PhysicalTaskExecuteFailureException("create collection failure!");
-    }
+  private MongoClient connect(String ip, int port) {
+    ServerAddress address = new ServerAddress(ip, port);
+    MongoClientSettings settings =
+        MongoClientSettings.builder()
+            .applyToClusterSettings(builder -> builder.hosts(Collections.singletonList(address)))
+            .applyToConnectionPoolSettings(
+                builder ->
+                    builder
+                        .maxWaitTime(MAX_WAIT_TIME, TimeUnit.SECONDS)
+                        .maxSize(SESSION_POOL_MAX_SIZE))
+            .build();
 
-    List<WriteModel<Document>> operations = new ArrayList<>();
-    for (int i = 0; i < data.getPathNum(); i++) {
-      MongoDBSchema schema =
-          new MongoDBSchema(data.getPath(i), data.getTags(i), data.getDataType(i));
-      BitmapView bitmapView = data.getBitmapView(i);
-      int index = 0;
-      List<JSONObject> jsonObjects = new ArrayList<>();
-      for (int j = 0; j < data.getKeySize(); j++) {
-        if (bitmapView.get(j)) {
-          Map<String, Object> timeAndValueMap = new HashMap<>();
-          timeAndValueMap.put(MongoDBStorage.INNER_TIMESTAMP, data.getKey(j));
-          timeAndValueMap.put(MongoDBStorage.INNER_VALUE, data.getValue(i, index));
-          jsonObjects.add(new JSONObject(timeAndValueMap));
-          index++;
-        }
-      }
-
-      String fullName = getFullName(schema);
-      Bson findQuery = eq(FULLNAME, fullName);
-      if (!collection.find(findQuery).iterator().hasNext()) {
-        operations.add(
-            new InsertOneModel<>(
-                DataUtils.constructDocument(schema, schema.getType(), jsonObjects)));
-      } else {
-        operations.add(new UpdateOneModel<>(findQuery, Updates.addEachToSet(VALUES, jsonObjects)));
-      }
-    }
-
-    try {
-      if (!operations.isEmpty()) {
-        collection.bulkWrite(operations);
-        operations.clear();
-      }
-    } catch (Exception e) {
-      logger.error("encounter error when write points to mongodb: {}", e.getMessage());
-      return e;
-    }
-    return null;
-  }
-
-  private String getFullName(MongoDBSchema schema) {
-    return getFullName(schema.getName(), schema.getTags());
-  }
-
-  private String getFullName(String name, Map<String, String> tags) {
-    String fullName = name;
-    if (tags != null && !tags.isEmpty()) {
-      fullName += "{";
-      fullName +=
-          tags.entrySet().stream()
-              .map(x -> x.getKey() + "=" + x.getValue())
-              .reduce((a, b) -> a + "," + b)
-              .get();
-      fullName += "}";
-    }
-    return fullName;
-  }
-
-  @Override
-  public TaskExecuteResult executeProject(Project project, DataArea dataArea) {
-    return null;
-  }
-
-  @Override
-  public TaskExecuteResult executeProjectDummy(Project project, DataArea dataArea) {
-    return null;
+    return MongoClients.create(settings);
   }
 
   @Override
   public boolean isSupportProjectWithSelect() {
-    return false;
+    return true;
   }
 
   @Override
-  public TaskExecuteResult executeProjectWithSelect(
-      Project project, Select select, DataArea dataArea) {
-    return null;
+  public TaskExecuteResult executeProject(Project project, DataArea area) {
+    return query(project, area, null);
+  }
+
+  @Override
+  public TaskExecuteResult executeProjectWithSelect(Project project, Select select, DataArea area) {
+    return query(project, area, select.getFilter());
+  }
+
+  @Override
+  public TaskExecuteResult executeProjectDummy(Project project, DataArea area) {
+    return queryDummy(project, area, null);
   }
 
   @Override
   public TaskExecuteResult executeProjectDummyWithSelect(
-      Project project, Select select, DataArea dataArea) {
-    return null;
+      Project project, Select select, DataArea area) {
+    return queryDummy(project, area, select.getFilter());
+  }
+
+  private TaskExecuteResult queryDummy(Project project, DataArea area, Filter filter) {
+    KeyInterval range = area.getKeyInterval();
+    List<String> patterns = project.getPatterns();
+
+    try {
+      Filter unionFilter = rangeUnionWithFilter(range, filter);
+      RowStream result = new DummyQuery(this.client).query(patterns, unionFilter);
+      return new TaskExecuteResult(result);
+    } catch (Exception e) {
+      logger.error("dummy project {} where {}", patterns, filter);
+      logger.error("failed to dummy query ", e);
+      return new TaskExecuteResult(new PhysicalException("failed to query dummy", e));
+    }
+  }
+
+  private TaskExecuteResult query(Project project, DataArea area, Filter filter) {
+    String unit = area.getStorageUnit();
+    KeyInterval range = area.getKeyInterval();
+    List<String> patterns = project.getPatterns();
+    TagFilter tagFilter = project.getTagFilter();
+
+    try {
+      MongoDatabase db = this.getDatabase(unit);
+      List<Field> fieldList = NameUtils.match(getFields(db), patterns, tagFilter);
+
+      RowStream result;
+      if (filter == null) {
+        result = new ColumnQuery(db).query(fieldList, range);
+      } else {
+        Filter unionFilter = rangeUnionWithFilter(range, filter);
+        result = new JoinQuery(db).query(fieldList, unionFilter);
+      }
+      return new TaskExecuteResult(result);
+    } catch (Exception e) {
+      String message = String.format("project %s from %s[%s]", patterns, unit, range);
+      if (tagFilter != null) {
+        message += " with " + tagFilter;
+      }
+      logger.error(message, e);
+      return new TaskExecuteResult(new PhysicalException("failed to project", e));
+    }
+  }
+
+  private static Filter rangeUnionWithFilter(KeyInterval range, Filter filter) {
+    List<Filter> filters = new ArrayList<>();
+    filters.add(new KeyFilter(Op.GE, range.getStartKey()));
+    filters.add(new KeyFilter(Op.L, range.getEndKey()));
+    if (filter != null) filters.add(filter);
+    return new AndFilter(filters);
   }
 
   @Override
   public TaskExecuteResult executeDelete(Delete delete, DataArea dataArea) {
-    return null;
+    String unit = dataArea.getStorageUnit();
+    List<String> patterns = delete.getPatterns();
+    TagFilter tagFilter = delete.getTagFilter();
+    List<KeyRange> ranges = delete.getKeyRanges();
+
+    MongoDatabase db = this.getDatabase(unit);
+    try {
+      List<Field> fieldList = NameUtils.match(getFields(db), patterns, tagFilter);
+      for (Field field : fieldList) {
+        String collName = NameUtils.getCollectionName(field);
+        MongoCollection<BsonDocument> coll = db.getCollection(collName, BsonDocument.class);
+        if (ranges == null || ranges.isEmpty()) {
+          coll.drop();
+        } else {
+          Bson filter = FilterUtils.ranges(ranges);
+          coll.deleteMany(filter);
+        }
+      }
+    } catch (Exception e) {
+      logger.error("delete {} from {} where {} with {}", patterns, unit, ranges, tagFilter);
+      logger.error("failed to delete", e);
+      return new TaskExecuteResult(new PhysicalException("failed to delete", e));
+    }
+    return new TaskExecuteResult();
   }
 
   @Override
   public TaskExecuteResult executeInsert(Insert insert, DataArea dataArea) {
-    return null;
+    String unit = dataArea.getStorageUnit();
+    DataView data = insert.getData();
+
+    try {
+      for (SourceTable.Column column : new SourceTable(data)) {
+        Field field = column.getField();
+        Map<Long, Object> columnData = column.getData();
+
+        List<BsonDocument> documents = new ArrayList<>();
+        for (Map.Entry<Long, Object> point : columnData.entrySet()) {
+          BsonValue key = new BsonInt64(point.getKey());
+          BsonValue value = TypeUtils.toBsonValue(field.getType(), point.getValue());
+          BsonDocument document = new BsonDocument("_id", key).append(VALUE_FIELD, value);
+          documents.add(document);
+        }
+
+        MongoDatabase db = this.getDatabase(unit);
+        String collName = NameUtils.getCollectionName(field);
+        MongoCollection<BsonDocument> collection = db.getCollection(collName, BsonDocument.class);
+
+        try {
+          collection.insertMany(documents, new InsertManyOptions().ordered(false)); // try to insert
+        } catch (MongoBulkWriteException e) { // exist duplicate key
+          List<WriteModel<BsonDocument>> writeModels = new ArrayList<>();
+          for (WriteError error : e.getWriteErrors()) {
+            if (error.getCode() != 11000) throw e; // E11000: duplicate key error
+
+            long key = getDuplicateKey(error);
+            Bson filter = Filters.eq("_id", key);
+
+            BsonValue value = TypeUtils.toBsonValue(field.getType(), columnData.get(key));
+            BsonDocument doc = new BsonDocument(VALUE_FIELD, value);
+
+            writeModels.add(new ReplaceOneModel<>(filter, doc, new ReplaceOptions().upsert(true)));
+          }
+
+          collection.bulkWrite(writeModels, new BulkWriteOptions().ordered(false));
+        }
+      }
+    } catch (Exception e) {
+      logger.error("failed to insert", e);
+      return new TaskExecuteResult(new PhysicalException("failed to insert", e));
+    }
+    return new TaskExecuteResult();
+  }
+
+  private static long getDuplicateKey(WriteError error) {
+    String msg = error.getMessage();
+    String id = msg.substring(msg.lastIndexOf(':') + 2, msg.length() - 2);
+    return Long.parseLong(id);
   }
 
   @Override
   public List<Column> getColumns() {
-    Set<String> storageUnits = new HashSet<>(collectionMap.keySet());
-    Map<String, Map<String, DataType>> deDupMap = new HashMap<>();
-    for (String storageUnit : storageUnits) {
-      MongoCollection<Document> collection = getCollection(storageUnit);
-      try (MongoCursor<Document> cursor =
-          collection
-              .find()
-              .projection(fields(excludeId(), include(TYPE, NAME, FULLNAME)))
-              .iterator()) {
-        while (cursor.hasNext()) {
-          Document document = cursor.next();
-          String name = document.getString(NAME);
-          DataType dataType = DataUtils.fromString(document.getString(TYPE));
-          String fullName = document.getString(FULLNAME);
-          String tagString = "";
-          if (fullName.length() != name.length()) {
-            tagString = fullName.substring(name.length() + 1, fullName.length() - 1);
-          }
-          Map<String, DataType> dupMap = deDupMap.computeIfAbsent(name, key -> new HashMap<>());
-          dupMap.put(tagString, dataType);
+    List<Column> columns = new ArrayList<>();
+    for (String unit : this.client.listDatabaseNames()) {
+      if (unit.startsWith("unit")) {
+        for (Field field : getFields(this.getDatabase(unit))) {
+          columns.add(new Column(field.getName(), field.getType(), field.getTags()));
         }
       }
     }
-    List<Column> columnList = new ArrayList<>();
-    for (String name : deDupMap.keySet()) {
-      Map<String, DataType> dupMap = deDupMap.get(name);
-      for (String tagString : dupMap.keySet()) {
-        DataType dataType = dupMap.get(tagString);
-        if (tagString == null || tagString.isEmpty()) {
-          columnList.add(new Column(name, dataType));
-        } else {
-          columnList.add(
-              new Column(name, dataType, MongoDBSchema.resolveTagsFromString(tagString)));
-        }
+    return columns;
+  }
+
+  private MongoDatabase getDatabase(String unit) {
+    return this.client.getDatabase(unit);
+  }
+
+  private static List<Field> getFields(MongoDatabase db) {
+    List<Field> fields = new ArrayList<>();
+    for (String collectionName : db.listCollectionNames()) {
+      try {
+        fields.add(NameUtils.parseCollectionName(collectionName));
+      } catch (Exception e) {
+        logger.error("failed to parse collection name: " + collectionName, e);
       }
     }
-    return columnList;
+    return fields;
   }
 
   @Override
   public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String prefix) {
-    // TODO DOESN'T NEED TO IMPLEMENT
-    return null;
+    KeyInterval keyInterval = new KeyInterval(0, Long.MAX_VALUE);
+    List<String> prefixes = new ArrayList<>();
+    for (String db : this.client.listDatabaseNames()) {
+      for (String collection : this.client.getDatabase(db).listCollectionNames()) {
+        prefixes.add(db + "." + collection);
+      }
+    }
+    ColumnsInterval columnsInterval = new ColumnsInterval("");
+    if (!prefixes.isEmpty()) {
+      ColumnsInterval first = new ColumnsInterval(Collections.min(prefixes));
+      ColumnsInterval last = new ColumnsInterval(Collections.max(prefixes));
+      columnsInterval = new ColumnsInterval(first.getStartColumn(), last.getEndColumn());
+    }
+
+    return new Pair<>(columnsInterval, keyInterval);
   }
 
   @Override
   public void release() {
-    collectionMap.clear();
-    collectionMap = null;
-    mongoDatabase = null;
-    mongoClient.close();
-    mongoClient = null;
+    client.close();
   }
 }
