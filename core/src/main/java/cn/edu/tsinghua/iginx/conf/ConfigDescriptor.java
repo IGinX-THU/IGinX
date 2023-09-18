@@ -58,7 +58,7 @@ public class ConfigDescriptor {
       // runs by script: IGINX_HOME should always have been set
       String iginxHomePath = EnvUtils.loadEnv(Constants.IGINX_HOME, System.getProperty("user.dir"));
       String udfPath = properties.getProperty("defaultUDFDir", "udf_funcs");
-      if (FileUtils.isRelativePath(udfPath)) {
+      if (!FileUtils.isAbsolutePath(udfPath)) {
         // if relative, build absolute path
         udfPath = String.join(File.separator, iginxHomePath, udfPath);
       }
