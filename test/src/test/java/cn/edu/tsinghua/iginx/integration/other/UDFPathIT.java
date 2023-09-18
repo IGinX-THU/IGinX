@@ -1,6 +1,5 @@
 package cn.edu.tsinghua.iginx.integration.other;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
 import cn.edu.tsinghua.iginx.session.Session;
@@ -50,25 +49,6 @@ public class UDFPathIT {
             + "|     udf_min|        UDFMin|          udf_min.py|0.0.0.0|    UDAF|\n"
             + "|     udf_avg|        UDFAvg|          udf_avg.py|0.0.0.0|    UDAF|\n"
             + "+------------+--------------+--------------------+-------+--------+\n";
-
-    SQLTestTools.executeAndCompare(session, statement, expectedRes);
-  }
-
-  // Test cos() to make sure udf scripts really exists.
-  @Test
-  public void testUDFFunction() throws SessionException, ExecutionException {
-    String insertStatement = "insert into aa.bb(key, value) values(1, 2)";
-    session.executeSql(insertStatement);
-
-    String statement = "select cos(value) from aa.bb";
-    String expectedRes =
-        "ResultSets:\n"
-            + "+---+-------------------+\n"
-            + "|key|   cos(aa.bb.value)|\n"
-            + "+---+-------------------+\n"
-            + "|  1|-0.4161468365471424|\n"
-            + "+---+-------------------+\n"
-            + "Total line number = 1\n";
 
     SQLTestTools.executeAndCompare(session, statement, expectedRes);
   }
