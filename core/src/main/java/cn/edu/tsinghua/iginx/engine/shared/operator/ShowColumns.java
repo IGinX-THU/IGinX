@@ -6,7 +6,7 @@ import cn.edu.tsinghua.iginx.engine.shared.source.GlobalSource;
 import java.util.HashSet;
 import java.util.Set;
 
-public class ShowTimeSeries extends AbstractUnaryOperator {
+public class ShowColumns extends AbstractUnaryOperator {
 
   private final Set<String> pathRegexSet;
   private final TagFilter tagFilter;
@@ -14,9 +14,9 @@ public class ShowTimeSeries extends AbstractUnaryOperator {
   private final int limit;
   private final int offset;
 
-  public ShowTimeSeries(
+  public ShowColumns(
       GlobalSource source, Set<String> pathRegexSet, TagFilter tagFilter, int limit, int offset) {
-    super(OperatorType.ShowTimeSeries, source);
+    super(OperatorType.ShowColumns, source);
     this.pathRegexSet = pathRegexSet;
     this.tagFilter = tagFilter;
     this.limit = limit;
@@ -41,7 +41,7 @@ public class ShowTimeSeries extends AbstractUnaryOperator {
 
   @Override
   public Operator copy() {
-    return new ShowTimeSeries(
+    return new ShowColumns(
         (GlobalSource) getSource().copy(),
         new HashSet<>(pathRegexSet),
         tagFilter.copy(),

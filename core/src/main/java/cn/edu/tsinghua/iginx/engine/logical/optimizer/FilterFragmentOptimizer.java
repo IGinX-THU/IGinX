@@ -50,7 +50,7 @@ public class FilterFragmentOptimizer implements Optimizer {
   public Operator optimize(Operator root) {
     // only optimize query
     if (root.getType() == OperatorType.CombineNonQuery
-        || root.getType() == OperatorType.ShowTimeSeries) {
+        || root.getType() == OperatorType.ShowColumns) {
       return root;
     }
 

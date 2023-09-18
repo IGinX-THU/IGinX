@@ -40,7 +40,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
-import cn.edu.tsinghua.iginx.engine.shared.operator.ShowTimeSeries;
+import cn.edu.tsinghua.iginx.engine.shared.operator.ShowColumns;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
@@ -281,7 +281,7 @@ public class StoragePhysicalTaskExecutor {
   public TaskExecuteResult executeGlobalTask(GlobalPhysicalTask task) {
     List<StorageEngineMeta> storageList = metaManager.getStorageEngineList();
     switch (task.getOperator().getType()) {
-      case ShowTimeSeries:
+      case ShowColumns:
         Set<Column> columnSet = new HashSet<>();
         for (StorageEngineMeta storage : storageList) {
           long id = storage.getId();
@@ -306,7 +306,7 @@ public class StoragePhysicalTaskExecutor {
           }
         }
 
-        ShowTimeSeries operator = (ShowTimeSeries) task.getOperator();
+        ShowColumns operator = (ShowColumns) task.getOperator();
         Set<String> pathRegexSet = operator.getPathRegexSet();
         TagFilter tagFilter = operator.getTagFilter();
 

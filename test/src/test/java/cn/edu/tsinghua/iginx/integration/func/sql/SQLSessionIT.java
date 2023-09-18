@@ -175,7 +175,7 @@ public class SQLSessionIT {
   }
 
   @Test
-  public void testShowTimeSeries() {
+  public void testShowColumns() {
     if (!isAbleToShowColumns || isScaling) {
       return;
     }
@@ -4941,11 +4941,11 @@ public class SQLSessionIT {
   }
 
   @Test
-  public void testDeleteTimeSeries() {
+  public void testDeleteColumns() {
     if (!isAbleToDelete || isScaling) {
       return;
     }
-    String showTimeSeries = "SHOW COLUMNS us.*;";
+    String showColumns = "SHOW COLUMNS us.*;";
     String expected =
         "Columns:\n"
             + "+--------+--------+\n"
@@ -4957,12 +4957,12 @@ public class SQLSessionIT {
             + "|us.d1.s4|  DOUBLE|\n"
             + "+--------+--------+\n"
             + "Total line number = 4\n";
-    executor.executeAndCompare(showTimeSeries, expected);
+    executor.executeAndCompare(showColumns, expected);
 
     String deleteTimeSeries = "DELETE COLUMNS us.d1.s4";
     executor.execute(deleteTimeSeries);
 
-    showTimeSeries = "SHOW COLUMNS us.*;";
+    showColumns = "SHOW COLUMNS us.*;";
     expected =
         "Columns:\n"
             + "+--------+--------+\n"
@@ -4973,16 +4973,16 @@ public class SQLSessionIT {
             + "|us.d1.s3|  BINARY|\n"
             + "+--------+--------+\n"
             + "Total line number = 3\n";
-    executor.executeAndCompare(showTimeSeries, expected);
+    executor.executeAndCompare(showColumns, expected);
 
-    String showTimeSeriesData = "SELECT s4 FROM us.d1;";
+    String showColumnsData = "SELECT s4 FROM us.d1;";
     expected = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
-    executor.executeAndCompare(showTimeSeriesData, expected);
+    executor.executeAndCompare(showColumnsData, expected);
 
     deleteTimeSeries = "DELETE COLUMNS us.*";
     executor.execute(deleteTimeSeries);
 
-    showTimeSeries = "SHOW COLUMNS us.*;";
+    showColumns = "SHOW COLUMNS us.*;";
     expected =
         "Columns:\n"
             + "+----+--------+\n"
@@ -4990,11 +4990,11 @@ public class SQLSessionIT {
             + "+----+--------+\n"
             + "+----+--------+\n"
             + "Empty set.\n";
-    executor.executeAndCompare(showTimeSeries, expected);
+    executor.executeAndCompare(showColumns, expected);
 
-    showTimeSeriesData = "SELECT * FROM *;";
+    showColumnsData = "SELECT * FROM *;";
     expected = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
-    executor.executeAndCompare(showTimeSeriesData, expected);
+    executor.executeAndCompare(showColumnsData, expected);
 
     String countPoints = "COUNT POINTS";
     expected = "Points num: 0\n";
@@ -5010,9 +5010,9 @@ public class SQLSessionIT {
     String expected = "Points num: 0\n";
     executor.executeAndCompare(countPoints, expected);
 
-    String showTimeSeries = "SELECT * FROM *;";
+    String showColumns = "SELECT * FROM *;";
     expected = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
-    executor.executeAndCompare(showTimeSeries, expected);
+    executor.executeAndCompare(showColumns, expected);
   }
 
   @Test

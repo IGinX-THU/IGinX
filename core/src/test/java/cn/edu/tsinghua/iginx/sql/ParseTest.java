@@ -175,7 +175,7 @@ public class ParseTest {
   }
 
   @Test
-  public void testParseDeleteTimeSeries() {
+  public void testParseDeleteColumns() {
     String deleteColumnsStr = "DELETE COLUMNS a.b.c, a.b.d;";
     DeleteColumnsStatement statement =
         (DeleteColumnsStatement) TestUtils.buildStatement(deleteColumnsStr);
