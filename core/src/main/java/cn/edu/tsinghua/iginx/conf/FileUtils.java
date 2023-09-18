@@ -17,7 +17,7 @@ public class FileUtils {
     if (os.contains("win")) {
       return path.matches("^([a-zA-Z]:\\\\|\\\\).*");
     } else {
-      return !path.startsWith("/");
+      return path.startsWith("/");
     }
   }
 }
