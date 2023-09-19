@@ -7,15 +7,11 @@ import cn.edu.tsinghua.iginx.engine.shared.data.write.RowDataView;
 import cn.edu.tsinghua.iginx.parquet.exec.Executor;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Bitmap;
+import java.util.*;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.*;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public abstract class AbstractExecutorTest {
 
@@ -27,15 +23,15 @@ public abstract class AbstractExecutorTest {
 
   protected Executor executor;
 
-  private static int DU_INDEX = 0;
+  protected static int DU_INDEX = 0;
 
-  private static final ReentrantReadWriteLock DUIndexLock = new ReentrantReadWriteLock();
+  protected static final ReentrantReadWriteLock DUIndexLock = new ReentrantReadWriteLock();
 
   private DataView genRowDataViewNoKey(
-          List<String> pathList,
-          List<Map<String, String>> tagsList,
-          List<DataType> dataTypeList,
-          Object[] valuesList) {
+      List<String> pathList,
+      List<Map<String, String>> tagsList,
+      List<DataType> dataTypeList,
+      Object[] valuesList) {
     // sort path by dictionary
     List<String> sortedPaths = new ArrayList<>(pathList);
     Integer[] index = new Integer[sortedPaths.size()];
@@ -82,47 +78,26 @@ public abstract class AbstractExecutorTest {
       bitmapList.add(bitmap);
     }
 
-    RawData rawData = new RawData(
+    RawData rawData =
+        new RawData(
             sortedPaths,
             sortedTagsList,
             keys,
             valuesList,
             sortedDataTypeList,
             bitmapList,
-            RawDataType.Row
-    );
+            RawDataType.Row);
 
     return new RowDataView(rawData, 0, sortedPaths.size(), 0, valuesList.length);
   }
 
-  private String newDU() {
-    try {
-      DUIndexLock.writeLock().lock();
-      String unitName = "unit" + String.format("%08d", DU_INDEX);
-      Path path = Paths.get(dataDir, unitName);
-      if (!Files.exists(path)) {
-        Files.createDirectory(path);
-      }
-      DU_INDEX++;
-      return unitName;
-    } catch (Exception e) {
-      logger.error("initializing new du index failed: " + e.getMessage());
-      e.printStackTrace();
-    } finally {
-      DUIndexLock.writeLock().unlock();
-    }
-    return "";
-  }
+  // generate new DU and return id
+  public abstract String newDU();
 
   @Test
   public void testEmptyInsert() {
-    DataView EmptyDataView = genRowDataViewNoKey(
-            new ArrayList<>(),
-            new ArrayList<>(),
-            new ArrayList<>(),
-            new Object[0]
-    );
+    DataView EmptyDataView =
+        genRowDataViewNoKey(new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new Object[0]);
     executor.executeInsertTask(EmptyDataView, newDU());
   }
-
 }

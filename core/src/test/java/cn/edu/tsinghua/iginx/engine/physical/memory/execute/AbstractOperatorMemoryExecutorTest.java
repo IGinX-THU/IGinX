@@ -2368,9 +2368,4 @@ public abstract class AbstractOperatorMemoryExecutorTest {
 
     assertFalse(stream.hasNext());
   }
-
-  @Test
-  public void testEmptyInsert() {
-
-  }
 }
