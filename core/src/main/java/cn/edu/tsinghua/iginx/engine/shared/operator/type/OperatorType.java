@@ -25,6 +25,7 @@ public enum OperatorType {
 
   // MultipleOperator[10,19]
   CombineNonQuery(10),
+  Folded,
 
   // isGlobalOperator[20,29]
   ShowTimeSeries(20),
@@ -62,7 +63,9 @@ public enum OperatorType {
   Reorder,
   AddSchemaPrefix,
   GroupBy,
-  Distinct;
+  Distinct,
+  ProjectWaitingForPath,
+  ValueToSelectedPath;
 
   private int value;
 
@@ -97,7 +100,7 @@ public enum OperatorType {
   }
 
   public static boolean isMultipleOperator(OperatorType op) {
-    return op == CombineNonQuery;
+    return op.value >= 10 && op.value <= 19;
   }
 
   public static boolean isGlobalOperator(OperatorType op) {

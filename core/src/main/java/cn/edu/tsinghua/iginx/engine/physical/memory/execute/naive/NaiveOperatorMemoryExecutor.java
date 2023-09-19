@@ -33,6 +33,7 @@ import static cn.edu.tsinghua.iginx.engine.shared.Constants.ALL_PATH_SUFFIX;
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.KEY;
 import static cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils.isCanUseSetQuantifierFunction;
 import static cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils.getHash;
+import static cn.edu.tsinghua.iginx.sql.SQLConstant.DOT;
 
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
@@ -82,13 +83,16 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Sort;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Sort.SortType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.UnaryOperator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Union;
+import cn.edu.tsinghua.iginx.engine.shared.operator.ValueToSelectedPath;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OuterJoinType;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import cn.edu.tsinghua.iginx.engine.shared.source.SourceType;
+import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -145,6 +149,8 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         return executeGroupBy((GroupBy) operator, transformToTable(stream));
       case Distinct:
         return executeDistinct(transformToTable(stream));
+      case ValueToSelectedPath:
+        return executeValueToSelectedPath((ValueToSelectedPath) operator, transformToTable(stream));
       default:
         throw new UnexpectedOperatorException("unknown unary operator: " + operator.getType());
     }
@@ -609,6 +615,29 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     List<Row> targetRows = removeDuplicateRows(table.getRows());
 
     return new Table(newHeader, targetRows);
+  }
+
+  private RowStream executeValueToSelectedPath(ValueToSelectedPath operator, Table table) {
+    String prefix = operator.getPrefix();
+
+    int fieldSize = table.getHeader().getFieldSize();
+    Header targetHeader =
+        new Header(Collections.singletonList(new Field("SelectedPath", DataType.BINARY)));
+    List<Row> targetRows = new ArrayList<>();
+    table
+        .getRows()
+        .forEach(
+            row -> {
+              for (int i = 0; i < fieldSize; i++) {
+                Object[] value = new Object[1];
+                value[0] =
+                    (prefix + DOT + row.getAsValue(i).getAsString())
+                        .getBytes(StandardCharsets.UTF_8);
+                targetRows.add(new Row(targetHeader, value));
+              }
+            });
+
+    return new Table(targetHeader, targetRows);
   }
 
   private RowStream executeJoin(Join join, Table tableA, Table tableB) throws PhysicalException {
