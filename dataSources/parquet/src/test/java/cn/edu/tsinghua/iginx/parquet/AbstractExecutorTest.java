@@ -17,27 +17,19 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-public abstract class AbstructExecutorTest {
+public abstract class AbstractExecutorTest {
 
-  private static final Logger logger = LoggerFactory.getLogger(AbstructExecutorTest.class);
+  private static final Logger logger = LoggerFactory.getLogger(AbstractExecutorTest.class);
 
-  protected static String dataDir = "dataDir/";
+  protected static String dataDir = "./src/test/resources/dataDir";
 
-  protected static String dummyDir = "dummyDir/";
-
-  protected static final String DRIVER_NAME = "org.duckdb.DuckDBDriver";
-
-  protected static final String CONN_URL = "jdbc:duckdb:";
+  protected static String dummyDir = "./src/test/resources/dummyDir";
 
   protected Executor executor;
 
-  private static long DU_INDEX = 0L;
+  private static int DU_INDEX = 0;
 
   private static final ReentrantReadWriteLock DUIndexLock = new ReentrantReadWriteLock();
-
-  public AbstructExecutorTest(Executor executor) {
-    this.executor = executor;
-  }
 
   private DataView genRowDataViewNoKey(
           List<String> pathList,
@@ -91,11 +83,11 @@ public abstract class AbstructExecutorTest {
     }
 
     RawData rawData = new RawData(
-            pathList,
-            tagsList,
+            sortedPaths,
+            sortedTagsList,
             keys,
             valuesList,
-            dataTypeList,
+            sortedDataTypeList,
             bitmapList,
             RawDataType.Row
     );
@@ -106,13 +98,13 @@ public abstract class AbstructExecutorTest {
   private String newDU() {
     try {
       DUIndexLock.writeLock().lock();
-      String unit = "unit" + DU_INDEX;
-      Path path = Paths.get(dataDir, unit);
+      String unitName = "unit" + String.format("%08d", DU_INDEX);
+      Path path = Paths.get(dataDir, unitName);
       if (!Files.exists(path)) {
         Files.createDirectory(path);
       }
       DU_INDEX++;
-      return unit;
+      return unitName;
     } catch (Exception e) {
       logger.error("initializing new du index failed: " + e.getMessage());
       e.printStackTrace();
