@@ -78,7 +78,6 @@ import cn.edu.tsinghua.iginx.utils.DataTypeUtils;
 import cn.edu.tsinghua.iginx.utils.FormatUtils;
 import cn.edu.tsinghua.iginx.utils.RpcUtils;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
@@ -321,7 +320,8 @@ public class StatementExecutor {
           case INSERT_FROM_FILE:
             processInsertFromFile(ctx);
             return;
-          case EXPORT_FILE_FROM_SELECT:
+          case EXPORT_CSV_FROM_SELECT:
+          case EXPORT_STREAM_FROM_SELECT:
             processExportFileFromSelect(ctx);
             return;
           default:
@@ -522,16 +522,19 @@ public class StatementExecutor {
     SelectStatement selectStatement = statement.getSelectStatement();
     RequestContext selectContext = new RequestContext(ctx.getSessionId(), selectStatement, true);
     process(selectContext);
-    RowStream rowStream = selectContext.getResult().getResultStream();
+    RowStream stream = selectContext.getResult().getResultStream();
 
     // step 2: export file
     ExportFile exportFile = statement.getExportFile();
     switch (exportFile.getType()) {
       case CSV:
-        processExportCsvFile(ctx, rowStream, (ExportCsv) exportFile);
+        processExportCsvFile(ctx, stream, (ExportCsv) exportFile);
         return;
       case BYTE_STREAM:
-        processExportByteStream(ctx, rowStream, (ExportByteStream) exportFile);
+        setResultFromRowStream(ctx, stream);
+        ExportByteStream exportByteStream = (ExportByteStream) exportFile;
+        ctx.getResult().setExportStreamDir(exportByteStream.getDir());
+        stream.close();
         return;
       default:
         throw new RuntimeException("Unknown export file type: " + exportFile.getType());
@@ -627,77 +630,6 @@ public class StatementExecutor {
               + ", because "
               + e.getMessage());
     }
-    stream.close();
-    ctx.setResult(new Result(RpcUtils.SUCCESS));
-  }
-
-  private void processExportByteStream(
-      RequestContext ctx, RowStream stream, ExportByteStream exportFile)
-      throws PhysicalException, IOException {
-    final int BATCH_SIZE = config.getBatchSizeExportByteStream();
-    String dir = exportFile.getDir();
-    File dirFile = new File(dir);
-    if (!dirFile.exists()) {
-      Files.createDirectory(Paths.get(dir));
-    }
-    if (!dirFile.isDirectory()) {
-      throw new InvalidParameterException(exportFile.getDir() + " is not a directory!");
-    }
-
-    int fieldSize = stream.getHeader().getFieldSize();
-    String[] columns = new String[fieldSize];
-    Map<String, Integer> countMap = new HashMap<>();
-    for (int i = 0; i < fieldSize; i++) {
-      String originColumn = stream.getHeader().getField(i).getFullName();
-      Integer count = countMap.getOrDefault(originColumn, 0);
-      count += 1;
-      countMap.put(originColumn, count);
-      // 重复的列名在列名后面加上(1),(2)...
-      if (count >= 2) {
-        columns[i] = Paths.get(dir, originColumn + "(" + (count - 1) + ")").toString();
-      } else {
-        columns[i] = Paths.get(dir, originColumn).toString();
-      }
-      // 若将要写入的文件存在，删除之
-      Files.deleteIfExists(Paths.get(columns[i]));
-    }
-
-    while (stream.hasNext()) {
-      List<Row> rows = new ArrayList<>(BATCH_SIZE);
-      // 每次取出BATCH_SIZE行数据写入文件
-      for (int n = 0; n < BATCH_SIZE && stream.hasNext(); n++) {
-        rows.add(stream.next());
-      }
-
-      for (int i = 0; i < fieldSize; i++) {
-        try {
-          File file = new File(columns[i]);
-          FileOutputStream fos;
-          if (!file.exists()) {
-            Files.createFile(Paths.get(file.getPath()));
-            fos = new FileOutputStream(file);
-          } else {
-            fos = new FileOutputStream(file, true);
-          }
-
-          int finalI = i;
-          rows.forEach(
-              row -> {
-                try {
-                  fos.write(row.getAsValue(finalI).castToByteArray());
-                } catch (IOException e) {
-                  throw new RuntimeException(e);
-                }
-              });
-
-          fos.close();
-        } catch (IOException e) {
-          throw new RuntimeException(
-              "Encounter an error when writing file " + columns[i] + ", because " + e.getMessage());
-        }
-      }
-    }
-
     stream.close();
     ctx.setResult(new Result(RpcUtils.SUCCESS));
   }

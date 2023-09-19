@@ -76,7 +76,8 @@ enum SqlType {
     SetConfig,
     ShowConfig,
     Compact,
-    ExportFile
+    ExportCsv,
+    ExportStream
 }
 
 enum AuthType {
@@ -442,6 +443,7 @@ struct ExecuteStatementResp {
     5: optional list<map<string, string>> tagsList
     6: optional list<DataType> dataTypeList
     7: optional QueryDataSetV2 queryDataSet
+    8: optional string exportStreamDir
 }
 
 struct QueryDataSetV2 {

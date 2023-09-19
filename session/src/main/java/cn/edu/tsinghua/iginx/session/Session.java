@@ -1031,6 +1031,36 @@ public class Session {
         this, queryId, columns, dataTypes, fetchSize, dataSetV2.valuesList, dataSetV2.bitmapList);
   }
 
+  public Pair<QueryDataSet, String> executeExportByteStream(String statement)
+      throws SessionException, ExecutionException {
+    return executeExportByteStream(statement, Integer.MAX_VALUE);
+  }
+
+  public Pair<QueryDataSet, String> executeExportByteStream(String statement, int fetchSize)
+      throws SessionException, ExecutionException {
+    ExecuteStatementReq req = new ExecuteStatementReq(sessionId, statement);
+    req.setFetchSize(fetchSize);
+    Reference<ExecuteStatementResp> ref = new Reference<>();
+    executeWithCheck(() -> (ref.resp = client.executeStatement(req)).status);
+
+    long queryId = ref.resp.getQueryId();
+    List<String> columns = ref.resp.getColumns();
+    List<DataType> dataTypes = ref.resp.getDataTypeList();
+    QueryDataSetV2 dataSetV2 = ref.resp.getQueryDataSet();
+    String dir = ref.resp.getExportStreamDir();
+
+    return new Pair<>(
+        new QueryDataSet(
+            this,
+            queryId,
+            columns,
+            dataTypes,
+            fetchSize,
+            dataSetV2.valuesList,
+            dataSetV2.bitmapList),
+        dir);
+  }
+
   Pair<QueryDataSetV2, Boolean> fetchResult(long queryId, int fetchSize)
       throws SessionException, ExecutionException {
     FetchResultsReq req = new FetchResultsReq(sessionId, queryId);

@@ -197,49 +197,6 @@ public class Value {
     return true;
   }
 
-  public byte[] castToByteArray() {
-    byte[] bytes = new byte[0];
-    if (isNull()) {
-      return bytes;
-    }
-    switch (dataType) {
-      case INTEGER:
-        bytes = new byte[4];
-        for (int i = 0; i < 4; i++) {
-          bytes[i] = (byte) ((intV >>> 8 * i) & 0xff);
-        }
-        return bytes;
-      case LONG:
-        bytes = new byte[8];
-        for (int i = 0; i < 8; i++) {
-          bytes[i] = (byte) ((longV >>> 8 * i) & 0xff);
-        }
-        return bytes;
-      case BOOLEAN:
-        bytes = new byte[1];
-        bytes[0] = (byte) (boolV ? 0x01 : 0x00);
-        return bytes;
-      case FLOAT:
-        int valueInt = Float.floatToIntBits(floatV);
-        bytes = new byte[4];
-        for (int i = 0; i < 4; i++) {
-          bytes[i] = (byte) ((valueInt >>> 8 * i) & 0xff);
-        }
-        return bytes;
-      case DOUBLE:
-        long valueLong = Double.doubleToRawLongBits(doubleV);
-        bytes = new byte[8];
-        for (int i = 0; i < 8; i++) {
-          bytes[i] = (byte) ((valueLong >>> 8 * i) & 0xff);
-        }
-        return bytes;
-      case BINARY:
-        return binaryV;
-      default:
-        return bytes;
-    }
-  }
-
   public String getAsString() {
     if (isNull()) {
       return "";

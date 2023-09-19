@@ -4282,37 +4282,6 @@ public class SQLSessionIT {
   }
 
   @Test
-  public void testExportByteStream() {
-    String insert =
-        "INSERT INTO us.d2 (key, s1, s2, s3, s4) VALUES "
-            + "(1, \"apple\", 871, 232.1, true), (2, \"peach\", 123, 132.5, false), (3, \"banana\", 356, 317.8, true),"
-            + "(4, \"cherry\", 621, 456.1, false), (5, \"grape\", 336, 132.5, true), (6, \"dates\", 119, 232.1, false),"
-            + "(7, \"melon\", 516, 113.6, true), (8, \"mango\", 458, 232.1, false), (9, \"pear\", 336, 613.1, true);";
-    executor.execute(insert);
-
-    Path dir = Paths.get("src", "test", "resources", "fileReadAndWrite", "byteStream");
-    File dirFile = dir.toFile();
-    String exportByteStream =
-        "SELECT * FROM us.d2 INTO OUTFILE \"" + dirFile.getAbsolutePath() + "\" AS STREAM";
-    executor.execute(exportByteStream);
-
-    assertTrue(dirFile.exists());
-    assertTrue(dirFile.isDirectory());
-    List<String> filenames = Arrays.asList(Objects.requireNonNull(dirFile.list()));
-    assertEquals(filenames.size(), 4);
-
-    filenames.sort(String::compareTo);
-
-    long[] lengths = new long[] {46, 72, 72, 9};
-    for (int i = 1; i <= 4; i++) {
-      String expectedFilename = String.format("us.d2.s%d", i);
-      assertEquals(expectedFilename, filenames.get(i - 1));
-      File file = new File(Paths.get(dir.toString(), expectedFilename).toString());
-      assertEquals(file.length(), lengths[i - 1]);
-    }
-  }
-
-  @Test
   public void testDateFormat() {
     if (!isAbleToDelete) {
       return;

@@ -1,5 +1,6 @@
 package cn.edu.tsinghua.iginx.sql.statement;
 
+import cn.edu.tsinghua.iginx.engine.shared.file.FileType;
 import cn.edu.tsinghua.iginx.engine.shared.file.write.ExportFile;
 import cn.edu.tsinghua.iginx.sql.statement.selectstatement.SelectStatement;
 
@@ -10,7 +11,11 @@ public class ExportFileFromSelectStatement extends DataStatement {
   private final ExportFile exportFile;
 
   public ExportFileFromSelectStatement(SelectStatement selectStatement, ExportFile exportFile) {
-    this.statementType = StatementType.EXPORT_FILE_FROM_SELECT;
+    if (exportFile.getType().equals(FileType.CSV)) {
+      this.statementType = StatementType.EXPORT_CSV_FROM_SELECT;
+    } else if (exportFile.getType().equals(FileType.BYTE_STREAM)) {
+      this.statementType = StatementType.EXPORT_STREAM_FROM_SELECT;
+    }
     this.selectStatement = selectStatement;
     this.exportFile = exportFile;
   }

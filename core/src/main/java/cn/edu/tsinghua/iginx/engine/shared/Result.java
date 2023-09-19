@@ -51,6 +51,8 @@ public class Result {
 
   private String configValue;
 
+  private String exportStreamDir;
+
   public Result(Status status) {
     this.status = status;
     this.pointsNum = 0L;
@@ -221,6 +223,7 @@ public class Result {
       resp.setTagsList(tagsList);
       resp.setDataTypeList(types);
       resp.setQueryDataSet(new QueryDataSetV2(valuesList, bitmapList));
+      resp.setExportStreamDir(exportStreamDir);
     } catch (PhysicalException e) {
       logger.error("unexpected error when load row stream: ", e);
       resp.setStatus(RpcUtils.FAILURE);

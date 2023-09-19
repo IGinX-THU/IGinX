@@ -25,14 +25,22 @@ import cn.edu.tsinghua.iginx.session.QueryDataSet;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.utils.FormatUtils;
+import cn.edu.tsinghua.iginx.utils.Pair;
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.security.InvalidParameterException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.apache.commons.cli.*;
 import org.jline.reader.Completer;
@@ -203,7 +211,8 @@ public class IginxClient {
     }
   }
 
-  private static boolean processCommand(String command) {
+  private static boolean processCommand(String command)
+      throws SessionException, ExecutionException, IOException {
     if (command == null || command.trim().equals("")) {
       return true;
     }
@@ -224,14 +233,17 @@ public class IginxClient {
     return true;
   }
 
-  private static OperationResult handleInputStatement(String statement) {
+  private static OperationResult handleInputStatement(String statement)
+      throws SessionException, ExecutionException, IOException {
     String trimedStatement = statement.replaceAll(" +", " ").toLowerCase().trim();
 
     if (trimedStatement.equals(EXIT_COMMAND) || trimedStatement.equals(QUIT_COMMAND)) {
       return OperationResult.STOP;
     }
 
-    if (isQuery(statement)) {
+    if (isExportByteStream(statement)) {
+      processExportByteStream(statement);
+    } else if (isQuery(statement)) {
       processSqlWithStream(statement);
     } else if (isSetTimeUnit(statement)) {
       processSetTimeUnit(statement);
@@ -247,6 +259,10 @@ public class IginxClient {
     // 上述语句为查询语句，但在该方法中返回false
     // 在没有SQL解析器的情况下，暂未想到区分查询语句和写入文件语句的方法
     return sql.startsWith("select") && !sql.contains(" into outfile ");
+  }
+
+  private static boolean isExportByteStream(String sql) {
+    return sql.startsWith("select") && sql.contains(" into outfile ") && sql.contains("as stream");
   }
 
   private static boolean isSetTimeUnit(String sql) {
@@ -356,10 +372,17 @@ public class IginxClient {
   }
 
   private static List<List<String>> cacheResult(QueryDataSet queryDataSet)
+      throws SessionException, ExecutionException {
+    return cacheResult(queryDataSet, false);
+  }
+
+  private static List<List<String>> cacheResult(QueryDataSet queryDataSet, boolean ignoreField)
       throws ExecutionException, SessionException {
     boolean hasKey = queryDataSet.getColumnList().get(0).equals(GlobalConstant.KEY_NAME);
     List<List<String>> cache = new ArrayList<>();
-    cache.add(new ArrayList<>(queryDataSet.getColumnList()));
+    if (!ignoreField) {
+      cache.add(new ArrayList<>(queryDataSet.getColumnList()));
+    }
 
     int rowIndex = 0;
     while (queryDataSet.hasMore() && rowIndex < MAX_FETCH_SIZE) {
@@ -381,6 +404,86 @@ public class IginxClient {
       }
     }
     return cache;
+  }
+
+  private static void processExportByteStream(String sql)
+      throws SessionException, ExecutionException, IOException {
+    Pair<QueryDataSet, String> pair = session.executeExportByteStream(sql);
+    QueryDataSet res = pair.k;
+    String dir = pair.v;
+
+    File dirFile = new File(dir);
+    if (!dirFile.exists()) {
+      Files.createDirectory(Paths.get(dir));
+    }
+    if (!dirFile.isDirectory()) {
+      throw new InvalidParameterException(dir + " is not a directory!");
+    }
+
+    int columnsSize = res.getColumnList().size();
+    int finalCnt = columnsSize;
+    String[] columns = new String[columnsSize];
+    Map<String, Integer> countMap = new HashMap<>();
+    for (int i = 0; i < columnsSize; i++) {
+      String originColumn = res.getColumnList().get(i);
+      if (originColumn.equals("key")) {
+        columns[i] = "";
+        finalCnt--;
+        continue;
+      }
+      Integer count = countMap.getOrDefault(originColumn, 0);
+      count += 1;
+      countMap.put(originColumn, count);
+      // 重复的列名在列名后面加上(1),(2)...
+      if (count >= 2) {
+        columns[i] = Paths.get(dir, originColumn + "(" + (count - 1) + ")").toString();
+      } else {
+        columns[i] = Paths.get(dir, originColumn).toString();
+      }
+      // 若将要写入的文件存在，删除之
+      Files.deleteIfExists(Paths.get(columns[i]));
+    }
+
+    while (res.hasMore()) {
+      List<List<String>> cache = cacheResult(res, true);
+      for (int i = 0; i < columnsSize; i++) {
+        if (columns[i].isEmpty()) {
+          continue;
+        }
+        try {
+          File file = new File(columns[i]);
+          FileOutputStream fos;
+          if (!file.exists()) {
+            Files.createFile(Paths.get(file.getPath()));
+            fos = new FileOutputStream(file);
+          } else {
+            fos = new FileOutputStream(file, true);
+          }
+
+          int finalI = i;
+          cache.forEach(
+              value -> {
+                try {
+                  fos.write(value.get(finalI).getBytes());
+                } catch (IOException e) {
+                  throw new RuntimeException(e);
+                }
+              });
+
+          fos.close();
+        } catch (IOException e) {
+          throw new RuntimeException(
+              "Encounter an error when writing file " + columns[i] + ", because " + e.getMessage());
+        }
+      }
+    }
+
+    System.out.println(
+        "Successfully write "
+            + finalCnt
+            + " file(s) to directory: \""
+            + dirFile.getAbsolutePath()
+            + "\".");
   }
 
   private static String parseExecuteCommand(String[] args) {
