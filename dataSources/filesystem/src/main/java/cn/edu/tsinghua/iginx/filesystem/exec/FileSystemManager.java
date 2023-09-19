@@ -72,7 +72,7 @@ public class FileSystemManager {
         FileMeta fileMeta = getFileMeta(f);
         res.add(new FileSystemResultTable(f, records, fileMeta.getDataType(), fileMeta.getTags()));
       } else {
-        res.add(new FileSystemResultTable(f, records, DataType.BINARY, null));
+        res.add(new FileSystemResultTable(f, records, DataType.BINARY, new HashMap<>()));
       }
     }
     return res;
@@ -323,7 +323,7 @@ public class FileSystemManager {
   private List<File> getAssociatedFiles(File file, boolean isDummy) {
     List<File> associatedFiles = new ArrayList<>();
     try {
-      String filePath = file.getCanonicalPath();
+      String filePath = file.getAbsolutePath();
       if (!filePath.contains(WILDCARD) && isDummy) {
         if (file.isFile() && file.exists()) {
           associatedFiles.add(file);
