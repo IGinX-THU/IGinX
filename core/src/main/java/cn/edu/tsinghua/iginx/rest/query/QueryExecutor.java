@@ -20,6 +20,7 @@ package cn.edu.tsinghua.iginx.rest.query;
 
 import static cn.edu.tsinghua.iginx.rest.RestUtils.*;
 
+import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.rest.RestSession;
 import cn.edu.tsinghua.iginx.rest.bean.Query;
 import cn.edu.tsinghua.iginx.rest.bean.QueryMetric;
@@ -36,6 +37,9 @@ import org.slf4j.LoggerFactory;
 public class QueryExecutor {
   public static final Logger logger = LoggerFactory.getLogger(QueryExecutor.class);
   private Query query;
+
+  public static final String CLEAR_DATA_EXCEPTION =
+      "cn.edu.tsinghua.iginx.exceptions.ExecutionException: Caution: can not clear the data of read-only node.";
 
   private final RestSession session = new RestSession();
 
@@ -191,7 +195,16 @@ public class QueryExecutor {
     RestSession restSession = new RestSession();
     restSession.openSession();
     for (QueryMetric metric : query.getQueryMetrics()) {
-      restSession.deleteColumn(metric.getName(), metric.getTags());
+      try {
+        restSession.deleteColumn(metric.getName(), metric.getTags());
+      } catch (ExecutionException e) {
+        if (e.toString().trim().equals(CLEAR_DATA_EXCEPTION)) {
+          logger.warn("clear data fail and go on...");
+        } else {
+          logger.error("Error occurred during executing", e);
+          throw e;
+        }
+      }
     }
     restSession.closeSession();
   }
