@@ -26,7 +26,6 @@ public class StorageEngineUtils {
 
   public static boolean setSchemaPrefixInExtraParams(
       StorageEngineType type, Map<String, String> extraParams) {
-    boolean hasData = Boolean.parseBoolean(extraParams.getOrDefault(HAS_DATA, "false"));
 
     if (isEmbeddedStorageEngine(type)) {
       // 必须配置iginx_port参数
@@ -34,6 +33,7 @@ public class StorageEngineUtils {
       if (iginxPort == null || iginxPort.isEmpty()) {
         return false;
       }
+      boolean hasData = Boolean.parseBoolean(extraParams.getOrDefault(HAS_DATA, "false"));
       boolean readOnly =
           Boolean.parseBoolean(extraParams.getOrDefault(Constants.IS_READ_ONLY, "false"));
       if (hasData) {
@@ -68,6 +68,7 @@ public class StorageEngineUtils {
         return dirPair.k;
       }
     } else if (isFlatStorageEngine(type)) {
+      boolean hasData = Boolean.parseBoolean(extraParams.getOrDefault(HAS_DATA, "false"));
       if (hasData) {
         if (!extraParams.containsKey(SCHEMA_PREFIX)) {
           extraParams.put(SCHEMA_PREFIX, type.name());
