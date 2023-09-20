@@ -96,6 +96,7 @@ public abstract class AbstractExecutorTest {
 
   @Test
   public void testEmptyInsert() {
+    logger.info("Running testEmptyInsert...");
     DataView EmptyDataView =
         genRowDataViewNoKey(new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new Object[0]);
     executor.executeInsertTask(EmptyDataView, newDU());
