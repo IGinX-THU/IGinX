@@ -17,10 +17,6 @@ public abstract class AbstractExecutorTest {
 
   private static final Logger logger = LoggerFactory.getLogger(AbstractExecutorTest.class);
 
-  protected static String dataDir = System.getProperty("user.dir") + "/src/test/resources/dataDir";
-
-  protected static String dummyDir = System.getProperty("user.dir") + "src/test/resources/dummyDir";
-
   protected Executor executor;
 
   protected static int DU_INDEX = 0;
