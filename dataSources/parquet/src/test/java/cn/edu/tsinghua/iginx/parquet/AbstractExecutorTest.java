@@ -17,9 +17,9 @@ public abstract class AbstractExecutorTest {
 
   private static final Logger logger = LoggerFactory.getLogger(AbstractExecutorTest.class);
 
-  protected static String dataDir = "./src/test/resources/dataDir";
+  protected static String dataDir = System.getProperty("user.dir") + "/src/test/resources/dataDir";
 
-  protected static String dummyDir = "./src/test/resources/dummyDir";
+  protected static String dummyDir = System.getProperty("user.dir") + "src/test/resources/dummyDir";
 
   protected Executor executor;
 
@@ -97,7 +97,6 @@ public abstract class AbstractExecutorTest {
   @Test
   public void testEmptyInsert() {
     logger.info("Running testEmptyInsert...");
-    logger.info("work dir: " + System.getProperty("user.dir"));
     DataView EmptyDataView =
         genRowDataViewNoKey(new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new Object[0]);
     executor.executeInsertTask(EmptyDataView, newDU());
