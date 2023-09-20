@@ -18,6 +18,8 @@
  */
 package cn.edu.tsinghua.iginx.client;
 
+import static cn.edu.tsinghua.iginx.utils.FileUtils.exportByteStream;
+
 import cn.edu.tsinghua.iginx.constant.GlobalConstant;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
@@ -28,7 +30,6 @@ import cn.edu.tsinghua.iginx.utils.FormatUtils;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Files;
@@ -408,7 +409,7 @@ public class IginxClient {
 
   private static void processExportByteStream(String sql)
       throws SessionException, ExecutionException, IOException {
-    Pair<QueryDataSet, String> pair = session.executeExportByteStream(sql);
+    Pair<QueryDataSet, String> pair = session.executeExportByteStream(sql, MAX_FETCH_SIZE);
     QueryDataSet res = pair.k;
     String dir = pair.v;
 
@@ -426,7 +427,7 @@ public class IginxClient {
     Map<String, Integer> countMap = new HashMap<>();
     for (int i = 0; i < columnsSize; i++) {
       String originColumn = res.getColumnList().get(i);
-      if (originColumn.equals("key")) {
+      if (originColumn.equals(GlobalConstant.KEY_NAME)) {
         columns[i] = "";
         finalCnt--;
         continue;
@@ -446,36 +447,7 @@ public class IginxClient {
 
     while (res.hasMore()) {
       List<List<String>> cache = cacheResult(res, true);
-      for (int i = 0; i < columnsSize; i++) {
-        if (columns[i].isEmpty()) {
-          continue;
-        }
-        try {
-          File file = new File(columns[i]);
-          FileOutputStream fos;
-          if (!file.exists()) {
-            Files.createFile(Paths.get(file.getPath()));
-            fos = new FileOutputStream(file);
-          } else {
-            fos = new FileOutputStream(file, true);
-          }
-
-          int finalI = i;
-          cache.forEach(
-              value -> {
-                try {
-                  fos.write(value.get(finalI).getBytes());
-                } catch (IOException e) {
-                  throw new RuntimeException(e);
-                }
-              });
-
-          fos.close();
-        } catch (IOException e) {
-          throw new RuntimeException(
-              "Encounter an error when writing file " + columns[i] + ", because " + e.getMessage());
-        }
-      }
+      exportByteStream(cache, columns);
     }
 
     System.out.println(
