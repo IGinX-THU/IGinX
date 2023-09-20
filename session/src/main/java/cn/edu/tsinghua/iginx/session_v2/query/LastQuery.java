@@ -91,7 +91,7 @@ public class LastQuery extends Query {
     }
 
     public LastQuery.Builder addTagsList(List<Map<String, List<String>>> tagsList) {
-      Arguments.checkListNonEmpty(tagsList, "valueList");
+      Arguments.checkListNonEmpty(tagsList, "tagsList");
       this.tagsList.addAll(tagsList);
       return this;
     }

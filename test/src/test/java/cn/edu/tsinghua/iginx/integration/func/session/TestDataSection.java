@@ -81,14 +81,14 @@ public class TestDataSection {
     List<Integer> indexList = new ArrayList<>();
     List<String> newPaths = new ArrayList<>();
     List<DataType> newTypes = new ArrayList<>();
-    List<Map<String, String>> tagList = new ArrayList<>();
+    List<Map<String, String>> newTagsList = new ArrayList<>();
     for (String path : selectedPaths) {
       int index = paths.indexOf(path);
       if (index != -1) {
         indexList.add(index);
         newPaths.add(path);
         newTypes.add(types.get(index));
-        tagList.add(tagsList.get(index));
+        newTagsList.add(tagsList.get(index));
       }
     }
     if (indexList.isEmpty()) {
@@ -105,7 +105,7 @@ public class TestDataSection {
     }
 
     return new TestDataSection(
-        new ArrayList<>(keys), newTypes, newPaths, newValues, tagList == null ? null : tagList);
+        new ArrayList<>(keys), newTypes, newPaths, newValues, newTagsList);
   }
 
   public TestDataSection mergeOther(TestDataSection other) {

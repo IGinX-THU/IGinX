@@ -126,20 +126,7 @@ public class MultiConnection {
   }
 
   public void deleteColumns(List<String> paths) throws SessionException, ExecutionException {
-    try {
-      if (session != null) {
-        session.deleteColumns(paths);
-      } else if (sessionPool != null) {
-        sessionPool.deleteColumns(paths);
-      }
-    } catch (SessionException | ExecutionException e) {
-      if (e.toString().trim().equals(CLEAR_DATA_EXCEPTION)) {
-        logger.warn(CLEAR_DATA_WARNING);
-      } else {
-        logger.error(CLEAR_DATA_ERROR, CLEAR_DATA, e.getMessage());
-        fail();
-      }
-    }
+    deleteColumns(paths, null, null);
   }
 
   public void deleteColumns(
@@ -149,7 +136,7 @@ public class MultiConnection {
       if (session != null) {
         session.deleteColumns(paths, tags, type);
       } else if (sessionPool != null) {
-        sessionPool.deleteColumns(paths);
+        sessionPool.deleteColumns(paths, tags, type);
       }
     } catch (SessionException | ExecutionException e) {
       if (e.toString().trim().equals(CLEAR_DATA_EXCEPTION)) {
@@ -219,20 +206,7 @@ public class MultiConnection {
 
   public void deleteDataInColumns(List<String> paths, long startKey, long endKey)
       throws SessionException, ExecutionException {
-    try {
-      if (session != null) {
-        session.deleteDataInColumns(paths, startKey, endKey, null, null);
-      } else if (sessionPool != null) {
-        sessionPool.deleteDataInColumns(paths, startKey, endKey, null, null);
-      }
-    } catch (SessionException | ExecutionException e) {
-      if (e.toString().trim().equals(CLEAR_DATA_EXCEPTION)) {
-        logger.warn(CLEAR_DATA_WARNING);
-      } else {
-        logger.error(CLEAR_DATA_ERROR, CLEAR_DATA, e.getMessage());
-        fail();
-      }
-    }
+    deleteDataInColumns(paths, startKey, endKey, null, null);
   }
 
   public void deleteDataInColumns(
@@ -246,7 +220,7 @@ public class MultiConnection {
       if (session != null) {
         session.deleteDataInColumns(paths, startKey, endKey, tags, type);
       } else if (sessionPool != null) {
-        sessionPool.deleteDataInColumns(paths, startKey, endKey);
+        sessionPool.deleteDataInColumns(paths, startKey, endKey, tags, type);
       }
     } catch (SessionException | ExecutionException e) {
       if (e.toString().trim().equals(CLEAR_DATA_EXCEPTION)) {

@@ -264,9 +264,9 @@ public class NewSessionIT {
     }
   }
 
-  private static String formatTags(Map<String, String> tags) {
+  private String getPathWithTag(String path, Map<String, String> tags) {
     StringBuilder builder = new StringBuilder();
-    if (tags.isEmpty()) return new String();
+    if (tags.isEmpty()) return "";
     builder.append("{");
     for (Map.Entry<String, String> entry : tags.entrySet()) {
       String key = entry.getKey();
@@ -277,11 +277,7 @@ public class NewSessionIT {
       builder.deleteCharAt(builder.length() - 1);
     }
     builder.append("}");
-    return builder.toString();
-  }
-
-  private String getPathWithTag(String path, Map<String, String> tags) {
-    String formattedTags = formatTags(tags);
+    String formattedTags = builder.toString();
     return path + formattedTags;
   }
 

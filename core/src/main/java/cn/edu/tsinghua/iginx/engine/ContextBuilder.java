@@ -222,7 +222,9 @@ public class ContextBuilder {
 
   private TagFilter constructTagFilterFromTagList(
       List<Map<String, List<String>>> tagList, TagFilterType type) {
-    if (type == null) type = TagFilterType.Or;
+    if (type == null) {
+      type = TagFilterType.Or;
+    }
     switch (type) {
       case And: // 合取范式
         List<TagFilter> andTagFilterList = new ArrayList<>();

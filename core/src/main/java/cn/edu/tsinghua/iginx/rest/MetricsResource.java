@@ -33,6 +33,7 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import javax.inject.Inject;
@@ -64,6 +65,8 @@ public class MetricsResource {
   private static final String GRAFANA_QUERY = "query";
   private static final String GRAFANA_STRING = "annotations";
   private static final String ERROR_PATH = "{string : .+}";
+  public static final String CLEAR_DATA_EXCEPTION =
+          "cn.edu.tsinghua.iginx.exceptions.ExecutionException: Caution: can not clear the data of read-only node.";
 
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
   private static final Logger logger = LoggerFactory.getLogger(MetricsResource.class);
@@ -139,7 +142,7 @@ public class MetricsResource {
     } catch (Exception e) {
       logger.error("Error occurred during execution ", e);
       return setHeaders(
-              Response.status(Status.BAD_REQUEST).entity("Error occurred during execution\n"))
+              Response.status(Status.BAD_REQUEST).entity(e.toString().trim()))
           .build();
     }
     return setHeaders(Response.status(Status.OK).entity("update annotation OK")).build();
@@ -471,7 +474,7 @@ public class MetricsResource {
     } catch (Exception e) {
       logger.error("Error occurred during execution ", e);
       return setHeaders(
-              Response.status(Status.BAD_REQUEST).entity("Error occurred during execution\n"))
+              Response.status(Status.BAD_REQUEST).entity(e.toString().trim()))
           .build();
     }
   }
@@ -548,8 +551,26 @@ public class MetricsResource {
 
     QueryExecutor executorData = new QueryExecutor(queryAll);
     // 执行删除操作
-    executorData.deleteMetric();
+    Exception exception = null;
+    boolean cautionDuringDelete = false;
+    try {
+      executorData.deleteMetric();
+    } catch (ExecutionException e) {
+      if (e.toString().trim().equals(CLEAR_DATA_EXCEPTION)) {
+        exception = e;
+        cautionDuringDelete = true;
+        logger.warn("cant delete the READ_ONLY data and go on.");
+      } else {
+        logger.error("Error occurred during executing", e);
+        throw e;
+      }
+    }
+
     // 修改路径，并重新查询数据，并插入数据
     threadPool.execute(new InsertWorker(asyncResponse, httpheaders, resultAll, querySp, false));
+
+    if (cautionDuringDelete) {
+      throw exception;
+    }
   }
 }

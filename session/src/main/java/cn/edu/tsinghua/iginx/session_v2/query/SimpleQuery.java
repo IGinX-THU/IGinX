@@ -106,7 +106,7 @@ public class SimpleQuery extends Query {
     }
 
     public SimpleQuery.Builder addTagsList(List<Map<String, List<String>>> tagsList) {
-      Arguments.checkListNonEmpty(tagsList, "valueList");
+      Arguments.checkListNonEmpty(tagsList, "tagsList");
       this.tagsList.addAll(tagsList);
       return this;
     }

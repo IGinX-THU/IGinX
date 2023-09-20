@@ -38,9 +38,6 @@ public class QueryExecutor {
   public static final Logger logger = LoggerFactory.getLogger(QueryExecutor.class);
   private Query query;
 
-  public static final String CLEAR_DATA_EXCEPTION =
-      "cn.edu.tsinghua.iginx.exceptions.ExecutionException: Caution: can not clear the data of read-only node.";
-
   private final RestSession session = new RestSession();
 
   public QueryExecutor(Query query) {
@@ -195,16 +192,7 @@ public class QueryExecutor {
     RestSession restSession = new RestSession();
     restSession.openSession();
     for (QueryMetric metric : query.getQueryMetrics()) {
-      try {
-        restSession.deleteColumn(metric.getName(), metric.getTags());
-      } catch (ExecutionException e) {
-        if (e.toString().trim().equals(CLEAR_DATA_EXCEPTION)) {
-          logger.warn("clear data fail and go on...");
-        } else {
-          logger.error("Error occurred during executing", e);
-          throw e;
-        }
-      }
+      restSession.deleteColumn(metric.getName(), metric.getTags());
     }
     restSession.closeSession();
   }

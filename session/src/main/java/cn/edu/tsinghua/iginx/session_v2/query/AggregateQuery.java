@@ -120,7 +120,7 @@ public class AggregateQuery extends Query {
     }
 
     public AggregateQuery.Builder addTagsList(List<Map<String, List<String>>> tagsList) {
-      Arguments.checkListNonEmpty(tagsList, "valueList");
+      Arguments.checkListNonEmpty(tagsList, "tagsList");
       this.tagsList.addAll(tagsList);
       return this;
     }

@@ -360,7 +360,6 @@ public class SessionV2IT {
 
   @Test
   public void testTagKV() {
-
     IginXTable table =
         queryClient.query(
             SimpleQuery.builder()

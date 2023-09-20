@@ -132,7 +132,7 @@ public class DownsampleQuery extends Query {
     }
 
     public DownsampleQuery.Builder addTagsList(List<Map<String, List<String>>> tagsList) {
-      Arguments.checkListNonEmpty(tagsList, "valueList");
+      Arguments.checkListNonEmpty(tagsList, "tagsList");
       this.tagsList.addAll(tagsList);
       return this;
     }
