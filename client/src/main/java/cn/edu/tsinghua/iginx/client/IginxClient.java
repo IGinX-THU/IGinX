@@ -241,11 +241,11 @@ public class IginxClient {
       return OperationResult.STOP;
     }
 
-    if (isExportByteStream(statement)) {
+    if (isExportByteStream(trimedStatement)) {
       processExportByteStream(statement);
-    } else if (isQuery(statement)) {
+    } else if (isQuery(trimedStatement)) {
       processSqlWithStream(statement);
-    } else if (isSetTimeUnit(statement)) {
+    } else if (isSetTimeUnit(trimedStatement)) {
       processSetTimeUnit(statement);
     } else {
       processSql(statement);
