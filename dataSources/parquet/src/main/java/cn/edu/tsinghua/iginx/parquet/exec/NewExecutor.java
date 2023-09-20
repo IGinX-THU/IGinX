@@ -138,7 +138,6 @@ public class NewExecutor implements Executor {
       }
     } catch (IOException e) {
       logger.error(String.format("Create directory %s error: " + e.getMessage(), dirPath));
-      e.printStackTrace();
     }
   }
 

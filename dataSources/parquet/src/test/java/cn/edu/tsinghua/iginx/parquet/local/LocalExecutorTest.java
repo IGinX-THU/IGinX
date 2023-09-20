@@ -40,7 +40,6 @@ public class LocalExecutorTest extends AbstractExecutorTest {
               Paths.get(dummyDir).toAbsolutePath().toString());
     } catch (StorageInitializationException e) {
       logger.error(String.format("Can't get parquet local executor: %s", e.getMessage()));
-      e.printStackTrace();
     }
   }
 
@@ -98,7 +97,6 @@ public class LocalExecutorTest extends AbstractExecutorTest {
       return unitName;
     } catch (Exception e) {
       logger.error("initializing new du index failed: " + e.getMessage());
-      e.printStackTrace();
     } finally {
       DUIndexLock.writeLock().unlock();
     }
