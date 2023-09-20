@@ -266,7 +266,9 @@ public class NewSessionIT {
 
   private String getPathWithTag(String path, Map<String, String> tags) {
     StringBuilder builder = new StringBuilder();
-    if (tags.isEmpty()) return "";
+    if (tags.isEmpty()) {
+      return path;
+    }
     builder.append("{");
     for (Map.Entry<String, String> entry : tags.entrySet()) {
       String key = entry.getKey();
