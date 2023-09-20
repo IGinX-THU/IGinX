@@ -104,8 +104,7 @@ public class TestDataSection {
       newValues.add(newRowValues);
     }
 
-    return new TestDataSection(
-        new ArrayList<>(keys), newTypes, newPaths, newValues, newTagsList);
+    return new TestDataSection(new ArrayList<>(keys), newTypes, newPaths, newValues, newTagsList);
   }
 
   public TestDataSection mergeOther(TestDataSection other) {

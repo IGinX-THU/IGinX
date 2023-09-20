@@ -20,7 +20,6 @@ package cn.edu.tsinghua.iginx.rest.query;
 
 import static cn.edu.tsinghua.iginx.rest.RestUtils.*;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.rest.RestSession;
 import cn.edu.tsinghua.iginx.rest.bean.Query;
 import cn.edu.tsinghua.iginx.rest.bean.QueryMetric;

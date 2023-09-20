@@ -66,7 +66,7 @@ public class MetricsResource {
   private static final String GRAFANA_STRING = "annotations";
   private static final String ERROR_PATH = "{string : .+}";
   public static final String CLEAR_DATA_EXCEPTION =
-          "cn.edu.tsinghua.iginx.exceptions.ExecutionException: Caution: can not clear the data of read-only node.";
+      "cn.edu.tsinghua.iginx.exceptions.ExecutionException: Caution: can not clear the data of read-only node.";
 
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
   private static final Logger logger = LoggerFactory.getLogger(MetricsResource.class);
@@ -141,9 +141,7 @@ public class MetricsResource {
       updateAnno(str, httpheaders, asyncResponse);
     } catch (Exception e) {
       logger.error("Error occurred during execution ", e);
-      return setHeaders(
-              Response.status(Status.BAD_REQUEST).entity(e.toString().trim()))
-          .build();
+      return setHeaders(Response.status(Status.BAD_REQUEST).entity(e.toString().trim())).build();
     }
     return setHeaders(Response.status(Status.OK).entity("update annotation OK")).build();
   }
@@ -473,9 +471,7 @@ public class MetricsResource {
       return setHeaders(Response.status(Status.OK).entity(entity + "\n")).build();
     } catch (Exception e) {
       logger.error("Error occurred during execution ", e);
-      return setHeaders(
-              Response.status(Status.BAD_REQUEST).entity(e.toString().trim()))
-          .build();
+      return setHeaders(Response.status(Status.BAD_REQUEST).entity(e.toString().trim())).build();
     }
   }
 
