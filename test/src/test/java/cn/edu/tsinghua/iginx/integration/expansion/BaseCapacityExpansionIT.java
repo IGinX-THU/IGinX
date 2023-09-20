@@ -9,6 +9,7 @@ import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.expansion.filesystem.FileSystemCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.influxdb.InfluxDBCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.parquet.ParquetCapacityExpansionIT;
+import cn.edu.tsinghua.iginx.integration.expansion.redis.RedisCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.thrift.RemovedStorageEngineInfo;
@@ -33,6 +34,12 @@ public abstract class BaseCapacityExpansionIT {
 
   private final boolean IS_PARQUET_OR_FILE_SYSTEM =
       this instanceof FileSystemCapacityExpansionIT || this instanceof ParquetCapacityExpansionIT;
+
+  private final boolean IS_FLAT_STORAGE_ENGINE = this instanceof RedisCapacityExpansionIT;
+
+  private final String EXP_SCHEMA_PREFIX = IS_FLAT_STORAGE_ENGINE ? "nt" : null;
+
+  private final String READ_ONLY_SCHEMA_PREFIX = IS_FLAT_STORAGE_ENGINE ? "tm" : null;
 
   public BaseCapacityExpansionIT(StorageEngineType type, String extraParams) {
     this.type = type;
@@ -125,7 +132,7 @@ public abstract class BaseCapacityExpansionIT {
     // 写入并查询新数据
     testWriteAndQueryNewData();
     // 扩容
-    addStorageEngine(expPort, true, false, null, null);
+    addStorageEngine(expPort, true, false, null, EXP_SCHEMA_PREFIX);
     // 查询扩容节点的历史数据，结果不为空
     testQueryHistoryDataExpHasData();
     // 再次查询新数据
@@ -141,7 +148,7 @@ public abstract class BaseCapacityExpansionIT {
     // 写入并查询新数据
     testWriteAndQueryNewData();
     // 扩容
-    addStorageEngine(expPort, false, false, null, null);
+    addStorageEngine(expPort, false, false, null, EXP_SCHEMA_PREFIX);
     // 查询扩容节点的历史数据，结果为空
     testQueryHistoryDataExpNoData();
     // 再次查询新数据
@@ -157,7 +164,7 @@ public abstract class BaseCapacityExpansionIT {
     // 写入并查询新数据
     testWriteAndQueryNewData();
     // 扩容
-    addStorageEngine(expPort, true, false, null, null);
+    addStorageEngine(expPort, true, false, null, EXP_SCHEMA_PREFIX);
     // 查询扩容节点的历史数据，结果不为空
     testQueryHistoryDataExpHasData();
     // 再次查询新数据
@@ -175,7 +182,7 @@ public abstract class BaseCapacityExpansionIT {
     // 写入并查询新数据
     testWriteAndQueryNewData();
     // 扩容
-    addStorageEngine(expPort, false, false, null, null);
+    addStorageEngine(expPort, false, false, null, EXP_SCHEMA_PREFIX);
     // 查询扩容节点的历史数据，结果为空
     testQueryHistoryDataExpNoData();
     // 再次查询新数据
@@ -189,11 +196,11 @@ public abstract class BaseCapacityExpansionIT {
     // 查询原始只读节点的历史数据，结果不为空
     testQueryHistoryDataOriHasData();
     // 扩容只读节点
-    addStorageEngine(readOnlyPort, true, true, null, null);
+    addStorageEngine(readOnlyPort, true, true, null, READ_ONLY_SCHEMA_PREFIX);
     // 查询扩容只读节点的历史数据，结果不为空
     testQueryHistoryDataReadOnly();
     // 扩容可写节点
-    addStorageEngine(expPort, true, false, null, null);
+    addStorageEngine(expPort, true, false, null, EXP_SCHEMA_PREFIX);
     // 查询扩容可写节点的历史数据，结果不为空
     testQueryHistoryDataExpHasData();
     // 写入并查询新数据
@@ -327,14 +334,30 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   private void testAddAndRemoveStorageEngineWithPrefix() {
-    String dataPrefix1 = IS_PARQUET_OR_FILE_SYSTEM ? "wf03" : "nt.wf03";
-    String dataPrefix2 = IS_PARQUET_OR_FILE_SYSTEM ? "wf04" : "nt.wf04";
-    String schemaPrefixSuffix = IS_PARQUET_OR_FILE_SYSTEM ? ".nt" : "";
-    String schemaPrefix = IS_PARQUET_OR_FILE_SYSTEM ? "nt" : "";
+    String dataPrefix1 = "nt.wf03";
+    String dataPrefix2 = "nt.wf04";
+    String schemaPrefixSuffix = "";
+    String schemaPrefix = "";
+    String schemaPrefix1 = "p1";
+    String schemaPrefix2 = "p2";
+    String schemaPrefix3 = "p3";
+
+    if (IS_PARQUET_OR_FILE_SYSTEM || IS_FLAT_STORAGE_ENGINE) {
+      dataPrefix1 = "wf03";
+      dataPrefix2 = "wf04";
+      schemaPrefixSuffix = ".nt";
+      schemaPrefix = "nt";
+    }
+
+    if (IS_FLAT_STORAGE_ENGINE) {
+      schemaPrefix1 = "p1.nt";
+      schemaPrefix2 = "p2.nt";
+      schemaPrefix3 = "p3.nt";
+    }
 
     // 添加不同 schemaPrefix，相同 dataPrefix
-    addStorageEngine(expPort, true, true, dataPrefix1, "p1");
-    addStorageEngine(expPort, true, true, dataPrefix1, "p2");
+    addStorageEngine(expPort, true, true, dataPrefix1, schemaPrefix1);
+    addStorageEngine(expPort, true, true, dataPrefix1, schemaPrefix2);
     addStorageEngine(expPort, true, true, dataPrefix1, null);
 
     // 如果是重复添加，则报错
@@ -342,11 +365,11 @@ public abstract class BaseCapacityExpansionIT {
     if (res != null && !res.contains("unexpected repeated add")) {
       fail();
     }
-    addStorageEngine(expPort, true, true, dataPrefix1, "p3");
+    addStorageEngine(expPort, true, true, dataPrefix1, schemaPrefix3);
     // 这里是之后待测试的点，如果添加包含关系的，应当报错。
     //    res = addStorageEngine(expPort, true, true, "nt.wf03.wt01", "p3");
     // 添加相同 schemaPrefix，不同 dataPrefix
-    addStorageEngine(expPort, true, true, dataPrefix2, "p3");
+    addStorageEngine(expPort, true, true, dataPrefix2, schemaPrefix3);
 
     List<List<Object>> valuesList = expValuesList1;
 
