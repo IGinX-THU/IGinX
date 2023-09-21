@@ -91,6 +91,12 @@ public class InfluxDBHistoryDataGenerator extends BaseHistoryDataGenerator {
                     .addField(fieldName.toString(), (Integer) valueList.get(i))
                     .time(timeCnt, WRITE_PRECISION);
             break;
+          case LONG:
+            point =
+                Point.measurement(measurementName)
+                    .addField(fieldName.toString(), (Long) valueList.get(i))
+                    .time(timeCnt, WRITE_PRECISION);
+            break;
           default:
             logger.error("unsupported data type: {}", dataType);
             break;
