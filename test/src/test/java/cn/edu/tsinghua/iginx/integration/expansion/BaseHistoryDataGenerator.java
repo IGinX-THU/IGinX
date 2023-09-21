@@ -34,15 +34,16 @@ public abstract class BaseHistoryDataGenerator {
   public void writeSpecialHistoryData() {}
 
   public void writeHistoryDataToOri() {
-    writeHistoryData(oriPort, ORI_PATH_LIST, oriDataTypeList, oriValuesList);
+    writeHistoryData(oriPort, ORI_PATH_LIST, ORI_DATA_TYPE_LIST, ORI_VALUES_LIST);
   }
 
   public void writeHistoryDataToExp() {
-    writeHistoryData(expPort, EXP_PATH_LIST, expDataTypeList, expValuesList);
+    writeHistoryData(expPort, EXP_PATH_LIST, EXP_DATA_TYPE_LIST, EXP_VALUES_LIST);
   }
 
   public void writeHistoryDataToReadOnly() {
-    writeHistoryData(readOnlyPort, READ_ONLY_PATH_LIST, readOnlyDataTypeList, readOnlyValuesList);
+    writeHistoryData(
+        readOnlyPort, READ_ONLY_PATH_LIST, READ_ONLY_DATA_TYPE_LIST, READ_ONLY_VALUES_LIST);
   }
 
   public abstract void writeHistoryData(
