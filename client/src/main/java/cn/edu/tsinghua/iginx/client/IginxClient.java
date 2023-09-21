@@ -373,17 +373,10 @@ public class IginxClient {
   }
 
   private static List<List<String>> cacheResult(QueryDataSet queryDataSet)
-      throws SessionException, ExecutionException {
-    return cacheResult(queryDataSet, false);
-  }
-
-  private static List<List<String>> cacheResult(QueryDataSet queryDataSet, boolean ignoreField)
       throws ExecutionException, SessionException {
     boolean hasKey = queryDataSet.getColumnList().get(0).equals(GlobalConstant.KEY_NAME);
     List<List<String>> cache = new ArrayList<>();
-    if (!ignoreField) {
-      cache.add(new ArrayList<>(queryDataSet.getColumnList()));
-    }
+    cache.add(new ArrayList<>(queryDataSet.getColumnList()));
 
     int rowIndex = 0;
     while (queryDataSet.hasMore() && rowIndex < MAX_FETCH_SIZE) {
@@ -446,7 +439,7 @@ public class IginxClient {
     }
 
     while (res.hasMore()) {
-      List<List<String>> cache = cacheResult(res, true);
+      List<List<byte[]>> cache = cacheResultByteArray(res);
       exportByteStream(cache, columns);
     }
 
@@ -456,6 +449,20 @@ public class IginxClient {
             + " file(s) to directory: \""
             + dirFile.getAbsolutePath()
             + "\".");
+  }
+
+  private static List<List<byte[]>> cacheResultByteArray(QueryDataSet queryDataSet)
+      throws SessionException, ExecutionException {
+    List<List<byte[]>> cache = new ArrayList<>();
+    int rowIndex = 0;
+    while (queryDataSet.hasMore() && rowIndex < MAX_FETCH_SIZE) {
+      List<byte[]> nextRow = queryDataSet.nextRowAsBytes();
+      if (nextRow != null) {
+        cache.add(nextRow);
+        rowIndex++;
+      }
+    }
+    return cache;
   }
 
   private static String parseExecuteCommand(String[] args) {
