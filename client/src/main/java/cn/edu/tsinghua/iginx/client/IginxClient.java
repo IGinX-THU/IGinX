@@ -363,6 +363,7 @@ public class IginxClient {
       if (!isCanceled) {
         System.out.print(FormatUtils.formatCount(total));
       }
+      res.close();
     } catch (SessionException | ExecutionException e) {
       System.out.println(e.getMessage());
     } catch (Exception e) {
@@ -442,6 +443,7 @@ public class IginxClient {
       List<List<byte[]>> cache = cacheResultByteArray(res);
       exportByteStream(cache, columns);
     }
+    res.close();
 
     System.out.println(
         "Successfully write "
