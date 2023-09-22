@@ -72,7 +72,7 @@ public class FileSystemManager {
         FileMeta fileMeta = getFileMeta(f);
         res.add(new FileSystemResultTable(f, records, fileMeta.getDataType(), fileMeta.getTags()));
       } else {
-        res.add(new FileSystemResultTable(f, records, DataType.BINARY, null));
+        res.add(new FileSystemResultTable(f, records, DataType.BINARY, new HashMap<>()));
       }
     }
     return res;
@@ -126,7 +126,7 @@ public class FileSystemManager {
     AtomicLong readPos = new AtomicLong(startKey);
     AtomicInteger index = new AtomicInteger();
     // TODO 为什么是5？？？
-    boolean ifNeedMultithread = size / (chunkSize) > 2;
+    boolean ifNeedMultithread = size / (chunkSize) > 5;
     if (ifNeedMultithread) {
       executorService = Executors.newCachedThreadPool();
     }

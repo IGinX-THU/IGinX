@@ -42,15 +42,15 @@ jobs:
             - name: Run ZooKeeper
               uses: ./.github/actions/zookeeperRunner
 
-            - name: Run DB
-              uses: ./.github/actions/dbRunner
-              with:
-                  DB-name: ${{ matrix.DB-name }}
-
             - name: Install IGinX with Maven
               shell: bash
               run: |
                   mvn clean package -DskipTests -P-format -q
+
+            - name: Run DB
+              uses: ./.github/actions/dbRunner
+              with:
+                DB-name: ${{ matrix.DB-name }}
 
             # 第 1 阶段测试开始==========================================
             - name: Prepare CapExp environment oriHasDataExpHasData

@@ -25,6 +25,12 @@ inputs:
 runs:
     using: "composite" # Mandatory parameter
     steps:
+        - if: inputs.DB-name=='FileSystem' || inputs.DB-name=='Parquet'
+          name: change config for FileSystem and Parquet
+          uses: ./.github/actions/dbRunner
+          with:
+              DB-name: ${{ matrix.DB-name }}
+
         - name: Set if-CapExp
           shell: bash
           run: |

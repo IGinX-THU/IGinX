@@ -66,7 +66,8 @@ public abstract class BaseCapacityExpansionIT {
       }
       if (extraParams != null) {
         if (IS_PARQUET_OR_FILE_SYSTEM) {
-          extraParams = "iginx_port:" +PARQUET_FILESYSTEM_IGINX_PORT.get(port);
+          extraParams = "iginx_port:" +oriPortIginx;
+          extraParams += ", chunk_size_in_bytes:8";
         }
         statement.append(", ");
         statement.append(extraParams);
@@ -123,7 +124,7 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   @Test
-  public void oriHasDataExpHasData() {
+  public void oriHasDataExpHasData() throws InterruptedException, SessionException, ExecutionException {
     // 查询原始节点的历史数据，结果不为空
     testQueryHistoryDataOriHasData();
     // 写入并查询新数据
@@ -144,7 +145,7 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   @Test
-  public void oriHasDataExpNoData() {
+  public void oriHasDataExpNoData() throws InterruptedException {
     // 查询原始节点的历史数据，结果不为空
     testQueryHistoryDataOriHasData();
     // 写入并查询新数据
@@ -164,7 +165,7 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   @Test
-  public void oriNoDataExpHasData() {
+  public void oriNoDataExpHasData() throws InterruptedException {
     // 查询原始节点的历史数据，结果为空
     testQueryHistoryDataOriNoData();
     // 写入并查询新数据
@@ -186,7 +187,7 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   @Test
-  public void oriNoDataExpNoData() {
+  public void oriNoDataExpNoData() throws InterruptedException {
     // 查询原始节点的历史数据，结果为空
     testQueryHistoryDataOriNoData();
     // 写入并查询新数据
@@ -206,7 +207,7 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   @Test
-  public void testReadOnly() {
+  public void testReadOnly() throws InterruptedException {
     // 查询原始只读节点的历史数据，结果不为空
     testQueryHistoryDataOriHasData();
     // 扩容只读节点
@@ -368,7 +369,7 @@ public abstract class BaseCapacityExpansionIT {
 
     // 如果是重复添加，则报错
     String res = addStorageEngine(expPort, true, true, dataPrefix1, null);
-    if (res != null && !res.contains("unexpected repeated add") || (IS_PARQUET_OR_FILE_SYSTEM && res!=null)) {
+    if (res != null && !res.contains("unexpected repeated add")) {
       fail();
     }
     addStorageEngine(expPort, true, true, dataPrefix1, "p3");
@@ -453,7 +454,7 @@ public abstract class BaseCapacityExpansionIT {
   private void testQueryForFileSystem() {
     try {
       session.executeSql(
-          "ADD STORAGEENGINE (\"127.0.0.1\", 6670, \"filesystem\", \"dummy_dir:test/test/a, has_data:true, is_read_only:true, iginx_port:6888\")");
+          "ADD STORAGEENGINE (\"127.0.0.1\", 6670, \"filesystem\", \"dummy_dir:test/test/a, has_data:true, is_read_only:true, iginx_port:6888, chunk_size_in_bytes:1048576\")");
       String statement = "select 1\\txt from a.*";
       String expect =
           "ResultSets:\n"
@@ -544,25 +545,26 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   protected void startStorageEngineWithIginx(
-      BaseCapacityExpansionIT it, int port, boolean hasData, boolean isReadOnly) {
-    String scriptPath;
+      BaseCapacityExpansionIT it, int port, boolean hasData, boolean isReadOnly) throws InterruptedException {
+    String scriptPath, iginxPath = ".github/scripts/iginx/iginx.sh";
     String os = System.getProperty("os.name").toLowerCase();
     boolean isOnMac = false;
     if (os.contains("mac")) {
       isOnMac = true;
+      iginxPath = ".github/scripts/iginx/iginx_macos.sh";
     }
 
     if (this instanceof FileSystemCapacityExpansionIT) {
       if (isOnMac) {
-        scriptPath = "../.github/scripts/dataSources/filesystem_macos.sh";
+        scriptPath = ".github/scripts/dataSources/filesystem_macos.sh";
       } else {
-        scriptPath = "../.github/scripts/dataSources/filesystem.sh";
+        scriptPath = ".github/scripts/dataSources/filesystem.sh";
       }
     } else if (this instanceof ParquetCapacityExpansionIT) {
       if (isOnMac) {
-        scriptPath = "../.github/scripts/dataSources/parquet_macos.sh";
+        scriptPath = ".github/scripts/dataSources/parquet_macos.sh";
       } else {
-        scriptPath = "../.github/scripts/dataSources/parquet.sh";
+        scriptPath = ".github/scripts/dataSources/parquet.sh";
       }
     } else {
       throw new IllegalStateException("just support file system and parquet");
@@ -606,12 +608,14 @@ public abstract class BaseCapacityExpansionIT {
         String.valueOf(hasData),
         String.valueOf(isReadOnly));
     if(res != 0) {
-        fail("change config file fail");
+      fail("change config file fail");
     }
 
-    res = executeShellScript("../.github/scripts/iginx/iginx.sh", String.valueOf(iginxPort), String.valueOf(restPort));
+    res = executeShellScript(iginxPath, String.valueOf(iginxPort), String.valueOf(restPort));
     if(res != 0) {
       fail("start iginx fail");
     }
+
+    Thread.sleep(2000);
   }
 }

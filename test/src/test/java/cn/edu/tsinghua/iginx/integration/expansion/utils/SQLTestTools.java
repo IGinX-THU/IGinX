@@ -8,6 +8,7 @@ import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.*;
@@ -117,7 +118,12 @@ public class SQLTestTools {
             System.arraycopy(args, 0, command, 2, args.length);
 
             // 创建进程并执行命令
+            logger.info("exe shell : {}", Arrays.toString(command));
             ProcessBuilder processBuilder = new ProcessBuilder(command);
+
+            // 设置工作目录（可选）
+            processBuilder.directory(new File("../"));
+
             Process process = processBuilder.start();
 
             // 读取脚本输出
