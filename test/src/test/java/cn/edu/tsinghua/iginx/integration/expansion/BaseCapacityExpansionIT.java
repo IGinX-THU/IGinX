@@ -131,7 +131,7 @@ public abstract class BaseCapacityExpansionIT {
     testWriteAndQueryNewData();
     // 扩容
     if (IS_PARQUET_OR_FILE_SYSTEM) {
-      startStorageEngineWithIginx( this, expPort, true, false);
+      startStorageEngineWithIginx( expPort, true, false);
     } else {
       addStorageEngine(expPort, true, false, null, null);
     }
@@ -152,7 +152,7 @@ public abstract class BaseCapacityExpansionIT {
     testWriteAndQueryNewData();
     // 扩容
     if (IS_PARQUET_OR_FILE_SYSTEM) {
-      startStorageEngineWithIginx( this, expPort, false, false);
+      startStorageEngineWithIginx( expPort, false, false);
     } else {
       addStorageEngine(expPort, false, false, null, null);
     }
@@ -172,7 +172,7 @@ public abstract class BaseCapacityExpansionIT {
     testWriteAndQueryNewData();
     // 扩容
     if (IS_PARQUET_OR_FILE_SYSTEM) {
-      startStorageEngineWithIginx( this, expPort, true, false);
+      startStorageEngineWithIginx( expPort, true, false);
     } else {
       addStorageEngine(expPort, true, false, null, null);
     }
@@ -194,7 +194,7 @@ public abstract class BaseCapacityExpansionIT {
     testWriteAndQueryNewData();
     // 扩容
     if (IS_PARQUET_OR_FILE_SYSTEM) {
-      startStorageEngineWithIginx( this, expPort, false, false);
+      startStorageEngineWithIginx( expPort, false, false);
     } else {
       addStorageEngine(expPort, false, false, null, null);
     }
@@ -212,7 +212,7 @@ public abstract class BaseCapacityExpansionIT {
     testQueryHistoryDataOriHasData();
     // 扩容只读节点
     if (IS_PARQUET_OR_FILE_SYSTEM) {
-      startStorageEngineWithIginx( this, readOnlyPort, true, true);
+      startStorageEngineWithIginx( readOnlyPort, true, true);
     } else {
       addStorageEngine(readOnlyPort, true, true, null, null);
     }
@@ -220,7 +220,7 @@ public abstract class BaseCapacityExpansionIT {
     testQueryHistoryDataReadOnly();
     // 扩容可写节点
     if (IS_PARQUET_OR_FILE_SYSTEM) {
-      startStorageEngineWithIginx( this, expPort, true, false);
+      startStorageEngineWithIginx( expPort, true, false);
     } else {
       addStorageEngine(expPort, true, false, null, null);
     }
@@ -545,7 +545,7 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   protected void startStorageEngineWithIginx(
-      BaseCapacityExpansionIT it, int port, boolean hasData, boolean isReadOnly) throws InterruptedException {
+      int port, boolean hasData, boolean isReadOnly) throws InterruptedException {
     String scriptPath, iginxPath = ".github/scripts/iginx/iginx.sh";
     String os = System.getProperty("os.name").toLowerCase();
     boolean isOnMac = false;
