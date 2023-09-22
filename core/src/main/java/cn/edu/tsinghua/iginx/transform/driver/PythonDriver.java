@@ -35,7 +35,7 @@ public class PythonDriver implements Driver {
 
   private static final String PYTHON_CMD = config.getPythonCMD();
 
-  private static final String PYTHON_DIR = System.getProperty("user.dir");
+  private static final String PYTHON_DIR = config.getDefaultUDFDir();
 
   private static final String PY_WORKER =
       File.separator + "python_scripts" + File.separator + "py_worker.py";
