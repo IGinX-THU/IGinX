@@ -81,11 +81,12 @@ public class IginxClient {
   private static final String EXECUTE_ARGS = "e";
   private static final String EXECUTE_NAME = "execute";
 
+  private static final String FETCH_SIZE_ARGS = "fs";
+  private static final String FETCH_SIZE_NAME = "fetch_size";
+
   private static final String HELP_ARGS = "help";
 
   private static final int MAX_HELP_CONSOLE_WIDTH = 88;
-
-  private static final int MAX_FETCH_SIZE = 1000;
 
   private static final String SCRIPT_HINT = "./start-cli.sh(start-cli.bat if Windows)";
 
@@ -96,6 +97,7 @@ public class IginxClient {
   static String port = "6888";
   static String username = "root";
   static String password = "root";
+  static String fetchSize = "1000";
 
   static String execute = "";
 
@@ -116,6 +118,8 @@ public class IginxClient {
     options.addOption(USERNAME_ARGS, USERNAME_NAME, true, "User name (optional, default \"root\")");
     options.addOption(PASSWORD_ARGS, PASSWORD_NAME, true, "Password (optional, default \"root\")");
     options.addOption(EXECUTE_ARGS, EXECUTE_NAME, true, "Execute (optional)");
+    options.addOption(
+        FETCH_SIZE_ARGS, FETCH_SIZE_NAME, true, "Fetch size per query (optional, default 1000)");
 
     return options;
   }
@@ -131,7 +135,7 @@ public class IginxClient {
     } catch (ParseException e) {
       System.out.println(
           "Require more params input, eg. ./start-cli.sh(start-cli.bat if Windows) "
-              + "-h xxx.xxx.xxx.xxx -p xxxx -u xxx -pw xxx.");
+              + "-h xxx.xxx.xxx.xxx -p xxxx -u xxx -pw xxx -fs xxx.");
       System.out.println("For more information, please check the following hint.");
       hf.printHelp(SCRIPT_HINT, options, true);
       return false;
@@ -148,7 +152,7 @@ public class IginxClient {
     if (args == null || args.length == 0) {
       System.out.println(
           "Require more params input, eg. ./start-cli.sh(start-cli.bat if Windows) "
-              + "-h xxx.xxx.xxx.xxx -p xxxx -u xxx -p xxx.");
+              + "-h xxx.xxx.xxx.xxx -p xxxx -u xxx -p xxx -fs xxx.");
       System.out.println("For more information, please check the following hint.");
       hf.printHelp(SCRIPT_HINT, options, true);
       return;
@@ -188,6 +192,7 @@ public class IginxClient {
       username = parseArg(USERNAME_ARGS, USERNAME_NAME, false, "root");
       password = parseArg(PASSWORD_ARGS, PASSWORD_NAME, false, "root");
       execute = parseArg(EXECUTE_ARGS, EXECUTE_NAME, false, "");
+      fetchSize = parseArg(FETCH_SIZE_ARGS, FETCH_SIZE_NAME, false, "1000");
 
       session = new Session(host, port, username, password);
       session.openSession();
@@ -351,7 +356,7 @@ public class IginxClient {
 
   private static void processSqlWithStream(String sql) {
     try {
-      QueryDataSet res = session.executeQuery(sql, MAX_FETCH_SIZE);
+      QueryDataSet res = session.executeQuery(sql, Integer.parseInt(fetchSize));
 
       System.out.println("ResultSets:");
 
@@ -364,7 +369,7 @@ public class IginxClient {
       while (res.hasMore()) {
         System.out.printf(
             "Reach the max_display_num = %s. Press ENTER to show more, input 'q' to quit.",
-            MAX_FETCH_SIZE);
+            Integer.parseInt(fetchSize));
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
         try {
           if ("".equals(br.readLine())) {
@@ -408,7 +413,7 @@ public class IginxClient {
     }
 
     int rowIndex = 0;
-    while (queryDataSet.hasMore() && rowIndex < MAX_FETCH_SIZE) {
+    while (queryDataSet.hasMore() && rowIndex < Integer.parseInt(fetchSize)) {
       List<String> strRow = new ArrayList<>();
       Object[] nextRow = queryDataSet.nextRow();
       if (nextRow != null) {
@@ -431,7 +436,8 @@ public class IginxClient {
 
   private static void processExportByteStream(String sql)
       throws SessionException, ExecutionException, IOException {
-    Pair<QueryDataSet, String> pair = session.executeExportByteStream(sql, MAX_FETCH_SIZE);
+    Pair<QueryDataSet, String> pair =
+        session.executeExportByteStream(sql, Integer.parseInt(fetchSize));
     QueryDataSet res = pair.k;
     String dir = pair.v;
 
@@ -485,7 +491,7 @@ public class IginxClient {
       throws SessionException, ExecutionException {
     List<List<byte[]>> cache = new ArrayList<>();
     int rowIndex = 0;
-    while (queryDataSet.hasMore() && rowIndex < MAX_FETCH_SIZE) {
+    while (queryDataSet.hasMore() && rowIndex < Integer.parseInt(fetchSize)) {
       List<byte[]> nextRow = queryDataSet.nextRowAsBytes();
       if (nextRow != null) {
         cache.add(nextRow);
@@ -497,7 +503,7 @@ public class IginxClient {
 
   private static void processExportCsv(String sql)
       throws SessionException, ExecutionException, IOException {
-    Pair<QueryDataSet, ExportCSV> pair = session.executeExportCsv(sql, MAX_FETCH_SIZE);
+    Pair<QueryDataSet, ExportCSV> pair = session.executeExportCsv(sql, Integer.parseInt(fetchSize));
     QueryDataSet res = pair.k;
     ExportCSV exportCSV = pair.v;
 

@@ -49,12 +49,14 @@ set pw_parameter=-pw root
 set u_parameter=-u root
 set p_parameter=-p 6888
 set h_parameter=-h 127.0.0.1
+set fs_parameter=-fs 1000
 
 @REM Added parameters when default parameters are missing
 echo %PARAMETERS% | findstr /c:"-pw ">nul && (set PARAMETERS=%PARAMETERS%) || (set PARAMETERS=%pw_parameter% %PARAMETERS%)
 echo %PARAMETERS% | findstr /c:"-u ">nul && (set PARAMETERS=%PARAMETERS%) || (set PARAMETERS=%u_parameter% %PARAMETERS%)
 echo %PARAMETERS% | findstr /c:"-p ">nul && (set PARAMETERS=%PARAMETERS%) || (set PARAMETERS=%p_parameter% %PARAMETERS%)
 echo %PARAMETERS% | findstr /c:"-h ">nul && (set PARAMETERS=%PARAMETERS%) || (set PARAMETERS=%h_parameter% %PARAMETERS%)
+echo %PARAMETERS% | findstr /c:"-fs ">nul && (set PARAMETERS=%PARAMETERS%) || (set PARAMETERS=%fs_parameter% %PARAMETERS%)
 
 echo %PARAMETERS%
 

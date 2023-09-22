@@ -116,6 +116,10 @@ PARAMETERS="$@"
 
 # sh version
 case "$PARAMETERS" in
+*"-fs "*) PARAMETERS=$PARAMETERS ;;
+*) PARAMETERS="-fs 1000 $PARAMETERS" ;;
+esac
+case "$PARAMETERS" in
 *"-pw "*) PARAMETERS=$PARAMETERS ;;
 *) PARAMETERS="-pw root $PARAMETERS" ;;
 esac
