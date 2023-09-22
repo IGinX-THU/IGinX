@@ -368,14 +368,16 @@ public class RestSession {
   }
 
   public void deleteDataInColumn(
-      String path, List<Map<String, List<String>>> tagList, long startKey, long endKey) throws ExecutionException {
+      String path, List<Map<String, List<String>>> tagList, long startKey, long endKey)
+      throws ExecutionException {
     List<String> paths = new ArrayList<>();
     paths.add(path);
     deleteDataInColumns(paths, tagList, startKey, endKey);
   }
 
   public void deleteDataInColumns(
-      List<String> paths, List<Map<String, List<String>>> tagList, long startKey, long endKey) throws ExecutionException {
+      List<String> paths, List<Map<String, List<String>>> tagList, long startKey, long endKey)
+      throws ExecutionException {
     deleteDataInColumns(paths, tagList, startKey, endKey, TimeUtils.DEFAULT_TIMESTAMP_PRECISION);
   }
 
@@ -384,7 +386,8 @@ public class RestSession {
       List<Map<String, List<String>>> tagList,
       long startKey,
       long endKey,
-      TimePrecision timePrecision) throws ExecutionException {
+      TimePrecision timePrecision)
+      throws ExecutionException {
     DeleteDataInColumnsReq req = new DeleteDataInColumnsReq(sessionId, paths, startKey, endKey);
     if (!tagList.isEmpty()) {
       req.setTagsList(tagList);
