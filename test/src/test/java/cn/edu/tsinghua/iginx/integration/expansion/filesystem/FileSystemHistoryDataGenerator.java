@@ -3,14 +3,12 @@ package cn.edu.tsinghua.iginx.integration.expansion.filesystem;
 import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.*;
 
 import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
-import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Stream;
@@ -22,9 +20,7 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
   private static final Logger logger =
       LoggerFactory.getLogger(FileSystemHistoryDataGenerator.class);
 
-  public FileSystemHistoryDataGenerator() {
-    setDataTypeAndValuesForFileSystem();
-  }
+  public FileSystemHistoryDataGenerator() {}
 
   @Override
   public void writeHistoryData(
@@ -48,37 +44,25 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
     }
   }
 
-  private void setDataTypeAndValuesForFileSystem() {
-    Constant.oriDataTypeList = Arrays.asList(DataType.BINARY, DataType.BINARY);
-    Constant.expDataTypeList = Arrays.asList(DataType.BINARY, DataType.BINARY);
-    Constant.readOnlyDataTypeList = Arrays.asList(DataType.BINARY, DataType.BINARY);
-
-    byte[] oriValue = generateRandomValue(1);
-    byte[] expValue = generateRandomValue(2);
-    byte[] readOnlyValue = generateRandomValue(3);
-    oriValuesList =
-        Arrays.asList(Collections.singletonList(oriValue), Collections.singletonList(oriValue));
-    expValuesList =
-        Arrays.asList(Collections.singletonList(expValue), Collections.singletonList(expValue));
-    expValuesList1 = Collections.singletonList(Collections.singletonList(expValue));
-    expValuesList2 = Collections.singletonList(Collections.singletonList(expValue));
-    readOnlyValuesList =
-        Arrays.asList(
-            Collections.singletonList(readOnlyValue), Collections.singletonList(readOnlyValue));
-  }
-
   private void createFileAndWriteValues(List<String> pathList, List<List<Object>> valuesList) {
     String separator = System.getProperty("file.separator");
+    List<List<Object>> reversedValuesList = new ArrayList<>();
+    for (int i = 0; i < valuesList.get(0).size(); i++) {
+      reversedValuesList.add(new ArrayList<>());
+    }
+    for (List<Object> values : valuesList) {
+      for (int i = 0; i < values.size(); i++) {
+        reversedValuesList.get(i).add(values.get(i));
+      }
+    }
     for (int i = 0; i < pathList.size(); i++) {
       String realFilePath = pathList.get(i).replace(".", separator);
       File file = new File(realFilePath);
       file.getParentFile().mkdirs();
       logger.info("create file {} success", file.getAbsolutePath());
       try (OutputStream out = Files.newOutputStream(file.toPath())) {
-        for (Object value : valuesList.get(i)) {
-          if (value instanceof byte[]) {
-            out.write((byte[]) value);
-          }
+        for (Object value : reversedValuesList.get(i)) {
+          out.write(value.toString().getBytes());
         }
       } catch (IOException e) {
         logger.error("write file {} failure", file.getAbsolutePath());

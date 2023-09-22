@@ -22,6 +22,8 @@ public class Constants {
 
   public static final int MAX_REDIRECT_TIME = 5;
 
+  public static final String IGINX_HOME = "IGINX_HOME";
+
   public static final String CONF = "IGINX_CONF";
 
   public static final String DRIVER = "IGINX_DRIVER";
@@ -30,7 +32,7 @@ public class Constants {
 
   public static final String CONFIG_FILE = "conf/config.properties";
 
-  public static final String UDF_LIST_FILE = "conf/udf_list";
+  public static final String UDF_LIST_FILE = "udf_list";
 
   public static final String DRIVER_DIR = "driver";
 
