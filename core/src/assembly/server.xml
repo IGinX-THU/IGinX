@@ -40,8 +40,8 @@
             <outputDirectory>conf</outputDirectory>
         </fileSet>
         <fileSet>
-            <directory>../python_scripts</directory>
-            <outputDirectory>python_scripts</outputDirectory>
+            <directory>../udf_funcs</directory>
+            <outputDirectory>udf_funcs</outputDirectory>
         </fileSet>
     </fileSets>
 </assembly>

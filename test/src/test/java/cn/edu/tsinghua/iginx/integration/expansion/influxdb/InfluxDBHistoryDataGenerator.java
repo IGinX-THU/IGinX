@@ -75,20 +75,40 @@ public class InfluxDBHistoryDataGenerator extends BaseHistoryDataGenerator {
             point =
                 Point.measurement(measurementName)
                     .addField(
-                        fieldName.substring(0, fieldName.length() - 1), (String) valueList.get(i))
+                        fieldName.substring(0, fieldName.length() - 1),
+                        new String((byte[]) valueList.get(i)))
                     .time(timeCnt, WRITE_PRECISION);
             break;
           case DOUBLE:
             point =
                 Point.measurement(measurementName)
                     .addField(
-                        fieldName.substring(0, fieldName.length() - 1), (Double) valueList.get(i))
+                        fieldName.substring(0, fieldName.length() - 1),
+                        (Number) (double) valueList.get(i))
+                    .time(timeCnt, WRITE_PRECISION);
+            break;
+          case FLOAT:
+            point =
+                Point.measurement(measurementName)
+                    .addField(
+                        fieldName.substring(0, fieldName.length() - 1),
+                        (Number) (float) valueList.get(i))
+                    .time(timeCnt, WRITE_PRECISION);
+            break;
+          case LONG:
+            point =
+                Point.measurement(measurementName)
+                    .addField(
+                        fieldName.substring(0, fieldName.length() - 1),
+                        (Number) (long) valueList.get(i))
                     .time(timeCnt, WRITE_PRECISION);
             break;
           case INTEGER:
             point =
                 Point.measurement(measurementName)
-                    .addField(fieldName.toString(), (Integer) valueList.get(i))
+                    .addField(
+                        fieldName.substring(0, fieldName.length() - 1),
+                        (Number) (int) valueList.get(i))
                     .time(timeCnt, WRITE_PRECISION);
             break;
           default:
