@@ -134,12 +134,6 @@ public class RestSession {
         lock.readLock().unlock();
       }
     } while (checkRedirect(status));
-    if (status.code == 401) {
-      if (status.message.contains("Caution: can not clear the data of read-only node.")) {
-        logger.warn(status.message);
-        return;
-      }
-    }
     RpcUtils.verifySuccess(status);
   }
 
@@ -165,6 +159,12 @@ public class RestSession {
         lock.readLock().unlock();
       }
     } while (checkRedirect(status));
+    if (status.code == 401) {
+      if (status.message.contains("Caution: can not clear the data of read-only node.")) {
+        logger.warn(status.message);
+        return;
+      }
+    }
     RpcUtils.verifySuccess(status);
   }
 
@@ -368,14 +368,14 @@ public class RestSession {
   }
 
   public void deleteDataInColumn(
-      String path, List<Map<String, List<String>>> tagList, long startKey, long endKey) {
+      String path, List<Map<String, List<String>>> tagList, long startKey, long endKey) throws ExecutionException {
     List<String> paths = new ArrayList<>();
     paths.add(path);
     deleteDataInColumns(paths, tagList, startKey, endKey);
   }
 
   public void deleteDataInColumns(
-      List<String> paths, List<Map<String, List<String>>> tagList, long startKey, long endKey) {
+      List<String> paths, List<Map<String, List<String>>> tagList, long startKey, long endKey) throws ExecutionException {
     deleteDataInColumns(paths, tagList, startKey, endKey, TimeUtils.DEFAULT_TIMESTAMP_PRECISION);
   }
 
@@ -384,7 +384,7 @@ public class RestSession {
       List<Map<String, List<String>>> tagList,
       long startKey,
       long endKey,
-      TimePrecision timePrecision) {
+      TimePrecision timePrecision) throws ExecutionException {
     DeleteDataInColumnsReq req = new DeleteDataInColumnsReq(sessionId, paths, startKey, endKey);
     if (!tagList.isEmpty()) {
       req.setTagsList(tagList);
@@ -401,6 +401,13 @@ public class RestSession {
         lock.readLock().unlock();
       }
     } while (checkRedirect(status));
+    if (status.code == 401) {
+      if (status.message.contains("Caution: can not clear the data of read-only node.")) {
+        logger.warn(status.message);
+        return;
+      }
+    }
+    RpcUtils.verifySuccess(status);
   }
 
   public SessionQueryDataSet queryData(
