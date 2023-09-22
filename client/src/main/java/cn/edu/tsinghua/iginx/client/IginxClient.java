@@ -538,6 +538,12 @@ public class IginxClient {
     SessionExecuteSqlResult res = session.executeSql(sql);
     String path = res.getLoadCsvPath();
 
+    String parseErrorMsg = res.getParseErrorMsg();
+    if (parseErrorMsg != null && !parseErrorMsg.isEmpty()) {
+      System.out.println(res.getParseErrorMsg());
+      return;
+    }
+
     File file = new File(path);
     if (!file.isFile()) {
       throw new InvalidParameterException(path + " is not a file!");
