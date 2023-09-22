@@ -32,39 +32,9 @@ if NOT DEFINED MAIN_CLASS set MAIN_CLASS=cn.edu.tsinghua.iginx.client.IginxClien
 if NOT DEFINED JAVA_HOME goto :err
 
 @REM -----------------------------------------------------------------------------
-@REM Compute Memory for JVM configurations
-
-if ["%system_cpu_cores%"] LSS ["1"] set system_cpu_cores="1"
-
-set liner=0
-for /f  %%b in ('wmic ComputerSystem get TotalPhysicalMemory') do (
-	set /a liner+=1
-	if !liner!==2 set system_memory=%%b
-)
-
-echo wsh.echo FormatNumber(cdbl(%system_memory%)/(1024*1024), 0) > %temp%\tmp.vbs
-for /f "tokens=*" %%a in ('cscript //nologo %temp%\tmp.vbs') do set system_memory_in_mb=%%a
-del %temp%\tmp.vbs
-set system_memory_in_mb=%system_memory_in_mb:,=%
-
-set /a half_=%system_memory_in_mb%/4
-set /a quarter_=%half_%/8
-
-if ["%half_%"] GTR ["1024"] set half_=1024
-if ["%quarter_%"] GTR ["8192"] set quarter_=8192
-
-if ["%half_%"] GTR ["quarter_"] (
-	set max_heap_size_in_mb=%half_%
-) else set max_heap_size_in_mb=%quarter_%
-
-set MAX_HEAP_SIZE=%max_heap_size_in_mb%M
-
-@REM -----------------------------------------------------------------------------
 @REM JVM Opts we'll use in legacy run or installation
 set JAVA_OPTS=-ea^
  -DIGINX_CLI_HOME="%IGINX_CLI_HOME%"
-
-set HEAP_OPTS=-Xmx%MAX_HEAP_SIZE% -Xms%MAX_HEAP_SIZE% -Xloggc:"%IGINX_HOME%\gc.log" -XX:+PrintGCDateStamps -XX:+PrintGCDetails
 
 REM For each jar in the IGINX_CLI_HOME lib directory call append to build the CLASSPATH variable.
 set CLASSPATH="%IGINX_CLI_HOME%\lib\*"
@@ -88,7 +58,7 @@ echo %PARAMETERS% | findstr /c:"-h ">nul && (set PARAMETERS=%PARAMETERS%) || (se
 
 echo %PARAMETERS%
 
-"%JAVA_HOME%\bin\java" %JAVA_OPTS% %HEAP_OPTS% -cp %CLASSPATH% %MAIN_CLASS% %PARAMETERS%
+"%JAVA_HOME%\bin\java" %JAVA_OPTS% -cp %CLASSPATH% %MAIN_CLASS% %PARAMETERS%
 
 goto finally
 

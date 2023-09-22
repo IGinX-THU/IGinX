@@ -5,6 +5,8 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
+import cn.edu.tsinghua.iginx.engine.shared.file.CSVFile;
+import cn.edu.tsinghua.iginx.engine.shared.file.write.ExportCsv;
 import cn.edu.tsinghua.iginx.thrift.*;
 import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.ByteUtils;
@@ -51,7 +53,13 @@ public class Result {
 
   private String configValue;
 
-  private String exportStreamDir;
+  private String exportByteStreamDir;
+
+  private ExportCsv exportCsv;
+
+  private String loadCSVPath;
+  private List<String> loadCSVColumns;
+  private Long loadCSVRecordNum;
 
   public Result(Status status) {
     this.status = status;
@@ -157,6 +165,8 @@ public class Result {
     resp.setJobState(jobState);
     resp.setJobIdList(jobIdList);
     resp.setConfigValue(configValue);
+    // INFILE AS CSV
+    resp.setLoadCsvPath(loadCSVPath);
     return resp;
   }
 
@@ -223,11 +233,38 @@ public class Result {
       resp.setTagsList(tagsList);
       resp.setDataTypeList(types);
       resp.setQueryDataSet(new QueryDataSetV2(valuesList, bitmapList));
-      resp.setExportStreamDir(exportStreamDir);
+
+      // OUTFILE AS STREAM
+      resp.setExportStreamDir(exportByteStreamDir);
+
+      // OUTFILE AS CSV
+      if (exportCsv != null) {
+        CSVFile csvFile = exportCsv.getCsvFile();
+        resp.setExportCSV(
+            new ExportCSV(
+                exportCsv.getFilepath(),
+                exportCsv.isExportHeader(),
+                csvFile.getDelimiter(),
+                csvFile.isOptionallyQuote(),
+                (short) csvFile.getQuote(),
+                (short) csvFile.getEscaped(),
+                csvFile.getRecordSeparator()));
+      }
     } catch (PhysicalException e) {
       logger.error("unexpected error when load row stream: ", e);
       resp.setStatus(RpcUtils.FAILURE);
     }
+    return resp;
+  }
+
+  public LoadCSVResp getLoadCSVResp() {
+    LoadCSVResp resp = new LoadCSVResp(status);
+    if (status != RpcUtils.SUCCESS) {
+      resp.setParseErrorMsg(status.getMessage());
+      return resp;
+    }
+    resp.setColumns(loadCSVColumns);
+    resp.setRecordsNum(loadCSVRecordNum);
     return resp;
   }
 

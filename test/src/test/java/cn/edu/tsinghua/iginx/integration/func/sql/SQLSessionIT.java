@@ -4231,56 +4231,6 @@ public class SQLSessionIT {
   }
 
   @Test
-  public void testExportAndImportCsv() {
-    String insert =
-        "INSERT INTO us.d2 (key, s1, s2, s3, s4) VALUES "
-            + "(1, \"apple\", 871, 232.1, true), (2, \"peach\", 123, 132.5, false), (3, \"banana\", 356, 317.8, true),"
-            + "(4, \"cherry\", 621, 456.1, false), (5, \"grape\", 336, 132.5, true), (6, \"dates\", 119, 232.1, false),"
-            + "(7, \"melon\", 516, 113.6, true), (8, \"mango\", 458, 232.1, false), (9, \"pear\", 336, 613.1, true);";
-    executor.execute(insert);
-
-    Path csvPath = Paths.get("src", "test", "resources", "fileReadAndWrite", "csv", "us.d2.csv");
-    File csvFile = csvPath.toFile();
-    String exportCsv =
-        "SELECT * FROM us.d2 INTO OUTFILE \"" + csvFile.getAbsolutePath() + "\" AS CSV";
-    executor.execute(exportCsv);
-
-    assertTrue(csvFile.exists());
-    assertTrue(csvFile.isFile());
-    assertEquals(csvFile.length(), 212);
-
-    String queryBeforeImport = "SELECT * FROM test";
-    String expected =
-        "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
-    executor.executeAndCompare(queryBeforeImport, expected);
-
-    String importCsv =
-        "LOAD DATA FROM INFILE \""
-            + csvFile.getAbsolutePath()
-            + "\" AS CSV INTO test(key, a, b, c, d);";
-    executor.execute(importCsv);
-
-    String orderByQuery = "SELECT * FROM test ORDER BY c, b";
-    expected =
-        "ResultSets:\n"
-            + "+---+------+------+------+------+\n"
-            + "|key|test.a|test.b|test.c|test.d|\n"
-            + "+---+------+------+------+------+\n"
-            + "|  7| melon|   516| 113.6|  true|\n"
-            + "|  2| peach|   123| 132.5| false|\n"
-            + "|  5| grape|   336| 132.5|  true|\n"
-            + "|  6| dates|   119| 232.1| false|\n"
-            + "|  8| mango|   458| 232.1| false|\n"
-            + "|  1| apple|   871| 232.1|  true|\n"
-            + "|  3|banana|   356| 317.8|  true|\n"
-            + "|  4|cherry|   621| 456.1| false|\n"
-            + "|  9|  pear|   336| 613.1|  true|\n"
-            + "+---+------+------+------+------+\n"
-            + "Total line number = 9\n";
-    executor.executeAndCompare(orderByQuery, expected);
-  }
-
-  @Test
   public void testDateFormat() {
     if (!isAbleToDelete) {
       return;

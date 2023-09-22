@@ -1061,6 +1061,36 @@ public class Session {
         dir);
   }
 
+  public Pair<QueryDataSet, ExportCSV> executeExportCsv(String statement)
+      throws SessionException, ExecutionException {
+    return executeExportCsv(statement, Integer.MAX_VALUE);
+  }
+
+  public Pair<QueryDataSet, ExportCSV> executeExportCsv(String statement, int fetchSize)
+      throws SessionException, ExecutionException {
+    ExecuteStatementReq req = new ExecuteStatementReq(sessionId, statement);
+    req.setFetchSize(fetchSize);
+    Reference<ExecuteStatementResp> ref = new Reference<>();
+    executeWithCheck(() -> (ref.resp = client.executeStatement(req)).status);
+
+    long queryId = ref.resp.getQueryId();
+    List<String> columns = ref.resp.getColumns();
+    List<DataType> dataTypes = ref.resp.getDataTypeList();
+    QueryDataSetV2 dataSetV2 = ref.resp.getQueryDataSet();
+    ExportCSV exportCSV = ref.resp.getExportCSV();
+
+    return new Pair<>(
+        new QueryDataSet(
+            this,
+            queryId,
+            columns,
+            dataTypes,
+            fetchSize,
+            dataSetV2.valuesList,
+            dataSetV2.bitmapList),
+        exportCSV);
+  }
+
   Pair<QueryDataSetV2, Boolean> fetchResult(long queryId, int fetchSize)
       throws SessionException, ExecutionException {
     FetchResultsReq req = new FetchResultsReq(sessionId, queryId);
@@ -1069,6 +1099,15 @@ public class Session {
     executeWithCheck(() -> (ref.resp = client.fetchResults(req)).status);
 
     return new Pair<>(ref.resp.getQueryDataSet(), ref.resp.isHasMoreResults());
+  }
+
+  public Pair<List<String>, Long> executeLoadCSV(String statement, ByteBuffer csvFile)
+      throws SessionException, ExecutionException {
+    LoadCSVReq req = new LoadCSVReq(sessionId, statement, csvFile);
+    Reference<LoadCSVResp> ref = new Reference<>();
+    executeWithCheck(() -> (ref.resp = client.loadCSV(req)).status);
+
+    return new Pair<>(ref.resp.getColumns(), ref.resp.getRecordsNum());
   }
 
   void closeQuery(long queryId) throws SessionException, ExecutionException {

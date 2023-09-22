@@ -680,6 +680,15 @@ public class IginxWorker implements IService.Iface {
   }
 
   @Override
+  public LoadCSVResp loadCSV(LoadCSVReq req) {
+    StatementExecutor executor = StatementExecutor.getInstance();
+    RequestContext ctx = contextBuilder.build(req);
+    ctx.setLoadCSVFileByteBuffer(req.csvFile);
+    executor.execute(ctx);
+    return ctx.getResult().getLoadCSVResp();
+  }
+
+  @Override
   public Status closeStatement(CloseStatementReq req) {
     queryManager.releaseQuery(req.queryId);
     return RpcUtils.SUCCESS;

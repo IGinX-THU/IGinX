@@ -18,6 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.client;
 
+import static cn.edu.tsinghua.iginx.utils.CSVUtils.getCSVBuilder;
 import static cn.edu.tsinghua.iginx.utils.FileUtils.exportByteStream;
 
 import cn.edu.tsinghua.iginx.constant.GlobalConstant;
@@ -26,12 +27,15 @@ import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.session.QueryDataSet;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
+import cn.edu.tsinghua.iginx.thrift.ExportCSV;
 import cn.edu.tsinghua.iginx.utils.FormatUtils;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.InvalidParameterException;
@@ -44,6 +48,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.apache.commons.cli.*;
+import org.apache.commons.csv.CSVPrinter;
+import org.apache.commons.io.FileUtils;
 import org.jline.reader.Completer;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
@@ -244,8 +250,12 @@ public class IginxClient {
 
     if (isExportByteStream(trimedStatement)) {
       processExportByteStream(statement);
+    } else if (isExportCsv(trimedStatement)) {
+      processExportCsv(statement);
     } else if (isQuery(trimedStatement)) {
       processSqlWithStream(statement);
+    } else if (isLoadDataFromCsv(trimedStatement)) {
+      processLoadCsv(statement);
     } else if (isSetTimeUnit(trimedStatement)) {
       processSetTimeUnit(statement);
     } else {
@@ -255,6 +265,7 @@ public class IginxClient {
   }
 
   private static boolean isQuery(String sql) {
+    // TODO
     // 该方法仍不能完全区分查询语句和写入文件语句
     // 比如select * from test where a = " into outfile ";
     // 上述语句为查询语句，但在该方法中返回false
@@ -263,7 +274,17 @@ public class IginxClient {
   }
 
   private static boolean isExportByteStream(String sql) {
+    // TODO 同isQuery
     return sql.startsWith("select") && sql.contains(" into outfile ") && sql.contains("as stream");
+  }
+
+  private static boolean isExportCsv(String sql) {
+    // TODO 同isQuery
+    return sql.startsWith("select") && sql.contains(" into outfile ") && sql.contains("as csv");
+  }
+
+  private static boolean isLoadDataFromCsv(String sql) {
+    return sql.startsWith("load data from infile ") && sql.contains("as csv");
   }
 
   private static boolean isSetTimeUnit(String sql) {
@@ -375,9 +396,16 @@ public class IginxClient {
 
   private static List<List<String>> cacheResult(QueryDataSet queryDataSet)
       throws ExecutionException, SessionException {
+    return cacheResult(queryDataSet, false);
+  }
+
+  private static List<List<String>> cacheResult(QueryDataSet queryDataSet, boolean skipHeader)
+      throws ExecutionException, SessionException {
     boolean hasKey = queryDataSet.getColumnList().get(0).equals(GlobalConstant.KEY_NAME);
     List<List<String>> cache = new ArrayList<>();
-    cache.add(new ArrayList<>(queryDataSet.getColumnList()));
+    if (!skipHeader) {
+      cache.add(new ArrayList<>(queryDataSet.getColumnList()));
+    }
 
     int rowIndex = 0;
     while (queryDataSet.hasMore() && rowIndex < MAX_FETCH_SIZE) {
@@ -465,6 +493,77 @@ public class IginxClient {
       }
     }
     return cache;
+  }
+
+  private static void processExportCsv(String sql)
+      throws SessionException, ExecutionException, IOException {
+    Pair<QueryDataSet, ExportCSV> pair = session.executeExportCsv(sql, MAX_FETCH_SIZE);
+    QueryDataSet res = pair.k;
+    ExportCSV exportCSV = pair.v;
+
+    String path = exportCSV.getExportCsvPath();
+    if (!path.endsWith(".csv")) {
+      throw new InvalidParameterException(
+          "The file name must end with [.csv], " + path + " doesn't satisfy the requirement!");
+    }
+
+    File file = new File(path);
+    // 删除原来的csv文件，新建一个新的csv文件
+    Files.deleteIfExists(Paths.get(file.getPath()));
+    Files.createFile(Paths.get(file.getPath()));
+    if (!file.isFile()) {
+      throw new InvalidParameterException(path + " is not a file!");
+    }
+
+    try {
+      CSVPrinter printer = getCSVBuilder(exportCSV).build().print(new PrintWriter(file));
+      boolean hasKey = res.getColumnList().get(0).equals(GlobalConstant.KEY_NAME);
+
+      if (exportCSV.isExportHeader) {
+        List<String> headerNames = new ArrayList<>();
+        if (hasKey) {
+          headerNames.add(GlobalConstant.KEY_NAME);
+        }
+        headerNames.addAll(res.getColumnList());
+        printer.printRecord(headerNames);
+      }
+
+      while (res.hasMore()) {
+        List<List<String>> cache = cacheResult(res, true);
+        printer.printRecords(cache);
+      }
+
+      printer.flush();
+      printer.close();
+    } catch (IOException e) {
+      throw new RuntimeException(
+          "Encounter an error when writing csv file " + path + ", because " + e.getMessage());
+    }
+    res.close();
+    System.out.println("Successfully write csv file: \"" + file.getAbsolutePath() + "\".");
+  }
+
+  private static void processLoadCsv(String sql)
+      throws SessionException, ExecutionException, IOException {
+    SessionExecuteSqlResult res = session.executeSql(sql);
+    String path = res.getLoadCsvPath();
+
+    File file = new File(path);
+    if (!file.isFile()) {
+      throw new InvalidParameterException(path + " is not a file!");
+    }
+    if (!path.endsWith(".csv")) {
+      throw new InvalidParameterException(
+          "The file name must end with [.csv], " + path + " doesn't satisfy the requirement!");
+    }
+
+    byte[] bytes = FileUtils.readFileToByteArray(file);
+    ByteBuffer csvFile = ByteBuffer.wrap(bytes);
+    Pair<List<String>, Long> pair = session.executeLoadCSV(sql, csvFile);
+    List<String> columns = pair.k;
+    long recordsNum = pair.v;
+
+    System.out.println("Successfully write " + recordsNum + " record(s) to: " + columns);
   }
 
   private static String parseExecuteCommand(String[] args) {
