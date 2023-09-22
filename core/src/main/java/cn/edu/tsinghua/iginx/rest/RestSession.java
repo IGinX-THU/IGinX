@@ -134,6 +134,12 @@ public class RestSession {
         lock.readLock().unlock();
       }
     } while (checkRedirect(status));
+    if (status.code == 401) {
+      if (status.message.contains("Caution: can not clear the data of read-only node.")) {
+        logger.warn(status.message);
+        return;
+      }
+    }
     RpcUtils.verifySuccess(status);
   }
 
