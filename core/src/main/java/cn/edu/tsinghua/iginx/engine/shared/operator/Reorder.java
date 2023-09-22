@@ -9,12 +9,19 @@ public class Reorder extends AbstractUnaryOperator {
 
   private final List<String> patterns;
 
+  private boolean needSelectedPath;
+
   public Reorder(Source source, List<String> patterns) {
+    this(source, patterns, false);
+  }
+
+  public Reorder(Source source, List<String> patterns, boolean needSelectedPath) {
     super(OperatorType.Reorder, source);
     if (patterns == null) {
       throw new IllegalArgumentException("patterns shouldn't be null");
     }
     this.patterns = patterns;
+    this.needSelectedPath = needSelectedPath;
   }
 
   @Override
@@ -24,6 +31,14 @@ public class Reorder extends AbstractUnaryOperator {
 
   public List<String> getPatterns() {
     return patterns;
+  }
+
+  public boolean isNeedSelectedPath() {
+    return needSelectedPath;
+  }
+
+  public void setNeedSelectedPath(boolean needSelectedPath) {
+    this.needSelectedPath = needSelectedPath;
   }
 
   @Override

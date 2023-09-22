@@ -1,11 +1,12 @@
 package cn.edu.tsinghua.iginx.engine.logical.generator;
 
+import static cn.edu.tsinghua.iginx.engine.logical.utils.MetaUtils.getFragmentsByColumnsInterval;
+import static cn.edu.tsinghua.iginx.engine.logical.utils.MetaUtils.mergeRawData;
 import static cn.edu.tsinghua.iginx.engine.logical.utils.OperatorUtils.translateApply;
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.ALL_PATH_SUFFIX;
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.ORDINAL;
 import static cn.edu.tsinghua.iginx.engine.shared.function.system.ArithmeticExpr.ARITHMETIC_EXPR;
 import static cn.edu.tsinghua.iginx.engine.shared.operator.type.JoinAlgType.chooseJoinAlg;
-import static cn.edu.tsinghua.iginx.metadata.utils.FragmentUtils.keyFromColumnsIntervalToKeyInterval;
 import static cn.edu.tsinghua.iginx.sql.SQLConstant.DOT;
 import static cn.edu.tsinghua.iginx.sql.statement.frompart.join.JoinType.isNaturalJoin;
 
@@ -13,17 +14,16 @@ import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.logical.optimizer.LogicalOptimizerManager;
 import cn.edu.tsinghua.iginx.engine.logical.utils.OperatorUtils;
-import cn.edu.tsinghua.iginx.engine.logical.utils.PathUtils;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils;
 import cn.edu.tsinghua.iginx.engine.shared.function.manager.FunctionManager;
-import cn.edu.tsinghua.iginx.engine.shared.operator.AddSchemaPrefix;
 import cn.edu.tsinghua.iginx.engine.shared.operator.CrossJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Distinct;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Downsample;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Except;
+import cn.edu.tsinghua.iginx.engine.shared.operator.FoldedOperator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.GroupBy;
 import cn.edu.tsinghua.iginx.engine.shared.operator.InnerJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Intersect;
@@ -33,6 +33,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.MarkJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.OuterJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
+import cn.edu.tsinghua.iginx.engine.shared.operator.ProjectWaitingForPath;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Rename;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Reorder;
 import cn.edu.tsinghua.iginx.engine.shared.operator.RowTransform;
@@ -41,22 +42,23 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.SetTransform;
 import cn.edu.tsinghua.iginx.engine.shared.operator.SingleJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Sort;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Union;
+import cn.edu.tsinghua.iginx.engine.shared.operator.ValueToSelectedPath;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.FuncType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.JoinAlgType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OuterJoinType;
-import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
+import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
-import cn.edu.tsinghua.iginx.metadata.entity.StorageUnitMeta;
 import cn.edu.tsinghua.iginx.policy.IPolicy;
 import cn.edu.tsinghua.iginx.policy.PolicyManager;
 import cn.edu.tsinghua.iginx.sql.expression.Expression;
+import cn.edu.tsinghua.iginx.sql.expression.FromValueExpression;
 import cn.edu.tsinghua.iginx.sql.statement.Statement;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.FromPartType;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.PathFromPart;
@@ -198,29 +200,29 @@ public class QueryGenerator extends AbstractGenerator {
 
   private Operator generateRoot(UnarySelectStatement selectStatement) {
     Operator root;
-    if (selectStatement.hasJoinParts()) {
+    if (selectStatement.hasValueToSelectedPath()) {
+      root = new ProjectWaitingForPath(selectStatement);
+    } else if (selectStatement.hasJoinParts()) {
       root = filterAndMergeFragmentsWithJoin(selectStatement);
+    } else if (!selectStatement.getFromParts().isEmpty()
+        && selectStatement.getFromParts().get(0).getType() == FromPartType.SubQueryFromPart) {
+      SubQueryFromPart fromPart = (SubQueryFromPart) selectStatement.getFromParts().get(0);
+      root = generateRoot(fromPart.getSubQuery());
+      if (fromPart.hasAlias()) {
+        Map<String, String> map = fromPart.getSubQuery().getSubQueryAliasMap(fromPart.getAlias());
+        root = new Rename(new OperatorSource(root), map);
+      }
     } else {
+      policy.notify(selectStatement);
+      root = filterAndMergeFragments(selectStatement);
       if (!selectStatement.getFromParts().isEmpty()
-          && selectStatement.getFromParts().get(0).getType() == FromPartType.SubQueryFromPart) {
-        SubQueryFromPart fromPart = (SubQueryFromPart) selectStatement.getFromParts().get(0);
-        root = generateRoot(fromPart.getSubQuery());
-        if (fromPart.hasAlias()) {
-          Map<String, String> map = fromPart.getSubQuery().getSubQueryAliasMap(fromPart.getAlias());
+          && selectStatement.getFromParts().get(0).getType() == FromPartType.PathFromPart) {
+        PathFromPart pathFromPart = (PathFromPart) selectStatement.getFromParts().get(0);
+        if (pathFromPart.hasAlias()) {
+          Map<String, String> map =
+              selectStatement.getFromPathAliasMap(
+                  pathFromPart.getOriginPrefix(), pathFromPart.getAlias());
           root = new Rename(new OperatorSource(root), map);
-        }
-      } else {
-        policy.notify(selectStatement);
-        root = filterAndMergeFragments(selectStatement);
-        if (!selectStatement.getFromParts().isEmpty()
-            && selectStatement.getFromParts().get(0).getType() == FromPartType.PathFromPart) {
-          PathFromPart pathFromPart = (PathFromPart) selectStatement.getFromParts().get(0);
-          if (pathFromPart.hasAlias()) {
-            Map<String, String> map =
-                selectStatement.getFromPathAliasMap(
-                    pathFromPart.getOriginPrefix(), pathFromPart.getAlias());
-            root = new Rename(new OperatorSource(root), map);
-          }
         }
       }
     }
@@ -434,7 +436,11 @@ public class QueryGenerator extends AbstractGenerator {
           .getBaseExpressionList()
           .forEach(expression -> selectedPath.add(expression.getPathName()));
       queryList.add(
-          new Project(new OperatorSource(root), new ArrayList<>(selectedPath), tagFilter));
+          new Project(
+              new OperatorSource(root),
+              new ArrayList<>(selectedPath),
+              tagFilter,
+              selectStatement.hasValueToSelectedPath()));
     }
 
     if (selectStatement.getQueryType() == QueryType.LastFirstQuery) {
@@ -544,10 +550,15 @@ public class QueryGenerator extends AbstractGenerator {
               .getExpressions()
               .forEach(
                   expression -> {
+                    if (expression.getType().equals(Expression.ExpressionType.FromValue)) {
+                      return;
+                    }
                     String colName = expression.getColumnName();
                     order.add(colName);
                   });
-          root = new Reorder(new OperatorSource(root), order);
+          root =
+              new Reorder(
+                  new OperatorSource(root), order, selectStatement.hasValueToSelectedPath());
         }
       } else {
         List<String> order = new ArrayList<>();
@@ -568,6 +579,32 @@ public class QueryGenerator extends AbstractGenerator {
     Map<String, String> aliasMap = selectStatement.getSelectAliasMap();
     if (!aliasMap.isEmpty()) {
       root = new Rename(new OperatorSource(root), aliasMap);
+    }
+
+    List<Source> valueToMetaList = new ArrayList<>();
+    if (selectStatement.hasValueToSelectedPath()) {
+      selectStatement
+          .getExpressions()
+          .forEach(
+              expression -> {
+                if (expression.getType().equals(Expression.ExpressionType.FromValue)) {
+                  FromValueExpression fvExpression = (FromValueExpression) expression;
+                  Operator child = generateRoot(fvExpression.getSubStatement());
+
+                  String prefix = "";
+                  if (selectStatement.getFromParts().size() == 1
+                      && selectStatement.getFromParts().get(0).getType()
+                          == FromPartType.PathFromPart) {
+                    prefix =
+                        ((PathFromPart) selectStatement.getFromParts().get(0)).getOriginPrefix();
+                  }
+
+                  valueToMetaList.add(
+                      new OperatorSource(
+                          new ValueToSelectedPath(new OperatorSource(child), prefix)));
+                }
+              });
+      root = new FoldedOperator(valueToMetaList, root);
     }
 
     return root;
@@ -735,91 +772,5 @@ public class QueryGenerator extends AbstractGenerator {
       prefixA = prefixB;
     }
     return left;
-  }
-
-  private Operator mergeRawData(
-      Map<KeyInterval, List<FragmentMeta>> fragments,
-      List<FragmentMeta> dummyFragments,
-      List<String> pathList,
-      TagFilter tagFilter) {
-    List<Operator> unionList = new ArrayList<>();
-    fragments.forEach(
-        (k, v) -> {
-          List<Operator> joinList = new ArrayList<>();
-          v.forEach(
-              meta -> joinList.add(new Project(new FragmentSource(meta), pathList, tagFilter)));
-          unionList.add(OperatorUtils.joinOperatorsByTime(joinList));
-        });
-
-    Operator operator = OperatorUtils.unionOperators(unionList);
-    if (!dummyFragments.isEmpty()) {
-      List<Operator> joinList = new ArrayList<>();
-      dummyFragments.forEach(
-          meta -> {
-            if (meta.isValid()) {
-              String schemaPrefix = meta.getColumnsInterval().getSchemaPrefix();
-              joinList.add(
-                  new AddSchemaPrefix(
-                      new OperatorSource(
-                          new Project(
-                              new FragmentSource(meta),
-                              pathMatchPrefix(pathList, meta.getColumnsInterval(), schemaPrefix),
-                              tagFilter)),
-                      schemaPrefix));
-            }
-          });
-      if (operator != null) {
-        joinList.add(operator);
-      }
-      operator = OperatorUtils.joinOperatorsByTime(joinList);
-    }
-    return operator;
-  }
-
-  private Pair<Map<KeyInterval, List<FragmentMeta>>, List<FragmentMeta>>
-      getFragmentsByColumnsInterval(
-          SelectStatement selectStatement, ColumnsInterval columnsInterval) {
-    Map<ColumnsInterval, List<FragmentMeta>> fragmentsByColumnsInterval =
-        metaManager.getFragmentMapByColumnsInterval(
-            PathUtils.trimColumnsInterval(columnsInterval), true);
-    if (!metaManager.hasFragment()) {
-      if (metaManager.hasWritableStorageEngines()) {
-        // on startup
-        Pair<List<FragmentMeta>, List<StorageUnitMeta>> fragmentsAndStorageUnits =
-            policy.generateInitialFragmentsAndStorageUnits(selectStatement);
-        metaManager.createInitialFragmentsAndStorageUnits(
-            fragmentsAndStorageUnits.v, fragmentsAndStorageUnits.k);
-      }
-      fragmentsByColumnsInterval =
-          metaManager.getFragmentMapByColumnsInterval(columnsInterval, true);
-    }
-    return keyFromColumnsIntervalToKeyInterval(fragmentsByColumnsInterval);
-  }
-
-  // 筛选出在 columnsInterval 范围内的 path 列表，返回去除 schemaPrefix 后的结果
-  private List<String> pathMatchPrefix(
-          List<String> pathList, ColumnsInterval columnsInterval, String schemaPrefix) {
-    List<String> ans = new ArrayList<>();
-
-    for (String path : pathList) {
-      String pathWithoutPrefix = path;
-      if (path.equals("*.*") || path.equals("*")) {
-        ans.add(path);
-        continue;
-      }
-      if (schemaPrefix != null) {
-        if (!path.startsWith(schemaPrefix) && !path.startsWith("*")) {
-          continue;
-        }
-        if (path.startsWith(schemaPrefix)) {
-          pathWithoutPrefix = path.substring(schemaPrefix.length() + 1);
-        }
-      }
-      if (columnsInterval.isContain(path)) {
-        ans.add(pathWithoutPrefix);
-      }
-    }
-
-    return ans;
   }
 }

@@ -6,7 +6,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 
 public class Constant {
 
@@ -40,28 +39,28 @@ public class Constant {
       Arrays.asList("tm.wf05.wt01.status", "tm.wf05.wt01.temperature");
 
   // data type
-  public static List<DataType> oriDataTypeList = Arrays.asList(DataType.BOOLEAN, DataType.DOUBLE);
+  public static List<DataType> ORI_DATA_TYPE_LIST = Arrays.asList(DataType.LONG, DataType.DOUBLE);
 
-  public static List<DataType> expDataTypeList = Arrays.asList(DataType.BOOLEAN, DataType.DOUBLE);
+  public static List<DataType> EXP_DATA_TYPE_LIST = Arrays.asList(DataType.LONG, DataType.DOUBLE);
 
-  public static List<DataType> readOnlyDataTypeList =
-      Arrays.asList(DataType.BOOLEAN, DataType.DOUBLE);
+  public static List<DataType> READ_ONLY_DATA_TYPE_LIST =
+      Arrays.asList(DataType.LONG, DataType.DOUBLE);
 
   // values
-  public static List<List<Object>> oriValuesList =
-      Arrays.asList(Arrays.asList(true, 15.27), Arrays.asList(false, 20.71));
+  public static List<List<Object>> ORI_VALUES_LIST =
+      Arrays.asList(Arrays.asList(11111111L, 15123.27), Arrays.asList(22222222L, 20123.71));
 
-  public static List<List<Object>> expValuesList =
-      Arrays.asList(Arrays.asList(true, 66.23), Arrays.asList(false, 77.71));
+  public static List<List<Object>> EXP_VALUES_LIST =
+      Arrays.asList(Arrays.asList(33333333L, 66123.23), Arrays.asList(44444444L, 77123.71));
 
-  public static List<List<Object>> expValuesList1 =
-      Arrays.asList(Collections.singletonList(true), Collections.singletonList(false));
+  public static List<List<Object>> EXP_VALUES_LIST1 =
+      Arrays.asList(Collections.singletonList(33333333L), Collections.singletonList(44444444L));
 
-  public static List<List<Object>> expValuesList2 =
-      Arrays.asList(Collections.singletonList(66.23), Collections.singletonList(77.71));
+  public static List<List<Object>> EXP_VALUES_LIST2 =
+      Arrays.asList(Collections.singletonList(66123.23), Collections.singletonList(77123.71));
 
-  public static List<List<Object>> readOnlyValuesList =
-      Arrays.asList(Arrays.asList(false, 100.01), Arrays.asList(true, 99.99));
+  public static List<List<Object>> READ_ONLY_VALUES_LIST =
+      Arrays.asList(Arrays.asList(55555555L, 10012.01), Arrays.asList(66666666L, 99123.99));
 
   // for file system
   public static final Map<Integer, String> PORT_TO_ROOT =
@@ -95,21 +94,4 @@ public class Constant {
           put(readOnlyPort, Arrays.asList(readOnlyDir, readOnlyFilename));
         }
       };
-
-  public static final Map<Integer, Integer> PARQUET_FILESYSTEM_IGINX_PORT=
-      new HashMap<Integer, Integer>() {
-        {
-          put(oriPort, oriPortIginx);
-            put(expPort, expPortIginx);
-            put(readOnlyPort, readOnlyPortIginx);
-        }
-      };
-
-  public static byte[] generateRandomValue(int seed) {
-    int N = 10;
-    byte[] b = new byte[N];
-    Random random = new Random(seed);
-    random.nextBytes(b);
-    return b;
-  }
 }

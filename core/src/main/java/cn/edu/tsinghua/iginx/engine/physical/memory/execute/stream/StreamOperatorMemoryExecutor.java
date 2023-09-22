@@ -54,6 +54,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.SingleJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Sort;
 import cn.edu.tsinghua.iginx.engine.shared.operator.UnaryOperator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Union;
+import cn.edu.tsinghua.iginx.engine.shared.operator.ValueToSelectedPath;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import cn.edu.tsinghua.iginx.engine.shared.source.SourceType;
 
@@ -95,6 +96,8 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
         return executeGroupBy((GroupBy) operator, stream);
       case Distinct:
         return executeDistinct(stream);
+      case ValueToSelectedPath:
+        return executeValueToSelectedPath((ValueToSelectedPath) operator, stream);
       default:
         throw new UnexpectedOperatorException("unknown unary operator: " + operator.getType());
     }
@@ -197,6 +200,10 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
 
   private RowStream executeDistinct(RowStream stream) {
     return new DistinctLazyStream(stream);
+  }
+
+  private RowStream executeValueToSelectedPath(ValueToSelectedPath operator, RowStream stream) {
+    return new ValueToSelectedPathLazyStream(operator, stream);
   }
 
   private RowStream executeJoin(Join join, RowStream streamA, RowStream streamB)

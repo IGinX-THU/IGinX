@@ -9,10 +9,29 @@ inputs:
         description: "to stop the iginx"
         required: false
         default: "false"
+    if-test-udf:
+        description: "to test UDF path detection"
+        required: false
+        default: "false"
 runs:
     using: "composite" # Mandatory parameter
     steps:
-        - if: inputs.if-stop=='false'
+        - if: inputs.if-test-udf=='true'
+          name: Test UDF Path
+          shell: bash
+          run: |
+              if [ "$RUNNER_OS" == "Linux" ]; then
+                sudo sed -i 's/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
+              elif [ "$RUNNER_OS" == "macOS" ]; then
+                sudo sed -i '' 's/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
+              else
+                echo "$RUNNER_OS is not supported"
+                exit 1
+              fi
+              chmod +x "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_udf_path.sh"
+              "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_udf_path.sh"
+
+        - if: inputs.if-test-udf=='false' && inputs.if-stop=='false'
           name: Start IGinX
           shell: bash
           run: |
@@ -24,7 +43,7 @@ runs:
                 "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_macos.sh" 6888 6666
               fi
 
-        - if: inputs.if-stop=='true'
+        - if: inputs.if-test-udf=='false' && inputs.if-stop=='true'
           name: Stop IGinX
           shell: bash
           run: |
