@@ -2,9 +2,9 @@
 
 set -e
 
-sed -i "" "s/storageEngineList=127.0.0.1#6667/#storageEngineList=127.0.0.1#6667/" conf/config.properties
+sed -i "" "s/storageEngineList=127.0.0.1#6667/#storageEngineList=127.0.0.1#6667/" core/target/iginx-core-0.6.0-SNAPSHOT/conf/config.properties
 
-sed -i "" "s/#storageEngineList=127.0.0.1#6379/storageEngineList=127.0.0.1#6379/" conf/config.properties
+sed -i "" "s/#storageEngineList=127.0.0.1#6379/storageEngineList=127.0.0.1#6379/" core/target/iginx-core-0.6.0-SNAPSHOT/conf/config.properties
 
 sh -c "brew install redis"
 
