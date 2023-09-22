@@ -2,7 +2,9 @@ package cn.edu.tsinghua.iginx.integration.expansion.iotdb;
 
 import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
 import cn.edu.tsinghua.iginx.thrift.DataType;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.apache.iotdb.rpc.IoTDBConnectionException;
 import org.apache.iotdb.rpc.StatementExecutionException;
 import org.apache.iotdb.session.Session;
@@ -17,6 +19,14 @@ public class IoTDB12HistoryDataGenerator extends BaseHistoryDataGenerator {
 
   private static final String INSERT_DATA = "INSERT INTO root.%s (timestamp,%s) values(%s,%s)";
 
+  private static final Map<String, String> DATA_TYPE_MAP =
+      new HashMap<String, String>() {
+        {
+          put("LONG", "INT64");
+          put("DOUBLE", "DOUBLE");
+        }
+      };
+
   public IoTDB12HistoryDataGenerator() {}
 
   @Override
@@ -28,7 +38,10 @@ public class IoTDB12HistoryDataGenerator extends BaseHistoryDataGenerator {
 
       for (int i = 0; i < pathList.size(); i++) {
         session.executeNonQueryStatement(
-            String.format(CREATE_TIMESERIES, pathList.get(i), dataTypeList.get(i).toString()));
+            String.format(
+                CREATE_TIMESERIES,
+                pathList.get(i),
+                DATA_TYPE_MAP.get(dataTypeList.get(i).toString())));
       }
 
       int timeCnt = 0;
