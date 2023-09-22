@@ -253,11 +253,7 @@ public class IginxClient {
       return OperationResult.STOP;
     }
 
-    if (isExportByteStream(trimedStatement)) {
-      processExportByteStream(statement);
-    } else if (isExportCsv(trimedStatement)) {
-      processExportCsv(statement);
-    } else if (isQuery(trimedStatement)) {
+    if (isQuery(trimedStatement)) {
       processSqlWithStream(statement);
     } else if (isLoadDataFromCsv(trimedStatement)) {
       processLoadCsv(statement);
@@ -270,22 +266,7 @@ public class IginxClient {
   }
 
   private static boolean isQuery(String sql) {
-    // TODO
-    // 该方法仍不能完全区分查询语句和写入文件语句
-    // 比如select * from test where a = " into outfile ";
-    // 上述语句为查询语句，但在该方法中返回false
-    // 在没有SQL解析器的情况下，暂未想到区分查询语句和写入文件语句的方法
-    return sql.startsWith("select") && !sql.contains(" into outfile ");
-  }
-
-  private static boolean isExportByteStream(String sql) {
-    // TODO 同isQuery
-    return sql.startsWith("select") && sql.contains(" into outfile ") && sql.contains("as stream");
-  }
-
-  private static boolean isExportCsv(String sql) {
-    // TODO 同isQuery
-    return sql.startsWith("select") && sql.contains(" into outfile ") && sql.contains("as csv");
+    return sql.startsWith("select");
   }
 
   private static boolean isLoadDataFromCsv(String sql) {
@@ -357,6 +338,14 @@ public class IginxClient {
   private static void processSqlWithStream(String sql) {
     try {
       QueryDataSet res = session.executeQuery(sql, Integer.parseInt(fetchSize));
+
+      if (res.getExportStreamDir() != null) {
+        processExportByteStream(res);
+        return;
+      } else if (res.getExportCSV() != null) {
+        processExportCsv(res);
+        return;
+      }
 
       System.out.println("ResultSets:");
 
@@ -434,12 +423,9 @@ public class IginxClient {
     return cache;
   }
 
-  private static void processExportByteStream(String sql)
+  private static void processExportByteStream(QueryDataSet res)
       throws SessionException, ExecutionException, IOException {
-    Pair<QueryDataSet, String> pair =
-        session.executeExportByteStream(sql, Integer.parseInt(fetchSize));
-    QueryDataSet res = pair.k;
-    String dir = pair.v;
+    String dir = res.getExportStreamDir();
 
     File dirFile = new File(dir);
     if (!dirFile.exists()) {
@@ -501,11 +487,9 @@ public class IginxClient {
     return cache;
   }
 
-  private static void processExportCsv(String sql)
+  private static void processExportCsv(QueryDataSet res)
       throws SessionException, ExecutionException, IOException {
-    Pair<QueryDataSet, ExportCSV> pair = session.executeExportCsv(sql, Integer.parseInt(fetchSize));
-    QueryDataSet res = pair.k;
-    ExportCSV exportCSV = pair.v;
+    ExportCSV exportCSV = res.getExportCSV();
 
     String path = exportCSV.getExportCsvPath();
     if (!path.endsWith(".csv")) {

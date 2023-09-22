@@ -24,6 +24,7 @@ import static cn.edu.tsinghua.iginx.utils.ByteUtils.getValueFromByteBufferByData
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
+import cn.edu.tsinghua.iginx.thrift.ExportCSV;
 import cn.edu.tsinghua.iginx.thrift.QueryDataSetV2;
 import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.Pair;
@@ -53,6 +54,10 @@ public class QueryDataSet {
 
   private List<ByteBuffer> bitmapList;
 
+  private String exportStreamDir;
+
+  private ExportCSV exportCSV;
+
   private State state;
 
   private int index;
@@ -64,7 +69,9 @@ public class QueryDataSet {
       List<DataType> dataTypeList,
       int fetchSize,
       List<ByteBuffer> valuesList,
-      List<ByteBuffer> bitmapList) {
+      List<ByteBuffer> bitmapList,
+      String exportStreamDir,
+      ExportCSV exportCSV) {
     this.session = session;
     this.queryId = queryId;
     this.columnList = columnList;
@@ -72,6 +79,8 @@ public class QueryDataSet {
     this.fetchSize = fetchSize;
     this.valuesList = valuesList;
     this.bitmapList = bitmapList;
+    this.exportStreamDir = exportStreamDir;
+    this.exportCSV = exportCSV;
     this.state = State.UNKNOWN;
     this.index = 0;
   }
@@ -151,5 +160,13 @@ public class QueryDataSet {
 
   public List<DataType> getDataTypeList() {
     return dataTypeList;
+  }
+
+  public String getExportStreamDir() {
+    return exportStreamDir;
+  }
+
+  public ExportCSV getExportCSV() {
+    return exportCSV;
   }
 }
