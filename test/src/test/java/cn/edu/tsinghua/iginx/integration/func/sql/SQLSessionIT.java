@@ -1,7 +1,5 @@
 package cn.edu.tsinghua.iginx.integration.func.sql;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
@@ -16,9 +14,6 @@ import cn.edu.tsinghua.iginx.pool.IginxInfo;
 import cn.edu.tsinghua.iginx.pool.SessionPool;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.utils.Pair;
-import java.io.File;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
