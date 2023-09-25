@@ -18,7 +18,7 @@ public class PemjaDriver {
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
   private static final String PATH =
-      String.join(File.separator, System.getProperty("user.dir"), "python_scripts");
+      String.join(File.separator, config.getDefaultUDFDir(), "python_scripts");
 
   private static final String PY_SUFFIX = ".py";
 

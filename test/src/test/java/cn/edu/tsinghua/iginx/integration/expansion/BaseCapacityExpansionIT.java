@@ -217,19 +217,19 @@ public abstract class BaseCapacityExpansionIT {
   private void testQueryHistoryDataOriHasData() {
     String statement = "select wf01.wt01.status, wf01.wt01.temperature from mn";
     List<String> pathList = ORI_PATH_LIST;
-    List<List<Object>> valuesList = oriValuesList;
+    List<List<Object>> valuesList = ORI_VALUES_LIST;
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
   }
 
   private void testQueryHistoryDataExpHasData() {
     String statement = "select wt01.status2 from nt.wf03";
     List<String> pathList = EXP_PATH_LIST1;
-    List<List<Object>> valuesList = expValuesList1;
+    List<List<Object>> valuesList = EXP_VALUES_LIST1;
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
     statement = "select wt01.temperature from nt.wf04";
     pathList = EXP_PATH_LIST2;
-    valuesList = expValuesList2;
+    valuesList = EXP_VALUES_LIST2;
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
   }
 
@@ -250,7 +250,7 @@ public abstract class BaseCapacityExpansionIT {
   private void testQueryHistoryDataReadOnly() {
     String statement = "select wt01.status, wt01.temperature from tm.wf05";
     List<String> pathList = READ_ONLY_PATH_LIST;
-    List<List<Object>> valuesList = readOnlyValuesList;
+    List<List<Object>> valuesList = READ_ONLY_VALUES_LIST;
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
   }
 
@@ -332,7 +332,7 @@ public abstract class BaseCapacityExpansionIT {
     String dataPrefix2 = IS_PARQUET_OR_FILE_SYSTEM ? "wf04" : "nt.wf04";
     String schemaPrefixSuffix = IS_PARQUET_OR_FILE_SYSTEM ? ".nt" : "";
     String schemaPrefix = IS_PARQUET_OR_FILE_SYSTEM ? "nt" : "";
-    List<List<Object>> valuesList = expValuesList1;
+    List<List<Object>> valuesList = EXP_VALUES_LIST1;
 
     // 添加不同 schemaPrefix，相同 dataPrefix
     addStorageEngine(expPort, true, true, dataPrefix1, "p1");
@@ -397,7 +397,7 @@ public abstract class BaseCapacityExpansionIT {
     statement = "select wt01.temperature from p3.nt.wf04";
     List<String> pathListAns = new ArrayList<>();
     pathListAns.add("p3.nt.wf04.wt01.temperature");
-    SQLTestTools.executeAndCompare(session, statement, pathListAns, expValuesList2);
+    SQLTestTools.executeAndCompare(session, statement, pathListAns, EXP_VALUES_LIST2);
 
     // 通过 sql 语句测试移除节点
     String removeStatement = "remove historydataresource (\"127.0.0.1\", %d, \"%s\", \"%s\")";
@@ -430,7 +430,7 @@ public abstract class BaseCapacityExpansionIT {
   private void testQueryForFileSystem() {
     try {
       session.executeSql(
-          "ADD STORAGEENGINE (\"127.0.0.1\", 6670, \"filesystem\", \"dummy_dir:test/test/a, has_data:true, is_read_only:true, iginx_port:6888\")");
+          "ADD STORAGEENGINE (\"127.0.0.1\", 6670, \"filesystem\", \"dummy_dir:test/test/a, has_data:true, is_read_only:true, iginx_port:6888, chunk_size_in_bytes:1048576\")");
       String statement = "select 1\\txt from a.*";
       String expect =
           "ResultSets:\n"
