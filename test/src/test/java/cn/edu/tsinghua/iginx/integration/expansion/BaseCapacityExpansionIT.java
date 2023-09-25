@@ -66,7 +66,7 @@ public abstract class BaseCapacityExpansionIT {
       }
       if (extraParams != null) {
         if (IS_PARQUET_OR_FILE_SYSTEM) {
-          extraParams = "iginx_port:" +oriPortIginx;
+          extraParams = "iginx_port:" + oriPortIginx;
           extraParams += ", chunk_size_in_bytes:8";
         }
         statement.append(", ");
@@ -124,14 +124,15 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   @Test
-  public void oriHasDataExpHasData() throws InterruptedException, SessionException, ExecutionException {
+  public void oriHasDataExpHasData()
+      throws InterruptedException, SessionException, ExecutionException {
     // 查询原始节点的历史数据，结果不为空
     testQueryHistoryDataOriHasData();
     // 写入并查询新数据
     testWriteAndQueryNewData();
     // 扩容
     if (IS_PARQUET_OR_FILE_SYSTEM) {
-      startStorageEngineWithIginx( expPort, true, false);
+      startStorageEngineWithIginx(expPort, true, false);
     } else {
       addStorageEngine(expPort, true, false, null, null);
     }
@@ -152,7 +153,7 @@ public abstract class BaseCapacityExpansionIT {
     testWriteAndQueryNewData();
     // 扩容
     if (IS_PARQUET_OR_FILE_SYSTEM) {
-      startStorageEngineWithIginx( expPort, false, false);
+      startStorageEngineWithIginx(expPort, false, false);
     } else {
       addStorageEngine(expPort, false, false, null, null);
     }
@@ -172,7 +173,7 @@ public abstract class BaseCapacityExpansionIT {
     testWriteAndQueryNewData();
     // 扩容
     if (IS_PARQUET_OR_FILE_SYSTEM) {
-      startStorageEngineWithIginx( expPort, true, false);
+      startStorageEngineWithIginx(expPort, true, false);
     } else {
       addStorageEngine(expPort, true, false, null, null);
     }
@@ -194,7 +195,7 @@ public abstract class BaseCapacityExpansionIT {
     testWriteAndQueryNewData();
     // 扩容
     if (IS_PARQUET_OR_FILE_SYSTEM) {
-      startStorageEngineWithIginx( expPort, false, false);
+      startStorageEngineWithIginx(expPort, false, false);
     } else {
       addStorageEngine(expPort, false, false, null, null);
     }
@@ -212,7 +213,7 @@ public abstract class BaseCapacityExpansionIT {
     testQueryHistoryDataOriHasData();
     // 扩容只读节点
     if (IS_PARQUET_OR_FILE_SYSTEM) {
-      startStorageEngineWithIginx( readOnlyPort, true, true);
+      startStorageEngineWithIginx(readOnlyPort, true, true);
     } else {
       addStorageEngine(readOnlyPort, true, true, null, null);
     }
@@ -220,7 +221,7 @@ public abstract class BaseCapacityExpansionIT {
     testQueryHistoryDataReadOnly();
     // 扩容可写节点
     if (IS_PARQUET_OR_FILE_SYSTEM) {
-      startStorageEngineWithIginx( expPort, true, false);
+      startStorageEngineWithIginx(expPort, true, false);
     } else {
       addStorageEngine(expPort, true, false, null, null);
     }
@@ -544,8 +545,8 @@ public abstract class BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, expected);
   }
 
-  protected void startStorageEngineWithIginx(
-      int port, boolean hasData, boolean isReadOnly) throws InterruptedException {
+  protected void startStorageEngineWithIginx(int port, boolean hasData, boolean isReadOnly)
+      throws InterruptedException {
     String scriptPath, iginxPath = ".github/scripts/iginx/iginx.sh";
     String os = System.getProperty("os.name").toLowerCase();
     boolean isOnMac = false;
@@ -600,19 +601,21 @@ public abstract class BaseCapacityExpansionIT {
         throw new IllegalStateException("Unexpected value: " + port);
     }
 
-    int res = executeShellScript(scriptPath,
-        String.valueOf(port),
-        String.valueOf(iginxPort),
-        "test/"+PORT_TO_ROOT.get(port),
-        "test/iginx_"+ PORT_TO_ROOT.get(port),
-        String.valueOf(hasData),
-        String.valueOf(isReadOnly));
-    if(res != 0) {
+    int res =
+        executeShellScript(
+            scriptPath,
+            String.valueOf(port),
+            String.valueOf(iginxPort),
+            "test/" + PORT_TO_ROOT.get(port),
+            "test/iginx_" + PORT_TO_ROOT.get(port),
+            String.valueOf(hasData),
+            String.valueOf(isReadOnly));
+    if (res != 0) {
       fail("change config file fail");
     }
 
     res = executeShellScript(iginxPath, String.valueOf(iginxPort), String.valueOf(restPort));
-    if(res != 0) {
+    if (res != 0) {
       fail("start iginx fail");
     }
 

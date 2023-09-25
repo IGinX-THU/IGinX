@@ -6,7 +6,6 @@ import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -109,37 +108,37 @@ public class SQLTestTools {
     }
   }
 
-    public static int executeShellScript(String scriptPath, String... args) {
-        try {
-            // 构建shell命令
-            String[] command = new String[args.length + 2];
-            command[0] = "sh";
-            command[1] = scriptPath;
-            System.arraycopy(args, 0, command, 2, args.length);
+  public static int executeShellScript(String scriptPath, String... args) {
+    try {
+      // 构建shell命令
+      String[] command = new String[args.length + 2];
+      command[0] = "sh";
+      command[1] = scriptPath;
+      System.arraycopy(args, 0, command, 2, args.length);
 
-            // 创建进程并执行命令
-            logger.info("exe shell : {}", Arrays.toString(command));
-            ProcessBuilder processBuilder = new ProcessBuilder(command);
+      // 创建进程并执行命令
+      logger.info("exe shell : {}", Arrays.toString(command));
+      ProcessBuilder processBuilder = new ProcessBuilder(command);
 
-            // 设置工作目录（可选）
-            processBuilder.directory(new File("../"));
+      // 设置工作目录（可选）
+      processBuilder.directory(new File("../"));
 
-            Process process = processBuilder.start();
+      Process process = processBuilder.start();
 
-            // 读取脚本输出
-            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            String line;
-            while ((line = reader.readLine()) != null) {
-                System.out.println(line);
-            }
+      // 读取脚本输出
+      BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+      String line;
+      while ((line = reader.readLine()) != null) {
+        System.out.println(line);
+      }
 
-            // 等待脚本执行完毕
-            int exitCode = process.waitFor();
-            System.out.println("脚本执行完毕，退出码：" + exitCode);
-            return exitCode;
-        } catch (IOException | InterruptedException e) {
-            e.printStackTrace();
-        }
-        return 0;
+      // 等待脚本执行完毕
+      int exitCode = process.waitFor();
+      System.out.println("脚本执行完毕，退出码：" + exitCode);
+      return exitCode;
+    } catch (IOException | InterruptedException e) {
+      e.printStackTrace();
     }
+    return 0;
+  }
 }
