@@ -59,7 +59,7 @@ public class QueryMetric {
     addAggregator(qa);
   }
 
-  public void addCetagory(String key) {
+  public void addCategory(String key) {
     if (annotationLimit == null) annotationLimit = new AnnotationLimit();
     annotationLimit.addTag(key);
   }
