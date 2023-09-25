@@ -710,7 +710,6 @@ public class NewSessionIT {
 
     // delete with tag
     try {
-      // first
       List<String> paths = Collections.singletonList("us.d1.s7");
       conn.deleteDataInColumns(
           paths,
@@ -747,6 +746,46 @@ public class NewSessionIT {
           baseDataSection
               .getSubDataSectionWithPath(paths)
               .getSubDataSectionWithKey(START_KEY + 100, START_KEY + 200);
+      compare(expected, actual);
+
+      // test OR tagType
+      conn.deleteDataInColumns(
+          paths,
+          START_KEY + 200,
+          START_KEY + 300,
+          Collections.singletonList(
+              new HashMap<String, List<String>>() {
+                {
+                  put("k2", Collections.singletonList("v2"));
+                  put("k4", Collections.singletonList("v4"));
+                }
+              }),
+          TagFilterType.Or);
+      actual = conn.queryData(paths, START_KEY + 200, START_KEY + 400);
+      expected =
+          baseDataSection
+              .getSubDataSectionWithPath(paths)
+              .getSubDataSectionWithKey(START_KEY + 300, START_KEY + 400);
+      compare(expected, actual);
+
+      // test AND tagType
+      conn.deleteDataInColumns(
+          paths,
+          START_KEY + 300,
+          START_KEY + 400,
+          Collections.singletonList(
+              new HashMap<String, List<String>>() {
+                {
+                  put("k1", Collections.singletonList("v1"));
+                  put("k2", Collections.singletonList("v2"));
+                }
+              }),
+          TagFilterType.And);
+      actual = conn.queryData(paths, START_KEY + 300, START_KEY + 500);
+      expected =
+          baseDataSection
+              .getSubDataSectionWithPath(paths)
+              .getSubDataSectionWithKey(START_KEY + 400, START_KEY + 500);
       compare(expected, actual);
     } catch (SessionException | ExecutionException e) {
       logger.error("execute delete or query data failed.");

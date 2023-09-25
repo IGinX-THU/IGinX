@@ -18,6 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.rest;
 
+import static cn.edu.tsinghua.iginx.exceptions.StatusCode.STATEMENT_EXECUTION_ERROR;
 import static cn.edu.tsinghua.iginx.utils.ByteUtils.getByteArrayFromLongArray;
 
 import cn.edu.tsinghua.iginx.IginxWorker;
@@ -159,7 +160,7 @@ public class RestSession {
         lock.readLock().unlock();
       }
     } while (checkRedirect(status));
-    if (status.code == 401) {
+    if (status.code == STATEMENT_EXECUTION_ERROR.getStatusCode()) {
       if (status.message.contains("Caution: can not clear the data of read-only node.")) {
         logger.warn(status.message);
         return;
@@ -404,7 +405,7 @@ public class RestSession {
         lock.readLock().unlock();
       }
     } while (checkRedirect(status));
-    if (status.code == 401) {
+    if (status.code == STATEMENT_EXECUTION_ERROR.getStatusCode()) {
       if (status.message.contains("Caution: can not clear the data of read-only node.")) {
         logger.warn(status.message);
         return;

@@ -585,10 +585,6 @@ public class QueryParser {
           continue;
         }
 
-        if (!data.hasValues(i, j)) {
-          continue;
-        }
-
         ret.append(data.toResultString(i, j));
         ret.append(",");
       }

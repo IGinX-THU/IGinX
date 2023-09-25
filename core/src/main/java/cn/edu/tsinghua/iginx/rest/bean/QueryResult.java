@@ -41,16 +41,6 @@ public class QueryResult {
   private List<QueryAggregator> queryAggregators = new ArrayList<>();
   private int size = 0;
 
-  public boolean hasValues(int pos, int now) {
-    List<Long> keyList = queryResultDatasets.get(pos).getKeyLists().get(now);
-    for (Long key : keyList) {
-      if (key <= TOP_KEY) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   public void addQueryMetric(QueryMetric queryMetric) {
     queryMetrics.add(queryMetric);
   }
