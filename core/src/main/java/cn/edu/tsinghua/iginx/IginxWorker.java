@@ -753,7 +753,7 @@ public class IginxWorker implements IService.Iface {
 
     String fileName = sourceFile.getName();
     String destPath =
-        String.join(File.separator, System.getProperty("user.dir"), "python_scripts", fileName);
+        String.join(File.separator, config.getDefaultUDFDir(), "python_scripts", fileName);
     File destFile = new File(destPath);
 
     if (destFile.exists()) {
@@ -804,7 +804,7 @@ public class IginxWorker implements IService.Iface {
     }
 
     String filePath =
-        System.getProperty("user.dir")
+        config.getDefaultUDFDir()
             + File.separator
             + "python_scripts"
             + File.separator

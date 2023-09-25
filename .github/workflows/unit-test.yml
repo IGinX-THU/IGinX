@@ -30,4 +30,6 @@ jobs:
                   java: ${{ matrix.java }}
 
             - name: Test with Maven
-              run: mvn clean package -pl core -am -P-format -q
+              run: |
+                  mvn clean package -pl core -am -P-format -q
+                  mvn clean package -pl dataSources/parquet -am -P-format -q
