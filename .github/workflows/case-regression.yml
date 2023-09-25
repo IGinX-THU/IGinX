@@ -41,8 +41,7 @@ jobs:
             - name: Run DB
               uses: ./.github/actions/dbRunner
               with:
-                DB-name: "Mix-IoTDB12-InfluxDB"
-
+                  DB-name: "Mix-IoTDB12-InfluxDB"
 
             - name: Start IGinX
               uses: ./.github/actions/iginxRunner

@@ -45,11 +45,11 @@ jobs:
               shell: bash
               run: |
                   mvn clean package -DskipTests -P-format -q
-                
+
             - name: Run DB
               uses: ./.github/actions/dbRunner
               with:
-                DB-name: ${{ matrix.DB-name }}
+                  DB-name: ${{ matrix.DB-name }}
 
             - name: Change IGinX config
               uses: ./.github/actions/confWriter
