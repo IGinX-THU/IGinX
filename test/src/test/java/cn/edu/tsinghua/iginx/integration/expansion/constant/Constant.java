@@ -56,8 +56,8 @@ public class Constant {
   public static List<List<Object>> READ_ONLY_VALUES_LIST =
       Arrays.asList(Arrays.asList(55555555L, 10012.01), Arrays.asList(66666666L, 99123.99));
 
-  public static List<List<Object>> repeatExpValuesList1 =
-      Arrays.asList(Arrays.asList(true, true), Arrays.asList(false, false));
+  public static List<List<Object>> REPEAT_EXP_VALUES_LIST1 =
+      Arrays.asList(Arrays.asList(33333333L, 33333333L), Arrays.asList(44444444L, 44444444L));
 
   // for file system
   public static final Map<Integer, String> PORT_TO_ROOT =
