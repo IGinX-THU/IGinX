@@ -160,6 +160,7 @@ public class Result {
 
   public ExecuteStatementResp getExecuteStatementResp(int fetchSize) {
     ExecuteStatementResp resp = new ExecuteStatementResp(status, sqlType);
+    resp.setWarningMsg(status.getMessage());
     if (status != RpcUtils.SUCCESS) {
       return resp;
     }

@@ -55,6 +55,8 @@ public class QueryDataSet {
 
   private int index;
 
+  private String warningMsg;
+
   public QueryDataSet(
       Session session,
       long queryId,
@@ -62,7 +64,8 @@ public class QueryDataSet {
       List<DataType> dataTypeList,
       int fetchSize,
       List<ByteBuffer> valuesList,
-      List<ByteBuffer> bitmapList) {
+      List<ByteBuffer> bitmapList,
+      String warningMsg) {
     this.session = session;
     this.queryId = queryId;
     this.columnList = columnList;
@@ -72,6 +75,7 @@ public class QueryDataSet {
     this.bitmapList = bitmapList;
     this.state = State.UNKNOWN;
     this.index = 0;
+    this.warningMsg = warningMsg;
   }
 
   public void close() throws SessionException, ExecutionException {
@@ -131,5 +135,9 @@ public class QueryDataSet {
 
   public List<DataType> getDataTypeList() {
     return dataTypeList;
+  }
+
+  public String getWarningMsg() {
+    return warningMsg;
   }
 }

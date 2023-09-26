@@ -29,4 +29,8 @@ public interface RowStream {
   boolean hasNext() throws PhysicalException;
 
   Row next() throws PhysicalException;
+
+  default String getWarningMsg() {
+    return "";
+  }
 }

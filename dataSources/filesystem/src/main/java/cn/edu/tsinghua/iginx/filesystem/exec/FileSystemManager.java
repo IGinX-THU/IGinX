@@ -72,7 +72,7 @@ public class FileSystemManager {
         FileMeta fileMeta = getFileMeta(f);
         res.add(new FileSystemResultTable(f, records, fileMeta.getDataType(), fileMeta.getTags()));
       } else {
-        res.add(new FileSystemResultTable(f, records, DataType.BINARY, null));
+        res.add(new FileSystemResultTable(f, records, DataType.BINARY, new HashMap<>()));
       }
     }
     return res;

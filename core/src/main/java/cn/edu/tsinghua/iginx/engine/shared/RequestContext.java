@@ -38,6 +38,8 @@ public class RequestContext {
 
   private PhysicalTask physicalTree;
 
+  private String warningMsg;
+
   private void init() {
     this.id = SnowFlakeUtils.getInstance().nextId();
     this.startTime = System.currentTimeMillis();
@@ -96,5 +98,13 @@ public class RequestContext {
       this.result.setQueryId(id);
     }
     this.endTime = System.currentTimeMillis();
+  }
+
+  public void setWarningMsg(String warningMsg) {
+    this.warningMsg = warningMsg;
+  }
+
+  public String getWarningMsg() {
+    return warningMsg;
   }
 }

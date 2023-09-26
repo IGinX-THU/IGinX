@@ -113,6 +113,8 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
 
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
+  private static final String WARNINGS = "WARNING: %s";
+
   private NaiveOperatorMemoryExecutor() {}
 
   public static NaiveOperatorMemoryExecutor getInstance() {
@@ -2060,6 +2062,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     Header headerB = tableB.getHeader();
     List<Field> newFields = new ArrayList<>();
     Map<Field, Integer> fieldIndices = new HashMap<>();
+    boolean isConflictInKey = false;
     for (Field field : headerA.getFields()) {
       if (fieldIndices.containsKey(field)) {
         continue;
@@ -2091,6 +2094,9 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         Object[] values = new Object[newHeader.getFieldSize()];
         long timestamp;
         if (rowA.getKey() == rowB.getKey()) {
+          if (!isConflictInKey) {
+            isConflictInKey = true;
+          }
           timestamp = rowA.getKey();
           writeToNewRow(values, rowA, fieldIndices);
           writeToNewRow(values, rowB, fieldIndices);
@@ -2121,7 +2127,14 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         writeToNewRow(values, rowB, fieldIndices);
         newRows.add(new Row(newHeader, rowB.getKey(), values));
       }
-      return new Table(newHeader, newRows);
+      return new Table(
+          newHeader,
+          newRows,
+          isConflictInKey
+              ? String.format(
+                  WARNINGS,
+                  "The query results contain overlapping key values, displaying only partial data")
+              : "");
     } else if (join.getJoinBy().equals(Constants.ORDINAL)) {
       if (headerA.hasKey() || headerB.hasKey()) {
         throw new InvalidOperatorParameterException(

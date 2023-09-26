@@ -346,6 +346,10 @@ public class IginxClient {
       if (!isCanceled) {
         System.out.print(FormatUtils.formatCount(total));
       }
+
+      if (res.getWarningMsg() != null && !res.getWarningMsg().isEmpty()) {
+        System.out.println(res.getWarningMsg());
+      }
     } catch (SessionException | ExecutionException e) {
       System.out.println(e.getMessage());
     } catch (Exception e) {

@@ -19,6 +19,7 @@
 package cn.edu.tsinghua.iginx.engine.physical.task;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.physical.exception.RowFetchException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.UnexpectedOperatorException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.OperatorMemoryExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.OperatorMemoryExecutorFactory;
@@ -76,6 +77,7 @@ public class BinaryMemoryPhysicalTask extends MemoryPhysicalTask {
     RowStream streamA = parentResultA.getRowStream();
     RowStream streamB = parentResultB.getRowStream();
     RowStream stream;
+    String warningMsg = null;
     OperatorMemoryExecutor executor =
         OperatorMemoryExecutorFactory.getInstance().getMemoryExecutor();
     try {
@@ -84,6 +86,9 @@ public class BinaryMemoryPhysicalTask extends MemoryPhysicalTask {
         throw new UnexpectedOperatorException("unexpected operator " + op + " in binary task");
       }
       stream = executor.executeBinaryOperator((BinaryOperator) op, streamA, streamB);
+      if (!stream.getWarningMsg().isEmpty()) {
+        warningMsg = stream.getWarningMsg();
+      }
       for (int i = 1; i < operators.size(); i++) {
         op = operators.get(i);
         if (OperatorType.isBinaryOperator(op.getType())) {
@@ -96,7 +101,12 @@ public class BinaryMemoryPhysicalTask extends MemoryPhysicalTask {
       logger.error("encounter error when execute operator in memory: ", e);
       return new TaskExecuteResult(e);
     }
-    return new TaskExecuteResult(stream);
+
+    TaskExecuteResult result = new TaskExecuteResult(stream);
+    if (warningMsg != null) {
+      result.setException(new RowFetchException(warningMsg));
+    }
+    return result;
   }
 
   @Override

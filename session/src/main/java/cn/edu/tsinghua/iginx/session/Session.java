@@ -1026,9 +1026,17 @@ public class Session {
     List<String> columns = ref.resp.getColumns();
     List<DataType> dataTypes = ref.resp.getDataTypeList();
     QueryDataSetV2 dataSetV2 = ref.resp.getQueryDataSet();
+    String warningMessage = ref.resp.getWarningMsg();
 
     return new QueryDataSet(
-        this, queryId, columns, dataTypes, fetchSize, dataSetV2.valuesList, dataSetV2.bitmapList);
+        this,
+        queryId,
+        columns,
+        dataTypes,
+        fetchSize,
+        dataSetV2.valuesList,
+        dataSetV2.bitmapList,
+        warningMessage);
   }
 
   Pair<QueryDataSetV2, Boolean> fetchResult(long queryId, int fetchSize)
