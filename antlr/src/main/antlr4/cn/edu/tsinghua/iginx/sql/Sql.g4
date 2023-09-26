@@ -85,7 +85,7 @@ predicate
    : (KEY | path | functionName LR_BRACKET path RR_BRACKET) comparisonOperator constant
    | constant comparisonOperator (KEY | path | functionName LR_BRACKET path RR_BRACKET)
    | path comparisonOperator path
-   | path OPERATOR_LIKE regex = stringLiteral
+   | path stringLikeOperator regex = stringLiteral
    | OPERATOR_NOT? LR_BRACKET orExpression RR_BRACKET
    | predicateWithSubquery
    ;
@@ -276,6 +276,24 @@ comparisonOperator
    | type = OPERATOR_LTE
    | type = OPERATOR_EQ
    | type = OPERATOR_NEQ
+   | type = OPERATOR_GT_AND
+   | type = OPERATOR_GTE_AND
+   | type = OPERATOR_LT_AND
+   | type = OPERATOR_LTE_AND
+   | type = OPERATOR_EQ_AND
+   | type = OPERATOR_NEQ_AND
+   | type = OPERATOR_GT_OR
+   | type = OPERATOR_GTE_OR
+   | type = OPERATOR_LT_OR
+   | type = OPERATOR_LTE_OR
+   | type = OPERATOR_EQ_OR
+   | type = OPERATOR_NEQ_OR
+   ;
+
+stringLikeOperator
+   : type = OPERATOR_LIKE
+   | type = OPERATOR_LIKE_AND
+   | type = OPERATOR_LIKE_OR
    ;
 
 insertColumnsSpec
@@ -953,12 +971,68 @@ OPERATOR_NEQ
    | '<>'
    ;
 
+OPERATOR_EQ_AND
+   : '&' OPERATOR_EQ
+   ;
+
+OPERATOR_GT_AND
+   : '&' OPERATOR_GT
+   ;
+
+OPERATOR_GTE_AND
+   : '&' OPERATOR_GTE
+   ;
+
+OPERATOR_LT_AND
+   : '&' OPERATOR_LT
+   ;
+
+OPERATOR_LTE_AND
+   : '&' OPERATOR_LTE
+   ;
+
+OPERATOR_NEQ_AND
+   : '&' OPERATOR_NEQ
+   ;
+
+OPERATOR_EQ_OR
+   : '|' OPERATOR_EQ
+   ;
+
+OPERATOR_GT_OR
+   : '|' OPERATOR_GT
+   ;
+
+OPERATOR_GTE_OR
+   : '|' OPERATOR_GTE
+   ;
+
+OPERATOR_LT_OR
+   : '|' OPERATOR_LT
+   ;
+
+OPERATOR_LTE_OR
+   : '|' OPERATOR_LTE
+   ;
+
+OPERATOR_NEQ_OR
+   : '|' OPERATOR_NEQ
+   ;
+
 OPERATOR_IN
    : I N
    ;
 
 OPERATOR_LIKE
    : L I K E
+   ;
+
+OPERATOR_LIKE_AND
+   : '&' L I K E
+   ;
+
+OPERATOR_LIKE_OR
+   : '|' L I K E
    ;
 
 OPERATOR_AND
