@@ -18,6 +18,8 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils;
 
+import static cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op.isEqualOp;
+
 import cn.edu.tsinghua.iginx.engine.physical.exception.InvalidOperatorParameterException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
@@ -89,18 +91,25 @@ public class FilterUtils {
     long timestamp = row.getKey();
     switch (keyFilter.getOp()) {
       case E:
+      case E_AND:
         return timestamp == keyFilter.getValue();
       case G:
+      case G_AND:
         return timestamp > keyFilter.getValue();
       case L:
+      case L_AND:
         return timestamp < keyFilter.getValue();
       case GE:
+      case GE_AND:
         return timestamp >= keyFilter.getValue();
       case LE:
+      case LE_AND:
         return timestamp <= keyFilter.getValue();
       case NE:
+      case NE_AND:
         return timestamp != keyFilter.getValue();
-      case LIKE: // TODO: case label. should we return false?
+      case LIKE:
+      case LIKE_AND: // TODO: case label. should we return false?
         break;
     }
     return false;
@@ -114,17 +123,31 @@ public class FilterUtils {
       return false;
     }
 
-    if (path.contains("*")) {
+    if (path.contains("*")) { // 带通配符的filter
       List<Value> valueList = row.getAsValueByPattern(path);
-      for (Value value : valueList) {
-        if (value == null || value.isNull()) { // 任何一个value是空值，则认为不可比较
-          return false;
+      if (Op.isOrOp(valueFilter.getOp())) {
+        for (Value value : valueList) {
+          if (value == null || value.isNull()) {
+            return false; // 任何一个value是空值，则认为不可比较
+          }
+          if (validateValueCompare(valueFilter.getOp(), value, targetValue)) {
+            return true; // 任何一个子条件满足，都直接返回true
+          }
         }
-        if (!validateValueCompare(valueFilter.getOp(), value, targetValue)) { // 任何一个子条件不满足，都直接返回
-          return false;
+        return false; // 所有子条件均不满足，返回false
+      } else if (Op.isAndOp(valueFilter.getOp())) {
+        for (Value value : valueList) {
+          if (value == null || value.isNull()) {
+            return false; // 任何一个value是空值，则认为不可比较
+          }
+          if (!validateValueCompare(valueFilter.getOp(), value, targetValue)) {
+            return false; // 任何一个子条件不满足，都直接返回false
+          }
         }
+        return true; // 所有子条件均满足，返回true
+      } else {
+        throw new RuntimeException("Unknown op type: " + valueFilter.getOp());
       }
-      return true;
     } else {
       Value value = row.getAsValue(path);
       if (value == null || value.isNull()) { // value是空值，则认为不可比较
@@ -160,18 +183,25 @@ public class FilterUtils {
 
     switch (op) {
       case E:
+      case E_AND:
         return ValueUtils.compare(valueA, valueB) == 0;
       case G:
+      case G_AND:
         return ValueUtils.compare(valueA, valueB) > 0;
       case L:
+      case L_AND:
         return ValueUtils.compare(valueA, valueB) < 0;
       case GE:
+      case GE_AND:
         return ValueUtils.compare(valueA, valueB) >= 0;
       case LE:
+      case LE_AND:
         return ValueUtils.compare(valueA, valueB) <= 0;
       case NE:
+      case NE_AND:
         return ValueUtils.compare(valueA, valueB) != 0;
       case LIKE:
+      case LIKE_AND:
         return ValueUtils.regexCompare(valueA, valueB);
     }
     return false;
@@ -196,7 +226,7 @@ public class FilterUtils {
   }
 
   public static Pair<String, String> getJoinColumnFromPathFilter(PathFilter pathFilter) {
-    if (pathFilter.getOp().equals(Op.E)) {
+    if (isEqualOp(pathFilter.getOp())) {
       return new Pair<>(pathFilter.getPathA(), pathFilter.getPathB());
     }
     return null;
@@ -209,7 +239,7 @@ public class FilterUtils {
           "Unsupported hash join filter type: " + filter.getType());
     }
     PathFilter pathFilter = (PathFilter) filter;
-    if (!pathFilter.getOp().equals(Op.E)) {
+    if (!isEqualOp(pathFilter.getOp())) {
       throw new InvalidOperatorParameterException(
           "Unsupported hash join filter op type: " + pathFilter.getOp());
     }
@@ -277,7 +307,7 @@ public class FilterUtils {
         return canUseHashJoin(notFilter.getChild());
       case Path:
         PathFilter pathFilter = (PathFilter) filter;
-        return pathFilter.getOp().equals(Op.E);
+        return isEqualOp(pathFilter.getOp());
       case Key:
       case Value:
       case Bool:

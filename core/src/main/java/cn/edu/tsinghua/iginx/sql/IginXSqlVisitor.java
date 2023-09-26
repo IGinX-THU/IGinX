@@ -1287,8 +1287,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     }
 
     Op op;
-    if (ctx.OPERATOR_LIKE() != null) {
-      op = Op.LIKE;
+    if (ctx.stringLikeOperator() != null) {
+      op = Op.str2Op(ctx.stringLikeOperator().getText().trim().toLowerCase());
     } else {
       op = Op.str2Op(ctx.comparisonOperator().getText().trim().toLowerCase());
       // deal with sub clause like 100 < path
