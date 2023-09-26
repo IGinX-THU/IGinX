@@ -18,6 +18,8 @@
  */
 package cn.edu.tsinghua.iginx.iotdb.tools;
 
+import static cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op.isLikeOp;
+
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 
@@ -79,7 +81,7 @@ public class FilterTransformer {
             ? "'" + filter.getValue().getBinaryVAsString() + "'"
             : filter.getValue().getValue().toString();
 
-    if (filter.getOp().equals(Op.LIKE)) {
+    if (isLikeOp(filter.getOp())) {
       if (!value.endsWith("$'")) {
         value = value.substring(0, value.length() - 1) + "$'";
       }

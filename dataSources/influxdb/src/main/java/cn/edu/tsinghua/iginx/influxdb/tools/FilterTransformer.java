@@ -18,6 +18,8 @@
  */
 package cn.edu.tsinghua.iginx.influxdb.tools;
 
+import static cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op.isLikeOp;
+
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
@@ -77,7 +79,7 @@ public class FilterTransformer {
             ? "\"" + filter.getValue().getBinaryVAsString() + "\""
             : filter.getValue().getValue().toString();
 
-    if (filter.getOp().equals(Op.LIKE)) {
+    if (isLikeOp(filter.getOp())) {
       return "r[\""
           + path
           + "\"] "
