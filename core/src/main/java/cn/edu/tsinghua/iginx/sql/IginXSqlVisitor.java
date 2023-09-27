@@ -1471,15 +1471,13 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
     Filter filter;
     Op op = Op.str2Op(ctx.comparisonOperator().getText().trim().toLowerCase());
+    if (ctx.quantifier().all() != null) {
+      op = Op.getOpposite(op);
+    }
 
     if (ctx.constant() != null) {
       Value value = new Value(parseValue(ctx.constant()));
       String path = subStatement.getExpressions().get(0).getColumnName();
-
-      if (ctx.quantifier().all() != null) {
-        op = path.contains("*") ? Op.getDeMorganOpposite(op) : Op.getOpposite(op);
-      }
-
       filter = new ValueFilter(path, op, value);
     } else {
       String pathA = ctx.path().getText();
@@ -1494,11 +1492,6 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       }
 
       String pathB = subStatement.getExpressions().get(0).getColumnName();
-
-      if (ctx.quantifier().all() != null) {
-        op = Op.getOpposite(op);
-      }
-
       filter = new PathFilter(pathA, op, pathB);
       subStatement.addFreeVariable(pathA);
     }
