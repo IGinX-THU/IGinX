@@ -226,6 +226,7 @@ public class ContextBuilder {
       type = TagFilterType.Or;
     }
     switch (type) {
+      case Base:
       case And: // 合取范式
         List<TagFilter> andTagFilterList = new ArrayList<>();
         tagList.forEach(
@@ -249,6 +250,7 @@ public class ContextBuilder {
               orTagFilterList.add(new OrTagFilter(andTagList));
             });
         return orTagFilterList.isEmpty() ? null : new OrTagFilter(orTagFilterList);
+      case BasePrecise:
       case Precise: // 转换为析取范式
         List<BasePreciseTagFilter> baseTagFilterList = new ArrayList<>();
         List<Map<String, String>> rawTags = convertToDNF(tagList);
@@ -257,7 +259,7 @@ public class ContextBuilder {
       case WithoutTag:
         return new WithoutTagFilter();
       default:
-        throw new RuntimeException("tagkv type not right!");
+        throw new IllegalArgumentException("tagkv type not right!");
     }
   }
 
