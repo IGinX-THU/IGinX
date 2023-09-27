@@ -1,6 +1,7 @@
 package cn.edu.tsinghua.iginx.mongodb;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
@@ -40,11 +41,11 @@ import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.*;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+
+import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
 import org.bson.BsonDocument;
 import org.bson.BsonInt64;
 import org.bson.BsonValue;
@@ -280,21 +281,35 @@ public class MongoDBStorage implements IStorage {
   }
 
   @Override
-  public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String prefix) {
-    KeyInterval keyInterval = new KeyInterval(0, Long.MAX_VALUE);
-    List<String> prefixes = new ArrayList<>();
-    for (String db : this.client.listDatabaseNames()) {
-      for (String collection : this.client.getDatabase(db).listCollectionNames()) {
-        prefixes.add(db + "." + collection);
-      }
-    }
-    ColumnsInterval columnsInterval = new ColumnsInterval("");
-    if (!prefixes.isEmpty()) {
-      ColumnsInterval first = new ColumnsInterval(Collections.min(prefixes));
-      ColumnsInterval last = new ColumnsInterval(Collections.max(prefixes));
-      columnsInterval = new ColumnsInterval(first.getStartColumn(), last.getEndColumn());
+  public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String prefix) throws PhysicalException {
+    String namespacePrefix = "";
+    String documentPrefix = "";
+    if (prefix != null) {
+      String[] parts = prefix.split("\\.");
+      namespacePrefix = Arrays.stream(parts).limit(2).collect(Collectors.joining("."));
+      documentPrefix = Arrays.stream(parts).skip(2).collect(Collectors.joining("."));
     }
 
+    List<String> namespaces = new ArrayList<>();
+    for (String db : this.client.listDatabaseNames()) {
+      for (String collection : this.client.getDatabase(db).listCollectionNames()) {
+        String namespace = db + "." + collection;
+        if (namespace.startsWith(namespacePrefix)) {
+          namespaces.add(namespace);
+        }
+      }
+    }
+    if (namespaces.isEmpty()) {
+      throw new PhysicalTaskExecuteFailureException("no data!");
+    }
+
+    KeyInterval keyInterval = new KeyInterval(0, Long.MAX_VALUE);
+    ColumnsInterval columnsInterval = new ColumnsInterval(namespacePrefix + "." + documentPrefix);
+    if (documentPrefix.isEmpty()) {
+      ColumnsInterval first = new ColumnsInterval(Collections.min(namespaces));
+      ColumnsInterval last = new ColumnsInterval(Collections.max(namespaces));
+      columnsInterval = new ColumnsInterval(first.getStartColumn(), last.getEndColumn());
+    }
     return new Pair<>(columnsInterval, keyInterval);
   }
 
