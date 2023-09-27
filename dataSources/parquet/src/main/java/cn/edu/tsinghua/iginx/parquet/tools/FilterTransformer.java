@@ -1,6 +1,5 @@
 package cn.edu.tsinghua.iginx.parquet.tools;
 
-import static cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op.isLikeOp;
 import static cn.edu.tsinghua.iginx.parquet.tools.Constant.IGINX_SEPARATOR;
 import static cn.edu.tsinghua.iginx.parquet.tools.Constant.PARQUET_SEPARATOR;
 
@@ -50,7 +49,7 @@ public class FilterTransformer {
   }
 
   private static String toString(ValueFilter filter) {
-    if (isLikeOp(filter.getOp())) {
+    if (filter.getOp().equals(Op.LIKE)) {
       return filter.getPath().replace(IGINX_SEPARATOR, PARQUET_SEPARATOR)
           + " regexp '"
           + filter.getValue().getBinaryVAsString()

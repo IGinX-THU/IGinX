@@ -33,13 +33,6 @@ enum FSOp {
     E,
     NE,
     LIKE,
-    GE_AND,
-    G_AND,
-    LE_AND,
-    L_AND,
-    E_AND,
-    NE_AND,
-    LIKE_AND,
     UNKNOWN,
 }
 
