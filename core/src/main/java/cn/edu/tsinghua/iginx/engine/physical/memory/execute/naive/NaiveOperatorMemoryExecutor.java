@@ -212,7 +212,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     List<Field> targetFields = new ArrayList<>();
 
     for (Field field : header.getFields()) {
-      if (field.getName().endsWith(KEY)) {
+      if (project.isRemainKey() && field.getName().endsWith(KEY)) {
         targetFields.add(field);
         continue;
       }
