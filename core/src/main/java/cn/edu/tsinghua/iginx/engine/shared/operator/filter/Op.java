@@ -61,6 +61,34 @@ public enum Op {
   public static Op getOpposite(Op op) {
     switch (op) {
       case NE:
+      case NE_AND:
+        return E;
+      case E:
+      case E_AND:
+        return NE;
+      case GE:
+      case GE_AND:
+        return L;
+      case LE:
+      case LE_AND:
+        return G;
+      case G:
+      case G_AND:
+        return LE;
+      case L:
+      case L_AND:
+        return GE;
+      case LIKE:
+      case LIKE_AND:
+        return LIKE;
+      default:
+        return op;
+    }
+  }
+
+  public static Op getDeMorganOpposite(Op op) {
+    switch (op) {
+      case NE:
         return E_AND;
       case E:
         return NE_AND;
