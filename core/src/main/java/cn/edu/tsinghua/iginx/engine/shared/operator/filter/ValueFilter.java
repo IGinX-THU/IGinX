@@ -37,7 +37,7 @@ public class ValueFilter implements Filter {
   }
 
   public void reverseFunc() {
-    this.op = Op.getOpposite(op);
+    this.op = path.contains("*") ? Op.getDeMorganOpposite(op) : Op.getOpposite(op);
   }
 
   public String getPath() {
