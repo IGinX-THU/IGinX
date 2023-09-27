@@ -18,8 +18,6 @@
  */
 package cn.edu.tsinghua.iginx.iotdb.tools;
 
-import static cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op.isLikeOp;
-
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
@@ -66,7 +64,7 @@ public class FilterTransformer {
   }
 
   private static String toString(ValueFilter filter) {
-    if (isLikeOp(filter.getOp())) {
+    if (filter.getOp().equals(Op.LIKE)) {
       return filter.getPath() + " regexp '" + filter.getValue().getBinaryVAsString() + "'";
     }
     return filter.getPath() + " " + Op.op2Str(filter.getOp()) + " " + filter.getValue().getValue();

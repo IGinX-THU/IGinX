@@ -371,22 +371,16 @@ public class ExprUtils {
   private static KeyRange getKeyRangesFromKeyFilter(KeyFilter filter) {
     switch (filter.getOp()) {
       case L:
-      case L_AND:
         return new KeyRange(0, filter.getValue());
       case LE:
-      case LE_AND:
         return new KeyRange(0, filter.getValue() + 1);
       case G:
-      case G_AND:
         return new KeyRange(filter.getValue() + 1, Long.MAX_VALUE);
       case GE:
-      case GE_AND:
         return new KeyRange(filter.getValue(), Long.MAX_VALUE);
       case E:
-      case E_AND:
         return new KeyRange(filter.getValue(), filter.getValue() + 1);
       case NE:
-      case NE_AND:
         throw new SQLParserException("Not support [!=] in delete clause.");
       default:
         throw new SQLParserException(
