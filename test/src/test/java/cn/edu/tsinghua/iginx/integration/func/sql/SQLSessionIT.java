@@ -387,7 +387,7 @@ public class SQLSessionIT {
     insert = builder.toString();
     executor.execute(insert);
 
-    query = "SELECT s1 FROM us.* WHERE s1 > 200 and s1 < 210;";
+    query = "SELECT s1 FROM us.* WHERE s1 &> 200 and s1 &< 210;";
     expected =
         "ResultSets:\n"
             + "+---+--------+--------+\n"
@@ -399,6 +399,30 @@ public class SQLSessionIT {
             + "|204|     204|     209|\n"
             + "+---+--------+--------+\n"
             + "Total line number = 4\n";
+    executor.executeAndCompare(query, expected);
+
+    query = "SELECT s1 FROM us.* WHERE s1 > 200 and s1 < 210;";
+    expected =
+        "ResultSets:\n"
+            + "+---+--------+--------+\n"
+            + "|key|us.d1.s1|us.d2.s1|\n"
+            + "+---+--------+--------+\n"
+            + "|196|     196|     201|\n"
+            + "|197|     197|     202|\n"
+            + "|198|     198|     203|\n"
+            + "|199|     199|     204|\n"
+            + "|200|     200|     205|\n"
+            + "|201|     201|     206|\n"
+            + "|202|     202|     207|\n"
+            + "|203|     203|     208|\n"
+            + "|204|     204|     209|\n"
+            + "|205|     205|     210|\n"
+            + "|206|     206|     211|\n"
+            + "|207|     207|     212|\n"
+            + "|208|     208|     213|\n"
+            + "|209|     209|     214|\n"
+            + "+---+--------+--------+\n"
+            + "Total line number = 14\n";
     executor.executeAndCompare(query, expected);
   }
 
