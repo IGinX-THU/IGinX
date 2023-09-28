@@ -68,6 +68,30 @@
                 </plugin>
             </plugins>
         </pluginManagement>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>flatten-maven-plugin</artifactId>
+                <version>1.5.0</version>
+                <configuration/>
+                <executions>
+                    <execution>
+                        <id>flatten</id>
+                        <goals>
+                            <goal>flatten</goal>
+                        </goals>
+                        <phase>process-resources</phase>
+                    </execution>
+                    <execution>
+                        <id>flatten.clean</id>
+                        <goals>
+                            <goal>clean</goal>
+                        </goals>
+                        <phase>clean</phase>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
     </build>
 
     <profiles>
@@ -214,33 +238,6 @@
                                 <goals>
                                     <goal>report</goal>
                                 </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                    <!-- 统一管理父子模块的版本号 -->
-                    <plugin>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>flatten-maven-plugin</artifactId>
-                        <version>1.2.1</version>
-                        <configuration>
-                            <flattenedPomFilename>pom-xml-flattened</flattenedPomFilename>
-                            <updatePomFile>true</updatePomFile>
-                            <flattenMode>resolveCiFriendliesOnly</flattenMode>
-                        </configuration>
-                        <executions>
-                            <execution>
-                                <id>flatten</id>
-                                <goals>
-                                    <goal>flatten</goal>
-                                </goals>
-                                <phase>process-resources</phase>
-                            </execution>
-                            <execution>
-                                <id>flatten.clean</id>
-                                <goals>
-                                    <goal>clean</goal>
-                                </goals>
-                                <phase>clean</phase>
                             </execution>
                         </executions>
                     </plugin>
