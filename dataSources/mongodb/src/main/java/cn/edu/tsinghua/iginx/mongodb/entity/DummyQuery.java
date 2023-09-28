@@ -10,9 +10,11 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.mongodb.tools.NameUtils;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.mongodb.client.*;
+
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
 import org.bson.*;
 import org.bson.conversions.Bson;
 
@@ -86,7 +88,8 @@ public class DummyQuery {
     }
 
     @Override
-    public void close() {}
+    public void close() {
+    }
 
     private Row nextRow = null;
 
@@ -546,11 +549,15 @@ public class DummyQuery {
       }
 
       private Object getValue(BsonValue value) {
-        Object o = convert(value);
-        if (o instanceof String) {
-          o = ((String) o).getBytes();
+        if (value.isString()) {
+          return value.asString().getValue().getBytes();
+        } else {
+          Object o = convert(value);
+          if (o instanceof String) {
+            o = ((String) o).getBytes();
+          }
+          return o;
         }
-        return o;
       }
 
       private Object convert(BsonValue value) {
@@ -564,9 +571,9 @@ public class DummyQuery {
           case ARRAY:
             return ((BsonArray) value)
                 .stream()
-                    .map(this::convert)
-                    .map(Object::toString)
-                    .collect(Collectors.joining(",", "[", "]"));
+                .map(this::convert)
+                .map(Object::toString)
+                .collect(Collectors.joining(",", "[", "]"));
           case OBJECT_ID:
             return ((BsonObjectId) value).getValue().toHexString();
           case BOOLEAN:
