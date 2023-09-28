@@ -99,7 +99,7 @@ jobs:
               if: always()
               shell: bash
               run: |
-                  chmod +x "${GITHUB_WORKSPACE}/.github/scripts/iginx/test_cli_outfile.sh"
+                  chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/test_cli_outfile.sh"
                   "${GITHUB_WORKSPACE}/.github/scripts/iginx/test_cli_outfile.sh"
 
             - name: Test Client Export File
@@ -112,7 +112,7 @@ jobs:
               if: always()
               shell: bash
               run: |
-                  chmod +x "${GITHUB_WORKSPACE}/.github/scripts/iginx/test_cli_infile.sh"
+                  chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/test_cli_infile.sh"
                   "${GITHUB_WORKSPACE}/.github/scripts/iginx/test_cli_infile.sh"
 
             - name: Test Client Import File
