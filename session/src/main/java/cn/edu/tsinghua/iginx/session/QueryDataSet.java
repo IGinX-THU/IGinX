@@ -149,6 +149,8 @@ public class QueryDataSet {
     for (int i = 0; i < dataTypeList.size(); i++) {
       if (bitmap.get(i)) {
         bytesValues.add(getBytesFromByteBufferByDataType(valuesBuffer, dataTypeList.get(i)));
+      } else {
+        bytesValues.add(new byte[0]);
       }
     }
     return bytesValues;
