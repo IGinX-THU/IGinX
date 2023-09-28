@@ -27,7 +27,8 @@ public class LastQuery extends Query {
 
   private final String timePrecision;
 
-  public LastQuery(Set<String> measurements, Map<String, List<String>> tagsList, long startKey) {
+  public LastQuery(
+      Set<String> measurements, List<Map<String, List<String>>> tagsList, long startKey) {
     super(measurements, tagsList);
     this.startKey = startKey;
     this.timePrecision = null;
@@ -35,7 +36,7 @@ public class LastQuery extends Query {
 
   public LastQuery(
       Set<String> measurements,
-      Map<String, List<String>> tagsList,
+      List<Map<String, List<String>>> tagsList,
       long startKey,
       String timePrecision) {
     super(measurements, tagsList);
@@ -59,7 +60,7 @@ public class LastQuery extends Query {
 
     private final Set<String> measurements;
 
-    private final Map<String, List<String>> tagsList;
+    private final List<Map<String, List<String>>> tagsList;
 
     private long startKey;
 
@@ -67,7 +68,7 @@ public class LastQuery extends Query {
 
     private Builder() {
       this.measurements = new HashSet<>();
-      this.tagsList = new HashMap<>();
+      this.tagsList = new ArrayList<>();
       this.startKey = 0L;
       this.timePrecision = null;
     }
@@ -84,15 +85,14 @@ public class LastQuery extends Query {
       return this;
     }
 
-    public LastQuery.Builder addTags(String tagK, List<String> valueList) {
-      Arguments.checkListNonEmpty(valueList, "valueList");
-      this.tagsList.put(tagK, valueList);
+    public LastQuery.Builder addTags(Map<String, List<String>> tags) {
+      this.tagsList.add(tags);
       return this;
     }
 
-    public LastQuery.Builder addTagsList(Map<String, List<String>> tagsList) {
-      tagsList.forEach((key, valueList) -> Arguments.checkListNonEmpty(valueList, "valueList"));
-      this.tagsList.putAll(tagsList);
+    public LastQuery.Builder addTagsList(List<Map<String, List<String>>> tagsList) {
+      Arguments.checkListNonEmpty(tagsList, "tagsList");
+      this.tagsList.addAll(tagsList);
       return this;
     }
 

@@ -34,7 +34,7 @@ public class AggregateQuery extends Query {
 
   public AggregateQuery(
       Set<String> measurements,
-      Map<String, List<String>> tagsList,
+      List<Map<String, List<String>>> tagsList,
       long startKey,
       long endKey,
       AggregateType aggregateType) {
@@ -47,7 +47,7 @@ public class AggregateQuery extends Query {
 
   public AggregateQuery(
       Set<String> measurements,
-      Map<String, List<String>> tagsList,
+      List<Map<String, List<String>>> tagsList,
       long startKey,
       long endKey,
       AggregateType aggregateType,
@@ -83,7 +83,7 @@ public class AggregateQuery extends Query {
 
     private final Set<String> measurements;
 
-    private final Map<String, List<String>> tagsList;
+    private final List<Map<String, List<String>>> tagsList;
 
     private long startKey;
 
@@ -95,7 +95,7 @@ public class AggregateQuery extends Query {
 
     private Builder() {
       this.measurements = new HashSet<>();
-      this.tagsList = new HashMap<>();
+      this.tagsList = new ArrayList<>();
       this.startKey = 0L;
       this.endKey = Long.MAX_VALUE;
       this.timePrecision = null;
@@ -113,15 +113,15 @@ public class AggregateQuery extends Query {
       return this;
     }
 
-    public AggregateQuery.Builder addTags(String tagK, List<String> valueList) {
-      Arguments.checkListNonEmpty(valueList, "valueList");
-      this.tagsList.put(tagK, valueList);
+    // 每次添加的map是一个and表达式，不同map之间是or表达式
+    public AggregateQuery.Builder addTags(Map<String, List<String>> tags) {
+      this.tagsList.add(tags);
       return this;
     }
 
-    public AggregateQuery.Builder addTagsList(Map<String, List<String>> tagsList) {
-      tagsList.forEach((key, valueList) -> Arguments.checkListNonEmpty(valueList, "valueList"));
-      this.tagsList.putAll(tagsList);
+    public AggregateQuery.Builder addTagsList(List<Map<String, List<String>>> tagsList) {
+      Arguments.checkListNonEmpty(tagsList, "tagsList");
+      this.tagsList.addAll(tagsList);
       return this;
     }
 

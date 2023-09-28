@@ -1,5 +1,8 @@
 package cn.edu.tsinghua.iginx.integration.tool;
 
+import static cn.edu.tsinghua.iginx.integration.controller.Controller.*;
+import static org.junit.Assert.fail;
+
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.pool.SessionPool;
@@ -10,10 +13,15 @@ import cn.edu.tsinghua.iginx.session.SessionQueryDataSet;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
+import cn.edu.tsinghua.iginx.thrift.TagFilterType;
 import java.util.List;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MultiConnection {
+
+  private static final Logger logger = LoggerFactory.getLogger(MultiConnection.class);
 
   private static Session session = null;
 
@@ -118,10 +126,25 @@ public class MultiConnection {
   }
 
   public void deleteColumns(List<String> paths) throws SessionException, ExecutionException {
-    if (session != null) {
-      session.deleteColumns(paths);
-    } else if (sessionPool != null) {
-      sessionPool.deleteColumns(paths);
+    deleteColumns(paths, null, null);
+  }
+
+  public void deleteColumns(
+      List<String> paths, List<Map<String, List<String>>> tags, TagFilterType type)
+      throws SessionException, ExecutionException {
+    try {
+      if (session != null) {
+        session.deleteColumns(paths, tags, type);
+      } else if (sessionPool != null) {
+        sessionPool.deleteColumns(paths, tags, type);
+      }
+    } catch (SessionException | ExecutionException e) {
+      if (e.toString().trim().equals(CLEAR_DATA_EXCEPTION)) {
+        logger.warn(CLEAR_DATA_WARNING);
+      } else {
+        logger.error(CLEAR_DATA_ERROR, CLEAR_DATA, e.getMessage());
+        fail();
+      }
     }
   }
 
@@ -183,10 +206,29 @@ public class MultiConnection {
 
   public void deleteDataInColumns(List<String> paths, long startKey, long endKey)
       throws SessionException, ExecutionException {
-    if (session != null) {
-      session.deleteDataInColumns(paths, startKey, endKey);
-    } else if (sessionPool != null) {
-      sessionPool.deleteDataInColumns(paths, startKey, endKey);
+    deleteDataInColumns(paths, startKey, endKey, null, null);
+  }
+
+  public void deleteDataInColumns(
+      List<String> paths,
+      long startKey,
+      long endKey,
+      List<Map<String, List<String>>> tags,
+      TagFilterType type)
+      throws SessionException, ExecutionException {
+    try {
+      if (session != null) {
+        session.deleteDataInColumns(paths, startKey, endKey, tags, type);
+      } else if (sessionPool != null) {
+        sessionPool.deleteDataInColumns(paths, startKey, endKey, tags, type);
+      }
+    } catch (SessionException | ExecutionException e) {
+      if (e.toString().trim().equals(CLEAR_DATA_EXCEPTION)) {
+        logger.warn(CLEAR_DATA_WARNING);
+      } else {
+        logger.error(CLEAR_DATA_ERROR, CLEAR_DATA, e.getMessage());
+        fail();
+      }
     }
   }
 }
