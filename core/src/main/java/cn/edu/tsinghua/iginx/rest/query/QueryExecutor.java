@@ -191,8 +191,7 @@ public class QueryExecutor {
     RestSession restSession = new RestSession();
     restSession.openSession();
     for (QueryMetric metric : query.getQueryMetrics()) {
-      restSession.deleteDataInColumn(
-          metric.getName(), metric.getTags(), query.getStartAbsolute(), query.getEndAbsolute());
+      restSession.deleteColumn(metric.getName(), metric.getTags());
     }
     restSession.closeSession();
   }
