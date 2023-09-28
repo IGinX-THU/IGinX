@@ -95,6 +95,32 @@ jobs:
             - name: Start IGinX
               uses: ./.github/actions/iginxRunner
 
+            - name: Pre Test Client Export File
+              if: always()
+              shell: bash
+              run: |
+                  chmod +x "${GITHUB_WORKSPACE}/.github/scripts/iginx/test_cli_outfile.sh"
+                  "${GITHUB_WORKSPACE}/.github/scripts/iginx/test_cli_outfile.sh"
+
+            - name: Test Client Export File
+              if: always()
+              shell: bash
+              run: |
+                  mvn test -q -Dtest=ExportFileIT -DfailIfNoTests=false -P-format
+
+            - name: Pre Test Client Import File
+              if: always()
+              shell: bash
+              run: |
+                  chmod +x "${GITHUB_WORKSPACE}/.github/scripts/iginx/test_cli_infile.sh"
+                  "${GITHUB_WORKSPACE}/.github/scripts/iginx/test_cli_infile.sh"
+
+            - name: Test Client Import File
+              if: always()
+              shell: bash
+              run: |
+                  mvn test -q -Dtest=ImportFileIT -DfailIfNoTests=false -P-format
+
             - name: TestController IT
               if: always()
               shell: bash

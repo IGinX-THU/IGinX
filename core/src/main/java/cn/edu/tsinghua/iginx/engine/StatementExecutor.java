@@ -644,7 +644,7 @@ public class StatementExecutor {
           Bitmap bitmap = new Bitmap(pathSize);
 
           for (int j = 0; j < pathSize; j++) {
-            if (record.get(j).equalsIgnoreCase("null")) {
+            if (record.get(j + 1).equalsIgnoreCase("null")) {
               values[i][j] = null;
             } else {
               bitmap.mark(j);
