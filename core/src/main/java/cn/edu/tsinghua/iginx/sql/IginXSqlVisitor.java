@@ -121,7 +121,7 @@ import cn.edu.tsinghua.iginx.sql.statement.InsertFromFileStatement;
 import cn.edu.tsinghua.iginx.sql.statement.InsertFromSelectStatement;
 import cn.edu.tsinghua.iginx.sql.statement.InsertStatement;
 import cn.edu.tsinghua.iginx.sql.statement.RegisterTaskStatement;
-import cn.edu.tsinghua.iginx.sql.statement.RemoveHsitoryDataSourceStatement;
+import cn.edu.tsinghua.iginx.sql.statement.RemoveHistoryDataSourceStatement;
 import cn.edu.tsinghua.iginx.sql.statement.SetConfigStatement;
 import cn.edu.tsinghua.iginx.sql.statement.ShowClusterInfoStatement;
 import cn.edu.tsinghua.iginx.sql.statement.ShowColumnsStatement;
@@ -517,7 +517,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   @Override
   public Statement visitRemoveHistoryDataResourceStatement(
       RemoveHistoryDataResourceStatementContext ctx) {
-    RemoveHsitoryDataSourceStatement statement = new RemoveHsitoryDataSourceStatement();
+    RemoveHistoryDataSourceStatement statement = new RemoveHistoryDataSourceStatement();
     ctx.removedStorageEngine()
         .forEach(
             storageEngine -> {

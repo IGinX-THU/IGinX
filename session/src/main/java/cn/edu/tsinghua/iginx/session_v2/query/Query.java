@@ -26,13 +26,13 @@ public abstract class Query {
 
   protected final Set<String> measurements;
 
-  protected final Map<String, List<String>> tagsList;
+  protected final List<Map<String, List<String>>> tagsList;
 
   public Query(Set<String> measurements) {
     this(measurements, null);
   }
 
-  public Query(Set<String> measurements, Map<String, List<String>> tagsList) {
+  public Query(Set<String> measurements, List<Map<String, List<String>>> tagsList) {
     this.measurements = measurements;
     this.tagsList = tagsList;
   }
@@ -41,7 +41,7 @@ public abstract class Query {
     return measurements;
   }
 
-  public Map<String, List<String>> getTagsList() {
+  public List<Map<String, List<String>>> getTagsList() {
     return tagsList;
   }
 }

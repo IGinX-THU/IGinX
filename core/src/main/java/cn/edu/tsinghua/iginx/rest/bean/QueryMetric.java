@@ -25,7 +25,6 @@ import cn.edu.tsinghua.iginx.rest.query.aggregator.QueryAggregatorFirst;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
 import lombok.Data;
 
 @Data
@@ -34,7 +33,7 @@ public class QueryMetric {
   private String pathName;
   private String queryOriPath;
   private Long limit;
-  private Map<String, List<String>> tags = new TreeMap<>();
+  private List<Map<String, List<String>>> tags = new ArrayList<>();
   private List<QueryAggregator> aggregators = new ArrayList<>();
   private Boolean annotation = false;
   private Boolean newAnnotation = false;
@@ -45,9 +44,8 @@ public class QueryMetric {
     queryOriPath = new String(path);
   }
 
-  public void addTag(String key, String value) {
-    tags.computeIfAbsent(key, k -> new ArrayList<>());
-    tags.get(key).add(value);
+  public void addTag(Map<String, List<String>> tags) {
+    this.tags.add(tags);
   }
 
   public void addAggregator(QueryAggregator qa) {
@@ -61,7 +59,7 @@ public class QueryMetric {
     addAggregator(qa);
   }
 
-  public void addCetagory(String key) {
+  public void addCategory(String key) {
     if (annotationLimit == null) annotationLimit = new AnnotationLimit();
     annotationLimit.addTag(key);
   }
