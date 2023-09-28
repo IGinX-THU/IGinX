@@ -13,12 +13,7 @@ public class IPUtils {
       if (address.isAnyLocalAddress() || address.isLoopbackAddress()) {
         return true;
       }
-      NetworkInterface ni = NetworkInterface.getByInetAddress(address);
-      if (ni != null && ni.isVirtual()) {
-        return true;
-      }
-      InetAddress local = InetAddress.getLocalHost();
-      return local.equals(address);
+      return NetworkInterface.getByInetAddress(address) != null;
     } catch (UnknownHostException | SocketException e) {
       return false;
     }
