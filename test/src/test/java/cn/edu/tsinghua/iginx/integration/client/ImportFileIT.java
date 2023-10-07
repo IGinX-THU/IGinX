@@ -33,19 +33,19 @@ public class ImportFileIT {
   }
 
   @Test
-  public void testLOadData() {
+  public void testLoadData() {
     String query = "SELECT * FROM t;";
     String expected =
         "ResultSets:\n"
-            + "+---+---+---+-----+\n"
-            + "|key|t.a|t.b|  t.c|\n"
-            + "+---+---+---+-----+\n"
-            + "|  0|  0|0.5| true|\n"
-            + "|  1|  1|1.5|false|\n"
-            + "|  2|  2|2.5| true|\n"
-            + "|  3|  3|3.5|false|\n"
-            + "|  4|  4|4.5| true|\n"
-            + "+---+---+---+-----+\n"
+            + "+---+---+---+-----+---+\n"
+            + "|key|t.a|t.b|  t.c|t.d|\n"
+            + "+---+---+---+-----+---+\n"
+            + "|  0|  0|0.5| true|aaa|\n"
+            + "|  1|  1|1.5|false|bbb|\n"
+            + "|  2|  2|2.5| true|ccc|\n"
+            + "|  3|  3|3.5|false|ddd|\n"
+            + "|  4|  4|4.5| true|eee|\n"
+            + "+---+---+---+-----+---+\n"
             + "Total line number = 5\n";
     executor.executeAndCompare(query, expected);
   }

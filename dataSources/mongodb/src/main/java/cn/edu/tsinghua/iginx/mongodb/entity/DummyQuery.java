@@ -558,7 +558,7 @@ public class DummyQuery {
           case DOUBLE:
             return ((BsonDouble) value).getValue();
           case STRING:
-            return "\"" + ((BsonString) value).getValue() + "\"";
+            return ((BsonString) value).getValue();
           case DOCUMENT:
             return ((BsonDocument) value).toJson();
           case ARRAY:

@@ -99,8 +99,13 @@ jobs:
               if: always()
               shell: bash
               run: |
-                  chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/test_cli_outfile.sh"
-                  "${GITHUB_WORKSPACE}/.github/scripts/test/test_cli_outfile.sh"
+                  if [ "$RUNNER_OS" == "Linux" ]; then
+                    chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_outfile.sh"
+                    "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_outfile.sh"
+                  elif [ "$RUNNER_OS" == "macOS" ]; then
+                    chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_outfile_macos.sh"
+                    "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_outfile_macos.sh"
+                  fi
 
             - name: Test Client Export File
               if: always()
@@ -112,8 +117,13 @@ jobs:
               if: always()
               shell: bash
               run: |
-                  chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/test_cli_infile.sh"
-                  "${GITHUB_WORKSPACE}/.github/scripts/test/test_cli_infile.sh"
+                  if [ "$RUNNER_OS" == "Linux" ]; then
+                    chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_infile.sh"
+                    "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_infile.sh"
+                  elif [ "$RUNNER_OS" == "macOS" ]; then
+                    chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_infile_macos.sh"
+                    "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_infile_macos.sh"
+                  fi
 
             - name: Test Client Import File
               if: always()

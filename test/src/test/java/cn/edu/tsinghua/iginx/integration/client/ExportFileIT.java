@@ -21,12 +21,12 @@ public class ExportFileIT {
     assertTrue(dirFile.exists());
     assertTrue(dirFile.isDirectory());
     List<String> filenames = Arrays.asList(Objects.requireNonNull(dirFile.list()));
-    assertEquals(filenames.size(), 3);
+    assertEquals(filenames.size(), 4);
 
     filenames.sort(String::compareTo);
 
-    long[] lengths = new long[] {40, 40, 5};
-    for (int i = 1; i <= 3; i++) {
+    long[] lengths = new long[] {40, 40, 5, 15};
+    for (int i = 1; i <= 4; i++) {
       String expectedFilename = String.format("test.s%d", i);
       assertEquals(expectedFilename, filenames.get(i - 1));
       File file = new File(Paths.get(dir.toString(), expectedFilename).toString());
@@ -42,6 +42,6 @@ public class ExportFileIT {
     assertTrue(csvFile.exists());
     assertTrue(csvFile.isFile());
     assertEquals("test.csv", csvFile.getName());
-    assertEquals(67, csvFile.length());
+    assertEquals(87, csvFile.length());
   }
 }
