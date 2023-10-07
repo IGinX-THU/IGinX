@@ -546,11 +546,15 @@ public class DummyQuery {
       }
 
       private Object getValue(BsonValue value) {
-        Object o = convert(value);
-        if (o instanceof String) {
-          o = ((String) o).getBytes();
+        if (value.isString()) {
+          return value.asString().getValue().getBytes();
+        } else {
+          Object o = convert(value);
+          if (o instanceof String) {
+            o = ((String) o).getBytes();
+          }
+          return o;
         }
-        return o;
       }
 
       private Object convert(BsonValue value) {
