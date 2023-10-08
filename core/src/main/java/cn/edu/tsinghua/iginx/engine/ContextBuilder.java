@@ -206,6 +206,10 @@ public class ContextBuilder {
     return new RequestContext(req.getSessionId(), req.getStatement(), true);
   }
 
+  public RequestContext build(LoadCSVReq req) {
+    return new RequestContext(req.getSessionId(), req.getStatement());
+  }
+
   public RequestContext build(LastQueryReq req) {
     UnarySelectStatement statement =
         new UnarySelectStatement(

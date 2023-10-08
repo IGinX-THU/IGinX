@@ -57,11 +57,11 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
     statement = "select name from d0.c0.categories";
     expect =
         "ResultSets:\n"
-            + "+---+--------------------------------------------+\n"
-            + "|key|                       d0.c0.categories.name|\n"
-            + "+---+--------------------------------------------+\n"
-            + "|  1|[\"Blur\",\"Phone\",\"ReflectLight\",\"Reflection\"]|\n"
-            + "+---+--------------------------------------------+\n"
+            + "+---+------------------------------------+\n"
+            + "|key|               d0.c0.categories.name|\n"
+            + "+---+------------------------------------+\n"
+            + "|  1|[Blur,Phone,ReflectLight,Reflection]|\n"
+            + "+---+------------------------------------+\n"
             + "Total line number = 1\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
 

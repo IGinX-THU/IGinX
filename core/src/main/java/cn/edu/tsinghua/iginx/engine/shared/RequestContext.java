@@ -5,6 +5,7 @@ import cn.edu.tsinghua.iginx.sql.statement.Statement;
 import cn.edu.tsinghua.iginx.thrift.SqlType;
 import cn.edu.tsinghua.iginx.thrift.Status;
 import cn.edu.tsinghua.iginx.utils.SnowFlakeUtils;
+import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.Data;
@@ -37,6 +38,8 @@ public class RequestContext {
   private boolean useStream;
 
   private PhysicalTask physicalTree;
+
+  private ByteBuffer loadCSVFileByteBuffer;
 
   private void init() {
     this.id = SnowFlakeUtils.getInstance().nextId();

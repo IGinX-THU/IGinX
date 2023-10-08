@@ -1045,9 +1045,19 @@ public class Session {
     List<String> columns = ref.resp.getColumns();
     List<DataType> dataTypes = ref.resp.getDataTypeList();
     QueryDataSetV2 dataSetV2 = ref.resp.getQueryDataSet();
+    String dir = ref.resp.getExportStreamDir();
+    ExportCSV exportCSV = ref.resp.getExportCSV();
 
     return new QueryDataSet(
-        this, queryId, columns, dataTypes, fetchSize, dataSetV2.valuesList, dataSetV2.bitmapList);
+        this,
+        queryId,
+        columns,
+        dataTypes,
+        fetchSize,
+        dataSetV2.valuesList,
+        dataSetV2.bitmapList,
+        dir,
+        exportCSV);
   }
 
   Pair<QueryDataSetV2, Boolean> fetchResult(long queryId, int fetchSize)
@@ -1058,6 +1068,15 @@ public class Session {
     executeWithCheck(() -> (ref.resp = client.fetchResults(req)).status);
 
     return new Pair<>(ref.resp.getQueryDataSet(), ref.resp.isHasMoreResults());
+  }
+
+  public Pair<List<String>, Long> executeLoadCSV(String statement, ByteBuffer csvFile)
+      throws SessionException, ExecutionException {
+    LoadCSVReq req = new LoadCSVReq(sessionId, statement, csvFile);
+    Reference<LoadCSVResp> ref = new Reference<>();
+    executeWithCheck(() -> (ref.resp = client.loadCSV(req)).status);
+
+    return new Pair<>(ref.resp.getColumns(), ref.resp.getRecordsNum());
   }
 
   void closeQuery(long queryId) throws SessionException, ExecutionException {
