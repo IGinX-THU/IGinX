@@ -2685,6 +2685,27 @@ public class SQLSessionIT {
             + "Total line number = 10\n";
     executor.executeAndCompare(statement, expected);
 
+    statement =
+        "SELECT * FROM (SELECT s1, s2 FROM us.* WHERE us.d1.s1 >= 1000 AND us.d1.s1 < 1010) AS rename_result_set;";
+    expected =
+        "ResultSets:\n"
+            + "+----+--------------------------+--------------------------+\n"
+            + "| key|rename_result_set.us.d1.s1|rename_result_set.us.d1.s2|\n"
+            + "+----+--------------------------+--------------------------+\n"
+            + "|1000|                      1000|                      1001|\n"
+            + "|1001|                      1001|                      1002|\n"
+            + "|1002|                      1002|                      1003|\n"
+            + "|1003|                      1003|                      1004|\n"
+            + "|1004|                      1004|                      1005|\n"
+            + "|1005|                      1005|                      1006|\n"
+            + "|1006|                      1006|                      1007|\n"
+            + "|1007|                      1007|                      1008|\n"
+            + "|1008|                      1008|                      1009|\n"
+            + "|1009|                      1009|                      1010|\n"
+            + "+----+--------------------------+--------------------------+\n"
+            + "Total line number = 10\n";
+    executor.executeAndCompare(statement, expected);
+
     // sub-query alias with arithmetic expression
     statement =
         "SELECT * FROM (SELECT s1+s2 FROM us.d1 WHERE us.d1.s1 >= 1000 AND us.d1.s1 < 1010) AS rename_result_set;";
