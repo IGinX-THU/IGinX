@@ -824,7 +824,13 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       return Collections.singletonList(parseBaseExpression(ctx, selectStatement));
     }
     if (ctx.constant() != null) {
-      return Collections.singletonList(new ConstantExpression(parseValue(ctx.constant())));
+      if (ctx.constant().stringLiteral() != null) {
+        String expression = ctx.constant().stringLiteral().getText();
+        expression = expression.substring(1, expression.length() - 1);
+        return Collections.singletonList(parseBaseExpression(expression, selectStatement));
+      } else {
+        return Collections.singletonList(new ConstantExpression(parseValue(ctx.constant())));
+      }
     }
 
     List<Expression> ret = new ArrayList<>();

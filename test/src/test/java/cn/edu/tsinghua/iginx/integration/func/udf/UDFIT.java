@@ -257,4 +257,62 @@ public class UDFIT {
             + "Total line number = 6\n";
     assertEquals(expected, ret.getResultInString(false, ""));
   }
+
+  @Test
+  public void testSelectFromUDF() {
+    String insert =
+        "INSERT INTO test(key, a, b) VALUES (1, 2, 3), (2, 3, 1), (3, 4, 3), (4, 9, 7), (5, 3, 6), (6, 6, 4);";
+    execute(insert);
+
+    String query = "SELECT COS(*) FROM test;";
+    SessionExecuteSqlResult ret = execute(query);
+    String expected =
+        "ResultSets:\n"
+            + "+---+-------------------+-------------------+\n"
+            + "|key|        cos(test.a)|        cos(test.b)|\n"
+            + "+---+-------------------+-------------------+\n"
+            + "|  1|-0.4161468365471424|-0.9899924966004454|\n"
+            + "|  2|-0.9899924966004454| 0.5403023058681398|\n"
+            + "|  3|-0.6536436208636119|-0.9899924966004454|\n"
+            + "|  4|-0.9111302618846769| 0.7539022543433046|\n"
+            + "|  5|-0.9899924966004454|  0.960170286650366|\n"
+            + "|  6|  0.960170286650366|-0.6536436208636119|\n"
+            + "+---+-------------------+-------------------+\n"
+            + "Total line number = 6\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+
+    query = "SELECT \"cos(test.a)\" FROM(SELECT COS(*) FROM test);";
+    ret = execute(query);
+    expected =
+        "ResultSets:\n"
+            + "+---+-------------------+\n"
+            + "|key|        cos(test.a)|\n"
+            + "+---+-------------------+\n"
+            + "|  1|-0.4161468365471424|\n"
+            + "|  2|-0.9899924966004454|\n"
+            + "|  3|-0.6536436208636119|\n"
+            + "|  4|-0.9111302618846769|\n"
+            + "|  5|-0.9899924966004454|\n"
+            + "|  6|  0.960170286650366|\n"
+            + "+---+-------------------+\n"
+            + "Total line number = 6\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+
+    query = "SELECT \"cos(test.b)\" AS cos_b FROM(SELECT COS(*) FROM test);";
+    ret = execute(query);
+    expected =
+        "ResultSets:\n"
+            + "+---+-------------------+\n"
+            + "|key|              cos_b|\n"
+            + "+---+-------------------+\n"
+            + "|  1|-0.9899924966004454|\n"
+            + "|  2| 0.5403023058681398|\n"
+            + "|  3|-0.9899924966004454|\n"
+            + "|  4| 0.7539022543433046|\n"
+            + "|  5|  0.960170286650366|\n"
+            + "|  6|-0.6536436208636119|\n"
+            + "+---+-------------------+\n"
+            + "Total line number = 6\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+  }
 }
