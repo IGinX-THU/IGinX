@@ -2,13 +2,13 @@
 
 set -e
 
-cp -f conf/config.properties core/target/iginx-core-0.6.0-SNAPSHOT/conf/config.properties
+cp -f conf/config.properties core/target/iginx-core-*-SNAPSHOT/conf/config.properties
 
-sed -i "" "s/storageEngineList=127.0.0.1#6667#iotdb12/#storageEngineList=127.0.0.1#6667#iotdb12/g" core/target/iginx-core-0.6.0-SNAPSHOT/conf/config.properties
+sed -i "" "s/storageEngineList=127.0.0.1#6667#iotdb12/#storageEngineList=127.0.0.1#6667#iotdb12/g" core/target/iginx-core-*-SNAPSHOT/conf/config.properties
 
-sed -i "" "s/#storageEngineList=127.0.0.1#6667#filesystem/storageEngineList=127.0.0.1#$1#filesystem/g" core/target/iginx-core-0.6.0-SNAPSHOT/conf/config.properties
+sed -i "" "s/#storageEngineList=127.0.0.1#6667#filesystem/storageEngineList=127.0.0.1#$1#filesystem/g" core/target/iginx-core-*-SNAPSHOT/conf/config.properties
 
-sed -i "" "s/#iginx_port=6888#/#iginx_port=$2#/g" core/target/iginx-core-0.6.0-SNAPSHOT/conf/config.properties
+sed -i "" "s/#iginx_port=6888#/#iginx_port=$2#/g" core/target/iginx-core-*-SNAPSHOT/conf/config.properties
 
 sed -i "" "s/enablePushDown=true/enablePushDown=false/g" core/target/iginx-core-0.6.0-SNAPSHOT/conf/config.properties
 

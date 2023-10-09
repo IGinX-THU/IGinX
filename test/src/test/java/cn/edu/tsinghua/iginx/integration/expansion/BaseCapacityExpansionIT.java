@@ -123,6 +123,16 @@ public abstract class BaseCapacityExpansionIT {
     Controller.clearData(session);
   }
 
+  private void addStorageEngineInProgress(
+      int port, boolean hasData, boolean isReadOnly, String dataPrefix, String schemaPrefix)
+      throws InterruptedException {
+    if (IS_PARQUET_OR_FILE_SYSTEM) {
+      startStorageEngineWithIginx(port, hasData, isReadOnly);
+    } else {
+      addStorageEngine(port, hasData, isReadOnly, dataPrefix, schemaPrefix);
+    }
+  }
+
   @Test
   public void oriHasDataExpHasData()
       throws InterruptedException, SessionException, ExecutionException {
@@ -131,11 +141,7 @@ public abstract class BaseCapacityExpansionIT {
     // 写入并查询新数据
     testWriteAndQueryNewData();
     // 扩容
-    if (IS_PARQUET_OR_FILE_SYSTEM) {
-      startStorageEngineWithIginx(expPort, true, false);
-    } else {
-      addStorageEngine(expPort, true, false, null, null);
-    }
+    addStorageEngineInProgress(expPort, true, false, null, null);
 
     // 查询扩容节点的历史数据，结果不为空
     testQueryHistoryDataExpHasData();
@@ -152,11 +158,7 @@ public abstract class BaseCapacityExpansionIT {
     // 写入并查询新数据
     testWriteAndQueryNewData();
     // 扩容
-    if (IS_PARQUET_OR_FILE_SYSTEM) {
-      startStorageEngineWithIginx(expPort, false, false);
-    } else {
-      addStorageEngine(expPort, false, false, null, null);
-    }
+    addStorageEngineInProgress(expPort, false, false, null, null);
     // 查询扩容节点的历史数据，结果为空
     testQueryHistoryDataExpNoData();
     // 再次查询新数据
@@ -172,11 +174,7 @@ public abstract class BaseCapacityExpansionIT {
     // 写入并查询新数据
     testWriteAndQueryNewData();
     // 扩容
-    if (IS_PARQUET_OR_FILE_SYSTEM) {
-      startStorageEngineWithIginx(expPort, true, false);
-    } else {
-      addStorageEngine(expPort, true, false, null, null);
-    }
+    addStorageEngineInProgress(expPort, true, false, null, null);
     // 查询扩容节点的历史数据，结果不为空
     testQueryHistoryDataExpHasData();
     // 再次查询新数据
@@ -194,11 +192,7 @@ public abstract class BaseCapacityExpansionIT {
     // 写入并查询新数据
     testWriteAndQueryNewData();
     // 扩容
-    if (IS_PARQUET_OR_FILE_SYSTEM) {
-      startStorageEngineWithIginx(expPort, false, false);
-    } else {
-      addStorageEngine(expPort, false, false, null, null);
-    }
+    addStorageEngineInProgress(expPort, false, false, null, null);
     // 查询扩容节点的历史数据，结果为空
     testQueryHistoryDataExpNoData();
     // 再次查询新数据
@@ -212,19 +206,11 @@ public abstract class BaseCapacityExpansionIT {
     // 查询原始只读节点的历史数据，结果不为空
     testQueryHistoryDataOriHasData();
     // 扩容只读节点
-    if (IS_PARQUET_OR_FILE_SYSTEM) {
-      startStorageEngineWithIginx(readOnlyPort, true, true);
-    } else {
-      addStorageEngine(readOnlyPort, true, true, null, null);
-    }
+    addStorageEngineInProgress(readOnlyPort, true, true, null, null);
     // 查询扩容只读节点的历史数据，结果不为空
     testQueryHistoryDataReadOnly();
     // 扩容可写节点
-    if (IS_PARQUET_OR_FILE_SYSTEM) {
-      startStorageEngineWithIginx(expPort, true, false);
-    } else {
-      addStorageEngine(expPort, true, false, null, null);
-    }
+    addStorageEngineInProgress(expPort, true, false, null, null);
     // 查询扩容可写节点的历史数据，结果不为空
     testQueryHistoryDataExpHasData();
     // 写入并查询新数据
@@ -571,35 +557,8 @@ public abstract class BaseCapacityExpansionIT {
       throw new IllegalStateException("just support file system and parquet");
     }
 
-    int iginxPort;
-    switch (port) {
-      case 6667:
-        iginxPort = oriPortIginx;
-        break;
-      case 6668:
-        iginxPort = expPortIginx;
-        break;
-      case 6669:
-        iginxPort = readOnlyPortIginx;
-        break;
-      default:
-        throw new IllegalStateException("Unexpected value: " + port);
-    }
-
-    int restPort;
-    switch (port) {
-      case 6667:
-        restPort = 6666;
-        break;
-      case 6668:
-        restPort = 6665;
-        break;
-      case 6669:
-        restPort = 6664;
-        break;
-      default:
-        throw new IllegalStateException("Unexpected value: " + port);
-    }
+    int iginxPort = PORT_TO_IGINXPORT.get(port);
+    int restPort = PORT_TO_RESTPORT.get(port);
 
     int res =
         executeShellScript(

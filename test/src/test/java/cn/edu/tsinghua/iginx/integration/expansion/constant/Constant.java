@@ -72,6 +72,26 @@ public class Constant {
         }
       };
 
+  // for multi iginx test
+  public static final Map<Integer, Integer> PORT_TO_RESTPORT =
+      new HashMap<Integer, Integer>() {
+        {
+          put(oriPort, 6666);
+          put(expPort, 6665);
+          put(readOnlyPort, 6664);
+        }
+      };
+
+  // for multi iginx test
+  public static final Map<Integer, Integer> PORT_TO_IGINXPORT =
+      new HashMap<Integer, Integer>() {
+        {
+          put(oriPort, oriPortIginx);
+          put(expPort, expPortIginx);
+          put(readOnlyPort, readOnlyPortIginx);
+        }
+      };
+
   // for parquet
   // <port, [dataDir, dataFilename]>
   private static final String oriDir = "mn";

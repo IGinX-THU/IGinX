@@ -39,7 +39,7 @@ runs:
                 exit 1
               fi
 
-        - if: inputs.DB-name=='Parquet'
+        - if: inputs.DB-name=='Parquet' #test/iginx_mn is the path for IT test data
           name: Run DB
           shell: bash
           run: |
@@ -69,7 +69,7 @@ runs:
                 exit 1
               fi
 
-        - if: inputs.DB-name=='FileSystem'
+        - if: inputs.DB-name=='FileSystem' #test/iginx_mn is the path for IT test data
           name: Run DB
           shell: bash
           run: |

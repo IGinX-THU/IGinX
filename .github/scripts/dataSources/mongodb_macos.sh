@@ -2,9 +2,9 @@
 
 set -e
 
-sed -i "" "s/storageEngineList=127.0.0.1#6667/#storageEngineList=127.0.0.1#6667/" core/target/iginx-core-0.6.0-SNAPSHOT/conf/config.properties
+sed -i "" "s/storageEngineList=127.0.0.1#6667/#storageEngineList=127.0.0.1#6667/" core/target/iginx-core-*-SNAPSHOT/conf/config.properties
 
-sed -i "" "s/#storageEngineList=127.0.0.1#27017/storageEngineList=127.0.0.1#27017/" core/target/iginx-core-0.6.0-SNAPSHOT/conf/config.properties
+sed -i "" "s/#storageEngineList=127.0.0.1#27017/storageEngineList=127.0.0.1#27017/" core/target/iginx-core-*-SNAPSHOT/conf/config.properties
 
 sh -c "wget https://fastdl.mongodb.org/osx/mongodb-macos-x86_64-6.0.4.tgz"
 
