@@ -36,7 +36,7 @@ public class DownsampleQuery extends Query {
 
   public DownsampleQuery(
       Set<String> measurements,
-      Map<String, List<String>> tagsList,
+      List<Map<String, List<String>>> tagsList,
       long startKey,
       long endKey,
       AggregateType aggregateType,
@@ -51,7 +51,7 @@ public class DownsampleQuery extends Query {
 
   public DownsampleQuery(
       Set<String> measurements,
-      Map<String, List<String>> tagsList,
+      List<Map<String, List<String>>> tagsList,
       long startKey,
       long endKey,
       AggregateType aggregateType,
@@ -93,7 +93,7 @@ public class DownsampleQuery extends Query {
 
     private final Set<String> measurements;
 
-    private final Map<String, List<String>> tagsList;
+    private final List<Map<String, List<String>>> tagsList;
 
     private long startKey;
 
@@ -107,7 +107,7 @@ public class DownsampleQuery extends Query {
 
     private Builder() {
       this.measurements = new HashSet<>();
-      this.tagsList = new HashMap<>();
+      this.tagsList = new ArrayList<>();
       this.startKey = 0L;
       this.endKey = Long.MAX_VALUE;
       this.precision = 0L;
@@ -126,15 +126,14 @@ public class DownsampleQuery extends Query {
       return this;
     }
 
-    public DownsampleQuery.Builder addTags(String tagK, List<String> valueList) {
-      Arguments.checkListNonEmpty(valueList, "valueList");
-      this.tagsList.put(tagK, valueList);
+    public DownsampleQuery.Builder addTags(Map<String, List<String>> tags) {
+      this.tagsList.add(tags);
       return this;
     }
 
-    public DownsampleQuery.Builder addTagsList(Map<String, List<String>> tagsList) {
-      tagsList.forEach((key, valueList) -> Arguments.checkListNonEmpty(valueList, "valueList"));
-      this.tagsList.putAll(tagsList);
+    public DownsampleQuery.Builder addTagsList(List<Map<String, List<String>>> tagsList) {
+      Arguments.checkListNonEmpty(tagsList, "tagsList");
+      this.tagsList.addAll(tagsList);
       return this;
     }
 

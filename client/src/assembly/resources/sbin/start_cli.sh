@@ -46,28 +46,32 @@ else
   JAVA=java
 fi
 
-PARAMETERS="$@"
+PARAMETERS=("$@")
 
 # Added parameters when default parameters are missing
 
 # sh version
 case "$PARAMETERS" in
+*"-fs "*) PARAMETERS=$PARAMETERS ;;
+*) PARAMETERS=("-fs" "1000" "${PARAMETERS[@]}") ;;
+esac
+case "$PARAMETERS" in
 *"-pw "*) PARAMETERS=$PARAMETERS ;;
-*) PARAMETERS="-pw root $PARAMETERS" ;;
+*) PARAMETERS=("-pw" "root" "${PARAMETERS[@]}") ;;
 esac
 case "$PARAMETERS" in
 *"-u "*) PARAMETERS=$PARAMETERS ;;
-*) PARAMETERS="-u root $PARAMETERS" ;;
+*) PARAMETERS=("-u" "root" "${PARAMETERS[@]}") ;;
 esac
 case "$PARAMETERS" in
 *"-p "*) PARAMETERS=$PARAMETERS ;;
-*) PARAMETERS="-p 6888 $PARAMETERS" ;;
+*) PARAMETERS=("-p" "6888" "${PARAMETERS[@]}") ;;
 esac
 case "$PARAMETERS" in
 *"-h "*) PARAMETERS=$PARAMETERS ;;
-*) PARAMETERS="-h 127.0.0.1 $PARAMETERS" ;;
+*) PARAMETERS=("-h" "127.0.0.1" "${PARAMETERS[@]}") ;;
 esac
 
-exec "$JAVA" -cp "$CLASSPATH" "$MAIN_CLASS" $PARAMETERS
+exec "$JAVA" -cp "$CLASSPATH" "$MAIN_CLASS" "${PARAMETERS[@]}"
 
 exit $?
