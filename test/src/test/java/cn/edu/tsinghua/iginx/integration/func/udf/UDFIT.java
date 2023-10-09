@@ -266,53 +266,63 @@ public class UDFIT {
 
     String query = "SELECT COS(*) FROM test;";
     SessionExecuteSqlResult ret = execute(query);
-    String expected =
-        "ResultSets:\n"
-            + "+---+-------------------+-------------------+\n"
-            + "|key|        cos(test.a)|        cos(test.b)|\n"
-            + "+---+-------------------+-------------------+\n"
-            + "|  1|-0.4161468365471424|-0.9899924966004454|\n"
-            + "|  2|-0.9899924966004454| 0.5403023058681398|\n"
-            + "|  3|-0.6536436208636119|-0.9899924966004454|\n"
-            + "|  4|-0.9111302618846769| 0.7539022543433046|\n"
-            + "|  5|-0.9899924966004454|  0.960170286650366|\n"
-            + "|  6|  0.960170286650366|-0.6536436208636119|\n"
-            + "+---+-------------------+-------------------+\n"
-            + "Total line number = 6\n";
-    assertEquals(expected, ret.getResultInString(false, ""));
+
+    assertEquals(2, ret.getPaths().size());
+    assertEquals("cos(test.a)", ret.getPaths().get(0));
+    assertEquals("cos(test.b)", ret.getPaths().get(1));
+
+    List<Double> cosTestAExpectedValues =
+        Arrays.asList(
+            -0.4161468365471424,
+            -0.9899924966004454,
+            -0.6536436208636119,
+            -0.9111302618846769,
+            -0.9899924966004454,
+            0.960170286650366);
+    List<Double> cosTestBExpectedValues =
+        Arrays.asList(
+            -0.9899924966004454,
+            0.5403023058681398,
+            -0.9899924966004454,
+            0.7539022543433046,
+            0.9601702866503661,
+            -0.6536436208636119);
+
+    for (int i = 0; i < ret.getValues().size(); i++) {
+      assertEquals(2, ret.getValues().get(i).size());
+      double expected = cosTestAExpectedValues.get(i);
+      double actual = (double) ret.getValues().get(i).get(0);
+      assertEquals(expected, actual, delta);
+
+      expected = cosTestBExpectedValues.get(i);
+      actual = (double) ret.getValues().get(i).get(1);
+      assertEquals(expected, actual, delta);
+    }
 
     query = "SELECT \"cos(test.a)\" FROM(SELECT COS(*) FROM test);";
     ret = execute(query);
-    expected =
-        "ResultSets:\n"
-            + "+---+-------------------+\n"
-            + "|key|        cos(test.a)|\n"
-            + "+---+-------------------+\n"
-            + "|  1|-0.4161468365471424|\n"
-            + "|  2|-0.9899924966004454|\n"
-            + "|  3|-0.6536436208636119|\n"
-            + "|  4|-0.9111302618846769|\n"
-            + "|  5|-0.9899924966004454|\n"
-            + "|  6|  0.960170286650366|\n"
-            + "+---+-------------------+\n"
-            + "Total line number = 6\n";
-    assertEquals(expected, ret.getResultInString(false, ""));
+
+    assertEquals(1, ret.getPaths().size());
+    assertEquals("cos(test.a)", ret.getPaths().get(0));
+
+    for (int i = 0; i < ret.getValues().size(); i++) {
+      assertEquals(1, ret.getValues().get(i).size());
+      double expected = cosTestAExpectedValues.get(i);
+      double actual = (double) ret.getValues().get(i).get(0);
+      assertEquals(expected, actual, delta);
+    }
 
     query = "SELECT \"cos(test.b)\" AS cos_b FROM(SELECT COS(*) FROM test);";
     ret = execute(query);
-    expected =
-        "ResultSets:\n"
-            + "+---+-------------------+\n"
-            + "|key|              cos_b|\n"
-            + "+---+-------------------+\n"
-            + "|  1|-0.9899924966004454|\n"
-            + "|  2| 0.5403023058681398|\n"
-            + "|  3|-0.9899924966004454|\n"
-            + "|  4| 0.7539022543433046|\n"
-            + "|  5|  0.960170286650366|\n"
-            + "|  6|-0.6536436208636119|\n"
-            + "+---+-------------------+\n"
-            + "Total line number = 6\n";
-    assertEquals(expected, ret.getResultInString(false, ""));
+
+    assertEquals(1, ret.getPaths().size());
+    assertEquals("cos_b", ret.getPaths().get(0));
+
+    for (int i = 0; i < ret.getValues().size(); i++) {
+      assertEquals(1, ret.getValues().get(i).size());
+      double expected = cosTestBExpectedValues.get(i);
+      double actual = (double) ret.getValues().get(i).get(0);
+      assertEquals(expected, actual, delta);
+    }
   }
 }
