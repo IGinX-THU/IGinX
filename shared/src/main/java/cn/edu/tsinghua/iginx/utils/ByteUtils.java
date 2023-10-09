@@ -456,4 +456,52 @@ public class ByteUtils {
     buffer.flip();
     return buffer;
   }
+
+  public static byte[] getBytesFromByteBufferByDataType(ByteBuffer buffer, DataType dataType) {
+    byte[] bytes;
+    switch (dataType) {
+      case BOOLEAN:
+        boolean boolV = buffer.get() == 1;
+        bytes = new byte[1];
+        bytes[0] = (byte) (boolV ? 0x01 : 0x00);
+        return bytes;
+      case INTEGER:
+        int intV = buffer.getInt();
+        bytes = new byte[4];
+        for (int i = 0; i < 4; i++) {
+          bytes[i] = (byte) ((intV >>> 8 * i) & 0xff);
+        }
+        return bytes;
+      case LONG:
+        long longV = buffer.getLong();
+        bytes = new byte[8];
+        for (int i = 0; i < 8; i++) {
+          bytes[i] = (byte) ((longV >>> 8 * i) & 0xff);
+        }
+        return bytes;
+      case FLOAT:
+        float floatV = buffer.getFloat();
+        int valueInt = Float.floatToIntBits(floatV);
+        bytes = new byte[4];
+        for (int i = 0; i < 4; i++) {
+          bytes[i] = (byte) ((valueInt >>> 8 * i) & 0xff);
+        }
+        return bytes;
+      case DOUBLE:
+        double doubleV = buffer.getDouble();
+        long valueLong = Double.doubleToRawLongBits(doubleV);
+        bytes = new byte[8];
+        for (int i = 0; i < 8; i++) {
+          bytes[i] = (byte) ((valueLong >>> 8 * i) & 0xff);
+        }
+        return bytes;
+      case BINARY:
+        int length = buffer.getInt();
+        bytes = new byte[length];
+        buffer.get(bytes, 0, length);
+        return bytes;
+      default:
+        throw new UnsupportedOperationException(dataType.toString());
+    }
+  }
 }

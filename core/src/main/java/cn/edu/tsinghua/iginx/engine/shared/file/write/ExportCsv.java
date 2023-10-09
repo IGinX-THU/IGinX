@@ -2,7 +2,6 @@ package cn.edu.tsinghua.iginx.engine.shared.file.write;
 
 import cn.edu.tsinghua.iginx.engine.shared.file.CSVFile;
 import cn.edu.tsinghua.iginx.engine.shared.file.FileType;
-import org.apache.commons.csv.CSVFormat;
 
 public class ExportCsv implements ExportFile {
 
@@ -29,10 +28,6 @@ public class ExportCsv implements ExportFile {
 
   public String getFilepath() {
     return csvFile.getFilepath();
-  }
-
-  public CSVFormat.Builder getCSVBuilder() {
-    return csvFile.getCSVBuilder();
   }
 
   @Override

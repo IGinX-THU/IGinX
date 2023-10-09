@@ -1,7 +1,7 @@
 package cn.edu.tsinghua.iginx.engine.shared.file;
 
+import cn.edu.tsinghua.iginx.utils.CSVUtils;
 import org.apache.commons.csv.CSVFormat;
-import org.apache.commons.csv.QuoteMode;
 
 public class CSVFile {
 
@@ -88,18 +88,6 @@ public class CSVFile {
   }
 
   public CSVFormat.Builder getCSVBuilder() {
-    CSVFormat.Builder builder = CSVFormat.Builder.create(CSVFormat.DEFAULT);
-    builder.setDelimiter(delimiter);
-    builder.setQuote(quote);
-    if (quote == '\0') {
-      builder.setQuoteMode(QuoteMode.NONE);
-    } else if (isOptionallyQuote) {
-      builder.setQuoteMode(QuoteMode.NON_NUMERIC);
-    } else {
-      builder.setQuoteMode(QuoteMode.ALL);
-    }
-    builder.setEscape(escaped);
-    builder.setRecordSeparator(recordSeparator);
-    return builder;
+    return CSVUtils.getCSVBuilder(delimiter, isOptionallyQuote, quote, escaped, recordSeparator);
   }
 }
