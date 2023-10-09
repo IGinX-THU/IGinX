@@ -18,15 +18,18 @@
  */
 package cn.edu.tsinghua.iginx.session;
 
+import static cn.edu.tsinghua.iginx.utils.ByteUtils.getBytesFromByteBufferByDataType;
 import static cn.edu.tsinghua.iginx.utils.ByteUtils.getValueFromByteBufferByDataType;
 
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
+import cn.edu.tsinghua.iginx.thrift.ExportCSV;
 import cn.edu.tsinghua.iginx.thrift.QueryDataSetV2;
 import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.List;
 
 public class QueryDataSet {
@@ -51,6 +54,10 @@ public class QueryDataSet {
 
   private List<ByteBuffer> bitmapList;
 
+  private String exportStreamDir;
+
+  private ExportCSV exportCSV;
+
   private State state;
 
   private int index;
@@ -62,7 +69,9 @@ public class QueryDataSet {
       List<DataType> dataTypeList,
       int fetchSize,
       List<ByteBuffer> valuesList,
-      List<ByteBuffer> bitmapList) {
+      List<ByteBuffer> bitmapList,
+      String exportStreamDir,
+      ExportCSV exportCSV) {
     this.session = session;
     this.queryId = queryId;
     this.columnList = columnList;
@@ -70,6 +79,8 @@ public class QueryDataSet {
     this.fetchSize = fetchSize;
     this.valuesList = valuesList;
     this.bitmapList = bitmapList;
+    this.exportStreamDir = exportStreamDir;
+    this.exportCSV = exportCSV;
     this.state = State.UNKNOWN;
     this.index = 0;
   }
@@ -125,11 +136,39 @@ public class QueryDataSet {
     return values;
   }
 
+  public List<byte[]> nextRowAsBytes() throws SessionException, ExecutionException {
+    if (!hasMore()) {
+      return null;
+    }
+    // nextRow 只会返回本地的 row，如果本地没有，在进行 hasMore 操作时候，就一定也已经取回来了
+    ByteBuffer valuesBuffer = valuesList.get(index);
+    ByteBuffer bitmapBuffer = bitmapList.get(index);
+    index++;
+    Bitmap bitmap = new Bitmap(dataTypeList.size(), bitmapBuffer.array());
+    List<byte[]> bytesValues = new ArrayList<>(dataTypeList.size());
+    for (int i = 0; i < dataTypeList.size(); i++) {
+      if (bitmap.get(i)) {
+        bytesValues.add(getBytesFromByteBufferByDataType(valuesBuffer, dataTypeList.get(i)));
+      } else {
+        bytesValues.add(new byte[0]);
+      }
+    }
+    return bytesValues;
+  }
+
   public List<String> getColumnList() {
     return columnList;
   }
 
   public List<DataType> getDataTypeList() {
     return dataTypeList;
+  }
+
+  public String getExportStreamDir() {
+    return exportStreamDir;
+  }
+
+  public ExportCSV getExportCSV() {
+    return exportCSV;
   }
 }
