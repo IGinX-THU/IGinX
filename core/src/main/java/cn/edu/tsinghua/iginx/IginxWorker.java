@@ -22,6 +22,7 @@ import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.isEmbedded
 import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.isLocal;
 import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.setSchemaPrefixInExtraParams;
 import static cn.edu.tsinghua.iginx.utils.ByteUtils.getLongArrayFromByteBuffer;
+import static cn.edu.tsinghua.iginx.utils.IPUtils.isLocalIPAddress;
 
 import cn.edu.tsinghua.iginx.auth.SessionManager;
 import cn.edu.tsinghua.iginx.auth.UserManager;
@@ -84,6 +85,12 @@ public class IginxWorker implements IService.Iface {
       if (!isEmbeddedStorageEngine(metaFromConf.getStorageEngine())) {
         continue;
       }
+      Map<String, String> extraParams = metaFromConf.getExtraParams();
+      if (!setSchemaPrefixInExtraParams(metaFromConf.getStorageEngine(), extraParams)) {
+        logger.error("set schema prefix in extra params failed when initializing IginxWorker!");
+        return;
+      }
+      metaFromConf.setExtraParams(extraParams);
       boolean hasAdded = false;
       for (StorageEngineMeta meta : metaManager.getStorageEngineList()) {
         if (isDuplicated(metaFromConf, meta)) {
@@ -361,17 +368,17 @@ public class IginxWorker implements IService.Iface {
     // 检测是否与已有的存储引擎冲突
     if (!hasChecked) {
       List<StorageEngineMeta> currentStorageEngines = metaManager.getStorageEngineList();
-      List<StorageEngineMeta> duplicatedStorageEngine = new ArrayList<>();
+      List<StorageEngineMeta> duplicatedStorageEngines = new ArrayList<>();
       for (StorageEngineMeta storageEngine : storageEngineMetas) {
         for (StorageEngineMeta currentStorageEngine : currentStorageEngines) {
           if (isDuplicated(storageEngine, currentStorageEngine)) {
-            duplicatedStorageEngine.add(storageEngine);
+            duplicatedStorageEngines.add(storageEngine);
             break;
           }
         }
       }
-      if (!duplicatedStorageEngine.isEmpty()) {
-        storageEngineMetas.removeAll(duplicatedStorageEngine);
+      if (!duplicatedStorageEngines.isEmpty()) {
+        storageEngineMetas.removeAll(duplicatedStorageEngines);
         if (!storageEngineMetas.isEmpty()) {
           status = new Status(RpcUtils.PARTIAL_SUCCESS.code);
           status.setMessage("unexpected repeated add");
@@ -451,10 +458,19 @@ public class IginxWorker implements IService.Iface {
     if (!engine1.getStorageEngine().equals(engine2.getStorageEngine())) {
       return false;
     }
-    return engine1.getIp().equals(engine2.getIp())
-        && engine1.getPort() == engine2.getPort()
-        && Objects.equals(engine1.getDataPrefix(), engine2.getDataPrefix())
-        && Objects.equals(engine1.getSchemaPrefix(), engine2.getSchemaPrefix());
+    if (engine1.getPort() != engine2.getPort()) {
+      return false;
+    }
+    if (!Objects.equals(engine1.getDataPrefix(), engine2.getDataPrefix())) {
+      return false;
+    }
+    if (!Objects.equals(engine1.getSchemaPrefix(), engine2.getSchemaPrefix())) {
+      return false;
+    }
+    if (isLocalIPAddress(engine1.getIp()) && isLocalIPAddress(engine2.getIp())) { // 都是本机IP
+      return true;
+    }
+    return engine1.getIp().equals(engine2.getIp());
   }
 
   @Override
@@ -677,6 +693,15 @@ public class IginxWorker implements IService.Iface {
       return new FetchResultsResp(RpcUtils.SUCCESS, false);
     }
     return context.getResult().fetch(req.getFetchSize());
+  }
+
+  @Override
+  public LoadCSVResp loadCSV(LoadCSVReq req) {
+    StatementExecutor executor = StatementExecutor.getInstance();
+    RequestContext ctx = contextBuilder.build(req);
+    ctx.setLoadCSVFileByteBuffer(req.csvFile);
+    executor.execute(ctx);
+    return ctx.getResult().getLoadCSVResp();
   }
 
   @Override

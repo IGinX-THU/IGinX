@@ -76,7 +76,9 @@ enum SqlType {
     SetConfig,
     ShowConfig,
     Compact,
-    ExportFile
+    ExportCsv,
+    ExportStream,
+    LoadCsv
 }
 
 enum AuthType {
@@ -138,6 +140,15 @@ enum TimePrecision {
     NS
 }
 
+enum TagFilterType {
+    Base,
+    And,
+    Or,
+    BasePrecise,
+    Precise,
+    WithoutTag,
+}
+
 struct Status {
     1: required i32 code
     2: optional string message
@@ -161,6 +172,8 @@ struct CloseSessionReq {
 struct DeleteColumnsReq {
     1: required i64 sessionId
     2: required list<string> paths
+    3: optional list<map<string, list<string>>> tagsList
+    4: optional TagFilterType filterType
 }
 
 struct InsertColumnRecordsReq {
@@ -212,8 +225,9 @@ struct DeleteDataInColumnsReq {
     2: required list<string> paths
     3: required i64 startKey
     4: required i64 endKey
-    5: optional map<string, list<string>> tagsList
-    6: optional TimePrecision timePrecision
+    5: optional list<map<string, list<string>>> tagsList
+    6: optional TagFilterType filterType
+    7: optional TimePrecision timePrecision
 }
 
 struct QueryDataSet {
@@ -227,8 +241,9 @@ struct QueryDataReq {
     2: required list<string> paths
     3: required i64 startKey
     4: required i64 endKey
-    5: optional map<string, list<string>> tagsList
+    5: optional list<map<string, list<string>>> tagsList
     6: optional TimePrecision timePrecision
+    7: optional TagFilterType filterType
 }
 
 struct QueryDataResp {
@@ -257,8 +272,9 @@ struct AggregateQueryReq {
     3: required i64 startKey
     4: required i64 endKey
     5: required AggregateType aggregateType
-    6: optional map<string, list<string>> tagsList
+    6: optional list<map<string, list<string>>> tagsList
     7: optional TimePrecision timePrecision
+    8: optional TagFilterType filterType
 }
 
 struct AggregateQueryResp {
@@ -274,8 +290,9 @@ struct LastQueryReq {
     1: required i64 sessionId
     2: required list<string> paths
     3: required i64 startKey
-    4: optional map<string, list<string>> tagsList
+    4: optional list<map<string, list<string>>> tagsList
     5: optional TimePrecision timePrecision
+    6: optional TagFilterType filterType
 }
 
 struct LastQueryResp {
@@ -293,8 +310,9 @@ struct DownsampleQueryReq {
     4: required i64 endKey
     5: required AggregateType aggregateType
     6: required i64 precision
-    7: optional map<string, list<string>> tagsList
+    7: optional list<map<string, list<string>>> tagsList
     8: optional TimePrecision timePrecision
+    9: optional TagFilterType filterType
 }
 
 struct DownsampleQueryResp {
@@ -357,6 +375,7 @@ struct ExecuteSqlResp {
     23: optional JobState jobState
     24: optional list<i64> jobIdList
     25: optional string configValue
+    26: optional string loadCsvPath
 }
 
 struct UpdateUserReq {
@@ -442,6 +461,18 @@ struct ExecuteStatementResp {
     5: optional list<map<string, string>> tagsList
     6: optional list<DataType> dataTypeList
     7: optional QueryDataSetV2 queryDataSet
+    8: optional string exportStreamDir
+    9: optional ExportCSV exportCSV
+}
+
+struct ExportCSV {
+    1: required string exportCsvPath
+    2: required bool isExportHeader
+    3: required string delimiter
+    4: required bool isOptionallyQuote
+    5: required i16 quote
+    6: required i16 escaped
+    7: required string recordSeparator
 }
 
 struct QueryDataSetV2 {
@@ -465,6 +496,19 @@ struct FetchResultsResp {
     1: required Status status
     2: required bool hasMoreResults
     3: optional QueryDataSetV2 queryDataSet
+}
+
+struct LoadCSVReq {
+    1: required i64 sessionId
+    2: required string statement
+    3: required binary csvFile
+}
+
+struct LoadCSVResp {
+    1: required Status status
+    2: optional list<string> columns
+    3: optional i64 recordsNum
+    4: optional string parseErrorMsg
 }
 
 struct TaskInfo {
@@ -663,6 +707,8 @@ service IService {
     ExecuteStatementResp executeStatement(1: ExecuteStatementReq req);
 
     FetchResultsResp fetchResults(1: FetchResultsReq req);
+
+    LoadCSVResp loadCSV(1: LoadCSVReq req);
 
     Status closeStatement(1: CloseStatementReq req);
 

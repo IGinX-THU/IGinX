@@ -47,7 +47,7 @@ public final class StorageEngineMeta {
   private FragmentMeta dummyFragment;
 
   /** 数据库需要的其他参数信息，例如用户名、密码等 */
-  private final Map<String, String> extraParams;
+  private Map<String, String> extraParams;
 
   /** 数据库类型 */
   private final StorageEngineType storageEngine;
@@ -207,6 +207,10 @@ public final class StorageEngineMeta {
 
   public Map<String, String> getExtraParams() {
     return extraParams;
+  }
+
+  public void setExtraParams(Map<String, String> extraParams) {
+    this.extraParams = extraParams;
   }
 
   public StorageEngineType getStorageEngine() {

@@ -117,11 +117,11 @@ import cn.edu.tsinghua.iginx.sql.statement.DeleteColumnsStatement;
 import cn.edu.tsinghua.iginx.sql.statement.DeleteStatement;
 import cn.edu.tsinghua.iginx.sql.statement.DropTaskStatement;
 import cn.edu.tsinghua.iginx.sql.statement.ExportFileFromSelectStatement;
-import cn.edu.tsinghua.iginx.sql.statement.InsertFromFileStatement;
+import cn.edu.tsinghua.iginx.sql.statement.InsertFromCsvStatement;
 import cn.edu.tsinghua.iginx.sql.statement.InsertFromSelectStatement;
 import cn.edu.tsinghua.iginx.sql.statement.InsertStatement;
 import cn.edu.tsinghua.iginx.sql.statement.RegisterTaskStatement;
-import cn.edu.tsinghua.iginx.sql.statement.RemoveHsitoryDataSourceStatement;
+import cn.edu.tsinghua.iginx.sql.statement.RemoveHistoryDataSourceStatement;
 import cn.edu.tsinghua.iginx.sql.statement.SetConfigStatement;
 import cn.edu.tsinghua.iginx.sql.statement.ShowClusterInfoStatement;
 import cn.edu.tsinghua.iginx.sql.statement.ShowColumnsStatement;
@@ -209,7 +209,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     InsertStatement insertStatement = new InsertStatement(RawDataType.NonAlignedRow);
     parseInsertFullPathSpec(ctx.insertFullPathSpec(), insertStatement);
 
-    return new InsertFromFileStatement(importFile, insertStatement);
+    return new InsertFromCsvStatement(importFile, insertStatement);
   }
 
   private void parseInsertFullPathSpec(
@@ -517,7 +517,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   @Override
   public Statement visitRemoveHistoryDataResourceStatement(
       RemoveHistoryDataResourceStatementContext ctx) {
-    RemoveHsitoryDataSourceStatement statement = new RemoveHsitoryDataSourceStatement();
+    RemoveHistoryDataSourceStatement statement = new RemoveHistoryDataSourceStatement();
     ctx.removedStorageEngine()
         .forEach(
             storageEngine -> {

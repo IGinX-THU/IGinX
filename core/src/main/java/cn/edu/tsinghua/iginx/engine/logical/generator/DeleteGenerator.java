@@ -67,10 +67,10 @@ public class DeleteGenerator extends AbstractGenerator {
       fragments = metaManager.getFragmentMapByColumnsInterval(columnsInterval);
     }
 
-    // TODO: 这三行代码目前看来不应该存在，但是无法理解这三行代码想要解决什么问题
-    //    if (metaManager.hasDummyFragment(columnsInterval)) {
-    //      deleteStatement.setInvolveDummyData(true);
-    //    }
+    // 为了判定是否删除的序列中包含dummy分片的数据
+    if (metaManager.hasDummyFragment(columnsInterval)) {
+      deleteStatement.setInvolveDummyData(true);
+    }
 
     TagFilter tagFilter = deleteStatement.getTagFilter();
 

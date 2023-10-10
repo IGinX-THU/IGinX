@@ -36,7 +36,7 @@ public class QueryAggregatorSaveAs extends QueryAggregator {
   public QueryResultDataset doAggregate(
       RestSession session,
       List<String> paths,
-      Map<String, List<String>> tagList,
+      List<Map<String, List<String>>> tagList,
       long startKey,
       long endKey) {
     DataPointsParser parser = new DataPointsParser();

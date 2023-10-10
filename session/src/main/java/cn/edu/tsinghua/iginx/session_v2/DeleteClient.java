@@ -57,14 +57,17 @@ public interface DeleteClient {
       throws IginXException;
 
   void deleteMeasurementData(
-      final String measurement, long startKey, long endKey, Map<String, List<String>> tagsList)
+      final String measurement,
+      long startKey,
+      long endKey,
+      List<Map<String, List<String>>> tagsList)
       throws IginXException;
 
   void deleteMeasurementData(
       final String measurement,
       long startKey,
       long endKey,
-      Map<String, List<String>> tagsList,
+      List<Map<String, List<String>>> tagsList,
       TimePrecision timePrecisioin)
       throws IginXException;
 
@@ -72,14 +75,14 @@ public interface DeleteClient {
       final Collection<String> measurements,
       long startKey,
       long endKey,
-      Map<String, List<String>> tagsList)
+      List<Map<String, List<String>>> tagsList)
       throws IginXException;
 
   void deleteMeasurementsData(
       final Collection<String> measurements,
       long startKey,
       long endKey,
-      Map<String, List<String>> tagsList,
+      List<Map<String, List<String>>> tagsList,
       TimePrecision timePrecisioin)
       throws IginXException;
 
@@ -87,14 +90,14 @@ public interface DeleteClient {
       final Class<?> measurementType,
       long startKey,
       long endKey,
-      Map<String, List<String>> tagsList)
+      List<Map<String, List<String>>> tagsList)
       throws IginXException;
 
   void deleteMeasurementData(
       final Class<?> measurementType,
       long startKey,
       long endKey,
-      Map<String, List<String>> tagsList,
+      List<Map<String, List<String>>> tagsList,
       TimePrecision timePrecisioin)
       throws IginXException;
 }
