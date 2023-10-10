@@ -44,6 +44,8 @@ public class FileSystemManager {
 
   private final Map<String, FileMeta> fileMetaMap = new HashMap<>();
 
+  private final int MULTI_THREAD_THRESHOLD = 1;
+
   public FileSystemManager(Map<String, String> params) {
     memoryPool =
         new MemoryPool(
@@ -126,8 +128,8 @@ public class FileSystemManager {
     AtomicLong readPos = new AtomicLong(startKey);
     AtomicInteger index = new AtomicInteger();
     // TODO The configuration here varies in different situations.
-    boolean ifNeedMultithread = size / (chunkSize) > 1;
-    if (ifNeedMultithread) {
+    boolean needMultithread = size / (chunkSize) > MULTI_THREAD_THRESHOLD;
+    if (needMultithread) {
       executorService = Executors.newCachedThreadPool();
     }
     // Move the file pointer to the starting position
@@ -136,7 +138,7 @@ public class FileSystemManager {
         long finalReadPos = readPos.get();
         int finalIndex = index.get();
         byte[] buffer = memoryPool.allocate();
-        if (ifNeedMultithread) {
+        if (needMultithread) {
           futures.add(
               executorService.submit(
                   () -> {

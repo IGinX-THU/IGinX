@@ -296,19 +296,22 @@ public class IoTDBStorage implements IStorage {
     return executeProjectWithFilter(project, filter, storageUnit);
   }
 
+  private boolean isContainWildcard(List<String> paths) {
+    for (String path : paths) {
+      if (path.contains("*")) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   private TaskExecuteResult executeProjectWithFilter(
       Project project, Filter filter, String storageUnit) {
     try {
       StringBuilder builder = new StringBuilder();
-      boolean isContainWildcard = false;
-      for (String pattern : project.getPatterns()) {
-        if (pattern.contains("*")) {
-          isContainWildcard = true;
-          break;
-        }
-      }
+      boolean containWildcard = isContainWildcard(project.getPatterns());
       List<String> paths = project.getPatterns();
-      if (isContainWildcard) {
+      if (containWildcard) {
         paths = determinePathList(storageUnit, project.getPatterns());
       }
       for (String path : paths) {
@@ -357,15 +360,9 @@ public class IoTDBStorage implements IStorage {
   private TaskExecuteResult executeProjectDummyWithFilter(Project project, Filter filter) {
     try {
       StringBuilder builder = new StringBuilder();
-      boolean isContainWildcard = false;
-      for (String pattern : project.getPatterns()) {
-        if (pattern.contains("*")) {
-          isContainWildcard = true;
-          break;
-        }
-      }
+      boolean containWildcard = isContainWildcard(project.getPatterns());
       List<String> paths = project.getPatterns();
-      if (isContainWildcard) {
+      if (containWildcard) {
         paths = determinePathList(null, project.getPatterns());
       }
       for (String path : paths) {
