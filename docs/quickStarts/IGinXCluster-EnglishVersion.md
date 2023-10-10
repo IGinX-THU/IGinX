@@ -59,14 +59,14 @@ The specific installation method is as follows,
 
 ```shell
 $ cd ~
-$ wget https://dlcdn.apache.org/zookeeper/zookeeper-3.7.1/apache-zookeeper-3.7.1-bin.tar.gz
-$ tar -zxvf apache-zookeeper-3.7.1-bin.tar.gz
+$ wget https://dlcdn.apache.org/zookeeper/zookeeper-3.7.2/apache-zookeeper-3.7.2-bin.tar.gz
+$ tar -zxvf apache-zookeeper-3.7.2-bin.tar.gz
 ```
 
 2. Modify the default ZooKeeper profile
 
 ```shell
-$ cd apache-zookeeper-3.7.1-bin/
+$ cd apache-zookeeper-3.7.2-bin/
 $ mkdir data
 $ cp conf/zoo_sample.cfg conf/zoo.cfg
 ```
@@ -137,7 +137,7 @@ $ ./sbin/start-server.sh # Start instance two 127.0.0.1: 7667
 
 ```shell
 $ cd ~
-$ cd apache-zookeeper-3.7.1-bin/
+$ cd apache-zookeeper-3.7.2-bin/
 $ ./bin/zkServer.sh start
 ```
 
@@ -145,7 +145,7 @@ The following display of words means the ZooKeeper installation and launch was s
 
 ```shell
 ZooKeeper JMX enabled by default
-Using config: /home/root/apache-zookeeper-3.7.1-bin/bin/../conf/zoo.cfg
+Using config: /home/root/apache-zookeeper-3.7.2-bin/bin/../conf/zoo.cfg
 Starting zookeeper ... STARTED
 ```
 
