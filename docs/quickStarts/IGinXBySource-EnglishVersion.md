@@ -128,14 +128,14 @@ ZooKeeper enables highly reliable distributed coordination. In IGinX, ZooKeeper 
 
 ```shell
 $ cd ~
-$ wget https://dlcdn.apache.org/zookeeper/zookeeper-3.7.1/apache-zookeeper-3.7.1-bin.tar.gz
-$ tar -zxvf apache-zookeeper-3.7.1-bin.tar.gz
+$ wget https://dlcdn.apache.org/zookeeper/zookeeper-3.7.2/apache-zookeeper-3.7.2-bin.tar.gz
+$ tar -zxvf apache-zookeeper-3.7.2-bin.tar.gz
 ```
 
 2. Modify config.
 
 ```shell
-$ cd apache-zookeeper-3.7.1-bin/
+$ cd apache-zookeeper-3.7.2-bin/
 $ mkdir data
 $ cp conf/zoo_sample.cfg conf/zoo.cfg
 ```
@@ -239,7 +239,7 @@ Then, launch ZooKeeper.
 
 ```shell
 $ cd ~
-$ cd apache-zookeeper-3.7.1-bin/
+$ cd apache-zookeeper-3.7.2-bin/
 $ ./bin/zkServer.sh start
 ```
 
@@ -247,7 +247,7 @@ You will see messages as below if ZooKeeper is successfully started.
 
 ```shell
 ZooKeeper JMX enabled by default
-Using config: /home/root/apache-zookeeper-3.7.1-bin/bin/../conf/zoo.cfg
+Using config: /home/root/apache-zookeeper-3.7.2-bin/bin/../conf/zoo.cfg
 Starting zookeeper ... STARTED
 ```
 

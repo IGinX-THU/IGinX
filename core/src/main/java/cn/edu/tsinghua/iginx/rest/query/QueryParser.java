@@ -214,12 +214,23 @@ public class QueryParser {
     JsonNode tags = dpnode.get("tags");
     if (tags != null) {
       Iterator<String> fieldNames = tags.fieldNames();
-      Iterator<JsonNode> elements = tags.elements();
-      while (elements.hasNext() && fieldNames.hasNext()) {
-        String key = fieldNames.next();
-        for (JsonNode valueNode : elements.next()) {
-          ret.addTag(key, valueNode.asText());
+      while (fieldNames.hasNext()) {
+        String fieldName = fieldNames.next();
+        JsonNode value = tags.get(fieldName);
+        List<String> values = new ArrayList<>();
+        if (value.isArray()) {
+          for (JsonNode jsonNode : value) {
+            values.add(jsonNode.asText());
+          }
+        } else {
+          values.add(value.asText());
         }
+        ret.addTag(
+            new HashMap<String, List<String>>() {
+              {
+                put(fieldName, values);
+              }
+            });
       }
     }
     return ret;
@@ -283,11 +294,13 @@ public class QueryParser {
         tags = tags.get("tags");
         if (tags != null) {
           Iterator<String> fieldNames = tags.fieldNames();
+          Map<String, List<String>> tagkv = new HashMap<>();
           while (fieldNames.hasNext()) {
             String key = fieldNames.next();
             JsonNode valueNode = tags.get(key);
-            ins.addTag(key, valueNode.asText());
+            tagkv.put(key, Collections.singletonList(valueNode.asText()));
           }
+          ins.addTag(tagkv);
         }
       }
       setAnnotationLimit(ret, ins, query);
@@ -572,10 +585,6 @@ public class QueryParser {
           continue;
         }
 
-        if (!data.hasValues(i, j)) {
-          continue;
-        }
-
         ret.append(data.toResultString(i, j));
         ret.append(",");
       }
@@ -663,15 +672,11 @@ public class QueryParser {
   public QueryMetric parseQueryResultAnnoDataPaths(String path) {
     StringBuilder name = new StringBuilder();
     QueryMetric queryMetric = new QueryMetric();
-    Map<String, List<String>> tags = new TreeMap<>();
     Map<String, String> result = getTagsFromPaths(path, name);
 
-    for (Map.Entry<String, String> entry : result.entrySet()) {
-      List<String> val = new ArrayList<>();
-      val.add(entry.getValue());
-      tags.put(entry.getKey(), val);
-    }
-    queryMetric.setTags(tags);
+    Map<String, List<String>> tags = new HashMap<>();
+    result.forEach((key, val) -> tags.put(key, Collections.singletonList(val)));
+    queryMetric.addTag(tags);
     queryMetric.setName(name.toString());
     return queryMetric;
   }
@@ -756,14 +761,6 @@ public class QueryParser {
     StringBuilder name = new StringBuilder();
     QueryMetric metric = new QueryMetric();
     Map<String, String> tags = getTagsFromPaths(path, name);
-    Map<String, List<String>> tagsList = new TreeMap<>();
-
-    for (Map.Entry<String, String> entry : tags.entrySet()) {
-      List<String> val = new ArrayList<>();
-      val.add(entry.getValue());
-      tagsList.put(entry.getKey(), val);
-    }
-
     metric.setName(name.toString());
 
     name.append("." + tagPrefix);
@@ -775,7 +772,9 @@ public class QueryParser {
     }
     name.append("." + tagSuffix);
 
-    metric.setTags(tagsList);
+    Map<String, List<String>> kv = new HashMap<>();
+    tags.forEach((key, val) -> kv.put(key, Collections.singletonList(val)));
+    metric.addTag(kv);
     metric.setPathName(name.toString());
     return metric;
   }
@@ -785,9 +784,11 @@ public class QueryParser {
     ret.setQueryMetrics(query.getQueryMetrics());
     for (int i = 0; i < ret.getQueryMetrics().size(); i++) {
       List<String> tags = ret.getQueryMetrics().get(i).getAnnotationLimit().getTag();
+      Map<String, List<String>> tagkv = new HashMap<>();
       for (String tag : tags) {
-        ret.getQueryMetrics().get(i).addTag(tag, RestUtils.CATEGORY);
+        tagkv.put(tag, Collections.singletonList(RestUtils.CATEGORY));
       }
+      ret.getQueryMetrics().get(i).addTag(tagkv);
     }
     return ret;
   }
@@ -829,7 +830,8 @@ public class QueryParser {
         QueryMetric metric;
         metric = parseQueryResultAnnoDataPaths(path);
         metric.setQueryOriPath(path);
-        for (Map.Entry<String, List<String>> entry : metric.getTags().entrySet()) {
+        Map<String, List<String>> tagkv = metric.getTags().get(0);
+        for (Map.Entry<String, List<String>> entry : tagkv.entrySet()) {
           if (entry.getValue().get(0).equals(RestUtils.CATEGORY)) {
             ifhasAnno = true;
             break;

@@ -4,7 +4,6 @@ import static cn.edu.tsinghua.iginx.conf.Constants.HAS_DATA;
 import static cn.edu.tsinghua.iginx.conf.Constants.SCHEMA_PREFIX;
 import static cn.edu.tsinghua.iginx.utils.IPUtils.isLocalIPAddress;
 
-import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.conf.Constants;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
@@ -79,11 +78,9 @@ public class StorageEngineUtils {
   }
 
   public static boolean isLocal(StorageEngineMeta meta) {
-    Config config = ConfigDescriptor.getInstance().getConfig();
-    String storageIP = meta.getIp();
+    int port = ConfigDescriptor.getInstance().getConfig().getPort();
     int storageIginxPort = Integer.parseInt(meta.getExtraParams().getOrDefault("iginx_port", "-1"));
-    return ((isLocalIPAddress(storageIP) || storageIP.equals(config.getIp()))
-        && storageIginxPort == config.getPort());
+    return isLocalIPAddress(meta.getIp()) && storageIginxPort == port;
   }
 
   private static Pair<Boolean, String> getCanonicalPath(String dir) {

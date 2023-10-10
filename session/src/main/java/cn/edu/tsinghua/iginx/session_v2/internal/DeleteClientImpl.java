@@ -113,7 +113,7 @@ public class DeleteClientImpl extends AbstractFunctionClient implements DeleteCl
 
   @Override
   public void deleteMeasurementData(
-      String measurement, long startKey, long endKey, Map<String, List<String>> tagsList)
+      String measurement, long startKey, long endKey, List<Map<String, List<String>>> tagsList)
       throws IginXException {
     Arguments.checkNotNull(measurement, "measurement");
     deleteMeasurementsData(
@@ -125,7 +125,7 @@ public class DeleteClientImpl extends AbstractFunctionClient implements DeleteCl
       String measurement,
       long startKey,
       long endKey,
-      Map<String, List<String>> tagsList,
+      List<Map<String, List<String>>> tagsList,
       TimePrecision timePrecision)
       throws IginXException {
     Arguments.checkNotNull(measurement, "measurement");
@@ -138,7 +138,7 @@ public class DeleteClientImpl extends AbstractFunctionClient implements DeleteCl
       Collection<String> measurements,
       long startKey,
       long endKey,
-      Map<String, List<String>> tagsList)
+      List<Map<String, List<String>>> tagsList)
       throws IginXException {
     deleteMeasurementsData(measurements, startKey, endKey, tagsList, null);
   }
@@ -148,7 +148,7 @@ public class DeleteClientImpl extends AbstractFunctionClient implements DeleteCl
       Collection<String> measurements,
       long startKey,
       long endKey,
-      Map<String, List<String>> tagsList,
+      List<Map<String, List<String>>> tagsList,
       TimePrecision timePrecision)
       throws IginXException {
     Arguments.checkNotNull(measurements, "measurements");
@@ -179,7 +179,10 @@ public class DeleteClientImpl extends AbstractFunctionClient implements DeleteCl
 
   @Override
   public void deleteMeasurementData(
-      Class<?> measurementType, long startKey, long endKey, Map<String, List<String>> tagsList)
+      Class<?> measurementType,
+      long startKey,
+      long endKey,
+      List<Map<String, List<String>>> tagsList)
       throws IginXException {
     Arguments.checkNotNull(measurementType, "measurementType");
     Collection<String> measurements = measurementMapper.toMeasurements(measurementType);
@@ -191,7 +194,7 @@ public class DeleteClientImpl extends AbstractFunctionClient implements DeleteCl
       Class<?> measurementType,
       long startKey,
       long endKey,
-      Map<String, List<String>> tagsList,
+      List<Map<String, List<String>>> tagsList,
       TimePrecision timePrecision)
       throws IginXException {
     Arguments.checkNotNull(measurementType, "measurementType");
