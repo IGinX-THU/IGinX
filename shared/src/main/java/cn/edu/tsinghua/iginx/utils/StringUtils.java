@@ -111,7 +111,11 @@ public class StringUtils {
     return path;
   }
 
-  public static String reformatColumnName(String name) {
+  public static boolean match(String string, String regex) {
+    return Pattern.matches(StringUtils.reformatColumnName(regex), string);
+  }
+
+  private static String reformatColumnName(String name) {
     if (!name.contains("*") && !name.contains("(") && !name.contains(")")) return name;
     name = name.replaceAll("[.]", "[.]");
     name = name.replaceAll("[*]", ".*");

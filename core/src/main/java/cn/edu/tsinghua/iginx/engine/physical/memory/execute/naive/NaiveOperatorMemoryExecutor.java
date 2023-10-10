@@ -448,8 +448,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
             field -> {
               // 如果列名在ignorePatterns中，对该列不执行rename
               for (String ignorePattern : ignorePatterns) {
-                Pattern pattern = Pattern.compile(StringUtils.reformatColumnName(ignorePattern));
-                if (pattern.matcher(field.getName()).matches()) {
+                if (StringUtils.match(field.getName(), ignorePattern)) {
                   fields.add(field);
                   return;
                 }
@@ -471,8 +470,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
                   alias = newPattern;
                   break;
                 } else {
-                  Pattern pattern = Pattern.compile(StringUtils.reformatColumnName(oldPattern));
-                  if (pattern.matcher(field.getName()).matches()) {
+                  if (StringUtils.match(field.getName(), oldPattern)) {
                     if (newPattern.endsWith("." + oldPattern)) {
                       String prefix =
                           newPattern.substring(0, newPattern.length() - oldPattern.length());
@@ -563,7 +561,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
       if (StringUtils.isPattern(pattern)) {
         for (int i = 0; i < header.getFields().size(); i++) {
           Field field = header.getField(i);
-          if (Pattern.matches(StringUtils.reformatColumnName(pattern), field.getName())) {
+          if (StringUtils.match(field.getName(), pattern)) {
             matchedFields.add(new Pair<>(field, i));
           }
         }

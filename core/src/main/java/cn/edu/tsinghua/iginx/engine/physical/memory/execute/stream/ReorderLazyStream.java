@@ -13,7 +13,6 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Pattern;
 
 public class ReorderLazyStream extends UnaryLazyStream {
 
@@ -42,7 +41,7 @@ public class ReorderLazyStream extends UnaryLazyStream {
         if (StringUtils.isPattern(pattern)) {
           for (int i = 0; i < header.getFields().size(); i++) {
             Field field = header.getField(i);
-            if (Pattern.matches(StringUtils.reformatColumnName(pattern), field.getName())) {
+            if (StringUtils.match(field.getName(), pattern)) {
               matchedFields.add(new Pair<>(field, i));
             }
           }

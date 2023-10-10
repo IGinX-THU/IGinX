@@ -10,7 +10,6 @@ import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Pattern;
 
 public class RenameLazyStream extends UnaryLazyStream {
 
@@ -36,8 +35,7 @@ public class RenameLazyStream extends UnaryLazyStream {
               field -> {
                 // 如果列名在ignorePatterns中，对该列不执行rename
                 for (String ignorePattern : rename.getIgnorePatterns()) {
-                  Pattern pattern = Pattern.compile(StringUtils.reformatColumnName(ignorePattern));
-                  if (pattern.matcher(field.getName()).matches()) {
+                  if (StringUtils.match(field.getName(), ignorePattern)) {
                     fields.add(field);
                     return;
                   }
@@ -59,8 +57,7 @@ public class RenameLazyStream extends UnaryLazyStream {
                     alias = newPattern;
                     break;
                   } else {
-                    Pattern pattern = Pattern.compile(StringUtils.reformatColumnName(oldPattern));
-                    if (pattern.matcher(field.getName()).matches()) {
+                    if (StringUtils.match(field.getName(), oldPattern)) {
                       if (newPattern.endsWith("." + oldPattern)) {
                         String prefix =
                             newPattern.substring(0, newPattern.length() - oldPattern.length());

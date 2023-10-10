@@ -31,7 +31,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Pattern;
 
 public class UnarySelectStatement extends SelectStatement {
   private QueryType queryType;
@@ -646,8 +645,7 @@ public class UnarySelectStatement extends SelectStatement {
     }
     for (int i = 0; i < endIndexOfFromPart; i++) {
       for (String pattern : fromParts.get(i).getPatterns()) {
-        Pattern p = Pattern.compile(StringUtils.reformatColumnName(pattern));
-        if (p.matcher(path).matches()) {
+        if (StringUtils.match(path, pattern)) {
           return true;
         }
       }
@@ -661,8 +659,7 @@ public class UnarySelectStatement extends SelectStatement {
     }
     for (SubQueryFromPart whereSubQueryPart : whereSubQueryParts) {
       for (String pattern : whereSubQueryPart.getPatterns()) {
-        Pattern p = Pattern.compile(StringUtils.reformatColumnName(pattern));
-        if (p.matcher(path).matches()) {
+        if (StringUtils.match(path, pattern)) {
           return true;
         }
       }
@@ -676,8 +673,7 @@ public class UnarySelectStatement extends SelectStatement {
     }
     for (SubQueryFromPart havingSubQueryPart : havingSubQueryParts) {
       for (String pattern : havingSubQueryPart.getPatterns()) {
-        Pattern p = Pattern.compile(StringUtils.reformatColumnName(pattern));
-        if (p.matcher(path).matches()) {
+        if (StringUtils.match(path, pattern)) {
           return true;
         }
       }
