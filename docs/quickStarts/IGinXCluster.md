@@ -58,14 +58,14 @@ ZooKeeper 是 Apache 推出的开源的分布式应用程序协调服务。具�
 
 ```shell
 $ cd ~
-$ wget https://dlcdn.apache.org/zookeeper/zookeeper-3.7.1/apache-zookeeper-3.7.1-bin.tar.gz
-$ tar -zxvf apache-zookeeper-3.7.1-bin.tar.gz
+$ wget https://dlcdn.apache.org/zookeeper/zookeeper-3.7.2/apache-zookeeper-3.7.2-bin.tar.gz
+$ tar -zxvf apache-zookeeper-3.7.2-bin.tar.gz
 ```
 
 2. 修改 ZooKeeper 默认配置文件
 
 ```shell
-$ cd apache-zookeeper-3.7.1-bin/
+$ cd apache-zookeeper-3.7.2-bin/
 $ mkdir data
 $ cp conf/zoo_sample.cfg conf/zoo.cfg
 ```
@@ -141,7 +141,7 @@ $ ./sbin/start-server.sh # 启动实例二 127.0.0.1: 7667
 
 ```shell
 $ cd ~
-$ cd apache-zookeeper-3.7.1-bin/
+$ cd apache-zookeeper-3.7.2-bin/
 $ ./bin/zkServer.sh start
 ```
 
@@ -149,7 +149,7 @@ $ ./bin/zkServer.sh start
 
 ```shell
 ZooKeeper JMX enabled by default
-Using config: /home/root/apache-zookeeper-3.7.1-bin/bin/../conf/zoo.cfg
+Using config: /home/root/apache-zookeeper-3.7.2-bin/bin/../conf/zoo.cfg
 Starting zookeeper ... STARTED
 ```
 
