@@ -43,6 +43,7 @@ runs:
           name: Run DB
           shell: bash
           run: |
+              cp -f "${GITHUB_WORKSPACE}/conf/config.properties" "${GITHUB_WORKSPACE}/conf/config.properties.bak"
               if [ "$RUNNER_OS" == "Linux" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/parquet.sh"
                 "${GITHUB_WORKSPACE}/.github/scripts/dataSources/parquet.sh" 6667 6888 test/mn test/iginx_mn false false
@@ -73,6 +74,7 @@ runs:
           name: Run DB
           shell: bash
           run: |
+              cp -f "${GITHUB_WORKSPACE}/conf/config.properties" "${GITHUB_WORKSPACE}/conf/config.properties.bak"
               if [ "$RUNNER_OS" == "Linux" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/filesystem.sh"
                 "${GITHUB_WORKSPACE}/.github/scripts/dataSources/filesystem.sh" 6667 6888 test/mn test/iginx_mn false false
