@@ -106,7 +106,6 @@ public class MetaUtils {
         if (!path.startsWith(schemaPrefix) && !path.startsWith("*")) {
           continue;
         }
-        // if begin with *. and has schemaPrefix, you should condiser two cases
         if (path.startsWith(schemaPrefix)) {
           pathWithoutPrefix = path.substring(schemaPrefix.length() + 1);
         } else if (path.startsWith("*.*")) {
