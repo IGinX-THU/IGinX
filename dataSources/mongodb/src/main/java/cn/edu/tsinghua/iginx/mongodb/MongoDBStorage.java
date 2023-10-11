@@ -30,6 +30,7 @@ import cn.edu.tsinghua.iginx.mongodb.entity.SourceTable;
 import cn.edu.tsinghua.iginx.mongodb.tools.FilterUtils;
 import cn.edu.tsinghua.iginx.mongodb.tools.NameUtils;
 import cn.edu.tsinghua.iginx.mongodb.tools.TypeUtils;
+import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import com.mongodb.MongoBulkWriteException;
@@ -254,10 +255,15 @@ public class MongoDBStorage implements IStorage {
   @Override
   public List<Column> getColumns() {
     List<Column> columns = new ArrayList<>();
-    for (String unit : this.client.listDatabaseNames()) {
-      if (unit.startsWith("unit")) {
-        for (Field field : getFields(this.getDatabase(unit))) {
+    for (String dbName : this.client.listDatabaseNames()) {
+      if (dbName.startsWith("unit")) {
+        for (Field field : getFields(this.getDatabase(dbName))) {
           columns.add(new Column(field.getName(), field.getType(), field.getTags()));
+        }
+      } else {
+        for (String collectionName : this.client.getDatabase(dbName).listCollectionNames()) {
+          String namespace = dbName + "." + collectionName;
+          columns.add(new Column(namespace + ".*", DataType.BINARY, null,true));
         }
       }
     }
