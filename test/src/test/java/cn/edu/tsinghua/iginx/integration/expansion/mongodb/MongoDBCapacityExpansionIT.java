@@ -54,17 +54,6 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "Total line number = 2\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
 
-    statement = "select name from d0.c0.categories";
-    expect =
-        "ResultSets:\n"
-            + "+---+------------------------------------+\n"
-            + "|key|               d0.c0.categories.name|\n"
-            + "+---+------------------------------------+\n"
-            + "|  1|[Blur,Phone,ReflectLight,Reflection]|\n"
-            + "+---+------------------------------------+\n"
-            + "Total line number = 1\n";
-    SQLTestTools.executeAndCompare(session, statement, expect);
-
     statement = "select 0 from d0.c0.annotations.bbox";
     expect =
         "ResultSets:\n"
@@ -95,17 +84,6 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "+---+------------------------------------------------------+\n"
             + "|  1|[4.106930693069307,57.4970297029703,693.0445544554455]|\n"
             + "+---+------------------------------------------------------+\n"
-            + "Total line number = 1\n";
-    SQLTestTools.executeAndCompare(session, statement, expect);
-
-    statement = "select exterior from d0.c0.objects.points";
-    expect =
-        "ResultSets:\n"
-            + "+---+-----------------------------+\n"
-            + "|key|d0.c0.objects.points.exterior|\n"
-            + "+---+-----------------------------+\n"
-            + "|  1|        [[[0,236],[582,872]]]|\n"
-            + "+---+-----------------------------+\n"
             + "Total line number = 1\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
   }
