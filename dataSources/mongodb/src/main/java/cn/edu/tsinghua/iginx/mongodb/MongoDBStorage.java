@@ -23,8 +23,8 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
+import cn.edu.tsinghua.iginx.mongodb.dummy.DummyQuery;
 import cn.edu.tsinghua.iginx.mongodb.entity.ColumnQuery;
-import cn.edu.tsinghua.iginx.mongodb.entity.DummyQuery;
 import cn.edu.tsinghua.iginx.mongodb.entity.JoinQuery;
 import cn.edu.tsinghua.iginx.mongodb.entity.SourceTable;
 import cn.edu.tsinghua.iginx.mongodb.tools.FilterUtils;
@@ -201,6 +201,7 @@ public class MongoDBStorage implements IStorage {
     String unit = dataArea.getStorageUnit();
     DataView data = insert.getData();
 
+    // TODO check insert 同列类型冲突时抛出异常
     try {
       for (SourceTable.Column column : new SourceTable(data)) {
         Field field = column.getField();
