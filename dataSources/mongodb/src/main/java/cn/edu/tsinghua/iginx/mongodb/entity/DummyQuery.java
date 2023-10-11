@@ -293,7 +293,6 @@ public class DummyQuery {
 
     private void putMatchedSubFields(
         Result.Builder builder, List<String> prefixes, PathTree tree, BsonArray arr) {
-      PathTree notIndexPart = new PathTree();
 
       for (Map.Entry<String, PathTree> child : tree.getChildren().entrySet()) {
         String node = child.getKey();
@@ -302,9 +301,7 @@ public class DummyQuery {
           putWildcardMatchedSubFields(builder, prefixes, subTree, arr);
         } else {
           Integer index = parseInt(node);
-          if (index == null) {
-            notIndexPart.getChildren().put(node, subTree);
-          } else {
+          if (index != null) {
             if (0 <= index && index < arr.size()) {
               BsonValue subRaw = arr.get(index);
               prefixes.add(node);
@@ -316,10 +313,6 @@ public class DummyQuery {
             }
           }
         }
-      }
-
-      if (!notIndexPart.getChildren().isEmpty()) {
-        putMatchedSubSubFieldsAsArray(builder, prefixes, notIndexPart, arr);
       }
     }
 
@@ -356,34 +349,6 @@ public class DummyQuery {
 
     private String encodeInt(int i) {
       return encodeIntCache.get().computeIfAbsent(i, String::valueOf);
-    }
-
-    private void putMatchedSubSubFieldsAsArray(
-        Result.Builder builder, List<String> prefixes, PathTree tree, BsonArray raw) {
-      Builder subBuilder = new Builder();
-
-      for (BsonValue subRaw : raw) {
-        putMatchedFields(subBuilder, prefixes, tree, subRaw);
-      }
-
-      for (Map.Entry<String, BsonArray> value : subBuilder.getArrays().entrySet()) {
-        builder.put(value.getKey(), value.getValue());
-      }
-    }
-
-    private static class Builder extends Result.Builder {
-
-      private final Map<String, BsonArray> arrays = new HashMap<>();
-
-      public Map<String, BsonArray> getArrays() {
-        return arrays;
-      }
-
-      @Override
-      public void put(String field, BsonValue value) {
-        BsonArray currArray = arrays.computeIfAbsent(field, s -> new BsonArray());
-        currArray.add(value);
-      }
     }
   }
 

@@ -42,11 +42,9 @@ import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.*;
-
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
 import org.bson.BsonDocument;
 import org.bson.BsonInt64;
 import org.bson.BsonValue;
@@ -263,7 +261,7 @@ public class MongoDBStorage implements IStorage {
       } else {
         for (String collectionName : this.client.getDatabase(dbName).listCollectionNames()) {
           String namespace = dbName + "." + collectionName;
-          columns.add(new Column(namespace + ".*", DataType.BINARY, null,true));
+          columns.add(new Column(namespace + ".*", DataType.BINARY, null, true));
         }
       }
     }
@@ -287,7 +285,8 @@ public class MongoDBStorage implements IStorage {
   }
 
   @Override
-  public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String prefix) throws PhysicalException {
+  public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String prefix)
+      throws PhysicalException {
     String namespacePrefix = "";
     String documentPrefix = "";
     if (prefix != null) {
