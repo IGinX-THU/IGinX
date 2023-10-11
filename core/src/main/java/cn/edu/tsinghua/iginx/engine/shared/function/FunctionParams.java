@@ -8,46 +8,30 @@ public class FunctionParams {
 
   private final List<String> paths;
 
-  private final List<Integer> levels;
-
   private final Expression expr;
 
   private final boolean isDistinct;
 
   public FunctionParams(List<String> paths) {
-    this(paths, null, null, false);
+    this(paths, null, false);
   }
 
   public FunctionParams(List<String> paths, boolean isDistinct) {
-    this(paths, null, null, isDistinct);
+    this(paths, null, isDistinct);
   }
 
   public FunctionParams(Expression expr) {
-    this(null, null, expr, false);
+    this(null, expr, false);
   }
 
-  public FunctionParams(List<String> paths, List<Integer> levels) {
-    this(paths, levels, null, false);
-  }
-
-  public FunctionParams(List<String> paths, List<Integer> levels, boolean isDistinct) {
-    this(paths, levels, null, isDistinct);
-  }
-
-  public FunctionParams(
-      List<String> paths, List<Integer> levels, Expression expr, boolean isDistinct) {
+  public FunctionParams(List<String> paths, Expression expr, boolean isDistinct) {
     this.paths = paths;
-    this.levels = levels;
     this.expr = expr;
     this.isDistinct = isDistinct;
   }
 
   public List<String> getPaths() {
     return paths;
-  }
-
-  public List<Integer> getLevels() {
-    return levels;
   }
 
   public Expression getExpr() {
@@ -63,10 +47,6 @@ public class FunctionParams {
     if (paths != null && !paths.isEmpty()) {
       newPaths = new ArrayList<>(paths);
     }
-    List<Integer> newLevels = null;
-    if (levels != null && !levels.isEmpty()) {
-      newLevels = new ArrayList<>(levels);
-    }
-    return new FunctionParams(newPaths, newLevels, expr, isDistinct);
+    return new FunctionParams(newPaths, expr, isDistinct);
   }
 }

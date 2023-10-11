@@ -30,7 +30,6 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.tag.OrTagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.PreciseTagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.WithoutTagFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.type.FuncType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.exceptions.SQLParserException;
 import cn.edu.tsinghua.iginx.sql.SqlParser.AddStorageEngineStatementContext;
@@ -157,12 +156,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.antlr.v4.runtime.tree.TerminalNode;
 
 public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
-
-  private static final Set<FuncType> supportedAggregateWithLevelFuncSet =
-      new HashSet<>(Arrays.asList(FuncType.Sum, FuncType.Count, FuncType.Avg));
 
   @Override
   public Statement visitSqlStatement(SqlStatementContext ctx) {
@@ -965,17 +960,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   }
 
   private void parseSpecialClause(SpecialClauseContext ctx, UnarySelectStatement selectStatement) {
-    if (ctx.downsampleWithLevelClause() != null) {
-      // downsampleWithLevelClause = downsampleClause + aggregateWithLevelClause
-      parseDownsampleClause(ctx.downsampleWithLevelClause().downsampleClause(), selectStatement);
-      parseAggregateWithLevelClause(
-          ctx.downsampleWithLevelClause().aggregateWithLevelClause().INT(), selectStatement);
-    }
     if (ctx.downsampleClause() != null) {
       parseDownsampleClause(ctx.downsampleClause(), selectStatement);
-    }
-    if (ctx.aggregateWithLevelClause() != null) {
-      parseAggregateWithLevelClause(ctx.aggregateWithLevelClause().INT(), selectStatement);
     }
     if (ctx.groupByClause() != null) {
       parseGroupByClause(ctx.groupByClause(), selectStatement);
@@ -1015,16 +1001,6 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     selectStatement.setFilter(mergedFilter);
   }
 
-  private void parseAggregateWithLevelClause(
-      List<TerminalNode> layers, UnarySelectStatement selectStatement) {
-    if (!isSupportAggregateWithLevel(selectStatement)) {
-      throw new SQLParserException(
-          "Aggregate with level only support aggregate query count, sum, avg for now.");
-    }
-    layers.forEach(
-        terminalNode -> selectStatement.setLayer(Integer.parseInt(terminalNode.getText())));
-  }
-
   private void parseGroupByClause(GroupByClauseContext ctx, UnarySelectStatement selectStatement) {
     selectStatement.setHasGroupBy(true);
 
@@ -1059,10 +1035,6 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
                 throw new SQLParserException("Selected path must exist in group by clause.");
               }
             });
-  }
-
-  private boolean isSupportAggregateWithLevel(UnarySelectStatement selectStatement) {
-    return supportedAggregateWithLevelFuncSet.containsAll(selectStatement.getFuncTypeSet());
   }
 
   // like standard SQL, limit N, M means limit M offset N

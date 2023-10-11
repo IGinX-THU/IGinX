@@ -26,13 +26,10 @@ import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionType;
 import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
 import cn.edu.tsinghua.iginx.engine.shared.function.SetMappingFunction;
-import cn.edu.tsinghua.iginx.engine.shared.function.system.utils.GroupByUtils;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -73,47 +70,23 @@ public class Count implements SetMappingFunction {
     if (pathParams == null || pathParams.size() != 1) {
       throw new IllegalArgumentException("unexpected param type for avg.");
     }
-    List<Integer> groupByLevels = params.getLevels();
 
     String target = pathParams.get(0);
     Pattern pattern = Pattern.compile(StringUtils.reformatPath(target) + ".*");
     List<Field> targetFields = new ArrayList<>();
     List<Integer> indices = new ArrayList<>();
-    Map<String, Integer> groupNameIndexMap = new HashMap<>(); // 只有在存在 group by 的时候才奏效
-    Map<Integer, Integer> groupOrderIndexMap = new HashMap<>();
     for (int i = 0; i < rows.getHeader().getFieldSize(); i++) {
       Field field = rows.getHeader().getField(i);
       if (pattern.matcher(field.getFullName()).matches()) {
-        if (groupByLevels == null) {
-          String name = getIdentifier() + "(";
-          String fullName = getIdentifier() + "(";
-          if (params.isDistinct()) {
-            name += "distinct ";
-            fullName += "distinct ";
-          }
-          name += field.getName() + ")";
-          fullName += field.getFullName() + ")";
-          targetFields.add(new Field(name, fullName, DataType.LONG));
-        } else {
-          String targetFieldName =
-              getIdentifier()
-                  + "("
-                  + GroupByUtils.transformPath(field.getName(), groupByLevels)
-                  + ")";
-          String targetFieldFullName =
-              getIdentifier()
-                  + "("
-                  + GroupByUtils.transformPath(field.getFullName(), groupByLevels)
-                  + ")";
-          int index = groupNameIndexMap.getOrDefault(targetFieldFullName, -1);
-          if (index != -1) {
-            groupOrderIndexMap.put(i, index);
-          } else {
-            groupNameIndexMap.put(targetFieldFullName, targetFields.size());
-            groupOrderIndexMap.put(i, targetFields.size());
-            targetFields.add(new Field(targetFieldName, targetFieldFullName, DataType.LONG));
-          }
+        String name = getIdentifier() + "(";
+        String fullName = getIdentifier() + "(";
+        if (params.isDistinct()) {
+          name += "distinct ";
+          fullName += "distinct ";
         }
+        name += field.getName() + ")";
+        fullName += field.getFullName() + ")";
+        targetFields.add(new Field(name, fullName, DataType.LONG));
         indices.add(i);
       }
     }
@@ -124,11 +97,7 @@ public class Count implements SetMappingFunction {
       for (int i = 0; i < indices.size(); i++) {
         int index = indices.get(i);
         if (values[index] != null) {
-          int targetIndex = i;
-          if (groupByLevels != null) {
-            targetIndex = groupOrderIndexMap.get(index);
-          }
-          counts[targetIndex]++;
+          counts[i]++;
         }
       }
     }

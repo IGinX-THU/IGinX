@@ -60,7 +60,6 @@ public class UnarySelectStatement extends SelectStatement {
   private long startKey;
   private long endKey;
   private long slideDistance;
-  private List<Integer> layers;
 
   public UnarySelectStatement() {
     this(false);
@@ -80,7 +79,6 @@ public class UnarySelectStatement extends SelectStatement {
     this.whereSubQueryParts = new ArrayList<>();
     this.groupByPaths = new ArrayList<>();
     this.havingSubQueryParts = new ArrayList<>();
-    this.layers = new ArrayList<>();
   }
 
   // simple query
@@ -210,7 +208,6 @@ public class UnarySelectStatement extends SelectStatement {
             new ArrayList<>(
                 Arrays.asList(new KeyFilter(Op.GE, startKey), new KeyFilter(Op.L, endKey))));
     this.hasValueFilter = true;
-    this.layers = new ArrayList<>();
   }
 
   public static FuncType str2FuncType(String str) {
@@ -480,14 +477,6 @@ public class UnarySelectStatement extends SelectStatement {
 
   public void checkQueryType(QueryType queryType) {
     this.queryType = queryType;
-  }
-
-  public List<Integer> getLayers() {
-    return layers;
-  }
-
-  public void setLayer(Integer layer) {
-    this.layers.add(layer);
   }
 
   @Override

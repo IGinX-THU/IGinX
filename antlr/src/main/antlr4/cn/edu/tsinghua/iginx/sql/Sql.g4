@@ -190,9 +190,7 @@ join
    ;
 
 specialClause
-   : aggregateWithLevelClause
-   | groupByClause havingClause?
-   | downsampleWithLevelClause
+   : groupByClause havingClause?
    | downsampleClause
    ;
 
@@ -208,20 +206,12 @@ orderByClause
    : ORDER BY (KEY | path) (COMMA path)* (DESC | ASC)?
    ;
 
-downsampleWithLevelClause
-   : downsampleClause aggregateWithLevelClause
-   ;
-
 downsampleClause
    : OVER LR_BRACKET RANGE aggLen IN timeInterval (STEP aggLen)? RR_BRACKET
    ;
 
 aggLen
    : (TIME_WITH_UNIT | INT)
-   ;
-
-aggregateWithLevelClause
-   : AGG LEVEL OPERATOR_EQ INT (COMMA INT)*
    ;
 
 asClause
@@ -366,7 +356,6 @@ keyWords
    | ORDER
    | HAVING
    | AGG
-   | LEVEL
    | ADD
    | VALUE
    | VALUES
@@ -544,10 +533,6 @@ HAVING
 
 AGG
    : A G G
-   ;
-
-LEVEL
-   : L E V E L
    ;
 
 BY
