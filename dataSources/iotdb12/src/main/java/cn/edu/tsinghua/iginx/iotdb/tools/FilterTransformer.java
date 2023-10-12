@@ -18,13 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.iotdb.tools;
 
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.NotFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.OrFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.ValueFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import java.util.stream.Collectors;
 
 public class FilterTransformer {
@@ -44,6 +38,8 @@ public class FilterTransformer {
         return toString((ValueFilter) filter);
       case Key:
         return toString((KeyFilter) filter);
+      case Path:
+        return toString((PathFilter) filter);
       default:
         return "";
     }
@@ -74,5 +70,9 @@ public class FilterTransformer {
     return filter.getChildren().stream()
         .map(FilterTransformer::toString)
         .collect(Collectors.joining(" or ", "(", ")"));
+  }
+
+  private static String toString(PathFilter filter) {
+    return filter.getPathA() + " " + Op.op2Str(filter.getOp()) + " " + filter.getPathB();
   }
 }
