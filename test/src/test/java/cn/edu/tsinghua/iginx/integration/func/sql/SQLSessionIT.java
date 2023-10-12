@@ -4448,6 +4448,53 @@ public class SQLSessionIT {
   }
 
   @Test
+  public void testInsertWithSubQueryWithNull() {
+    String insert =
+        "INSERT INTO test(key, a, b, c) VALUES (0, 0, 0.5, \"aaa\"), (1, 1, 1.5, \"bbb\"), "
+            + "(2, null, 2.5, \"ccc\"), (3, null, 3.5, \"ddd\"), (4, null, 4.5, null), (5, null, 5.5, null);";
+    executor.execute(insert);
+
+    String query = "SELECT * FROM test;";
+    String expected =
+        "ResultSets:\n"
+            + "+---+------+------+------+\n"
+            + "|key|test.a|test.b|test.c|\n"
+            + "+---+------+------+------+\n"
+            + "|  0|     0|   0.5|   aaa|\n"
+            + "|  1|     1|   1.5|   bbb|\n"
+            + "|  2|  null|   2.5|   ccc|\n"
+            + "|  3|  null|   3.5|   ddd|\n"
+            + "|  4|  null|   4.5|  null|\n"
+            + "|  5|  null|   5.5|  null|\n"
+            + "+---+------+------+------+\n"
+            + "Total line number = 6\n";
+    executor.executeAndCompare(query, expected);
+
+    query = "SELECT * FROM t;";
+    expected = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
+    executor.executeAndCompare(query, expected);
+
+    String insertFromSelect = "INSERT INTO t(key, a, b, c) VALUES (SELECT * FROM test)";
+    executor.execute(insertFromSelect);
+
+    query = "SELECT * FROM t;";
+    expected =
+        "ResultSets:\n"
+            + "+---+----+---+----+\n"
+            + "|key| t.a|t.b| t.c|\n"
+            + "+---+----+---+----+\n"
+            + "|  0|   0|0.5| aaa|\n"
+            + "|  1|   1|1.5| bbb|\n"
+            + "|  2|null|2.5| ccc|\n"
+            + "|  3|null|3.5| ddd|\n"
+            + "|  4|null|4.5|null|\n"
+            + "|  5|null|5.5|null|\n"
+            + "+---+----+---+----+\n"
+            + "Total line number = 6\n";
+    executor.executeAndCompare(query, expected);
+  }
+
+  @Test
   public void testChinesePath() {
     if (!isSupportChinesePath) {
       return;
