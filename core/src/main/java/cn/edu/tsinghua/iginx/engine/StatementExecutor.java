@@ -156,7 +156,7 @@ public class StatementExecutor {
     try {
       String statisticsCollectorClassName =
           ConfigDescriptor.getInstance().getConfig().getStatisticsCollectorClassName();
-      if (statisticsCollectorClassName != null && !statisticsCollectorClassName.equals("")) {
+      if (statisticsCollectorClassName != null && !statisticsCollectorClassName.isEmpty()) {
         Class<? extends IStatisticsCollector> statisticsCollectorClass =
             StatementExecutor.class
                 .getClassLoader()

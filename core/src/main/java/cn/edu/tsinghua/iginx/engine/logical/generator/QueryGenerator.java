@@ -318,7 +318,7 @@ public class QueryGenerator extends AbstractGenerator {
           .getFuncExpressionMap()
           .forEach(
               (k, v) -> {
-                if (!k.equals("")) {
+                if (!k.isEmpty()) {
                   v.forEach(
                       expression -> {
                         FunctionParams params =

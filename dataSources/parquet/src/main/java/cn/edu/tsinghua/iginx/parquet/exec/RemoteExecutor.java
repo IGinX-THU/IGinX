@@ -63,7 +63,7 @@ public class RemoteExecutor implements Executor {
     if (tagFilter != null) {
       req.setTagFilter(constructRawTagFilter(tagFilter));
     }
-    if (filter != null && !filter.equals("")) {
+    if (filter != null && !filter.isEmpty()) {
       req.setFilter(filter);
     }
 

@@ -197,7 +197,7 @@ public class IginxClient {
       session = new Session(host, port, username, password);
       session.openSession();
 
-      if (execute.equals("")) {
+      if (execute.isEmpty()) {
         echoStarting();
         displayLogo("0.6.0-SNAPSHOT");
 
@@ -225,12 +225,12 @@ public class IginxClient {
 
   private static boolean processCommand(String command)
       throws SessionException, ExecutionException, IOException {
-    if (command == null || command.trim().equals("")) {
+    if (command == null || command.trim().isEmpty()) {
       return true;
     }
     String[] cmds = command.trim().split(";");
     for (String cmd : cmds) {
-      if (cmd != null && !cmd.trim().equals("")) {
+      if (cmd != null && !cmd.trim().isEmpty()) {
         OperationResult res = handleInputStatement(cmd);
         switch (res) {
           case STOP:
@@ -289,7 +289,7 @@ public class IginxClient {
   }
 
   private static boolean isSetTimeUnit() {
-    return !timestampPrecision.equals("");
+    return !timestampPrecision.isEmpty();
   }
 
   private static void processSql(String sql) {
@@ -297,7 +297,7 @@ public class IginxClient {
       SessionExecuteSqlResult res = session.executeSql(sql);
 
       String parseErrorMsg = res.getParseErrorMsg();
-      if (parseErrorMsg != null && !parseErrorMsg.equals("")) {
+      if (parseErrorMsg != null && !parseErrorMsg.isEmpty()) {
         System.out.println(res.getParseErrorMsg());
         return;
       }
