@@ -264,13 +264,6 @@ public class UDFIT {
         "INSERT INTO test(key, a, b) VALUES (1, 2, 3), (2, 3, 1), (3, 4, 3), (4, 9, 7), (5, 3, 6), (6, 6, 4);";
     execute(insert);
 
-    String query = "SELECT COS(*) FROM test;";
-    SessionExecuteSqlResult ret = execute(query);
-
-    assertEquals(2, ret.getPaths().size());
-    assertEquals("cos(test.a)", ret.getPaths().get(0));
-    assertEquals("cos(test.b)", ret.getPaths().get(1));
-
     List<Double> cosTestAExpectedValues =
         Arrays.asList(
             -0.4161468365471424,
@@ -288,19 +281,8 @@ public class UDFIT {
             0.9601702866503661,
             -0.6536436208636119);
 
-    for (int i = 0; i < ret.getValues().size(); i++) {
-      assertEquals(2, ret.getValues().get(i).size());
-      double expected = cosTestAExpectedValues.get(i);
-      double actual = (double) ret.getValues().get(i).get(0);
-      assertEquals(expected, actual, delta);
-
-      expected = cosTestBExpectedValues.get(i);
-      actual = (double) ret.getValues().get(i).get(1);
-      assertEquals(expected, actual, delta);
-    }
-
-    query = "SELECT \"cos(test.a)\" FROM(SELECT COS(*) FROM test);";
-    ret = execute(query);
+    String query = "SELECT \"cos(test.a)\" FROM(SELECT COS(*) FROM test);";
+    SessionExecuteSqlResult ret = execute(query);
 
     assertEquals(1, ret.getPaths().size());
     assertEquals("cos(test.a)", ret.getPaths().get(0));

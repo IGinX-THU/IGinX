@@ -59,6 +59,7 @@ import cn.edu.tsinghua.iginx.policy.IPolicy;
 import cn.edu.tsinghua.iginx.policy.PolicyManager;
 import cn.edu.tsinghua.iginx.sql.expression.Expression;
 import cn.edu.tsinghua.iginx.sql.expression.FromValueExpression;
+import cn.edu.tsinghua.iginx.sql.expression.FuncExpression;
 import cn.edu.tsinghua.iginx.sql.statement.Statement;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.FromPartType;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.PathFromPart;
@@ -546,6 +547,7 @@ public class QueryGenerator extends AbstractGenerator {
           root = new Reorder(new OperatorSource(root), Arrays.asList("path", "value"));
         } else {
           List<String> order = new ArrayList<>();
+          List<Boolean> isPyUDF = new ArrayList<>();
           selectStatement
               .getExpressions()
               .forEach(
@@ -553,12 +555,26 @@ public class QueryGenerator extends AbstractGenerator {
                     if (expression.getType().equals(Expression.ExpressionType.FromValue)) {
                       return;
                     }
+                    if (expression.getType().equals(Expression.ExpressionType.Function)) {
+                      isPyUDF.add(((FuncExpression) expression).isPyUDF());
+                    } else {
+                      isPyUDF.add(false);
+                    }
                     String colName = expression.getColumnName();
                     order.add(colName);
                   });
-          root =
-              new Reorder(
-                  new OperatorSource(root), order, selectStatement.hasValueToSelectedPath());
+          // order中全为UDF时，不生成reorder算子
+          for (boolean b : isPyUDF) {
+            if (!b) {
+              root =
+                  new Reorder(
+                      new OperatorSource(root),
+                      order,
+                      isPyUDF,
+                      selectStatement.hasValueToSelectedPath());
+              break;
+            }
+          }
         }
       } else {
         List<String> order = new ArrayList<>();

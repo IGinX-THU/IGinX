@@ -50,4 +50,16 @@ public class FunctionUtils {
   public static boolean isCanUseSetQuantifierFunction(String identifier) {
     return sysCanUseSetQuantifierFunctionSet.contains(identifier.toLowerCase());
   }
+
+  public static boolean isPyUDF(String identifier) {
+    if (sysRowToRowFunctionSet.contains(identifier)
+        || sysSetToRowFunctionSet.contains(identifier)
+        || sysSetToSetFunctionSet.contains(identifier)) {
+      return false;
+    }
+    Function function = functionManager.getFunction(identifier);
+    return function.getIdentifier().equals("py_udtf")
+        || function.getIdentifier().equals("py_udaf")
+        || function.getIdentifier().equals("py_udsf");
+  }
 }
