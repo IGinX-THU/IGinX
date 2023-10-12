@@ -44,6 +44,8 @@ public class FileSystemManager {
 
   private final Map<String, FileMeta> fileMetaMap = new HashMap<>();
 
+  private final int MULTI_THREAD_THRESHOLD = 1;
+
   public FileSystemManager(Map<String, String> params) {
     memoryPool =
         new MemoryPool(
@@ -72,7 +74,7 @@ public class FileSystemManager {
         FileMeta fileMeta = getFileMeta(f);
         res.add(new FileSystemResultTable(f, records, fileMeta.getDataType(), fileMeta.getTags()));
       } else {
-        res.add(new FileSystemResultTable(f, records, DataType.BINARY, null));
+        res.add(new FileSystemResultTable(f, records, DataType.BINARY, new HashMap<>()));
       }
     }
     return res;
@@ -125,9 +127,9 @@ public class FileSystemManager {
     }
     AtomicLong readPos = new AtomicLong(startKey);
     AtomicInteger index = new AtomicInteger();
-    // TODO 为什么是5？？？
-    boolean ifNeedMultithread = size / (chunkSize) > 5;
-    if (ifNeedMultithread) {
+    // TODO The configuration here varies in different situations.
+    boolean needMultithread = size / (chunkSize) > MULTI_THREAD_THRESHOLD;
+    if (needMultithread) {
       executorService = Executors.newCachedThreadPool();
     }
     // Move the file pointer to the starting position
@@ -136,7 +138,7 @@ public class FileSystemManager {
         long finalReadPos = readPos.get();
         int finalIndex = index.get();
         byte[] buffer = memoryPool.allocate();
-        if (ifNeedMultithread) {
+        if (needMultithread) {
           futures.add(
               executorService.submit(
                   () -> {
@@ -323,7 +325,7 @@ public class FileSystemManager {
   private List<File> getAssociatedFiles(File file, boolean isDummy) {
     List<File> associatedFiles = new ArrayList<>();
     try {
-      String filePath = file.getCanonicalPath();
+      String filePath = file.getAbsolutePath();
       if (!filePath.contains(WILDCARD) && isDummy) {
         if (file.isFile() && file.exists()) {
           associatedFiles.add(file);
