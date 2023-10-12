@@ -21,10 +21,10 @@ public class Constant {
       Arrays.asList("mn.wf01.wt01.status", "mn.wf01.wt01.temperature");
 
   public static final List<String> EXP_PATH_LIST =
-      Arrays.asList("nt.wf03.wt01.status", "nt.wf04.wt01.temperature");
+      Arrays.asList("nt.wf03.wt01.status2", "nt.wf04.wt01.temperature");
 
   public static final List<String> EXP_PATH_LIST1 =
-      Collections.singletonList("nt.wf03.wt01.status");
+      Collections.singletonList("nt.wf03.wt01.status2");
 
   public static final List<String> EXP_PATH_LIST2 =
       Collections.singletonList("nt.wf04.wt01.temperature");
@@ -55,6 +55,9 @@ public class Constant {
 
   public static List<List<Object>> READ_ONLY_VALUES_LIST =
       Arrays.asList(Arrays.asList(55555555L, 10012.01), Arrays.asList(66666666L, 99123.99));
+
+  public static List<List<Object>> REPEAT_EXP_VALUES_LIST1 =
+      Arrays.asList(Arrays.asList(33333333L, 33333333L), Arrays.asList(44444444L, 44444444L));
 
   // for file system
   public static final Map<Integer, String> PORT_TO_ROOT =
