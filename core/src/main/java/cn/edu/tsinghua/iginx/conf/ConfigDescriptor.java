@@ -228,12 +228,8 @@ public class ConfigDescriptor {
           Integer.parseInt(properties.getProperty("parallelGroupByPoolNum", "5")));
       config.setStreamParallelGroupByWorkerNum(
           Integer.parseInt(properties.getProperty("streamParallelGroupByWorkerNum", "5")));
-      config.setBatchSizeExportCsv(
-          Integer.parseInt(properties.getProperty("batchSizeExportCsv", "10000")));
       config.setBatchSizeImportCsv(
           Integer.parseInt(properties.getProperty("batchSizeImportCsv", "10000")));
-      config.setBatchSizeExportByteStream(
-          Integer.parseInt(properties.getProperty("batchSizeExportByteStream", "10000")));
     } catch (IOException e) {
       logger.error("Fail to load properties: ", e);
     }
@@ -350,12 +346,8 @@ public class ConfigDescriptor {
     config.setStreamParallelGroupByWorkerNum(
         EnvUtils.loadEnv(
             "streamParallelGroupByWorkerNum", config.getStreamParallelGroupByWorkerNum()));
-    config.setBatchSizeExportCsv(
-        EnvUtils.loadEnv("batchSizeExportCsv", config.getBatchSizeExportCsv()));
     config.setBatchSizeImportCsv(
         EnvUtils.loadEnv("batchSizeImportCsv", config.getBatchSizeImportCsv()));
-    config.setBatchSizeExportByteStream(
-        EnvUtils.loadEnv("batchSizeExportByteStream", config.getBatchSizeExportByteStream()));
   }
 
   private void loadUDFListFromFile() {
