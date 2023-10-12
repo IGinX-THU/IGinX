@@ -563,18 +563,12 @@ public class QueryGenerator extends AbstractGenerator {
                     String colName = expression.getColumnName();
                     order.add(colName);
                   });
-          // order中全为UDF时，不生成reorder算子
-          for (boolean b : isPyUDF) {
-            if (!b) {
-              root =
-                  new Reorder(
-                      new OperatorSource(root),
-                      order,
-                      isPyUDF,
-                      selectStatement.hasValueToSelectedPath());
-              break;
-            }
-          }
+          root =
+              new Reorder(
+                  new OperatorSource(root),
+                  order,
+                  isPyUDF,
+                  selectStatement.hasValueToSelectedPath());
         }
       } else {
         List<String> order = new ArrayList<>();
