@@ -79,7 +79,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import jdk.nashorn.internal.runtime.regexp.joni.exception.SyntaxException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -520,7 +519,7 @@ public class QueryGenerator extends AbstractGenerator {
       selectStatement.initFreeVariables();
       List<String> freeVariables = selectStatement.getFreeVariables();
       if (!freeVariables.isEmpty()) {
-        throw new SyntaxException("Unexpected paths' name: " + freeVariables + ".");
+        throw new RuntimeException("Unexpected paths' name: " + freeVariables + ".");
       }
     }
 
