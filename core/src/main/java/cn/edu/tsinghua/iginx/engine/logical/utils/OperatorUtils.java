@@ -149,8 +149,7 @@ public class OperatorUtils {
     }
     AbstractJoinOperator applyCopy = (AbstractJoinOperator) apply.copy();
 
-    Operator operatorA =
-        new Project(applyCopy.getSourceA(), correlatedVariables, null, false, true);
+    Operator operatorA = new Project(applyCopy.getSourceA(), correlatedVariables, null);
     applyCopy.setSourceA(new OperatorSource(operatorA));
     applyCopy.setPrefixA(null);
     if (applyCopy.getType() == OperatorType.MarkJoin) {
@@ -222,9 +221,7 @@ public class OperatorUtils {
             new Project(
                 new OperatorSource(pushDownApply(apply, correlatedVariables)),
                 patternsAll,
-                project.getTagFilter(),
-                false,
-                true);
+                project.getTagFilter());
         break;
       case Select:
         Select select = (Select) operatorB;
