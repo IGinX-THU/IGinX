@@ -3673,7 +3673,7 @@ public class SQLSessionIT {
             + "Total line number = 4\n";
     executor.executeAndCompare(statement, expected);
 
-    statement = "SELECT * FROM test.a WHERE d IN (SELECT d FROM test.b ORDER BY key LIMIT 2);";
+    statement = "SELECT * FROM test.a WHERE d IN (SELECT d AS a FROM test.b ORDER BY key LIMIT 2);";
     expected =
         "ResultSets:\n"
             + "+---+--------+--------+--------+--------+\n"
@@ -3739,7 +3739,8 @@ public class SQLSessionIT {
             + "Total line number = 4\n";
     executor.executeAndCompare(statement, expected);
 
-    statement = "SELECT * FROM test.a WHERE d = SOME (SELECT d FROM test.b ORDER BY key LIMIT 2);";
+    statement =
+        "SELECT * FROM test.a WHERE d = SOME (SELECT d AS a FROM test.b ORDER BY key LIMIT 2);";
     expected =
         "ResultSets:\n"
             + "+---+--------+--------+--------+--------+\n"
@@ -3802,7 +3803,7 @@ public class SQLSessionIT {
             + "Total line number = 2\n";
     executor.executeAndCompare(statement, expected);
 
-    statement = "SELECT * FROM test.a WHERE a > (SELECT AVG(a) FROM test.b);";
+    statement = "SELECT * FROM test.a WHERE a > (SELECT AVG(a) AS a FROM test.b);";
     expected =
         "ResultSets:\n"
             + "+---+--------+--------+--------+--------+\n"
@@ -3827,7 +3828,7 @@ public class SQLSessionIT {
     executor.executeAndCompare(statement, expected);
 
     statement =
-        "SELECT * FROM test.a WHERE (SELECT AVG(a) FROM test.c) = (SELECT AVG(a) FROM test.b);";
+        "SELECT * FROM test.a WHERE (SELECT AVG(a) AS a FROM test.c) = (SELECT AVG(a) AS b FROM test.b);";
     expected =
         "ResultSets:\n"
             + "+---+--------+--------+--------+--------+\n"
