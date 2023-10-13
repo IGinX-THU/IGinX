@@ -18,7 +18,7 @@ public class ConstraintCheckerManager {
   }
 
   public ConstraintChecker getChecker(String name) {
-    if (name == null || name.isEmpty()) {
+    if (name == null || name.equals("")) {
       return null;
     }
     logger.info("use {} as constraint checker.", name);

@@ -36,7 +36,7 @@ public class UnaryExpression implements Expression {
 
   @Override
   public boolean hasAlias() {
-    return alias != null && !alias.isEmpty();
+    return alias != null && !alias.equals("");
   }
 
   @Override

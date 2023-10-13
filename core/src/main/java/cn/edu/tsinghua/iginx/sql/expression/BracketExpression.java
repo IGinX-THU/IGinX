@@ -30,7 +30,7 @@ public class BracketExpression implements Expression {
 
   @Override
   public boolean hasAlias() {
-    return alias != null && !alias.isEmpty();
+    return alias != null && !alias.equals("");
   }
 
   @Override

@@ -43,7 +43,7 @@ public class PathFromPart implements FromPart {
   }
 
   public boolean hasAlias() {
-    return alias != null && !alias.isEmpty();
+    return alias != null && !alias.equals("");
   }
 
   @Override
