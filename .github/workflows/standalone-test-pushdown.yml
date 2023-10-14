@@ -33,15 +33,15 @@ jobs:
             - name: Run ZooKeeper
               uses: ./.github/actions/zookeeperRunner
 
-            - name: Install IGinX with Maven
-              shell: bash
-              run: |
-                  mvn clean package -DskipTests -P-format -q
-
             - name: Run DB
               uses: ./.github/actions/dbRunner
               with:
                   DB-name: ${{ matrix.DB-name }}
+
+            - name: Install IGinX with Maven
+              shell: bash
+              run: |
+                  mvn clean package -DskipTests -P-format -q
 
             - name: Change IGinX config
               uses: ./.github/actions/confWriter
