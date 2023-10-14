@@ -344,4 +344,45 @@ public class UDFIT {
             + "Total line number = 2\n";
     assertEquals(expected, ret.getResultInString(false, ""));
   }
+
+  @Test
+  public void testColumnExpand() {
+    String insert =
+        "INSERT INTO test(key, a, b) VALUES (1, 2, 3), (2, 3, 1), (3, 4, 3), (4, 9, 7), (5, 3, 6), (6, 6, 4);";
+    execute(insert);
+
+    String query = "SELECT a, b FROM test;";
+    SessionExecuteSqlResult ret = execute(query);
+    String expected =
+        "ResultSets:\n"
+            + "+---+------+------+\n"
+            + "|key|test.a|test.b|\n"
+            + "+---+------+------+\n"
+            + "|  1|     2|     3|\n"
+            + "|  2|     3|     1|\n"
+            + "|  3|     4|     3|\n"
+            + "|  4|     9|     7|\n"
+            + "|  5|     3|     6|\n"
+            + "|  6|     6|     4|\n"
+            + "+---+------+------+\n"
+            + "Total line number = 6\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+
+    query = "SELECT column_expand(*) FROM (SELECT a, b FROM test);";
+    ret = execute(query);
+    expected =
+        "ResultSets:\n"
+            + "+---+---------------------+-------------------------+-----------------------+---------------------+-------------------------+-----------------------+\n"
+            + "|key|column_expand(test.a)|column_expand(test.a+1.5)|column_expand(test.a*2)|column_expand(test.b)|column_expand(test.b+1.5)|column_expand(test.b*2)|\n"
+            + "+---+---------------------+-------------------------+-----------------------+---------------------+-------------------------+-----------------------+\n"
+            + "|  1|                    2|                      3.5|                      4|                    3|                      4.5|                      6|\n"
+            + "|  2|                    3|                      4.5|                      6|                    1|                      2.5|                      2|\n"
+            + "|  3|                    4|                      5.5|                      8|                    3|                      4.5|                      6|\n"
+            + "|  4|                    9|                     10.5|                     18|                    7|                      8.5|                     14|\n"
+            + "|  5|                    3|                      4.5|                      6|                    6|                      7.5|                     12|\n"
+            + "|  6|                    6|                      7.5|                     12|                    4|                      5.5|                      8|\n"
+            + "+---+---------------------+-------------------------+-----------------------+---------------------+-------------------------+-----------------------+\n"
+            + "Total line number = 6\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+  }
 }
