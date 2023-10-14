@@ -10,3 +10,4 @@ UDTF,cos,UDFCos,udtf_cos.py
 UDTF,multiply,UDFMultiply,udtf_multiply.py
 
 UDSF,reverse_rows,UDFReverseRows,udsf_reverse_rows.py
+UDSF,transpose,UDFTranspose,udsf_transpose.py
