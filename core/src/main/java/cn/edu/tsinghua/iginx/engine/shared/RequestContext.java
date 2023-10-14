@@ -39,7 +39,6 @@ public class RequestContext {
 
   private PhysicalTask physicalTree;
 
-<<<<<<< HEAD
   private String warningMsg;
 
   private ByteBuffer loadCSVFileByteBuffer;
