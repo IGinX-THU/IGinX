@@ -54,22 +54,21 @@ public class SchemaTransformer {
     String[] parts = pattern.split("\\.", 3);
     int index = 0;
     String bucketName = parts[index++];
-    if (index >= parts.length) {
+    if (parts.length == 1) {
       return new Pair<>(bucketName, "true");
     }
     StringBuilder queryBuilder = new StringBuilder("(");
-    String measurementName = parts[index++];
-    if (!measurementName.equals("*")) {
-      queryBuilder.append(String.format("r._measurement ==\"%s\"", measurementName));
+    if (parts.length > 2) {
+      String measurementName = parts[index++];
+      if (!measurementName.equals("*")) {
+        queryBuilder.append(String.format("r._measurement ==\"%s\" and ", measurementName));
+      }
     }
-    if (index < parts.length) {
-      // 接着处理 field
-      String field = parts[index];
-      queryBuilder
-          .append(" and r._field =~ /")
-          .append(InfluxDBSchema.transformField(field))
-          .append("/");
-    }
+
+    // 接着处理 field
+    String field = parts[index];
+    queryBuilder.append("r._field =~ /").append(InfluxDBSchema.transformField(field)).append("/");
+
     queryBuilder.append(")");
     return new Pair<>(bucketName, queryBuilder.toString());
   }

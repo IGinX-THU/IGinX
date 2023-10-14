@@ -44,6 +44,7 @@ public class SessionExecuteSqlResult {
   private JobState jobState;
   private List<Long> jobIdList;
   private String configValue;
+  private String loadCsvPath;
 
   // Only for mock test
   public SessionExecuteSqlResult() {}
@@ -100,6 +101,8 @@ public class SessionExecuteSqlResult {
       case ShowConfig:
         this.configValue = resp.getConfigValue();
         break;
+      case LoadCsv:
+        this.loadCsvPath = resp.getLoadCsvPath();
       default:
         break;
     }
@@ -504,5 +507,9 @@ public class SessionExecuteSqlResult {
 
   public List<RegisterTaskInfo> getRegisterTaskInfos() {
     return registerTaskInfos;
+  }
+
+  public String getLoadCsvPath() {
+    return loadCsvPath;
   }
 }

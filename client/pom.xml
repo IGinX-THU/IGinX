@@ -44,6 +44,12 @@
             <artifactId>iginx-thrift</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-csv</artifactId>
+            <version>1.10.0</version>
+            <scope>compile</scope>
+        </dependency>
     </dependencies>
 
     <build>

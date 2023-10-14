@@ -4,20 +4,16 @@ import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.RawDataType;
-import cn.edu.tsinghua.iginx.engine.shared.operator.tag.AndTagFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.tag.BaseTagFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.tag.OrTagFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.tag.*;
 import cn.edu.tsinghua.iginx.sql.statement.*;
 import cn.edu.tsinghua.iginx.sql.statement.selectstatement.UnarySelectStatement;
 import cn.edu.tsinghua.iginx.thrift.*;
+import cn.edu.tsinghua.iginx.thrift.TagFilterType;
 import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.ByteUtils;
 import cn.edu.tsinghua.iginx.utils.TimeUtils;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class ContextBuilder {
@@ -46,6 +42,9 @@ public class ContextBuilder {
 
   public RequestContext build(DeleteColumnsReq req) {
     DeleteColumnsStatement statement = new DeleteColumnsStatement(req.getPaths());
+    if (req.isSetTagsList()) {
+      statement.setTagFilter(constructTagFilterFromTagList(req.getTagsList(), req.getFilterType()));
+    }
     return new RequestContext(req.getSessionId(), statement);
   }
 
@@ -147,7 +146,7 @@ public class ContextBuilder {
             getTimeWithPrecision(req.getEndKey(), req.getTimePrecision()));
 
     if (req.isSetTagsList()) {
-      statement.setTagFilter(constructTagFilterFromTagList(req.getTagsList()));
+      statement.setTagFilter(constructTagFilterFromTagList(req.getTagsList(), req.getFilterType()));
     }
     return new RequestContext(req.getSessionId(), statement);
   }
@@ -160,7 +159,7 @@ public class ContextBuilder {
             getTimeWithPrecision(req.getEndKey(), req.getTimePrecision()));
 
     if (req.isSetTagsList()) {
-      statement.setTagFilter(constructTagFilterFromTagList(req.getTagsList()));
+      statement.setTagFilter(constructTagFilterFromTagList(req.getTagsList(), req.getFilterType()));
     }
     return new RequestContext(req.getSessionId(), statement);
   }
@@ -174,7 +173,7 @@ public class ContextBuilder {
             req.getAggregateType());
 
     if (req.isSetTagsList()) {
-      statement.setTagFilter(constructTagFilterFromTagList(req.getTagsList()));
+      statement.setTagFilter(constructTagFilterFromTagList(req.getTagsList(), req.getFilterType()));
     }
     return new RequestContext(req.getSessionId(), statement);
   }
@@ -189,7 +188,7 @@ public class ContextBuilder {
             getTimeWithPrecision(req.getPrecision(), req.getTimePrecision()));
 
     if (req.isSetTagsList()) {
-      statement.setTagFilter(constructTagFilterFromTagList(req.getTagsList()));
+      statement.setTagFilter(constructTagFilterFromTagList(req.getTagsList(), req.getFilterType()));
     }
     return new RequestContext(req.getSessionId(), statement);
   }
@@ -207,6 +206,10 @@ public class ContextBuilder {
     return new RequestContext(req.getSessionId(), req.getStatement(), true);
   }
 
+  public RequestContext build(LoadCSVReq req) {
+    return new RequestContext(req.getSessionId(), req.getStatement());
+  }
+
   public RequestContext build(LastQueryReq req) {
     UnarySelectStatement statement =
         new UnarySelectStatement(
@@ -216,19 +219,80 @@ public class ContextBuilder {
             AggregateType.LAST);
 
     if (req.isSetTagsList()) {
-      statement.setTagFilter(constructTagFilterFromTagList(req.getTagsList()));
+      statement.setTagFilter(constructTagFilterFromTagList(req.getTagsList(), req.getFilterType()));
     }
     return new RequestContext(req.getSessionId(), statement);
   }
 
-  private TagFilter constructTagFilterFromTagList(Map<String, List<String>> tagList) {
-    List<TagFilter> andTagFilterList = new ArrayList<>();
+  private TagFilter constructTagFilterFromTagList(
+      List<Map<String, List<String>>> tagList, TagFilterType type) {
+    if (type == null) {
+      type = TagFilterType.Or;
+    }
+    switch (type) {
+      case Base:
+      case And: // 合取范式
+        List<TagFilter> andTagFilterList = new ArrayList<>();
+        tagList.forEach(
+            map -> {
+              List<TagFilter> orTagFilterList = new ArrayList<>();
+              map.forEach(
+                  (key, value) -> {
+                    for (String val : value) {
+                      orTagFilterList.add(new BaseTagFilter(key, val));
+                    }
+                  });
+              andTagFilterList.add(new AndTagFilter(orTagFilterList));
+            });
+        return andTagFilterList.isEmpty() ? null : new AndTagFilter(andTagFilterList);
+      case Or: // 析取范式
+        List<TagFilter> orTagFilterList = new ArrayList<>();
+        tagList.forEach(
+            map -> {
+              List<TagFilter> andTagList = new ArrayList<>();
+              map.forEach((key, value) -> andTagList.add(new BaseTagFilter(key, value.get(0))));
+              orTagFilterList.add(new OrTagFilter(andTagList));
+            });
+        return orTagFilterList.isEmpty() ? null : new OrTagFilter(orTagFilterList);
+      case BasePrecise:
+      case Precise: // 转换为析取范式
+        List<BasePreciseTagFilter> baseTagFilterList = new ArrayList<>();
+        List<Map<String, String>> rawTags = convertToDNF(tagList);
+        rawTags.forEach(map -> baseTagFilterList.add(new BasePreciseTagFilter(map)));
+        return baseTagFilterList.isEmpty() ? null : new PreciseTagFilter(baseTagFilterList);
+      case WithoutTag:
+        return new WithoutTagFilter();
+      default:
+        throw new IllegalArgumentException("tagkv type not right!");
+    }
+  }
+
+  private List<Map<String, String>> convertToDNF(List<Map<String, List<String>>> tagList) {
+    List<Map<String, String>> dnfList = new ArrayList<>();
+    List<Map.Entry<String, List<String>>> valList = new ArrayList<>();
     tagList.forEach(
-        (key, valueList) -> {
-          List<TagFilter> orTagFilterList = new ArrayList<>();
-          valueList.forEach(value -> orTagFilterList.add(new BaseTagFilter(key, value)));
-          andTagFilterList.add(new OrTagFilter(orTagFilterList));
+        map -> {
+          valList.addAll(map.entrySet());
         });
-    return andTagFilterList.isEmpty() ? null : new AndTagFilter(andTagFilterList);
+    tagList.forEach(map -> generateDNF(valList, 0, new HashMap<>(), dnfList));
+    return dnfList;
+  }
+
+  private void generateDNF(
+      List<Map.Entry<String, List<String>>> entry,
+      int index,
+      Map<String, String> currentMap,
+      List<Map<String, String>> dnfList) {
+    if (index == entry.size()) {
+      dnfList.add(currentMap);
+      return;
+    }
+
+    String key = entry.get(index).getKey();
+    List<String> valList = entry.get(index).getValue();
+    for (String val : valList) {
+      currentMap.put(key, val);
+      generateDNF(entry, index + 1, new HashMap<>(currentMap), dnfList);
+    }
   }
 }

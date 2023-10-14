@@ -1093,13 +1093,13 @@ public class PostgreSQLStorage implements IStorage {
       } else {
         String[] parts = pattern.split("\\" + SEPARATOR);
 
-        databaseName = parts[0];
+        databaseName = parts[0].replace('*', '%');
         if (parts.length == 1) { // 只有一级
           tableName = "%";
           columnNames = "%";
         } else if (parts.length == 2) {
-          tableName = parts[1].equals("*") ? "%" : parts[1];
-          columnNames = "%";
+          tableName = "%";
+          columnNames = parts[1].equals("*") ? "%" : parts[1];
         } else {
           PostgreSQLSchema schema = new PostgreSQLSchema(pattern, true);
           tableName = schema.getTableName().replace("*", "%");

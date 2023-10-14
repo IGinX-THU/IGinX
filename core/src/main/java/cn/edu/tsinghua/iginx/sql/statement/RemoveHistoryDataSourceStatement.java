@@ -9,7 +9,7 @@ import cn.edu.tsinghua.iginx.thrift.RemovedStorageEngineInfo;
 import java.util.ArrayList;
 import java.util.List;
 
-public class RemoveHsitoryDataSourceStatement extends SystemStatement {
+public class RemoveHistoryDataSourceStatement extends SystemStatement {
 
   private List<RemovedStorageEngineInfo> storageEngineList;
 
@@ -25,7 +25,7 @@ public class RemoveHsitoryDataSourceStatement extends SystemStatement {
     this.storageEngineList.add(storageEngine);
   }
 
-  public RemoveHsitoryDataSourceStatement() {
+  public RemoveHistoryDataSourceStatement() {
     storageEngineList = new ArrayList<>();
     this.statementType = StatementType.REMOVE_HISTORY_DATA_RESOURCE;
   }

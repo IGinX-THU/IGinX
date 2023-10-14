@@ -18,23 +18,38 @@
  */
 package cn.edu.tsinghua.iginx.client;
 
+import static cn.edu.tsinghua.iginx.utils.CSVUtils.getCSVBuilder;
+import static cn.edu.tsinghua.iginx.utils.FileUtils.exportByteStream;
+
 import cn.edu.tsinghua.iginx.constant.GlobalConstant;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.session.QueryDataSet;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
+import cn.edu.tsinghua.iginx.thrift.ExportCSV;
 import cn.edu.tsinghua.iginx.utils.FormatUtils;
+import cn.edu.tsinghua.iginx.utils.Pair;
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.nio.ByteBuffer;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.security.InvalidParameterException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.apache.commons.cli.*;
+import org.apache.commons.csv.CSVPrinter;
+import org.apache.commons.io.FileUtils;
 import org.jline.reader.Completer;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
@@ -66,11 +81,12 @@ public class IginxClient {
   private static final String EXECUTE_ARGS = "e";
   private static final String EXECUTE_NAME = "execute";
 
+  private static final String FETCH_SIZE_ARGS = "fs";
+  private static final String FETCH_SIZE_NAME = "fetch_size";
+
   private static final String HELP_ARGS = "help";
 
   private static final int MAX_HELP_CONSOLE_WIDTH = 88;
-
-  private static final int MAX_FETCH_SIZE = 1000;
 
   private static final String SCRIPT_HINT = "./start-cli.sh(start-cli.bat if Windows)";
 
@@ -81,6 +97,7 @@ public class IginxClient {
   static String port = "6888";
   static String username = "root";
   static String password = "root";
+  static String fetchSize = "1000";
 
   static String execute = "";
 
@@ -101,6 +118,8 @@ public class IginxClient {
     options.addOption(USERNAME_ARGS, USERNAME_NAME, true, "User name (optional, default \"root\")");
     options.addOption(PASSWORD_ARGS, PASSWORD_NAME, true, "Password (optional, default \"root\")");
     options.addOption(EXECUTE_ARGS, EXECUTE_NAME, true, "Execute (optional)");
+    options.addOption(
+        FETCH_SIZE_ARGS, FETCH_SIZE_NAME, true, "Fetch size per query (optional, default 1000)");
 
     return options;
   }
@@ -116,7 +135,7 @@ public class IginxClient {
     } catch (ParseException e) {
       System.out.println(
           "Require more params input, eg. ./start-cli.sh(start-cli.bat if Windows) "
-              + "-h xxx.xxx.xxx.xxx -p xxxx -u xxx -pw xxx.");
+              + "-h xxx.xxx.xxx.xxx -p xxxx -u xxx -pw xxx -fs xxx.");
       System.out.println("For more information, please check the following hint.");
       hf.printHelp(SCRIPT_HINT, options, true);
       return false;
@@ -133,7 +152,7 @@ public class IginxClient {
     if (args == null || args.length == 0) {
       System.out.println(
           "Require more params input, eg. ./start-cli.sh(start-cli.bat if Windows) "
-              + "-h xxx.xxx.xxx.xxx -p xxxx -u xxx -p xxx.");
+              + "-h xxx.xxx.xxx.xxx -p xxxx -u xxx -p xxx -fs xxx.");
       System.out.println("For more information, please check the following hint.");
       hf.printHelp(SCRIPT_HINT, options, true);
       return;
@@ -173,6 +192,7 @@ public class IginxClient {
       username = parseArg(USERNAME_ARGS, USERNAME_NAME, false, "root");
       password = parseArg(PASSWORD_ARGS, PASSWORD_NAME, false, "root");
       execute = parseArg(EXECUTE_ARGS, EXECUTE_NAME, false, "");
+      fetchSize = parseArg(FETCH_SIZE_ARGS, FETCH_SIZE_NAME, false, "1000");
 
       session = new Session(host, port, username, password);
       session.openSession();
@@ -203,7 +223,8 @@ public class IginxClient {
     }
   }
 
-  private static boolean processCommand(String command) {
+  private static boolean processCommand(String command)
+      throws SessionException, ExecutionException, IOException {
     if (command == null || command.trim().equals("")) {
       return true;
     }
@@ -224,16 +245,19 @@ public class IginxClient {
     return true;
   }
 
-  private static OperationResult handleInputStatement(String statement) {
+  private static OperationResult handleInputStatement(String statement)
+      throws SessionException, ExecutionException, IOException {
     String trimedStatement = statement.replaceAll(" +", " ").toLowerCase().trim();
 
     if (trimedStatement.equals(EXIT_COMMAND) || trimedStatement.equals(QUIT_COMMAND)) {
       return OperationResult.STOP;
     }
 
-    if (isQuery(statement)) {
+    if (isQuery(trimedStatement)) {
       processSqlWithStream(statement);
-    } else if (isSetTimeUnit(statement)) {
+    } else if (isLoadDataFromCsv(trimedStatement)) {
+      processLoadCsv(statement);
+    } else if (isSetTimeUnit(trimedStatement)) {
       processSetTimeUnit(statement);
     } else {
       processSql(statement);
@@ -242,11 +266,11 @@ public class IginxClient {
   }
 
   private static boolean isQuery(String sql) {
-    // 该方法仍不能完全区分查询语句和写入文件语句
-    // 比如select * from test where a = " into outfile ";
-    // 上述语句为查询语句，但在该方法中返回false
-    // 在没有SQL解析器的情况下，暂未想到区分查询语句和写入文件语句的方法
-    return sql.startsWith("select") && !sql.contains(" into outfile ");
+    return sql.startsWith("select");
+  }
+
+  private static boolean isLoadDataFromCsv(String sql) {
+    return sql.startsWith("load data from infile ") && sql.contains("as csv");
   }
 
   private static boolean isSetTimeUnit(String sql) {
@@ -313,7 +337,15 @@ public class IginxClient {
 
   private static void processSqlWithStream(String sql) {
     try {
-      QueryDataSet res = session.executeQuery(sql, MAX_FETCH_SIZE);
+      QueryDataSet res = session.executeQuery(sql, Integer.parseInt(fetchSize));
+
+      if (res.getExportStreamDir() != null) {
+        processExportByteStream(res);
+        return;
+      } else if (res.getExportCSV() != null) {
+        processExportCsv(res);
+        return;
+      }
 
       System.out.println("ResultSets:");
 
@@ -326,7 +358,7 @@ public class IginxClient {
       while (res.hasMore()) {
         System.out.printf(
             "Reach the max_display_num = %s. Press ENTER to show more, input 'q' to quit.",
-            MAX_FETCH_SIZE);
+            Integer.parseInt(fetchSize));
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
         try {
           if ("".equals(br.readLine())) {
@@ -346,10 +378,10 @@ public class IginxClient {
       if (!isCanceled) {
         System.out.print(FormatUtils.formatCount(total));
       }
-
       if (res.getWarningMsg() != null && !res.getWarningMsg().isEmpty()) {
         System.out.println(res.getWarningMsg());
       }
+      res.close();
     } catch (SessionException | ExecutionException e) {
       System.out.println(e.getMessage());
     } catch (Exception e) {
@@ -361,12 +393,19 @@ public class IginxClient {
 
   private static List<List<String>> cacheResult(QueryDataSet queryDataSet)
       throws ExecutionException, SessionException {
+    return cacheResult(queryDataSet, false);
+  }
+
+  private static List<List<String>> cacheResult(QueryDataSet queryDataSet, boolean skipHeader)
+      throws ExecutionException, SessionException {
     boolean hasKey = queryDataSet.getColumnList().get(0).equals(GlobalConstant.KEY_NAME);
     List<List<String>> cache = new ArrayList<>();
-    cache.add(new ArrayList<>(queryDataSet.getColumnList()));
+    if (!skipHeader) {
+      cache.add(new ArrayList<>(queryDataSet.getColumnList()));
+    }
 
     int rowIndex = 0;
-    while (queryDataSet.hasMore() && rowIndex < MAX_FETCH_SIZE) {
+    while (queryDataSet.hasMore() && rowIndex < Integer.parseInt(fetchSize)) {
       List<String> strRow = new ArrayList<>();
       Object[] nextRow = queryDataSet.nextRow();
       if (nextRow != null) {
@@ -385,6 +424,145 @@ public class IginxClient {
       }
     }
     return cache;
+  }
+
+  private static void processExportByteStream(QueryDataSet res)
+      throws SessionException, ExecutionException, IOException {
+    String dir = res.getExportStreamDir();
+
+    File dirFile = new File(dir);
+    if (!dirFile.exists()) {
+      Files.createDirectory(Paths.get(dir));
+    }
+    if (!dirFile.isDirectory()) {
+      throw new InvalidParameterException(dir + " is not a directory!");
+    }
+
+    int columnsSize = res.getColumnList().size();
+    int finalCnt = columnsSize;
+    String[] columns = new String[columnsSize];
+    Map<String, Integer> countMap = new HashMap<>();
+    for (int i = 0; i < columnsSize; i++) {
+      String originColumn = res.getColumnList().get(i);
+      if (originColumn.equals(GlobalConstant.KEY_NAME)) {
+        columns[i] = "";
+        finalCnt--;
+        continue;
+      }
+      Integer count = countMap.getOrDefault(originColumn, 0);
+      count += 1;
+      countMap.put(originColumn, count);
+      // 重复的列名在列名后面加上(1),(2)...
+      if (count >= 2) {
+        columns[i] = Paths.get(dir, originColumn + "(" + (count - 1) + ")").toString();
+      } else {
+        columns[i] = Paths.get(dir, originColumn).toString();
+      }
+      // 若将要写入的文件存在，删除之
+      Files.deleteIfExists(Paths.get(columns[i]));
+    }
+
+    while (res.hasMore()) {
+      List<List<byte[]>> cache = cacheResultByteArray(res);
+      exportByteStream(cache, columns);
+    }
+    res.close();
+
+    System.out.println(
+        "Successfully write "
+            + finalCnt
+            + " file(s) to directory: \""
+            + dirFile.getAbsolutePath()
+            + "\".");
+  }
+
+  private static List<List<byte[]>> cacheResultByteArray(QueryDataSet queryDataSet)
+      throws SessionException, ExecutionException {
+    List<List<byte[]>> cache = new ArrayList<>();
+    int rowIndex = 0;
+    while (queryDataSet.hasMore() && rowIndex < Integer.parseInt(fetchSize)) {
+      List<byte[]> nextRow = queryDataSet.nextRowAsBytes();
+      if (nextRow != null) {
+        cache.add(nextRow);
+        rowIndex++;
+      }
+    }
+    return cache;
+  }
+
+  private static void processExportCsv(QueryDataSet res)
+      throws SessionException, ExecutionException, IOException {
+    ExportCSV exportCSV = res.getExportCSV();
+
+    String path = exportCSV.getExportCsvPath();
+    if (!path.endsWith(".csv")) {
+      throw new InvalidParameterException(
+          "The file name must end with [.csv], " + path + " doesn't satisfy the requirement!");
+    }
+
+    File file = new File(path);
+    // 删除原来的csv文件，新建一个新的csv文件
+    Files.deleteIfExists(Paths.get(file.getPath()));
+    Files.createFile(Paths.get(file.getPath()));
+    if (!file.isFile()) {
+      throw new InvalidParameterException(path + " is not a file!");
+    }
+
+    try {
+      CSVPrinter printer = getCSVBuilder(exportCSV).build().print(new PrintWriter(file));
+      boolean hasKey = res.getColumnList().get(0).equals(GlobalConstant.KEY_NAME);
+
+      if (exportCSV.isExportHeader) {
+        List<String> headerNames = new ArrayList<>();
+        if (hasKey) {
+          headerNames.add(GlobalConstant.KEY_NAME);
+        }
+        headerNames.addAll(res.getColumnList());
+        printer.printRecord(headerNames);
+      }
+
+      while (res.hasMore()) {
+        List<List<String>> cache = cacheResult(res, true);
+        printer.printRecords(cache);
+      }
+
+      printer.flush();
+      printer.close();
+    } catch (IOException e) {
+      throw new RuntimeException(
+          "Encounter an error when writing csv file " + path + ", because " + e.getMessage());
+    }
+    res.close();
+    System.out.println("Successfully write csv file: \"" + file.getAbsolutePath() + "\".");
+  }
+
+  private static void processLoadCsv(String sql)
+      throws SessionException, ExecutionException, IOException {
+    SessionExecuteSqlResult res = session.executeSql(sql);
+    String path = res.getLoadCsvPath();
+
+    String parseErrorMsg = res.getParseErrorMsg();
+    if (parseErrorMsg != null && !parseErrorMsg.isEmpty()) {
+      System.out.println(res.getParseErrorMsg());
+      return;
+    }
+
+    File file = new File(path);
+    if (!file.isFile()) {
+      throw new InvalidParameterException(path + " is not a file!");
+    }
+    if (!path.endsWith(".csv")) {
+      throw new InvalidParameterException(
+          "The file name must end with [.csv], " + path + " doesn't satisfy the requirement!");
+    }
+
+    byte[] bytes = FileUtils.readFileToByteArray(file);
+    ByteBuffer csvFile = ByteBuffer.wrap(bytes);
+    Pair<List<String>, Long> pair = session.executeLoadCSV(sql, csvFile);
+    List<String> columns = pair.k;
+    long recordsNum = pair.v;
+
+    System.out.println("Successfully write " + recordsNum + " record(s) to: " + columns);
   }
 
   private static String parseExecuteCommand(String[] args) {
