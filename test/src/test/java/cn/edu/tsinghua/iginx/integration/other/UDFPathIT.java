@@ -46,8 +46,8 @@ public class UDFPathIT {
             + "| reverse_rows| UDFReverseRows| udsf_reverse_rows.py|0.0.0.0|    UDSF|\n"
             + "|      udf_max|         UDFMax|           udf_max.py|0.0.0.0|    UDAF|\n"
             + "|    transpose|   UDFTranspose|    udsf_transpose.py|0.0.0.0|    UDSF|\n"
-            + "|     multiply|    UDFMultiply|     udtf_multiply.py|0.0.0.0|    UDTF|\n"
             + "|    udf_count|       UDFCount|         udf_count.py|0.0.0.0|    UDAF|\n"
+            + "|     multiply|    UDFMultiply|     udtf_multiply.py|0.0.0.0|    UDTF|\n"
             + "|      udf_min|         UDFMin|           udf_min.py|0.0.0.0|    UDAF|\n"
             + "|      udf_avg|         UDFAvg|           udf_avg.py|0.0.0.0|    UDAF|\n"
             + "+-------------+---------------+---------------------+-------+--------+\n";
