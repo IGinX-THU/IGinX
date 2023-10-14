@@ -15,6 +15,7 @@ import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.thrift.RemovedStorageEngineInfo;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import org.junit.*;
@@ -238,7 +239,7 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   private void testQueryHistoryDataExpHasData() {
-    String statement = "select wt01.status from nt.wf03";
+    String statement = "select wt01.status2 from nt.wf03";
     List<String> pathList = EXP_PATH_LIST1;
     List<List<Object>> valuesList = EXP_VALUES_LIST1;
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
@@ -348,9 +349,16 @@ public abstract class BaseCapacityExpansionIT {
     String dataPrefix2 = IS_PARQUET_OR_FILE_SYSTEM ? "wf04" : "nt.wf04";
     String schemaPrefixSuffix = IS_PARQUET_OR_FILE_SYSTEM ? ".nt" : "";
     String schemaPrefix = IS_PARQUET_OR_FILE_SYSTEM ? "nt" : "";
+    List<List<Object>> valuesList = EXP_VALUES_LIST1;
 
     // 添加不同 schemaPrefix，相同 dataPrefix
     addStorageEngine(expPort, true, true, dataPrefix1, "p1");
+
+    // 添加节点 dataPrefix = dataPrefix1 && schemaPrefix = p1 后查询
+    String statement = "select status2 from *";
+    List<String> pathList = Arrays.asList("nt.wf03.wt01.status2", "p1.nt.wf03.wt01.status2");
+    SQLTestTools.executeAndCompare(session, statement, pathList, REPEAT_EXP_VALUES_LIST1);
+
     addStorageEngine(expPort, true, true, dataPrefix1, "p2");
     addStorageEngine(expPort, true, true, dataPrefix1, null);
 
@@ -365,26 +373,24 @@ public abstract class BaseCapacityExpansionIT {
     // 添加相同 schemaPrefix，不同 dataPrefix
     addStorageEngine(expPort, true, true, dataPrefix2, "p3");
 
-    List<List<Object>> valuesList = EXP_VALUES_LIST1;
-
     // 添加节点 dataPrefix = dataPrefix1 && schemaPrefix = p1 后查询
-    String statement = "select wt01.status from p1.nt.wf03";
-    List<String> pathList = Collections.singletonList("p1.nt.wf03.wt01.status");
+    statement = "select wt01.status2 from p1.nt.wf03";
+    pathList = Collections.singletonList("p1.nt.wf03.wt01.status2");
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
     // 添加节点 dataPrefix = dataPrefix1 && schemaPrefix = p2 后查询
-    statement = "select wt01.status from p2.nt.wf03";
-    pathList = Collections.singletonList("p2.nt.wf03.wt01.status");
+    statement = "select wt01.status2 from p2.nt.wf03";
+    pathList = Collections.singletonList("p2.nt.wf03.wt01.status2");
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
     // 添加节点 dataPrefix = dataPrefix1 && schemaPrefix = null 后查询
-    statement = "select wt01.status from nt.wf03";
-    pathList = Collections.singletonList("nt.wf03.wt01.status");
+    statement = "select wt01.status2 from nt.wf03";
+    pathList = Collections.singletonList("nt.wf03.wt01.status2");
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
     // 添加节点 dataPrefix = null && schemaPrefix = p3 后查询
-    statement = "select wt01.status from p3.nt.wf03";
-    pathList = Collections.singletonList("p3.nt.wf03.wt01.status");
+    statement = "select wt01.status2 from p3.nt.wf03";
+    pathList = Collections.singletonList("p3.nt.wf03.wt01.status2");
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
     // 通过 session 接口测试移除节点
@@ -499,7 +505,7 @@ public abstract class BaseCapacityExpansionIT {
             + "+------------------------+--------+\n"
             + "|                    Path|DataType|\n"
             + "+------------------------+--------+\n"
-            + "|     nt.wf03.wt01.status|  BINARY|\n"
+            + "|    nt.wf03.wt01.status2|  BINARY|\n"
             + "|nt.wf04.wt01.temperature|  BINARY|\n"
             + "+------------------------+--------+\n"
             + "Total line number = 2\n";

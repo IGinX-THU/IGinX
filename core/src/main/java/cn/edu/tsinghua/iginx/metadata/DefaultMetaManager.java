@@ -21,6 +21,7 @@ package cn.edu.tsinghua.iginx.metadata;
 import static cn.edu.tsinghua.iginx.metadata.utils.ReshardStatus.EXECUTING;
 import static cn.edu.tsinghua.iginx.metadata.utils.ReshardStatus.NON_RESHARDING;
 import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.setSchemaPrefixInExtraParams;
+import static cn.edu.tsinghua.iginx.utils.HostUtils.convertHostNameToHostAddress;
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.conf.Constants;
@@ -1249,7 +1250,7 @@ public class DefaultMetaManager implements IMetaManager {
       StorageEngineMeta storage =
           new StorageEngineMeta(
               -1,
-              ip,
+              convertHostNameToHostAddress(ip),
               port,
               hasData,
               dataPrefix,

@@ -22,7 +22,8 @@ import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.isEmbedded
 import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.isLocal;
 import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.setSchemaPrefixInExtraParams;
 import static cn.edu.tsinghua.iginx.utils.ByteUtils.getLongArrayFromByteBuffer;
-import static cn.edu.tsinghua.iginx.utils.IPUtils.isLocalIPAddress;
+import static cn.edu.tsinghua.iginx.utils.HostUtils.convertHostNameToHostAddress;
+import static cn.edu.tsinghua.iginx.utils.HostUtils.isLocalHost;
 
 import cn.edu.tsinghua.iginx.auth.SessionManager;
 import cn.edu.tsinghua.iginx.auth.UserManager;
@@ -271,7 +272,7 @@ public class IginxWorker implements IService.Iface {
         StorageEngineMeta newMeta =
             new StorageEngineMeta(
                 meta.getId(),
-                meta.getIp(),
+                convertHostNameToHostAddress(meta.getIp()),
                 meta.getPort(),
                 false,
                 null,
@@ -337,7 +338,7 @@ public class IginxWorker implements IService.Iface {
       StorageEngineMeta meta =
           new StorageEngineMeta(
               -1,
-              storageEngine.getIp(),
+              convertHostNameToHostAddress(storageEngine.getIp()),
               storageEngine.getPort(),
               hasData,
               dataPrefix,
@@ -467,7 +468,7 @@ public class IginxWorker implements IService.Iface {
     if (!Objects.equals(engine1.getSchemaPrefix(), engine2.getSchemaPrefix())) {
       return false;
     }
-    if (isLocalIPAddress(engine1.getIp()) && isLocalIPAddress(engine2.getIp())) { // 都是本机IP
+    if (isLocalHost(engine1.getIp()) && isLocalHost(engine2.getIp())) { // 都是本机IP
       return true;
     }
     return engine1.getIp().equals(engine2.getIp());
