@@ -403,6 +403,7 @@ public class DefaultMetaManager implements IMetaManager {
   public boolean addStorageEngines(List<StorageEngineMeta> storageEngineMetas) {
     try {
       for (StorageEngineMeta storageEngineMeta : storageEngineMetas) {
+        logger.error("storageEngineMeta = {}", storageEngineMeta);
         long id = storage.addStorageEngine(storageEngineMeta);
         storageEngineMeta.setId(id);
         addOrUpdateStorageEngine(id, storageEngineMeta);
@@ -434,7 +435,7 @@ public class DefaultMetaManager implements IMetaManager {
     setDummyInfo(storageEngineId, storageEngineMeta);
     cache.addStorageEngine(storageEngineMeta);
     for (StorageEngineChangeHook hook : storageEngineChangeHooks) {
-      hook.onChanged(null, storageEngineMeta);
+      hook.onChange(null, storageEngineMeta);
     }
     if (storageEngineMeta.isHasData()) {
       for (StorageUnitHook storageUnitHook : storageUnitHooks) {
