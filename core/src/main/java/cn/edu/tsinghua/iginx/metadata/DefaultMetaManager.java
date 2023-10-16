@@ -234,25 +234,7 @@ public class DefaultMetaManager implements IMetaManager {
     storage.registerStorageChangeHook(
         (id, storageEngine) -> {
           if (storageEngine != null) {
-            if (storageEngine.isHasData()) {
-              StorageUnitMeta dummyStorageUnit = storageEngine.getDummyStorageUnit();
-              dummyStorageUnit.setStorageEngineId(id);
-              dummyStorageUnit.setId(StorageUnitMeta.generateDummyStorageUnitID(id));
-              dummyStorageUnit.setMasterId(dummyStorageUnit.getId());
-              FragmentMeta dummyFragment = storageEngine.getDummyFragment();
-              dummyFragment.setMasterStorageUnit(dummyStorageUnit);
-              dummyFragment.setMasterStorageUnitId(dummyStorageUnit.getId());
-            }
-            cache.addStorageEngine(storageEngine);
-            for (StorageEngineChangeHook hook : storageEngineChangeHooks) {
-              hook.onChanged(null, storageEngine);
-            }
-            if (storageEngine.isHasData()) {
-              for (StorageUnitHook storageUnitHook : storageUnitHooks) {
-                logger.error("[hook] 1");
-                storageUnitHook.onChange(null, storageEngine.getDummyStorageUnit());
-              }
-            }
+            addOrUpdateStorageEngine(id, storageEngine);
           }
         });
     storageEngineListFromConf = resolveStorageEngineFromConf();
@@ -423,16 +405,7 @@ public class DefaultMetaManager implements IMetaManager {
       for (StorageEngineMeta storageEngineMeta : storageEngineMetas) {
         long id = storage.addStorageEngine(storageEngineMeta);
         storageEngineMeta.setId(id);
-        if (storageEngineMeta.isHasData()) {
-          StorageUnitMeta dummyStorageUnit = storageEngineMeta.getDummyStorageUnit();
-          dummyStorageUnit.setStorageEngineId(id);
-          dummyStorageUnit.setId(StorageUnitMeta.generateDummyStorageUnitID(id));
-          dummyStorageUnit.setMasterId(dummyStorageUnit.getId());
-          FragmentMeta dummyFragment = storageEngineMeta.getDummyFragment();
-          dummyFragment.setMasterStorageUnit(dummyStorageUnit);
-          dummyFragment.setMasterStorageUnitId(dummyStorageUnit.getId());
-        }
-        cache.addStorageEngine(storageEngineMeta);
+        addOrUpdateStorageEngine(id, storageEngineMeta);
       }
       return true;
     } catch (MetaStorageException e) {
@@ -442,28 +415,45 @@ public class DefaultMetaManager implements IMetaManager {
   }
 
   @Override
-  public boolean updateStorageEngine(long storageID, StorageEngineMeta storageEngineMeta) {
-    if (getStorageEngine(storageID) == null) {
+  public boolean updateStorageEngine(long id, StorageEngineMeta storageEngineMeta) {
+    if (getStorageEngine(id) == null) {
       return false;
     }
     try {
-      storageEngineMeta.setId(storageID);
-      storage.updateStorageEngine(
-          storageID, storageEngineMeta); // 如果删除成功，则后续更新对应的 dummyFragament 的元数据
-      if (storageEngineMeta.isHasData()) { // 确保内部数据的一致性
-        StorageUnitMeta dummyStorageUnit = storageEngineMeta.getDummyStorageUnit();
-        dummyStorageUnit.setStorageEngineId(storageID);
-        dummyStorageUnit.setId(StorageUnitMeta.generateDummyStorageUnitID(storageID));
-        dummyStorageUnit.setMasterId(dummyStorageUnit.getId());
-        FragmentMeta dummyFragment = storageEngineMeta.getDummyFragment();
-        dummyFragment.setMasterStorageUnit(dummyStorageUnit);
-        dummyFragment.setMasterStorageUnitId(dummyStorageUnit.getId());
-      }
-      return cache.updateStorageEngine(storageID, storageEngineMeta);
+      storageEngineMeta.setId(id);
+      storage.updateStorageEngine(id, storageEngineMeta); // 如果删除成功，则后续更新对应的 dummyFragment 的元数据
+      setDummyInfo(id, storageEngineMeta);
+      return cache.updateStorageEngine(id, storageEngineMeta);
     } catch (MetaStorageException e) {
       logger.error("update storage engines error:", e);
     }
     return false;
+  }
+
+  private void addOrUpdateStorageEngine(long storageEngineId, StorageEngineMeta storageEngineMeta) {
+    setDummyInfo(storageEngineId, storageEngineMeta);
+    cache.addStorageEngine(storageEngineMeta);
+    for (StorageEngineChangeHook hook : storageEngineChangeHooks) {
+      hook.onChanged(null, storageEngineMeta);
+    }
+    if (storageEngineMeta.isHasData()) {
+      for (StorageUnitHook storageUnitHook : storageUnitHooks) {
+        logger.error("[hook]");
+        storageUnitHook.onChange(null, storageEngineMeta.getDummyStorageUnit());
+      }
+    }
+  }
+
+  private void setDummyInfo(long storageEngineId, StorageEngineMeta storageEngineMeta) {
+    if (storageEngineMeta.isHasData()) {
+      StorageUnitMeta dummyStorageUnit = storageEngineMeta.getDummyStorageUnit();
+      dummyStorageUnit.setStorageEngineId(storageEngineId);
+      dummyStorageUnit.setId(StorageUnitMeta.generateDummyStorageUnitID(storageEngineId));
+      dummyStorageUnit.setMasterId(dummyStorageUnit.getId());
+      FragmentMeta dummyFragment = storageEngineMeta.getDummyFragment();
+      dummyFragment.setMasterStorageUnit(dummyStorageUnit);
+      dummyFragment.setMasterStorageUnitId(dummyStorageUnit.getId());
+    }
   }
 
   @Override
@@ -722,7 +712,6 @@ public class DefaultMetaManager implements IMetaManager {
             masterStorageUnit.renameStorageUnitMeta(actualName, actualName);
         cache.updateStorageUnit(actualMasterStorageUnit);
         for (StorageUnitHook hook : storageUnitHooks) {
-          logger.error("[hook] 3");
           hook.onChange(null, actualMasterStorageUnit);
         }
         storage.updateStorageUnit(actualMasterStorageUnit);
@@ -735,7 +724,6 @@ public class DefaultMetaManager implements IMetaManager {
               slaveStorageUnit.renameStorageUnitMeta(slaveActualName, actualName);
           actualMasterStorageUnit.addReplica(actualSlaveStorageUnit);
           for (StorageUnitHook hook : storageUnitHooks) {
-            logger.error("[hook] 4");
             hook.onChange(null, actualSlaveStorageUnit);
           }
           cache.updateStorageUnit(actualSlaveStorageUnit);
@@ -795,7 +783,6 @@ public class DefaultMetaManager implements IMetaManager {
           toAddStorageUnit.renameStorageUnitMeta(actualName, actualName);
       cache.updateStorageUnit(actualMasterStorageUnit);
       for (StorageUnitHook hook : storageUnitHooks) {
-        logger.error("[hook] 5");
         hook.onChange(null, actualMasterStorageUnit);
       }
       storage.updateStorageUnit(actualMasterStorageUnit);
@@ -806,7 +793,6 @@ public class DefaultMetaManager implements IMetaManager {
             slaveStorageUnit.renameStorageUnitMeta(slaveActualName, actualName);
         actualMasterStorageUnit.addReplica(actualSlaveStorageUnit);
         for (StorageUnitHook hook : storageUnitHooks) {
-          logger.error("[hook] 6");
           hook.onChange(null, actualSlaveStorageUnit);
         }
         cache.updateStorageUnit(actualSlaveStorageUnit);
@@ -1048,7 +1034,6 @@ public class DefaultMetaManager implements IMetaManager {
         logger.warn("notify storage unit listeners.");
         for (StorageUnitHook hook : storageUnitHooks) {
           for (StorageUnitMeta meta : newStorageUnits) {
-            logger.error("[hook] 7");
             hook.onChange(null, meta);
           }
         }
@@ -1099,7 +1084,6 @@ public class DefaultMetaManager implements IMetaManager {
       logger.warn("notify storage unit listeners.");
       for (StorageUnitHook hook : storageUnitHooks) {
         for (StorageUnitMeta meta : newStorageUnits) {
-          logger.error("[hook] 8");
           hook.onChange(null, meta);
         }
       }
@@ -1131,7 +1115,6 @@ public class DefaultMetaManager implements IMetaManager {
 
     cache.updateStorageUnit(storageUnitMeta);
     for (StorageUnitHook hook : storageUnitHooks) {
-      logger.error("[hook] 9");
       hook.onChange(null, storageUnitMeta);
     }
     storage.updateStorageUnit(storageUnitMeta);
