@@ -249,6 +249,7 @@ public class DefaultMetaManager implements IMetaManager {
             }
             if (storageEngine.isHasData()) {
               for (StorageUnitHook storageUnitHook : storageUnitHooks) {
+                logger.error("[hook] 1");
                 storageUnitHook.onChange(null, storageEngine.getDummyStorageUnit());
               }
             }
@@ -314,6 +315,7 @@ public class DefaultMetaManager implements IMetaManager {
           }
           cache.getStorageEngine(storageUnit.getStorageEngineId()).addStorageUnit(storageUnit);
           for (StorageUnitHook storageUnitHook : storageUnitHooks) {
+            logger.error("[hook] 2");
             storageUnitHook.onChange(originStorageUnitMeta, storageUnit);
           }
         });
@@ -720,6 +722,7 @@ public class DefaultMetaManager implements IMetaManager {
             masterStorageUnit.renameStorageUnitMeta(actualName, actualName);
         cache.updateStorageUnit(actualMasterStorageUnit);
         for (StorageUnitHook hook : storageUnitHooks) {
+          logger.error("[hook] 3");
           hook.onChange(null, actualMasterStorageUnit);
         }
         storage.updateStorageUnit(actualMasterStorageUnit);
@@ -732,6 +735,7 @@ public class DefaultMetaManager implements IMetaManager {
               slaveStorageUnit.renameStorageUnitMeta(slaveActualName, actualName);
           actualMasterStorageUnit.addReplica(actualSlaveStorageUnit);
           for (StorageUnitHook hook : storageUnitHooks) {
+            logger.error("[hook] 4");
             hook.onChange(null, actualSlaveStorageUnit);
           }
           cache.updateStorageUnit(actualSlaveStorageUnit);
@@ -791,6 +795,7 @@ public class DefaultMetaManager implements IMetaManager {
           toAddStorageUnit.renameStorageUnitMeta(actualName, actualName);
       cache.updateStorageUnit(actualMasterStorageUnit);
       for (StorageUnitHook hook : storageUnitHooks) {
+        logger.error("[hook] 5");
         hook.onChange(null, actualMasterStorageUnit);
       }
       storage.updateStorageUnit(actualMasterStorageUnit);
@@ -801,6 +806,7 @@ public class DefaultMetaManager implements IMetaManager {
             slaveStorageUnit.renameStorageUnitMeta(slaveActualName, actualName);
         actualMasterStorageUnit.addReplica(actualSlaveStorageUnit);
         for (StorageUnitHook hook : storageUnitHooks) {
+          logger.error("[hook] 6");
           hook.onChange(null, actualSlaveStorageUnit);
         }
         cache.updateStorageUnit(actualSlaveStorageUnit);
@@ -1042,6 +1048,7 @@ public class DefaultMetaManager implements IMetaManager {
         logger.warn("notify storage unit listeners.");
         for (StorageUnitHook hook : storageUnitHooks) {
           for (StorageUnitMeta meta : newStorageUnits) {
+            logger.error("[hook] 7");
             hook.onChange(null, meta);
           }
         }
@@ -1092,6 +1099,7 @@ public class DefaultMetaManager implements IMetaManager {
       logger.warn("notify storage unit listeners.");
       for (StorageUnitHook hook : storageUnitHooks) {
         for (StorageUnitMeta meta : newStorageUnits) {
+          logger.error("[hook] 8");
           hook.onChange(null, meta);
         }
       }
@@ -1123,6 +1131,7 @@ public class DefaultMetaManager implements IMetaManager {
 
     cache.updateStorageUnit(storageUnitMeta);
     for (StorageUnitHook hook : storageUnitHooks) {
+      logger.error("[hook] 9");
       hook.onChange(null, storageUnitMeta);
     }
     storage.updateStorageUnit(storageUnitMeta);

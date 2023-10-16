@@ -366,7 +366,9 @@ public class StoragePhysicalTaskExecutor {
             .addTask(task); // 默认情况下，异步写备，查询只查主
       } else {
         logger.error("[test] storageTaskQueues.keySet() {}", storageTaskQueues.keySet());
-        logger.error("[test] task.getTargetFragment().getMasterStorageUnitId() {}", task.getTargetFragment().getMasterStorageUnitId());
+        logger.error(
+            "[test] task.getTargetFragment().getMasterStorageUnitId() {}",
+            task.getTargetFragment().getMasterStorageUnitId());
         storageTaskQueues
             .get(replicaDispatcher.chooseReplica(task))
             .addTask(task); // 在优化策略提供了选择器的情况下，利用选择器提供的结果
