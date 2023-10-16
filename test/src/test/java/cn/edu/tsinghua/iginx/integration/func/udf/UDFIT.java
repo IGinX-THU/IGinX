@@ -309,29 +309,29 @@ public class UDFIT {
   }
 
   @Test
-  public void testReverseRows() {
+  public void testTransposeRows() {
     String insert =
-        "INSERT INTO test(key, a) VALUES (1, 2), (2, 3), (3, 4), (4, 9), (5, 3), (6, 6);";
+        "INSERT INTO test(key, a, b) VALUES (1, 2, 3), (2, 3, 1), (3, 4, 3), (4, 9, 7), (5, 3, 6), (6, 6, 4);";
     execute(insert);
 
-    String query = "SELECT a, b FROM test;";
+    String query = "SELECT * FROM test;";
     SessionExecuteSqlResult ret = execute(query);
     String expected =
         "ResultSets:\n"
-            + "+---+------+\n"
-            + "|key|test.a|\n"
-            + "+---+------+\n"
-            + "|  1|     2|\n"
-            + "|  2|     3|\n"
-            + "|  3|     4|\n"
-            + "|  4|     9|\n"
-            + "|  5|     3|\n"
-            + "|  6|     6|\n"
-            + "+---+------+\n"
+            + "+---+------+------+\n"
+            + "|key|test.a|test.b|\n"
+            + "+---+------+------+\n"
+            + "|  1|     2|     3|\n"
+            + "|  2|     3|     1|\n"
+            + "|  3|     4|     3|\n"
+            + "|  4|     9|     7|\n"
+            + "|  5|     3|     6|\n"
+            + "|  6|     6|     4|\n"
+            + "+---+------+------+\n"
             + "Total line number = 6\n";
     assertEquals(expected, ret.getResultInString(false, ""));
 
-    query = "SELECT transpose(*) FROM (SELECT a, b FROM test);";
+    query = "SELECT transpose(*) FROM (SELECT * FROM test);";
     ret = execute(query);
     expected =
         "ResultSets:\n"
@@ -339,8 +339,9 @@ public class UDFIT {
             + "|transpose(0)|transpose(1)|transpose(2)|transpose(3)|transpose(4)|transpose(5)|\n"
             + "+------------+------------+------------+------------+------------+------------+\n"
             + "|           2|           3|           4|           9|           3|           6|\n"
+            + "|           3|           1|           3|           7|           6|           4|\n"
             + "+------------+------------+------------+------------+------------+------------+\n"
-            + "Total line number = 1\n";
+            + "Total line number = 2\n";
     assertEquals(expected, ret.getResultInString(false, ""));
   }
 
