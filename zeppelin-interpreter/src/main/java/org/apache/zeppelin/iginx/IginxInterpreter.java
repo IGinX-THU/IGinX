@@ -156,8 +156,12 @@ public class IginxInterpreter extends AbstractInterpreter {
 
   private String buildSingleFormResult(List<List<String>> queryList) {
     StringBuilder builder = new StringBuilder();
-    for (List<String> row : queryList) {
+    for (int i = 0; i < queryList.size(); i++) {
+      List<String> row = queryList.get(i);
       for (String val : row) {
+        if (i != 0) {
+          val = convertToHTMLString(val);
+        }
         builder.append(val).append(TAB);
       }
       builder.deleteCharAt(builder.length() - 1);
@@ -227,6 +231,10 @@ public class IginxInterpreter extends AbstractInterpreter {
             .trim()
             .split(SEMICOLON);
     return Arrays.stream(tmp).map(String::trim).toArray(String[]::new);
+  }
+
+  private String convertToHTMLString(String str) {
+    return "%html " + str.replace("\n", "<br>").replace("\t", "&nbsp;&nbsp;&nbsp;&nbsp;");
   }
 
   @Override
