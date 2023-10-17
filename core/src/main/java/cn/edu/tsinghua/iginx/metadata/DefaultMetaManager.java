@@ -234,7 +234,7 @@ public class DefaultMetaManager implements IMetaManager {
     storage.registerStorageChangeHook(
         (id, storageEngine) -> {
           if (storageEngine != null) {
-            addOrUpdateStorageEngine(id, storageEngine);
+            addStorageEngine(id, storageEngine);
           }
         });
     storageEngineListFromConf = resolveStorageEngineFromConf();
@@ -297,7 +297,6 @@ public class DefaultMetaManager implements IMetaManager {
           }
           cache.getStorageEngine(storageUnit.getStorageEngineId()).addStorageUnit(storageUnit);
           for (StorageUnitHook storageUnitHook : storageUnitHooks) {
-            logger.error("[hook] 2");
             storageUnitHook.onChange(originStorageUnitMeta, storageUnit);
           }
         });
@@ -403,10 +402,9 @@ public class DefaultMetaManager implements IMetaManager {
   public boolean addStorageEngines(List<StorageEngineMeta> storageEngineMetas) {
     try {
       for (StorageEngineMeta storageEngineMeta : storageEngineMetas) {
-        logger.error("storageEngineMeta = {}", storageEngineMeta);
         long id = storage.addStorageEngine(storageEngineMeta);
         storageEngineMeta.setId(id);
-        addOrUpdateStorageEngine(id, storageEngineMeta);
+        addStorageEngine(id, storageEngineMeta);
       }
       return true;
     } catch (MetaStorageException e) {
@@ -415,37 +413,7 @@ public class DefaultMetaManager implements IMetaManager {
     return false;
   }
 
-  @Override
-  public boolean updateStorageEngine(long id, StorageEngineMeta storageEngineMeta) {
-    if (getStorageEngine(id) == null) {
-      return false;
-    }
-    try {
-      storageEngineMeta.setId(id);
-      storage.updateStorageEngine(id, storageEngineMeta); // 如果删除成功，则后续更新对应的 dummyFragment 的元数据
-      setDummyInfo(id, storageEngineMeta);
-      return cache.updateStorageEngine(id, storageEngineMeta);
-    } catch (MetaStorageException e) {
-      logger.error("update storage engines error:", e);
-    }
-    return false;
-  }
-
-  private void addOrUpdateStorageEngine(long storageEngineId, StorageEngineMeta storageEngineMeta) {
-    setDummyInfo(storageEngineId, storageEngineMeta);
-    cache.addStorageEngine(storageEngineMeta);
-    for (StorageEngineChangeHook hook : storageEngineChangeHooks) {
-      hook.onChange(null, storageEngineMeta);
-    }
-    if (storageEngineMeta.isHasData()) {
-      for (StorageUnitHook storageUnitHook : storageUnitHooks) {
-        logger.error("[hook]");
-        storageUnitHook.onChange(null, storageEngineMeta.getDummyStorageUnit());
-      }
-    }
-  }
-
-  private void setDummyInfo(long storageEngineId, StorageEngineMeta storageEngineMeta) {
+  private void addStorageEngine(long storageEngineId, StorageEngineMeta storageEngineMeta) {
     if (storageEngineMeta.isHasData()) {
       StorageUnitMeta dummyStorageUnit = storageEngineMeta.getDummyStorageUnit();
       dummyStorageUnit.setStorageEngineId(storageEngineId);
@@ -455,6 +423,30 @@ public class DefaultMetaManager implements IMetaManager {
       dummyFragment.setMasterStorageUnit(dummyStorageUnit);
       dummyFragment.setMasterStorageUnitId(dummyStorageUnit.getId());
     }
+    cache.addStorageEngine(storageEngineMeta);
+    for (StorageEngineChangeHook hook : storageEngineChangeHooks) {
+      hook.onChange(null, storageEngineMeta);
+    }
+    if (storageEngineMeta.isHasData()) {
+      for (StorageUnitHook storageUnitHook : storageUnitHooks) {
+        storageUnitHook.onChange(null, storageEngineMeta.getDummyStorageUnit());
+      }
+    }
+  }
+
+  @Override
+  public boolean invalidateStorageEngine(StorageEngineMeta storageEngineMeta) {
+    if (storageEngineMeta == null) {
+      return false;
+    }
+    try {
+      storage.invalidateStorageEngine(storageEngineMeta);
+      return cache.invalidateStorageEngine(storageEngineMeta);
+      // TODO 由于当前 StorageEngineChangeHook 和 StorageUnitHook 只会处理新增事件，因此不必调用相关 onChange 函数
+    } catch (MetaStorageException e) {
+      logger.error("invalidate storage engine error:", e);
+    }
+    return false;
   }
 
   @Override

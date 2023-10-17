@@ -20,6 +20,7 @@ package cn.edu.tsinghua.iginx.utils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -138,5 +139,12 @@ public class StringUtils {
       }
     }
     return false;
+  }
+
+  public static boolean isEqual(String str1, String str2) {
+    if ((str1 == null || str1.isEmpty()) && (str2 == null || str2.isEmpty())) {
+      return true;
+    }
+    return Objects.equals(str1, str2);
   }
 }
