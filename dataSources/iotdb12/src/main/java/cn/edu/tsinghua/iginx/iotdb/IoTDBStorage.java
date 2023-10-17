@@ -40,10 +40,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.iotdb.query.entity.IoTDBQueryRowStream;
 import cn.edu.tsinghua.iginx.iotdb.tools.DataViewWrapper;
@@ -109,6 +106,8 @@ public class IoTDBStorage implements IStorage {
   private final StorageEngineMeta meta;
 
   private static final Logger logger = LoggerFactory.getLogger(IoTDBStorage.class);
+
+  private Map<String, String> columns2Fragment = new HashMap<>();
 
   public IoTDBStorage(StorageEngineMeta meta) throws StorageInitializationException {
     this.meta = meta;
@@ -226,6 +225,7 @@ public class IoTDBStorage implements IStorage {
   @Override
   public List<Column> getColumns() throws PhysicalException {
     List<Column> timeseries = new ArrayList<>();
+    columns2Fragment.clear();
     try {
       SessionDataSetWrapper dataSet = sessionPool.executeQueryStatement(SHOW_TIMESERIES);
       while (dataSet.hasNext()) {
@@ -242,6 +242,10 @@ public class IoTDBStorage implements IStorage {
         }
         Pair<String, Map<String, String>> pair = TagKVUtils.splitFullName(path);
         String dataTypeName = record.getFields().get(3).getStringValue();
+
+        String fragment = isDummy ? "" : record.getFields().get(2).getStringValue().substring(5);
+        columns2Fragment.put(pair.k, fragment);
+
         switch (dataTypeName) {
           case "BOOLEAN":
             timeseries.add(new Column(pair.k, DataType.BOOLEAN, pair.v, isDummy));
@@ -328,7 +332,9 @@ public class IoTDBStorage implements IStorage {
           String.format(
               QUERY_DATA, builder.deleteCharAt(builder.length() - 1).toString(), storageUnit);
 
-      String filterStr = FilterTransformer.toString(filter);
+      String filterStr =
+          FilterTransformer.toString(
+              expandFilterWildcard(filter.copy(), getColumns(), storageUnit));
       if (!filterStr.isEmpty()) {
         statement += String.format(QUERY_WHERE, filterStr);
       }
@@ -339,7 +345,7 @@ public class IoTDBStorage implements IStorage {
               new IoTDBQueryRowStream(
                   sessionPool.executeQueryStatement(statement), true, project, filter));
       return new TaskExecuteResult(rowStream);
-    } catch (IoTDBConnectionException | StatementExecutionException e) {
+    } catch (IoTDBConnectionException | StatementExecutionException | PhysicalException e) {
       logger.error(e.getMessage());
       return new TaskExecuteResult(
           new PhysicalTaskExecuteFailureException("execute project task in iotdb12 failure", e));
@@ -385,7 +391,8 @@ public class IoTDBStorage implements IStorage {
       String statement =
           String.format(QUERY_HISTORY_DATA, builder.deleteCharAt(builder.length() - 1).toString());
 
-      String filterStr = FilterTransformer.toString(filter);
+      String filterStr =
+          FilterTransformer.toString(expandFilterWildcard(filter.copy(), getColumns(), ""));
       if (!filterStr.isEmpty()) {
         statement += String.format(QUERY_WHERE, filterStr);
       }
@@ -396,7 +403,7 @@ public class IoTDBStorage implements IStorage {
               new IoTDBQueryRowStream(
                   sessionPool.executeQueryStatement(statement), false, project, filter));
       return new TaskExecuteResult(rowStream);
-    } catch (IoTDBConnectionException | StatementExecutionException e) {
+    } catch (IoTDBConnectionException | StatementExecutionException | PhysicalException e) {
       logger.error(e.getMessage());
       return new TaskExecuteResult(
           new PhysicalTaskExecuteFailureException("execute project task in iotdb12 failure", e));
@@ -883,5 +890,94 @@ public class IoTDBStorage implements IStorage {
     Matcher matcher = pattern.matcher(s);
 
     return matcher.matches();
+  }
+
+  private Filter expandFilterWildcard(Filter filter, List<Column> columns, String storageUnit) {
+    switch (filter.getType()) {
+      case And:
+        AndFilter andFilter = (AndFilter) filter;
+        List<Filter> children = andFilter.getChildren();
+        List<Filter> newAndFilters = new ArrayList<>();
+        for (Filter f : children) {
+          Filter newFilter = expandFilterWildcard(f, columns, storageUnit);
+          if (newFilter != null) {
+            newAndFilters.add(expandFilterWildcard(f, columns, storageUnit));
+          }
+        }
+        return new AndFilter(newAndFilters);
+      case Or:
+        OrFilter orFilter = (OrFilter) filter;
+        List<Filter> orChildren = orFilter.getChildren();
+        List<Filter> newOrFilters = new ArrayList<>();
+        for (Filter f : orChildren) {
+          Filter newFilter = expandFilterWildcard(f, columns, storageUnit);
+          if (newFilter != null) {
+            newOrFilters.add(expandFilterWildcard(f, columns, storageUnit));
+          }
+        }
+        return new OrFilter(newOrFilters);
+      case Not:
+        NotFilter notFilter = (NotFilter) filter;
+        Filter notChild = notFilter.getChild();
+        Filter newNotFilter = expandFilterWildcard(notChild, columns, storageUnit);
+        if (newNotFilter != null) return new NotFilter(newNotFilter);
+        else return null;
+      case Key:
+        return filter;
+      case Value:
+        // TODO: 后面增加|> 和 &< 的支持应该修改这里
+        ValueFilter valueFilter = (ValueFilter) filter;
+        DataType valueType = valueFilter.getValue().getDataType();
+        String path = valueFilter.getPath();
+
+        if (path.contains("*")) {
+          List<String> matchedPath = getMatchPath(path, valueType, columns, storageUnit);
+          if (matchedPath.size() == 0) {
+            return null;
+          }
+
+          List<Filter> newFilters = new ArrayList<>();
+          for (String p : matchedPath) {
+            newFilters.add(new ValueFilter(p, valueFilter.getOp(), valueFilter.getValue()));
+          }
+          return new OrFilter(newFilters);
+        } else {
+          return filter;
+        }
+
+      default:
+        return null;
+    }
+  }
+
+  private List<String> getMatchPath(
+      String path, DataType dataType, List<Column> columns, String storageUnit) {
+    List<String> matchedPath = new ArrayList<>();
+    path = path.replaceAll("[.^${}]", "\\\\$0");
+    path = path.replace("*", ".*");
+    Pattern pattern = Pattern.compile("^" + path + "$");
+
+    for (Column col : columns) {
+      String columnName = col.getPath();
+      DataType columnType = col.getDataType();
+
+      List<DataType> numberType =
+          Arrays.asList(DataType.DOUBLE, DataType.FLOAT, DataType.LONG, DataType.INTEGER);
+      boolean canCompare =
+          (numberType.contains(columnType) && numberType.contains(dataType))
+              || columnType == dataType;
+
+      if (!canCompare
+          || (!storageUnit.isEmpty() && !columns2Fragment.get(columnName).equals(storageUnit))) {
+        continue;
+      }
+
+      Matcher matcher = pattern.matcher(columnName);
+      if (matcher.find()) {
+        matchedPath.add(columnName);
+      }
+    }
+
+    return matchedPath;
   }
 }
