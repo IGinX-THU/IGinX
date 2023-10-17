@@ -9,6 +9,8 @@ import com.influxdb.client.domain.Bucket;
 import com.influxdb.client.domain.Organization;
 import com.influxdb.client.domain.WritePrecision;
 import com.influxdb.client.write.Point;
+
+import java.util.ArrayList;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,7 +33,7 @@ public class InfluxDBHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   @Override
   public void writeHistoryData(
-      int port, List<String> pathList, List<DataType> dataTypeList, List<List<Object>> valuesList) {
+      int port, List<String> pathList, List<DataType> dataTypeList, List<List<Long>> keyList, List<List<Object>> valuesList) {
     String url = "http://localhost:" + port + "/";
     InfluxDBClient client = InfluxDBClientFactory.create(url, TOKEN.toCharArray(), ORGANIZATION);
     Organization organization =
@@ -40,8 +42,10 @@ public class InfluxDBHistoryDataGenerator extends BaseHistoryDataGenerator {
             .findFirst()
             .orElseThrow(IllegalAccessError::new);
 
+    boolean hasKeys = keyList.isEmpty();
     int timeCnt = 0;
-    for (List<Object> valueList : valuesList) {
+    for (int index = 0;index<valuesList.size();index++) {
+      List<Object> valueList = valuesList.get(index);
       for (int i = 0; i < pathList.size(); i++) {
         String path = pathList.get(i);
         DataType dataType = dataTypeList.get(i);
@@ -62,6 +66,9 @@ public class InfluxDBHistoryDataGenerator extends BaseHistoryDataGenerator {
         Point point = null;
         if (valueList.get(i) == null) {
           continue;
+        }
+        if (hasKeys) {
+          timeCnt = Math.toIntExact(keyList.get(index).get(i));
         }
         switch (dataType) {
           case BOOLEAN:
@@ -126,6 +133,12 @@ public class InfluxDBHistoryDataGenerator extends BaseHistoryDataGenerator {
 
     client.close();
     logger.info("write data to " + url + " success!");
+  }
+
+  @Override
+  public void writeHistoryData(
+      int port, List<String> pathList, List<DataType> dataTypeList, List<List<Object>> valuesList) {
+    writeHistoryData(port, pathList, dataTypeList, new ArrayList<>(), valuesList);
   }
 
   @Override

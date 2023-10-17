@@ -19,7 +19,8 @@ public class FileReader {
       in = new BufferedInputStream(Files.newInputStream(Paths.get(filePath)));
       conf = IOUtils.toString(in, String.valueOf(StandardCharsets.UTF_8)).replace("\n", "");
     } catch (IOException e) {
-      logger.error(String.format("Fail to find file, path=%s", filePath));
+      logger.warn(String.format("Fail to find file, path=%s", filePath));
+      return null;
     } finally {
       try {
         if (in != null) {

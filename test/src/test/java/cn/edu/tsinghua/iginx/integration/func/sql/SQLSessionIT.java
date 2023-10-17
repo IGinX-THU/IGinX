@@ -13,6 +13,7 @@ import cn.edu.tsinghua.iginx.integration.tool.SQLExecutor;
 import cn.edu.tsinghua.iginx.pool.IginxInfo;
 import cn.edu.tsinghua.iginx.pool.SessionPool;
 import cn.edu.tsinghua.iginx.session.Session;
+import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -123,12 +124,24 @@ public class SQLSessionIT {
   }
 
   private String generateDefaultInsertStatementByTimeRange(long start, long end) {
+    List<String> pathList = new ArrayList<String>() {{
+        add("us.d1.s1");
+        add("us.d1.s2");
+        add("us.d1.s3");
+        add("us.d1.s4");
+    }};
+
+    List<List<Long>> keyList = new ArrayList<>();
+    List<DataType> dataTypeList = new ArrayList<>();
+    List<List<Object>> valuesLis = new ArrayList<>();
+
     String insertStrPrefix = "INSERT INTO us.d1 (key, s1, s2, s3, s4) values ";
 
     StringBuilder builder = new StringBuilder(insertStrPrefix);
 
     int size = (int) (end - start);
     for (int i = 0; i < size; i++) {
+
       builder.append(", ");
       builder.append("(");
       builder.append(start + i).append(", ");
