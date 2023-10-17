@@ -88,9 +88,11 @@ public class IoTDBStorage implements IStorage {
 
   private static final String PREFIX = "root.";
 
-  private static final String QUERY_DATA = "SELECT %s FROM " + PREFIX + "%s WHERE %s";
+  private static final String QUERY_DATA = "SELECT %s FROM " + PREFIX + "%s";
 
-  private static final String QUERY_HISTORY_DATA = "SELECT %s FROM root WHERE %s";
+  private static final String QUERY_HISTORY_DATA = "SELECT %s FROM root";
+
+  private static final String QUERY_WHERE = " WHERE %s";
 
   private static final String DELETE_STORAGE_GROUP_CLAUSE = "DELETE STORAGE GROUP " + PREFIX + "%s";
 
@@ -324,14 +326,18 @@ public class IoTDBStorage implements IStorage {
       }
       String statement =
           String.format(
-              QUERY_DATA,
-              builder.deleteCharAt(builder.length() - 1).toString(),
-              storageUnit,
-              FilterTransformer.toString(filter));
+              QUERY_DATA, builder.deleteCharAt(builder.length() - 1).toString(), storageUnit);
+
+      String filterStr = FilterTransformer.toString(filter);
+      if (!filterStr.isEmpty()) {
+        statement += String.format(QUERY_WHERE, filterStr);
+      }
+
       logger.info("[Query] execute query: " + statement);
       RowStream rowStream =
           new ClearEmptyRowStreamWrapper(
-              new IoTDBQueryRowStream(sessionPool.executeQueryStatement(statement), true, project));
+              new IoTDBQueryRowStream(
+                  sessionPool.executeQueryStatement(statement), true, project, filter));
       return new TaskExecuteResult(rowStream);
     } catch (IoTDBConnectionException | StatementExecutionException e) {
       logger.error(e.getMessage());
@@ -377,15 +383,18 @@ public class IoTDBStorage implements IStorage {
         builder.append(',');
       }
       String statement =
-          String.format(
-              QUERY_HISTORY_DATA,
-              builder.deleteCharAt(builder.length() - 1).toString(),
-              FilterTransformer.toString(filter));
+          String.format(QUERY_HISTORY_DATA, builder.deleteCharAt(builder.length() - 1).toString());
+
+      String filterStr = FilterTransformer.toString(filter);
+      if (!filterStr.isEmpty()) {
+        statement += String.format(QUERY_WHERE, filterStr);
+      }
+
       logger.info("[Query] execute query: " + statement);
       RowStream rowStream =
           new ClearEmptyRowStreamWrapper(
               new IoTDBQueryRowStream(
-                  sessionPool.executeQueryStatement(statement), false, project));
+                  sessionPool.executeQueryStatement(statement), false, project, filter));
       return new TaskExecuteResult(rowStream);
     } catch (IoTDBConnectionException | StatementExecutionException e) {
       logger.error(e.getMessage());
