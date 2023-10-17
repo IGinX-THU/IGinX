@@ -19,6 +19,7 @@
 package cn.edu.tsinghua.iginx.metadata.storage.zk;
 
 import static cn.edu.tsinghua.iginx.metadata.utils.ColumnsIntervalUtils.fromString;
+import static cn.edu.tsinghua.iginx.metadata.utils.IdUtils.generateId;
 import static cn.edu.tsinghua.iginx.metadata.utils.ReshardStatus.*;
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
@@ -551,7 +552,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
     InterProcessMutex mutex = new InterProcessMutex(this.client, STORAGE_ENGINE_LOCK_NODE);
     try {
       mutex.acquire();
-      String nodeName = STORAGE_ENGINE_NODE + String.format("%010d", storageEngine.getId());
+      String nodeName = generateId(STORAGE_ENGINE_NODE, storageEngine.getId());
       this.client.setData().forPath(nodeName, JsonUtils.toJson(storageEngine));
       return true;
     } catch (Exception e) {

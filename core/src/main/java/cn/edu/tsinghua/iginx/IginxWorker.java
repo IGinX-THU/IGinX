@@ -18,6 +18,7 @@
  */
 package cn.edu.tsinghua.iginx;
 
+import static cn.edu.tsinghua.iginx.metadata.utils.IdUtils.generateDummyStorageUnitId;
 import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.isEmbeddedStorageEngine;
 import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.isLocal;
 import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.setSchemaPrefixInExtraParams;
@@ -399,8 +400,7 @@ public class IginxWorker implements IService.Iface {
       if (meta.isHasData()) {
         String dataPrefix = meta.getDataPrefix();
         String schemaPrefix = meta.getSchemaPrefix();
-        StorageUnitMeta dummyStorageUnit =
-            new StorageUnitMeta(StorageUnitMeta.generateDummyStorageUnitID(0), -1);
+        StorageUnitMeta dummyStorageUnit = new StorageUnitMeta(generateDummyStorageUnitId(0), -1);
         Pair<ColumnsInterval, KeyInterval> boundary =
             StorageManager.getBoundaryOfStorage(meta, dataPrefix);
         FragmentMeta dummyFragment;

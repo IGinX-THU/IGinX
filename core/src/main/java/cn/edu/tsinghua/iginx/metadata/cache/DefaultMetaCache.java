@@ -18,6 +18,8 @@
  */
 package cn.edu.tsinghua.iginx.metadata.cache;
 
+import static cn.edu.tsinghua.iginx.metadata.utils.IdUtils.generateDummyStorageUnitId;
+
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.*;
@@ -650,7 +652,7 @@ public class DefaultMetaCache implements IMetaCache {
       logger.error("unexpected storage engine to be invalidated");
       return false;
     }
-    String dummyStorageUnitId = StorageUnitMeta.generateDummyStorageUnitID(storageEngineId);
+    String dummyStorageUnitId = generateDummyStorageUnitId(storageEngineId);
     StorageEngineMeta oldStorageEngineMeta = storageEngineMetaMap.get(storageEngineId);
     if (oldStorageEngineMeta.isHasData()) {
       dummyFragments.removeIf(e -> e.getMasterStorageUnitId().equals(dummyStorageUnitId));

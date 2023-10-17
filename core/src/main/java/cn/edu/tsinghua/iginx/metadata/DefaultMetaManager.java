@@ -18,6 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.metadata;
 
+import static cn.edu.tsinghua.iginx.metadata.utils.IdUtils.generateDummyStorageUnitId;
 import static cn.edu.tsinghua.iginx.metadata.utils.ReshardStatus.EXECUTING;
 import static cn.edu.tsinghua.iginx.metadata.utils.ReshardStatus.NON_RESHARDING;
 import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.setSchemaPrefixInExtraParams;
@@ -417,7 +418,7 @@ public class DefaultMetaManager implements IMetaManager {
     if (storageEngineMeta.isHasData()) {
       StorageUnitMeta dummyStorageUnit = storageEngineMeta.getDummyStorageUnit();
       dummyStorageUnit.setStorageEngineId(storageEngineId);
-      dummyStorageUnit.setId(StorageUnitMeta.generateDummyStorageUnitID(storageEngineId));
+      dummyStorageUnit.setId(generateDummyStorageUnitId(storageEngineId));
       dummyStorageUnit.setMasterId(dummyStorageUnit.getId());
       FragmentMeta dummyFragment = storageEngineMeta.getDummyFragment();
       dummyFragment.setMasterStorageUnit(dummyStorageUnit);
@@ -1245,8 +1246,7 @@ public class DefaultMetaManager implements IMetaManager {
               StorageEngineType.valueOf(storageEngine.toLowerCase()),
               id);
       if (hasData) {
-        StorageUnitMeta dummyStorageUnit =
-            new StorageUnitMeta(StorageUnitMeta.generateDummyStorageUnitID(i), i);
+        StorageUnitMeta dummyStorageUnit = new StorageUnitMeta(generateDummyStorageUnitId(i), i);
         Pair<ColumnsInterval, KeyInterval> boundary = StorageManager.getBoundaryOfStorage(storage);
         FragmentMeta dummyFragment;
 
