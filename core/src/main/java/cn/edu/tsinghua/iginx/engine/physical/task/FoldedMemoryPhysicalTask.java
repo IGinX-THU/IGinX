@@ -2,7 +2,7 @@ package cn.edu.tsinghua.iginx.engine.physical.task;
 
 import static cn.edu.tsinghua.iginx.engine.logical.utils.MetaUtils.getFragmentsByColumnsInterval;
 import static cn.edu.tsinghua.iginx.engine.logical.utils.MetaUtils.mergeRawData;
-import static cn.edu.tsinghua.iginx.engine.physical.task.utils.TaskUtils.getStorageTasks;
+import static cn.edu.tsinghua.iginx.engine.physical.task.utils.TaskUtils.getBottomTasks;
 import static cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType.isUnaryOperator;
 
 import cn.edu.tsinghua.iginx.conf.Config;
@@ -110,11 +110,28 @@ public class FoldedMemoryPhysicalTask extends MemoryPhysicalTask {
     }
     setFollowerTask(null);
 
-    List<StoragePhysicalTask> storageTasks = new ArrayList<>();
-    getStorageTasks(storageTasks, task);
-    storageTaskExecutor.commit(storageTasks);
+    List<PhysicalTask> bottomTasks = new ArrayList<>();
+    getBottomTasks(bottomTasks, task);
+    commitBottomTasks(bottomTasks);
 
     return null;
+  }
+
+  private void commitBottomTasks(List<PhysicalTask> bottomTasks) {
+    List<StoragePhysicalTask> storageTasks = new ArrayList<>();
+    List<GlobalPhysicalTask> globalTasks = new ArrayList<>();
+    for (PhysicalTask task : bottomTasks) {
+      if (task.getType().equals(TaskType.Storage)) {
+        storageTasks.add((StoragePhysicalTask) task);
+      } else if (task.getType().equals(TaskType.Global)) {
+        globalTasks.add((GlobalPhysicalTask) task);
+      }
+    }
+
+    storageTaskExecutor.commit(storageTasks);
+    for (GlobalPhysicalTask globalTask : globalTasks) {
+      storageTaskExecutor.executeGlobalTask(globalTask);
+    }
   }
 
   private Operator reGenerateRoot(Operator root, List<RowStream> streams) {

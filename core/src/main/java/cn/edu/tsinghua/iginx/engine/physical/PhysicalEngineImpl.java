@@ -18,7 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical;
 
-import static cn.edu.tsinghua.iginx.engine.physical.task.utils.TaskUtils.getStorageTasks;
+import static cn.edu.tsinghua.iginx.engine.physical.task.utils.TaskUtils.getBottomTasks;
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
@@ -84,14 +84,30 @@ public class PhysicalEngineImpl implements PhysicalEngine {
     }
     PhysicalTask task = optimizer.optimize(root);
     ctx.setPhysicalTree(task);
-    List<StoragePhysicalTask> storageTasks = new ArrayList<>();
-    getStorageTasks(storageTasks, task);
-    storageTaskExecutor.commit(storageTasks);
+    List<PhysicalTask> bottomTasks = new ArrayList<>();
+    getBottomTasks(bottomTasks, task);
+    commitBottomTasks(bottomTasks);
     TaskExecuteResult result = task.getResult();
     if (result.getException() != null) {
       throw result.getException();
     }
     return result.getRowStream();
+  }
+
+  private void commitBottomTasks(List<PhysicalTask> bottomTasks) {
+    List<StoragePhysicalTask> storageTasks = new ArrayList<>();
+    List<GlobalPhysicalTask> globalTasks = new ArrayList<>();
+    for (PhysicalTask task : bottomTasks) {
+      if (task.getType().equals(TaskType.Storage)) {
+        storageTasks.add((StoragePhysicalTask) task);
+      } else if (task.getType().equals(TaskType.Global)) {
+        globalTasks.add((GlobalPhysicalTask) task);
+      }
+    }
+    storageTaskExecutor.commit(storageTasks);
+    for (GlobalPhysicalTask globalTask : globalTasks) {
+      storageTaskExecutor.executeGlobalTask(globalTask);
+    }
   }
 
   @Override
