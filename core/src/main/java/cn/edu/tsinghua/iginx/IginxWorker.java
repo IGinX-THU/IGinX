@@ -270,10 +270,10 @@ public class IginxWorker implements IService.Iface {
 
         // 修改需要更新的元数据信息
         // extraParams 中的 has_data 属性需要修改
-        StorageEngineMeta newMeta =
+        StorageEngineMeta newStorageEngineMeta =
             new StorageEngineMeta(
                 storageEngineMeta.getId(),
-                convertHostNameToHostAddress(storageEngineMeta.getIp()),
+                storageEngineMeta.getIp(),
                 storageEngineMeta.getPort(),
                 false,
                 null,
@@ -288,13 +288,13 @@ public class IginxWorker implements IService.Iface {
                 storageEngineMeta.isNeedReAllocate());
 
         // 更新 zk 以及缓存中的元数据信息
-        if (!metaManager.invalidateStorageEngine(newMeta)) {
+        if (!metaManager.invalidateStorageEngine(newStorageEngineMeta)) {
           status = RpcUtils.FAILURE;
           status.setMessage("unexpected error during invalidating storage engine");
           return status;
         }
       } catch (Exception e) {
-        logger.error("unexpected error during storage removing history data source: ", e);
+        logger.error("unexpected error during removing history data source: ", e);
         status = new Status(StatusCode.STATEMENT_EXECUTION_ERROR.getStatusCode());
         status.setMessage(
             "unexpected error during removing history data source: " + e.getMessage());
