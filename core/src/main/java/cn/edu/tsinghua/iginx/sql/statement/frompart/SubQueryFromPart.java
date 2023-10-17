@@ -9,10 +9,8 @@ import java.util.List;
 
 public class SubQueryFromPart implements FromPart {
 
-  private final FromPartType type = FromPartType.SubQueryFromPart;
   private final SelectStatement subQuery;
   private final List<String> patterns;
-  private final boolean isJoinPart;
   private JoinCondition joinCondition;
   private final String alias;
 
@@ -23,7 +21,6 @@ public class SubQueryFromPart implements FromPart {
   public SubQueryFromPart(SelectStatement subQuery, String alias) {
     this.subQuery = subQuery;
     this.patterns = subQuery.calculatePrefixSet();
-    this.isJoinPart = false;
     this.alias = alias;
   }
 
@@ -34,22 +31,23 @@ public class SubQueryFromPart implements FromPart {
   public SubQueryFromPart(SelectStatement subQuery, JoinCondition joinCondition, String alias) {
     this.subQuery = subQuery;
     this.patterns = subQuery.calculatePrefixSet();
-    this.isJoinPart = true;
     this.joinCondition = joinCondition;
     this.alias = alias;
   }
 
+  @Override
+  public FromPartType getType() {
+    return FromPartType.SubQuery;
+  }
+
+  @Override
   public String getAlias() {
     return alias;
   }
 
-  public boolean hasAlias() {
-    return alias != null && !alias.equals("");
-  }
-
   @Override
-  public FromPartType getType() {
-    return type;
+  public boolean hasAlias() {
+    return alias != null && !alias.isEmpty();
   }
 
   @Override
@@ -91,13 +89,13 @@ public class SubQueryFromPart implements FromPart {
   }
 
   @Override
-  public boolean isJoinPart() {
-    return isJoinPart;
+  public JoinCondition getJoinCondition() {
+    return joinCondition;
   }
 
   @Override
-  public JoinCondition getJoinCondition() {
-    return joinCondition;
+  public void setJoinCondition(JoinCondition joinCondition) {
+    this.joinCondition = joinCondition;
   }
 
   public SelectStatement getSubQuery() {

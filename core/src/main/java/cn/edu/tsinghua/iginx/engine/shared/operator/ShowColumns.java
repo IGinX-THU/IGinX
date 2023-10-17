@@ -3,6 +3,7 @@ package cn.edu.tsinghua.iginx.engine.shared.operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.GlobalSource;
+import cn.edu.tsinghua.iginx.sql.statement.ShowColumnsStatement;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -10,7 +11,6 @@ public class ShowColumns extends AbstractUnaryOperator {
 
   private final Set<String> pathRegexSet;
   private final TagFilter tagFilter;
-
   private final int limit;
   private final int offset;
 
@@ -21,6 +21,15 @@ public class ShowColumns extends AbstractUnaryOperator {
     this.tagFilter = tagFilter;
     this.limit = limit;
     this.offset = offset;
+  }
+
+  public ShowColumns(GlobalSource source, ShowColumnsStatement statement) {
+    this(
+        source,
+        statement.getPathRegexSet(),
+        statement.getTagFilter(),
+        statement.getLimit(),
+        statement.getOffset());
   }
 
   public Set<String> getPathRegexSet() {
@@ -60,7 +69,10 @@ public class ShowColumns extends AbstractUnaryOperator {
       builder.deleteCharAt(builder.length() - 1);
     }
     if (tagFilter != null) {
-      builder.append(", TagFilter: ").append(tagFilter.toString());
+      builder.append(", TagFilter: ").append(tagFilter);
+    }
+    if (limit != Integer.MAX_VALUE || offset != 0) {
+      builder.append(", Limit: ").append(limit).append(", Offset: ").append(offset);
     }
     return builder.toString();
   }

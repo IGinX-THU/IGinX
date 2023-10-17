@@ -431,7 +431,7 @@ public class StatementExecutor {
       if (sourceB.getType() == SourceType.Operator) {
         dfsLogicalTree(cache, ((OperatorSource) sourceB).getOperator(), depth + 1, maxLen);
       }
-    } else {
+    } else if (OperatorType.isMultipleOperator(type)) {
       MultipleOperator multipleOp = (MultipleOperator) op;
       for (Source source : multipleOp.getSources()) {
         if (source.getType() == SourceType.Operator) {
