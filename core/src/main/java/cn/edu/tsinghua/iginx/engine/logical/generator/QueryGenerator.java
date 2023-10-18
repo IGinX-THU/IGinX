@@ -323,8 +323,14 @@ public class QueryGenerator extends AbstractGenerator {
                         FunctionParams params =
                             FunctionUtils.isCanUseSetQuantifierFunction(k)
                                 ? new FunctionParams(
-                                    expression.getParams(), expression.isDistinct())
-                                : new FunctionParams(expression.getParams());
+                                    expression.getColumns(),
+                                    expression.getArgs(),
+                                    expression.getKvargs(),
+                                    expression.isDistinct())
+                                : new FunctionParams(
+                                    expression.getColumns(),
+                                    expression.getArgs(),
+                                    expression.getKvargs());
 
                         functionCallList.add(
                             new FunctionCall(functionManager.getFunction(k), params));
@@ -351,8 +357,16 @@ public class QueryGenerator extends AbstractGenerator {
                         FunctionParams params =
                             FunctionUtils.isCanUseSetQuantifierFunction(k)
                                 ? new FunctionParams(
-                                    expression.getParams(), levels, expression.isDistinct())
-                                : new FunctionParams(expression.getParams(), levels);
+                                    expression.getColumns(),
+                                    expression.getArgs(),
+                                    expression.getKvargs(),
+                                    levels,
+                                    expression.isDistinct())
+                                : new FunctionParams(
+                                    expression.getColumns(),
+                                    expression.getArgs(),
+                                    expression.getKvargs(),
+                                    levels);
 
                         Operator copySelect = finalRoot.copy();
                         queryList.add(
@@ -381,8 +395,16 @@ public class QueryGenerator extends AbstractGenerator {
                         FunctionParams params =
                             FunctionUtils.isCanUseSetQuantifierFunction(k)
                                 ? new FunctionParams(
-                                    expression.getParams(), levels, expression.isDistinct())
-                                : new FunctionParams(expression.getParams(), levels);
+                                    expression.getColumns(),
+                                    expression.getArgs(),
+                                    expression.getKvargs(),
+                                    levels,
+                                    expression.isDistinct())
+                                : new FunctionParams(
+                                    expression.getColumns(),
+                                    expression.getArgs(),
+                                    expression.getKvargs(),
+                                    levels);
 
                         Operator copySelect = finalRoot.copy();
                         logger.info("function: " + expression.getColumnName());
@@ -422,7 +444,11 @@ public class QueryGenerator extends AbstractGenerator {
               (k, v) ->
                   v.forEach(
                       expression -> {
-                        FunctionParams params = new FunctionParams(expression.getParams());
+                        FunctionParams params =
+                            new FunctionParams(
+                                expression.getColumns(),
+                                expression.getArgs(),
+                                expression.getKvargs());
                         Operator copySelect = finalRoot.copy();
                         logger.info("function: " + k + ", wrapped path: " + v);
                         queryList.add(
@@ -540,7 +566,7 @@ public class QueryGenerator extends AbstractGenerator {
     }
 
     // 子查询不生成Reorder算子
-    if (!selectStatement.isSubQuery()) {
+    if (!selectStatement.isSubQuery() || selectStatement.hasFunc()) {
       if (selectStatement.getLayers().isEmpty()) {
         if (selectStatement.getQueryType().equals(QueryType.LastFirstQuery)) {
           root = new Reorder(new OperatorSource(root), Arrays.asList("path", "value"));
@@ -556,9 +582,6 @@ public class QueryGenerator extends AbstractGenerator {
                     String colName = expression.getColumnName();
                     order.add(colName);
                   });
-          root =
-              new Reorder(
-                  new OperatorSource(root), order, selectStatement.hasValueToSelectedPath());
         }
       } else {
         List<String> order = new ArrayList<>();

@@ -139,7 +139,7 @@ public class UnarySelectStatement extends SelectStatement {
         path -> {
           FuncExpression funcExpression = new FuncExpression(func, Collections.singletonList(path));
           expressions.add(funcExpression);
-          setSelectedFuncsAndPaths(func, funcExpression);
+          setSelectedFuncsAndExpression(func, funcExpression);
         });
 
     this.hasFunc = true;
@@ -182,7 +182,7 @@ public class UnarySelectStatement extends SelectStatement {
         path -> {
           FuncExpression funcExpression = new FuncExpression(func, Collections.singletonList(path));
           expressions.add(funcExpression);
-          setSelectedFuncsAndPaths(func, funcExpression);
+          setSelectedFuncsAndExpression(func, funcExpression);
         });
 
     this.hasFunc = true;
@@ -330,11 +330,11 @@ public class UnarySelectStatement extends SelectStatement {
     }
   }
 
-  public void setSelectedFuncsAndPaths(String func, FuncExpression expression) {
-    setSelectedFuncsAndPaths(func, expression, true);
+  public void setSelectedFuncsAndExpression(String func, FuncExpression expression) {
+    setSelectedFuncsAndExpression(func, expression, true);
   }
 
-  public void setSelectedFuncsAndPaths(
+  public void setSelectedFuncsAndExpression(
       String func, FuncExpression expression, boolean addToPathSet) {
     func = func.trim().toLowerCase();
 
@@ -348,7 +348,7 @@ public class UnarySelectStatement extends SelectStatement {
     }
 
     if (addToPathSet) {
-      this.pathSet.addAll(expression.getParams());
+      this.pathSet.addAll(expression.getColumns());
     }
 
     FuncType type = str2FuncType(func);

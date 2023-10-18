@@ -8,5 +8,6 @@ UDAF,udf_count,UDFCount,udf_count.py
 
 UDTF,cos,UDFCos,udtf_cos.py
 UDTF,multiply,UDFMultiply,udtf_multiply.py
+UDTF,pow,UDFPow,udtf_pow.py
 
 UDSF,reverse_rows,UDFReverseRows,udsf_reverse_rows.py

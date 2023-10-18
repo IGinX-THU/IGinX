@@ -6,6 +6,7 @@ import static org.junit.Assert.assertTrue;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
+import cn.edu.tsinghua.iginx.sql.expression.Expression;
 import cn.edu.tsinghua.iginx.sql.expression.FuncExpression;
 import cn.edu.tsinghua.iginx.sql.statement.AddStorageEngineStatement;
 import cn.edu.tsinghua.iginx.sql.statement.DeleteColumnsStatement;
@@ -89,19 +90,19 @@ public class ParseTest {
 
     assertEquals(
         Collections.singletonList("a.b.c"),
-        statement.getFuncExpressionMap().get("sum").get(0).getParams());
+        statement.getFuncExpressionMap().get("sum").get(0).getColumns());
     assertEquals(
         Collections.singletonList("a.b.d"),
-        statement.getFuncExpressionMap().get("sum").get(1).getParams());
+        statement.getFuncExpressionMap().get("sum").get(1).getColumns());
     assertEquals(
         Collections.singletonList("a.b.e"),
-        statement.getFuncExpressionMap().get("sum").get(2).getParams());
+        statement.getFuncExpressionMap().get("sum").get(2).getColumns());
     assertEquals(
         Collections.singletonList("a.b.f"),
-        statement.getFuncExpressionMap().get("count").get(0).getParams());
+        statement.getFuncExpressionMap().get("count").get(0).getColumns());
     assertEquals(
         Collections.singletonList("a.b.g"),
-        statement.getFuncExpressionMap().get("count").get(1).getParams());
+        statement.getFuncExpressionMap().get("count").get(1).getColumns());
 
     assertEquals(
         "(((key > 100 && key < 1000) || a.b.d == \"abc\" || a.b.c >= \"666\" || (a.b.e < 10 && !(a.b.f < 10))) && key >= 200 && key < 300)",
@@ -139,7 +140,7 @@ public class ParseTest {
     statement = (UnarySelectStatement) TestUtils.buildStatement(selectStr);
     assertEquals(
         Collections.singletonList("a.b.c"),
-        statement.getFuncExpressionMap().get("sum").get(0).getParams());
+        statement.getFuncExpressionMap().get("sum").get(0).getColumns());
     assertEquals(Arrays.asList(1, 2), statement.getLayers());
   }
 
@@ -234,7 +235,7 @@ public class ParseTest {
     UnarySelectStatement subStatement = (UnarySelectStatement) subQueryFromPart.getSubQuery();
 
     FuncExpression expression = subStatement.getFuncExpressionMap().get("max").get(0);
-    assertEquals(Collections.singletonList("res.a"), expression.getParams());
+    assertEquals(Collections.singletonList("res.a"), expression.getColumns());
     assertEquals("max", expression.getFuncName());
     assertEquals("max_a", expression.getAlias());
   }
