@@ -241,7 +241,7 @@ public class StoragePhysicalTaskExecutor {
                     }
                   } catch (Exception e) {
                     logger.error(
-                        "unexpected exception during dispatcher memory task, please contact developer to check: ",
+                        "unexpected exception during dispatcher storage task, please contact developer to check: ",
                         e);
                   }
                 });
