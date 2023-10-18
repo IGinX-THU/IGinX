@@ -63,4 +63,8 @@ public class Constants {
   public static final String UDSF = "udsf";
 
   public static final String TRANSFORM = "transform";
+
+  // for ZooKeeper
+  // The sequence number is always fixed length of 10 digits, 0 padded.
+  public static int LENGTH_OF_SEQUENCE_NUMBER = 10;
 }
