@@ -624,6 +624,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
 
   private RowStream executeValueToSelectedPath(ValueToSelectedPath operator, Table table) {
     String prefix = operator.getPrefix();
+    boolean prefixIsEmpty = prefix.isEmpty();
 
     int fieldSize = table.getHeader().getFieldSize();
     Header targetHeader =
@@ -634,10 +635,12 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         .forEach(
             row -> {
               for (int i = 0; i < fieldSize; i++) {
+                String path =
+                    prefixIsEmpty
+                        ? row.getAsValue(i).getAsString()
+                        : prefix + DOT + row.getAsValue(i).getAsString();
                 Object[] value = new Object[1];
-                value[0] =
-                    (prefix + DOT + row.getAsValue(i).getAsString())
-                        .getBytes(StandardCharsets.UTF_8);
+                value[0] = path.getBytes(StandardCharsets.UTF_8);
                 targetRows.add(new Row(targetHeader, value));
               }
             });

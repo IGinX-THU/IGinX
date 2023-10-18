@@ -135,18 +135,25 @@ public class FoldedMemoryPhysicalTask extends MemoryPhysicalTask {
   }
 
   private Operator reGenerateRoot(Operator root, List<RowStream> streams) {
-    Set<String> selectedPaths = new HashSet<>();
+    Set<String> set = new HashSet<>();
+    List<String> selectedPaths = new ArrayList<>();
     streams.forEach(
         stream -> {
           try {
             int index = stream.getHeader().indexOf("SelectedPath");
-            if (index != -1) {
-              while (stream.hasNext()) {
-                Row row = stream.next();
-                Value value = row.getAsValue(index);
-                if (!value.isNull()) {
-                  selectedPaths.add(value.getBinaryVAsString());
-                }
+            if (index == -1) {
+              return;
+            }
+            while (stream.hasNext()) {
+              Row row = stream.next();
+              Value value = row.getAsValue(index);
+              if (value.isNull()) {
+                continue;
+              }
+              String path = value.getBinaryVAsString();
+              if (!set.contains(path)) {
+                set.add(path);
+                selectedPaths.add(path);
               }
             }
           } catch (PhysicalException e) {
@@ -155,7 +162,7 @@ public class FoldedMemoryPhysicalTask extends MemoryPhysicalTask {
           }
         });
 
-    return fillRootWithPath(root, new ArrayList<>(selectedPaths));
+    return fillRootWithPath(root, selectedPaths);
   }
 
   private Operator fillRootWithPath(Operator operator, List<String> selectedPaths) {
