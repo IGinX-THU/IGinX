@@ -588,7 +588,7 @@ public class IginxClient {
         Arrays.asList(
             Arrays.asList("insert", "into"),
             Arrays.asList("delete", "from"),
-            Arrays.asList("delete", "time", "series"),
+            Arrays.asList("delete", "columns"),
             Arrays.asList("explain", "select"),
             Arrays.asList("add", "storageengine"),
             Arrays.asList("register", "python", "task"),
@@ -607,10 +607,10 @@ public class IginxClient {
             Arrays.asList("show", "replica", "number"),
             Arrays.asList("count", "points"),
             Arrays.asList("clear", "data"),
-            Arrays.asList("show", "time", "series"),
+            Arrays.asList("show", "columns"),
             Arrays.asList("show", "cluster", "info"),
             Arrays.asList("show", "register", "python", "task"),
-            Arrays.asList("remove", "historyDataResource"));
+            Arrays.asList("remove", "historydatasource"));
     addArgumentCompleters(iginxCompleters, withoutNullCompleters, false);
 
     List<String> singleCompleters = Arrays.asList("quit", "exit");

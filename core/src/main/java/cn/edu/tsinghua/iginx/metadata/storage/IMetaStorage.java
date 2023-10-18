@@ -47,8 +47,7 @@ public interface IMetaStorage {
 
   long addStorageEngine(StorageEngineMeta storageEngine) throws MetaStorageException;
 
-  boolean updateStorageEngine(long storageID, StorageEngineMeta storageEngine)
-      throws MetaStorageException;
+  boolean invalidateStorageEngine(StorageEngineMeta storageEngine) throws MetaStorageException;
 
   void registerStorageChangeHook(StorageChangeHook hook);
 
