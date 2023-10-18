@@ -23,7 +23,7 @@ statement
    | SHOW TRANSFORM JOB STATUS jobId = INT # showJobStatusStatement
    | CANCEL TRANSFORM JOB jobId = INT # cancelJobStatement
    | SHOW jobStatus TRANSFORM JOB # showEligibleJobStatement
-   | REMOVE HISTORYDATARESOURCE removedStorageEngine (COMMA removedStorageEngine)* # removeHistoryDataResourceStatement
+   | REMOVE HISTORYDATASOURCE removedStorageEngine (COMMA removedStorageEngine)* # removeHistoryDataSourceStatement
    | SET CONFIG configName = stringLiteral configValue = stringLiteral # setConfigStatement
    | SHOW CONFIG configName = stringLiteral # showConfigStatement
    | COMPACT # compactStatement
@@ -412,7 +412,7 @@ keyWords
    | RANGE
    | STEP
    | REMOVE
-   | HISTORYDATARESOURCE
+   | HISTORYDATASOURCE
    | COMPACT
    | EXPLAIN
    | LOGICAL
@@ -794,8 +794,8 @@ REMOVE
    : R E M O V E
    ;
 
-HISTORYDATARESOURCE
-   : H I S T O R Y D A T A R E S O U R C E
+HISTORYDATASOURCE
+   : H I S T O R Y D A T A S O U R C E
    ;
 
 COMPACT

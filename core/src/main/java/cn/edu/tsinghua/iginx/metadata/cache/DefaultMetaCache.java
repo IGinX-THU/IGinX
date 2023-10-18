@@ -18,6 +18,8 @@
  */
 package cn.edu.tsinghua.iginx.metadata.cache;
 
+import static cn.edu.tsinghua.iginx.metadata.utils.IdUtils.generateDummyStorageUnitId;
+
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.*;
@@ -641,31 +643,22 @@ public class DefaultMetaCache implements IMetaCache {
   }
 
   @Override
-  public boolean updateStorageEngine(long storageID, StorageEngineMeta storageEngineMeta) {
+  public boolean invalidateStorageEngine(StorageEngineMeta storageEngineMeta) {
     storageUnitLock.writeLock().lock();
     fragmentLock.writeLock().lock();
 
-    if (!storageEngineMetaMap.containsKey(storageID)) {
-      logger.error("No corresponding storage engine needs to be updated");
+    long storageEngineId = storageEngineMeta.getId();
+    if (!storageEngineMetaMap.containsKey(storageEngineId)) {
+      logger.error("unexpected storage engine to be invalidated");
       return false;
     }
-    String dummyStorageUnitID = StorageUnitMeta.generateDummyStorageUnitID(storageID);
-    boolean ifOriHasData = storageEngineMetaMap.get(storageID).isHasData();
-    if (storageEngineMeta.isHasData()) { // 设置相关元数据信息
-      StorageUnitMeta dummyStorageUnit = storageEngineMeta.getDummyStorageUnit();
-      FragmentMeta dummyFragment = storageEngineMeta.getDummyFragment();
-      dummyFragment.setMasterStorageUnit(dummyStorageUnit);
-      dummyStorageUnitMetaMap.put(dummyStorageUnit.getId(), dummyStorageUnit);
-      if (ifOriHasData) { // 更新 dummyFragments 数据
-        dummyFragments.removeIf(e -> e.getMasterStorageUnitId().equals(dummyStorageUnitID));
-      } else {
-        dummyFragments.add(dummyFragment);
-      }
-    } else if (ifOriHasData) { // 原来没有，则移除
-      dummyFragments.removeIf(e -> e.getMasterStorageUnitId().equals(dummyStorageUnitID));
-      dummyStorageUnitMetaMap.remove(dummyStorageUnitID);
+    String dummyStorageUnitId = generateDummyStorageUnitId(storageEngineId);
+    StorageEngineMeta oldStorageEngineMeta = storageEngineMetaMap.get(storageEngineId);
+    if (oldStorageEngineMeta.isHasData()) {
+      dummyFragments.removeIf(e -> e.getMasterStorageUnitId().equals(dummyStorageUnitId));
+      dummyStorageUnitMetaMap.remove(dummyStorageUnitId);
     }
-    storageEngineMetaMap.put(storageEngineMeta.getId(), storageEngineMeta);
+    storageEngineMetaMap.put(storageEngineId, storageEngineMeta);
 
     fragmentLock.writeLock().unlock();
     storageUnitLock.writeLock().unlock();
