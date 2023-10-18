@@ -72,7 +72,7 @@ enum SqlType {
     ShowJobStatus,
     CancelJob,
     ShowEligibleJob,
-    RemoveHistoryDataResource,
+    RemoveHistoryDataSource,
     SetConfig,
     ShowConfig,
     Compact,
@@ -656,7 +656,7 @@ struct RemovedStorageEngineInfo {
 
 struct RemoveHistoryDataSourceReq {
     1: required i64 sessionId
-    2: required list<RemovedStorageEngineInfo> dummyStorageInfoList
+    2: required list<RemovedStorageEngineInfo> removedStorageEngineInfoList
 }
 
 service IService {
