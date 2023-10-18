@@ -345,7 +345,7 @@ public abstract class BaseCapacityExpansionIT {
       schemaPrefixSuffix = ".nt";
       schemaPrefix = "nt";
     }
-    
+
     String schemaPrefix1 = "p1";
     String schemaPrefix2 = "p2";
     String schemaPrefix3 = "p3";
@@ -354,7 +354,7 @@ public abstract class BaseCapacityExpansionIT {
       schemaPrefix2 = "p2.nt";
       schemaPrefix3 = "p3.nt";
     }
-    
+
     List<List<Object>> valuesList = EXP_VALUES_LIST1;
 
     // 添加不同 schemaPrefix，相同 dataPrefix
