@@ -29,12 +29,8 @@ import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
-import cn.edu.tsinghua.iginx.thrift.DataFlowType;
-import cn.edu.tsinghua.iginx.thrift.ExportType;
-import cn.edu.tsinghua.iginx.thrift.JobState;
-import cn.edu.tsinghua.iginx.thrift.RegisterTaskInfo;
-import cn.edu.tsinghua.iginx.thrift.TaskInfo;
-import cn.edu.tsinghua.iginx.thrift.TaskType;
+import cn.edu.tsinghua.iginx.thrift.*;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -43,11 +39,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -117,32 +110,36 @@ public class TransformIT {
   }
 
   @Before
-  public void insertData() throws ExecutionException, SessionException {
-    String insertStrPrefix = "INSERT INTO us.d1 (key, s1, s2, s3, s4) values ";
-    StringBuilder builder = new StringBuilder(insertStrPrefix);
+  public void insertData() {
+    List<String> pathList = new ArrayList<String>() {{
+      add("us.d1.s1");
+      add("us.d1.s2");
+      add("us.d1.s3");
+      add("us.d1.s4");
+    }};
+    List<DataType> dataTypeList = new ArrayList<DataType>() {{
+      add(DataType.LONG);
+      add(DataType.LONG);
+      add(DataType.BINARY);
+      add(DataType.DOUBLE);
+    }};
+    List<Long> keyList = new ArrayList<>();
+    List<List<Object>> valuesList = new ArrayList<>();
     int size = (int) (END_TIMESTAMP - START_TIMESTAMP);
-
     for (int i = 0; i < size; i++) {
-      builder.append(", ");
-      builder.append("(");
-      builder.append(START_TIMESTAMP + i).append(", ");
-      builder.append(i).append(", ");
-      builder.append(i + 1).append(", ");
-      builder
-          .append("\"")
-          .append(new String(RandomStringUtils.randomAlphanumeric(10).getBytes()))
-          .append("\", ");
-      builder.append((i + 0.1));
-      builder.append(")");
+      keyList.add(START_TIMESTAMP + i);
+      valuesList.add(
+          Arrays.asList(
+              i,
+              i + 1,
+              "\"" +new String( RandomStringUtils.randomAlphanumeric(10).getBytes())+"\"",
+              (i + 0.1)));
     }
-    builder.append(";");
-
-    String insertStatement = builder.toString();
-    SessionExecuteSqlResult res = session.executeSql(insertStatement);
-    if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-      logger.error("Insert date execute fail. Caused by: {}.", res.getParseErrorMsg());
-      fail();
-    }
+    Controller.writeRowsData(session, pathList, keyList, dataTypeList,valuesList,new ArrayList<>());
+//    if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
+//      logger.error("Insert date execute fail. Caused by: {}.", res.getParseErrorMsg());
+//      fail();
+//    }
   }
 
   @After

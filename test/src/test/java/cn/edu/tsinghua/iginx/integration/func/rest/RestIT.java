@@ -9,6 +9,9 @@ import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.session.Session;
 import java.io.*;
+import java.util.*;
+
+import cn.edu.tsinghua.iginx.thrift.DataType;
 import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,13 +46,47 @@ public class RestIT {
 
   @Before
   public void insertData() {
-    try {
-      execute("insert.json", TYPE.INSERT);
-    } catch (Exception e) {
-      logger.error("insertData fail. Caused by: {}.", e.toString());
-      fail();
-    }
+    List<String> pathList = Arrays.asList(
+      "archive.file.tracked",
+      "archive.file.search"
+    );
+    List<DataType> dataTypeList = Arrays.asList(
+      DataType.DOUBLE,
+      DataType.DOUBLE
+    );
+
+    List<List<Long>> keyList = Arrays.asList(
+      new ArrayList<Long>(){{
+        add(1359788300000L);
+        add(1359788400000L);
+        add(1359788410000L);
+      }},
+      new ArrayList<Long>(){{
+        add(1359786400000L);
+      }}
+    );
+    List<List<Object>> valuesList = Arrays.asList(
+        new ArrayList<Object>(){{
+            add(13.2);
+            add(123.3);
+            add(23.1);
+        }},
+        new ArrayList<Object>(){{
+            add(321.0);
+        }}
+    );
+    List<Map<String, String>> tagsList = Arrays.asList(
+      new HashMap<String,String>(){{
+        put("dc", "DC1");
+        put("host", "server1");
+      }},
+      new HashMap<String,String>(){{
+        put("host", "server2");
+      }}
+    );
+    Controller.writeColumnsData(session, pathList, keyList, dataTypeList, valuesList, tagsList);
   }
+
 
   @After
   public void clearData() {

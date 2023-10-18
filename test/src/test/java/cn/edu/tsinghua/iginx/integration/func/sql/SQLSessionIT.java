@@ -61,6 +61,8 @@ public class SQLSessionIT {
   protected boolean isAbleToClearData = true;
   private static final int CONCURRENT_NUM = 5;
 
+  private static MultiConnection session;
+
   public SQLSessionIT() {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     DBConf dbConf = conf.loadDBConf(conf.getStorageType());
@@ -76,7 +78,6 @@ public class SQLSessionIT {
 
   @BeforeClass
   public static void setUp() throws SessionException {
-    MultiConnection session;
     if (isForSession) {
       session =
           new MultiConnection(
@@ -119,29 +120,47 @@ public class SQLSessionIT {
 
   @Before
   public void insertData() {
-    String insertStatement = generateDefaultInsertStatementByTimeRange(startKey, endKey);
-    executor.execute(insertStatement);
+    generateData(startKey, endKey);
   }
 
-  private String generateDefaultInsertStatementByTimeRange(long start, long end) {
+  private void generateData(long start, long end) {
+    // construct insert statement
     List<String> pathList = new ArrayList<String>() {{
         add("us.d1.s1");
         add("us.d1.s2");
         add("us.d1.s3");
         add("us.d1.s4");
     }};
+    List<DataType> dataTypeList = new ArrayList<DataType>() {{
+        add(DataType.LONG);
+        add(DataType.LONG);
+        add(DataType.BINARY);
+        add(DataType.DOUBLE);
+    }};
 
-    List<List<Long>> keyList = new ArrayList<>();
-    List<DataType> dataTypeList = new ArrayList<>();
-    List<List<Object>> valuesLis = new ArrayList<>();
+    List<Long> keyList = new ArrayList<>();
+    List<List<Object>> valuesList = new ArrayList<>();
+    int size = (int) (end - start);
+    for (int i = 0; i < size; i++) {
+      keyList.add(start + i);
+      valuesList.add(
+            Arrays.asList(
+                i,
+                i + 1,
+                "\"" +new String( RandomStringUtils.randomAlphanumeric(10).getBytes())+"\"",
+                (i + 0.1)));
+    }
 
+    Controller.writeRowsData(session, pathList, keyList, dataTypeList,valuesList,new ArrayList<>());
+  }
+
+  private String generateDefaultInsertStatementByTimeRange(long start, long end) {
     String insertStrPrefix = "INSERT INTO us.d1 (key, s1, s2, s3, s4) values ";
 
     StringBuilder builder = new StringBuilder(insertStrPrefix);
 
     int size = (int) (end - start);
     for (int i = 0; i < size; i++) {
-
       builder.append(", ");
       builder.append("(");
       builder.append(start + i).append(", ");

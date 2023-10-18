@@ -43,8 +43,7 @@ public class Controller {
 
   private List<StorageEngineMeta> storageEngineMetas = new ArrayList<>();
 
-  private static final Map<String, String> NAME_TO_INSTANCE = new HashMap<String, String>()
-  {
+  private static final Map<String, String> NAME_TO_INSTANCE = new HashMap<String, String>() {
     {
       put("FileSystem", "cn.edu.tsinghua.iginx.integration.expansion.filesystem.FileSystemHistoryDataGenerator");
       put("IoTDB12", "cn.edu.tsinghua.iginx.integration.expansion.iotdb.IoTDB12HistoryDataGenerator");
@@ -56,8 +55,7 @@ public class Controller {
     }
   };
 
-  private static final Map<String, Boolean> SUPPORT_KEY = new HashMap<String, Boolean>()
-  {
+  private static final Map<String, Boolean> SUPPORT_KEY = new HashMap<String, Boolean>() {
     {
       put("FileSystem", false);
       put("IoTDB12", true);
@@ -92,10 +90,10 @@ public class Controller {
     }
   }
 
-  public static void writeColumnsData(Session session, List<String> pathList, List<List<Long>> keyList, List<DataType> dataTypeList, List<List<Object>> valuesList, List<Map<String, String>> tagsList) {
+  public static <T> void writeColumnsData(T session, List<String> pathList, List<List<Long>> keyList, List<DataType> dataTypeList, List<List<Object>> valuesList, List<Map<String, String>> tagsList) {
     String instance = null;
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
-    int medium = tagsList ==null ? pathList.size() / 2 : pathList.size();
+    int medium = tagsList == null ? pathList.size() / 2 : pathList.size();
     if (conf.getStorageType() == null) {
       logger.info("Not the DBCE test, skip the write data step.");
       medium = pathList.size();
@@ -104,9 +102,9 @@ public class Controller {
     }
 
     for (int i = 0; i < pathList.size(); i++) {
-      if (i<=medium) {
+      if (i <= medium) {
         try { // write data through session
-          session.insertColumnRecords(Collections.singletonList(pathList.get(i)),
+          writeColumnsDataWithSession(session, Collections.singletonList(pathList.get(i)),
               keyList.get(i).stream().mapToLong(Long::longValue).toArray(),
               valuesList.get(i).toArray(),
               Collections.singletonList(dataTypeList.get(i)),
@@ -127,10 +125,10 @@ public class Controller {
     }
   }
 
-  public static void writeRowsData(Session session, List<String> pathList, List<Long> keyList, List<DataType> dataTypeList, List<List<Object>> valuesList, List<Map<String, String>> tagsList) {
+  public static <T> void writeRowsData(T session, List<String> pathList, List<Long> keyList, List<DataType> dataTypeList, List<List<Object>> valuesList, List<Map<String, String>> tagsList) {
     String instance = null;
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
-    int medium = tagsList ==null ? keyList.size() / 2 : keyList.size();
+    int medium = tagsList == null ? keyList.size() / 2 : keyList.size();
     if (conf.getStorageType() == null) {
       logger.info("Not the DBCE test, skip the write data step.");
       medium = keyList.size();
@@ -153,7 +151,7 @@ public class Controller {
 
     // transfer the List to Array
     Object[] newValuesList = new Object[pathList.size()];
-    for (int j= 0; j < upperkeyList.size(); j++) {
+    for (int j = 0; j < upperkeyList.size(); j++) {
       Object[] value = new Object[pathList.size()];
       for (int k = 0; k < pathList.size(); k++) {
         value[k] = upperValuesList.get(j).get(k);
@@ -162,7 +160,7 @@ public class Controller {
     }
 
     try { // write data through session
-      session.insertRowRecords(pathList,
+      writeRowsDataWithSession(session, pathList,
           upperkeyList.stream().mapToLong(Long::longValue).toArray(),
           newValuesList,
           dataTypeList,
@@ -180,6 +178,34 @@ public class Controller {
         logger.error("write data fail, caused by: {}", e.getMessage());
         fail();
       }
+    }
+  }
+
+  private static <T> void writeRowsDataWithSession(T session, List<String> paths,
+                                                  long[] timestamps,
+                                                  Object[] valuesList,
+                                                  List<DataType> dataTypeList,
+                                                  List<Map<String, String>> tagsList) throws SessionException, ExecutionException {
+    if (session instanceof MultiConnection) {
+      ((MultiConnection) session).insertRowRecords(paths,timestamps,valuesList,dataTypeList,tagsList);
+    } else if (session instanceof Session) {
+      ((Session) session).insertRowRecords(paths,timestamps,valuesList,dataTypeList,tagsList);
+    } else {
+      throw new SessionException("Unknown session type");
+    }
+  }
+
+  private static <T> void writeColumnsDataWithSession(T session, List<String> paths,
+                                                     long[] timestamps,
+                                                     Object[] valuesList,
+                                                     List<DataType> dataTypeList,
+                                                     List<Map<String, String>> tagsList) throws SessionException, ExecutionException {
+    if (session instanceof MultiConnection) {
+      ((MultiConnection) session).insertColumnRecords(paths,timestamps,valuesList,dataTypeList,tagsList);
+    } else if (session instanceof Session) {
+      ((Session) session).insertColumnRecords(paths,timestamps,valuesList,dataTypeList,tagsList);
+    } else {
+      throw new SessionException("Unknown session type");
     }
   }
 

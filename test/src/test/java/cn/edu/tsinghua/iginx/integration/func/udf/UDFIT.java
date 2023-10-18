@@ -27,8 +27,11 @@ import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
+import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.RegisterTaskInfo;
 import cn.edu.tsinghua.iginx.thrift.UDFType;
+
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -61,37 +64,38 @@ public class UDFIT {
   }
 
   @Before
-  public void insertData() throws ExecutionException, SessionException {
-    String insertStrPrefix = "INSERT INTO us.d1 (key, s1, s2, s3, s4) values ";
-
+  public void insertData() {
     long startKey = 0L;
     long endKey = 15000L;
-
-    StringBuilder builder = new StringBuilder(insertStrPrefix);
-
+    List<String> pathList = new ArrayList<String>() {{
+      add("us.d1.s1");
+      add("us.d1.s2");
+      add("us.d1.s3");
+      add("us.d1.s4");
+    }};
+    List<DataType> dataTypeList = new ArrayList<DataType>() {{
+      add(DataType.LONG);
+      add(DataType.LONG);
+      add(DataType.BINARY);
+      add(DataType.DOUBLE);
+    }};
+    List<Long> keyList = new ArrayList<>();
+    List<List<Object>> valuesList = new ArrayList<>();
     int size = (int) (endKey - startKey);
     for (int i = 0; i < size; i++) {
-      builder.append(", ");
-      builder.append("(");
-      builder.append(startKey + i).append(", ");
-      builder.append(i).append(", ");
-      builder.append(i + 1).append(", ");
-      builder
-          .append("\"")
-          .append(new String(RandomStringUtils.randomAlphanumeric(10).getBytes()))
-          .append("\", ");
-      builder.append((i + 0.1));
-      builder.append(")");
+      keyList.add(startKey + i);
+      valuesList.add(
+          Arrays.asList(
+              i,
+              i + 1,
+              "\"" +new String( RandomStringUtils.randomAlphanumeric(10).getBytes())+"\"",
+              (i + 0.1)));
     }
-    builder.append(";");
-
-    String insertStatement = builder.toString();
-
-    SessionExecuteSqlResult res = session.executeSql(insertStatement);
-    if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-      logger.error("Insert date execute fail. Caused by: {}.", res.getParseErrorMsg());
-      fail();
-    }
+    Controller.writeRowsData(session, pathList, keyList, dataTypeList,valuesList,new ArrayList<>());
+//    if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
+//      logger.error("Insert date execute fail. Caused by: {}.", res.getParseErrorMsg());
+//      fail();
+//    }
   }
 
   @After
