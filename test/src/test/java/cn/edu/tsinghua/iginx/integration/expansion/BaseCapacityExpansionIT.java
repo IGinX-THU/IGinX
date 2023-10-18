@@ -64,12 +64,9 @@ public abstract class BaseCapacityExpansionIT {
         statement.append(PORT_TO_ROOT.get(port));
         statement.append(", dir:test/iginx_");
         statement.append(PORT_TO_ROOT.get(port));
+        statement.append(", iginx_port:" + oriPortIginx);
       }
       if (extraParams != null) {
-        if (IS_PARQUET_OR_FILE_SYSTEM) {
-          extraParams = "iginx_port:" + oriPortIginx;
-          extraParams += ", chunk_size_in_bytes:8";
-        }
         statement.append(", ");
         statement.append(extraParams);
       }
