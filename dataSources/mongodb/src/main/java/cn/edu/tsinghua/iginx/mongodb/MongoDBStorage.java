@@ -200,7 +200,6 @@ public class MongoDBStorage implements IStorage {
     String unit = dataArea.getStorageUnit();
     DataView data = insert.getData();
 
-    // TODO check insert 同列类型冲突时抛出异常
     try {
       for (SourceTable.Column column : new SourceTable(data)) {
         Field field = column.getField();
