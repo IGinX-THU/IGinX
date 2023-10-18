@@ -16,6 +16,7 @@ import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.RowUtils;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.regex.Pattern;
 import pemja.core.PythonInterpreter;
@@ -102,8 +103,11 @@ public class PyUDAF implements UDAF {
       data.add(rowData);
     }
 
+    List<Object> args = params.getArgs();
+    Map<String, Object> kvargs = params.getKwargs();
+
     List<List<Object>> res =
-        (List<List<Object>>) interpreter.invokeMethod(UDF_CLASS, UDF_FUNC, data);
+        (List<List<Object>>) interpreter.invokeMethod(UDF_CLASS, UDF_FUNC, data, args, kvargs);
 
     if (res == null || res.size() < 3) {
       return Row.EMPTY_ROW;

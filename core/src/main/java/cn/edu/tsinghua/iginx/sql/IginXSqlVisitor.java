@@ -53,6 +53,7 @@ import cn.edu.tsinghua.iginx.sql.SqlParser.DropTaskStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.ExportFileClauseContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.ExpressionContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.FromClauseContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.FunctionContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.GroupByClauseContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.ImportFileClauseContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.InsertFromFileStatementContext;
@@ -68,6 +69,7 @@ import cn.edu.tsinghua.iginx.sql.SqlParser.OrExpressionContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.OrPreciseExpressionContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.OrTagExpressionContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.OrderByClauseContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.ParamContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.PathContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.PreciseTagExpressionContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.PredicateContext;
@@ -826,7 +828,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
   private List<Expression> parseExpression(
       ExpressionContext ctx, UnarySelectStatement selectStatement) {
-    if (ctx.functionName() != null) {
+    if (ctx.function() != null) {
       return Collections.singletonList(parseFuncExpression(ctx, selectStatement));
     }
     if (ctx.path() != null && !ctx.path().isEmpty()) {
@@ -898,22 +900,35 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
   private Expression parseFuncExpression(
       ExpressionContext ctx, UnarySelectStatement selectStatement) {
-    String funcName = ctx.functionName().getText();
+    FunctionContext funcCtx = ctx.function();
+    String funcName = funcCtx.functionName().getText();
 
     boolean isDistinct = false;
-    if (ctx.ALL() != null || ctx.DISTINCT() != null) {
+    if (funcCtx.ALL() != null || funcCtx.DISTINCT() != null) {
       if (!isCanUseSetQuantifierFunction(funcName)) {
         throw new SQLParserException(
             "Function: " + funcName + " can't use ALL or DISTINCT in bracket.");
       }
-      if (ctx.DISTINCT() != null) {
+      if (funcCtx.DISTINCT() != null) {
         isDistinct = true;
       }
     }
 
-    List<String> params = new ArrayList<>();
-    for (PathContext pathContext : ctx.path()) {
-      params.add(parsePath(pathContext));
+    List<String> columns = new ArrayList<>();
+    for (PathContext pathContext : funcCtx.path()) {
+      columns.add(pathContext.getText());
+    }
+
+    List<Object> args = new ArrayList<>();
+    Map<String, Object> kvargs = new HashMap<>();
+    for (ParamContext paramContext : funcCtx.param()) {
+      Object val = parseValue(paramContext.value);
+      if (paramContext.key != null) {
+        String key = paramContext.key.getText();
+        kvargs.put(key, val);
+      } else {
+        args.add(val);
+      }
     }
 
     // 如果查询语句中FROM子句只有一个部分且FROM一个前缀，则SELECT子句中的path只用写出后缀
@@ -921,14 +936,14 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         && selectStatement.getFromParts().get(0).getType() == FromPartType.PathFromPart) {
       String fromPath = selectStatement.getFromParts().get(0).getPrefix();
 
-      List<String> newParams = new ArrayList<>();
-      for (String param : params) {
-        newParams.add(fromPath + SQLConstant.DOT + param);
+      List<String> newColumns = new ArrayList<>();
+      for (String column : columns) {
+        newColumns.add(fromPath + SQLConstant.DOT + column);
       }
-      params = newParams;
+      columns = newColumns;
     }
-    FuncExpression expression = new FuncExpression(funcName, params, isDistinct);
-    selectStatement.setSelectedFuncsAndPaths(funcName, expression);
+    FuncExpression expression = new FuncExpression(funcName, columns, args, kvargs, isDistinct);
+    selectStatement.setSelectedFuncsAndExpression(funcName, expression);
     return expression;
   }
 

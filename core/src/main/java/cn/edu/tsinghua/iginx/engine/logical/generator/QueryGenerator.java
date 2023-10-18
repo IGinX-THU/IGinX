@@ -322,8 +322,14 @@ public class QueryGenerator extends AbstractGenerator {
                         FunctionParams params =
                             FunctionUtils.isCanUseSetQuantifierFunction(k)
                                 ? new FunctionParams(
-                                    expression.getParams(), expression.isDistinct())
-                                : new FunctionParams(expression.getParams());
+                                    expression.getColumns(),
+                                    expression.getArgs(),
+                                    expression.getKvargs(),
+                                    expression.isDistinct())
+                                : new FunctionParams(
+                                    expression.getColumns(),
+                                    expression.getArgs(),
+                                    expression.getKvargs());
 
                         functionCallList.add(
                             new FunctionCall(functionManager.getFunction(k), params));
@@ -345,8 +351,14 @@ public class QueryGenerator extends AbstractGenerator {
                         FunctionParams params =
                             FunctionUtils.isCanUseSetQuantifierFunction(k)
                                 ? new FunctionParams(
-                                    expression.getParams(), expression.isDistinct())
-                                : new FunctionParams(expression.getParams());
+                                    expression.getColumns(),
+                                    expression.getArgs(),
+                                    expression.getKvargs(),
+                                    expression.isDistinct())
+                                : new FunctionParams(
+                                    expression.getColumns(),
+                                    expression.getArgs(),
+                                    expression.getKvargs());
 
                         Operator copySelect = finalRoot.copy();
                         queryList.add(
@@ -370,8 +382,14 @@ public class QueryGenerator extends AbstractGenerator {
                         FunctionParams params =
                             FunctionUtils.isCanUseSetQuantifierFunction(k)
                                 ? new FunctionParams(
-                                    expression.getParams(), expression.isDistinct())
-                                : new FunctionParams(expression.getParams());
+                                    expression.getColumns(),
+                                    expression.getArgs(),
+                                    expression.getKvargs(),
+                                    expression.isDistinct())
+                                : new FunctionParams(
+                                    expression.getColumns(),
+                                    expression.getArgs(),
+                                    expression.getKvargs());
 
                         Operator copySelect = finalRoot.copy();
                         logger.info("function: " + expression.getColumnName());
@@ -411,7 +429,11 @@ public class QueryGenerator extends AbstractGenerator {
               (k, v) ->
                   v.forEach(
                       expression -> {
-                        FunctionParams params = new FunctionParams(expression.getParams());
+                        FunctionParams params =
+                            new FunctionParams(
+                                expression.getColumns(),
+                                expression.getArgs(),
+                                expression.getKvargs());
                         Operator copySelect = finalRoot.copy();
                         logger.info("function: " + k + ", wrapped path: " + v);
                         queryList.add(
