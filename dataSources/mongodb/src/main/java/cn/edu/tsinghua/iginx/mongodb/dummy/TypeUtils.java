@@ -1,5 +1,6 @@
 package cn.edu.tsinghua.iginx.mongodb.dummy;
 
+import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.math.BigDecimal;
 import java.text.DateFormat;
@@ -13,6 +14,28 @@ class TypeUtils {
 
   private static final ThreadLocal<Map<String, Integer>> parseIntCache = new ThreadLocal<>();
   private static final ThreadLocal<Map<Integer, String>> encodeIntCache = new ThreadLocal<>();
+
+  public static Integer parseInt(String s) {
+    Function<String, Integer> converter =
+        str -> {
+          try {
+            return Integer.parseInt(str);
+          } catch (Exception e) {
+            return null;
+          }
+        };
+    if (parseIntCache.get() == null) {
+      parseIntCache.set(new HashMap<>());
+    }
+    return parseIntCache.get().computeIfAbsent(s, converter);
+  }
+
+  public static String toString(int i) {
+    if (encodeIntCache.get() == null) {
+      encodeIntCache.set(new HashMap<>());
+    }
+    return encodeIntCache.get().computeIfAbsent(i, String::valueOf);
+  }
 
   public static DataType convert(BsonType type) {
     switch (type) {
@@ -32,6 +55,8 @@ class TypeUtils {
         return DataType.BINARY;
     }
   }
+
+  private static final String MAGIK_STR = "$";
 
   public static Object convert(BsonValue value) {
     switch (value.getBsonType()) {
@@ -55,32 +80,39 @@ class TypeUtils {
     return convertToBinary(value);
   }
 
-  public static byte[] convertToBinary(BsonValue value) {
-    String typeName = value.getBsonType().toString();
-    BsonDocument doc = new BsonDocument(typeName, value);
-    return doc.toJson().getBytes();
-  }
-
-  public static Integer parseInt(String s) {
-    Function<String, Integer> converter =
-        str -> {
+  public static BsonValue convert(Value value) {
+    switch (value.getDataType()) {
+      case BOOLEAN:
+        return new BsonBoolean(value.getBoolV());
+      case INTEGER:
+        return new BsonInt32(value.getIntV());
+      case LONG:
+        return new BsonInt64(value.getLongV());
+      case FLOAT:
+        return new BsonDouble(value.getFloatV());
+      case DOUBLE:
+        return new BsonDouble(value.getDoubleV());
+      case BINARY:
+        {
           try {
-            return Integer.parseInt(str);
-          } catch (Exception e) {
-            return null;
+            BsonDocument doc = BsonDocument.parse(value.getBinaryVAsString());
+            BsonValue v = doc.get(MAGIK_STR);
+            if (v == null) {
+              v = new BsonString(value.getBinaryVAsString());
+            }
+            return v;
+          } catch (Exception ignored) {
+            return new BsonString(value.getBinaryVAsString());
           }
-        };
-    if (parseIntCache.get() == null) {
-      parseIntCache.set(new HashMap<>());
+        }
+      default:
+        throw new IllegalArgumentException("unsupported value:" + value);
     }
-    return parseIntCache.get().computeIfAbsent(s, converter);
   }
 
-  public static String toString(int i) {
-    if (encodeIntCache.get() == null) {
-      encodeIntCache.set(new HashMap<>());
-    }
-    return encodeIntCache.get().computeIfAbsent(i, String::valueOf);
+  public static byte[] convertToBinary(BsonValue value) {
+    BsonDocument doc = new BsonDocument(MAGIK_STR, value);
+    return doc.toJson().getBytes();
   }
 
   public static BsonValue convertTo(BsonValue value, BsonType type) {

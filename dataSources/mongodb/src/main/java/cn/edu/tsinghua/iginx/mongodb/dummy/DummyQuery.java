@@ -1,18 +1,16 @@
 package cn.edu.tsinghua.iginx.mongodb.dummy;
 
-import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-import cn.edu.tsinghua.iginx.thrift.DataType;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.FilterType;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.ValueFilter;
 import com.mongodb.client.*;
 import java.util.*;
 import org.bson.BsonDocument;
 import org.bson.BsonInt32;
 import org.bson.BsonValue;
+import org.bson.Document;
 import org.bson.conversions.Bson;
 
 public class DummyQuery {
@@ -34,8 +32,17 @@ public class DummyQuery {
     Map<String, PathTree> trees = getDatabaseTrees(pathTree);
     List<ResultTable> tables = new ArrayList<>();
     for (Map.Entry<String, PathTree> tree : trees.entrySet()) {
-      MongoDatabase db = this.client.getDatabase(tree.getKey());
-      List<ResultTable> dbResultList = new DatabaseQuery(db).query(tree.getValue());
+      String dbName = tree.getKey();
+      Filter predicateFilter = FilterUtils.EMTPY_FILTER;
+      if (trees.size() == 1) {
+        try {
+          predicateFilter = FilterUtils.removeSamePrefix(filter, dbName);
+        } catch (Exception ignored) {
+        }
+      }
+      MongoDatabase db = this.client.getDatabase(dbName);
+      List<ResultTable> dbResultList =
+          new DatabaseQuery(db).query(tree.getValue(), predicateFilter);
       tables.addAll(dbResultList);
     }
 
@@ -58,14 +65,23 @@ public class DummyQuery {
       this.database = database;
     }
 
-    public List<ResultTable> query(PathTree pathTree) {
+    public List<ResultTable> query(PathTree pathTree, Filter filter) {
       Map<String, PathTree> trees = getCollectionTrees(pathTree);
 
       List<ResultTable> resultList = new ArrayList<>();
       for (Map.Entry<String, PathTree> tree : trees.entrySet()) {
+        String collName = tree.getKey();
+        Filter predicateFilter = FilterUtils.EMTPY_FILTER;
+        if (trees.size() == 1) {
+          try {
+            predicateFilter = FilterUtils.removeSamePrefix(filter, collName);
+          } catch (Exception ignored) {
+          }
+        }
         MongoCollection<BsonDocument> collection =
-            this.database.getCollection(tree.getKey(), BsonDocument.class);
-        ResultTable dbResultList = new CollectionQuery(collection).query(tree.getValue());
+            this.database.getCollection(collName, BsonDocument.class);
+        ResultTable dbResultList =
+            new CollectionQuery(collection).query(tree.getValue(), predicateFilter);
         resultList.add(dbResultList);
       }
 
@@ -90,10 +106,12 @@ public class DummyQuery {
       this.collection = collection;
     }
 
-    public ResultTable query(PathTree tree) {
+    public ResultTable query(PathTree tree, Filter filter) {
+      Bson predicate = getPredicate(filter);
       Bson projection = getProjection(tree);
       FindIterable<BsonDocument> find =
-          this.collection.find().projection(projection).showRecordId(true);
+          this.collection.find(predicate).projection(projection).showRecordId(true);
+
       try (MongoCursor<BsonDocument> cursor = find.cursor()) {
         ResultTable.Builder builder = new ResultTable.Builder();
         while (cursor.hasNext()) {
@@ -109,6 +127,28 @@ public class DummyQuery {
               this.collection.getNamespace().getCollectionName(),
             };
         return builder.build(prefixes);
+      }
+    }
+
+    private static Bson getPredicate(Filter filter) {
+      try {
+        Filter removedKey = FilterUtils.tryIgnore(filter, f -> f.getType().equals(FilterType.Key));
+        Filter removedNumberPath =
+            FilterUtils.tryIgnore(
+                removedKey,
+                f -> {
+                  switch (f.getType()) {
+                    case Value:
+                      return NameUtils.containNumberNode(((ValueFilter) f).getPath());
+                    case Path:
+                      return NameUtils.containNumberNode(((PathFilter) f).getPathA())
+                          || NameUtils.containNumberNode(((PathFilter) f).getPathB());
+                  }
+                  return false;
+                });
+        return FilterUtils.toBson(removedNumberPath);
+      } catch (Exception ignored) {
+        return new Document();
       }
     }
 
@@ -142,95 +182,6 @@ public class DummyQuery {
       }
 
       return projection;
-    }
-  }
-
-  static class QueryRowStream implements RowStream {
-
-    private final Header header;
-
-    private final List<Map<Long, Object>> data;
-
-    private final Filter condition;
-
-    private final Iterator<Long> keyItr;
-
-    public QueryRowStream(List<ResultTable> results, Filter condition) {
-      List<Field> fields = new ArrayList<>();
-      List<Map<Long, Object>> data = new ArrayList<>();
-      SortedSet<Long> keys = new TreeSet<>();
-
-      results.stream()
-          .map(ResultTable::getColumns)
-          .map(Map::entrySet)
-          .flatMap(Collection::stream)
-          .forEach(
-              entry -> {
-                String path = entry.getKey();
-                ResultColumn column = entry.getValue();
-                DataType type = column.getType();
-                Map<Long, Object> columnData = column.getData();
-
-                fields.add(new Field(path, type));
-                data.add(columnData);
-                keys.addAll(columnData.keySet());
-              });
-
-      this.header = new Header(Field.KEY, fields);
-      this.data = data;
-      this.condition = condition;
-      this.keyItr = keys.iterator();
-    }
-
-    @Override
-    public Header getHeader() {
-      return header;
-    }
-
-    @Override
-    public void close() {}
-
-    private Row nextRow = null;
-
-    @Override
-    public boolean hasNext() throws PhysicalException {
-      if (nextRow == null) {
-        nextRow = getNextMatchRow();
-      }
-
-      return nextRow != null;
-    }
-
-    @Override
-    public Row next() throws PhysicalException {
-      if (!hasNext()) {
-        throw new NoSuchElementException();
-      }
-      Row curr = nextRow;
-      nextRow = null;
-      return curr;
-    }
-
-    private Row getNextMatchRow() throws PhysicalException {
-      for (Row row = getNextRow(); row != null; row = getNextRow()) {
-        if (FilterUtils.validate(this.condition, row)) {
-          return row;
-        }
-      }
-      return null;
-    }
-
-    private Row getNextRow() {
-      if (!keyItr.hasNext()) {
-        return null;
-      }
-
-      Long key = keyItr.next();
-      Object[] values = new Object[header.getFieldSize()];
-      for (int idx = 0; idx < data.size(); idx++) {
-        values[idx] = data.get(idx).get(key);
-      }
-      return new Row(header, key, values);
     }
   }
 }

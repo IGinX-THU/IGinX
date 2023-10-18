@@ -85,6 +85,13 @@ public class MongoDBHistoryDataGenerator extends BaseHistoryDataGenerator {
       collection.insertOne(Document.parse(JSON_EXAMPLE_1));
       collection.insertOne(Document.parse(JSON_EXAMPLE_2));
     }
+    try (MongoClient client = connect(readOnlyPort)) {
+      MongoDatabase database = client.getDatabase("d1");
+      MongoCollection<Document> collection = database.getCollection("c1");
+      for (String json : JSON_FILTER_EXAMPLE) {
+        collection.insertOne(Document.parse(json));
+      }
+    }
   }
 
   private MongoClient connect(int port) {
@@ -99,6 +106,7 @@ public class MongoDBHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   private static final String JSON_EXAMPLE_0 =
       "{\n"
+          + "  \"_id\": {\"$oid\": \"652f4577a162014f74419b7f\"},"
           + "  \"images\": [\n"
           + "    {\n"
           + "      \"width\": 1037,\n"
@@ -325,6 +333,7 @@ public class MongoDBHistoryDataGenerator extends BaseHistoryDataGenerator {
           + "}";
   private static final String JSON_EXAMPLE_1 =
       "{\n"
+          + "  \"_id\": {\"$oid\": \"652f4577a162014f74419b80\"},"
           + "  \"images\": [\n"
           + "    {\n"
           + "      \"width\": 1037,\n"
@@ -352,6 +361,7 @@ public class MongoDBHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   private static final String JSON_EXAMPLE_2 =
       "{\n"
+          + "  \"_id\": {\"$oid\": \"652f4577a162014f74419b81\"},"
           + "  \"information\": {\n"
           + "    \"year\": \"2023\",\n"
           + "    \"version\": 3.0,\n"
@@ -362,4 +372,53 @@ public class MongoDBHistoryDataGenerator extends BaseHistoryDataGenerator {
           + "    \"date_created\": \"2022-12-12 08:37:26.832616\"\n"
           + "  }\n"
           + "}";
+
+  private static final String[] JSON_FILTER_EXAMPLE =
+      new String[] {
+        "{\n"
+            + "\t\"_id\": {\n"
+            + "\t\t\"$oid\": \"000000000000000000000000\"\n"
+            + "\t},\n"
+            + "\t\"i\": 0,\n"
+            + "\t\"b\": true,\n"
+            + "\t\"f\": 0.1,\n"
+            + "\t\"s\": \"1st\"\n"
+            + "}",
+        "{\n"
+            + "\t\"_id\": {\n"
+            + "\t\t\"$oid\": \"000000000000000000000001\"\n"
+            + "\t},\n"
+            + "\t\"i\": 1,\n"
+            + "\t\"b\": false,\n"
+            + "\t\"f\": 1.1,\n"
+            + "\t\"s\": \"2nd\"\n"
+            + "}",
+        "{\n"
+            + "\t\"_id\": {\n"
+            + "\t\t\"$oid\": \"000000000000000000000002\"\n"
+            + "\t},\n"
+            + "\t\"i\": 2,\n"
+            + "\t\"b\": true,\n"
+            + "\t\"f\": 2.1,\n"
+            + "\t\"s\": \"3th\"\n"
+            + "}",
+        "{\n"
+            + "\t\"_id\": {\n"
+            + "\t\t\"$oid\": \"000000000000000000000003\"\n"
+            + "\t},\n"
+            + "\t\"i\": 3,\n"
+            + "\t\"b\": false,\n"
+            + "\t\"f\": 3.1,\n"
+            + "\t\"s\": \"4th\"\n"
+            + "}",
+        "{\n"
+            + "\t\"_id\": {\n"
+            + "\t\t\"$oid\": \"000000000000000000000004\"\n"
+            + "\t},\n"
+            + "\t\"i\": 4,\n"
+            + "\t\"b\": true,\n"
+            + "\t\"f\": 4.1,\n"
+            + "\t\"s\": \"5th\"\n"
+            + "}",
+      };
 }
