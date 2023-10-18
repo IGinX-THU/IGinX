@@ -18,12 +18,14 @@
  */
 package cn.edu.tsinghua.iginx;
 
+import static cn.edu.tsinghua.iginx.metadata.utils.IdUtils.generateDummyStorageUnitId;
 import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.isEmbeddedStorageEngine;
 import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.isLocal;
 import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.setSchemaPrefixInExtraParams;
 import static cn.edu.tsinghua.iginx.utils.ByteUtils.getLongArrayFromByteBuffer;
 import static cn.edu.tsinghua.iginx.utils.HostUtils.convertHostNameToHostAddress;
 import static cn.edu.tsinghua.iginx.utils.HostUtils.isLocalHost;
+import static cn.edu.tsinghua.iginx.utils.StringUtils.isEqual;
 
 import cn.edu.tsinghua.iginx.auth.SessionManager;
 import cn.edu.tsinghua.iginx.auth.UserManager;
@@ -228,73 +230,72 @@ public class IginxWorker implements IService.Iface {
       return RpcUtils.ACCESS_DENY;
     }
     Status status = RpcUtils.SUCCESS;
-    List<RemovedStorageEngineInfo> dummyStorageInfoList = req.getDummyStorageInfoList();
-    for (RemovedStorageEngineInfo storageEngineInfo : dummyStorageInfoList) {
-      List<StorageEngineMeta> metaList = metaManager.getStorageEngineList();
-      StorageEngineMeta meta = null;
-      Long dummyStorageId = null;
-      for (StorageEngineMeta metaa : metaList) {
-        String infoIp = storageEngineInfo.getIp(),
-            infoSchemaPrefix = storageEngineInfo.getSchemaPrefix(),
-            infoDataPrefix = storageEngineInfo.getDataPrefix();
-        String metaIp = metaa.getIp(),
-            metaSchemaPrefix = metaa.getSchemaPrefix(),
-            metaDataPrefix = metaa.getDataPrefix();
+    for (RemovedStorageEngineInfo removedStorageEngineInfo :
+        req.getRemovedStorageEngineInfoList()) {
+      StorageEngineMeta storageEngineMeta = null;
+      for (StorageEngineMeta meta : metaManager.getStorageEngineList()) {
+        String infoIp = removedStorageEngineInfo.getIp(),
+            infoSchemaPrefix = removedStorageEngineInfo.getSchemaPrefix(),
+            infoDataPrefix = removedStorageEngineInfo.getDataPrefix();
+        int infoPort = removedStorageEngineInfo.getPort();
+        String metaIp = meta.getIp(),
+            metaSchemaPrefix = meta.getSchemaPrefix(),
+            metaDataPrefix = meta.getDataPrefix();
+        int metaPort = meta.getPort();
         if (!infoIp.equals(metaIp)) {
           continue;
         }
-        if (storageEngineInfo.getPort() != metaa.getPort()) {
+        if (infoPort != metaPort) {
           continue;
         }
-        if (!(infoSchemaPrefix.isEmpty() && metaSchemaPrefix == null)
-            && !Objects.equals(infoSchemaPrefix, metaSchemaPrefix)) {
+        if (!isEqual(infoSchemaPrefix, metaSchemaPrefix)) {
           continue;
         }
-        if (!(infoDataPrefix.isEmpty() && metaDataPrefix == null)
-            && !Objects.equals(infoDataPrefix, metaDataPrefix)) {
+        if (!isEqual(infoDataPrefix, metaDataPrefix)) {
           continue;
         }
-        meta = metaa;
-        dummyStorageId = metaa.getId();
+        storageEngineMeta = meta;
         break;
       }
-      if (meta == null || meta.getDummyFragment() == null || meta.getDummyStorageUnit() == null) {
+      if (storageEngineMeta == null
+          || storageEngineMeta.getDummyFragment() == null
+          || storageEngineMeta.getDummyStorageUnit() == null) {
         status = RpcUtils.FAILURE;
         status.setMessage("dummy storage engine does not exist.");
         return status;
       }
       try {
-        // 设置对应的 dummyFragment 为 invalid 状态
-        meta.getDummyFragment().setIfValid(false);
-        meta.getDummyStorageUnit().setIfValid(false);
+        // 设置对应的 dummyFragment 和 dummyStorageUnit 为 invalid 状态
+        storageEngineMeta.getDummyFragment().setIfValid(false);
+        storageEngineMeta.getDummyStorageUnit().setIfValid(false);
 
-        // 修改需要更新的元数据信息 extraParams中的 has_data属性需要修改
-        StorageEngineMeta newMeta =
+        // 修改需要更新的元数据信息
+        // extraParams 中的 has_data 属性需要修改
+        StorageEngineMeta newStorageEngineMeta =
             new StorageEngineMeta(
-                meta.getId(),
-                convertHostNameToHostAddress(meta.getIp()),
-                meta.getPort(),
+                storageEngineMeta.getId(),
+                storageEngineMeta.getIp(),
+                storageEngineMeta.getPort(),
                 false,
                 null,
                 null,
-                meta.isReadOnly(),
+                storageEngineMeta.isReadOnly(),
                 null,
                 null,
-                meta.getExtraParams(),
-                meta.getStorageEngine(),
-                meta.getStorageUnitList(),
-                meta.getCreatedBy(),
-                meta.isNeedReAllocate());
+                storageEngineMeta.getExtraParams(),
+                storageEngineMeta.getStorageEngine(),
+                storageEngineMeta.getStorageUnitList(),
+                storageEngineMeta.getCreatedBy(),
+                storageEngineMeta.isNeedReAllocate());
 
-        // 更新 zk 上元数据信息，以及 iginx 上元数据信息
-        if (!metaManager.updateStorageEngine(dummyStorageId, newMeta)) {
+        // 更新 zk 以及缓存中的元数据信息
+        if (!metaManager.invalidateStorageEngine(newStorageEngineMeta)) {
           status = RpcUtils.FAILURE;
-          status.setMessage("unexpected error during storage update");
+          status.setMessage("unexpected error during invalidating storage engine");
           return status;
         }
-
       } catch (Exception e) {
-        logger.error("unexpected error during storage migration: ", e);
+        logger.error("unexpected error during removing history data source: ", e);
         status = new Status(StatusCode.STATEMENT_EXECUTION_ERROR.getStatusCode());
         status.setMessage(
             "unexpected error during removing history data source: " + e.getMessage());
@@ -399,8 +400,7 @@ public class IginxWorker implements IService.Iface {
       if (meta.isHasData()) {
         String dataPrefix = meta.getDataPrefix();
         String schemaPrefix = meta.getSchemaPrefix();
-        StorageUnitMeta dummyStorageUnit =
-            new StorageUnitMeta(StorageUnitMeta.generateDummyStorageUnitID(0), -1);
+        StorageUnitMeta dummyStorageUnit = new StorageUnitMeta(generateDummyStorageUnitId(0), -1);
         Pair<ColumnsInterval, KeyInterval> boundary =
             StorageManager.getBoundaryOfStorage(meta, dataPrefix);
         FragmentMeta dummyFragment;
