@@ -18,7 +18,6 @@
  */
 package cn.edu.tsinghua.iginx.metadata.entity;
 
-import cn.edu.tsinghua.iginx.conf.Constants;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -223,9 +222,5 @@ public final class StorageUnitMeta {
     }
     builder.append("}");
     return builder.toString();
-  }
-
-  public static String generateDummyStorageUnitID(long id) {
-    return String.format(Constants.DUMMY + "%010d", (int) id);
   }
 }
