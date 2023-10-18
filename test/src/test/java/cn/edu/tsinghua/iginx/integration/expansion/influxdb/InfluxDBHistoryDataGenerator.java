@@ -33,7 +33,7 @@ public class InfluxDBHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   @Override
   public void writeHistoryData(
-      int port, List<String> pathList, List<DataType> dataTypeList, List<List<Long>> keyList, List<List<Object>> valuesList) {
+      int port, List<String> pathList, List<DataType> dataTypeList, List<Long> keyList, List<List<Object>> valuesList) {
     String url = "http://localhost:" + port + "/";
     InfluxDBClient client = InfluxDBClientFactory.create(url, TOKEN.toCharArray(), ORGANIZATION);
     Organization organization =
@@ -68,7 +68,7 @@ public class InfluxDBHistoryDataGenerator extends BaseHistoryDataGenerator {
           continue;
         }
         if (hasKeys) {
-          timeCnt = Math.toIntExact(keyList.get(index).get(i));
+          timeCnt = Math.toIntExact(keyList.get(index));
         }
         switch (dataType) {
           case BOOLEAN:

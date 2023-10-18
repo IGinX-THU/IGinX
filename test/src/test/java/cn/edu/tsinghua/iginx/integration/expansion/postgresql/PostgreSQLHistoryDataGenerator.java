@@ -52,7 +52,7 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   @Override
   public void writeHistoryData(
-      int port, List<String> pathList, List<DataType> dataTypeList, List<List<Object>> valuesList) {
+      int port, List<String> pathList, List<DataType> dataTypeList, List<Long> keyList, List<List<Object>> valuesList) {
     try {
       Connection connection = connect(port, true, null);
       if (connection == null) {
@@ -131,6 +131,12 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
       logger.error("write data to 127.0.0.1:{} failure: {}", port, e.getMessage());
       e.printStackTrace();
     }
+  }
+
+  @Override
+  public void writeHistoryData(
+      int port, List<String> pathList, List<DataType> dataTypeList, List<List<Object>> valuesList) {
+    writeHistoryData(port, pathList, dataTypeList, new ArrayList<>(), valuesList);
   }
 
   @Override

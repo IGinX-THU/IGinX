@@ -32,7 +32,7 @@ public class IoTDB12HistoryDataGenerator extends BaseHistoryDataGenerator {
   public IoTDB12HistoryDataGenerator() {}
 
   public void writeHistoryData(
-      int port, List<String> pathList, List<DataType> dataTypeList, List<List<Long>> keyList, List<List<Object>> valuesList) {
+      int port, List<String> pathList, List<DataType> dataTypeList, List<Long> keyList, List<List<Object>> valuesList) {
     try {
       Session session = new Session("127.0.0.1", port, "root", "root");
       session.open();
@@ -55,7 +55,7 @@ public class IoTDB12HistoryDataGenerator extends BaseHistoryDataGenerator {
           String measurementId = path.substring(path.lastIndexOf(".") + 1);
           if (valueList.get(i) != null) {
             session.executeNonQueryStatement(
-                String.format(INSERT_DATA, deviceId, measurementId, hasKeys ? keyList.get(j).get(i) : timeCnt, valueList.get(i)));
+                String.format(INSERT_DATA, deviceId, measurementId, hasKeys ? keyList.get(j) : timeCnt, valueList.get(i)));
           }
         }
         timeCnt++;

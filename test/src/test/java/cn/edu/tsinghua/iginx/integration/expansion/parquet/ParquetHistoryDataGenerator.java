@@ -39,7 +39,7 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   @Override
   public void writeHistoryData(
-      int port, List<String> pathList, List<DataType> dataTypeList, List<List<Long>> keyList, List<List<Object>> valuesList) {
+      int port, List<String> pathList, List<DataType> dataTypeList, List<Long> keyList, List<List<Object>> valuesList) {
     if (!PARQUET_PARAMS.containsKey(port)) {
       logger.error("writing to unknown port {}.", port);
       return;
@@ -117,8 +117,7 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
       for (int index = 0;index<valuesList.size();index++) {
         List<Object> values = valuesList.get(index);
         if (hasKeys) {
-          // TODO: fix this
-          keyCnt = Math.toIntExact(keyList.get(index).get(0));
+          keyCnt = Math.toIntExact(keyList.get(index));
         }
         insertStr.append("(").append(keyCnt).append(", ");
         for (int i = 0; i < columnCount; i++) {

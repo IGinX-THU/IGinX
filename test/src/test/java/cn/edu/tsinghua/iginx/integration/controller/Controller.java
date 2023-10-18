@@ -116,12 +116,66 @@ public class Controller {
           fail();
         }
       }
-      // write data to dummy storage, and should insert by row
       List<List<Object>> rowValues = convertColumnsToRows(valuesList.get(i));
-      List<List<Long>> rowKeys = convertColumnsToRows(keyList.get(i));
       try {
         BaseHistoryDataGenerator generator = (BaseHistoryDataGenerator) Class.forName(instance).newInstance();
-        generator.writeHistoryData(expPort, Collections.singletonList(pathList.get(i)), Collections.singletonList(dataTypeList.get(i)), rowKeys, rowValues);
+        generator.writeHistoryData(expPort, Collections.singletonList(pathList.get(i)), Collections.singletonList(dataTypeList.get(i)), keyList.get(i), rowValues);
+      } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
+        logger.error("write data fail, caused by: {}", e.getMessage());
+        fail();
+      }
+    }
+  }
+
+  public static void writeRowsData(Session session, List<String> pathList, List<Long> keyList, List<DataType> dataTypeList, List<List<Object>> valuesList, List<Map<String, String>> tagsList) {
+    String instance = null;
+    ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
+    int medium = tagsList ==null ? keyList.size() / 2 : keyList.size();
+    if (conf.getStorageType() == null) {
+      logger.info("Not the DBCE test, skip the write data step.");
+      medium = keyList.size();
+    } else {
+      instance = NAME_TO_INSTANCE.get(conf.getStorageType());
+    }
+
+    // divide the data
+    List<Long> upperkeyList = keyList;
+    List<Long> lowerKeyList = null;
+    List<List<Object>> upperValuesList = valuesList;
+    List<List<Object>> lowerValuesList = null;
+    // 划分数据区间
+    if (medium != keyList.size()) {
+      upperkeyList = keyList.subList(0, medium); // 上半部分，包括索引为 0 到 midIndex-1 的元素
+      lowerKeyList = keyList.subList(medium, keyList.size()); // 下半部分，包括索引为 midIndex 到 keyList.size()-1 的元素
+      upperValuesList = valuesList.subList(0, medium);
+      lowerValuesList = valuesList.subList(medium, keyList.size());
+    }
+
+    // transfer the List to Array
+    Object[] newValuesList = new Object[pathList.size()];
+    for (int j= 0; j < upperkeyList.size(); j++) {
+      Object[] value = new Object[pathList.size()];
+      for (int k = 0; k < pathList.size(); k++) {
+        value[k] = upperValuesList.get(j).get(k);
+      }
+      newValuesList[j] = value;
+    }
+
+    try { // write data through session
+      session.insertRowRecords(pathList,
+          upperkeyList.stream().mapToLong(Long::longValue).toArray(),
+          newValuesList,
+          dataTypeList,
+          tagsList);
+    } catch (SessionException | ExecutionException e) {
+      logger.error("write data fail, caused by: {}", e.getMessage());
+      fail();
+    }
+
+    if (!lowerKeyList.isEmpty()) {
+      try {
+        BaseHistoryDataGenerator generator = (BaseHistoryDataGenerator) Class.forName(instance).newInstance();
+        generator.writeHistoryData(expPort, pathList, dataTypeList, lowerKeyList, lowerValuesList);
       } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
         logger.error("write data fail, caused by: {}", e.getMessage());
         fail();
