@@ -30,6 +30,7 @@ import cn.edu.tsinghua.iginx.mongodb.entity.SourceTable;
 import cn.edu.tsinghua.iginx.mongodb.tools.FilterUtils;
 import cn.edu.tsinghua.iginx.mongodb.tools.NameUtils;
 import cn.edu.tsinghua.iginx.mongodb.tools.TypeUtils;
+import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import com.mongodb.MongoBulkWriteException;
@@ -252,11 +253,18 @@ public class MongoDBStorage implements IStorage {
   @Override
   public List<Column> getColumns() {
     List<Column> columns = new ArrayList<>();
-    for (String unit : this.client.listDatabaseNames()) {
-      if (unit.startsWith("unit")) {
-        for (Field field : getFields(this.getDatabase(unit))) {
-          columns.add(new Column(field.getName(), field.getType(), field.getTags()));
+    for (String dbName : this.client.listDatabaseNames()) {
+      for (String collectionName : this.client.getDatabase(dbName).listCollectionNames()) {
+        try {
+          if (dbName.startsWith("unit")) {
+            Field field = NameUtils.parseCollectionName(collectionName);
+            columns.add(new Column(field.getFullName(), field.getType(), field.getTags(), false));
+            continue;
+          }
+        } catch (Exception ignored) {
         }
+        String namespace = dbName + "." + collectionName;
+        columns.add(new Column(namespace + ".*", DataType.BINARY, null, true));
       }
     }
     return columns;
@@ -269,11 +277,7 @@ public class MongoDBStorage implements IStorage {
   private static List<Field> getFields(MongoDatabase db) {
     List<Field> fields = new ArrayList<>();
     for (String collectionName : db.listCollectionNames()) {
-      try {
-        fields.add(NameUtils.parseCollectionName(collectionName));
-      } catch (Exception e) {
-        logger.error("failed to parse collection name: " + collectionName, e);
-      }
+      fields.add(NameUtils.parseCollectionName(collectionName));
     }
     return fields;
   }
@@ -281,13 +285,12 @@ public class MongoDBStorage implements IStorage {
   @Override
   public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String prefix)
       throws PhysicalException {
-    String namespacePrefix = "";
-    String documentPrefix = "";
-    if (prefix != null) {
-      String[] parts = prefix.split("\\.");
-      namespacePrefix = Arrays.stream(parts).limit(2).collect(Collectors.joining("."));
-      documentPrefix = Arrays.stream(parts).skip(2).collect(Collectors.joining("."));
+    if (prefix == null) {
+      prefix = "";
     }
+
+    String namespacePrefix =
+        Arrays.stream(prefix.split("\\.")).limit(2).collect(Collectors.joining("."));
 
     List<String> namespaces = new ArrayList<>();
     for (String db : this.client.listDatabaseNames()) {
@@ -298,17 +301,16 @@ public class MongoDBStorage implements IStorage {
         }
       }
     }
+
     if (namespaces.isEmpty()) {
       throw new PhysicalTaskExecuteFailureException("no data!");
     }
+    ColumnsInterval first = new ColumnsInterval(Collections.min(namespaces));
+    ColumnsInterval last = new ColumnsInterval(Collections.max(namespaces));
+    ColumnsInterval columnsInterval =
+        new ColumnsInterval(first.getStartColumn(), last.getEndColumn());
 
     KeyInterval keyInterval = new KeyInterval(0, Long.MAX_VALUE);
-    ColumnsInterval columnsInterval = new ColumnsInterval(namespacePrefix + "." + documentPrefix);
-    if (documentPrefix.isEmpty()) {
-      ColumnsInterval first = new ColumnsInterval(Collections.min(namespaces));
-      ColumnsInterval last = new ColumnsInterval(Collections.max(namespaces));
-      columnsInterval = new ColumnsInterval(first.getStartColumn(), last.getEndColumn());
-    }
     return new Pair<>(columnsInterval, keyInterval);
   }
 
