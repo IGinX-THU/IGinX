@@ -4442,7 +4442,7 @@ public class SQLSessionIT {
             + "Total line number = 4\n";
     executor.executeAndCompare(query, expected);
 
-    query = "SELECT path FROM (SHOW COLUMNS LIMIT 3);";
+    query = "SELECT path FROM (SHOW COLUMNS test.*, us.* LIMIT 3);";
     expected =
         "ResultSets:\n"
             + "+------+\n"
@@ -4455,7 +4455,7 @@ public class SQLSessionIT {
             + "Total line number = 3\n";
     executor.executeAndCompare(query, expected);
 
-    query = "SELECT path FROM (SHOW COLUMNS) LIMIT 3;";
+    query = "SELECT path FROM (SHOW COLUMNS test.*, us.*) LIMIT 3;";
     expected =
         "ResultSets:\n"
             + "+------+\n"
