@@ -44,11 +44,11 @@ do
 
   sh -c "cd pgsql-$port/bin;"
 
-  sh -c "sudo -u postgres -S <<< postgres ls -lht"
+  sh -c "ls -lht"
 
-  sh -c "sudo -u postgres -S <<< postgres ./initdb -D /var/lib/postgresql-$port/15/main --auth trust --no-instructions"
+  sh -c "sudo ./initdb -D /var/lib/postgresql-$port/15/main --auth trust --no-instructions"
 
-  sh -c "sudo -u postgres -S <<< postgres ./pg_ctl -D /var/lib/postgresql-$port/15/main -o \"-F -p $port\" start"
+  sh -c "sudo ./pg_ctl -D /var/lib/postgresql-$port/15/main -o \"-F -p $port\" start"
 
-  sh -c "sudo -u postgres -S <<< postgres ./psql -c \"ALTER USER postgres WITH PASSWORD 'postgres';\""
+  sh -c "sudo ./psql -c \"ALTER USER postgres WITH PASSWORD 'postgres';\""
 done
