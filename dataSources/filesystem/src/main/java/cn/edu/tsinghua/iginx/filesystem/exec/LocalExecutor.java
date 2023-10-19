@@ -44,6 +44,10 @@ public class LocalExecutor implements Executor {
 
   private String dummyRoot;
 
+  private String realDummyRoot;
+
+  private String prefix;
+
   private boolean hasData;
 
   private FileSystemManager fileSystemManager;
@@ -60,7 +64,9 @@ public class LocalExecutor implements Executor {
         if (dummyFile.isFile()) {
           throw new IllegalArgumentException(String.format("invalid dummy_dir %s", dummyDir));
         }
-        this.dummyRoot = dummyFile.getCanonicalPath() + SEPARATOR;
+        this.prefix = dummyFile.getName();
+        this.realDummyRoot = dummyFile.getCanonicalPath() + SEPARATOR;
+        this.dummyRoot = dummyFile.getParentFile().getCanonicalPath() + SEPARATOR;
         if (!isReadOnly) {
           if (dir == null || dir.isEmpty()) {
             throw new IllegalArgumentException("No dir declared with params " + extraParams);
@@ -322,7 +328,7 @@ public class LocalExecutor implements Executor {
       }
     }
     if (hasData && dummyRoot != null) {
-      for (File file : fileSystemManager.getAllFiles(new File(dummyRoot), true)) {
+      for (File file : fileSystemManager.getAllFiles(new File(realDummyRoot), true)) {
         columns.add(
             new Column(
                 FilePathUtils.convertAbsolutePathToPath(
@@ -341,21 +347,18 @@ public class LocalExecutor implements Executor {
     KeyInterval keyInterval = new KeyInterval(0, Long.MAX_VALUE);
     ColumnsInterval columnsInterval;
 
-    File directory = new File(FilePathUtils.toNormalFilePath(dummyRoot, dataPrefix));
+    File directory = new File(FilePathUtils.toNormalFilePath(realDummyRoot, dataPrefix));
     if (dataPrefix != null && !dataPrefix.isEmpty()) {
       columnsInterval = new ColumnsInterval(dataPrefix);
     } else {
       Pair<String, String> filePair = fileSystemManager.getBoundaryOfFiles(directory);
-      String tmpDummyRoot = dummyRoot.substring(0, dummyRoot.lastIndexOf(SEPARATOR));
-      String schemaPrefix = tmpDummyRoot.substring(tmpDummyRoot.lastIndexOf(SEPARATOR) + 1);
       if (filePair == null) {
-        columnsInterval = new ColumnsInterval(null, null, schemaPrefix);
+        columnsInterval = new ColumnsInterval(null, null, prefix);
       } else {
         columnsInterval =
             new ColumnsInterval(
                 FilePathUtils.convertAbsolutePathToPath(dummyRoot, filePair.k, null),
-                FilePathUtils.convertAbsolutePathToPath(dummyRoot, filePair.v, null),
-                schemaPrefix);
+                FilePathUtils.convertAbsolutePathToPath(dummyRoot, filePair.v, null));
       }
     }
 
