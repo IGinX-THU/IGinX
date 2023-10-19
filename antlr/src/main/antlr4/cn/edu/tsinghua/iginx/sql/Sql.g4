@@ -82,7 +82,8 @@ andExpression
    ;
 
 predicate
-   : (KEY | path | functionName LR_BRACKET path RR_BRACKET) comparisonOperator constant
+   : constant comparisonOperator constant
+   | (KEY | path | functionName LR_BRACKET path RR_BRACKET) comparisonOperator constant
    | constant comparisonOperator (KEY | path | functionName LR_BRACKET path RR_BRACKET)
    | path comparisonOperator path
    | path OPERATOR_LIKE regex = stringLiteral
@@ -312,6 +313,7 @@ timeValue
 
 path
    : nodeName (DOT nodeName)*
+   | BACK_QUOTE_STRING_LITERAL_NOT_EMPTY
    ;
 
 udfType
@@ -1034,6 +1036,10 @@ NaN
    : 'NaN'
    ;
 
+BACK_QUOTE
+   : '`'
+   ;
+
 INF
    : I N F
    ;
@@ -1086,6 +1092,10 @@ fragment NAME_CHAR
 
 fragment CN_CHAR
    : '\u2E86' .. '\u9FFF'
+   ;
+
+BACK_QUOTE_STRING_LITERAL_NOT_EMPTY
+   : BACK_QUOTE ('\\' . | ~ '"')+? BACK_QUOTE
    ;
 
 DOUBLE_QUOTE_STRING_LITERAL
