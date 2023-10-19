@@ -3,48 +3,48 @@
 set -e
 
 sed -i "" "s/storageEngineList=127.0.0.1#6667#iotdb12/#storageEngineList=127.0.0.1#6667#iotdb12/g" conf/config.properties
-
+echo "1"
 sed -i "" "s/#storageEngineList=127.0.0.1#5432#postgresql/storageEngineList=127.0.0.1#5432#postgresql/g" conf/config.properties
-
+echo "2"
 sh -c "wget --quiet https://get.enterprisedb.com/postgresql/postgresql-15.2-1-osx-binaries.zip"
-
+echo "3"
 sh -c "sudo unzip -q postgresql-15.2-1-osx-binaries.zip"
-
+echo "4"
 sh -c "sudo dscl . -create /Users/postgres"
-
+echo "5"
 sh -c "sudo dscl . -create /Users/postgres UserShell /bin/bash"
-
+echo "6"
 sh -c "sudo dscl . -create /Users/postgres RealName \"PostgreSQL\""
-
+echo "7"
 sh -c "sudo dscl . -create /Users/postgres UniqueID 666"
-
+echo "8"
 sh -c "sudo dscl . -create /Users/postgres PrimaryGroupID 20"
-
+echo "9"
 sh -c "sudo dscl . -create /Users/postgres NFSHomeDirectory /Users/postgres"
-
+echo "10"
 sh -c "sudo dscl . -passwd /Users/postgres postgres"
-
+echo "11"
 sh -c "sudo dscl . -append /Groups/admin GroupMembership postgres"
-
+echo "12"
 sh -c "sudo mkdir -p /var/lib/postgresql/15/main"
-
+echo "13"
 sh -c "sudo chown -R postgres /var/lib/postgresql/15/main"
-
+echo "14"
 sh -c "sudo chmod -R 777 /var/lib/postgresql/15/main"
-
+echo "15"
 for port in "$@"
 do
   sh -c "sudo cp -R pgsql pgsql-$port"
-
+  echo "16"
   sh -c "sudo mkdir -p /var/lib/postgresql-$port/15/main"
-
+  echo "17"
   sh -c "sudo chown -R postgres /var/lib/postgresql-$port/15/main"
-
+  echo "18"
   sh -c "sudo chmod -R 777 /var/lib/postgresql-$port/15/main"
-
+  echo "19"
   sh -c "cd pgsql-$port/bin; sudo -u postgres ./initdb -D /var/lib/postgresql-$port/15/main --auth trust --no-instructions"
-
+  echo "20"
   sh -c "cd pgsql-$port/bin; sudo -u postgres ./pg_ctl -D /var/lib/postgresql-$port/15/main -o \"-F -p $port\" start"
-
+  echo "21"
   sh -c "cd pgsql-$port/bin; sudo -u postgres ./psql -c \"ALTER USER postgres WITH PASSWORD 'postgres';\""
 done
