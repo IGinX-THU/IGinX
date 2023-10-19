@@ -328,10 +328,10 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   private void testAddAndRemoveStorageEngineWithPrefix() {
-    String dataPrefix1 = IS_PARQUET_OR_FILE_SYSTEM ? "wf03" : "nt.wf03";
-    String dataPrefix2 = IS_PARQUET_OR_FILE_SYSTEM ? "wf04" : "nt.wf04";
-    String schemaPrefixSuffix = IS_PARQUET_OR_FILE_SYSTEM ? ".nt" : "";
-    String schemaPrefix = IS_PARQUET_OR_FILE_SYSTEM ? "nt" : "";
+    String dataPrefix1 = this instanceof FileSystemCapacityExpansionIT ? "wf03" : "nt.wf03";
+    String dataPrefix2 = this instanceof FileSystemCapacityExpansionIT ? "wf04" : "nt.wf04";
+    String schemaPrefixSuffix = this instanceof FileSystemCapacityExpansionIT ? ".nt" : "";
+    String schemaPrefix = this instanceof FileSystemCapacityExpansionIT ? "nt" : "";
     List<List<Object>> valuesList = EXP_VALUES_LIST1;
 
     // 添加不同 schemaPrefix，相同 dataPrefix
