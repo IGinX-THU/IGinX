@@ -1,7 +1,6 @@
 package cn.edu.tsinghua.iginx.metadata.utils;
 
-import static cn.edu.tsinghua.iginx.conf.Constants.HAS_DATA;
-import static cn.edu.tsinghua.iginx.conf.Constants.SCHEMA_PREFIX;
+import static cn.edu.tsinghua.iginx.conf.Constants.*;
 import static cn.edu.tsinghua.iginx.utils.HostUtils.isLocalHost;
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
@@ -50,12 +49,8 @@ public class StorageEngineUtils {
         }
         String separator = System.getProperty("file.separator");
         // dummyDirPath是规范路径，一定不会以separator结尾
-        String schemaPrefix = dummyDirPath.substring(dummyDirPath.lastIndexOf(separator) + 1);
-        if (extraParams.containsKey(SCHEMA_PREFIX)) {
-          extraParams.put(SCHEMA_PREFIX, extraParams.get(SCHEMA_PREFIX) + "." + schemaPrefix);
-        } else {
-          extraParams.put(SCHEMA_PREFIX, schemaPrefix);
-        }
+        String dirPrefix = dummyDirPath.substring(dummyDirPath.lastIndexOf(separator) + 1);
+        extraParams.put(EMBEDDED_PREFIX, dirPrefix);
       } else {
         // 如果hasData为false，则参数中必须配置dir
         Pair<Boolean, String> dirPair = getCanonicalPath(extraParams.get("dir"));
