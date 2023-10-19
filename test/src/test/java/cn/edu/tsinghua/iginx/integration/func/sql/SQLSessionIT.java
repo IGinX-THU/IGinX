@@ -4410,7 +4410,7 @@ public class SQLSessionIT {
             + "(2, 3, 3.5, true, \"ccc\"), (3, 4, 4.5, false, \"ddd\"), (4, 5, 5.5, true, \"eee\");";
     executor.execute(insert);
 
-    String query = "SELECT * FROM (SHOW COLUMNS);";
+    String query = "SELECT * FROM (SHOW COLUMNS test.*, us.*);";
     String expected =
         "ResultSets:\n"
             + "+--------+-------+\n"

@@ -116,7 +116,7 @@ public class FilterPushDownOptimizer implements Optimizer {
           } else if (operatorB.equals(project)) {
             binaryOperator.setSourceB(new OperatorSource(subSelect));
           }
-        } else {
+        } else if (OperatorType.isMultipleOperator(fatherOperator.getType())) {
           MultipleOperator multipleOperator = (MultipleOperator) fatherOperator;
           List<Source> sources = multipleOperator.getSources();
 
@@ -172,7 +172,7 @@ public class FilterPushDownOptimizer implements Optimizer {
           projectAndFatherOperatorList,
           stack,
           ((OperatorSource) binaryOperator.getSourceB()).getOperator());
-    } else {
+    } else if (OperatorType.isMultipleOperator(operator.getType())) {
       MultipleOperator multipleOperator = (MultipleOperator) operator;
       List<Source> sources = multipleOperator.getSources();
       for (Source source : sources) {
@@ -216,7 +216,7 @@ public class FilterPushDownOptimizer implements Optimizer {
                 target,
                 renameOperatorList);
       }
-    } else {
+    } else if (OperatorType.isMultipleOperator(curOperator.getType())) {
       MultipleOperator multipleOperator = (MultipleOperator) curOperator;
       List<Source> sources = multipleOperator.getSources();
       for (Source source : sources) {
