@@ -74,7 +74,7 @@ import cn.edu.tsinghua.iginx.sql.SqlParser.PredicateContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.PredicateWithSubqueryContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.QueryClauseContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.RegisterTaskStatementContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.RemoveHistoryDataResourceStatementContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.RemoveHistoryDataSourceStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.SelectClauseContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.SelectContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.SelectStatementContext;
@@ -515,8 +515,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   }
 
   @Override
-  public Statement visitRemoveHistoryDataResourceStatement(
-      RemoveHistoryDataResourceStatementContext ctx) {
+  public Statement visitRemoveHistoryDataSourceStatement(
+      RemoveHistoryDataSourceStatementContext ctx) {
     RemoveHistoryDataSourceStatement statement = new RemoveHistoryDataSourceStatement();
     ctx.removedStorageEngine()
         .forEach(

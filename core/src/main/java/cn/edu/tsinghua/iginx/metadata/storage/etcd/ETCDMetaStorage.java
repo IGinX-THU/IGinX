@@ -920,7 +920,7 @@ public class ETCDMetaStorage implements IMetaStorage {
   }
 
   @Override
-  public boolean updateStorageEngine(long storageID, StorageEngineMeta storageEngine)
+  public boolean invalidateStorageEngine(StorageEngineMeta storageEngine)
       throws MetaStorageException {
     try {
       lockStorage();
@@ -928,11 +928,12 @@ public class ETCDMetaStorage implements IMetaStorage {
           .getKVClient()
           .put(
               ByteSequence.from(
-                  generateID(STORAGE_PREFIX, STORAGE_ENGINE_NODE_LENGTH, storageID).getBytes()),
+                  generateID(STORAGE_PREFIX, STORAGE_ENGINE_NODE_LENGTH, storageEngine.getId())
+                      .getBytes()),
               ByteSequence.from(JsonUtils.toJson(storageEngine)))
           .get();
     } catch (ExecutionException | InterruptedException e) {
-      logger.error("got error when add storage: ", e);
+      logger.error("got error when invalidating storage engine: ", e);
       throw new MetaStorageException(e);
     } finally {
       if (storageLease != -1) {
