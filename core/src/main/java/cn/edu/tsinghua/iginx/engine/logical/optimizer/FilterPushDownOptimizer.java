@@ -67,6 +67,14 @@ public class FilterPushDownOptimizer implements Optimizer {
       return;
     }
 
+    // 获取所有分片信息
+    Set<FragmentMeta> fragmentMetaSet = new HashSet<>();
+    for (Pair<Project, Operator> pair : projectAndFatherOperatorList) {
+      Project project = pair.getK();
+      FragmentMeta fragmentMeta = ((FragmentSource) project.getSource()).getFragment();
+      fragmentMetaSet.add(fragmentMeta);
+    }
+
     Map<String, Filter> cache = new HashMap<>();
     for (Pair<Project, Operator> pair : projectAndFatherOperatorList) {
       Filter filter = selectOperator.getFilter().copy();
@@ -90,6 +98,7 @@ public class FilterPushDownOptimizer implements Optimizer {
         subFilter = cache.get(fragmentMeta.getMasterStorageUnitId()).copy();
       } else {
         subFilter = ExprUtils.getSubFilterFromFragment(filter, fragmentMeta.getColumnsInterval());
+        subFilter = ExprUtils.removeWildCardOrFilterByFragment(subFilter, fragmentMetaSet);
         cache.put(fragmentMeta.getMasterStorageUnitId(), subFilter);
       }
       subFilter = ExprUtils.removePathByPatterns(subFilter, project.getPatterns());
