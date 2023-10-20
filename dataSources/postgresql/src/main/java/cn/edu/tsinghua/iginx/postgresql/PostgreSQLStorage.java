@@ -752,6 +752,15 @@ public class PostgreSQLStorage implements IStorage {
 
           // 对通配符做处理，将通配符替换成对应的列名
           if (FilterTransformer.toString(copyFilter).contains("*")) {
+            // 把fullColumnNamesList中的列名全部用removeFullColumnNameQuote去掉引号
+            fullColumnNamesList.replaceAll(
+                columnNames -> {
+                  List<String> newColumnNames = new ArrayList<>();
+                  for (String columnName : columnNames) {
+                    newColumnNames.add(removeFullColumnNameQuote(columnName));
+                  }
+                  return newColumnNames;
+                });
             copyFilter = generateWildCardsFilter(copyFilter, fullColumnNamesList);
             copyFilter = ExprUtils.mergeTrue(copyFilter);
           }
