@@ -1,5 +1,7 @@
 package cn.edu.tsinghua.iginx.integration.expansion.redis;
 
+import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.readOnlyPort;
+
 import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
 import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
 import cn.edu.tsinghua.iginx.thrift.DataType;
@@ -28,11 +30,26 @@ public class RedisHistoryDataGenerator extends BaseHistoryDataGenerator {
         row -> {
           for (int i = 0; i < row.size(); i++) {
             Object value = row.get(i);
-            jedis.lpush(pathList.get(i), String.valueOf(value));
+            String fullPath = pathList.get(i);
+            String pathWithoutPrefix = fullPath.substring(fullPath.indexOf('.') + 1);
+            jedis.lpush(pathWithoutPrefix, String.valueOf(value));
           }
         });
     jedis.close();
     logger.info("write data to 127.0.0.1:{} success!", port);
+  }
+
+  @Override
+  public void writeSpecialHistoryData() {
+    try (Jedis jedis = new Jedis(LOCAL_IP, readOnlyPort)) {
+      jedis.set("redis.key", "redis value");
+      jedis.hset("redis.hash", "field0", "value0");
+      jedis.hset("redis.hash", "field1", "value1");
+      jedis.zadd("redis.zset", 1, "value0");
+      jedis.zadd("redis.zset", 2, "value1");
+      jedis.sadd("redis.set", "value0");
+      jedis.sadd("redis.set", "value1");
+    }
   }
 
   @Override

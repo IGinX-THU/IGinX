@@ -18,8 +18,13 @@ public class StorageEngineUtils {
     return type.equals(StorageEngineType.parquet) || type.equals(StorageEngineType.filesystem);
   }
 
+  public static boolean isFlatStorageEngine(StorageEngineType type) {
+    return type.equals(StorageEngineType.redis);
+  }
+
   public static boolean setSchemaPrefixInExtraParams(
       StorageEngineType type, Map<String, String> extraParams) {
+
     if (isEmbeddedStorageEngine(type)) {
       // 必须配置iginx_port参数
       String iginxPort = extraParams.get("iginx_port");
@@ -55,6 +60,13 @@ public class StorageEngineUtils {
         // 如果hasData为false，则参数中必须配置dir
         Pair<Boolean, String> dirPair = getCanonicalPath(extraParams.get("dir"));
         return dirPair.k;
+      }
+    } else if (isFlatStorageEngine(type)) {
+      boolean hasData = Boolean.parseBoolean(extraParams.getOrDefault(HAS_DATA, "false"));
+      if (hasData) {
+        if (!extraParams.containsKey(SCHEMA_PREFIX)) {
+          extraParams.put(SCHEMA_PREFIX, type.name());
+        }
       }
     }
     return true;
