@@ -23,8 +23,8 @@ import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.isEmbedded
 import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.isLocal;
 import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.setSchemaPrefixInExtraParams;
 import static cn.edu.tsinghua.iginx.utils.ByteUtils.getLongArrayFromByteBuffer;
-import static cn.edu.tsinghua.iginx.utils.HostUtils.convertHostNameToHostAddress;
 import static cn.edu.tsinghua.iginx.utils.HostUtils.isLocalHost;
+import static cn.edu.tsinghua.iginx.utils.HostUtils.isValidHost;
 import static cn.edu.tsinghua.iginx.utils.StringUtils.isEqual;
 
 import cn.edu.tsinghua.iginx.auth.SessionManager;
@@ -316,6 +316,8 @@ public class IginxWorker implements IService.Iface {
     List<Status> statusList = new ArrayList<>();
 
     for (StorageEngine storageEngine : storageEngines) {
+      String ip = storageEngine.getIp();
+      int port = storageEngine.getPort();
       StorageEngineType type = storageEngine.getType();
       Map<String, String> extraParams = storageEngine.getExtraParams();
       boolean hasData = Boolean.parseBoolean(extraParams.getOrDefault(Constants.HAS_DATA, "false"));
@@ -325,6 +327,13 @@ public class IginxWorker implements IService.Iface {
       }
       boolean readOnly =
           Boolean.parseBoolean(extraParams.getOrDefault(Constants.IS_READ_ONLY, "false"));
+
+      if (!isValidHost(ip)) { // IP 不合法
+        status = new Status(RpcUtils.PARTIAL_SUCCESS.code);
+        status.setMessage(String.format("ip %s is invalid", ip));
+        statusList.add(status);
+        continue;
+      }
       if (!hasData & readOnly) { // 无意义的存储引擎：不带数据且只读
         status = new Status(RpcUtils.PARTIAL_SUCCESS.code);
         status.setMessage("normal storage engine should not be read-only");
@@ -339,13 +348,13 @@ public class IginxWorker implements IService.Iface {
       StorageEngineMeta meta =
           new StorageEngineMeta(
               -1,
-              convertHostNameToHostAddress(storageEngine.getIp()),
-              storageEngine.getPort(),
+              ip,
+              port,
               hasData,
               dataPrefix,
               schemaPrefix,
               readOnly,
-              storageEngine.getExtraParams(),
+              extraParams,
               type,
               metaManager.getIginxId());
       storageEngineMetas.add(meta);
