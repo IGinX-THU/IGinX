@@ -113,7 +113,7 @@ public class FileSystemStorage implements IStorage {
     Filter filter =
         new AndFilter(
             Arrays.asList(
-                new KeyFilter(Op.G, keyInterval.getStartKey()),
+                new KeyFilter(Op.GE, keyInterval.getStartKey()),
                 new KeyFilter(Op.L, keyInterval.getEndKey()),
                 select.getFilter()));
     return executor.executeProjectTask(
