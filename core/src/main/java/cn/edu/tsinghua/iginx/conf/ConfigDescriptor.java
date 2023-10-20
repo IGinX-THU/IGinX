@@ -51,8 +51,10 @@ public class ConfigDescriptor {
   private void loadPropsFromFile() {
     try (InputStream in =
         new FileInputStream(EnvUtils.loadEnv(Constants.CONF, Constants.CONFIG_FILE))) {
+      BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(in));
+
       Properties properties = new Properties();
-      properties.load(in);
+      properties.load(bufferedReader);
 
       // runs/debugged in IDE: IGINX_HOME not set, use user.dir as root
       // runs by script: IGINX_HOME should always have been set
