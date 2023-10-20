@@ -59,6 +59,7 @@ public class MongoDBStorage implements IStorage {
   private static final long MAX_WAIT_TIME = 5;
   private static final int SESSION_POOL_MAX_SIZE = 200;
   public static final String VALUE_FIELD = "v";
+  public static final String[] SYSTEM_DBS = new String[] {"admin", "config", "local"};
 
   private final MongoClient client;
 
@@ -253,7 +254,7 @@ public class MongoDBStorage implements IStorage {
   @Override
   public List<Column> getColumns() {
     List<Column> columns = new ArrayList<>();
-    for (String dbName : this.client.listDatabaseNames()) {
+    for (String dbName : getDatabaseNames(this.client)) {
       for (String collectionName : this.client.getDatabase(dbName).listCollectionNames()) {
         try {
           if (dbName.startsWith("unit")) {
@@ -270,8 +271,18 @@ public class MongoDBStorage implements IStorage {
     return columns;
   }
 
-  private MongoDatabase getDatabase(String unit) {
-    return this.client.getDatabase(unit);
+  public static List<String> getDatabaseNames(MongoClient client) {
+    List<String> names = new ArrayList<>();
+    for (String dbName : client.listDatabaseNames()) {
+      if (Arrays.stream(SYSTEM_DBS).noneMatch(name -> name.equals(dbName))) {
+        names.add(dbName);
+      }
+    }
+    return names;
+  }
+
+  private MongoDatabase getDatabase(String dbName) {
+    return this.client.getDatabase(dbName);
   }
 
   private static List<Field> getFields(MongoDatabase db) {
@@ -293,7 +304,7 @@ public class MongoDBStorage implements IStorage {
         Arrays.stream(prefix.split("\\.")).limit(2).collect(Collectors.joining("."));
 
     List<String> namespaces = new ArrayList<>();
-    for (String db : this.client.listDatabaseNames()) {
+    for (String db : getDatabaseNames(this.client)) {
       for (String collection : this.client.getDatabase(db).listCollectionNames()) {
         String namespace = db + "." + collection;
         if (namespace.startsWith(namespacePrefix)) {

@@ -5,6 +5,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.FilterType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.ValueFilter;
+import cn.edu.tsinghua.iginx.mongodb.MongoDBStorage;
 import com.mongodb.client.*;
 import java.util.*;
 import org.bson.BsonDocument;
@@ -51,7 +52,7 @@ public class DummyQuery {
 
   private Map<String, PathTree> getDatabaseTrees(PathTree pathTree) {
     if (pathTree.hasWildcardChild()) {
-      List<String> names = this.client.listDatabaseNames().into(new ArrayList<>());
+      List<String> names = MongoDBStorage.getDatabaseNames(this.client);
       pathTree.eliminateWildcardChild(names);
     }
 
