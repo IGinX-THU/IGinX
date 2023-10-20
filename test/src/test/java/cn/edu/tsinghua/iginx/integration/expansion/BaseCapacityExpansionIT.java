@@ -339,7 +339,7 @@ public abstract class BaseCapacityExpansionIT {
     String dataPrefix2 = "nt.wf04";
     String schemaPrefixSuffix = "";
     String schemaPrefix = "";
-    
+
     String schemaPrefix1 = "p1";
     String schemaPrefix2 = "p2";
     String schemaPrefix3 = "p3";
