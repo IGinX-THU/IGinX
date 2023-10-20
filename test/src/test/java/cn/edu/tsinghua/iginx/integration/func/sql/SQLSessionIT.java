@@ -4750,6 +4750,36 @@ public class SQLSessionIT {
             + "Total line number = 5\n";
     executor.executeAndCompare(query, expected);
 
+    query = "SELECT `1919810` * 2 FROM 114514;";
+    expected =
+        "ResultSets:\n"
+            + "+---+------------------+\n"
+            + "|key|114514.1919810 × 2|\n"
+            + "+---+------------------+\n"
+            + "|  1|                 2|\n"
+            + "|  2|                 4|\n"
+            + "|  3|                 6|\n"
+            + "|  4|                 8|\n"
+            + "|  5|                10|\n"
+            + "+---+------------------+\n"
+            + "Total line number = 5\n";
+    executor.executeAndCompare(query, expected);
+
+    query = "SELECT 2 * `1919810` FROM 114514;";
+    expected =
+        "ResultSets:\n"
+            + "+---+------------------+\n"
+            + "|key|2 × 114514.1919810|\n"
+            + "+---+------------------+\n"
+            + "|  1|                 2|\n"
+            + "|  2|                 4|\n"
+            + "|  3|                 6|\n"
+            + "|  4|                 8|\n"
+            + "|  5|                10|\n"
+            + "+---+------------------+\n"
+            + "Total line number = 5\n";
+    executor.executeAndCompare(query, expected);
+
     query = "SELECT `1919810` FROM 114514 WHERE `1919810` < 3;";
     expected =
         "ResultSets:\n"
@@ -4758,6 +4788,18 @@ public class SQLSessionIT {
             + "+---+--------------+\n"
             + "|  1|             1|\n"
             + "|  2|             2|\n"
+            + "+---+--------------+\n"
+            + "Total line number = 2\n";
+    executor.executeAndCompare(query, expected);
+
+    query = "SELECT `1919810` FROM 114514 WHERE 3 < `1919810`;";
+    expected =
+        "ResultSets:\n"
+            + "+---+--------------+\n"
+            + "|key|114514.1919810|\n"
+            + "+---+--------------+\n"
+            + "|  4|             4|\n"
+            + "|  5|             5|\n"
             + "+---+--------------+\n"
             + "Total line number = 2\n";
     executor.executeAndCompare(query, expected);
