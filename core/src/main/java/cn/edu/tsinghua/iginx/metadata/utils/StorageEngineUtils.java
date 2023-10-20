@@ -22,6 +22,20 @@ public class StorageEngineUtils {
     return type.equals(StorageEngineType.redis);
   }
 
+  private static boolean isDummyDirValid(String dir) {
+    // 检查路径是否为空
+    if (dir == null || dir.isEmpty()) {
+      return false;
+    }
+
+    // 检查路径是否为根路径
+    if (dir.equals("/") || dir.matches("[A-Za-z]:[/\\\\]")) {
+      return false;
+    }
+
+    return true;
+  }
+
   public static boolean setSchemaPrefixInExtraParams(
       StorageEngineType type, Map<String, String> extraParams) {
 
@@ -41,6 +55,10 @@ public class StorageEngineUtils {
           return false;
         }
         String dummyDirPath = dummyDirPair.v;
+        // 检查dummy_dir是否合法
+        if (!isDummyDirValid(dummyDirPath)) {
+          return false;
+        }
         if (!readOnly) {
           // 如果hasData为true，且readOnly为false，则参数中必须配置dir，且不能与dummy_dir相同
           Pair<Boolean, String> dirPair = getCanonicalPath(extraParams.get("dir"));
