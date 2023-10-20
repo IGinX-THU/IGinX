@@ -128,7 +128,7 @@ public class FilterUtils {
       if (Op.isOrOp(valueFilter.getOp())) {
         for (Value value : valueList) {
           if (value == null || value.isNull()) {
-            return false; // 任何一个value是空值，则认为不可比较
+            continue; // 任何一个value是空值，则认为不可比较
           }
           if (validateValueCompare(valueFilter.getOp(), value, targetValue)) {
             return true; // 任何一个子条件满足，都直接返回true
