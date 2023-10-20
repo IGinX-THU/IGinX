@@ -4874,6 +4874,14 @@ public class SQLSessionIT {
 
     errClause = "select * from test.a join test.b where a > 0;";
     executor.executeAndCompareErrMsg(errClause, "Unexpected paths' name: [a].");
+
+    errClause = "SELECT 1 * 2 FROM test;";
+    executor.executeAndCompareErrMsg(
+        errClause, "SELECT constant arithmetic expression isn't supported yet.");
+
+    errClause = "SELECT * FROM test WHERE 1 < 2;";
+    executor.executeAndCompareErrMsg(
+        errClause, "Constant comparison isn't supported in WHERE clause yet.");
   }
 
   @Test

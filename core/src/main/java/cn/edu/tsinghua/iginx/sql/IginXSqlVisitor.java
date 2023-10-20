@@ -792,8 +792,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       ret.forEach(
           expression -> {
             if (ExpressionUtils.isConstantArithmeticExpr(expression)) {
-              // TODO
-              throw new SQLParserException("TODO: select constant arithmetic expression");
+              throw new SQLParserException(
+                  "SELECT constant arithmetic expression isn't supported yet.");
             } else {
               selectStatement.setExpression(expression);
             }
