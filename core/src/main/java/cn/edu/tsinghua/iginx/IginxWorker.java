@@ -328,7 +328,7 @@ public class IginxWorker implements IService.Iface {
       boolean readOnly =
           Boolean.parseBoolean(extraParams.getOrDefault(Constants.IS_READ_ONLY, "false"));
 
-      if (isValidHost(ip)) { // IP 不合法
+      if (!isValidHost(ip)) { // IP 不合法
         status = new Status(RpcUtils.PARTIAL_SUCCESS.code);
         status.setMessage(String.format("ip %s is invalid", ip));
         statusList.add(status);

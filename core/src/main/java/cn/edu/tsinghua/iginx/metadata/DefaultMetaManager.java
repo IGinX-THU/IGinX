@@ -1200,7 +1200,7 @@ public class DefaultMetaManager implements IMetaManager {
       }
       String[] storageEngineParts = storageEngineStrings[i].split("#");
       String ip = storageEngineParts[0];
-      if (!isValidHost(ip)) {
+      if (!isValidHost(ip)) { // IP 不合法
         logger.error("ip {} is invalid", ip);
         continue;
       }
