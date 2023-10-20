@@ -234,7 +234,7 @@ public class IginxInterpreter extends AbstractInterpreter {
   }
 
   private String convertToHTMLString(String str) {
-    return "%html " + str.replace("\n", "<br>").replace("\t", "&nbsp;&nbsp;&nbsp;&nbsp;");
+    return "%html" + str.replace("\n", "<br>").replace("\t", "&nbsp;&nbsp;&nbsp;&nbsp;");
   }
 
   @Override
