@@ -377,6 +377,15 @@ public class PostgreSQLStorage implements IStorage {
 
         // 对通配符做处理，将通配符替换成对应的列名
         if (FilterTransformer.toString(filter).contains("*")) {
+          // 把fullColumnNamesList中的列名全部用removeFullColumnNameQuote去掉引号
+          fullColumnNamesList.replaceAll(
+              columnNames -> {
+                List<String> newColumnNames = new ArrayList<>();
+                for (String columnName : columnNames) {
+                  newColumnNames.add(removeFullColumnNameQuote(columnName));
+                }
+                return newColumnNames;
+              });
           filter = generateWildCardsFilter(filter, fullColumnNamesList);
           filter = ExprUtils.mergeTrue(filter);
         }
@@ -454,6 +463,10 @@ public class PostgreSQLStorage implements IStorage {
                   new ValueFilter(
                       matched, ((ValueFilter) filter).getOp(), ((ValueFilter) filter).getValue()));
             }
+
+            if (Op.isOrOp(((ValueFilter) filter).getOp())) {
+              return new OrFilter(andValueChildren);
+            }
             return new AndFilter(andValueChildren);
           }
         }
@@ -478,12 +491,16 @@ public class PostgreSQLStorage implements IStorage {
                   new PathFilter(
                       matched, ((PathFilter) filter).getOp(), ((PathFilter) filter).getPathB()));
             }
-            filter = new AndFilter(andPathChildren);
+            if (Op.isOrOp(((ValueFilter) filter).getOp())) {
+              filter = new OrFilter(andPathChildren);
+            } else {
+              filter = new AndFilter(andPathChildren);
+            }
           }
         }
 
         if (pathB.contains("*")) {
-          if (filter.getType() != FilterType.And) {
+          if (filter.getType() != FilterType.Path) {
             return generateWildCardsFilter(filter, columnNamesList);
           }
 
@@ -501,6 +518,9 @@ public class PostgreSQLStorage implements IStorage {
               andPathChildren.add(
                   new PathFilter(
                       ((PathFilter) filter).getPathA(), ((PathFilter) filter).getOp(), matched));
+            }
+            if (Op.isOrOp(((ValueFilter) filter).getOp())) {
+              return new OrFilter(andPathChildren);
             }
             return new AndFilter(andPathChildren);
           }
@@ -531,6 +551,10 @@ public class PostgreSQLStorage implements IStorage {
       }
     }
     return matchedPath;
+  }
+
+  private String removeFullColumnNameQuote(String fullColumnName) {
+    return fullColumnName.substring(1, fullColumnName.length() - 1).replace("\".\"", ".");
   }
 
   private Filter cutFilterDatabaseNameForDummy(Filter filter, String databaseName) {

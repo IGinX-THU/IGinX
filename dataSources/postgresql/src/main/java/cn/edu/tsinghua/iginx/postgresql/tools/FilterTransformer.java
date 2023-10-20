@@ -82,6 +82,10 @@ public class FilterTransformer {
             : Op.op2Str(filter.getOp())
                 .replace("==", "="); // postgresql does not support "==" but uses "=" instead
 
+    if (op.startsWith("&")) {
+      op = op.substring(1);
+    }
+
     String regex_symbol = isLikeOp(filter.getOp()) ? "$" : "";
 
     Object value =
@@ -107,6 +111,10 @@ public class FilterTransformer {
     String op =
         Op.op2Str(filter.getOp())
             .replace("==", "="); // postgresql does not support "==" but uses "=" instead
+    if (op.startsWith("&")) {
+      op = op.substring(1);
+    }
+
     return pathA + " " + op + " " + pathB;
   }
 
