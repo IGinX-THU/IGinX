@@ -206,11 +206,7 @@ public class Config {
 
   /////////////
 
-  private int batchSizeExportCsv = 10000;
-
   private int batchSizeImportCsv = 10000;
-
-  private int batchSizeExportByteStream = 10000;
 
   public int getMaxTimeseriesLength() {
     return maxTimeseriesLength;
@@ -872,27 +868,11 @@ public class Config {
     this.streamParallelGroupByWorkerNum = streamParallelGroupByWorkerNum;
   }
 
-  public int getBatchSizeExportCsv() {
-    return batchSizeExportCsv;
-  }
-
-  public void setBatchSizeExportCsv(int batchSizeExportCsv) {
-    this.batchSizeExportCsv = batchSizeExportCsv;
-  }
-
   public int getBatchSizeImportCsv() {
     return batchSizeImportCsv;
   }
 
   public void setBatchSizeImportCsv(int batchSizeImportCsv) {
     this.batchSizeImportCsv = batchSizeImportCsv;
-  }
-
-  public int getBatchSizeExportByteStream() {
-    return batchSizeExportByteStream;
-  }
-
-  public void setBatchSizeExportByteStream(int batchSizeExportByteStream) {
-    this.batchSizeExportByteStream = batchSizeExportByteStream;
   }
 }
