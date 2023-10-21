@@ -259,7 +259,7 @@ public class MongoDBStorage implements IStorage {
         try {
           if (dbName.startsWith("unit")) {
             Field field = NameUtils.parseCollectionName(collectionName);
-            columns.add(new Column(field.getFullName(), field.getType(), field.getTags(), false));
+            columns.add(new Column(field.getName(), field.getType(), field.getTags(), false));
             continue;
           }
         } catch (Exception ignored) {
