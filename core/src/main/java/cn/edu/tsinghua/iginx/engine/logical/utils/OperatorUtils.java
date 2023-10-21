@@ -25,6 +25,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.OuterJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.PathUnion;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Rename;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Reorder;
 import cn.edu.tsinghua.iginx.engine.shared.operator.RowTransform;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
 import cn.edu.tsinghua.iginx.engine.shared.operator.SetTransform;
@@ -225,6 +226,11 @@ public class OperatorUtils {
                 project.getTagFilter(),
                 false,
                 true);
+        break;
+      case Reorder:
+        Reorder reorder = (Reorder) operatorB;
+        apply.setSourceB(reorder.getSource());
+        root = pushDownApply(apply, correlatedVariables);
         break;
       case Select:
         Select select = (Select) operatorB;

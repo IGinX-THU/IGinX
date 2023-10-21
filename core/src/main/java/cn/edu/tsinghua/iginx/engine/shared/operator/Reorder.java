@@ -9,28 +9,38 @@ public class Reorder extends AbstractUnaryOperator {
 
   private final List<String> patterns;
 
+  private final List<Boolean> isPyUDF;
+
   private boolean needSelectedPath;
 
   public Reorder(Source source, List<String> patterns) {
-    this(source, patterns, false);
+    this(source, patterns, new ArrayList<>(patterns.size()), false);
+    patterns.forEach(p -> isPyUDF.add(false));
   }
 
-  public Reorder(Source source, List<String> patterns, boolean needSelectedPath) {
+  public Reorder(
+      Source source, List<String> patterns, List<Boolean> isPyUDF, boolean needSelectedPath) {
     super(OperatorType.Reorder, source);
     if (patterns == null) {
       throw new IllegalArgumentException("patterns shouldn't be null");
     }
     this.patterns = patterns;
+    this.isPyUDF = isPyUDF;
     this.needSelectedPath = needSelectedPath;
   }
 
   @Override
   public Operator copy() {
-    return new Reorder(getSource().copy(), new ArrayList<>(patterns));
+    return new Reorder(
+        getSource().copy(), new ArrayList<>(patterns), new ArrayList<>(isPyUDF), needSelectedPath);
   }
 
   public List<String> getPatterns() {
     return patterns;
+  }
+
+  public List<Boolean> getIsPyUDF() {
+    return isPyUDF;
   }
 
   public boolean isNeedSelectedPath() {
