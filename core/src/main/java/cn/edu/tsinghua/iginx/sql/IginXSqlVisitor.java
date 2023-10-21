@@ -824,7 +824,13 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       return Collections.singletonList(parseBaseExpression(ctx, selectStatement));
     }
     if (ctx.constant() != null) {
-      return Collections.singletonList(new ConstantExpression(parseValue(ctx.constant())));
+      if (ctx.constant().stringLiteral() != null) {
+        String expression = ctx.constant().stringLiteral().getText();
+        expression = expression.substring(1, expression.length() - 1);
+        return Collections.singletonList(parseBaseExpression(expression, selectStatement));
+      } else {
+        return Collections.singletonList(new ConstantExpression(parseValue(ctx.constant())));
+      }
     }
 
     List<Expression> ret = new ArrayList<>();
@@ -1412,9 +1418,10 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     markJoinCount += 1;
 
     Filter filter;
+    Expression expression = subStatement.getExpressions().get(0);
     if (ctx.constant() != null) {
       Value value = new Value(parseValue(ctx.constant()));
-      String path = subStatement.getExpressions().get(0).getColumnName();
+      String path = expression.hasAlias() ? expression.getAlias() : expression.getColumnName();
       filter = new ValueFilter(path, Op.E, value);
     } else {
       String pathA = ctx.path().getText();
@@ -1428,7 +1435,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         pathA = ctx.functionName().getText() + "(" + pathA + ")";
       }
 
-      String pathB = subStatement.getExpressions().get(0).getColumnName();
+      String pathB = expression.hasAlias() ? expression.getAlias() : expression.getColumnName();
       filter = new PathFilter(pathA, Op.E, pathB);
       subStatement.addFreeVariable(pathA);
     }
@@ -1475,9 +1482,10 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       op = Op.getOpposite(op);
     }
 
+    Expression expression = subStatement.getExpressions().get(0);
     if (ctx.constant() != null) {
       Value value = new Value(parseValue(ctx.constant()));
-      String path = subStatement.getExpressions().get(0).getColumnName();
+      String path = expression.hasAlias() ? expression.getAlias() : expression.getColumnName();
       filter = new ValueFilter(path, op, value);
     } else {
       String pathA = ctx.path().getText();
@@ -1491,7 +1499,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         pathA = ctx.functionName().getText() + "(" + pathA + ")";
       }
 
-      String pathB = subStatement.getExpressions().get(0).getColumnName();
+      String pathB = expression.hasAlias() ? expression.getAlias() : expression.getColumnName();
       filter = new PathFilter(pathA, op, pathB);
       subStatement.addFreeVariable(pathA);
     }
@@ -1540,10 +1548,11 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       statement.addWhereSubQueryPart(subQueryPart);
     }
 
+    Expression expression = subStatement.getExpressions().get(0);
     Op op = Op.str2Op(ctx.comparisonOperator().getText().trim().toLowerCase());
     if (ctx.constant() != null) {
       Value value = new Value(parseValue(ctx.constant()));
-      String path = subStatement.getExpressions().get(0).getColumnName();
+      String path = expression.hasAlias() ? expression.getAlias() : expression.getColumnName();
       return new ValueFilter(path, op, value);
     } else {
       String pathA = ctx.path().getText();
@@ -1557,7 +1566,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         pathA = ctx.functionName().getText() + "(" + pathA + ")";
       }
 
-      String pathB = subStatement.getExpressions().get(0).getColumnName();
+      String pathB = expression.hasAlias() ? expression.getAlias() : expression.getColumnName();
       return new PathFilter(pathA, op, pathB);
     }
   }
@@ -1587,7 +1596,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       }
       // 计算子查询的自由变量
       subStatement.initFreeVariables();
-      paths.add(subStatement.getExpressions().get(0).getColumnName());
+      Expression expression = subStatement.getExpressions().get(0);
+      paths.add(expression.hasAlias() ? expression.getAlias() : expression.getColumnName());
 
       Filter filter = new BoolFilter(true);
 
