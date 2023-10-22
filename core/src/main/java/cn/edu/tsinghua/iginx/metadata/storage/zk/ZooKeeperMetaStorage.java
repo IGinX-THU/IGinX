@@ -19,6 +19,7 @@
 package cn.edu.tsinghua.iginx.metadata.storage.zk;
 
 import static cn.edu.tsinghua.iginx.metadata.utils.ColumnsIntervalUtils.fromString;
+import static cn.edu.tsinghua.iginx.metadata.utils.IdUtils.generateId;
 import static cn.edu.tsinghua.iginx.metadata.utils.ReshardStatus.*;
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
@@ -146,9 +147,6 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
 
   private boolean isMaster = false;
 
-  private final int STORAGE_ENGINE_NODE_NUM_LENGTH =
-      10; // Default serial number length of the persistent node
-
   private static ZooKeeperMetaStorage INSTANCE = null;
 
   private final CuratorFramework client;
@@ -231,10 +229,6 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
       }
     }
     return INSTANCE;
-  }
-
-  private String generateID(String prefix, long idLength, long val) {
-    return String.format(prefix + "%0" + idLength + "d", (int) val);
   }
 
   @Override
@@ -538,8 +532,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
               .forPath(STORAGE_ENGINE_NODE, "".getBytes(StandardCharsets.UTF_8));
       long id = Long.parseLong(nodeName.substring(STORAGE_ENGINE_NODE.length()));
       storageEngine.setId(id);
-      String tmp = new String(JsonUtils.toJson(storageEngine));
-      this.client.setData().forPath(nodeName, tmp.getBytes());
+      this.client.setData().forPath(nodeName, JsonUtils.toJson(storageEngine));
       return id;
     } catch (Exception e) {
       throw new MetaStorageException("get error when add storage engine", e);
@@ -554,17 +547,16 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
   }
 
   @Override
-  public boolean updateStorageEngine(long storageID, StorageEngineMeta storageEngine)
+  public boolean invalidateStorageEngine(StorageEngineMeta storageEngine)
       throws MetaStorageException {
     InterProcessMutex mutex = new InterProcessMutex(this.client, STORAGE_ENGINE_LOCK_NODE);
-    try { // node0000000002 STORAGE_ENGINE_NODE_NUM_LENGTH
+    try {
       mutex.acquire();
-      String tmp = new String(JsonUtils.toJson(storageEngine));
-      String nodeName = generateID(STORAGE_ENGINE_NODE, STORAGE_ENGINE_NODE_NUM_LENGTH, storageID);
-      this.client.setData().forPath(nodeName, tmp.getBytes());
+      String nodeName = generateId(STORAGE_ENGINE_NODE, storageEngine.getId());
+      this.client.setData().forPath(nodeName, JsonUtils.toJson(storageEngine));
       return true;
     } catch (Exception e) {
-      throw new MetaStorageException("get error when update storage engine", e);
+      throw new MetaStorageException("get error when invalidating storage engine", e);
     } finally {
       try {
         mutex.release();

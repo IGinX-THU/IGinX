@@ -27,7 +27,7 @@ public class RemoveHistoryDataSourceStatement extends SystemStatement {
 
   public RemoveHistoryDataSourceStatement() {
     storageEngineList = new ArrayList<>();
-    this.statementType = StatementType.REMOVE_HISTORY_DATA_RESOURCE;
+    this.statementType = StatementType.REMOVE_HISTORY_DATA_SOURCE;
   }
 
   @Override
