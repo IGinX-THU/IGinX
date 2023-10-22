@@ -25,6 +25,7 @@ import static org.junit.Assert.fail;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
+import cn.edu.tsinghua.iginx.integration.controller.InsertAPIType;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.thrift.DataType;
@@ -91,7 +92,7 @@ public class UDFIT {
               "\"" +new String( RandomStringUtils.randomAlphanumeric(10).getBytes())+"\"",
               (i + 0.1)));
     }
-    Controller.writeRowsData(session, pathList, keyList, dataTypeList,valuesList,new ArrayList<>());
+    Controller.writeRowsData(session, pathList, keyList, dataTypeList,valuesList,new ArrayList<>(), InsertAPIType.Row);
 //    if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
 //      logger.error("Insert date execute fail. Caused by: {}.", res.getParseErrorMsg());
 //      fail();

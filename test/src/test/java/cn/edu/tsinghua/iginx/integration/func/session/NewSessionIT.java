@@ -1,5 +1,6 @@
 package cn.edu.tsinghua.iginx.integration.func.session;
 
+import static cn.edu.tsinghua.iginx.integration.controller.InsertAPIType.*;
 import static cn.edu.tsinghua.iginx.thrift.StorageEngineType.influxdb;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -8,6 +9,7 @@ import static org.junit.Assert.fail;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
+import cn.edu.tsinghua.iginx.integration.controller.InsertAPIType;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.integration.tool.MultiConnection;
@@ -22,6 +24,8 @@ import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.thrift.TagFilterType;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -154,9 +158,9 @@ public class NewSessionIT {
     // insert base data using all types of insert API.
     List<InsertAPIType> insertAPITypes =
         Arrays.asList(
-            InsertAPIType.Row,
-            InsertAPIType.NonAlignedRow,
-            InsertAPIType.Column,
+            Row,
+            NonAlignedRow,
+            Column,
             InsertAPIType.NonAlignedColumn);
     long size = (END_KEY - START_KEY) / insertAPITypes.size();
     for (int i = 0; i < insertAPITypes.size(); i++) {
@@ -172,65 +176,40 @@ public class NewSessionIT {
   }
 
   private void insertData(TestDataSection data, InsertAPIType type) {
-    try {
-      switch (type) {
-        case Row:
-          conn.insertRowRecords(
-              data.getPaths(),
-              data.getKeys().stream().mapToLong(l -> l).toArray(),
-              data.getValues().stream()
-                  .map(innerList -> innerList.toArray(new Object[0]))
-                  .toArray(Object[][]::new),
-              data.getTypes(),
-              data.getTagsList());
-        case NonAlignedRow:
-          conn.insertNonAlignedRowRecords(
-              data.getPaths(),
-              data.getKeys().stream().mapToLong(l -> l).toArray(),
-              data.getValues().stream()
-                  .map(innerList -> innerList.toArray(new Object[0]))
-                  .toArray(Object[][]::new),
-              data.getTypes(),
-              data.getTagsList());
-        case Column:
-          conn.insertColumnRecords(
-              data.getPaths(),
-              data.getKeys().stream().mapToLong(l -> l).toArray(),
-              transpose(
-                  data.getValues().stream()
-                      .map(innerList -> innerList.toArray(new Object[0]))
-                      .toArray(Object[][]::new)),
-              data.getTypes(),
-              data.getTagsList());
-        case NonAlignedColumn:
-          conn.insertNonAlignedColumnRecords(
-              data.getPaths(),
-              data.getKeys().stream().mapToLong(l -> l).toArray(),
-              transpose(
-                  data.getValues().stream()
-                      .map(innerList -> innerList.toArray(new Object[0]))
-                      .toArray(Object[][]::new)),
-              data.getTypes(),
-              data.getTagsList());
-      }
-    } catch (SessionException | ExecutionException e) {
-      logger.error("Insert date fail. Caused by: {}.", e.getMessage());
-      fail();
+    switch (type) {
+      case Row:
+        Controller.writeRowsData(conn,
+            data.getPaths(),
+            data.getKeys(),
+            data.getTypes(),
+            data.getValues(),
+            data.getTagsList(), Row);
+      case NonAlignedRow:
+        Controller.writeRowsData(conn,
+            data.getPaths(),
+            data.getKeys(),
+            data.getTypes(),
+            data.getValues(),
+            data.getTagsList(), NonAlignedRow);
+      case Column:
+        Controller.writeColumnsData(conn,
+            data.getPaths(),
+            IntStream.range(0, data.getPaths().size())
+                .mapToObj(i -> new ArrayList<>(data.getKeys()))
+                .collect(Collectors.toList()),
+            data.getTypes(),
+            data.getValues(),
+            data.getTagsList(), Column);
+      case NonAlignedColumn:
+        Controller.writeColumnsData(conn,
+            data.getPaths(),
+            IntStream.range(0, data.getPaths().size())
+                .mapToObj(i -> new ArrayList<>(data.getKeys()))
+                .collect(Collectors.toList()),
+            data.getTypes(),
+            data.getValues(),
+            data.getTagsList(), NonAlignedColumn);
     }
-  }
-
-  private Object[][] transpose(Object[][] array) {
-    int maxLength = 0;
-    for (Object[] objects : array) {
-      maxLength = Math.max(maxLength, objects.length);
-    }
-    Object[][] transposed = new Object[maxLength][array.length];
-    for (int i = 0; i < array.length; i++) {
-      for (int j = 0; j < array[i].length; j++) {
-        transposed[j][i] = array[i][j];
-      }
-    }
-    return transposed;
   }
 
   private void compare(TestDataSection expected, SessionQueryDataSet actual) {

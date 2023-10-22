@@ -1,4 +1,4 @@
-package cn.edu.tsinghua.iginx.integration.func.session;
+package cn.edu.tsinghua.iginx.integration.controller;
 
 public enum InsertAPIType {
   Row,

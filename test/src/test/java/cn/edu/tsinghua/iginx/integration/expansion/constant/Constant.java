@@ -17,6 +17,9 @@ public class Constant {
   public static int readOnlyPort = 6669;
 
   // path
+  public static final List<String> INIT_PATH_LIST=
+      Arrays.asList("0","zzzzzzzzzzzzzzzzzzzzzzzzzzzz");
+
   public static final List<String> ORI_PATH_LIST =
       Arrays.asList("mn.wf01.wt01.status", "mn.wf01.wt01.temperature");
 
@@ -33,6 +36,8 @@ public class Constant {
       Arrays.asList("tm.wf05.wt01.status", "tm.wf05.wt01.temperature");
 
   // data type
+  public static List<DataType> INIT_DATA_TYPE_LIST = Arrays.asList(DataType.LONG, DataType.LONG);
+
   public static List<DataType> ORI_DATA_TYPE_LIST = Arrays.asList(DataType.LONG, DataType.DOUBLE);
 
   public static List<DataType> EXP_DATA_TYPE_LIST = Arrays.asList(DataType.LONG, DataType.DOUBLE);
@@ -41,6 +46,9 @@ public class Constant {
       Arrays.asList(DataType.LONG, DataType.DOUBLE);
 
   // values
+  public static List<List<Object>> INIT_VALUES_LIST =
+      Arrays.asList(Arrays.asList(11111111L, 11111111L));
+
   public static List<List<Object>> ORI_VALUES_LIST =
       Arrays.asList(Arrays.asList(11111111L, 15123.27), Arrays.asList(22222222L, 20123.71));
 

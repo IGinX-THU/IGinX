@@ -10,6 +10,7 @@ import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.integration.tool.MultiConnection;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
+import cn.edu.tsinghua.iginx.pool.SessionPool;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.thrift.DataType;
@@ -90,7 +91,28 @@ public class Controller {
     }
   }
 
-  public static <T> void writeColumnsData(T session, List<String> pathList, List<List<Long>> keyList, List<DataType> dataTypeList, List<List<Object>> valuesList, List<Map<String, String>> tagsList) {
+  private Object[][] transpose(Object[][] array) {
+    int maxLength = 0;
+    for (Object[] objects : array) {
+      maxLength = Math.max(maxLength, objects.length);
+    }
+    Object[][] transposed = new Object[maxLength][array.length];
+    for (int i = 0; i < array.length; i++) {
+      for (int j = 0; j < array[i].length; j++) {
+        transposed[j][i] = array[i][j];
+      }
+    }
+    return transposed;
+  }
+
+  public static <T> void writeColumnsData(
+      T session,
+      List<String> pathList,
+      List<List<Long>> keyList,
+      List<DataType> dataTypeList,
+      List<List<Object>> valuesList,
+      List<Map<String, String>> tagsList,
+      InsertAPIType type) {
     String instance = null;
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     int medium = tagsList == null ? pathList.size() / 2 : pathList.size();
@@ -104,11 +126,12 @@ public class Controller {
     for (int i = 0; i < pathList.size(); i++) {
       if (i <= medium) {
         try { // write data through session
-          writeColumnsDataWithSession(session, Collections.singletonList(pathList.get(i)),
+          writeDataWithSession(session, Collections.singletonList(pathList.get(i)),
               keyList.get(i).stream().mapToLong(Long::longValue).toArray(),
               valuesList.get(i).toArray(),
               Collections.singletonList(dataTypeList.get(i)),
-              Collections.singletonList(tagsList.get(i)));
+              Collections.singletonList(tagsList.get(i)),
+              type);
         } catch (SessionException | ExecutionException e) {
           logger.error("write data fail, caused by: {}", e.getMessage());
           fail();
@@ -125,7 +148,14 @@ public class Controller {
     }
   }
 
-  public static <T> void writeRowsData(T session, List<String> pathList, List<Long> keyList, List<DataType> dataTypeList, List<List<Object>> valuesList, List<Map<String, String>> tagsList) {
+  public static <T> void writeRowsData(
+      T session,
+      List<String> pathList,
+      List<Long> keyList,
+      List<DataType> dataTypeList,
+      List<List<Object>> valuesList,
+      List<Map<String, String>> tagsList,
+      InsertAPIType type) {
     String instance = null;
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     int medium = tagsList == null ? keyList.size() / 2 : keyList.size();
@@ -160,11 +190,12 @@ public class Controller {
     }
 
     try { // write data through session
-      writeRowsDataWithSession(session, pathList,
+      writeDataWithSession(session, pathList,
           upperkeyList.stream().mapToLong(Long::longValue).toArray(),
           newValuesList,
           dataTypeList,
-          tagsList);
+          tagsList,
+          type);
     } catch (SessionException | ExecutionException e) {
       logger.error("write data fail, caused by: {}", e.getMessage());
       fail();
@@ -181,31 +212,56 @@ public class Controller {
     }
   }
 
-  private static <T> void writeRowsDataWithSession(T session, List<String> paths,
+  private static <T> void writeDataWithSession(T session, List<String> paths,
                                                   long[] timestamps,
                                                   Object[] valuesList,
                                                   List<DataType> dataTypeList,
-                                                  List<Map<String, String>> tagsList) throws SessionException, ExecutionException {
-    if (session instanceof MultiConnection) {
-      ((MultiConnection) session).insertRowRecords(paths,timestamps,valuesList,dataTypeList,tagsList);
-    } else if (session instanceof Session) {
-      ((Session) session).insertRowRecords(paths,timestamps,valuesList,dataTypeList,tagsList);
-    } else {
-      throw new SessionException("Unknown session type");
-    }
-  }
-
-  private static <T> void writeColumnsDataWithSession(T session, List<String> paths,
-                                                     long[] timestamps,
-                                                     Object[] valuesList,
-                                                     List<DataType> dataTypeList,
-                                                     List<Map<String, String>> tagsList) throws SessionException, ExecutionException {
-    if (session instanceof MultiConnection) {
-      ((MultiConnection) session).insertColumnRecords(paths,timestamps,valuesList,dataTypeList,tagsList);
-    } else if (session instanceof Session) {
-      ((Session) session).insertColumnRecords(paths,timestamps,valuesList,dataTypeList,tagsList);
-    } else {
-      throw new SessionException("Unknown session type");
+                                                  List<Map<String, String>> tagsList, InsertAPIType type) throws SessionException, ExecutionException {
+    switch (type) {
+      case Row:
+        if (session instanceof MultiConnection) {
+          ((MultiConnection) session).insertRowRecords(paths,timestamps,valuesList,dataTypeList,tagsList);
+        } else if (session instanceof Session) {
+          ((Session) session).insertRowRecords(paths,timestamps,valuesList,dataTypeList,tagsList);
+        } else if (session instanceof SessionPool) {
+          ((SessionPool) session).insertRowRecords(paths,timestamps,valuesList,dataTypeList,tagsList);
+        } else {
+          throw new SessionException("Unknown session type");
+        }
+        break;
+      case NonAlignedRow:
+        if (session instanceof MultiConnection) {
+          ((MultiConnection) session).insertNonAlignedRowRecords(paths,timestamps,valuesList,dataTypeList,tagsList);
+        } else if (session instanceof Session) {
+          ((Session) session).insertNonAlignedRowRecords(paths,timestamps,valuesList,dataTypeList,tagsList);
+        } else if (session instanceof SessionPool) {
+          ((SessionPool) session).insertNonAlignedRowRecords(paths,timestamps,valuesList,dataTypeList,tagsList);
+        } else {
+          throw new SessionException("Unknown session type");
+        }
+        break;
+      case Column:
+        if (session instanceof MultiConnection) {
+          ((MultiConnection) session).insertColumnRecords(paths,timestamps,valuesList,dataTypeList,tagsList);
+        } else if (session instanceof Session) {
+          ((Session) session).insertColumnRecords(paths,timestamps,valuesList,dataTypeList,tagsList);
+        } else if (session instanceof SessionPool) {
+          ((SessionPool) session).insertColumnRecords(paths,timestamps,valuesList,dataTypeList,tagsList);
+        } else {
+          throw new SessionException("Unknown session type");
+        }
+        break;
+      case NonAlignedColumn:
+        if (session instanceof MultiConnection) {
+          ((MultiConnection) session).insertNonAlignedColumnRecords(paths,timestamps,valuesList,dataTypeList,tagsList);
+        } else if (session instanceof Session) {
+          ((Session) session).insertNonAlignedColumnRecords(paths,timestamps,valuesList,dataTypeList,tagsList);
+        } else if (session instanceof SessionPool) {
+          ((SessionPool) session).insertNonAlignedColumnRecords(paths,timestamps,valuesList,dataTypeList,tagsList);
+        } else {
+          throw new SessionException("Unknown session type");
+        }
+        break;
     }
   }
 

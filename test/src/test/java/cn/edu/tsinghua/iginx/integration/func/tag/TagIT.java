@@ -7,6 +7,7 @@ import static org.junit.Assert.fail;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
+import cn.edu.tsinghua.iginx.integration.controller.InsertAPIType;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.session.Session;
@@ -91,7 +92,7 @@ public class TagIT {
         Arrays.asList(2L, 3L, 4L, 5L),
         Arrays.asList(4L, 5L, 6L, 7L)
     );
-    Controller.writeRowsData(session, pathList1, keyList1, dataTypeList1, valuesList1, tagList1);
+    Controller.writeRowsData(session, pathList1, keyList1, dataTypeList1, valuesList1, tagList1, InsertAPIType.Row);
 
     // round 2
     List<String> pathList2 = Arrays.asList(
@@ -111,7 +112,7 @@ public class TagIT {
         Arrays.asList(true, "v1"),
         Arrays.asList(false, "v4")
     );
-    Controller.writeRowsData(session, pathList2, keyList2, dataTypeList2, valuesList2, tagList2);
+    Controller.writeRowsData(session, pathList2, keyList2, dataTypeList2, valuesList2, tagList2, InsertAPIType.Row);
 
     // round 3
     List<String> pathList3 = Arrays.asList(
@@ -134,7 +135,7 @@ public class TagIT {
     List<List<Object>> valuesList3 = Arrays.asList(
         Arrays.asList(false, "v4")
     );
-    Controller.writeRowsData(session, pathList3, keyList3, dataTypeList3, valuesList3, tagList3);
+    Controller.writeRowsData(session, pathList3, keyList3, dataTypeList3, valuesList3, tagList3, InsertAPIType.Row);
 
     // round 4
     List<String> pathList4 = Arrays.asList(
@@ -153,7 +154,7 @@ public class TagIT {
     List<List<Object>> valuesList4 = Arrays.asList(
         Arrays.asList("v8")
     );
-    Controller.writeRowsData(session, pathList4, keyList4, dataTypeList4, valuesList4, tagList4);
+    Controller.writeRowsData(session, pathList4, keyList4, dataTypeList4, valuesList4, tagList4, InsertAPIType.Row);
 
     // round 5
     List<String> pathList5 = Arrays.asList(
@@ -177,7 +178,7 @@ public class TagIT {
     List<List<Object>> valuesList5 = Arrays.asList(
         Arrays.asList(true, 16L)
     );
-    Controller.writeRowsData(session, pathList5, keyList5, dataTypeList5, valuesList5, tagList5);
+    Controller.writeRowsData(session, pathList5, keyList5, dataTypeList5, valuesList5, tagList5, InsertAPIType.Row);
 
     // round 6
     List<String> pathList6 = Arrays.asList(
@@ -206,7 +207,7 @@ public class TagIT {
     List<List<Object>> valuesList6 = Arrays.asList(
         Arrays.asList(true, 16L, 32L)
     );
-    Controller.writeRowsData(session, pathList6, keyList6, dataTypeList6, valuesList6, tagList6);
+    Controller.writeRowsData(session, pathList6, keyList6, dataTypeList6, valuesList6, tagList6, InsertAPIType.Row);
   }
 
   @After

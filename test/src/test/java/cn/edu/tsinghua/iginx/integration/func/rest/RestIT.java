@@ -5,6 +5,7 @@ import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
+import cn.edu.tsinghua.iginx.integration.controller.InsertAPIType;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.session.Session;
@@ -84,7 +85,7 @@ public class RestIT {
         put("host", "server2");
       }}
     );
-    Controller.writeColumnsData(session, pathList, keyList, dataTypeList, valuesList, tagsList);
+    Controller.writeColumnsData(session, pathList, keyList, dataTypeList, valuesList, tagsList, InsertAPIType.Column);
   }
 
 
