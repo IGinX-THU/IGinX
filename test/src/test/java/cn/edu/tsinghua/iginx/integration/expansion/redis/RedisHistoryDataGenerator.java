@@ -5,6 +5,7 @@ import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.read
 import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
 import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
 import cn.edu.tsinghua.iginx.thrift.DataType;
+
 import java.util.ArrayList;
 import java.util.List;
 import org.slf4j.Logger;
@@ -42,6 +43,12 @@ public class RedisHistoryDataGenerator extends BaseHistoryDataGenerator {
         });
     jedis.close();
     logger.info("write data to 127.0.0.1:{} success!", port);
+  }
+
+  @Override
+  public void writeHistoryData(
+      int port, List<String> pathList, List<DataType> dataTypeList, List<List<Object>> valuesList) {
+    writeHistoryData(port, pathList, dataTypeList, new ArrayList<>(), valuesList);
   }
 
   @Override
