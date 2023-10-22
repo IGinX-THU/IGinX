@@ -131,10 +131,10 @@ public class TransformIT {
       keyList.add(START_TIMESTAMP + i);
       valuesList.add(
           Arrays.asList(
-              i,
-              i + 1,
-              "\"" +new String( RandomStringUtils.randomAlphanumeric(10).getBytes())+"\"",
-              (i + 0.1)));
+              (long)i,
+              (long)i + 1,
+                  ("\"" +RandomStringUtils.randomAlphanumeric(10)+"\"").getBytes(),
+              (i + 0.1d)));
     }
     Controller.writeRowsData(session, pathList, keyList, dataTypeList,valuesList,new ArrayList<>(), InsertAPIType.Row);
 //    if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {

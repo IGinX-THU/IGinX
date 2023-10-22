@@ -340,7 +340,7 @@ public class Session {
       logger.error("The sizes of paths, valuesList and dataTypeList should be equal.");
       return;
     }
-    if (tagsList != null && paths.size() != tagsList.size()) {
+    if (tagsList != null && !tagsList.isEmpty() && paths.size() != tagsList.size()) {
       logger.error("The sizes of paths, valuesList, dataTypeList and tagsList should be equal.");
       return;
     }
@@ -375,7 +375,7 @@ public class Session {
       sortedValuesList[i] = valuesList[index[i]];
       sortedDataTypeList.add(dataTypeList.get(index[i]));
     }
-    if (tagsList != null) {
+    if (tagsList != null && !tagsList.isEmpty()) {
       for (Integer i : index) {
         sortedTagsList.add(tagsList.get(i));
       }
@@ -447,7 +447,7 @@ public class Session {
       logger.error("The sizes of paths, valuesList and dataTypeList should be equal.");
       return;
     }
-    if (tagsList != null && paths.size() != tagsList.size()) {
+    if (tagsList != null && !tagsList.isEmpty() && paths.size() != tagsList.size()) {
       logger.error("The sizes of paths, valuesList, dataTypeList and tagsList should be equal.");
       return;
     }
@@ -482,7 +482,7 @@ public class Session {
       sortedValuesList[i] = valuesList[index[i]];
       sortedDataTypeList.add(dataTypeList.get(index[i]));
     }
-    if (tagsList != null) {
+    if (tagsList != null && !tagsList.isEmpty()) {
       for (Integer i : index) {
         sortedTagsList.add(tagsList.get(i));
       }
@@ -552,7 +552,7 @@ public class Session {
       logger.error("The sizes of timestamps and valuesList should be equal.");
       return;
     }
-    if (tagsList != null && paths.size() != tagsList.size()) {
+    if (tagsList != null && !tagsList.isEmpty() && paths.size() != tagsList.size()) {
       logger.error("The sizes of paths, valuesList, dataTypeList and tagsList should be equal.");
       return;
     }
@@ -589,7 +589,7 @@ public class Session {
     for (Integer i : index) {
       sortedDataTypeList.add(dataTypeList.get(i));
     }
-    if (tagsList != null) {
+    if (tagsList != null && !tagsList.isEmpty()) {
       for (Integer i : index) {
         sortedTagsList.add(tagsList.get(i));
       }
@@ -665,7 +665,7 @@ public class Session {
       logger.error("The sizes of timestamps and valuesList should be equal.");
       return;
     }
-    if (tagsList != null && paths.size() != tagsList.size()) {
+    if (tagsList != null && !tagsList.isEmpty() && paths.size() != tagsList.size()) {
       logger.error("The sizes of paths, valuesList, dataTypeList and tagsList should be equal.");
       return;
     }
@@ -702,7 +702,7 @@ public class Session {
     for (Integer i : index) {
       sortedDataTypeList.add(dataTypeList.get(i));
     }
-    if (tagsList != null) {
+    if (tagsList != null && !tagsList.isEmpty()) {
       for (Integer i : index) {
         sortedTagsList.add(tagsList.get(i));
       }

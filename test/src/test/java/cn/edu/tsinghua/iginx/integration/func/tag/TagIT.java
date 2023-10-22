@@ -109,8 +109,8 @@ public class TagIT {
         new HashMap<>()
     );
     List<List<Object>> valuesList2 = Arrays.asList(
-        Arrays.asList(true, "v1"),
-        Arrays.asList(false, "v4")
+        Arrays.asList(true, "v1".getBytes()),
+        Arrays.asList(false, "v4".getBytes())
     );
     Controller.writeRowsData(session, pathList2, keyList2, dataTypeList2, valuesList2, tagList2, InsertAPIType.Row);
 
@@ -133,7 +133,7 @@ public class TagIT {
         }}
     );
     List<List<Object>> valuesList3 = Arrays.asList(
-        Arrays.asList(false, "v4")
+        Arrays.asList(false, "v4".getBytes())
     );
     Controller.writeRowsData(session, pathList3, keyList3, dataTypeList3, valuesList3, tagList3, InsertAPIType.Row);
 
@@ -152,7 +152,7 @@ public class TagIT {
         }}
     );
     List<List<Object>> valuesList4 = Arrays.asList(
-        Arrays.asList("v8")
+        Arrays.asList("v8".getBytes())
     );
     Controller.writeRowsData(session, pathList4, keyList4, dataTypeList4, valuesList4, tagList4, InsertAPIType.Row);
 

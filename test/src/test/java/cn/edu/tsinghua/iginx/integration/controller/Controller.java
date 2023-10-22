@@ -158,7 +158,7 @@ public class Controller {
       InsertAPIType type) {
     String instance = null;
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
-    int medium = tagsList == null ? keyList.size() / 2 : keyList.size();
+    int medium = tagsList.isEmpty() ? keyList.size() / 2 : keyList.size();
     if (conf.getStorageType() == null) {
       logger.info("Not the DBCE test, skip the write data step.");
       medium = keyList.size();
@@ -180,10 +180,11 @@ public class Controller {
     }
 
     // transfer the List to Array
-    Object[] newValuesList = new Object[pathList.size()];
+    Object[] newValuesList = new Object[upperkeyList.size()];
     for (int j = 0; j < upperkeyList.size(); j++) {
       Object[] value = new Object[pathList.size()];
       for (int k = 0; k < pathList.size(); k++) {
+
         value[k] = upperValuesList.get(j).get(k);
       }
       newValuesList[j] = value;
