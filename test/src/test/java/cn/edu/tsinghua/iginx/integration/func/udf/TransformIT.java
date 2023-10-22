@@ -31,7 +31,6 @@ import cn.edu.tsinghua.iginx.integration.controller.InsertAPIType;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.thrift.*;
-
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -41,7 +40,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
-
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -112,18 +110,24 @@ public class TransformIT {
 
   @Before
   public void insertData() {
-    List<String> pathList = new ArrayList<String>() {{
-      add("us.d1.s1");
-      add("us.d1.s2");
-      add("us.d1.s3");
-      add("us.d1.s4");
-    }};
-    List<DataType> dataTypeList = new ArrayList<DataType>() {{
-      add(DataType.LONG);
-      add(DataType.LONG);
-      add(DataType.BINARY);
-      add(DataType.DOUBLE);
-    }};
+    List<String> pathList =
+        new ArrayList<String>() {
+          {
+            add("us.d1.s1");
+            add("us.d1.s2");
+            add("us.d1.s3");
+            add("us.d1.s4");
+          }
+        };
+    List<DataType> dataTypeList =
+        new ArrayList<DataType>() {
+          {
+            add(DataType.LONG);
+            add(DataType.LONG);
+            add(DataType.BINARY);
+            add(DataType.DOUBLE);
+          }
+        };
     List<Long> keyList = new ArrayList<>();
     List<List<Object>> valuesList = new ArrayList<>();
     int size = (int) (END_TIMESTAMP - START_TIMESTAMP);
@@ -131,16 +135,17 @@ public class TransformIT {
       keyList.add(START_TIMESTAMP + i);
       valuesList.add(
           Arrays.asList(
-              (long)i,
-              (long)i + 1,
-                  ("\"" +RandomStringUtils.randomAlphanumeric(10)+"\"").getBytes(),
+              (long) i,
+              (long) i + 1,
+              ("\"" + RandomStringUtils.randomAlphanumeric(10) + "\"").getBytes(),
               (i + 0.1d)));
     }
-    Controller.writeRowsData(session, pathList, keyList, dataTypeList,valuesList,new ArrayList<>(), InsertAPIType.Row);
-//    if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-//      logger.error("Insert date execute fail. Caused by: {}.", res.getParseErrorMsg());
-//      fail();
-//    }
+    Controller.writeRowsData(
+        session, pathList, keyList, dataTypeList, valuesList, new ArrayList<>(), InsertAPIType.Row);
+    //    if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
+    //      logger.error("Insert date execute fail. Caused by: {}.", res.getParseErrorMsg());
+    //      fail();
+    //    }
   }
 
   @After

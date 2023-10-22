@@ -52,7 +52,11 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   @Override
   public void writeHistoryData(
-      int port, List<String> pathList, List<DataType> dataTypeList, List<Long> keyList, List<List<Object>> valuesList) {
+      int port,
+      List<String> pathList,
+      List<DataType> dataTypeList,
+      List<Long> keyList,
+      List<List<Object>> valuesList) {
     try {
       Connection connection = connect(port, true, null);
       if (connection == null) {

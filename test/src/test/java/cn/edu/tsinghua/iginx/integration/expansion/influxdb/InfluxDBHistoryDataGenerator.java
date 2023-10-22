@@ -9,7 +9,6 @@ import com.influxdb.client.domain.Bucket;
 import com.influxdb.client.domain.Organization;
 import com.influxdb.client.domain.WritePrecision;
 import com.influxdb.client.write.Point;
-
 import java.util.ArrayList;
 import java.util.List;
 import org.slf4j.Logger;
@@ -33,7 +32,11 @@ public class InfluxDBHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   @Override
   public void writeHistoryData(
-      int port, List<String> pathList, List<DataType> dataTypeList, List<Long> keyList, List<List<Object>> valuesList) {
+      int port,
+      List<String> pathList,
+      List<DataType> dataTypeList,
+      List<Long> keyList,
+      List<List<Object>> valuesList) {
     String url = "http://localhost:" + port + "/";
     InfluxDBClient client = InfluxDBClientFactory.create(url, TOKEN.toCharArray(), ORGANIZATION);
     Organization organization =
@@ -44,7 +47,7 @@ public class InfluxDBHistoryDataGenerator extends BaseHistoryDataGenerator {
 
     boolean hasKeys = keyList.isEmpty();
     int timeCnt = 0;
-    for (int index = 0;index<valuesList.size();index++) {
+    for (int index = 0; index < valuesList.size(); index++) {
       List<Object> valueList = valuesList.get(index);
       for (int i = 0; i < pathList.size(); i++) {
         String path = pathList.get(i);

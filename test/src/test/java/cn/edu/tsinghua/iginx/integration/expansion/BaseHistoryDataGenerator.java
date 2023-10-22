@@ -59,7 +59,11 @@ public abstract class BaseHistoryDataGenerator {
       int port, List<String> pathList, List<DataType> dataTypeList, List<List<Object>> valuesList);
 
   public abstract void writeHistoryData(
-      int port, List<String> pathList, List<DataType> dataTypeList, List<Long> keyList, List<List<Object>> valuesList);
+      int port,
+      List<String> pathList,
+      List<DataType> dataTypeList,
+      List<Long> keyList,
+      List<List<Object>> valuesList);
 
   @Test
   public void clearHistoryData() {

@@ -7,7 +7,6 @@ import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
-import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.integration.tool.MultiConnection;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.pool.SessionPool;
@@ -16,9 +15,7 @@ import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.utils.ShellRunner;
-
 import java.util.*;
-
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,31 +39,45 @@ public class Controller {
 
   private static final String MVN_RUN_TEST = "../.github/scripts/test/test_union.sh";
 
-  private List<StorageEngineMeta> storageEngineMetas = new ArrayList<>();
+  private static final Map<String, String> NAME_TO_INSTANCE =
+      new HashMap<String, String>() {
+        {
+          put(
+              "FileSystem",
+              "cn.edu.tsinghua.iginx.integration.expansion.filesystem.FileSystemHistoryDataGenerator");
+          put(
+              "IoTDB12",
+              "cn.edu.tsinghua.iginx.integration.expansion.iotdb.IoTDB12HistoryDataGenerator");
+          put(
+              "InfluxDB",
+              "cn.edu.tsinghua.iginx.integration.expansion.influxdb.InfluxDBHistoryDataGenerator");
+          put(
+              "PostgreSQL",
+              "cn.edu.tsinghua.iginx.integration.expansion.postgresql.PostgreSQLHistoryDataGenerator");
+          put(
+              "Redis",
+              "cn.edu.tsinghua.iginx.integration.expansion.redis.RedisHistoryDataGenerator");
+          put(
+              "MongoDB",
+              "cn.edu.tsinghua.iginx.integration.expansion.mongodb.MongoDBHistoryDataGenerator");
+          put(
+              "Parquet",
+              "cn.edu.tsinghua.iginx.integration.expansion.parquet.ParquetHistoryDataGenerator");
+        }
+      };
 
-  private static final Map<String, String> NAME_TO_INSTANCE = new HashMap<String, String>() {
-    {
-      put("FileSystem", "cn.edu.tsinghua.iginx.integration.expansion.filesystem.FileSystemHistoryDataGenerator");
-      put("IoTDB12", "cn.edu.tsinghua.iginx.integration.expansion.iotdb.IoTDB12HistoryDataGenerator");
-      put("InfluxDB", "cn.edu.tsinghua.iginx.integration.expansion.influxdb.InfluxDBHistoryDataGenerator");
-      put("PostgreSQL", "cn.edu.tsinghua.iginx.integration.expansion.postgresql.PostgreSQLHistoryDataGenerator");
-      put("Redis", "cn.edu.tsinghua.iginx.integration.expansion.redis.RedisHistoryDataGenerator");
-      put("MongoDB", "cn.edu.tsinghua.iginx.integration.expansion.mongodb.MongoDBHistoryDataGenerator");
-      put("Parquet", "cn.edu.tsinghua.iginx.integration.expansion.parquet.ParquetHistoryDataGenerator");
-    }
-  };
-
-  private static final Map<String, Boolean> SUPPORT_KEY = new HashMap<String, Boolean>() {
-    {
-      put("FileSystem", false);
-      put("IoTDB12", true);
-      put("InfluxDB", true);
-      put("PostgreSQL", false);
-      put("Redis", false);
-      put("MongoDB", false);
-      put("Parquet", true);
-    }
-  };
+  private static final Map<String, Boolean> SUPPORT_KEY =
+      new HashMap<String, Boolean>() {
+        {
+          put("FileSystem", false);
+          put("IoTDB12", true);
+          put("InfluxDB", true);
+          put("PostgreSQL", false);
+          put("Redis", false);
+          put("MongoDB", false);
+          put("Parquet", true);
+        }
+      };
 
   public static void clearData(Session session) {
     clearData(new MultiConnection(session));
@@ -115,20 +126,29 @@ public class Controller {
       InsertAPIType type) {
     String instance = null;
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
-    int medium = tagsList == null ? pathList.size() / 2 : pathList.size();
+    int medium = 0;
     if (conf.getStorageType() == null) {
-      logger.info("Not the DBCE test, skip the write data step.");
+      logger.info("Not the DBCE test, skip the write history data step.");
       medium = pathList.size();
     } else {
+      boolean supportKey = SUPPORT_KEY.get(conf.getStorageType());
+      if (supportKey) {
+        medium = tagsList == null || tagsList.isEmpty() ? pathList.size() / 2 : pathList.size();
+      }
       instance = NAME_TO_INSTANCE.get(conf.getStorageType());
     }
 
     for (int i = 0; i < pathList.size(); i++) {
       if (i <= medium) {
         try { // write data through session
-          writeDataWithSession(session, Collections.singletonList(pathList.get(i)),
+          Object[] value = valuesList.get(i).toArray();
+          Object[] valueToInsert = new Object[1];
+          valueToInsert[0] = value;
+          writeDataWithSession(
+              session,
+              Collections.singletonList(pathList.get(i)),
               keyList.get(i).stream().mapToLong(Long::longValue).toArray(),
-              valuesList.get(i).toArray(),
+              valueToInsert,
               Collections.singletonList(dataTypeList.get(i)),
               Collections.singletonList(tagsList.get(i)),
               type);
@@ -139,8 +159,14 @@ public class Controller {
       }
       List<List<Object>> rowValues = convertColumnsToRows(valuesList.get(i));
       try {
-        BaseHistoryDataGenerator generator = (BaseHistoryDataGenerator) Class.forName(instance).newInstance();
-        generator.writeHistoryData(expPort, Collections.singletonList(pathList.get(i)), Collections.singletonList(dataTypeList.get(i)), keyList.get(i), rowValues);
+        BaseHistoryDataGenerator generator =
+            (BaseHistoryDataGenerator) Class.forName(instance).newInstance();
+        generator.writeHistoryData(
+            expPort,
+            Collections.singletonList(pathList.get(i)),
+            Collections.singletonList(dataTypeList.get(i)),
+            keyList.get(i),
+            rowValues);
       } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
         logger.error("write data fail, caused by: {}", e.getMessage());
         fail();
@@ -158,11 +184,15 @@ public class Controller {
       InsertAPIType type) {
     String instance = null;
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
-    int medium = tagsList.isEmpty() ? keyList.size() / 2 : keyList.size();
+    int medium = 0;
     if (conf.getStorageType() == null) {
-      logger.info("Not the DBCE test, skip the write data step.");
-      medium = keyList.size();
+      logger.info("Not the DBCE test, skip the write history data step.");
+      medium = pathList.size();
     } else {
+      boolean supportKey = SUPPORT_KEY.get(conf.getStorageType());
+      if (supportKey) {
+        medium = tagsList == null || tagsList.isEmpty() ? pathList.size() / 2 : pathList.size();
+      }
       instance = NAME_TO_INSTANCE.get(conf.getStorageType());
     }
 
@@ -174,7 +204,8 @@ public class Controller {
     // 划分数据区间
     if (medium != keyList.size()) {
       upperkeyList = keyList.subList(0, medium); // 上半部分，包括索引为 0 到 midIndex-1 的元素
-      lowerKeyList = keyList.subList(medium, keyList.size()); // 下半部分，包括索引为 midIndex 到 keyList.size()-1 的元素
+      lowerKeyList =
+          keyList.subList(medium, keyList.size()); // 下半部分，包括索引为 midIndex 到 keyList.size()-1 的元素
       upperValuesList = valuesList.subList(0, medium);
       lowerValuesList = valuesList.subList(medium, keyList.size());
     }
@@ -191,7 +222,9 @@ public class Controller {
     }
 
     try { // write data through session
-      writeDataWithSession(session, pathList,
+      writeDataWithSession(
+          session,
+          pathList,
           upperkeyList.stream().mapToLong(Long::longValue).toArray(),
           newValuesList,
           dataTypeList,
@@ -202,9 +235,10 @@ public class Controller {
       fail();
     }
 
-    if (!lowerKeyList.isEmpty()) {
+    if (lowerKeyList != null && !lowerKeyList.isEmpty()) {
       try {
-        BaseHistoryDataGenerator generator = (BaseHistoryDataGenerator) Class.forName(instance).newInstance();
+        BaseHistoryDataGenerator generator =
+            (BaseHistoryDataGenerator) Class.forName(instance).newInstance();
         generator.writeHistoryData(expPort, pathList, dataTypeList, lowerKeyList, lowerValuesList);
       } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
         logger.error("write data fail, caused by: {}", e.getMessage());
@@ -213,52 +247,68 @@ public class Controller {
     }
   }
 
-  private static <T> void writeDataWithSession(T session, List<String> paths,
-                                                  long[] timestamps,
-                                                  Object[] valuesList,
-                                                  List<DataType> dataTypeList,
-                                                  List<Map<String, String>> tagsList, InsertAPIType type) throws SessionException, ExecutionException {
+  private static <T> void writeDataWithSession(
+      T session,
+      List<String> paths,
+      long[] timestamps,
+      Object[] valuesList,
+      List<DataType> dataTypeList,
+      List<Map<String, String>> tagsList,
+      InsertAPIType type)
+      throws SessionException, ExecutionException {
     switch (type) {
       case Row:
         if (session instanceof MultiConnection) {
-          ((MultiConnection) session).insertRowRecords(paths,timestamps,valuesList,dataTypeList,tagsList);
+          ((MultiConnection) session)
+              .insertRowRecords(paths, timestamps, valuesList, dataTypeList, tagsList);
         } else if (session instanceof Session) {
-          ((Session) session).insertRowRecords(paths,timestamps,valuesList,dataTypeList,tagsList);
+          ((Session) session)
+              .insertRowRecords(paths, timestamps, valuesList, dataTypeList, tagsList);
         } else if (session instanceof SessionPool) {
-          ((SessionPool) session).insertRowRecords(paths,timestamps,valuesList,dataTypeList,tagsList);
+          ((SessionPool) session)
+              .insertRowRecords(paths, timestamps, valuesList, dataTypeList, tagsList);
         } else {
           throw new SessionException("Unknown session type");
         }
         break;
       case NonAlignedRow:
         if (session instanceof MultiConnection) {
-          ((MultiConnection) session).insertNonAlignedRowRecords(paths,timestamps,valuesList,dataTypeList,tagsList);
+          ((MultiConnection) session)
+              .insertNonAlignedRowRecords(paths, timestamps, valuesList, dataTypeList, tagsList);
         } else if (session instanceof Session) {
-          ((Session) session).insertNonAlignedRowRecords(paths,timestamps,valuesList,dataTypeList,tagsList);
+          ((Session) session)
+              .insertNonAlignedRowRecords(paths, timestamps, valuesList, dataTypeList, tagsList);
         } else if (session instanceof SessionPool) {
-          ((SessionPool) session).insertNonAlignedRowRecords(paths,timestamps,valuesList,dataTypeList,tagsList);
+          ((SessionPool) session)
+              .insertNonAlignedRowRecords(paths, timestamps, valuesList, dataTypeList, tagsList);
         } else {
           throw new SessionException("Unknown session type");
         }
         break;
       case Column:
         if (session instanceof MultiConnection) {
-          ((MultiConnection) session).insertColumnRecords(paths,timestamps,valuesList,dataTypeList,tagsList);
+          ((MultiConnection) session)
+              .insertColumnRecords(paths, timestamps, valuesList, dataTypeList, tagsList);
         } else if (session instanceof Session) {
-          ((Session) session).insertColumnRecords(paths,timestamps,valuesList,dataTypeList,tagsList);
+          ((Session) session)
+              .insertColumnRecords(paths, timestamps, valuesList, dataTypeList, tagsList);
         } else if (session instanceof SessionPool) {
-          ((SessionPool) session).insertColumnRecords(paths,timestamps,valuesList,dataTypeList,tagsList);
+          ((SessionPool) session)
+              .insertColumnRecords(paths, timestamps, valuesList, dataTypeList, tagsList);
         } else {
           throw new SessionException("Unknown session type");
         }
         break;
       case NonAlignedColumn:
         if (session instanceof MultiConnection) {
-          ((MultiConnection) session).insertNonAlignedColumnRecords(paths,timestamps,valuesList,dataTypeList,tagsList);
+          ((MultiConnection) session)
+              .insertNonAlignedColumnRecords(paths, timestamps, valuesList, dataTypeList, tagsList);
         } else if (session instanceof Session) {
-          ((Session) session).insertNonAlignedColumnRecords(paths,timestamps,valuesList,dataTypeList,tagsList);
+          ((Session) session)
+              .insertNonAlignedColumnRecords(paths, timestamps, valuesList, dataTypeList, tagsList);
         } else if (session instanceof SessionPool) {
-          ((SessionPool) session).insertNonAlignedColumnRecords(paths,timestamps,valuesList,dataTypeList,tagsList);
+          ((SessionPool) session)
+              .insertNonAlignedColumnRecords(paths, timestamps, valuesList, dataTypeList, tagsList);
         } else {
           throw new SessionException("Unknown session type");
         }

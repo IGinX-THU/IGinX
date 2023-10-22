@@ -25,7 +25,6 @@ import cn.edu.tsinghua.iginx.thrift.TagFilterType;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -157,11 +156,7 @@ public class NewSessionIT {
   public void insertBaseData() {
     // insert base data using all types of insert API.
     List<InsertAPIType> insertAPITypes =
-        Arrays.asList(
-            Row,
-            NonAlignedRow,
-            Column,
-            InsertAPIType.NonAlignedColumn);
+        Arrays.asList(Row, NonAlignedRow, Column, InsertAPIType.NonAlignedColumn);
     long size = (END_KEY - START_KEY) / insertAPITypes.size();
     for (int i = 0; i < insertAPITypes.size(); i++) {
       long start = i * size, end = start + size;
@@ -178,38 +173,47 @@ public class NewSessionIT {
   private void insertData(TestDataSection data, InsertAPIType type) {
     switch (type) {
       case Row:
-        Controller.writeRowsData(conn,
-            data.getPaths(),
-            data.getKeys(),
-            data.getTypes(),
-            data.getValues(),
-            data.getTagsList(), Row);
       case NonAlignedRow:
-        Controller.writeRowsData(conn,
+        Controller.writeRowsData(
+            conn,
             data.getPaths(),
             data.getKeys(),
             data.getTypes(),
             data.getValues(),
-            data.getTagsList(), NonAlignedRow);
+            data.getTagsList(),
+            type);
       case Column:
-        Controller.writeColumnsData(conn,
-            data.getPaths(),
-            IntStream.range(0, data.getPaths().size())
-                .mapToObj(i -> new ArrayList<>(data.getKeys()))
-                .collect(Collectors.toList()),
-            data.getTypes(),
-            data.getValues(),
-            data.getTagsList(), Column);
       case NonAlignedColumn:
-        Controller.writeColumnsData(conn,
+        List<List<Object>> values = IntStream.range(0, data.getPaths().size())
+            .mapToObj(col -> IntStream.range(0, data.getValues().size())
+                .mapToObj(row -> data.getValues().get(row).get(col))
+                .collect(Collectors.toList()))
+            .collect(Collectors.toList());
+        Controller.writeColumnsData(
+            conn,
             data.getPaths(),
             IntStream.range(0, data.getPaths().size())
                 .mapToObj(i -> new ArrayList<>(data.getKeys()))
                 .collect(Collectors.toList()),
             data.getTypes(),
-            data.getValues(),
-            data.getTagsList(), NonAlignedColumn);
+            values,
+            data.getTagsList(),
+            type);
     }
+  }
+
+  private Object[][] transpose(Object[][] array) {
+    int maxLength = 0;
+    for (Object[] objects : array) {
+      maxLength = Math.max(maxLength, objects.length);
+    }
+    Object[][] transposed = new Object[maxLength][array.length];
+    for (int i = 0; i < array.length; i++) {
+      for (int j = 0; j < array[i].length; j++) {
+        transposed[j][i] = array[i][j];
+      }
+    }
+    return transposed;
   }
 
   private void compare(TestDataSection expected, SessionQueryDataSet actual) {

@@ -17,8 +17,8 @@ public class Constant {
   public static int readOnlyPort = 6669;
 
   // path
-  public static final List<String> INIT_PATH_LIST=
-      Arrays.asList("0","zzzzzzzzzzzzzzzzzzzzzzzzzzzz");
+  public static final List<String> INIT_PATH_LIST =
+      Arrays.asList("0", "zzzzzzzzzzzzzzzzzzzzzzzzzzzz");
 
   public static final List<String> ORI_PATH_LIST =
       Arrays.asList("mn.wf01.wt01.status", "mn.wf01.wt01.temperature");

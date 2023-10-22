@@ -31,7 +31,6 @@ import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.RegisterTaskInfo;
 import cn.edu.tsinghua.iginx.thrift.UDFType;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -68,18 +67,24 @@ public class UDFIT {
   public void insertData() {
     long startKey = 0L;
     long endKey = 15000L;
-    List<String> pathList = new ArrayList<String>() {{
-      add("us.d1.s1");
-      add("us.d1.s2");
-      add("us.d1.s3");
-      add("us.d1.s4");
-    }};
-    List<DataType> dataTypeList = new ArrayList<DataType>() {{
-      add(DataType.LONG);
-      add(DataType.LONG);
-      add(DataType.BINARY);
-      add(DataType.DOUBLE);
-    }};
+    List<String> pathList =
+        new ArrayList<String>() {
+          {
+            add("us.d1.s1");
+            add("us.d1.s2");
+            add("us.d1.s3");
+            add("us.d1.s4");
+          }
+        };
+    List<DataType> dataTypeList =
+        new ArrayList<DataType>() {
+          {
+            add(DataType.LONG);
+            add(DataType.LONG);
+            add(DataType.BINARY);
+            add(DataType.DOUBLE);
+          }
+        };
     List<Long> keyList = new ArrayList<>();
     List<List<Object>> valuesList = new ArrayList<>();
     int size = (int) (endKey - startKey);
@@ -87,16 +92,13 @@ public class UDFIT {
       keyList.add(startKey + i);
       valuesList.add(
           Arrays.asList(
-              (long)i,
-              (long)i + 1,
-              ("\"" +RandomStringUtils.randomAlphanumeric(10)+"\"").getBytes(),
+              (long) i,
+              (long) i + 1,
+              ("\"" + RandomStringUtils.randomAlphanumeric(10) + "\"").getBytes(),
               (i + 0.1d)));
     }
-    Controller.writeRowsData(session, pathList, keyList, dataTypeList,valuesList,new ArrayList<>(), InsertAPIType.Row);
-//    if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-//      logger.error("Insert date execute fail. Caused by: {}.", res.getParseErrorMsg());
-//      fail();
-//    }
+    Controller.writeRowsData(
+        session, pathList, keyList, dataTypeList, valuesList, new ArrayList<>(), InsertAPIType.Row);
   }
 
   @After

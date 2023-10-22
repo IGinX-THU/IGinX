@@ -35,7 +35,11 @@ public class MongoDBHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   @Override
   public void writeHistoryData(
-      int port, List<String> pathList, List<DataType> dataTypeList, List<Long> keyList, List<List<Object>> valuesList) {
+      int port,
+      List<String> pathList,
+      List<DataType> dataTypeList,
+      List<Long> keyList,
+      List<List<Object>> valuesList) {
     try (MongoClient client = connect(port)) {
       for (int i = 0; i < pathList.size(); i++) {
         String[] nodes = pathList.get(i).split("\\.");

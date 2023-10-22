@@ -3,7 +3,6 @@ package cn.edu.tsinghua.iginx.integration.expansion.redis;
 import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
 import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-
 import java.util.ArrayList;
 import java.util.List;
 import org.slf4j.Logger;
@@ -24,7 +23,11 @@ public class RedisHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   @Override
   public void writeHistoryData(
-      int port, List<String> pathList, List<DataType> dataTypeList, List<Long> keyList, List<List<Object>> valuesList) {
+      int port,
+      List<String> pathList,
+      List<DataType> dataTypeList,
+      List<Long> keyList,
+      List<List<Object>> valuesList) {
     Jedis jedis = new Jedis(LOCAL_IP, port);
     valuesList.forEach(
         row -> {
