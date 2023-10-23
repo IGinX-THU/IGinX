@@ -203,10 +203,28 @@ public class MongoDBStorage implements IStorage {
     DataView data = insert.getData();
 
     try {
+      MongoDatabase db = this.getDatabase(unit);
+      Map<String, DataType> existedColumnTypes = new HashMap<>();
+      for (Field field : getFields(db)) {
+        existedColumnTypes.put(field.getName(), field.getType());
+      }
+
       for (SourceTable.Column column : new SourceTable(data)) {
         Field field = column.getField();
-        Map<Long, Object> columnData = column.getData();
 
+        if (existedColumnTypes.containsKey(field.getName())) {
+          DataType existedType = existedColumnTypes.get(field.getName());
+          if (!existedType.equals(field.getType())) {
+            throw new PhysicalException(
+                "data type ("
+                    + field.getType()
+                    + ") not match existed column type ("
+                    + existedType
+                    + ")");
+          }
+        }
+
+        Map<Long, Object> columnData = column.getData();
         List<BsonDocument> documents = new ArrayList<>();
         for (Map.Entry<Long, Object> point : columnData.entrySet()) {
           BsonValue key = new BsonInt64(point.getKey());
@@ -215,7 +233,6 @@ public class MongoDBStorage implements IStorage {
           documents.add(document);
         }
 
-        MongoDatabase db = this.getDatabase(unit);
         String collName = NameUtils.getCollectionName(field);
         MongoCollection<BsonDocument> collection = db.getCollection(collName, BsonDocument.class);
 
