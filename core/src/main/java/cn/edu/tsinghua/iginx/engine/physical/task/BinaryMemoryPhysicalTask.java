@@ -19,8 +19,8 @@
 package cn.edu.tsinghua.iginx.engine.physical.task;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.physical.exception.RowFetchException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.UnexpectedOperatorException;
+import cn.edu.tsinghua.iginx.engine.physical.exception.WarningException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.OperatorMemoryExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.OperatorMemoryExecutorFactory;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
@@ -104,7 +104,7 @@ public class BinaryMemoryPhysicalTask extends MemoryPhysicalTask {
 
     TaskExecuteResult result = new TaskExecuteResult(stream);
     if (warningMsg != null) {
-      result.setException(new RowFetchException(warningMsg));
+      result.setException(new WarningException(warningMsg));
     }
     return result;
   }

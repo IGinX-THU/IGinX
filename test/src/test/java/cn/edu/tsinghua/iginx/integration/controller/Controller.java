@@ -12,7 +12,9 @@ import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.utils.ShellRunner;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,6 +37,19 @@ public class Controller {
   private static final String TEST_TASK_FILE = "./src/test/resources/testTask.txt";
 
   private static final String MVN_RUN_TEST = "../.github/scripts/test/test_union.sh";
+
+  public static final Map<String, Boolean> SUPPORT_KEY =
+      new HashMap<String, Boolean>() {
+        {
+          put("FileSystem", false);
+          put("IoTDB12", true);
+          put("InfluxDB", true);
+          put("PostgreSQL", false);
+          put("Redis", false);
+          put("MongoDB", false);
+          put("Parquet", true);
+        }
+      };
 
   private List<StorageEngineMeta> storageEngineMetas = new ArrayList<>();
 

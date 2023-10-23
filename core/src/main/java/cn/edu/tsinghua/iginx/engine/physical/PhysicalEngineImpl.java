@@ -22,7 +22,7 @@ import static cn.edu.tsinghua.iginx.engine.physical.task.utils.TaskUtils.getStor
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.physical.exception.RowFetchException;
+import cn.edu.tsinghua.iginx.engine.physical.exception.WarningException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.MemoryPhysicalTaskDispatcher;
 import cn.edu.tsinghua.iginx.engine.physical.optimizer.PhysicalOptimizer;
 import cn.edu.tsinghua.iginx.engine.physical.optimizer.PhysicalOptimizerManager;
@@ -90,13 +90,9 @@ public class PhysicalEngineImpl implements PhysicalEngine {
     storageTaskExecutor.commit(storageTasks);
     TaskExecuteResult result = task.getResult();
     if (result.getException() != null) {
-      if (result.getException() instanceof RowFetchException) {
-        RowFetchException e = (RowFetchException) result.getException();
-        if (e.getMessage() != null && e.getMessage().contains("WARNING")) {
-          ctx.setWarningMsg(e.getMessage());
-        } else {
-          throw e;
-        }
+      if (result.getException() instanceof WarningException) {
+        WarningException e = (WarningException) result.getException();
+        ctx.setWarningMsg(e.getMessage());
       } else {
         throw result.getException();
       }

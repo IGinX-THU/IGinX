@@ -347,6 +347,10 @@ public class IginxClient {
         return;
       }
 
+      if (res.getWarningMsg() != null && !res.getWarningMsg().isEmpty()) {
+        System.out.println(res.getWarningMsg());
+      }
+
       System.out.println("ResultSets:");
 
       List<List<String>> cache = cacheResult(res);
@@ -377,9 +381,6 @@ public class IginxClient {
       }
       if (!isCanceled) {
         System.out.print(FormatUtils.formatCount(total));
-      }
-      if (res.getWarningMsg() != null && !res.getWarningMsg().isEmpty()) {
-        System.out.println(res.getWarningMsg());
       }
       res.close();
     } catch (SessionException | ExecutionException e) {
