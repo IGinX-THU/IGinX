@@ -21,7 +21,7 @@ package cn.edu.tsinghua.iginx.metadata;
 import static cn.edu.tsinghua.iginx.metadata.utils.IdUtils.generateDummyStorageUnitId;
 import static cn.edu.tsinghua.iginx.metadata.utils.ReshardStatus.EXECUTING;
 import static cn.edu.tsinghua.iginx.metadata.utils.ReshardStatus.NON_RESHARDING;
-import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.setSchemaPrefixInExtraParams;
+import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.checkEmbeddedStorageExtraParams;
 import static cn.edu.tsinghua.iginx.utils.HostUtils.convertHostNameToHostAddress;
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
@@ -1227,8 +1227,11 @@ public class DefaultMetaManager implements IMetaManager {
       }
       boolean readOnly =
           Boolean.parseBoolean(extraParams.getOrDefault(Constants.IS_READ_ONLY, "false"));
-      if (!setSchemaPrefixInExtraParams(
+      if (!checkEmbeddedStorageExtraParams(
           StorageEngineType.valueOf(storageEngine.toLowerCase()), extraParams)) {
+        logger.error(
+            String.format(
+                "Missing or providing invalid params for %s in config file.", storageEngine));
         continue;
       }
       String schemaPrefix = extraParams.get(Constants.SCHEMA_PREFIX);

@@ -1618,6 +1618,10 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       if (kvArray.length != 2) {
         if (kv.contains("url")) {
           map.put("url", kv.substring(kv.indexOf(":") + 1));
+        } else if (kv.contains("dir")) {
+          // for windows absolute path
+          map.put(
+              kv.substring(0, kv.indexOf(":")).trim(), kv.substring(kv.indexOf(":") + 1).trim());
         }
         continue;
       }
