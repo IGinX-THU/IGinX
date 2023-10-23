@@ -223,11 +223,11 @@ public class IoTDBStorage implements IStorage {
   @Override
   public List<Column> getColumns() throws PhysicalException {
     List<Column> columns = new ArrayList<>();
-    getColumnsAndFragment(columns, null);
+    getColumns2StorageUnit(columns, null);
     return columns;
   }
 
-  private void getColumnsAndFragment(List<Column> columns, Map<String, String> columns2Fragment)
+  private void getColumns2StorageUnit(List<Column> columns, Map<String, String> columns2StorageUnit)
       throws PhysicalException {
     try {
       SessionDataSetWrapper dataSet = sessionPool.executeQueryStatement(SHOW_TIMESERIES);
@@ -247,8 +247,8 @@ public class IoTDBStorage implements IStorage {
         String dataTypeName = record.getFields().get(3).getStringValue();
 
         String fragment = isDummy ? "" : record.getFields().get(2).getStringValue().substring(5);
-        if (columns2Fragment != null) {
-          columns2Fragment.put(pair.k, fragment);
+        if (columns2StorageUnit != null) {
+          columns2StorageUnit.put(pair.k, fragment);
         }
 
         switch (dataTypeName) {
@@ -895,7 +895,7 @@ public class IoTDBStorage implements IStorage {
     if (filterStr.contains("*")) {
       List<Column> columns = new ArrayList<>();
       Map<String, String> columns2Fragment = new HashMap<>();
-      getColumnsAndFragment(columns, columns2Fragment);
+      getColumns2StorageUnit(columns, columns2Fragment);
       filterStr =
           FilterTransformer.toString(
               expandFilterWildcard(filter.copy(), columns, columns2Fragment, storageUnit));
