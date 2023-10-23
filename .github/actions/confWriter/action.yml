@@ -25,6 +25,12 @@ inputs:
 runs:
     using: "composite" # Mandatory parameter
     steps:
+        - if: inputs.DB-name=='FileSystem' || inputs.DB-name=='Parquet'
+          name: save config for FileSystem and Parquet
+          shell: bash
+          run: |
+              cp -f "${GITHUB_WORKSPACE}/conf/config.properties" "${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties"
+
         - name: Set if-CapExp
           shell: bash
           run: |
@@ -36,9 +42,17 @@ runs:
           run: |
               if [[ "${{ inputs.Test-Way }}" == "oriHasDataExpHasData" || "${{ inputs.Test-Way }}" == "oriHasDataExpNoData" ]]; then
                 if [ "$RUNNER_OS" == "Linux" ]; then
-                  sed -i "s/has_data=false/has_data=true/g" ${GITHUB_WORKSPACE}/core/target/iginx-core-0.6.0-SNAPSHOT/conf/config.properties
+                  if [ "${{ inputs.DB-name }}" == "Redis" ]; then
+                    sed -i "s/has_data=false/has_data=true#schema_prefix=mn/g" ${GITHUB_WORKSPACE}/core/target/iginx-core-0.6.0-SNAPSHOT/conf/config.properties
+                  else
+                    sed -i "s/has_data=false/has_data=true/g" ${GITHUB_WORKSPACE}/core/target/iginx-core-0.6.0-SNAPSHOT/conf/config.properties
+                  fi
                 elif [ "$RUNNER_OS" == "macOS" ]; then
-                  sed -i "" "s/has_data=false/has_data=true/" ${GITHUB_WORKSPACE}/core/target/iginx-core-0.6.0-SNAPSHOT/conf/config.properties
+                  if [ "${{ inputs.DB-name }}" == "Redis" ]; then
+                    sed -i "" "s/has_data=false/has_data=true#schema_prefix=mn/" ${GITHUB_WORKSPACE}/core/target/iginx-core-0.6.0-SNAPSHOT/conf/config.properties
+                  else
+                    sed -i "" "s/has_data=false/has_data=true/" ${GITHUB_WORKSPACE}/core/target/iginx-core-0.6.0-SNAPSHOT/conf/config.properties
+                  fi
                 fi
               elif [[ "${{ inputs.Test-Way }}" == "oriNoDataExpHasData" || "${{ inputs.Test-Way }}" == "oriNoDataExpNoData" ]]; then
                 if [ "$RUNNER_OS" == "Linux" ]; then

@@ -43,11 +43,6 @@ public class ParseTest {
     assertEquals(paths, statement.getPaths());
 
     assertEquals(2, statement.getKeys().size());
-
-    insertStr =
-        "SELECT avg_s1 FROM (SELECT AVG(s1) AS avg_s1 FROM us.d1 OVER (RANGE 100 IN [1000, 1600)) WHERE avg_s1 > 1200;";
-    SelectStatement selectStatement = (SelectStatement) TestUtils.buildStatement(insertStr);
-    System.out.println();
   }
 
   @Test

@@ -496,6 +496,8 @@ public class RedisStorage implements IStorage {
             maxTime = Math.max(maxTime, jedis.llen(path));
             break;
           case "set":
+            maxTime = Math.max(maxTime, jedis.scard(path));
+            break;
           case "zset":
             maxTime = Math.max(maxTime, jedis.zcard(path));
             break;

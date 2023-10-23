@@ -151,6 +151,7 @@ public class FoldedMemoryPhysicalTask extends MemoryPhysicalTask {
                     ((OperatorSource) reorder.getSource()).getOperator(), selectedPaths)));
         if (reorder.isNeedSelectedPath()) {
           reorder.getPatterns().addAll(selectedPaths);
+          selectedPaths.forEach(p -> reorder.getIsPyUDF().add(false));
           reorder.setNeedSelectedPath(false);
         }
         return reorder;

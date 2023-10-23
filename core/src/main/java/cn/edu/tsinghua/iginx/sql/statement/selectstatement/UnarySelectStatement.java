@@ -6,7 +6,6 @@ import static cn.edu.tsinghua.iginx.sql.SQLConstant.L_PARENTHESES;
 import static cn.edu.tsinghua.iginx.sql.SQLConstant.R_PARENTHESES;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils;
-import cn.edu.tsinghua.iginx.engine.shared.Constants;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils;
 import cn.edu.tsinghua.iginx.engine.shared.operator.MarkJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
@@ -23,6 +22,7 @@ import cn.edu.tsinghua.iginx.sql.statement.StatementType;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.FromPart;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.SubQueryFromPart;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
+import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -634,10 +634,7 @@ public class UnarySelectStatement extends SelectStatement {
     }
     for (int i = 0; i < endIndexOfFromPart; i++) {
       for (String pattern : fromParts.get(i).getPatterns()) {
-        if (pattern.endsWith(Constants.ALL_PATH_SUFFIX)) {
-          pattern = pattern.substring(0, pattern.length() - 1);
-        }
-        if (path.startsWith(pattern)) {
+        if (StringUtils.match(path, pattern)) {
           return true;
         }
       }
@@ -651,10 +648,7 @@ public class UnarySelectStatement extends SelectStatement {
     }
     for (SubQueryFromPart whereSubQueryPart : whereSubQueryParts) {
       for (String pattern : whereSubQueryPart.getPatterns()) {
-        if (pattern.endsWith(Constants.ALL_PATH_SUFFIX)) {
-          pattern = pattern.substring(0, pattern.length() - 1);
-        }
-        if (path.startsWith(pattern)) {
+        if (StringUtils.match(path, pattern)) {
           return true;
         }
       }
@@ -668,10 +662,7 @@ public class UnarySelectStatement extends SelectStatement {
     }
     for (SubQueryFromPart havingSubQueryPart : havingSubQueryParts) {
       for (String pattern : havingSubQueryPart.getPatterns()) {
-        if (pattern.endsWith(Constants.ALL_PATH_SUFFIX)) {
-          pattern = pattern.substring(0, pattern.length() - 1);
-        }
-        if (path.startsWith(pattern)) {
+        if (StringUtils.match(path, pattern)) {
           return true;
         }
       }
