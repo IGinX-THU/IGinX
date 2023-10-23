@@ -1,6 +1,7 @@
 package cn.edu.tsinghua.iginx.integration.expansion;
 
 import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.*;
+import static cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools.executeShellScript;
 import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
@@ -14,6 +15,10 @@ import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.thrift.RemovedStorageEngineInfo;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.io.File;
 import java.io.IOException;
@@ -83,6 +88,7 @@ public abstract class BaseCapacityExpansionIT {
         statement.append(dummyDir != null ? dummyDir : "test/" + PORT_TO_ROOT.get(port));
         statement.append(", dir:");
         statement.append(dataDir != null ? dataDir : "test/iginx_" + PORT_TO_ROOT.get(port));
+        statement.append(", iginx_port:" + oriPortIginx);
       }
       if (extraParams != null) {
         statement.append(", ");
@@ -139,14 +145,26 @@ public abstract class BaseCapacityExpansionIT {
     Controller.clearData(session);
   }
 
+  private void addStorageEngineInProgress(
+      int port, boolean hasData, boolean isReadOnly, String dataPrefix, String schemaPrefix)
+      throws InterruptedException {
+    if (IS_PARQUET_OR_FILE_SYSTEM) {
+      startStorageEngineWithIginx(port, hasData, isReadOnly);
+    } else {
+      addStorageEngine(port, hasData, isReadOnly, dataPrefix, schemaPrefix);
+    }
+  }
+
   @Test
-  public void oriHasDataExpHasData() {
+  public void oriHasDataExpHasData()
+      throws InterruptedException, SessionException, ExecutionException {
     // 查询原始节点的历史数据，结果不为空
     testQueryHistoryDataOriHasData();
     // 写入并查询新数据
     testWriteAndQueryNewData();
     // 扩容
-    addStorageEngine(expPort, true, false, null, EXP_SCHEMA_PREFIX);
+    addStorageEngineInProgress(expPort, true, false, null, EXP_SCHEMA_PREFIX);
+
     // 查询扩容节点的历史数据，结果不为空
     testQueryHistoryDataExpHasData();
     // 再次查询新数据
@@ -156,13 +174,13 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   @Test
-  public void oriHasDataExpNoData() {
+  public void oriHasDataExpNoData() throws InterruptedException {
     // 查询原始节点的历史数据，结果不为空
     testQueryHistoryDataOriHasData();
     // 写入并查询新数据
     testWriteAndQueryNewData();
     // 扩容
-    addStorageEngine(expPort, false, false, null, EXP_SCHEMA_PREFIX);
+    addStorageEngineInProgress(expPort, false, false, null, EXP_SCHEMA_PREFIX);
     // 查询扩容节点的历史数据，结果为空
     testQueryHistoryDataExpNoData();
     // 再次查询新数据
@@ -172,13 +190,13 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   @Test
-  public void oriNoDataExpHasData() {
+  public void oriNoDataExpHasData() throws InterruptedException {
     // 查询原始节点的历史数据，结果为空
     testQueryHistoryDataOriNoData();
     // 写入并查询新数据
     testWriteAndQueryNewData();
     // 扩容
-    addStorageEngine(expPort, true, false, null, EXP_SCHEMA_PREFIX);
+    addStorageEngineInProgress(expPort, true, false, null, EXP_SCHEMA_PREFIX);
     // 查询扩容节点的历史数据，结果不为空
     testQueryHistoryDataExpHasData();
     // 再次查询新数据
@@ -190,13 +208,13 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   @Test
-  public void oriNoDataExpNoData() {
+  public void oriNoDataExpNoData() throws InterruptedException {
     // 查询原始节点的历史数据，结果为空
     testQueryHistoryDataOriNoData();
     // 写入并查询新数据
     testWriteAndQueryNewData();
     // 扩容
-    addStorageEngine(expPort, false, false, null, EXP_SCHEMA_PREFIX);
+    addStorageEngineInProgress(expPort, false, false, null, EXP_SCHEMA_PREFIX);
     // 查询扩容节点的历史数据，结果为空
     testQueryHistoryDataExpNoData();
     // 再次查询新数据
@@ -206,15 +224,15 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   @Test
-  public void testReadOnly() {
+  public void testReadOnly() throws InterruptedException {
     // 查询原始只读节点的历史数据，结果不为空
     testQueryHistoryDataOriHasData();
     // 扩容只读节点
-    addStorageEngine(readOnlyPort, true, true, null, READ_ONLY_SCHEMA_PREFIX);
+    addStorageEngineInProgress(readOnlyPort, true, true, null, READ_ONLY_SCHEMA_PREFIX);
     // 查询扩容只读节点的历史数据，结果不为空
     testQueryHistoryDataReadOnly();
     // 扩容可写节点
-    addStorageEngine(expPort, true, false, null, EXP_SCHEMA_PREFIX);
+    addStorageEngineInProgress(expPort, true, false, null, EXP_SCHEMA_PREFIX);
     // 查询扩容可写节点的历史数据，结果不为空
     testQueryHistoryDataExpHasData();
     // 写入并查询新数据
@@ -238,14 +256,18 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   protected void testAddInvalidDirPath() {
-    // invalid path: root path, cannot-be-created data paths, non-existent dummy dir paths, non-dir
-    // path
-    // read-only data dir exists
-    String validDataPath = "/test/iginx_" + PORT_TO_ROOT.get(expPort);
-    String validDummyPath = "test/" + PORT_TO_ROOT.get(expPort);
-    int testPort = 6670;
+    // invalid path:
+    // root path,
+    // cannot-be-created data paths,
+    // non-existent dummy dir paths,
+    // non-dir path
 
-    // create non-existent dummy dir path
+    // assume read-only data dir exists because is called in test
+    String validDataPath = "test/iginx_" + PORT_TO_ROOT.get(readOnlyPort);
+    String validDummyPath = "test/" + PORT_TO_ROOT.get(readOnlyPort);
+    int testPort = 6671;
+
+    // create non-existent random dummy dir path
     String symbols = "0123456789QWERTYUIOPASDFGHJKLZXCVBNMqwertyuiopasdfghjklzxcvbnm";
     Random random = new Random();
     char[] randomName = new char[8];
@@ -651,5 +673,56 @@ public abstract class BaseCapacityExpansionIT {
             + "+-------------+--------+\n"
             + "Total line number = 3\n";
     SQLTestTools.executeAndCompare(session, statement, expected);
+  }
+
+  protected void startStorageEngineWithIginx(int port, boolean hasData, boolean isReadOnly)
+      throws InterruptedException {
+    String scriptPath, iginxPath = ".github/scripts/iginx/iginx.sh";
+    String os = System.getProperty("os.name").toLowerCase();
+    boolean isOnMac = false;
+    if (os.contains("mac")) {
+      isOnMac = true;
+      iginxPath = ".github/scripts/iginx/iginx_macos.sh";
+    }
+
+    if (this instanceof FileSystemCapacityExpansionIT) {
+      if (isOnMac) {
+        scriptPath = ".github/scripts/dataSources/filesystem_macos.sh";
+      } else {
+        scriptPath = ".github/scripts/dataSources/filesystem.sh";
+      }
+    } else if (this instanceof ParquetCapacityExpansionIT) {
+      if (isOnMac) {
+        scriptPath = ".github/scripts/dataSources/parquet_macos.sh";
+      } else {
+        scriptPath = ".github/scripts/dataSources/parquet.sh";
+      }
+    } else {
+      throw new IllegalStateException("just support file system and parquet");
+    }
+
+    int iginxPort = PORT_TO_IGINXPORT.get(port);
+    int restPort = PORT_TO_RESTPORT.get(port);
+
+    int res =
+        executeShellScript(
+            scriptPath,
+            String.valueOf(port),
+            String.valueOf(iginxPort),
+            "test/" + PORT_TO_ROOT.get(port),
+            "test/iginx_" + PORT_TO_ROOT.get(port),
+            String.valueOf(hasData),
+            String.valueOf(isReadOnly),
+            "core/target/iginx-core-0.6.0-SNAPSHOT/conf/config.properties");
+    if (res != 0) {
+      fail("change config file fail");
+    }
+
+    res = executeShellScript(iginxPath, String.valueOf(iginxPort), String.valueOf(restPort));
+    if (res != 0) {
+      fail("start iginx fail");
+    }
+
+    Thread.sleep(8000);
   }
 }

@@ -22,7 +22,7 @@ import static cn.edu.tsinghua.iginx.metadata.utils.IdUtils.generateDummyStorageU
 import static cn.edu.tsinghua.iginx.metadata.utils.ReshardStatus.EXECUTING;
 import static cn.edu.tsinghua.iginx.metadata.utils.ReshardStatus.NON_RESHARDING;
 import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.checkEmbeddedStorageExtraParams;
-import static cn.edu.tsinghua.iginx.utils.HostUtils.convertHostNameToHostAddress;
+import static cn.edu.tsinghua.iginx.utils.HostUtils.isValidHost;
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.conf.Constants;
@@ -1200,6 +1200,10 @@ public class DefaultMetaManager implements IMetaManager {
       }
       String[] storageEngineParts = storageEngineStrings[i].split("#");
       String ip = storageEngineParts[0];
+      if (!isValidHost(ip)) { // IP 不合法
+        logger.error("ip {} is invalid", ip);
+        continue;
+      }
       int port = -1;
       if (!storageEngineParts[1].isEmpty()) {
         port = Integer.parseInt(storageEngineParts[1]);
@@ -1239,7 +1243,7 @@ public class DefaultMetaManager implements IMetaManager {
       StorageEngineMeta storage =
           new StorageEngineMeta(
               -1,
-              convertHostNameToHostAddress(ip),
+              ip,
               port,
               hasData,
               dataPrefix,

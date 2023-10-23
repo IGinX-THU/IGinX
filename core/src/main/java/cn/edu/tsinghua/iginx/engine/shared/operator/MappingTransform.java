@@ -44,7 +44,7 @@ public class MappingTransform extends AbstractUnaryOperator {
 
   @Override
   public Operator copy() {
-    return null;
+    return new MappingTransform(getSource().copy(), functionCall.copy());
   }
 
   @Override
