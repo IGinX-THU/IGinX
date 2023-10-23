@@ -185,4 +185,16 @@ public class ValueUtils {
       return s1.compareTo(s2);
     };
   }
+
+  public static Object[] moveForwardNotNull(Object[] values) {
+    Object[] newValues = new Object[values.length];
+    int index = 0;
+    for (Object value : values) {
+      if (value != null) {
+        newValues[index] = value;
+        index++;
+      }
+    }
+    return newValues;
+  }
 }

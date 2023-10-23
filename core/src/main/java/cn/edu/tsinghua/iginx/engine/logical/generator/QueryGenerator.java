@@ -59,6 +59,7 @@ import cn.edu.tsinghua.iginx.policy.IPolicy;
 import cn.edu.tsinghua.iginx.policy.PolicyManager;
 import cn.edu.tsinghua.iginx.sql.expression.Expression;
 import cn.edu.tsinghua.iginx.sql.expression.FromValueExpression;
+import cn.edu.tsinghua.iginx.sql.expression.FuncExpression;
 import cn.edu.tsinghua.iginx.sql.statement.Statement;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.FromPartType;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.PathFromPart;
@@ -78,7 +79,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import jdk.nashorn.internal.runtime.regexp.joni.exception.SyntaxException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -519,7 +519,7 @@ public class QueryGenerator extends AbstractGenerator {
       selectStatement.initFreeVariables();
       List<String> freeVariables = selectStatement.getFreeVariables();
       if (!freeVariables.isEmpty()) {
-        throw new SyntaxException("Unexpected paths' name: " + freeVariables + ".");
+        throw new RuntimeException("Unexpected paths' name: " + freeVariables + ".");
       }
     }
 
@@ -539,41 +539,44 @@ public class QueryGenerator extends AbstractGenerator {
               (int) selectStatement.getOffset());
     }
 
-    // 子查询不生成Reorder算子
-    if (!selectStatement.isSubQuery()) {
-      if (selectStatement.getLayers().isEmpty()) {
-        if (selectStatement.getQueryType().equals(QueryType.LastFirstQuery)) {
-          root = new Reorder(new OperatorSource(root), Arrays.asList("path", "value"));
-        } else {
-          List<String> order = new ArrayList<>();
-          selectStatement
-              .getExpressions()
-              .forEach(
-                  expression -> {
-                    if (expression.getType().equals(Expression.ExpressionType.FromValue)) {
-                      return;
-                    }
-                    String colName = expression.getColumnName();
-                    order.add(colName);
-                  });
-          root =
-              new Reorder(
-                  new OperatorSource(root), order, selectStatement.hasValueToSelectedPath());
-        }
+    if (selectStatement.getLayers().isEmpty()) {
+      if (selectStatement.getQueryType().equals(QueryType.LastFirstQuery)) {
+        root = new Reorder(new OperatorSource(root), Arrays.asList("path", "value"));
       } else {
         List<String> order = new ArrayList<>();
+        List<Boolean> isPyUDF = new ArrayList<>();
         selectStatement
             .getExpressions()
             .forEach(
                 expression -> {
+                  if (expression.getType().equals(Expression.ExpressionType.FromValue)) {
+                    return;
+                  }
+                  if (expression.getType().equals(Expression.ExpressionType.Function)) {
+                    isPyUDF.add(((FuncExpression) expression).isPyUDF());
+                  } else {
+                    isPyUDF.add(false);
+                  }
                   String colName = expression.getColumnName();
-                  colName =
-                      colName.replaceFirst(
-                          selectStatement.getFromParts().get(0).getPrefix() + DOT, "");
                   order.add(colName);
                 });
-        root = new Reorder(new OperatorSource(root), order);
+        root =
+            new Reorder(
+                new OperatorSource(root), order, isPyUDF, selectStatement.hasValueToSelectedPath());
       }
+    } else {
+      List<String> order = new ArrayList<>();
+      selectStatement
+          .getExpressions()
+          .forEach(
+              expression -> {
+                String colName = expression.getColumnName();
+                colName =
+                    colName.replaceFirst(
+                        selectStatement.getFromParts().get(0).getPrefix() + DOT, "");
+                order.add(colName);
+              });
+      root = new Reorder(new OperatorSource(root), order);
     }
 
     Map<String, String> aliasMap = selectStatement.getSelectAliasMap();
