@@ -313,7 +313,6 @@ timeValue
 
 path
    : nodeName (DOT nodeName)*
-   | BACK_QUOTE_STRING_LITERAL_NOT_EMPTY
    ;
 
 udfType
@@ -337,17 +336,8 @@ jobStatus
 nodeName
    : ID
    | STAR
-   | valueNode
+   | BACK_QUOTE_STRING_LITERAL_NOT_EMPTY
    | keyWords
-   ;
-
-valueNode
-   : stringLiteral
-   | TIME_WITH_UNIT
-   | dateExpression
-   | dateFormat
-   | MINUS? (EXPONENT | INT)
-   | booleanClause
    ;
 
 keyWords
@@ -380,7 +370,6 @@ keyWords
    | STORAGEENGINE
    | POINTS
    | DATA
-   | NULL
    | REPLICA
    | IOTDB
    | INFLUXDB

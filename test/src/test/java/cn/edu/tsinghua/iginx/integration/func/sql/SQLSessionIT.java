@@ -4732,10 +4732,10 @@ public class SQLSessionIT {
 
     // numerical path
     String insert =
-        "INSERT INTO 114514(key, 1919810) VALUES (1, 1), (2, 2), (3, 3), (4, 4), (5, 5);";
+        "INSERT INTO `114514`(key, `1919810`) VALUES (1, 1), (2, 2), (3, 3), (4, 4), (5, 5);";
     executor.execute(insert);
 
-    String query = "SELECT `1919810` FROM 114514;";
+    String query = "SELECT `1919810` FROM `114514`;";
     String expected =
         "ResultSets:\n"
             + "+---+--------------+\n"
@@ -4750,7 +4750,7 @@ public class SQLSessionIT {
             + "Total line number = 5\n";
     executor.executeAndCompare(query, expected);
 
-    query = "SELECT `1919810` * 2 FROM 114514;";
+    query = "SELECT `1919810` * 2 FROM `114514`;";
     expected =
         "ResultSets:\n"
             + "+---+------------------+\n"
@@ -4765,7 +4765,7 @@ public class SQLSessionIT {
             + "Total line number = 5\n";
     executor.executeAndCompare(query, expected);
 
-    query = "SELECT 2 * `1919810` FROM 114514;";
+    query = "SELECT 2 * `1919810` FROM `114514`;";
     expected =
         "ResultSets:\n"
             + "+---+------------------+\n"
@@ -4780,7 +4780,7 @@ public class SQLSessionIT {
             + "Total line number = 5\n";
     executor.executeAndCompare(query, expected);
 
-    query = "SELECT `1919810` FROM 114514 WHERE `1919810` < 3;";
+    query = "SELECT `1919810` FROM `114514` WHERE `1919810` < 3;";
     expected =
         "ResultSets:\n"
             + "+---+--------------+\n"
@@ -4792,7 +4792,7 @@ public class SQLSessionIT {
             + "Total line number = 2\n";
     executor.executeAndCompare(query, expected);
 
-    query = "SELECT `1919810` FROM 114514 WHERE 3 < `1919810`;";
+    query = "SELECT `1919810` FROM `114514` WHERE 3 < `1919810`;";
     expected =
         "ResultSets:\n"
             + "+---+--------------+\n"
@@ -4866,10 +4866,10 @@ public class SQLSessionIT {
 
     // mix path
     String insert =
-        "INSERT INTO 测试.前缀.114514(key, 1919810._:@#$.后缀) VALUES (1, 1), (2, 2), (3, 3), (4, 4), (5, 5);";
+        "INSERT INTO 测试.前缀.`114514`(key, `1919810`._:@#$.后缀) VALUES (1, 1), (2, 2), (3, 3), (4, 4), (5, 5);";
     executor.execute(insert);
 
-    String query = "SELECT 1919810._:@#$.后缀 FROM 测试.前缀.114514;";
+    String query = "SELECT `1919810`._:@#$.后缀 FROM 测试.前缀.`114514`;";
     String expected =
         "ResultSets:\n"
             + "+---+-----------------------------+\n"

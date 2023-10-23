@@ -64,6 +64,7 @@ import cn.edu.tsinghua.iginx.sql.SqlParser.InsertValuesSpecContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.JoinContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.JoinPartContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.LimitClauseContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.NodeNameContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.OrExpressionContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.OrPreciseExpressionContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.OrTagExpressionContext;
@@ -246,10 +247,17 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   }
 
   private String parsePath(PathContext ctx) {
-    String text = ctx.getText();
-    return ctx.BACK_QUOTE_STRING_LITERAL_NOT_EMPTY() != null
-        ? text.substring(1, text.length() - 1)
-        : text;
+    StringBuilder path = new StringBuilder();
+    for (NodeNameContext nodeNameContext : ctx.nodeName()) {
+      String nodeName = nodeNameContext.getText();
+      if (nodeNameContext.BACK_QUOTE_STRING_LITERAL_NOT_EMPTY() != null) {
+        nodeName = nodeName.substring(1, nodeName.length() - 1);
+      }
+      path.append(nodeName);
+      path.append(SQLConstant.DOT);
+    }
+    path.deleteCharAt(path.length() - 1);
+    return path.toString();
   }
 
   private ImportFile parseImportFileClause(ImportFileClauseContext ctx) {
