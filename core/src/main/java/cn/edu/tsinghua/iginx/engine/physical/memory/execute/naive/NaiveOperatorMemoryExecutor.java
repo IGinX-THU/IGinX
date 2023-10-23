@@ -60,6 +60,7 @@ import cn.edu.tsinghua.iginx.engine.shared.function.system.Min;
 import cn.edu.tsinghua.iginx.engine.shared.operator.AddSchemaPrefix;
 import cn.edu.tsinghua.iginx.engine.shared.operator.BinaryOperator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.CrossJoin;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Distinct;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Downsample;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Except;
 import cn.edu.tsinghua.iginx.engine.shared.operator.GroupBy;
@@ -147,7 +148,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
       case GroupBy:
         return executeGroupBy((GroupBy) operator, transformToTable(stream));
       case Distinct:
-        return executeDistinct(transformToTable(stream));
+        return executeDistinct((Distinct) operator, transformToTable(stream));
       case ValueToSelectedPath:
         return executeValueToSelectedPath((ValueToSelectedPath) operator, transformToTable(stream));
       default:
@@ -407,7 +408,8 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
       }
       // min和max无需去重
       if (!function.getIdentifier().equals(Max.MAX) && !function.getIdentifier().equals(Min.MIN)) {
-        table = transformToTable(executeDistinct(table));
+        Distinct distinct = new Distinct(EmptySource.EMPTY_SOURCE, params.getPaths());
+        table = transformToTable(executeDistinct(distinct, table));
       }
     }
 
@@ -606,7 +608,10 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     return new Table(newHeader, rows);
   }
 
-  private RowStream executeDistinct(Table table) throws PhysicalException {
+  private RowStream executeDistinct(Distinct distinct, Table table) throws PhysicalException {
+    Project project = new Project(EmptySource.EMPTY_SOURCE, distinct.getPatterns(), null);
+    table = transformToTable(executeProject(project, table));
+
     if (table.getHeader().getFields().isEmpty()) {
       return table;
     }

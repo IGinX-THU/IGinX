@@ -259,7 +259,7 @@ public class OperatorUtils {
         break;
       case SetTransform:
         SetTransform setTransform = (SetTransform) operatorB;
-        Operator newOperatorA = new Distinct(apply.getSourceA());
+        Operator newOperatorA = new Distinct(apply.getSourceA(), Collections.singletonList("*"));
         apply.setSourceA(new OperatorSource(newOperatorA));
 
         apply.setSourceB(setTransform.getSource());
