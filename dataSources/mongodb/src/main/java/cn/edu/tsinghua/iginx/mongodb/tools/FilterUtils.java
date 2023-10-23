@@ -265,7 +265,7 @@ public class FilterUtils {
     } else if (subFilters.isEmpty()) {
       return null;
     } else {
-      return and(subFilters);
+      return unionComparisonFilters(filter.getOp(), subFilters);
     }
   }
 
@@ -280,6 +280,9 @@ public class FilterUtils {
   }
 
   private static Bson fieldValueOp(Op op, String fieldName, BsonValue value) {
+    if (fieldName.contains("*")) {
+      throw new IllegalArgumentException("wildcard is not support");
+    }
     switch (op) {
       case GE:
       case GE_AND:
@@ -341,12 +344,38 @@ public class FilterUtils {
     } else if (subFilters.isEmpty()) {
       return null;
     } else {
-      return and(subFilters);
+      return unionComparisonFilters(filter.getOp(), subFilters);
+    }
+  }
+
+  private static Bson unionComparisonFilters(Op op, List<Bson> subFilters) {
+    switch (op) {
+      case GE:
+      case G:
+      case LE:
+      case L:
+      case E:
+      case NE:
+      case LIKE:
+        return or(subFilters);
+      case GE_AND:
+      case G_AND:
+      case LE_AND:
+      case L_AND:
+      case E_AND:
+      case NE_AND:
+      case LIKE_AND:
+        return and(subFilters);
+      default:
+        throw new IllegalArgumentException("unexpected Filter op: " + op);
     }
   }
 
   private static Bson fieldOp(Op op, String fieldA, String fieldB) {
     List<String> fields = Arrays.asList("$" + fieldA, "$" + fieldB);
+    if (fieldA.contains("*") || fieldB.contains("*")) {
+      throw new IllegalArgumentException("wildcard is not support");
+    }
     switch (op) {
       case GE:
       case GE_AND:
