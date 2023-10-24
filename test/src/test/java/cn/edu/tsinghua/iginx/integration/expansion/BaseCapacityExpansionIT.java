@@ -250,9 +250,9 @@ public abstract class BaseCapacityExpansionIT {
     }
 
     // test invalid dummy dir & data dir when adding parquet & filesystem storage
-    //    if (IS_PARQUET_OR_FILE_SYSTEM) {
-    //      testAddInvalidDirPath();
-    //    }
+    if (IS_PARQUET_OR_FILE_SYSTEM) {
+      testAddInvalidDirPath();
+    }
   }
 
   protected void testAddInvalidDirPath() {
@@ -261,6 +261,7 @@ public abstract class BaseCapacityExpansionIT {
     // cannot-be-created data paths,
     // non-existent dummy dir paths,
     // non-dir path
+    logger.info("Testing invalid dir path...");
 
     // assume read-only data dir exists because is called in test
     String validDataPath = "test/iginx_" + PORT_TO_ROOT.get(readOnlyPort);
@@ -308,6 +309,7 @@ public abstract class BaseCapacityExpansionIT {
       pathPairList.add(new Pair<>("/path/to/my/data", validDummyPath));
     }
     for (Pair<String, String> p : pathPairList) {
+      logger.info(String.format("dir pair: %s, %s", p.k, p.v));
       String res = addStorageEngine(testPort, true, false, null, null, p.k, p.v);
       if (res != null && !res.contains("Missing or providing invalid params")) {
         logger.error(res);
