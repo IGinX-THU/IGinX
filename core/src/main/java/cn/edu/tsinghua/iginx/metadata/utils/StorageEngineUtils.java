@@ -29,7 +29,7 @@ public class StorageEngineUtils {
     }
 
     // 检查路径是否为根路径
-    if (dir.equals("/") || dir.matches("[A-Za-z]:(/|\\\\)")) {
+    if (dir.equals("/") || dir.matches("[A-Za-z]:[/\\\\]")) {
       return false;
     }
 
@@ -104,7 +104,7 @@ public class StorageEngineUtils {
       return invalidPair;
     }
     System.out.println(String.format("checking dir: %s", dir));
-    if (dir.equals("/") || dir.matches("[A-Za-z]:(/|\\\\)")) { // 根目录
+    if (dir.equals("/") || dir.matches("[A-Za-z]:[/\\\\]")) { // 根目录
       return invalidPair;
     }
     File file = new File(dir);

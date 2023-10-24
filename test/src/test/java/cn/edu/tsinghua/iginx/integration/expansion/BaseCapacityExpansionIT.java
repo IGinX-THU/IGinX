@@ -296,12 +296,12 @@ public abstract class BaseCapacityExpansionIT {
         new ArrayList<>(
             Arrays.asList(
                 new Pair<>("/", validDummyPath),
-                new Pair<>("C:\\\\", validDummyPath),
-                new Pair<>("e:\\\\", validDummyPath),
+                new Pair<>("C:\\", validDummyPath),
+                new Pair<>("e:\\", validDummyPath),
                 new Pair<>(nonDirPath, validDummyPath),
                 new Pair<>(validDataPath, "/"),
-                new Pair<>(validDataPath, "C:\\\\"),
-                new Pair<>(validDataPath, "e:\\\\"),
+                new Pair<>(validDataPath, "C:\\"),
+                new Pair<>(validDataPath, "e:\\"),
                 new Pair<>(validDataPath, nonExistentDummyDirPath),
                 new Pair<>(validDataPath, nonDirPath)));
     if (!System.getProperty("os.name").contains("Windows")) {
